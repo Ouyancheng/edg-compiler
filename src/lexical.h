@@ -182,6 +182,9 @@ typedef enum /*a_token_kind*/ {
   tok_near,
   tok_far,
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  tok_attribute,
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* C++ tokens not in C (ARM, 2.4): */
   tok_colon_colon       /* :: */,
   tok_period_star       /* .* */,
@@ -268,6 +271,9 @@ EXTERN char	*token_names[(int)tok_last+1]
 #if NEAR_AND_FAR_ALLOWED
     "__near", "__far",
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+   "__attribute__",
+#endif /* GNU_EXTENSIONS_ALLOWED */
    "::", ".*", "->*", "asm", "catch", "class", "delete", "friend",
    "inline", "new", "operator", "private", "protected", "public",
    "template", "this", "throw", "try", "virtual", "wchar_t",
@@ -612,6 +618,9 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_near */
    (an_opname_kind)onk_none,          /* tok_far */
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+   (an_opname_kind)onk_none,          /* tok_attribute */
+#endif /* GNU_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_colon_colon */
    (an_opname_kind)onk_none,          /* tok_period_star */
    (an_opname_kind)onk_arrow_star,

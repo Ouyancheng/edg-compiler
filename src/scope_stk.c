@@ -3117,6 +3117,9 @@ NULL.
       } else if ((!sym->referenced ||
                   (sym->variant.variable.value_has_been_set &&
                    !sym->variant.variable.used)) &&
+#if GNU_EXTENSIONS_ALLOWED
+		 !var_ptr->type->variables_are_implicitly_referenced &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
                  !(is_class_struct_union_type(var_ptr->type) &&
                    (var_ptr->type->
                                 variant.class_struct_union.is_nonreal_class ||
@@ -3469,7 +3472,8 @@ NULL.
                                   (a_special_function_kind)sfk_constructor ||
                           rp->special_kind ==
                                   (a_special_function_kind)sfk_destructor ||
-                          rp->opname_kind == (an_opname_kind)onk_assign) &&
+                          rp->opname_or_builtin.opname_kind == 
+                                  (an_opname_kind)onk_assign) &&
                          !routine_defined(rp))) {
               report_unreferenced((a_symbol_ptr)rp->source_corresp.assoc_info,
                                   ec_declared_but_not_referenced,
@@ -4306,48 +4310,59 @@ e.g., because it's externally defined.
 {
   a_boolean is_needed = FALSE;
 
-  /* Generally, externally-defined routines are needed, because they might
-     be referenced from some other compilation unit. */
-  if (rout->storage_class == (a_storage_class)sc_unspecified) {
+#if GNU_EXTENSIONS_ALLOWED
+  if (rout->is_initialization_routine || rout->is_finalization_routine) {
+    /* An initialization or finalization routine is always needed,
+       even if not otherwise referenced, because it will be called
+       at program startup. */
     is_needed = TRUE;
-    if (rout->is_trivial_default_constructor) {
-      /* Trivial constructors have no bodies so are never needed. */
-      is_needed = FALSE;
-    } else if (rout->is_inline &&
-               !(c99_mode && !rout->suppress_inline_body)) {
-      /* An exception is "extern inline" functions, which are not regarded
-         as referenced from elsewhere.  Each compilation unit has its own
-         copy, and this copy is needed only if it is referenced in this
-         compilation unit.  In C99 mode, however, an out-of-line copy that
-         can be referenced from somewhere else may have been generated (if
-         there was also a non-inline declaration of the function). */
-      is_needed = FALSE;
-    } else if (rout->is_template_function &&
-               !rout->is_specialized &&
-               instantiation_mode == tim_used &&
-               !translation_unit_needed_only_for_exported_templates) {
-      /* Another exception is function template instances when the source
-         is compiled with the -tused option (meaning that any reference
-         triggers an instantiation).  The instantiation is needed only if
-         it is referenced.  This processing is suppressed in secondary
-         translation units loaded for the purpose of defining exported
-         templates because instances of such templates are not necessarily
-         referenced from the translation unit in which they are defined. */
-      a_symbol_ptr             rout_sym;
-      a_template_instance_ptr  tip;
+  } else 
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    /* Generally, externally-defined routines are needed, because they might
+       be referenced from some other compilation unit. */
+    if (rout->storage_class == (a_storage_class)sc_unspecified) {
+      is_needed = TRUE;
+      if (rout->is_trivial_default_constructor) {
+	/* Trivial constructors have no bodies so are never needed. */
+	is_needed = FALSE;
+      } else if (rout->is_inline &&
+		 !(c99_mode && !rout->suppress_inline_body)) {
+	/* An exception is "extern inline" functions, which are not regarded
+	   as referenced from elsewhere.  Each compilation unit has its own
+	   copy, and this copy is needed only if it is referenced in this
+	   compilation unit.  In C99 mode, however, an out-of-line copy that
+	   can be referenced from somewhere else may have been generated (if
+	   there was also a non-inline declaration of the function). */
+	is_needed = FALSE;
+      } else if (rout->is_template_function &&
+		 !rout->is_specialized &&
+		 instantiation_mode == tim_used &&
+		 !translation_unit_needed_only_for_exported_templates) {
+	/* Another exception is function template instances when the source
+	   is compiled with the -tused option (meaning that any reference
+	   triggers an instantiation).  The instantiation is needed only if
+	   it is referenced.  This processing is suppressed in secondary
+	   translation units loaded for the purpose of defining exported
+	   templates because instances of such templates are not necessarily
+	   referenced from the translation unit in which they are defined. */
+	a_symbol_ptr             rout_sym;
+	a_template_instance_ptr  tip;
 
-      rout_sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
-      check_assertion(rout_sym != NULL);
-      tip = rout_sym->variant.routine.instance_ptr;
-      check_assertion(tip != NULL);
-      if (tip->explicit_instantiation ||
-          (tip->master_instance != NULL &&
-           master_instance_of(tip)->automatically_instantiated)) {
-        /* The instance exists as a result of an explicit instantiation
-           directive, or as a result of being assigned to this file by
-           the automatic instantiation mechanism. */
-      } else {
-        is_needed = FALSE;
+	rout_sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
+	check_assertion(rout_sym != NULL);
+	tip = rout_sym->variant.routine.instance_ptr;
+	check_assertion(tip != NULL);
+	if (tip->explicit_instantiation ||
+	    (tip->master_instance != NULL &&
+	     master_instance_of(tip)->automatically_instantiated)) {
+	  /* The instance exists as a result of an explicit instantiation
+	     directive, or as a result of being assigned to this file by
+	     the automatic instantiation mechanism. */
+	} else {
+	  is_needed = FALSE;
+	}  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

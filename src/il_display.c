@@ -827,6 +827,11 @@ display_constant_value:
           disp_ptr("type", (char *)ptr->variant.address.variant.type,
                    iek_type);
           break;
+        case abk_label:
+          (void)printf("abk_label\n");
+          disp_ptr("label", (char *)ptr->variant.address.variant.label,
+                   iek_label);
+          break;
         default:
           (void)printf("**BAD ADDRESS CONSTANT KIND**\n");
       }  /* switch */
@@ -1135,6 +1140,14 @@ Display the indicated type entry.
   if (ptr->declared_in_function_prototype) {
     disp_boolean("declared_in_function_prototype", TRUE);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->alignment_set_explicitly) {
+    disp_boolean("alignment_set_explicitly", FALSE);
+  }  /* if */
+  if (ptr->variables_are_implicitly_referenced) {
+    disp_boolean("variables_are_implicitly_referenced", FALSE);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   if (ptr->use_cfront_transitional_nested_type_name_mangling) {
     disp_boolean("use_cfront_transitional_nested_type_name_mangling", TRUE);
@@ -1202,6 +1215,11 @@ Display the indicated type entry.
       }  /* if */
       if (ptr->variant.integer.enum_type) {
         disp_boolean("enum_type", TRUE);
+#if GNU_EXTENSIONS_ALLOWED
+	if (ptr->variant.integer.packed) {
+	  disp_boolean("packed", TRUE);
+	}  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         if (ptr->variant.integer.originally_unnamed) {
           disp_boolean("originally_unnamed", TRUE);
         }  /* if */
@@ -1639,6 +1657,11 @@ Display the indicated variable.
 #if DECL_MODIFIERS_IN_USE
   disp_decl_modifiers(ptr->decl_modifiers);
 #endif /* DECL_MODIFIERS_IN_USE */
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->alignment != 0) {
+    disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (ptr->address_taken) {
     disp_boolean("address_taken", (a_boolean)ptr->address_taken);
   }  /* if */
@@ -1775,6 +1798,11 @@ Display the indicated field.
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     disp_boolean("bit_field_is_signed", (a_boolean)ptr->bit_field_is_signed);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->alignment) {
+    disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (ptr->is_anonymous_parent_object) {
     disp_boolean("is_anonymous_parent_object", TRUE);
   }  /* if */
@@ -1929,6 +1957,113 @@ Print the name of the C++ operator kind.
   (void)printf(s);
 }  /* disp_opname_kind_name */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void disp_builtin_function_kind_name(a_builtin_function_kind kind)
+/* Print the name of the builtin function kind. */
+{
+  char *s;
+
+  switch (kind) {
+    case bfk_none:                  s = "bfk_none";                      break;
+    case bfk_alloca:                s = "bfk_alloca";                    break;
+    case bfk_abs:                   s = "bfk_abs";                       break;
+    case bfk_labs:                  s = "bfk_labs";                      break;
+    case bfk_fabs:                  s = "bfk_fabs";                      break;
+    case bfk_fabsf:                 s = "bfk_fabsf";                     break;
+    case bfk_fabsl:                 s = "bfk_fabsl";                     break;
+    case bfk_ffs:                   s = "bfk_ffs";                       break;
+    case bfk_index:                 s = "bfk_index";                     break;
+    case bfk_rindex:                s = "bfk_rindex";                    break;
+    case bfk_memcpy:                s = "bfk_memcpy";                    break;
+    case bfk_memcmp:                s = "bfk_memcmp";                    break;
+    case bfk_memset:                s = "bfk_memset";                    break;
+    case bfk_strcat:                s = "bfk_strcat";                    break;
+    case bfk_strncat:               s = "bfk_strncat";                   break;
+    case bfk_strcpy:                s = "bfk_strcpy";                    break;
+    case bfk_strncpy:               s = "bfk_strncpy";                   break;
+    case bfk_strcmp:                s = "bfk_strcmp";                    break;
+    case bfk_strncmp:               s = "bfk_strncmp";                   break;
+    case bfk_strlen:                s = "bfk_strlen";                    break;
+    case bfk_strstr:                s = "bfk_strstr";                    break;
+    case bfk_strpbrk:               s = "bfk_strpbrk";                   break;
+    case bfk_strspn:                s = "bfk_strspn";                    break;
+    case bfk_strcspn:               s = "bfk_strcspn";                   break;
+    case bfk_strchr:                s = "bfk_strchr";                    break;
+    case bfk_strrchr:               s = "bfk_strrchr";                   break;
+    case bfk_fsqrt:                 s = "bfk_fsqrt";                     break;
+    case bfk_sin:                   s = "bfk_sin";                       break;
+    case bfk_cos:                   s = "bfk_cos";                       break;
+    case bfk_sqrtf:                 s = "bfk_sqrtf";                     break;
+    case bfk_sinf:                  s = "bfk_sinf";                      break;
+    case bfk_cosf:                  s = "bfk_cosf";                      break;
+    case bfk_sqrtl:                 s = "bfk_sqrtl";                     break;
+    case bfk_sinl:                  s = "bfk_sinl";                      break;
+    case bfk_cosl:                  s = "bfk_cosl";                      break;
+    case bfk_saveregs:              s = "bfk_saveregs";                  break;
+    case bfk_next_arg:              s = "bfk_next_arg";                  break;
+    case bfk_args_info:             s = "bfk_args_info";                 break;
+    case bfk_frame_address:         s = "bfk_frame_address";             break;
+    case bfk_return_address:        s = "bfk_return_address";            break;
+    case bfk_aggregate_incoming_address: 
+                                   s = "bfk_aggregate_incoming_address"; break;
+    case bfk_apply_args:            s = "bfk_apply_args";                break;
+    case bfk_apply:                 s = "bfk_apply";                     break;
+    case bfk_return:                s = "bfk_return";                    break;
+    case bfk_setjmp:                s = "bfk_setjmp";                    break;
+    case bfk_longjmp:               s = "bfk_longjmp";                   break;
+    case bfk_trap:                  s = "bfk_trap";                      break;
+    case bfk_putchar:               s = "bfk_putchar";                   break;
+    case bfk_puts:                  s = "bfk_puts";                      break;
+    case bfk_printf:                s = "bfk_printf";                    break;
+    case bfk_fputc:                 s = "bfk_fputc";                     break;
+    case bfk_fputs:                 s = "bfk_fputs";                     break;
+    case bfk_fwrite:                s = "bfk_fwrite";                    break;
+    case bfk_fprintf:               s = "bfk_fprintf";                   break;
+    case bfk_unwind_init:           s = "bfk_unwind_init";               break;
+    case bfk_dwarf_cfa:             s = "bfk_dwarf_cfa";                 break;
+    case bfk_dwarf_fp_regnum:       s = "bfk_dwarf_fp_regnum";           break;
+    case bfk_init_dwarf_reg_size_table: 
+                                    s = "bfk_init_dwarf_reg_size_table"; break;
+    case bfk_frob_return_addr:      s = "bfk_frob_return_addr";          break;
+    case bfk_extract_return_addr:   s = "bfk_extract_return_addr";       break;
+#if TARG_ALL_POINTERS_SAME_SIZE
+    case bfk_eh_return:             s = "bfk_eh_return";                 break;
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
+    case bfk_eh_return_data_regno:  s = "bfk_eh_return_data_regno";      break;
+    case bfk_classify_type:         s = "bfk_classify_type";             break;
+    case bfk_constant_p:            s = "bfk_constant_p";                break;
+    case bfk_expect:                s = "bfk_expect";                    break;
+    case bfk_bzero:                 s = "bfk_bzero";                     break;
+    case bfk_bcmp:                  s = "bfk_bcmp";                      break;
+#if LONG_LONG_ALLOWED
+    case bfk_llabs:                 s = "bfk_llabs";                     break;
+#endif /* LONG_LONG_ALLOWED */
+    case bfk_imaxabs:               s = "bfk_imaxabs";                   break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case bfk_conj:                  s = "bfk_conj";                      break;
+    case bfk_conjf:                 s = "bfk_conjf";                     break;
+    case bfk_conjl:                 s = "bfk_conjl";                     break;
+    case bfk_creal:                 s = "bfk_creal";                     break;
+    case bfk_crealf:                s = "bfk_crealf";                    break;
+    case bfk_creall:                s = "bfk_creall";                    break;
+    case bfk_cimag:                 s = "bfk_cimag";                     break;
+    case bfk_cimagf:                s = "bfk_cimagf";                    break;
+    case bfk_cimagl:                s = "bfk_cimagl";                    break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case bfk_isgreater:             s = "bfk_isgreater";                 break;
+    case bfk_isgreaterequal:        s = "bfk_isgreaterequal";            break;
+    case bfk_isless:                s = "bfk_isless";                    break;
+    case bfk_islessequal:           s = "bfk_islessequal";               break;
+    case bfk_islessgreater:         s = "bfk_islessgreater";             break;
+    case bfk_isunordered:           s = "bfk_isunordered";               break;
+    case bfk_last:                  s = "bfk_last";                      break;
+    default:                        s = "**BAD BUILTIN FUNCTION KIND**";
+  }  /* switch */
+  (void)printf(s);
+}  /* disp_builtin_function_kind_name */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void disp_class_list(char                   *name,
                             a_class_list_entry_ptr ptr)
@@ -2025,10 +2160,18 @@ Display the indicated routine.
     (void)printf("\n");
     if (ptr->special_kind == (a_special_function_kind)sfk_operator) {
       disp_name("opname_kind");
-      disp_opname_kind_name(ptr->opname_kind);
+      disp_opname_kind_name(ptr->opname_or_builtin.opname_kind);
       (void)printf("\n");
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->special_kind == (a_special_function_kind)sfk_none &&
+      (ptr->opname_or_builtin.builtin_function_kind != 
+       (a_builtin_function_kind)bfk_none)) {
+    disp_builtin_function_kind_name(ptr->opname_or_builtin.
+				                        builtin_function_kind);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (ptr->address_taken) {
     disp_boolean("address_taken", TRUE);
   }  /* if */
@@ -2072,6 +2215,14 @@ Display the indicated routine.
   if (ptr->specialized_with_old_syntax) {
     disp_boolean("specialized_with_old_syntax", TRUE);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->is_initialization_routine) {
+    disp_boolean("is_initialization_routine", TRUE);
+  }  /* if */
+  if (ptr->is_finalization_routine) {
+    disp_boolean("is_finalization_routine", TRUE);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (ptr->can_be_instantiated) {
     disp_boolean("can_be_instantiated", TRUE);
@@ -2200,8 +2351,10 @@ Display the indicated label.
     disp_boolean("case_fallthrough_label",
                  (a_boolean)ptr->case_fallthrough_label);
   }  /* if */
-#ifdef FFE
+#if defined(FFE) || GNU_EXTENSIONS_ALLOWED
   disp_boolean("used_in_assign", (a_boolean)ptr->used_in_assign);
+#endif /* defined(FFE) || GNU_EXTENSIONS_ALLOWED */
+#ifdef FFE
   disp_name("kind");
   switch (ptr->kind) {
     case lk_unknown:
@@ -3147,12 +3300,18 @@ do_ido_fdo:
     case stmk_computed_goto:
       (void)printf("stmk_computed_goto\n");
       goto do_label_list;
+#endif /* FFE */
+#if defined(FFE) || GNU_EXTENSIONS_ALLOWED
     case stmk_assigned_goto:
       (void)printf("stmk_assigned_goto\n");
+#ifdef FFE
 do_label_list:
       disp_ptr("label_list", (char *)ptr->variant.label_list,
                iek_label_list_entry);
+#endif /* ifdef FFE */
       break;
+#endif /* defined(FFE) || GNU_EXTENSIONS_ALLOWED */
+#ifdef FFE
     case stmk_alt_return:
       (void)printf("stmk_alt_return\n");
       break;

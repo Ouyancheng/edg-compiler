@@ -1442,6 +1442,9 @@ Routine to be called by the il_to_str routines to output a name.
     case iek_routine:
       dump_routine_name((a_routine_ptr)entry);
       break;
+    case iek_label:
+      dump_label_name((a_label_ptr)entry);
+      break;
     default:
       unexpected_condition_str("gen_name_reference: bad entry kind");
   }  /* switch */
@@ -1894,6 +1897,40 @@ information is given by scp.
   }  /* if */
 }  /* dump_decl_associated_pragmas */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void write_alignment_attribute(a_targ_alignment alignment)
+/*
+Write out an alignment attribute to indicate the explicit alignment
+given to the entity just declared.
+*/
+{
+  write_tok_str(" __attribute__((__aligned__(");
+  write_unsigned_num((a_host_large_unsigned)alignment);
+  write_tok_str(")))");
+}  /* write_alignment_attribute */
+
+
+static void write_type_attributes(a_type_ptr type)
+/*
+Write out attributes that apply to the indicated type.
+*/
+{
+  if (type->variant.integer.packed) {
+    /* Output the "packed" attribute. */
+    write_tok_str(" __attribute__((__packed__))");
+  }  /* if */
+  if (type->variables_are_implicitly_referenced) {
+    /* Output the "used" attribute. */
+    write_tok_str(" __attribute__((__unused__))");
+  }  /* if */
+  if (type->alignment_set_explicitly) {
+    /* Output an attribute to indicate the explicit alignment. */
+    write_alignment_attribute(type->alignment);
+  }  /* if */
+}  /* write_type_attributes */
+  
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void dump_typedef_decl(a_type_ptr type)
 /*
@@ -1924,6 +1961,10 @@ Print a typedef declaration.
       write_tok_str("typedef ");
       dump_declaration_using_type(type->variant.typeref.type,
                                   &type->source_corresp);
+#if GNU_EXTENSIONS_ALLOWED
+      /* Emit any attributes associated with the type. */
+      write_type_attributes(type->variant.typeref.type);
+#endif /* GNU_EXTENSIONS_ALLOWED */
       write_tok_ch(';');
     }  /* if */
     end_unreferenced_bracket(&type->source_corresp);
@@ -1996,6 +2037,10 @@ if output_final_semi is TRUE.
     incr_integer_value(&next_enum_value.variant.integer_value);
   }  /* for */
   write_tok_ch('}');
+#if GNU_EXTENSIONS_ALLOWED
+  /* Emit any attributes associated with the type. */
+  write_type_attributes(type);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (output_final_semi) write_tok_ch(';');
 #if !C_GEN_BE_GENERATES_ANSI_C
   /* Close the #if 0 started above. */
@@ -2210,6 +2255,12 @@ final semicolon if output_final_semi is TRUE.
     }  /* if */
     indent -= 2;
     write_tok_ch('}');
+#if GNU_EXTENSIONS_ALLOWED
+    if (type->alignment_set_explicitly) {
+      /* Output an attribute to indicate the explicit alignment. */
+      write_alignment_attribute(type->alignment);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     if (output_final_semi) write_tok_ch(';');
 #if USER_CONTROL_OF_STRUCT_PACKING
     if (pack_alignment != 0) {
@@ -2505,7 +2556,18 @@ the scope must be the file scope.
   for (pass = 1; pass <= 2; pass++) {
     for (type = scope->types; type != NULL; type = type->next) {
       check_membership_info(type, scope);
-      dump_type_decl(type, pass);
+#if GNU_EXTENSIONS_ALLOWED
+      if (type->copy_with_additional_attributes) {
+	/* If this type was created via an attribute-adding typedef,
+	   there's no need to emit it, nor any legal way to do so.
+	   When the typedef is generated, the attributes will be
+	   recreated there. */
+      } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+	dump_type_decl(type, pass);
+      }  /* if */
     }  /* for */
     /* K&R C doesn't have prototype scopes, so when generating K&R C
        promote any types defined in prototype scopes out of those scopes.
@@ -5398,6 +5460,13 @@ parameters.
 #if !C_GEN_BE_GENERATES_ANSI_C
       }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
+#if GNU_EXTENSIONS_ALLOWED
+      /* If there is an explicit alignment for this variable, emit it
+	 here. */
+      if (variable->alignment != 0) {
+	write_alignment_attribute(variable->alignment);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       /* Dump the initializer if there is a constant one or if the
          variable should be initialized to zero. */
       /* Don't initialize static arrays to zero, because it blows up
@@ -6043,6 +6112,13 @@ Generate C for a statement.
       dump_label_name(statement->variant.label.ptr);
       write_tok_ch(';');
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case stmk_assigned_goto:
+      write_tok_str("goto *");
+      dump_expr_with_parens(statement->expr);
+      write_tok_ch(';');
+      break;
+#endif
     case stmk_label:
       if (start_unreferenced_bracket(
                               &statement->variant.label.ptr->source_corresp)) {
@@ -6347,6 +6423,9 @@ its subtree.
       case stmk_expr:
       case stmk_goto:
       case stmk_label:
+#if GNU_EXTENSIONS_ALLOWED
+      case stmk_assigned_goto:
+#endif /* GNU_EXTENSIONS_ALLOWED */
       case stmk_asm:
 #if ASM_FUNCTION_ALLOWED
       case stmk_asm_func_body:
@@ -6717,12 +6796,12 @@ if this routine has a body (dump nothing if it has no body).
   if (!has_defn && dump_defn) {
     /* The routine has no body (i.e., no definition), and we're supposed
        to dump it only if it has a definition, so do nothing. */
-#if SGIC
+#if SGIC || GNU_EXTENSIONS_ALLOWED
   } else if (has_name(rout) &&
              strncmp(rout->source_corresp.name, "__builtin_", 10) == 0) {
     /* Routines with names beginning "__builtin_" should not be declared
        or defined. */
-#endif /* SGIC */
+#endif /* SGIC || GNU_EXTENSIONS_ALLOWED */
 #if ASM_FUNCTION_ALLOWED
   } else if (!dump_defn && storage_class == (a_storage_class)sc_asm) {
     /* Suppress forward declaration of an asm function. */
@@ -6796,9 +6875,20 @@ if this routine has a body (dump nothing if it has no body).
          called at program startup.  If this is an initialization routine,
          arrange for it to be called. */
       if (routine_is_init_routine(rout)) {
-        write_tok_str(" __attribute__((constructor))");
+        write_tok_str(" __attribute__((__constructor__))");
       }  /* if */
 #endif /* GCC_IS_C_GEN_BE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C */
+#if GNU_EXTENSIONS_ALLOWED
+      /* If this is an initialization routine, arrange for it to be
+	 called. */
+      if (rout->is_initialization_routine) {
+        write_tok_str(" __attribute__((__constructor__))");
+      }  /* if */
+      /* Similarly, for finalization routines. */
+      if (rout->is_finalization_routine) {
+        write_tok_str(" __attribute__((__destructor__))");
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       write_tok_ch(';');
 #if SUNPRO_C_IS_C_GEN_BE_TARGET
       /* The SunPro C compiler has a pragma that specifies that a routine

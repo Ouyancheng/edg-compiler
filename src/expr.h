@@ -79,6 +79,9 @@ extern an_expr_node_ptr scan_void_expression(
                                            a_boolean repeated_in_loop,
                                            a_boolean marked_as_gnu_extension);
 
+extern an_expr_node_ptr scan_typed_expression(a_type_ptr    required_type,
+					      an_error_code err_code);
+
 extern void scan_default_arg_expr(a_param_type_ptr ptp);
 
 extern an_expr_node_ptr scan_return_expression(

@@ -5717,7 +5717,8 @@ may an overload symbol instead.
                   op_new_sym->kind == (a_symbol_kind)sk_member_function);
   *ambiguous = FALSE;
   rp = op_new_sym->variant.routine.ptr;
-  delete_opname_kind = (rp->opname_kind == (an_opname_kind)onk_new) ?
+  delete_opname_kind = (rp->opname_or_builtin.opname_kind == 
+			                        (an_opname_kind)onk_new) ?
                          (an_opname_kind)onk_delete :
                          (an_opname_kind)onk_array_delete;
   if (class_type != NULL)  {
@@ -5900,7 +5901,8 @@ a_symbol_ptr make_predeclared_function_symbol(a_symbol_locator  *locator,
                                               a_type_ptr        return_type,
                                               a_type_ptr        param1_type,
                                               a_type_ptr        param2_type,
-                                              a_type_ptr        param3_type)
+                                              a_type_ptr        param3_type,
+					      a_type_ptr        param4_type)
 /*
 Create a symbol and routine entry for a predeclared function.  locator points
 to a symbol locator created to represent the entity's name.  return_type
@@ -5931,6 +5933,11 @@ how to form the function's signature.
       if (param3_type != NULL) {
         ptp = ptp->next;
         ptp->next = alloc_param_type(param3_type);
+	/* Set the fourth parameter, if any. */
+	if (param4_type != NULL) {
+	  ptp = ptp->next;
+	  ptp->next = alloc_param_type(param4_type);
+	}  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5943,8 +5950,8 @@ how to form the function's signature.
      in the current translation unit. */
   decl_routine(locator, (a_storage_class)sc_extern, rout_type, &func_info,
                (a_source_sequence_entry_ptr)NULL, SRK_DECLARATION,
-               &decl_modifiers, &sym, &linkage, &old_type, &ext_sym,
-               (a_decl_pos_block_ptr)NULL);
+               &decl_modifiers, (an_attribute_ptr)NULL, &sym,
+	       &linkage, &old_type, &ext_sym, (a_decl_pos_block_ptr)NULL);
   sym->variant.routine.ptr->compiler_generated = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
@@ -5992,7 +5999,8 @@ cleared.
     param1_type = make_pointer_type(void_type());
   }  /* if */
   sym = make_predeclared_function_symbol(&locator, return_type, param1_type,
-                                        (a_type_ptr)NULL, (a_type_ptr)NULL);
+					 (a_type_ptr)NULL, (a_type_ptr)NULL,
+					 (a_type_ptr)NULL);
   if (exceptions_enabled && !ignore_exception_specifications) {
     /* Add exception specifications (but not if exception specifications are
        normally just parsed and discarded -- e.g., in Microsoft mode). */
@@ -6031,7 +6039,8 @@ C compatibility mode).
   /* One parameter -- the size. */
   param1_type = integer_type(targ_size_t_int_kind);
   (void)make_predeclared_function_symbol(&locator, return_type, param1_type,
-                                         (a_type_ptr)NULL, (a_type_ptr)NULL);
+                                         (a_type_ptr)NULL, (a_type_ptr)NULL,
+					 (a_type_ptr)NULL);
   db_exit();
 }  /* make_predeclared_alloca_symbol */
 
@@ -6051,9 +6060,9 @@ scope, not in namespace std.
   clear_locator(&locator, &null_source_position);
   (void)find_symbol("size_t", (sizeof_t)6, &locator);
   tp = integer_type(targ_size_t_int_kind);
-  decl_typedef(&locator, tp, (a_type_ptr)NULL, &predeclared_size_t_symbol,
-               (a_source_sequence_entry_ptr)NULL,
-               (a_decl_pos_block_ptr)NULL);
+  decl_typedef(&locator, tp, (a_type_ptr)NULL, (an_attribute_ptr)NULL,
+	       &predeclared_size_t_symbol, 
+	       (a_source_sequence_entry_ptr)NULL, (a_decl_pos_block_ptr)NULL);
   /* Setting the defined flag to FALSE indicates there is (as yet) no explicit
      definition in the source program. */
   predeclared_size_t_symbol->defined = FALSE;
@@ -6074,7 +6083,8 @@ are recorded in the file scope.
   check_assertion(microsoft_mode);
   clear_locator(&locator, &null_source_position);
   (void)find_symbol("bool", (sizeof_t)4, &locator);
-  decl_typedef(&locator, bool_type(), (a_type_ptr)NULL, &sym,
+  decl_typedef(&locator, bool_type(), (a_type_ptr)NULL, 
+	       (an_attribute_ptr)NULL, &sym,
                (a_source_sequence_entry_ptr)NULL,
                (a_decl_pos_block_ptr)NULL);
   db_exit();
@@ -7375,7 +7385,7 @@ Issue the appropriate error on the inaccessibility of sym.
         rp->special_kind == (a_special_function_kind)sfk_destructor ||
         rp->special_kind == (a_special_function_kind)sfk_conversion ||
         (rp->special_kind == (a_special_function_kind)sfk_operator &&
-         rp->opname_kind == (an_opname_kind)onk_assign)) {
+         rp->opname_or_builtin.opname_kind == (an_opname_kind)onk_assign)) {
       error_code = ec_inaccessible_special_function;
     }  /* if */
   } else if (is_type_symbol(sym)) {
@@ -9640,6 +9650,15 @@ can be completed for the dependent types, too.
               }  /* if */
             }  /* if */
             break;
+#if GNU_EXTENSIONS_ALLOWED
+	  case dtfk_copy_definition:
+            check_assertion(dtfp->entity.kind ==
+                                    (a_byte_il_entry_kind)iek_type);
+            tp = (a_type_ptr)dtfp->entity.ptr;
+	    copy_class_struct_or_union_definition
+	                         (tp, sym->variant.class_struct_union.type);
+	    break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
           case dtfk_routine_calling_method:
             check_assertion(dtfp->entity.kind ==
                                     (a_byte_il_entry_kind)iek_type);

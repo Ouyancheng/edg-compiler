@@ -2580,6 +2580,9 @@ to indicate whether an enumeration is actually defined.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_extended_decl_info_block  extended_decl_info;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  an_attribute_ptr             attributes;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "enum_specifier");
 
@@ -3134,6 +3137,12 @@ to indicate whether an enumeration is actually defined.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Check for and pass over the closing "}". */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
+#if GNU_EXTENSIONS_ALLOWED
+    /* Look for any attributes that apply to this type. */
+    attributes = scan_attributes();
+    apply_attributes_to_type(attributes, enum_type, /*is_typedef=*/FALSE);
+    free_attribute_list(attributes);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry marking the end of the enum definition. */
     add_end_of_construct_source_sequence_entry((char *)enum_type,
@@ -3153,7 +3162,11 @@ to indicate whether an enumeration is actually defined.
                       !enum_types_can_be_larger_than_int);
     }  /* if */
 #endif /* CHECKING */
-    if (enum_types_can_be_smaller_than_int) {
+    if (enum_types_can_be_smaller_than_int 
+#if GNU_EXTENSIONS_ALLOWED
+	|| enum_type->variant.integer.packed
+#endif /* GNU_EXTENSIONS_ALLOWED */
+	) {
       if (!min_max_set || in_range_for_integer_kind(&min_value, &max_value,
                                                     plain_char_int_kind)) {
         /* "Plain" char. */
@@ -4233,6 +4246,7 @@ a_boolean decl_specifiers(a_decl_flag_set            input_flags,
                           a_storage_class            *storage_class,
                           a_type_ptr                 *type_ptr,
                           a_type_qualifier_set       *qualifiers,
+			  an_attribute_ptr           *attributes,
                           a_decl_modifiers_block_ptr decl_modifiers,
                           a_decl_pos_block_ptr       decl_pos_block)
 /*
@@ -4334,6 +4348,9 @@ was encountered (C++ only).  If DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER is
 true, then DSO_DANGLING_TYPE_SPECIFIER may be set for cases that are
 recognized as an omitted semi-colon or comma after a class or enum
 definition (e.g., "typedef int T; struct A { ... } T x;").
+When supporting GNU extensions, returns *attributes indicating any
+attributes that were present in the specifiers.  If attributes is
+NULL, then attributes are not allowed.
 
 Returns TRUE if there is an error in the specifiers.
 */
@@ -4370,6 +4387,10 @@ Returns TRUE if there is an error in the specifiers.
   *storage_class = (a_storage_class)sc_unspecified;
   *type_ptr = NULL;
   *qualifiers = TQ_NONE;
+#if GNU_EXTENSIONS_ALLOWED
+  if (attributes)
+    *attributes = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   clear_decl_modifiers_block(decl_modifiers);
 #if GNU_EXTENSIONS_ALLOWED
   if (marked_as_gnu_extension) {
@@ -4708,6 +4729,25 @@ Returns TRUE if there is an error in the specifiers.
         }
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+      case tok_attribute:
+	if (attributes != NULL) {
+	  /* Scan the attributes. */
+	  *attributes = scan_attributes();
+	  /* Advance the pointer to the end of the list so that if we
+	     encounter more attributes later they will be added to the
+	     end of the list. */
+	  while (*attributes != NULL) {
+	    attributes = &(*attributes)->next;
+	  }  /* while */
+	} else {
+	  /* Attributes are not allowed here.  Scan them anyhow, and
+	     then throw them away. */
+	  error(ec_attribute_not_allowed);
+	  free_attribute_list (scan_attributes());
+	}  /* if */
+	goto no_get_token;
+#endif /* GNU_EXTENSIONS_ALLOWED */ 
       case tok_const:
         /* const type qualifier (3.5.3). */
         if (*qualifiers & TQ_CONST) {

@@ -681,6 +681,9 @@ it points to the variable, routine, or constant entry.
            case, and the constant seems like the best of the possibilities. */
         object = (char *)constant;
         break;
+      case abk_label:
+        object = (char *)constant->variant.address.variant.label;
+        break;
 #if CHECKING
       default:
         internal_error("base_object: bad address constant kind");
@@ -3305,6 +3308,7 @@ the object.
         }  /* if */
         break;
       case abk_routine:
+      case abk_label:
         /* No size to check. */
         break;
       case abk_constant:

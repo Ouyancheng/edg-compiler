@@ -3660,6 +3660,66 @@ operation is a pointer-to-member (see ARM 5.3).
   db_exit();
 }  /* scan_ampersand_operator */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void scan_address_of_label_expression(an_operand *result)
+/*
+Scan the GNU extended "&&label" expression, which evaluates to
+the address (as a void *) of the label.  Caller has processed
+the && operator.
+*/
+{
+  a_label_ptr	    label;
+  a_constant        constant;
+  a_source_position start_position;
+  a_boolean         err = FALSE;
+
+  db_enter(4, "scan_address_of_label_operator");
+
+  /* Save the current source position. */
+  copy_source_position(pos_curr_token, start_position);
+
+  if (!gcc_mode) {
+    /* Address-of-label only recognized in GCC mode. */
+    pos_error(ec_nonstd_address_of_label, &start_position);
+    err = TRUE;
+  } else if (curr_expr_kind_is(ek_pp)) {
+    /* Address-of-label not allowed in preprocessing expressions. */
+    pos_error(ec_bad_pp_operator, &start_position);
+    err = TRUE;
+  } else if (curr_expr_kind_is(ek_integral_constant)) {
+    /* Address-of-label not allowed in integral constant expressions. */
+    pos_error(ec_bad_integral_operator, &start_position);
+    err = TRUE;
+  } else if (curr_expr_kind_is(ek_template_arg)) {
+    /* Address-of-label not allowed in a template argument expression. */
+    pos_error(ec_bad_templ_arg_expr_operator, &start_position);
+    err = TRUE;
+  } else if (strict_ansi_mode) {
+    pos_diagnostic(strict_ansi_error_severity, ec_nonstd_address_of_label,
+		   &start_position);
+    err = (strict_ansi_error_severity == es_error);
+  }  /* if */
+
+  /* Scan the operand.  This must be a single label.  */
+  (void)get_token();
+  label = scan_label(/*is_definition=*/FALSE);
+
+  if (err) {
+    make_error_operand(result);
+  } else {
+    /* Create a constant operand representing the label. */
+    set_label_address_constant(label, &constant);
+    make_constant_operand(&constant, result);
+  }  /* else */
+  result->state = (an_operand_state)os_rvalue;
+
+  set_operand_position(result, &start_position, &end_pos_curr_token, 
+		       &start_position);
+  db_exit();
+}  /* scan_address_of_label_expression */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void scan_indirection_operator(an_operand *result)
 /*
@@ -4228,6 +4288,9 @@ be inappropriate, because the feature is probably used to implement
   a_constant          constant;
   a_type_ptr          alignof_type;
   an_expr_stack_entry expr_stack_entry;
+#if GNU_EXTENSIONS_ALLOWED
+  a_targ_alignment    alignment = 0;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_alignof_operator");
 
@@ -4257,6 +4320,29 @@ be inappropriate, because the feature is probably used to implement
                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
     alignof_type = operand.type;
+#if GNU_EXTENSIONS_ALLOWED
+    if (gcc_mode) {
+      /* If the expression is an lvalue for a variable with an
+	 explicit alignment, use it. */
+      if (is_an_lvalue(&operand)) {
+	if (is_expression_operand(&operand) &&
+	    is_variable_address_node(operand.variant.expression) &&
+	    operand.variant.expression->variant.variable->alignment != 0) {
+	  alignment = operand.variant.expression->variant.variable->alignment;
+	} else if (is_constant_operand(&operand) && 
+		   operand.variant.constant.kind ==
+	                                (a_constant_repr_kind)ck_address &&
+		   operand.variant.constant.variant.address.kind ==
+		                      (an_address_base_kind)abk_variable &&
+		   operand.variant.constant.variant.address.offset == 0 &&
+		   operand.variant.constant.variant.address.
+		                           variant.variable->alignment != 0) {
+	  alignment = operand.variant.constant.variant.address.
+                                                variant.variable->alignment;
+	}  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   alignof_type = skip_typerefs(alignof_type);
   /* Instantiate the type if it is a template class. */
@@ -4273,6 +4359,12 @@ be inappropriate, because the feature is probably used to implement
                                  (a_template_param_constant_kind)tpck_alignof);
     constant.variant.template_param.variant.type = alignof_type;
     constant.type = integer_type(targ_size_t_int_kind);
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (alignment != 0) {
+    set_unsigned_integer_constant(
+		     &constant, (a_host_large_unsigned)alignment,
+		     targ_size_t_int_kind);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else {
     set_unsigned_integer_constant(
                      &constant, (a_host_large_unsigned)alignof_type->alignment,
@@ -12755,6 +12847,12 @@ see expr.h).
       scan_ampersand_operator(&local_result);
       break;
 
+#if GNU_EXTENSIONS_ALLOWED
+    case tok_and_and:
+      scan_address_of_label_expression(&local_result);
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
     case tok_star:
       scan_indirection_operator(&local_result);
       break;
@@ -13316,6 +13414,54 @@ expression was preceded by the GNU __extension__ keyword.
 
   return expression;
 }  /* scan_void_expression */
+
+
+an_expr_node_ptr scan_typed_expression(a_type_ptr         required_type,
+                                       an_error_code      err_code)
+/*
+Scan a top-level expression and convert it to the type required_type;
+issue the error err_code if it cannot be converted to that type.
+Return a pointer to the expression.
+*/
+{
+  an_expr_node_ptr    expression;
+  an_operand          result;
+  an_expr_stack_entry expr_stack_entry;
+
+  db_enter(3, "scan_typed_expression");
+
+  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  /* Scan the expression. */
+  scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+
+  /* Convert to the required type. */
+  prep_initializer_operand(&result, required_type,
+			   (a_conv_descr_ptr)NULL,
+			   /*initializing_return_value=*/FALSE,
+			   /*initializing_variable=*/FALSE,
+			   /*static_lifetime=*/FALSE,
+			   /*is_copy_initialization=*/FALSE,
+			   /*nontype_template_arg=*/FALSE,
+			   err_code);
+  expression = make_node_from_operand(&result);
+  expression = wrap_up_full_expression(expression);
+  pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+#if DEBUG
+  if (debug_level >= 3 && expression != NULL) {
+    db_expression(expression);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+
+  return expression;
+}  /* scan_typed_expression */
 
 
 void scan_default_arg_expr(a_param_type_ptr ptp)

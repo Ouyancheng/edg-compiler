@@ -1819,7 +1819,8 @@ the function is a template function, it should be instantiated.
                   rp->special_kind ==
                                (a_special_function_kind)sfk_conversion ||
                   (rp->special_kind == (a_special_function_kind)sfk_operator &&
-                   rp->opname_kind == (an_opname_kind)onk_assign));
+                   rp->opname_or_builtin.opname_kind == 
+                               (an_opname_kind)onk_assign));
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && depth_stmt_stack >= 0 &&
       struct_stmt_stack[depth_stmt_stack].in_handler_parameter_declaration &&

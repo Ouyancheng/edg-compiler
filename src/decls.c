@@ -949,8 +949,8 @@ consistent with that of the previous declaration.
          if this is a redeclaration of what may be a library new or delete
          routine: the relaxation is to ease the upgrading of old code. */
       if (is_redecl && rp != NULL && !rp->source_corresp.is_class_member &&
-          (is_new_operator(rp->opname_kind) ||
-           is_delete_operator(rp->opname_kind))) {
+          (is_new_operator(rp->opname_or_builtin.opname_kind) ||
+           is_delete_operator(rp->opname_or_builtin.opname_kind))) {
         /* Set the severity, depending on the strict mode setting. */
         severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
       }  /* if */
@@ -3828,7 +3828,8 @@ namespace-extension scope.
 
 
 #if !DECL_MODIFIERS_IN_USE
-/* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
+/* ARGSUSED */ /* decl_modifiers and/or attributes are not used in
+                  some configurations. */
 #endif /* !DECL_MODIFIERS_IN_USE */
 void decl_variable(a_symbol_locator             *locator,
                    a_storage_class              storage_class,
@@ -3836,30 +3837,32 @@ void decl_variable(a_symbol_locator             *locator,
                    a_source_sequence_entry_ptr  declarator_ssep,
                    a_symbol_reference_kind      srk_flags,
                    a_decl_modifiers_block_ptr   decl_modifiers,
+		   an_attribute_ptr             attributes,
                    a_symbol_ptr                 *symbol_ptr,
                    an_id_linkage_kind           *linkage_ptr,
                    a_type_ptr                   *old_type,
                    a_symbol_ptr                 *ext_sym,
                    a_decl_pos_block_ptr         decl_pos_block)
 /*
-Enter the declaration of an identifier for a variable.  *locator gives the
-symbol locator (and thus its name and its declaration position).  type_ptr,
-storage_class, and decl_modifiers give the type, storage class, and
-declaration modifier flags.  Create and enter a symbol entry, and return a
-pointer to it in *symbol_ptr.  Also allocate any associated IL construct,
-and attach it to the symbol.  If the identifier has linkage and there is an
-existing symbol or IL entry, it will be re-used.  Return in *linkage_ptr the
-linkage of the identifier.  Return in *old_type any previously-known type
-for this identifier from a linked identifier in the same scope, or NULL if
-there was no previously-known type.  If the identifier has linkage, return
-in *ext_sym a pointer to the external symbol entry; otherwise, set *ext_sym
+Enter the declaration of an identifier for a variable.  *locator gives
+the symbol locator (and thus its name and its declaration position).
+type_ptr, storage_class, decl_modifiers, and attributes give the type,
+storage class, declaration modifier flags, and attributes.  Create and
+enter a symbol entry, and return a pointer to it in *symbol_ptr.  Also
+allocate any associated IL construct, and attach it to the symbol.  If
+the identifier has linkage and there is an existing symbol or IL entry,
+it will be re-used.  Return in *linkage_ptr the linkage of the
+identifier.  Return in *old_type any previously-known type for this
+identifier from a linked identifier in the same scope, or NULL if there
+was no previously-known type.  If the identifier has linkage, return in
+*ext_sym a pointer to the external symbol entry; otherwise, set *ext_sym
 to NULL.  declarator_ssep (non-NULL only if source sequence entries are
 being generated) is a pointer to the empty source sequence entry already
-created for the declarator and added to the appropriate list; its kind and
-entity pointer are updated.  srk_flags contain specific information about
-the kind of declaration (whether it's a definition, a tentative definition
-(C only), and so forth); this information is passed on for use in generating
-cross-reference output describing this declaration.
+created for the declarator and added to the appropriate list; its kind
+and entity pointer are updated.  srk_flags contain specific information
+about the kind of declaration (whether it's a definition, a tentative
+definition (C only), and so forth); this information is passed on for
+use in generating cross-reference output describing this declaration.  
 */
 {
   a_symbol_ptr             sym = NULL;
@@ -3875,7 +3878,7 @@ cross-reference output describing this declaration.
   a_boolean                suppress_ext_sym_lookup = FALSE;
   a_boolean                is_variable_def = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_type_ptr               declared_type = type_ptr;
+  a_type_ptr               declared_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_id_linkage_block      idlb;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -3894,6 +3897,14 @@ cross-reference output describing this declaration.
               &locator->source_position);
     set_to_error_locator(*locator);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  /* Allow the attributes specified to modify the type with which the
+     variable was declared. */
+  type_ptr = apply_attributes_to_variable_type(attributes, type_ptr);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  declared_type = type_ptr;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   clear_id_linkage_block(&idlb);
   idlb.locator = locator;
   idlb.type = type_ptr;
@@ -4199,6 +4210,10 @@ cross-reference output describing this declaration.
                             &locator->source_position,
                             /*update_il_entry=*/FALSE);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  /* Apply the attributes to the variable declaration. */
+  apply_attributes_to_variable(attributes, variable_ptr);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (linkage != idl_none) {
     /* In case this is a block extern declaration, clear the
        is_local_to_function flag -- it will have been set based on scope
@@ -4465,7 +4480,8 @@ decl_pos_info supplement of the secondary-decl entry.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if !DECL_MODIFIERS_IN_USE
-/* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
+/* ARGSUSED */ /* decl_modifiers and/or attributes are not used in
+                  some configurations. */
 #endif /* !DECL_MODIFIERS_IN_USE */
 void decl_routine(a_symbol_locator             *locator,
                   a_storage_class              storage_class,
@@ -4474,38 +4490,41 @@ void decl_routine(a_symbol_locator             *locator,
                   a_source_sequence_entry_ptr  declarator_ssep,
                   a_symbol_reference_kind      srk_flags,
                   a_decl_modifiers_block_ptr   decl_modifiers,
+		  an_attribute_ptr             attributes,
                   a_symbol_ptr                 *symbol_ptr,
                   an_id_linkage_kind           *linkage_ptr,
                   a_type_ptr                   *old_type,
                   a_symbol_ptr                 *ext_sym,
                   a_decl_pos_block_ptr         decl_pos_block)
 /*
-Enter the declaration of an identifier for a nonmember routine.  *locator
-gives the symbol locator (and thus its name and its declaration position).
-storage_class, type_ptr, and decl_modifiers give the storage class, type,
-and declaration modifier flags.  If func_info->implicit_declaration is TRUE,
-this declaration is for an implicit function declaration, and *symbol_ptr
-already contains a pointer to the symbol entry, which is already in the
-symbol table; if func_info->is_definition is TRUE, the identifier being
-defined is part of a function definition (meaning there is a body in the
-definition), in which case it is guaranteed that type_ptr points to an
-unshared type entry, and that type entry will be preserved as the routine
-type.  Create and enter a symbol entry, and return a pointer to it in
-*symbol_ptr.  Also allocate any associated IL construct, and attach it to
-the symbol.  If the identifier has linkage and there is an existing symbol
-or IL entry, it will be re-used.  Return in *linkage_ptr the linkage of the
-identifier.  Return in *old_type any previously-known type for this
-identifier from a linked identifier in the same scope, or NULL if there was
-no previously-known type.  If the identifier has linkage, return in *ext_sym
-a pointer to the external symbol entry; otherwise, set *ext_sym to NULL.
-declarator_ssep (non-NULL only if source sequence entries are being
-generated) is a pointer to the empty source sequence entry already created
-for the declarator and added to the appropriate list; its kind and entity
-pointer are updated.  srk_flags contain specific information about the kind
-of declaration (whether it's a definition, an implicit declaration (C only),
-a friend declaration (C++ only), and so forth); this information is passed
-on for use in generating cross-reference output describing this declaration.
-*/
+Enter the declaration of an identifier for a nonmember routine.
+*locator gives the symbol locator (and thus its name and its
+declaration position).  storage_class, type_ptr, decl_modifiers, and
+attributes give the storage class, type, declaration modifier flags,
+and attributes.  If func_info->implicit_declaration is TRUE, this
+declaration is for an implicit function declaration, and *symbol_ptr
+already contains a pointer to the symbol entry, which is already in
+the symbol table; if func_info->is_definition is TRUE, the identifier
+being defined is part of a function definition (meaning there is a
+body in the definition), in which case it is guaranteed that type_ptr
+points to an unshared type entry, and that type entry will be
+preserved as the routine type.  Create and enter a symbol entry, and
+return a pointer to it in *symbol_ptr.  Also allocate any associated
+IL construct, and attach it to the symbol.  If the identifier has
+linkage and there is an existing symbol or IL entry, it will be
+re-used.  Return in *linkage_ptr the linkage of the identifier.
+Return in *old_type any previously-known type for this identifier from
+a linked identifier in the same scope, or NULL if there was no
+previously-known type.  If the identifier has linkage, return in
+*ext_sym a pointer to the external symbol entry; otherwise, set
+*ext_sym to NULL.  declarator_ssep (non-NULL only if source sequence
+entries are being generated) is a pointer to the empty source sequence
+entry already created for the declarator and added to the appropriate
+list; its kind and entity pointer are updated.  srk_flags contain
+specific information about the kind of declaration (whether it's a
+definition, an implicit declaration (C only), a friend declaration
+(C++ only), and so forth); this information is passed on for use in
+generating cross-reference output describing this declaration.  */
 {
   a_symbol_ptr             sym = NULL;
   a_symbol_ptr             linked_symbol, homonym_symbol = NULL;
@@ -5252,7 +5271,7 @@ skip_overloading:;
     if (C_dialect == C_dialect_cplusplus) {
       if (locator->is_operator_name) {
         routine_ptr->special_kind = (a_special_function_kind)sfk_operator;
-        routine_ptr->opname_kind = locator->variant.opname;
+        routine_ptr->opname_or_builtin.opname_kind = locator->variant.opname;
       }  /* if */
     }  /* if */
     if (!linked_redecl_error && *ext_sym != NULL &&
@@ -5312,9 +5331,10 @@ skip_overloading:;
 #if CHECKING
       if (routine_ptr->special_kind ==
                              (a_special_function_kind)sfk_operator) {
-        check_assertion_str(is_new_operator(routine_ptr->opname_kind) ||
-                             is_delete_operator(routine_ptr->opname_kind),
-                             "decl_routine: bad opname kind");
+        check_assertion_str
+             (is_new_operator(routine_ptr->opname_or_builtin.opname_kind) ||
+	      is_delete_operator(routine_ptr->opname_or_builtin.opname_kind),
+	      "decl_routine: bad opname kind");
       }  /* if */
 #endif /* CHECKING */
     }  /* if */
@@ -5561,6 +5581,10 @@ skip_overloading:;
       pop_namespace_extension_scope();
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  /* Apply the attributes to the routine. */
+  apply_attributes_to_routine(attributes, routine_ptr);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Do fixup on the source sequence entry that was just created to
      represent the current declaration.  Note that declaration_ssep is not
@@ -6075,7 +6099,7 @@ is a template specialization declaration.
     rout_ptr->is_inline = func_info->is_inline;
     if (locator->is_operator_name) {
       rout_ptr->special_kind = (a_special_function_kind)sfk_operator;
-      rout_ptr->opname_kind = locator->variant.opname;
+      rout_ptr->opname_or_builtin.opname_kind = locator->variant.opname;
     }  /* if */
     check_assertion(is_error_locator(*locator) ||
                     !locator->is_conversion_name);
@@ -6577,11 +6601,13 @@ typedef, we must make sure to propagate that to its members.
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
-                information is being recorded in the IL. */
+                information is being recorded in the IL.  attributes
+		is not used unless GNU extensions are supported. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 void decl_typedef(a_symbol_locator             *locator,
                   a_type_ptr                   type_ptr,
                   a_type_ptr                   class_type,
+		  an_attribute_ptr             attributes,
                   a_symbol_ptr                 *symbol_ptr,
                   a_source_sequence_entry_ptr  declarator_ssep,
                   a_decl_pos_block_ptr         decl_pos_block)
@@ -6815,6 +6841,13 @@ return a pointer to it in *symbol_ptr.
       }  /* if */
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (attributes != NULL) {
+    /* If there are attributes, make a copy of the underlying type,
+       and apply the attributes to the copy. */
+    type_ptr = apply_attributes_to_typedef(attributes, type_ptr);
+  }  /* if */ 
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Create a new type entry and add it to the types list for the current
      scope. */
   tp = alloc_type((a_type_kind)tk_typeref);
@@ -6954,8 +6987,9 @@ symbol has already been entered as an undefined symbol.
   clear_decl_modifiers_block(&decl_modifiers);
   decl_routine(&locator, (a_storage_class)sc_extern, rout_type, &func_info,
                (a_source_sequence_entry_ptr)NULL,
-               (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers, &symbol_ptr,
-               &linkage, &old_type, &ext_sym, (a_decl_pos_block_ptr)NULL);
+               (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers, 
+	       (an_attribute_ptr)NULL, &symbol_ptr, &linkage,
+	       &old_type, &ext_sym, (a_decl_pos_block_ptr)NULL);
   done_with_func_info(func_info);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
@@ -7224,7 +7258,8 @@ In C++ mode an error is issued if a type definition appears in a type-name
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
 			&storage_class, type_ptr, &qualifiers,
-                        &decl_modifiers, (a_decl_pos_block_ptr)NULL);
+			(an_attribute_ptr *)NULL, &decl_modifiers,
+			(a_decl_pos_block_ptr)NULL);
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING)) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
@@ -7333,7 +7368,8 @@ within this routine if is_parenthesized comes in FALSE.
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_NEW_TYPE_NAME,
                         &dso_flags, &storage_class, type_ptr, &qualifiers,
-                        &decl_modifiers, &decl_pos_block);
+			(an_attribute_ptr *)NULL, &decl_modifiers,
+			&decl_pos_block);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
@@ -7451,7 +7487,8 @@ where the type involves more than one token -- e.g., "unsigned int(x)".
   clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                         &storage_class, &type_ptr, &qualifiers,
-                        &decl_modifiers, &decl_pos_block);
+			(an_attribute_ptr *)NULL, &decl_modifiers,
+			&decl_pos_block);
   /* Set error_position to the start of the type-specifier sequence. */
   error_position = pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -7527,7 +7564,8 @@ is no parent.
     clear_decl_pos_block(&decl_pos_block);
     (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                           &storage_class, &specifiers_type, &qualifiers,
-                          &decl_modifiers, &decl_pos_block);
+			  (an_attribute_ptr *)NULL, &decl_modifiers,
+			  &decl_pos_block);
     if (dso_flags & DSO_DEFINES_SOMETHING) {
       /* Definition of a class, struct, union, or enum type is not allowed. */
       pos_error(ec_type_definition_not_allowed, &type_pos);
@@ -8001,7 +8039,8 @@ clause is to be attached.  catch_pos is the source position of "catch".
         (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                                DSI_EMPTY_DECL_SPECIFIERS_ALLOWED),
                               &dso_flags, &storage_class, &type_ptr,
-                              &qualifiers, &decl_modifiers, &decl_pos_block);
+                              &qualifiers, (an_attribute_ptr *)NULL,
+			      &decl_modifiers, &decl_pos_block);
         if (dso_flags & DSO_DEFINES_SOMETHING) {
           /* Definition of a class, struct, union, or enum type is not
              allowed. */
@@ -8361,7 +8400,8 @@ Return a pointer to the variable that is declared.
               DSI_IS_CONDITION_DECL;
   clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr,
-                        &qualifiers, &decl_modifiers, &decl_pos_block);
+                        &qualifiers, (an_attribute_ptr *)NULL,
+			&decl_modifiers, &decl_pos_block);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &decl_pos);
@@ -9693,6 +9733,11 @@ of local variables (and types, etc.) of functions and in blocks.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                    first_declarator = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+  an_attribute_ptr             prefix_attributes = NULL;
+  an_attribute_ptr             *last_prefix_attribute;
+  an_attribute_ptr             attributes = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   a_boolean		       access_checks_deferred = FALSE;
   a_token_kind                 final_token = tok_semicolon;
   a_boolean                    is_linkage_spec_decl = FALSE;
@@ -9903,8 +9948,20 @@ continue_with_declaration:
   }  /* if */
   /* Scan the specifiers. */
   err = decl_specifiers(dsi_flags, &dso_flags, &declared_storage_class,
-                        &type_ptr, &qualifiers, &decl_modifiers,
-                        &decl_pos_block);
+                        &type_ptr, &qualifiers, 
+#if GNU_EXTENSIONS_ALLOWED
+			&prefix_attributes,
+#else /* !GNU_EXTENSIONS_ALLOWED */
+			(an_attribute_ptr *)NULL,
+#endif /* !GNU_EXTENSIONS_ALLOWED */
+			&decl_modifiers, &decl_pos_block);
+#if GNU_EXTENSIONS_ALLOWED
+  /* Find the last prefix_attribute. */
+  last_prefix_attribute = &prefix_attributes;
+  while (*last_prefix_attribute) {
+    last_prefix_attribute = &(*last_prefix_attribute)->next;
+  }  /* while */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   has_explicit_type_specifier =
                       ((dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0);
   if (dso_flags & DSO_LINKAGE_SPEC_DECL) {
@@ -10294,6 +10351,11 @@ continue_with_declaration:
             (curr_token != tok_semicolon || microsoft_out_of_class_redecl) &&
             curr_token != tok_comma &&
             curr_token != tok_assign &&
+#if GNU_EXTENSIONS_ALLOWED
+	    /* Attributes are only allowed on function declarations,
+	       not on function definitions. */
+	    curr_token != tok_attribute &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
             curr_token != tok_end_of_source) {
           a_boolean  is_function_try_block = curr_token == tok_try;
           if (!has_explicit_type_specifier) {
@@ -10489,6 +10551,14 @@ continue_with_declaration:
       /* Enter the symbol with the proper type. */
       linkage = idl_none;
       var_ptr = NULL;
+#if GNU_EXTENSIONS_ALLOWED
+      /* Look for optional attributes. */
+      if (gcc_mode) {
+	attributes = scan_attributes();
+	/* Combine the prefix_attributes and the postfix attributes. */
+	*last_prefix_attribute = attributes;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       /* Look for optional initializer. */
       remove_stop_token(tok_assign);
       need_assign_remove_stop_token = FALSE;
@@ -10531,7 +10601,12 @@ continue_with_declaration:
       } else if (local_storage_class == (a_storage_class)sc_typedef) {
         /* A typedef declaration. */
         decl_typedef(&locator, local_type_ptr, (a_type_ptr)NULL,
-                     &symbol_ptr, declarator_ssep, &decl_pos_block);
+#if GNU_EXTENSIONS_ALLOWED
+		     prefix_attributes, 
+#else /* !GNU_EXTENSIONS_ALLOWED */
+		     (an_attribute_ptr)NULL,
+#endif /* !GNU_EXTENSIONS_ALLOWED */
+		     &symbol_ptr, declarator_ssep, &decl_pos_block);
       } else if (is_static_data_member) {
         /* A static data member definition. */
         define_static_data_member(&locator, local_storage_class,
@@ -10577,8 +10652,14 @@ continue_with_declaration:
         }  /* if */          
         decl_routine(&locator, local_storage_class, local_type_ptr,
                      &func_info, declarator_ssep, SRK_DECLARATION,
-                     &local_decl_modifiers, &symbol_ptr, &linkage, &old_type,
-                     &ext_sym, &decl_pos_block);
+                     &local_decl_modifiers, 
+#if GNU_EXTENSIONS_ALLOWED
+		     prefix_attributes,
+#else /* !GNU_EXTENSIONS_ALLOWED */
+		     (an_attribute_ptr)NULL,
+#endif /* !GNU_EXTENSIONS_ALLOWED */
+		     &symbol_ptr, &linkage, &old_type, &ext_sym,
+		     &decl_pos_block);
       } else {
         /* A variable declaration. */
         a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
@@ -10680,6 +10761,11 @@ continue_with_declaration:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         decl_variable(&locator, local_storage_class, local_type_ptr,
                       declarator_ssep, srk_flags, &local_decl_modifiers,
+#if GNU_EXTENSIONS_ALLOWED
+		      prefix_attributes,
+#else /* !GNU_EXTENSIONS_ALLOWED */
+		      (an_attribute_ptr)NULL,
+#endif /* !GNU_EXTENSIONS_ALLOWED */
                       &symbol_ptr, &linkage, &old_type, &ext_sym,
                       &decl_pos_block);
         var_ptr = symbol_ptr->variant.variable.ptr;
@@ -10890,6 +10976,11 @@ continue_with_declaration:
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       first_declarator = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+      /* We are done with the postfix attributes. */
+      *last_prefix_attribute = NULL;
+      free_attribute_list(attributes);
+#endif /* GNU_EXTENSIONS_ALLOWED */
       /* Keep scanning the list of declarators. */
     } while (loop_token(tok_comma));
   }  /* if */
@@ -10942,6 +11033,9 @@ return_point:
        have been called. */
     if (restore_name_linkage) pop_name_linkage();
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  free_attribute_list(prefix_attributes);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Do necessary remove_stop_tokens.  Even when there is no error, this
      does the remove_stop_token for tok_semicolon. */
   remove_all_local_stop_tokens();

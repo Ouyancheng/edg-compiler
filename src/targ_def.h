@@ -1250,6 +1250,67 @@ but implementations are free to do otherwise.
 #endif /* !defined(TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS) */
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+/* The default value used to initialize targ_word_mode. */
+#ifndef TARG_WORD_MODE
+#if TARG_SIZEOF_INT == 1
+#define TARG_WORD_MODE tmk_QI
+#else /* TARG_SIZEOF_INT != 1 */
+#if TARG_SIZEOF_INT == 2
+#define TARG_WORD_MODE tmk_HI
+#else /* TARG_SIZEOF_INT != 2 */
+#if TARG_SIZEOF_INT == 4
+#define TARG_WORD_MODE tmk_SI
+#else /* TARG_SIZEOF_INT != 4 */
+#if TARG_SIZEOF_INT == 8
+#define TARG_WORD_MODE tmk_DI
+#else /* TARG_SIZEOF_INT != 8 */
+#if TARG_SIZEOF_INT == 16
+#define TARG_WORD_MODE tmk_TI
+#else /* TARG_SIZEOF_INT != 16 */
+ #error -- do not know how to set TARG_WORD_MODE
+#endif /* TARG_SIZEOF_INT != 16 */
+#endif /* TARG_SIZEOF_INT != 8 */
+#endif /* TARG_SIZEOF_INT != 4 */
+#endif /* TARG_SIZEOF_INT != 2 */
+#endif /* TARG_SIZEOF_INT != 1 */
+#endif /* defined(TARG_WORD_MODE) */
+
+/* The default value used to initialize targ_pointer_mode. */
+#if TARG_ALL_POINTERS_SAME_SIZE
+#ifndef TARG_POINTER_MODE
+#if TARG_SIZEOF_POINTER == 1
+#define TARG_POINTER_MODE tmk_QI
+#else /* TARG_SIZEOF_POINTER != 1 */
+#if TARG_SIZEOF_POINTER == 2
+#define TARG_POINTER_MODE tmk_HI
+#else /* TARG_SIZEOF_POINTER != 2 */
+#if TARG_SIZEOF_POINTER == 4
+#define TARG_POINTER_MODE tmk_SI
+#else /* TARG_SIZEOF_POINTER != 4 */
+#if TARG_SIZEOF_POINTER == 8
+#define TARG_POINTER_MODE tmk_DI
+#else /* TARG_SIZEOF_POINTER != 8 */
+#if TARG_SIZEOF_POINTER == 16
+#define TARG_POINTER_MODE tmk_TI
+#else /* TARG_SIZEOF_POINTER != 16 */
+ #error -- do not know how to set TARG_POINTER_MODE
+#endif /* TARG_SIZEOF_POINTER != 16 */
+#endif /* TARG_SIZEOF_POINTER != 8 */
+#endif /* TARG_SIZEOF_POINTER != 4 */
+#endif /* TARG_SIZEOF_POINTER != 2 */
+#endif /* TARG_SIZEOF_POINTER != 1 */
+#endif /* defined(TARG_POINTER_MODE) */
+
+#else /* !TARG_ALL_POINTERS_SAME_SIZE */
+/* GCC does not support architectures where all pointers are not the
+   same size.  It does not make sense to talk about a "pointer mode"
+   on such an architecture. */
+#endif /* !TARG_ALL_POINTERS_SAME_SIZE */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 /* 
 Numbering for virtual functions.  Each virtual member function in a given
 class is assigned a unique number which can (for instance) be used to

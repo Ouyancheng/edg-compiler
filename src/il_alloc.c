@@ -1069,6 +1069,9 @@ to default values.
 #endif /* ifdef FIL */
       pte->variant.integer.explicitly_signed = FALSE;
       pte->variant.integer.enum_type = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+      pte->variant.integer.packed = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       pte->variant.integer.wchar_t_type = FALSE;
       pte->variant.integer.bool_type = FALSE;
       pte->variant.integer.originally_unnamed = FALSE;
@@ -1278,6 +1281,11 @@ variant fields to default values.
   pte->typedef_definition_has_been_put_out = FALSE;
   pte->replace_by_generated_typedef = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if GNU_EXTENSIONS_ALLOWED
+  pte->alignment_set_explicitly = FALSE;
+  pte->variables_are_implicitly_referenced = FALSE;
+  pte->copy_with_additional_attributes = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   pte->autonomous_primary_tag_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -1492,6 +1500,9 @@ to it.
 #if DECL_MODIFIERS_IN_USE
   vp->decl_modifiers              = DM_NONE;
 #endif /* DECL_MODIFIERS_IN_USE */
+#if GNU_EXTENSIONS_ALLOWED
+  vp->alignment                   = 0;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   vp->address_taken               = FALSE;
   vp->is_parameter                = FALSE;
   vp->init_kind                   = (an_init_kind)initk_none;
@@ -1576,6 +1587,9 @@ to it.
   fp->offset               = 0;
   fp->offset_bit_remainder = 0;
   fp->bit_size             = 0;
+#if GNU_EXTENSIONS_ALLOWED
+  fp->alignment            = 0;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   fp->is_bit_field         = FALSE;
   fp->bit_field_is_signed  = FALSE;
   fp->is_anonymous_parent_object = FALSE;
@@ -1667,7 +1681,10 @@ to it.  The entry is allocated in the file scope memory region.
   rp->assoc_scope                 = NULL_region_number;
   rp->storage_class               = (a_storage_class)sc_unspecified;
   rp->special_kind                = (a_special_function_kind)sfk_none;
-  rp->opname_kind                 = (an_opname_kind)onk_none;
+#if GNU_EXTENSIONS_ALLOWED
+  rp->opname_or_builtin.builtin_function_kind 
+                                  = (a_builtin_function_kind)bfk_none;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   rp->address_taken               = FALSE;
   rp->is_virtual                  = FALSE;
   rp->pure_virtual                = FALSE;
@@ -1689,6 +1706,10 @@ to it.  The entry is allocated in the file scope memory region.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   rp->declared_only_as_friend     = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  rp->is_initialization_routine   = FALSE;
+  rp->is_finalization_routine     = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   rp->can_be_instantiated         = FALSE;
   rp->do_not_instantiate          = FALSE;
@@ -2214,6 +2235,9 @@ fields to default values.
     case stmk_empty:
 #endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
     case stmk_expr:
+#if GNU_EXTENSIONS_ALLOWED
+    case stmk_assigned_goto:
+#endif /* GNU_EXTENSIONS_ALLOWED */
       /* No variant fields. */
       break;
     case stmk_if:

@@ -552,6 +552,11 @@ the file scope, do not process it (but record an orphan in the latter case).
                 remap_ptr(ptr->variant.address.variant.type, a_type_ptr,
                           iek_type);
                 break;
+              case abk_label:
+                /* Labels will be visited from the scope. */
+                remap_ptr(ptr->variant.address.variant.label, a_label_ptr,
+                          iek_label);
+                break;
               default:
                 unexpected_condition_str(
                              "walk_entry_and_subtree: bad address const kind");
@@ -1441,6 +1446,9 @@ end_sizeof:;
 #ifdef FFE
           case stmk_alt_return:
 #endif /* ifdef FFE */
+#if GNU_EXTENSIONS_ALLOWED
+          case stmk_assigned_goto:
+#endif /* GNU_EXTENSIONS_ALLOWED */
             /* No pointers. */
             break;
           case stmk_if:

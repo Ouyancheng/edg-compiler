@@ -81,6 +81,7 @@ extern a_boolean decl_specifiers(a_decl_flag_set             input_flags,
 				 a_storage_class             *storage_class,
 				 a_type_ptr                  *type_ptr,
                                  a_type_qualifier_set        *qualifiers,
+				 an_attribute_ptr	     *attributes,
                                  a_decl_modifiers_block_ptr  decl_modifiers,
                                  a_decl_pos_block_ptr        decl_pos_block);
 

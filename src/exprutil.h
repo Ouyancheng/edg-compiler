@@ -111,6 +111,38 @@ enum an_expression_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_expression_kind;
 
+#if GNU_EXTENSIONS_ALLOWED
+
+/*
+These values are returned by __builtin_classify_type.  Order matters;
+the values of these enumeration constants must match those used by
+GCC.
+*/
+typedef enum a_type_class_kind {
+  tck_none = -1,
+  tck_void,             /* void */
+  tck_integer,          /* short, int, long, long long */
+  tck_char,             /* char */
+  tck_enum,             /* enumeration types */
+  tck_bool,             /* bool */
+  tck_pointer,          /* pointers */
+  tck_reference,        /* references */
+  tck_offset,           /* Unused in C or C++, but the value must be
+			   here to ensure that the values of
+			   subsequent enumeration constants are
+			   correct. */
+			/*lint -esym(769,a_type_class_kind::tck_offset)*/
+  tck_float,            /* float, double, long double */
+  tck_routine,          /* functions */
+  tck_method,           /* Unused in C or C++. */
+			/*lint -esym(769,a_type_class_kind::tck_method)*/
+  tck_struct,           /* structs or classes */
+  tck_union,            /* unions */
+  tck_array,            /* arrays -- but not strings */
+  tck_string            /* strings */
+} a_type_class_kind;
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*
 Information on a single reference to a symbol.  Used in cases where the kind

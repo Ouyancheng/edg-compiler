@@ -573,6 +573,33 @@ EXTERN a_targ_alignment
 			/* Alignment of a long double.  Initialized to the
 			   default value but reconfigurable. */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+EXTERN a_type_mode_kind
+		targ_word_mode
+#if VAR_INITIALIZERS
+                               = (a_type_mode_kind)TARG_WORD_MODE
+#endif /* VAR_INITIALIZERS */
+                                                                 ;
+			/* Mode of a word, i.e., the natural integer
+			   size for the target.  Initialized to the
+			   default value but reconfigurable. */
+
+#if TARG_ALL_POINTERS_SAME_SIZE
+
+EXTERN a_type_mode_kind
+		targ_pointer_mode
+#if VAR_INITIALIZERS
+                                  = (a_type_mode_kind)TARG_POINTER_MODE
+#endif /* VAR_INITIALIZERS */
+                                                                       ;
+			/* Mode of a pointer.  Initialized to the
+			   default value but reconfigurable. */
+
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 /*
 C++ pointer-to-member type.
 */
@@ -992,6 +1019,10 @@ EXTERN a_boolean
 #undef TARG_SIZEOF_NEAR_POINTER
 #undef TARG_ALIGNOF_NEAR_POINTER
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+#undef TARG_POINTER_MODE
+#undef TARG_WORD_MODE
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #undef TARG_PTRDIFF_T_MAX
 #undef TARG_PTRDIFF_T_MIN
 #undef TARG_PTRDIFF_T_INT_KIND
@@ -1082,6 +1113,10 @@ EXTERN a_boolean
 #define TARG_SIZEOF_NEAR_POINTER targ_sizeof_near_pointer
 #define TARG_ALIGNOF_NEAR_POINTER targ_alignof_near_pointer
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+#define TARG_POINTER_MODE targ_pointer_mode
+#define TARG_WORD_MODE targ_word_mode
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #define TARG_PTRDIFF_T_MAX targ_ptrdiff_t_max
 #define TARG_PTRDIFF_T_MIN targ_ptrdiff_t_min
 #define TARG_PTRDIFF_T_INT_KIND targ_ptrdiff_t_int_kind

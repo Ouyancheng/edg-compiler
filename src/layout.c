@@ -1023,8 +1023,18 @@ there's no overflow TRUE is returned.
       }  /* if */
       field_alignment = field_type->alignment;
 #if USER_CONTROL_OF_STRUCT_PACKING
-      /* Adjust the field's alignment for packing, if required. */
-      adjust_alignment_for_packing(&field_alignment, class_type);
+#if GNU_EXTENSIONS_ALLOWED
+      /* If the alignment of this field was explicitly specified,
+	 honor that. */
+      if (field->alignment != 0) {
+	field_alignment = field->alignment;
+      } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+	/* Adjust the field's alignment for packing, if required. */
+	adjust_alignment_for_packing(&field_alignment, class_type);
+      }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       overflow = !do_alignment(&lob->byte_offset, &lob->bit_offset,
                                field_alignment);
@@ -2629,8 +2639,19 @@ for handling virtual bases and functions.
 */
 {
   a_layout_block              lob;
+#if GNU_EXTENSIONS_ALLOWED
+  a_targ_alignment            alignment;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "do_class_layout");
+#if GNU_EXTENSIONS_ALLOWED
+  if (class_type->alignment_set_explicitly) {
+    /* Save the desired alignment and compute the alignment normally.
+       Later, we will adjust the computed alignment, if necessary. */
+    alignment = class_type->alignment;
+    class_type->alignment = 1;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   clear_layout_block(&lob, class_type);
   compute_empty_class_bit(class_type);
   if (C_dialect == C_dialect_cplusplus) {
@@ -2662,6 +2683,18 @@ for handling virtual bases and functions.
       check_if_last_empty_base_is_optimized(&lob);
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (class_type->alignment_set_explicitly) {
+    if (alignment < lob.alignment) {
+      /* The alignment of the class cannot be reduced. */
+      error(ec_alignment_attribute_decreases_alignment);
+    } else {
+      /* Setting lob.alignment is like imagining that the class had a
+	 field with the desired alignment. */
+      lob.alignment = alignment;
+    } /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Adjust the total size of the class to be consistent with the
      overall alignment required for the class. */
   if (!do_alignment(&lob.byte_offset, &lob.bit_offset, lob.alignment)) {

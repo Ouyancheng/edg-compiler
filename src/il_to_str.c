@@ -2458,6 +2458,14 @@ parentheses are not needed.
          given class type. */
       type = type_pointed_to(constant->type);
       break;
+   case abk_label:
+     /* Address of a label (GNU C extension). */
+     { a_label_ptr label = constant->variant.address.variant.label;
+       type = type_pointed_to(constant->type);
+       entity_kind = iek_label;
+       entity_scp = &label->source_corresp;
+     }
+     break;
     default:
       unexpected_condition_str(
                    "form_lvalue_for_addressed_entity: bad addr constant kind");
@@ -2809,7 +2817,14 @@ precedence confusion.  Do the output in the way described by octl.
       /* Using type decay to get a pointer. */
     } else {
       output_optional_open_paren(&need_parens, &need_ampersand_paren, octl);
-      octl->output_str("&");
+      if (constant->kind == (a_constant_repr_kind)ck_address &&
+	  constant->variant.address.kind == (an_address_base_kind)abk_label) {
+	/* The address of a label is taken with "&&", rather than the
+	   ordinary "&". */
+	octl->output_str("&&");
+      } else {
+	octl->output_str("&");
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Generate code for the lvalue for the entity. */

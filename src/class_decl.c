@@ -5330,8 +5330,8 @@ of the function, and again overloading is a possibility.
       }  /* if */
       decl_routine(locator, storage_class, function_type, func_info,
                    declarator_ssep, srk_flags, &decl_info->decl_modifiers,
-                   &sym, &linkage, &old_type, &ext_sym,
-                   &decl_info->decl_pos_block);
+		   (an_attribute_ptr)NULL, &sym, &linkage, &old_type,
+		   &ext_sym, &decl_info->decl_pos_block);
       /* WP 11.4 para 5 prohibits defining a nonmember function in a local
          class friend declaration. */
       if (func_info->is_definition &&
@@ -6384,7 +6384,7 @@ declared member functions.
   if (locator->is_operator_name) {
     /* Overloaded operator function. */
     rtn->special_kind = (a_special_function_kind)sfk_operator;
-    rtn->opname_kind = locator->variant.opname;
+    rtn->opname_or_builtin.opname_kind = locator->variant.opname;
   } else if (locator->is_conversion_name) {
     /* User-defined conversion function. */
     rtn->special_kind = (a_special_function_kind)sfk_conversion;
@@ -6609,15 +6609,19 @@ declared member functions.
     if (locator->is_operator_name) {
       /* If this is an assignment operator, record a pointer to it in the
          symbol -- to facilitate generating default assignment operators. */
-      if (rtn->opname_kind == (an_opname_kind)onk_assign) {
+      if (rtn->opname_or_builtin.opname_kind == (an_opname_kind)onk_assign) {
         record_assignment_operator_in_class_symbol(cssp, sym, overload_sym);
-      } else if (rtn->opname_kind == (an_opname_kind)onk_new) {
+      } else if (rtn->opname_or_builtin.opname_kind == 
+		 (an_opname_kind)onk_new) {
         cssp->has_operator_new = TRUE;
-      } else if (rtn->opname_kind == (an_opname_kind)onk_array_new) {
+      } else if (rtn->opname_or_builtin.opname_kind ==
+		 (an_opname_kind)onk_array_new) {
         cssp->has_operator_array_new = TRUE;
-      } else if (rtn->opname_kind == (an_opname_kind)onk_delete) {
+      } else if (rtn->opname_or_builtin.opname_kind ==
+		 (an_opname_kind)onk_delete) {
         cssp->has_operator_delete = TRUE;
-      } else if (rtn->opname_kind == (an_opname_kind)onk_array_delete) {
+      } else if (rtn->opname_or_builtin.opname_kind ==
+		 (an_opname_kind)onk_array_delete) {
         cssp->has_operator_array_delete = TRUE;
       }  /* if */
     } else if (locator->is_conversion_name) {
@@ -6898,7 +6902,7 @@ in-class member function declarations.)
   if (locator->is_operator_name) {
     /* Overloaded operator function. */
     rtn->special_kind = (a_special_function_kind)sfk_operator;
-    rtn->opname_kind = locator->variant.opname;
+    rtn->opname_or_builtin.opname_kind = locator->variant.opname;
   } else if (locator->is_conversion_name) {
     /* User-defined conversion function. */
     rtn->special_kind = (a_special_function_kind)sfk_conversion;
@@ -6913,7 +6917,7 @@ in-class member function declarations.)
     if (locator->is_operator_name) {
       /* If this is an assignment operator, record a pointer to it in the
          symbol -- to facilitate generating default assignment operators. */
-      switch(rtn->opname_kind) {
+      switch(rtn->opname_or_builtin.opname_kind) {
         case onk_assign:
           record_assignment_operator_in_class_symbol(cssp, sym, overload_sym);
           break;
@@ -7394,7 +7398,7 @@ Return TRUE if sym represents a copy assignment operator.
   if (sym->kind == (a_symbol_kind)sk_member_function) {
     rp = sym->variant.routine.ptr;
     if (rp->special_kind == (a_special_function_kind)sfk_operator &&
-        rp->opname_kind == (an_opname_kind)onk_assign &&
+        rp->opname_or_builtin.opname_kind == (an_opname_kind)onk_assign &&
         is_assignment_operator_for_copy(sym, &is_ref_arg,
                                         &qualifiers_accepted,
                                         &is_base_class_match)) {
@@ -8619,6 +8623,7 @@ respectively.
 static void decl_nonstatic_data_member(a_symbol_locator        *locator,
                                        a_type_ptr              class_type,
                                        a_type_ptr              member_type,
+				       an_attribute_ptr        attributes,
                                        a_class_def_state_ptr   class_state,
                                        a_member_decl_info_ptr  decl_info)
 /*
@@ -8642,6 +8647,11 @@ specific information about the member declaration, respectively.
     member_type = error_type();
     set_to_named_error_locator(*locator);
   } else {
+#if GNU_EXTENSIONS_ALLOWED
+    /* The attributes might change the type of the field. */
+    member_type = apply_attributes_to_variable_type(attributes, 
+						    member_type);
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Do error checking on the type. */
     check_field_type(locator, &member_type, class_state, decl_info);
   }  /* if */
@@ -8736,6 +8746,10 @@ specific information about the member declaration, respectively.
        field. */
     cannot_bind_to_curr_construct();
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  /* Apply the attributes to the field. */
+  apply_attributes_to_field(attributes, field);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Add the field to the temporary list for this class/struct/union. */
   if (class_state->end_of_field_list == NULL) {
     class_type->variant.class_struct_union.field_list = field;
@@ -9700,7 +9714,8 @@ the new declaration.
                                symbol_supplement_for_class(class_type));
       } else if (rp->special_kind ==
                                (a_special_function_kind)sfk_operator &&
-                 rp->opname_kind == (an_opname_kind)onk_assign) {
+                 rp->opname_or_builtin.opname_kind == 
+		               (an_opname_kind)onk_assign) {
         /* Record the assignment operator in the symbol. */
         record_assignment_operator_in_class_symbol(
                                  symbol_supplement_for_class(class_type),
@@ -10671,6 +10686,10 @@ the IL, the template header is passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean            any_decl_other_than_nonstatic_data_member = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  an_attribute_ptr     prefix_attributes;
+  an_attribute_ptr     *last_prefix_attribute;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "class_member_declaration");
   *skip_semicolon_check = FALSE;
@@ -10701,8 +10720,20 @@ the IL, the template header is passed via template_decl.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   add_stop_token(tok_colon);
   (void)decl_specifiers(dsi_flags, &dso_flags, &decl_info.storage_class,
-                        &member_type, &qualifiers, &decl_info.decl_modifiers,
-                        &decl_info.decl_pos_block);
+                        &member_type, &qualifiers, 
+#if GNU_EXTENSIONS_ALLOWED
+			&prefix_attributes,
+#else /* !GNU_EXTENSIONS_ALLOWED */
+			(an_attribute_ptr *)NULL,
+#endif /* !GNU_EXTENSIONS_ALLOWED */
+			&decl_info.decl_modifiers,  &decl_info.decl_pos_block);
+#if GNU_EXTENSIONS_ALLOWED
+  /* Find the last prefix_attribute. */
+  last_prefix_attribute = &prefix_attributes;
+  while (*last_prefix_attribute != NULL) {
+    last_prefix_attribute = &(*last_prefix_attribute)->next;
+  }  /* while */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   decl_info.dso_flags = dso_flags;
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING) && !is_error_type(member_type)) {
@@ -10787,6 +10818,9 @@ the IL, the template header is passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean                         is_nonstatic_data_member = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    an_attribute_ptr                  attributes = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
     declarator_start_pos = pos_curr_token;
     add_stop_token(tok_comma);
@@ -10913,6 +10947,12 @@ the IL, the template header is passed via template_decl.
                  friend_specified ? (a_type_ptr)NULL : class_type,
                  &locator, &local_type, &decl_info.declarator_ssep,
                  &func_info, &decl_info.decl_pos_block);
+#if GNU_EXTENSIONS_ALLOWED
+      /* Look for attributes that apply to the member. */
+      attributes = scan_attributes();
+      /* Combine the prefix_attributes and the postfix attributes. */
+      *last_prefix_attribute = attributes;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       if (!C_mode()) {
         remove_stop_token(tok_lbrace);
         check_completed_member_type(&local_type, &locator, class_state,
@@ -11345,8 +11385,9 @@ the IL, the template header is passed via template_decl.
                                       !no_decl_specifiers);
       }  /* if */
       /* Typedef declaration. */
-      decl_typedef(&locator, local_type, class_type, &decl_info.member_sym,
-                   decl_info.declarator_ssep, &decl_info.decl_pos_block);
+      decl_typedef(&locator, local_type, class_type, (an_attribute_ptr)NULL,
+		   &decl_info.member_sym, decl_info.declarator_ssep,
+		   &decl_info.decl_pos_block);
       /* Note: access will have been set in decl_typedef. */
       if (curr_routine_fixup != NULL &&
           curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
@@ -11408,6 +11449,11 @@ the IL, the template header is passed via template_decl.
       } else {
         /* Non-static data member (= field). */
         decl_nonstatic_data_member(&locator, class_type, local_type,
+#if GNU_EXTENSIONS_ALLOWED
+				   prefix_attributes,
+#else /* !GNU_EXTENSIONS_ALLOWED */
+				   (an_attribute_ptr)NULL,
+#endif /* !GNU_EXTENSIONS_ALLOWED */
                                    class_state, &decl_info);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         is_nonstatic_data_member = TRUE;
@@ -11428,6 +11474,11 @@ the IL, the template header is passed via template_decl.
       any_decl_other_than_nonstatic_data_member = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    /* We are done with the postfix attributes. */
+    *last_prefix_attribute = NULL;
+    free_attribute_list(attributes);
+#endif /* GNU_EXTENSIONS_ALLOWED */
     remove_stop_token(tok_comma);
     decl_info.is_first_in_declarator_list = FALSE;
     /* Loop for additional declarators. */
@@ -11448,6 +11499,10 @@ next_declaration:;
     if (dso_flags & DSO_LINKAGE_SPEC_DECL) pop_name_linkage();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  /* We are done with the prefix attributes. */
+  free_attribute_list(prefix_attributes);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (decl_pos_block_ptr != NULL) {
     /* Return to the caller the extra source position information collected
        for this declaration. */
@@ -11864,6 +11919,9 @@ classes.
   a_scope_depth                   class_scope_depth;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+  an_attribute_ptr                attributes;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "scan_class_definition");
   initialize_class_def_state(class_type, &class_state);
@@ -12243,6 +12301,18 @@ next_declaration:
       /* Force the functions to compute the scope depth, if any. */
       effective_decl_level = NO_SCOPE_DEPTH;
     }  /* if */
+    /* Process pragmas associated with the closing brace before the current
+       scope is popped and before add_end_of_construct_source_sequence_entry
+       is called. */
+    process_curr_token_pragmas();
+    /* Check for and ignore the closing brace. */
+    token_number_of_closing_brace = curr_token_sequence_number;  
+    (void)required_token(tok_rbrace, ec_exp_rbrace);
+#if GNU_EXTENSIONS_ALLOWED
+    /* Process attributes that apply to this class. */
+    attributes = scan_attributes();
+    apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
+#endif /* GNU_EXTENSIONS_ALLOWED */
     if (depth_template_declaration_scope == NO_SCOPE_DEPTH) {
       /* Something went wrong if we are in a template declaration scope;
          we ought to be in class_template_declaration instead.  An error
@@ -12250,10 +12320,6 @@ next_declaration:
       complete_class_definition(class_type, effective_decl_level,
                                 &class_state);
     }  /* if */
-    /* Process pragmas associated with the closing brace before the current
-       scope is popped and before add_end_of_construct_source_sequence_entry
-       is called. */
-    process_curr_token_pragmas();
 #if USER_CONTROL_OF_STRUCT_PACKING
     if (is_template_instantiation &&
         !class_type->variant.class_struct_union.is_prototype_instantiation) {
@@ -12377,9 +12443,6 @@ next_declaration:
       decl_pos_block->specifiers_range.end = pos_curr_token;
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    /* Check for and ignore the closing brace. */
-    token_number_of_closing_brace = curr_token_sequence_number;  
-    (void)required_token(tok_rbrace, ec_exp_rbrace);
     /* Restore the stop token state. */
     pop_stop_token_stack();
     /* If entities dependent on this class were declared before the class

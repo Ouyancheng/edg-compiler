@@ -1240,8 +1240,10 @@ enum an_address_base_kind_tag {
   abk_routine,          /* Pointer to a function. */
   abk_variable,         /* Pointer to a variable. */
   abk_constant,		/* Pointer to a constant. */
-  abk_uuidof		/* Pointer to _GUID structure for Microsoft __uuidof
+  abk_uuidof,		/* Pointer to _GUID structure for Microsoft __uuidof
 			   operation. */
+  abk_label             /* Pointer to a label.  This is used for the
+			   GNU address-of-label extension. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_address_base_kind;
@@ -1863,6 +1865,9 @@ typedef struct a_constant {
 			   associated with the indicated type.  NULL for
 			   the address of a structure representing a zero
 			   GUID. */
+	/* When kind == abk_label: */
+	a_label_ptr
+		label;
       } variant;
       a_targ_ptrdiff_t
                 offset;
@@ -2796,6 +2801,52 @@ Type used to represent a set of decl modifiers.
 typedef unsigned short a_decl_modifier;
 
 #endif /* ifdef CIL */
+
+#if GNU_EXTENSIONS_ALLOWED
+
+/*
+Enumeration of type modes, i.e., sizes of types.  Some of these modes
+may not be available on some machines.
+*/
+enum a_type_mode_kind_tag {
+  tmk_error,          /* An erroneous mode. */
+  tmk_first,
+  tmk_QI = tmk_first, /* 1-byte integers. */
+  tmk_HI,             /* 2-byte integers. */
+  tmk_SI,             /* 4-byte integers. */
+  tmk_DI,             /* 8-byte integers. */
+  tmk_TI,             /* 16-byte integers. */
+  tmk_SF,             /* 4-byte floats. */
+  tmk_DF,             /* 8-byte floats. */
+  tmk_XF,             /* 12-byte floats. */
+  tmk_TF,             /* 16-byte floats. */
+  tmk_last
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_type_mode_kind;
+
+/*
+Names of machine modes.
+*/
+EXTERN char *type_mode_kind_names[(int)tmk_last + 1]
+#if VAR_INITIALIZERS
+= {
+/* tmk_error */ "error",
+/* tmk_QI */    "QI",
+/* tmk_HI */    "HI",
+/* tmk_SI */    "SI",
+/* tmk_DI */    "DI",
+/* tmk_TI */    "TI",
+/* tmk_SF */    "SF",
+/* tmk_DF */    "DF",
+/* tmk_XF */    "XF",
+/* tmk_TF */    "TF",
+/* tmk_last */  "last" /* used to check that initialization is right. */
+}
+#endif /* VAR_INITIALIZERS */
+;
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 /* Entry containing additional information about a routine type
 (segregated to keep down the size of a_type). */
@@ -3942,6 +3993,20 @@ typedef struct a_type {
 			   in the C++-generating end, to deal with a Microsoft
 			   bug. */
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	alignment_set_explicitly:1;
+			/* TRUE if this type differs from the type it
+			   refers to because its alignment has been
+			   explicitly set, via an attribute.  */
+  a_bit_field	variables_are_implicitly_referenced:1;
+			/* TRUE if no warnings about unused variables
+			   should be emitted for variables that have
+			   this type. */
+  a_bit_field	copy_with_additional_attributes:1;
+			/* TRUE if this is a type that is the same as
+			   some other type, but with additional
+			   attributes.  */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_bit_field	autonomous_primary_tag_decl:1;
 			/* TRUE if this type entry represents a class, struct,
@@ -4020,6 +4085,15 @@ typedef struct a_type {
                 enum_type:1;
                         /* TRUE if this type is an enumerated type (the type 
                            of the tag, not the constants, in C). */
+#if GNU_EXTENSIONS_ALLOWED
+      a_bit_field
+      		packed:1;
+			/* TRUE if this type is an enumerated type,
+			   and its size may be smaller than "int",
+			   even if enum_types_can_be_smaller_than_int
+			   is FALSE.  Unused if this type is not an
+			   enumerated type. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       a_bit_field
 		wchar_t_type:1;
 			/* TRUE if this type is wchar_t in C++ when wchar_t
@@ -4069,9 +4143,12 @@ typedef struct a_type {
 #endif /* ifdef CIL */
     } integer;
     /* When kind == tk_float: */
-#ifdef FIL
+#if C99_IL_EXTENSIONS_SUPPORTED
+    /* Also, when kind == tk_imaginary: */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
     /* Also, when kind == tk_complex: */
-#endif /* ifdef FIL */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
     a_float_kind
                 float_kind;
                         /* Which size of float. */
@@ -4719,6 +4796,13 @@ typedef struct a_variable {
 			   Microsoft storage-class-like __declspec
 			   modifiers. */
 #endif /* DECL_MODIFIERS_IN_USE */
+#if GNU_EXTENSIONS_ALLOWED
+  a_targ_alignment
+  		alignment;
+			/* The explicit alignment specified for the
+			   variable, or zero if there was no explicit
+			   alignment. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   a_bit_field	address_taken:1;
                         /* TRUE if the address of this variable has been
                            taken somewhere. */
@@ -5013,6 +5097,13 @@ typedef struct a_field {
 			/* Size of this field (in bits).  Only non-zero for
 			   bit-fields; for the others, the size is gotten from
 			   the type. */
+#if GNU_EXTENSIONS_ALLOWED
+  a_targ_alignment
+  		alignment;
+			/* The explicit alignment specified for the
+			   field, or zero if there was no explicit
+			   alignment. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   a_bit_field	is_bit_field:1;
 			/* TRUE if the field represents a bit field. */
   a_bit_field	bit_field_is_signed:1;
@@ -5173,6 +5264,215 @@ typedef a_byte an_opname_kind;
   ((op) == (an_opname_kind)onk_delete ||                            \
    (op) == (an_opname_kind)onk_array_delete)
 
+#if GNU_EXTENSIONS_ALLOWED
+
+/*
+An enumeration of the different builtin functions.
+*/
+enum a_builtin_function_kind_tag {
+  bfk_none,
+  bfk_alloca,                   /* "__builtin_alloca" */
+  bfk_abs,                      /* "__builtin_abs" */
+  bfk_labs,                     /* "__builtin_labs" */
+  bfk_fabs,                     /* "__builtin_fabs" */
+  bfk_fabsf,                    /* "__builtin_fabsf" */
+  bfk_fabsl,                    /* "__builtin_fabsl" */
+  bfk_ffs,                      /* "__builtin_ffs" */
+  bfk_index,                    /* "__builtin_index" */
+  bfk_rindex,                   /* "__builtin_rindex" */
+  bfk_memcpy,                   /* "__builtin_memcpy" */
+  bfk_memcmp,                   /* "__builtin_memcmp" */
+  bfk_memset,                   /* "__builtin_memset" */
+  bfk_strcat,                   /* "__builtin_strcat" */
+  bfk_strncat,                  /* "__builtin_strncat" */
+  bfk_strcpy,                   /* "__builtin_strcpy" */
+  bfk_strncpy,                  /* "__builtin_strncpy" */
+  bfk_strcmp,                   /* "__builtin_strcmp" */
+  bfk_strncmp,                  /* "__builtin_strncmp" */
+  bfk_strlen,                   /* "__builtin_strlen" */
+  bfk_strstr,                   /* "__builtin_strstr" */
+  bfk_strpbrk,                  /* "__builtin_strpbrk" */
+  bfk_strspn,                   /* "__builtin_strspn" */
+  bfk_strcspn,                  /* "__builtin_strcspn" */
+  bfk_strchr,                   /* "__builtin_strchr" */
+  bfk_strrchr,                  /* "__builtin_strrchr" */
+  bfk_fsqrt,                    /* "__builtin_fsqrt" */
+  bfk_sin,                      /* "__builtin_sin" */
+  bfk_cos,                      /* "__builtin_cos" */
+  bfk_sqrtf,                    /* "__builtin_sqrtf" */
+  bfk_sinf,                     /* "__builtin_sinf" */
+  bfk_cosf,                     /* "__builtin_cosf" */
+  bfk_sqrtl,                    /* "__builtin_sqrtl" */
+  bfk_sinl,                     /* "__builtin_sinl" */
+  bfk_cosl,                     /* "__builtin_cosl" */
+  bfk_saveregs,                 /* "__builtin_saveregs" */
+  bfk_next_arg,                 /* "__builtin_next_arg" */
+  bfk_args_info,                /* "__builtin_args_info" */
+  bfk_frame_address,            /* "__builtin_frame_address" */
+  bfk_return_address,           /* "__builtin_return_address" */
+  bfk_aggregate_incoming_address,
+                                /* "__builtin_aggregate_incoming_address" */
+  bfk_apply_args,               /* "__builtin_apply_args" */
+  bfk_apply,                    /* "__builtin_apply" */
+  bfk_return,                   /* "__builtin_return" */
+  bfk_setjmp,                   /* "__builtin_setjmp" */
+  bfk_longjmp,                  /* "__builtin_longjmp" */
+  bfk_trap,                     /* "__builtin_trap" */
+  bfk_putchar,                  /* "__builtin_putchar" */
+  bfk_puts,                     /* "__builtin_puts" */
+  bfk_printf,                   /* "__builtin_printf" */
+  bfk_fputc,                    /* "__builtin_fputc" */
+  bfk_fputs,                    /* "__builtin_fputs" */
+  bfk_fwrite,                   /* "__builtin_fwrite" */
+  bfk_fprintf,                  /* "__builtin_fprintf" */
+  bfk_unwind_init,              /* "__builtin_unwind_init" */
+  bfk_dwarf_cfa,                /* "__builtin_unwind_dwarf_cfa" */
+  bfk_dwarf_fp_regnum,          /* "__builtin_dwarf_fp_regnum" */
+  bfk_init_dwarf_reg_size_table,
+                                /* "__builtin_init_dwarf_reg_size_table" */
+  bfk_frob_return_addr,         /* "__builtin_frob_return_addr" */
+  bfk_extract_return_addr,      /* "__builtin_extract_return_addr" */
+#if TARG_ALL_POINTERS_SAME_SIZE
+  bfk_eh_return,                /* "__builtin_eh_return" */
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
+  bfk_eh_return_data_regno,     /* "__builtin_eh_return_data_regno" */
+  bfk_classify_type,            /* "__builtin_classify_type" */
+  bfk_constant_p,               /* "__builtin_constant_p" */
+  bfk_expect,                   /* "__builtin_expect" */
+  bfk_bzero,                    /* "__builtin_bzero" */
+  bfk_bcmp,                     /* "__builtin_bcmp" */
+#if LONG_LONG_ALLOWED
+  bfk_llabs,                    /* "__builtin_llabs" */
+#endif /* LONG_LONG_ALLOWED */
+  bfk_imaxabs,                  /* "__builtin_imaxabs" */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  bfk_conj,                     /* "__builtin_conj" */
+  bfk_conjf,                    /* "__builtin_conjf" */
+  bfk_conjl,                    /* "__builtin_conjl" */
+  bfk_creal,                    /* "__builtin_creal" */
+  bfk_crealf,                   /* "__builtin_crealf" */
+  bfk_creall,                   /* "__builtin_creall" */
+  bfk_cimag,                    /* "__builtin_cimag" */
+  bfk_cimagf,                   /* "__builtin_cimagf" */
+  bfk_cimagl,                   /* "__builtin_cimagl" */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  bfk_isgreater,                /* "__builtin_isgreater" */
+  bfk_isgreaterequal,           /* "__builtin_isgreaterequal" */
+  bfk_isless,                   /* "__builtin_isless" */
+  bfk_islessequal,              /* "__builtin_islessequal" */
+  bfk_islessgreater,            /* "__builtin_islessgreater" */
+  bfk_isunordered,              /* "__builtin_isunordered" */
+  bfk_last
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_builtin_function_kind;
+
+/*
+Names of builtin functions.
+*/
+EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
+#if VAR_INITIALIZERS
+= {
+  /* bfk_none */                     NULL,
+  /* bfk_alloca */                   "__builtin_alloca",
+  /* bfk_abs */                      "__builtin_abs",
+  /* bfk_labs */                     "__builtin_labs",
+  /* bfk_fabs */                     "__builtin_fabs",
+  /* bfk_fabsf */                    "__builtin_fabsf",
+  /* bfk_fabsl */                    "__builtin_fabsl",
+  /* bfk_ffs */                      "__builtin_ffs",
+  /* bfk_index */                    "__builtin_index",
+  /* bfk_rindex */                   "__builtin_rindex",
+  /* bfk_memcpy */                   "__builtin_memcpy",
+  /* bfk_memcmp */                   "__builtin_memcmp",
+  /* bfk_memset */                   "__builtin_memset",
+  /* bfk_strcat */                   "__builtin_strcat",
+  /* bfk_strncat */                  "__builtin_strncat",
+  /* bfk_strcpy */                   "__builtin_strcpy",
+  /* bfk_strncpy */                  "__builtin_strncpy",
+  /* bfk_strcmp */                   "__builtin_strcmp",
+  /* bfk_strncmp */                  "__builtin_strncmp",
+  /* bfk_strlen */                   "__builtin_strlen",
+  /* bfk_strstr */                   "__builtin_strstr",
+  /* bfk_strpbrk */                  "__builtin_strpbrk",
+  /* bfk_strspn */                   "__builtin_strspn",
+  /* bfk_strcspn */                  "__builtin_strcspn",
+  /* bfk_strchr */                   "__builtin_strchr",
+  /* bfk_strrchr */                  "__builtin_strrchr",
+  /* bfk_fsqrt */                    "__builtin_fsqrt",
+  /* bfk_sin */                      "__builtin_sin",
+  /* bfk_cos */                      "__builtin_cos",
+  /* bfk_sqrtf */                    "__builtin_sqrtf",
+  /* bfk_sinf */                     "__builtin_sinf",
+  /* bfk_cosf */                     "__builtin_cosf",
+  /* bfk_sqrtl */                    "__builtin_sqrtl",
+  /* bfk_sinl */                     "__builtin_sinl",
+  /* bfk_cosl */                     "__builtin_cosl",
+  /* bfk_saveregs */                 "__builtin_saveregs",
+  /* bfk_next_arg */                 "__builtin_next_arg",
+  /* bfk_args_info */                "__builtin_args_info",
+  /* bfk_frame_address */            "__builtin_frame_address",
+  /* bfk_return_address */           "__builtin_return_address",
+  /* bfk_aggregate_incoming_address */
+                                     "__builtin_aggregate_incoming_address",
+  /* bfk_apply_args */               "__builtin_apply_args",
+  /* bfk_apply */                    "__builtin_apply",
+  /* bfk_return */                   "__builtin_return",
+  /* bfk_setjmp */                   "__builtin_setjmp",
+  /* bfk_longjmp */                  "__builtin_longjmp",
+  /* bfk_trap */                     "__builtin_trap",
+  /* bfk_putchar */                  "__builtin_putchar",
+  /* bfk_puts */                     "__builtin_puts",
+  /* bfk_printf */                   "__builtin_printf",
+  /* bfk_fputc */                    "__builtin_fputc",
+  /* bfk_fputs */                    "__builtin_fputs",
+  /* bfk_fwrite */                   "__builtin_fwrite",
+  /* bfk_fprintf */                  "__builtin_fprintf",
+  /* bfk_unwind_init */              "__builtin_unwind_init",
+  /* bfk_dwarf_cfa */                "__builtin_unwind_dwarf_cfa",
+  /* bfk_dwarf_fp_regnum */          "__builtin_dwarf_fp_regnum",
+  /* bfk_init_dwarf_reg_size_table */
+                                     "__builtin_init_dwarf_reg_size_table",
+  /* bfk_frob_return_addr */         "__builtin_frob_return_addr",
+  /* bfk_extract_return_addr */      "__builtin_extract_return_addr",
+#if TARG_ALL_POINTERS_SAME_SIZE
+  /* bfk_eh_return */                "__builtin_eh_return",
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
+  /* bfk_eh_return_data_regno */     "__builtin_eh_return_data_regno",
+  /* bfk_classify_type */            "__builtin_classify_type",
+  /* bfk_constant_p */               "__builtin_constant_p",
+  /* bfk_expect */                   "__builtin_expect",
+  /* bfk_bzero */                    "__builtin_bzero", 
+  /* bfk_bcmp */                     "__builtin_bcmp",
+#if LONG_LONG_ALLOWED
+  /* bfk_llabs */                    "__builtin_llabs",
+#endif /* LONG_LONG_ALLOWED */
+  /* bfk_imaxabs */                  "__builtin_imaxabs",
+#if C99_IL_EXTENSIONS_SUPPORTED
+  /* bfk_conj */                     "__builtin_conj",
+  /* bfk_conjf */                    "__builtin_conjf",
+  /* bfk_conjl */                    "__builtin_conjl",
+  /* bfk_creal */                    "__builtin_creal",
+  /* bfk_crealf */                   "__builtin_crealf",
+  /* bfk_creall */                   "__builtin_creall",
+  /* bfk_cimag */                    "__builtin_cimag",
+  /* bfk_cimagf */                   "__builtin_cimagf",
+  /* bfk_cimagl */                   "__builtin_cimagl",
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  /* bfk_isgreater */                "__builtin_isgreater",
+  /* bfk_isgreaterequal */           "__builtin_isgreaterequal",
+  /* bfk_isless */                   "__builtin_isless",
+  /* bfk_islessequal */              "__builtin_islessequal",
+  /* bfk_islessgreater */            "__builtin_islessgreater",
+  /* bfk_isunordered */              "__builtin_isunordered",
+  /* bfk_last */                     "last" /* used to check that 
+                                               initialization is right. */
+}
+#endif /* VAR_INITIALIZERS */
+;
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 /*
 Data structures related to routines:
 */
@@ -5240,11 +5540,22 @@ typedef struct a_routine {
 			   constructor, destructor); sfk_none when it is an
 			   ordinary member function or not a member function
 			   at all. */
-  an_opname_kind
+  union {
+    /* When special_kind == sfk_operator. */
+    an_opname_kind
 		opname_kind;
-			/* An enumerator indication the kind of operator when
+			/* An enumerator indicating the kind of operator when
 			   the special function kind is sfk_operator; onk_none
 			   otherwise. */
+#if GNU_EXTENSIONS_ALLOWED
+    /* When special_kind != sfk_operator. */
+    a_builtin_function_kind
+                builtin_function_kind;
+			/* An enumerator indicating the kind of
+			   builtin function; bfk_none for an ordinary
+			   function. */ 
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  } opname_or_builtin;
   a_bit_field	address_taken:1;
 			/* TRUE if the address of this routine has been
 			   taken somewhere. */
@@ -5337,6 +5648,14 @@ typedef struct a_routine {
 			   not treat this as a specialization of any
 			   template. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	is_initialization_routine:1;
+			/* TRUE if this routine was declared with the
+			   constructor attribute. */
+  a_bit_field	is_finalization_routine:1;
+			/* TRUE if this routine was declared with the
+			   destructor attribute. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;
 			/* TRUE if this is a template function
@@ -5643,11 +5962,13 @@ typedef struct a_label {
 			   is used for a fall-through from one case of a
 			   switch to the next. */
   bitfield_to_avoid_codecenter_warnings()
+#if defined(FIL) || GNU_EXTENSIONS_ALLOWED
+  a_bit_field	used_in_assign:1;
+			/* TRUE if this label appears in an ASSIGN
+			   statement (Fortran) or has its address
+			   taken (GNU-extended C). */
+#endif /* defined(FIL) || GNU_EXTENSIONS_ALLOWED */
 #ifdef FIL
-  a_byte_boolean
-                used_in_assign;
-                        /* TRUE if this label appears in an ASSIGN
-                           statement. */
   a_label_kind  kind;
                         /* Kind of label: executable, format, specification.
                            Set to something other than lk_unknown once
@@ -6746,7 +7067,11 @@ enum a_statement_kind_tag {
   stmk_iarith_if,	/* Integer arithmetic IF (three-way branch). */
   stmk_farith_if,	/* Floating-point arithmetic IF (three-way branch). */
   stmk_computed_goto,	/* Computed GOTO. */
+#endif /* ifdef FIL */
+#if defined(FIL) || GNU_EXTENSIONS_ALLOWED
   stmk_assigned_goto,	/* Assigned GOTO. */
+#endif /* FIL || GNU_EXTENSIONS_ALLOWED */
+#ifdef FIL
   stmk_alt_return,	/* Alternate RETURN. */
   stmk_stop,		/* STOP. */
   stmk_pause,		/* PAUSE. */
@@ -7297,7 +7622,9 @@ typedef struct a_statement {
                            Note that the "expression to test" in each of the
                            four cases is always standardized to an integer/
                            logical expression.
-                             The switch expression for stmk_switch. */
+                             The switch expression for stmk_switch.
+                             The selector expression for stmk_assigned_goto,
+			     if GNU extensions are allowed.  */
 #endif /* ifdef CIL */
 #ifdef FIL
                         /* Also:
@@ -7325,6 +7652,9 @@ typedef struct a_statement {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Likewise when kind == stmk_decl. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+    /* Likewise for stmk_assigned_goto in C/C++ IL. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* When kind == stmk_if: */
     struct {
       a_statement_ptr

@@ -7020,7 +7020,8 @@ information.
   }  /* if */
   decl_start_pos = pos_curr_token;
   (void)decl_specifiers(dsi_flags, dso_flags, storage_class, type,
-                        &qualifiers, decl_modifiers, decl_pos_block);
+                        &qualifiers, (an_attribute_ptr *)NULL,
+			decl_modifiers, decl_pos_block);
   if (is_error_type(*type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(*locator);
@@ -7358,7 +7359,8 @@ type based on the template argument list and the template parameter list
     rp->type = rout_type;
     rp->storage_class = templ_rout->storage_class;
     rp->special_kind = templ_rout->special_kind;
-    rp->opname_kind = templ_rout->opname_kind;
+    rp->opname_or_builtin.opname_kind = 
+      templ_rout->opname_or_builtin.opname_kind;
     rp->is_inline = templ_rout->is_inline;
     rp->is_explicit_constructor = templ_rout->is_explicit_constructor;
     rp->is_template_function = TRUE;
@@ -7415,7 +7417,7 @@ type based on the template argument list and the template parameter list
     make_locator_for_symbol(sym, &locator);
     if (rp->special_kind == (a_special_function_kind)sfk_operator) {
       locator.is_operator_name = TRUE;
-      locator.variant.opname = rp->opname_kind;
+      locator.variant.opname = rp->opname_or_builtin.opname_kind;
     } else if (rp->special_kind == (a_special_function_kind)sfk_conversion) {
       locator.is_conversion_name = TRUE;
       locator.variant.conversion_result_type = NULL;
@@ -10687,8 +10689,9 @@ depends on a template parameter type, return TRUE in *template_dependent
   clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_IS_TEMPLATE_PARAMETER),
-			&dso_flags, &param_storage_class, param_type_ptr,
-			&qualifiers, &decl_modifiers, &decl_pos_block);
+                        &dso_flags, &param_storage_class, param_type_ptr,
+                        &qualifiers, (an_attribute_ptr *)NULL,
+                        &decl_modifiers, &decl_pos_block);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     pos_error(ec_type_definition_not_allowed, &param_pos);
     *param_type_ptr = error_type();
@@ -13805,7 +13808,8 @@ that follows.
                                   ? DSI_IS_MEMBER_DECLARATION
                                   : DSI_NO_INPUT_FLAGS)),
                         &dso_flags, &storage_class, &type, &qualifiers,
-                        &decl_modifiers, &decl_pos_block);
+			(an_attribute_ptr *)NULL, &decl_modifiers,
+			&decl_pos_block);
   if (is_error_type(type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(locator);
@@ -18004,7 +18008,8 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
                          DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_IS_EXPLICIT_INSTANTIATION),
                         &dso_flags, &storage_class, &type, &qualifiers,
-                        &decl_modifiers, &decl_pos_block);
+			(an_attribute_ptr *)NULL, &decl_modifiers,
+			&decl_pos_block);
   if (is_error_type(type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(locator);

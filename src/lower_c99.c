@@ -993,6 +993,9 @@ replace them by a representation compatible with C89.
           /* Nothing to be done (appears only for addresses of string
              constants). */
           break;
+        case abk_label:
+          /* Nothing to be done. */
+          break;
         default:
           unexpected_condition_str("Bad c99 address const kind");
       }  /* switch */
@@ -1385,6 +1388,9 @@ Do C99 lowering on the indicated statement.
     case stmk_expr:
     case stmk_goto:
     case stmk_label:
+#if GNU_EXTENSIONS_ALLOWED
+    case stmk_assigned_goto:
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case stmk_return:
     case stmk_asm:
 #if ASM_FUNCTION_ALLOWED

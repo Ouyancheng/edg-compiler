@@ -810,6 +810,14 @@ references.
     if (rout->storage_class == (a_storage_class)sc_unspecified &&
         !treat_as_static_inline(rout)) {
       set_routine_definition_needed(rout);
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (rout->is_initialization_routine ||
+	       rout->is_finalization_routine) {
+      /* The routine definition for an initialization or finalization
+	 function is always needed since the function will be called
+	 at program start up. */
+      set_routine_definition_needed(rout);
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
 }  /* mark_as_needed */

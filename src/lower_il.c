@@ -3214,8 +3214,9 @@ Do IL lowering of the indicated constant and everything under it.
         switch (constant->variant.address.kind) {
           case abk_routine:
           case abk_variable:
-            /* Variables and routines will have appeared on the list of
-               variables and routines for some scope. */
+          case abk_label:
+            /* Variables, routines, and labels will have appeared on
+               lists attached to some scope. */
             break;
           case abk_constant:
             addressed_con = constant->variant.address.variant.constant;

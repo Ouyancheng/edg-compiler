@@ -1,0 +1,893 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 2001 Edison Design Group Inc.                        [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+attribute.c -- Processing of attributes, a GCC extension.
+
+*/
+
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Header files used by files involved in declaration processing. */
+#include "decl_hdrs.h"
+
+#ifdef PCH_PRAGMA_GUARD
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* ifdef PCH_PRAGMA_GUARD */
+
+#include "layout.h"
+
+#if GNU_EXTENSIONS_ALLOWED
+
+/* Previously allocated attributes available for reuse. */
+static an_attribute_ptr avail_attributes;
+
+
+static a_boolean same_string_ignoring_underscores(char *s1, 
+                                                  char *s2)
+/*
+Returns TRUE if s1 and s2 are the same string, or if s2 has two 
+leading and trailing underscores, but is otherwise the same string as
+s1.  So, for example, if s1 is "byte", s2 will match if it is either
+"byte" or "__byte__".
+*/
+{
+  sizeof_t  length;
+  a_boolean result;
+
+  /* If the strings are an exact match, return quickly. */
+  if (strcmp(s1, s2) == 0) {
+    result = TRUE;
+  } else if (s2[0] != '_' || s2[1] != '_') {
+    /* If s2 does not start with two underscores, there is no match. */
+    result = FALSE;
+  } else {
+    /* Ignore the first two underscores of s2. */
+    s2 += 2;
+    /* Calculate the length of the remaining string. */
+    length = (sizeof_t)strlen(s2);
+    /* If the last two characters of s2 are not underscores, there is no
+       match. */
+    if (length < 2 || s2[length - 2] != '_' || s2[length - 1] != '_') {
+      result = FALSE;
+    } else {
+      /* Compare the remainder of the string. */
+      result = strncmp(s1, s2, strlen(s1)) == 0;
+    }  /* if */
+  }  /* if */
+
+  return result;
+}  /* same_string_ignoring_underscores */
+
+
+static an_attribute_ptr alloc_attribute(an_attribute_kind  kind,
+                                        a_source_position  *pos)
+/*
+Allocate an attribute of the indicated kind, initialize its fields,
+and return a pointer to it.  "pos" gives the source position to
+associate with the attribute.  It is copied here, so the memory
+pointed to be "pos" can be freed when this routine returns.
+*/
+{
+  an_attribute_ptr ap;
+
+  if (avail_attributes != NULL) {
+    /* Reuse a previously allocated attribute. */
+    ap = avail_attributes;
+    avail_attributes = avail_attributes->next;
+  } else {
+    /* Allocate memory for a new attribute. */
+    ap = (an_attribute_ptr)alloc_fe(sizeof(an_attribute));
+  }  /* if */
+  ap->kind = kind;
+  ap->next = NULL;
+  copy_source_position(*pos, ap->position);
+  switch (kind) {
+    case ak_mode:
+      ap->variant.mode = (an_attribute_kind)tmk_error;
+      break;
+#if USER_CONTROL_OF_STRUCT_PACKING
+    case ak_aligned:
+      ap->variant.alignment = 0;
+      break;
+    case ak_packed:
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+    case ak_unused:
+    case ak_constructor:
+    case ak_destructor:
+      break;
+    default:
+      unexpected_condition_str("alloc_attribute: bad kind");
+  }  /* switch */
+
+  return ap;
+}  /* alloc_attribute */
+
+
+void free_attribute_list(an_attribute_ptr  ap)
+/*
+Free the storage associated with the entire list of attributes given by
+ap.  ap may be NULL.
+*/
+{
+  an_attribute_ptr  last;
+
+  if (ap != NULL) {
+    /* Find the last attribute in the list. */
+    for (last = ap; last->next != NULL; last = last->next) {}
+    /* Add the entire list of attributes to the front of the free list. */
+    last->next = avail_attributes;
+    avail_attributes = ap;
+  }  /* if */
+}  /* free_attribute_list */
+
+
+static void scan_attribute_arguments(an_attribute_ptr  attribute)
+/*
+Scan the arguments to an attribute, and store them in the attribute
+provided.
+*/
+{
+  char *name;
+  int i;
+
+  /* Different kinds of attributes take different kinds of 
+     arguments.  */
+  switch (attribute->kind) {
+#if USER_CONTROL_OF_STRUCT_PACKING
+    case ak_aligned:
+      { a_constant            constant;
+        a_host_large_integer  alignment;
+        a_boolean             ovflo;
+        a_boolean             error_occurred = FALSE;
+        /* The "__aligned__" attribute takes one argument, which is a
+           constant expression indicating the desired alignment.  Scan the
+           expression. */
+        scan_integral_constant_expression(&constant);
+        /* Check to see if something went wrong while parsing the
+           expression. */
+        if (is_error_constant(&constant)) {
+          error_occurred = TRUE;
+        } else {
+          /* Convert the constant, which will be in a format suitable for
+             the target, to a format suitable for the host. */
+          alignment = value_of_integer_constant(&constant, &ovflo);
+          /* If the value isn't reasonable, issue an error message. */
+          if (ovflo || 
+              !check_pack_alignment_value(alignment,
+                                          &attribute->variant.alignment)) {
+            error(ec_bad_attribute_alignment);
+            error_occurred = TRUE;
+          }  /* if */
+        }  /* if */
+        /* If something went wrong, use the maximum valid alignment
+           value so that redundant error messages are not issued. */
+        if (error_occurred) {
+          attribute->variant.alignment = targ_maximum_pack_alignment;
+        }  /* if */
+      }
+      break;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+    case ak_mode:
+      /* Look for an identifier corresponding to the mode. */
+      if (curr_token != tok_identifier) {
+        goto error;
+      }  /* if */
+      /* Get the name of the mode. */
+      name = locator_for_curr_id.symbol_header->identifier;
+      /* Consume the name. */
+      (void)get_token();
+      /* Look it up. */
+      for (i = (int)tmk_first; i < (int)tmk_last; ++i) {
+        if (same_string_ignoring_underscores(type_mode_kind_names[i], 
+                                             name)) {
+          break;
+        }  /* if */
+      }  /* for */
+      /* If it wasn't in the table, it might be one of the special
+         "byte", "word", or "pointer" values. */
+      if (i == (int)tmk_last) {
+        if (same_string_ignoring_underscores("byte", name)) {
+          i = (int)tmk_QI;
+        } else if (same_string_ignoring_underscores("word", name)) {
+          i = (int)targ_word_mode;
+#if TARG_ALL_POINTERS_SAME_SIZE
+        } else if (same_string_ignoring_underscores("pointer", name)) {
+          i = (int)targ_pointer_mode;
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
+        }  /* if */
+      }  /* if */
+      /* If the mode was not valid, issue an error message. */
+      if (i == (int)tmk_last) {
+        goto error;
+      }  /* if */
+      attribute->variant.mode = (a_type_mode_kind)i;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  goto done;
+
+  error:
+  str_error(ec_invalid_argument_to_attribute,
+            attribute_kind_names[(int)attribute->kind]);
+  flush_tokens();
+
+  done:
+  return;
+}  /* scan_attribute_argument */
+
+
+static an_attribute_ptr *scan_attribute_list(an_attribute_ptr *next)
+/*
+Scan an (optional) list of attributes.  The syntax varies with the
+particular attribute.  In general, there are two forms:
+ 
+  identifier 
+  identifier ( arguments )
+
+Specifically, these attributes take no arguments:
+
+  packed
+  constructor
+  destructor
+  unused
+
+These attributes take arguments:
+
+  mode ( machine-mode )
+  aligned ( expression )
+
+The attributes are appended at the location pointed to by next.  This
+function returns the address of the last attribute.
+*/
+{
+  an_attribute_ptr      attribute;
+  char                  *attribute_name;
+  an_attribute_kind     attribute_kind;
+  int                   i;
+  a_source_position     pos;
+
+  /* Keep going until there are no more attributes. */
+  do {
+    /* The next token should be the name of an attribute. */
+    if (curr_token != tok_identifier) {
+      error(ec_exp_attribute_name);
+    } else {
+      /* Remember the location of the attribute name.  This is the
+         source position that we associate with the attribute. */
+      copy_source_position(error_position, pos);
+      /* Get the name of the attribute. */
+      attribute_name = locator_for_curr_id.symbol_header->identifier;
+      /* Bypass the identifier. */
+      (void)get_token();
+      /* Look up the attribute name. */
+      for (i = (int)ak_first; i < (int) ak_last; i++) {
+        if (same_string_ignoring_underscores(attribute_kind_names[i],
+                                             attribute_name)) {
+          break;
+        }  /* if */
+      }  /* for */
+      attribute_kind = (an_attribute_kind)i;
+      if (attribute_kind == (an_attribute_kind)ak_last) {
+        /* If the attribute name was not recognized issue an error
+           message. */
+        str_error(ec_unrecognized_attribute, attribute_name);
+        attribute_kind = (an_attribute_kind)ak_error;
+        attribute = NULL;
+      } else {
+        /* Create a new attribute. */
+        attribute = alloc_attribute(attribute_kind, &pos);
+      }  /* if */
+      if (curr_token == tok_lparen) {
+        /* Bypass the lparen. */
+        (void)get_token();
+        add_stop_token(tok_rparen);
+        /* There are arguments to the attribute. */
+        switch (attribute_kind) {
+#if USER_CONTROL_OF_STRUCT_PACKING
+          case ak_aligned:
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+          case ak_mode:
+            scan_attribute_arguments(attribute);
+            break;
+          case ak_error:
+            /* Skip over the arguments. */
+            flush_tokens();
+            break;
+          default:
+            /* There should not have been an argument. */
+            str_error(ec_arguments_provided_for_attribute,
+                      attribute_name);
+            /* Skip over the arguments. */
+            flush_tokens();
+            break;
+        }  /* switch */
+        /* Look for the closing rparen. */
+        (void)required_token(tok_rparen, ec_exp_rparen);
+        remove_stop_token(tok_rparen);
+      } else {
+        switch (attribute_kind) {
+#if USER_CONTROL_OF_STRUCT_PACKING
+          case ak_packed:
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+          case ak_unused:
+          case ak_constructor:
+          case ak_destructor:
+          case ak_error:
+            /* These attributes do not take arguments. */
+            break;
+#if USER_CONTROL_OF_STRUCT_PACKING
+          case ak_aligned:
+            /* If there is no argument to the "aligned" attribute, then
+               the maximum alignment used on the target is implied. */
+            attribute->variant.alignment = targ_maximum_pack_alignment;
+            break;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+          default:
+            str_error(ec_arguments_required_for_attribute,
+                      attribute_name);
+            break;
+        }  /* switch */
+      } /* if */
+      if (attribute_kind != (an_attribute_kind)ak_error) { 
+        /* Add the attribute to the list. */
+        *next = attribute;
+        /* The new attribute is now the last entry in the list. */
+        next = &attribute->next;
+      }  /* if */
+    }  /* if */
+    if (curr_token != tok_comma && curr_token != tok_rparen) {
+      /* If an error occurs, skip tokens until we reach the start of
+         the next attribute, or the end of the attribute list. */
+      add_stop_token(tok_comma);
+      syntax_error(ec_exp_comma);
+      remove_stop_token(tok_comma);
+    }  /* if */
+  } while (loop_token(tok_comma));
+
+  return next;
+}  /* scan_attribute_list */
+
+
+an_attribute_ptr scan_attributes(void)
+/*
+Scan an (optional) series of attributes.  Each has the form:
+
+  __attribute__ (( attribute-list [opt] ))
+
+This function returns a list of all of the attributes in the order
+that they appeared.  
+*/
+{
+  an_attribute_ptr  attributes = NULL;
+  an_attribute_ptr  *next_attribute;
+
+  /* The next_attribute will be the first one in the list. */
+  next_attribute = &attributes;
+  /* Keep going until there are no more attributes. */
+  while (curr_token == tok_attribute) {
+    /* Bypass "attribute". */
+    (void)get_token();
+    /* There should now be two left parens. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    add_stop_token(tok_rparen);
+    /* Scan the attribute-list and attach it to the list we already
+       have. */
+    next_attribute = scan_attribute_list(next_attribute);
+    /* There should now be two right parens. */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_stop_token(tok_rparen);
+  }  /* while */
+  return attributes;
+}  /* scan_attributes */
+
+
+a_type_ptr get_type_with_mode(a_type_ptr        type,
+                              a_type_mode_kind  mode,
+                              a_source_position *pos)
+/*
+Return a type, similar to the type provided, but with the indicated
+machine mode.  The source position at which any errors should be
+emitted is given by pos.
+*/
+{
+  an_integer_kind  ikind;
+  a_float_kind     fkind;
+  a_type_kind      type_kind;
+  a_targ_size_t    size;
+
+  switch (mode) {
+    case tmk_QI:
+      type_kind = (a_type_kind)tk_integer;
+      size = 1;
+      break;
+    case tmk_HI:
+      type_kind = (a_type_kind)tk_integer;
+      size = 2;
+      break;
+    case tmk_SI:
+      type_kind = (a_type_kind)tk_integer;
+      size = 4;
+      break;
+    case tmk_DI:
+      type_kind = (a_type_kind)tk_integer;
+      size = 8;
+      break;
+    case tmk_TI:
+      type_kind = (a_type_kind)tk_integer;
+      size = 16;
+      break;
+    case tmk_SF:
+      type_kind = (a_type_kind)tk_float;
+      size = 4;
+      break;
+    case tmk_DF:
+      type_kind = (a_type_kind)tk_float;
+      size = 8;
+      break;
+    case tmk_XF:
+      type_kind = (a_type_kind)tk_float;
+      size = 12;
+      break;
+    case tmk_TF:
+      type_kind = (a_type_kind)tk_float;
+      size = 16;
+      break;
+    case tmk_error:
+      type_kind = (a_type_kind)tk_error;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  /* If the mode was erroneous, we can just return the original type.
+     Otherwise, find a type with the appropriate mode. */
+  if (type_kind != (a_type_kind)tk_error) {
+    /* Check to see that the type implied by the mode matches the type
+     of the variable. */
+    type = skip_typerefs(type);
+    if (type->kind != type_kind) {
+      pos_ty_error(ec_mode_incompatible_with_type, pos, type);
+    } else if (type->kind == (a_type_kind)tk_integer) {
+      ikind = int_kind_for_bit_size(size * targ_char_bit, 
+                                    is_signed_integral_type(type));
+      if (ikind == (an_integer_kind)ik_none) {
+        pos_error(ec_no_type_of_specified_width, pos);
+      } else {
+        type = integer_type(ikind);
+      }  /* if */
+    } else {
+      for (fkind = (a_float_kind)0;
+           fkind < (a_float_kind)fk_last;
+           fkind = (a_float_kind)((int)fkind + 1)) {
+        if (float_type(fkind)->size == size) {
+          break; 
+        }  /* if */
+      }  /* for */
+      if (fkind == (a_float_kind)fk_last) {
+        pos_error(ec_no_type_of_specified_width, pos);
+      } else {
+        type = float_type(fkind);
+      }  /* if */
+    }  /* if */
+  } /* if */
+
+  return type;
+}  /* get_type_with_mode */
+
+
+a_type_ptr apply_attributes_to_variable_type(an_attribute_ptr  attributes,
+                                             a_type_ptr        type)
+/*
+A variable or field is being declared with the indicated type.  The
+attributes apply to the variable.  Return the type, appropriately
+adjusted for the attributes.  Diagnostics are not issued for invalid
+attributes.  */
+{
+  while (attributes != NULL) {
+    switch (attributes->kind) {
+#if USER_CONTROL_OF_STRUCT_PACKING
+      case ak_aligned:
+        /* The aligned attribute is handled by setting the alignment
+           field in the variable directly, not by modifying the type of
+           the variable. */
+        break;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+      case ak_mode:
+        /* The __mode__ attribute is used to specify the width of an
+           integer, pointer, or floating-point type independent of the
+           type-specifier used.  For example,
+
+             char i __attribute__((__mode__(SImode)));
+
+           is precisely the same as:
+
+             int i;
+
+           on a machine where sizeof(int) == 4. */
+        type = get_type_with_mode(type, attributes->variant.mode,
+                                  &attributes->position);
+        break;
+      default:
+        /* No action. */
+        break;
+    }  /* switch */
+    attributes = attributes->next;
+  }  /* while */
+  return type;
+}  /* apply_attributes_to_variable_type */
+
+
+static a_boolean check_alignment_attribute(a_type_ptr        type,
+                                           a_targ_alignment  alignment,
+                                           a_source_position *pos)
+/*
+Verify that the alignment specified can be applied to the indicated
+type by an attribute.  If so, return TRUE; otherwise, return FALSE and
+issue a diagnostic.  "pos" gives the position at which errors should
+be emitted.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (alignment < skip_typerefs(type)->alignment) {
+    /* An alignment attribute cannot be used to decrease alignment. */
+    pos_error(ec_alignment_attribute_decreases_alignment, pos);
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* check_alignment_attribute */
+
+
+void apply_attributes_to_variable(an_attribute_ptr  attributes,
+                                  a_variable_ptr    vp)
+/*
+Apply the attributes to the indicated variable.  Issue diagnostics for
+invalid attributes.
+*/
+{
+  a_targ_alignment  alignment;
+  an_attribute_ptr  ap;
+
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    switch (attributes->kind) {
+#if USER_CONTROL_OF_STRUCT_PACKING
+      case ak_aligned:
+        alignment = attributes->variant.alignment;
+        if (check_alignment_attribute(vp->type, alignment,
+                                      &ap->position)) {
+          vp->alignment = alignment;
+        }  /* if */
+        break;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+      case ak_unused:
+        /* Mark the variable as referenced in order to suppress warnings
+           about it if it is unused. */
+        mark_referenced((a_symbol_ptr)vp->source_corresp.assoc_info,
+                        &pos_curr_token);
+        break;
+      case ak_mode:
+        /* This attribute was handled in apply_attributes_to_variable_type. */
+        break;
+      default:
+        /* This attribute is not applicable to variables. */
+        pos_sy_error(ec_attribute_does_not_apply,
+                     &ap->position,
+                     (a_symbol_ptr)vp->source_corresp.assoc_info);
+        break;
+    }  /* switch */
+    attributes = attributes->next;
+  }  /* for */
+}  /* apply_attributes_to_variable */
+
+
+void apply_attributes_to_field(an_attribute_ptr attributes,
+                               a_field_ptr      fp)
+/* 
+Apply the attributes to the indicated field.  Issue diagnostic
+messages about any invalid attributes.
+*/
+{
+  an_attribute_ptr  ap;
+  a_targ_alignment  alignment;
+
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    switch (ap->kind) {
+#if USER_CONTROL_OF_STRUCT_PACKING
+      case ak_aligned:
+        /* Make sure that the requested alignment is permissible. */
+        alignment = ap->variant.alignment;
+        if (check_alignment_attribute(fp->type, alignment, 
+                                      &ap->position)) {
+          fp->alignment = alignment;
+        }  /* if */
+        break;
+      case ak_packed:
+        /* If a field is declared to be "packed", then it is aligned on
+           a character boundary. */
+        fp->alignment = 1;
+        break;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+      default:
+        sym_error(ec_attribute_does_not_apply,
+                  (a_symbol_ptr)fp->source_corresp.assoc_info);
+        break;
+    }  /* switch */
+  }  /* for */
+}  /* apply_attributes_to_field */
+
+
+void apply_attributes_to_routine(an_attribute_ptr  attributes,
+                                 a_routine_ptr     rp)
+/*
+Apply the attributes to the indicated routine.  Issue diagnostic
+messages about any invalid attributes.
+*/
+{
+  an_attribute_ptr  ap;
+  a_boolean         referenced = FALSE;
+
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    switch (ap->kind) {
+      case ak_constructor:
+        rp->is_initialization_routine = TRUE;
+        /* Since the routine will be called at program start up, treat
+           it as referenced. */
+        referenced = TRUE;
+        break;
+      case ak_destructor:
+        rp->is_finalization_routine = TRUE;
+        /* Since the routine will be called at program shut down, treat
+           it as referenced. */
+        referenced = TRUE;
+        break;
+      case ak_unused:
+        referenced = TRUE;
+        break;
+      default:
+        /* An invalid attribute. */
+        pos_sy_error(ec_attribute_does_not_apply,
+                     &ap->position,
+                     (a_symbol_ptr)rp->source_corresp.assoc_info);
+        break;
+    }  /* switch */
+  }  /* for */
+
+  if (referenced) {
+    /* Mark the routine as referenced in order to suppress warnings
+       about it if it is unused. */
+    mark_referenced((a_symbol_ptr)rp->source_corresp.assoc_info,
+                    &pos_curr_token);
+  }  /* if */
+}  /* apply_attributes_to_routine */
+
+
+void apply_attributes_to_type(an_attribute_ptr attributes,
+                              a_type_ptr       tp,
+                              a_boolean        is_typedef)
+/*
+Apply the attributes to the indicated type, which must not be a
+typeref.  Issue diagnostic messages about any invalid attributes.  If
+is_typedef is TRUE, then tp is a new type being created as part of a
+`typedef' declaration.  This routine modifies tp in place; the caller
+must make a copy if tp may already be shared.
+*/
+{
+  an_attribute_ptr  ap;
+  a_type_ptr        mode_type;
+
+  check_assertion(tp->kind != (a_type_kind)tk_typeref);
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    switch (ap->kind) {
+#if USER_CONTROL_OF_STRUCT_PACKING
+      case ak_aligned:
+        /* Set the alignment here.  When the actual class layout, or
+           choice of integral type, is performed the value indicated
+           here will be honored. */
+        tp->alignment = ap->variant.alignment;
+        tp->alignment_set_explicitly = TRUE;
+        break;
+      case ak_packed:
+        if (is_typedef) {
+          pos_error(ec_packed_attribute_cannot_be_used_in_typedef,
+                    &ap->position);
+        } else if (is_enum_type(tp)) {
+          /* A packed enumerated type can be smaller than an "int". */
+          tp->variant.integer.packed = TRUE;
+        } else if (is_immediate_class_type(tp)) {
+          /* A packed class is one where all of the members are aligned on
+             a 1-byte boundary. */
+          tp->variant.class_struct_union.max_member_alignment = 1;
+        } else {
+          pos_ty_error(ec_attribute_does_not_apply_to_type, 
+                       &ap->position, tp);
+        } /* if */
+        break;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+      case ak_mode:
+        mode_type = get_type_with_mode(tp, ap->variant.mode, &ap->position);
+        if (tp->kind != (a_type_kind)tk_integer &&
+            tp->kind != (a_type_kind)tk_float) {
+          /* If tp had neither integer nor floating type, it is 
+             an error to use the mode attribute.  An error will have
+             been issued by get_type_with_mode. */
+        } else {
+          if (tp->kind == (a_type_kind)tk_integer) {
+            tp->variant.integer.int_kind = mode_type->variant.integer.int_kind;
+          } else if (tp->kind == (a_type_kind)tk_float) {
+            tp->variant.float_kind = mode_type->variant.float_kind;
+          }  /* if */
+          tp->size = mode_type->size;
+          if (!tp->alignment_set_explicitly) {
+            tp->alignment = mode_type->alignment;
+          }  /* if */
+        }  /* if */
+        break;
+      case ak_unused:
+        tp->variables_are_implicitly_referenced = TRUE;
+        break;
+      default:
+        /* An invalid attribute. */
+        pos_ty_error(ec_attribute_does_not_apply_to_type,
+                     &ap->position, tp);
+    }  /* switch */
+  }  /* for */
+}  /* apply_attributes_to_type */
+
+
+a_type_ptr apply_attributes_to_typedef(an_attribute_ptr attributes,
+                                       a_type_ptr       tp)
+/*
+Make a copy of tp and apply the attributes to the copy.  Return the
+newly created type.
+*/
+{
+  a_type_qualifier_set qualifiers;
+  a_type_ptr           copy;
+
+  /* Remember the type qualifiers so that we can create an identically
+     qualified copy. */
+  qualifiers = get_type_qualifiers(tp);
+  /* Now that we have stored away the qualifiers, get the underlying
+     type. */
+  tp = skip_typerefs(tp);
+  /* Make a copy of the type.  The actions required depend on the kind
+     of type we are copying. */
+  copy = alloc_type(tp->kind);
+  copy_type(tp, copy);
+  copy->source_corresp.has_associated_pragma = FALSE;
+  copy->copy_with_additional_attributes = TRUE;
+  /* We must make a deep copy of class types. */
+  if (is_immediate_class_type(copy)) {
+    if (is_incomplete_type(tp)) {
+      /* Add the incomplete type to the list of types that will need
+         fixups when tp is defined. */
+      add_to_dependent_type_fixup_list
+        (tp, 
+         (a_dependent_type_fixup_kind)dtfk_copy_definition, 
+         (char *)copy, (a_byte_il_entry_kind)iek_type,
+         &error_position);
+    } else {
+      copy_class_struct_or_union_definition(copy, tp);
+    }  /* if */
+  }  /* if */
+  if (is_immediate_class_type(copy) || is_immediate_enum_type(copy)) {
+    add_to_types_list(copy, NO_SCOPE_DEPTH);
+  }  /* if */
+  /* Apply the attributes to the copy. */
+  apply_attributes_to_type(attributes, copy, /*is_typedef=*/TRUE);
+  /* Create an appropriately qualified version of the copy. */
+  copy = make_qualified_type(copy, qualifiers);
+
+  return copy;
+}  /* apply_attributes_to_typedef */
+
+
+void copy_class_struct_or_union_definition(a_type_ptr to,
+                                           a_type_ptr from)
+/*
+"to" is a copy of "from".  Copy the definition of "from" to "to".
+Both "from" and "to" are class, struct, or union types.
+*/
+{
+  a_field_ptr  *fp;
+  a_field_ptr  f;
+
+  check_assertion(is_immediate_class_type(to));
+  check_assertion(is_immediate_class_type(from));
+  /* Copy the size and alignment. */
+  to->size = from->size;
+#if USER_CONTROL_OF_STRUCT_PACKING
+  if (to->alignment_set_explicitly) {
+    /* If the alignment has already been set -- via a typedef before
+       from was defined -- check that the value used is valid. */
+    (void)check_alignment_attribute(from, to->alignment, 
+                                    &from->source_corresp.decl_position);
+  } else 
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  /* Do not insert code here. */
+  {
+    to->alignment = from->alignment;
+  }  /* if */
+  /* Copy the fields of a complete type. */
+  to->variant.class_struct_union.field_list = 
+    from->variant.class_struct_union.field_list;
+  for (fp = &to->variant.class_struct_union.field_list;
+       *fp != NULL;
+       fp = &(*fp)->next) {
+    /* Create a new field. */
+    f = alloc_field();
+    /* Copy the data from the old field. */
+    *f = **fp;
+    /* There are no #pragmas associated with the new field. */
+    f->source_corresp.has_associated_pragma = FALSE;
+    /* Chain the copy onto the list, in place of the original. */
+    *fp = f;
+  }  /* for */
+}  /* copy_class_struct_or_union_definition */
+
+
+void attribute_one_time_init(void)
+/*
+Do one-time initialization of variables related to the processing of
+attributes.
+*/
+{
+#if CHECKING
+  /* Check that the table of mode names is correctly initialized. */
+  if (type_mode_kind_names[(int)tmk_last] == NULL ||
+      strcmp(type_mode_kind_names[(int)tmk_last], "last") != 0) {
+    internal_error(
+     "attribute_one_time_init: initialization of type_mode_kind_names is bad");
+  }  /* if */
+  /* Check that the table of attribute names is correctly
+     initialized. */
+  if (attribute_kind_names[(int)ak_last] == NULL ||
+      strcmp(attribute_kind_names[(int)ak_last], "last") != 0) {
+    internal_error(
+     "attribute_one_time_init: initialization of attribute_kind_names is bad");
+  }  /* if */
+#endif /* CHECKING */
+  /* Save variables from attribute.h and attribute.c that are needed for
+     precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(avail_attributes),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* attribute_one_time_init */
+
+
+void attribute_init(void)
+/*
+Initialize static variables related to attribute processing that must
+be initialized for each compilation.
+*/
+{
+  avail_attributes = NULL;
+}  /* attribute_init */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 2001 Edison Design Group Inc.                        [_]          *
+*                                                                             *
+******************************************************************************/

@@ -167,6 +167,39 @@ token is the lexical token that corresponds to both.  Enter both keywords.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void enter_gnu_keyword(a_token_kind token,
+			      char         *keyword)
+/*
+The GNU compiler accepts many keyword in three forms: as is, with a
+double-underscore prefix (e.g., __attribute), and with both a
+double-underscore prefix and a double-underscore suffix (e.g.,
+__attribute__).  The string given has no underscores.  Enter all three
+variants.
+*/
+{
+  char     buffer[50];
+  sizeof_t length;
+
+  /* Enter the keyword, without any underscores. */
+  enter_keyword(token, keyword);
+  /* We need room for five extra characters: four for the underscores
+     and one for the trailing NULL. */
+  length = (sizeof_t)strlen(keyword);
+  check_assertion((length + 5) < sizeof(buffer));
+  /* Register the variant with two leading underscores. */
+  buffer[0] = buffer[1] = '_';
+  strcpy(buffer + 2, keyword);
+  enter_keyword(token, buffer);
+  /* And with two trailing underscores. */
+  buffer[length + 2] = buffer[length + 3] = '_';
+  buffer[length + 4] = '\0';
+  enter_keyword(token, buffer);
+}  /* enter_gnu_keyword */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 static void enter_unimplemented_keyword(char          *keyword,
 					an_error_code error_code)
 /*
@@ -341,6 +374,14 @@ Install the keywords in the symbol table.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  if (gcc_mode) {
+    /* Enter "attribute" keyword.  */
+    enter_gnu_keyword((a_token_kind)tok_attribute, "attribute");
+    /* Enter "inline" keyword.  */
+    enter_gnu_keyword((a_token_kind)tok_inline, "inline");
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* "asm" is a C++ keyword that is treated as a keyword in C mode, too,
      because, even though not part of the ANSI C language, it is used widely
      in C programs. */
@@ -693,6 +734,9 @@ after the command-line processing has been done.
 #if NEED_NAME_MANGLING
   name_lower_one_time_init();
 #endif /* NEED_NAME_MANGLING */
+#if GNU_EXTENSIONS_ALLOWED
+  attribute_one_time_init(); 
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* fe_one_time_init */
 
 
@@ -775,6 +819,9 @@ source file's compilation.
      independently of the rest of IL lowering. */
   name_lower_init();
 #endif /* NEED_NAME_MANGLING */
+#if GNU_EXTENSIONS_ALLOWED
+  attribute_init();
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
   if (!C_mode() && make_all_functions_unprototyped) {
     /* <stdarg.h> cannot be treated as a builtin if IL lowering will

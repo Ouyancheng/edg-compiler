@@ -511,6 +511,11 @@ enum a_dependent_type_fixup_kind_tag {
   dtfk_routine_calling_method,
 			/* Set the routine calling method flag in a routine
 			   type. */
+#if GNU_EXTENSIONS_ALLOWED
+  dtfk_copy_definition,
+			/* Copy the definition of the newly defined
+			   type. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   dtfk_array_type_size	/* Set the size of an array type. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -2977,7 +2982,8 @@ extern a_symbol_ptr make_predeclared_function_symbol(
                                               a_type_ptr        return_type,
                                               a_type_ptr        param1_type,
                                               a_type_ptr        param2_type,
-                                              a_type_ptr        param3_type);
+                                              a_type_ptr        param3_type,
+					      a_type_ptr        param4_type);
 
 extern void make_global_operator_new_or_delete_symbol(an_opname_kind  opname);
 

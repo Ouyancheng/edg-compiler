@@ -1632,6 +1632,9 @@ the current statement sequence.
   /* Turn off curr_reachability if the current statement is an
      unconditional branch. */
   if (kind == (a_statement_kind)stmk_goto   ||
+#if GNU_EXTENSIONS_ALLOWED
+      kind == (a_statement_kind)stmk_assigned_goto ||
+#endif /* GNU_EXTENSIONS_ALLOWED */
       kind == (a_statement_kind)stmk_return) {
     set_unreachable(curr_reachability);
   }  /* if */
@@ -4544,14 +4547,32 @@ The syntax is:
 
 See also 3.6.6.1.
 */
+#if GNU_EXTENSIONS_ALLOWED
+/*
+GNU allows a syntax similar to Fortran's assigned goto:
+
+	jump_statement:
+		goto * expr ;
+*/
+#endif /* GNU_EXTENSIONS_ALLOWED */
 {
   register a_statement_ptr sp;
   a_source_position        goto_pos;
+  a_statement_kind	   stmk;
 
   db_enter(3, "goto_statement");
   check_for_unreachable_code();
+  stmk = (a_statement_kind)stmk_goto;
+#if GNU_EXTENSIONS_ALLOWED
+  if (gcc_mode && next_token() == tok_star) {
+    stmk = (a_statement_kind)stmk_assigned_goto;
+    if (strict_ansi_mode) {
+      diagnostic(strict_ansi_error_severity, ec_nonstd_assigned_goto);
+    }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Allocate the statement. */
-  sp = add_statement((a_statement_kind)stmk_goto);
+  sp = add_statement(stmk);
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
      statement. */
@@ -4563,18 +4584,33 @@ See also 3.6.6.1.
 #endif /* CHECKING */
   (void)get_token();
   add_stop_token(tok_semicolon);
-  /* Scan the label identifier. */
-  sp->variant.label.ptr = scan_label(/*is_definition=*/FALSE);
-  if (!C_mode()) {
-    /* Set the object lifetime.  It is a provisional setting and may be changed
-       based on the lifetime of the label definition. */
-    sp->variant.label.lifetime =
+#if GNU_EXTENSIONS_ALLOWED
+  if (stmk == (a_statement_kind)stmk_assigned_goto) {
+    /* Discard the star.  */
+#if CHECKING
+    if (curr_token != tok_star) internal_error("goto_statement: expected '*'");
+#endif /* CHECKING */
+    (void)get_token();
+    /* Scan the expression following, which must have type (void *). */
+    sp->expr = scan_typed_expression(make_pointer_type(void_type()),
+				     ec_assigned_goto_requires_void_ptr);
+  } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    /* Scan the label identifier. */
+    sp->variant.label.ptr = scan_label(/*is_definition=*/FALSE);
+    if (!C_mode()) {
+      /* Set the object lifetime.  It is a provisional setting and may
+	 be changed based on the lifetime of the label definition. */
+      sp->variant.label.lifetime =
                         innermost_block_object_lifetime(curr_object_lifetime);
-  }  /* if */
-  /* If this is a forward reference to a label, record information about
-     the goto to allow diagnosis of jump-over-initialization errors.  If
-     it is backward reference, do the checking immediately. */
-  check_for_jump_over_initialization(sp, &goto_pos);
+    }  /* if */
+    /* If this is a forward reference to a label, record information about
+       the goto to allow diagnosis of jump-over-initialization errors.  If
+       it is backward reference, do the checking immediately. */
+    check_for_jump_over_initialization(sp, &goto_pos);
+  } /* else */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (curr_token == tok_semicolon) {
     curr_construct_end_position = end_pos_curr_token;

@@ -143,6 +143,13 @@ predicates.
   (kind_1 == (a_type_kind)tk_class && kind_2 == (a_type_kind)tk_struct) || \
   (kind_2 == (a_type_kind)tk_class && kind_1 == (a_type_kind)tk_struct))
 
+#if GNU_EXTENSIONS_ALLOWED
+
+/* Macro that is TRUE if the two types have the same type attributes. */
+#define same_type_attributes(type_1, type_2) \
+  (type_1->alignment == type_2->alignment)
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 a_type_ptr f_skip_typerefs(a_type_ptr type_ptr)
 /*
@@ -2436,6 +2443,12 @@ for more information.
     } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
       /* The top level kinds are different, so the types are different. */
       /* identical = FALSE;  -- Already set. */
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (!same_type_attributes(type_1, type_2)) {
+      /* The types have different attributes, so the types are
+	 different. */
+      /* identical = FALSE;  -- Already set. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else if (change_to_canonical_types(&type_1, &type_2,
                                          (flags & ITF_SEEK_CORRESP) != 0)) {
       /* The types might have come from different translation units: restart
@@ -2882,6 +2895,12 @@ for exact pointer equality.
     } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
       /* The top level kinds are different, so the types are different. */
       /* compat = FALSE;  -- Already set. */
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (!same_type_attributes(type_1, type_2)) {
+      /* The types have different attributes, so the types are
+	 different. */
+      /* compat = FALSE;  -- Already set. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else if (change_to_canonical_types(&type_1, &type_2,
                                          (flags & TCF_SEEK_CORRESP) != 0)) {
       /* The types might have come from different translation units: restart
@@ -3172,6 +3191,12 @@ that is not required to be checked by the ANSI C standard.
   } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
     /* The kinds are different, so the types are not interchangeable. */
     /* interch = FALSE;  -- already set. */
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (!same_type_attributes(type_1, type_2)) {
+    /* The types have different attributes, so the types are not
+       interchangeable. */
+    /* interch = FALSE;  -- Already set. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (type_1->kind == (a_type_kind)tk_integer) {
     /* Look for two integral types that differ only in signedness, or
        two character types. */

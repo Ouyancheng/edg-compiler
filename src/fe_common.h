@@ -16,6 +16,7 @@ and/or which are used throughout the compiler rather than in a single phase
 of processing.  This is a list of the files that are directly or indirectly
 incorporated:
 
+    attribute.h
     basics.h
     cmd_line.h
     const_ints.h
@@ -102,6 +103,9 @@ incorporated:
 /* Source sequence list management */
 #include "src_seq.h"
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+/* Attributes. */
+#include "attribute.h"
 
 #if DEBUG
 /* Debug declarations. */

@@ -1136,6 +1136,23 @@ ec_exported_instantiation_and_specialized;;"%n cannot be instantiated -- it has 
 ec_object_type_add_on;INTERNAL;"object type is: %s"
 ec_unqual_named_function_with_qual_object;;"the object has cv-qualifiers that are not compatible with the member %n"
 ec_no_matching_function_due_to_selector;;"no instance of %n matches the argument list and object (the object has cv-qualifiers that prevent a match)"
+ec_mode_incompatible_with_type;;"an attribute specifies a mode incompatible with %t"
+ec_no_type_of_specified_width;;"there is no type with the width specified"
+ec_bad_attribute_alignment;;"invalid alignment value specified by attribute"
+ec_alignment_attribute_decreases_alignment;;"the alignment attribute decreases the alignment"
+ec_attribute_does_not_apply_to_type;;"invalid attribute for %t"
+ec_attribute_does_not_apply;;"invalid attribute for %n"
+ec_arguments_provided_for_attribute;;"attribute %sq does not take arguments"
+ec_arguments_required_for_attribute;;"attribute %sq requires arguments"
+ec_exp_attribute_name;;"expected an attribute name"
+ec_unrecognized_attribute;;"there is no attribute %sq"
+ec_attribute_not_allowed;;"attributes may not appear here"
+ec_invalid_argument_to_attribute;;"invalid argument to attribute %sq"
+ec_packed_attribute_cannot_be_used_in_typedef;;"the \"packed\" attribute is not allowed in a typedef"
+ec_assigned_goto_requires_void_ptr;;"in \"goto *expr\", expr must have type \"void *\""
+ec_nonstd_assigned_goto;;"\"goto *expr\" is nonstandard"
+ec_nonstd_address_of_label;;"taking the address of a label is nonstandard"
+
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

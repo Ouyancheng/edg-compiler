@@ -118,8 +118,8 @@ token is a qualifier).
   if (microsoft_mode) { dsi_flags |= DSI_INLINE_ALLOWED; }
   (void)decl_specifiers(dsi_flags, &dso_flags,
                         &dummy_storage_class, &dummy_type_ptr,
-                        &qualifiers, &dummy_decl_modifiers,
-                        &local_decl_pos_block);
+                        &qualifiers, (an_attribute_ptr *)NULL, 
+			&dummy_decl_modifiers, &local_decl_pos_block);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     check_assertion(local_decl_pos_block.specifiers_range.end.seq != 0);
@@ -1310,6 +1310,7 @@ declaration.
         /* Scan a parameter-declaration. */
         (void)decl_specifiers(dsi_flags, &dso_flags, &param_storage_class,
                               &param_type_ptr, &qualifiers, 
+                              (an_attribute_ptr *)NULL,
                               &decl_modifiers, &local_decl_pos_block);
         dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
         defines_something = dso_flags & DSO_DEFINES_SOMETHING;

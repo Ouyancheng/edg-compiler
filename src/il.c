@@ -1708,6 +1708,9 @@ Dump a statement kind, for debug purposes.
     case stmk_set_vla_size:    s = "set-vla-size";      break;
     case stmk_vla_decl:        s = "vla-decl";          break;
     case stmk_vla_dealloc:     s = "vla-dealloc";       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case stmk_assigned_goto:   s = "assigned goto";     break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     default:                   s = "<bad stmt kind>";   break;
   }  /* switch */
   fputs(s, f_debug);
@@ -3007,6 +3010,23 @@ the indicated constant.
 }  /* set_constant_address_constant */
 
 
+void set_label_address_constant(a_label_ptr label,
+                                a_constant  *con)
+/*
+Fill in the constant "con" as a ck_address constant for the address of
+the indicated label.
+*/
+{
+  clear_constant(con, (a_constant_repr_kind)ck_address);
+  con->variant.address.kind = (an_address_base_kind)abk_label;
+  con->variant.address.variant.label = label;
+  /* Remember that the label has had its address taken. */
+  label->used_in_assign = TRUE;
+  /* The address of a label always has type "void *". */
+  con->type = make_pointer_type(void_type());
+}  /* set_label_address_constant */
+
+
 void set_ptr_to_member_function_constant(a_routine_ptr routine,
                                          a_constant    *con)
 /*
@@ -3523,6 +3543,12 @@ bucket of the shareable_constants_table to use for the constant.
             hash_value += hash_type(cp->variant.address.variant.type);
           }  /* if */
           break;
+        case abk_label:
+	  /* Hash the name of the label. */
+	  check_assertion(has_name(cp->variant.address.variant.label));
+	  hash_value = 
+	         hash_name(&cp->variant.address.variant.label->source_corresp);
+	  break;
 #if CHECKING
         default:
           internal_error("hash_constant: bad address constant kind");
@@ -3741,6 +3767,10 @@ nonidentical.
               }
               break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+	    case abk_label:
+	      eq = (cp1->variant.address.variant.label == 
+		    cp2->variant.address.variant.label);
+	      break;
 #if CHECKING
             default:
               internal_error("compare_constants: bad address constant kind");
@@ -3946,6 +3976,9 @@ e.g., a local variable.
           scp = &constant->variant.address.variant.type->source_corresp;
         }  /* if */
         break;
+      case abk_label:
+        scp = &constant->variant.address.variant.label->source_corresp;
+        break;
 #if CHECKING
       default:
         internal_error(
@@ -4022,6 +4055,10 @@ region).
           break;
         case abk_uuidof:
           /* The type pointed to must be in the file scope. */
+          break;
+        case abk_label:
+          /* Labels are never in the file scope. */
+          has_nfs_ref = TRUE;
           break;
 #if CHECKING
         default:
