@@ -8230,11 +8230,6 @@ TRUE if the declaration following this one is such a continuation.
   rtsp = unqual_rout_type->variant.routine.extra_info;
   /* Advance past the source sequence entry for the routine. */
   adv_curr_source_sequence_entry();
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-  if (template_decl != NULL) {
-    gen_template_header(template_decl);
-  }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   /* Position the output file to the declaration position. */
   set_decl_position(&rout->source_corresp, sec_decl);
   if (!suppress_specifiers) {
@@ -8242,6 +8237,11 @@ TRUE if the declaration following this one is such a continuation.
        mode for the member. */
     gen_member_access_specifier_for_decl_of(&rout->source_corresp);
   }  /* if */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (template_decl != NULL) {
+    gen_template_header(template_decl);
+  }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (is_definition) {
     /* This is a definition of the routine.  Determine the scope for the
        routine. */
