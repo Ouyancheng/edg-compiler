@@ -233,6 +233,8 @@ Scan the expression for a #if or #elif, and return in *condition its
 truth value.
 */
 {
+  a_boolean  save_fetch_pp_tokens = fetch_pp_tokens;
+  a_boolean  save_expand_macros = expand_macros;
   a_constant temp_const;
   a_boolean  err;
 
@@ -250,6 +252,8 @@ truth value.
     /* The constant is guaranteed to be integer. */
     *condition = temp_const.variant.integer_value != 0;
   }  /* if */
+  fetch_pp_tokens = save_fetch_pp_tokens;
+  expand_macros = save_expand_macros;
 }  /* scan_if_expr */
 
 
