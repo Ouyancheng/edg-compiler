@@ -289,7 +289,8 @@ to match the source dialect (including the version of the dialect).
                       "Target dialect already set.");
 #if CHECKING
   {
-    int n_dialects = (gnu_mode != 0) + (microsoft_mode != 0) + (sun_mode != 0);
+    int n_dialects =
+       /*lint !e514*/(gnu_mode != 0) + (microsoft_mode != 0) + (sun_mode != 0);
     check_assertion(n_dialects < 2);
   }
 #endif /* CHECKING */
