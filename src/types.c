@@ -362,6 +362,22 @@ Return TRUE if the type is a complete class, struct, or union type.
 }  /* is_complete_class_struct_union_type */
 
 
+a_boolean is_abstract_class_struct_union_type(a_type_ptr  tp)
+{
+  a_boolean                    is_abstract = FALSE;
+  a_class_type_supplement_ptr  ctsp;
+
+  tp = skip_typerefs(tp);
+  if (is_class_struct_union(tp)) {
+    ctsp = tp->variant.class_struct_union.extra_info;
+    if (ctsp != NULL && ctsp->abstract) {
+      is_abstract = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_abstract;
+}  /* is_abstract_class_struct_union_type */
+
+
 a_boolean is_aggregate_or_union_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a union or aggregate type (array, struct,
