@@ -1,5 +1,21 @@
 Version 2.33
 
+9/18/96 Redeclaration of library versions of operator new and delete
+
+If the source program omits the exception specification when redeclaring a
+version of operator new and delete, a warning (not an error) is now issued
+(except in strict mode).  For example,
+
+  #include "new.h"
+  void *operator new(size_t);         // "throw(std::bad_alloc)" is missing:
+                                      //   error with -A, warning otherwise
+
+This relaxation has been added to be easier on older C++ code, and so it
+does not apply to the recently added nothrow versions of new and delete:
+
+  void *operator new(size_t, std::nothrow_t);    // "throw()" is missing:
+                                                 //   still an error
+
 9/18/96 Microsoft C compatibility: predeclaration of _alloca
 
 In Microsoft C mode _alloca is now predeclared (i.e., a symbol and routine
