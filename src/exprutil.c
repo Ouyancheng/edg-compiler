@@ -2290,6 +2290,14 @@ conversions.
        extraction node, because the node with the cast has different
        integral promotion behavior. */
     need_cast = TRUE;
+  } else if (is_operation_node(node) &&
+             node->variant.operation.kind ==
+                                     (an_expr_operator_kind)eok_dynamic_cast &&
+             is_reference_type(node->type) != is_reference_type(new_type)) {
+    /* Don't allow an implicit change of a dynamic-cast-to-reference to
+       a dynamic-cast-to-pointer, because the runtime semantics are
+       different. */
+    need_cast = TRUE;
   } else if (!is_implicit_cast) {
     /* Do-nothing explicit casts are preserved in some configurations. */
     need_cast = PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL;
