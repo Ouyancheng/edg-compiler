@@ -1582,10 +1582,9 @@ Syntax:
         routine = routine_from_function_operand(operand);
       }  /* if */
     }  /* if */
-    /* Change the kind in the cross-reference entries to reference. */
-    /* This changes the address-taken entry for the function back to
-       a simple reference. */
-    change_xref_kinds(operand->xref_entries_list, srk_reference);
+    /* Change the kind in the cross-reference entry for the function from an
+       address-taken entry back to a simple "use" reference. */
+    change_xref_kinds(operand->xref_entries_list, srk_use);
   }  /* if */
 
   /* Scan the arguments of the call. */
@@ -4127,8 +4126,8 @@ As an anachronism, allow an expression inside the [ ].
         operator_delete_symbol =
                             opname_function_symbol((an_opname_kind)onk_delete);
       }  /* if */
-      /* Mark the routine symbol referenced, but not the IL entry (yet). */
-      mark_symbol_referenced(srk_reference, operator_delete_symbol,
+      /* Mark the routine symbol used, but not the IL entry (yet). */
+      mark_symbol_referenced(srk_use, operator_delete_symbol,
                              &delete_position);
       /* Since delete cannot be overloaded, the symbol should not be
          overloaded or a function template. */

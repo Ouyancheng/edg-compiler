@@ -157,13 +157,13 @@ do not allocate the entry, and return NULL.
     /* References in not-evaluated expressions should not set the IL
        entry referenced flag. */
     if (!curr_expr_is_evaluated()) {
-      mark_symbol_referenced(srk_reference, sym_ptr, source_position);
+      mark_symbol_referenced(srk_use, sym_ptr, source_position);
     } else {
       mark_referenced(sym_ptr, source_position);
     }  /* if */
     xep = NULL;
   } else {
-    xep = alloc_xref_entry(srk_reference, sym_ptr, source_position);
+    xep = alloc_xref_entry(srk_use, sym_ptr, source_position);
     /* Put the entry on the list of entries for the current expression.
        The list is dumped when flush_xref_entries_list is called. */
     xep->next = curr_expr_xref_entries;
@@ -3789,9 +3789,9 @@ not an lvalue, it is left alone.
       error_in_operand(ec_incomplete_type_not_allowed, operand);
     } else {
       using_lvalue(operand);
-      /* Change the kind in the cross-reference entries to reference. */
-      /* This changes address-taken entries for arrays to references. */
-      change_xref_kinds(operand->xref_entries_list, srk_reference);
+      /* Change the kind in the cross-reference entry for the array from an
+         address-taken entry to a simple "use" reference. */
+      change_xref_kinds(operand->xref_entries_list, srk_use);
       if (is_constant_operand(operand)) {
         /* The lvalue address is specified by a constant. */
         a_constant_ptr con = &operand->variant.constant;
