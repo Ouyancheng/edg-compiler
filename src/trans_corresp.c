@@ -2506,7 +2506,9 @@ canonical entry.
   if (type != NULL && in_secondary_trans_unit(type) &&
       /* Do not attempt to find a match for a type instantiated from a
          template template parameter. */
-      !(is_immediate_class_type(type) && assoc_template_of(type) != NULL &&
+      !(is_immediate_class_type(type) &&
+        type->variant.class_struct_union.extra_info != NULL &&
+        assoc_template_of(type) != NULL &&
         assoc_template_of(type)->kind ==
                            (a_template_kind)templk_template_template_param)) {
     determine_correspondence(&type->source_corresp, iek_type);
