@@ -1194,6 +1194,7 @@ ec_template_not_in_template;;"the \"template\" keyword used for syntactic disamb
 ec_db_option_required_on_cmd_line;INTERNAL;"a debug option must be specified on the command-line for the db_opt pragma to be used"
 ec_cl_more_than_one_preinclude;;"more than one preinclude option specified"
 ec_attr_requires_func_type;;"attribute does not apply to non-function type %t"
+ec_nonobject_pointer_arithmetic;;"arithmetic on pointer to void or function type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

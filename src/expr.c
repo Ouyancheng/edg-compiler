@@ -809,7 +809,8 @@ Syntax:
       /* The first operand must be a pointer to object. */
       if (gcc_mode && is_pointer_type(operand_1->type) &&
                       is_void_type(type_pointed_to(operand_1->type))) {
-        /* In GNU mode a pointer to "void" can be subscripted. */
+        /* In some versions of GNU C a pointer to "void" can be subscripted. */
+        warning(ec_nonobject_pointer_arithmetic);
         result_type = type_pointed_to(operand_1->type);
       } else if (
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
@@ -3236,8 +3237,9 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
         if (is_pointer_type(operand->type)) {
           if (gcc_mode && (is_void_type(type_pointed_to(operand->type)) ||
                            is_function_type(type_pointed_to(operand->type)))) {
-            /* In GNU C mode void and function pointers can be incremented and
-               and decremented. */
+            /* In some versions of GNU C void and function pointers can be
+               incremented and and decremented. */
+            warning(ec_nonobject_pointer_arithmetic);
           } else if (!check_object_pointer_operand(
                                      operand, ec_expr_not_pointer_to_object)) {
             err = TRUE;
@@ -3464,8 +3466,9 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
         if (is_pointer_type(operand.type)) {
           if (gcc_mode && (is_void_type(type_pointed_to(operand.type)) ||
                            is_function_type(type_pointed_to(operand.type)))) {
-            /* In GNU C mode void and function pointers can be incremented and
-               and decremented. */
+            /* In some versions of GNU C void and function pointers can be
+               incremented and and decremented. */
+            warning(ec_nonobject_pointer_arithmetic);
           } else if (!check_object_pointer_operand(
                                     &operand, ec_expr_not_pointer_to_object)) {
             err = TRUE;
@@ -9489,6 +9492,9 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         /* The first operand must be a pointer to an object. */
         if (gcc_mode && (is_void_type(type_pointed_to(operand_1->type)) ||
                          is_function_type(type_pointed_to(operand_1->type)))) {
+          /* Some versions of GNU C accept arithmetic on void and function
+             pointers. */
+          warning(ec_nonobject_pointer_arithmetic);
         } else {
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
           /* Pointer to incomplete array is also allowed. */
@@ -9536,15 +9542,17 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
            C mode: void and function types are acceptable). */
         if (err) {
           /* An error message was already issued. */
-        } else if ((gcc_mode &&
-                    /* GNU C allows arithmetic on pointers to void and
-                       pointers to functions. */
-                    (is_void_type(type_pointed_to(operand_1->type)) ||
-                     is_function_type(type_pointed_to(operand_1->type)))) ||
-                   (check_object_pointer_operand(
+        } else if (gcc_mode &&
+                   (is_void_type(type_pointed_to(operand_1->type)) ||
+                    is_function_type(type_pointed_to(operand_1->type)))) {
+          /* Some versions of GNU C allows arithmetic on pointers to void and
+             pointers to functions. */
+          warning(ec_nonobject_pointer_arithmetic);
+          result_type = integer_type(targ_ptrdiff_t_int_kind);
+        } else if (check_object_pointer_operand(
                                 operand_1, ec_expr_not_pointer_to_object) &
-                    check_object_pointer_operand(
-                                &operand_2, ec_expr_not_pointer_to_object))) {
+                   check_object_pointer_operand(
+                                &operand_2, ec_expr_not_pointer_to_object)) {
           /* Note use of "&" rather than "&&" to ensure that both tests
              are done even if the first detects an error. */
           result_type = integer_type(targ_ptrdiff_t_int_kind);
@@ -9567,7 +9575,9 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
          arithmetic on pointers to void and pointers to functions. */
       if (gcc_mode && (is_void_type(type_pointed_to(operand_2.type)) ||
                        is_function_type(type_pointed_to(operand_2.type)))) {
-        /* Fine. */
+        /* Fine, but issue a warning because some versions of GNU C are
+           more strict. */
+        warning(ec_nonobject_pointer_arithmetic);
       } else {
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
         /* Pointer to incomplete array is also allowed. */
@@ -11525,21 +11535,28 @@ See section 3.3.16 of the standard.
             /* If the first operand is arithmetic or enum, the second must
                be also. */
             (void)check_arithmetic_or_enum_operand(&operand_2);
-          } else if ((gcc_mode &&
-                      /* GNU C allows arithmetic on pointers to void and
-                         pointers to functions. */
-                      is_ptr_or_ref_type(operand_1->type) &&
-                      (is_void_type(type_pointed_to(operand_1->type)) ||
-                       is_function_type(type_pointed_to(operand_1->type)))) ||
-                     check_object_pointer_operand(
-                                operand_1,
-                                 enum_type_is_integral ?
-                                   ec_expr_not_scalar :
-                                   ec_expr_not_arithmetic_or_enum_or_pointer)){
-            /* The first operand is a pointer, so the second one must be
-               integral or enum. */
-            if (check_integral_or_enum_operand(&operand_2)) {
-              pointer_add_sub = TRUE;
+          } else {
+            a_boolean  nonobject_pointer =
+                    (gcc_mode &&
+                     is_pointer_type(operand_1->type) &&
+                     (is_void_type(type_pointed_to(operand_1->type)) ||
+                      is_function_type(type_pointed_to(operand_1->type))));
+            if (nonobject_pointer ||
+                check_object_pointer_operand(
+                              operand_1,
+                               enum_type_is_integral ?
+                                 ec_expr_not_scalar :
+                                 ec_expr_not_arithmetic_or_enum_or_pointer)) {
+              /* The first operand is a pointer, so the second one must be
+                 integral or enum. */
+              if (check_integral_or_enum_operand(&operand_2)) {
+                if (nonobject_pointer) {
+                  /* Some versions of GNU C accept arithmetic on void and
+                     function pointers.  Issue a warning in any case. */
+                  warning(ec_nonobject_pointer_arithmetic);
+                }  /* if */
+                pointer_add_sub = TRUE;
+              }  /* if */
             }  /* if */
           }  /* if */
           break;
