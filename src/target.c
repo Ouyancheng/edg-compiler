@@ -25,13 +25,6 @@ target.c -- Target configuration support
 #include "fe_common.h"
 
 
-#if STANDALONE_UTILITY_PROGRAM
-static a_boolean plain_char_int_kind;
-			/* Ordinarily in cmd_line.h, but not available
-			   in standalone programs. */
-#endif /* STANDALONE_UTILITY_PROGRAM */
-
-
 void set_plain_char_int_kind(a_boolean plain_chars_are_signed)
 /*
 Set plain_char_int_kind, which indicates the integer kind for "plain"
