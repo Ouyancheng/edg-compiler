@@ -1,6 +1,20 @@
 Version 2.44
 
-1/7/99   Template static data members given wrong linkage in -tlocal mode
+1/9/00   Eliminating blank in textual preprocessing output with inert
+         macro identifiers
+
+The textual preprocessing output for certain cases involving macro
+names within their own expansions has been changed to eliminate a
+blank in the output.  The affected cases have undefined behavior
+according to the C and C++ standards, so the new output is just as
+valid as the old, and it is useful to some people who use the C
+preprocessor to process non-C text.
+
+  #define need(func) .##need func
+  need(__dtoi)  // Now expands to .need __dtoi
+                // Formerly gave  . need __dtoi
+
+1/7/00   Template static data members given wrong linkage in -tlocal mode
 
 Version 2.42 introduced a bug that caused template static data members to
 be given external linkage even in -tlocal mode.  This has been fixed.

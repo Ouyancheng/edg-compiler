@@ -2178,14 +2178,24 @@ is TRUE.
           /* Attention marker.  Find the associated source line modification
              and process it. */
           walk_into_insertion(slmp, ins_slmp, loc_in_line);
-          token_start = TRUE;
+          if (loc_in_line[0] == LE_ESCAPE &&
+              loc_in_line[1] == LE_INERT_MACRO) {
+            /* If the insertion starts with an inert macro indication, do not
+               consider it the start of a new token.  This makes some
+               undefined-behavior token-pasting cases work slightly better
+               in the output. */
+          } else {
+            token_start = TRUE;
+          }  /* if */
         } else if (ch == LE_ESCAPE) {
           /* Lexical escape. */
           ch = loc_in_line[1];
-          if (ch == LE_END_OF_TOKEN ||
-              ch == LE_INERT_MACRO) {
-            /* Do not output end-of-token or inert-macro markers. */
+          if (ch == LE_END_OF_TOKEN) {
+            /* Do not output end-of-token markers. */
             token_start = TRUE;
+            loc_in_line += LE_ESCAPE_LEN;
+          } else if (ch == LE_INERT_MACRO) {
+            /* Do not output inert-macro markers. */
             loc_in_line += LE_ESCAPE_LEN;
           } else if (ch == LE_END_OF_INSERTION) {
             /* End of a macro expansion. */
