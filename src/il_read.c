@@ -780,6 +780,7 @@ build the in-memory version.
   char                    check_string[LEN_IL_FILE_MAGIC_STRING],
                           magic_string[LEN_IL_FILE_MAGIC_STRING];
   a_memory_region_number  new_size_of_mem_region_table;
+  a_scope_ptr             *old_il_header_region_scope_entry;
 
   db_enter(1, "il_read");
 
@@ -820,7 +821,11 @@ build the in-memory version.
   /* Read the position of the file scope memory region (and throw it away). */
   fread_with_check((char *)&file_scope_pos, sizeof(file_scope_pos));
   /* Read the IL header. */
+  /* Save the region_scope_entry pointer in case it points to allocated
+     storage. */
+  old_il_header_region_scope_entry = il_header.region_scope_entry;
   fread_with_check((char *)&il_header, sizeof(il_header));
+  il_header.region_scope_entry = old_il_header_region_scope_entry;
 #ifdef CIL
   /* Make sure that the signedness of "plain" char is set correctly in
      int_kind_is_signed.  Doing this here ensures that it won't be overlooked
@@ -835,23 +840,23 @@ build the in-memory version.
   new_size_of_mem_region_table = highest_used_region_number+1;
   if (size_of_mem_region_table < new_size_of_mem_region_table) {
     mem_region_table = (a_mem_block_header_ptr *)
-                         realloc_general((char *)mem_region_table,
-                                         size_of_mem_region_table*
-                                               sizeof(a_mem_block_header_ptr),
-                                         new_size_of_mem_region_table*
-                                               sizeof(a_mem_block_header_ptr));
+                       realloc_general((char *)mem_region_table,
+                                       (sizeof_t)(size_of_mem_region_table*
+                                              sizeof(a_mem_block_header_ptr)),
+                                       (sizeof_t)(new_size_of_mem_region_table*
+                                              sizeof(a_mem_block_header_ptr)));
     il_header.region_scope_entry = (a_scope_ptr *)
-                         realloc_general((char *)il_header.region_scope_entry,
-                                         size_of_mem_region_table*
-                                                          sizeof(a_scope_ptr),
-                                         new_size_of_mem_region_table*
-                                                          sizeof(a_scope_ptr));
+                       realloc_general((char *)il_header.region_scope_entry,
+                                       (sizeof_t)(size_of_mem_region_table*
+                                                         sizeof(a_scope_ptr)),
+                                       (sizeof_t)(new_size_of_mem_region_table*
+                                                         sizeof(a_scope_ptr)));
     index_for_il_file = (a_file_position *)
-                         realloc_general((char *)index_for_il_file,
-                                         size_of_mem_region_table*
-                                                      sizeof(a_file_position),
-                                         new_size_of_mem_region_table*
-                                                      sizeof(a_file_position));
+                       realloc_general((char *)index_for_il_file,
+                                       (sizeof_t)(size_of_mem_region_table*
+                                                     sizeof(a_file_position)),
+                                       (sizeof_t)(new_size_of_mem_region_table*
+                                                     sizeof(a_file_position)));
     size_of_mem_region_table = new_size_of_mem_region_table;
   }  /* if */
 #if CHECKING
