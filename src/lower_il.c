@@ -4223,26 +4223,31 @@ Do IL lowering of the indicated asm entry and everything under it.
 
 
 static void lower_full_expr(an_expr_node_ptr expr,
+                            a_boolean        is_condition_expr,
                             a_boolean        repeated_in_loop)
 /*
-Lower a "full" expression, i.e., one that is attached directly to a
-statement rather than part of some larger expression tree.
-The expression is not an lvalue.  repeated_in_loop is TRUE if the expression
-is part of a loop and it is re-evaluated each time around the loop.
+Lower a "full" expression, i.e., one that is not part of some
+larger expression tree.  The expression is not an lvalue.
+is_condition_expr is TRUE if the expression is a condition expression
+tested in a statement (e.g., an "if").  repeated_in_loop is TRUE if
+the expression is part of a loop and it is re-evaluated each time
+around the loop.
 */
 {
   a_context          context;
   an_insert_location insert_location;
+  a_boolean          context_placed_around_expr = FALSE;
 
-  if (repeated_in_loop) {
-    /* The expression is re-evaluated each time around a loop, so any
-       temporary constructed therein should also be destroyed therein.
-       Push a context for the expression. */
+  if (repeated_in_loop || is_condition_expr) {
+    /* The expression is re-evaluated each time around a loop, or it's
+       a condition expression, so any temporary constructed therein should
+       also be destroyed therein.  Push a context for the expression. */
     push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
     curr_context->assoc_expr = expr;
+    context_placed_around_expr = TRUE;
   }  /* if */
   lower_expr(expr, /*is_lvalue=*/FALSE);
-  if (repeated_in_loop) {
+  if (context_placed_around_expr) {
     if (any_cleanup_actions(curr_context)) {
       /* Generate initialization assignments for any flags needed for
          conditional destruction. */
@@ -6662,7 +6667,8 @@ Do IL lowering of the indicated statement and everything under it.
     }  /* if */
     switch (statement->kind) {
       case stmk_expr:
-        lower_full_expr(statement->expr, /*repeated_in_loop=*/FALSE);
+        lower_full_expr(statement->expr, /*is_condition_expr=*/FALSE,
+                        /*repeated_in_loop=*/FALSE);
         break;
       case stmk_asm:
         /* No processing required. */
@@ -6698,7 +6704,8 @@ Do IL lowering of the indicated statement and everything under it.
       case stmk_return:
         return_expr = statement->expr;
         if (return_expr != NULL) {
-          lower_full_expr(return_expr, /*repeated_in_loop=*/FALSE);
+          lower_full_expr(return_expr, /*is_condition_expr=*/FALSE,
+                          /*repeated_in_loop=*/FALSE);
         }  /* if */
         /* Keep track of whether or not we have already turned the return
            statement into a block.  We haven't so far. */
@@ -6776,13 +6783,19 @@ Do IL lowering of the indicated statement and everything under it.
         add_to_return_memo_list(return_statement);
         break;
       case stmk_if:
-        lower_full_expr(statement->expr, /*repeated_in_loop=*/FALSE);
+        lower_full_expr(statement->expr, /*is_condition_expr=*/TRUE,
+                        /*repeated_in_loop=*/FALSE);
         lower_statement(statement->variant.if_stmt.then_statement);
         lower_statement(statement->variant.if_stmt.else_statement);
         break;
       case stmk_while:
+        lower_full_expr(statement->expr, /*is_condition_expr=*/TRUE,
+                        /*repeated_in_loop=*/TRUE);
+        lower_statement(statement->variant.loop_statement);
+        break;
       case stmk_end_test_while:
-        lower_full_expr(statement->expr, /*repeated_in_loop=*/TRUE);
+        lower_full_expr(statement->expr, /*is_condition_expr=*/FALSE,
+                        /*repeated_in_loop=*/TRUE);
         lower_statement(statement->variant.loop_statement);
         break;
       case stmk_for:
@@ -6802,11 +6815,13 @@ Do IL lowering of the indicated statement and everything under it.
             }  /* if */
           }  /* if */
           if (statement->expr != NULL) {
-            lower_full_expr(statement->expr, /*repeated_in_loop=*/TRUE);
+            lower_full_expr(statement->expr, /*is_condition_expr=*/TRUE,
+                            /*repeated_in_loop=*/TRUE);
           }  /* if */
           lower_statement(statement->variant.for_loop.statement);
           if (extra_info->increment != NULL) {
-            lower_full_expr(extra_info->increment, /*repeated_in_loop=*/TRUE);
+            lower_full_expr(extra_info->increment, /*is_condition_expr=*/FALSE,
+                            /*repeated_in_loop=*/TRUE);
           }  /* if */
         }
         break;
@@ -6842,7 +6857,8 @@ Do IL lowering of the indicated statement and everything under it.
         if (scope != NULL) pop_block_scope_context(last_statement);
         break;
       case stmk_switch:
-        lower_full_expr(statement->expr, /*repeated_in_loop=*/FALSE);
+        lower_full_expr(statement->expr, /*is_condition_expr=*/TRUE,
+                        /*repeated_in_loop=*/FALSE);
         /* If there is a body statement and it has a scope, push it as
            context around the processing of the switch clauses. */
         scope = NULL;

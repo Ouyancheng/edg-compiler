@@ -1,5 +1,11 @@
 Version 2.23
 
+5/24/94  Destruction of temporaries created in condition exprs in non-loops
+
+Expression temporaries created in condition expressions of statements
+that are not loops (e.g., the condition expression of an "if") are now
+destroyed at the end of the expression.
+
 5/23/94  Taking the address of a template function with default arguments
 
 Taking the address of a template function that has default arguments and
