@@ -4402,6 +4402,7 @@ type should not be used in the matching process.
   } else {
     tssp = templ_sym->variant.template_info;
   }  /* if */
+  *templ_arg_list = NULL;
   templ_rout_type = skip_typerefs(tssp->variant.function.routine->type);
   templ_rtsp = templ_rout_type->variant.routine.extra_info;
   /* First be sure the number of parameters in the template function is
@@ -4426,7 +4427,6 @@ type should not be used in the matching process.
        This cannot be a match. */
     goto done;
   }  /* if */
-  *templ_arg_list = NULL;
   if (explicit_arg_list != NULL) {
     /* If an explicit template argument list was specified, initialize the
        new template argument list with the specified list.  If the new
