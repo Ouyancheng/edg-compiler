@@ -3250,6 +3250,10 @@ function symbols.
         /* Overloading is not allowed for operator delete() (ARM 12.5). */
         pos_error(ec_delete_already_declared, &locator->source_position);
         suppress_redecl_error = TRUE;
+      /* template_case is FALSE in the following because although member
+         functions of class templates have template types in their parameters,
+         they are not called using the template overload resolution
+         mechanism. */
       } else if (!overload_distinguishable(sym, type,
                                            /*template_case=*/FALSE, /* sic! */
                                            &error_code)) {
@@ -4240,8 +4244,8 @@ routine body is generated at this time.
 
 void set_class_assoc_operator_new_routine(a_type_ptr class_type)
 /*
-Determine the operator new() function to be used for the indicated class
-and record it in the class's assoc_operator_new_routine field.
+Determine the default operator new() function to be used for the indicated
+class and record it in the class's assoc_operator_new_routine field.
 */
 {
   a_symbol_ptr                new_function_symbol, sym;
@@ -4262,13 +4266,7 @@ and record it in the class's assoc_operator_new_routine field.
                                                        class_type);
     if (new_function_symbol != NULL) {
       /* There is a class-specific operator new() (or several).  See if
-         there is a default (one-argument) version.  If not, use the global
-         operator new(). */
-#if 0
-      /* Isn't use of the global default operator new when the member operator
-         new takes more than one argument tantamount to overloading across
-         scopes?  Is that permitted in this case? */
-#endif /* if 0 */
+         there is a default (one-argument) version. */
       sym = extract_default_operator_new_sym(new_function_symbol);
       if (sym != NULL &&
           new_function_symbol->kind == (a_symbol_kind)sk_projection) {
@@ -4285,8 +4283,7 @@ and record it in the class's assoc_operator_new_routine field.
         }  /* if */
       }  /* if */
       new_function_symbol = sym;
-    }  /* if */
-    if (new_function_symbol == NULL) {
+    } else {
       /* Look for a global operator new(). */
       new_function_symbol = opname_function_symbol((an_opname_kind)onk_new);
       /* "new" can be overloaded; find the default (one-argument) version
@@ -4300,8 +4297,10 @@ and record it in the class's assoc_operator_new_routine field.
       }  /* if */
 #endif /* CHECKING */
     }  /* if */
-    ctsp->assoc_operator_new_routine = new_function_symbol->
-                                                    variant.routine.ptr;
+    if (new_function_symbol != NULL) {
+      ctsp->assoc_operator_new_routine =
+                                      new_function_symbol->variant.routine.ptr;
+    }  /* if */
   }  /* if */
 }  /* set_class_assoc_operator_new_routine */
 
@@ -4313,31 +4312,30 @@ Create the body for a default constructor or a default copy constructor.  It
 will return a pointer to the constructed object.
 */
 {
+  a_routine_ptr                  rp;
   a_statement_ptr                sp;
   a_routine_type_supplement_ptr  rtsp;
   a_variable_ptr                 vp;
   a_param_type_ptr               ptp;
 
   db_enter(4, "make_default_constructor_body");
+  rp = scope->variant.routine.ptr;
   /* Create the parameter variable -- needed for copy constructors only. */
-  rtsp = (skip_typerefs(scope->variant.routine.ptr->type))->
-                                                 variant.routine.extra_info;
+  rtsp = (skip_typerefs(rp->type))->variant.routine.extra_info;
   ptp = rtsp->param_type_list;
   if (ptp != NULL) {
     vp = make_parameter(ptp->type, (a_storage_class)sc_auto,
                         (a_symbol_ptr)NULL);
     vp->assoc_param_type = ptp;
   }  /* if */    
+  /* Create entries describing constructions to be done in the wrapper code. */
+  scope->variant.routine.constructor_inits =
+                                  ctor_initializer(rp, /*user_defined=*/FALSE);
   /* Create a statement block that is empty except for the return statement. */
   scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
   scope->assoc_block->variant.block.statements = sp =
           alloc_statement((a_statement_kind)stmk_return);
   sp->expr = this_param_value_expr();
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
-  /* Determine and remember the operator new() routine for the class. */
-  set_class_assoc_operator_new_routine(scope->variant.routine.ptr->
-                                       source_corresp.class_of_which_a_member);
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
   db_exit();
 }  /* make_default_constructor_body */
 
@@ -4394,17 +4392,17 @@ static void make_default_destructor_body(a_scope_ptr  scope)
 Create the body for a default destructor.  It will return no value.
 */
 {
+  a_routine_ptr rp;
+
   db_enter(4, "make_default_destructor_body");
+  rp = scope->variant.routine.ptr;
+  /* Create entries describing destructions to be done in the wrapper code. */
+  scope->variant.routine.constructor_inits = dtor_initializer(rp);
   /* Create a statement block that is empty except for the return
      statement. */
   scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
   scope->assoc_block->variant.block.statements =
           alloc_statement((a_statement_kind)stmk_return);
-#if DELETE_CAN_BE_FOLDED_INTO_DTOR
-  /* Determine and remember the operator delete() routine for the class. */
-  set_class_assoc_operator_delete_routine(scope->variant.routine.ptr->
-                                       source_corresp.class_of_which_a_member);
-#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
   db_exit();
 }  /* make_default_destructor_body */
 
@@ -4880,16 +4878,13 @@ empty statement block.
     /* Enter the constructor and destructor initializers, to record possible
        implicit initializers. */
     if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor) {
-      scope->variant.routine.constructor_inits =
-                            ctor_initializer(rout_ptr, /*user_defined=*/FALSE);
-      (void)make_default_constructor_body(scope);
+      make_default_constructor_body(scope);
     } else if (rout_ptr->special_kind ==
                                   (a_special_function_kind)sfk_destructor) {
-      scope->variant.routine.constructor_inits = dtor_initializer(rout_ptr);
-      (void)make_default_destructor_body(scope);
+      make_default_destructor_body(scope);
     } else {
       /* Assignment operator case. */
-      (void)make_default_assignment_body(scope, err_pos);
+      make_default_assignment_body(scope, err_pos);
     }  /* if */
     /* End of statement block is unreachable because of the return
        statement. */
@@ -4955,6 +4950,32 @@ destructors, assignment operators, and conversion functions.
     update_instantiation_required_flag(fiep, TRUE);
   }  /* if */
 }  /* reference_to_implicitly_invoked_function */
+
+
+void f_force_definition_of_compiler_generated_routine(
+                                                   a_routine_ptr     routine,
+                                                   a_source_position *position)
+/*
+routine points to a compiler-generated routine that is being referenced
+and whose definition has not yet been generated.  Force the definition
+now.  This routine is intended to be called from the macro
+force_definition_of_compiler_generated_routine.
+*/
+{
+  a_type_ptr              class_type =
+                               routine->source_corresp.class_of_which_a_member;
+  a_special_function_kind skind = routine->special_kind;
+
+  /* Only force a definition for constructors, destructors, and
+     operator= functions.  In particular, do not try to define operator new
+     and delete functions. */
+  if (skind == (a_special_function_kind)sfk_constructor ||
+      skind == (a_special_function_kind)sfk_destructor  ||
+      (skind == (a_special_function_kind)sfk_operator &&
+       routine->opname_kind == (an_opname_kind)onk_assign)) {
+    define_special_member_function(routine, class_type, position);
+  }  /* if */
+}  /* f_force_definition_of_compiler_generated_routine */
 
 
 static a_boolean default_assignment_of_const_object_okay(a_type_ptr class_type)
