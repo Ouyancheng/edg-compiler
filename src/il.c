@@ -10596,10 +10596,11 @@ partial instantiation of the entity specified by the indicated entity.
 #else /* !BACK_END_IS_CP_GEN_BE */
     sssdp->specialized_with_new_syntax = TRUE;
 #endif /* BACK_END_IS_CP_GEN_BE */
-    /* Add the entry to the source sequence list. */
-    update_source_sequence_list((char *)sssdp,
-                                (an_il_entry_kind)iek_src_seq_secondary_decl,
-                                (a_source_sequence_entry_ptr)NULL);
+    /* Add the entry to the source sequence list.  (The macro needn't be
+       called since we know source sequence entries are allowed.) */
+    f_update_source_sequence_list((char *)sssdp,
+                                  (an_il_entry_kind)iek_src_seq_secondary_decl,
+                                  (a_source_sequence_entry_ptr)NULL);
     /* Restore the flag that controls whether source sequence entries are
        generated. */
     source_sequence_entries_disallowed =
