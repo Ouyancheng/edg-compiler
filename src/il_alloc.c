@@ -775,7 +775,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->qualifiers                        = TQ_NONE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
-  ctsp->anonymous_union_parent.field      = NULL;
+  ctsp->anonymous_union_object.field      = NULL;
   ctsp->class_member_using_decls          = NULL;
   ctsp->befriending_classes               = NULL;
   ctsp->friend_routines                   = NULL;

@@ -1854,11 +1854,11 @@ after_entry_from_class:
             case auk_none:
               break;
             case auk_variable:
-              remap_ptr(ptr->anonymous_union_parent.variable, a_variable_ptr,
+              remap_ptr(ptr->anonymous_union_object.variable, a_variable_ptr,
                         iek_variable);
               break;
             case auk_field:
-              remap_ptr(ptr->anonymous_union_parent.field, a_field_ptr,
+              remap_ptr(ptr->anonymous_union_object.field, a_field_ptr,
                         iek_field);
               break;
             default:

@@ -2658,7 +2658,7 @@ typedef struct a_class_type_supplement {
 			/* When anonymous_union_kind is auk_variable, a
 			   pointer to the unnamed variable entry whose type
 			   is the anonymous union. */
-  } anonymous_union_parent;
+  } anonymous_union_object;
   a_class_member_using_decl_ptr
                 class_member_using_decls;
                         /* A list of entries representing using-declarations
