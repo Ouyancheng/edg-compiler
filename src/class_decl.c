@@ -3761,7 +3761,9 @@ special function kind (e.g., constructor, destructor), if any.
       if (tp == class_type) {
         is_usable = FALSE;
       } else if (is_class_struct_union_type(tp)) {
-        if (find_base_class_of(class_type, tp) != NULL) {
+        if (!cfront_2_1_mode && find_base_class_of(class_type, tp) != NULL) {
+          /* An operator that converts from a derived class to a base class
+             is allowed by cfront 2.1, but not by cfront 3.0. */
           is_usable = FALSE;
         } else {
           /* The target type of the conversion is a class or ref-to-class
@@ -3785,9 +3787,8 @@ special function kind (e.g., constructor, destructor), if any.
            a base class or a reference to a base class "is never used" (WP
            12.3.2; that is, it is not used in implicit or explicit conversions
            but only in an explicit invocations of the function). */
-        pos_sy_diagnostic(any_cfront_mode() ? es_remark : es_warning,
-                          ec_conversion_function_not_usable,
-                          &locator->source_position, sym);
+        pos_sy_warning(ec_conversion_function_not_usable,
+                       &locator->source_position, sym);
       }  /* if */
     } else {
       rtn->special_kind = spec_kind;
