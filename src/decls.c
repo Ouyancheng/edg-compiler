@@ -7952,7 +7952,7 @@ exit_loop:
           /* For an explicitly "signed" int, use a different type entry.
              Plain "int" and "signed int" have to be kept separate because
              they may mean different things as bit-field types.  The same
-             applies to explicitly signed short, lond, and long long. */
+             applies to explicitly signed short, long, and long long. */
 	  *type_ptr = signed_integer_type((an_integer_kind)ikind);
 	} else {
           *type_ptr = integer_type((an_integer_kind)ikind);

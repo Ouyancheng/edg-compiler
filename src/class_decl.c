@@ -2104,7 +2104,7 @@ classes in its derivation is preferred over one that has virtual base
 classes in its derivation.
 
 Note that the virtual base class appears on the base class list in the
-position of its first appearance in the depth-first left-to-right tranversal
+position of its first appearance in the depth-first left-to-right traversal
 of the base specifiers graph.  This position is independent of the which
 appearance of the base class happens to have been marked preferred.
 */
