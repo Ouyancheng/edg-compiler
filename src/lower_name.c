@@ -636,22 +636,17 @@ and (always) return the length of the mangled form.
   sizeof_t mangled_form_length = 0, section_length;
 
   /* Representation is something like
-       XCiL15   <-- integer constant 5
-            ^-- Literal constant representation.
-           ^--- Length of literal constant.
-          ^---- L indicates literal constant; c indicates address
-                of variable, etc.
-        ^^----- Type of constant, with "const" added.
-       ^------- X indicates beginning of constant.
-     If the constant is a template parameter constant, skip the "XC" and
-     the type.
-  */
+       CiL15   <-- integer constant 5
+           ^-- Literal constant representation.
+          ^--- Length of literal constant.
+         ^---- L indicates literal constant; c indicates address
+               of variable, etc.
+       ^^----- Type of constant, with "const" added.
+     If the constant is a template parameter constant, skip the "C" and
+     the type. */
   if (con->kind != (a_constant_repr_kind)ck_template_param) {
-    mangled_form_length += 2;
-    if (store_at != NULL) {
-      *store_at++ = 'X';
-      *store_at++ = 'C';
-    }  /* if */
+    mangled_form_length++;
+    if (store_at != NULL) *store_at++ = 'C';
     /* Put out the constant type. */
     section_length = mangled_encoding_for_type(con->type, store_at);
     mangled_form_length += section_length;
@@ -903,11 +898,14 @@ and (always) return the length of the output.
           store_at += type_length;
         }  /* if */
       } else {
-        /* Constant argument. */
+        /* Constant argument.  The encoding for the constant begins with
+           an "X". */
         if (pass == 1) {
           arg_length = mangled_encoding_for_constant(tap->variant.constant,
-                                                     (char *)NULL);
+                                                     (char *)NULL) + 1;
         } else {
+          mangled_name_length++;
+          if (store_at != NULL) *store_at++ = 'X';
           con_length = mangled_encoding_for_constant(tap->variant.constant,
                                                      store_at);
           mangled_name_length += con_length;
