@@ -1,5 +1,24 @@
 Version 2.20
 
+10/12/93 edg_prelink supports the nm output of additional systems
+
+The edg_prelink utility has been modified to accept the nm output
+of additional systems and now support:
+
+	SunOS (the default)
+	Solaris 2.x
+	SGI
+	Motorola 88000 SVR4
+	HP/UX
+
+SunOS is the only version that has been extensively tested at this point.
+Support for the other formats was added using small samples of nm output
+that were provided to us.
+
+Refer to the comments in edg_prelink.c and edg_prelink.h to select the
+nm format and command line options that are most appropriate for the
+system that you are using.
+
 10/12/93 Order of types on type list when IL lowering does type promotion
 
 When IL lowering promotes types to the file-scope types list, they
@@ -15,7 +34,6 @@ Formerly, the types ended up in the order TMPL<C>, OUTER, C.  Now they
 appear in source order (C, TMPL<C>, OUTER).
 
 int main () { return 0; }
-
 
 10/8/93  Reference initialization cases
 
