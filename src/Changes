@@ -1,5 +1,18 @@
 Version 2.30
 
+6/30/95  Error recovery problem with [], == and != operators
+
+In some cases, an error on a [], ==, or != operator could cause an internal
+error later.  Now fixed.
+
+  typedef unsigned char cxb[150];
+  static cxb rots[24];
+  main () {
+    if (rots[x] != 0) {}
+    if (rots[rots[0]] != 0) {}
+    if (rots[(void)*0] != 0) {}
+  }
+
 6/29/95  Missing placeholder typerefs
 
 When template classes are instantiated inside other classes, the template

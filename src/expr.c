@@ -526,10 +526,13 @@ Syntax:
                           &operator_position);
       /* This is an lvalue; the expression or constant giving the address
          has type pointer-to-X, but the operand has type X. */
-      result->type = result_type;
-      result->state = (an_operand_state)os_lvalue;
-      /* Preserve the reference entries from the first operand (the array). */
-      result->ref_entries_list = operand_1->ref_entries_list;
+      if (!is_error_operand(result)) {
+        result->type = result_type;
+        result->state = (an_operand_state)os_lvalue;
+        /* Preserve the reference entries from the first operand (the
+           array). */
+        result->ref_entries_list = operand_1->ref_entries_list;
+      }  /* if */
     }  /* if */
   }  /* if */
 
@@ -6997,6 +7000,7 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
     operation_type = operand_1->type;  /* Assume. */
     if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
       /* One or both of the operands has an error. */
+      operation_type = error_type();
     } else {
       if (operand_1_is_pointer || is_pointer_type(operand_2.type)) {
         /* At least one of the operands is a pointer.  See if the operands are
