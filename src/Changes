@@ -1,5 +1,23 @@
 Version 3.3
 
+7/10/03  Abort in C++-generating back end on Microsoft in-class specialization
+
+In configurations with CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+set to TRUE and NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set
+to FALSE, the C++-generating back end triggered an internal error when
+generating an in-class specialization (a feature accepted in Microsoft mode
+only) for a class instantiation.  For example:
+
+  template<typename T> struct S {
+    template<typename X> void operator=(S<X> const&) {}
+    template<> void operator=(S<T> const&) {}
+      // Abort while rendering this explicit specialization for the S<int>
+      // instance.
+  };
+  template struct S<int>;
+
+This is now fixed.
+
 7/8/03   Microsoft mode: __alignof for non-void incomplete types
 
 In Microsoft mode, the result of applying the __alignof operator to an
