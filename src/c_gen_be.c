@@ -5294,12 +5294,14 @@ parameters.
   if (!dump_vars_without_initializers && init_con == NULL) {
     /* The variable has no initializer, and we're not supposed to dump
        variables without initializers. */
+#ifdef CFE
   } else if (!dump_initializers && init_con != NULL &&
              variable->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal &&
              strcmp(variable->source_corresp.name, "__link") == 0) {
     /* Dump the C++ startup variable __link only once, rather than once
        without the initializer and once with.  That allows it to be static. */
+#endif /* ifdef CFE */
   } else {
 #ifdef FFE
     /* If the variable is a function result variable, make it referenced,
