@@ -23,6 +23,9 @@ Run-time type identification.
 #include "vtbl.h"
 #endif /* ABI_CHANGES_FOR_RTTI */
 
+/* Forward declaration. */
+EXTERN_C void __db_type_info(const STD_NAMESPACE::type_info& info);
+
 #ifdef __EDG_IA64_ABI
 
 /*
@@ -55,6 +58,15 @@ FALSE.
   a_boolean is_accessible;
   void	    *ptr_sought = *p_new_ptr;
 
+#if DEBUG
+  if (__debug_level >= 4) {
+    fprintf(__f_debug, "derived_to_base_conversion_r:\n");
+    fprintf(__f_debug, "  conversion from:\n");
+    __db_type_info(*class_info);
+    fprintf(__f_debug, "  conversion to:\n");
+    __db_type_info(*base_info);
+  }  /* if */
+#endif /* DEBUG */
   if (typeid(*class_info) == typeid(abi::__si_class_type_info)) {
     /* Single, non-virtual, public inheritance. */
     abi::__si_class_type_info *si_obj_info = 
@@ -72,7 +84,7 @@ FALSE.
         *p_new_ptr = NULL;
         result = FALSE;
       } else {
-        if (p_new_ptr == NULL || is_accessible) {
+        if (!is_accessible) {
           *p_is_accessible = is_accessible;
         }  /* if */
         *p_new_ptr = ptr;
@@ -89,7 +101,10 @@ FALSE.
     for (bcsp = vmi_obj_info->__base_info;
          bcsp < vmi_obj_info->__base_info + vmi_obj_info->__base_count;
          bcsp++) {
-      if (bcsp->__offset_flags & BCS_VIRTUAL) {
+      if (ptr == NULL) {
+        /* Don't try to add an offset to a NULL pointer. */
+        base_ptr = NULL;
+      } else if (bcsp->__offset_flags & BCS_VIRTUAL) {
         a_vtbl_entry_ptr vtbl, vbase_offset;
         vtbl = *((a_vtbl_entry_ptr *)ptr);
         vbase_offset = (a_vtbl_entry_ptr)(((char *)vtbl) + get_offset(bcsp));
@@ -109,21 +124,22 @@ FALSE.
           break;
         } else {
           /* The base class is unambiguous -- at least so far. */
-          if (p_new_ptr == NULL || is_accessible) {
+          if (!is_accessible) {
             *p_is_accessible = is_accessible;
           }  /* if */
           *p_new_ptr = base_ptr;
           result = TRUE;
         }  /* if */
-      } else if (!derived_to_base_conversion_r(base_ptr, p_new_ptr,
-                                               bcsp->__base_type,
-                                               base_info, p_is_ambiguous,
-                                               &is_accessible) &&
-                 *p_is_ambiguous) {
-        result = FALSE;
-        break;
-      } else {
-        result = TRUE;
+      } else if (derived_to_base_conversion_r(base_ptr, p_new_ptr,
+                                              bcsp->__base_type,
+                                              base_info, p_is_ambiguous,
+                                              &is_accessible)) {
+        if ((*p_is_ambiguous)) {
+          result = FALSE;
+          break;
+        } else {
+          result = TRUE;
+        }  /* if */
       } /* if */
     }  /* for */
   }  /* if */
@@ -637,10 +653,10 @@ exception.
 
 
 #if DEBUG
-EXTERN_C void __r_db_type_info(STD_NAMESPACE::type_info& info,
-                               int			 indent)
+EXTERN_C void __r_db_type_info(const STD_NAMESPACE::type_info&	info,
+                               int				indent)
 /*
-Display debugging information about type information.
+Display debugging information about type information (non-IA-64 version).
 */
 {
 /* Define a macro used to indent the output lines. */
@@ -687,7 +703,36 @@ Display debugging information about type information.
 }  /* __r_db_type_info */
 
 
-EXTERN_C void __db_type_info(STD_NAMESPACE::type_info& info)
+EXTERN_C void __db_type_info(const STD_NAMESPACE::type_info& info)
+/*
+Display debugging information about type information.  This routine
+calls __r_db_type_info and supplies a zero indent value.
+*/
+{
+  __r_db_type_info(info, 0);
+  fprintf(stderr, "\n");
+}  /* __db_type_info */
+#endif /* DEBUG */
+
+#else /* ifdef IA64_ABI */
+
+#if DEBUG
+EXTERN_C void __r_db_type_info(const STD_NAMESPACE::type_info&	info,
+                               int				indent)
+/*
+Display debugging information about type information (IA-64 version).
+*/
+{
+/* Define a macro used to indent the output lines. */
+#define do_indent() fprintf(stderr, "%*s", indent, " ")
+  if (indent != 0) fprintf(stderr, "\n");
+  do_indent();
+  fprintf(stderr, "Type information for: %s\n", info.name());
+#undef do_indent
+}  /* __r_db_type_info */
+
+
+EXTERN_C void __db_type_info(const STD_NAMESPACE::type_info& info)
 /*
 Display debugging information about type information.  This routine
 calls __r_db_type_info and supplies a zero indent value.

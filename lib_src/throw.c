@@ -838,7 +838,7 @@ entry is returned in etsp_found.
                etsp->type_info->unique_id ==
                                          &MANGLED_NAME_OF_UNIQUE_ID_OF_VOID &&
 #else /* ifdef __EDG_IA64_ABI */
-               etsp->type_info == &typeid(void *) &&
+               matching_type_info(etsp->type_info, &typeid(void)) &&
 #endif /* ifdef __EDG_IA64_ABI */
                (ets_is_ptr == is_ptr) && ets_is_single_ptr) {
       /* The exception type specification is a void * and the object
