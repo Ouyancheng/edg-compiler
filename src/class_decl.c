@@ -3277,7 +3277,7 @@ class, struct, or union.
      qualified, including recursively the members of any contained
      classes, structs, or unions.  This is useful for determination of
      modifiable lvalues (see 3.2.2.1). */
-  if (type_or_underlying_array_element_type_is_const_qualified(member_type) ||
+  if (type_or_element_type_is_const_qualified(member_type) ||
       (is_class_struct_union_type(member_type) &&
        skip_typerefs(member_type)->
                             variant.class_struct_union.any_const_member)) {

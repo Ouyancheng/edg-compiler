@@ -79,7 +79,7 @@ top of a class type).
   ((tp)->kind == (a_type_kind)tk_typeref && f_is_volatile_qualified_type(tp))
 #define is_qualified_type(tp)                                         \
   ((tp)->kind == (a_type_kind)tk_typeref && f_is_qualified_type(tp))
-#define type_or_underlying_array_element_type_is_const_qualified(tp)  \
+#define type_or_element_type_is_const_qualified(tp)                   \
   (is_const_qualified_type(tp) ||                                     \
    (is_array_type(tp) &&                                              \
     is_const_qualified_type(underlying_array_element_type(tp))))
