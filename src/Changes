@@ -51,7 +51,7 @@ template dependent type that differed from the type of the original
 declaration.  No error should be issued because the types might be the
 same during an actual instantiation.  Now fixed.
 
-  template <class T1, class T2> struct A {
+  template <class T1, class T2> void f(T1, T2) {
     typedef T1 X;
     typedef T2 X;
   };
