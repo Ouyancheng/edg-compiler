@@ -8277,8 +8277,15 @@ for non-class operands).  This routine is called only in C++ mode.
            if there is a class operand and no user-defined conversion
            applies, we know we have an error.  That's the reason that
            user_defined_conversion_possible is not called. */
-        a_boolean possible = FALSE;
-        if (is_class_struct_union_type(operand->type)) {
+        a_boolean  possible = FALSE, template_case = FALSE;
+        a_type_ptr eff_type_cast_to = type_pointed_to(type_cast_to);
+        if (could_be_dependent_class_type(operand->type)) {
+          /* A template parameter type could be a class type, so assume that
+             a conversion is possible.  A nonreal class type could have
+             a conversion we don't know about. */
+          possible = TRUE;
+          template_case = TRUE;
+        } else if (is_class_struct_union_type(operand->type)) {
           a_boolean ambiguous;
           if (conversion_for_direct_reference_binding_possible(
                                            operand,
@@ -8293,7 +8300,7 @@ for non-class operands).  This routine is called only in C++ mode.
           } else if (binding_to_rvalue_allowed &&
                      (conversion_from_class_possible(
                                            operand,
-                                           type_pointed_to(type_cast_to),
+                                           eff_type_cast_to,
                                            (a_builtin_type_kind_set)BTK_NONE,
                                            /*need_lvalue_result=*/FALSE,
                                            /*is_copy_initialization=*/FALSE,
@@ -8306,16 +8313,19 @@ for non-class operands).  This routine is called only in C++ mode.
                to which the reference can be bound. */
             possible = TRUE;
           }  /* if */
-        } else if (is_template_param_type(operand->type)) {
-          /* A template parameter type could be a class type, so assume that
-             a conversion is possible. */
-          possible = TRUE;
         }  /* if */
         if (possible) {
           /* Do the user-defined conversion.  This might produce an ambiguity
              error, but otherwise the conversion has been checked to be
              valid above. */
-          prep_reference_initializer_operand(
+          if (template_case) {
+             /* The source has a dependent type. */
+             generic_cast_operand(operand, make_pointer_type(eff_type_cast_to),
+                                  (an_expr_operator_kind)eok_cast,
+                                  /*is_implicit_cast=*/FALSE,
+                                  /*is_reference_cast=*/TRUE);
+           } else {
+             prep_reference_initializer_operand(
                                            operand,
                                            type_cast_to,
                                            &conversion,
@@ -8324,7 +8334,8 @@ for non-class operands).  This routine is called only in C++ mode.
                                            /*static_lifetime=*/FALSE,
                                            /*bitwise_assignment_param=*/FALSE,
                                            ec_bad_cast /* arbitrary */);
-          conv_object_pointer_to_lvalue(operand);
+            conv_object_pointer_to_lvalue(operand);
+          }  /* if */
           *processed = TRUE;
         }  /* if */
       }  /* if */
