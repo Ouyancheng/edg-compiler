@@ -2608,7 +2608,9 @@ aggregate constant and braces around it should be suppressed.
   *field = con->variant.designator.field;
   if (*field != NULL) {
     /* Field designator. */
-    if (use_old_form) {
+    if (!has_name(*field)) {
+      /* Suppress designators generated for anonymous unions/structs. */
+    } else if (use_old_form) {
       gen_field_name(*field);
       write_tok_str(": ");
     } else {
