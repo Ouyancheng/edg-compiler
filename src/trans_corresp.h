@@ -131,7 +131,7 @@ or a direct source correspondence pointer.
 /*
 Macro that returns the canonical IL entry pointer for an IL entry that
 has a source correspondence.  If the entry has no correspondence pointer,
-a NULL pointer is returned.
+the given IL entry is returned.
 */
 #define canonical_il_entry_of(ptr)				            \
   (trans_unit_corresp_of_unknown_entry(ptr) != NULL		            \
