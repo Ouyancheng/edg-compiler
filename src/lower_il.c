@@ -1921,8 +1921,12 @@ intermediate field selections.
   node = field_lvalue_selection_expr(node, field);
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   { a_symbol_ptr field_sym = (a_symbol_ptr)field->source_corresp.assoc_info;
-    adjust_nonstandard_anonymous_object_field_references(node, field_sym,
-                                                         /*std_also=*/TRUE);
+    /* Avoid problems with the anonymous parent fields themselves, as
+       opposed to their members. */
+    if (field_sym != NULL) {
+      adjust_nonstandard_anonymous_object_field_references(node, field_sym,
+                                                           /*std_also=*/TRUE);
+    }  /* if */
   }
 #else /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   adjust_field_selection_for_anonymous_union_references(node);

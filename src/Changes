@@ -1,5 +1,24 @@
 Version 3.3
 
+5/14/03  Abort on lowering of default initialization of anonymous union
+
+IL lowering aborted in adjust_nonstandard_anonymous_union_references
+(in a configuration with ALLOW_NONSTANDARD_ANONYMOUS_UNIONS) while
+processing the zeroing of a standard anonymous union in an uninitialized
+part of an aggregate, if the anonymous union is followed by a field
+of a class type having a constructor.  Now fixed.
+
+  struct XX { XX(); ~XX(); };
+  struct A {
+     char *name;
+     union {
+        long i;
+        long j;
+     };
+     XX xx;
+  };
+  class A x[] = {{"1"}, {"2"},};
+
 5/13/03  Abort in get_scope_for_list for unusual error case in strict mode
 
 In some very unusual cases, the front end aborted in strict mode with an

@@ -10971,13 +10971,13 @@ void adjust_nonstandard_anonymous_object_field_references(
                                                     a_boolean        std_also)
 /*
 node points to an expression for a field selection of the field field_sym.
-field_sym is a member of some kind of anonymous parent object.  If it's
-a member of a nonstandard anonymous parent (rather than a standard
-C++ anonymous union), insert the elided field selections.  If std_also
-is TRUE, also do the insertions for standard anonymous unions.
-The insertions, if any, are done in place; the expression address does
-not change.  This routine can be called only when IL entries still point
-back to the associated symbols.
+If field_sym is a member of a nonstandard anonymous parent (rather than a
+standard C++ anonymous union, or no anonymous parent at all), insert
+the elided field selections.  If std_also is TRUE, also do the
+insertions for standard anonymous unions.  The insertions, if any, are
+done in place; the expression address does not change.  This routine
+can be called only when IL entries still point back to the associated
+symbols.
 */
 {
   a_symbol_ptr anon_parent_sym = field_sym;
