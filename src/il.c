@@ -360,25 +360,26 @@ Dump a member function (a routine entry), for debug purposes.
 }  /* db_member_function */
 
 
-static void db_virtual_function_info(a_class_type_supplement_ptr ctsp,
-                                     int                         depth)
+static void db_virtual_function_info(a_type_ptr  tp,
+                                     int         depth)
 /*
 Dump the virtual_function_info_offset field of a class_type_supplement, for
 debug purposes.
 */
 {
-  int i;
+  a_class_type_supplement_ptr  ctsp;
+  int                          i = depth;
 
-  if (ctsp->virtual_function_count > 0) {
-    if (depth == -1) {
-      fputs("  ", f_debug);
-    } else {
-      fputs("\n    ", f_debug);
-      for (i = depth; i > 0; --i) fputs("  ", f_debug);
-    }  /* if */
+  if (tp->variant.class_struct_union.any_virtual_functions) {
+    fputs("\n  ", f_debug);
+    for (; i > 0; --i) fputs("  ", f_debug);
+    ctsp = tp->variant.class_struct_union.extra_info;
     fprintf(f_debug, "byte offset for virtual function table ptr = %lu",
                      ctsp->virtual_function_info_offset);
-    if (depth == -1) (void)fputc('\n', f_debug);
+    if (ctsp->virtual_function_info_base_class != NULL) {
+      fputs(", in ", f_debug);
+      db_name(&ctsp->virtual_function_info_base_class->type->source_corresp);
+    }  /* if */
   }  /* if */
 }  /* db_virtual_function_info */
 
@@ -458,7 +459,7 @@ Dump a direct base class entry, for debug purposes.
         db_direct_base_class(bcp, depth+1);
       }  /* if */
     }  /* for */
-    db_virtual_function_info(tp->variant.class_struct_union.extra_info, depth);
+    db_virtual_function_info(tp, depth+1);
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
     if (complete_subobject) {
       /* Put out the virtual base class data sections. */
@@ -544,7 +545,7 @@ Dump a virtual base class entry, for debug purposes.
         db_direct_base_class(bcp, depth+1);
       }  /* if */
     }  /* for */
-    db_virtual_function_info(tp->variant.class_struct_union.extra_info, depth);
+    db_virtual_function_info(tp, depth+1);
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
     if (complete_subobject) {
       /* Put out the virtual base class data sections. */
@@ -697,7 +698,7 @@ class_struct_union:
           a_routine_ptr            rp = ctsp->assoc_scope->routines;
           an_access_adjustment_ptr aap = ctsp->access_adjustments;
 
-          db_virtual_function_info(ctsp, /*nesting_depth=*/-1);
+          db_virtual_function_info(tp, /*nesting_depth=*/0);
           if (any_virtual_base_classes) {
             fputs("\n  collected virtual base classes:", f_debug);
             for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
@@ -2826,12 +2827,13 @@ to default values.
     case tk_class:
     case tk_struct:
     case tk_union:
-      pte->variant.class_struct_union.field_list       = NULL;
+      pte->variant.class_struct_union.field_list = NULL;
       pte->variant.class_struct_union.any_const_member = FALSE;
       pte->variant.class_struct_union.any_virtual_base_classes = FALSE;
-      pte->variant.class_struct_union.abstract         = FALSE;
+      pte->variant.class_struct_union.abstract = FALSE;
+      pte->variant.class_struct_union.any_virtual_functions = FALSE;
       /* The class type supplement is only allocated in C++ mode. */
-      pte->variant.class_struct_union.extra_info       = 
+      pte->variant.class_struct_union.extra_info = 
                                            (C_dialect == C_dialect_cplusplus) ?
                                                 alloc_class_type_supplement() :
                                                 NULL;
