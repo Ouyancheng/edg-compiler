@@ -5166,7 +5166,8 @@ static void add_vcall_offsets(a_constant_ptr   *first_con,
                               a_constant_ptr   *last_con,
                               a_base_class_ptr vbase,
                               a_base_class_ptr bcp,
-                              a_base_class_ptr ctor_bcp)
+                              a_base_class_ptr ctor_bcp,
+                              a_targ_size_t    vbase_offset)
 /*
 *first_con and *last_con give the endpoints of the aggregate constant that
 initializes a virtual function table.  Add virtual call offsets to the
@@ -5175,7 +5176,9 @@ offsets.  bcp is either vbase itself, or one of its direct or indirect bases;
 it is the base that we are currently processing.  bcp->derived_class will be
 the same as vbase->derived_class.  If ctor_bcp is non-NULL, it is the base
 class for vbase->derived_class as a subobject of some larger class type that
-is the actual complete object type (used in determining layout).
+is the actual complete object type (used in determining layout).  The
+vbase_offset gives the offset to the virtual base class whose vtable is 
+being made.
 */
 {
   a_base_class_ptr                   b, disambiguator, b_in_derived;
@@ -5184,18 +5187,8 @@ is the actual complete object type (used in determining layout).
   a_routine_ptr                      rout, overrider;
   an_overriding_virtual_function_ptr ovfp;
   a_targ_ptrdiff_t                   offset;
-  a_targ_size_t                      vbase_offset;
 
   check_assertion(bcp->derived_class == vbase->derived_class);
-  /* Compute the offset to vbase in the complete object. */
-  if (ctor_bcp != NULL) {
-    disambiguator = find_disambiguator(ctor_bcp, vbase);
-    vbase_offset = corresponding_base_class(vbase, 
-                                            ctor_bcp->derived_class,
-                                            disambiguator)->offset;
-  } else {
-    vbase_offset = vbase->offset;
-  }  /* if */
   ctsp = bcp->type->variant.class_struct_union.extra_info;
   /* Add vcall offsets for bcp's primary base. */
   b = ctsp->primary_base_class;
@@ -5204,7 +5197,8 @@ is the actual complete object type (used in determining layout).
     disambiguator = find_disambiguator(bcp, b);
     b_in_derived = corresponding_base_class(b, vbase->derived_class, 
                                             disambiguator);
-    add_vcall_offsets(first_con, last_con, vbase, b_in_derived, ctor_bcp);
+    add_vcall_offsets(first_con, last_con, vbase, b_in_derived, ctor_bcp,
+                      vbase_offset);
   }  /* if */
   /* Add vcall offsets for bcp. */
   for (rout = ctsp->assoc_scope->routines; rout != NULL; rout = rout->next) {
@@ -5253,7 +5247,8 @@ is the actual complete object type (used in determining layout).
       disambiguator = find_disambiguator(bcp, b);
       b_in_derived = corresponding_base_class(b, vbase->derived_class, 
                                               disambiguator);
-      add_vcall_offsets(first_con, last_con, vbase, b_in_derived, ctor_bcp);
+      add_vcall_offsets(first_con, last_con, vbase, b_in_derived, ctor_bcp,
+                        vbase_offset);
     }  /* if */
   }  /* for */
 }  /* add_vcall_offsets */
@@ -5503,7 +5498,8 @@ table.
   }  /* for */
   /* Add virtual call offsets to the beginning of the virtual table. */
   if (bcp != NULL && emit_vcall_offsets_in_virtual_function_table(bcp)) {
-    add_vcall_offsets(first_con, last_con, bcp, bcp, ctor_bcp);
+    add_vcall_offsets(first_con, last_con, bcp, bcp, ctor_bcp,
+                      (derived_bcp != NULL) ? derived_bcp->offset : 0);
   }  /* if */
 #endif /* IA64_ABI */
   /* Merge the list of virtual functions under class_whose_vtbl_is_being_made
