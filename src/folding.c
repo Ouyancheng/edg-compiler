@@ -156,7 +156,9 @@ Convert an integral constant of some kind (in *old_constant) to a new
 integral constant in *new_constant, with type as indicated therein.  Return
 *err_code and *err_severity set to indicate any error/warning detected,
 or *err_code == ec_no_error if everything went fine.  If is_implicit_cast
-is FALSE, suppress any warnings.
+is FALSE, suppress any warnings.  The old_constant must have kind ==
+ck_integer, and generally it must have integral type, but if
+is_implicit_cast is FALSE, pointer type is okay.
 */
 {
   an_integer_value mask, old_value_copy;
@@ -170,6 +172,7 @@ is FALSE, suppress any warnings.
 
   /* Copy the old value to the new value. */
   set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer); 
+  check_assertion(old_constant->kind == (a_constant_repr_kind)ck_integer);
   new_constant->variant.integer_value = old_constant->variant.integer_value;
   /* Determine attributes (size, signedness) of the new integer kind. */
   get_integer_attributes(new_constant, &new_ikind, &new_signed, &new_bit_size);
@@ -661,7 +664,7 @@ type.
 {
   a_type_ptr       new_type = new_constant->type;
   a_type_ptr       old_type = old_constant->type;
-  a_boolean        related_class_cast = FALSE, baseward_cast;
+  a_boolean        conversion_handled = FALSE, baseward_cast;
   a_base_class_ptr bcp;
 
   *did_not_fold = FALSE;
@@ -683,6 +686,13 @@ type.
     if (skip_typerefs(new_type)->size < skip_typerefs(old_type)->size) {
       *err_code = ec_integer_truncated;
       *err_severity = es_error;
+    } else if (old_constant->kind == (a_constant_repr_kind)ck_integer) {
+      /* A constant that is an integer, cast to some pointer type and back
+         to integer, as in (int)(void*)-1: make sure the integer is
+         truncated and sign-extended properly. */
+      conv_integer_to_integer(old_constant, new_constant, is_implicit_cast,
+                              err_code, err_severity);
+      conversion_handled = TRUE;
     }  /* if */
   } else if (is_reinterpret_cast) {
     /* Suppress the related-class processing for reinterpret_casts.  If
@@ -695,7 +705,7 @@ type.
                                     &baseward_cast, &bcp)) {
     /* In C++, a cast of a pointer to a class to a pointer to a base class
        or derived class. */
-    related_class_cast = TRUE;
+    conversion_handled = TRUE;
     /* Do not fold such casts in constant form unless told to.  That's to
        preserve detailed addressing information in the IL. */
     if (!fold_constant_addr_exprs) {
@@ -718,8 +728,8 @@ type.
     }  /* if */
   }  /* if */
   /* Do the cast (by calling implicit_cast) unless there was an error or
-     the cast has already been handled because it was a related class cast. */
-  if (!related_class_cast &&
+     the cast has already been handled. */
+  if (!conversion_handled &&
       (*err_code == ec_no_error || *err_severity != es_error)) {
     copy_constant(old_constant, new_constant);
     implicit_cast(new_constant, new_type);
