@@ -757,6 +757,14 @@ be stored in thread-local storage) should be supported.
 #define THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED FALSE
 #endif /* ifndef THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 
+/*
+Flag indicating whether the "__thread" specifier is recognized by default.
+This is the default value of thread_local_storage_specifier_enabled.
+*/
+#ifndef DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED
+#define DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED FALSE
+#endif /* DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED */
+
 #if !DECL_MODIFIERS_IN_USE && THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
  #error -- THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED requires \
            DECL_MODIFIERS_IN_USE
