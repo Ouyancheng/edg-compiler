@@ -55,15 +55,13 @@ typedef struct a_param_id {
 		next;
 			/* Next parameter id on the list, or NULL if this
 			   is the last parameter id. */
-  a_symbol_locator
-		locator;
-			/* Locator that gives information on entering this
-			   symbol into the symbol table, including (indirectly)
-			   the identifier's name. */
   a_symbol_ptr	symbol;
-			/* When declaration_processed is TRUE, this points
-			   to the symbol for an old-style parameter.  The
-			   a_variable entry is not yet attached to it. */
+			/* Points to an sk_parameter symbol to represent a
+			   parameter name.  It is NULL when a name is omitted
+			   in a function prototype.  The symbol pointed to,
+			   when present, is transformed into an sk_variable
+			   symbol as part part of function definition
+			   processing. */
   a_type_ptr	type;
 			/* For a new- or old-style function parameter, this
 			   is its type.  This is usually the same as the
