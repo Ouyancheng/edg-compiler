@@ -8324,8 +8324,12 @@ specific version of the template.
       break;
     case sck_namespace:
     case sck_namespace_extension:
-      check_assertion_str(curr_il_region_number == FILE_SCOPE_REGION_NUMBER,
-                          "push_scope_full: bad memory region for namespace");
+      if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
+        /* In a legal program we should already be in the file-scope memory
+           region -- there must have been an error. */
+        switch_il_region(FILE_SCOPE_REGION_NUMBER);
+      }  /* if */
+      ssep->il_memory_region = FILE_SCOPE_REGION_NUMBER;
       if (kind == (a_scope_kind)sck_namespace) {
         sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
         sp->variant.assoc_namespace = assoc_namespace;
@@ -8615,6 +8619,13 @@ specific version of the template.
        processing routines need to know whether a function scope is the
        immediate context for processing.)  So clear out the variable and
        restore it in pop_scope. */
+    depth_innermost_function_scope =
+            ssep->depth_innermost_function_scope = NO_SCOPE_DEPTH;
+    innermost_function_scope = NULL;
+  } else if (kind == (a_scope_kind)sck_namespace ||
+             kind == (a_scope_kind)sck_namespace_extension) {
+    /* The following is required only to handle illegal programs gracefully.
+       Ordinarily these will already be set correctly. */
     depth_innermost_function_scope =
             ssep->depth_innermost_function_scope = NO_SCOPE_DEPTH;
     innermost_function_scope = NULL;
