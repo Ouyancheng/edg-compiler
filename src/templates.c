@@ -4464,6 +4464,11 @@ on the ck_template_param constant pointed to by the expression.
           new_array_type->variant.array.is_variable_size_array = FALSE;
           new_array_type->variant.array.variant.number_of_elements =
                  unsigned_value_of_integer_constant(new_cp, &overflow);
+          if (overflow ||
+              new_array_type->variant.array.variant.number_of_elements == 0) {
+            /* If the array size is negative or zero, indicate a type error. */
+            *copy_error = TRUE;
+          }  /* if */
         } else {
           /* The substituted value is still a ck_template_param
              constant (or an error constant).  Create a new expression
@@ -4476,10 +4481,12 @@ on the ck_template_param constant pointed to by the expression.
         }  /* if */
       }  /* if */
       new_type = new_array_type;
-      /* Reset the size (so that set_type_size will recompute it) and
-         recompute it based on the substituted element type. */
-      new_type->size = 0;
-      set_type_size(new_type);
+      /* Compute the array size based on the substituted element type and
+         number of elements. */
+      if (!set_array_type_size(new_type, /*suppress_error=*/TRUE)) {
+        /* The resulting array size is too large. */
+        *copy_error = TRUE;
+      }  /* if */
     } else {
       /* The element type is invalid. */
       *copy_error = TRUE;

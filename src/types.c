@@ -1443,15 +1443,19 @@ because any exception it can handle would be caught by type_1's handler.
 }  /* type_masks_handler_param_type */
 
 
-static void set_array_type_size(a_type_ptr array_type)
+a_boolean set_array_type_size(a_type_ptr	array_type,
+			      a_boolean		suppress_error)
 /*
 Compute and set the size and alignment of the array type pointed to by
-array_type.
+array_type.  Return TRUE if the array size is acceptable.  If the
+array size is too large, the array type is converted to an error type
+and a diagnostic is issued (unless suppress_error is TRUE).
 */
 {
   a_type_ptr     underlying_elem_type;
   a_targ_size_t  temp, temp2;
   a_type_ptr     elem_type;
+  a_boolean	 okay = TRUE;
 
   db_enter(5, "set_array_type_size");
 
@@ -1508,9 +1512,10 @@ array_type.
     /* Check whether or not the multiplication will overflow.  Note that we 
        avoid dividing by temp, since it may be zero for an incomplete type. */
     if (temp > targ_size_t_max / temp2) {
-      error(ec_array_size_too_large);
+      if (!suppress_error) error(ec_array_size_too_large);
       set_type_kind(array_type, (a_type_kind)tk_error);
       set_type_size(array_type);
+      okay = FALSE;
     } else {
       /* Now that we know the multiplication will not overflow, compute the
          array size. */
@@ -1521,6 +1526,7 @@ array_type.
     }  /* if */
   }  /* if */
   db_exit();
+  return okay;
 }  /* set_array_type_size */
 
 
@@ -1581,7 +1587,7 @@ set, leave it alone.  Also compute and set the alignment requirement.
         size = size_of_pointer_to(type_pointed_to(type_ptr), &alignment);
         break;
       case tk_array:
-        set_array_type_size(type_ptr);
+        (void)set_array_type_size(type_ptr, /*suppress_error=*/FALSE);
         goto size_already_set;
       case tk_ptr_to_member:
         if (is_function_type(pm_member_type(type_ptr))) {
