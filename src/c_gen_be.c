@@ -1097,35 +1097,6 @@ constant (L"abc").
   return is_addr_of_wide_string;
 }  /* is_addr_of_wide_string_constant */
 
-#if C_GEN_BE_GENERATES_ANSI_C
-
-static a_boolean is_enum_constant(a_constant_ptr con)
-/*
-Return TRUE if the indicated constant is an enum constant, i.e., it is
-a constant that appears on the constant list of an enum type.
-*/
-{
-  a_boolean is_enum = FALSE;
-
-  if (con->kind == (a_constant_repr_kind)ck_integer && has_name(con)) {
-    /* The constant is a named constant with an integral representation. */
-    a_type_ptr con_type = con->type;
-    if (con_type->kind == (a_type_kind)tk_integer) {
-      /* The constant has an integral or enum type. */
-      /* In C, enumerators have "int" type (but an affiliated type that
-         is the enumeration); in C++, enumerators have the enum type. */
-      if (il_header.source_language == sl_C ?
-          (!con_type->variant.integer.enum_type &&
-           con_type->variant.integer.enum_info.affiliated_type != NULL) :
-          con_type->variant.integer.enum_type) {
-        is_enum = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return is_enum;
-}  /* is_enum_constant */
-
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
 
 static void dump_integer_constant(a_constant_ptr constant)
 /*

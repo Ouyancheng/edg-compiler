@@ -247,6 +247,8 @@ extern void set_unsigned_integer_constant(a_constant      *cp,
                                           unsigned long   value,
                                           an_integer_kind kind);
 
+extern a_boolean is_enum_constant(a_constant_ptr con);
+
 extern void make_zero_of_proper_type(a_type_ptr desired_type,
                                      a_constant *zero_constant);
 
@@ -426,7 +428,7 @@ extern void add_to_templates_list(a_template_ptr  tp);
 extern a_macro_ptr alloc_macro(void);
 
 extern void add_to_macros_list(a_macro_ptr  mp);
-#endif /* RECORD_TEMPLATES_IN_IL */
+#endif /* RECORD_MACROS_IN_IL */
 
 extern a_pragma_ptr alloc_pragma(a_pragma_kind  kind);
 

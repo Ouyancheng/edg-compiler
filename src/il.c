@@ -2965,7 +2965,7 @@ contains it among its operands.
 
 static a_boolean has_non_file_scope_ref(a_constant *cp)
 /*
-Return TRUE if the constant pointer to by cp includes a reference to something
+Return TRUE if the constant pointed to by cp includes a reference to something
 that's not in the file scope.  If it does, the constant cannot be allocated
 at the file scope (it would contain a pointer down into a function scope).
 This routine should not be called with constants of kind ck_aggregate (they
@@ -3358,6 +3358,36 @@ for making NULL pointer constants.
                        &did_not_fold, &error_position);
 }  /* make_zero_of_proper_type */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+a_boolean is_enum_constant(a_constant_ptr con)
+/*
+Return TRUE if the indicated constant is an enum constant, i.e., it is
+a constant that appears on the constant list of an enum type.
+*/
+{
+  a_boolean is_enum = FALSE;
+
+  if (con->kind == (a_constant_repr_kind)ck_integer &&
+      con->source_corresp.name != NULL) {
+    /* The constant is a named constant with an integral representation. */
+    a_type_ptr con_type = con->type;
+    if (con_type->kind == (a_type_kind)tk_integer) {
+      /* The constant has an integral or enum type. */
+      /* In C, enumerators have "int" type (but an affiliated type that
+         is the enumeration); in C++, enumerators have the enum type. */
+      if (il_header.source_language == sl_C ?
+          (!con_type->variant.integer.enum_type &&
+           con_type->variant.integer.enum_info.affiliated_type != NULL) :
+          con_type->variant.integer.enum_type) {
+        is_enum = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_enum;
+}  /* is_enum_constant */
+
+#if !STANDALONE_UTILITY_PROGRAM
 
 char *alloc_text_of_string_literal(sizeof_t size)
 /*
@@ -4787,9 +4817,6 @@ type in a function definition is based on a typedef).
   }  /* for */
 }  /* copy_routine_type_with_param_types */
 
-#if 0
- endif /* !STANDALONE_UTILITY_PROGRAM */
-#endif /* if 0 */
 
 a_boolean is_default_constructor(a_routine_ptr  ctor_rout)
 /*
@@ -4856,9 +4883,6 @@ constructor's first parameter is const or volatile qualified (or both).
   return is_cctor;
 }  /* is_copy_constructor */
 
-#if 0
- if !STANDALONE_UTILITY_PROGRAM
-#endif /* if 0 */
 
 void set_dynamic_init_kind(a_dynamic_init_ptr  dip,
                            a_dynamic_init_kind kind)
