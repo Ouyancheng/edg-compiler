@@ -82,8 +82,8 @@ forgo allowing an input file with this name).
 /*
 Flag that is TRUE if char * pointers can be compared even if they do not
 point to the same array.  This is non-ANSI, but usually okay.  It is not
-okay on a PC-AT, at least with the Microsoft C compiler, where only the
-offsets are compared.  The ptr_in_range macro gives a convenient way
+okay on a PC, at least with some compilers, where only the offsets are
+compared.  The ptr_in_range macro gives a convenient way
 to use this flag to test that a pointer lies in a certain range.
 */
 #ifndef ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED
@@ -352,6 +352,18 @@ DO_IL_LOWERING or IL_WALK_NEEDED is TRUE.
 #endif /* DO_IL_LOWERING || IL_WALK_NEEDED */
 #endif /* ifndef ORPHAN_PROCESSING_NEEDED */
 /*
+Flag that is TRUE to specify that source files should be read in
+binary mode under MS-DOS.  In this mode, carriage return and control-Z
+are handled by the front end instead of the host C runtime library.
+*/
+#ifndef READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
+#define READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS FALSE
+#endif /* ifndef READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
+#if READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
+#define CONTROL_Z (0x1a)
+#endif /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
+
+/*
 Default temporary file directory.
 */
 #ifndef DEFAULT_TMPDIR
@@ -532,7 +544,7 @@ extern char *derived_name(char *file_name,
 #define is_absolute_file_name(file_name) \
   (((file_name)[0] == '/') || ((file_name)[0] == '\\') || \
    (isalpha((file_name)[0]) && ((file_name)[1] == ':')))
-#else /* __MSDOS__ */
+#else /* !__MSDOS__ */
 #define is_absolute_file_name(file_name) ((file_name)[0] == '/')
 #endif /* __MSDOS__ */
 /* Combine a directory name and file name into a full path name. */

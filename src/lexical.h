@@ -535,7 +535,7 @@ These must not conflict with any characters than can be read from input.
    however; this is only for lint checking. */
 #define END_OF_TOKEN_MARKER '`'
 #define ATTENTION_MARKER    '@'
-#else /* line */
+#else /* !defined(lint) */
 #if CHAR_MIN < 0
 /* Host has signed characters. */
 #define UNUSED_CHAR_POS (-1)
@@ -544,8 +544,15 @@ These must not conflict with any characters than can be read from input.
 #define UNUSED_CHAR_POS UCHAR_MAX
 #endif /* CHAR_MIN < 0 */
 #define END_OF_TOKEN_MARKER ((char)UNUSED_CHAR_POS)
+#if !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
 #define ATTENTION_MARKER    ((char)(UNUSED_CHAR_POS-1))
-#endif /* lint */
+#else /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
+/* When reading source in binary mode under MS-DOS, we know that control-Z
+   indicates end-of-file, so use that character as the attention marker
+   since it cannot otherwise make it into source lines. */
+#define ATTENTION_MARKER    CONTROL_Z
+#endif /* !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
+#endif /* ifdef lint */
 			/* END_OF_TOKEN_MARKER marks the ends of tokens
 			   in macro definitions and macro expansions.
 			   It does not appear in curr_source_line, only

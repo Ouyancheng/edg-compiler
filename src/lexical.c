@@ -2210,6 +2210,18 @@ the full line.
 { *loc_in_line = '\n'; *(loc_in_line+1) = '\0'; }
 
 
+/*
+Test a character to see if it is an end-of-file character.
+*/
+#if !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
+#define is_eof_char(ch) ((ch) == EOF)
+#else /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
+/* On MS-DOS when reading source files in binary mode, a control-Z
+   acts as an EOF. */
+#define is_eof_char(ch) ((ch) == EOF || (ch) == CONTROL_Z)
+#endif /* !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
+
+
 a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file)
 /*
 Read the next logical source line into curr_source_line and
@@ -2280,7 +2292,7 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
      where the previous call of this routine read an incomplete last
      line; this call needs to return the end of file indication). */
   while (eof_read_on_curr_input_stream ||
-         (ch = getc(curr_input_stream)) == EOF) {
+         (ch = getc(curr_input_stream), is_eof_char(ch))) {
     /* End of file encountered in the expected way, i.e., before a line
        has started. */
     eof_read_on_curr_input_stream = TRUE;
@@ -2380,9 +2392,17 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
         /* Put the character into curr_source_line. */
         *loc_in_line++ = ch;
         /* Get next character, check for end of file without newline. */
-        if ((ch = getc(curr_input_stream)) == EOF) goto partial_final_line;
+        if (ch = getc(curr_input_stream), is_eof_char(ch))
+                                                       goto partial_final_line;
         /* Check for newline, which ends loop. */
       } while (ch != '\n');
+#if READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
+      /* Ignore carriage return right before newline. */
+      if (*(loc_in_line-1) == '\r') {
+        loc_in_line--;
+        goto add_newline_and_null_and_return;
+      }  /* if */
+#endif /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
       /* End of a line containing at least one character.  Check to see
          if the last character is a backslash.  If so, the current line
          should be spliced with the line following. */
@@ -2581,8 +2601,15 @@ entry_for_expand_buffer:
       } else {
         ch = getc(curr_input_stream);
       }  /* if */
-      if (ch == EOF) goto partial_final_line;
+      if (is_eof_char(ch)) goto partial_final_line;
     } while (ch != '\n');
+#if READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
+    /* Ignore carriage return right before newline. */
+    if (*(loc_in_line-1) == '\r') {
+      loc_in_line--;
+      goto add_newline_and_null_and_return;
+    }  /* if */
+#endif /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
     /* Check for backslash indicating line-splice.  Go add trailing newline
        and null, and then exit, if no backslash is present. */
     if (*(loc_in_line-1) == '\\') {
@@ -2594,7 +2621,7 @@ entry_for_line_splice:
       olmp->variant.line_splice_seq_number = seq_number_last_read+1;
       /* Begin reading the next line.  It is an error if end of file is
          encountered. */
-      if ((ch = getc(curr_input_stream)) != EOF) goto line_loop;
+      if (ch = getc(curr_input_stream), !is_eof_char(ch)) goto line_loop;
       eof_read_on_curr_input_stream = TRUE;
       /* Backslash at end of last line in a file -- error. */
       finish_off_source_line_so_it_can_be_displayed_in_error();

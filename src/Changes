@@ -1,5 +1,12 @@
 Version 2.13
 
+12/21/92 READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
+
+A new configuration switch READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS has been
+added to host_envir.c.  When it is set (under MS-DOS), source files
+are read as binary files, and carriage return and control-Z are
+handled by the front end instead of the host C runtime library.
+
 12/18/92 Template definition of a static data member of a template class
 
 Template support has been enhanced to support template definitions of
