@@ -1,5 +1,21 @@
 Version 2.21
 
+11/30/93 Spurious errors using elaborated types with template parameters
+
+In this example the elaborated type specifier "union U" was finding the
+global U instead of the template parameter U.  This has been corrected.
+
+  union U { };
+  template <class U> inline void f(U u)
+  {
+    U *uptr = (union U*)(&u);
+  }
+  union U2 { } u2;
+  int main() 
+  {
+    f(u2);
+  }
+
 11/24/93 No unreachable code warning on unreachable "{"
 
 An "unreachable code" warning is no longer issued for a "{" that is not
