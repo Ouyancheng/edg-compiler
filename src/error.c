@@ -2899,7 +2899,7 @@ current source position and severity or restore the previously saved settings.
     check_for_overridden_severity(error_code, severity);
     /* Check whether we are inside a "system" include file in which
        warnings should be suppressed.  This test is only done if the message
-       would be issue based on the current threshold. */
+       would be issued based on the current threshold. */
     error_threshold_to_use = error_threshold;
     if (*severity >= error_threshold) {
       a_source_file_ptr	sfp;
