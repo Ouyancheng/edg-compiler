@@ -1123,8 +1123,12 @@ entry.
 */
 {
   fputs("destructor: ", f_debug);
-  db_name(&dtor->source_corresp);
-  fputs("()", f_debug);
+  if (dtor != NULL) {
+    db_name(&dtor->source_corresp);
+    fputs("()", f_debug);
+  } else {
+    fputs("<NULL>", f_debug);
+  }  /* if */
 }  /* db_destructor */
 
 
