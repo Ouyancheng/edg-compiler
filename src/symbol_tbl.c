@@ -2151,13 +2151,31 @@ in the scope stack.  *err is set to TRUE if there is an error; it is not
 changed if there is no error.
 */
 {
-  a_scope_stack_entry_ptr ssep;
+  a_scope_stack_entry_ptr     ssep;
   a_scope_pointers_block_ptr  pointers_block;
+  a_namespace_ptr             nsp;
 
   if (scope_depth == NO_SCOPE_DEPTH) {
-    /* The symbol is being entered outside of any scope (e.g., a macro
-       defined by a command-line -D option). */
-    sym_ptr->decl_scope = NO_SCOPE_NUMBER;
+    /* The scope to which this symbol belongs is not on the scope stack. */
+    ssep = NULL;
+    nsp = sym_ptr->parent.namespace_ptr;
+    if (nsp == NULL) {
+      /* The symbol is being entered outside of any scope (e.g., a macro
+         defined by a command-line -D option). */
+      sym_ptr->decl_scope = NO_SCOPE_NUMBER;
+      pointers_block = NULL;
+    } else {
+      /* The symbol belongs to a namespace scope that may not actually be on
+         the stack.  This can happen with a friend declaration that causes
+         instantiation of a function template that is a namespace member:
+           namespace N { template <class T> void f(T); }
+           class A { friend void N::f(int); };
+      */
+      nsp = skip_namespace_aliases(nsp);
+      sym_ptr->decl_scope = nsp->variant.assoc_scope->number;
+      pointers_block = &((a_symbol_ptr)nsp->source_corresp.assoc_info)->
+                            variant.namespace_info.extra_info->pointers_block;
+    }  /* if */
   } else {
 #if CHECKING
     if (scope_depth < 0 || scope_depth > depth_scope_stack) {
@@ -2165,21 +2183,10 @@ changed if there is no error.
     }  /* if */
 #endif /* CHECKING */
     ssep = &scope_stack[scope_depth];
+    pointers_block = assoc_pointers_block_of(ssep);
     /* Put the proper scope number into the symbol entry. */
     sym_ptr->decl_scope = ssep->number;
-    if (sym_ptr->is_error) {
-      /* Error symbols are not added to the scope list. */
-    } else {
-      /* Add the symbol to the end of the symbols list for the scope. */
-      pointers_block = assoc_pointers_block_of(ssep);
-      if (pointers_block->symbols == NULL) {
-        pointers_block->symbols = sym_ptr;
-      } else {
-        pointers_block->last_symbol->next_in_scope = sym_ptr;
-      }  /* if */
-      pointers_block->last_symbol = sym_ptr;
-    }  /* if */
-    if (C_dialect == C_dialect_cplusplus) {
+    if (C_dialect == C_dialect_cplusplus && !sym_ptr->is_error) {
       /* In C++, it's an error for something with the same name as a class to
          be defined within the class unless it's a constructor (the symbol
          for which is not added to the scope list) or a nonstatic data
@@ -2189,6 +2196,17 @@ changed if there is no error.
         *err = TRUE;
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (sym_ptr->is_error) {
+    /* Error symbols are not added to the scope list. */
+  } else if (pointers_block != NULL) {
+    /* Add the symbol to the end of the symbols list for the scope. */
+    if (pointers_block->symbols == NULL) {
+      pointers_block->symbols = sym_ptr;
+    } else {
+      pointers_block->last_symbol->next_in_scope = sym_ptr;
+    }  /* if */
+    pointers_block->last_symbol = sym_ptr;
   }  /* if */
   sym_ptr->next_in_scope = NULL;
 }  /* add_symbol_to_scope_list */
@@ -2424,6 +2442,8 @@ symbol lookup.
   a_symbol_header_ptr  header = locator->symbol_header;
   a_symbol_ptr         sym;
   a_boolean            err;
+  a_namespace_ptr      nsp;
+  a_scope_depth        depth;
 
   db_enter(4, "enter_extern_symbol");
   sym = alloc_symbol(sym_kind, header, &locator->source_position);
@@ -2434,16 +2454,28 @@ symbol lookup.
     sym->next = header->other_symbols;
     header->other_symbols = sym;
   }  /* if */
+  /* See if this symbol is directly or indirectly a namespace member. */
+  nsp = qualifier_namespace_ptr(*locator);
+  if (nsp != NULL) {
+    /* This is a namespace qualified variable or routine, so the scope list
+       to which the extern symbol is added should be that of the namespace.
+       Set depth to NO_SCOPE_DEPTH to cause add_symbol_to_scope_list to use
+       the namespace's list. */
+    depth = NO_SCOPE_DEPTH;
+  } else {
+    depth = depth_innermost_namespace_scope;
+    if (depth != DEPTH_OF_FILE_SCOPE) {
+      nsp = scope_stack[depth].il_scope->variant.assoc_namespace;
+    }  /* if */
+  }  /* if */
   /* Set namespace membership, if required. */
-  if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
-    set_namespace_membership(sym, (a_source_correspondence *)NULL,
-                             scope_stack[depth_innermost_namespace_scope].
-                                         il_scope->variant.assoc_namespace);
+  if (nsp != NULL) {
+    set_namespace_membership(sym, (a_source_correspondence *)NULL, nsp);
   }  /* if */
   /* Add the symbol to the proper scope's symbol list, but do not add
      sk_extern_variable and sk_extern_routine symbols to the symbol table
      proper. */
-  add_symbol_to_scope_list(sym, depth_innermost_namespace_scope, &err);
+  add_symbol_to_scope_list(sym, depth, &err);
 
   db_exit();
   return sym;
