@@ -33,6 +33,11 @@ In Microsoft C mode only a warning is issued for redeclaring a function
 with an incompatible type.  When this results in two routine entries with
 the same name, one will be marked as "superseded" (as in SVR4 C mode).
 
+4/28/95  Alternate versions of Microsoft keywords
+
+_cdecl, _fastcall, and _stdcall are treated as synonyms for __cdecl,
+__fastcall, and __stdcall.
+
 4/27/95  Default arguments allowed for type template parameters
 
 Type template parameters may now have default template arguments.
