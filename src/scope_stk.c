@@ -1765,7 +1765,6 @@ Interface to pop_scope that is used for template instantiation scopes.
   a_symbol_ptr			template_sym;
   a_symbol_ptr			instance_sym;
   a_namespace_ptr		common_nsp;
-  a_namespace_ptr		parent_nsp;
   a_boolean			referencing_namespace_pushed;
   a_scope_depth			common_depth;
   a_boolean			nested_instantiation;
