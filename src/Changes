@@ -1,6 +1,6 @@
 Version 3.1
 
-11/19/02 GNU C++ compatibilty: incompatible template parameter accepted
+11/19/02 GNU C++ compatibility: incompatible template parameter accepted
          in the definition of a member of a class template
 
 In g++ mode, the definition of a member of a class template that appears
