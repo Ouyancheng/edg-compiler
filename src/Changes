@@ -1,5 +1,15 @@
 Version 2.39
 
+6/17/98   C++-generating back end: vacuous destructor calls
+
+The second component of a vacuous destructor call (the part after "::~")
+is generated as a simple type name by the C++-generating back end because
+class/namespace qualifiers and template arguments should not be included.
+This was implemented in a previous change (see Changes entry of 12/4/97).
+That change was incomplete, however: if the name is the name of a
+typedef that has not yet been put out, the underlying type should be
+put out instead of the typedef name.  Now fixed.
+
 6/16/98   C++-generating back end: declared_type on parameters of function
           definitions
 

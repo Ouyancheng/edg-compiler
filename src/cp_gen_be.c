@@ -4690,6 +4690,12 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             /* Use the type name to create a "destructor" name. */
             gen_type(type);
             write_str("::~");
+            while (typeref_is_typedef(type) &&
+                   !type->typedef_definition_has_been_put_out) {
+              /* For typedefs that have not yet been put out, go down to
+                 the underlying type. */
+              type = type->variant.typeref.type;
+            }  /* if */
             if (has_name(type)) {
               /* Don't use gen_type here, because we don't want the template
                  arguments, if any, listed, and we don't want a qualified
