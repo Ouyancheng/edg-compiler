@@ -27,6 +27,17 @@ typedef struct a_class_def_state a_class_def_state_dummy_typedef;
 typedef struct a_tmpl_decl_state a_tmpl_decl_state_dummy_typedef;
 
 /*
+Option flags passed to the push_scope routines.
+*/
+typedef int a_push_scope_options_set;
+#define PS_NO_OPTIONS			0x00
+#define PS_MICROSOFT_SPECIALIZATION	0x01
+			/* The scope being pushed is a template instantiation
+			   scope that is pushed around a class or class
+			   reactivation scope in Microsoft mode to make the
+			   template parameters visible. */
+
+/*
 Structure that is logically (and historically) part of a_scope_stack_entry,
 but which must persist longer than a scope stack entry for namespace scopes
 (since "extension-definitions" are allowed for them).  Therefore,
@@ -830,13 +841,14 @@ extern a_scope_ptr push_namespace_scope(a_scope_kind    kind,
                                         a_namespace_ptr assoc_namespace);
 
 extern void push_template_instantiation_scope(
-                            a_template_decl_info_ptr decl_info,
-                            a_type_ptr               assoc_type,
-                            a_routine_ptr            assoc_routine,
-                            a_symbol_ptr             instance_sym,
-                            a_symbol_ptr             template_sym,
-                            a_template_arg_ptr       template_arg_list,
-			    a_boolean		     push_stop_tokens);
+                            a_template_decl_info_ptr	decl_info,
+                            a_type_ptr			assoc_type,
+                            a_routine_ptr		assoc_routine,
+                            a_symbol_ptr		instance_sym,
+                            a_symbol_ptr		template_sym,
+                            a_template_arg_ptr		template_arg_list,
+			    a_boolean			push_stop_tokens,
+			    a_push_scope_options_set	options);
 
 extern void pop_template_instantiation_scope(void);
 
@@ -849,7 +861,9 @@ extern void pop_namespace_reactivation_scope(void);
 extern void push_class_reactivation_scope(a_type_ptr   class_type,
                                           a_boolean    extend_namespace);
 extern void pop_class_reactivation_scope(void);
-extern void push_instantiation_scope_for_class(a_type_ptr	class_type);
+extern void push_instantiation_scope_for_class(
+			a_type_ptr	class_type,
+			a_boolean	is_microsoft_specialization_scope);
 extern void push_class_and_template_reactivation_scope(
                                  a_type_ptr	class_type,
                                  a_boolean      reactivate_template_params,

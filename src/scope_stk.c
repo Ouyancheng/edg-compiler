@@ -1004,7 +1004,8 @@ static a_scope_ptr push_scope_full(
 			       a_symbol_ptr             instance_sym,
 			       a_symbol_ptr             template_sym,
 			       a_template_arg_ptr       template_arg_list,
-                               a_template_decl_info_ptr template_decl_info)
+                               a_template_decl_info_ptr template_decl_info,
+			       a_push_scope_options_set	options)
 /*
 Begin a new name scope by pushing an entry on the scope stack.  kind indicates
 the kind of scope (file, function, block, function prototype, etc.).  Returns
@@ -1029,6 +1030,9 @@ instantiation scopes, and describes the context being created by the
 instantiation scope (the template parameters to be used, etc.).
 template_decl_info is also used for template declaration scopes and points
 to the declaration information for the template declaration scope being pushed.
+
+options is a bit set of option flags that specify additional information about
+the scope being pushed.
 */
 {
   a_scope_stack_entry_ptr ssep;
@@ -1431,7 +1435,8 @@ to the declaration information for the template declaration scope being pushed.
         kind == (a_scope_kind)sck_namespace ||
         kind == (a_scope_kind)sck_namespace_extension ||
         kind == (a_scope_kind)sck_pragma ||
-        kind == (a_scope_kind)sck_template_instantiation ||
+        (kind == (a_scope_kind)sck_template_instantiation &&
+         (options & PS_MICROSOFT_SPECIALIZATION) == 0) ||
         kind == (a_scope_kind)sck_class_struct_union) {
       /* A scope that introduces a new level at which deferred access
          checks may be recorded. */
@@ -1440,6 +1445,8 @@ to the declaration information for the template declaration scope being pushed.
                kind == (a_scope_kind)sck_func_prototype ||
                kind == (a_scope_kind)sck_function_access ||
                kind == (a_scope_kind)sck_namespace_reactivation ||
+               (kind == (a_scope_kind)sck_template_instantiation &&
+                (options & PS_MICROSOFT_SPECIALIZATION) != 0) ||
                kind == (a_scope_kind)sck_class_reactivation) {
       /* The current deferred access scope is left unchanged. */
     } else {
@@ -1587,7 +1594,7 @@ instantiation scopes.
                           assoc_routine, (a_namespace_ptr)NULL,
                           (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                           (a_template_arg_ptr)NULL,
-                          (a_template_decl_info_ptr)NULL);
+                          (a_template_decl_info_ptr)NULL, PS_NO_OPTIONS);
   return scope;
 }  /* push_scope */
 
@@ -1635,7 +1642,7 @@ entry (for "extension-namespace-definitions").
                           (a_routine_ptr)NULL, assoc_namespace,
                           (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                           (a_template_arg_ptr)NULL,
-                          (a_template_decl_info_ptr)NULL);
+                          (a_template_decl_info_ptr)NULL, PS_NO_OPTIONS);
   /* Add active using directives for the namespaces that should be
      visible because of the transitivity of using directives. */
   add_active_using_directives_for_namespace(assoc_namespace,
@@ -1954,7 +1961,7 @@ are non-NULL when they should be used for the outermost instantiation scope.
                           decl_info->declaration_scope, assoc_type,
                           assoc_routine, (a_namespace_ptr)NULL,
                           instance_sym, template_sym, template_arg_list,
-                          decl_info);
+                          decl_info, PS_NO_OPTIONS);
     }  /* if */
   }  /* if */
   /* Reactivate the enclosing class scope. */
@@ -2175,13 +2182,14 @@ The following fixups need to be performed:
 
 
 void push_template_instantiation_scope(
-                            a_template_decl_info_ptr decl_info,
-                            a_type_ptr               assoc_type,
-                            a_routine_ptr            assoc_routine,
-                            a_symbol_ptr             instance_sym,
-                            a_symbol_ptr             template_sym,
-                            a_template_arg_ptr       template_arg_list,
-			    a_boolean		     push_stop_tokens)
+                            a_template_decl_info_ptr	decl_info,
+                            a_type_ptr			assoc_type,
+                            a_routine_ptr		assoc_routine,
+                            a_symbol_ptr		instance_sym,
+                            a_symbol_ptr		template_sym,
+                            a_template_arg_ptr		template_arg_list,
+			    a_boolean			push_stop_tokens,
+			    a_push_scope_options_set	options)
 /*
 Interface to push_scope_full that is used for template instantiation
 scopes.  If push_stop_tokens is TRUE, a new stop token stack entry
@@ -2296,7 +2304,7 @@ is pushed here, and popped when the instantiation scope is popped.
     (void)push_scope_full((a_scope_kind)sck_template_instantiation,
                           decl_info->declaration_scope, assoc_type,
                           assoc_routine, (a_namespace_ptr)NULL, instance_sym,
-                          template_sym, template_arg_list, decl_info);
+                          template_sym, template_arg_list, decl_info, options);
   }  /* if */
   if (!nested_in_prototype_instantiation) {
     a_scope_stack_entry_ptr	ssep;
@@ -2400,7 +2408,7 @@ Push a template declaration scope.
                         (a_type_ptr)NULL, (a_routine_ptr)NULL,
                         (a_namespace_ptr)NULL, (a_symbol_ptr)NULL,
                         (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL,
-                        decl_info);
+                        decl_info, PS_NO_OPTIONS);
 }  /* push_template_declaration_scope */
 
 
@@ -4774,15 +4782,17 @@ value of extend_namespace).
 }  /* reactivate_class_scope */
 
 
-void push_instantiation_scope_for_class(a_type_ptr	class_type)
+void push_instantiation_scope_for_class(
+			a_type_ptr	class_type,
+			a_boolean	is_microsoft_specialization_scope)
 /*
 Push a template instantiation scope for "class_type".  This is used
 to reactivate a template instantiation scope after the class has been
 instantiated, and in Microsoft mode to push an instantiate scope used
-when a class specialization is defined.  As a result, partial
-specializations need not be taken into account (if the class has
-been instantiated, the class_template of the class symbol supplement
-points to the partial specialization).
+when a class specialization is defined (is_microsoft_specialization_scope
+is TRUE in this case).  As a result, partial specializations need not be
+taken into account (if the class has been instantiated, the class_template of
+the class symbol supplement points to the partial specialization).
 */
 {
   a_symbol_ptr				template_sym;
@@ -4790,6 +4800,7 @@ points to the partial specialization).
   a_template_decl_info_ptr		decl_info;
   a_template_symbol_supplement_ptr	tssp;
   a_symbol_ptr				class_sym;
+  a_push_scope_options_set		ps_options;
 
   /* Get the symbol associated with the class. */
   class_sym = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
@@ -4800,10 +4811,12 @@ points to the partial specialization).
   /* Get the template declaration information associated with the class. */
   tssp = template_supplement_for_symbol(template_sym);
   decl_info = cache_for_template(tssp)->decl_info;
+  ps_options = is_microsoft_specialization_scope ? PS_MICROSOFT_SPECIALIZATION
+                                                 : PS_NO_OPTIONS;
   push_template_instantiation_scope(decl_info, class_type,
                                     (a_routine_ptr)NULL, class_sym,
                                     template_sym, template_arg_list,
-				    /*push_stop_tokens=*/FALSE);
+				    /*push_stop_tokens=*/FALSE, ps_options);
 }  /* push_instantiation_scope_for_class */
 
 
@@ -4859,7 +4872,8 @@ extend_namespace).
        class type (that it thinks is being instantiated).  Reactivate it
        now. */
     a_scope_stack_entry_ptr	ssep;
-    push_instantiation_scope_for_class(class_type);
+    push_instantiation_scope_for_class(class_type,
+                                       is_microsoft_specialization_scope);
     if (initial_scope_is_template_decl) {
       /* In Microsoft mode, if a specialization instantiation scope is
          pushed inside a template declaration scope, the previous pointers

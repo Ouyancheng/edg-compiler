@@ -1907,7 +1907,8 @@ might not be able to if the template itself has not yet been defined.
 					(a_routine_ptr)NULL,
 					instance_sym, template_sym,
 					template_arg_list,
-                                        /*push_stop_tokens=*/TRUE);
+                                        /*push_stop_tokens=*/TRUE,
+                                        PS_NO_OPTIONS);
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
       reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -2412,7 +2413,7 @@ A pointer to the head of the list is returned in tcsp.
 				    prototype_type,
 				    (a_routine_ptr)NULL, instance_sym,
 				    template_sym, template_arg_list,
-                                    /*push_stop_tokens=*/TRUE);
+                                    /*push_stop_tokens=*/TRUE, PS_NO_OPTIONS);
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   /* If source sequence entries are being generated during prototype
      instantiation, be sure the entry for the prototype class itself is also
@@ -2754,7 +2755,7 @@ Instantiate the body of the template function associated with tip.
 				    (a_type_ptr)NULL, rout_ptr,
 				    rout_sym, template_sym,
 				    rout_ptr->template_arg_list,
-                                    /*push_stop_tokens=*/TRUE);
+                                    /*push_stop_tokens=*/TRUE, PS_NO_OPTIONS);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if DEBUG
@@ -2931,7 +2932,7 @@ and the class instantiation will detect the runaway case.
                                     static_data_member_sym,
                                     tip->template_sym,
                                     (a_template_arg_ptr)NULL,
-                                    /*push_stop_tokens=*/TRUE);
+                                    /*push_stop_tokens=*/TRUE, PS_NO_OPTIONS);
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -5637,7 +5638,8 @@ instantiated.
                                       tip->instance_sym,
                                       tip->template_sym,
                                       rout_ptr->template_arg_list,
-                                      /*push_stop_tokens=*/TRUE);
+                                      /*push_stop_tokens=*/TRUE,
+				      PS_NO_OPTIONS);
     /* The function prototype scope should be reactivated and its symbols
        reentered because parameter names hide names from enclosing scopes
        and, moreover, may not be used in default argument expressions
@@ -6218,7 +6220,8 @@ type based on the template argument list and the template parameter list
 				      (a_routine_ptr)NULL,
 				      (a_symbol_ptr)NULL, templ_sym,
 				      templ_arg_list,
-                                      /*push_stop_tokens=*/TRUE);
+                                      /*push_stop_tokens=*/TRUE,
+				      PS_NO_OPTIONS);
     /* Reactivate any pragmas that should be bound to the generated
        instance. */
     reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -9923,7 +9926,8 @@ resulting constant is stored in the pointer pointed to by "constant".
 				      (a_routine_ptr)NULL,
 				      (a_symbol_ptr)NULL,
 				      template_sym, arg_list,
-                                      /*push_stop_tokens=*/TRUE);
+                                      /*push_stop_tokens=*/TRUE,
+				      PS_NO_OPTIONS);
     /* Rescan the tokens of the function declaration. */
     rescan_reusable_cache(&param_ptr->cache.tokens);
     /* Scan the declaration specifiers. */
@@ -9949,7 +9953,8 @@ resulting constant is stored in the pointer pointed to by "constant".
 					(a_routine_ptr)NULL,
 					(a_symbol_ptr)NULL,
 					template_sym, arg_list,
-                                        /*push_stop_tokens=*/TRUE);
+                                        /*push_stop_tokens=*/TRUE,
+					PS_NO_OPTIONS);
       rescan_reusable_cache(&tcp->tokens);
       *constant = fs_constant((a_constant_repr_kind)ck_error);
       delayed_scan_of_template_default_arg_expr(constant_type, *constant);
@@ -10000,7 +10005,8 @@ existing type is simply used.
 				      (a_routine_ptr)NULL,
 				      (a_symbol_ptr)NULL,
 				      template_sym, arg_list,
-                                      /*push_stop_tokens=*/TRUE);
+                                      /*push_stop_tokens=*/TRUE,
+				      PS_NO_OPTIONS);
     saved_pos_curr_token = pos_curr_token;
     saved_error_position = error_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -10054,7 +10060,8 @@ existing type is simply used.
 				      (a_routine_ptr)NULL,
 				      (a_symbol_ptr)NULL,
 				      template_sym, arg_list,
-                                      /*push_stop_tokens=*/TRUE);
+                                      /*push_stop_tokens=*/TRUE,
+				      PS_NO_OPTIONS);
     saved_pos_curr_token = pos_curr_token;
     saved_error_position = error_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL

@@ -11192,7 +11192,8 @@ nested classes when their definition appears outside of the class template.
          if this is a specialization definition. */
       a_scope_depth  depth;
 
-      push_instantiation_scope_for_class(class_type);
+      push_instantiation_scope_for_class(
+                      class_type, /*is_microsoft_specialization_scope=*/FALSE);
       instantiation_scope_pushed = TRUE;
       depth = depth_scope_stack;
       scope_stack[depth].microsoft_specialization_instantiation_scope = TRUE;

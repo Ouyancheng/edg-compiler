@@ -1,5 +1,19 @@
 Version 2.43
 
+11/29/99 Microsoft compatibility: spurious access errors in template
+         declarations
+
+A Microsoft compatibility change in version 2.40 introduced a problem
+that resulted in spurious access errors in explicit specializations and
+other similar template declarations.  This has been fixed.
+
+  template<class T> class A { };
+  template<class T> class B {
+    typedef int T2;
+    static A<T2> x;
+  };
+  A<B<char>::T2> B<char>::x;  // spurious access error on B<char>::T2
+
 11/29/99 Problem with #assert when one value is prefix of another
 
 The processing for #assert values (an AT&T preprocessing extension)
