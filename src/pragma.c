@@ -394,7 +394,7 @@ copies associated with the token being processed.
 }  /* make_copy_of_pragma_list */
 
 
-static void free_pending_pragma(a_pending_pragma_ptr ppp)
+void free_pending_pragma(a_pending_pragma_ptr ppp)
 /*
 Return a pending pragma entry to the available list.
 */

@@ -435,7 +435,8 @@ the "text" field of *template_ptr to point to it.
   il_string[pos_in_temp_text_buffer] = '\0';
   template_ptr->text = il_string;
 #if DEBUG
-  if (debug_level >= 3) {
+  if (debug_level >= 3 ||
+      (db_active && db_flag_is_set("dump_template_strings"))) {
     /* This won't work if the string contains nulls -- is it worth fixing? */
     fprintf(f_debug, "Saved template string:\n%s\n", il_string);
   }  /* if */
@@ -3965,8 +3966,11 @@ this will never be a class declaration.
   clear_token_set_array(stop_tokens);
   /* Cache all tokens up to the ";" that follows a declaration, the "{" that
      begins a definition, or a ":" that begins a ctor initializer list.
-     For static data members, the entire declaration, including the 
-     initializer, is included in the cache. */
+     For static data members, some or all of the initializer will be
+     in the cache.  The initializer tokens will be removed from this
+     cache later.  The only case in which the entire initializer will not
+     be in this cache is in cases where the initializer contains a
+     brace enclosed list. */
   incr_token_set_array_element(stop_tokens, tok_lbrace);
   incr_token_set_array_element(stop_tokens, tok_colon);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
@@ -4620,6 +4624,7 @@ static a_symbol_ptr template_static_data_member_declaration
 		     a_decl_flag_set                  do_flags,
 		     a_type_ptr                       type,
 		     a_template_param_ptr             template_param_list,
+                     a_token_cache_ptr                decl_token_cache,
 		     a_template_symbol_supplement_ptr *p_tssp)
 /*
 Scan a template static data member declaration.  locator identifies
@@ -4706,10 +4711,20 @@ returned to the caller.
     clear_token_cache(p_token_cache, /*reusable=*/TRUE);
     cache_token_stream(p_token_cache, stop_token_array);
     remove_stop_token(tok_semicolon);
+    terminate_token_cache(p_token_cache);
+    /* When the declaration token cache is built, it is difficult to
+       determine the start of the initializer.  Consequently, the
+       declaration sometimes includes tokens from the initializer.
+       Call a routine that will remove any of the initializer tokens
+       from the declaration cache.  In the case of a parenthesized
+       initializer, the first token of the initializer cache will
+       currently be the token after the parenthesis.  In this case,
+       the parenthesis is moved from the decl_token_cache to the
+       initializer cache. */
+    adjust_overlapping_token_caches(decl_token_cache, p_token_cache,
+                                    has_parenthesized_initializer);
     if (err) {
       discard_token_cache(p_token_cache);
-    } else if (curr_token == tok_semicolon) {
-      terminate_token_cache(p_token_cache);
     } /* if */
   } /* if */
   *p_tssp = tssp;
@@ -5161,11 +5176,12 @@ as the current token; otherwise, it is consumed.
            (is_error_locator(locator) && curr_token == tok_assign))) {
         sym = template_static_data_member_declaration(&locator, do_flags, type,
                                                       template_param_list,
+                                                      &decl_token_cache,
                                                       &tssp);
 #if RECORD_TEMPLATES_IN_IL
-        /* There is no body for static data members.  The initializer
-           is included in the decl_token_cache. */
-        p_template_body_cache = NULL;
+        /* Save a pointer to the token cache for the initializer.  tssp
+           may be NULL in error cases. */
+        if (tssp != NULL) p_template_body_cache = &tssp->token_cache;
 #endif /* RECORD_TEMPLATES_IN_IL */
       } else if (is_function_type(type)) {
         sym = function_template_declaration(&locator, &func_info,
