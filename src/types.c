@@ -1838,32 +1838,27 @@ See also 3.3.16.1 in the ANSI C standard (simple assignment).
     if (is_arithmetic(source_type)) {
       /* Arithmetic --> arithmetic.  Okay. */
       okay = TRUE;
-      /* Check for a mixture of an enumerated type with any other type, which
-         may be invalid or call for a warning. */
-      if (is_integral(dest_type) && is_integral(source_type)) {
+      /* Check for conversion of an arithmetic type to an enumerated type,
+         which may be invalid or call for a warning. */
+      dest_enum_list = NULL;
+      if (is_integral(dest_type)) {
         dest_enum_list = dest_type->variant.integer.enum_constant_list;
-        source_enum_list = source_type->variant.integer.enum_constant_list;
-        if (dest_enum_list != NULL || source_enum_list != NULL) {
-          /* We have either two enum types or one enum type and one integral
-             type. */
-          if (C_dialect != C_dialect_cplusplus) {
-            /* In C, give a warning for any mixture of an enum with something
-               else. */
-            if (dest_enum_list != source_enum_list) {
-              *warning_suggested = ec_mixed_enum_type;
-            }  /* if */
+      }  /* if */
+      if (dest_enum_list != NULL) {
+        /* Conversion is to an enum type. */
+        source_enum_list = NULL;
+        if (is_integral(source_type)) {
+          source_enum_list = source_type->variant.integer.enum_constant_list;
+        }  /* if */
+        if (source_enum_list != dest_enum_list) {
+          /* Conversion of one enum type to another, or conversion of an
+             arithmetic non-enum type to an enum. */
+          if (C_dialect == C_dialect_cplusplus) {
+            /* In C++, the conversion is not allowed. */
+            okay = FALSE;
           } else {
-            /* C++: */
-            if (source_enum_list != NULL && dest_enum_list == NULL) {
-              /* enum --> integral, okay.  No warning. */
-            } else {
-              /* integral --> enum, allowed only with explicit cast;
-                 enum --> different enum, never allowed (but enum1 -->
-                 integral --> enum2 is an acceptable path, and since
-                 enum1 --> integral can happen implicitly as an integral
-                 promotion, ...). */
-              okay = FALSE;
-            }  /* if */
+            /* In C, give a warning. */
+            *warning_suggested = ec_mixed_enum_type;
           }  /* if */
         }  /* if */
       }  /* if */
