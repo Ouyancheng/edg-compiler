@@ -9865,6 +9865,7 @@ to be returned to the caller.
     declarator_start_pos = pos_curr_token;
     add_stop_token(tok_comma);
     add_stop_token(tok_colon);
+    add_stop_token(tok_try);
     clear_func_info(&func_info);
     /* Clear certain decl_info fields each time through the loop. */
     decl_info.do_flags = DO_NO_OUTPUT_FLAGS;
@@ -9905,6 +9906,7 @@ to be returned to the caller.
                !decl_info.is_destructor && !is_declarator_start()) {
       remove_stop_token(tok_comma);
       remove_stop_token(tok_colon);
+      remove_stop_token(tok_try);
       syntax_error(ec_exp_declaration);
       if (curr_token == tok_semicolon) {
         /* Advance past the semicolon. */
@@ -9994,6 +9996,7 @@ to be returned to the caller.
       if (locator.is_destructor_name) decl_info.is_destructor = TRUE;
     }  /* if */
     remove_stop_token(tok_colon);
+    remove_stop_token(tok_try);
     if (!C_mode() && is_function_type(local_type) &&
         decl_info.storage_class != (a_storage_class)sc_typedef) {
       /* Member or friend function. */
@@ -10003,7 +10006,7 @@ to be returned to the caller.
         /* "mutable" is only allowed on nonstatic data member decls. */
         pos_error(ec_mutable_not_allowed, &decl_start_pos);
       }  /* if */
-      if ((curr_token == tok_lbrace) ||
+      if (curr_token == tok_lbrace || curr_token == tok_try ||
           (decl_info.is_constructor && (curr_token == tok_colon))) {
         function_def_present = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED

@@ -9231,6 +9231,7 @@ continue_with_declaration:
         if (local_storage_class != (a_storage_class)sc_typedef &&
             curr_token != tok_semicolon && curr_token != tok_comma &&
             curr_token != tok_assign && curr_token != tok_end_of_source) {
+          a_boolean  is_function_try_block = curr_token == tok_try;
           if (!has_explicit_type_specifier) {
             /* Function with no explicitly specified return type.  Issue a
                remark (except in pcc mode and except for C++ constructors,
@@ -9270,7 +9271,10 @@ continue_with_declaration:
                                     has_explicit_type_specifier,
                                     &decl_modifiers, &decl_pos_block);
           done_with_func_info(func_info);
-          /* The presence of a final '}' will already have been checked for. */
+          if (is_function_try_block) {
+            /* Checking for the closing brace will already have been done. */
+            goto return_point;
+          }  /* if */
           check_assertion(curr_token == tok_rbrace ||
                           curr_token == tok_end_of_source ||
                           total_errors != 0);

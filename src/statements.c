@@ -1075,16 +1075,6 @@ initializing declarations.
   }  /* if */
 #endif /* DEBUG */
   if (control_flow_descr_list == NULL) {
-    /* The first entry in the function should be a block entry. */
-    check_assertion_str2(new_cfdp->kind ==
-                                    (a_control_flow_descr_kind)cfdk_block,
-                         "add_to_control_flow_descr_list:",
-                         "list should start with a block entry");
-    /* The object lifetime should be that of the function scope. */
-    check_assertion_str2(new_cfdp->variant.block.object_lifetime ==
-                                      function_scope_object_lifetime,
-                         "add_to_control_flow_descr_list:",
-                         "expected function scope object lifetime");
     /* Add this entry to the start of the list. */
     control_flow_descr_list = new_cfdp;
   } else {
@@ -2091,7 +2081,7 @@ current structured statement.
 #endif /* DEBUG */
   if (kind == ssk_compound && !block_stmt_is_cfront_dependent_stmt(sp)) {
     sssep->depth_of_assoc_scope = depth_scope_stack;
-  } else {
+  } else if (depth_stmt_stack > 0) {
     /* For statements other than blocks, copy down the any_exec_statement_seen
        flag.  It's really being maintained for the block containing this
        non-block statement, and it gets copied back up at the end of the
@@ -2396,8 +2386,10 @@ a structured statement has ended.
   }  /* if */
   /* If the statement just exited is a non-block, propagate the
      any_exec_statement_seen flag upwards. */
-  if (kind != ssk_compound || block_stmt_is_cfront_dependent_stmt(sp)) {
-    sssep[-1].any_exec_statement_seen = sssep->any_exec_statement_seen;
+  if (depth_stmt_stack > 0) {
+    if (kind != ssk_compound || block_stmt_is_cfront_dependent_stmt(sp)) {
+      sssep[-1].any_exec_statement_seen = sssep->any_exec_statement_seen;
+    }  /* if */
   }  /* if */
   if (kind == ssk_compound) {
     /* When this compound statement was pushed onto the statement stack, a
@@ -3041,26 +3033,11 @@ See also 3.6.5.2.
 }  /* do_statement */
 
 
-static void try_block_statement(void)
+static void setup_try_block(a_statement_ptr  sp)
 /*
-Scan a C++ try-block statement.  Its form is:
-
-  try compound-statement handler-seq
-
-where handler-seq is a sequence of one or more handlers of the form
-
-  catch ( exception-declaration ) compound-statement
-
 */
 {
-  a_statement_ptr    sp;
-  a_source_position  catch_pos;
-
-  db_enter(3, "try_block_statement");
-  check_for_unreachable_code();
-  /* Allocate the statement. */
-  sp = add_statement((a_statement_kind)stmk_try_block);
-  stmt_update_source_sequence_list(sp);
+  check_assertion(curr_token == tok_try);
   /* Do processing required for any pragmas that are bound to the current
      statement. */
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
@@ -3072,31 +3049,54 @@ where handler-seq is a sequence of one or more handlers of the form
                          (an_object_lifetime_kind)olk_try_block);
   }  /* if */
   current_routine_entry()->contains_try_block = TRUE;
-#if CHECKING
-  if (curr_token != tok_try) {
-    internal_error("try_block_statement: expected try");
-  }  /* if */
-#endif /* CHECKING */
   if (!exceptions_enabled) {
     /* Support for exceptions is suppressed for this compilation. */
     pos_error(ec_no_exception_support, &pos_curr_token);
   } else {
     /* Exceptions are outside the "Embedded C++" subset. */
     feature_is_not_part_of_embedded_cplusplus_subset(
-                                          &pos_curr_token,
-                                          ec_exceptions_in_embedded_cplusplus);
+                                        &pos_curr_token,
+                                        ec_exceptions_in_embedded_cplusplus);
   }  /* if */
   /* Bypass "try". */
   (void)get_token();
+}  /* setup_try_block */
+
+
+static void try_block_statement(a_statement_ptr  sp,
+                                a_boolean        explicit_return_type)
+/*
+Scan a C++ try-block statement.  Its form is:
+
+  try compound-statement handler-seq
+
+where handler-seq is a sequence of one or more handlers of the form
+
+  catch ( exception-declaration ) compound-statement
+
+*/
+{
+  a_source_position  catch_pos;
+
+  db_enter(3, "try_block_statement");
+  /* Allocate the statement. */
+  if (sp != NULL) {
+    /* A function try block. */
+  } else {
+    check_for_unreachable_code();
+    sp = add_statement((a_statement_kind)stmk_try_block);
+    stmt_update_source_sequence_list(sp);
+    setup_try_block(sp);
+  }  /* if */
   /* "catch" is not put into the stop tokens set on purpose because the
      guarded statement is always a compound statement.  It wouldn't do
      any good and could cause looping on errors. */
   /* Scan the compound statement, and save a pointer to it in the try-block
      statement. */
-  sp->variant.try_block->statement = compound_statement(
-                                               /*at_function_level=*/FALSE,
-                                               /*explicit_return_type=*/FALSE,
-                                               /*is_catch_clause=*/FALSE);
+  sp->variant.try_block->statement =
+                          compound_statement(/*at_function_level=*/FALSE,
+                                             explicit_return_type,
+                                             /*is_catch_clause=*/FALSE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   set_stmt_source_position(sp->end_position, curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -3117,7 +3117,7 @@ where handler-seq is a sequence of one or more handlers of the form
       catch_pos = pos_curr_token;
     } while (loop_token(tok_catch));
   }  /* if */
-  (void)pop_object_lifetime();
+  if (!C_mode()) (void)pop_object_lifetime();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
 
@@ -3160,10 +3160,10 @@ statement.  Its form is
      It wouldn't do any good and could cause looping on errors. */
   /* Scan the compound statement, and save a pointer to it in the try
      statement. */
-  sp->variant.microsoft_try->guarded_statement = compound_statement(
-                                               /*at_function_level=*/FALSE,
-                                               /*explicit_return_type=*/FALSE,
-                                               /*is_catch_clause=*/FALSE);
+  sp->variant.microsoft_try->guarded_statement =
+                          compound_statement(/*at_function_level=*/FALSE,
+                                             /*explicit_return_type=*/FALSE,
+                                             /*is_catch_clause=*/FALSE);
   /* Define the "continue" label, if it is needed.  This is the target of
      __leave statements. */
   define_continue_label();
@@ -3192,10 +3192,10 @@ statement.  Its form is
   start_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
   struct_stmt_stack[depth_stmt_stack].
                                   in_cleanup_statement_of_microsoft_try = TRUE;
-  sp->variant.microsoft_try->cleanup_statement = compound_statement(
-                                               /*at_function_level=*/FALSE,
-                                               /*explicit_return_type=*/FALSE,
-                                               /*is_catch_clause=*/FALSE);
+  sp->variant.microsoft_try->cleanup_statement =
+                          compound_statement(/*at_function_level=*/FALSE,
+                                             /*explicit_return_type=*/FALSE,
+                                             /*is_catch_clause=*/FALSE);
   /* Pop the structured statement stack. */
   pop_stmt_stack();
 
@@ -4263,7 +4263,8 @@ The return expression is also set for a return from a constructor.
              of the function did not have an explicit type specifier (omitting
              the specifier implies "int", but may have been intended to mean
              "void" in old-style C). */
-          if (!struct_stmt_stack->rout_type_explicitly_specified) {
+          if (!struct_stmt_stack[depth_stmt_stack].
+                                   rout_type_explicitly_specified) {
             no_returned_value_severity = es_remark;
           }  /* if */
         }  /* if */
@@ -4990,7 +4991,8 @@ rescan_statement:
       break;
     case tok_try:
       /* C++ try block. */
-      try_block_statement();
+      try_block_statement((a_statement_ptr)NULL,
+                          /*explicit_return_type=*/FALSE);
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_microsoft_try:
@@ -5194,10 +5196,10 @@ pushed, but otherwise this is handled like an ordinary block (except that
 branching into it is disallowed).
 */
 {
-  a_statement_ptr block;
-  a_boolean       any_statements = FALSE;
-  a_token_set_array_element
-                  old_else_stop_token_value;
+  a_statement_ptr            block;
+  a_boolean                  any_statements = FALSE;
+  a_token_set_array_element  old_else_stop_token_value;
+  a_boolean                  is_function_try_block = FALSE;
 
   db_enter (3, "compound_statement");
 
@@ -5215,24 +5217,6 @@ branching into it is disallowed).
     depth_stmt_stack = -1;
     /* Push an entry on the structured statement stack. */
     push_stmt_stack(ssk_compound, block, curr_object_lifetime);
-    /* Record in the statement stack entry whether the routine was declared
-       with an explicit return type. */
-    if (explicit_return_type) {
-      struct_stmt_stack->rout_type_explicitly_specified = TRUE;
-    }  /* if */
-    if (vla_enabled) {
-      /* Generate an stmk_set_vla_size for each vla_dimension appearing in
-         function scope.  At this point, the list will include only
-         declarations that appeared in the function prototype.  (All other
-         cases are handled in array_declarator when the VLA is parsed.) */
-      a_vla_dimension_ptr      vdp;
-
-      check_assertion(decl_scope_level == depth_innermost_function_scope);
-      vdp = scope_stack[decl_scope_level].il_scope->vla_dimensions;
-      for (; vdp != NULL; vdp = vdp->next) {
-        set_vla_size_statement(vdp, &pos_curr_token);
-      }  /* for */
-    }  /* if */
   } else if (is_catch_clause) {
     block = alloc_statement((a_statement_kind)stmk_block);
     set_stmt_source_position(block->position, pos_curr_token);
@@ -5246,10 +5230,38 @@ branching into it is disallowed).
   } else {
     /* Block nested within a function.  Link it onto the current statement
        sequence. */
+    if (depth_stmt_stack == 0 &&
+        struct_stmt_stack[0].kind == (a_struct_stmt_kind)ssk_try_block) {
+      /* Since the top-level entry on the structured statement stack is a
+         try block (rather than a block), this must be a function try block.
+         In most ways this has to be treated just like an ordinary top-level
+         block of a function. */
+      is_function_try_block = TRUE;
+    }  /* if */
     /* Note that there is no check for unreachable code.  It's probably too
        draconian to warn about an unreachable open brace if (say) there
        is a label right afterwards. */
     block = start_block_statement(/*dependent_statement=*/FALSE);
+  }  /* if */
+  /* Record in the statement stack entry whether the routine was declared
+     with an explicit return type. */
+  if (explicit_return_type) {
+    struct_stmt_stack[depth_stmt_stack].rout_type_explicitly_specified = TRUE;
+  }  /* if */
+  if (at_function_level || is_function_try_block) {
+    if (vla_enabled) {
+      /* Generate an stmk_set_vla_size for each vla_dimension appearing in
+         function scope.  At this point, the list will include only
+         declarations that appeared in the function prototype.  (All other
+         cases are handled in array_declarator when the VLA is parsed.) */
+      a_vla_dimension_ptr      vdp;
+
+      check_assertion(decl_scope_level == depth_innermost_function_scope);
+      vdp = scope_stack[decl_scope_level].il_scope->vla_dimensions;
+      for (; vdp != NULL; vdp = vdp->next) {
+        set_vla_size_statement(vdp, &pos_curr_token);
+      }  /* for */
+    }  /* if */
   }  /* if */
   /* Clear the entry for "else" in the stop tokens set.  Without this,
      an else encountered where a statement is expected could cause an
@@ -5314,7 +5326,7 @@ branching into it is disallowed).
        right brace of a compound statement or to an implicit return. */
     cannot_bind_to_curr_construct();
   }  /* if */
-  if (at_function_level) {
+  if (at_function_level || is_function_try_block) {
     /* We are at the right brace terminating a function definition.  If the
        code at the end of a function runs off the end, a implicit return is
        added (see 3.6.6.4) unless we are in dead code. */
@@ -5369,9 +5381,10 @@ branching into it is disallowed).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for the closing "}".  Note that for a function, the "}" is left
      for the caller (function_definition) to handle. */
-  if (!at_function_level) (void)required_token(tok_rbrace, ec_exp_rbrace);
+  if (!at_function_level) {
+    (void)required_token(tok_rbrace, ec_exp_rbrace);
+  }  /* if */
   remove_stop_token(tok_rbrace);
-
 #if DEBUG
   if (debug_level >= 3 ||
       (at_function_level && db_flag_is_set("dump_stmts"))) {
@@ -5391,6 +5404,72 @@ branching into it is disallowed).
   db_exit();
   return block;
 }  /* compound_statement */
+
+
+void setup_function_try_block(void)
+/*
+Do initialization required for scanning the body of a function try block.
+Note that this is done independently of function_try_block, since
+ctor-initializers may have to be processed (in scan_function_body); that's
+done before function_try_block is called, but the object-lifetime for the
+function try block has to have been established first.
+*/
+{
+  a_statement_ptr  sp;
+
+  /* Some of this is identical to initializations done for function blocks
+     in compound_statement. */
+  set_reachable(curr_reachability);
+  control_flow_descr_list = end_of_control_flow_descr_list = NULL;
+  goto_fixup_list = NULL;
+  /* Clear statement stack just to be careful. */
+  depth_stmt_stack = -1;
+  sp = alloc_statement((a_statement_kind)stmk_try_block);
+  stmt_update_source_sequence_list(sp);
+#if 0
+  /* Pop the object lifetime previously allocated for the function scope.  It
+     isn't needed, since the object lifetime for the function try block
+     replaces it as the top level object lifetime of the function. */
+  pop_object_lifetime();
+  scope_stack[depth_scope_stack].curr_scope_object_lifetime = NULL;
+#endif /* if 0 */
+  /* Do additional initialization generic to scanning a try statement. */
+  setup_try_block(sp);
+}  /* setup_function_try_block */
+
+
+a_statement_ptr function_try_block(a_boolean  explicit_return_type)
+
+/*
+Scan a function try block.  The "try" token will already have been consumed,
+ctor-initializers will have been scanned, and the current token should be
+the left brace.  Moreover, initialization for scanning the function body will
+have been done.  This routine (along with try_block_statement which it calls)
+is in effect a wrapper around compound statement.
+*/
+{
+  a_statement_ptr  sp;
+
+  check_assertion(depth_stmt_stack == 0 &&
+                  struct_stmt_stack[0].kind ==
+                                 (a_struct_stmt_kind)ssk_try_block);
+  sp = struct_stmt_stack[depth_stmt_stack].statement;
+  try_block_statement(sp, explicit_return_type);
+#if DEBUG
+  if (debug_level >= 3 || db_flag_is_set("dump_stmts")) {
+    int  how_deep = 3;
+    fputs("terminating compound statement for ", f_debug);
+    db_scope(scope_stack[depth_scope_stack].il_scope);
+    fputs("\n", f_debug);
+    /* If debug_level is less than 3, then this display is triggered by
+       the "dump_stmts" flag; do a full display of the statements in the
+       function. */
+    if (debug_level < 3) how_deep = 100;
+    db_statement_list(sp, /*indent=*/0, "", how_deep);
+  }  /* if */
+#endif /* DEBUG */
+  return sp;
+}  /* function_try_block */
 
 
 void wrapup_control_flow_processing(a_scope_ptr  scope_ptr)

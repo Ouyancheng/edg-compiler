@@ -886,6 +886,7 @@ and for the instantiation of template functions.
   a_boolean                      is_instantiation;
   a_param_type_ptr               ptp;
   a_namespace_ptr                nsp = NULL;
+  a_boolean                      is_function_try_block = FALSE;
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_pack_alignment_state         saved_pack_alignment_state;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -1165,30 +1166,6 @@ and for the instantiation of template functions.
     scope_stack[depth_scope_stack].pragma_pack_is_local = TRUE;
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-#if CHECKING
-  if (total_errors == 0) {
-    /* Except where there are invalid declarations, the flags in the types
-       should be consistent with the special function kinds. */
-    check_assertion((a_boolean)rtsp->assoc_routine_is_ctor ==
-                    (rout_ptr->special_kind ==
-                                   (a_special_function_kind)sfk_constructor));
-    check_assertion((a_boolean)rtsp->assoc_routine_is_dtor ==
-                    (rout_ptr->special_kind ==
-                                   (a_special_function_kind)sfk_destructor));
-  }  /* if */
-#endif /* CHECKING */
-  /* Enter the constructor initializers.  If the current token is a ":",
-     explicit initialization for the constructor follows, but even without
-     an explicit initializer, any implicit initializers should be recorded. */
-  if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor) {
-    scope_ptr->variant.routine.constructor_inits =
-                                      ctor_initializer(rout_ptr,
-                                                       /*user_defined=*/TRUE);
-  } else if (rout_ptr->special_kind ==
-                                   (a_special_function_kind)sfk_destructor) {
-    scope_ptr->variant.routine.constructor_inits =
-                                      dtor_initializer(rout_ptr);
-  }  /* if */
   if (flags & SFB_NEW_STRUCT_STMT_STACK_REQUIRED) {
     /* Save structured statement stack state before calling compound_statement
        (so that it can be restored upon return) and create a new structured
@@ -1204,13 +1181,50 @@ and for the instantiation of template functions.
 #endif /* ASM_FUNCTION_ALLOWED */
   /* Do not insert code here. */
   {
-    /* Scan the compound statement defining the function.  The closing "}"
-       is not swallowed by compound_statement, so that the pop_scope call
-       can be done to get any errors out right on the "}". */
-    scope_ptr->assoc_block =
-        compound_statement(/*at_function_level=*/TRUE,
-                           (flags & SFB_IMPLICITLY_DECLARED_RETURN_TYPE) == 0,
-                           /*is_catch_clause=*/FALSE);
+    a_boolean  explicit_return_type =
+                         ((flags & SFB_IMPLICITLY_DECLARED_RETURN_TYPE) == 0);
+
+    if (curr_token == tok_try) {
+      is_function_try_block = TRUE;
+      setup_function_try_block();
+    }  /* if */
+#if CHECKING
+    if (total_errors == 0) {
+      /* Except where there are invalid declarations, the flags in the types
+         should be consistent with the special function kinds. */
+      check_assertion((a_boolean)rtsp->assoc_routine_is_ctor ==
+                    (rout_ptr->special_kind ==
+                                   (a_special_function_kind)sfk_constructor));
+      check_assertion((a_boolean)rtsp->assoc_routine_is_dtor ==
+                    (rout_ptr->special_kind ==
+                                   (a_special_function_kind)sfk_destructor));
+    }  /* if */
+#endif /* CHECKING */
+    /* Enter the constructor initializers.  If the current token is a ":",
+       explicit initialization for the constructor follows, but even without
+       an explicit initializer, any implicit initializers should be
+       recorded. */
+    if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor) {
+      scope_ptr->variant.routine.constructor_inits =
+                                      ctor_initializer(rout_ptr,
+                                                       /*user_defined=*/TRUE);
+    } else if (rout_ptr->special_kind ==
+                                   (a_special_function_kind)sfk_destructor) {
+      scope_ptr->variant.routine.constructor_inits =
+                                      dtor_initializer(rout_ptr);
+    }  /* if */
+    if (is_function_try_block) {
+      /* Scan the function try block. */
+      scope_ptr->assoc_block = function_try_block(explicit_return_type);
+    } else {
+      /* Scan the compound statement defining the function.  The closing "}"
+         is not swallowed by compound_statement, so that the pop_scope call
+         can be done to get any errors out right on the "}". */
+      scope_ptr->assoc_block = 
+                          compound_statement(/*at_function_level=*/TRUE,
+                                             explicit_return_type,
+                                             /*is_catch_clause=*/FALSE);
+    }  /* if */
   }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
   /* Restore defaults for packing class members in a struct definition to
@@ -1244,12 +1258,14 @@ and for the instantiation of template functions.
       pop_namespace_extension_scope();
     }  /* if */  
   }  /* if */
-  /* Check for the closing "}", not done in compound_statement.  Note that
-     required_token is not called; if compound_statement returned on
-     anything other than a right brace, it's because we should start parsing
-     on this token. */
-  if (curr_token != tok_rbrace) {
-    pos_error(ec_exp_rbrace, &pos_curr_token);
+  if (!is_function_try_block) {
+    /* Check for the closing "}", not done in compound_statement.  Note that
+       required_token is not called; if compound_statement returned on
+       anything other than a right brace, it's because we should start parsing
+       on this token. */
+    if (curr_token != tok_rbrace) {
+      pos_error(ec_exp_rbrace, &pos_curr_token);
+    }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* A dllimport routine does not always cause an error (i.e., if it's

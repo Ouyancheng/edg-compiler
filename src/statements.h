@@ -398,6 +398,10 @@ extern a_statement_ptr compound_statement(a_boolean at_function_level,
                                           a_boolean explicit_return_type,
                                           a_boolean is_catch_clause);
 
+extern void setup_function_try_block(void);
+
+extern a_statement_ptr function_try_block(a_boolean  explicit_return_type);
+
 extern void wrapup_control_flow_processing(a_scope_ptr  scope_ptr);
 
 extern void warn_if_code_is_unreachable(an_error_code      error_code,
