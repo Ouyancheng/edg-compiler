@@ -362,7 +362,8 @@ lookups.  The variable can also be controlled from the command line by
 
 /*
 Flag that is TRUE if Sun CC 5.0 compatibility features should be allowed by
-default.
+default.  It is the default initial value of the associated global variable
+sun_mode and can be overridden by the command-line options --sun and --no_sun.
 */
 #ifndef DEFAULT_SUN_COMPATIBILITY
 #define DEFAULT_SUN_COMPATIBILITY FALSE
