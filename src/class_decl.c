@@ -7894,29 +7894,9 @@ next_declaration:
     /* Pop the pseudo-scope created for the fields. */
     pop_scope();
     if (delayed_nested_class_def) {
-      a_type_ptr  placeholder;
       /* A nested class defined outside the parent class definition.  Restore
          the scope stack to its original state. */
       pop_class_reactivation_scope();
-      /* Enter a typedef entry in the current scope that points at the
-         nested class that was just defined.  It serves to indicate just
-         where (in the sequence of type declarations in the current scope)
-         the delayed nested type definition appeared. */
-      placeholder = alloc_type((a_type_kind)tk_typeref);
-      placeholder->variant.typeref.type = class_type;
-      placeholder->variant.typeref.is_placeholder_for_nested_class_def = TRUE;
-      class_type->variant.class_struct_union.
-                                nested_class_defined_outside_of_parent = TRUE;
-      if (scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_namespace) {
-        /* This class is being defined in a namespace scope instead of the file
-           scope.  Make the placeholder a member of the namespace. */
-        a_namespace_ptr nsp = scope_stack[depth_scope_stack].il_scope->
-                                                       variant.assoc_namespace;
-        set_namespace_membership((a_symbol_ptr)NULL,
-                                 &placeholder->source_corresp,
-                                 nsp);
-      }  /* if */
-      add_to_types_list(placeholder, depth_scope_stack);
     }  /* if */
     remove_stop_token(tok_rbrace);
     /* Check for and ignore the closing brace. */
