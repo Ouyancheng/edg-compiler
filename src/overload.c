@@ -11472,13 +11472,16 @@ void force_complete_type_if_a_variable(an_operand *operand)
 If the indicated operand is a reference to a static data member
 variable (as either an lvalue or an rvalue), make sure the type of
 the static data member is completed by instantiating it if necessary.
+The type of the operand will be updated if necessary.
 */
 {
-  a_variable_ptr var = NULL;
+  a_variable_ptr   var = NULL;
+  an_expr_node_ptr expr = NULL;
+  a_constant_ptr   con = NULL;
 
   /* See whether the operand is simply a reference to a variable. */
   if (is_expression_operand(operand)) {
-    an_expr_node_ptr expr = operand->variant.expression;
+    expr = operand->variant.expression;
     if (is_an_lvalue(operand)) {
       if (is_variable_address_node(expr)) {
         var = expr->variant.variable;
@@ -11487,7 +11490,7 @@ the static data member is completed by instantiating it if necessary.
       var = expr->variant.variable;
     }  /* if */
   } else if (is_constant_operand(operand)) {
-    a_constant_ptr con = &operand->variant.constant;
+    con = &operand->variant.constant;
     if (is_an_lvalue(operand)) {
       if (con_is_exact_addr_of_variable(con, &var)) {
       }  /* if */
@@ -11497,7 +11500,29 @@ the static data member is completed by instantiating it if necessary.
     /* Yes, the operand is simply a variable.  If it's a static data
        member, force instantiation of it (this does something
        meaningful when the data member is an unknown-bound array). */
+    a_type_ptr orig_var_type = var->type;
     complete_variable_type_is_needed(var);
+    if (var->type != orig_var_type) {
+      /* Modify the operand to get the right type in all the right places. */
+      if (is_an_lvalue(operand)) {
+        a_type_ptr expr_type;
+        operand->type = var->type;
+        expr_type = make_pointer_type(operand->type);
+        if (expr != NULL) {
+          check_assertion(is_variable_address_node(expr));
+          expr->type = expr_type;
+        } else {
+          check_assertion(con != NULL);
+          con->type = expr_type;
+        }  /* if */
+      } else {
+        /* The operand is an rvalue. */
+        operand->type = rvalue_type(var->type);
+        check_assertion(expr != NULL &&
+                        is_variable_node(expr));
+        expr->type = operand->type;
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* force_complete_type_if_a_variable */
 

@@ -4039,7 +4039,6 @@ Syntax:
                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
-    force_complete_type_if_a_variable(&operand);
     if (is_parenthesized) {
       /* When scanning the expression with a trapped left parenthesis, the
          position returned in the operand indicates the token following
@@ -4055,6 +4054,7 @@ Syntax:
         error_in_operand(ec_sizeof_bit_field, &operand);
       }  /* if */
     }  /* if */
+    force_complete_type_if_a_variable(&operand);
     sizeof_type = operand.type;
     copy_source_position(operand.position, type_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -4371,13 +4371,13 @@ implement <stdarg.h>, a standard feature.
                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
-    force_complete_type_if_a_variable(&operand);
     if (is_parenthesized) {
       /* When scanning the expression with a trapped left parenthesis, the
          position returned in the operand indicates the token following
          the left parenthesis, which is wrong.  Correct it. */
       copy_source_position(lparen_position, operand.position);
     }  /* if */
+    force_complete_type_if_a_variable(&operand);
     alignof_type = operand.type;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
     if (gnu_mode || microsoft_mode) {
@@ -4526,9 +4526,9 @@ The parentheses are required, unlike for sizeof.
   } else {
     /* Scan an expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+    force_complete_type_if_a_variable(&operand);
     result = operand.type;
     is_type = FALSE;
-    force_complete_type_if_a_variable(&operand);
   }  /* if */
   if (is_error_type(result)) {
     /* We'll just return the error type. */
