@@ -2568,8 +2568,14 @@ orig_line_modif_list modifications apply to the indicated text.
     /* If the whole requested piece has now been written out, exit the loop. */
     if (loc_in_line == stop_loc) break;
     /* *loc_in_line must be an attention marker.  Find and write the original
-       character for that position. */
-    slmp = nested_source_line_modif(loc_in_line);
+       character for that position.  Note that there may be several
+       modifications on that same location, and we have to find the
+       original one. */
+    for (slmp = source_line_modif_list; ; slmp = slmp->next) {
+      check_assertion(slmp != NULL);
+      if (slmp->line_loc == loc_in_line &&
+          slmp->orig_char != ATTENTION_MARKER) break;
+    }  /* for */
     putc(slmp->orig_char, f_raw_listing);
     loc_in_line++;
     /* If the whole requested piece has now been written out, exit the loop. */

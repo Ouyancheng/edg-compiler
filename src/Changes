@@ -1,5 +1,21 @@
 Version 2.46
 
+11/14/01 Raw listing output problem with comment inside macro call
+
+The raw listing output line produced for a // comment inside a
+macro argument list was incorrect (it did not match the source
+line).  Now fixed.
+
+  #define WRITE_REG(a, b) a, b
+
+  void display_out_setup()
+  {
+    WRITE_REG(1,
+  // comment
+       0
+    );
+  }
+
 11/14/01 Line synchronization problem with preprocessing output and
          inert macro alone on line
 
