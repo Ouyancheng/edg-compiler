@@ -133,24 +133,39 @@ Reset the flag that indicates that an entry needs to be copied.
 
 
 static a_boolean in_other_secondary_trans_unit(char             *ptr,
-                                               an_il_entry_kind kind)
+                                               an_il_entry_kind kind,
+                                               a_boolean        *known)
 /*
 Return TRUE if the indicated IL entry is in a different secondary translation
-unit.  This is accurately determined only for declarative entries with
-associated symbols.  For other cases, FALSE is returned.
+unit.  This is accurately determined only in some cases, including for
+declarative entries with associated symbols.  For the other cases, FALSE
+is returned, and *known is returned FALSE.
 */
 {
   a_boolean in_other_trans_unit = FALSE;
 
-  if (in_secondary_trans_unit(ptr)) {
+  *known = FALSE;
+  if (!in_secondary_trans_unit(ptr)) {
+    /* If the pointer is not in a secondary translation unit, it can't be
+       in a different secondary translation unit. */
+    *known = TRUE;
+  } else {
     a_source_correspondence *scp = source_corresp_for_il_entry(ptr, kind);
-    if (scp != NULL && !scp->is_local_to_function) {
-      a_symbol_ptr sym = (a_symbol_ptr)(scp->assoc_info);
-      if (sym != NULL) {
-        if (sym->decl_scope != NO_SCOPE_NUMBER &&
-            trans_unit_for_scope[sym->decl_scope] != curr_translation_unit) {
-          /* This entity is from a different secondary translation unit. */
-          in_other_trans_unit = TRUE;
+    if (scp != NULL) {
+      if (scp->is_local_to_function) {
+        /* Function-local entities can't be from another translation unit.
+           This is tested early this way because the scope for local
+           entities might already have been moved to the primary IL. */
+        *known = TRUE;
+      } else {
+        a_symbol_ptr sym = (a_symbol_ptr)(scp->assoc_info);
+        if (sym != NULL) {
+          *known = TRUE;
+          if (sym->decl_scope != NO_SCOPE_NUMBER &&
+              trans_unit_for_scope[sym->decl_scope] != curr_translation_unit) {
+            /* This entity is from a different secondary translation unit. */
+            in_other_trans_unit = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -227,12 +242,14 @@ pointer of the entry pointed to by ptr, of kind "kind".
       /* Make the canonical entry for this entry point to the copy also if
          it's in a secondary translation unit. */
       if (canonical != ptr && in_secondary_trans_unit(canonical)) {
+        a_boolean known;
         checked_trans_unit_corresp_pointer_of(canonical) = copy;
         /* Check for the weird case where the canonical entry is in the
            current translation unit (presumably, ptr is from some
            other secondary translation unit).  In that case, do the
            copy from the canonical entry. */
-        if (!in_other_secondary_trans_unit(canonical, kind)) {
+        if (!in_other_secondary_trans_unit(canonical, kind, &known) &&
+            known) {
           ptr = canonical;
         }  /* if */
       }  /* if */
@@ -290,7 +307,8 @@ pruned at the entry pointed to by ptr, of kind "kind".
       prune = TRUE;
     } else {
       /* This entry still needs to be processed (i.e., copied and remapped). */
-      if (in_other_secondary_trans_unit(ptr, kind)) {
+      a_boolean known;
+      if (in_other_secondary_trans_unit(ptr, kind, &known)) {
         /* This entity is from a different secondary translation unit.
            Leave it to be processed when that translation unit is
            copied. */
