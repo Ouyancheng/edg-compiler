@@ -137,7 +137,8 @@ itself recursively to process classes nested within this class.
   a_template_instance_ptr	tip;
   a_routine_ptr			rout;
   a_type_ptr			type;
-  
+
+  db_enter(0, "update_instantiation_required_for_template_class_members");  
   ctsp = class_type->variant.class_struct_union.extra_info;
   /* The assoc_scope pointer can be NULL if errors occurred during the
      instantiation of the class. */
@@ -157,16 +158,11 @@ itself recursively to process classes nested within this class.
         /* Under certain conditions the instance pointer will be NULL.  This
            occurs for compiler generated routines and under some error
            conditions.  Simply skip this routine. */
-#if 0
-        if (instantiation_mode == tim_all ||
-            sym->variant.routine.ptr->is_virtual) {
-          update_instantiation_required_flag(tip, /*value=*/TRUE);
+        if (!tip->instantiation_required) {
+          update_instantiation_required_flag
+                                    (tip, instantiation_mode == tim_all ||
+                                     sym->variant.routine.ptr->is_virtual);
         }  /* if */
-#else /* 0 */
-        update_instantiation_required_flag
-                                      (tip, instantiation_mode == tim_all ||
-                                       sym->variant.routine.ptr->is_virtual);
-#endif /* 0 */
       }  /* if */
       rout = rout->next;
     }  /* while */
@@ -186,7 +182,7 @@ itself recursively to process classes nested within this class.
          to skip setting the instantiation required flag rather than
          generate a possibly spurious internal error. */
 #endif /* 0 */
-      if (tip != NULL) {
+      if (tip != NULL && !tip->instantiation_required) {
         update_instantiation_required_flag(tip, /*value=*/TRUE);
       }  /* if */
       var = var->next;
@@ -202,6 +198,7 @@ itself recursively to process classes nested within this class.
       type = type->next;
     }  /* while */
   }  /* if */
+  db_exit();
 }  /* update_instantiation_required_for_template_class_members */
 
 
@@ -362,15 +359,20 @@ required flags for the members of the class.
   a_symbol_ptr                      instance_sym;
   a_class_symbol_supplement_ptr     cssp;
 
+  db_enter(0, "update_template_class_to_fully_instantiated_status");
   check_assertion_str(is_class_struct_union_type(class_type),
                       "utctfis: not a class");
-  class_type = skip_typerefs(class_type);
-  instance_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
-  cssp = instance_sym->variant.class_struct_union.extra_info;
-  check_assertion_str(cssp->instantiated_by_can_instantiate_pragma,
-		      "utcifis: not provisional instantiation");
-  cssp->instantiated_by_can_instantiate_pragma = FALSE;
-  update_instantiation_required_for_template_class_members(class_type);
+  if (instantiation_mode != tim_can_instantiate) {
+    /* Only do this if we are not currently in can_instantiate mode. */
+    class_type = skip_typerefs(class_type);
+    instance_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+    cssp = instance_sym->variant.class_struct_union.extra_info;
+    check_assertion_str(cssp->instantiated_by_can_instantiate_pragma,
+  		      "utcifis: not provisional instantiation");
+    cssp->instantiated_by_can_instantiate_pragma = FALSE;
+    update_instantiation_required_for_template_class_members(class_type);
+  }  /* if */
+  db_exit();
 }  /* update_template_class_to_fully_instantiated_status */
 
 
