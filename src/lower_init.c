@@ -2417,10 +2417,10 @@ inserted at *insert_location.
     set_integer_constant(&zero_constant, 0L, (an_integer_kind)ik_int);
     if (is_expr_insert_location_kind(insert_location->kind)) {
        /* The insert location is inside an expression, so use an stmk_expr. */
-      insert_assignment_statement(var_lvalue_expr(cond_var),
-                                  (an_expr_operator_kind)eok_iassign,
-                                  alloc_node_for_constant(&zero_constant),
-                                  insert_location);
+      (void)insert_assignment_statement(var_lvalue_expr(cond_var),
+                                        (an_expr_operator_kind)eok_iassign,
+                                       alloc_node_for_constant(&zero_constant),
+                                        insert_location);
     } else {
       /* Normal case: use an stmk_init. */
       a_statement_ptr    stmk_init_stmt;
