@@ -623,6 +623,8 @@ do
          --no_extern_inline | \
          --guiding_decls | \
          --no_guiding_decls | \
+         --multibyte_chars | \
+         --no_multibyte_chars | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Options that require additional processing
