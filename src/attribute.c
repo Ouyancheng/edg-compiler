@@ -917,18 +917,22 @@ attributes.  */
 
 
 static a_boolean check_variable_not_local(a_variable_ptr   variable,
-                                          an_attribute_ptr attribute)
+                                          an_attribute_ptr attribute,
+                                          a_boolean        allow_local_static)
 /*
-The attribute only applies to variables that are not local to a
-function.  If variable is not such a variable, issue an error and
-return FALSE.  Otherwise, return TRUE.
+The attribute only applies to variables that are not local to a function.
+If variable is not such a variable, issue an error and return FALSE.
+Otherwise, return TRUE.  Local static variables are treated as non-local
+when allow_local_static is TRUE.
 */
 {
   a_boolean is_not_local = TRUE;
 
   if (variable->source_corresp.is_local_to_function &&
       /* Don't consider block extern declarations local. */
-      variable->storage_class != (a_storage_class)sc_extern) {
+      variable->storage_class != (a_storage_class)sc_extern &&
+      (!allow_local_static ||
+       variable->storage_class != (a_storage_class)sc_static)) {
     pos_st_error(ec_attribute_does_not_apply_to_local_variable,
                  &attribute->position, 
                  attribute_kind_names[(int)attribute->kind]);
@@ -1000,23 +1004,23 @@ invalid attributes.
            apply_attributes_to_variable_type. */
         break;
       case ak_weak:
-        if (check_variable_not_local(vp, ap)) {
+        if (check_variable_not_local(vp, ap, /*allow_local_static=*/FALSE)) {
           vp->is_weak = TRUE;
         }  /* if */
         break;
       case ak_section:
-        if (check_variable_not_local(vp, ap)) {
+        if (check_variable_not_local(vp, ap, /*allow_local_static=*/TRUE)) {
           vp->section = ap->variant.section;
         }  /* if */
         break;
       case ak_alias:
-        if (check_variable_not_local(vp, ap)) {
+        if (check_variable_not_local(vp, ap, /*allow_local_static=*/FALSE)) {
           add_alias_fixup((a_symbol_ptr)vp->source_corresp.assoc_info,
                             ap->variant.alias, &ap->position);
         }  /* if */
         break;
       case ak_nocommon:
-        if (check_variable_not_local(vp, ap)) {
+        if (check_variable_not_local(vp, ap, /*allow_local_static=*/TRUE)) {
           vp->is_not_common = TRUE;
         }  /* if */
         break;
