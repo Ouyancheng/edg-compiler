@@ -5862,7 +5862,7 @@ instantiation case.
     return_type = type_of_unknown_templ_param_nontype;
   }  /* if */
   /* Determine the operator to use for the call. */
-  if (function_type != NULL && is_ptr_to_member_type(function_type)) {
+  if (is_ptr_to_member_type(function_node->type)) {
     /* Call using a pointer-to-member-function. */
     op = (an_expr_operator_kind)eok_pm_call;
   } else if (is_virtual) {
