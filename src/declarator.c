@@ -2108,9 +2108,12 @@ declaration.
   size_pos = pos_curr_token;
   if (curr_token == tok_rbracket && !static_seen) {
     /* Empty brackets, indicating an incomplete array type, except in GNU
-       C mode where it is equivalent to "[0]". */
+       C mode where it is equivalent to "[0]" in field declarations. */
+    if (gcc_mode && top_level_field_decl) {
+      is_constant_bound = TRUE;
+    }  /* if */
     num_of_elements = 0;
-    if (gcc_mode) {
+    if (gcc_mode && top_level_field_decl) {
       is_constant_bound = TRUE;
     }  /* if */
   } else if (vla_enabled && curr_token == tok_star &&
