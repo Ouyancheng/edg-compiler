@@ -6089,8 +6089,9 @@ parameters.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
                                         ) {
         /* A variable in a COMDAT.  Must be a definition. */
-        check_assertion(variable->storage_class ==
-                                              (a_storage_class)sc_unspecified);
+        check_assertion_str(variable->storage_class ==
+                                               (a_storage_class)sc_unspecified,
+                            "dump_variable_decl: var without defn in comdat");
 #if GCC_IS_GENERATED_CODE_TARGET
         /* GCC does not support COMDAT, but it does support weak, which
            provides a sufficient approximation. */
@@ -7858,7 +7859,9 @@ if this routine has a body (dump nothing if it has no body).
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
                                       ) {
       /* A routine in a COMDAT.  Must be a definition. */
-      check_assertion(rout->storage_class == (a_storage_class)sc_unspecified);
+      check_assertion_str(rout->storage_class ==
+                                               (a_storage_class)sc_unspecified,
+                          "dump_routine_decl: rout without defn in comdat");
 #if GCC_IS_GENERATED_CODE_TARGET
       /* GCC does not support COMDAT, but it does support weak, which provides
          a sufficient approximation. */
