@@ -1,5 +1,18 @@
 Version 2.19
 
+8/13/93 Member function as argument to function template
+
+The following no longer causes an internal error:
+
+  struct A {void f() {}};
+  template <class T> int foo(T) {return 1;}
+  void m()
+  {
+    foo(A::f);  // No internal error anymore
+  }
+
+This is an extension relative to the ARM.
+
 8/11/93 Destruction of temporaries created in loop test expressions
 
 Temporaries created in loop test and increment expressions are now

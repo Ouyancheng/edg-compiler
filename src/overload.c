@@ -1871,7 +1871,25 @@ evaluated (but not checked to see if the match is good enough).
         if (is_array_type(arg_type)) {
           arg_type = make_pointer_type(array_element_type(arg_type));
         } else if (is_function_type(arg_type)) {
-          arg_type = make_pointer_type(arg_type);
+          if (is_sym_for_member_operand(&arg_operand->operand)) {
+            /* Member function, so the pointer is a pointer to member.
+               This is actually an extension -- the ARM doesn't allow
+               a member function reference to decay to a pointer to
+               member implicitly.  No warning is needed here, even in
+               strict mode; the diagnostic is issued later. */
+            a_symbol_ptr  func_sym = arg_operand->operand.variant.symbol;
+            a_symbol_ptr  fund_sym = fundamental_symbol_of(func_sym);
+            a_routine_ptr rout;
+            check_assertion(fund_sym->kind ==
+                                            (a_symbol_kind)sk_member_function);
+            rout = fund_sym->variant.routine.ptr;
+            arg_type = ptr_to_member_type(rout->type,
+                                          rout->source_corresp.
+                                                      class_of_which_a_member);
+          } else {
+            /* Nonmember function. */
+            arg_type = make_pointer_type(arg_type);
+          }  /* if */
         }  /* if */
       }  /* if */
       if (is_pointer_type(arg_type) && is_pointer_type(param_type)) {
