@@ -1120,7 +1120,10 @@ Make a specific symbol error locator in *locator.  This identifies a
 specific symbol which is an error symbol.
 */
 {
+  a_symbol_header_ptr  hdr_ptr = locator->symbol_header;
+
   clear_locator(locator, &error_position);
+  locator->symbol_header = hdr_ptr;
   locator->is_error = TRUE;
   locator->specific_symbol = enter_symbol((a_symbol_kind)sk_undefined,
                                           locator,
