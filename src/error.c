@@ -2652,8 +2652,14 @@ symbol_name:
         }  /* if */
       }  /* if */
       form_class_qualifier(sym->class_of_which_a_member, seg_ptr);
-      /* Use the name in the header. */
-      add_string_to_segment(sym->header->identifier, seg_ptr);
+      if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
+          sym->kind == (a_symbol_kind)sk_union_tag) {
+        /* Put out name plus template args where appropriate. */
+        form_type_name(sym->variant.class_struct_union.type, seg_ptr);
+      } else {
+        /* Use the name in the header. */
+        add_string_to_segment(sym->header->identifier, seg_ptr);
+      }  /* if */
       if (type != NULL &&
           ! seg_ptr->variant.symbol.name_only &&
           (seg_ptr->variant.symbol.full_type || is_overloaded) ) {
