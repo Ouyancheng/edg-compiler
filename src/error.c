@@ -796,7 +796,7 @@ error code.
       m = "class or struct definition is missing";
       break;
     case ec_name_not_member_of_class_or_base_classes:
-      m = "name is not a member of this class or its base classes";
+      m = "qualified name is not in the left operand's class or base classes";
       break;
     case ec_member_ref_requires_object:
       m = "a nonstatic member reference must be relative to a specific object";
