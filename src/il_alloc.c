@@ -623,6 +623,7 @@ a pointer to it.
   tap->is_type          = is_type_arg;
   tap->is_array_bound_of_unknown_type = FALSE;
   tap->constant_is_an_arg_operand = FALSE;
+  tap->explicitly_specified = FALSE;
 #if CHECKING
   tap->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

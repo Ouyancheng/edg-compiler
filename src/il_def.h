@@ -2534,6 +2534,15 @@ typedef struct a_template_arg {
 			   never be set for template arguments that are
 			   part of the IL.  This field will never be
 			   TRUE when is_array_bound_of_unknown_type is TRUE. */
+  a_bit_field	explicitly_specified:1;
+			/* TRUE, for a function template argument list, if the
+			   argument was explicitly specified.  When a reference
+			   is being processed, this flag is set only for those
+			   argument that were explicitly specified for that
+			   reference.  For a template argument list associated
+			   with an instance of the function template, this flag
+			   is set if any reference to the template explicitly
+			   specified the argument. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When is_type == TRUE. */
