@@ -10355,6 +10355,9 @@ declaration following this one is such a continuation.
                       "gen_variable_decl: declared_type is NULL");
   /* Advance past the source sequence entry for the variable. */
   adv_curr_source_sequence_entry();
+  /* Skip over any embedded declarations (e.g., in casts in the initializer
+     expression), setting them up to be generated on-the-fly as needed. */
+  skip_embedded_declarations();
   /* Position the output file to the declaration position. */
   set_decl_position(&var->source_corresp, sec_decl);
   /* If generating a member of a class within the class, set the right access
