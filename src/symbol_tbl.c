@@ -3309,13 +3309,13 @@ a_symbol_ptr find_copy_constructor(a_type_ptr            class_type,
                                    a_boolean             *class_bitwise_copy)
 /*
 Find and return a pointer to a symbol representing a copy constructor for
-the class indicated by class_type.  If const_object_required is TRUE, return
-a copy constructor that accepts a first parameter whose type is const
-qualified.  Similarly for volatile_object_required.  Otherwise, return what's
-found.  If no acceptable copy constructor is found, return NULL.  If more
-than one acceptable copy constructor is found, set *ambiguous to TRUE
-and return NULL.  If a bitwise copy is allowed, return NULL and
-*class_bitwise_copy TRUE.  This routine is only used in C++ mode.
+the class indicated by class_type and accepting a first parameter whose type
+is qualified as specified by required_qualifiers.  If no acceptable copy
+constructor is found, return NULL.  If more than one acceptable copy
+constructor is found and only one of them is an exact match on qualifiers,
+return that one; otherwise set *ambiguous to TRUE and return NULL.  If a
+bitwise copy is allowed, return NULL and *class_bitwise_copy TRUE.  This
+routine is only used in C++ mode.
 */
 {
   a_symbol_ptr                   sym, cctor_sym = NULL;
