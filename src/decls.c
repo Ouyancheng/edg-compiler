@@ -5951,7 +5951,7 @@ specifier is restored.
   a_name_linkage_kind      kind, saved_name_linkage;
   a_boolean                saved_name_linkage_is_explicit;
   a_boolean                err = FALSE;
-  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+  a_scope_stack_entry_ptr  ssep;
 
   db_enter(3, "linkage_specification");
   if (decl_scope_level != depth_innermost_namespace_scope) {
@@ -5966,10 +5966,12 @@ specifier is restored.
      or "FORTRAN".  If changes are made here to support other strings, be
      sure to update the name linkage kind enumeration. */
   /* Save the current default linkage. */
+  ssep = &scope_stack[depth_scope_stack];
   saved_name_linkage = ssep->default_name_linkage;
   saved_name_linkage_is_explicit = ssep->name_linkage_is_explicit;
   /* Record the new default linkage in the scope stack. */
   if (scan_name_linkage_string(&kind) && !err) {
+    ssep = &scope_stack[depth_scope_stack];
     ssep->default_name_linkage = kind;
     ssep->name_linkage_is_explicit = TRUE;
   }  /* if */    
@@ -5996,6 +5998,7 @@ specifier is restored.
        before advancing past the closing brace -- there is a dependency in
        precompiled header processing on the state maintained in the scope
        stack entry. */
+    ssep = &scope_stack[depth_scope_stack];
     ssep->default_name_linkage = saved_name_linkage;
     ssep->name_linkage_is_explicit = saved_name_linkage_is_explicit;
     /* Check for the final right brace of the linkage specification block,
@@ -6028,6 +6031,7 @@ specifier is restored.
     }  /* if */
     /* Restore the default linkage to the value it had before the
        declaration was processed. */
+    ssep = &scope_stack[depth_scope_stack];
     ssep->default_name_linkage = saved_name_linkage;
     ssep->name_linkage_is_explicit = saved_name_linkage_is_explicit;
   }  /* if */

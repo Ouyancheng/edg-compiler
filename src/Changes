@@ -1,5 +1,13 @@
 Version 2.36
 
+4/3/97    Linkage specification processing could refer to freed memory
+
+The processing for linkage specifications saved a pointer into the
+scope stack over a period of time when the scope stack might be
+reallocated to increase its size.  If such reallocation did occur, the
+subsequent references through the pointer might be to freed or
+reused memory.  Now fixed.
+
 4/3/97    Microsoft compatibility: user-defined conversions on "?" operator
 
 In Microsoft mode, conversions to class types instead of built-in types
