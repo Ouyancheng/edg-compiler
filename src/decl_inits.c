@@ -1123,7 +1123,7 @@ Returns whether any initializers are available for the initialization of the
 aggregate tracked by init_context. If an introductory brace was scanned,
 brace_flag should be TRUE. If the aggregate has any initializable members,
 any_members should be TRUE. This function detects the case where an empty
-class is being initialized and sets *nothing_taken accordingly to inidicate
+class is being initialized and sets *nothing_taken accordingly to indicate
 if no initializer was consumed.
 */
 {
@@ -1158,7 +1158,7 @@ static a_boolean scan_array_element_subscript(a_type_ptr    dest_type,
                                               a_targ_size_t *subscript)
 /*
 This function scans an integral constant expression and checks that it can
-be a valid subcript for the given array type.  dest_type is an array type
+be a valid subscript for the given array type.  dest_type is an array type
 (typerefs should be peeled).  The function returns FALSE if an error occurs;
 otherwise TRUE is returned and *subscript is set to the scanned value.
 */
@@ -1491,7 +1491,7 @@ static a_constant_ptr get_single_value_for_aggregate_initializer(
                                       an_aggregate_init_context_ptr context)
 /*
 Scans a "single value" as a simple non-class type item for an aggregate
-initializer.  Unfortunately, this scanning might have already occured while
+initializer.  Unfortunately, this scanning might have already occurred while
 trying to determine if the expression could initialize a class type member
 (see process_whole_object_init): in that case, the constant is pending in the
 context structure.  init_info describes the state of the complete initializer
