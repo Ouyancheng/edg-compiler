@@ -639,6 +639,7 @@ type is legal.
       if (temp_type->size == 0 &&
           tkind != (a_type_kind)tk_routine /* For speed. */ &&
           (tkind == (a_type_kind)tk_pointer ||
+           tkind == (a_type_kind)tk_ptr_to_member ||
            array_of_incomp_struct_or_union ||
            is_object_type(new_type_ptr) || is_function_type(new_type_ptr) ||
            is_error_type(new_type_ptr))) {
