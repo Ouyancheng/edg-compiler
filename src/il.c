@@ -5614,20 +5614,33 @@ a namespace placeholder if appropriate.
   if (sp == NULL) {
     /* May be an error case. */
   } else {
+    a_type_ptr  prev_type;
     /* Add the type to the list of types for this scope. */
     if (sp->types == NULL) {
       sp->types = type_ptr;
+      prev_type = NULL;
     } else if (pointers_block != NULL) {
-      pointers_block->last_type->next = type_ptr;
+      prev_type = pointers_block->last_type;
+      prev_type->next = type_ptr;
     } else {
       /* The scope stack entry is no longer on the stack, so just look for
          the end of the types list and add the new type. */
-      a_type_ptr tp = sp->types;
-      while (tp->next != NULL) tp = tp->next;
-      tp->next = type_ptr;
+      prev_type = sp->types;
+      while (prev_type->next != NULL) prev_type = prev_type->next;
+      prev_type->next = type_ptr;
     }  /* if */
     type_ptr->next = NULL;
     if (pointers_block != NULL) pointers_block->last_type = type_ptr;
+    /* In some cases we record the preceding entry on the list.  This allows
+       us to optimize move_to_end_of_types_list for speed. */
+    if (is_immediate_class_type(type_ptr) &&
+        type_ptr->source_corresp.assoc_info != NULL) {
+      a_class_symbol_supplement_ptr
+                                 cssp = symbol_supplement_for_class(type_ptr);
+      if (cssp != NULL) {
+        cssp->prev_entry_on_types_list = prev_type;
+      }  /* if */
+    }  /* if */
 #if DEBUG
     if (db_flag_is_set("dump_type_lists")) {
       fprintf(f_debug, "Added to types list:  ");
@@ -5687,20 +5700,37 @@ removed from the list.
     if (pointers_block->last_type == type_ptr) {
       /* It's already the last entry on the list. */
     } else {
+      a_class_symbol_supplement_ptr  cssp = NULL;
       /* Scan the list until a match is found. */
       prev_tp = NULL;
-      tp = sp->types;
-      while (tp != type_ptr) {
-        prev_tp = tp;
-        tp = tp->next;
-        check_assertion_str2(tp != NULL, "move_to_end_of_types_list:",
-                             "cannot find type on types list");
-      }  /* while */
+      if (is_immediate_class_type(type_ptr) &&
+          type_ptr->source_corresp.assoc_info != NULL) {
+        cssp = symbol_supplement_for_class(type_ptr);
+      }  /* if */
+      if (cssp != NULL && cssp->prev_entry_on_types_list != NULL &&
+          cssp->prev_entry_on_types_list->next == type_ptr) {
+        prev_tp = cssp->prev_entry_on_types_list;
+      } else {
+        tp = sp->types;
+        while (tp != type_ptr) {
+          prev_tp = tp;
+          tp = tp->next;
+          check_assertion_str2(tp != NULL, "move_to_end_of_types_list:",
+                               "cannot find type on types list");
+        }  /* while */
+      }  /* if */
       /* Link around the entry. */
       if (prev_tp == NULL) {
         sp->types = type_ptr->next;
       } else {
         prev_tp->next = type_ptr->next;
+      }  /* if */
+      if (type_ptr->next != NULL && is_immediate_class_type(type_ptr->next)) {
+        a_class_symbol_supplement_ptr
+                       next_cssp = symbol_supplement_for_class(type_ptr->next);
+        if (next_cssp != NULL) {
+          next_cssp->prev_entry_on_types_list = prev_tp;
+        }  /* if */
       }  /* if */
       /* Reenter it onto the end of the list. */
       pointers_block->last_type->next = type_ptr;

@@ -1,5 +1,10 @@
 Version 3.1
 
+10/30/02 Performance improvement in handling of type lists
+
+Some changes were made to accelerate the routine move_to_end_of_types_list
+in many cases.
+
 10/29/02 Carriage return in error output
 
 The source line displayed as part of a diagnostic message could include

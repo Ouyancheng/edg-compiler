@@ -2517,6 +2517,7 @@ state.
 #if RECORD_FORM_OF_NAME_REFERENCE
         cssp->name_qualifiers = NULL;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+        cssp->prev_entry_on_types_list = NULL;
 #if IA64_ABI && NEED_NAME_MANGLING
         cssp->discriminator = 0;
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
