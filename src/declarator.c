@@ -2413,18 +2413,48 @@ to FALSE if the entity being declared is not initializable.
           (void)simplify_curr_class_qualified_name();
         }  /* if */
       } else {
+        /* This must be a namespace-qualified name.  This is used when a
+           namespace member is redeclared (defined) outside its namespace.
+             namespace N { void f(); }
+             void N::f() { ... }
+           Strictly speaking, when the qualifier is used on a declarator that
+           appears within that namespace, it is an error -- though usually a
+           benign error:
+             namespace N { void N::f(); }       // error
+           (It is not benign, however, when the qualifier appears on the
+           declarator of a template declaration, because the entire declarator
+           is cached and rescanned during instantiations, at which point it is
+           possible that the qualifier's meaning will have changed.) */
         a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
-        if (ssep->kind == (a_scope_kind)sck_template_declaration) ssep--;
+        a_boolean                is_template_decl = FALSE;
+
+        if (ssep->kind == (a_scope_kind)sck_template_declaration) {
+          /* This is a template declaration. */
+          is_template_decl = TRUE;
+          ssep--;
+        }  /* if */
         if ((ssep->kind == (a_scope_kind)sck_namespace ||
              ssep->kind == (a_scope_kind)sck_namespace_extension) &&
             ssep->il_scope->variant.assoc_namespace ==
                         qualifier_namespace_ptr(locator_for_curr_id)) {
           /* The declarator name is qualified by the current namespace. */
-          pos_diagnostic(es_discretionary_error,
+          pos_diagnostic(is_template_decl ? es_error : es_discretionary_error,
                          ec_qualified_name_not_allowed, &pos_curr_token);
           /* Reset the fields in the locator to make it appear as if the
              qualifier were not present. */
           clear_qualifier_from_locator(&locator_for_curr_id);
+          if (is_template_decl) {
+            /* This is not a benign error in a template declaration, so
+               make this an error locator.  Otherwise, there are name-binding
+               bugs in this sort of case:
+                 namespace N {
+                   template <class T> void N::f(T);
+                   class N { ... }
+                   void f(long);         // Problems with this specialization
+                 }
+            */
+            set_to_named_error_locator(locator_for_curr_id);
+          }  /* if */
         } else if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
           /* Error has already been issued on the template declaration.
              Just skip over it here on the instantiation. */
