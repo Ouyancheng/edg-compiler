@@ -6292,20 +6292,33 @@ to indicate whether the class/struct/union is actually defined.
               } else if (is_union_type(class_type)) {
                 if (virtual_specified) {
                   /* Unions may not have virtual member functions. */
-                  pos_error(ec_virtual_function_in_union, &decl_start_pos);
+                  pos_error(ec_virtual_not_allowed, &decl_start_pos);
                   virtual_specified = FALSE;
                   suppress_pure_specifier_error = TRUE;
+                }  /* if */
+              } else if (is_constructor) {
+                if (virtual_specified) {
+                  /* Constructors may not be declared "virtual" (ARM 12.1). */
+                  pos_error(ec_virtual_not_allowed, &decl_start_pos);
+                  virtual_specified = FALSE;
+                }  /* if */
+                if (member_storage_class == (a_storage_class)sc_static) {
+                  /* Constructors may not be declared "static" (ARM 12.1). */
+                  pos_error(ec_static_not_allowed, &decl_start_pos);
+                  member_storage_class = (a_storage_class)sc_unspecified;
+                }  /* if */
+              } else if (is_destructor) {
+                if (member_storage_class == (a_storage_class)sc_static) {
+                  /* Destructors may not be declared "static" (ARM 12.1). */
+                  pos_error(ec_static_not_allowed, &decl_start_pos);
+                  member_storage_class = (a_storage_class)sc_unspecified;
                 }  /* if */
               } else if (virtual_specified && locator.is_operator_name &&
                          (locator.variant.opname == (an_opname_kind)onk_new ||
                           locator.variant.opname ==
                                                  (an_opname_kind)onk_delete)) {
                 /* Operators new and delete may not be declared virtual. */
-                pos_st_error(ec_virtual_new_or_delete_not_allowed,
-                             &decl_start_pos,
-                             (locator.variant.opname ==
-                                                  (an_opname_kind)onk_new) ?
-                               "new" : "delete");
+                pos_error(ec_virtual_not_allowed, &decl_start_pos);
                 virtual_specified = FALSE;
                 suppress_pure_specifier_error = TRUE;
               } else if (virtual_specified &&
@@ -6313,7 +6326,7 @@ to indicate whether the class/struct/union is actually defined.
                 /* Only nonstatic member functions may be specified as
                    virtual.  This is a kind of specifiers conflict, so just
                    issue the message once. */
-                pos_error(ec_bad_virtual_decl, &decl_start_pos);
+                pos_error(ec_virtual_static_not_allowed, &decl_start_pos);
                 virtual_specified = FALSE;
                 suppress_pure_specifier_error = TRUE;
               }  /* if */
@@ -6424,7 +6437,7 @@ to indicate whether the class/struct/union is actually defined.
             remove_stop_token(tok_comma);
             break;
           } else if (virtual_specified) {
-            pos_error(ec_bad_virtual_decl, &decl_start_pos);
+            pos_error(ec_virtual_not_allowed, &decl_start_pos);
             remove_stop_token(tok_comma);
             break;
           } else if (inline_specified) {
@@ -6474,11 +6487,10 @@ to indicate whether the class/struct/union is actually defined.
             if (member_storage_class == (a_storage_class)sc_static) {
               /* Static data member. */
               if (is_union_type(class_type)) {
-                pos_error(ec_static_member_in_union, &decl_start_pos);
-              }  /* if */
-              if (is_local_class) {
+                pos_error(ec_static_not_allowed, &decl_start_pos);
+              } else if (is_local_class) {
                 /* Static data members are not allowed in local classes. */
-                pos_error(ec_static_member_in_local_class, &decl_start_pos);
+                pos_error(ec_static_not_allowed, &decl_start_pos);
                 /* Set the type for this invalid static member to error_type.
                    This will assure "proper" (or unobtrusive) behavior later,
                    if a definition is encountered.  It also eliminates semi-

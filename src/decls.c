@@ -5615,12 +5615,15 @@ process_class_specifier:
                must be satisfied:  (1) we are inside a class definition;
                (2) the current token is the name of the class being defined
                (note that typedef names are not allowed); (3) the declaration
-               has no other specifiers besides "inline" (e.g., "const" is
-               not allowed); (4) the next token is a left parenthesis; (5)
-               the token following the left paren is a right paren or the
-               start of a formal parameter declaration. */
+               has no other specifiers besides "inline" (which is legal) and
+               "virtual" or "static" (which are not); (4) the next token is a
+               left parenthesis; (5) the token following the left paren is a
+               right paren or the start of a formal parameter declaration. */
             if (is_member_decl &&
-                num_specifiers == (is_inline ? 1 : 0) &&
+                num_specifiers == (((*output_flags & DSO_VIRTUAL) ? 1 : 0) +
+                                   ((*storage_class ==
+                                       (a_storage_class)sc_static) ? 1 : 0) +
+                                   (is_inline ? 1 : 0)) &&
                 has_name_of_curr_class(&locator_for_curr_id)) {
               /* The name is the same as that of a class being defined.  This
                  is treated as a constructor declaration if the next two
@@ -7559,7 +7562,7 @@ continue_with_declaration:
             }  /* if */
             /* "inline" and "static" are not allowed (ARM 3.4). */
             if (storage_class == (a_storage_class)sc_static) {
-              pos_error(ec_static_main, &declarator_pos);
+              pos_error(ec_static_not_allowed, &declarator_pos);
               storage_class =(a_storage_class)sc_unspecified;
             }  /* if */
             if (inline_specified) {

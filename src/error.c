@@ -941,9 +941,6 @@ error code.
     case ec_redefinition_not_allowed:
       m = "redefinition of this object is not allowed";
       break;
-    case ec_static_member_in_local_class:
-      m = "static data member is not allowed in a local class";
-      break;
     case ec_pointer_to_reference:
       m = "pointer to reference is not allowed";
       break;
@@ -1145,7 +1142,7 @@ error code.
     case ec_function_qualifier_not_allowed:
       m = "const or volatile qualifier on this function is not allowed";
       break;
-    case ec_bad_virtual_decl:
+    case ec_virtual_static_not_allowed:
       m = "only nonstatic member functions may be declared virtual";
       break;
     case ec_unqual_function_with_qual_object:
@@ -1335,11 +1332,11 @@ error code.
     case ec_missing_object_name:
       m = "declaration requires an object name";
       break;
-    case ec_virtual_function_in_union:
-      m = "virtual member function not allowed in a union";
+    case ec_virtual_not_allowed:
+      m = "\"virtual\" is not allowed";
       break;
-    case ec_static_member_in_union:
-      m = "static data member not allowed in a union";
+    case ec_static_not_allowed:
+      m = "\"static\" is not allowed";
       break;
     case ec_bound_function_cast_anachronism:
       m = "cast of bound function to normal function pointer (anachronism)";
@@ -1401,9 +1398,6 @@ error code.
     case ec_nonstd_array_cast:
       m = "cast to array type is nonstandard (treated as cast to %t)";
       break;
-    case ec_virtual_new_or_delete_not_allowed:
-      m = "operator %s() may not be declared virtual";
-      break;
     case ec_class_with_op_new_but_no_op_delete:
       m = "%n has an operator new() but no operator delete()";
       break;
@@ -1418,9 +1412,6 @@ error code.
       break;
     case ec_nonstd_member_function_redeclaration:
       m = "redeclaring a member function is nonstandard";
-      break;
-    case ec_static_main:
-      m = "\"main()\" may not be declared static";
       break;
     case ec_inline_main:
       m = "\"main()\" may not be declared inline";
