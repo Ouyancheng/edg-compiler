@@ -1,5 +1,15 @@
 Version 2.27
 
+10/20/94 IL CHANGE: representation of type qualification
+
+Since we have several clients who have added new type qualifiers (i.e.,
+beyond const and volatile), we have changed the IL representation of type
+qualification to a bit-vector -- see a_type_qualification (defined in
+il_def.h).  The variant fields in a_type have been changed (is_const and
+is_volatile are not longer used), and related changes have been made in
+the interface to make_qualified_type and the internals of several routines
+that deal with type qualification.
+
 10/20/94 Internal error after error on "?" operator with class rvalues
 
 An internal error no longer occurs after the (correct) error on compiling
