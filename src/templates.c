@@ -1421,6 +1421,7 @@ be NULL if the caller does not need to know whether a conversion was performed.
 
   db_enter(5, "matches_template_type");
   if (base_class_conv_needed != NULL) *base_class_conv_needed = NULL;
+  templ_type = skip_typedefs(templ_type);
   if (is_template_param_type(templ_type)) {
     if (is_qualified_type(templ_type)) {
       /* If the template parameter has any type qualifiers, the argument type
@@ -1566,7 +1567,6 @@ be NULL if the caller does not need to know whether a conversion was performed.
     a_type_kind	templ_type_kind;
     a_type_kind	type_kind;
     type = skip_typedefs(type);
-    templ_type = skip_typedefs(templ_type);
     templ_type_kind = templ_type->kind;
     type_kind = type->kind;
     /* Normalize the type kinds so that class and struct are treated as the

@@ -1,5 +1,12 @@
 Version 2.28
 
+1/28/95  Template function matching abort
+
+Under certain conditions, an abort could occur in matches_template_type 
+when the template parameter type from the template being considered
+as a potential match was under a typeref, as would occur if it
+were a cv-qualified type.
+
 1/27/95  Warning on call of pure virtual function
 
 A warning is now issued on a non-virtual call of a pure virtual function.
