@@ -17554,6 +17554,12 @@ otherwise they are removed.
   check_assertion_str2(f_template_info == NULL,
                        "wrapup_auto_instantiation_information:",
                        "template info file not closed");
+  /* Reset the template files names, which were either computed earlier or
+     were specified on the command-line.  This will cause them to be
+     recomputed if there are additional source files. */
+  template_info_file_name = NULL;
+  exported_template_file_name = NULL;
+  instantiation_request_file_name = NULL;
 }  /* wrapup_auto_instantiation_information */
 
 

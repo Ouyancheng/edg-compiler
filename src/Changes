@@ -1,5 +1,14 @@
 Version 3.4
 
+12/10/03 Incorrect template file names when using COMPILE_MULTIPLE_SOURCE_FILES
+	 
+When COMPILE_MULTIPLE_SOURCE_FILES is TRUE and when more than one source file
+name has been passed to the front end, the template file names used for
+the first source file are reused for subsequent source files; new names
+should be generated for each source file.  This affected the template
+information file name (.ti), the instantiation request file name (.ii), and
+the exported template file (.et).  Now fixed.
+
 12/10/03 eok_jdivide in C-generating back end, LOWER_COMPLEX FALSE
 
 When LOWER_COMPLEX is FALSE, C99 complex operations are not
