@@ -6440,7 +6440,7 @@ tricks.
   /* Add an implicit parameter to the destructor call with bits
      0x2 (whole object) + 0x1 (free storage, if deallocate is TRUE). */
   bit_mask = 2L;
-  if (deallocate) bit_mask |= 1L;
+  if (delete_routine == NULL) bit_mask |= 1L;
   ptr_node->next = node_for_integer_constant(bit_mask,
                                              (an_integer_kind)ik_int);
 #else /* IA64_ABI */

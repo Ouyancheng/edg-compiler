@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -288,6 +288,8 @@ extern int fileno(FILE *);
 /*lint -esym(765,add_cast_to_char_star)*/
 /*lint -esym(759,type_info_names)*/
 /*lint -esym(765,type_info_names)*/
+/*lint -esym(759,expr_list_has_side_effects)*/
+/*lint -esym(765,expr_list_has_side_effects)*/
 #endif /* IA64_ABI */
 #if !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
 /*lint -esym(769,ec_cfront_multiple_nested_types)*/
@@ -307,6 +309,6 @@ extern int fileno(FILE *);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
