@@ -5,9 +5,9 @@ Version 3.6
 In Microsoft mode, the front end now accepts (with a warning) multiple
 explicit instantiation directives for the same entity.  For example:
 
-  template<class T> struct S {};
-  template struct S<int>;
-  template struct S<int>;  // Accepted
+  template<class> void f() {}
+  template void f<int>();
+  template void f<int>();  // Accepted in Microsoft mode.
 
 3/1/05   Microsoft compatibility: dllimport/dllexport reworked
 
