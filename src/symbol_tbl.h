@@ -1649,6 +1649,9 @@ typedef struct a_symbol_header {
 			/* A list of symbols that are currently inactive
 			   but can be reached with some sort of qualification,
 			   i.e., members of structs/unions/classes. */
+  a_symbol_ptr	extern_symbols;
+			/* sk_extern_variable and/or sk_extern_routine symbols
+			   associated with this name. */
   unsigned int  any_nested_types_on_inactive_list:1;
 			/* TRUE if a symbol for a nested type has been
                            transferred to the inactive list.  This field is
@@ -2273,6 +2276,9 @@ extern a_symbol_ptr enter_symbol(a_symbol_kind    sym_kind,
 extern void reenter_symbol(a_symbol_ptr     symbol_to_reenter,
                            a_scope_depth    scope_depth,
                            a_boolean        suppress_error);
+
+extern a_symbol_ptr enter_extern_symbol(a_symbol_kind    sym_kind,
+                                        a_symbol_locator *locator);
 
 extern void reactivate_prototype_scope_symbols(
                                         a_symbol_ptr  prototype_scope_symbols);

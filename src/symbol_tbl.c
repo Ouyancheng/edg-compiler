@@ -2471,6 +2471,34 @@ indicated in the locator is supposed to be ignored.
 }  /* enter_symbol */
 
 
+a_symbol_ptr  enter_extern_symbol(a_symbol_kind    sym_kind,
+                                  a_symbol_locator *locator)
+/*
+Enter an sk_extern_variable or sk_extern_routine symbol into the symbol
+table.  Note that these symbols have their own list -- they are not
+actually put onto the active list, and they are not found during normal
+symbol lookup.
+*/
+{
+  a_symbol_header_ptr  header = locator->symbol_header;
+  a_symbol_ptr         sym;
+
+  db_enter(4, "enter_extern_symbol");
+  sym = alloc_symbol(sym_kind, header, &locator->source_position);
+  /* Just add the entry to the front of the list. */
+  sym->next = header->extern_symbols;
+  header->extern_symbols = sym;
+  /* Set namespace membership, if required. */
+  if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+    set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                             scope_stack[depth_innermost_namespace_scope].
+                                         il_scope->variant.assoc_namespace);
+  }  /* if */
+
+  db_exit();
+  return sym;
+}  /* enter_extern_symbol */
+
 void reenter_symbol(a_symbol_ptr     symbol_to_reenter,
 		    a_scope_depth    scope_depth,
                     a_boolean        suppress_error)
@@ -3161,7 +3189,8 @@ the latter will be NULL for variables.
 */
 {
   a_symbol_header_ptr hdr_ptr;
-  a_symbol_ptr        sym_ptr;
+  a_symbol_ptr        sym;
+  a_namespace_ptr     nsp = NULL;
 
   db_enter(4, "find_external_symbol");
   /* Start with the external locator the same as the normal locator.  This
@@ -3170,13 +3199,12 @@ the latter will be NULL for variables.
   if (is_error_locator(*ext_location)) {
     /* This is a compiler-generated error symbol (probably generated because
        an identifier was missing). */
-    sym_ptr = NULL;
+    sym = NULL;
   } else {
     hdr_ptr = ext_location->symbol_header;
     if (linkage != (a_name_linkage_kind)nlk_external) {
       /* Either static or C++ external name linkage.  We can use the name and
          locator as passed in. */
-      sym_ptr = hdr_ptr->symbol;
     } else {
       /* The identifier is external, with "ordinary C" linkage. */
 #if !TARG_CASE_SENSITIVE_EXTERNAL_NAMES
@@ -3216,7 +3244,8 @@ the latter will be NULL for variables.
         }  /* for */
 #endif /* TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME > 0 */
         /* Create a header/locator for the upcased/truncated name. */
-        sym_ptr = find_symbol(new_ident, count, ext_location);
+        (void)find_symbol(new_ident, count, ext_location);
+        hdr_ptr = ext_location->symbol_header;
       }
 #else /* TARG_CASE_SENSITIVE_EXTERNAL_NAMES */
 #if TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME > 0
@@ -3225,30 +3254,34 @@ the latter will be NULL for variables.
       if (hdr_ptr->identifier_length > TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME) {
         /* The name is overlong; the external version must be truncated.
            Create the header/locator by looking up the truncated name. */
-        sym_ptr = find_symbol(hdr_ptr->identifier,
-                              TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME,
-                              ext_location);
+        (void)find_symbol(hdr_ptr->identifier,
+                          TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME, ext_location);
+        hdr_ptr = ext_location->symbol_header;
       } else {
-#endif /* TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME > 0 */
         /* The name is not overlong; the external name will be the same as the 
            source name, and therefore the locator for the new symbol is the
            same as that for the current symbol. */
-        sym_ptr = hdr_ptr->symbol;
-#if TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME > 0
       }  /* if */
 #endif /* TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME > 0 */
 #endif /* !TARG_CASE_SENSITIVE_EXTERNAL_NAMES */
     }  /* if */
-    /* See if there is already an external symbol with this name. */
-    for (; sym_ptr != NULL; sym_ptr = sym_ptr->next) {
-      if (sym_ptr->kind == (a_symbol_kind)sk_extern_variable) {
+    /* See if there is already an external symbol with this name and belonging
+       to the appropriate namespace. */
+    if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+      nsp = scope_stack[depth_innermost_namespace_scope].
+                                           il_scope->variant.assoc_namespace;
+    }  /* if */
+    for (sym = hdr_ptr->extern_symbols; sym != NULL; sym = sym->next) {
+      if (sym->parent.namespace_ptr != nsp) {
+        /* Namespace does not match. */
+      } else if (sym->kind == (a_symbol_kind)sk_extern_variable) {
         break;
-      } else if (sym_ptr->kind == (a_symbol_kind)sk_extern_routine) {
+      } else if (sym->kind == (a_symbol_kind)sk_extern_routine) {
         /* A type compatibility check may also be required for routines. */
         if (rout_type == NULL || C_dialect != C_dialect_cplusplus) {
           /* A name match is enough. */
           break;
-        } else if (is_error_type(sym_ptr->variant.extern_symbol_descr->type)) {
+        } else if (is_error_type(sym->variant.extern_symbol_descr->type)) {
           /* Assume this is not a match.  Keep looking. */
         } else {
           /* In C++ the function's type signature is effectively part of the
@@ -3269,7 +3302,7 @@ the latter will be NULL for variables.
           */
           if (param_types_are_compatible(
                                  rout_type,
-                                 sym_ptr->variant.extern_symbol_descr->type,
+                                 sym->variant.extern_symbol_descr->type,
                                  TCF_NO_FLAGS)) {
             /* Param types are compatible, so we have a match.  */
             break;
@@ -3277,14 +3310,14 @@ the latter will be NULL for variables.
         }  /* if */
       }  /* if */
       /* No match found yet, so keep looking.  If none if found, a NULL
-         sym_ptr is returned to the caller. */
+         sym is returned to the caller. */
     }  /* for */
   }  /* if */
   /* Make the ext_location source position the same as the original source
      position. */
   ext_location->source_position = location->source_position;
   db_exit();
-  return sym_ptr;
+  return sym;
 }  /* find_external_symbol */
 
 
@@ -7213,13 +7246,10 @@ nsk_other name space are considered.  This routine is used for the unary
   a_boolean      must_be_tag = (options & IDL_MUST_BE_TAG);
 
 /* Local macro that tests whether or not a symbol is acceptable. */
-/* The name space test is needed when searching the file scope, so
-   sk_extern_variable and sk_extern_routine are not found.
-   symbol_may_precede_qualifier checks for a symbol that is a class,
+/* symbol_may_precede_qualifier checks for a symbol that is a class,
    class template, namespace, or template type parameter. */
 #define is_acceptable_symbol(sym)                                     \
   ((sym)->decl_scope == FILE_SCOPE_NUMBER &&                          \
-   name_space_for_symbol_kind[sym->kind] == nsk_other &&              \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(sym)) && 	     		      \
    (!must_be_tag || is_tag_symbol(sym)))
@@ -9021,6 +9051,8 @@ End a name scope by popping an entry off the scope stack.
     inside_local_class = scope_stack[depth_scope_stack].inside_local_class;
     depth_innermost_function_scope = scope_stack[depth_scope_stack].
                                             depth_innermost_function_scope;
+    depth_innermost_namespace_scope =
+               scope_stack[depth_scope_stack].depth_innermost_namespace_scope;
     innermost_function_scope =
                    (depth_innermost_function_scope != NO_SCOPE_DEPTH) ?
                          scope_stack[depth_innermost_function_scope].il_scope :
@@ -9049,7 +9081,6 @@ End a name scope by popping an entry off the scope stack.
     depth_of_innermost_scope_that_affects_access_control =
                                   ssep->next_scope_that_affects_access_control;
     curr_deferred_access_scope = ssep->saved_curr_deferred_access_scope;
-    depth_innermost_namespace_scope = ssep->depth_innermost_namespace_scope;
     expr_stack = ssep->saved_expr_stack;
   }  /* if */
   /* Maintain the current declarative level.  It is the same as 
