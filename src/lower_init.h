@@ -88,7 +88,6 @@ extern void init_conditional_flag_var(a_variable_ptr     cond_var,
 
 extern void lower_dynamic_init(a_dynamic_init_ptr       dip,
                                an_init_pos_descr_ptr    ipdp,
-                               a_boolean                is_expr_temporary,
                                an_expr_node_ptr         implied_arg_list,
                                an_expr_node_ptr         end_implied_arg_list,
                                a_constructor_init_ptr   ctor_init,

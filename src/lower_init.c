@@ -1987,7 +1987,6 @@ to the constructor-init entry.
   } else {
     /* Normal initialization. */
     lower_dynamic_init(con_ptr->variant.dynamic_init, ipdp,
-                       /*is_expr_temporary=*/FALSE,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        ctor_init, insert_location, &keep_dynamic_init);
 #if CHECKING
@@ -2619,7 +2618,6 @@ resulting expression.
 
 void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         an_init_pos_descr_ptr  ipdp,
-                        a_boolean              is_expr_temporary,
                         an_expr_node_ptr       implied_arg_list,
                         an_expr_node_ptr       end_implied_arg_list,
                         a_constructor_init_ptr ctor_init,
@@ -2632,10 +2630,6 @@ entire variable indicated in the dynamic initialization entry (that happens
 when the entry is pointed to by an stmk_init statement or when it appears
 on a file-scope dynamic_inits list).  ipdp can, however, indicate a part of
 an aggregate.
-
-If is_expr_temporary is TRUE, this dynamic initialization is pointed to by
-an enk_temp_init expression node, i.e., it initializes a temporary in
-an expression.
 
 If implied_arg_list and end_implied_arg_list are non-NULL, they point to
 the beginning and end of a list of implied arguments for a constructor
@@ -2681,9 +2675,7 @@ be kept, FALSE if it should be deleted.
   if (variable != NULL) {
     /* Whole-variable initialization. */
     /* Track the source position. */
-    /* Don't change the position for enk_temp_init temporaries; keep the
-       position of the surrounding expression. */
-    if (!is_expr_temporary) {
+    if (variable->source_corresp.decl_position.seq != 0) {
       code_pos_for_lowering = error_position =
                                         variable->source_corresp.decl_position;
     }  /* if */
@@ -3487,7 +3479,6 @@ The subtree of the node has not yet been lowered.
       }  /* if */
       /* Generate code for the initialization. */
       lower_dynamic_init(dip, &ipd,
-                         /*is_expr_temporary=*/FALSE,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL,
                          &insert_location, &keep_dynamic_init);
@@ -3726,7 +3717,6 @@ Do IL lowering of an enk_temp_init expression node.
      inserted before the (modified) original expression. */
   set_expr_insert_location(expr, &insert_location);
   lower_dynamic_init(dip, &ipd,
-                     /*is_expr_temporary=*/TRUE,
                      (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                      (a_constructor_init_ptr)NULL,
                      &insert_location, &keep_dynamic_init);
@@ -3956,7 +3946,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
         add_first_time_test(&insert_location);
       }  /* if */
     }  /* if */
-    lower_dynamic_init(dip, &ipd, /*is_expr_temporary=*/FALSE,
+    lower_dynamic_init(dip, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL,
                        &insert_location, &keep_dynamic_init);
@@ -4110,7 +4100,7 @@ created are inserted at *insert_location, and *insert_location is updated.
     develop_ctor_init_pos_descr(ctor_init, this_param_var, &ipd, &ipm);
   }  /* if */
   /* Generate the code to do the initialization. */
-  lower_dynamic_init(dip, &ipd, /*is_expr_temporary=*/FALSE,
+  lower_dynamic_init(dip, &ipd,
                      implied_arg_list, end_implied_arg_list, ctor_init,
                      insert_location, &keep_dynamic_init);
 #if CHECKING
@@ -5119,7 +5109,7 @@ Do lowering on the file-scope dynamic initializations list.
       }  /* if */
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
       set_var_init_pos_descr(dip->variable, &ipd);
-      lower_dynamic_init(dip, &ipd, /*is_expr_temporary=*/FALSE,
+      lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL,
                          eff_insert_location, &keep_dynamic_init);

@@ -1334,7 +1334,7 @@ Lower an enk_throw expression node.
     /* Erase the destructor call if there is one.  The runtime takes care
        of the destruction. */
     dip->destructor = NULL;
-    lower_dynamic_init(dip, &ipd, /*is_expr_temporary=*/FALSE,
+    lower_dynamic_init(dip, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL,
                        &insert_location, &keep_dynamic_init);
@@ -2405,7 +2405,6 @@ for the scope of the handler.
     set_block_start_insert_location(handler->statement, &insert_location);
     set_var_init_pos_descr(handler->parameter, &ipd);
     lower_dynamic_init(handler->dynamic_init, &ipd,
-                       /*is_expr_temporary=*/FALSE,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL,
                        &insert_location, &keep_dynamic_init);
