@@ -4550,6 +4550,25 @@ the member.
 }  /* change_nonreal_member_constant_operand_to_lvalue */
 
 
+static void restore_nonreal_member_constant_operand_to_rvalue(
+                                                           an_operand *operand)
+/*
+Undo what change_nonreal_member_constant_operand_to_lvalue did --
+change an lvalue for a nonreal member constant back to an rvalue
+for the value of the member.
+*/
+{
+  if (is_an_lvalue(operand) && is_constant_operand(operand)) {
+    a_constant_ptr con = &operand->variant.constant;
+    if (con->kind == (a_constant_repr_kind)ck_template_param &&
+        con->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_address) {
+      conv_lvalue_to_rvalue(operand);
+    }  /* if */
+  }  /* if */
+}  /* restore_nonreal_member_constant_operand_to_rvalue */
+
+
 static void revert_class_rvalue_to_lvalue_if_possible(an_operand *operand)
 /*
 If the given operand is a class rvalue, try to change it back to
@@ -6008,6 +6027,9 @@ eok_lvalue/eok_rvalue node is inserted only for the unexpected cases.
   check_assertion(is_template_dependent_context());
   orig_operand = *operand;
   do_generic_operand_transformations(operand);
+  if (!lvalue_expected) {
+    restore_nonreal_member_constant_operand_to_rvalue(operand);
+  }  /* if */
   if (is_an_lvalue(operand) || is_a_function_designator(operand)) {
     if (!lvalue_expected) {
       /* The operand is an lvalue, and the operation expects an rvalue.
@@ -6093,21 +6115,15 @@ in a number of ways, e.g., if the source operand is an lvalue.
        destination type is a type that is or might turn out to be a
        reference type, which means the type will be or might be used
        as an lvalue. */
-    if (is_an_lvalue(operand) && is_constant_operand(operand)) {
-      a_constant_ptr con = &operand->variant.constant;
-      if (con->kind == (a_constant_repr_kind)ck_template_param &&
-          con->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_address &&
-          /* Avoid problems with reference binding. */
-          !is_reference_cast) {
-        /* The constant is the address of a member of a nonreal class.
-           It won't matter whether this is considered an lvalue or an
-           rvalue as an operand to the generic cast, so convert it to
-           an rvalue because that allows folding of the cast and
-           preservation of the possibility that this expression can be
-           used as a constant expression. */
-        conv_lvalue_to_rvalue(operand);
-      }  /* if */
+    /* Avoid problems with reference binding. */
+    if (!is_reference_cast) {
+      /* If the constant is the address of a member of a nonreal class,
+         it won't matter whether this is considered an lvalue or an
+         rvalue as an operand to the generic cast, so convert it to
+         an rvalue because that allows folding of the cast and
+         preservation of the possibility that this expression can be
+         used as a constant expression. */
+      restore_nonreal_member_constant_operand_to_rvalue(operand);
     }  /* if */
   } else {
     /* The operand will definitely be used as an rvalue. Convert it if

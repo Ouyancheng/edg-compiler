@@ -1,5 +1,26 @@
 Version 3.5
 
+7/29/04  Initialized local variable not seen as constant in template
+
+In some cases, a local variable of integer type declared in a
+member function of a class template and initialized with an
+expression that uses a member from a dependent base class was
+not considered usable in an integral constant expression
+during the prototype instantiation of the template (in
+strict mode or with --parse_templates).  Now fixed.
+
+  template <typename T> struct Base {
+    enum E { e1 };
+  };
+  template <typename T> struct Derived : Base<T> {
+    using Base<T>::e1;
+    void foo() {
+      const bool b = (e1 == 0);
+      typedef bool x[b];  // Formerly an error in strict mode:
+                          // "constant value is not known" for b
+    }
+  };
+
 7/29/04  Microsoft compatibility: template friend lookup regression
 
 A change made in version 3.4 (see 3/10/04 Changes entry) introduced a
