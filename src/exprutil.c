@@ -2627,15 +2627,8 @@ up to the caller to do the cast if desired.
     internal_error(
             "type_after_bit_field_integral_promotion: bit-field not integral");
   }  /* if */
-  if (field->bit_size > (unsigned int)(
-#if LONG_LONG_ALLOWED
-                                       targ_sizeof_long_long
-#else /* !LONG_LONG_ALLOWED */
-                                       targ_sizeof_long
-#endif /* LONG_LONG_ALLOWED */
-                                                       *targ_char_bit)) {
-    /* This is supposedly prevented by the definition of
-       targ_max_bit_field_size. */
+  if (field->bit_size >
+               (unsigned int)(TARG_SIZEOF_LARGEST_INTEGER*targ_char_bit)) {
     internal_error(
                  "type_after_bit_field_integral_promotion: bit-field too big");
   }  /* if */

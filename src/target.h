@@ -272,15 +272,6 @@ EXTERN a_targ_size_t
 			/* Maximum offset of a base class.  Initialized to the
 			   default value but may be reset in target_init. */
 
-EXTERN a_targ_size_t
-		targ_max_bit_field_size
-#if VAR_INITIALIZERS
-                                        = TARG_MAX_BIT_FIELD_SIZE
-#endif /* VAR_INITIALIZERS */
-                                                                 ;
-			/* Maximum size of a bit field.  Initialized to the
-			   default value but reconfigurable. */
-
 EXTERN int	targ_bit_field_container_size
 #if VAR_INITIALIZERS
                                               = TARG_BIT_FIELD_CONTAINER_SIZE

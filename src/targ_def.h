@@ -437,23 +437,6 @@ match the target machine behavior on integer operations in C.
 #define TARG_NO_ERROR_ON_INTEGER_OVERFLOW TRUE
 #endif /* ifndef TARG_NO_ERROR_ON_INTEGER_OVERFLOW */
 
-/* Maximum size of a bit-field.  Must not be larger than the size of a
-   long (or a long long, if they are allowed). */
-#ifndef TARG_MAX_BIT_FIELD_SIZE
-#define TARG_MAX_BIT_FIELD_SIZE (TARG_SIZEOF_INT*TARG_CHAR_BIT)
-			/* Default value, used to initialize global variable
-			   targ_max_bit_field_size. */
-#endif /* ifndef TARG_MAX_BIT_FIELD_SIZE */
-
-/* Check the value: */
-#if TARG_MAX_BIT_FIELD_SIZE > (TARG_SIZEOF_LARGEST_INTEGER*TARG_CHAR_BIT)
- #error -- TARG_MAX_BIT_FIELD_SIZE is too big
-#endif /* TARG_MAX_BIT_FIELD_SIZE ... */
-/* Bit field size is represented as a byte (see a_field in il_def.h). */
-#if BYTE_MAX < TARG_MAX_BIT_FIELD_SIZE
- #error -- TARG_MAX_BIT_FIELD_SIZE is too big.
-#endif /* BYTE_MAX < TARG_MAX_BIT_FIELD_SIZE */
-
 /* If this flag is TRUE, bit-field allocation follows the conventions of
    Microsoft C/C++.  Note that TARG_MICROSOFT_BIT_FIELD_ALLOCATION is set
    independently of MICROSOFT_EXTENSIONS_ALLOWED -- the former has more to

@@ -7605,20 +7605,32 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
 #endif /* CHECKING */
     /* The size of the bit field must be non-negative and must not exceed
        the size of the underlying type (except for enums, whose type was
-       picked by the front end) or the target maximum bit field size. */
-    if (bit_field_type->variant.integer.enum_type) {
-      max_size_allowed = targ_max_bit_field_size;
+       picked by the front end). */
+    if (bit_field_type->variant.integer.enum_type && C_mode()) {
+      /* Bit fields may have an enum type in C as an extension.  If
+         enum_types_can_be_smaller_than_int is configured to TRUE, the
+         underlying type may be smaller than int, but to avoid incompatibility
+         with other compilers we allow larger bit fields.  Consider:
+           enum E { a,b,c };
+           struct S { enum E x : 16; };
+         No error will be issued even if sizeof(E) ends up being 1. */
+      max_size_allowed = targ_sizeof_int;
     } else {
       max_size_allowed = bit_field_type->size*targ_char_bit;
-      if (max_size_allowed > targ_max_bit_field_size) {
-        max_size_allowed = targ_max_bit_field_size;
-      }  /* if */
     }  /* if */
     bit_field_size = unsigned_value_of_integer_constant(&constant, &err);
     /* Note that one reason for err to be TRUE is if the constant is
        less than zero. */
     if (err || bit_field_size > max_size_allowed) {
-      error(ec_bad_bit_field_size);
+      if (C_mode()) {
+        /* An error in C. */
+        error(ec_bad_bit_field_size);
+      } else {
+        /* A warning in C++. */
+        char  buffer[8];
+        sprintf(buffer, "%d", max_size_allowed);
+        pos_st_warning(ec_extra_bits_ignored, &error_position, buffer);
+      }  /* if */
       bit_field_size = max_size_allowed;
     } else if (bit_field_size == 0) {
       /* The bit-field size is zero, so the field must be unnamed. */
