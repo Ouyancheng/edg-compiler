@@ -6405,7 +6405,7 @@ If C_output_file_name is NULL, use stdout for the output.
 }  /* generate_C_output_file */
 
 
-static c_gen_be_init(void)
+static void c_gen_be_init(void)
 /*
 Initialize for the C-generating back end.  These are initializations that
 must be redone for each generated C file.
