@@ -7297,6 +7297,7 @@ by things that will be in the file scope.
         if (class_scope != NULL) {
           if (local_entities_should_be_promoted(class_scope)) {
             promotion_needed = TRUE;
+            break;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -7307,6 +7308,7 @@ by things that will be in the file scope.
          block_scope = block_scope->next) {
       if (local_entities_should_be_promoted(block_scope)) {
         promotion_needed = TRUE;
+        break;
       }  /* if */
     }  /* for */
   }  /* if */
