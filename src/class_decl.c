@@ -3389,20 +3389,39 @@ special function kind (e.g., constructor, destructor), if any.
       }  /* if */
     } else if (locator->is_conversion_name) {
       /* User-defined conversion function. */
+      a_boolean  is_usable = TRUE;
+
       rtn->special_kind = (a_special_function_kind)sfk_conversion;
-      /* Create a conversion list entry.  This list provides an alternative
-         to traversing the entire symbols list for a class to find its
-         conversion functions. */
-      add_to_conversion_list(sym, cssp);
-      /* If the return type of the conversion is a class type or ref
-         class type, set a flag to mark it as target of a conversion. */
+      /* Check the target type of the conversion -- which is the return type
+         of rout_type. */
       tp = skip_typerefs(rtn->type->variant.routine.return_type);
       if (is_reference_type(tp)) {
-        tp = type_pointed_to(tp);
+        tp = skip_typerefs(type_pointed_to(tp));
       }  /* if */
-      if (is_class_struct_union_type(tp)) {
-        (symbol_supplement_for_class(skip_typerefs(tp)))->
-                                        target_of_conversion_function = TRUE;
+      if (tp == class_type) {
+        is_usable = FALSE;
+      } else if (is_class_struct_union_type(tp)) {
+        if (find_base_class_of(class_type, tp) != NULL) {
+          is_usable = FALSE;
+        } else {
+          /* The target type of the conversion is a class or ref-to-class
+             type: set a flag to mark it as target of a conversion. */
+          (symbol_supplement_for_class(tp))->
+                                   target_of_conversion_function = TRUE;
+        }  /* if */
+      }  /* if */
+      if (is_usable) {
+        /* Create a conversion list entry.  This list provides an alternative
+           to traversing the entire symbols list for a class to find its
+           conversion functions. */
+        add_to_conversion_list(sym, cssp);
+      } else {
+        /* Conversion to the same type or a reference to the same type or to
+           a base class or a reference to a base class "is never used" (WP
+           12.3.2; that is, it is not used in implicit or explicit conversions
+           but only in an explicit invocations of the function). */
+        pos_sy_warning(ec_conversion_function_not_usable,
+                       &locator->source_position, sym);
       }  /* if */
     } else {
       rtn->special_kind = spec_kind;
