@@ -1698,15 +1698,21 @@ than its type would normally require.
 			/* Default value, used to initialize global variable
 			   targ_minimum_pack_alignment. */
 #endif /* !defined(TARG_MINIMUM_PACK_ALIGNMENT) */
+
 #ifndef TARG_MAXIMUM_PACK_ALIGNMENT
+#if GNU_EXTENSIONS_ALLOWED
+#define TARG_MAXIMUM_PACK_ALIGNMENT 128
+#else /* !GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define TARG_MAXIMUM_PACK_ALIGNMENT 16
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define TARG_MAXIMUM_PACK_ALIGNMENT 8
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 			/* Default value, used to initialize global variable
 			   targ_maximum_pack_alignment. */
 #endif /* !defined(TARG_MAXIMUM_PACK_ALIGNMENT) */
+
 /*
 The maximum alignment the target can take advantage of.  (On some platforms
 very high pack alignments are allowed, but they do not provide any advantage

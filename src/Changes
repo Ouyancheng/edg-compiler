@@ -1,5 +1,13 @@
 Version 3.1
 
+10/10/02 Default maximum pack alignment increased in some configurations
+
+For configurations where GNU_EXTENSIONS_ALLOWED is TRUE, the default value
+of TARG_MAXIMUM_PACK_ALIGNMENT has been increased to 128 (previously it was
+8 or 16).  GNU compilers normally accept values up to 2^31, but increasing
+the maximum pack alignment of the EDG front end beyond 128 requires a change
+in the configuration of TYPE_FOR_TARG_ALIGNMENT.
+
 10/10/02 Spurious error on partial specialization with template
          template parameter
 
@@ -9,7 +17,7 @@ that has a template template parameter.  This occurred only under very
 unusual circumstances so there is no small example to illustrate the
 problem.  Now fixed.
 
-10/9/02  Typedef using operator name undiagnosed
+10/10/02  Typedef using operator name undiagnosed
 
 The front end now diagnoses attempts to diagnose a typedef name in
 namespace scope (it already issued an error when such typedefs appeared
