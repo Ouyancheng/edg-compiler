@@ -23,6 +23,9 @@ symbol_ref.h - Declarations related to symbol reference processing.
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */
+#ifndef TEMPLATES_H
+#include "templates.h"
+#endif /* ifndef TEMPLATES_H */
 
 EXTERN a_decl_sequence_number
 		decl_seq_counter;
@@ -156,6 +159,38 @@ extern void reference_to_implicitly_invoked_function
                                      a_boolean          honor_virtual,
                                      a_boolean          evaluated,
                                      a_boolean          suppress_access_check);
+
+
+/* This macro is just a stub.  It can be replaced in implementations that
+   need to track uses that require a complete class type.  (Note: the type
+   pointer tp that is passed in need not be a class type.) */
+#define record_complete_class_type_needed(tp)  /* Nothing */
+
+/* tp is a pointer to a class type.  This is a context in which a type is
+   required to be complete, so if tp is incomplete see if it is a template
+   class that can be instantiated.  Issuing a diagnostic on an incomplete
+   type is done separately.  Also (if appropriate for the implementation)
+   record that the class was required to be complete in the current context. */
+#define complete_class_type_is_needed(tp)                               \
+{                                                                       \
+  if (C_dialect == C_dialect_cplusplus) {                               \
+    instantiate_template_class(tp);                                     \
+  }  /* if */                                                           \
+  record_complete_class_type_needed(tp);                                \
+}
+
+/* This is a context in which a type is required to be complete, so if tp
+   is incomplete see if it is a template class that can be instantiated (or
+   array thereof).  Issuing a diagnostic on an incomplete type is done
+   separately.  Also (if appropriate for the implementation) record that the
+   class was required to be complete in the current context. */
+#define complete_type_is_needed(tp)                                     \
+{                                                                       \
+  if (C_dialect == C_dialect_cplusplus && is_incomplete_type(tp)) {     \
+    check_for_uninstantiated_template_class(tp);                        \
+  }  /* if */                                                           \
+  record_complete_class_type_needed(tp);                                \
+}
 
 #endif /* ifndef SYMBOL_REF_H */
 
