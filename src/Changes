@@ -1,5 +1,14 @@
 Version 2.29
 
+4/29/95  Support for __int32 and __int64 keywords (Microsoft extension)
+
+In Microsoft compatibility mode __int32 and __int64 are recognized as long
+as there are integer kinds with exactly the right number of bits to which
+they can be mapped.  For example, in some typical configurations __int32
+would always be accepted (it would map to ik_int or perhaps ik_long), but
+__int64 would be accepted only if LONG_LONG_ALLOWED were TRUE (in which
+case it would map to ik_long_long).
+
 4/28/95  Disambiguation of cast vs. expression
 
 Formerly, an expression of the form (A()) was always treated as a cast,
@@ -13,10 +22,10 @@ __declspec modifiers used in a context that requires a lookahead
 to disambiguate between a declaration and an expression could result
 in the loss of the __declspec modifiers.  This has been corrected.
 
-int main()
-{
-	int(*i)(__declspec(naked) int j);
-}
+  int main()
+  {
+    int(*i)(__declspec(naked) int j);
+  }
 
 4/28/95  Function redeclarations in Microsoft C mode
 
