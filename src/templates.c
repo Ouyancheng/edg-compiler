@@ -3181,13 +3181,16 @@ type.
 
 static
 void check_for_invalid_instantiation(a_type_ptr		*type,
-				     a_routine_ptr	templ_rout)
+				     a_routine_ptr	templ_rout,
+				     a_boolean		suppress_diagnostic)
 /*
 This routine is called after a declaration of a function has been rescanned
 to create a partial instantiation.  It determines whether all of the tokens
 of the declaration have been scanned, and whether the type created is
 a function type.  Errors are issued if either of these conditions is
-not satisfied.
+not satisfied unless suppress_diagnostic is TRUE.  If an error is
+detected a special error routine type is created.  This is done even if
+the diagnostic is suppressed.
 */
 {
   /* The rescan of the declaration should have produced a routine
@@ -3195,7 +3198,9 @@ not satisfied.
      is not a function type, issue a diagnostic. */
   if (curr_token != tok_end_of_source || *type == NULL ||
       !is_function_type(*type)) {
-    pos_error(ec_invalid_declaration, &pos_curr_token);
+    if (!suppress_diagnostic) {
+      pos_error(ec_invalid_declaration, &pos_curr_token);
+    }  /* if */
     /* The scanning of the declaration must produce a suitable function
        type.  Create a function type with a suitable number of parameters
        whose types are error types. */
@@ -3338,12 +3343,11 @@ with the original declaration of a template and is only present
     /* In the normal case the current token should be end_of_source,
        which was inserted to mark the end of the cached token stream.
        If necessary, keep flushing until end-of-source is found. */
-    if (!is_error_locator(*locator)) {
-      /* The rescan of the declaration should have produced a routine
-         type.  If not all of the tokens were used, or if the type created
-         is not a function type, issue a diagnostic. */
-      check_for_invalid_instantiation(type, templ_rout);
-    }  /* if */
+    /* The rescan of the declaration should have produced a routine
+       type.  If not all of the tokens were used, or if the type created
+       is not a function type, issue a diagnostic. */
+    check_for_invalid_instantiation(type, templ_rout,
+                                    is_error_locator(*locator));
     flush_past_token_cache_terminator();
   }  /* if */
 }  /* scan_template_declaration */
@@ -3366,7 +3370,8 @@ routine associated with the original declaration of a template.
   /* The rescan of the declaration should have produced a routine
      type.  If not all of the tokens were used, or if the type created
      is not a function type, issue a diagnostic. */
-  check_for_invalid_instantiation(&instance_type, templ_rout);
+  check_for_invalid_instantiation(&instance_type, templ_rout,
+                                  /*suppress_diagnostic=*/FALSE);
   /* In the normal case the current token should be end_of_source,
      which was inserted to mark the end of the cached token stream.
      If necessary, keep flushing until end-of-source is found. */
