@@ -2071,9 +2071,8 @@ entities.
             } else if (sym->defined) {
               /* Both are defined.  Check if sym corresponds to the "canonical
                  definition": the definition at the end of the correspondence
-                 chain, or if that is a nondefining declaration of the primary
-                 translation unit, the definition whose correspondence pointer
-                 points to the end of the correspondence chain. */
+                 chain or the only definition whose correspondence is the
+                 nondefining declaration at the end of the chain. */
               a_type_ptr  canonical_def = type_symbol_type(sym);
               first_tag_definition = FALSE;
               corresp_sym = sym;
@@ -2086,16 +2085,29 @@ entities.
                    translation unit). */
                 break;
               } else {
-                /* Check if a nondefining declaration was present in the
-                   primary translation unit. */
-                canonical_def = (a_type_ptr)
+                /* Check if the canonical definition candidate does indeed
+                   point to a nondefining declaration (which should be the
+                   root of the correspondence tree). */
+                a_type_ptr  next = (a_type_ptr)
                                  trans_unit_corresp_pointer_of(canonical_def);
-                if (!in_secondary_trans_unit(canonical_def) &&
-                    !type_has_definition(canonical_def)) {
-                  /* sym corresponded to the canonical definition since its
-                     type entry has a correspondence pointer that points to a
-                     nondefining declaration in the primary translation unit.
+                if (type_has_definition(next)) {
+                  /* next is the canonical definition. */
+                  corresp_sym = (a_symbol_ptr)next->source_corresp.assoc_info;
+                  canonical_def = next;
+                  check_assertion(!(in_secondary_trans_unit(next) &&
+                                    has_correspondence(next)) ||
+                                  (!has_correspondence(
+                                       trans_unit_corresp_pointer_of(next)) &&
+                                   !type_has_definition((a_type_ptr)
+                                       trans_unit_corresp_pointer_of(next))));
+                  break;
+                } else {
+                  /* canonical_def corresponds to the canonical definition
+                     since it has a correspondence pointer that points to a
+                     nondefining declaration that is the end of the chain.
                      */
+                  check_assertion(!(in_secondary_trans_unit(next) &&
+                                    has_correspondence(next)));
                   break;
                 }  /* if */
               }  /* if */
@@ -2107,6 +2119,8 @@ entities.
               corresp_sym = sym;
             } /* if */
           } else {
+            /* Not a class or enum type: no need to worry about a "canonical
+               definition" concept. */
             corresp_sym = sym;
             break;
           }  /* if */
@@ -2128,18 +2142,9 @@ entities.
        /* Record the correspondence. */
       a_type_ptr  corresp_type = type_symbol_type(corresp_sym);
       if (first_tag_definition) {
-        /* This is the first definition of a class or enum type.  Either make
-           it the root of the correspondence chain, or make it point to the
-           root if a root already exists in the primary translation unit. */
-        a_type_ptr  root = (a_type_ptr)canonical_il_entry_of(corresp_type);
-        if (in_secondary_trans_unit(root)) {
-          corresp_type = type;
-          type = root;
-          set_unvisited_trans_unit_corresp(type);
-          set_no_trans_unit_corresp(corresp_type);
-        } else {
-          corresp_type = root;
-        }  /* if */
+        /* This is the first definition of a class or enum type.  Make it
+           point to the root. */
+        corresp_type = (a_type_ptr)canonical_il_entry_of(corresp_type);
       }  /* if */
       record_trans_unit_corresp(type, corresp_type);
       if (corresp_sym->kind == (a_symbol_kind)sk_type) {
@@ -2531,18 +2536,17 @@ entities.
                 corresp_templ = candidate;
                 break;
               } else {
-                /* Check if a nondefining declaration was present in the
-                   primary translation unit. */
+                /* Check if the canonical definition candidate does indeed
+                   point to a nondefining declaration (which should be the
+                   root of the correspondence tree). */
                 a_template_ptr  cand_root = (a_template_ptr)
                                      trans_unit_corresp_pointer_of(candidate);
                 a_symbol_ptr    cand_root_sym = (a_symbol_ptr)
                                          cand_root->source_corresp.assoc_info;
-                if (!in_secondary_trans_unit(cand_root) &&
-                    !cand_root_sym->defined) {
+                if (!cand_root_sym->defined) {
                   /* candidate corresponds to the canonical definition since
                      it has a correspondence pointer that points to a
-                     nondefining declaration in the primary translation unit.
-                     */
+                     nondefining declaration. */
                   corresp_templ = candidate;
                   break;
                 }  /* if */
