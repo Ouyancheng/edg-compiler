@@ -1,5 +1,11 @@
 Version 2.38
 
+12/10/97  Microsoft compatibility: non-standard "anonymous struct" in C++
+
+In Microsoft C++ compatibility mode, a struct with a compiler-generated
+trivial default constructor was incorrectly seen to violate the requirement
+that an "anonymous struct" have no member functions.  Now fixed.
+
 12/10/97  IL lowering of exception handling: destructor pointer in typeinfo
 
 When IL lowering builds typeinfo variables, it sometimes puts in

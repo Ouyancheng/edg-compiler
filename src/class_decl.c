@@ -6983,6 +6983,8 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
             for (; sym != NULL; sym = sym->next_in_scope) {
               if (sym->kind == (a_symbol_kind)sk_field) {
                 /* Okay. */
+              } else if (sym == cssp->trivial_default_constructor) {
+                /* Okay. */
               } else {
                 decl_info->is_anonymous_union = FALSE;
                 break;
