@@ -1037,7 +1037,7 @@ except for casts to ambiguous or inaccessible base classes.
     /* If the new type is identical to the old type, just put the new type
        in the node (since it may be "identical" but not exactly the same). */
     (*node)->type = new_type;
-  } else if (is_error_type(new_type)) {
+  } else if (m_is_error_type(new_type)) {
     /* Casting to an error type changes the node to an error node. */
     *node = error_node();
   } else {
@@ -1281,7 +1281,7 @@ except for casts to ambiguous or inaccessible base classes.
   if (new_type != operand->type) {
     /* Save the operand's source position, etc. */
     orig_operand = *operand;
-    if (is_error_type(new_type)) {
+    if (m_is_error_type(new_type)) {
       conv_to_error_operand(operand);
     } else {
       switch (operand->kind) {
@@ -1765,7 +1765,7 @@ See section 3.2.1.5 of the standard.
 
   db_enter(4, "determine_arithmetic_conversions");
 
-  if (is_error_type(operand_1->type) || is_error_type(operand_2->type)) {
+  if (m_is_error_type(operand_1->type) || m_is_error_type(operand_2->type)) {
     result_type = error_type();
   } else {
     /* Get past possible typerefs. */
@@ -2062,7 +2062,7 @@ operands to the new type.  This is used for the operands of an operation,
 with the type probably determined by determine_arithmetic_conversions.
 */
 {
-  if (!is_error_type(type)) {
+  if (!m_is_error_type(type)) {
     if (operand_1->type != type) {
       /* Cast operand 1 to match the desired type. */
       cast_operand(type, operand_1, /*is_implicit_cast=*/TRUE);
@@ -4818,6 +4818,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
 */
 {
   a_boolean         param_is_reference;
+  a_boolean         param_is_class_type, arg_is_class_type;
   a_boolean         ref_type_qualifiers_dropped, ref_type_qualifiers_added;
   an_error_code     warning_suggested;
   a_base_class_ptr  bcp;
@@ -4939,7 +4940,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
      those that involve adding type qualifiers.  We therefore now have
      the essential underlying types for the rest of the checking. */
   arg_summary->base_param_type = param_type;
-  if (is_error_type(arg_type) || is_error_type(param_type)) {
+  if (m_is_error_type(arg_type) || m_is_error_type(param_type)) {
     /* An error type matches anything, but not very well. */
     arg_summary->match_level = aml_error;
     goto have_level;
@@ -5055,8 +5056,9 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     }  /* if */
     goto have_level;
   }  /* if */
-  if (is_class_struct_union_type(param_type) &&
-      is_class_struct_union_type(arg_type) &&
+  param_is_class_type = is_class_struct_union_type(param_type);
+  arg_is_class_type = is_class_struct_union_type(arg_type);
+  if (param_is_class_type && arg_is_class_type &&
       !ref_type_qualifiers_dropped &&
       (bcp = find_base_class_of(arg_type, param_type)) != NULL) {
     /* The argument is a derived class and the parameter is a base class,
@@ -5086,7 +5088,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
        in the ARM. */
     /* Note that we will not get here if arg_operand is NULL, that is, if we
        have an argument type but no argument operand. */
-    if (is_class_struct_union_type(param_type) &&
+    if (param_is_class_type &&
         (conversion_to_class_possible(arg_operand, param_type,
                                       &user_conversion, &ambiguous,
                                       (a_candidate_function_ptr *)NULL) ||
@@ -5096,7 +5098,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       set_arg_summary_for_user_conversion(arg_summary, param_type,
                                           &user_conversion);
       goto have_level;
-    } else if (is_class_struct_union_type(arg_type) &&
+    } else if (arg_is_class_type &&
                (conversion_from_class_possible(arg_operand, param_type,
                                                (a_builtin_type_kind_set)
                                                                       BTK_NONE,
@@ -5178,7 +5180,7 @@ class or a derived class thereof (except for error cases).
     this_param_class_type = skip_typerefs(this_param_base_type);
     /* Determine the effective selector type. */
     selector_type = bound_function_selector->type;
-    if (!is_error_type(selector_type)) {
+    if (!m_is_error_type(selector_type)) {
       if (selector_is_object_pointer) {
         selector_type = type_pointed_to(selector_type);
       }  /* if */
@@ -8639,7 +8641,7 @@ rewritten that case in terms of the equivalent pointer case).
   source_type = source_operand->type;
   /* Note that we do not drop type qualifiers on the source and destination
      types yet, because we may still be dealing with lvalue cases. */
-  if (is_error_type(source_type) || is_error_type(dest_type)) {
+  if (m_is_error_type(source_type) || m_is_error_type(dest_type)) {
     /* An error type is compatible with anything. */
     okay = TRUE;
     /* If the source is an lvalue, convert it to an rvalue. */
@@ -9442,7 +9444,7 @@ the value from a function.
   a_user_conv_descr user_conversion;
 
   orig_operand = *source_operand;
-  if (is_error_operand(source_operand) || is_error_type(required_type)) {
+  if (is_error_operand(source_operand) || m_is_error_type(required_type)) {
     /* Get rid of the error cases. */
   } else {
     routine_type = skip_typerefs(curr_routine->type);
