@@ -1454,14 +1454,16 @@ Interface to get_token that sets the caching_tokens flag.
 }  /* get_token_to_be_cached */
 
 
-void rescan_cached_tokens(a_token_cache *cache)
+static void f_rescan_cached_tokens(a_token_cache *cache,
+                                   a_boolean	  discard_curr_token)
 /*
 Put the tokens saved in *cache onto the rescan list so that they will be
 re-fetched by get_token.  On return, the current token is the first
 token of the cache.  The token that was the current token on entry is
 placed at the end of the rescan list so that it will be fetched again
 after the rescanned tokens have been gotten.  If there are no tokens
-in the cache, nothing is done.
+in the cache, nothing is done.  discard_curr_token is TRUE if the
+current token should be discarded, FALSE if the token should be retained.
 */
 {
   db_enter(4, "rescan_cached_tokens");
@@ -1478,7 +1480,7 @@ in the cache, nothing is done.
 #endif /* DEBUG */
   if (cache->first_token != NULL) {
     /* Add the current token to the cache, so that it is not lost. */
-    cache_curr_token(cache);
+    if (!discard_curr_token) cache_curr_token(cache);
     /* Put the tokens in the cache onto the front of the rescan list. */
     cache->last_token->next = cached_token_rescan_list;
     cached_token_rescan_list = cache->first_token;
@@ -1491,6 +1493,16 @@ in the cache, nothing is done.
     (void)get_token();
   }  /* if */
   db_exit();
+}  /* f_rescan_cached_tokens */
+
+
+void rescan_cached_tokens(a_token_cache *cache)
+/*
+Interface to f_rescan_cached_tokens that provides a default value for
+discard_curr_token.
+*/
+{
+  f_rescan_cached_tokens(cache, /*discard_curr_token=*/FALSE);
 }  /* rescan_cached_tokens */
 
 
@@ -6871,14 +6883,16 @@ the cache.
                 is_prototype_instantiation_context();
   /* Cache tokens up to the matching brace. */
   cache_if_exists_tokens(&cache);
-  /* Bypass the closing brace. */
-  if (curr_token != tok_end_of_source) (void)get_token();
   /* If keeping the tokens, rescan the from the cache; otherwise just
      discard the tokens. */
   if (keep_tokens) {
-    rescan_cached_tokens(&cache);
+    /* Rescan the tokens.  Discard the current token if it is not
+       tok_end_of_source. */
+    f_rescan_cached_tokens(&cache, curr_token != tok_end_of_source);
   } else {
     discard_token_cache(&cache);
+    /* Bypass the closing brace. */
+    if (curr_token != tok_end_of_source) (void)get_token();
   }  /* if */
 }  /* scan_microsoft_if_exists */
 
@@ -12615,6 +12629,7 @@ should be inserted before the current token.
   a_boolean		save_no_modifs_to_curr_source_line;
   char			*save_curr_source_line;
   char			*save_after_end_of_curr_source_line;
+  a_boolean		save_caching_tokens;
 
   if (token_insertion_buffer == NULL) {
     token_insertion_buffer = alloc_text_buffer(1024);
@@ -12637,6 +12652,7 @@ should be inserted before the current token.
   save_no_modifs_to_curr_source_line = no_modifs_to_curr_source_line;
   save_curr_source_line = curr_source_line;
   save_after_end_of_curr_source_line = after_end_of_curr_source_line;
+  save_caching_tokens = caching_tokens;
 
   /* Reset the information used by get_token to fetch the tokens from
      the string in the text buffer. */
@@ -12646,6 +12662,7 @@ should be inserted before the current token.
   curr_source_line = curr_char_loc;
   after_end_of_curr_source_line = &buffer->buffer[buffer->size];
   in_token_insertion_from_string = TRUE;
+  caching_tokens = TRUE;
   clear_token_cache(&cache, /*reusable=*/FALSE);
   /* Push a marker into the cached token rescan list indicating that
      tokens should be fetched from the insert string. */
@@ -12675,6 +12692,7 @@ should be inserted before the current token.
   no_modifs_to_curr_source_line = save_no_modifs_to_curr_source_line;
   in_token_insertion_from_string = FALSE;
   curr_source_line = save_curr_source_line;
+  caching_tokens = save_caching_tokens;
 
   /* Resume fetching tokens from the previous source. */
   pop_string_insert_cache_entry();

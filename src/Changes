@@ -1,5 +1,25 @@
 Version 3.1
 
+9/11/02  Microsoft compatibility: __if_exists problems
+
+Two problems with the processing of Microsoft __if_exists directives have
+been fixed:
+
+1. If two __if_exists/__if_not_exists directives appeared one after another
+with no intervening tokens, the second directive would actually be processed
+while caching the tokens of the first one, producing incorrect results.
+
+  __if_not_exists(func) {
+   int func() { return 0; }
+  }
+  //void dummy_decl();  // works if this is uncommented
+  __if_not_exists(func) {
+   int func() { return 0; }
+  }
+
+2. An __if_exists would not be processed correctly when inserted using
+   insert_string_into_token_stream.
+
 9/10/02  va_list put in std namespace when using built-in stdarg
 
 Formerly, when using the built-in stdarg processing, va_list was put
