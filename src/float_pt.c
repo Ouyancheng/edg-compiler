@@ -63,6 +63,9 @@ do nothing.
   float float_temp;
 
   if (!*err) {
+    /* Zero the memory so that comparisons are easy even if we do not
+       fill the whole area reserved for the float value. */
+    memzero((char *)float_value, sizeof(an_internal_float_value));
     if (kind == (a_float_kind)fk_float) {
       /* Convert to float and store a float in float_value. */
       /* Note that there is no check that the value fits in a float.  That
@@ -126,16 +129,12 @@ new_kind.  If there is an error, return *err TRUE.
     /* There is a change of size.  Fetch the old, convert, store the new. */
     temp = fetch_double(old_kind, old_value);
     store_double(temp, new_kind, new_value, err);
-  } else if (old_kind == (a_float_kind)fk_float) {
-    /* Old and new are both float, so just copy. */
-    /* Use memcpy to copy the value since the values might not be correctly
-       aligned. */
-    memcpy((char *)new_value, (char *)old_value, sizeof(float));
   } else {
-    /* Old and new are both double, so just copy. */
+    /* There is no change of size, so just copy. */
     /* Use memcpy to copy the value since the values might not be correctly
        aligned. */
-    memcpy((char *)new_value, (char *)old_value, sizeof(double));
+    memcpy((char *)new_value, (char *)old_value,
+           sizeof(an_internal_float_value));
   }  /* if */
 }  /* fp_change_kind */
 
