@@ -6706,8 +6706,8 @@ a_type_ptr microsoft_sized_integer_type(an_integer_kind kind)
 /*
 Make or find a type entry for a sized integer type (__intN) of the indicated
 kind, and return a pointer to it.  (This is for the case of a "__intN" type
-that Microsoft Visual C++ 6.0 (and later?) treats as a distinct built-in type
-as opposed to just a typedef for another integral type.)
+that Microsoft Visual C++ 6.0 treats as a distinct built-in type as opposed
+to just a typedef for another integral type.)
 */
 {
   a_type_ptr pit;
@@ -6784,9 +6784,8 @@ indicated kind, and return a pointer to it.  Keeping track of the difference
 between, e.g., a plain "__int32" and a "signed __int32" is necessary because
 the two may be handled differently for bit fields.  Should only be called for
 the kinds corresponding to __int16, __int32 and __int64.  (This is for the
-case of a "__intN" type that Microsoft Visual C++ 6.0 (and later?) treats as a
-distinct built-in type as opposed to just a typedef for another integral
-type.)
+case of a "__intN" type that Microsoft Visual C++ 6.0 treats as a distinct
+built-in type as opposed to just a typedef for another integral type.)
 */
 {
   a_type_ptr pit;
