@@ -1,5 +1,28 @@
 Version 3.4
 
+1/6/04   Wrong array element size in EH info for multi-dimensional array
+
+The information added by IL lowering to support exception handling
+(in the fully- or partially-lowered configurations) had an incorrect
+element size in the information for a multi-dimensional array.
+The size was the size of the first-level element (which is
+still an array), where it should be the size for the
+ultimate underlying element type.  The incorrect size meant
+that destructions of multi-dimensional arrays on exceptions
+would destroy the right number of elements but with the wrong
+spacing, which meant that most of the addresses passed to a
+destructor were incorrect.  Now fixed.
+
+  struct A {
+    int i;
+    A();
+    ~A();
+  };
+  int main() {
+    A x[2][3];
+    throw 0;  // Spacing on destructions of x was wrong.
+  }
+
 1/5/04   Spurious error on reinterpret_cast in template
 
 A spurious error was issued on a reinterpret_cast involving a

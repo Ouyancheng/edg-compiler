@@ -2992,7 +2992,7 @@ region description entry).
     elem_count = ipdp->array_element_count;
   } else if (is_array_type(entity_type)) {
     /* The entity is a whole array. */
-    elem_type = array_element_type(entity_type);
+    elem_type = underlying_array_element_type(entity_type);
     elem_count = num_array_elements(entity_type);
   } else {
     /* Not an array (see header comment above).  Use an element count of 0. */
