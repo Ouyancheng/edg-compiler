@@ -31,14 +31,9 @@ lower_eh.c -- IL lowering for exception handling constructs.
 #if DO_IL_LOWERING
 
 static a_cleanup_region_number
-		next_region_number;
+		next_avail_region_number;
 			/* Next available destructible object region number
 			   within the current function. */
-
-static a_cleanup_region_number
-		max_region_number;
-			/* NULL_EH_REGION_NUMBER (all 1 bits) truncated to fit
-			   in a TARG_REGION_NUMBER_INT_KIND integer. */
 
 static unsigned long
 		num_of_pending_class_typeinfo_vars;
@@ -50,13 +45,6 @@ static a_boolean
 		any_try_blocks_in_function;
 			/* TRUE if there are any try blocks in the current
 			   function. */
-
-static a_boolean
-		destructor_wrapper_region_set_fixup_needed;
-			/* If TRUE, there is an assignment to the current eh
-			   region number that needs to be emitted by calling
-			   set_region_on_prev_destructor_wrapper_cleanup.
-			   This is needed in destructor wrappers. */
 
 /*
 Pointer to the typeinfo struct type (used to represent runtime type
@@ -804,7 +792,7 @@ and return a pointer to it.  Its definition is
   struct region_descr {
     __vptp         dtor;    // Destructor or delete routine pointer
     unsigned short handle;  // Index of object in object address table
-    unsigned short prev;    // Previous cleanup region
+    unsigned short next;    // Next cleanup region
     unsigned char  flags;   // Bit flags
   };
 
@@ -826,8 +814,8 @@ and return a pointer to it.  Its definition is
     make_lowered_field("handle",
                        integer_type(TARG_VAR_HANDLE_INT_KIND),
                        &byte_offset, region_descr_type, &last_field);
-    /* field: unsigned short prev */
-    make_lowered_field("prev",
+    /* field: unsigned short next */
+    make_lowered_field("next",
                        integer_type(TARG_REGION_NUMBER_INT_KIND),
                        &byte_offset, region_descr_type, &last_field);
     /* field: unsigned char flags */
@@ -1425,18 +1413,19 @@ static a_constant_ptr
 		array_table_aggr_con;
 
 
-static a_targ_size_t array_table_entry(a_cleanup_action_ptr cap,
-                                       an_insert_location   *insert_location)
+static a_targ_size_t array_table_entry(an_init_pos_descr_ptr ipdp,
+                                       an_insert_location    *insert_location)
 /*
 Add an entry to the array table (creating the table and its associated
-variable if necessary) for the object described in cap.  Return the
-index number into the array table.  Also insert (at *insert_location)
-initialization code for the proper entry in the object address table.
-This routine can also be called for non-arrays in cases where an array
-table entry is needed to provide information not include in the region
-description entry (for example, for a new-allocation record in a case
-where the delete routine requires a second parameter giving the size;
-the size is not available in the region description entry).
+variable if necessary) for the object whose position is give by ipdp.
+Return the index number into the array table.  Also insert (at
+*insert_location) initialization code for the proper entry in the
+object address table.  This routine can also be called for non-arrays
+in cases where an array table entry is needed to provide information
+not included in the region description entry (for example, for a
+new-allocation record in a case where the delete routine requires a
+second parameter giving the size; the size is not available in the
+region description entry).
 */
 {
   a_targ_size_t    object_addr_index, entry_number;
@@ -1445,11 +1434,10 @@ the size is not available in the region description entry).
   a_type_ptr       elem_type;
 
   /* Allocate the proper entry in the object address table. */
-  check_assertion(is_object_cleanup_action(cap));
   object_addr_index = object_addr_table_index();
-  init_object_addr_table_entry(&cap->variant.object.init_pos_descr,
-                               object_addr_index, insert_location);
-  /* Make the variable if it has not yet been made. */
+  /* Insert code to put the array address into the object address table. */
+  init_object_addr_table_entry(ipdp, object_addr_index, insert_location);
+  /* Make the variable for the array table if it has not yet been made. */
   if (array_table_var == NULL) {
     /* The variable is an array whose elements have type array_descr. */
     array_table_var =
@@ -1467,16 +1455,16 @@ the size is not available in the region description entry).
   /* For the element size: note that the init_pos_descr has the type of an
      element, not of the whole array.  For non-arrays, the type is of
      course as expected. */
-  elem_type = type_from_init_pos_descr(&cap->variant.object.init_pos_descr);
+  elem_type = type_from_init_pos_descr(ipdp);
   elem_type = skip_typerefs(elem_type);
   elem_size_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_unsigned_integer_constant(elem_size_con, (unsigned long)elem_type->size,
                                 targ_size_t_int_kind);
   size_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  if (cap->variant.object.init_pos_descr.whole_array) {
+  if (ipdp->whole_array) {
     /* The entity really is an array.  Get the element count.  -1 indicates
        that the runtime should look up the number of elements in the array. */
-    elem_count = cap->variant.object.init_pos_descr.array_element_count;
+    elem_count = ipdp->array_element_count;
   } else {
     /* Not an array (see header comment above).  Use an element count of 0. */
     elem_count = 0;
@@ -1574,43 +1562,25 @@ if it has not already been made.  Return a pointer to it.
 }  /* make_caught_object_address_var */
 
 
-a_cleanup_region_number cleanup_region_number(a_cleanup_action_ptr cap)
+a_cleanup_region_number cleanup_region_number(a_dynamic_init_ptr dip)
 /*
-Return the cleanup region number from the indicated cleanup action entry.
-Check that the value will fit in the integral type used for region numbers,
-and issue an error if not.  If cap is NULL, return max_region_number
-(a truncated version of NULL_EH_REGION_NUMBER).
+Return the cleanup region number for the indicated initialization.
+If dip is NULL, return null_eh_region_number.
 */
 {
   a_cleanup_region_number region_number;
 
   /* Get the region number. */
-  if (cap != NULL) {
-    region_number = cap->region_number;
-    if (region_number >= max_region_number) {
-      /* The region number is too big. */
-      error(ec_integer_truncated);
-      region_number = max_region_number;
-    }  /* if */
+  if (dip != NULL) {
+    a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+    check_assertion(dedp != NULL);
+    region_number = dedp->region_number;
   } else {
-    /* There is no previous region.  Use a code (all 1 bits) that indicates
-       that. */
-    region_number = max_region_number;
+    /* There is no region.  Use a code that indicates that. */
+    region_number = null_eh_region_number;
   }  /* if */
   return region_number;
 }  /* cleanup_region_number */
-
-
-static a_cleanup_region_number context_cleanup_region_number(
-                                                         a_context_ptr context)
-/*
-Return the exception cleanup region number that applies at the (current)
-end of the indicated context, or max_region_number (a truncated version
-of NULL_EH_REGION_NUMBER) if none applies.
-*/
-{
-  return cleanup_region_number(context->exception_cleanup_actions);
-}  /* context_cleanup_region_number */
 
 
 static void assign_to_eh_curr_region(an_expr_node_ptr   node,
@@ -1627,92 +1597,23 @@ updated.
 }  /* assign_to_eh_curr_region */
 
 
-void assign_region_number_to_eh_curr_region(
-                                     a_cleanup_region_number region_number,
-                                     an_insert_location      *insert_location)
+void set_eh_curr_region(a_cleanup_region_number region_number,
+                        an_insert_location      *insert_location)
 /*
-Insert an assignment to set __eh_curr_region to the given region number.
-The assignment is inserted at *insert_location and *insert_location is
-updated.
+Set curr_cleanup_region_number (the destruction region that applies at
+the current location in the program) to region_number, and generate code at
+*insert_location to set the global variable __eh_curr_region to indicate
+the region number.
 */
 {
   an_expr_node_ptr node;
 
+  curr_cleanup_region_number = region_number;
   node = node_for_integer_constant((long)region_number,
                                    TARG_REGION_NUMBER_INT_KIND);
   assign_to_eh_curr_region(node, insert_location);
-}  /* assign_to_eh_curr_region */
-
-
-void set_eh_curr_region(a_context_ptr      context,
-                        an_insert_location *insert_location)
-/*
-Generate code at *insert_location to set the global variable __eh_curr_region
-to indicate the destruction region that applies to the last cleanup action
-on the list attached to the indicated context.  If there are no cleanup
-actions in that context, set __eh_curr_region to NULL_EH_REGION_NUMBER.
-*/
-{
-  a_cleanup_region_number region_number;
-
-  /* Get the region number of the last cleanup action in the region. */
-  region_number = context_cleanup_region_number(context);
-  /* Generate an assignment statement to set __eh_curr_region. */
-  assign_region_number_to_eh_curr_region(region_number, insert_location);
 }  /* set_eh_curr_region */
 
-
-void set_region_on_prev_destructor_wrapper_cleanup(
-                                         a_cleanup_action_ptr cap,
-                                         an_insert_location   *insert_location)
-/*
-Generate an assignment that sets the current region number at the previous
-destructor wrapper cleanup, to the region number of the cleanup action *cap.
-If cap is NULL, set the current region number to NULL_EH_REGION_NUMBER.
-On each call, insert a fixup assignment based on the position from the
-previous call and the cleanup action from the present call, and save the
-insert_location as the place to do the fixup insertion on the next call.
-*/
-{
-  static an_insert_location prev_insert_location;
-
-  if (destructor_wrapper_region_set_fixup_needed) {
-    /* This is not the first call to this routine in this function.  Set
-       the region number at the previous insert location. */
-    a_cleanup_region_number region_number = cleanup_region_number(cap);
-    /* Generate an assignment statement to set __eh_curr_region. */
-    assign_region_number_to_eh_curr_region(region_number,
-                                           &prev_insert_location);
-  }  /* if */
-  /* Remember the insert location for next time. */
-  prev_insert_location = *insert_location;
-  destructor_wrapper_region_set_fixup_needed = TRUE;
-}  /* set_region_on_prev_destructor_wrapper_cleanup */
-
-
-static void set_next_exception_cleanup(a_cleanup_action_ptr cap,
-                                       a_cleanup_action_ptr cap_next)
-/*
-Set the "next in exception cleanup order" pointer of cap to cap_next.
-cap_next is NULL to indicate that there is no next cleanup action.
-Also fix up the constant for the previous region in the definition of
-the region table entry for cap to point to the proper region.
-*/
-{
-  cap->next_exception_cleanup = cap_next;
-  /* The constant for the previous region number is the third one on the
-     list of constants in the region table entry.  Change it to link the
-     entry to the next one. */
-  set_unsigned_integer_value(&cap->region_table_entry->variant.aggregate.
-                             first_constant->next->next->variant.integer_value,
-                             (unsigned long)cleanup_region_number(cap_next));
-  /* If this entry is the new start of the list in exception cleanup order,
-     remember that. */
-  if (curr_context->exception_cleanup_actions == cap_next) {
-    curr_context->exception_cleanup_actions = cap;
-  }  /* if */
-}  /* set_next_exception_cleanup */
-  
 
 /*
 Pointer to the variable entry for the region table of a function (which
@@ -1723,6 +1624,29 @@ static a_variable_ptr
 		region_table_var;
 static a_constant_ptr
 		region_table_aggr_con;
+
+
+static void set_next_region_number(a_dynamic_init_ptr      dip,
+                                   a_cleanup_region_number next_region_number)
+/*
+Set the next region number of the indicated destruction to next_region_number.
+This routine is used to relink entries after they've been created.
+*/
+{
+  a_destructible_entity_descr_ptr
+                 dedp = dip->destructible_entity_descr;
+  a_constant_ptr aggr_con = dedp->region_table_entry;
+  /* The constant for the next region number is the third one on the
+     list of constants in the region table entry.
+     See add_region_table_entry. */
+  a_constant_ptr con = aggr_con->variant.aggregate.first_constant->next->next;
+  a_constant_ptr con_next = con->next;
+
+  set_unsigned_integer_constant(con, next_region_number,
+                                TARG_REGION_NUMBER_INT_KIND);
+  con->next = con_next;
+  dedp->next_region_number = next_region_number;
+}  /* set_next_region_number */
 
 
 static a_constant_ptr add_raw_region_table_entry(a_constant_ptr con_list,
@@ -1742,24 +1666,29 @@ a pointer to the aggregate constant created.
   (void)add_elem_to_array_var(aggr_con, region_table_var,
                               region_table_aggr_con);
   /* Increment the count of entries in the array. */
-  next_region_number++;
+  next_avail_region_number++;
+  if (next_avail_region_number >= null_eh_region_number) {
+    /* Too many regions. */
+    catastrophe(ec_program_too_large);
+  }  /* if */
   return aggr_con;
 }  /* add_raw_region_table_entry */
 
 
-static a_constant_ptr add_region_table_entry(a_routine_ptr dtor_routine,
-                                             a_targ_size_t handle_number,
-                                             unsigned long flags_value)
+static a_constant_ptr add_region_table_entry(
+                                         a_routine_ptr           dtor_routine,
+                                         a_targ_size_t           handle_number,
+                                         a_cleanup_region_number next_region,
+                                         unsigned long           flags_value)
 /*
 Create an entry in the exception cleanup region table.  dtor_routine,
-handle_number, and flags_value give the values for the various fields.
-The "previous region" constant is initialized with max_region_number
-with the expectation that in most cases it will be changed.
-Create an aggregate constant for the entry and add it to the initial
-value of region_table_var.  Return the address of the aggregate constant.
+handle_number, next_region, and flags_value give the values for the
+various fields.   Create an aggregate constant for the entry and add
+it to the initial value of region_table_var.  Return the address of
+the aggregate constant.
 */
 {
-  a_constant_ptr dtor_con, handle_con, prev_con, flags_con, aggr_con;
+  a_constant_ptr dtor_con, handle_con, next_con, flags_con, aggr_con;
   a_type_ptr     ptr_func_type;
 
   /* Make the aggregate constant for the entry in the region description
@@ -1767,7 +1696,7 @@ value of region_table_var.  Return the address of the aggregate constant.
        struct region_descr {
          __vptp         dtor;    // Destructor or delete routine pointer
          unsigned short handle;  // Index of object in object address table
-         unsigned short prev;    // Previous cleanup region
+         unsigned short next;    // Next cleanup region
          unsigned char  flags;   // Bit flags
        };
   */
@@ -1790,12 +1719,12 @@ value of region_table_var.  Return the address of the aggregate constant.
   set_unsigned_integer_constant_with_overflow_check(handle_con,
                                                     handle_number,
                                                     TARG_VAR_HANDLE_INT_KIND);
-  /* Make the previous region index number.  It's always initialized to
-     max_region_number here and will usually be adjusted later by calling
-     set_next_exception_cleanup.  NOTE that set_next_exception_cleanup
-     expects the constant to be the third one on the list. */
-  prev_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  set_unsigned_integer_constant(prev_con, max_region_number,
+  /* Make the next region index number.  It's always initialized to
+     null_eh_region_number here and will usually be adjusted later.  NOTE that
+     set_next_region_number_of_region_table_entry expects the constant
+     to be the third one on the list. */
+  next_con = alloc_constant((a_constant_repr_kind)ck_integer);
+  set_unsigned_integer_constant(next_con, next_region,
                                 TARG_REGION_NUMBER_INT_KIND);
   /* Make the flags constant. */
   flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
@@ -1803,77 +1732,73 @@ value of region_table_var.  Return the address of the aggregate constant.
                                 (an_integer_kind)ik_unsigned_char);
   /* Link the constants together to make an aggregate constant. */
   dtor_con->next = handle_con;
-  handle_con->next = prev_con;
-  prev_con->next = flags_con;
+  handle_con->next = next_con;
+  next_con->next = flags_con;
   /* Make the aggregate and add it as an element of the region table array. */
   aggr_con = add_raw_region_table_entry(dtor_con, flags_con);
   return aggr_con;
 }  /* add_region_table_entry */
 
 
-void make_region_table_entry(a_cleanup_action_ptr cap,
-                             an_insert_location   *insert_location)
+a_constant_ptr make_region_table_entry(
+                                  an_init_pos_descr_ptr   ipdp,
+                                  a_routine_ptr           routine,
+                                  a_boolean               is_delete_routine,
+                                  a_boolean               force_array_info,
+                                  a_variable_ptr          conditional_flag_var,
+                                  a_cleanup_region_number next_region_number,
+                                  a_cleanup_region_number *region_number,
+                                  an_insert_location      *insert_location)
 /*
 Add an entry to the region table (which describes destructible objects)
-for the object described in cap.  Create the region table variable if
-necessary.  Also insert (at *insert_location) initialization code for
-the proper entry in the object address table and code to set
-__eh_curr_region to the region number for the region created.  cap must
-already be linked on the list of cleanup actions so its "next"
-pointer can be examined.
+related to the object whose position is given by ipdp.  routine is
+a destructor (is_delete_routine == FALSE) or a delete routine
+(is_delete_routine == TRUE) to be called to do cleanup on the object.
+force_array_info is TRUE if array information should be put out for
+the object even if it is not an array (this is useful for the 2-argument
+delete case, to get the entity size).  conditional_flag_var, if non-NULL,
+points to a conditional flag variable that is non-zero to indicate that
+the destruction or deletion should be done.  next_region_number is
+the next-region-table-entry number to be placed in in the new entry.
+The region table entry number for the new entry is returned in
+*region_number.  Any initialization code required will be inserted at
+*insert_location.  The region table variable is created if necessary.
+Return a pointer to the aggregate constant for the region table entry.
 */
 {
-  a_boolean        need_array_info;
-  a_targ_size_t    handle_number, conditional_handle_number;
-  unsigned long    flags_value = 0;
-  a_cleanup_action_ptr
-                   next_cleanup, prev_cleanup;
-  a_routine_ptr    dtor_routine;
-  a_cleanup_region_number
-                   region_number_to_set;
+  a_targ_size_t  handle_number, conditional_handle_number;
+  unsigned long  flags_value = 0;
+  a_constant_ptr region_table_entry;
 
-  check_assertion(is_object_cleanup_action(cap));
   /* See if we need array information on the entity. */
-  need_array_info = FALSE;
-  if (cap->variant.object.init_pos_descr.whole_array) {
-    /* Yes, the entity is an array. */
-    need_array_info = TRUE;
-  } else if (cap->kind == (a_cleanup_action_kind)cak_new_allocation) {
-    /* For the new-allocation case, check for the 2-argument version of delete;
-       we need array information for that because we need the size of the
-       entity. */
-    a_routine_ptr    delete_routine = cap->variant.object.delete_routine;
-    a_param_type_ptr param1 = unlowered_param_type_list(delete_routine->type);
-    check_assertion(param1 != NULL);
-    if (param1->next != NULL) {
-      /* Two-argument form.  Need array information. */
-      need_array_info = TRUE;
-    }  /* if */
-  }  /* if */
-  if (need_array_info) {
+  if (ipdp->whole_array || force_array_info) {
     /* We need an entry in the array table. */
-    handle_number = array_table_entry(cap, insert_location);
+    handle_number = array_table_entry(ipdp, insert_location);
     /* Set the flag that indicates this object is an array. */
     flags_value |= RDF_ARRAY;
   } else {
     /* Non-array. */
     /* Allocate the proper entry in the object address table. */
     handle_number = object_addr_table_index();
-    init_object_addr_table_entry(&cap->variant.object.init_pos_descr,
-                                 handle_number, insert_location);
+    /* Put the entity address in the object address table. */
+    init_object_addr_table_entry(ipdp, handle_number, insert_location);
   }  /* if */
-  /* Assign a region number to this entry. */
-  region_number_to_set = cap->region_number = next_region_number;
-  if (cap->variant.object.conditional_flag_var != NULL) {
+  if (conditional_flag_var != NULL) {
     /* This entry needs a conditional flag.  More on this below. */
     an_init_pos_descr ipd;
-    set_var_init_pos_descr(cap->variant.object.conditional_flag_var, &ipd);
+    /* Allocate the proper entry in the object address table. */
     conditional_handle_number = object_addr_table_index();
-    /* The code to initialize the object address table entry is put out
-       by init_conditional_flag_var. */
+    /* Put the flag address in the object address table. */
+    set_var_init_pos_descr(conditional_flag_var, &ipd);
+    init_object_addr_table_entry(&ipd, conditional_handle_number,
+                                 insert_location);
     flags_value |= RDF_CONDITIONAL_FLAG;
   }  /* if */
-  /* Make the variable if it has not yet been made. */
+  if (is_delete_routine) {
+    /* Indicate the delete case. */
+    flags_value |= RDF_NEW_ALLOCATION;
+  }  /* if */
+  /* Make the variable for the region table if it has not yet been made. */
   if (region_table_var == NULL) {
     /* The variable is an array whose elements have type array_descr. */
     region_table_var =
@@ -1881,116 +1806,123 @@ pointer can be examined.
                                                    /*in_function_scope=*/TRUE,
                                                    &region_table_aggr_con);
   }  /* if */
-  /* Make the destructor pointer. */
-  if (cap->kind == (a_cleanup_action_kind)cak_new_allocation) {
-    /* For the new-allocation case, put the delete routine in the entry. */
-    dtor_routine = cap->variant.object.delete_routine;
-    flags_value |= RDF_NEW_ALLOCATION;
-  } else {
-    /* Normal case; put the destructor routine in the entry. */
-    dtor_routine = cap->variant.object.dynamic_init.destructor;
-  }  /* if */
-  /* Determine how this new region should be linked into the list of
-     cleanup actions in exception cleanup order. */
-  prev_cleanup = NULL;
-  if (cap->destructor_wrapper_cleanup ||
-      (cap->constructor_wrapper_cleanup &&
-       cap->kind == (a_cleanup_action_kind)cak_new_allocation)) {
-    /* This entry is for a destructor wrapper, or it's the new-allocation
-       entry for the allocation of "this" within a constructor.  The entry
-       goes at the end of the list.  Find the end of the list. */
-    prev_cleanup = curr_context->exception_cleanup_actions;
-    if (prev_cleanup != NULL) {
-      for (; prev_cleanup->next_exception_cleanup != NULL;
-           prev_cleanup = prev_cleanup->next_exception_cleanup) {}
-    }  /* if */
-    /* The next region after this one is null (for now; it will be fixed up
-       if there is another destructor wrapper cleanup region after this
-       one). */
-    next_cleanup = NULL;
-  } else {
-    /* Normal case (not destructor wrapper). */
-    next_cleanup = curr_context->exception_cleanup_actions;
-    /* If the new entry is for a constructor wrapper, put it behind any
-       non-constructor-wrapper entries. */
-    if (cap->constructor_wrapper_cleanup) {
-      for (; next_cleanup != NULL &&
-             !next_cleanup->constructor_wrapper_cleanup;
-           prev_cleanup = next_cleanup,
-             next_cleanup = next_cleanup->next_exception_cleanup) {}
-    } else if (cap->kind == (a_cleanup_action_kind)cak_destruction &&
-               cap->variant.object.is_expr_temporary &&
-               cap->variant.object.conditional_flag_var != NULL) {
-      /* The new entry is for an expression temporary (from an enk_temp_init)
-         and it uses a conditional flag.  Put it behind any similar entries
-         from the same full expression.  This is used to get around the
-         problem of undefined evaluation order -- enk_temp_init operations
-         that are unsequenced with respect to one another are given a
-         conditional flag and the current region number is always set to
-         the lowest region number in a sequence of entries all having
-         conditional flags.  The other region entries for the same full
-         expression will have higher region numbers but will follow the
-         first region on the list.  That eliminates the need to know
-         at the beginning of the expression how many regions are involved.
-         Note that there can also be cak_new_allocation entries from the
-         same full expression, and the new entry goes behind those too. */
-      a_boolean first_entry = TRUE;
-      for (; next_cleanup != NULL &&
-             is_object_cleanup_action(next_cleanup) &&
-             next_cleanup->variant.object.full_expression ==
-                                           cap->variant.object.full_expression;
-           prev_cleanup = next_cleanup,
-             next_cleanup = next_cleanup->next_exception_cleanup) {
-        if (next_cleanup->kind == (a_cleanup_action_kind)cak_destruction) {
-          if (first_entry) {
-            /* Remember the region number of the first entry as the one to
-               set __eh_curr_region to. */
-            region_number_to_set = next_cleanup->region_number;
-            first_entry = FALSE;
-          }  /* if */
-        }  /* if */
-      }  /* for */
-    }  /* if */
-  }  /* if */
-  /* If the new entry is being inserted behind some entries already on the
-     list, link the last of those entries to the new entry. */
-  if (prev_cleanup != NULL) {
-    check_assertion_str(prev_cleanup->next_exception_cleanup == next_cleanup,
-                        "make_region_table_entry: linkage problem");
-    /* Link the previous last entry to this new one. */
-    set_next_exception_cleanup(prev_cleanup, cap);
-  }  /* if */
+  /* Assign a region number to this entry. */
+  *region_number = next_avail_region_number;
   /* Make the region table entry. */
-  cap->region_table_entry = add_region_table_entry(dtor_routine, handle_number,
-                                                   flags_value);
-  /* Link the new entry to the proper next entry. */
-  set_next_exception_cleanup(cap, next_cleanup);
-  if (cap->variant.object.conditional_flag_var != NULL) {
+  region_table_entry = add_region_table_entry(routine,
+                                              handle_number,
+                                              next_region_number,
+                                              flags_value);
+  if (conditional_flag_var != NULL) {
     /* Make a second region table entry for the conditional flag. */
     (void)add_region_table_entry((a_routine_ptr)NULL,
                                  conditional_handle_number,
+                                 null_eh_region_number,
                                  (unsigned long)0);
   }  /* if */
-  /* Insert an assignment statement that sets the global variable
-     __eh_curr_region to the region number for this entry.  Don't do
-     this in destructor wrappers (the assignment gets done explicitly
-     at the right time).  Note that this is done after the object address
-     table is set. */
-  if (!cap->destructor_wrapper_cleanup) {
-    assign_region_number_to_eh_curr_region(region_number_to_set,
-                                           insert_location);
-  }  /* if */
+  return region_table_entry;
 }  /* make_region_table_entry */
 
 
-static a_constant_ptr clone_region_table_entry(a_constant_ptr aggr_con)
+void make_dtor_region_table_entry(a_dynamic_init_ptr dip,
+                                  an_insert_location *insert_location)
 /*
-Clone the region table entry pointed to by aggr_con.  Return a pointer to
-the aggregate constant for the clone.
+Add an entry to the region table (which describes destructible objects)
+for the initialization described by dip.  The entry will point to
+curr_cleanup_region_number as its next region.  The initialization
+must have an attached destructible entity description, and the
+conditional_flag_var field of that entry must be filled in if
+appropriate (if a conditional flag variable is indicated, a region
+table entry will be created for it as well).  Also insert (at
+*insert_location) initialization code for the proper entry/entries in
+the object address table.  The region table variable is created if
+necessary.
+*/
+{
+  a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+	
+  check_assertion(dedp != NULL);
+  dedp->next_region_number = curr_cleanup_region_number;
+  dedp->region_table_entry =
+                           make_region_table_entry(&dedp->init_pos_descr,
+                                                   dip->destructor,
+                                                   /*is_delete_routine=*/FALSE,
+                                                   /*force_array_info=*/FALSE,
+                                                   dedp->conditional_flag_var,
+                                                   curr_cleanup_region_number,
+                                                   &dedp->region_number,
+                                                   insert_location);
+  if (dip->unordered) {
+    /* If this initialization is part of a cluster of unordered entries,
+       use the same region table index for all of them.  That is, put all
+       of the cleanup actions on at one time, and leave it to the
+       conditional flags to decide which cleanup actually needs to be done. */
+    a_dynamic_init_ptr next_dip;
+    for (next_dip = dip->next_in_destruction_list;
+         next_dip != NULL && next_dip->unordered;
+         next_dip = next_dip->next_in_destruction_list) {
+      next_dip->destructible_entity_descr->region_number = dedp->region_number;
+    }  /* for */
+  }  /* if */
+}  /* make_dtor_region_table_entry */
+
+
+void make_delete_region_table_entry(
+                                  an_init_pos_descr_ptr   ipdp,
+                                  a_routine_ptr           delete_routine,
+                                  a_variable_ptr          conditional_flag_var,
+                                  a_cleanup_region_number *region_number,
+                                  an_insert_location      *insert_location)
+/*
+Add an entry to the region table (which describes destructible objects)
+for the cleanup required to delete a new-allocation.  ipdp describes
+the position of the space to be deleted.  delete_routine is the delete
+routine to be called.  conditional_flag_var, if non-NULL, points to a
+conditional flag variable that is non-zero to indicate that the
+deletion should be done.  The "next" field of the entry created is set
+to point to curr_cleanup_region_number.  The region table entry number
+for the new entry is returned in *region_number.  Also insert (at
+*insert_location) initialization code for the proper entry in the
+object address table.  The region table variable is created if
+necessary.
+*/
+{
+  a_boolean               force_array_info = FALSE;
+  a_param_type_ptr        param1;
+  a_cleanup_region_number next_region_number;
+
+  /* Check for the 2-argument version of delete; we need array information
+     for that because we need the size of the entity. */
+  param1 = unlowered_param_type_list(delete_routine->type);
+  check_assertion(param1 != NULL);
+  if (param1->next != NULL) {
+    /* Two-argument form.  Need array information. */
+    force_array_info = TRUE;
+  }  /* if */
+  next_region_number = curr_cleanup_region_number;
+  /* Make the region table entry. */
+  (void)make_region_table_entry(ipdp,
+                                delete_routine,
+                                /*is_delete_routine=*/TRUE,
+                                force_array_info,
+                                conditional_flag_var,
+                                next_region_number,
+                                region_number,
+                                insert_location);
+}  /* make_delete_region_table_entry */
+
+
+static a_constant_ptr clone_raw_region_table_entry(
+                                        a_constant_ptr          aggr_con,
+                                        a_cleanup_region_number *region_number)
+/*
+Clone the region table entry defined by the aggregate constant.  Return
+a pointer to the clone, and set *region_number to the region number for
+the clone.
 */
 {
   a_constant_ptr con_list, end_con_list, source_con, copy_con, clone_aggr_con;
-
+  
   /* Copy the list of constants. */
   con_list = end_con_list = NULL;
   for (source_con = aggr_con->variant.aggregate.first_constant;
@@ -2007,69 +1939,46 @@ the aggregate constant for the clone.
     end_con_list = copy_con;
   }  /* for */
   /* Add the cloned region table entry. */
+  *region_number = next_avail_region_number;
   clone_aggr_con = add_raw_region_table_entry(con_list, end_con_list);
   return clone_aggr_con;
-}  /* clone_region_table_entry */
+}  /* clone_raw_region_table_entry */
 
 
-static void clone_cleanup_action(a_cleanup_action_ptr cap,
-                                 a_cleanup_action_ptr removed_cap)
+void clone_region_table_entry_list(a_dynamic_init_ptr dip,
+                                   a_dynamic_init_ptr stop_before)
 /*
-Clone the region table entry associated with the cleanup action cap
-and update cap->region_number to indicate the clone.  Also clone entries
-for the cleanup actions on the next_exception_cleanup list starting at
-cap, stopping with the entry that precedes removed_cap.  The cloned
-entries are the same as the originals except for the clone of the entry
-that immediately precedes removed_cap; the clone in that case points to the
-entry after removed_cap on the list.
+Clone the region table entry associated with the initialization pointed to
+by dip, and all preceding initializations (following the
+next_in_destruction_list pointer), stopping before the entry stop_before.
 */
 {
-  a_cleanup_action_ptr next_cleanup;
-  a_constant_ptr       aggr_con;
+  a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+  a_cleanup_region_number         next_region_number, region_number;
+  a_constant_ptr                  orig_region_table_entry;
+  a_dynamic_init_ptr              next_dip = dip->next_in_destruction_list;
 
-  next_cleanup = cap->next_exception_cleanup;
-  if (next_cleanup == removed_cap) {
-    /* This is the entry that immediately precedes removed_cap; it gets
-       the entry beyond removed_cap as its next region. */
-    next_cleanup = removed_cap->next_exception_cleanup;
-  } else {
-    /* This is an entry earlier on the list.  Clone the rest of the list. */
-    clone_cleanup_action(cap->next_exception_cleanup, removed_cap);
+  if (next_dip != stop_before) {
+    /* This is not the last entry on the list, so do a recursive call to
+       clone the rest of the list. */
+    clone_region_table_entry_list(next_dip, stop_before);
   }  /* if */
-  /* Clone the region table entry. */
-  cap->region_number = next_region_number;
-  aggr_con = cap->region_table_entry;
-  cap->region_table_entry = clone_region_table_entry(aggr_con);
-  /* Link the new entry to the proper next entry.  This modifies the
-     "prev" constant in the aggregate just created for the clone. */
-  set_next_exception_cleanup(cap, next_cleanup);
-  check_assertion(is_object_cleanup_action(cap));
-  if (cap->variant.object.conditional_flag_var != NULL) {
+  /* Clone the entry and update the information in dedp (that is, the clone
+     becomes the official entry from now on). */
+  orig_region_table_entry = dedp->region_table_entry;
+  dedp->region_table_entry = clone_raw_region_table_entry(
+                                                       orig_region_table_entry,
+                                                       &dedp->region_number);
+  if (dedp->conditional_flag_var != NULL) {
     /* The entry has a conditional flag, so clone the region table entry for
        the conditional flag too. */
-    (void)clone_region_table_entry(aggr_con->next);
+    (void)clone_raw_region_table_entry(orig_region_table_entry->next,
+                                       &region_number);
   }  /* if */
-}  /* clone_cleanup_action */
-
-
-void remove_from_exception_cleanup_list(a_cleanup_action_ptr cap)
-/*
-Remove the indicated entry from the exception cleanup list for the
-current context (but not from the block-exit-order list; see
-remove_cleanup_action).
-*/
-{
-  if (cap == curr_context->exception_cleanup_actions) {
-    /* First entry on the list -- usual and easy case. */
-    curr_context->exception_cleanup_actions = cap->next_exception_cleanup;
-  } else {
-    /* There are some regions that point to this region in the cleanup
-       list.  They are still active, but they cannot point to this
-       region any longer.  Therefore, those entries are cloned in
-       versions that no longer link through the removed entry. */
-    clone_cleanup_action(curr_context->exception_cleanup_actions, cap);
-  }  /* if */
-}  /* remove_from_exception_cleanup_list */
+  /* Link the clone to the proper next entry. */
+  next_region_number = cleanup_region_number(next_dip);
+  set_next_region_number(dip, next_region_number);
+}  /* clone_region_table_entry_list */
 
 
 static a_variable_ptr make_exception_type_spec_array_var(
@@ -2280,7 +2189,9 @@ throw specification indicates that no types may be thrown.
 void add_eh_function_prologue(a_scope_ptr scope)
 /*
 Add any prologue needed for exception handling to the function whose scope
-is given by "scope".  Called only if exceptions are enabled.
+is given by "scope".  Called only if exceptions are enabled.  This is
+done late so that it gets inserted before any code inserted at the
+beginning of the function.
 */
 {
   a_routine_ptr             routine;
@@ -2300,9 +2211,6 @@ is given by "scope".  Called only if exceptions are enabled.
 
   /* The insert location for the statements is the start of the top block of
      the routine. */
-#if 0
-  /* This needs to be adjusted (main, ctor, dtor). */
-#endif /* 0 */
   set_block_start_insert_location(scope->assoc_block, &insert_location);
   /* See if the routine has a throw specification. */
   routine = scope->variant.routine.ptr;
@@ -2418,11 +2326,11 @@ is given by "scope".  Called only if exceptions are enabled.
                                       var_rvalue_expr(
                                                     make_eh_curr_region_var()),
                                       &insert_location);
-    /* Reset __eh_curr_region to max_region_number (all 1 bits). */
+    /* Reset __eh_curr_region to null_eh_region_number. */
     (void)insert_var_assignment_statement(eh_curr_region_var,
                                           (an_expr_operator_kind)eok_iassign,
                                           node_for_integer_constant(
-                                                 (long)max_region_number,
+                                                 (long)null_eh_region_number,
                                                  TARG_REGION_NUMBER_INT_KIND),
                                           &insert_location);
   }  /* if */
@@ -2486,11 +2394,6 @@ for the scope of the handler.
   a_boolean          keep_dynamic_init;
   an_insert_location insert_location;
 
-  /* Add a cleanup action that will clean up on exit from the catch. */
-  (void)add_cleanup_action(cak_catch,
-                           /*applies_on_block_exit=*/TRUE,
-                           /*applies_on_exception_cleanup=*/FALSE,
-                           (an_insert_location *)NULL);
   if (handler->parameter != NULL) {
     /* Insert code to initialize the catch clause parameter from the
        runtime variable __caught_object_address. */
@@ -2508,14 +2411,15 @@ for the scope of the handler.
 }  /* begin_catch_clause */
 
 
-void cleanup_on_exit_from_try_block(a_cleanup_action_ptr cap,
-                                    an_insert_location   *insert_location)
+void cleanup_on_exit_from_try_block(a_context_ptr      context_ptr,
+                                    an_insert_location *insert_location)
 /*
-Generate any cleanup required on exit from a try block.  cap points to
-the cleanup action entry.  Any code generated is inserted at insert_location.
+Generate any cleanup required on exit from a try block.  context_ptr points to
+the context for the try block.  Any code generated is inserted at
+*insert_location.
 */
 {
-  pop_eh_stack_frame(ehsek_function, cap->variant.try_frame, insert_location);
+  pop_eh_stack_frame(ehsek_function, context_ptr->try_frame, insert_location);
 }  /* cleanup_on_exit_from_try_block */
 
 
@@ -2572,28 +2476,22 @@ Do IL lowering for an stmk_try_block statement.
   long               catch_clause_number;
   a_constant         null_constant;
   a_context          context;
-  a_cleanup_action_ptr
-                     cap;
-  a_cleanup_region_number
-                     region_number;
   a_try_supplement_ptr
                      tsp = statement->variant.try_block;
   an_object_lifetime_ptr
-                     lifetime,
-                     saved_curr_object_lifetime = curr_object_lifetime;
+                     lifetime;
 
   any_try_blocks_in_function = TRUE;
   /* Change the stmk_try_block statement into a block, and prepare to insert
      code at the start of the block. */
-  turn_statement_into_block(statement);
-  set_block_start_insert_location(statement, &insert_location);
-  copy_of_orig_stmt = statement->variant.block.statements;
+  turn_statement_into_block(statement, &insert_location, &copy_of_orig_stmt);
   /* Generate code to push a stack frame. */
   push_eh_stack_frame(ehsek_try_block, &try_frame, &insert_location);
   /* Push a context around the try and catch.  This is needed to ensure that
      the "try" stack frame is popped on a goto out of the try or catch. */
-  push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
   lifetime = tsp->lifetime;
+  push_context(&context, (a_scope_ptr)NULL, lifetime);
+  curr_context->try_frame = try_frame;
   if (keep_object_lifetime_info_in_lowered_il) {
     /* To keep the object lifetime when the try block is eliminated,
        attach the object lifetime to the block generated above. */
@@ -2601,15 +2499,6 @@ Do IL lowering for an stmk_try_block statement.
     bind_object_lifetime(lifetime, iek_block,
                          (char *)statement->variant.block.extra_info);
   }  /* if */
-  /* Set curr_object_lifetime for the duration of the try block; it is
-     restored at the end. */
-  curr_object_lifetime = lifetime;
-  /* Add a cleanup action that will clean up on exit from the try block. */
-  cap = add_cleanup_action(cak_try_block,
-                           /*applies_on_block_exit=*/TRUE,
-                           /*applies_on_exception_cleanup=*/FALSE,
-                           (an_insert_location *)NULL);
-  cap->variant.try_frame = try_frame;
   stmt_to_try = tsp->statement;
   handlers = tsp->handlers;
   /* Lower the dependent statement of the try. */
@@ -2652,12 +2541,11 @@ Do IL lowering for an stmk_try_block statement.
                                                   ehse_variant_field),
                       ehse_try_field),
                     ehse_try_region_number_field);
-  region_number = context_cleanup_region_number(curr_context);
   (void)insert_assignment_statement(try_frame_region_number,
                                     (an_expr_operator_kind)eok_iassign,
                                     node_for_integer_constant(
-                                                  (long)region_number,
-                                                  TARG_REGION_NUMBER_INT_KIND),
+                                              (long)curr_cleanup_region_number,
+                                              TARG_REGION_NUMBER_INT_KIND),
                                     &insert_location);
   /* Change the original stmk_try_block statement into an if statement
      that looks like
@@ -2739,8 +2627,7 @@ Do IL lowering for an stmk_try_block statement.
   /* Generate code to pop the "try" frame off the stack after the rewritten
      "if" statement. */
   set_insert_location(copy_of_orig_stmt, &insert_location);
-  gen_cleanup_actions(curr_context, &insert_location);
-  curr_object_lifetime = saved_curr_object_lifetime;
+  gen_cleanup_actions(lifetime, &insert_location);
   /* Pop the context pushed around the try block. */
   pop_context();
 }  /* lower_try_block */
@@ -2757,9 +2644,9 @@ IL lowering for exceptions.
   array_table_aggr_con = NULL;
   region_table_var = NULL;
   region_table_aggr_con = NULL;
-  next_region_number = 0;
+  next_avail_region_number = 0;
   any_try_blocks_in_function = FALSE;
-  destructor_wrapper_region_set_fixup_needed = FALSE;
+  curr_cleanup_region_number = null_eh_region_number;
 }  /* eh_function_lower_init */
 
 
@@ -2838,6 +2725,7 @@ invocation of the front end.
   caught_object_address_var = NULL;
   setjmp_routine = NULL;
   free_thrown_object_routine = NULL;
+  /* Variables in lower_eh.h: */
   /* Make a constant for the maximum region number, also used for the
      null region number.  */
   { a_targ_size_t    size;
@@ -2847,9 +2735,9 @@ invocation of the front end.
     size = size * targ_char_bit; /* Not "*=" to avoid CodeCenter bug. */
     /* Make a bit mask "size" bits long. */
     if (size >= sizeof(unsigned long)*CHAR_BIT) {
-      max_region_number = ~(unsigned long)0;
+      null_eh_region_number = ~(unsigned long)0;
     } else {
-      max_region_number = ((unsigned long)1 << size) - 1;
+      null_eh_region_number = ((unsigned long)1 << size) - 1;
     }  /* if */
   }
 }  /* eh_lower_init */

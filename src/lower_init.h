@@ -68,8 +68,6 @@ extern void free_init_pos_modifier_list(an_init_pos_modifier_ptr ipmp);
 
 extern void clear_init_pos_descr(an_init_pos_descr_ptr ipdp);
 
-extern void free_init_pos_descr(an_init_pos_descr_ptr ipdp);
-
 extern void set_var_init_pos_descr(a_variable_ptr        var,
                                    an_init_pos_descr_ptr ipdp);
 
@@ -78,13 +76,20 @@ extern void set_var_indirect_init_pos_descr(a_variable_ptr        var,
 
 extern a_type_ptr type_from_init_pos_descr(an_init_pos_descr_ptr ipdp);
 
+extern a_destructible_entity_descr_ptr alloc_destructible_entity_descr(void);
+
+extern void free_destructible_entity_descr(
+                                         a_destructible_entity_descr_ptr dedp);
+
 extern an_expr_node_ptr make_init_entity_node(
                                        an_init_pos_descr_ptr ipdp,
                                        a_boolean             using_as_address,
                                        a_boolean             using_as_dest);
 
-extern void init_conditional_flag_var(a_cleanup_action_ptr cap,
-                                      an_insert_location   *insert_location);
+extern void init_conditional_flag_var(
+                               a_variable_ptr     cond_var,
+                               a_boolean          follows_an_exec_statement,
+                               an_insert_location *insert_location);
 
 extern void lower_dynamic_init(a_dynamic_init_ptr       dip,
                                an_init_pos_descr_ptr    ipdp,
@@ -94,13 +99,6 @@ extern void lower_dynamic_init(a_dynamic_init_ptr       dip,
                                a_constructor_init_ptr   ctor_init,
                                an_insert_location_ptr   insert_location,
                                a_boolean                *keep_dynamic_init);
-
-extern void lower_destructor_dynamic_init(
-                                   a_dynamic_init_ptr     dip,
-                                   an_init_pos_descr_ptr  ipdp,
-                                   a_cleanup_action_ptr   cap,
-                                   a_boolean              have_complete_object,
-                                   an_insert_location_ptr insert_location);
 
 extern void lower_new_delete(an_expr_node_ptr expr);
 
@@ -114,9 +112,8 @@ extern void make_dtor_implied_arg_list(a_routine_ptr    dtor_routine,
                                        a_boolean        have_complete_object,
                                        an_expr_node_ptr *implied_arg_node);
 
-extern void add_last_time_test(a_variable_ptr         test_var,
-                               an_insert_location_ptr insert_location,
-                               an_insert_location_ptr insert_location2);
+extern void gen_one_destruction(a_dynamic_init_ptr     dip,
+                                an_insert_location_ptr insert_location);
 
 extern void add_constructor_wrapper_code(a_scope_ptr        scope,
                                          an_insert_location *insert_location);

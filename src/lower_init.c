@@ -38,12 +38,14 @@ static a_routine_ptr
 		file_scope_init_routine;
 			/* Pointer to the file-scope initialization routine
 			   once created.  NULL until then. */
-static an_insert_location
-		dtor_wrapper_prologue_insert_location;
-			/* Insert location in the wrapper prologue for
-			   a destructor, used to insert exception handling
-			   setup code. */
 
+
+/* Declaration needed because of forward reference: */
+static void lower_destructor_dynamic_init(
+                                   a_dynamic_init_ptr     dip,
+                                   an_init_pos_descr_ptr  ipdp,
+                                   a_boolean              have_complete_object,
+                                   an_insert_location_ptr insert_location);
 
 /*
 Put the current code_pos_for_lowering into a statement, if the statement
@@ -670,7 +672,7 @@ static an_init_pos_modifier_ptr copy_init_pos_modifier_list(
 /*
 Make a copy of an initialization position modifier list and return a pointer
 to the copy.  This is used when a list made up of stack entries must be
-saved so that a cleanup action may be generated later.
+saved so that a destruction may be generated later.
 */
 {
   an_init_pos_modifier_ptr copy_ipmp;
@@ -689,59 +691,13 @@ void clear_init_pos_descr(an_init_pos_descr_ptr ipdp)
 Clear an initialization position description entry to default values.
 */
 {
-  ipdp->next                      = NULL;
   ipdp->variable                  = NULL;
   ipdp->indirect_through_variable = FALSE;
   ipdp->whole_array               = FALSE;
   ipdp->base_type                 = NULL;
   ipdp->modifiers                 = NULL;
   ipdp->array_element_count       = 0;
-  ipdp->conditional_flag_var      = NULL;
 }  /* clear_init_pos_descr */
-
-
-static an_init_pos_descr_ptr alloc_init_pos_descr_copy(
-                                             an_init_pos_descr_ptr source_ipdp)
-/*
-Allocate an initialization position description entry that is a copy of
-source_ipdp, and return a pointer to it.  The modifiers pointed to are
-copied as well.
-*/
-{
-  an_init_pos_descr_ptr ipdp;
-
-  if (avail_init_pos_descrs != NULL) {
-    /* Reuse a freed entry. */
-    ipdp = avail_init_pos_descrs;
-    avail_init_pos_descrs = ipdp->next;
-  } else {
-    /* Allocate a new entry. */
-    ipdp = (an_init_pos_descr_ptr)alloc_fe(sizeof(an_init_pos_descr));
-#if DEBUG
-    num_init_pos_descrs_allocated++;
-#endif /* DEBUG */
-  }  /* if */
-  /* Make a copy of the source entry. */
-  *ipdp = *source_ipdp;
-  if (ipdp->modifiers != NULL) {
-    ipdp->modifiers = copy_init_pos_modifier_list(source_ipdp->modifiers);
-  }  /* if */
-  return ipdp;
-}  /* alloc_init_pos_descr_copy */
-
-
-void free_init_pos_descr(an_init_pos_descr_ptr ipdp)
-/*
-Free an initialization position description entry by putting it on
-the available list.
-*/
-{
-  /* Free any attached modifiers. */
-  free_init_pos_modifier_list(ipdp->modifiers);
-  /* Put the entry on the available list. */
-  ipdp->next = avail_init_pos_descrs;
-  avail_init_pos_descrs = ipdp;
-}  /* free_init_pos_descr_list */
 
 
 void set_var_init_pos_descr(a_variable_ptr        var,
@@ -789,6 +745,22 @@ Return the type of the object indicated by ipdp.
 }  /* type_from_init_pos_descr */
 
 
+static void copy_init_pos_descr(an_init_pos_descr *source_ipdp,
+                                an_init_pos_descr *dest_ipdp)
+/*
+Copy an initialization position description from source_ipdp to dest_ipdp.
+If there are modifiers, copy them too.  This is usually necessary because the
+source description and its modifiers are in the stack.
+*/
+{
+  *dest_ipdp = *source_ipdp;
+  if (source_ipdp->modifiers != NULL) {
+    /* Copy the modifiers. */
+    dest_ipdp->modifiers = copy_init_pos_modifier_list(source_ipdp->modifiers);
+  }  /* if */
+}  /* copy_init_pos_descr */
+
+
 static a_boolean init_pos_is_static(an_init_pos_descr_ptr ipdp)
 /*
 Return TRUE if the indicated initialization position is for a static
@@ -799,6 +771,49 @@ variable (or a part of one).
                     has_static_storage_duration(ipdp->variable->storage_class);
   return is_for_static_var;
 }  /* init_pos_is_static */
+
+
+a_destructible_entity_descr_ptr alloc_destructible_entity_descr(void)
+/*
+Allocate a destructible entity description, set its fields to default values,
+and return a pointer to it.
+*/
+{
+  a_destructible_entity_descr_ptr dedp;
+
+  if (avail_destructible_entity_descrs != NULL) {
+    /* Reuse a freed entry. */
+    dedp = avail_destructible_entity_descrs;
+    avail_destructible_entity_descrs = dedp->next;
+  } else {
+    /* Allocate a new entry. */
+    dedp = (a_destructible_entity_descr_ptr)
+                                 alloc_fe(sizeof(a_destructible_entity_descr));
+#if DEBUG
+    num_destructible_entity_descrs_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  dedp->next = NULL;
+  clear_init_pos_descr(&dedp->init_pos_descr);
+  dedp->conditional_flag_var = NULL;
+  dedp->region_number = null_eh_region_number;
+  dedp->next_region_number = null_eh_region_number;
+  dedp->region_table_entry = NULL;
+  return dedp;
+}  /* alloc_destructible_entity_descr_copy */
+
+
+void free_destructible_entity_descr(a_destructible_entity_descr_ptr dedp)
+/*
+Free a destructible entity description by putting it on the available list.
+*/
+{
+  /* Free any attached modifiers. */
+  free_init_pos_modifier_list(dedp->init_pos_descr.modifiers);
+  /* Put the entry on the available list. */
+  dedp->next = avail_destructible_entity_descrs;
+  avail_destructible_entity_descrs = dedp;
+}  /* free_destructible_entity_descr_list */
 
 
 static void modify_ctor_init_pos_descr(a_constructor_init_ptr   ctor_init,
@@ -1537,39 +1552,61 @@ A pointer to the expression created is returned.
 
 
 /*
+Structure used by push_generated_routine_context/pop_generated_routine_context
+to save/restore state information.
+*/
+typedef struct a_generated_routine_context {
+  a_context	context;
+  a_memory_region_number
+		region_to_switch_back_to;
+  a_scope_depth	saved_depth_innermost_function_scope;
+  a_cleanup_region_number
+		saved_curr_cleanup_region_number;
+} a_generated_routine_context;
+
+
+void push_generated_routine_context(a_scope_ptr                 scope,
+                                    a_memory_region_number      region_number,
+                                    a_generated_routine_context *grcontext)
+/*
 IL lowering is fabricating a routine that didn't exist in the source program.
 Push appropriate context for the generation.  scope is the function scope
 for the routine; region number is the memory region number for the routine.
-The calling routine must also provide local variables
-  context
-  region_to_switch_back_to
-  saved_curr_object_lifetime
-  saved_depth_innermost_function_scope
+grcontext is a local variable used to save state for later restoration.
 */
-#define push_generated_routine_context(scope, region_number)          \
-{ region_to_switch_back_to = curr_il_region_number;                   \
-  switch_il_region(region_number);                                    \
-  saved_depth_innermost_function_scope = depth_innermost_function_scope; \
-  depth_innermost_function_scope = NO_SCOPE_DEPTH;                    \
-  saved_curr_object_lifetime = curr_object_lifetime;                  \
-  curr_object_lifetime = il_header.primary_scope->lifetime;           \
-  push_object_lifetime(iek_scope, (char *)(scope),                    \
-                       (an_object_lifetime_kind)olk_block);           \
-  push_context(&context, (scope), /*subscope_region=*/FALSE);         \
+{
+  grcontext->region_to_switch_back_to = curr_il_region_number;
+  switch_il_region(region_number);
+  grcontext->saved_depth_innermost_function_scope =
+                                                depth_innermost_function_scope;
+  depth_innermost_function_scope = NO_SCOPE_DEPTH;
+  grcontext->saved_curr_cleanup_region_number = curr_cleanup_region_number;
+  push_context(&grcontext->context, scope, (an_object_lifetime_ptr)NULL);
+  curr_object_lifetime = il_header.primary_scope->lifetime;
+  push_object_lifetime(iek_scope, (char *)(scope),
+                       (an_object_lifetime_kind)olk_block);
+  curr_context->lifetime = curr_object_lifetime;
 }  /* push_generated_routine_context */
 
 
+void pop_generated_routine_context(a_scope_ptr                 scope,
+                                   a_memory_region_number      region_number,
+                                   a_generated_routine_context *grcontext)
 /*
-Pop macro corresponding to push_generated_routine_context.
+Pop function corresponding to push_generated_routine_context.
 */
-#define pop_generated_routine_context(scope, region_number)           \
-{ pop_context();                                                      \
-  pop_object_lifetime();                                              \
-  clean_up_all_object_lifetimes(scope);                               \
-  curr_object_lifetime = saved_curr_object_lifetime;                  \
-  depth_innermost_function_scope = saved_depth_innermost_function_scope; \
-  done_with_memory_region(region_number);                             \
-  switch_il_region(region_to_switch_back_to);                         \
+{
+  pop_object_lifetime();
+  /* Note that the pop_context call restore the proper previous value of
+     curr_object_lifetime, ignoring the value established after the
+     pop_object_lifetime call. */
+  pop_context();
+  clean_up_all_object_lifetimes(scope);
+  curr_cleanup_region_number = grcontext->saved_curr_cleanup_region_number;
+  depth_innermost_function_scope =
+                               grcontext->saved_depth_innermost_function_scope;
+  done_with_memory_region(region_number);
+  switch_il_region(grcontext->region_to_switch_back_to);
 }  /* pop_generated_routine_context */
 
 
@@ -1590,8 +1627,6 @@ that can be called with just a "this" parameter and a source pointer.
 The routine must have a "this" parameter.
 */
 {
-  a_memory_region_number
-                   region_to_switch_back_to;
   an_expr_node_ptr implied_arg_list = NULL, end_implied_arg_list = NULL;
   an_expr_node_ptr call_node;
   a_routine_ptr    new_routine;
@@ -1608,10 +1643,8 @@ The routine must have a "this" parameter.
   a_variable_ptr   this_param_var, param_var, last_param_var;
   an_expr_node_ptr this_arg, pass_through_arg;
   a_statement_ptr  call_stmt, return_stmt;
-  a_context        context;
-  an_object_lifetime_ptr
-                   saved_curr_object_lifetime;
-  a_scope_depth    saved_depth_innermost_function_scope;
+  a_generated_routine_context
+                   grcontext;
 
   /* Determine any implicit arguments required for a constructor or
      destructor. */
@@ -1656,7 +1689,8 @@ The routine must have a "this" parameter.
     new_routine_scope = make_routine_definition(new_routine,
                                                 /*make_return=*/FALSE,
                                                 &new_routine_il_region);
-    push_generated_routine_context(new_routine_scope, new_routine_il_region);
+    push_generated_routine_context(new_routine_scope, new_routine_il_region,
+                                   &grcontext);
     /* Make a parameter variable for the "this" parameter (again, in lowered
        form as a normal parameter). */
     new_routine_scope->variant.routine.parameters = this_param_var =
@@ -1741,7 +1775,8 @@ The routine must have a "this" parameter.
     return_stmt = alloc_statement((a_statement_kind)stmk_return);
     return_stmt->expr = call_node;
     insert_statement(return_stmt, &insert_location);
-    pop_generated_routine_context(new_routine_scope, new_routine_il_region);
+    pop_generated_routine_context(new_routine_scope, new_routine_il_region,
+                                  &grcontext);
     routine = new_routine;
   }  /* if */
   return routine;
@@ -1797,67 +1832,126 @@ in default_version_of_routine).
 
 
 static void add_destructor_call(a_routine_ptr          dtor_routine,
-                                an_expr_node_ptr       entity_node,
+                                an_init_pos_descr_ptr  ipdp,
                                 a_boolean              have_complete_object,
                                 an_insert_location_ptr insert_location)
 /*
-Make a call statement that invokes the destructor dtor_routine.
-entity_node is an expression that gives the address of the entity to be
-destroyed.  have_complete_object is TRUE if the entity is a complete
-object.  Insert the statement at *insert_location and update
-*insert_location.  The call generated is not a virtual call even if
-the destructor is virtual.
+Make a call statement that invokes the destructor dtor_routine for
+the entity whose position is given by ipdp.  If the entity is a whole array,
+destroy all the elements.  have_complete_object is TRUE if the
+entity is a complete object.  Insert the statement at *insert_location
+and update *insert_location.  The call generated is not a virtual call
+even if the destructor is virtual.  Note: this routine takes separate
+dtor_routine and ipdp parameters instead of a dynamic init pointer
+because of the make_destruction_routine case.
 */
 {
+  an_expr_node_ptr entity_node, call_node;
   a_statement_ptr  call_stmt;
   an_expr_node_ptr implied_arg_node;
   a_type_ptr       this_param_type;
 
-  /* Cast the entity node pointer to the right type.  It might be a pointer
-     to the class type-as-subobject. */
-  this_param_type = implicit_this_param_type_of(dtor_routine->type);
-  entity_node = add_cast_if_necessary(entity_node,
-                                      f_skip_typerefs(this_param_type));
-  /* If the destructor is for a class that has virtual base classes, add
-     the implicit complete-object argument. */
-  make_dtor_implied_arg_list(dtor_routine, have_complete_object,
-                             &implied_arg_node);
-  entity_node->next = implied_arg_node;
-  /* Make an expression statement containing the call expression. */
-  call_stmt = make_call_statement(dtor_routine, entity_node);
+  /* Make an expression for the object to be destroyed. */
+  entity_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
+                                      /*using_as_dest=*/FALSE);
+  /* Generate code for the destructor call. */
+  if (ipdp->whole_array) {
+    /* Destruction of whole array. */
+    /* default_version_of_routine is not called on purpose; __vec_delete
+       knows about the implicit argument for destructors and generates
+       it automatically. */
+    /* Generate the __vec_delete call. */
+    call_node = make_vec_delete_call(entity_node, ipdp->array_element_count,
+                                   dtor_routine, /*free_storage=*/FALSE);
+    /* Make a statement containing the call. */
+    call_stmt = alloc_expr_statement(call_node);
+  } else {
+    /* Destruction of simple entity (non-array). */
+    /* Cast the entity node pointer to the right type.  It might be a pointer
+       to the class type-as-subobject. */
+    this_param_type = implicit_this_param_type_of(dtor_routine->type);
+    entity_node = add_cast_if_necessary(entity_node,
+                                        f_skip_typerefs(this_param_type));
+    /* If the destructor is for a class that has virtual base classes, add
+       the implicit complete-object argument. */
+    make_dtor_implied_arg_list(dtor_routine, have_complete_object,
+                               &implied_arg_node);
+    entity_node->next = implied_arg_node;
+    /* Make an expression statement containing the call expression. */
+    call_stmt = make_call_statement(dtor_routine, entity_node);
+  }  /* if */
   set_stmt_pos_to_code_pos_for_lowering(call_stmt);
   /* Insert the statement at the right place. */
   insert_statement(call_stmt, insert_location);
 }  /* add_destructor_call */
 
 
-static void add_array_destructor_call(
-                                   a_routine_ptr          dtor_routine,
-                                   an_expr_node_ptr       entity_node,
-                                   a_targ_ptrdiff_t       array_element_count,
-                                   an_insert_location_ptr insert_location)
+static void add_conditional_flag_test(a_variable_ptr         test_var,
+                                      an_insert_location_ptr insert_location,
+                                      an_insert_location_ptr insert_location2)
 /*
-Generate code that calls the destructor dtor_routine for each element
-of an array.  entity_node gives the address of the array and
-array_element_count gives the number of elements in the array.  Insert
-the statements at *insert_location and update *insert_location.
+Add a sequence of code that tests conditional flag set on initialization
+of a variable.  This is used in deciding whether or not to call a
+destructor on the variable.  The sequence is
+
+    if (test_var != 0) {
+      ... destruction of variable being destroyed
+    }
+
+The sequence is inserted at *insert_location.  *insert_location is updated
+for further insertion following the "if".  *insert_location2 is set for
+insertion within the "if".
 */
 {
-  an_expr_node_ptr call_node;
-  a_statement_ptr  call_stmt;
+  an_expr_node_ptr test_var_node, compare_node;
 
-  /* default_version_of_routine is not called on purpose; __vec_delete
-     knows about the implicit argument for destructors and generates
-     it automatically. */
-  /* Generate the __vec_delete call. */
-  call_node = make_vec_delete_call(entity_node, array_element_count,
-                                   dtor_routine, /*free_storage=*/FALSE);
-  /* Make a statement containing the call. */
-  call_stmt = alloc_expr_statement(call_node);
-  set_stmt_pos_to_code_pos_for_lowering(call_stmt);
-  /* Insert the statement at the right location. */
-  insert_statement(call_stmt, insert_location);
-}  /* add_array_destructor_call */
+  /* Make "test_var != 0". */
+  test_var_node = var_rvalue_expr(test_var);
+  test_var_node->next = node_for_integer_constant(0L, (an_integer_kind)ik_int);
+  compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
+                                    integer_type((an_integer_kind)ik_int),
+                                    test_var_node);
+  /* Make an "if" statement and insert it into the program. */
+  insert_if_statement(compare_node, insert_location, insert_location2);
+}  /* add_conditional_flag_test */
+
+
+void gen_one_destruction(a_dynamic_init_ptr     dip,
+                         an_insert_location_ptr insert_location)
+/*
+Generate code for the destruction of the indicated dynamic initialization.
+The code is inserted at *insert_location and *insert_location is updated.
+This routine is used for automatically-generated destructions at ends
+of/exits from lifetimes, which means it is not used for static variables
+and not for constructor_init entries in destructors.
+*/
+{
+  a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+  an_insert_location              insert_location2;
+  an_insert_location_ptr          effective_insert_loc;
+
+  check_assertion(dedp != NULL);
+  if (exceptions_enabled) {
+    /* Set the region number to what it should be after the destruction,
+       because as soon as we start the destruction it's the destructor's
+       job to deal with partial destruction. */
+    set_eh_curr_region(dip->destructible_entity_descr->next_region_number,
+                       insert_location);
+  }  /* if */
+  effective_insert_loc = insert_location;
+  /* If the entity is conditionally-created temporary, generate an
+     "if" statement to test whether or not the variable was ever
+     initialized.  Only do the destruction if it was. */
+  if (dip->inside_conditional_expression) {
+    add_conditional_flag_test(dedp->conditional_flag_var, 
+                              insert_location, &insert_location2);
+    effective_insert_loc = &insert_location2;
+  }  /* if */
+  add_destructor_call(dip->destructor,
+                      &dedp->init_pos_descr,
+                      /*have_complete_object=*/TRUE,
+                      effective_insert_loc);
+}  /* gen_one_destruction */
 
 
 static void lower_ck_dynamic_init(a_constant_ptr         con_ptr,
@@ -1885,7 +1979,6 @@ to the constructor-init entry.
     /* In a destructor case, so the "initialization" is really
        destruction. */
     lower_destructor_dynamic_init(con_ptr->variant.dynamic_init, ipdp,
-                                  (a_cleanup_action_ptr)NULL,
                                   /*have_complete_object=*/TRUE,
                                   insert_location);
   } else {
@@ -2278,186 +2371,54 @@ may be many different such routines generated (all unnamed).
 }  /* file_scope_term_insert_location */
 
 
-static void add_conditional_flag(a_cleanup_action_ptr  cap,
-                                 an_init_pos_descr_ptr ipdp,
-                                 an_insert_location    *insert_location)
+void init_conditional_flag_var(a_variable_ptr     cond_var,
+                               a_boolean          follows_an_exec_statement,
+                               an_insert_location *insert_location)
 /*
-Add a conditional flag to an initialization.  The entity being initialized
-is described by ipdp.  cap points to a cak_destruction cleanup action
-being generated.  This is needed, for example,
-inside a conditional operand of a "?", "&&", or "||" operation, to make
-the corresponding destruction dependent on whether the construction was
-done.  We add a temporary variable and insert an assignment to set the
-temporary to 1 at insert_location.  init_conditional_flag_var must be
-called later to initialize the temporary to zero at the beginning of
-the current block (that can't be done yet because we don't know the
-object table address assigned to the conditional flag for exception
-cleanup).
+Insert code to initialize a conditional flag variable to zero.
+cond_var is the variable.  The code (if any is needed) is inserted at
+*insert_location.  That location follows an executable statement in its block
+if follows_an_exec_statement is TRUE.
 */
 {
-  a_variable_ptr temp;
-
-  check_assertion(cap->kind == cak_destruction);
-  check_assertion(ipdp != NULL);
-  temp = make_lowered_temporary(integer_type((an_integer_kind)ik_int));
-  ipdp->conditional_flag_var = temp;
-  cap->variant.object.conditional_flag_var = temp;
-  /* Make and insert an assignment statement to set the temporary to 1. */
-  (void)insert_var_assignment_statement(temp,
-                                        (an_expr_operator_kind)eok_iassign,
-                                        node_for_integer_constant(1L,
-                                                      (an_integer_kind)ik_int),
-                                        insert_location);
-}  /* add_conditional_flag */
-
-
-static void init_conditional_flag_object_addr_table_entry(
-                                         a_cleanup_action_ptr cap,
-                                         an_insert_location   *insert_location)
-/*
-Generate any code required to put the address of the conditional flag
-associated with the cleanup action cap into the object address table.
-*/
-{
-  an_init_pos_descr ipd;
-  a_variable_ptr    cond_var = cap->variant.object.conditional_flag_var;
-
-  check_assertion(is_object_cleanup_action(cap));
-  set_var_init_pos_descr(cond_var, &ipd);
-  /* The region number for the conditional flag is one greater than
-     the base region number. */
-  init_object_addr_table_entry(&ipd, cap->region_number+1, insert_location);
-}  /* init_conditional_flag_object_addr_table_entry */
-
-
-void init_conditional_flag_var(a_cleanup_action_ptr cap,
-                               an_insert_location   *insert_location)
-/*
-cap is a cleanup action that has an associated conditional flag.
-Generate code to set the conditional flag variable to 0.  If 
-insert_location is non-NULL, it indicates the point at which the code should
-be inserted.  Otherwise, the initialization is done with an stmk_init
-statement inserted at the right place in the current scope.  This routine
-must called late, after the object address table entry for the conditional
-flag has been created.
-*/
-{
-  a_variable_ptr      cond_var;
-  a_dynamic_init_ptr  dip;
-  a_constant          zero_constant;
-  a_statement_ptr     stmk_init_stmt, block, label_statement;
-  a_switch_clause_ptr scp;
-  an_insert_location  local_insert_location, *eff_insert_location;
-  a_boolean           var_is_static;
-  a_boolean           follows_an_exec_statement = FALSE;
-
-  check_assertion(is_object_cleanup_action(cap));
-  cond_var = cap->variant.object.conditional_flag_var;
-  var_is_static = (cond_var->storage_class == (a_storage_class)sc_static);
-  eff_insert_location = insert_location;
-  if (eff_insert_location == NULL && (!var_is_static || exceptions_enabled)) {
-    /* Some code will be generated, so we need an insert location, but we do
-       not have one.  Generate one from context.  Also set
-       follows_an_exec_statement to indicate whether the insertion point
-       follows any executable statements in its block (this is needed for
-       the dynamic initialization entry). */
-    /* For most cases, the right place is the beginning of the current block.
-       For switch clauses, it's the beginning of the clause.  When labels
-       appear, the initialization goes after the latest label. */
-    scp = curr_context->assoc_switch_clause;
-    label_statement = curr_context->latest_label_statement_processed;
-    if (label_statement != NULL) {
-      /* Insert after the most recent label. */
-      follows_an_exec_statement = TRUE;
-      set_insert_location(label_statement, &local_insert_location);
-    } else if (scp != NULL) {
-      /* Insert at the start of the current switch clause. */
-      follows_an_exec_statement = TRUE;
-      set_switch_clause_start_insert_location(scp, &local_insert_location);
-    } else {
-      /* Normal case.  Insert at the start of the current block. */
-      block = curr_context->scope->assoc_block;
-#if CHECKING
-      if (block == NULL) {
-        internal_error("init_conditional_flag_var: missing block");
-      }  /* if */
-#endif /* CHECKING */
-     set_block_start_insert_location(block, &local_insert_location);
-    }  /* if */
-    eff_insert_location = &local_insert_location;
-  }  /* if */
-  /* Initialize the conditional flag variable. */
-  if (var_is_static) {
-    /* The conditional flag is static and therefore is implicitly initialized
-       to zero. */
-  } else if (insert_location != NULL) {
-    /* The flag requires initialization, and the insert location was
-       provided by the caller.  Insert an assignment at that point.  Note
-       that this is an assignment rather than an stmk_init because this
-       case is used for initialization within expressions. */
-    (void)insert_var_assignment_statement(cond_var,
-                                          (an_expr_operator_kind)eok_iassign,
-                                          node_for_integer_constant(0L,
-                                                      (an_integer_kind)ik_int),
-                                          insert_location);
-  } else {
-    /* The flag requires initialization, and the insert location was
-       generated in this routine.  Use a dynamic initialization entry to
-       do the initialization. Note that the dynamic init entry does not
-       need to be put on a list of dynamic init entries.  Such a list is
-       used only at the file scope, and any temporary allocated there
-       would be static. */
-    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-    dip->variable = cond_var;
-    dip->follows_an_exec_statement = follows_an_exec_statement;
+  /* If the conditional flag is static, initialization to zero is
+     implicit and requires nothing special in the IL. */
+  if (cond_var->storage_class != (a_storage_class)sc_static) {
+    /* Otherwise, for an automatic variable, dynamic initialization to
+       zero must be done by an stmk_init. */
+    a_constant         zero_constant;
+    a_statement_ptr    stmk_init_stmt;
+    a_dynamic_init_ptr init_dip =
+                         alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+    init_dip->variable = cond_var;
+    init_dip->follows_an_exec_statement = follows_an_exec_statement;
     /* The dynamic init entry is pointed to by the variable. */
     cond_var->init_kind = (an_init_kind)initk_dynamic;
-    cond_var->initializer.dynamic = dip;
+    cond_var->initializer.dynamic = init_dip;
     set_integer_constant(&zero_constant, 0L, (an_integer_kind)ik_int);
-    dip->variant.constant = alloc_unshared_constant(&zero_constant);
+    init_dip->variant.constant = alloc_unshared_constant(&zero_constant);
     /* The dynamic init entry is pointed to by an stmk_init statement. */
     stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
-    stmk_init_stmt->variant.dynamic_init = dip;
-    insert_statement(stmk_init_stmt, eff_insert_location);
-  }  /* if */
-  if (exceptions_enabled) {
-    /* Initialize the object address table entry for the conditional flag. */
-    init_conditional_flag_object_addr_table_entry(cap, eff_insert_location);
+    stmk_init_stmt->variant.dynamic_init = init_dip;
+    insert_statement(stmk_init_stmt, insert_location);
   }  /* if */
 }  /* init_conditional_flag_var */
 
 
-static a_cleanup_action_ptr alloc_destruction_cleanup_action(
-                            a_dynamic_init_ptr    dip,
-                            an_init_pos_descr_ptr ipdp,
-                            a_boolean             applies_on_block_exit,
-                            a_boolean             applies_on_exception_cleanup)
+static void set_conditional_flag_var(a_variable_ptr     conditional_flag_var,
+                                     an_insert_location *insert_location)
 /*
-Allocate a cak_destruction cleanup action entry and return a pointer to it.
-The dynamic initialization for which the destruction must be done is
-given by dip, and the object to be destroyed is described by ipdp.
-applies_on_block_exit and applies_on_exception_cleanup are the values for
-the like-named flags in the cleanup entry.
+Insert code at *insert_location to set the indicated conditional flag variable
+to a nonzero value.
 */
 {
-  a_cleanup_action_ptr cap;
-
-  cap = alloc_cleanup_action(cak_destruction,
-                             applies_on_block_exit,
-                             applies_on_exception_cleanup);
-  /* Copy the entire dynamic init entry in case the original one gets
-     modified. */
-  cap->variant.object.dynamic_init = *dip;
-  cap->variant.object.init_pos_descr = *ipdp;
-  /* If this is an initialization within an aggregate, we must save the
-     init_pos_modifier list.  However, the list runs through the stack,
-     so we must make an allocated copy. */
-  if (ipdp->modifiers != NULL) {
-    cap->variant.object.init_pos_descr.modifiers =
-                                  copy_init_pos_modifier_list(ipdp->modifiers);
-  }  /* if */
-  return cap;
-}  /* alloc_destruction_cleanup_action */
+  (void)insert_var_assignment_statement(
+                            conditional_flag_var,
+                            (an_expr_operator_kind)eok_iassign,
+                            node_for_integer_constant(1L,
+                                                      (an_integer_kind)ik_int),
+                            insert_location);
+}  /* set_conditional_flag_var */
 
 
 /*
@@ -2511,20 +2472,20 @@ See the runtime files dtor_list.h and dtor_list.c.
 }  /* make_needed_destruction_type */
 
 
-static a_routine_ptr make_destruction_routine(a_cleanup_action_ptr cap)
+static a_routine_ptr make_destruction_routine(a_dynamic_init_ptr    dip,
+                                              an_init_pos_descr_ptr ipdp)
 /*
-Make a routine that contains the code necessary to do the cleanup indicated
-in *cap (a destruction).
+Make a routine that contains the code necessary to do the destruction of
+the static variable whose initialization is described by dip and whose position
+is described by ipdp.
 */
 {
   a_scope_ptr            scope;
   an_insert_location     insert_location;
   a_memory_region_number region_number;
-  a_memory_region_number region_to_switch_back_to;
-  a_context              context;
+  a_generated_routine_context
+                         grcontext;
   a_routine_ptr          routine;
-  an_object_lifetime_ptr saved_curr_object_lifetime;
-  a_scope_depth          saved_depth_innermost_function_scope;
   a_return_memo_ptr      saved_return_memo_list;
 
   /* The return_memo_list is saved and restored because we may be inside
@@ -2535,14 +2496,15 @@ in *cap (a destruction).
   /* Save the routine pointer because the scope won't be around at the
      end of this routine. */
   routine = scope->variant.routine.ptr;
-  push_generated_routine_context(scope, region_number);
+  push_generated_routine_context(scope, region_number, &grcontext);
   /* Generate the code for the destruction. */
-  gen_one_cleanup_action(cap, &insert_location);
+  add_destructor_call(dip->destructor, ipdp, /*have_complete_object=*/TRUE,
+                      &insert_location);
   /* Mark the variable as referenced from another function. */
-  cap->variant.object.init_pos_descr.variable->referenced_non_locally = TRUE;
+  ipdp->variable->referenced_non_locally = TRUE;
   free_return_memo_list(return_memo_list);
   return_memo_list = saved_return_memo_list;
-  pop_generated_routine_context(scope, region_number);
+  pop_generated_routine_context(scope, region_number, &grcontext);
   return routine;
 }  /* make_destruction_routine */
 
@@ -2555,14 +2517,14 @@ static a_routine_ptr
 		record_needed_destruction_routine;
 
 
-static void record_needed_destruction(a_cleanup_action_ptr   cap,
+static void record_needed_destruction(a_dynamic_init_ptr     dip,
+                                      an_init_pos_descr_ptr  ipdp,
                                       an_insert_location_ptr insert_location)
 /*
-cap points to a cleanup action (not on any list) that describes a destruction
-required for a local static variable or an object initialized in the
-file-scope initialization routine.  Generate a runtime call that records
-the need for the destruction at the time of program termination.
-Free the cleanup action entry.  Insert any generated code at *insert_location
+ipdp describes the position of a static entity, initialized by the dynamic
+initialization entry pointed to by dip, that requires a destruction.
+Generate a runtime call that records the need for the destruction at the
+time of program termination.  Insert any generated code at *insert_location
 and update *insert_location accordingly.
 */
 {
@@ -2570,13 +2532,9 @@ and update *insert_location accordingly.
   a_constant_ptr         aggr_con, next_con, object_con, dtor_con;
   a_boolean              complex_cleanup, complex_address;
   a_routine_ptr          dtor_routine;
-  an_init_pos_descr_ptr  ipdp;
   an_expr_node_ptr       call_node;
   a_statement_ptr        call_stmt;
 
-  check_assertion(cap->applies_on_block_exit &&
-                  cap->kind == cak_destruction);
-  ipdp = &cap->variant.object.init_pos_descr;
   /* Record the required destruction by generating a call of the runtime
      routine __record_needed_destruction.  A data structure passed to
      that routine describes the destruction to be done:
@@ -2593,7 +2551,7 @@ and update *insert_location accordingly.
      to a routine generated specifically for this case and containing
      the necessary destruction code.  next is always initialized to
      NULL; the runtime routine sets it. */
-  complex_cleanup = requires_nontrivial_cleanup(cap);
+  complex_cleanup = ipdp->whole_array;
   /* Compute the object address (instead of doing static initialization to
      the address) if it is more than a simple variable. */
   complex_address = ipdp->indirect_through_variable ||
@@ -2616,7 +2574,7 @@ and update *insert_location accordingly.
     /* Complex cleanup -- the object field is NULL and the dtor field points
        to a fabricated routine containing the destruction code. */
     make_zero_of_proper_type(void_star_type(), object_con);
-    dtor_routine = make_destruction_routine(cap);
+    dtor_routine = make_destruction_routine(dip, ipdp);
   } else {
     /* Simple cleanup -- the object field points to the object variable and
        the dtor field points to the destructor. */
@@ -2629,7 +2587,7 @@ and update *insert_location accordingly.
                                     /*set_address_taken_flag=*/TRUE);
       implicit_cast(object_con, void_star_type());
     }  /* if */
-    dtor_routine = cap->variant.object.dynamic_init.destructor;
+    dtor_routine = dip->destructor;
   }  /* if */
   set_routine_address_constant(dtor_routine, dtor_con,
                                /*set_address_taken_flag=*/TRUE);
@@ -2666,8 +2624,6 @@ and update *insert_location accordingly.
   set_stmt_pos_to_code_pos_for_lowering(call_stmt);
   /* Insert the statement at the right location. */
   insert_statement(call_stmt, insert_location);
-  /* Free the cleanup action now that it's no longer needed. */
-  free_cleanup_action(cap);
 }  /* record_needed_destruction */
 
 
@@ -2742,14 +2698,14 @@ be kept, FALSE if it should be deleted.
   a_type_ptr         ctor_routine_type;
   a_type_ptr         this_param_type;
   a_param_type_ptr   param;
-  a_boolean          static_var_init;
+  a_boolean          static_var_init, pushed_static_context = FALSE;
   a_local_static_variable_init_ptr
                      lsvip = NULL;
   an_insert_location insert_location2;
   an_insert_location *eff_insert_location = insert_location;
   an_object_lifetime_ptr
-                     lifetime,
-                     saved_curr_object_lifetime = curr_object_lifetime;
+                     lifetime, init_expr_lifetime;
+  a_context          context, static_context;
 
   *keep_dynamic_init = FALSE;
   saved_code_pos = code_pos_for_lowering;
@@ -2783,56 +2739,36 @@ be kept, FALSE if it should be deleted.
   static_var_init = init_pos_is_static(ipdp);
   lifetime = dip->lifetime;
   if (lifetime != NULL) {
-    /* Put a copy of the initialization position description into the
-       dynamic init entry for use at destruction time. */
-    dip->init_pos_descr = alloc_init_pos_descr_copy(ipdp);
+    /* This dynamic initialization is on the destructions list of an
+       object lifetime, so it must indicate a destruction. */
     if (lifetime->kind == (an_object_lifetime_kind)olk_function_static) {
       /* For local static initializations, make the function static lifetime
          the current lifetime but restore the previous lifetime after
          processing the dynamic initialization. */
-      curr_object_lifetime = lifetime;
-    } else if (lifetime->kind == (an_object_lifetime_kind)olk_global_static) {
+      push_context(&static_context, (a_scope_ptr)NULL, lifetime);
+      pushed_static_context = TRUE;
     } else {
-      /* Not a static initialization. */
-      /* If this dynamic init is part of an object lifetime, it may be that it
-         is the first encountered since a label, and it is therefore in a
-         different lifetime section than what we've been thinking of as the
-         current object lifetime.  Update the current lifetime accordingly.
-         This comes up because there is no explicit indication in the IL tree
-         that an olk_block_after_label lifetime has begun. */
-#if CHECKING
-      /* Check that the new lifetime is a successor-after-label of the
-         lifetime we've been considering the current one, if it's different
-         than the current one. */
-      { an_object_lifetime_ptr olp;
-        for (olp = lifetime;
-             olp != curr_object_lifetime;
-             olp = olp->parent_lifetime) {
-          check_assertion_str(olp->kind ==
-                                (an_object_lifetime_kind)olk_block_after_label,
-                             "lower_dynamic_init: unexpected object lifetime");
-        }  /* for */
-      }
-#endif /* CHECKING */
-      curr_object_lifetime = lifetime;
-      /* This lifetime stays the current lifetime even after the dynamic
-         initialization has been processed. */
-      saved_curr_object_lifetime = curr_object_lifetime;
+      /* Not a local static initialization. */
+      check_assertion_str(curr_object_lifetime == lifetime ||
+                          (processing_file_scope_init_routine &&
+                           lifetime->kind ==
+                                   (an_object_lifetime_kind)olk_global_static),
+     "lower_dynamic_init: dynamic init has lifetime other than curr lifetime");
     }  /* if */
   }  /* if */
-  lifetime = dip->init_expr_lifetime;
-  if (lifetime != NULL) {
+  init_expr_lifetime = dip->init_expr_lifetime;
+  if (init_expr_lifetime != NULL) {
     /* The dynamic init defines a lifetime that surrounds the initialization.
-       Make it the current object lifetime (and restore the old one later). */
+       Push a context for the lifetime.  */
+    push_context(&context, (a_scope_ptr)NULL, init_expr_lifetime);
     if (processing_file_scope_init_routine) {
       /* When generating the file-scope initialization routine, the object
          lifetime is in the file scope but we need it in the function scope,
          so make a copy. */
-      push_object_lifetime(iek_none, (char *)NULL, lifetime->kind);
-      unbind_object_lifetime(lifetime);
-      lifetime = curr_object_lifetime;
-    } else {
-      curr_object_lifetime = lifetime;
+      curr_object_lifetime = context.lifetime->parent_lifetime;
+      push_object_lifetime(iek_none, (char *)NULL, init_expr_lifetime->kind);
+      unbind_object_lifetime(init_expr_lifetime);
+      curr_context->lifetime = init_expr_lifetime = curr_object_lifetime;
     }  /* if */
     if (keep_object_lifetime_info_in_lowered_il) {
       a_statement_ptr block_stmt;
@@ -2858,8 +2794,10 @@ be kept, FALSE if it should be deleted.
       set_block_start_insert_location(block_stmt, &insert_location2);
       eff_insert_location = &insert_location2;
       /* Rebind the object lifetime to the block. */
-      if (lifetime->entity.ptr != NULL) unbind_object_lifetime(lifetime);
-      bind_object_lifetime(lifetime, iek_block,
+      if (init_expr_lifetime->entity.ptr != NULL) {
+        unbind_object_lifetime(init_expr_lifetime);
+      }  /* if */
+      bind_object_lifetime(init_expr_lifetime, iek_block,
                            (char *)block_stmt->variant.block.extra_info);
     }  /* if */
   }  /* if */
@@ -3011,88 +2949,46 @@ do_assignment:;
       internal_error("lower_dynamic_init: bad kind");
 #endif /* CHECKING */
   }  /* switch */
-  /* If the dynamic init entry indicates a destructor call, put it on a
-     list of cleanup actions to be processed at the end of the scope.
-     Note that the list gets built in the right order (i.e., the reverse of
-     construction order) because each entry is added to the front of the
-     list. */
+  /* If the dynamic init defines a lifetime that surrounds the initialization,
+     pop the context for that lifetime. */
+  if (init_expr_lifetime != NULL) {
+    gen_cleanup_actions(init_expr_lifetime, eff_insert_location);
+    pop_context();
+  }  /* if */
+  /* If the dynamic init entry indicates a destructor call, it requires
+     processing to get the destruction done at the right time. */
   if (dip->destructor != NULL) {
-    a_cleanup_action_ptr cap;
-    a_boolean            applies_on_block_exit = TRUE;
-    /* The action applies on block exit except when we are processing the
-       wrapper of a constructor (ctor_init != NULL).  In that case the
-       destructor part of the initialization is only there for exception
-       cleanup.  For static variable initializations "on block exit"
-       gets interpreted as "at program termination." */
-    if (ctor_init != NULL) {
-      applies_on_block_exit = FALSE;
-    } else if (nearest_function_scope != NULL &&
-               nearest_function_scope->variant.routine.
-                                               return_value_variable != NULL &&
-               ipdp->variable == return_value_pointer_variable) {
-      /* This is the initialization of the parameter substituted for the
-         return value optimization variable.  The destruction doesn't get
-         done on exit from the routine; the caller does it. */
-      applies_on_block_exit = FALSE;
-    }  /* if */
-    cap = alloc_destruction_cleanup_action(dip, ipdp,
-                                 applies_on_block_exit,
-                                 /*applies_on_exception_cleanup=*/TRUE);
-    /* For local static variables and all initializations inside the
-       file-scope initialization routine, generate code to record at runtime
-       the need for a destruction later, and don't put the cleanup action
-       entry on a list.  Note that conditional flag variables are not
-       needed even for constructions in conditional parts of expressions,
-       since the destruction is only put on the list if the construction
-       was done. */
+    /* For static variables (local or global), generate code to record
+       at runtime the need for a destruction later. */
     if (static_var_init) {
-      record_needed_destruction(cap, eff_insert_location);
+      record_needed_destruction(dip, ipdp, eff_insert_location);
     } else {
       /* Initializations of nonstatic variables. */
-      /* Remember whether this initialization is for an enk_temp_init. */
-      if (is_expr_temporary) {
-        cap->variant.object.is_expr_temporary = TRUE;
-        /* Remember the associated full expression. */
-        cap->variant.object.full_expression = curr_full_expression;
+      /* Put a copy of the initialization position description into the
+         destruction entity description for use at destruction time. */
+      a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+      check_assertion_str(dedp != NULL,
+                      "lower_dynamic_init: missing destructible entity descr");
+      copy_init_pos_descr(ipdp, &dedp->init_pos_descr);
+      if (dedp->conditional_flag_var != NULL) {
+        /* This initialization has an associated conditional flag variable,
+           e.g., because it is inside a conditional expression.  Set the
+           flag to nonzero to indicate the initialization has been done. */
+        set_conditional_flag_var(dedp->conditional_flag_var,
+                                 eff_insert_location);
       }  /* if */
-      /* Remember whether this initialization is in a constructor wrapper. */
-      if (ctor_init != NULL) cap->constructor_wrapper_cleanup = TRUE;
-      if (dip->inside_conditional_expression) {
-        /* Inside a conditional operand of a "?", "&&", or "||" operation.
-           Since the construction is conditional, we add a temporary
-           variable, set it to 1 here, and test it later to decide whether
-           to do the destruction.  init_conditional_flag_var is called
-           later to initialize the temporary to zero at the beginning
-           of the current scope. */
-        add_conditional_flag(cap, dip->init_pos_descr, eff_insert_location);
-      } else if (is_expr_temporary && dip->unordered) {
-        /* Also add the conditional flag when there are unordered
-           enk_temp_init operations. */
-        cap->variant.object.conditional_flag_added_for_unsequenced_case = TRUE;
-        add_conditional_flag(cap, dip->init_pos_descr, eff_insert_location);
-      }  /* if */
-      /* Put the new entry on the front of the existing cleanup list for
-         the current context. */
-      add_cleanup_action_to_context_list(cap, curr_context,
-                                         eff_insert_location);
-      if (cap->variant.object.conditional_flag_var != NULL) {
-        /* This operation has a conditional flag.  Initialize the flag to zero.
-           This must be done after the cleanup action has been added to the
-           context list (and therefore make_region_table_entry has been called)
-           so that the exception cleanup region entry for the conditional flag
-           has been created. */
-        if (curr_context->assoc_expr != NULL) {
-          /* The current context is a region that is a single top-level
-             expression.  The initialization must be inserted on top of the
-             expression, but it would be dangerous to modify the expression
-             that we're currently working on.  Therefore, that's left to be
-             done when we get back to the top of the expression.  See
-             gen_expr_conditional_flag_var_initializations. */
-          curr_context->any_conditional_flag_var_initializations_deferred=TRUE;
-        } else {
-          /* Set the variable to zero initially. */
-          init_conditional_flag_var(cap, (an_insert_location *)NULL);
-        }  /* if */
+      /* Record this dynamic initialization as the last encountered in the
+         current context (and therefore the place to start to generate
+         cleanup code if we exit the lifetime after this point). */
+      curr_context->destructions = dip;
+      if (exceptions_enabled) {
+        /* Make a region table entry for the entity (and for its conditional
+           flag, if it has one). */
+        make_dtor_region_table_entry(dip, insert_location);
+        /* Insert code to set eh_curr_region to the region number for the
+           cleanup for this initialization, because we've done the
+           initialization now. */
+        set_eh_curr_region(cleanup_region_number(dip), insert_location);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3150,17 +3046,17 @@ do_assignment:;
          are aggregates: if the initialization was partial, we have to be
          sure the rest of the aggregate is initialized to zero.
          So we change the initialization kind to initialization to zero. */
-      if (static_var_init || variable->is_partially_initialized) {
+      if ((static_var_init && !variable->source_corresp.is_local_to_function)||
+          variable->is_partially_initialized) {
         variable->init_kind = (an_init_kind)initk_zero;
       } else {
         variable->init_kind = (an_init_kind)initk_none;
       }  /* if */
     }  /* if */
   }  /* if */
-  /* If the dynamic init defines a lifetime that surrounds the initialization,
-     pop that lifetime off the object lifetime stack.  Also remove a
-     function static lifetime. */
-  curr_object_lifetime = saved_curr_object_lifetime;
+  /* If the dynamic initialization was for a local static, pop the context
+     pushed for it. */
+  if (pushed_static_context) pop_context();
   if (!*keep_dynamic_init) {
     /* Clear the initialization part of the dynamic init now that it has
        been rewritten.  This is important because the dynamic init may
@@ -3174,22 +3070,20 @@ do_assignment:;
 }  /* lower_dynamic_init */
 
 
-void lower_destructor_dynamic_init(a_dynamic_init_ptr     dip,
+static void lower_destructor_dynamic_init(
+                                   a_dynamic_init_ptr     dip,
                                    an_init_pos_descr_ptr  ipdp,
-                                   a_cleanup_action_ptr   cap,
                                    a_boolean              have_complete_object,
                                    an_insert_location_ptr insert_location)
 /*
-Do IL lowering of the destruction part of a dynamic initialization entry
-(ignore any initialization that is indicated).  dip points to the dynamic
-initialization, and ipdp identifies the entity to be destroyed.  cap
-points to the cleanup action entry for the destruction, or is NULL if
-this destruction is part of a destructor wrapper.  If have_complete_object 
-is TRUE, the entity being destroyed is a complete object.  The statements
-are inserted at *insert_location and *insert_location is updated.
+Do IL lowering of a destruction indicated in a dynamic initialization entry
+attached to a constructor_init in a destructor.  dip points to the dynamic
+initialization, and ipdp identifies the entity to be destroyed.
+If have_complete_object is TRUE, the entity being destroyed is a
+complete object.  The statements are inserted at *insert_location
+and *insert_location is updated.
 */
 {
-  an_expr_node_ptr  entity_node;
   a_variable_ptr    variable;
   a_source_position saved_error_position;
 
@@ -3204,45 +3098,17 @@ are inserted at *insert_location and *insert_location is updated.
     }  /* if */
 #endif /* CHECKING */
   }  /* if */
-  /* Suppress exception handling on static variables because they are cleaned
-     up via a list of all initialized static variables. */
-  if (exceptions_enabled && !init_pos_is_static(ipdp)) {
-    if (cap == NULL) {
-      /* Generate an exception cleanup action for a destruction in a destructor
-         wrapper. */
-      cap = alloc_destruction_cleanup_action(dip, ipdp,
-                                        /*applies_on_block_exit=*/FALSE,
-                                        /*applies_on_exception_cleanup=*/TRUE);
-      cap->destructor_wrapper_cleanup = TRUE;
-      add_cleanup_action_to_context_list(cap, curr_context,
-                                       &dtor_wrapper_prologue_insert_location);
-      /* Insert an assignment to set the current exception handling region
-         to this new region.  That gets set before the *previous* cleanup
-         action. */
-      set_region_on_prev_destructor_wrapper_cleanup(cap, insert_location);
-    } else {
-      /* Normal case (not a destructor wrapper).  Set the region number
-         to what it should be after the destruction, because as soon as
-         we start the destruction it's the destructor's job to deal with
-         partial destruction. */
-      a_cleanup_region_number region_number =
-                            cleanup_region_number(cap->next_exception_cleanup);
-      assign_region_number_to_eh_curr_region(region_number, insert_location);
-    }  /* if */
+  if (exceptions_enabled) {
+    /* Put the entity position in the destructible_entity_descr. */
+    copy_init_pos_descr(ipdp, &dip->destructible_entity_descr->init_pos_descr);
+    /* Set the region number to what it should be after the destruction,
+       because as soon as we start the destruction it's the destructor's
+       job to deal with partial destruction. */
+    set_eh_curr_region(dip->destructible_entity_descr->next_region_number,
+                       insert_location);
   }  /* if */
-  /* Make an expression for the object to be destroyed. */
-  entity_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
-                                      /*using_as_dest=*/FALSE);
-  /* Generate code for the destructor call. */
-  if (ipdp->whole_array) {
-    /* Destruction of whole array. */
-    add_array_destructor_call(dip->destructor, entity_node,
-                              ipdp->array_element_count, insert_location);
-  } else {
-    /* Destruction of simple entity (non-array). */
-    add_destructor_call(dip->destructor, entity_node, have_complete_object,
-                        insert_location);
-  }  /* if */
+  add_destructor_call(dip->destructor, ipdp, have_complete_object,
+                      insert_location);
   error_position = saved_error_position;
 }  /* lower_destructor_dynamic_init */
 
@@ -3540,7 +3406,8 @@ The subtree of the node has not yet been lowered.
   an_insert_location          insert_location;
   an_init_pos_descr           ipd;
   a_boolean                   keep_dynamic_init;
-  a_cleanup_action_ptr        new_allocation_cap;
+  a_dynamic_init_ptr          last_destruction_before_initialization;
+  a_cleanup_region_number     new_cleanup_region_number;
   
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
   if (is_array_type(ndsp->type) &&
@@ -3615,28 +3482,22 @@ The subtree of the node has not yet been lowered.
          top of this node. */
       init_node = var_rvalue_expr(temp_var);
       set_expr_insert_location(init_node, &insert_location);
-      if (ndsp->delete_routine != NULL) {
-        /* Exceptions are enabled, so make a cak_new_allocation cleanup action
-           entry to get the storage freed if a throw occurs. */
-        new_allocation_cap =
-                   alloc_cleanup_action(cak_new_allocation,
-                                        /*applies_on_block_exit=*/FALSE,
-                                        /*applies_on_exception_cleanup=*/TRUE);
-        set_var_indirect_init_pos_descr(temp_var,
-                           &new_allocation_cap->variant.object.init_pos_descr);
-        /* Add information on the delete routine. */
-        new_allocation_cap->variant.object.delete_routine =
-                                                          ndsp->delete_routine;
-        /* Remember the current full expression. */
-        new_allocation_cap->variant.object.full_expression =
-                                                          curr_full_expression;
-        add_cleanup_action_to_context_list(new_allocation_cap, curr_context,
-                                           &insert_location);
-      }  /* if */
       /* Build a description of the entity to be initialized.  Adjust the
          type so that it is an array if necessary. */
       set_var_indirect_init_pos_descr(temp_var, &ipd);
       ipd.base_type = ndsp->type;
+      if (ndsp->delete_routine != NULL) {
+        /* Exceptions are enabled, so make a cleanup region table entry
+           to get the storage freed if a throw occurs. */
+        last_destruction_before_initialization = curr_context->destructions;
+        make_delete_region_table_entry(&ipd,
+                                       ndsp->delete_routine,
+                                       (a_variable_ptr)NULL,
+                                       &new_cleanup_region_number,
+                                       &insert_location);
+        /* Set the region number to the delete cleanup entry. */
+        set_eh_curr_region(new_cleanup_region_number, &insert_location);
+      }  /* if */
       /* Generate code for the initialization. */
       lower_dynamic_init(dip, &ipd,
                          /*is_expr_temporary=*/FALSE,
@@ -3645,10 +3506,17 @@ The subtree of the node has not yet been lowered.
                          &insert_location, &keep_dynamic_init);
       check_assertion(!keep_dynamic_init);
       if (ndsp->delete_routine != NULL) {
-        /* Now that the region entry and the code to set the region number have
-           been emitted, remove the cleanup action. */
-        remove_cleanup_action(new_allocation_cap);
-        set_eh_curr_region(curr_context, &insert_location);
+        /* Exceptions are enabled.  If there were any temporaries created
+           within the initialization, the cleanup entries for those must
+           be cloned so we have one set that runs through the delete entry
+           and one set (for use after this point) that does not. */
+        if (last_destruction_before_initialization !=
+                                                  curr_context->destructions) {
+          clone_region_table_entry_list(curr_context->destructions,
+                                       last_destruction_before_initialization);
+          set_eh_curr_region(cleanup_region_number(curr_context->destructions),
+                             &insert_location);
+        }  /* if */
       }  /* if */
       /* Build the ?: operation.  Its first argument is the comparison of
          the temp pointer against NULL; its second is the initialization code;
@@ -3846,12 +3714,11 @@ Do IL lowering of an enk_temp_init expression node.
        so drop the pointer-to to get the temporary type. */
     temp_type = type_pointed_to(temp_type);
   }  /* if */
-  /* Create a temporary variable.  If we're inside the file-scope
-     initialization routine, make the temporary in the file scope because
-     it may have to survive to the end of the program. */
-  dip->variable = make_temporary_possibly_at_file_scope(
-                                           temp_type,
-                                           processing_file_scope_init_routine);
+  /* Create a temporary variable.  Make it static if necessary. */
+  dip->variable = make_temporary_in_scope(temp_type,
+                                          curr_context->scope,
+                                          (a_boolean)
+                                               expr->variant.init.static_temp);
   /* Change the enk_temp_init to a reference to the value or address
      of the temporary. */
   if (result_is_addr) {
@@ -4026,36 +3893,6 @@ This routine returns TRUE if guard code was emitted.
 
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
 
-void add_last_time_test(a_variable_ptr         test_var,
-                        an_insert_location_ptr insert_location,
-                        an_insert_location_ptr insert_location2)
-/*
-Add a sequence of code that tests the variable set on first-time initialization
-of a variable.  This is used in deciding whether or not to call a
-destructor on the variable.  The sequence is
-
-    if (test_var != 0) {
-      ... destruction of variable being destroyed
-    }
-
-The sequence is inserted at *insert_location.  *insert_location is updated
-for further insertion following the "if".  *insert_location2 is set for
-insertion within the "if".
-*/
-{
-  an_expr_node_ptr test_var_node, compare_node;
-
-  /* Make "test_var != 0". */
-  test_var_node = var_rvalue_expr(test_var);
-  test_var_node->next = node_for_integer_constant(0L, (an_integer_kind)ik_int);
-  compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
-                                    integer_type((an_integer_kind)ik_int),
-                                    test_var_node);
-  /* Make an "if" statement and insert it into the program. */
-  insert_if_statement(compare_node, insert_location, insert_location2);
-}  /* add_last_time_test */
-
-
 void lower_stmk_init(a_statement_ptr statement)
 /*
 Generate code for a stmk_init (dynamic initialization) statement.
@@ -4112,9 +3949,8 @@ Generate code for a stmk_init (dynamic initialization) statement.
   if (non_C_case) {
     /* Rewrite a non-C case. */
     an_insert_location insert_location;
-    a_boolean          keep_dynamic_init, is_local_static = FALSE;
+    a_boolean          keep_dynamic_init;
     an_init_pos_descr  ipd;
-    a_context          context;
     a_variable_ptr     var = dip->variable;
 
     set_insert_location(statement, &insert_location);
@@ -4130,12 +3966,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
       /* If the variable is a local static, add a first-time flag and a
          test. */
       if (var->storage_class == (a_storage_class)sc_static) {
-        is_local_static = TRUE;
         add_first_time_test(&insert_location);
-        /* Put a dependent-statement context around the lowering of
-           the initialization so that any cleanup actions for code within
-           the initialization will be emitted within the "if". */
-        push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
       }  /* if */
     }  /* if */
     lower_dynamic_init(dip, &ipd, /*is_expr_temporary=*/FALSE,
@@ -4145,12 +3976,6 @@ Generate code for a stmk_init (dynamic initialization) statement.
     if (!keep_dynamic_init) {
       /* Delete the stmk_init statement. */
       turn_statement_into_noop(statement);
-    }  /* if */
-    if (is_local_static) {
-      /* Generate any cleanup actions for temporaries built within a
-         first-time test conditional section. */
-      gen_cleanup_actions(curr_context, &insert_location);
-      pop_context();
     }  /* if */
   } else {
     /* Normal C case.  Lower the subtree if any. */
@@ -4575,36 +4400,23 @@ constructor scope, and also lower the user code.
   saved_error_position = error_position;
   code_pos_for_lowering = error_position = 
                                     ctor_routine->source_corresp.decl_position;
+  set_block_start_insert_location(scope->assoc_block, &insert_location);
+  /* Start an object lifetime if appropriate. */
+  begin_block_object_lifetime(scope->lifetime, &insert_location);
 #if ASSIGNMENT_TO_THIS_ALLOWED
   /* Assignment to "this" is allowed. */
   /* If there is an assignment to "this" in the body of the constructor,
      do not issue the wrapper code here; it is issued after each
      assignment to "this". */
-  if (!ctor_routine->assignment_to_this_done) {
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-    /* Add the wrapper code at the start of the routine. */
-    set_block_start_insert_location(scope->assoc_block, &insert_location);
-    add_constructor_wrapper_code(scope, &insert_location);
-#if ASSIGNMENT_TO_THIS_ALLOWED
-  }  /* if */
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-
-  /* Lower the user code in the constructor. */
-  lower_statement_list(user_code_stmts, &last_statement);
-
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
-  /* Add code to allocate storage if "this" is NULL:
-       if (this != NULL || (this = new-rout(size)) != NULL)
-     The entire rest of the routine (both wrapper code and user code)
-     is placed in the dependent statement of the "if". */
-#if ASSIGNMENT_TO_THIS_ALLOWED
-  /* The allocation code is not added if there is an assignment to "this"
-     in the constructor. */
   if (!ctor_routine->assignment_to_this_done)
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-  /* Do not add code here -- this is the dependent statement of the "if"
-     above. */
+  /* Don't insert code here. */
   {
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+    /* Add code to allocate storage if "this" is NULL:
+         if (this != NULL || (this = new-rout(size)) != NULL)
+       The entire rest of the routine (both wrapper code and user code)
+       is placed in the dependent statement of the "if". */
     a_variable_ptr     this_param_var = scope->variant.routine.parameters;
     a_type_ptr         class_type, int_type;
     an_expr_node_ptr   size_node, call_node, assign_node;
@@ -4615,8 +4427,10 @@ constructor scope, and also lower the user code.
     a_class_type_supplement_ptr
                        ctsp;
     a_routine_ptr      new_routine;
-    a_cleanup_action_ptr
-                       new_allocation_cap;
+    a_variable_ptr     cond_var;
+    an_init_pos_descr  ipd;
+    a_cleanup_region_number
+                       new_cleanup_region_number;
 
     /* Make "new-rout(size)". */
     class_type = ctor_routine->source_corresp.class_of_which_a_member;
@@ -4638,7 +4452,6 @@ constructor scope, and also lower the user code.
       assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
                                        call_node->type, this_param_node);
       if (exceptions_enabled) {
-        a_variable_ptr cond_var;
         /* Exceptions are enabled.  Record the allocation so it can
            be freed if a throw occurs while this routine is running. */
         /* "this = new_rout(size)" is turned into
@@ -4649,32 +4462,22 @@ constructor scope, and also lower the user code.
         assign_node = make_operator_node((an_expr_operator_kind)eok_comma,
                                          this_param_node->type, assign_node);
         set_expr_insert_location(this_param_node, &insert_location);
-        /* Make an indicator variable that is set to nonzero if the allocation
-           is done.  The variable is initialized to zero by
-           calling init_conditional_flag_var later. */
+        /* Make a conditional flag variable that is set to nonzero if the
+           allocation is done. */
         cond_var = 
                  make_lowered_temporary(integer_type((an_integer_kind)ik_int));
-        /* Set the indicator variable to nonzero. */
-        (void)insert_var_assignment_statement(cond_var,
-                                            (an_expr_operator_kind)eok_iassign,
-                                            node_for_integer_constant(1L,
-                                                      (an_integer_kind)ik_int),
-                                            &insert_location);
-        /* Add the cleanup action. */
-        new_allocation_cap = alloc_cleanup_action(
-                                        cak_new_allocation,
-                                        /*applies_on_block_exit=*/FALSE,
-                                        /*applies_on_exception_cleanup=*/TRUE);
-        new_allocation_cap->constructor_wrapper_cleanup = TRUE;
-        set_var_indirect_init_pos_descr(this_param_var,
-                           &new_allocation_cap->variant.object.init_pos_descr);
-        /* The deletion is only done if the indicator variable is set. */
-        new_allocation_cap->variant.object.conditional_flag_var = cond_var;
-        /* Add information on the delete routine. */
-        new_allocation_cap->variant.object.delete_routine =
-                                           ctsp->assoc_operator_delete_routine;
-        add_cleanup_action_to_context_list(new_allocation_cap, curr_context,
-                                           &insert_location);
+        /* Set the conditional_flag  variable to nonzero.  The code to
+           initialize it to zero is inserted later in this routine. */
+        set_conditional_flag_var(cond_var, &insert_location);
+        /* Add the cleanup region table entry. */
+        set_var_indirect_init_pos_descr(this_param_var, &ipd);
+        make_delete_region_table_entry(&ipd,
+                                       ctsp->assoc_operator_delete_routine,
+                                       cond_var,
+                                       &new_cleanup_region_number,
+                                       &insert_location);
+        /* Set the region number to the delete cleanup entry. */
+        set_eh_curr_region(new_cleanup_region_number, &insert_location);
       }  /* if */
       /* Make "(this = new_rout(size)) != NULL". */
       make_zero_of_proper_type(this_param_var->type, &null_constant);
@@ -4699,12 +4502,21 @@ constructor scope, and also lower the user code.
         /* Initialize the conditional flag to zero.  This must be done after
            enclose_routine_in_if is called so that the initialization is
            done at the right place (i.e., outside the "if"). */
-        init_conditional_flag_var(new_allocation_cap,
-                                  (an_insert_location *)NULL);
+        set_block_start_insert_location(scope->assoc_block, &insert_location);
+        init_conditional_flag_var(cond_var,
+                                  /*follows_an_exec_statement=*/FALSE,
+                                  &insert_location);
       }  /* if */
+      set_block_start_insert_location(block_stmt, &insert_location);
     }  /* if */
-  } 
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+    /* Add the wrapper code at the start of the routine. */
+    add_constructor_wrapper_code(scope, &insert_location);
+  }
+
+  /* Lower the user code in the constructor. */
+  lower_statement_list(user_code_stmts, &last_statement);
+
   /* Clear the list of constructor inits. */
   scope->variant.routine.constructor_inits = NULL;
   error_position = saved_error_position;
@@ -4755,10 +4567,76 @@ at *insert_location, and *insert_location is updated.
 #endif /* CHECKING */
   } else {
     /* Normal case; generate the code to do the destruction. */
-    lower_destructor_dynamic_init(dip, &ipd, (a_cleanup_action_ptr)NULL,
-                                  have_complete_object, insert_location);
+    lower_destructor_dynamic_init(dip, &ipd, have_complete_object,
+                                  insert_location);
   }  /* if */
 }  /* lower_dtor_init */
+
+
+static a_cleanup_region_number assign_dtor_init_cleanup_region_number(
+                                                        a_dynamic_init_ptr dip)
+/*
+Assign a cleanup region number to the indicated destruction (from
+the constructor_inits list of a destructor) and to its successors.
+Return the region number assigned.  These region numbers are assigned
+early so that the next region number is available when each entry
+is processed.
+*/
+{
+  a_dynamic_init_ptr      next_dip = dip->next_in_destruction_list;
+  a_cleanup_region_number region_number, next_region_number;
+
+  /* Each destruction gets a region number one higher than the region
+     number of the next destruction, or the next available number
+     (probably 0) if there is no next destruction.  Note that the
+     recursive call here reverses the entries, which gives entry
+     numbers in the desired order. */
+  if (next_dip != NULL) {
+    next_region_number = assign_dtor_init_cleanup_region_number(next_dip);
+    /* Note that these entries cannot require a conditional flag.  Otherwise,
+       we would have to count an entry for it too. */
+    region_number = next_region_number + 1;
+  } else {
+    next_region_number = null_eh_region_number;
+    region_number = 0;  /* That is, the first region number. */
+  }  /* if */
+  dip->destructible_entity_descr->region_number = region_number;
+  dip->destructible_entity_descr->next_region_number = next_region_number;
+  return region_number;
+}  /* assign_dtor_init_cleanup_region_number */
+
+
+static void make_dtor_init_region_table_entries(
+                                           a_dynamic_init_ptr dip,
+                                           an_insert_location *insert_location)
+/*
+Generate region table entries for the destructions on the indicated
+list (they are the constructor_init destructions from a destructor).
+Use recursion to put out the list backwards.  Any required code
+is inserted at *insert_location.
+*/
+{
+  a_dynamic_init_ptr      next_dip = dip->next_in_destruction_list;
+#if CHECKING
+  a_cleanup_region_number old_region_number = cleanup_region_number(dip);
+#endif /* CHECKING */
+
+  if (next_dip != NULL) {
+    /* Use recursion to handle the rest of the list. */
+    make_dtor_init_region_table_entries(next_dip, insert_location);
+  }  /* if */
+  /* Do the first entry on the list. */
+  make_dtor_region_table_entry(dip, insert_location);
+#if CHECKING
+  check_assertion_str(dip->destructible_entity_descr->conditional_flag_var ==
+                                                                          NULL,
+                      "make_dtor_init_region_table_entries: cond flag used");
+  /* The region number assigned should be the one we pre-assigned in
+     assign_dtor_init_cleanup_region_number. */
+  check_assertion_str(old_region_number == cleanup_region_number(dip),
+                      "make_dtor_init_region_table_entries: wrong region num");
+#endif /* CHECKING */
+}  /* make_dtor_init_region_table_entries */
 
 
 void lower_destructor_code(a_scope_ptr scope)
@@ -4773,7 +4651,9 @@ destructor scope, and also lower the user code.
   a_class_type_supplement_ptr
                          ctsp;
   a_constructor_init_ptr ctor_init;
+  a_dynamic_init_ptr     first_prologue_destruction;
   an_insert_location     insert_location, insert_location2;
+  an_insert_location     prologue_insert_location;
   a_statement_ptr        user_code_stmts, epilogue_block;
   a_statement_ptr        top_level_stmt, prev_stmt, label_stmt;
   an_expr_node_ptr       zero_constant_node, complete_obj_param_node;
@@ -4845,6 +4725,8 @@ destructor scope, and also lower the user code.
   user_code_stmts = scope->assoc_block->variant.block.statements;
   /* Generate prologue code at the start of the routine. */
   set_block_start_insert_location(scope->assoc_block, &insert_location);
+  /* Start an object lifetime if appropriate. */
+  begin_block_object_lifetime(scope->lifetime, &insert_location);
   /* If the current class has any virtual functions, generate code to
      set the virtual function table pointer in the current class. */
   primary_vtbl_var = ctsp->virtual_function_table_var;
@@ -4927,14 +4809,21 @@ destructor scope, and also lower the user code.
   ctor_init = scope->variant.routine.constructor_inits;
   scope->variant.routine.constructor_inits = NULL;
   if (ctor_init == NULL) {
-    /* No constructor_init entries, so not epilogue block is needed. */
+    /* No constructor_init entries, so no epilogue block is needed. */
     epilogue_block = NULL;
   } else {
     /* Save the prologue insert location as the place to insert exception
        handling initialization code. */
-    dtor_wrapper_prologue_insert_location = insert_location;
+    prologue_insert_location = insert_location;
     epilogue_block = alloc_statement((a_statement_kind)stmk_block);
     set_block_start_insert_location(epilogue_block, &insert_location);
+    if (exceptions_enabled) {
+      /* Assign cleanup region numbers to the destructions.  This is done
+         early so that we will know the right value to set __eh_curr_region
+         to when beginning each destruction. */
+      first_prologue_destruction = ctor_init->initializer;
+      (void)assign_dtor_init_cleanup_region_number(first_prologue_destruction);
+    }  /* if */
     /* Generate a destructor call for each data member that appears on the
        ctor_init list. */
     for (; ctor_init != NULL &&
@@ -4987,21 +4876,20 @@ destructor scope, and also lower the user code.
       /* Note that the "if" created above effectively ends here. */
     }  /* if */
     if (exceptions_enabled) {
-      /* Set the exception cleanup region before the last destructor call
-         in the epilogue, if any. */
-      set_region_on_prev_destructor_wrapper_cleanup((a_cleanup_action_ptr)NULL,
-                                                    &insert_location);
+      /* Make the region table entries for the prologue destructions.
+         This is done late because we want to put out the entries in
+         reversed order, and we need to wait until they all have position
+         information recorded. */
+      make_dtor_init_region_table_entries(first_prologue_destruction,
+                                          &prologue_insert_location);
       /* Set the region number at the end of the prologue (i.e., just before
          going into user code) to the first cleanup region for the wrapper
          cleanup. */
-      assign_region_number_to_eh_curr_region(
-                                       (a_cleanup_region_number)0,
-                                       &dtor_wrapper_prologue_insert_location);
+      set_eh_curr_region(cleanup_region_number(first_prologue_destruction),
+                         &prologue_insert_location);
     } /* if */
   }  /* if */
-  /* Now lower the user code.  Note that the cleanup actions for the
-     exception cleanup for the wrapper code are already on the cleanup
-     list. */
+  /* Now lower the user code. */
   lower_statement_list(user_code_stmts, &top_level_stmt);
   /* Now figure out where to attach the epilogue code. */
   /* All returns in the destructor have been put on the return_memo_list.
@@ -5053,7 +4941,6 @@ destructor scope, and also lower the user code.
     label_stmt = alloc_statement((a_statement_kind)stmk_label);
     label_stmt->variant.label.ptr = epilogue_label;
     epilogue_label->variant.exec_stmt = label_stmt;
-    epilogue_label->parent_block = scope->assoc_block;
     epilogue_label->source_corresp.referenced = TRUE;
     add_to_labels_list(epilogue_label);
     insert_statement(label_stmt, &insert_location);
@@ -5170,34 +5057,22 @@ Do lowering on the file-scope dynamic initializations list.
   a_boolean          keep_dynamic_init;
   a_scope_ptr        file_scope = il_header.primary_scope, scope;
   an_init_pos_descr  ipd;
-  a_context          context;
+  a_generated_routine_context
+                     grcontext;
   a_memory_region_number
                      region_number;
-  an_object_lifetime_ptr
-                     saved_curr_object_lifetime;
-  a_memory_region_number
-                     region_to_switch_back_to;
-  a_scope_depth      saved_depth_innermost_function_scope;
 
   dip = file_scope->dynamic_inits;
   if (dip != NULL) {
     /* There are some file-scope dynamic initializations.  Generate a routine
        containing them. */
     scope = file_scope_init_insert_location(&insert_location, &region_number);
-    push_generated_routine_context(scope, region_number);
+    push_generated_routine_context(scope, region_number, &grcontext);
     if (exceptions_enabled) {
       /* Initialize for exception handling lowering. */
       eh_function_lower_init();
     }  /* if */
     processing_file_scope_init_routine = TRUE;
-    /* Put a null statement at the beginning of the block.  This changes the
-       insert_location from block-start to after-statement, which is necessary
-       in case some lower-level code tries to insert initialization code
-       (e.g., to set the object address table for a conditional flag) at
-       the beginning of the block -- we don't want that code to come out
-       after the first initialization. */
-    insert_statement(alloc_statement((a_statement_kind)stmk_block),
-                     &insert_location);
     /* Generate the initializations. */
     for (; dip != NULL; dip = dip_next) {
       an_insert_location_ptr eff_insert_location = &insert_location;
@@ -5246,7 +5121,7 @@ Do lowering on the file-scope dynamic initializations list.
     add_scope_orphaned_il_lists(scope);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
     processing_file_scope_init_routine = FALSE;
-    pop_generated_routine_context(scope, region_number);
+    pop_generated_routine_context(scope, region_number, &grcontext);
     file_scope->dynamic_inits = NULL;
   }  /* if */
 }  /* lower_file_scope_dynamic_inits */
@@ -5263,7 +5138,6 @@ are handled in il_lower_init.)
      headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
-      pch_saved_var_array_elem(dtor_wrapper_prologue_insert_location),
       pch_saved_var_array_elem(file_scope_init_routine),
       pch_saved_var_array_elem(vec_cctor_routine),
       pch_saved_var_array_elem(record_needed_destruction_routine),

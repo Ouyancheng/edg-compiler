@@ -167,7 +167,6 @@ Count of entries allocated, for debugging purposes.
 */
 static unsigned long
 		allocated_name_string_length,
-		num_cleanup_actions_allocated,
 		num_return_memos_allocated;
 #endif /* DEBUG && DO_IL_LOWERING */
 
@@ -216,23 +215,10 @@ function scope memory region.
   (!lowering_file_scope && in_file_scope((char *)(entry_ptr)))
 
 
-static a_cleanup_action_ptr
-		avail_cleanup_actions;
-			/* List of cleanup action entries that have been
-			   freed and are available for reuse. */
-
 static a_return_memo_ptr
 		avail_return_memos;
 			/* List of return memo entries that have been freed
 			   and are available for reuse. */
-
-static a_context_ptr
-		nearest_function_context;
-			/* Nearest function context in the context chain. */
-static a_variable_ptr
-		nearest_this_param_variable;
-			/* The this_param_variable from
-			   nearest_function_scope. */
 
 
 /* Declarations needed because of forward references: */
@@ -248,9 +234,7 @@ static void lower_routine(a_routine_ptr routine);
 static void lower_label(a_label_ptr label);
 static void lower_asm_entry(an_asm_entry_ptr asm_entry);
 static void lower_scope(a_scope_ptr scope);
-static a_boolean any_cleanup_actions(a_context_ptr outer_context);
-static void gen_expr_conditional_flag_var_initializations(
-                                                        an_expr_node_ptr expr);
+static a_boolean any_cleanup_actions(an_object_lifetime_ptr outer_lifetime);
 static a_boolean check_for_troublesome_ptr_to_member_constant(
                                                      a_constant_ptr constant,
                                                      a_variable_ptr *temp_var);
@@ -383,142 +367,6 @@ that an insertion will be made.
 }  /* set_after_expr_insert_location */
 
 
-a_cleanup_action_ptr alloc_cleanup_action(
-                            a_cleanup_action_kind kind,
-                            a_boolean             applies_on_block_exit,
-                            a_boolean             applies_on_exception_cleanup)
-/*
-Allocate a cleanup action entry, set its kind to kind, set its fields
-to default values, and return a pointer to it.  applies_on_block_exit
-and applies_on_exception_cleanup are the values for the like-named flags
-in the cleanup entry.
-*/
-{
-  a_cleanup_action_ptr cap;
-
-  if (avail_cleanup_actions != NULL) {
-    /* Reuse a freed entry. */
-    cap = avail_cleanup_actions;
-    avail_cleanup_actions = cap->next;
-  } else {
-    /* Allocate a new entry. */
-    cap = (a_cleanup_action_ptr)alloc_fe(sizeof(a_cleanup_action));
-#if DEBUG
-    num_cleanup_actions_allocated++;
-#endif /* DEBUG */
-  }  /* if */
-  cap->next = NULL;
-  cap->next_exception_cleanup = NULL;
-  cap->applies_on_block_exit = applies_on_block_exit;
-  cap->applies_on_exception_cleanup = applies_on_exception_cleanup;
-  cap->constructor_wrapper_cleanup = FALSE;
-  cap->destructor_wrapper_cleanup = FALSE;
-  cap->region_number = NULL_EH_REGION_NUMBER;
-  cap->region_table_entry = NULL;
-  cap->kind = kind;
-  switch (kind) {
-    case cak_catch:
-      /* No variant fields. */
-      break;
-    case cak_label:
-      cap->variant.label = NULL;
-      break;
-    case cak_destruction:
-      clear_dynamic_init(&cap->variant.object.dynamic_init,
-                         (a_dynamic_init_kind)dik_none);
-      cap->variant.object.is_expr_temporary = FALSE;
-      cap->variant.object.conditional_flag_added_for_unsequenced_case = FALSE;
-      goto common_fields;
-    case cak_new_allocation:
-      cap->variant.object.delete_routine = NULL;
-common_fields:
-      clear_init_pos_descr(&cap->variant.object.init_pos_descr);
-      cap->variant.object.conditional_flag_var = NULL;
-      cap->variant.object.full_expression = NULL;
-      break;
-    case cak_try_block:
-      cap->variant.try_frame = NULL;
-      break;
-    default:
-      unexpected_condition_str(
-                              "alloc_cleanup_action: bad cleanup action kind");
-  }  /* switch */
-  return cap;
-}  /* alloc_cleanup_action */
-
-
-void add_cleanup_action_to_context_list(a_cleanup_action_ptr cap,
-                                        a_context_ptr        context,
-                                        an_insert_location   *insert_location)
-/*
-Add the cleanup action pointed to by cap to the cleanup list of the indicated
-context.  If any code needs to be inserted now (while adding the action to the
-list), insert it at insert_location.  insert_location can be NULL for cases
-that do not apply to object cleanup.
-*/
-{
-  cap->next = context->cleanup_actions;
-  context->cleanup_actions = cap;
-  /* If exceptions are enabled and this entry applies on exception cleanup,
-     create a region description entry for this cleanup. */
-  if (exceptions_enabled && cap->applies_on_exception_cleanup) {
-    make_region_table_entry(cap, insert_location);
-  }  /* if */
-}  /* add_cleanup_action_to_context_list */
-
-
-a_cleanup_action_ptr add_cleanup_action(
-                            a_cleanup_action_kind kind,
-                            a_boolean             applies_on_block_exit,
-                            a_boolean             applies_on_exception_cleanup,
-                            an_insert_location    *insert_location)
-/*
-Allocate a cleanup action entry of the indicated kind and with the
-indicated settings for applies_on_block_exit and applies_on_exception_cleanup.
-Add it to the cleanup list for the current context and return a pointer to it.
-If any code needs to be inserted now (while adding the action to the
-list), insert it at insert_location.  insert_location can be NULL for
-cases that do not apply to object cleanup.
-*/
-{
-  a_cleanup_action_ptr cap;
-
-  cap = alloc_cleanup_action(kind, applies_on_block_exit,
-                             applies_on_exception_cleanup);
-  /* Add the action to the cleanup list for the current context. */
-  add_cleanup_action_to_context_list(cap, curr_context, insert_location);
-  return cap;
-}  /* add_cleanup_action */
-
-
-void free_cleanup_action(a_cleanup_action_ptr cap)
-/*
-Free a cleanup action entry by putting it on the available list.
-*/
-{
-  /* Free the list of init_pos_modifier entries pointed to. */
-  if (is_object_cleanup_action(cap)) {
-    free_init_pos_modifier_list(cap->variant.object.init_pos_descr.modifiers);
-  }  /* if */
-  cap->next = avail_cleanup_actions;
-  avail_cleanup_actions = cap;
-}  /* free_cleanup_action */
-
-
-static void free_cleanup_action_list(a_cleanup_action_ptr cap)
-/*
-Free a list of cleanup action entries by putting them on the available list.
-*/
-{
-  a_cleanup_action_ptr cap_next;
-
-  for (; cap != NULL; cap = cap_next) {
-    cap_next = cap->next;
-    free_cleanup_action(cap);
-  }  /* for */
-}  /* free_cleanup_action_list */
-
-
 void add_to_return_memo_list(a_statement_ptr return_stmt)
 /*
 Allocate a return memo entry to record the existence of the indicated return
@@ -562,40 +410,48 @@ Free a list of return memo entries by putting them on the available list.
 }  /* free_return_memo_list */
 
 
-void push_context(a_context   *context,
-                  a_scope_ptr scope,
-                  a_boolean   subscope_region)
+void push_context(a_context              *context,
+                  a_scope_ptr            scope,
+                  an_object_lifetime_ptr lifetime)
 /*
 Add the context entry "context" to the context stack.  The associated scope
-is "scope".  If this context is for a region smaller than a scope,
-subscope_region is TRUE.
+is "scope"; if scope is NULL, curr_context->scope is used.  The associated
+object lifetime is "lifetime"; if lifetime is NULL, the lifetime from the
+scope, or the lifetime from the parent context, will be used.
 */
 {
   a_context_ptr parent_context = curr_context;
+  a_boolean     new_lifetime;
 
+  if (parent_context == NULL) {
+    /* Remember the file scope context if this is the first push_context. */
+    file_scope_context = context;
+  } else {
+    parent_context->lifetime = curr_object_lifetime;
+    if (scope == NULL) scope = parent_context->scope;
+  }  /* if */
   curr_context = context;
-  /* Remember the file scope context if this is the first push_context. */
-  if (parent_context == NULL) file_scope_context = context;
   /* Set the fields. */
   context->parent = parent_context;
   context->scope = scope;
-  context->subscope_region = subscope_region;
-  context->assoc_expr = NULL;
-  context->assoc_switch_clause = NULL;
-  context->cleanup_actions = NULL;
-  context->exception_cleanup_actions = (parent_context != NULL) ? 
-                                    parent_context->exception_cleanup_actions :
-                                    NULL;
-  context->latest_label_statement_processed = NULL;
-  context->any_conditional_flag_var_initializations_deferred = FALSE;
-  /* Keep track of the innermost function context/scope. */
-  if (!subscope_region && scope->kind == (a_scope_kind)sck_function) {
-    nearest_function_context = curr_context;
-    nearest_function_scope = scope;
-    nearest_this_param_variable = scope->variant.routine.this_param_variable;
-    /* Don't link cleanups inside a function to those in the file scope. */
-    context->exception_cleanup_actions = NULL;
+  /* For the lifetime, use (1) the parameter passed in, (2) the lifetime from
+     the scope, or (3) the lifetime from the parent context. */
+  if (lifetime == NULL) lifetime = scope->lifetime;
+  new_lifetime = (lifetime != NULL);
+  if (lifetime == NULL && parent_context != NULL) {
+    lifetime = parent_context->lifetime;
   }  /* if */
+  curr_object_lifetime = context->lifetime = lifetime;
+  context->new_lifetime = new_lifetime;
+  /* The destructions list starts at NULL for a new object lifetime, or is
+     inherited from the parent if there is no new object lifetime. */
+  if (new_lifetime) {
+    context->destructions = NULL;
+  } else if (parent_context != NULL) {
+    context->destructions = parent_context->destructions;
+  }  /* if */
+  context->successor_lifetime_at_statement = NULL;
+  context->try_frame = NULL;
 }  /* push_context */
 
 
@@ -604,35 +460,14 @@ void pop_context(void)
 Pop an entry off the context stack.
 */
 {
-  a_context_ptr cp, parent_context;
-
-  parent_context = curr_context->parent;
-#if CHECKING
-  if (curr_context->any_conditional_flag_var_initializations_deferred) {
-    /* Forgot to call gen_expr_conditional_flag_var_initializations. */
-    internal_error("pop_context: deferred conditional flag var inits");
-  }  /* if */
-#endif /* CHECKING */
-  /* Free any cleanup action entries. */
-  free_cleanup_action_list(curr_context->cleanup_actions);
-  /* Keep track of the innermost function context/scope. */
-  if (curr_context == nearest_function_context) {
-    nearest_function_context = NULL;
-    nearest_function_scope = NULL;
-    nearest_this_param_variable = NULL;
-    for (cp = parent_context; cp != NULL; cp = cp->parent) {
-      if (!cp->subscope_region &&
-          cp->scope->kind == (a_scope_kind)sck_function) {
-        nearest_function_context = cp;
-        nearest_function_scope = cp->scope;
-        nearest_this_param_variable = nearest_function_scope->
-                                           variant.routine.this_param_variable;
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
   /* Pop to the surrounding context. */
-  curr_context = parent_context;
+  curr_context = curr_context->parent;
+  /* Restore the current object lifetime of the parent. */
+  if (curr_context != NULL) {
+    curr_object_lifetime = curr_context->lifetime;
+  } else {
+    curr_object_lifetime = NULL;
+  }  /* if */
 }  /* pop_context */
 
 
@@ -1215,9 +1050,9 @@ function.
 }  /* is_or_was_ptr_to_member_function_type */
 
 
-static a_variable_ptr make_temporary_in_scope(a_type_ptr  temp_type,
-                                              a_scope_ptr scope,
-                                              a_boolean   force_static)
+a_variable_ptr make_temporary_in_scope(a_type_ptr  temp_type,
+                                       a_scope_ptr scope,
+                                       a_boolean   force_static)
 /*
 Make a temporary variable in scope "scope" whose type is "temp_type" and
 whose storage class is static if force_static is TRUE or if the scope
@@ -1240,6 +1075,11 @@ is the file scope.  Return a pointer to it.
   temp = alloc_variable(storage_class);
   temp->type = temp_type;
   temp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
+  if (scope->kind == (a_scope_kind)sck_block ||
+      scope->kind == (a_scope_kind)sck_function) {
+    /* Mark local variables of functions. */
+    temp->source_corresp.is_local_to_function = TRUE;
+  }  /* if */
   /* See if the scope we are adding to is active on the scope stack.
      If so, we have to maintain the "last" pointer too. */
   ssep = NULL;
@@ -1307,27 +1147,6 @@ scope.  Return a pointer to the variable.
                                      /*force_static=*/FALSE);
   return temp_var;
 }  /* make_function_scope_temporary */
-
-
-a_variable_ptr make_temporary_possibly_at_file_scope(a_type_ptr temp_type,
-                                                     a_boolean  at_file_scope)
-/*
-Make a variable for a temporary of type temp_type and return a pointer to
-it.  If at_file_scope is TRUE, make the temporary in the file scope;
-otherwise, allocate it in the current scope.
-*/
-{
-  a_variable_ptr temp_var;
-
-  if (!at_file_scope) {
-    /* Normal case. */
-    temp_var = make_lowered_temporary(temp_type);
-  } else {
-    /* Make the temporary in the file scope. */
-    temp_var = make_file_scope_temporary(temp_type);
-  }  /* if */
-  return temp_var;
-}  /* make_temporary_possibly_at_file_scope */
 
 
 a_variable_ptr make_unnamed_local_static_variable(a_type_ptr type,
@@ -2020,7 +1839,9 @@ The safe return value is FALSE.
   } else if (expr->kind == (an_expr_node_kind)enk_variable) {
     /* If the expression if the "this" variable for the current function,
        it cannot be null. */
-    if (nearest_this_param_variable == expr->variant.variable) {
+    if (nearest_function_scope != NULL &&
+        nearest_function_scope->variant.routine.this_param_variable ==
+                                                      expr->variant.variable) {
       cannot_be = TRUE;
     }  /* if */
   }  /* if */
@@ -5774,36 +5595,26 @@ a full expression (i.e., it's not part of some larger expression), because
 an enk_object_lifetime should only occur at the top of a full expression.
 */
 {
-  a_context          context;
-  an_insert_location insert_location;
-  an_object_lifetime_ptr
-                     saved_curr_object_lifetime = curr_object_lifetime;
-  an_expr_node_ptr   expr_to_lower;
+  a_context              context;
+  an_insert_location     insert_location;
+  an_expr_node_ptr       expr_to_lower = expr->variant.object_lifetime.expr;
+  an_object_lifetime_ptr lifetime = expr->variant.object_lifetime.ptr;
 
-  /* Set curr_object_lifetime for the lowering of the subexpression, then
-     restore it later. */
-  curr_object_lifetime = expr->variant.object_lifetime.ptr;
-  expr_to_lower = expr->variant.object_lifetime.expr;
-  push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
-  curr_context->assoc_expr = expr;
+  push_context(&context, (a_scope_ptr)NULL, lifetime);
   /* Lower the subexpression. */
   lower_expr(expr_to_lower, is_lvalue);
-  if (any_cleanup_actions(curr_context)) {
-    /* Generate initialization assignments for any flags needed for
-       conditional destruction. */
-    gen_expr_conditional_flag_var_initializations(expr_to_lower);
+  if (any_cleanup_actions(lifetime)) {
     /* Generate any cleanup actions for temporaries built within
        the expression.  Note that this is a special "insert after"
        mode, which can only be used in very limited circumstances,
        e.g., at the top of an expression tree. */
     set_after_expr_insert_location(expr_to_lower, &insert_location);
-    gen_cleanup_actions(curr_context, &insert_location);
+    gen_cleanup_actions(lifetime, &insert_location);
     /* The insertions may have changed the type of the node, so copy the
        type up to the enk_object_lifetime node. */
     expr->type = expr_to_lower->type;
   }  /* if */
   pop_context();
-  curr_object_lifetime = saved_curr_object_lifetime;
   if (!keep_object_lifetime_info_in_lowered_il) {
     /* Not keeping object lifetime information, so eliminate this node. */
     unbind_object_lifetime(expr->variant.object_lifetime.ptr);
@@ -5823,13 +5634,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
   an_expr_node_ptr      operand_node, operand2, operand3, throw_operand;
   a_variable_ptr        var, temp_var;
   unsigned int          is_lvalue_mask;
-  a_boolean             is_full_expression = FALSE;
 
-  if (curr_full_expression == NULL) {
-    /* There is no current full expression, so this must be it. */
-    curr_full_expression = expr;
-    is_full_expression = TRUE;
-  }  /* if */
   lower_os_type(expr->type);
   switch (expr->kind) {
     case enk_routine_address:
@@ -6105,10 +5910,6 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
       internal_error("lower_expr: bad kind");
 #endif /* CHECKING */
   }  /* switch */
-  if (is_full_expression) {
-    /* Done with a top-level expression.  Clear flags. */
-    curr_full_expression = NULL;
-  }  /* if */
 }  /* lower_expr */
 
 
@@ -6145,6 +5946,371 @@ statement.  The expression is not an lvalue.
 }  /* lower_boolean_controlling_expr */
 
 
+static void add_conditional_flag(a_dynamic_init_ptr dip)
+/*
+Add a conditional flag to a dynamic initialization (pointed to by dip).
+This is needed, for example, inside a conditional operand of a "?", "&&",
+or "||" operation, to make the corresponding destruction dependent on
+whether the construction was done.  We add a temporary variable and
+initialize it to 0; if code must be inserted to do the initialization,
+it is inserted at *insert_location.  If after_label_lifetime is TRUE,
+we are currently processing the beginning of a lifetime caused by a
+label in a block, instead of a lifetime caused by a block.
+*/
+{
+  a_variable_ptr cond_var;
+
+  cond_var = make_lowered_temporary(integer_type((an_integer_kind)ik_int));
+  dip->destructible_entity_descr->conditional_flag_var = cond_var;
+}  /* add_conditional_flag */
+
+
+static void begin_object_lifetime(an_object_lifetime_ptr lifetime,
+                                  a_boolean              after_label_lifetime,
+                                  an_insert_location     *insert_location)
+/*
+Do processing required at the beginning of the indicated object lifetime
+(a block, block-after-label, or expression temporary lifetime).
+If after_label_lifetime is TRUE, we are currently processing the
+beginning of a lifetime caused by a label in a block, instead of a
+lifetime caused by a block.  If any code needs to be inserted, it
+is inserted at *insert_location, and *insert_location is updated.
+*/
+{
+  a_dynamic_init_ptr     dip;
+  an_object_lifetime_ptr olp;
+
+  for (dip = lifetime->destructions;
+       dip != NULL;
+       dip = dip->next_in_destruction_list) {
+    a_variable_ptr return_opt_var = nearest_function_scope->variant.routine.
+                                                         return_value_variable;
+    if (return_opt_var != NULL && dip->variable == return_opt_var) {
+      /* This is the initialization of the parameter substituted for the
+         return value optimization variable.  The destruction doesn't get
+         done on exit from the routine (the caller does it), so remove
+         the destruction from the destructions list. */
+      remove_from_destruction_list(dip);
+      dip->destructor = NULL;
+    } else {
+      /* Allocate a destructible entity description entry pointed to by
+         the dynamic init entry. */
+      dip->destructible_entity_descr = alloc_destructible_entity_descr();
+      if (dip->inside_conditional_expression ||
+          (exceptions_enabled && dip->unordered)) {
+        /* This destruction requires a conditional flag that indicates that
+           the construction was done; add one and initialize it to zero.
+           The conditional flag is used for the unordered case if we can't
+           predict the order in which certain initializations will be
+           done (because the C language leaves evaluation order weakly
+           defined). */
+        add_conditional_flag(dip);
+        init_conditional_flag_var(dip->destructible_entity_descr->
+                                                          conditional_flag_var,
+                                  after_label_lifetime, insert_location);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* Visit all children of this lifetime.  Don't go into block or
+     block-after-label lifetimes, since they will be handled by another
+     call of this routine at some later time. */
+  for (olp = lifetime->child_lifetime; olp != NULL; olp = olp->next) {
+    if (olp->kind != (an_object_lifetime_kind)olk_block &&
+        olp->kind != (an_object_lifetime_kind)olk_block_after_label) {
+      begin_object_lifetime(olp, after_label_lifetime, insert_location);
+    }  /* if */
+  }  /* for */
+}  /* begin_object_lifetime */
+
+
+static an_object_lifetime_ptr label_successor_lifetime(
+                                          an_object_lifetime_ptr lifetime,
+                                          a_boolean              switch_clause)
+/*
+Given an olk_block or olk_block_after_label lifetime, return the successor
+lifetime at the next label, or NULL if there isn't one.  If switch_clause is
+TRUE, only consider successors at switch clauses.  If switch_clause is
+FALSE, only consider successors that aren't at switch clauses.
+*/
+{
+  for (;;) {
+    if (!lifetime->has_block_after_label_child_lifetime) {
+      /* This lifetime has no label successor, so we can save time and not
+         look for one. */
+      lifetime = NULL;
+      break;
+    } else {
+      /* Find the label successor lifetime (there must be one, because the flag
+         is set). */
+      for (lifetime = lifetime->child_lifetime;
+           lifetime->kind != (an_object_lifetime_kind)olk_block_after_label;
+           lifetime = lifetime->next) {}
+      /* See if this lifetime is for a switch clause or not, depending on
+         what we want. */
+      if ((lifetime->entity.kind == (a_byte_il_entry_kind)iek_switch_clause) ==
+          (switch_clause != 0)) {
+        /* This lifetime is one we want. */
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return lifetime;
+}  /* label_successor_lifetime */
+
+
+static void start_label_region_of_lifetime(
+                                          an_object_lifetime_ptr lifetime,
+                                          a_boolean              switch_clause)
+/*
+Start a new label region in the current context (either the original
+olk_block lifetime or a successor olk_block_after_label lifetime).
+lifetime indicates the lifetime to begin.  switch_clause is TRUE if the
+lifetime begins at the start of a switch clause.
+*/
+{
+  an_object_lifetime_ptr next_lifetime;
+
+  curr_object_lifetime = curr_context->lifetime = lifetime;
+  curr_context->destructions = NULL;
+  /* curr_cleanup_region_nunber is not changed on purpose. */
+  if (!switch_clause) {
+    /* Set up the context field to watch for the appearance of the
+       statement that begins the next label lifetime.  The switch clause
+       case is handled in the caller. */
+    next_lifetime = label_successor_lifetime(lifetime,
+                                             /*switch_clause=*/FALSE);
+    curr_context->successor_lifetime_at_statement = next_lifetime;
+  }  /* if */
+}  /* start_label_region_of_lifetime */
+
+
+void begin_block_object_lifetime(an_object_lifetime_ptr lifetime,
+                                 an_insert_location_ptr insert_location)
+/*
+Do processing required at the beginning of an olk_block lifetime associated
+with a block.  This includes generating code for things like conditional flag
+initializations.  Such code is inserted at *insert_location.  Do nothing
+if lifetime is NULL.
+*/
+{
+  if (lifetime != NULL) {
+    check_assertion(lifetime->kind == (an_object_lifetime_kind)olk_block);
+    /* Visit all object lifetimes in this lifetime, and all destructions
+       within those lifetimes. */
+    begin_object_lifetime(lifetime, /*after_label_lifetime=*/FALSE,
+                          insert_location);
+    start_label_region_of_lifetime(lifetime, /*switch_clause=*/FALSE);
+  }  /* if */
+}  /* begin_block_object_lifetime */
+
+
+static void begin_block_label_object_lifetime(an_object_lifetime_ptr lifetime)
+/*
+Do processing required at the beginning of an olk_block_after_label lifetime
+associated with a label in a block.
+*/
+{
+  a_statement_ptr    stmt;
+  an_insert_location insert_location;
+  a_source_position  saved_code_pos;
+
+  saved_code_pos = code_pos_for_lowering;
+  /* Get the statement pointer from the lifetime. */
+  check_assertion(lifetime->entity.kind==(a_byte_il_entry_kind)iek_statement);
+  stmt = (a_statement_ptr)(lifetime->entity.ptr);
+  set_insert_location(stmt, &insert_location);
+  set_position_from_stmt_source_position(code_pos_for_lowering,
+                                         stmt->position);
+  /* Visit all object lifetimes in this lifetime, and all destructions
+     within those lifetimes. */
+  begin_object_lifetime(lifetime, /*after_label_lifetime=*/TRUE,
+                        &insert_location);
+  start_label_region_of_lifetime(lifetime, /*switch_clause=*/FALSE);
+  code_pos_for_lowering = saved_code_pos;
+}  /* begin_block_label_object_lifetime */
+
+
+static void begin_switch_clause_object_lifetime(
+                                               an_object_lifetime_ptr lifetime)
+/*
+Do processing required at the beginning of an olk_block_after_label lifetime
+associated with a switch clause.
+*/
+{
+  a_switch_clause_ptr switch_clause;
+  an_insert_location  insert_location;
+  a_source_position   saved_code_pos;
+
+  saved_code_pos = code_pos_for_lowering;
+  /* Get the switch clause pointer from the lifetime. */
+  check_assertion(lifetime->entity.kind ==
+                                      (a_byte_il_entry_kind)iek_switch_clause);
+  switch_clause = (a_switch_clause_ptr)(lifetime->entity.ptr);
+  set_switch_clause_start_insert_location(switch_clause, &insert_location);
+  /* If the switch clause contains a statement, get a source position from
+     that and use it as the position for any code created. */
+  if (switch_clause->statements != NULL) {
+    set_position_from_stmt_source_position(code_pos_for_lowering,
+                                          switch_clause->statements->position);
+  }  /* if */
+  /* Visit all object lifetimes in this lifetime, and all destructions
+     within those lifetimes. */
+  begin_object_lifetime(lifetime, /*after_label_lifetime=*/TRUE,
+                        &insert_location);
+  start_label_region_of_lifetime(lifetime, /*switch_clause=*/TRUE);
+  code_pos_for_lowering = saved_code_pos;
+}  /* begin_switch_clause_object_lifetime */
+
+
+static void adjust_region_table_to_remove_long_lifetime_temps(
+                                              a_boolean need_regions_for_temps)
+/*
+We've reached a label or switch clause in long-lifetime temporaries mode.
+We haven't yet started any object lifetime that begins at the label or
+switch clause.  Here, logically remove the temporaries from the cleanup
+region table so they will no longer be part of the cleanup chain.  Called
+only when exceptions are enabled.  If need_regions_for_temps is TRUE,
+we will be destroying the temporaries, so we need cleanup regions that
+will cover them while we destroy them.
+*/
+{
+  a_dynamic_init_ptr dip;
+  a_dynamic_init_ptr first_temp = NULL, last_temp = NULL;
+  a_dynamic_init_ptr first_nontemp = NULL, last_nontemp = NULL;
+
+  /* If there are cleanup regions for non-temporaries that are followed
+     by temporaries, the entries for the non-temporaries must be cloned
+     so we can set the current region to the clones and have the
+     destructions for the temporaries out of the list (to reflect the
+     fact that the temporaries no longer need to be cleaned up on a
+     throw).  If need_regions_for_temps is TRUE, we need to clone all
+     but the first of the temporaries too, so we can have a cleanup
+     region number while doing the temporary destructions.  The
+     temporaries get moved to the front of the cloned list.  In the
+     loop here, we split the region table entries into two lists
+     (one for temporaries, one for nontemporaries), and then rejoin
+     them with the temporaries first. */
+  check_assertion_str2(curr_object_lifetime != NULL &&
+                       curr_object_lifetime->destructions ==
+                                                    curr_context->destructions,
+                       "adjust_region_table_to_remove_long_lifetime_temps: ",
+                       "bad current object lifetime");
+  for (dip = curr_context->destructions;
+       dip != NULL;
+       dip = dip->next_in_destruction_list) {
+    if (dip->is_expr_temp_init) {
+      /* An initialization for a temporary. */
+      if (first_temp == NULL) first_temp = dip;
+      if (last_temp != NULL) last_temp->next_in_destruction_list = dip;
+      last_temp = dip;
+    } else {
+      /* An initialization for a nontemporary. */
+      if (first_nontemp == NULL) first_nontemp = dip;
+      if (last_nontemp != NULL) last_nontemp->next_in_destruction_list = dip;
+      last_nontemp = dip;
+    }  /* if */
+  }  /* for */
+  if (first_temp != NULL) {
+    /* There were some temporaries in the lifetime. */
+    /* Put the list back together again, with the temporaries first.  Note
+       that this ruins the list for use by a "real" back end.  Even if we
+       don't need to clone the temporaries, put them back on the list so that
+       all entries can be found and detached at the end of lowering. */
+    a_dynamic_init_ptr first_nontemp_after_temps =
+                                           last_temp->next_in_destruction_list;
+    last_temp->next_in_destruction_list = first_nontemp;
+    curr_object_lifetime->destructions = first_temp;
+    if (first_nontemp_after_temps != first_nontemp) {
+      /* Some region table entries must be cloned. */
+      if (need_regions_for_temps) {
+        /* We need to clone the entries for the temporaries too, except
+           for the first temporary. */
+        dip = first_temp->next_in_destruction_list;
+      } else {
+        /* We need to clone just the nontemporaries. */
+        dip = first_nontemp;
+      }  /* if */
+      clone_region_table_entry_list(dip, first_nontemp_after_temps);
+      /* The entry for the first temporary need not be cloned, but its
+         next_region_number pointer needs to be updated to get the right
+         region when the destruction begins. */
+      first_temp->destructible_entity_descr->next_region_number =
+                                                    cleanup_region_number(dip);
+    }  /* if */
+    /* The current position is at the beginning of the regions for the
+       temporaries if we cloned regions for those because we will be
+       destroying them, otherwise at the first region for a nontemp. */
+    dip = need_regions_for_temps ? first_temp : first_nontemp;
+    curr_context->destructions = dip;
+    curr_cleanup_region_number = cleanup_region_number(dip);
+    /* set_eh_curr_region is not called on purpose. */
+  }  /* if */
+}  /* adjust_region_table_to_remove_long_lifetime_temps */
+
+
+static void destroy_long_lifetime_temporaries_before_statement(
+                                                    a_statement_ptr *statement)
+/*
+Destroy any long lifetime temporaries that are presently active.
+The destruction code is inserted preceding the indicated statement.
+If the statement is turned into a block, *statement will be updated
+on return to point to the new location of the original statement.
+Called only in long lifetime temporaries mode.
+*/
+{
+  a_boolean          any_temps_destroyed = FALSE;
+  a_boolean          need_to_destroy_temps;
+  an_insert_location insert_location;
+  a_dynamic_init_ptr dip;
+  a_source_position  saved_code_pos;
+
+  saved_code_pos = code_pos_for_lowering;
+  /* We need to destroy the temporaries only if the statement is reachable
+     by flowing into it from the preceding code.  For statements other than
+     labels, assume the statement is reachable because we don't know. */
+  need_to_destroy_temps = FALSE;
+  if ((*statement)->kind != (a_statement_kind)stmk_label ||
+      (*statement)->variant.label.ptr->reachable_by_fall_through) {
+    need_to_destroy_temps = TRUE;
+  }  /* if */
+  if (exceptions_enabled) {
+    /* If necessary, adjust the cleanup region table to reflect the
+       fact that the temporaries are no longer in the cleanup chain. */
+    adjust_region_table_to_remove_long_lifetime_temps(need_to_destroy_temps);
+  }  /* if */
+  if (need_to_destroy_temps) {
+    /* Go through the list of destructions, find the ones for temporaries,
+       and generate destruction code. */
+    for (dip = curr_context->destructions;
+         dip != NULL;
+         dip = dip->next_in_destruction_list) {
+      if (dip->is_expr_temp_init) {
+        /* Found a destruction for a temporary.  */
+        /* If this is the first one, make an insert location by rewriting
+           the label as a block. */
+        if (!any_temps_destroyed) {
+          any_temps_destroyed = TRUE;
+          set_position_from_stmt_source_position(code_pos_for_lowering,
+                                                 (*statement)->position);
+          turn_statement_into_block(*statement, &insert_location, statement);
+        }  /* if */
+        /* Generate the cleanup action. */
+        gen_one_destruction(dip, &insert_location);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (exceptions_enabled && any_temps_destroyed) {
+    /* Set the current region number, but not if the current statement
+       is a label (because in that case it will be set in a moment
+       anyway). */
+    if ((*statement)->kind != (a_statement_kind)stmk_label) {
+      set_eh_curr_region(curr_cleanup_region_number, &insert_location);
+    }  /* if */
+  }  /* if */
+  code_pos_for_lowering = saved_code_pos;
+}  /* destroy_long_lifetime_temporaries_before_statement */
+
+
 /*
 Return TRUE if the indicated statement is a do-nothing statement
 created by IL lowering (presumably, it was some other kind of statement
@@ -6153,7 +6319,8 @@ and it was replaced by something else; see turn_statement_into_noop).
 #define is_noop_statement(statement)                                  \
   ((statement)->kind == (a_statement_kind)stmk_block &&               \
    (statement)->variant.block.statements == NULL &&                   \
-   (statement)->variant.block.extra_info->parent_block == NULL)
+   seq_number_from_stmt_source_position((statement)->                 \
+                 variant.block.extra_info->final_position) == 0)
 
 
 void lower_statement_list(a_statement_ptr statement_list,
@@ -6164,7 +6331,10 @@ Return a pointer to the last statement in *p_last_statement, or NULL if
 there are no statements on the list.
 */
 {
-  a_statement_ptr statement, statement_next, last_statement = NULL;
+  a_statement_ptr        statement, statement_next, last_statement = NULL;
+  a_statement_ptr        eff_statement;
+  an_object_lifetime_ptr next_lifetime;
+  a_boolean              stmt_begins_label_lifetime;
 
   for (statement = statement_list;
        statement != NULL;
@@ -6174,8 +6344,28 @@ there are no statements on the list.
        inserts statements, and the expressions therein should not be lowered
        again). */
     statement_next = statement->next;
+    eff_statement = statement;
+    /* See if a new object lifetime begins at this statement because
+       it is or contains a label. */
+    stmt_begins_label_lifetime = FALSE;
+    next_lifetime = curr_context->successor_lifetime_at_statement;
+    if (next_lifetime != NULL &&
+        (a_statement_ptr)next_lifetime->entity.ptr == statement) {
+      /* A new object lifetime begins at this statement. */
+      stmt_begins_label_lifetime = TRUE;
+      if (long_lifetime_temps) {
+        /* Destroy any long lifetime temporaries.  If the statement is turned
+           into a block, eff_statement will be updated to point to the original
+           statement. */
+        destroy_long_lifetime_temporaries_before_statement(&eff_statement);
+      }  /* if */
+    }  /* if */
     /* Lower a statement. */
-    lower_statement(statement);
+    lower_statement(eff_statement);
+    if (stmt_begins_label_lifetime) {
+      /* Start a new object lifetime because of a label. */
+      begin_block_label_object_lifetime(next_lifetime);
+    }  /* if */
     /* Remove extra no-op statements (empty blocks) left in the statement
        sequence by lowering of some statements (e.g., stmk_init).
        Note that this is done in a way that doesn't change the address
@@ -6206,108 +6396,53 @@ there are no statements on the list.
 }  /* lower_statement_list */
 
 
-void remove_cleanup_action(a_cleanup_action_ptr cap_to_remove)
-/*
-Remove the cleanup action cap_to_remove from the current context.
-*/
-{
-  a_cleanup_action_ptr cap, prev_cap;
-
-  if (exceptions_enabled && cap_to_remove->applies_on_exception_cleanup) {
-    /* Remove the entry from the exception-cleanup-order list. */
-    remove_from_exception_cleanup_list(cap_to_remove);
-  }  /* if */
-  /* Find the entry on the block-exit-order list. */
-  for (prev_cap = NULL, cap = curr_context->cleanup_actions;
-       cap != cap_to_remove;
-       prev_cap = cap, cap = cap->next) {
-    check_assertion_str(cap != NULL, "remove_cleanup_action: entry not found");
-  }  /* for */
-  /* Remove the entry from the block-exit-order list. */
-  if (prev_cap == NULL) {
-    curr_context->cleanup_actions = cap->next;
-  } else {
-    prev_cap->next = cap->next;
-  }  /* if */
-  /* Free the entry. */
-  free_cleanup_action(cap);
-}  /* remove_cleanup_action */
-
-
-static void remove_temp_cleanup_actions(void)
-/*
-Remove any cleanup actions in the current context that are related to
-compiler-generated expression temporaries.  (Such temporaries have shorter
-lifetimes than normal variables.)
-*/
-{
-  a_cleanup_action_ptr cap, next_cap;
-
-  /* Go through the list of cleanup actions, find the ones for temporaries,
-     and remove them. */
-  for (cap = curr_context->cleanup_actions; cap != NULL; cap = next_cap) {
-    next_cap = cap->next;
-    if (cap->kind == cak_destruction &&
-        cap->variant.object.is_expr_temporary) {
-      /* Remove this entry from the list. */
-      remove_cleanup_action(cap);
-    }  /* if */
-  }  /* for */
-}  /* remove_temp_cleanup_actions */
-
-
-static void lower_switch_clause_list(a_switch_clause_ptr clause_list,
-                                     a_context_ptr       switch_context)
+static void lower_switch_clause_list(a_switch_clause_ptr    clause_list,
+                                     an_object_lifetime_ptr switch_lifetime)
 /*
 Do IL lowering of the indicated switch clause list and everything under it.
-If the switch statement has an associated context, switch_context points to
-it; otherwise, switch_context is NULL.
+If the switch statement has an associated lifetime, switch_lifetime points to
+it; otherwise, switch_lifetime is NULL.
 */
 {
-  a_switch_clause_ptr clause;
-  a_statement_ptr     last_statement;
-  an_insert_location  insert_location;
-  a_boolean           break_reachable;
+  a_switch_clause_ptr    clause;
+  a_statement_ptr        clause_statements, last_statement;
+  an_insert_location     insert_location;
+  an_object_lifetime_ptr lifetime;
 
+  /* Set up for the search for the first switch clause lifetime. */
+  lifetime = switch_lifetime;
   for (clause = clause_list; clause != NULL; clause = clause->next) {
-    /* Remember information about the current switch clause for use by
-       init_conditional_flag_var. */
-    curr_context->assoc_switch_clause = clause;
-    curr_context->latest_label_statement_processed = NULL;
     lower_constant_list(clause->constant_list);
-    lower_statement_list(clause->statements, &last_statement);
-    /* If there is something requiring cleanup anywhere in the switch
-       statement, the switch statement will have a context.  If not,
-       there's no need to check on whether cleanup is required. */
-    if (switch_context != NULL) {
-      /* If the last statement is not a branch, there is an implicit "break"
-         at the end of the clause statements.  Any cleanup actions must be
-         emitted on the "break". */
-      if (last_statement == NULL) {
-        /* No statements in the clause, so the end is reachable. */
-        break_reachable = TRUE;
-      } else if (last_statement->kind == (a_statement_kind)stmk_goto ||
-                 last_statement->kind == (a_statement_kind)stmk_return) {
-        /* The last statement is a goto or return, so the end is not
-           reachable. */
-        break_reachable = FALSE;
-      } else if (last_statement->kind == (a_statement_kind)stmk_block &&
-                 !last_statement->variant.block.extra_info->
-                                                      end_of_block_reachable) {
-        /* The last statement is a block whose end is not reachable, so the
-           end is not reachable. */
-        break_reachable = FALSE;
-      } else {
-        /* Otherwise the end is assumed to be reachable. */
-        break_reachable = TRUE;
+    /* Get the statement list before any insertions done for the start
+       of an object lifetime. */
+    clause_statements = clause->statements;
+    if (lifetime != NULL) {
+      lifetime = label_successor_lifetime(lifetime, /*switch_clause=*/TRUE);
+      if (lifetime != NULL) {
+        /* A different object lifetime begins at the beginning of this
+           clause. */
+        if (long_lifetime_temps) {
+          /* If necessary, adjust the cleanup region table to reflect the
+             fact that the temporaries are no longer in the cleanup chain. */
+          adjust_region_table_to_remove_long_lifetime_temps(
+                                             /*need_regions_for_temps=*/FALSE);
+        }  /* if */
+        begin_switch_clause_object_lifetime(lifetime);
       }  /* if */
-      if (break_reachable) {
+    }  /* if */
+    lower_statement_list(clause_statements, &last_statement);
+    if (switch_lifetime != NULL) {
+      /* Generate any cleanup actions required at the end of the
+         clause.  Note that the implicit "break" is only used at the
+         top level within a switch; "break" statements from deeper
+         (e.g., inside nested blocks) will be rendered as gotos. */
+      if (clause->implied_break_at_end) {
         /* There is an implicit "break" at the end of the clause. */
-        if (any_cleanup_actions(switch_context)) {
-          /* Generate any cleanup actions required at the end of the
-             context.  Note that the implicit "break" is only used at the
-             top level within a switch; "break" statements from deeper
-             (e.g., inside nested blocks) will be rendered as gotos. */
+        a_source_position saved_code_pos;
+        saved_code_pos = code_pos_for_lowering;
+        set_position_from_stmt_source_position(code_pos_for_lowering,
+                                               clause->break_position);
+        if (any_cleanup_actions(switch_lifetime)) {
           if (last_statement == NULL) {
             /* The clause is empty, so add a block statement and insert inside
                it. */
@@ -6318,36 +6453,37 @@ it; otherwise, switch_context is NULL.
             /* Insert after the last statement. */
             set_insert_location(last_statement, &insert_location);
           }  /* if */
-          gen_cleanup_actions(switch_context, &insert_location);
+          gen_cleanup_actions(switch_lifetime, &insert_location);
         }  /* if */
+        code_pos_for_lowering = saved_code_pos;
       }  /* if */
-      /* Get rid of the entries for cleanup actions on compiler-generated
-         expression temporaries generated in this clause (the cleanup code
-         has already been generated if needed). */
-      remove_temp_cleanup_actions();
     }  /* if */
   }  /* for */
-  curr_context->assoc_switch_clause = NULL;
-  curr_context->latest_label_statement_processed = NULL;
 }  /* lower_switch_clause_list */
 
 
-void turn_statement_into_block(a_statement_ptr statement)
+void turn_statement_into_block(a_statement_ptr        statement,
+                               an_insert_location_ptr insert_location,
+                               a_statement_ptr        *orig_statement)
 /*
-Turn the indicated statement into a block statement with a copy of the
-original statement under it.
+Turn a statement into a block containing a copy of the statement, and
+set *insert_location so that statements can be inserted at the beginning
+of the block (i.e., in front of the original statement).  *orig_statement
+is set to point to the original statement in its new location.
 */
 {
   a_statement_ptr stmt_copy;
 
   /* Make a copy of the original statement. */
-  stmt_copy = alloc_statement(statement->kind);
+  *orig_statement = stmt_copy = alloc_statement(statement->kind);
   copy_statement(statement, stmt_copy);
   stmt_copy->next = NULL;
   /* Turn the statement into a block statement. */
   set_statement_kind(statement, (a_statement_kind)stmk_block);
   statement->variant.block.statements = stmt_copy;
   clear_stmt_source_position(statement->position);
+  /* Insert at the start of the added block. */
+  set_block_start_insert_location(statement, insert_location);
 }  /* turn_statement_into_block */
 
 
@@ -6361,231 +6497,133 @@ in front of the original branch statement).  *orig_statement is set to point
 to the original statement in its new location.
 */
 {
-  turn_statement_into_block(statement);
+  turn_statement_into_block(statement, insert_location, orig_statement);
   /* We know the original statement is a branch of some sort, so
      the end of the block is not reachable. */
   statement->variant.block.extra_info->end_of_block_reachable = FALSE;
-  *orig_statement = statement->variant.block.statements;
-  /* Insert at the start of the added block. */
-  set_block_start_insert_location(statement, insert_location);
 }  /* turn_branch_into_block */
 
 
-static void gen_one_cleanup_action_or_test_nontrivial(
-                            a_cleanup_action_ptr   cap,
-                            an_insert_location_ptr insert_location,
-                            a_boolean              *nontrivial_cleanup)
+static a_context_ptr context_for_try(an_object_lifetime_ptr lifetime)
 /*
-Generate code for the cleanup action described by cap as it applies to
-block exit.  The code is inserted at *insert_location and *insert_location
-is updated.  If nontrivial_cleanup is non-NULL, don't generate any code,
-but rather examine the cleanup action to see if it requires anything
-beyond a destructor call.  Set *nontrivial_cleanup accordingly.
+lifetime is the object lifetime associated with a "try" block.  Find and
+return a pointer to the context associated with the "try".
 */
 {
-  an_insert_location     insert_location2;
-  an_insert_location_ptr effective_insert_loc;
+  a_context_ptr context;
 
-  if (nontrivial_cleanup != NULL) *nontrivial_cleanup = FALSE;
-  if (cap->applies_on_block_exit) {
-    if (cap->kind == cak_destruction) {
-      /* The entry calls for destruction of an object. */
-      effective_insert_loc = insert_location;
-      /* If the entity is a local static variable or a conditionally-created
-         temporary, generate an "if" statement to test whether or not the
-         variable was ever initialized.  Only do the destruction if it
-         was.  If the conditional flag is there only to be able to tell
-         which initializations in a set of unsequenced initializations
-         were done, there's no need to test the flag. */
-      if (cap->variant.object.conditional_flag_var != NULL &&
-          !cap->variant.object.conditional_flag_added_for_unsequenced_case) {
-        if (nontrivial_cleanup != NULL) {
-          *nontrivial_cleanup = TRUE;
+  for (context = curr_context;
+       !context->new_lifetime || context->lifetime != lifetime;
+       context = context->parent) {}
+  return context;
+}  /* context_for_try */
+
+
+static a_boolean gen_cleanup_actions_or_check_if_needed(
+                                        an_object_lifetime_ptr outer_lifetime,
+                                        an_insert_location_ptr insert_location,
+                                        a_boolean              check_only)
+/*
+Generate any cleanup actions required to exit from the current context
+(as indicated by curr_object_lifetime and curr_context) through
+outer_lifetime, inclusive.  Insert the code for the cleanup at
+*insert_location.  If any cleanup code was needed, return TRUE.
+If check_only is TRUE, just return that value; do not generate any
+code.
+*/
+{
+  a_boolean              any_cleanup_needed = FALSE, skip_temporaries = FALSE;
+  a_dynamic_init_ptr     dip = curr_context->destructions;
+  an_object_lifetime_ptr lifetime = curr_object_lifetime;
+  a_scope_ptr            scope;
+
+  /* Do nothing at all if there are no lifetimes involved. */
+  if (outer_lifetime != NULL) {
+    /* Loop outward through the indicated scopes.  At each level, there may
+       be destructions from the current position back to the beginning
+       of the lifetime, and there may be cleanup actions associated with the
+       lifetime itself. */
+    for (;;) {
+      an_il_entry_kind lifetime_entity_kind =
+                                       (an_il_entry_kind)lifetime->entity.kind;
+      /* Generate destructions in this context. */
+      for (; dip != NULL; dip = dip->next_in_destruction_list) {
+        if (dip->is_expr_temp_init && skip_temporaries) {
+          /* Skipping temporaries, so skip this destruction. */
+        } else if (dip->is_constructor_init) {
+          /* Also skip entries for constructor inits (in constructors and
+             destructors).  They apply for exception cleanup but not on
+             exit via branch. */
         } else {
-          add_last_time_test(cap->variant.object.conditional_flag_var, 
-                             insert_location,
-                             &insert_location2);
-          effective_insert_loc = &insert_location2;
+          any_cleanup_needed = TRUE;
+          if (check_only) goto done;
+          gen_one_destruction(dip, insert_location);
         }  /* if */
-      }  /* if */
-      if (nontrivial_cleanup != NULL) {
-        /* An array destruction requires more than a simple destructor call. */
-        if (cap->variant.object.init_pos_descr.whole_array) {
-          *nontrivial_cleanup = TRUE;
-        }  /* if */
-      } else {
-        lower_destructor_dynamic_init(&cap->variant.object.dynamic_init,
-                                      &cap->variant.object.init_pos_descr,
-                                      cap,
-                                      /*have_complete_object=*/TRUE,
-                                      effective_insert_loc);
-      }  /* if */
-    } else if (cap->kind == cak_try_block) {
-      /* Exiting a try block. */
-      if (nontrivial_cleanup != NULL) {
-        *nontrivial_cleanup = TRUE;
-      } else {
-        cleanup_on_exit_from_try_block(cap, insert_location);
-      }  /* if */
-    } else if (cap->kind == cak_catch) {
-      /* Exiting a catch clause -- free the caught object. */
-      if (nontrivial_cleanup != NULL) {
-        *nontrivial_cleanup = TRUE;
-      } else {
+      }  /* for */
+      /* In some cases, the context itself requires cleanup. */
+      if (lifetime_entity_kind == iek_try_supplement) {
+        /* Exit from a "try" block. */
+        any_cleanup_needed = TRUE;
+        if (check_only) goto done;
+        cleanup_on_exit_from_try_block(context_for_try(lifetime),
+                                       insert_location);
+      } else if (lifetime_entity_kind == iek_scope &&
+                 (scope = (a_scope_ptr)lifetime->entity.ptr,
+                  (scope->kind == (a_scope_kind)sck_block &&
+                   scope->variant.assoc_handler != NULL))) {
+        /* Exit from a "catch" clause. */
+        any_cleanup_needed = TRUE;
+        if (check_only) goto done;
         cleanup_on_exit_from_catch(insert_location);
       }  /* if */
-    }  /* if */
+      /* Stop when the outer lifetime has been processed. */
+      if (lifetime == outer_lifetime) break;
+      /* Continuing into the parent. */
+      /* The lifetime indicates where to start in the destructions list
+         of the parent. */
+      dip = lifetime->parent_destruction_sublist;
+      skip_temporaries = FALSE;
+      if (lifetime->kind == (an_object_lifetime_kind)olk_block_after_label) {
+        /* We're going from an olk_block_after_label to a previous lifetime
+           in the same scope, so skip temporaries in the previous lifetime,
+           because temporaries will have been destroyed at the label. */
+        skip_temporaries = TRUE;
+      }  /* if */
+      lifetime = lifetime->parent_lifetime;
+    }  /* for */
   }  /* if */
-}  /* gen_one_cleanup_action_or_test_nontrivial */
+done:
+  return any_cleanup_needed;
+}  /* gen_cleanup_actions_or_check_if_needed */
 
 
-void gen_one_cleanup_action(a_cleanup_action_ptr   cap,
-                            an_insert_location_ptr insert_location)
-/*
-Generate code for the cleanup action described by cap as it applies to
-block exit.  The code is inserted at *insert_location and *insert_location
-is updated.
-*/
-{
-  gen_one_cleanup_action_or_test_nontrivial(cap, insert_location,
-                                            (a_boolean *)NULL);
-}  /* gen_one_cleanup_action */
-
-
-a_boolean requires_nontrivial_cleanup(a_cleanup_action_ptr cap)
-/*
-Return TRUE if the indicated cleanup action requires cleanup on end of
-block that is more complicated than a simple destructor call.
-*/
-{
-  a_boolean nontrivial_cleanup;
-
-  gen_one_cleanup_action_or_test_nontrivial(cap, (an_insert_location_ptr)NULL,
-                                            &nontrivial_cleanup);
-  return nontrivial_cleanup;
-}  /* requires_nontrivial_cleanup */
-
-
-void gen_cleanup_actions(a_context_ptr          outer_context,
+void gen_cleanup_actions(an_object_lifetime_ptr outer_lifetime,
                          an_insert_location_ptr insert_location)
 /*
-Generate any cleanup actions required to exit from the contexts indicated
-by curr_context through outer_context, inclusive.  Insert the code for
-the cleanup at *insert_location.
+Generate any cleanup actions required to exit from the current context
+(as indicated by curr_object_lifetime and curr_context) through
+outer_lifetime, inclusive.  Insert the code for the cleanup at
+*insert_location.
 */
 {
-  a_context_ptr        context_ptr;
-  a_cleanup_action_ptr cap;
-  a_boolean            any_calls_generated = FALSE;
-
-  /* Loop outward through the indicated contexts. */
-  for (context_ptr = curr_context;; context_ptr = context_ptr->parent) {
-    /* Loop through the list of cleanup actions. */
-    for (cap = context_ptr->cleanup_actions;
-         cap != NULL;
-         cap = cap->next) {
-      if (cap->applies_on_block_exit) {
-        gen_one_cleanup_action(cap, insert_location);
-        any_calls_generated = TRUE;
-      }  /* if */
-    }  /* for */
-    /* Stop when the outer context is reached. */
-    if (context_ptr == outer_context) break;
-  }  /* for */
-  if (exceptions_enabled && any_calls_generated) {
-    /* One or more calls was generated and exceptions are enabled.
-       Reset eh_curr_region.   Do not do this if the context being exited
-       is the function context or if we're cleaning up for all contexts
-       including the file scope. */
-    if (outer_context != nearest_function_context &&
-        outer_context->parent != NULL) {
-      set_eh_curr_region(outer_context->parent, insert_location);
-    }  /* if */
-  }  /* if */
+  (void)gen_cleanup_actions_or_check_if_needed(outer_lifetime, insert_location,
+                                               /*check_only=*/FALSE);
 }  /* gen_cleanup_actions */
 
 
-static a_boolean any_cleanup_actions(a_context_ptr outer_context)
+static a_boolean any_cleanup_actions(an_object_lifetime_ptr outer_lifetime)
 /*
-Return TRUE if any cleanup actions are required to exit from the contexts
-indicated by curr_context through outer_context, inclusive.
+Return TRUE if any cleanup actions are required to exit from the current
+context (as indicated by curr_object_lifetime and curr_context) through
+outer_lifetime, inclusive.
 */
 {
-  a_boolean            any_required = FALSE;
-  a_context_ptr        context_ptr;
-  a_cleanup_action_ptr cap;
-
-  /* Loop outward through the indicated scopes. */
-  for (context_ptr = curr_context;; context_ptr = context_ptr->parent) {
-    /* Walk the cleanup_actions list to see if any of the entries
-       actually require cleanup code (label markers don't). */
-    for (cap = context_ptr->cleanup_actions;
-         cap != NULL;
-         cap = cap->next) {
-      if (cap->applies_on_block_exit) {
-        /* There are some cleanup actions on block exit. */
-        any_required = TRUE;
-        goto done;
-      }  /* if */
-    }  /* for */
-    /* Stop when the outer context is reached. */
-    if (context_ptr == outer_context) break;
-  }  /* for */
-done:
-  return any_required;
+  a_boolean any_cleanup_needed = gen_cleanup_actions_or_check_if_needed(
+                                                    outer_lifetime,
+                                                    (an_insert_location *)NULL,
+                                                    /*check_only=*/TRUE);
+  return any_cleanup_needed;
 }  /* any_cleanup_actions */
-
-
-static void gen_expr_conditional_flag_var_initializations(
-                                                         an_expr_node_ptr expr)
-/*
-The current context is a subscope region for a single expression (i.e., expr).
-Generate any initialization assignments required to give initial (default)
-values to any flags used within the expression to track whether or not
-conditional destruction of temporaries is required.
-*/
-{
-  an_insert_location   insert_location;
-  a_cleanup_action_ptr cap;
-
-  /* Note that this routine only handles initializations that must be inserted
-     into an expression tree.  All others are handled by calling
-     init_conditional_flag_var immediately. */
-  if (curr_context->any_conditional_flag_var_initializations_deferred) {
-    /* Some initializations are needed.  Find them. */
-    set_expr_insert_location(expr, &insert_location);
-    for (cap = curr_context->cleanup_actions;
-         cap != NULL;
-         cap = cap->next) {
-      if (cap->applies_on_block_exit && cap->kind == cak_destruction &&
-          cap->variant.object.conditional_flag_var != NULL) {
-        /* Make "flag_var = 0" and insert it. */
-        init_conditional_flag_var(cap, &insert_location);
-      }  /* if */
-    }  /* for */
-    curr_context->any_conditional_flag_var_initializations_deferred = FALSE;
-  }  /* if */
-}  /* gen_expr_conditional_flag_var_initializations */
-
-
-static a_boolean block_is_on_parent_list(a_statement_ptr block,
-                                         a_statement_ptr block_list)
-/*
-Return TRUE if the block statement "block" is on the list of blocks
-and their parents headed by block_list.
-*/
-{
-  a_boolean on_list = FALSE;
-
-  for (; block_list != NULL;
-       block_list = block_list->variant.block.extra_info->parent_block) {
-    if (block_list == block) {
-      on_list = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  return on_list;
-}  /* block_is_on_parent_list */
 
 
 static void gen_goto_cleanup_actions(a_statement_ptr statement)
@@ -6593,207 +6631,142 @@ static void gen_goto_cleanup_actions(a_statement_ptr statement)
 Generate any cleanup actions required preceding the indicated goto statement.
 */
 {
-  a_statement_ptr      goto_block, label_block, orig_statement;
-  a_context_ptr        goto_context, outermost_context_being_exited;
-  an_insert_location   insert_location;
-  a_boolean            any_label_block_cleanup_actions_needed;
-  a_boolean            any_label_block_temp_cleanup_actions_needed;
-  a_boolean            any_exited_block_cleanup_actions_needed;
-  a_cleanup_action_ptr cap;
-  a_label_ptr          label = statement->variant.label.ptr;
+  an_object_lifetime_ptr common_lifetime = statement->variant.label.lifetime;
 
-  goto_context = curr_context;
-  label_block = label->parent_block;
-#if CHECKING
-  if (label_block == NULL) {
-    internal_error(
-                 "gen_goto_cleanup_actions: goto label has NULL parent_block");
+  /* If not keeping lifetimes in the IL, clear the lifetime pointer. */
+  if (!keep_object_lifetime_info_in_lowered_il) {
+    statement->variant.label.lifetime = NULL;
   }  /* if */
-#endif /* CHECKING */
-  outermost_context_being_exited = NULL;
-  for (;; goto_context = goto_context->parent) {
-    goto_block = goto_context->scope->assoc_block;
-    if (goto_context->subscope_region) {
-      /* The context for the goto is a subscope region context, i.e.,
-         one that is not a full scope.  This comes up for first-time
-         test code for static initializations and in cfront compatibility mode.
-         We want to answer the question "does the label appear inside of this
-         dependent-statement context?"  It does if it's on the list of
-         labels defined in this context.  Note that the contents of
-         a subscope region are constrained: if labels and gotos are allowed,
-         all labels must appear before all gotos.
-         Also note that for the label to appear inside this context but not
-         at the top level, it would have to appear either as a label in
-         a block statement, in which case it gets handled by the normal
-         processing, or as a label in a dependent statement under this one,
-         in which case it gets handled by this same code at the lower level. */
-      for (cap = goto_context->cleanup_actions;
-           cap != NULL;
-           cap = cap->next) {
-        if (cap->kind == cak_label && cap->variant.label == label) {
-          goto end_context_loop;
-        }  /* if */
-      }  /* for */
-    } else {
-      /* The goto context is a normal context. */
-      /* End the loop when we find a block that both the goto and the
-         label are inside of.  At the worst, the block for the function
-         is such a block, so the loop would end on that block. */
-      if (block_is_on_parent_list(goto_block, label_block)) break;
-    }  /* if */
-    /* Here, goto_context is a context that the goto is inside of and that
-       the label is not inside of; therefore, we are leaving the context. */
-    outermost_context_being_exited = goto_context;
-  }  /* for */
-end_context_loop:
-  /* See if any cleanup code is needed. */
-  any_label_block_cleanup_actions_needed = FALSE;
-  any_label_block_temp_cleanup_actions_needed = FALSE;
-  any_exited_block_cleanup_actions_needed = FALSE;
-  if (outermost_context_being_exited != NULL) {
-    /* Some contexts are being exited.  See if any cleanup actions are
-       needed on leaving those contexts. */
-    any_exited_block_cleanup_actions_needed = 
-                           any_cleanup_actions(outermost_context_being_exited);
-  }  /* if */
-  if (label_block == goto_block) {
-    /* The label is in the block that is the first one shared with the goto
-       context.  Check for a case where the goto branches to a label
-       preceding some initializations:
-         struct A { ~A(); };
-         void m() {
-           label:
-             A x;
-             goto label;  // should destroy x
-         }
-       Also look for cases where expression temporaries are present on
-       the cleanup list.  Those must be destroyed even if the branch is
-       forward to the label.
-    */
-    a_boolean any_cleanup_entries = FALSE;
-
-    /* Look for a label marker in the cleanup action list that matches
-       the label we have.  If we find one, the entries preceding the
-       label marker need to be generated. */
-    for (cap = goto_context->cleanup_actions;
-         cap != NULL;
-         cap = cap->next) {
-      if (cap->kind == cak_label) {
-        if (cap->variant.label == label) {
-          /* Found the label.  If there were any cleanup entries seen before
-             this point, there are some cleanup actions to be put out. */
-          any_label_block_cleanup_actions_needed = any_cleanup_entries;
-          break;
-        }  /* if */
-      } else if (cap->applies_on_block_exit) {
-        /* Some cleanup needed. */
-        any_cleanup_entries = TRUE;
-        if (cap->kind == cak_destruction &&
-            cap->variant.object.is_expr_temporary) {
-          /* Make a note of expression temporary destructions needed, since
-             they must get done even if the goto is forward to the label. */
-          any_label_block_temp_cleanup_actions_needed = TRUE;
-        }  /* if */
+  /* The goto statement has a pointer to an object lifetime that is the
+     innermost object lifetime that it has in common with the label.
+     Generate cleanup actions for all lifetimes from the current position
+     out to the indicated lifetime. */
+  /* Do nothing if there are no lifetimes involved. */
+  if (common_lifetime != NULL) {
+    an_object_lifetime_ptr outer_lifetime = curr_object_lifetime;
+    if (outer_lifetime != common_lifetime) {
+      /* Some lifetimes are being exited. */
+      /* Find the last lifetime in the cleanup chain rising from the goto that
+         should be terminated, i.e., the one right before common_lifetime. */
+      for (; outer_lifetime->parent_lifetime != common_lifetime;
+           outer_lifetime = outer_lifetime->parent_lifetime) {}
+      /* See if any cleanup actions are required on leaving the indicated
+         lifetimes. */
+      if (any_cleanup_actions(outer_lifetime)) {
+        /* Some cleanup actions are needed.  Generate them. */
+        an_insert_location insert_location;
+        a_statement_ptr    orig_statement;
+        /* Turn the goto into a block so code can be inserted in front
+           of it. */
+        turn_branch_into_block(statement, &insert_location, &orig_statement);
+        gen_cleanup_actions(outer_lifetime, &insert_location);
       }  /* if */
-    }  /* for */
-  }  /* if */
-  if (any_exited_block_cleanup_actions_needed ||
-      any_label_block_cleanup_actions_needed ||
-      any_label_block_temp_cleanup_actions_needed) {
-    /* Some cleanup actions are needed.  Generate them. */
-    /* Turn the goto into a block so code can be inserted in front of it. */
-    turn_branch_into_block(statement, &insert_location, &orig_statement);
-    if (any_exited_block_cleanup_actions_needed) {
-      gen_cleanup_actions(outermost_context_being_exited, &insert_location);
-    }  /* if */
-    if (any_label_block_cleanup_actions_needed) {
-      /* Generate cleanup actions corresponding to any initializations made
-         after the label in the same block. */
-      for (cap = goto_context->cleanup_actions;
-           cap->kind != cak_label || cap->variant.label != label;
-           cap = cap->next) {
-        gen_one_cleanup_action(cap, &insert_location);
-      }  /* for */
-    } else if (any_label_block_temp_cleanup_actions_needed) {
-      /* Generate cleanup actions corresponding to any expression temporaries
-         in the block, even though the goto is forward to the label. */
-      for (cap = goto_context->cleanup_actions;
-           cap != NULL;
-           cap = cap->next) {
-        if (cap->kind == cak_destruction &&
-            cap->variant.object.is_expr_temporary) {
-          gen_one_cleanup_action(cap, &insert_location);
-        }  /* if */
-      }  /* for */
     }  /* if */
   }  /* if */
 }  /* gen_goto_cleanup_actions */
 
 
-static void gen_label_cleanup_actions(a_statement_ptr *label_statement)
+static void push_block_statement_context(a_statement_ptr block_statement,
+                                         a_context       *context,
+                                         a_boolean       *context_pushed,
+                                         a_boolean       *new_lifetime)
 /*
-Generate any cleanup actions required preceding the indicated label
-statement.
+Push a context and start an object lifetime, if necessary, for the
+indicated block statement.  If a context is pushed, context (a local
+variable in the caller) is used as the stack entry and *context_pushed
+is returned TRUE.  *new_lifetime is returned TRUE if a new object lifetime
+is begun.
 */
 {
-  a_cleanup_action_ptr cap, next_cap;
-  a_boolean            first = TRUE;
-  a_statement_ptr      statement = *label_statement;
-  a_label_ptr          label = statement->variant.label.ptr;
-  an_insert_location   insert_location;
+  a_block_ptr            block = block_statement->variant.block.extra_info;
+  a_scope_ptr            scope = block->assoc_scope;
+  an_object_lifetime_ptr lifetime = block->lifetime;
 
-  /* Go through the list of cleanup actions, find the ones for temporaries,
-     and process/remove them. */
-  for (cap = curr_context->cleanup_actions; cap != NULL; cap = next_cap) {
-    next_cap = cap->next;
-    if (cap->kind == cak_destruction &&
-        cap->variant.object.is_expr_temporary) {
-      /* Found an entry.  */
-      /* Add the cleanup action only if the label is reachable by flowing
-         into it from the preceding code. */
-      if (label->reachable_by_fall_through) {
-        /* If this is the first one, make an insert location by rewriting
-           the label as a block. */
-        if (first) {
-          first = FALSE;
-          turn_branch_into_block(statement, &insert_location, label_statement);
-        }  /* if */
-        /* Generate the cleanup action. */
-        gen_one_cleanup_action(cap, &insert_location);
-      }  /* if */
-      /* Remove this entry from the list. */
-      remove_cleanup_action(cap);
-    }  /* if */
-  }  /* for */
-}  /* gen_label_cleanup_actions */
-
-
-static void pop_block_scope_context(a_statement_ptr last_statement)
-/*
-The current context is a context for a block statement.  Generate any
-cleanup actions required at the end of the block and pop the context.
-last_statement points to the last statement within the block, or is
-NULL if there are no statements in the block.
-*/
-{
-  a_statement_ptr    block_statement;
-  an_insert_location insert_location;
-
-  block_statement = curr_context->scope->assoc_block;
-  /* Insert any cleanup actions after the last statement in the block if
-     the end of the block is reachable. */
-  if (block_statement->variant.block.extra_info->end_of_block_reachable) {
-    if (last_statement == NULL) {
-      /* The block is empty, so insert at its beginning. */
-      set_block_start_insert_location(block_statement, &insert_location);
-    } else {
-      /* Insert after the last statement. */
-      set_insert_location(last_statement, &insert_location);
-    }  /* if */
-    gen_cleanup_actions(curr_context, &insert_location);
+  *context_pushed = FALSE;
+  *new_lifetime = FALSE;
+  if (scope != NULL || lifetime != NULL) {
+    push_context(context, scope, lifetime);
+    *context_pushed = TRUE;
+    *new_lifetime = curr_context->new_lifetime;
+    if (scope != NULL) lifetime = scope->lifetime;
+  } else if (block_statement == nearest_function_scope->assoc_block) {
+    /* For the topmost block in a function, assoc_scope is NULL, so
+       no push_context is done.  That's correct, because the caller has
+       done the push_context already.  A new lifetime may begin here,
+       however. */
+    scope = nearest_function_scope;
+    lifetime = scope->lifetime;
+    *new_lifetime = (lifetime != NULL);
   }  /* if */
-  pop_context();
-}  /* pop_block_scope_context */
+  if (*new_lifetime) {
+    /* A new lifetime was pushed. */
+    /* Do initial processing for the lifetime (e.g., generate conditional
+       flag variables). */
+    an_insert_location insert_location;
+    set_block_start_insert_location(block_statement, &insert_location);
+    begin_block_object_lifetime(lifetime, &insert_location);
+  }  /* if */
+}  /* push_block_statement_context */
+
+
+static void pop_block_statement_context(a_statement_ptr block_statement,
+                                        a_statement_ptr last_statement,
+                                        a_boolean       context_pushed,
+                                        a_boolean       new_lifetime)
+/*
+Pop a context and end an object lifetime, if necessary, for the
+indicated block statement.  context_pushed indicates whether or
+not a context was pushed and therefore should be popped.  new_lifetime
+indicates whether or not an object lifetime was begun and therefore
+should be ended.  If an object lifetime is ended, generate any cleanup
+actions required at the end of the block.  last_statement points to the
+last statement within the block, or is NULL if there are no statements
+in the block or to ask this routine to find the last statement itself.
+Any cleanup code inserted is placed after the last statement.
+*/
+{
+  a_block_ptr            block = block_statement->variant.block.extra_info;
+  a_scope_ptr            scope = block->assoc_scope;
+  an_object_lifetime_ptr lifetime = block->lifetime;
+  an_insert_location     insert_location;
+
+  if (new_lifetime) {
+    /* An object lifetime must be ended.  If there were labels in the
+       block, this may end several object lifetimes.  (That's one reason
+       why we can't just use curr_context->lifetime here.)   Note also
+       that for the topmost block in a function, we end the lifetime
+       here but do not pop the context. */
+    if (block_statement == nearest_function_scope->assoc_block) {
+      scope = nearest_function_scope;
+    }  /* if */
+    if (scope != NULL) lifetime = scope->lifetime;
+    /* Insert any cleanup actions after the last statement in the block
+       if the end of the block is reachable. */
+    if (block->end_of_block_reachable) {
+      /* If the block was originally empty but some statements were
+         added (e.g., to initialize the catch handler parameter), find the
+         last statement. */
+      if (last_statement == NULL &&
+          block_statement->variant.block.statements != NULL) {
+        for (last_statement = block_statement->variant.block.statements;
+             last_statement->next != NULL;
+             last_statement = last_statement->next) {}
+      }  /* if */
+      if (last_statement == NULL) {
+        /* The block is empty, so insert at its beginning. */
+        set_block_start_insert_location(block_statement, &insert_location);
+      } else {
+        /* Insert after the last statement. */
+        set_insert_location(last_statement, &insert_location);
+      }  /* if */
+      gen_cleanup_actions(lifetime, &insert_location);
+    }  /* if */
+  }  /* if */
+  if (context_pushed) {
+    /* Pop the context pushed by push_block_statement_context. */
+    pop_context();
+  }  /* if */
+}  /* pop_block_statement_context */
 
 
 void lower_statement(a_statement_ptr statement)
@@ -6801,21 +6774,18 @@ void lower_statement(a_statement_ptr statement)
 Do IL lowering of the indicated statement and everything under it.
 */
 {
-  a_context            context, dependent_context;
+  a_context            context;
   a_scope_ptr          scope;
   an_insert_location   insert_location;
-  a_statement_ptr      statement_list, lab_statement;
+  a_statement_ptr      statement_list;
   a_statement_ptr      last_statement, body_statement, return_statement;
   a_boolean            make_block, any_cleanup_on_return;
   an_expr_node_ptr     return_expr;
   a_variable_ptr       temp_var;
-  a_cleanup_action_ptr cap;
   a_dynamic_init_ptr   dip;
   a_source_position    saved_error_position, saved_code_pos;
   a_block_ptr          block;
-  an_object_lifetime_ptr
-                       saved_curr_object_lifetime, lifetime;
-  a_label_ptr          lab;
+  a_boolean            context_pushed, new_lifetime;
 
   if (statement != NULL) {
     /* Track the source position. */
@@ -6824,15 +6794,6 @@ Do IL lowering of the indicated statement and everything under it.
                                            statement->position);
     saved_error_position = error_position;
     error_position = code_pos_for_lowering;
-    if (statement->dependent_statement) {
-      /* In cfront compatibility mode, it is possible for a dependent statement
-         not to have an associated scope.  However, it is still required that
-         anything constructed in the dependent statement (i.e., conditionally)
-         be destroyed at the end of the dependent statement, so push a special
-         dependent-statement context around the lowering of the statement. */
-      push_context(&dependent_context, curr_context->scope,
-                   /*subscope_region=*/TRUE);
-    }  /* if */
     switch (statement->kind) {
       case stmk_expr:
         lower_normal_expr(statement->expr);
@@ -6843,33 +6804,14 @@ Do IL lowering of the indicated statement and everything under it.
       case stmk_goto:
         /* Generate any cleanup actions required on exit from any blocks
            that the goto is inside of but the label is not. */
-        statement->variant.label.lifetime = NULL;
         gen_goto_cleanup_actions(statement);
         break;
       case stmk_label:
-        lab_statement = statement;
-        lab = lab_statement->variant.label.ptr;
-        curr_context->latest_label_statement_processed = lab_statement;
-        /* Destroy any expression temporaries whose cleanup is pending.
-           Note that this may change the value of "lab_statement", but
-           "lab_statement" will still point to the label statement. */
-        gen_label_cleanup_actions(&lab_statement);
-        /* Put a marker in the cleanup action list indicating where
-           the label occurs.  This is needed when generating destructor
-           calls on gotos backward in a block. */
-        cap = add_cleanup_action(cak_label,
-                                 /*applies_on_block_exit=*/FALSE,
-                                 /*applies_on_exception_cleanup=*/FALSE,
-                                 (an_insert_location *)NULL);
-        cap->variant.label = lab;
         if (exceptions_enabled) {
-          /* Exceptions are enabled. Reset eh_curr_region. */
-          set_insert_location(lab_statement, &insert_location);
-          set_eh_curr_region(curr_context, &insert_location);
+          /* Exceptions are enabled.  Set __eh_curr_region. */
+          set_insert_location(statement, &insert_location);
+          set_eh_curr_region(curr_cleanup_region_number, &insert_location);
         }  /* if */
-        /* The label statement might have been moved, so reset the pointer
-           from the a_label entry to the statement. */
-        lab->variant.exec_stmt = lab_statement;
         break;
       case stmk_return:
         return_expr = statement->expr;
@@ -6906,8 +6848,10 @@ Do IL lowering of the indicated statement and everything under it.
                              &insert_location, &keep_dynamic_init);
           check_assertion(!keep_dynamic_init);
         }  /* if */
-        any_cleanup_on_return = any_cleanup_actions(nearest_function_context);
-        if (any_cleanup_on_return || exceptions_enabled) {
+        any_cleanup_on_return =
+                         any_cleanup_actions(nearest_function_scope->lifetime);
+        if (any_cleanup_on_return ||
+            (exceptions_enabled && nearest_function_scope->lifetime != NULL)) {
           /* Some code will have to be inserted on return, either for
              cleanup or to pop the exception handling stack entry.  It has
              to be inserted after the evaluation of the return expression,
@@ -6950,7 +6894,8 @@ Do IL lowering of the indicated statement and everything under it.
             turn_branch_into_block(statement, &insert_location,
                                    &return_statement);
           }  /* if */
-          gen_cleanup_actions(nearest_function_context, &insert_location);
+          gen_cleanup_actions(nearest_function_scope->lifetime,
+                              &insert_location);
         }  /* if */
         /* Maintain a list of all returns in the routine so that epilogue code
            can be added for destructors and for exception handling. */
@@ -6981,8 +6926,9 @@ Do IL lowering of the indicated statement and everything under it.
             init_stmt_next = init_stmt->next;
             if (init_stmt_next != NULL) {
               init_stmt->next = NULL;
-              turn_statement_into_block(init_stmt);
-              init_stmt->variant.block.statements->next = init_stmt_next;
+              turn_statement_into_block(init_stmt, &insert_location,
+                                        &init_stmt);
+              init_stmt->next = init_stmt_next;
             }  /* if */
           }  /* if */
           if (statement->expr != NULL) {
@@ -6995,26 +6941,16 @@ Do IL lowering of the indicated statement and everything under it.
         }
         break;
       case stmk_block:
-        /* Push a block context around the processing of the block.
-           Do not do that if the block has no associated scope.
-           Note that the same test ensures that no push is done here for the
-           topmost block in a function (it has a NULL assoc_scope); the
-           push_context has already been done in lower_scope for that case. */
+        /* Save the statement list pointer early in case code is inserted
+           to initialize conditional flags or the catch handler parameter. */
+        statement_list = statement->variant.block.statements;
+        /* Push a context around the processing of the block if it has a scope
+           or an object lifetime. */
+        push_block_statement_context(statement, &context,
+                                     &context_pushed, &new_lifetime);
         block = statement->variant.block.extra_info;
         scope = block->assoc_scope;
-        /* Save the statement list pointer early in case code is inserted
-           to initialize the catch handler parameter. */
-        statement_list = statement->variant.block.statements;
-        /* If the block has an associated object lifetime, make it the
-           current one. */
-        lifetime = block->lifetime;
-        if (lifetime == NULL && scope != NULL) lifetime = scope->lifetime;
-        if (lifetime != NULL) {
-          saved_curr_object_lifetime = curr_object_lifetime;
-          curr_object_lifetime = lifetime;
-        }  /* if */
         if (scope != NULL) {
-          push_context(&context, scope, /*subscope_region=*/FALSE);
           if (scope->variant.assoc_handler != NULL) {
             /* This statement is the dependent statement of a catch handler.
                Generate code to start the catch clause. */
@@ -7022,61 +6958,35 @@ Do IL lowering of the indicated statement and everything under it.
           }  /* if */
         }  /* if */
         lower_statement_list(statement_list, &last_statement);
-        if (last_statement == NULL &&
-            statement->variant.block.statements != NULL) {
-          /* If the block was originally empty but some statements were
-             added to initialize the catch handler parameter, find the
-             last statement. */
-          for (last_statement = statement->variant.block.statements;
-               last_statement->next != NULL;
-               last_statement = last_statement->next) {}
-        }  /* if */
         /* Generate any cleanup actions and pop the context. */
-        if (scope != NULL) pop_block_scope_context(last_statement);
-        /* Restore the previous object lifetime context if one was pushed. */
-        if (lifetime != NULL) {
-          curr_object_lifetime = saved_curr_object_lifetime;
-        }  /* if */
+        pop_block_statement_context(statement, last_statement,
+                                    context_pushed, new_lifetime);
         break;
       case stmk_switch:
         lower_normal_expr(statement->expr);
-        /* If there is a body statement and it has a scope, push it as
-           context around the processing of the switch clauses. */
-        scope = NULL;
-        lifetime = NULL;
+        /* If there is a body statement that is a block, push a context
+           around the processing of the switch clauses. */
         body_statement = statement->variant.switch_stmt.body_statement;
         if (body_statement != NULL &&
             body_statement->kind == (a_statement_kind)stmk_block) {
           /* The body statement is a block. */
-          block = body_statement->variant.block.extra_info;
-          scope = block->assoc_scope;
-          /* If the block has an associated object lifetime, make it the
-             current one. */
-          lifetime = block->lifetime;
-          if (lifetime == NULL && scope != NULL) lifetime = scope->lifetime;
-          if (lifetime != NULL) {
-            saved_curr_object_lifetime = curr_object_lifetime;
-            curr_object_lifetime = lifetime;
-          }  /* if */
-        }  /* if */
-        if (scope != NULL) {
-          push_context(&context, scope, /*subscope_region=*/FALSE);
-          lower_statement_list(body_statement->variant.block.statements,
-                               &last_statement);
+          /* Save the statement list pointer early in case code is inserted
+             to initialize conditional flags. */
+          statement_list = body_statement->variant.block.statements;
+          push_block_statement_context(body_statement, &context,
+                                       &context_pushed, &new_lifetime);
+          lower_statement_list(statement_list, &last_statement);
           lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
-                                   curr_context);
-          /* Generate any cleanup actions and pop the context. */
-          pop_block_scope_context(last_statement);
+                                   new_lifetime? curr_context->lifetime :
+                                                 (an_object_lifetime_ptr)NULL);
+          pop_block_statement_context(body_statement, last_statement,
+                                      context_pushed, new_lifetime);
         } else {
           /* There is no body statement, or the body statement is something
-             other than a block statement with a scope. */
+             other than a block statement. */
           lower_statement(body_statement);
           lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
-                                   (a_context_ptr)NULL);
-        }  /* if */
-        /* Restore the previous object lifetime context if one was pushed. */
-        if (lifetime != NULL) {
-          curr_object_lifetime = saved_curr_object_lifetime;
+                                   (an_object_lifetime_ptr)NULL);
         }  /* if */
         break;
       case stmk_init:
@@ -7095,34 +7005,6 @@ Do IL lowering of the indicated statement and everything under it.
         internal_error("lower_statement: bad kind");
 #endif /* CHECKING */
     }  /* switch */
-    if (statement->dependent_statement) {
-      /* Earlier in this routine we pushed a special context for a dependent
-         statement in cfront compatibility mode. */
-      if (any_cleanup_actions(curr_context)) {
-        a_statement_ptr    last_statement;
-        an_insert_location insert_location;
-        /* Some cleanup actions must be emitted at the end of the dependent
-           statement.  Make the statement into a block if it is not already
-           a block, then find the last statement within the block so we can
-           insert after it. */
-        if (statement->kind != (a_statement_kind)stmk_block) {
-          turn_statement_into_block(statement);
-        }  /* if */
-        last_statement = statement->variant.block.statements;
-        if (last_statement == NULL) {
-          /* Empty block; insert at start. */
-          set_block_start_insert_location(statement, &insert_location);
-        } else {
-          /* Find the last statement. */
-          for (; last_statement->next != NULL;
-               last_statement = last_statement->next) {}
-          set_insert_location(last_statement, &insert_location);
-        }  /* if */
-        /* Generate the cleanup actions. */
-        gen_cleanup_actions(curr_context, &insert_location);
-      }  /* if */
-      pop_context();
-    }  /* if */
     error_position = saved_error_position;
     code_pos_for_lowering = saved_code_pos;
   }  /* if */
@@ -7898,20 +7780,16 @@ Do IL lowering of the indicated scope and everything under it.
   a_routine_type_supplement_ptr
                    rtsp;
   a_scope_kind     scope_kind = scope->kind;
-  an_object_lifetime_ptr
-                   lifetime, saved_curr_object_lifetime = curr_object_lifetime;
 
   db_enter(2, "lower_scope");
-  /* If the scope has an associated lifetime, make it the current one. */
-  lifetime = scope->lifetime;
-  if (lifetime != NULL) curr_object_lifetime = lifetime;
   /* Add a context entry for the scope, but not for the file scope (the caller
      has done that already). */
   if (scope_kind != (a_scope_kind)sck_file) {
-    push_context(&context, scope, /*subscope_region=*/FALSE);
+    push_context(&context, scope, (an_object_lifetime_ptr)NULL);
   }  /* if */
   if (scope_kind == (a_scope_kind)sck_function) {
-    /* The scope is for a function.  Rewrite the parameters if necessary. */
+    /* The scope is for a function. */
+    nearest_function_scope = scope;
     routine = scope->variant.routine.ptr;
 #if DEBUG
     if (debug_level >= 1) {
@@ -7925,6 +7803,7 @@ Do IL lowering of the indicated scope and everything under it.
     routine_type = skip_typerefs(routine_type);
     rtsp = routine_type->variant.routine.extra_info;
     return_value_pointer_variable = NULL;
+    /* Rewrite the parameters if necessary. */
     if (rtsp->value_returned_by_cctor) {
       /* If there is an implicit parameter for the return value address,
          add it as an explicit first parameter.  Note that the variable is
@@ -8099,9 +7978,9 @@ Do IL lowering of the indicated scope and everything under it.
     free_return_memo_list(return_memo_list);
     return_memo_list = NULL;
     return_value_pointer_variable = NULL;
+    nearest_function_scope = NULL;
   }  /* if */
   if (scope_kind != (a_scope_kind)sck_file) pop_context();
-  if (lifetime != NULL) curr_object_lifetime = saved_curr_object_lifetime;
   db_exit();
 }  /* lower_scope */
 
@@ -8178,9 +8057,8 @@ C++ to C, so that a C back end can handle it without change.
                        (unsigned long)region_number);
     }  /* if */
 #endif /* DEBUG */
-    curr_context = nearest_function_context = file_scope_context = NULL;
+    curr_context = file_scope_context = NULL;
     nearest_function_scope = NULL;
-    nearest_this_param_variable = NULL;
     curr_object_lifetime = il_header.primary_scope->lifetime;
     switch_il_region(region_number);
     /* Mark entries created during this traversal as having already been
@@ -8204,7 +8082,7 @@ C++ to C, so that a C back end can handle it without change.
        for function scope memory regions so there will be a file-scope
        context above the function context. */
     push_context(&context, il_header.primary_scope,
-                 /*subscope_region=*/FALSE);
+                 (an_object_lifetime_ptr)NULL);
     /* Create definitions for virtual function tables.  This must be done
        early when virtual function information is still available. */
     define_scope_virtual_function_tables(scope);
@@ -8266,13 +8144,13 @@ so they're not reachable.  Do nothing if olp is NULL.
                            "bad lifetime pointer in dynamic init");
       /* Disassociate the dynamic init entry from the lifetime. */
       if (detach) remove_from_destruction_list(dip);
-      /* Free any attached position description.  The init_pos_descr pointer
-         would normally be expected to be non-NULL, but if a subtree
-         is detached and then visited again later, the pointer will be
+      /* Free any attached entity description.  The pointer would
+         normally be expected to be non-NULL, but if a subtree is
+         detached and then visited again later, the pointer will be
          NULL the second time. */
-      if (dip->init_pos_descr != NULL) {
-        free_init_pos_descr(dip->init_pos_descr);
-        dip->init_pos_descr = NULL;
+      if (dip->destructible_entity_descr != NULL) {
+        free_destructible_entity_descr(dip->destructible_entity_descr);
+        dip->destructible_entity_descr = NULL;
       }  /* if */
     }  /* while */
     if (detach) {
@@ -8362,12 +8240,10 @@ Display and return the amount of space used for various IL lowering tables.
 
   db_space_used("Name strings", allocated_name_string_length, char);
   db_space_used_lost("init pos modifier", avail_init_pos_modifiers,
-                    num_init_pos_modifiers_allocated, an_init_pos_modifier);
-  db_space_used_lost("init pos descr", avail_init_pos_descrs,
-                    num_init_pos_descrs_allocated, an_init_pos_descr);
-  db_space_used_lost("cleanup action", avail_cleanup_actions,
-                     num_cleanup_actions_allocated,
-                     a_cleanup_action);
+                     num_init_pos_modifiers_allocated, an_init_pos_modifier);
+  db_space_used_lost("destr. entity descrs", avail_destructible_entity_descrs,
+                     num_destructible_entity_descrs_allocated,
+                     a_destructible_entity_descr);
   db_space_used_lost("return memos", avail_return_memos,
                      num_return_memos_allocated, a_return_memo);
 
@@ -8390,8 +8266,7 @@ are handled in il_lower_init.)
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_init_pos_modifiers),
-      pch_saved_var_array_elem(avail_init_pos_descrs),
-      pch_saved_var_array_elem(avail_cleanup_actions),
+      pch_saved_var_array_elem(avail_destructible_entity_descrs),
       pch_saved_var_array_elem(avail_return_memos),
       pch_saved_var_array_elem(pure_virtual_called_routine),
       pch_saved_var_array_elem(vptp_type),
@@ -8401,9 +8276,8 @@ are handled in il_lower_init.)
       pch_saved_var_array_elem(mptr_f_field),
 #if DEBUG
       pch_saved_var_array_elem(num_init_pos_modifiers_allocated),
-      pch_saved_var_array_elem(num_init_pos_descrs_allocated),
+      pch_saved_var_array_elem(num_destructible_entity_descrs_allocated),
       pch_saved_var_array_elem(allocated_name_string_length),
-      pch_saved_var_array_elem(num_cleanup_actions_allocated),
       pch_saved_var_array_elem(num_return_memos_allocated),
 #endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
@@ -8442,23 +8316,20 @@ of the front end.
   }  /* if */
 #endif /* CHECKING && ASSIGNMENT_TO_THIS_ALLOWED */
   avail_init_pos_modifiers = NULL;
-  avail_init_pos_descrs = NULL;
-  curr_full_expression = NULL;
+  avail_destructible_entity_descrs = NULL;
 #if DEBUG
   num_init_pos_modifiers_allocated = 0;
-  num_init_pos_descrs_allocated    = 0;
+  num_destructible_entity_descrs_allocated = 0;
 #endif /* DEBUG */
   return_value_pointer_variable = NULL;
   code_pos_for_lowering = null_source_position;
   /* Static variables in lower_il.c: */
-  avail_cleanup_actions = NULL;
   avail_return_memos = NULL;
   pure_virtual_called_routine = NULL;
   vptp_type = NULL;
   mptr_type = NULL;
 #if DEBUG
   allocated_name_string_length  = 0;
-  num_cleanup_actions_allocated = 0;
   num_return_memos_allocated    = 0;
 #endif /* DEBUG */
   /* name_lower_init is called from fe_init.c because name mangling can
