@@ -712,8 +712,12 @@ Dump the contents of the indicated type entry, for debug purposes.
       fputs("void", f_debug);
       break;
     case tk_integer:
-      fprintf(f_debug, "%s", int_kind_name(tp->variant.integer.int_kind));
-      if (tp->variant.integer.enum_type) fputs(" enum", f_debug);
+      if (tp->variant.integer.wchar_t_type) {
+        fputs("wchar_t", f_debug);
+      } else {
+        fprintf(f_debug, "%s", int_kind_name(tp->variant.integer.int_kind));
+        if (tp->variant.integer.enum_type) fputs(" enum", f_debug);
+      }  /* if */
       break;
     case tk_float:
       fprintf(f_debug, "%s", float_kind_name(tp->variant.float_kind));
