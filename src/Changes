@@ -1,5 +1,14 @@
 Version 2.45
 
+11/9/00  No setlocale call when multibyte characters not enabled
+
+When MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED is TRUE but
+DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED is FALSE (that is, multibyte
+character support can be enabled, but it's not on by default), a
+setlocale call was done at the beginning of the compilation, and
+it shouldn't have been.  Now, the setlocale call is done only when
+multibyte character support is turned on.
+
 11/8/00  RESTRICT_ALLOWED macro eliminated
 
 The RESTRICT_ALLOWED macro has been eliminated (i.e., restrict support
