@@ -1770,13 +1770,14 @@ this function points to a tree that includes a dynamic-init entry.
           } else {
             /* Advance to next array element. */
             ++curr_array_element;
-            check_assertion(!context.type->variant.array.is_variable_size_array);
-            if (!is_incomplete_array &&
-                context.type->variant.array.variant.number_of_elements <=
-                                                       curr_array_element) {
-              /* No more elements in the array. */
-              any_more_members = FALSE;
-            } else if (is_incomplete_array) {
+            check_assertion(!context.type->variant.array.
+                                                    is_variable_size_array);
+            if (!is_incomplete_array) {
+              /* Note that we may get here with any_more_members == FALSE and
+                 a designator can turn it into TRUE again. */
+              any_more_members = (context.type->variant.array.variant.
+                                    number_of_elements > curr_array_element);
+            } else {
               /* Keep track of the maximum subscript seen: */
               if (curr_array_element>array_size) {
                 array_size = curr_array_element;
