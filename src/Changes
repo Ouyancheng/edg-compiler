@@ -1,13 +1,21 @@
 Version 2.22
 
+1/31/94  IL change:  field entries for unnamed fields.
+
+An unnamed bit field is now represented in the IL by an actual field entry
+rather than by a gap in the offsets of the surrounding fields.  The same
+holds for other unnamed fields (which are supported in pcc mode only).
+Unnamed fields are recognizable from the NULL name pointer in the source
+correspondence substructure.
+
 1/31/94  Changes to facilitate message catalogs
 
-A number of changes have been made to simplify the task of using
-a message catalog for the storage of error messages.  Command line
-errors are now accessed using a message code, the message codes for
-certain error messages are no longer conditionally compiled, and
-error.c no longer contains error messages whose text differs in
-C and C++ mode (different error codes are now used).
+A number of changes have been made to simplify the task of using a message
+catalog for the storage of error messages.  Command line errors are now
+accessed using a message code, the message codes for certain error
+messages are no longer conditionally compiled, and error.c no longer
+contains error messages whose text differs in C and C++ mode (different
+error codes are now used).
 
 1/31/94  Undefined result if times() should fail
 
@@ -17,25 +25,25 @@ get_cpu_time was undefined.  The return value is now set to zero
 
 1/27/94  Recognition of new keywords
 
-Remarks are issued when any of the new keywords that have been added
-by X3J16/WG21, but are not yet implemented in the front end, are
-encountered in a source program.  In strict mode a strict ANSI
-diagnostic is issued.  The diagnostics will be eliminated when
-support for the features that use the keywords are implemented; until
-then these strings are treated as identifiers.
+Remarks are issued when any of the new keywords that have been added by
+X3J16/WG21, but are not yet implemented in the front end, are encountered
+in a source program.  In strict mode a strict ANSI diagnostic is issued.
+The diagnostics will be eliminated when support for the features that use
+the keywords are implemented; until then these strings are treated as
+identifiers.
 
-Diagnostics are not issued for wchar_t, bool, true, and false because
-any use of these names because most current usage of these names will
-be compatible with the new language feature, when implemented.  Issuing
-diagnostics on the use of these names would probably not be useful.
+Diagnostics are not issued for wchar_t, bool, true, and false because most
+current usage of these names will be compatible with the new language
+feature, when implemented.  Issuing diagnostics on the use of these names
+would probably not be useful.
 
 1/27/94  IL change: contains_try_block flag in routine entry
 
-The IL routine entry now contains the flag contains_try_block which
-is set to TRUE if the routine definition contains any "try" blocks.
-This can be helpful in suppressing certain optimizations relating
-to local variables which would interact badly with the setjmp/longjmp
-used to implement exception throws.
+The IL routine entry now contains the flag contains_try_block which is set
+to TRUE if the routine definition contains any "try" blocks.  This can be
+helpful in suppressing certain optimizations relating to local variables
+which would interact badly with the setjmp/longjmp used to implement
+exception throws.
 
 1/27/94  address_taken flag on parameters and register variables
 
@@ -58,14 +66,13 @@ The address_taken flag was not set for this case.  It is now.
 1/25/94  Abort when using preprocessed source and implicit inclusion
 
 An abort has been fixed that occurred when compiling a previously
-preprocessed source file while using the -B (implicit inclusion)
-option.
+preprocessed source file while using the -B (implicit inclusion) option.
 
 1/24/94  const variable is not null pointer constant in cfront mode
 
-In cfront compatibility mode, a const variable with value zero is
-not considered a null pointer constant when matching a pointer argument
-of an overloaded function.
+In cfront compatibility mode, a const variable with value zero is not
+considered a null pointer constant when matching a pointer argument of an
+overloaded function.
 
 1/24/94  IL change -- local type declared in function prototype
 
