@@ -789,12 +789,10 @@ to the character position following what was demangled.
         s = "int";
         break;
       case 'l':
-        if (*p != 'l') {
-          s = "long";
-        } else {
-          s = "long long";
-          p++;
-        }  /* if */
+        s = "long";
+        break;
+      case 'L':
+        s = "long long";
         break;
       case 'f':
         s = "float";
