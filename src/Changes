@@ -1,5 +1,16 @@
 Version 2.39
 
+5/21/98   Template-ids in qualified names have incorrect cross-reference
+          positions
+
+The cross-reference position for a template-id in a qualified name
+was set incorrectly.  This has been fixed.
+
+  template <class T> struct A {
+    struct B { };
+  };
+  A<int>::B ab;
+
 5/21/98   Microsoft compatibility: "bool" implemented as typedef name
 
 In Microsoft compatibility mode (but only for MSVC++ version 5.0 and

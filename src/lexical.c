@@ -9036,7 +9036,7 @@ selection operator, in which case it points to the type of the left operand.
         } else {
           /* The qualifier symbol is valid. Record the reference on the
              symbol. */
-          mark_referenced(qualifier_sym, &pos_curr_token);
+          mark_referenced(qualifier_sym, &locator_for_curr_id.source_position);
           if (qualifier_sym->is_class_member ||
               locator_for_curr_id.specific_symbol->ambiguous) {
             /* Do ambiguity and access control checking on the qualifier
