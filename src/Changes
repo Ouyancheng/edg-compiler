@@ -14,11 +14,12 @@ in both a warning and an error on version 2.30.  This has been fixed.
   struct bar { struct x* a; };
   struct x { int i; };
 
-11/28/95  Bug causing macro names to conflict with other names
+11/28/95  Bug causing macro and field names to conflict with other names
 
 Version 2.30 introduced a bug that caused a spurious error in some cases
-when a macro and some other global scope entity have the same name.
-This has been fixed.
+when a macro and some other global scope entity have the same name.  The
+same problem occurs with field names and global entities in pcc mode.  This
+has been fixed.
 
   extern void f(int i);
   #define f(x) f2(x)
