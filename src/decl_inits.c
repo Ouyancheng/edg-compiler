@@ -1070,17 +1070,38 @@ unreachable code).
       dip->follows_an_exec_statement = TRUE;
     }  /* if */
   }  /* if */
-  /* Make the variable point at the dynamic initialization. */
-  vp->init_kind = (an_init_kind)initk_dynamic;
-  vp->initializer.dynamic = dip;
+  /* The dynamic init entry should point at the variable. */
   dip->variable = vp;
   if (!at_file_scope) {
-    /* Must be the initialization of a local variable.  Build the
-       initialization statement and add it to the statement block. */
+    /* Must be the initialization of a local variable. */
+    check_assertion(in_file_scope(vp) == static_lifetime);
+    check_assertion(!in_file_scope(dip));
+    if (static_lifetime) {
+      /* Dynamic initialization of a local static variable -- since the
+         dynamic init entry is in the function scope memory region, the
+         variable can't have a pointer to it.  Instead we use a special entry
+         to record the initialization. */
+      a_local_static_variable_init_ptr  lsvip;
+
+      lsvip = alloc_local_static_variable_init((an_init_kind)initk_dynamic);
+      lsvip->initializer.dynamic = dip;
+      add_to_local_static_variable_inits_list(lsvip);
+      vp->init_kind = (an_init_kind)initk_function_local;
+    } else {
+      /* Make the variable point at the dynamic initialization. */
+      vp->init_kind = (an_init_kind)initk_dynamic;
+      vp->initializer.dynamic = dip;
+    }  /* if */
+    /* Build the initialization statement and add it to the statement block. */
     init_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_init,
                                           &vp->source_corresp.decl_position);
     init_stmt->variant.dynamic_init = dip;
   } else {
+    check_assertion(in_file_scope(vp));
+    check_assertion(in_file_scope(dip));
+    /* Make the variable point at the dynamic initialization. */
+    vp->init_kind = (an_init_kind)initk_dynamic;
+    vp->initializer.dynamic = dip;
     /* A dynamic file-scope initialization (possible only in C++) has
        no associated stmk_init statement, so attach the dynamic initialization
        entry to the scope list. */
@@ -1187,7 +1208,6 @@ returned set to TRUE.
   a_constant_ptr                 init_con = NULL;
   a_dynamic_init_ptr             init_dip = NULL;
   a_class_symbol_supplement_ptr  cssp = NULL;
-  a_memory_region_number         region_to_switch_back_to = NULL_region_number;
   a_boolean                      nonconstant_allowed;
 
   db_enter(3, "initializer");
@@ -1268,12 +1288,6 @@ returned set to TRUE.
     /* The initializer of a static data member is scanned with the original
        class reactivated. */
     push_class_reactivation_scope(symbol_ptr->class_of_which_a_member);
-  }  /* if */
-  if (vp != NULL && vp->storage_class == (a_storage_class)sc_static) {
-    /* Variables with static storage class, even when declared at function
-       scope, will have been allocated in the file scope memory region.  Be
-       sure the initializers are also at file scope. */
-    switch_to_file_scope_region(&region_to_switch_back_to);
   }  /* if */
   /* If the initialization is invalid in some way, init_err will be set to
      TRUE.  It will be used to assure that the initialization bound to the
@@ -1389,9 +1403,6 @@ returned set to TRUE.
     if (brace_flag && curr_token == tok_comma) (void)get_token();
     check_for_matching_closing_brace(brace_flag);
   }  /* if */
-  if (region_to_switch_back_to != NULL_region_number) {
-    switch_back_to_original_region(region_to_switch_back_to);
-  }  /* if */
   if (!var_err) {
     /* There was no error that precludes initialization, so update the
        variable entry with the initializer. */
@@ -1436,6 +1447,31 @@ returned set to TRUE.
       /* Generate a dynamic initialization entry, attach it to the variable,
          and generate an stmk_init statement. */
       gen_dynamic_initialization(vp, init_dip, source_pos);
+    } else if (has_static_storage_duration(vp->storage_class) &&
+               vp->source_corresp.is_local_to_function) {
+      /* This must be a non-dynamic initialization of a local static
+         variable. */
+      check_assertion(in_file_scope(vp));
+      check_assertion(!in_file_scope(init_con));
+      if (init_con->kind == (a_constant_repr_kind)ck_aggregate) {
+        /* Aggregate-constant initialization.  Since the aggregate constant
+           is in the local memory region, the variable can't have a pointer
+           to it.  Instead, we use a special entry to record the
+           initialization. */
+        a_local_static_variable_init_ptr  lsvip;
+
+        lsvip = alloc_local_static_variable_init((an_init_kind)initk_static);
+        lsvip->initializer.constant = init_con;
+        add_to_local_static_variable_inits_list(lsvip);
+        vp->init_kind = (an_init_kind)initk_function_local;
+      } else {
+        a_memory_region_number  region_to_switch_back_to;
+
+        switch_to_file_scope_region(&region_to_switch_back_to);
+        vp->initializer.constant = copy_unshared_constant(init_con);
+        switch_back_to_original_region(region_to_switch_back_to);
+        vp->init_kind = (an_init_kind)initk_static;
+      }  /* if */
     } else {
       /* Neither the variable nor the initializer require initialization to be
          dynamic. */
