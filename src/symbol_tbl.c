@@ -5519,6 +5519,7 @@ End a name scope by popping an entry off the scope stack.
   an_extern_type_fixup_ptr etfp;
   a_scope_depth            scope_depth;
   a_boolean                old_region_still_needed;
+  a_boolean		   do_semivisible_type_processing = TRUE;
 
   db_enter(3, "pop_scope");
   ssep = &scope_stack[depth_scope_stack];
@@ -5550,6 +5551,23 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
+  /* Determine whether types defined in this scope should be handled
+     as semivisible types.  Template classes and classes nested within
+     template classes do not have this processing done. */
+  {
+    /* Loop back through the scope stack until we find a scope that is
+       not a class_struct_union scope or until we find a class_struct_union
+       scope that is a template class_struct_union. */
+    a_scope_depth sd = depth_scope_stack;
+    for (; sd > DEPTH_OF_FILE_SCOPE; sd--) {
+      a_scope_kind skind = scope_stack[sd].kind;
+      if (skind != (a_scope_kind)sck_class_struct_union) break;
+      if (is_template_class_type(scope_stack[sd].assoc_type)) {
+        do_semivisible_type_processing = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+  }
   /* Remove the symbols declared in this scope from the symbol table.
      Check for unreferenced symbols, and issue warnings for those. */
   for (sym = ssep->symbols; sym != NULL; sym = sym->next_in_scope) {
@@ -5570,10 +5588,8 @@ End a name scope by popping an entry off the scope stack.
          used to support the nonnested class anachronism.  We do not
          apply the anachronism to template classes. */
       if (kind == (a_scope_kind)sck_class_struct_union && allow_anachronisms) {
-        a_type_ptr   sym_type;
         if ((is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) &&
-            (sym_type = type_symbol_type(sym),
-             !is_template_class_type(sym_type))) {
+            do_semivisible_type_processing) {
           sym->header->any_nested_types_on_inactive_list = TRUE;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
           /* Cfront 2.1 implements a special "transitional model" for nested
@@ -5590,6 +5606,8 @@ End a name scope by popping an entry off the scope stack.
               if (!check_for_file_scope_type_with_same_name(sym)) {
                 if (!sym->header->
                     has_cfront_transitional_nested_type_mangled_name) {
+	          a_type_ptr   sym_type;
+                  sym_type = type_symbol_type(sym);
                   sym->header->
                     has_cfront_transitional_nested_type_mangled_name = TRUE;
                   sym_type->
