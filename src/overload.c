@@ -5314,7 +5314,7 @@ is used only in C++ mode.
                                            &operand->position,
                                            operand->type,
                                            /*honor_virtual=*/TRUE,
-                                           curr_expr_is_evaluated(),
+                                          curr_expr_is_potentially_evaluated(),
                                            /*suppress_access_check=*/FALSE);
   /* Convert the operand to the proper type to be an argument of the
      conversion function. */
@@ -5367,7 +5367,7 @@ call in *arg_expr_list.  This routine is used only in C++ mode.
                                            ctor_routine->source_corresp.
                                                        class_of_which_a_member,
                                            /*honor_virtual=*/FALSE,
-                                           curr_expr_is_evaluated(),
+                                          curr_expr_is_potentially_evaluated(),
                                            /*suppress_access_check=*/FALSE);
   routine_type = skip_typerefs(ctor_routine->type);
   /* Convert the operand to the proper type to be an argument of the
@@ -5734,13 +5734,9 @@ is suppressed in that case).
 
   if (initializing_return_value) {
     /* No destructor call if this is a return statement. */
-    dip = alloc_dynamic_init(kind);
+    dip = alloc_expr_dynamic_init(kind);
   } else {
-    dip = alloc_dtor_dynamic_init(kind,
-                                  temp_type, curr_expr_is_evaluated(),
-                                  (a_boolean)expr_stack->
-                                                 in_return_by_cctor_expression,
-                                  position);
+    dip = alloc_dtor_dynamic_init(kind, temp_type, position);
   }  /* if */
   return dip;
 }  /* alloc_dynamic_init_possibly_with_dtor */
@@ -5854,7 +5850,8 @@ happen only in C++ mode.
                               class_type,
                               get_type_qualifiers(source_operand->type),
                               &source_operand->position, class_type,
-                              &class_bitwise_copy, curr_expr_is_evaluated(),
+                              &class_bitwise_copy,
+                              curr_expr_is_potentially_evaluated(),
                               /*suppress_access_check=*/FALSE);
       }  /* if */
     }  /* if */
@@ -5982,7 +5979,8 @@ of the temporary.  Only used in C++ mode.
       cctor_routine = select_copy_constructor(
                                 temp_type, get_type_qualifiers(temp_type),
                                 &operand->position, temp_type,
-                                &class_bitwise_copy, curr_expr_is_evaluated(),
+                                &class_bitwise_copy,
+                                curr_expr_is_potentially_evaluated(),
                                 /*suppress_access_check=*/FALSE);
       if (class_bitwise_copy) {
         /* A bitwise copy can be done. */

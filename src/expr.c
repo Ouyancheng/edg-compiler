@@ -3840,7 +3840,7 @@ a pointer to the dynamic init entry for the entire array.
                original dynamic init (ck_constructor)
   */
   array_dip =
-          alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
+       alloc_expr_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
   repeat_nonconstant_init(element_dip, elem_type, array_dip,
                           number_of_elements);
   return array_dip;
@@ -4213,7 +4213,7 @@ specification allow a variable-sized array as the top type.
          used. */
       if (ctor_routine != NULL) {
         /* Constructor call. */
-        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
         dip->variant.constructor.ptr = ctor_routine;
         dip->variant.constructor.args = arg_expr_list;
         if (array_new) {
@@ -4236,7 +4236,7 @@ specification allow a variable-sized array as the top type.
         }  /* if */
       } else {
         /* Expression as initial value. */
-        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
         dip->variant.expression = init_val_node;
       }  /* if */
       ndsp->dynamic_init = dip;
@@ -4459,7 +4459,7 @@ As an anachronism, allow an expression inside the [ ].
                                          /*suppress_access_check=*/FALSE);
         if (dtor_routine != NULL) {
           /* Class with destructor.  Destruction is required. */
-          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+          dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
           dip->destructor = dtor_routine;
           if (array_delete) {
             /* For a delete of an array of classes, generate a dynamic init
@@ -7379,11 +7379,7 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
         node = make_node_from_operand(&operand);
         throw_type = node->type;
         dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_expression,
-                                      throw_type,
-                                      curr_expr_is_potentially_evaluated(),
-                                      /*in_return_by_cctor_expression=*/FALSE,
-                                           /* Or at least it can't matter. */
-                                      &operand.position);
+                                      throw_type, &operand.position);
         dip->variant.expression = node;
       }  /* if */
       throw_node->variant.throw_info->dynamic_init = dip;
@@ -9353,7 +9349,7 @@ position to be used in overall errors.
     discard_curr_expr_object_lifetime();
   } else {
     /* Set the dynamic init entry to represent constructor initialization. */
-    *dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+    *dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
     (*dip)->variant.constructor.ptr = conversion_routine;
     (*dip)->variant.constructor.args = arg_list;
     if (fill_in_dtor) {

@@ -527,12 +527,6 @@ extern a_constant_ptr value_of_constant_var_lvalue_expr(an_expr_node_ptr node);
 
 extern void conv_lvalue_to_rvalue(an_operand *operand);
 
-extern void make_function_call(an_expr_node_ptr  function_node,
-                               a_type_ptr        function_type,
-                               a_boolean         is_virtual,
-                               a_source_position *call_pos,
-                               an_operand        *result);
-
 extern a_type_ptr determine_arithmetic_conversions(an_operand *operand_1,
 					           an_operand *operand_2);
 
@@ -630,14 +624,33 @@ extern a_boolean check_scalar_operand(an_operand *operand);
 extern void make_field_operand(a_field_ptr field,
 			       an_operand  *result);
 
+extern a_dynamic_init_ptr alloc_expr_dynamic_init(a_dynamic_init_kind kind);
+
+extern a_dynamic_init_ptr alloc_dtor_dynamic_init(
+                                           a_dynamic_init_kind kind,
+                                           a_type_ptr          type,
+                                           a_source_position   *position);
+
+extern an_expr_node_ptr create_expr_temporary(a_type_ptr        temp_type,
+                                              a_boolean         result_is_addr,
+                                              a_source_position *position);
+
+extern void make_function_call(an_expr_node_ptr  function_node,
+                               a_type_ptr        function_type,
+                               a_boolean         is_virtual,
+                               a_source_position *call_pos,
+                               an_operand        *result);
+
 extern void assemble_function_call(an_operand       *function_operand,
                                    an_operand       *bound_function_selector,
                                    an_expr_node_ptr argument_list,
                                    an_operand       *result);
 
-extern an_expr_node_ptr create_expr_temporary(a_type_ptr        temp_type,
-                                              a_boolean         result_is_addr,
-                                              a_source_position *position);
+extern a_statement_ptr make_call_assignment_statement(
+                                               a_routine_ptr     rout,
+                                               an_expr_node_ptr  dest,
+                                               an_expr_node_ptr  source,
+                                               a_source_position *err_pos);
 
 extern a_boolean check_pointer_operand(an_operand    *operand,
 				       an_error_code err_code);

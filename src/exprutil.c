@@ -3701,6 +3701,191 @@ operand, and set the operand type to the type of the field.
 }  /* make_field_operand */
 
 
+a_dynamic_init_ptr alloc_expr_dynamic_init(a_dynamic_init_kind kind)
+/*
+Allocate a dynamic initialization entry, clear it to default values, set
+its kind to kind, and return a pointer to it.  This should be used
+instead of alloc_dynamic_init within the expression processing routines.
+It does some extra processing based on the knowledge that we are within
+an expression.
+*/
+{
+  a_dynamic_init_ptr dip;
+
+  /* Allocate and initialize the entry. */
+  dip = alloc_dynamic_init(kind);
+  if (expr_stack->inside_conditional_expression) {
+    dip->inside_conditional_expression = TRUE;
+  }  /* if */
+  return dip;
+}  /* alloc_expr_dynamic_init */
+
+
+a_dynamic_init_ptr alloc_dtor_dynamic_init(a_dynamic_init_kind kind,
+                                           a_type_ptr          type,
+                                           a_source_position   *position)
+/*
+Allocate a dynamic initialization entry, clear it to default values, set
+its kind to kind, and return a pointer to it.  If type is a type that
+requires a destructor, put the destructor routine pointer into the dynamic
+initialization entry.  *position gives the associated source position.
+*/
+{
+  a_dynamic_init_ptr dip = alloc_expr_dynamic_init(kind);
+
+  if (C_dialect == C_dialect_cplusplus && is_class_struct_union_type(type)) {
+    /* The type is a class.  If it has a destructor, indicate it in
+       the dynamic initialization. */
+    if (!expr_stack->in_return_by_cctor_expression) {
+      dip->destructor = select_destructor(type, type, position,
+                                          /*honor_virtual=*/FALSE,
+                                          curr_expr_is_potentially_evaluated(),
+                                          /*suppress_access_check=*/FALSE);
+    } else {
+      /* In a cctor return expression.  Put the destructor in the entry,
+         but do not do the access checking etc. at this time.  Build a fixup
+         entry to remind us to do the check later, and put it on the list
+         for the current expression. */
+      a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
+      if (cssp != NULL) {
+        a_symbol_ptr dtor_sym = cssp->destructor;
+        if (dtor_sym != NULL) {
+          dip->destructor = dtor_sym->variant.routine.ptr;
+          (void)alloc_dynamic_init_dtor_fixup(dip, position);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return dip;
+}  /* alloc_dtor_dynamic_init */
+
+
+an_expr_node_ptr create_expr_temporary(a_type_ptr        temp_type,
+                                       a_boolean         result_is_addr,
+                                       a_source_position *position)
+/*
+Create an enk_temp_init node and return a pointer to it.  The implied
+temporary has type temp_type.  A dynamic initialization entry indicating
+no initialization (but indicating destruction if appropriate) is attached
+under the enk_temp_init node.  The value of the enk_temp_init is the address
+(rather than the value) of the temporary if result_is_addr is TRUE.
+*position is the position of the reference.  Only used in C++.
+*/
+{
+  a_dynamic_init_ptr dip;
+  an_expr_node_ptr   temp_init_node;
+
+  /* Allocate the dynamic initialization entry. */
+  dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_none, temp_type,
+                                position);
+  if (curr_expr_is_potentially_evaluated()) {
+    /* Put the destruction (if any) on the list for the current object
+       lifetime. */
+    record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                       /*scope_lifetime=*/FALSE);
+  }  /* if */
+  /* Make an enk_temp_init node that points at the dynamic init entry. */
+  temp_init_node = alloc_temp_init_node(temp_type, result_is_addr);
+  temp_init_node->variant.init.dynamic_init = dip;
+  return temp_init_node;
+}  /* create_expr_temporary */
+
+
+static an_expr_node_ptr func_call_expr(an_expr_node_ptr  function_node,
+                                       a_type_ptr        function_type,
+                                       a_boolean         is_virtual,
+                                       a_source_position *err_pos)
+/*
+Make an expression for a call of the function indicated by function_node,
+whose type is function_type, and which is virtual if is_virtual is TRUE or
+a pointer-to-member-function call if the type of function_node is
+pointer-to-member-function.  The arguments of the call are already
+attached to function_node.  A skip_typerefs need not have been done
+on function_type.  Return a pointer to the call node.  *err_pos
+gives an error position for the case where the function return type is
+invalid (i.e., incomplete); an error node is returned for that case.
+*/
+{
+  an_expr_operator_kind         op;
+  an_expr_node_ptr              call_node;
+  a_type_ptr                    return_type;
+  a_routine_type_supplement_ptr rtsp;
+  an_expr_node_ptr              temp_init_node = NULL;
+  a_dynamic_init_ptr            dip;
+
+  function_type = skip_typerefs(function_type);
+  /* The function return type must be void or object type and not array
+     type.  Half of this check is in add_to_derived_type_list.
+     The check here is necessary because it is valid to declare a
+     function returning a class/struct/enum type that is incomplete
+     at the point of declaration of the function so long as it is completed
+     by the time the function is defined or called (if it is). */
+  if (!check_function_return_type(function_type, err_pos,
+                                  /*is_expr_use=*/TRUE)) {
+    /* There was some error in the return type, and a diagnostic was issued. */
+    call_node = error_node();
+    goto done;
+  } /* if */
+  if (function_node->kind == (an_expr_node_kind)enk_routine_address) {
+    /* We know which routine is being called. */
+    a_routine_ptr rp = function_node->variant.routine;
+    if (curr_expr_is_potentially_evaluated() && !rp->called) {
+      /* It is being called -- set the flag. */
+      rp->called = TRUE;
+      /* Special checking is required for operator-> functions. */
+      if (rp->special_kind == (a_special_function_kind)sfk_operator &&
+          rp->opname_kind == (an_opname_kind)onk_arrow) {
+        /* This is an operator-> function that has never before been called.
+           If it is a member of a template class, be sure it has a valid
+           return type.  (Note:  template classes may define operator->
+           functions that return invalid types as long as they are never
+           called. */
+        if (symbol_supplement_for_class(rp->source_corresp.
+                          class_of_which_a_member)->class_template != NULL) {
+          /* If the return type is invalid, change the return type to an
+             error_type and issue a diagnostic. */
+          check_operator_arrow_return_type(rp, /*is_expr_use=*/TRUE, err_pos);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Any type qualifiers on the return type are dropped because rvalues
+     do not have qualified types. */
+  return_type = skip_typerefs(function_type->variant.routine.return_type);
+  if (is_reference_type(return_type)) {
+    /* If the function returns a reference type, make the result a
+       pointer. */
+    return_type = make_pointer_type(type_pointed_to(return_type));
+  }  /* if */
+  /* Determine the operator to use for the call. */
+  if (is_ptr_to_member_type(function_node->type)) {
+    /* Call using a pointer-to-member-function. */
+    op = (an_expr_operator_kind)eok_pm_call;
+  } else if (is_virtual) {
+    /* Call of a virtual function. */
+    op = (an_expr_operator_kind)eok_virtual_call;
+  } else {
+    /* Normal call. */
+    op = (an_expr_operator_kind)eok_call;
+  }  /* if */
+  /* Make an expression for the function call. */
+  call_node = make_operator_node(op, return_type, function_node);
+  rtsp = function_type->variant.routine.extra_info;
+  if (rtsp->value_returned_by_cctor) {
+    temp_init_node = create_expr_temporary(return_type,
+                                           /*result_is_addr=*/FALSE,
+                                           err_pos);
+    dip = temp_init_node->variant.init.dynamic_init;
+    set_dynamic_init_kind(dip,
+                      (a_dynamic_init_kind)dik_call_returning_class_via_cctor);
+    dip->variant.expression = call_node;
+    call_node = temp_init_node;
+  }  /* if */
+done:
+  return call_node;
+}  /* func_call_expr */
+
+
 void make_function_call(an_expr_node_ptr  function_node,
                         a_type_ptr        function_type,
                         a_boolean         is_virtual,
@@ -3720,11 +3905,6 @@ on function_type.  *call_pos gives the source position of the call.
 
   /* Make the function call expression node. */
   call_node = func_call_expr(function_node, function_type, is_virtual,
-                             curr_expr_is_potentially_evaluated(),
-                             (a_boolean)expr_stack->
-                                                 in_return_by_cctor_expression,
-                             (a_boolean)expr_stack->
-                                                 inside_conditional_expression,
                              call_pos);
   /* Make an operand for the overall call (etc.). */
   make_expression_operand(call_node, call_node->type, result);
@@ -3791,29 +3971,44 @@ in *result.
 }  /* assemble_function_call */
 
 
-an_expr_node_ptr create_expr_temporary(a_type_ptr        temp_type,
-                                       a_boolean         result_is_addr,
-                                       a_source_position *position)
+a_statement_ptr make_call_assignment_statement(a_routine_ptr     rout,
+                                               an_expr_node_ptr  dest,
+                                               an_expr_node_ptr  source,
+                                               a_source_position *err_pos)
 /*
-Create an enk_temp_init node and return a pointer to it.  The implied
-temporary has type temp_type.  A dynamic initialization entry indicating
-no initialization (but indicating destruction if appropriate) is attached
-under the enk_temp_init node.  The value of the enk_temp_init is the address
-(rather than the value) of the temporary if result_is_addr is TRUE.
-*position is the position of the reference.  Only used in C++.
+Create an expression statement pointing to a call operator that
+calls "rout" to assign the lvalue "source" to the lvalue "dest".  Return
+a pointer to the statement.  *err_pos is a source position to be used
+for errors (e.g., the function has an invalid return type).
 */
 {
-  an_expr_node_ptr temp_init_node;
+  a_statement_ptr         stmt;
+  an_expr_node_ptr        node, func_addr_node;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
 
-  temp_init_node = make_temp_init(temp_type, result_is_addr,
-                                  curr_expr_is_evaluated(),
-                                  (a_boolean)expr_stack->
-                                                 in_return_by_cctor_expression,
-                                  (a_boolean)expr_stack->
-                                                 inside_conditional_expression,
-                                  position);
-  return temp_init_node;
-}  /* create_expr_temporary */
+  /* Even though this is not an expression scan, make sure the expr_stack
+     has something on it.  If there is already something on the stack,
+     save it, clear the stack, and restore it later. */
+  saved_expr_stack = expr_stack;
+  expr_stack = NULL;
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*new_object_lifetime=*/FALSE);
+  /* Make a node for the address of the function. */
+  func_addr_node = function_addr_expr(rout, /*set_address_taken_flag=*/FALSE);
+  /* Link the operands to the function address node. */
+  func_addr_node->next = dest;
+  dest->next = source;
+  /* Make the call node. */
+  node = func_call_expr(func_addr_node, rout->type,
+                        (a_boolean)rout->is_virtual,
+                        err_pos);
+  /* Allocate the statement. */
+  stmt = alloc_expr_statement(node);
+  pop_expr_stack();
+  expr_stack = saved_expr_stack;
+  return stmt;
+}  /* make_call_assignment_statement */
 
 
 void using_lvalue(an_operand *operand)
