@@ -4677,19 +4677,6 @@ to the point where the base name appears.
   a_ctor_or_dtor_kind
                    ctor_dtor_kind = (a_ctor_or_dtor_kind)cdk_none;
 
-  /* Most of the processing is done in mangled_encoding_for_function_type,
-     but this routine handles:
-       (1)  The output of the name of the function, followed by "__".
-            For special member functions, a special name is used, e.g.,
-            "__ct" for constructors.
-       (2)  If the function is a member function, the name of the
-            class pointed to, followed by
-              (a) if the function is nonstatic, "C", "V", or "CV" if there
-                  are type qualifiers on the "this" parameter type, or
-              (b) if the function is static, "S".
-     mangled_encoding_for_function_type is then called to do the rest of the
-     processing.
-  */
   routine_type = skip_typerefs(routine->type);
   /* See if the function should be mangled as a template.  In the modern C++
      language, template functions are mangled using the template arguments
@@ -4825,10 +4812,36 @@ mangle_template:
     /* Put out the name of the class or namespace of which this function
        is a member. */
     mangled_parent_qualifier(&routine->source_corresp, mctl);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* If this function explicitly overrides a function, add the class of
+       the overridden function. */
+    if (routine->overridden_function != NULL) {
+      /* The encoding is O <type>. */
+      add_to_mangled_name('O', mctl);
+      mangled_type_name(routine->overridden_function->
+                                              source_corresp.parent.class_type,
+                        mctl);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 #endif /* !IA64_ABI */
 #if IA64_ABI
   close_ia64_nested_name(need_nested_name_close, mctl);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* If this function explicitly overrides a function, add the name of
+     the overridden function. */
+  if (routine->overridden_function != NULL) {
+    /* The encoding is O <nested-name>.  This is an extension to the IA-64
+       ABI spec. */
+    add_to_mangled_name('O', mctl);
+    mangled_function_name(routine->overridden_function,
+                          /*suppress_param_encoding=*/TRUE,
+                          /*suppress_parent_encoding=*/FALSE,
+                          /*force_primary_name=*/TRUE,
+                          /*base_name_offset=*/(sizeof_t *)NULL,
+                          mctl);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* !IA64_ABI */
   if (!suppress_param_encoding) {
     a_boolean do_return_type;
