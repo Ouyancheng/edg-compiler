@@ -8941,17 +8941,39 @@ may do fixup on entities pointed to by source-sequence entries it removes.
       if (il_entry_prefix_of(ssep).keep_in_il) {
         /* A struct or enum definition that should be retained in the IL. */
         a_type_ptr  tp;
+        a_boolean   is_primary_decl;
 
         if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_type) {
-          a_type_ptr tp = ss_entry_ptr(ssep, a_type_ptr);
-          check_assertion_str(is_immediate_class_type(tp) ||
-                              is_immediate_enum_type(tp),
-                              "drop_tag_def_from_src_seq_list: bad type kind");
-          /* Link around the entries that have been seen thus far, skip the
-             entries entailed by the struct or enum definition that should be
-             retained, and then resume the processing in the outer loop. */
-          *prev_link_addr = ssep;
-          ssep->prev = prev_ssep;
+          tp = ss_entry_ptr(ssep, a_type_ptr);
+          is_primary_decl = TRUE;
+        } else {
+          /* A secondary-decl source sequence entry. */
+          is_primary_decl = FALSE;
+#if CHECKING
+          check_assertion_str2(ss_entry_kind(ssep) ==
+                                 (an_il_entry_kind)iek_src_seq_secondary_decl,
+                               "drop_tag_def_from_src_seq_list:",
+                               "bad entity kind");
+          sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+          check_assertion(sssdp->entity.kind ==
+                                          (a_byte_il_entry_kind)iek_type);
+          tp = (a_type_ptr)sssdp->entity.ptr;
+#endif /* CHECKING */
+        }  /* if */
+        check_assertion_str(is_immediate_class_type(tp) ||
+                            is_immediate_enum_type(tp),
+                            "drop_tag_def_from_src_seq_list: bad type kind");
+        /* Link around the entries that have been seen thus far, skip the
+           entries entailed by the struct or enum definition that should be
+           retained, and then resume the processing in the outer loop. */
+        *prev_link_addr = ssep;
+        ssep->prev = prev_ssep;
+        if (!is_primary_decl) {
+          /* Not a definition. */
+          prev_ssep = ssep;
+          prev_link_addr = &ssep->next;
+          tp->autonomous_primary_tag_decl = TRUE;
+        } else {
           ssep = ssep->next;
           for (;;) {
             if (!il_entry_prefix_of(ssep).keep_in_il) {
@@ -8980,19 +9002,6 @@ may do fixup on entities pointed to by source-sequence entries it removes.
               ssep = ssep->next;
             }  /* if */
           }  /* for */
-#if CHECKING
-        } else {
-          /* A secondary-decl source sequence entry, even if it is marked
-             to be kept in the IL, need not be kept here, since its
-             context is being elminated. */
-          check_assertion_str2(ss_entry_kind(ssep) ==
-                                 (an_il_entry_kind)iek_src_seq_secondary_decl,
-                               "drop_tag_def_from_src_seq_list:",
-                               "bad entity kind");
-          sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-          check_assertion(sssdp->entity.kind ==
-                                          (a_byte_il_entry_kind)iek_type);
-#endif /* CHECKING */
         }  /* if */
       }  /* if */
     } else {
