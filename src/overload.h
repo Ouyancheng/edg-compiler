@@ -68,8 +68,9 @@ typedef struct a_conv_descr {
 			   is meaningful even when the entry indicates no
 			   conversion. */
   a_byte_boolean
-		ambiguous;
-			/* If TRUE the conversion is ambiguous. */
+		unusable;
+			/* If TRUE the conversion is unusable, e.g., it is
+			   ambiguous. */
   a_std_conv_descr
 		std;	/* The standard conversion part of the conversion. */
 } a_conv_descr;
@@ -84,10 +85,10 @@ part.
 
 /*
 Macro that returns TRUE if a pointer to a conversion is usable (the
-pointer is non-NULL, and the conversion is not ambiguous).
+pointer is non-NULL, and the conversion is not unusable).
 */
 #define conv_usable(conversion)                             \
-  ((conversion) != NULL && !(conversion)->ambiguous)
+  ((conversion) != NULL && !(conversion)->unusable)
 
 
 

@@ -63,7 +63,7 @@ Clear a conversion description.
   conv->routine_symbol                 = NULL;
   conv->class_identity_or_bitwise_copy = FALSE;
   conv->result_is_an_lvalue            = FALSE;
-  conv->ambiguous                      = FALSE;
+  conv->unusable                       = FALSE;
   clear_std_conv_descr(&conv->std);
 }  /* clear_conv_descr */
 
@@ -786,7 +786,7 @@ reference type if param_is_reference is TRUE.
 
   arg_summary->match_level = aml_user_conversion;
   arg_summary->conversion = *conversion;
-  if (param_is_reference && !conversion->ambiguous) {
+  if (param_is_reference && !conversion->unusable) {
     /* For reference parameters, see if any type qualifiers were added under
        the reference relative to the output type of the conversion function.
        That serves as a tie-breaker in overload resolution. */
@@ -1185,7 +1185,7 @@ is TRUE.
         /* There is a suitable indefinite function, or more than one.
            arg_summary->match_level has been set appropriately. */
         arg_summary->conversion.std = std_conversion;
-        arg_summary->conversion.ambiguous = ambiguous;
+        if (ambiguous) arg_summary->conversion.unusable = TRUE;
         goto have_level;
       }  /* if */
     }  /* if */
@@ -2244,6 +2244,14 @@ evaluated (but not checked to see if the match is good enough).
         set_user_conversion_for_class_copy(&arg_operand->operand,
                                            arg_match,
                                            eff_param_type);
+        if (arg_match->match_level == aml_none) {
+          /* This can come up for a parameter that is a class, when the
+             class only has a copy constructor that copies nonconsts, and
+             the actual argument is a const object of that class.
+             The template deduction succeeds, but the function cannot be
+             called. */
+          arg_match->conversion.unusable = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
@@ -5527,7 +5535,7 @@ because of an error.  This routine is only used in C++ mode.
     }  /* if */
     free_arg_operand_list(arg_operand_list);
   }  /* if */
-  conversion->ambiguous = *ambiguous;
+  if (*ambiguous) conversion->unusable = TRUE;
   if (*ambiguous && ambiguity_list != NULL) {
     /* Return the candidate functions list to the caller, for use in
        generating an ambiguity error.  The caller will free the list. */
@@ -5630,7 +5638,7 @@ conversion_to_class_possible).  This routine is only used in C++ mode.
       *conversion = candidate_functions->conversion;
     }  /* if */
   }  /* if */
-  conversion->ambiguous = *ambiguous;
+  if (*ambiguous) conversion->unusable = TRUE;
   if (*ambiguous && ambiguity_list != NULL) {
     /* Return the candidate functions list to the caller, for use in generating
        an ambiguity error.  The caller will free the list. */
@@ -6191,10 +6199,10 @@ be a constructor call.
   orig_operand = *operand;
   conversion_routine = conversion->routine;
 #if CHECKING
-  if (conversion->ambiguous) {
-    /* The conversion was ambiguous.  That should have been figured out
+  if (conversion->unusable) {
+    /* The conversion was unusable.  That should have been figured out
        again and shouldn't get here. */
-    internal_error("user_convert_operand: ambiguous conversion");
+    internal_error("user_convert_operand: unusable conversion");
   }  /* if */
 #endif /* CHECKING */
   if (conversion->class_identity_or_bitwise_copy) {
@@ -6280,10 +6288,10 @@ conversion (which might involve a user-defined conversion).
 */
 {
 #if CHECKING
-  if (conversion->ambiguous) {
-    /* The conversion was ambiguous.  That should have been figured out
+  if (conversion->unusable) {
+    /* The conversion was unusable.  That should have been figured out
        again and shouldn't get here. */
-    internal_error("convert_operand: ambiguous conversion");
+    internal_error("convert_operand: unusable conversion");
   }  /* if */
 #endif /* CHECKING */
   if (!is_null_user_conv_descr(conversion)) {
