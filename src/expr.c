@@ -3685,7 +3685,8 @@ be inappropriate, because the feature is probably used to implement
 }  /* scan_alignof_operator */
 
 
-static void scan_extended_integral_constant_expression(int        prec_level,
+static void scan_extended_integral_constant_expression(a_boolean  allow_comma,
+                                                       int        prec_level,
                                                        an_operand *operand)
 /*
 Scan a constant expression that is an extended form of an integral constant
@@ -3693,10 +3694,11 @@ expression.  It is extended in that it allows addressing expressions that
 reduce to an integer value.  The expression is scanned as an initializer
 constant expression, then checked to see if it is a constant with integer
 representation.  If not, an error is issued and the constant is changed
-to an error constant.  The constant is returned in *operand.  prec_level is
-the precedence level to be used in scanning the expression.  This routine
-exists mainly to allow the sorts of constant expressions used in the
-implementation of offsetof.
+to an error constant.  The constant is returned in *operand.  If
+allow_comma is TRUE, a top-level comma is allowed in the expression.
+prec_level is the precedence level to be used in scanning the expression.
+This routine exists mainly to allow the sorts of constant expressions used
+in the implementation of offsetof.
 */
 {
   an_expr_stack_entry expr_stack_entry;
@@ -3705,7 +3707,8 @@ implementation of offsetof.
   db_enter(4, "scan_extended_integral_constant_expression");
   push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry);
   /* Scan the expression. */
-  scan_expr(operand, prec_level, EOPT_NO_OPTIONS);
+  scan_expr(operand, prec_level, allow_comma ? EOPT_NO_OPTIONS :
+                                               EOPT_DISALLOW_COMMA_OPERATOR);
   do_operand_transformations(operand, TOPT_NO_OPTIONS);
   /* Make a constant from the operand. */
   extract_constant_from_operand(operand, &con);
@@ -3745,7 +3748,8 @@ because the feature is used to implement offsetof, a standard feature.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_matching_stop_token(tok_rparen);
   /* Scan the address expression. */
-  scan_extended_integral_constant_expression(PREC_LOWEST, result);
+  scan_extended_integral_constant_expression(/*allow_comma=*/TRUE,
+                                             PREC_LOWEST, result);
   /* Cast the constant to type size_t. */
   cast_operand(integer_type(targ_size_t_int_kind), result,
                /*is_implicit_cast=*/TRUE);
@@ -5064,13 +5068,15 @@ C-style casts and C++ functional-notation type conversions.
 }  /* do_cast */
 
 
-static void scan_cast_expression(a_boolean  cast_to_func_ptr,
+static void scan_cast_expression(a_type_ptr type_cast_to,
+                                 a_boolean  cast_to_func_ptr,
                                  a_boolean  allow_comma,
                                  int        prec_level,
                                  an_operand *operand,
                                  an_operand *bound_function_selector)
 /*
-Scan an expression that is the operand of a cast.  cast_to_func_ptr is TRUE
+Scan an expression that is the operand of a cast.  type_cast_to is the
+type to which the expression will be cast.  cast_to_func_ptr is TRUE
 if the cast is to a pointer-to-function type in C++.  allow_comma is
 TRUE if a top-level comma should be allowed in the expression.
 prec_level is the precedence level for the expression scan.  Return
@@ -5078,15 +5084,24 @@ the expression in *operand, and if a bound function is scanned, return
 the selector in *bound_function_selector.
 */
 {
-  a_local_expr_options_set cast_options = EOPT_OPERAND_OF_CAST;
-
-  if (cast_to_func_ptr) {
-    /* In C++, allow a bound function as the operand of a cast to a
-       normal function pointer. */
-    cast_options |= EOPT_ALLOW_BOUND_FUNCTION;
+  /* In non-strict mode, scan the operand of a cast to an integral type
+     in an integral constant expression specially to allow address
+     expressions that reduce to integer values. */
+  if (!strict_ansi_mode && curr_expr_kind_is(ek_integral_constant) &&
+      is_integral_type(type_cast_to)) {
+    scan_extended_integral_constant_expression(allow_comma, prec_level,
+                                               operand);
+  } else {
+    /* Normal case. */
+    a_local_expr_options_set cast_options = EOPT_OPERAND_OF_CAST;
+    if (cast_to_func_ptr) {
+      /* In C++, allow a bound function as the operand of a cast to a
+         normal function pointer. */
+      cast_options |= EOPT_ALLOW_BOUND_FUNCTION;
+    }  /* if */
+    if (!allow_comma) cast_options |= EOPT_DISALLOW_COMMA_OPERATOR;
+    scan_expr_full(operand, bound_function_selector, prec_level, cast_options);
   }  /* if */
-  if (!allow_comma) cast_options |= EOPT_DISALLOW_COMMA_OPERATOR;
-  scan_expr_full(operand, bound_function_selector, prec_level, cast_options);
 }  /* scan_cast_expression */
 
 
@@ -5149,7 +5164,8 @@ or
     remove_matching_stop_token(tok_rparen);
 
     /* Scan the expression to be cast. */
-    scan_cast_expression(cast_to_func_ptr, /*allow_comma=*/TRUE, PREC_CAST,
+    scan_cast_expression(type_cast_to, cast_to_func_ptr,
+                         /*allow_comma=*/TRUE, PREC_CAST,
                          result, &local_bound_function_selector);
     /* Check compatibility of the types and do the cast. */
     do_cast(type_cast_to, result, &local_bound_function_selector, err,
@@ -5341,8 +5357,8 @@ type is passed in as type_cast_to.  The result is returned in *result.
       /* Scan the expression inside the parentheses. */
       /* Since the expression in parentheses is syntactically an
          expression list, a top-level comma is not allowed. */
-      scan_cast_expression(cast_to_func_ptr, /*allow_comma=*/FALSE,
-                           PREC_LOWEST, result,
+      scan_cast_expression(type_cast_to, cast_to_func_ptr,
+                           /*allow_comma=*/FALSE, PREC_LOWEST, result,
                            &local_bound_function_selector);
       /* Check compatibility of the types and do the cast. */
       do_cast(type_cast_to, result, &local_bound_function_selector, err,
