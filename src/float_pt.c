@@ -2213,9 +2213,12 @@ Initialize static variables related to float_pt.c.
   /* The routines that handle hex floating point constants must know the
      bit layout of the floating point values.  Make sure the configuration
      is for one of the supported layouts. */
-  check_assertion_str2(targ_ldbl_mant_dig == 64 ||
-                       targ_ldbl_mant_dig == 113 ||
-                       targ_ldbl_mant_dig == 53,
+  check_assertion_str2((targ_ldbl_mant_dig == 64 &&
+                        targ_sizeof_long_double == 12) ||
+                       (targ_ldbl_mant_dig == 113 &&
+                        targ_sizeof_long_double == 16) ||
+                       (targ_ldbl_mant_dig == 53 &&
+                        targ_sizeof_long_double == 8),
                        "float_pt_init:",
                        "unsupported long double mantissa size");
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */

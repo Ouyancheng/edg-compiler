@@ -1,5 +1,11 @@
 Version 3.5
 
+10/28/04 Detecting invalid setting of long double configuration
+
+The assertion checks in float_pt.c have been made more robust to detect
+cases where LDBL_MANT_DIG is set to a size that is inconsistent with
+the setting of targ_sizeof_long_double.
+
 10/28/04 Microsoft compatibility: lookup of members of dependent class
          template references
 
