@@ -778,8 +778,14 @@ skip_tag_scan:
          member functions.) */
       if (!is_local_class) {
         /* Nonlocal class. */
-        class_type->source_corresp.name_linkage =
-                                         (a_name_linkage_kind)nlk_internal;
+        if (any_cfront_mode() &&
+            depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
+          class_type->source_corresp.name_linkage =
+                                (a_name_linkage_kind)nlk_internal;
+        } else {
+          class_type->source_corresp.name_linkage =
+                                (a_name_linkage_kind)nlk_cplusplus_external;
+        }  /* if */
       }  /* if */
       /* If this is the declaration of a nested class, set the parent class
          pointer in the tag symbol. */
