@@ -1390,10 +1390,13 @@ a_class_list_entry nodes.
   a_class_list_entry_ptr  result = cle;
 
   while (result != NULL && (
-#if NEED_NAME_MANGLING
+#if DO_IL_LOWERING
          /* Some types are generated as part of prelowering. */
-         result->class_type->source_corresp.name_has_been_mangled ||
-#endif /* NEED_NAME_MANGLING */
+         (is_immediate_class_type(result->class_type) &&
+          result->class_type->variant.class_struct_union.extra_info != NULL &&
+          result->class_type->variant.class_struct_union.extra_info
+                                                      ->compiler_generated) ||
+#endif /* DO_IL_LOWERING */
          is_placeholder_type(result->class_type) ||
           /* Nonprototype instantiations can differ from one translation unit
              to another.  (The check on template_arg_list ensures that we
