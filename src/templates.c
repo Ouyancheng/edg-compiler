@@ -3702,15 +3702,6 @@ that make up the declaration and do a prototype instantiation.
         sym = NULL;
         goto done;
       }  /* if */
-      /* Now check for a qualified name.  If it is, set the locator to an
-         error locator -- we don't have to worry about the locator that's
-         already in the cache because this template will never be
-         instantiated. */
-      if (locator.is_qualified_name) {
-        error(ec_qualified_name_not_allowed);
-        set_to_error_locator(locator);
-        sym = NULL;
-      }  /* if */
     }  /* if */
     /* Make sure this declaration is valid in this scope. */
     if (is_template_friend && is_member_decl) {
@@ -3778,6 +3769,12 @@ that make up the declaration and do a prototype instantiation.
                     &locator.source_position);
         }  /* if */
         suppress_redecl_error = TRUE;
+        sym = NULL;
+      } else if (locator.is_qualified_name) {
+        /* A qualified name that does not refer to a class template
+           symbol.  Issue an error and set the locator to an error locator. */
+        sym_error(ec_sym_not_a_class_template, sym);
+        set_to_named_error_locator(locator);
         sym = NULL;
       } else {
         /* Force the call to enter symbol, which will report the name clash. */
