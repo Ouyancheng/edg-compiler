@@ -3698,6 +3698,7 @@ variant fields to default values.
   pte->size = 0;
   pte->alignment = 1;
   pte->used_in_exception = FALSE;
+  pte->declared_in_function_prototype = FALSE;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   pte->use_cfront_transitional_nested_type_name_mangling = FALSE;
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
@@ -4719,6 +4720,7 @@ to it.
   vp->param_value_has_been_changed= FALSE;
   vp->param_used_more_than_once   = FALSE;
   vp->is_handler_param            = FALSE;
+  vp->implicit_this_param         = FALSE;
 #endif /* ifdef CIL */
 #ifdef FIL
   vp->by_address                  = FALSE;

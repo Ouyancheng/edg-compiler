@@ -1245,6 +1245,9 @@ Display the indicated type entry.
   if (ptr->used_in_exception) {
     disp_boolean("used_in_exception", TRUE);
   }  /* if */
+  if (ptr->declared_in_function_prototype) {
+    disp_boolean("declared_in_function_prototype", TRUE);
+  }  /* if */
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   if (ptr->use_cfront_transitional_nested_type_name_mangling) {
     disp_boolean("use_cfront_transitional_nested_type_name_mangling", TRUE);
@@ -1494,6 +1497,9 @@ Display the indicated variable.
   }  /* if */
   if (ptr->is_handler_param) {
     disp_boolean("is_handler_param", TRUE);
+  }  /* if */
+  if (ptr->implicit_this_param) {
+    disp_boolean("implicit_this_param", TRUE);
   }  /* if */
 #ifdef FFE
   disp_boolean("by_address", (a_boolean)ptr->by_address);

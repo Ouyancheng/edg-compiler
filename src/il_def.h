@@ -2066,6 +2066,9 @@ typedef struct a_type {
 			   exception-declaration of a handler, (2) the type
 			   of a throw expression, or (3) an
 			   exception-specification. */
+  unsigned int	declared_in_function_prototype:1;
+			/* TRUE if this is a local type declared or defined
+			   within a function prototype scope (C mode only). */
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   unsigned int	use_cfront_transitional_nested_type_name_mangling:1;
                         /* TRUE if this type should be treated as a
@@ -2528,8 +2531,11 @@ typedef struct a_variable {
 			   and the variable is used more than once within
 			   the body of the routine or handler. */
   unsigned int  is_handler_param:1;
-			/* TRUE if the variable is a handler parameter. */
-		
+			/* TRUE if the variable is a handler parameter (C++
+			   only). */
+  unsigned int	implicit_this_param:1;
+			/* TRUE if the variable represents an implicit "this"
+			   parameter (C++ only). */
 #endif /* ifdef CIL */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any. */
