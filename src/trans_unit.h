@@ -79,10 +79,10 @@ typedef struct a_translation_unit {
 		based_type_fixup_list;
 			/* Head of a linked list of entries identifying
 			   types whose based-type lists include entries that
-			   must not be remove (either because they refer to
+			   must not be removed (either because they refer to
 			   type entries that are for front-end use only, or
 			   because they refer to types from other translation
-			   units. */
+			   units). */
   an_exported_template_file_ptr
 		exported_template_file;
 			/* Points to an entry used to associate a translation
@@ -96,8 +96,8 @@ typedef struct a_translation_unit {
   a_byte_boolean
 		specified_on_command_line;
 			/* TRUE if the translation unit was specified on the
-			   command-line (FALSE if it was loaded for to
-			   define an exported template). */
+			   command-line (FALSE if it was loaded to define an
+			   exported template). */
 } a_translation_unit;
 
 
