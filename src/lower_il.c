@@ -5864,9 +5864,10 @@ Do IL lowering of the indicated statement and everything under it.
       push_context(&dependent_context, curr_context->scope,
                    /*dependent_statement=*/TRUE);
     }  /* if */
-    if (statement->expr != NULL) lower_normal_expr(statement->expr);
     switch (statement->kind) {
       case stmk_expr:
+        lower_normal_expr(statement->expr);
+        break;
       case stmk_asm:
         /* No processing required. */
         break;
@@ -5886,6 +5887,7 @@ Do IL lowering of the indicated statement and everything under it.
         break;
       case stmk_return:
         return_expr = statement->expr;
+        if (return_expr != NULL) lower_normal_expr(return_expr);
         /* Keep track of whether or not we have already turned the return
            statement into a block.  We haven't so far. */
         make_block = TRUE;
@@ -5961,15 +5963,16 @@ Do IL lowering of the indicated statement and everything under it.
         }  /* if */
         break;
       case stmk_if:
+        lower_normal_expr(statement->expr);
         lower_statement(statement->variant.if_stmt.then_statement);
         lower_statement(statement->variant.if_stmt.else_statement);
         break;
       case stmk_while:
       case stmk_end_test_while:
+        lower_normal_expr(statement->expr);
         lower_statement(statement->variant.loop_statement);
         break;
       case stmk_for:
-        lower_statement(statement->variant.for_loop.statement);
         { a_for_loop_ptr  extra_info = statement->variant.for_loop.extra_info;
           a_statement_ptr init_stmt = extra_info->initialization;
           if (init_stmt != NULL) {
@@ -5985,6 +5988,8 @@ Do IL lowering of the indicated statement and everything under it.
               init_stmt->variant.block.statements->next = init_stmt_next;
             }  /* if */
           }  /* if */
+          if (statement->expr != NULL) lower_normal_expr(statement->expr);
+          lower_statement(statement->variant.for_loop.statement);
           if (extra_info->increment != NULL) {
             lower_normal_expr(extra_info->increment);
           }  /* if */
@@ -6006,6 +6011,7 @@ Do IL lowering of the indicated statement and everything under it.
         if (scope != NULL) pop_block_scope_context(last_statement);
         break;
       case stmk_switch:
+        lower_normal_expr(statement->expr);
         /* If there is a body statement and it has a scope, push it as
            context around the processing of the switch clauses. */
         scope = NULL;
