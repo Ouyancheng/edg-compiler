@@ -1,5 +1,10 @@
 Version 2.08
 
+8/19/92  Incomplete type in parameter declaration
+
+An error is now issued when a parameter is declared with an incomplete
+type.
+
 8/19/92  Fixed bug in overload discrimination
 
 The following case involving overloaded static/nonstatic member functions
