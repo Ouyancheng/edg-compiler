@@ -3093,6 +3093,21 @@ text_segment:
   curr_segment->kind = (a_message_segment_kind)msk_last;
 }  /* construct_message_segments */
 
+
+static a_boolean message_has_fill_in(an_error_code error_code)
+/*
+Return TRUE if the message text for the indicated error code has at least
+one error fill-in.
+*/
+{
+  char *p;
+
+  p = strchr(error_text(error_code), '%');
+  /* Ignore "%%"; it's not a real fill-in. */
+  while (p != NULL && p[1] == '%') p = strchr(p+2, '%');
+  return (p != NULL);
+}  /* message_has_fill_in */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 void clear_file_index_list(void)
@@ -4904,7 +4919,7 @@ put the types in the message.
   init_error_params();
   /* See if the error message contains a fill-in for a type.  If so,
      put out the types. */
-  if (strstr(error_text(error_code) , "%t") != NULL) {
+  if (message_has_fill_in(error_code)) {
     error_msg_types[1] = type1;
     error_msg_types[2] = type2;
   }  /* if */
@@ -5073,7 +5088,7 @@ put the types in the message.
   init_error_params();
   /* See if the error message contains a fill-in for a type.  If so,
      put out the types. */
-  if (strstr(error_text(error_code) , "%t") != NULL) {
+  if (message_has_fill_in(error_code)) {
     error_msg_types[1] = type1;
     error_msg_types[2] = type2;
   }  /* if */
