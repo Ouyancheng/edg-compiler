@@ -1472,12 +1472,10 @@ containing a type qualifier.
   }  /* if */
   if (type->variant.typeref.is_volatile) {
 #if C_GEN_BE_GENERATES_ANSI_C
-    if (previous_qualifier) write_space();
     write_tok_str("volatile");
     write_space();
 #else /* !C_GEN_BE_GENERATES_ANSI_C */
     if (annotate) {
-      if (previous_qualifier) write_space();
       start_comment();
       write_tok_str("volatile");
       end_comment();
