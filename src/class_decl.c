@@ -3640,7 +3640,7 @@ pointed to by cssp.
 }  /* add_to_conversion_list */
 
 
-static set_mixed_static_nonstatic_flag(a_symbol_ptr  overload_sym)
+static void set_mixed_static_nonstatic_flag(a_symbol_ptr  overload_sym)
 /*
 overload_sym is an sk_overloaded_function symbol representing a set of
 member functions.  If its mixed_static_nonstatic flag has not been set yet,
