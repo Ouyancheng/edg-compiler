@@ -1635,7 +1635,9 @@ the secondary translation unit IL).
 {
   a_boolean                   is_class = is_immediate_class_type(type);
   a_class_list_entry_ptr      saved_befriending_classes;
+#if MAINTAIN_NEEDED_FLAGS
   a_boolean                   saved_definition_needed;
+#endif /* MAINTAIN_NEEDED_FLAGS */
   a_class_type_supplement_ptr primary_ctsp;
   a_symbol_ptr                sym =
                                (a_symbol_ptr)(type->source_corresp.assoc_info);
@@ -1643,16 +1645,20 @@ the secondary translation unit IL).
   if (is_class) {
     primary_ctsp = primary_type->variant.class_struct_union.extra_info;
     saved_befriending_classes = primary_ctsp->befriending_classes;
+#if MAINTAIN_NEEDED_FLAGS
     saved_definition_needed =
                     primary_type->variant.class_struct_union.definition_needed;
+#endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
   *primary_type = *type;
   do_restores_for_overwrite(primary_type, type);
   if (is_class) {
     primary_ctsp = primary_type->variant.class_struct_union.extra_info;
     primary_ctsp->befriending_classes = saved_befriending_classes;
+#if MAINTAIN_NEEDED_FLAGS
     primary_type->variant.class_struct_union.definition_needed =
                                                        saved_definition_needed;
+#endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
   establish_as_canonical(&primary_type->source_corresp);
   if (sym != NULL) {
@@ -1740,7 +1746,9 @@ the secondary translation unit IL).
                                              primary_rout->befriending_classes;
   a_boolean saved_on_inline_function_list =
                                          primary_rout->on_inline_function_list;
+#if MAINTAIN_NEEDED_FLAGS
   a_boolean saved_definition_needed = primary_rout->definition_needed;
+#endif /* MAINTAIN_NEEDED_FLAGS */
   a_symbol_ptr sym = (a_symbol_ptr)(rout->source_corresp.assoc_info);
   do_saves_for_overwrite(primary_rout, a_routine_ptr);
   *primary_rout = *rout;
@@ -1757,7 +1765,9 @@ the secondary translation unit IL).
   primary_rout->suppress_inline_body = saved_suppress_inline_body;
   primary_rout->befriending_classes = saved_befriending_classes;
   primary_rout->on_inline_function_list = saved_on_inline_function_list;
+#if MAINTAIN_NEEDED_FLAGS
   primary_rout->definition_needed = saved_definition_needed;
+#endif /* MAINTAIN_NEEDED_FLAGS */
   establish_as_canonical(&primary_rout->source_corresp);
   if (sym != NULL) {
     /* Make the symbol (in a secondary translation unit) point to the
