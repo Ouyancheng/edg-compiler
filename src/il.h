@@ -303,6 +303,11 @@ extern a_dynamic_init_ptr alloc_dynamic_init(a_dynamic_init_kind kind);
 
 extern void add_to_dynamic_inits_list(a_dynamic_init_ptr dip);
 
+extern void record_end_of_lifetime_destruction(
+                                           a_dynamic_init_ptr  dip,
+                                           a_boolean           static_lifetime,
+                                           a_boolean           unordered);
+
 extern a_variable_ptr alloc_variable(a_storage_class  storage_class);
 
 extern void remove_from_variables_list(a_variable_ptr var_ptr);
@@ -504,6 +509,8 @@ extern void push_object_lifetime(an_il_entry_kind  entity_kind,
                                  a_boolean         ctor_init);
 
 extern a_boolean is_useless_object_lifetime(an_object_lifetime_ptr  olp);
+
+extern void make_object_lifetime_useless(an_object_lifetime_ptr  olp);
 
 extern void pop_object_lifetime(void);
 
