@@ -2425,6 +2425,7 @@ will be involved in overloading.
   a_symbol_ptr       other_decl, sym;
   a_boolean          is_default_global_operator_new = FALSE;
   a_storage_class    local_storage_class = *storage_class;
+  a_boolean          is_function_template_decl = FALSE;
 
   *linked_symbol = NULL;
   *overload_symbol = NULL;
@@ -2459,6 +2460,10 @@ will be involved in overloading.
       /* Default global operator new must always be entered at file scope. */
       *effective_decl_level = DEPTH_OF_FILE_SCOPE;
       is_default_global_operator_new = TRUE;
+    } else if (scope_stack[decl_scope_level].kind ==
+                                     (a_scope_kind)sck_template_declaration) {
+      is_function_template_decl = TRUE;
+      *effective_decl_level = DEPTH_OF_FILE_SCOPE;
     } else {
       *effective_decl_level = decl_scope_level;
       while (scope_stack[*effective_decl_level].kind ==
@@ -2525,10 +2530,47 @@ will be involved in overloading.
              If no type match is found, this is a candidate for overloading. */
           for (; other_decl != NULL;
                  other_decl = is_list ? other_decl->next : NULL) {
-            if (types_are_compatible(routine_symbol_type(other_decl), type)) {
-              /* Null out *overload_symbol in case it was set. */
-              *overload_symbol = NULL;
-              break;
+            a_type_ptr  tp;
+
+            if (other_decl->kind == (a_symbol_kind)sk_function_template) {
+              a_template_symbol_supplement_ptr  tssp;
+              tssp = other_decl->variant.template.extra_info;
+              if (is_function_template_decl) {
+                tp = tssp->variant.function.routine->type;
+                if (types_are_compatible(tp, type)) {
+                  *linked_symbol = other_decl;
+                  *overload_symbol = NULL;
+                  goto determine_linkage;
+                }
+#if 0
+              } else {
+                /* Look for a match on the list of instantiations. */
+                a_symbol_ptr instance;
+                instance = look_for_template_function_symbol(
+                                       other_decl,
+                                       type->variant.function.return_type,
+                                       type->variant.function.extra_info->
+                                                              param_type_list);
+                if (instance != NULL) {
+                  *linked_symbol = other_decl;
+                  if (fiep->specialization_seen) {
+                    *overload_symbol = NULL;
+                  }  /* if */
+                  goto determine_linkage;
+                }  /* if */
+#endif /* if 0 */
+              }  /* if */
+            } else {
+              if (is_function_template_decl) {
+                /* No match. */
+              } else {
+                tp = routine_symbol_type(other_decl);
+                if (types_are_compatible(tp, type)) {
+                  /* Null out *overload_symbol in case it was set. */
+                  *overload_symbol = NULL;
+                  break;
+                }  /* if */
+              }  /* if */
             }  /* if */
           }  /* for */
         }  /* if */
@@ -3288,7 +3330,8 @@ otherwise, set *ext_sym to NULL.
          declaration.  We may have an instance of function overloading. */
       an_error_code  error_code;
 
-      if (homonym_symbol->kind != (a_symbol_kind)sk_overloaded_function) {
+      if (homonym_symbol->kind != (a_symbol_kind)sk_overloaded_function &&
+          homonym_symbol->kind != (a_symbol_kind)sk_function_template) {
         a_routine_ptr  rp = homonym_symbol->variant.routine.ptr;
         if (rp->special_kind == (a_special_function_kind)sfk_operator &&
             rp->opname_kind == (an_opname_kind)onk_delete) {
@@ -3297,8 +3340,9 @@ otherwise, set *ext_sym to NULL.
           redecl_error_already_issued = TRUE;
           goto skip_overloading;
         }  /* if */
-      }  /* if */      
-      if (!overload_distinguishable(homonym_symbol, type_ptr, &error_code)) {
+      }  /* if */
+      if (homonym_symbol->kind != (a_symbol_kind)sk_function_template &&
+          !overload_distinguishable(homonym_symbol, type_ptr, &error_code)) {
         /* The previous declaration and the current one are not "overload
            distinguishable" for a reason given by the error code returned. */
         pos_error(error_code, &locator->source_position);
