@@ -1258,6 +1258,8 @@ Create in *location a locator for the symbol pointed to by sym_ptr.
   clear_locator(location, &sym_ptr->decl_position);
   location->symbol_header = sym_ptr->header;
   location->specific_symbol = sym_ptr;
+  location->is_class_member = sym_ptr->is_class_member;
+  location->parent = sym_ptr->parent;
   location->is_error = sym_ptr->is_error;
 }  /* make_locator_for_symbol */
 
