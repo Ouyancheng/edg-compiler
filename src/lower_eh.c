@@ -658,10 +658,14 @@ have been called on it at some previous point.
   a_routine_ptr  dtor_routine;
   a_memory_region_number
                  region_to_switch_back_to;
+  a_source_position
+                 saved_error_position;
 #if ABI_CHANGES_FOR_RTTI
   a_constant_ptr type_info_con, vptr_con, name_con;
 #endif /* ABI_CHANGES_FOR_RTTI */
 
+  saved_error_position = error_position;
+  error_position = type->source_corresp.decl_position;
   /* Set the linkage on the typeinfo variable. */
   if (force_static) {
     /* When forced to by the flag force_static, change the storage class to
@@ -830,6 +834,7 @@ have been called on it at some previous point.
        entered. */
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
+  error_position = saved_error_position;
 }  /* define_typeinfo_var */
 
 
