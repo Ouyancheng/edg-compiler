@@ -4521,6 +4521,11 @@ have one yet.
          routine != NULL;
          routine = routine->next) {
       if (routine->is_virtual && !routine->pure_virtual &&
+#if IA64_ABI
+          /* Ignore alternate entry points for constructors and
+             destructors. */
+          routine->ctor_dtor_kind == cdk_none &&
+#endif /* IA64_ABI */
           /* A member function of a template class is not marked as
              inline until it is fully instantiated, so we have to call
              a function to see whether it is really inline. */
