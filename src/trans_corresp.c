@@ -979,19 +979,21 @@ is in fact valid.
          routine->is_virtual != corresp_routine->is_virtual ||
          routine->pure_virtual != corresp_routine->pure_virtual ||
          /* The inline attribute isn't set on nonprototype template functions
-            until the template is actually instantiated. */
-         (routine->is_inline != corresp_routine->is_inline &&
+            until the template is actually instantiated.  Also, it need not
+            match in C99 mode. */
+         (!C_mode() && routine->is_inline != corresp_routine->is_inline &&
           (routine->is_prototype_instantiation || routine->is_specialized ||
            !routine->is_template_function)) ||
          routine->is_explicit_constructor !=
                                     corresp_routine->is_explicit_constructor ||
          routine->is_specialized != corresp_routine->is_specialized ||
-         routine->fp_contract != corresp_routine->fp_contract ||
-         routine->fenv_access != corresp_routine->fenv_access ||
-         routine->cx_limited_range != corresp_routine->cx_limited_range ||
 #if DECL_MODIFIERS_IN_USE
          routine->decl_modifiers != corresp_routine->decl_modifiers ||
 #endif /* DECL_MODIFIERS_IN_USE */
+         (routine->defined && corresp_routine->defined &&
+          (routine->fp_contract != corresp_routine->fp_contract ||
+           routine->fenv_access != corresp_routine->fenv_access ||
+           routine->cx_limited_range != corresp_routine->cx_limited_range)) ||
          scp->access != corresp_scp->access ||
          scp->name_linkage != corresp_scp->name_linkage)) {
       match = FALSE;
@@ -1022,7 +1024,10 @@ is in fact valid.
                     corresp_scp = &corresp_var->source_corresp;
     match = verify_name_correspondence(var);
     if (match &&
-        (!types_are_redecl_compatible(var->type, corresp_var->type) ||
+        (!f_types_are_compatible(var->type, corresp_var->type,
+                                 TCF_SEEK_CORRESP |
+                                 TCF_REDECLARATION |
+                                 TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) ||
          !same_exception_spec(var->type, corresp_var->type) ||
          var->is_specialized != corresp_var->is_specialized ||
          var->is_member_constant != corresp_var->is_member_constant ||
@@ -1975,6 +1980,33 @@ are not checked.
 }  /* establish_trans_unit_correspondences_for_class */
 
 
+a_boolean seek_class_type_corresp(a_type_ptr  type_1,
+                                  a_type_ptr  type_2)
+/*
+Check if the given class types are in fact the same and, if so, record all
+the needed correspondence pointers for type_1 and return TRUE.  Otherwise,
+return FALSE.
+*/
+{
+  a_boolean result;
+
+  if (has_correspondence(type_1)) {
+    result = (canonical_il_entry_of(type_1) == canonical_il_entry_of(type_2));
+  } else {
+    a_boolean  visited =
+                     (trans_unit_corresp_pointer_of(type_1) == (char*)type_1);
+    clear_type_correspondence(type_1, /*visited=*/FALSE);
+    record_trans_unit_corresp(type_1, type_2);
+    establish_trans_unit_correspondences_for_class(type_1);
+    result = verify_class_type_correspondence(type_1);
+    if (!result && !visited) {
+      clear_type_correspondence(type_1, /*visited=*/FALSE);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* seek_class_type_corresp */
+
+
 static void find_namespace_correspondence(a_namespace_ptr  nsp)
 /*
 Look for the given namespace in another translation unit and set the
@@ -2167,7 +2199,9 @@ entities.
       }  /* if */
     }  /* if */
   }  /* if */
-  clear_type_correspondence(type, /*visited=*/TRUE);
+  if (trans_unit_corresp_pointer_of(type) == NULL) {
+    clear_type_correspondence(type, /*visited=*/TRUE);
+  }  /* if */
 }  /* find_type_correspondence */
 
 
@@ -2223,6 +2257,10 @@ symbol supplement.
           trans_unit_corresp_pointer_of(class_type) = NULL;
           record_trans_unit_corresp(class_type, corresp_type);
           establish_trans_unit_correspondences_for_class(class_type);
+          if (!sym_entry->symbol->defined && inst->defined) {
+            /* Prefer a definition as the representative. */
+            sym_entry->symbol = inst;
+          }  /* if */
           break;
         }  /* if */
       }  /* for */
@@ -2661,9 +2699,10 @@ translation unit correspondence pointer if one is found.
                   a_type_ptr     sym_type = corresp_routine->type;
                   if (routine == corresp_routine) {
                     /* Skip this symbol. */
-                  } else if (param_types_are_compatible(sym_type,
-                                                        routine->type,
-                                                        TCF_REDECLARATION) ||
+                  } else if (param_types_are_compatible(routine->type,
+                                                        sym_type,
+                                                        TCF_REDECLARATION |
+                                                        TCF_SEEK_CORRESP) ||
                              /* The function ::main doesn't overload. */
                              (is_main_function(routine) &&
                               is_main_function(corresp_routine))) {

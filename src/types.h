@@ -347,6 +347,13 @@ typedef unsigned int an_itf_flag_set;
 			   be known yet.  When this flag is set, a
 			   NULL "this" class type is ignored. */
 
+#define ITF_SEEK_CORRESP 0x04
+			/* The given types are expected to be compatible and
+			   if they are, the first type (and its components)
+			   should have its correspondence pointer point to
+			   the corresponding component of the second type
+			   (only applies to enum and struct/union types). */
+
 #define identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), ITF_NO_FLAGS))
 #define il_identical_types(t1, t2) \
@@ -413,7 +420,12 @@ Bit flags for calls of f_types_are_compatible et al.
 			   This flag is used in Microsoft-bugs mode only, to
 			   deal with a bug in redeclaration of static data
 			   members. */
-
+#define TCF_SEEK_CORRESP 0x100
+			/* The given types are expected to be compatible and
+			   if they are, the first type (and its components)
+			   should have its correspondence pointer point to
+			   the corresponding component of the second type
+			   (only applies to enum and struct/union types). */
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
 

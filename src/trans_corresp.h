@@ -99,6 +99,9 @@ extern a_template_ptr canonical_template_entry_of(a_template_ptr templ);
      il_entry_prefix_of(ptr2).secondary_trans_unit) &&                    \
     canonical_template_entry_of(ptr1) == canonical_template_entry_of(ptr2)))
 
+extern a_boolean seek_class_type_corresp(a_type_ptr  type_1,
+                                         a_type_ptr  type_2);
+
 extern a_symbol_ptr find_corresponding_symbol_in_trans_unit(
 					a_symbol_ptr		sym_to_find,
 					a_translation_unit_ptr	tup);

@@ -2339,7 +2339,8 @@ be customized if additional linkage kinds are added to a_name_linkage_kind
 
 
 static a_boolean change_to_canonical_types(a_type_ptr  *type_1,
-                                           a_type_ptr  *type_2)
+                                           a_type_ptr  *type_2,
+                                           a_boolean   seek_corresp)
 /*
 If the given types have a canonical correspondence in another translation
 unit change the pointers to point to those entries and return TRUE.
@@ -2349,6 +2350,12 @@ Otherwise, return FALSE.
   a_boolean   changed = FALSE;
   a_type_ptr  new_type_1 = *type_1, new_type_2 = *type_2;
 
+  if (seek_corresp &&
+      is_immediate_class_type(new_type_1) &&
+      is_immediate_class_type(new_type_2) &&
+      !has_name(new_type_1) && !has_name(new_type_2)) {
+    (void)seek_class_type_corresp(new_type_1, new_type_2);
+  }  /* if */
   if (in_secondary_trans_unit(new_type_1) &&
       (is_immediate_class_type(new_type_1) ||
        is_immediate_enum_type(new_type_1) ||
@@ -2410,7 +2417,8 @@ for more information.
     } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
       /* The top level kinds are different, so the types are different. */
       /* identical = FALSE;  -- Already set. */
-    } else if (change_to_canonical_types(&type_1, &type_2)) {
+    } else if (change_to_canonical_types(&type_1, &type_2,
+                                         (flags & ITF_SEEK_CORRESP) != 0)) {
       /* The types might have come from different translation units: restart
          the comparison with the canonical entries instead. */
       identical = f_identical_types(type_1, type_2, flags);
@@ -2497,9 +2505,15 @@ for more information.
           /* In general, classes, structs, and unions that aren't the same
              type aren't identical.  There are some exceptions with template
              classes.  Check for those. */
-          if (!C_mode() &&
-              equiv_class_types(type_1, type_2,
-                                /*error_matches_anything=*/FALSE)) {
+          if (C_mode()) {
+            if ((flags & ITF_SEEK_CORRESP) != 0) {
+              /* The types are expected to be identical, but because they are
+                 presumably defined in two different translation units, the
+                 correspondence of their inner structure must be checked. */
+              identical = seek_class_type_corresp(type_1, type_2);
+            }  /* if */
+          } else if (equiv_class_types(type_1, type_2,
+                                       /*error_matches_anything=*/FALSE)) {
             identical = TRUE;
           }  /* if */
           break;
@@ -2842,7 +2856,8 @@ for exact pointer equality.
     } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
       /* The top level kinds are different, so the types are different. */
       /* compat = FALSE;  -- Already set. */
-    } else if (change_to_canonical_types(&type_1, &type_2)) {
+    } else if (change_to_canonical_types(&type_1, &type_2,
+                                         (flags & TCF_SEEK_CORRESP) != 0)) {
       /* The types might have come from different translation units: restart
          the comparison with the canonical entries instead. */
       compat = f_types_are_compatible(type_1, type_2, flags);
@@ -2972,10 +2987,6 @@ for exact pointer equality.
           /* In general, classes, structs, and unions that aren't the same
              type aren't compatible.  There are some exceptions with template
              classes.  Check for those. */
-          if (!C_mode() &&
-              equiv_class_types(type_1, type_2, error_matches_anything)) {
-            compat = TRUE;
-          }  /* if */
           break;
         case tk_routine:
           /* For functions, the return types must be compatible, the parameter
