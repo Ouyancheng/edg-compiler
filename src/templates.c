@@ -7771,6 +7771,7 @@ structure.
       if (is_or_contains_unnamed_or_local_type(type, &is_unnamed, &is_local)) {
         if (is_local) {
           pos_error(ec_local_type_in_template_arg, source_pos);
+          tap->variant.type = error_type();
         } else if (is_unnamed && !microsoft_mode) {
           pos_error(ec_unnamed_type_in_template_arg, source_pos);
         }  /* if */
@@ -7898,14 +7899,9 @@ describing any incompatibilities.
       err = TRUE;
     } else if (old_sym->kind == (a_symbol_kind)sk_type) {
       /* Both are types.  Make sure the types match. */
-      a_template_param_type_supplement_ptr old_tptsp;
       a_type_ptr        old_type = old_tpp->variant.type;
       a_type_ptr        new_type = new_tpp->variant.type;
       err = !identical_types(old_type, new_type);
-      /* Update both type entries to point to the same description entry. */
-      old_tptsp = old_type->variant.template_param.extra_info;
-      old_type->variant.template_param.extra_info = old_tptsp;
-      new_type->variant.template_param.extra_info = old_tptsp;
     } else if (old_sym->kind == (a_symbol_kind)sk_constant) {
       /* Both are constants.  Make sure the values are the same. */
       err = !eq_constants(old_tpp->variant.constant.ptr,
@@ -8006,10 +8002,27 @@ list (the one specified by param_list).
   /* Compare the two template parameter lists. */
   any_errors = !equiv_template_param_lists(old_tpp, new_tpp,
                                            /*issue_errors=*/TRUE, error_pos);
-  /* Merge the default argument information from the two parameter lists.
-     This is only done if there were no errors in the previous tests so
-     we know that the parameter lists match. */
   if (!any_errors) {
+    /* Update type parameters so that they point to the same template
+       parameter type supplement. */
+    new_tpp = param_list;
+    old_tpp = class_sym->variant.template_info->cache.decl_info->parameters;
+    while (new_tpp != NULL && old_tpp != NULL) {
+      if (old_tpp->param_symbol->kind == (a_symbol_kind)sk_type) {
+        a_template_param_type_supplement_ptr old_tptsp;
+        a_type_ptr        old_type = old_tpp->variant.type;
+        a_type_ptr        new_type = new_tpp->variant.type;
+        /* Update both type entries to point to the same description entry. */
+        old_tptsp = old_type->variant.template_param.extra_info;
+        old_type->variant.template_param.extra_info = old_tptsp;
+        new_type->variant.template_param.extra_info = old_tptsp;
+    }  /* if */
+      old_tpp = old_tpp->next;
+      new_tpp = new_tpp->next;
+    }  /* while */
+    /* Merge the default argument information from the two parameter lists.
+       This is only done if there were no errors in the previous tests so
+       we know that the parameter lists match. */
     new_tpp = param_list;
     old_tpp = class_sym->variant.template_info->cache.decl_info->parameters;
     while (new_tpp != NULL && old_tpp != NULL) {
