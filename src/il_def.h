@@ -1029,7 +1029,7 @@ typedef struct a_constant {
 			   NULL for a NULL pointer-to-member. */
       } variant;
     } ptr_to_member;
-    /* When kind = ck_dynamic_init: */
+    /* When kind == ck_dynamic_init: */
     a_dynamic_init_ptr
 		dynamic_init;
 			/* A pointer to the dynamic-init entry that describes
@@ -1068,7 +1068,7 @@ typedef struct a_constant {
 			   with the storage allocation". */
     } init_repeat;
 #ifdef CIL
-    /* When kind = ck_template_param (C++ front end only): */
+    /* When kind == ck_template_param (C++ front end only): */
     struct {
       a_template_param_constant_kind
 		kind;
@@ -1507,9 +1507,9 @@ typedef struct a_template_arg {
                         /* TRUE if this argument is a type argument.  FALSE
                            if it is a constant value. */
   union {
-    /* When is_type = TRUE. */
+    /* When is_type == TRUE. */
     a_type_ptr  type;   /* The type supplied as the argument. */
-    /* When is_type = FALSE. */
+    /* When is_type == FALSE. */
     a_constant_ptr
                 constant;
                         /* The constant supplied as the argument. */
@@ -2397,7 +2397,7 @@ typedef struct a_type {
 			   definition. */
       bitfield_to_avoid_codecenter_warnings();
     } typeref;
-    /* When kind = tk_ptr_to_member: */
+    /* When kind == tk_ptr_to_member: */
     struct {
       a_type_ptr
 		class_of_which_a_member;
@@ -2407,7 +2407,7 @@ typedef struct a_type {
 		type;
 			/* Type of the member pointed to. */
     } ptr_to_member;
-    /* When kind = tk_template_param (C++ front end only): */
+    /* When kind == tk_template_param (C++ front end only): */
     struct {
       a_template_param_type_kind
 		kind;
@@ -4661,14 +4661,14 @@ typedef struct a_scope {
 		asm_entries;
 			/* List of asm entries declared in the current scope,
 			   NULL if none. */
-  a_scope_ptr   scopes; /* List of local scopes that aren't function scopes
-                           or prototype scopes -- i.e., scopes associated
-                           with blocks that contain declarations.  NULL if
-                           none, and always NULL at the file scope (since
-                           there aren't any blocks at the file scope).  Note
-                           that block scopes inside block scopes will appear
-                           on the scopes list for those scopes, not at the
-                           function scope level. */
+  a_scope_ptr   scopes;	/* List of local scopes under this scope.  Used for
+			   block scopes inside function and block scopes,
+			   and prototype scopes inside prototype scopes.
+			   NULL if none or not applicable (e.g., at the
+			   file scope).  Note that block scopes inside
+			   block scopes will appear on the scopes list
+			   for those block scopes, not at the function scope
+			   level. */
   a_dynamic_init_ptr
 		dynamic_inits;
 			/* List of dynamic initializations to be done in the
