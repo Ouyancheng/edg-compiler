@@ -15107,7 +15107,7 @@ that follows.
              that is a definition always has an initializer (such a
              declaration without an initializer is just a declaration, not
              a definition). */
-          complete_class_type_is_needed(vp->type);
+          complete_type_is_needed(vp->type);
           initializer(sym, &locator.source_position,
                       (an_id_linkage_kind)idl_external,
                       has_parenthesized_initializer,

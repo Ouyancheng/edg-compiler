@@ -1,5 +1,18 @@
 Version 3.2
 
+4/16/03  Spurious error on specialization of template static data member
+
+A spurious error could occur when a template static data member is specialized,
+and the type of the static data member is an array with an element type that
+is an instance of a class template that has not yet been instantiated.  Now
+fixed.
+
+  template<class T> struct A { } ;
+  template<class T> struct B {
+    static A<T> arr[2];
+  };
+  template<> A<int> B<int>::arr[2] = { };
+
 4/16/03  IA-64 ABI: Virtual bases can overlap with empty nonvirtual bases
 
 Our original implementation of the IA-64 ABI could allocate virtual base
