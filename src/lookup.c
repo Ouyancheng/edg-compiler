@@ -1608,15 +1608,12 @@ ambiguous symbol and return a pointer.  If no match is found, return NULL.
   a_symbol_list_entry_ptr	slep;
   a_type_ptr			result_type =
                                        locator->variant.conversion_result_type;
-  a_symbol_ptr			matching_sym = NULL;
-  a_template_arg_ptr		matching_arg_list = NULL;
-  a_boolean			ambiguous = FALSE;
   a_symbol_ptr			result_sym = NULL;
+  a_partial_order_candidate_ptr	candidate_list = NULL;
 
   /* Loop though each of the templates.  Stop if we determine that the
      lookup is ambiguous. */
-  for (slep = conversion_templates;
-       slep != NULL && !ambiguous; slep = slep->next) {
+  for (slep = conversion_templates; slep != NULL; slep = slep->next) {
     a_symbol_ptr			sym;
     a_template_symbol_supplement_ptr	tssp;
     a_template_arg_ptr			templ_arg_list = NULL;
@@ -1646,23 +1643,28 @@ ambiguous symbol and return a pointer.  If no match is found, return NULL.
          have been deduced. */
       if (verify_template_nontype_args(templ_arg_list, sym,
                                        (a_template_param_ptr)NULL)) {
-        /* We have a match.  Save the matching template arguments.  If we
-           found a previous match, indicate that the lookup is ambiguous
-           and exit the loop. */
-        if (matching_arg_list == NULL) {
-          matching_arg_list = templ_arg_list;
-          matching_sym = sym;
-          templ_arg_list = NULL;
-        } else {
-          ambiguous = TRUE;
-        }  /* if */
+        /* We have a match.  Add the matching template to a list of matching
+           candidates.  Any poorer matches will be removed by this process.
+           The template argument list is saved along with the symbol. */
+        add_to_partial_order_candidates_list(&candidate_list, sym,
+                                             templ_arg_list);
+        /* Set the argument list pointer to NULL so it won't be freed
+           below. */
+        templ_arg_list = NULL;
       }  /* if */
     }  /* if */
     /* Free the template argument list.  The pointer will have been
        set to NULL above if we need to save this list. */
     if (templ_arg_list != NULL) free_template_arg_list(templ_arg_list);
   }  /* for */
-  if (matching_arg_list != NULL) {
+  if (candidate_list != NULL) {
+    a_boolean		ambiguous = FALSE;
+    a_symbol_ptr	matching_sym = NULL;
+    a_template_arg_ptr	matching_arg_list = NULL;
+    /* Select the best matching candidate and its template argument list. */
+    select_best_partial_order_candidate(candidate_list, (a_symbol_ptr)NULL,
+                                        &matching_sym, &matching_arg_list,
+                                        &ambiguous);
     /* Find or create the template instance that matches the type needed.
        Note that the template argument list is freed in the called function. */
     result_sym = find_template_function(matching_sym, &matching_arg_list,

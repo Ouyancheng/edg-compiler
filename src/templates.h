@@ -34,6 +34,38 @@ typedef int a_template_decl_options_set;
 				/* TRUE if the "extern" keyword was specified
 				   before the "template" keyword. */
 
+/*
+Structure used to keep track of the class template partial specializations
+or function templates that match a given instance.
+*/
+typedef struct a_partial_order_candidate *a_partial_order_candidate_ptr;
+typedef struct a_partial_order_candidate {
+  a_partial_order_candidate_ptr
+		next;
+			/* Next entry in the list. */
+  a_symbol_ptr	symbol;
+			/* Pointer to the symbol associated with a
+			   given partial specialization or function
+			   template. */
+  a_template_arg_ptr
+		template_arg_list;
+			/* Template argument list to be used if this partial
+			   specialization or function template is used to
+			   generate the instance. */
+} a_partial_order_candidate;
+
+
+extern void add_to_partial_order_candidates_list(
+			a_partial_order_candidate_ptr	*psc_list,
+			a_symbol_ptr			new_sym,
+			a_template_arg_ptr		templ_arg_list);
+
+extern void select_best_partial_order_candidate(
+			a_partial_order_candidate_ptr	psc_list,
+			a_symbol_ptr			instance_sym,
+			a_symbol_ptr			*best_sym,
+			a_template_arg_ptr		*best_arg_list,
+			a_boolean			*p_ambiguous);
 
 extern
 a_template_cache_ptr cache_for_template(a_template_symbol_supplement_ptr tssp);

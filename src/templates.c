@@ -114,26 +114,6 @@ typedef struct a_can_instantiate_entry {
 } a_can_instantiate_entry;
 
 
-/*
-Structure used to keep track of the class template partial specializations
-that match the template argument list of a given instance.
-*/
-typedef struct a_partial_spec_candidate *a_partial_spec_candidate_ptr;
-typedef struct a_partial_spec_candidate {
-  a_partial_spec_candidate_ptr
-		next;
-			/* Next entry in the list. */
-  a_symbol_ptr	symbol;
-			/* Pointer to the symbol associated with a
-			   given partial specialization. */
-  a_template_arg_ptr
-		template_arg_list;
-			/* Template argument list to be used if this partial
-			   specialization is to be used to generate the
-			   instance. */
-} a_partial_spec_candidate;
-
-
 static a_can_instantiate_entry_ptr can_instantiate_list;
 	
 static a_def_arg_expr_fixup_ptr	curr_default_args;
@@ -178,8 +158,8 @@ static a_symbol_list_entry_ptr
 		deferred_instantiations_tail;
 			/* The end of the deferred_instantiations list. */
 
-static a_partial_spec_candidate_ptr
-		avail_partial_spec_candidates;
+static a_partial_order_candidate_ptr
+		avail_partial_order_candidates;
 			/* Previously allocated entries available for reuse. */
 
 #if DEBUG
@@ -187,7 +167,7 @@ static a_partial_spec_candidate_ptr
 Counters used to track memory usage.
 */
 static unsigned long
-		num_partial_spec_candidates_allocated;
+		num_partial_order_candidates_allocated;
 #endif /* DEBUG */
 
 /*
@@ -335,24 +315,24 @@ Free the token caches that were used while processing a template declaration.
 }  /* wrapup_templ_decl_state */
 
 
-static a_partial_spec_candidate_ptr alloc_partial_spec_candidate(void)
+static a_partial_order_candidate_ptr alloc_partial_order_candidate(void)
 /*
-Allocate a new partial specialization candidate entry, initialize it,
+Allocate a new partial ordering candidate entry, initialize it,
 and return a pointer to it.
 */
 {
-  a_partial_spec_candidate_ptr pscp;
+  a_partial_order_candidate_ptr pscp;
 
-  if (avail_partial_spec_candidates != NULL) {
+  if (avail_partial_order_candidates != NULL) {
     /* Reuse an existing entry. */
-    pscp = avail_partial_spec_candidates;
-    avail_partial_spec_candidates = avail_partial_spec_candidates->next;
+    pscp = avail_partial_order_candidates;
+    avail_partial_order_candidates = avail_partial_order_candidates->next;
   } else {
     /* Allocate a new entry. */
-    pscp = (a_partial_spec_candidate_ptr)
-                                   alloc_fe(sizeof(a_partial_spec_candidate));
+    pscp = (a_partial_order_candidate_ptr)
+                                   alloc_fe(sizeof(a_partial_order_candidate));
 #if DEBUG
-   num_partial_spec_candidates_allocated++;
+   num_partial_order_candidates_allocated++;
 #endif /* DEBUG */
   }  /* if */
   pscp->next              = NULL;
@@ -360,12 +340,12 @@ and return a pointer to it.
   pscp->template_arg_list = NULL;
   
   return pscp;
-}  /* alloc_partial_spec_candidate */
+}  /* alloc_partial_order_candidate */
 
 
-static void free_partial_spec_candidate(a_partial_spec_candidate_ptr pscp)
+static void free_partial_order_candidate(a_partial_order_candidate_ptr pscp)
 /*
-Free a partial specialization candidate entry by returning it to the
+Free a partial ordering candidate entry by returning it to the
 list of available entries.
 */
 {
@@ -373,9 +353,9 @@ list of available entries.
   if (pscp->template_arg_list != NULL) {
     free_template_arg_list(pscp->template_arg_list);
   }  /* if */
-  pscp->next = avail_partial_spec_candidates;
-  avail_partial_spec_candidates = pscp;
-}  /* free_partial_spec_candidate */
+  pscp->next = avail_partial_order_candidates;
+  avail_partial_order_candidates = pscp;
+}  /* free_partial_order_candidate */
 
 
 #if RECORD_TEMPLATES_IN_IL
@@ -1090,30 +1070,38 @@ matches both templates, templ_sym1 should be preferred over templ_sym2.
 }  /* is_more_specialized */
 
 
-static void add_to_candidates_list(
-			a_partial_spec_candidate_ptr	*psc_list,
+void add_to_partial_order_candidates_list(
+			a_partial_order_candidate_ptr	*psc_list,
 			a_symbol_ptr			new_sym,
 			a_template_arg_ptr		templ_arg_list)
 /*
-Add the partial specialization specified by new_sym to the candidates
-list pointed to by psc_list.  If the new entry is a poorer match than an
-entry already on the list, don't add it.  Go through the existing list
-and remove any entries that are poorer candidates than the new entry.
-templ_arg_list is the template argument list is the argument list
-associated with new_sym.
+Add the partial specialization or function template specified by new_sym
+to the candidates list pointed to by psc_list.  If the new entry is a
+poorer match than an entry already on the list, don't add it.  Go through
+the existing list and remove any entries that are poorer candidates than
+the new entry. templ_arg_list is the template argument list is the argument
+list associated with new_sym.
 */
 {
-  a_partial_spec_candidate_ptr	prev_pscp = NULL;
-  a_partial_spec_candidate_ptr	next_pscp;
-  a_partial_spec_candidate_ptr	pscp;
+  a_partial_order_candidate_ptr	prev_pscp = NULL;
+  a_partial_order_candidate_ptr	next_pscp;
+  a_partial_order_candidate_ptr	pscp;
   a_boolean			do_not_add = FALSE;
 
   for (pscp = *psc_list; pscp != NULL;  pscp = next_pscp) {
     a_boolean	new_is_more_specialized;
     a_boolean	curr_is_more_specialized;
     next_pscp = pscp->next;
-    new_is_more_specialized = is_more_specialized(new_sym, pscp->symbol);
-    curr_is_more_specialized = is_more_specialized(pscp->symbol, new_sym);
+    if (new_sym->kind == (a_symbol_kind)sk_class_template) {
+      new_is_more_specialized = is_more_specialized(new_sym, pscp->symbol);
+      curr_is_more_specialized = is_more_specialized(pscp->symbol, new_sym);
+    } else {
+      int	result;
+      check_assertion(new_sym->kind == (a_symbol_kind)sk_function_template);
+      result = compare_function_templates(new_sym, pscp->symbol);
+      new_is_more_specialized = result == 1;
+      curr_is_more_specialized = result == -1;
+    }  /* if */
     if (new_is_more_specialized && !curr_is_more_specialized) {
       /* The new entry is more specialized than the one already on the
          list.  Remove the entry from the list.
@@ -1124,7 +1112,7 @@ associated with new_sym.
         prev_pscp->next = pscp->next;
       }  /* if */
       /* Free the entry.  This also frees the template argument list. */
-      free_partial_spec_candidate(pscp);
+      free_partial_order_candidate(pscp);
     } else {
       prev_pscp = pscp;
       if (curr_is_more_specialized && !new_is_more_specialized) {
@@ -1137,8 +1125,8 @@ associated with new_sym.
   }  /* for */
   if (!do_not_add) {
     /* Add the new entry to the front of the list. */
-    a_partial_spec_candidate_ptr	new_pscp;
-    new_pscp = alloc_partial_spec_candidate();
+    a_partial_order_candidate_ptr	new_pscp;
+    new_pscp = alloc_partial_order_candidate();
     new_pscp->symbol = new_sym;
     new_pscp->template_arg_list = templ_arg_list;
     new_pscp->next = *psc_list;
@@ -1148,50 +1136,59 @@ associated with new_sym.
        argument list. */
     free_template_arg_list(templ_arg_list);
   }  /* if */
-}  /* add_to_candidates_list */
+}  /* add_to_partial_order_candidates_list */
 
 
-static void select_best_candidate(
-			a_partial_spec_candidate_ptr	psc_list,
+void select_best_partial_order_candidate(
+			a_partial_order_candidate_ptr	psc_list,
 			a_symbol_ptr			instance_sym,
 			a_symbol_ptr			*best_sym,
-			a_template_arg_ptr		*best_arg_list)
+			a_template_arg_ptr		*best_arg_list,
+			a_boolean			*p_ambiguous)
 /*
 Return the best partial specialization symbol and its associated
 template argument list.  There should only be one entry
 left on the list, unless there is an ambiguity.  Return the first
-entry on the list.  If there are multiple entries, issue an error.
+entry on the list.  If there are multiple entries, issue an error
+if the candidates are partial specializations, and set *p_ambiguous
+to TRUE.
 */
 {
-  a_partial_spec_candidate_ptr	pscp;
-  a_partial_spec_candidate_ptr	next_pscp;
+  a_partial_order_candidate_ptr	pscp;
+  a_partial_order_candidate_ptr	next_pscp;
+  a_boolean			ambiguous = FALSE;
 
-  if (psc_list->next != NULL) {
-    /* There is more than one entry on the list -- issue an error. */
-    pos_sy_start_error(ec_ambiguous_partial_spec, &error_position,
-                        instance_sym);
-    for (pscp = psc_list; pscp != NULL; pscp = pscp->next) {
-      /* The prototype instantiation for the partial specialization is used in
-         the diagnostic because it includes the template argument list of the
-         partial specialization. */
-      sym_add_diag_info(ec_ambiguous_partial_spec_add_on,
-                        pscp->symbol->variant.template_info->
-                               variant.class_template.prototype_instantiation);
-    }  /* for */
-    end_error();
-  }  /* if */
   /* Return the information from the first entry on the list. */
   *best_sym = psc_list->symbol;
   *best_arg_list = psc_list->template_arg_list;
+  if (psc_list->next != NULL) {
+    /* There is more than one entry on the list -- issue an error if the
+       entries are partial specializations. */
+    ambiguous = TRUE;
+    if ((*best_sym)->kind == (a_symbol_kind)sk_class_template) {
+      pos_sy_start_error(ec_ambiguous_partial_spec, &error_position,
+                         instance_sym);
+      for (pscp = psc_list; pscp != NULL; pscp = pscp->next) {
+        /* The prototype instantiation for the partial specialization is used
+           in the diagnostic because it includes the template argument list
+           of the  partial specialization. */
+        sym_add_diag_info(ec_ambiguous_partial_spec_add_on,
+                          pscp->symbol->variant.template_info->
+                               variant.class_template.prototype_instantiation);
+      }  /* for */
+      end_error();
+    }  /* if */
+  }  /* if */
   /* Clear the template argument list pointer in the first entry to prevent
      it from being freed below. */
   psc_list->template_arg_list = NULL;
   for (pscp = psc_list; pscp != NULL; pscp = next_pscp) {
     next_pscp = pscp->next;
     /* Free the entry.  This also frees the template argument list. */
-    free_partial_spec_candidate(pscp);
+    free_partial_order_candidate(pscp);
   }  /* for */
-}  /* select_best_candidate */
+  if (p_ambiguous != NULL) *p_ambiguous = ambiguous;
+}  /* select_best_partial_order_candidate */
 
 
 static a_symbol_ptr check_partial_specializations(
@@ -1211,7 +1208,7 @@ with that partial specialization; otherwise return NULL.
   a_symbol_ptr				ps_sym;
   a_template_arg_ptr			templ_arg_list;
   a_class_type_supplement_ptr		ctsp;
-  a_partial_spec_candidate_ptr		candidate_list = NULL;
+  a_partial_order_candidate_ptr		candidate_list = NULL;
 
   db_enter(3, "check_partial_specializations");
   tssp = template_sym->variant.template_info;
@@ -1223,7 +1220,8 @@ with that partial specialization; otherwise return NULL.
     a_template_arg_ptr	ps_arg_list = NULL;
     if (matches_partial_specialization(ps_sym, templ_arg_list,
                                        &ps_arg_list)) {
-      add_to_candidates_list(&candidate_list, ps_sym, ps_arg_list);
+      add_to_partial_order_candidates_list(&candidate_list,
+                                           ps_sym, ps_arg_list);
     }  /* if */
   }  /* for */
   if (candidate_list != NULL) {
@@ -1231,8 +1229,10 @@ with that partial specialization; otherwise return NULL.
        the template argument list with respect to the partial
        specialization.  If more than one match was found, this routine
        will report the ambiguity. */
-    select_best_candidate(candidate_list, instance_sym, &matching_sym,
-                          &ctsp->partial_spec_template_arg_list);
+    select_best_partial_order_candidate(candidate_list, instance_sym,
+                                        &matching_sym,
+                                        &ctsp->partial_spec_template_arg_list,
+                                        (a_boolean*)NULL);
   }  /* if */
   db_exit();
   return matching_sym;
@@ -10787,9 +10787,9 @@ routines is reported as part of the symbol table memory used.
   unsigned long	size;
   unsigned long	total;
 
-  db_space_used_lost("partial spec candidates", avail_partial_spec_candidates,
-                     num_partial_spec_candidates_allocated,
-                     a_partial_spec_candidate);
+  db_space_used_lost("partial spec candidates", avail_partial_order_candidates,
+                     num_partial_order_candidates_allocated,
+                     a_partial_order_candidate);
   return grand_total;
 }  /* db_show_template_space_used */
 #endif /* DEBUG */
@@ -10806,9 +10806,9 @@ One-time initialization for templates.c static variables.
       pch_saved_var_array_elem(instantiations_required),
       pch_saved_var_array_elem(instantiations_required_tail),
       pch_saved_var_array_elem(can_instantiate_list),
-      pch_saved_var_array_elem(avail_partial_spec_candidates),
+      pch_saved_var_array_elem(avail_partial_order_candidates),
 #if DEBUG
-      pch_saved_var_array_elem(num_partial_spec_candidates_allocated),
+      pch_saved_var_array_elem(num_partial_order_candidates_allocated),
 #endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -10830,9 +10830,9 @@ Initializations for template.
   can_instantiate_list = NULL;
   deferred_instantiations = NULL;
   deferred_instantiations_tail = NULL;
-  avail_partial_spec_candidates = NULL;
+  avail_partial_order_candidates = NULL;
 #if DEBUG
-  num_partial_spec_candidates_allocated = 0;
+  num_partial_order_candidates_allocated = 0;
 #endif /* DEBUG */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   any_instantiations_required = FALSE;
