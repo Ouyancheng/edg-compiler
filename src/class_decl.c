@@ -5601,9 +5601,6 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                                      (a_scope_kind)sck_template_instantiation);
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   cssp = tag_sym->variant.class_struct_union.extra_info;
-  if (cssp->class_template != NULL && !is_template_instantiation) {
-    cssp->is_specific_template_def = TRUE;
-  }  /* if */
   if (is_prototype_instantiation) {
     /* This is a prototype instantiation, so the resulting class is "nonreal"
        (i.e., based on template arguments that include the dummy types and
@@ -6878,6 +6875,12 @@ skip_tag_scan:
     } else {
       mark_referenced(tag_sym, &locator.source_position);
     }  /* if */
+  }  /* if */
+  if (C_dialect == C_dialect_cplusplus) {
+    a_class_symbol_supplement_ptr  cssp;
+
+    cssp = symbol_supplement_for_class(class_type);
+    if (cssp->class_template != NULL) cssp->is_specific_template_def = TRUE;
   }  /* if */
   if (is_class_definition) {
     if (scan_class_definition(class_type, effective_decl_level,
