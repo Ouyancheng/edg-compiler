@@ -9424,6 +9424,9 @@ wrapup:
 
     /* Since we're returning a pseudo-token, set pos_curr_token. */
     pos_curr_token = start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    /* The ending position should already be set correctly. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     curr_token_sequence_number = start_seq_number;
     /* Restore the original error position. */
     error_position = orig_error_position;
