@@ -22,6 +22,7 @@ folding.c -- Folding routines.
 #include "types.h"
 #include "float_pt.h"
 #include "cmd_line.h"
+#include "symbol_tbl.h"
 
 /*
 Determine the severity (error or warning) to be used for integer
@@ -137,15 +138,15 @@ already set to an error code, do not change it.
 
 static void conv_integer_to_integer(a_constant        *old_constant,
 				    a_constant        *new_constant,
-				    a_boolean         issue_type_chg_warning,
+				    a_boolean         is_implicit_cast,
 				    an_error_code     *err_code,
 				    an_error_severity *err_severity)
 /*
 Convert an integral constant of some kind (in *old_constant) to a new
 integral constant in *new_constant, with type as indicated therein.  Return
 *err_code and *err_severity set to indicate any error/warning detected,
-or *err_code == ec_no_error if everything went fine.  If
-issue_type_chg_warning is TRUE, suppress any warnings.
+or *err_code == ec_no_error if everything went fine.  If is_implicit_cast
+is TRUE, suppress any warnings.
 */
 {
   long          old_value = old_constant->variant.integer_value;
@@ -169,7 +170,7 @@ issue_type_chg_warning is TRUE, suppress any warnings.
   new_value &= new_mask;
   /* Sign-extend the result if necessary. */
   if (new_signed && (new_value & new_sign_bit)) new_value |= ~new_mask;
-  if (issue_type_chg_warning) {
+  if (is_implicit_cast) {
     /* If the value changed, a warning is in order.  The value has changed
        if the bit pattern changed ... */
     if (new_value != old_value ||
@@ -331,17 +332,287 @@ in *new_constant, with type as indicated therein.  Return *err_code and
 }  /* conv_float_to_float */
 
 
+static a_targ_ptrdiff_t pointer_offset(a_constant_ptr constant)
+/*
+Retrieve and return the offset part of the given pointer constant.
+Note that this routine must work when applied to an address constant
+that has been cast to an integral type.
+*/
+{
+  a_targ_ptrdiff_t offset;
+
+  switch (constant->kind) {
+    case ck_address:
+      /* Address of a routine, variable, or constant, plus some offset. */
+      offset = constant->variant.address.offset;
+      break;
+    case ck_integer:
+      /* Integer cast to a pointer type (probably 0/NULL). */
+      offset = constant->variant.integer_value;
+      break;
+#if CHECKING
+    default:
+      internal_error("pointer_offset: bad kind");
+#endif /* CHECKING */
+  }  /* switch */
+  return (offset);
+}  /* pointer_offset */
+
+
+static void set_pointer_offset(a_constant_ptr   constant,
+                               a_targ_ptrdiff_t offset)
+/*
+Put the indicated offset into the pointer constant.
+Note that this routine must work when applied to an address constant
+that has been cast to an integral type.
+*/
+{
+  switch (constant->kind) {
+    case ck_integer:
+      constant->variant.integer_value = offset;
+      break;
+    case ck_address:
+      constant->variant.address.offset = offset;
+      break;
+#if CHECKING
+    default:
+      internal_error("set_pointer_offset: bad pointer constant kind");
+#endif /* CHECKING */
+  }  /* switch */
+}  /* set_pointer_offset */
+
+
+static char *base_object(a_constant *constant)
+/*
+Return a pointer to the "base object" that underlies the pointer constant.
+This is NULL is the pointer is an integer cast to a pointer type.  Otherwise,
+it points to the variable, routine, or constant entry.
+*/
+{
+  char *object;
+
+  if (constant->kind == (a_constant_repr_kind)ck_integer) {
+    /* No base object. */
+    object = NULL;
+  } else {
+#if CHECKING
+    if (constant->kind != (a_constant_repr_kind)ck_address) {
+      internal_error("base_object: not ck_integer or ck_address");
+    }  /* if */
+#endif /* CHECKING */
+    switch (constant->variant.address.kind) {
+      case abk_variable:
+        object = (char *)constant->variant.address.variant.variable;
+        break;
+      case abk_routine:
+        object = (char *)constant->variant.address.variant.routine;
+        break;
+      case abk_constant:
+        object = (char *)constant->variant.address.variant.constant;
+        break;
+#if CHECKING
+      default:
+        internal_error("base_object: bad address constant kind");
+#endif /* CHECKING */
+    }  /* switch */
+  }  /* if */
+  return (object);
+}  /* base_object */
+
+
+void fold_base_class_cast(a_constant        *constant_1,
+                          a_base_class      *bcp,
+                          a_constant        *result,
+                          a_boolean         is_implicit_cast,
+                          a_boolean         *did_not_fold,
+                          a_source_position *err_pos)
+/*
+Fold a C++ cast of a class pointer to a base class pointer.  constant_1 is
+an address of a class object.  It is converted to point to the class
+indicated by bcp, and the new constant is returned in *result.
+The cast is implicit if is_implicit_cast is TRUE.  If the operation cannot
+be folded, *did_not_fold is returned TRUE.  If there is an error,
+issue it at *err_pos;
+*/
+{
+  a_boolean             access_okay;
+  a_type_ptr            curr_type;
+  a_derivation_step_ptr dsp;
+  a_targ_ptrdiff_t      offset;
+
+  *did_not_fold = FALSE;
+  /* The code here looks like add_base_class_casts. */
+  if (bcp->ambiguous) {
+    /* The base class is ambiguous. */
+    pos_error(ec_ambiguous_base_class, err_pos);
+    set_error_constant(result);
+  } else {
+    copy_constant(constant_1, result);
+    /* Loop through the classes between the derived class and the
+       base class.  Check accessibility at each step and generate the
+       necessary casts. */
+    access_okay = TRUE;
+    curr_type = type_pointed_to(constant_1->type);
+    curr_type = skip_typerefs(curr_type);
+    for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
+      /* Check that the base class is accessible from the current class.
+         Accessibility is not checked if the cast is explicit. */
+      if (is_implicit_cast) {
+        if (dsp->base_class->access == (an_access_specifier)as_public) {
+          /* Public base classes are always accessible. */
+        } else {
+          /* Private or protected base class.  Accessible only if we have
+             member access to the derived class. */
+          if (have_member_access_privilege(curr_type)) {
+            /* Access okay. */
+          } else {
+            access_okay = FALSE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      /* Adjust the address to reflect the cast to the next level. */
+      curr_type = dsp->base_class->type;
+      offset = pointer_offset(constant_1);
+      if (offset == 0 && base_object(constant_1) == NULL) {
+        /* Preserve a NULL pointer. */
+      } else {
+        if (dsp->base_class->is_virtual) {
+          /* Casting to a virtual base class.  This can only be folded if we
+             have a whole object of the derived class type. */
+          *did_not_fold = TRUE;
+          if (constant_1->kind == (a_constant_repr_kind)ck_address &&
+              constant_1->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable &&
+              offset == 0 &&
+              !constant_1->implicit_cast) {
+            /* The constant is the unmodified address of a variable. */
+            a_variable_ptr variable =
+                                  constant_1->variant.address.variant.variable;
+            a_type_ptr     var_type = skip_typerefs(variable->type);
+            if (is_class_struct_union_type(var_type)) {
+              /* The constant is the address of a class variable. */
+              *did_not_fold = FALSE;
+            }  /* if */
+          }  /* if */
+          /* Exit the loop if we could not fold the cast. */
+          if (*did_not_fold) break;
+        }  /* if */
+        /* Take the pointer offset, ... */
+        /* ... add the offset to the base class, ... */
+        offset += dsp->base_class->offset;
+        /* ... and put the offset into the result pointer constant.  Note
+           that no overflow/object-size checking is needed, since the base
+           class has to be within the underlying object. */
+        set_pointer_offset(result, offset);
+        implicit_cast(result, make_pointer_type(curr_type));
+      }  /* if */
+    }  /* for */
+    if (!access_okay) pos_error(ec_inaccessible_base_class, err_pos);
+  }  /* if */
+}  /* fold_base_class_cast */
+    
+
+static void fold_a_derived_class_cast(
+                                     a_type_ptr            new_type_pointed_to,
+                                     a_derivation_step_ptr dsp,
+                                     a_constant            *result)
+/*
+Helper routine for fold_derived_class_cast: folds casts of *result to change
+its type to new_type_pointed_to.  dsp points to the derivation list from
+the desired type to the current type (i.e., it's backwards from what's
+needed).
+*/
+{
+  a_targ_ptrdiff_t offset;
+
+  /* The code here looks like add_a_derived_class_cast. */
+  /* Use recursion to get to the bottom of the list and work upwards.
+     Fold casts to get the type we have to the type just below the type
+     we want. */
+  if (dsp->next != NULL) {
+    fold_a_derived_class_cast(dsp->base_class->type, dsp->next, result);
+  }  /* if */
+  /* Fold the node to do the final cast. */
+  offset = pointer_offset(result);
+  if (offset == 0 && base_object(result) == NULL) {
+    /* Preserve a NULL pointer. */
+  } else {
+#if CHECKING
+    if (dsp->base_class->is_virtual) {
+      internal_error("fold_a_derived_class_cast: virtual base class");
+    }  /* if */
+#endif /* CHECKING */
+    /* Take the pointer offset, ... */
+    /* ... subtract the offset to the base class, ... */
+    offset -= dsp->base_class->offset;
+    /* ... and put the offset into the result pointer constant.  Note
+       that no overflow/object-size checking is needed, since the base
+       class has to be within the underlying object. */
+    set_pointer_offset(result, offset);
+    implicit_cast(result, make_pointer_type(new_type_pointed_to));
+  }  /* if */
+}  /* fold_a_derived_class_cast */
+
+
+void fold_derived_class_cast(a_constant        *constant_1,
+                             a_type_ptr        new_type_pointed_to,
+                             a_base_class      *bcp,
+                             a_constant        *result,
+                             a_boolean         *did_not_fold,
+                             a_source_position *err_pos)
+/*
+Fold a C++ cast of a class pointer to a derived class pointer.  constant_1 is
+an address of a class object.  It is converted to point to the class
+indicated by new_type_pointed_to, and the new constant is returned in *result.
+bcp points to the base class entry for the current type relative to the
+desired derived type.  The cast is implicit if is_implicit_cast is TRUE.
+If the operation cannot be folded, *did_not_fold is returned TRUE.  If there
+is an error, it is issued at *err_pos;
+*/
+{
+  *did_not_fold = FALSE;
+  /* The code here looks like add_derived_class_casts. */
+  if (bcp->ambiguous) {
+    /* The cast is ambiguous. */
+    pos_error(ec_ambiguous_derived_class, err_pos);
+    set_error_constant(result);
+  } else if (bcp->is_virtual) {
+    /* The base class is a virtual base of the derived class. */
+    pos_error(ec_derived_class_from_virtual_base, err_pos);
+    set_error_constant(result);
+  } else {
+    copy_constant(constant_1, result);
+    /* Use recursion to process the list backwards to generate casts. */
+    fold_a_derived_class_cast(new_type_pointed_to, bcp->derivation, result);
+  }  /* if */
+}  /* fold_derived_class_cast */
+
+
 static void conv_pointer_to_whatever(a_constant        *old_constant,
 				     a_constant        *new_constant,
+                                     a_boolean         is_implicit_cast,
+                                     a_boolean         *did_not_fold,
+                                     a_source_position *err_pos,
 				     an_error_code     *err_code,
 				     an_error_severity *err_severity)
 /*
 Convert a pointer constant to a constant of type as specified by
-"new_constant".
+"new_constant".  If is_implicit_cast is TRUE, the cast is implicit.
+If the cast cannot be folded, return *did_not_fold TRUE.  If there is
+an error, either issue it immediately at *err_pos (if it cannot be
+reduced to a warning in a nonconstant context), or return *err_code
+and *err_severity set appropriately.  Note that this routine is also
+called when the old constant is an address constant that has previously
+been cast to an integral type, and so does not have pointer type.
 */
 {
-  a_type_ptr new_type = new_constant->type;
+  a_type_ptr       new_type = new_constant->type;
+  a_type_ptr       old_type = old_constant->type;
+  a_type_ptr       old_type_pointed_to, new_type_pointed_to;
+  a_base_class_ptr bcp;
+  a_boolean        related_class_cast = FALSE;
 
+  *did_not_fold = FALSE;
   *err_code = ec_no_error;
   *err_severity = es_warning;
 #if CHECKING
@@ -366,8 +637,37 @@ Convert a pointer constant to a constant of type as specified by
 #else /* !TARG_ALL_POINTERS_SAME_SIZE */
 ??=error conv_pointer_to_whatever: different-sized pointers not implemented.
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
+  } else if (C_dialect == C_dialect_cplusplus &&
+             is_pointer_type(old_type) && is_pointer_type(new_type)) {
+    /* In C++, check for casting a pointer to a class to a base class or
+       derived class. */
+    old_type_pointed_to = type_pointed_to(old_type);
+    new_type_pointed_to = type_pointed_to(new_type);
+    if (is_class_struct_union_type(old_type_pointed_to) &&
+        is_class_struct_union_type(new_type_pointed_to)) {
+      /* The source and destination types are both pointers to classes.
+         See if the classes are related. */
+      if (is_base_class_of(old_type_pointed_to, new_type_pointed_to, &bcp)) {
+        /* Derived --> base.  Valid unless the cast is ambiguous or
+           the base class is inaccessible. */
+        related_class_cast = TRUE;
+        fold_base_class_cast(old_constant, bcp, new_constant,
+                             is_implicit_cast, did_not_fold, err_pos);
+      } else if (is_base_class_of(new_type_pointed_to,
+                                  old_type_pointed_to, &bcp)) {
+        /* Base --> derived.  Valid unless the cast is ambiguous or the base
+           class is a virtual base of the derived class. */
+        related_class_cast = TRUE;
+        fold_derived_class_cast(old_constant, new_type_pointed_to,
+                                bcp, new_constant,
+                                did_not_fold, err_pos);
+      }  /* if */
+    }  /* if */
   }  /* if */
-  if (*err_code == ec_no_error) {
+  /* Do the cast (by calling implicit_cast) unless there was an error or
+     the cast has already been handled because it was a related class cast. */
+  if (!related_class_cast &&
+      (*err_code == ec_no_error || *err_severity != es_error)) {
     copy_constant(old_constant, new_constant);
     implicit_cast(new_constant, new_type);
   }  /* if */
@@ -376,7 +676,7 @@ Convert a pointer constant to a constant of type as specified by
 
 static void conv_integer_to_pointer(a_constant        *old_constant,
 				    a_constant        *new_constant,
-			  	    a_boolean         issue_type_chg_warning,
+			  	    a_boolean         is_implicit_cast,
 				    an_error_code     *err_code,
 				    an_error_severity *err_severity)
 /*
@@ -388,7 +688,7 @@ Convert an integer constant to a pointer constant of type as specified by
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
-  if (issue_type_chg_warning) {
+  if (is_implicit_cast) {
     if (old_constant->variant.integer_value != 0) {
       /* Any value other than zero (NULL).  Issue a warning. */
       *err_code = ec_non_zero_int_conv_to_pointer;
@@ -402,50 +702,59 @@ Convert an integer constant to a pointer constant of type as specified by
 }  /* conv_integer_to_pointer */
 
 
-static void set_folding_error_result(a_constant        *result,
+static void issue_folding_diagnostic(an_error_code     err_code,
+                                     an_error_severity err_severity,
                                      a_boolean         constant_context,
                                      a_boolean         *did_not_fold,
-                                     an_error_severity *err_severity)
+                                     a_source_position *err_pos,
+                                     a_constant        *result)
 /*
-An error has been detected in a folding operation.  Set *result to the proper
-result (often, an error constant).  If not in a constant_context, reduce
-an error to a warning and set *did_not_fold to TRUE.
+An error or warning has been detected in a folding operation; err_code
+and err_severity indicate what it is.  If not in a constant_context, reduce
+an error to a warning and set *did_not_fold to TRUE.  Issue the disgnostic
+at source position *err_pos.  Set *result to the proper result (often, an
+error constant).  
 */
 {
   if (constant_context) {
     set_error_constant(result);
   } else {
-    *err_severity = es_warning;
+    err_severity = es_warning;
     *did_not_fold = TRUE;
   }  /* if */
-}  /* set_folding_error_result */
+  if (err_severity == es_error) {
+    pos_error(err_code, err_pos);
+  } else {
+    pos_warning(err_code, err_pos);
+  }  /* if */
+}  /* issue_folding_diagnostic */
 
 
 void type_change_constant(a_constant        *constant,
 			  a_type_ptr        new_type,
-			  a_boolean         issue_type_chg_warning,
+			  a_boolean         is_implicit_cast,
                           a_boolean         constant_context,
                           a_boolean         *did_not_fold,
-			  an_error_code     *err_code,
-			  an_error_severity *err_severity)
+                          a_source_position *err_pos)
 /*
-Convert the indicated constant to "new_type".  Set *err_code and *err_severity
-to indicate any errors or warnings; if none were found, set *err_code to
-ec_no_error.  Warnings for loss of precision or change of sign are given
-only if issue_type_chg_warning is TRUE (usually, TRUE means the type conversion
-is implicit, and FALSE means there was an explicit cast).  If constant_context
-is FALSE, this operation is being evaluated as part of a nonconstant
-expression, so any error is reduced to a warning and *did_not_fold is
-returned TRUE.
+Convert the indicated constant to "new_type".  Issue errors or warnings
+using the position *err_pos.  If is_implicit_cast is TRUE, this is an
+implicit cast; more warnings are given.  If constant_context is FALSE, this
+operation is being evaluated as part of a nonconstant expression, so
+any error is reduced to a warning and *did_not_fold is returned TRUE.
+*did_not_fold is also returned TRUE in other cases where the folding
+cannot be done.
 */
 {
-  a_type_ptr constant_type;
-  a_constant new_constant;
+  a_type_ptr        constant_type;
+  a_constant        new_constant;
+  an_error_code     err_code;
+  an_error_severity err_severity;
 
   db_enter(5, "type_change_constant");
   *did_not_fold = FALSE;
-  *err_code = ec_no_error;
-  *err_severity = es_warning;
+  err_code = ec_no_error;
+  err_severity = es_warning;
   clear_constant(&new_constant, (a_constant_repr_kind)ck_error);
 
   /* Remove any type qualifiers or typedefs from the types involved. */
@@ -468,7 +777,8 @@ returned TRUE.
        early -- like this -- to catch ((unsigned)((int)&x)).  That case
        would have constant_type->kind == tk_integer and new_type->kind
        == tk_integer, and so would not look like it involves pointers. */
-    conv_pointer_to_whatever(constant, &new_constant, err_code, err_severity);
+    conv_pointer_to_whatever(constant, &new_constant, is_implicit_cast,
+                             did_not_fold, err_pos, &err_code, &err_severity);
     goto exit;
   }  /* if */
 
@@ -480,20 +790,18 @@ returned TRUE.
       switch(new_type->kind) {
         case tk_integer:
           /* Converting integer to integer. */
-          conv_integer_to_integer(constant, &new_constant,
-                                  issue_type_chg_warning,
-                                  err_code, err_severity);
+          conv_integer_to_integer(constant, &new_constant, is_implicit_cast,
+                                  &err_code, &err_severity);
           break;
         case tk_float:
           /* Converting integer to float. */
           conv_integer_to_float(constant, &new_constant,
-                                err_code, err_severity);
+                                &err_code, &err_severity);
           break;
         case tk_pointer:
           /* Converting integer to pointer. */
-          conv_integer_to_pointer(constant, &new_constant,
-                                  issue_type_chg_warning,
-                                  err_code, err_severity);
+          conv_integer_to_pointer(constant, &new_constant, is_implicit_cast,
+                                  &err_code, &err_severity);
           break;
 #if CHECKING
         default:
@@ -508,12 +816,12 @@ returned TRUE.
         case tk_integer:
           /* Converting float to integer. */
           conv_float_to_integer(constant, &new_constant,
-                                err_code, err_severity);
+                                &err_code, &err_severity);
           break;
         case tk_float:
           /* Converting float to float. */
           conv_float_to_float(constant, &new_constant,
-                              err_code, err_severity);
+                              &err_code, &err_severity);
           break;
 #if CHECKING
         default:
@@ -524,8 +832,9 @@ returned TRUE.
 
     case tk_pointer:
       /* Converting from pointer. */
-      conv_pointer_to_whatever(constant, &new_constant,
-                               err_code, err_severity);
+      conv_pointer_to_whatever(constant, &new_constant, is_implicit_cast,
+                               did_not_fold, err_pos,
+                               &err_code, &err_severity);
       break;
 
     case tk_error:
@@ -542,22 +851,17 @@ returned TRUE.
   }  /* switch */
 
 exit:
-  if (*err_code != ec_no_error && *err_severity == es_error) {
-    /* There was an error. */
-    set_folding_error_result(&new_constant, constant_context, did_not_fold,
-                             err_severity);
-  }  /* if */
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "type_change_constant of ");
     db_constant(constant);
     fprintf(f_debug, ", result = ");
     db_constant(&new_constant);
-    if (*err_code != ec_no_error) {
+    if (err_code != ec_no_error) {
       fprintf(f_debug, " with ");
-      if (*err_severity == es_error) {
+      if (err_severity == es_error) {
         fprintf(f_debug, "error");
-      } else if (*err_severity == es_warning) {
+      } else if (err_severity == es_warning) {
         fprintf(f_debug, "warning");
       } else {
         fprintf(f_debug, "diagnostic");
@@ -566,6 +870,11 @@ exit:
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
+  if (err_code != ec_no_error) {
+    /* There was an error or warning. */
+    issue_folding_diagnostic(err_code, err_severity, constant_context,
+                             did_not_fold, err_pos, &new_constant);
+  }  /* if */
   /* Return the new constant value. */
   copy_constant(&new_constant, constant);
   db_exit();
@@ -809,8 +1118,7 @@ void unary_operation(an_expr_operator_kind op,
 		     a_constant            *result,
                      a_boolean             constant_context,
                      a_boolean             *did_not_fold,
-		     an_error_code         *err_code,
-		     an_error_severity     *err_severity)
+                     a_source_position     *err_pos)
 /*
 Fold unary operations on constants.  op indicates the operation,
 constant the operand.  result_type indicates the desired result type.
@@ -818,16 +1126,18 @@ The result constant is put into result.  If constant_context is FALSE,
 this operation is being evaluated as part of a nonconstant expression,
 so any error is reduced to a warning and *did_not_fold is returned TRUE.
 *did_not_fold is also returned TRUE if the operation could not be
-folded for any other reason.  *err_code and *err_severity are
-set to indicate any errors or warnings found; if none are found,
-*err_code is set to ec_no_error.
+folded for any other reason.  *err_pos is used as the position for any
+diagnostics issued.
 */
 {
+  an_error_code     err_code;
+  an_error_severity err_severity;
+
   db_enter(5, "unary_operation");
 
   *did_not_fold = FALSE;
-  *err_code = ec_no_error;
-  *err_severity = es_warning;
+  err_code = ec_no_error;
+  err_severity = es_warning;
   if (constant->kind == (a_constant_repr_kind)ck_error) {
     /* The constant is an error constant; set the result to an error
        constant and return. */
@@ -843,13 +1153,13 @@ set to indicate any errors or warnings found; if none are found,
     } else {
       switch (op) {
         case eok_fnegate:
-          do_fnegate(constant, result, err_code, err_severity);
+          do_fnegate(constant, result, &err_code, &err_severity);
           break;
         case eok_inegate:
-          do_inegate(constant, result, err_code, err_severity);
+          do_inegate(constant, result, &err_code, &err_severity);
           break;
         case eok_complement:
-          do_complement(constant, result, err_code, err_severity);
+          do_complement(constant, result, &err_code, &err_severity);
           break;
         case eok_not:
           do_not(constant, result);
@@ -861,10 +1171,10 @@ set to indicate any errors or warnings found; if none are found,
 #endif /* CHECKING */
       }  /* switch */
     }  /* if */
-    if (*err_code != ec_no_error && *err_severity == es_error) {
-      /* There was an error. */
-      set_folding_error_result(result, constant_context, did_not_fold,
-                               err_severity);
+    if (err_code != ec_no_error) {
+      /* There was an error or warning. */
+      issue_folding_diagnostic(err_code, err_severity, constant_context,
+                               did_not_fold, err_pos, result);
     }  /* if */
   }  /* if */
 
@@ -1681,94 +1991,6 @@ relational operator "op", and return a 0 or 1 integer in "result".
 }  /* do_fcompare */
 
 
-static a_targ_ptrdiff_t pointer_offset(a_constant_ptr constant)
-/*
-Retrieve and return the offset part of the given pointer constant.
-Note that this routine must work when applied to an address constant
-that has been cast to an integral type.
-*/
-{
-  a_targ_ptrdiff_t offset;
-
-  switch (constant->kind) {
-    case ck_address:
-      /* Address of a routine, variable, or constant, plus some offset. */
-      offset = constant->variant.address.offset;
-      break;
-    case ck_integer:
-      /* Integer cast to a pointer type (probably 0/NULL). */
-      offset = constant->variant.integer_value;
-      break;
-#if CHECKING
-    default:
-      internal_error("pointer_offset: bad kind");
-#endif /* CHECKING */
-  }  /* switch */
-  return (offset);
-}  /* pointer_offset */
-
-
-static void set_pointer_offset(a_constant_ptr   constant,
-                               a_targ_ptrdiff_t offset)
-/*
-Put the indicated offset into the pointer constant.
-Note that this routine must work when applied to an address constant
-that has been cast to an integral type.
-*/
-{
-  switch (constant->kind) {
-    case ck_integer:
-      constant->variant.integer_value = offset;
-      break;
-    case ck_address:
-      constant->variant.address.offset = offset;
-      break;
-#if CHECKING
-    default:
-      internal_error("set_pointer_offset: bad pointer constant kind");
-#endif /* CHECKING */
-  }  /* switch */
-}  /* set_pointer_offset */
-
-
-static char *base_object(a_constant *constant)
-/*
-Return a pointer to the "base object" that underlies the pointer constant.
-This is NULL is the pointer is an integer cast to a pointer type.  Otherwise,
-it points to the variable, routine, or constant entry.
-*/
-{
-  char *object;
-
-  if (constant->kind == (a_constant_repr_kind)ck_integer) {
-    /* No base object. */
-    object = NULL;
-  } else {
-#if CHECKING
-    if (constant->kind != (a_constant_repr_kind)ck_address) {
-      internal_error("base_object: not ck_integer or ck_address");
-    }  /* if */
-#endif /* CHECKING */
-    switch (constant->variant.address.kind) {
-      case abk_variable:
-        object = (char *)constant->variant.address.variant.variable;
-        break;
-      case abk_routine:
-        object = (char *)constant->variant.address.variant.routine;
-        break;
-      case abk_constant:
-        object = (char *)constant->variant.address.variant.constant;
-        break;
-#if CHECKING
-      default:
-        internal_error("base_object: bad address constant kind");
-#endif /* CHECKING */
-    }  /* switch */
-  }  /* if */
-  return (object);
-}  /* base_object */
-
-
 a_boolean valid_address_constant(a_constant *constant,
                                  a_boolean  *just_past_end)
 /*
@@ -2106,8 +2328,7 @@ void binary_operation(an_expr_operator_kind op,
 		      a_constant            *result,
                       a_boolean             constant_context,
 		      a_boolean             *did_not_fold,
-		      an_error_code         *err_code,
-		      an_error_severity     *err_severity)
+                      a_source_position     *err_pos)
 /*
 Fold a two-operand constant operation.  op indicates the operation,
 and constant_1 and constant_2 are the operands.  result_type indicates
@@ -2116,15 +2337,17 @@ If constant_context is FALSE, this operation is being evaluated as
 part of a nonconstant expression, so any error is reduced to a
 warning and *did_not_fold is returned TRUE.  *did_not_fold is also
 returned TRUE if the operation could not be folded for any other
-reason.  *err_code and *err_severity are set to indicate any errors
-or warnings; if there are none, *err_code is set to ec_no_error.
+reason.  *err_pos is used as the position for any diagnostics issued.
 */
 {
+  an_error_code     err_code;
+  an_error_severity err_severity;
+
   db_enter(5, "binary_operation");
 
   *did_not_fold = FALSE;
-  *err_code = ec_no_error;
-  *err_severity = es_warning;
+  err_code = ec_no_error;
+  err_severity = es_warning;
 
   if ((constant_1->kind == (a_constant_repr_kind)ck_error) ||
       (constant_2->kind == (a_constant_repr_kind)ck_error)) {
@@ -2150,8 +2373,8 @@ or warnings; if there are none, *err_code is set to ec_no_error.
           internal_error("binary_operation: address constant +- non-integer");
         }  /* if */
 #endif /* CHECKING */
-        do_padd(constant_1, op, constant_2, result, err_code,
-                err_severity);
+        do_padd(constant_1, op, constant_2, result, &err_code,
+                &err_severity);
       } else {
         *did_not_fold = TRUE;
       }  /* if */
@@ -2171,33 +2394,36 @@ or warnings; if there are none, *err_code is set to ec_no_error.
 #endif /* CHECKING */
         /* Note that we reverse the operands in the call so that the address
            constant is first. */
-        do_padd(constant_2, op, constant_1, result, err_code,
-                err_severity);
+        do_padd(constant_2, op, constant_1, result, &err_code,
+                &err_severity);
       } else {
         *did_not_fold = TRUE;
       }  /* if */
     } else {
       switch (op) {
         case eok_iadd:
-          do_iadd(constant_1, constant_2, result, err_code, err_severity);
+          do_iadd(constant_1, constant_2, result, &err_code, &err_severity);
           break;
         case eok_isubtract:
-          do_isubtract(constant_1, constant_2, result, err_code, err_severity);
+          do_isubtract(constant_1, constant_2, result, &err_code,
+                       &err_severity);
           break;
         case eok_imultiply:
-          do_imultiply(constant_1, constant_2, result, err_code, err_severity);
+          do_imultiply(constant_1, constant_2, result, &err_code,
+                       &err_severity);
           break;
         case eok_remainder:
-          do_remainder(constant_1, constant_2, result, err_code, err_severity);
+          do_remainder(constant_1, constant_2, result, &err_code,
+                       &err_severity);
           break;
         case eok_idivide:
-          do_idivide(constant_1, constant_2, result, err_code, err_severity);
+          do_idivide(constant_1, constant_2, result, &err_code, &err_severity);
           break;
         case eok_shiftl:
-          do_shiftl(constant_1, constant_2, result, err_code, err_severity);
+          do_shiftl(constant_1, constant_2, result, &err_code, &err_severity);
           break;
         case eok_shiftr:
-          do_shiftr(constant_1, constant_2, result, err_code, err_severity);
+          do_shiftr(constant_1, constant_2, result, &err_code, &err_severity);
           break;
         case eok_ieq:
         case eok_ine:
@@ -2223,16 +2449,18 @@ or warnings; if there are none, *err_code is set to ec_no_error.
           do_lor(constant_1, constant_2, result);
           break;
         case eok_fadd:
-          do_fadd(constant_1, constant_2, result, err_code, err_severity);
+          do_fadd(constant_1, constant_2, result, &err_code, &err_severity);
           break;
         case eok_fsubtract:
-          do_fsubtract(constant_1, constant_2, result, err_code, err_severity);
+          do_fsubtract(constant_1, constant_2, result, &err_code,
+                       &err_severity);
           break;
         case eok_fmultiply:
-          do_fmultiply(constant_1, constant_2, result, err_code, err_severity);
+          do_fmultiply(constant_1, constant_2, result, &err_code,
+                       &err_severity);
           break;
         case eok_fdivide:
-          do_fdivide(constant_1, constant_2, result, err_code, err_severity);
+          do_fdivide(constant_1, constant_2, result, &err_code, &err_severity);
           break;
         case eok_feq:
         case eok_fne:
@@ -2243,14 +2471,14 @@ or warnings; if there are none, *err_code is set to ec_no_error.
           do_fcompare(constant_1, op, constant_2, result);
           break;
         case eok_pdiff:
-          do_pdiff(constant_1, constant_2, result, did_not_fold, err_code,
-                   err_severity);
+          do_pdiff(constant_1, constant_2, result, did_not_fold, &err_code,
+                   &err_severity);
           break;
         case eok_padd:
         case eok_padd_subsc:
         case eok_psubtract:
-          do_padd(constant_1, op, constant_2, result, err_code,
-                  err_severity);
+          do_padd(constant_1, op, constant_2, result, &err_code,
+                  &err_severity);
           break;
         case eok_pge:
         case eok_plt:
@@ -2259,7 +2487,7 @@ or warnings; if there are none, *err_code is set to ec_no_error.
         case eok_peq:
         case eok_ple:
           do_pcompare(constant_1, op, constant_2, result, did_not_fold,
-                      err_code, err_severity);
+                      &err_code, &err_severity);
           break;
 #if CHECKING
         default:
@@ -2267,13 +2495,11 @@ or warnings; if there are none, *err_code is set to ec_no_error.
 #endif /* CHECKING */
       }  /* switch */
     }  /* if */
-
-    if (*err_code != ec_no_error && *err_severity == es_error) {
-      /* There was an error. */
-      set_folding_error_result(result, constant_context, did_not_fold,
-                               err_severity);
+    if (err_code != ec_no_error) {
+      /* There was an error or warning. */
+      issue_folding_diagnostic(err_code, err_severity, constant_context,
+                               did_not_fold, err_pos, result);
     }  /* if */
-
   }  /* if */
 
   db_exit();
@@ -2325,72 +2551,6 @@ field cannot be passed as a constant.
   }  /* if */
 #endif /* CHECKING */
 }  /* fold_field_selection */
-
-
-void fold_base_class_cast(a_constant   *constant_1,
-                          a_base_class *base_class,
-                          a_constant   *result,
-                          a_boolean    *did_not_fold)
-/*
-Fold a C++ cast of a class pointer to a base class pointer.  constant_1 is
-an address of a class object.  It is converted to point to the class
-indicated by base_class, and the new constant is returned in *result.
-If the operation cannot be folded, *did_not_fold is returned TRUE.
-*/
-{
-  a_targ_ptrdiff_t offset;
-
-  *did_not_fold = FALSE;
-  copy_constant(constant_1, result);
-  if (constant_1->kind == (a_constant_repr_kind)ck_error) {
-    /* An error constant stays the same. */
-  } else {
-    offset = pointer_offset(constant_1);
-    if (offset == 0 && base_object(constant_1) == NULL) {
-      /* Preserve a NULL pointer. */
-    } else {
-      if (base_class->is_virtual) {
-        /* Casting to a virtual base class.  This can only be folded if we
-           have a whole object of the derived class type. */
-        *did_not_fold = TRUE;
-        if (constant_1->kind == (a_constant_repr_kind)ck_address &&
-            constant_1->variant.address.kind ==
-                                          (an_address_base_kind)abk_variable &&
-            offset == 0 &&
-            !constant_1->implicit_cast) {
-          /* The constant is the unmodified address of a variable. */
-          a_variable_ptr variable =
-                                  constant_1->variant.address.variant.variable;
-          a_type_ptr     var_type = skip_typerefs(variable->type);
-          if (is_class_struct_union_type(var_type)) {
-            /* The constant is the address of a class variable. */
-            *did_not_fold = FALSE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      if (!*did_not_fold) {
-        /* Take the pointer offset, ... */
-        /* ... add the offset to the base class, ... */
-        offset += base_class->offset;
-        /* ... and put the offset into the result pointer constant.  Note that
-           no overflow/object-size checking is needed, since the base class has
-           to be within the underlying object. */
-        set_pointer_offset(result, offset);
-        implicit_cast(result, make_pointer_type(base_class->type));
-      }  /* if */
-    }  /* if */
-  }  /* if */
-#if DEBUG
-  if (debug_level >= 5) {
-    fprintf(f_debug, "fold_base_class_cast: ");
-    if (*did_not_fold) {
-      fprintf(f_debug, "did not fold\n");
-    } else {
-      fprintf(f_debug, "offset = %lu\n", (unsigned long)offset);
-    }  /* if */
-  }  /* if */
-#endif /* CHECKING */
-}  /* fold_base_class_cast */
 
 
 /******************************************************************************
