@@ -5836,7 +5836,7 @@ or NULL otherwise (e.g., for a call through a pointer to function).
     function_type = skip_typerefs(function_type);
 #if CHECKING
     if (function_type->kind != (a_type_kind)tk_routine) {
-      internal_error("scan_call_arguments: bad function type");
+      internal_error("start_call_argument_processing: bad function type");
     }  /* if */
 #endif /* CHECKING */
     extra_info = function_type->variant.routine.extra_info;
