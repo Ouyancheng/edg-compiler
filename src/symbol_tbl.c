@@ -587,28 +587,6 @@ char *name_of_symbol(a_symbol_ptr  sym)
 }  /* name_of_symbol */
 
 
-static char *qualified_name_of_symbol(a_type_ptr    class_type,
-                                      a_symbol_ptr  sym)
-/*
-TEMPORARY ROUTINE
-*/
-{
-  char              *str, buffer[200];
-
-  buffer[0] = '\0';
-  if (class_type != NULL && class_type->source_corresp.name != NULL) {
-    (void)sprintf(buffer, "%s::", class_type->source_corresp.name);
-  }  /* if */
-  (void)sprintf(&buffer[strlen(buffer)], "%s", sym->header->identifier);
-  if (is_function_symbol(sym)) {
-    (void)sprintf(&buffer[strlen(buffer)], "()");
-  }  /* if */
-  str = alloc_fe((sizeof_t)strlen(buffer));
-  (void)strcpy(str, buffer);
-  return str;
-}  /* qualified_name_of_symbol */
-
-
 static a_symbol_header_ptr alloc_symbol_header(void)
 /*
 Allocate a new symbol header, and return a pointer to it.
@@ -1316,11 +1294,10 @@ the symbol table, this routine is not called for them.
     } else {
       /* Error: an identifier that is not a constructor and that has the
          same name as a class is being defined within the class. */
-      pos_st_error(is_function_symbol(member_sym) ?
-                       ec_class_and_member_function_name_conflict :
-                       ec_class_and_member_name_conflict,
-                   &member_sym->decl_position,
-                   qualified_name_of_symbol(class_type, member_sym));
+      pos_error(is_function_symbol(member_sym) ?
+                     ec_class_and_member_function_name_conflict :
+                     ec_class_and_member_name_conflict,
+                &member_sym->decl_position);
       err = TRUE;
     }  /* if */
   }  /* if */
