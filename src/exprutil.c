@@ -2401,16 +2401,21 @@ value is used).
               element_type = skip_typerefs(element_type);
               if (identical_types(ptr_element_type, element_type)) {
                 /* Everything's as we want it.  Check the subscript. */
-                num_elements = array_type->variant.array.number_of_elements;
-                /* Do not check subscripts on arrays dimensioned as having
-                   size 1, since that's probably a clue that the programmer
-                   is cheating. */
-                if (num_elements > 1) {
-                  cmp = cmpulit_integer_constant(rhs_con,
-                                                 (unsigned long)num_elements);
-                  valid = (cmp <= 0);  /* Subscript <= number of elements */
-                  *just_past_end = (cmp == 0);
-                                       /* Subscript == number of elements */
+                if (sign_of_integer_constant(rhs_con) < 0) {
+                  /* Negative subscript. */
+                  valid = FALSE;
+                } else {
+                  num_elements = array_type->variant.array.number_of_elements;
+                  /* Do not check subscripts on arrays dimensioned as having
+                     size 1, since that's probably a clue that the programmer
+                     is cheating. */
+                  if (num_elements > 1) {
+                    cmp = cmpulit_integer_constant(rhs_con,
+                                                  (unsigned long)num_elements);
+                    valid = (cmp <= 0);  /* Subscript <= number of elements */
+                    *just_past_end = (cmp == 0);
+                                         /* Subscript == number of elements */
+                  }  /* if */
                 }  /* if */
               }  /* if */
             }  /* if */
@@ -4042,38 +4047,21 @@ void conv_lvalue_to_rvalue(an_operand         *operand,
                            an_expression_kind expression_kind)
 /*
 Convert an lvalue operand to an rvalue operand.  See section 3.2.2.1 of the
-standard.  The conversion rules are as follows:
-
-1.  The type of the operand stays the same (except that qualifiers are
-    removed).
-2.  Add one level of indirection to the expression or constant, since the
-    lvalue gives the address and the rvalue gives the value at that address.
-    This can be done by adding an indirection operator, but there are several
-    cases that can be handled more efficiently:
-      a. Variable address turns into variable.  The variable address can be
-         represented by an enk_variable_address node or an address constant.
-      b. Pointer addition turns into subscript operation.
-      c. An address within a string constant turns into the value of the
-         character at that position.
-    ...and remove one level of "pointer-to" on the type for each of the above.
-3.  The state changes to rvalue.
-
-expression_kind indicates the kind of expression being scanned.  This
-is needed to detect the error of an lvalue being converted to an rvalue
-in a constant expression.
+standard.  In the general case, the lvalue is the address of something,
+and this conversion adds an indirection so that the operand refers to
+the rvalue pointed to.  Some cases are optimized.  If the operand is
+not an lvalue, it is left alone.  expression_kind indicates the kind
+of expression being scanned.  This is needed to detect the error of an
+lvalue being converted to an rvalue in a constant expression.
 */
 {
-  register an_expr_node_ptr node;
-  long                      char_value;
-  a_targ_ptrdiff_t          offset;
-  a_constant_ptr            constant, string_constant;
-  an_operand                orig_operand;
-  a_boolean                 optimized_case;
-  an_address_base_kind      abkind;
-  a_type_ptr                addr_type, char_type;
-  a_variable_ptr            variable;
-  an_expr_node_ptr          operand_node, cast_node;
-  a_type_ptr                cast_orig_type, unqualified_type;
+  an_expr_node_ptr node;
+  a_constant_ptr   constant;
+  an_operand       orig_operand;
+  a_boolean        optimized_case;
+  a_variable_ptr   variable;
+  an_expr_node_ptr operand_node, cast_node;
+  a_type_ptr       cast_orig_type, unqualified_type;
 
   /* Ignore non-lvalues. */
   if (is_an_lvalue(operand)) {
@@ -4111,41 +4099,8 @@ in a constant expression.
         optimized_case = FALSE;
         constant = &operand->variant.constant;
         if (constant->kind == (a_constant_repr_kind)ck_address) {
-          /* Check for something like "abc"[2]. */
-          abkind = constant->variant.address.kind;
-          if (abkind == (an_address_base_kind)abk_constant) {
-            if (constant->variant.address.variant.constant->kind ==
-                                             (a_constant_repr_kind)ck_string) {
-              /* The lvalue address is an address within a string constant.
-                 Therefore, the rvalue is the value of the character at that
-                 position.  The offset might be outside of the string. */
-              /* The address constant must have type "pointer to char" (signed
-                 or unsigned) for this optimization to work. */
-              addr_type = constant->type;
-              if (is_pointer_type(addr_type)) {
-                char_type = skip_typerefs(type_pointed_to(addr_type));
-                if (is_character_type(char_type)) {
-                  string_constant = constant->variant.address.variant.constant;
-                  /* Make sure the offset lies within the string. */
-                  offset = constant->variant.address.offset;
-                  if (offset >= 0 &&
-                      offset < string_constant->variant.string.length) {
-                    optimized_case = TRUE;
-                    /* Build an operand for the character from the string. */
-                    char_value = string_constant->variant.string.value[offset];
-                    /* Sign-extend the character if necessary. */
-                    if (int_kind_is_signed[
-                                   (int)char_type->variant.integer.int_kind] &&
-                        (char_value & (1 << (TARG_CHAR_BIT-1))) != 0) {
-                      char_value |= ~((1 << TARG_CHAR_BIT)-1);
-                    }  /* if */ 
-                    make_integer_constant_operand(operand, char_value);
-                    operand->type = char_type;
-                  }  /* if */
-                }  /* if */
-              } /* if */
-            }  /* if */
-          } else if (abkind == (an_address_base_kind)abk_variable) {
+          if (constant->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable) {
             /* The lvalue address is the address of a variable.  Therefore,
                the rvalue is the variable itself.  The optimization doesn't
                apply if there is an offset relative to the variable or
