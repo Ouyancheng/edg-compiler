@@ -6111,7 +6111,7 @@ lifetime begins at the start of a switch clause.
 
   curr_object_lifetime = curr_context->lifetime = lifetime;
   curr_context->destructions = NULL;
-  /* curr_cleanup_region_nunber is not changed on purpose. */
+  /* curr_cleanup_region_number is not changed on purpose. */
   if (!switch_clause) {
     /* Set up the context field to watch for the appearance of the
        statement that begins the next label lifetime.  The switch clause
