@@ -2096,6 +2096,37 @@ list passed in.  The pointer to the start of the list is returned.
 }  /* map_token_numbers_to_cache_pointers */
 
 
+static void create_extracted_body_entry_for_friend(
+					a_template_cache_segment_ptr	tcsp)
+/*
+Create a special "extracted body" token entry for the first token of the
+friend function definition.  This is used by the token string creation
+routine to skip the friend function body when creating the template string.
+Unlike normal "extracted body" entries, the body is not actually removed
+from the cache.  The entry that is created is used to simply skip those
+tokens during the token string creation process.
+*/
+{
+  a_cached_token_ptr	first_token = tcsp->before_first_token->next;
+
+  /* Skip over any pragmas that precede the first token of the body. */
+  while (first_token != NULL &&
+         first_token->extra_info_kind ==
+                                        (a_token_extra_info_kind)teik_pragma) {
+    first_token = first_token->next;
+  }  /* while */
+  /* Update the first token of the body with information about the tokens that
+     have been skipped when the token string is created. */
+  check_assertion(first_token->extra_info_kind ==
+                                           (a_token_extra_info_kind)teik_none);
+  first_token->extra_info_kind = (a_token_extra_info_kind)teik_extracted_body;
+  first_token->variant.extracted_template.symbol = tcsp->symbol;
+  first_token->variant.extracted_template.semicolon_inserted = FALSE;
+  first_token->variant.extracted_template.next_in_token_string =
+                                                              tcsp->last_token;
+}  /* create_extracted_body_entry_for_friend */
+
+
 static void replace_body_with_semicolon(a_template_cache_segment_ptr tcsp)
 /*
 */
@@ -2162,6 +2193,7 @@ static void replace_body_with_semicolon(a_template_cache_segment_ptr tcsp)
   semicolon_token->variant.extracted_template.symbol = tcsp->symbol;
   semicolon_token->variant.extracted_template.semicolon_inserted =
                                                               insert_semicolon;
+  semicolon_token->variant.extracted_template.next_in_token_string = NULL;
 }  /* replace_body_with_semicolon */
 
 
@@ -2191,48 +2223,53 @@ associated with tssp, and remove the tokens from the token cache.
        while scanning the class definition and no ending token was found.
        Don't attempt to remove the body from the template. */ 
     if (tcsp->last_token_number == NO_TOKEN_SEQUENCE_NUMBER) continue;
-    switch (tcsp->symbol->kind) {
-      case sk_member_function:
-      case sk_class_template:
-      case sk_function_template:
-        /* A separate copy of the token cache is already maintained for
-           member functions and member templates.  Just free the
-           tokens that were removed from
-           the original cache. */
-        { a_token_cache_ptr	class_cache = &tssp->cache.tokens;
-          a_cached_token_ptr	first_token = tcsp->before_first_token->next;
-          a_cached_token_ptr	ctp;
-          replace_body_with_semicolon(tcsp);
-          ctp = first_token;
-          while (ctp != NULL) {
-            a_cached_token_ptr	next_ctp = ctp->next;
-            free_cached_token_from_reusable_cache(
+    if (tcsp->is_friend) {
+      /* Friend function bodies are not actually removed from the cache. */
+      create_extracted_body_entry_for_friend(tcsp);
+    } else {
+      switch (tcsp->symbol->kind) {
+        case sk_member_function:
+        case sk_class_template:
+        case sk_function_template:
+          /* A separate copy of the token cache is already maintained for
+             member functions and member templates.  Just free the
+             tokens that were removed from
+             the original cache. */
+          { a_token_cache_ptr	class_cache = &tssp->cache.tokens;
+            a_cached_token_ptr	first_token = tcsp->before_first_token->next;
+            a_cached_token_ptr	ctp;
+            replace_body_with_semicolon(tcsp);
+            ctp = first_token;
+            while (ctp != NULL) {
+              a_cached_token_ptr	next_ctp = ctp->next;
+              free_cached_token_from_reusable_cache(
                                 class_cache, ctp, /*keep_pragma_tokens=*/TRUE);
-            ctp = next_ctp;
-          }  /* while */
-        }
-        break;
-      case sk_class_or_struct_tag:
-      case sk_union_tag:
-        tssp = tcsp->template_info;
-        /* Only extract the body of the nested class if it is a
-           "standalone" nested class (i.e., one that is not anonymous
-           and is not followed by a declarator). */
-        if (!tcsp->template_info->
-                         variant.class_template.not_standalone_nested_class) {
-          a_cached_token_ptr	first_token = tcsp->before_first_token->next;
-          replace_body_with_semicolon(tcsp);
-          /* Remove the tokens for the nested class from the original
-             cache to the cache for the nested class.  The tokens have
-             actually already been unliked from the first cache, but
-             information such as token counts must be adjusted. */
-          move_cached_tokens(first_token, &tssp->cache.tokens,
-                             &tcsp->template_info->cache.tokens);
-        }  /* if */
-        break;
-      default:
-        unexpected_condition();
-    }  /* switch */
+              ctp = next_ctp;
+            }  /* while */
+          }
+          break;
+        case sk_class_or_struct_tag:
+        case sk_union_tag:
+          tssp = tcsp->template_info;
+          /* Only extract the body of the nested class if it is a
+             "standalone" nested class (i.e., one that is not anonymous
+             and is not followed by a declarator). */
+          if (!tcsp->template_info->
+                           variant.class_template.not_standalone_nested_class) {
+            a_cached_token_ptr	first_token = tcsp->before_first_token->next;
+            replace_body_with_semicolon(tcsp);
+            /* Remove the tokens for the nested class from the original
+               cache to the cache for the nested class.  The tokens have
+               actually already been unliked from the first cache, but
+               information such as token counts must be adjusted. */
+            move_cached_tokens(first_token, &tssp->cache.tokens,
+                               &tcsp->template_info->cache.tokens);
+          }  /* if */
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+    }  /* if */
     /* Free the template cache segment for the member just removed. */
     free_template_cache_segment(tcsp);
   }  /* for */

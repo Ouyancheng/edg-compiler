@@ -10230,32 +10230,40 @@ being constructed that represents the tokens in the cache.
       add_pragmas_to_string(ctp->variant.pragmas);
     } else if (ctp->extra_info_kind ==
                                 (a_token_extra_info_kind)teik_extracted_body) {
-      a_boolean	add_orig_token = TRUE;
-      a_boolean	add_body_string = TRUE;
-      /* A template body was extracted at this location.  Insert the body of
-         the template at this point in the string. */
-      a_symbol_ptr			sym;
-      a_template_symbol_supplement_ptr	tssp;
-      sym =   ctp->variant.extracted_template.symbol;
-      tssp = template_supplement_for_symbol(sym);
+      if (ctp->variant.extracted_template.next_in_token_string == NULL) {
+        a_boolean	add_orig_token = TRUE;
+        a_boolean	add_body_string = TRUE;
+        /* A template body was extracted at this location.  Insert the body of
+           the template at this point in the string. */
+        a_symbol_ptr			sym;
+        a_template_symbol_supplement_ptr	tssp;
+        sym =   ctp->variant.extracted_template.symbol;
+        tssp = template_supplement_for_symbol(sym);
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-      if (sym->kind == (a_symbol_kind)sk_member_function) {
-        /* When source sequence entries for nonclass template instantiations
-           are generated, member function bodies of class templates are
-           suppressed because certain compilers don't permit a member function
-           to be both defined in the class and specialized later. */
-        add_body_string = FALSE;
-      }  /* if */
+        if (sym->kind == (a_symbol_kind)sk_member_function) {
+          /* When source sequence entries for nonclass template instantiations
+             are generated, member function bodies of class templates are
+             suppressed because certain compilers don't permit a member
+             function to be both defined in the class and specialized later. */
+          add_body_string = FALSE;
+        }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-      if (add_body_string) { /*lint !e774*/
-        add_token_cache_to_string(&tssp->cache.tokens);
-      }  /* if */
-      /* This semicolon was inserted, and so should be suppressed if the body
-         is output above. */
-      add_orig_token = !add_body_string ||
-                       !ctp->variant.extracted_template.semicolon_inserted;
-      if (add_orig_token) {
-        add_token_to_string(ctp);
+        if (add_body_string) { /*lint !e774*/
+          add_token_cache_to_string(&tssp->cache.tokens);
+        }  /* if */
+        /* This semicolon was inserted, and so should be suppressed if the body
+           is output above. */
+        add_orig_token = !add_body_string ||
+                         !ctp->variant.extracted_template.semicolon_inserted;
+        if (add_orig_token) {
+          add_token_to_string(ctp);
+        }  /* if */
+      } else {
+        /* A friend function defined in a class template.  Skip over the tokens
+           in the cache that represent the body, and add a semicolon to the
+           string. */
+        ctp = ctp->variant.extracted_template.next_in_token_string;
+        put_ch_to_temp_text_buffer(';');
       }  /* if */
     } else {
       /* A normal token (including, possibly, a pp-token). */

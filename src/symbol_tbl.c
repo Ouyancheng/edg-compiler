@@ -1641,6 +1641,7 @@ to the symbol supplement associated with sym.
   tcsp->last_token_number = NO_TOKEN_SEQUENCE_NUMBER;
   tcsp->before_first_token = NULL;
   tcsp->last_token = NULL;
+  tcsp->is_friend = FALSE;
   /* Add the new entry to the list of template cache segments associated
      with the current instantiation. */
   ssep = &scope_stack[depth_innermost_instantiation_scope];

@@ -9729,24 +9729,39 @@ to be returned to the caller.
           /* Advance past the optional semicolon. */
           (void)get_token();
         }  /* if */
-        if (!friend_specified && class_state->is_nonreal_instantiation) {
-          /* A member function of a nonreal class serves as a template, and
-             since this is the definition the template_info associated with
-             this member function must be updated, based on the template_info
-             of the prototype instantiation.  Note that the current class may
-             be nested within the prototype instantiation. */
-          a_template_symbol_supplement_ptr  class_tssp;
-
-          /* A member function of a template class whose body is supplied in
-             the class shares the template declaration information with the
-             enclosing class. */
-          tssp = rout_sym->variant.routine.instance_ptr->template_info;
-          class_tssp = symbol_supplement_for_class(class_type)->template_info;
-          set_template_cache_info(&tssp->cache, (a_token_cache_ptr)NULL,
-                                  class_tssp->cache.decl_info);
-          tssp->cache_segment = alloc_template_cache_segment(rout_sym, tssp);
-          tssp->cache_segment->first_token_number = first_token_number;
-          tssp->cache_segment->last_token_number = last_token_number;
+        if (class_state->is_nonreal_instantiation) {
+          if (friend_specified) {
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+            /* A template cache segment entry is created for a friend function
+               that is defined in a class template.  This information is used
+               when creating template strings to eliminate the friend function
+               body from the template string. */
+            a_template_cache_segment_ptr	tcsp;
+            tcsp = alloc_template_cache_segment(
+                             rout_sym, (a_template_symbol_supplement_ptr)NULL);
+            tcsp->first_token_number = first_token_number;
+            tcsp->last_token_number = last_token_number;
+            tcsp->is_friend = TRUE;
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+          } else {
+            /* A member function of a nonreal class serves as a template, and
+               since this is the definition the template_info associated with
+               this member function must be updated, based on the template_info
+               of the prototype instantiation.  Note that the current class may
+               be nested within the prototype instantiation. */
+            a_template_symbol_supplement_ptr  class_tssp;
+            /* A member function of a template class whose body is supplied in
+               the class shares the template declaration information with the
+               enclosing class. */
+            tssp = rout_sym->variant.routine.instance_ptr->template_info;
+            class_tssp = symbol_supplement_for_class(class_type)->
+                                                                 template_info;
+            set_template_cache_info(&tssp->cache, (a_token_cache_ptr)NULL,
+                                    class_tssp->cache.decl_info);
+            tssp->cache_segment = alloc_template_cache_segment(rout_sym, tssp);
+            tssp->cache_segment->first_token_number = first_token_number;
+            tssp->cache_segment->last_token_number = last_token_number;
+          }  /* if */
         }  /* if */
         /* A comma-list of function definitions is not allowed. */
         *skip_semicolon_check = TRUE;

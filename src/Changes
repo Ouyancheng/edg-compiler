@@ -1,5 +1,13 @@
 Version 2.39
 
+5/25/98   Friend functions definitions removed from template strings when
+          function instantiations are generated as specializations
+
+When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is
+configured to TRUE, the bodies of friend functions defined in class
+templates are omitted from the template string that is generated for
+the class template.
+
 5/22/98   EH cleanup state problem, implicit conversions on arguments of
           overloaded functions
 

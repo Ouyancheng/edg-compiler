@@ -1294,6 +1294,12 @@ typedef struct an_extracted_template_descr {
 			/* TRUE if the token with which this body is associated
 			   is a semicolon that was inserted after the body
 			   was removed. */
+  a_cached_token_ptr
+		next_in_token_string;
+			/* This field is used only for extracted body entries
+			   associated with friend functions whose bodies are
+			   not actually removed from the token cache, but
+			   should be skipped when creating a token string. */
 } an_extracted_template_descr;
 
 

@@ -1274,6 +1274,9 @@ typedef struct a_template_cache_segment {
 		last_token;
 			/* Pointer to the last token of the cache.  See
 			   first_token above. */
+  a_byte_boolean
+		is_friend;
+			/* TRUE if this entry represents a friend function. */
 } a_template_cache_segment;
 
 
