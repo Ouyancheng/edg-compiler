@@ -150,7 +150,7 @@ pointed to.
 /*
 Process a list of identical type orphaned file scope IL entries linked
 together by the orphaned pointer preceding the IL entry structure.  Each
-IL entry will, in turn, be processed as and individual item or as a 
+IL entry will, in turn, be processed as an individual item or as a 
 potential list of like IL entries chained together by a "next" field.
 walk_style should be either walk_ptr for an individual entry or walk_list
 for IL entries with "next" fields.  ptr is the pointer to the first list,
