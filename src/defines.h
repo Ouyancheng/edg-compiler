@@ -25,6 +25,7 @@ the release should contain no defines.
 /* Options Common to Sun hosted versions. */
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
 #define USING_QUANTIFY 1
+#define ALLOW_NONSTANDARD_ANONYMOUS_UNIONS 1
 
 #ifdef OPTIMIZED_VERSION
 
@@ -47,7 +48,6 @@ the release should contain no defines.
 #define RECORD_HIDDEN_NAMES_IN_IL 1
 #define RECORD_TEMPLATES_IN_IL 1
 #define RECORD_MACROS_IN_IL 1
-#define ALLOW_NONSTANDARD_ANONYMOUS_UNIONS 1
 
 #endif /* !defined(OPTIMIZED_VERSION) */
 
