@@ -1487,34 +1487,6 @@ do_set_proper_definition_needed_flag:
         if (kind == (a_scope_kind)sck_function) {
           remap_ptr(ptr->variant.routine.ptr, a_routine_ptr, iek_routine);
           walk_ptr(ptr->assoc_block, a_statement_ptr, iek_statement);
-#if NEW_CAN_BE_FOLDED_INTO_CTOR && !DO_IL_LOWERING
-          /* If this is a constructor and the constructor can handle a default
-             "new" for the class, record the need for the definition of the
-             "new" routine. */
-          if (ptr->variant.routine.ptr->special_kind == sfk_constructor) {
-            a_type_ptr    class_type = ptr->variant.routine.ptr->
-                                              source_corresp.parent.class_type;
-            a_routine_ptr new_rout = class_type->variant.class_struct_union.
-                                        extra_info->assoc_operator_new_routine;
-            if (new_rout != NULL) {
-              set_proper_routine_definition_needed_flag(new_rout);
-            }  /* if */
-          }  /* if */
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR && !DO_IL_LOWERING */
-#if DELETE_CAN_BE_FOLDED_INTO_DTOR && !DO_IL_LOWERING
-          /* If this is a destructor and the destructor can handle a default
-             "delete" for the class, record the need for the definition of the
-             "delete" routine. */
-          if (ptr->variant.routine.ptr->special_kind == sfk_destructor) {
-            a_type_ptr    class_type = ptr->variant.routine.ptr->
-                                              source_corresp.parent.class_type;
-            a_routine_ptr delete_rout = class_type->variant.class_struct_union.
-                                     extra_info->assoc_operator_delete_routine;
-            if (delete_rout != NULL) {
-              set_proper_routine_definition_needed_flag(delete_rout);
-            }  /* if */
-          }  /* if */
-#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR && !DO_IL_LOWERING */
         } else {
           remap_ptr(ptr->assoc_block, a_statement_ptr, iek_statement);
         }  /* if */
@@ -1928,10 +1900,18 @@ after_entry_from_class:
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
           remap_ptr(ptr->assoc_operator_new_routine, a_routine_ptr,
                     iek_routine);
+#if !DO_IL_LOWERING
+          set_proper_routine_definition_needed_flag(
+                                              ptr->assoc_operator_new_routine);
+#endif /* !DO_IL_LOWERING */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
           remap_ptr(ptr->assoc_operator_delete_routine, a_routine_ptr,
                     iek_routine);
+#if !DO_IL_LOWERING
+          set_proper_routine_definition_needed_flag(
+                                           ptr->assoc_operator_delete_routine);
+#endif /* !DO_IL_LOWERING */
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DO_IL_LOWERING
           clear_pointer_if_remapping(ptr->virtual_function_table_var);
