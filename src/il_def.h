@@ -1041,7 +1041,8 @@ typedef struct a_source_correspondence {
 			   unit will have a NULL trans_unit_corresp pointer.
 			   Externally-linked entities in secondary translation
 			   units will have a non-NULL trans_unit_corresp
-			   pointer. */
+			   pointer.  Not meaningful outside of the front
+			   end. */
 #ifdef CIL
   a_parent_class_or_namespace
 		parent;
