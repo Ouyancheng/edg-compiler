@@ -234,6 +234,7 @@ When the C-generating back end (c_gen_be) or C++/C-generating back end
 (cp_gen_be) is run, this is the suffix appended to the base of the primary
 source file to get the name of the generated C output file.
 */
+#ifndef GEN_C_FILE_SUFFIX
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 #if __MSDOS__
 /* File names under MSDOS cannot have multiple periods. */
@@ -242,6 +243,7 @@ source file to get the name of the generated C output file.
 #define GEN_C_FILE_SUFFIX ".int.c"
 #endif /* if __MSDOS__ */
 #endif /* BACK_END_IS_C_GEN_BE || ... */
+#endif /* ifndef GEN_C_FILE_SUFFIX */
 
 /*
 The flag STANDALONE_IL_DISPLAY is set to TRUE when compiling the standalone
