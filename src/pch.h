@@ -115,6 +115,13 @@ typedef struct a_pch_saved_variable {
 			   bytes that comprise its value). */
 } a_pch_saved_variable;
 
+/*
+Macro to initialize one an element of an array of a_pch_saved_variable.
+*/
+#define pch_saved_var_array_elem(var) { (a_void_ptr)&var, sizeof(var) }
+
+extern void register_pch_saved_variables(a_pch_saved_variable array[]);
+
 
 EXTERN a_boolean
 		building_pch_prefix;
