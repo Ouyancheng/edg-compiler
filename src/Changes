@@ -1,5 +1,18 @@
 Version 2.16
 
+4/6/93  Error diagnosis for template operator and conversion functions
+
+Errors are now diagnosed for invalid operator functions and conversions
+functions that are generated from function templates.  Formerly,
+cases such as the following were incorrectly accepted:
+
+  template <class T> void* operator !(T) { return 0;}
+  void main()
+  {
+    int i;
+    operator !(i);  // Error - first operand must be a class type
+  }
+
 4/6/93  Reference to const initialized from bit field
 
 The following is now accepted:

@@ -1625,6 +1625,7 @@ templ_sym).
   tip->instance_sym = sym;
   sym->variant.routine.instance_ptr = tip;
   if (is_new_rout_type) {
+    a_symbol_locator	locator;
     /* If there are default arguments whose types depend on template
        parameters, scan the default argument expressions. */
     if (tssp->variant.function.def_arg_expr_list != NULL) {
@@ -1637,6 +1638,20 @@ templ_sym).
       /* Pop the template instantiation scope. */
       pop_scope();
     }  /* if */
+    /* If this is a user-defined conversion or an overloaded operator,
+       check for errors in the argument list.  The routine we are
+       calling requires a locator.  Make a locator and fill in the
+       information needed. */
+    make_locator_for_symbol(sym, &locator);
+    if (rp->special_kind == (a_special_function_kind)sfk_operator) {
+      locator.is_operator_name = TRUE;
+      locator.variant.opname = rp->opname_kind;
+    } else if (rp->special_kind == (a_special_function_kind)sfk_conversion) {
+      locator.is_conversion_name = TRUE;
+      locator.variant.conversion_result_type = NULL;
+    }  /* if */
+    check_operator_function_params(rout_type, /*class_type=*/(a_type_ptr)NULL,
+                                   &locator);
   }  /* if */
   /* Normally, function instantiation entries are not marked for actual
      instantiation (that is, for generation of the function body) until there

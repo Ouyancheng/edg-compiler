@@ -1199,6 +1199,9 @@ Check the argument list on the declaration of a user-defined conversion
 or overloaded operator function.  For conversion functions, no arguments
 are allowed.  For operators there are different requirements for different
 operator kinds.  Issue a diagnostic if an error is found.
+If this routine is modified to use additional fields from the locator
+make_template_function needs to be updated to make sure that the
+new fields are set properly.
 */
 {
   an_opname_kind    opname;
@@ -3927,7 +3930,7 @@ class template.
                               /*preserve_type_ptr=*/FALSE);
     }  /* if */
   }  /* if */
-  tssp = sym->variant.template_info;
+  tssp = template_supplement_for_symbol(sym);
   rout_ptr = tssp->variant.function.routine;
   /* A routine entry is created for the function template, but it is not
      entered in the IL.  It is a convenient place to keep track of prototype
