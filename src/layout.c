@@ -1810,7 +1810,7 @@ Reserve space at the end of the class object for virtual base classes.
        lob->byte_offset (i.e., without introducing unwanted padding in the
        current class before the data sections for the virtual base classes
        are put out.  This assures that size-without-virtual-base-classes will
-       correspond to the the actual size of an incomplete subobject. */
+       correspond to the actual size of an incomplete subobject. */
     if (!do_alignment(&ctsp->size_without_virtual_base_classes, &zero,
                       ctsp->alignment_without_virtual_base_classes)) {
       if (!lob->any_overflow) {
