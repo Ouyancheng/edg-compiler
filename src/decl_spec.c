@@ -799,25 +799,36 @@ skip_tag_scan:
     }  /* if */
     if (tag_sym != NULL) {
       if (!tag_sym->is_class_member) {
-        if (is_class_definition && tag_sym->parent.namespace_ptr != NULL) {
-          /* The class being defined was originally declared a namespace
-             member.  Determine (1) whether it's legal in this context and
-             if so, (2) whether a scope stack entry needs to be pushed. */
-          if (!namespace_is_enclosed_by_curr_scope(tag_sym)) {
-            /* This declaration appears within a namespace scope in which
-               the name cannot be defined -- it is a member (directly or
-               indirectly) of a namespace that is not enclosed by the current
-               namespace scope (see WP 7.3.1.4). */
-            sym_error(ec_bad_scope_for_definition, tag_sym);
-            tag_sym = NULL;
-            set_to_error_locator(locator);
-          } else if (ssep->il_scope->kind != (a_scope_kind)sck_namespace ||
-                     tag_sym->parent.namespace_ptr !=
+        if (is_class_definition) {
+          if (tag_sym->parent.namespace_ptr == NULL) {
+            if (tag_sym->decl_scope != ssep->number) {
+              /* Unless a class is a namespace member or nested in another
+                 class, it cannot be defined other than it the scope to which
+                 it belongs. */
+              sym_error(ec_bad_scope_for_definition, tag_sym);
+              tag_sym = NULL;
+              set_to_error_locator(locator);
+            }  /* if */
+          } else {
+            /* The class being defined was originally declared a namespace
+               member.  Determine (1) whether it's legal in this context and
+               if so, (2) whether a scope stack entry needs to be pushed. */
+            if (!namespace_is_enclosed_by_curr_scope(tag_sym)) {
+              /* This declaration appears within a namespace scope in which
+                 the name cannot be defined -- it is a member (directly or
+                 indirectly) of a namespace that is not enclosed by the current
+                 namespace scope (see WP 7.3.1.4). */
+              sym_error(ec_bad_scope_for_definition, tag_sym);
+              tag_sym = NULL;
+              set_to_error_locator(locator);
+            } else if (ssep->il_scope->kind != (a_scope_kind)sck_namespace ||
+                       tag_sym->parent.namespace_ptr !=
                                    ssep->il_scope->variant.assoc_namespace) {
-            /* Push a namespace reactivation scope. */
-            push_namespace_reactivation_scope(tag_sym->parent.namespace_ptr);
-            namespace_deactivation_required = TRUE;
-            effective_decl_level = depth_scope_stack;
+              /* Push a namespace reactivation scope. */
+              push_namespace_reactivation_scope(tag_sym->parent.namespace_ptr);
+              namespace_deactivation_required = TRUE;
+              effective_decl_level = depth_scope_stack;
+            }  /* if */
           }  /* if */
         }  /* if */
       } else {
