@@ -5001,7 +5001,7 @@ kind, clear it to default values, and return a pointer to it.
 
   db_enter(5, "alloc_local_static_variable_init");
   check_assertion(curr_il_region_number != FILE_SCOPE_REGION_NUMBER);
-  lsvip = (a_local_static_variable_init_ptr)alloc_il(
+  lsvip = (a_local_static_variable_init_ptr)alloc_cil(
                                         sizeof(a_local_static_variable_init));
 #if DEBUG
   num_local_static_variable_inits_allocated++;
