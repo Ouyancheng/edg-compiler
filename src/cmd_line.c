@@ -2650,7 +2650,7 @@ between C89 and C99 dialects as appropriate.
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if NAMED_REGISTERS_ALLOWED
     if (!option_kind_used[(int)optk_named_registers]) {
-      named_named_registers = FALSE;
+      named_registers_enabled = FALSE;
     }  /* if */
 #endif /* NAMED_REGISTERS_ALLOWED */
   }  /* if */
