@@ -1,5 +1,19 @@
 Version 3.6
 
+11/23/04 Microsoft compatibility: internal error on in-class specialization
+
+Version 3.5 introduced a bug that could result in an internal error
+(an IL write/read error) when using a Microsoft in-class specialization of
+a member class template.  Now fixed.
+
+  template <class T> struct A {
+    template <int I> struct B { B() {} } ;
+    template <> struct B<0> { B() {} } ;
+  };
+  int main() {
+    A<int>::B<0> b;
+  }
+
 11/23/04 Array of abstract class error not always reported
 
 A change made in version 3.5 to allow arrays of abstract class types as

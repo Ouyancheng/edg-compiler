@@ -7384,52 +7384,55 @@ is set to NULL by this function.
                                          &locator->source_position);
     set_mixed_static_nonstatic_flag(overload_sym);
   }  /* if */
-  if (class_type->variant.class_struct_union.is_nonreal_class &&
-      !class_type->variant.class_struct_union.is_in_class_specialization) {
+  if (class_type->variant.class_struct_union.is_nonreal_class) {
     /* This symbol represents a member function of a prototype instantiation
        of a class template.  As such it is a quasi function template itself.
        Set it up to look like that.  Microsoft in-class specializations that
        appear in class templates are prototype instantiations, but their
        members should not be considered templates. */
-    a_template_instance_ptr           tip;
-    a_template_symbol_supplement_ptr  tssp;
+    if (class_type->variant.class_struct_union.is_in_class_specialization) {
+      rtn->is_prototype_instantiation = TRUE;
+    } else {
+      a_template_instance_ptr           tip;
+      a_template_symbol_supplement_ptr  tssp;
 
-    sym->variant.routine.instance_ptr = tip = alloc_template_instance();
-    tip->instance_sym = tip->template_sym = sym;
-    tip->template_info = tssp = alloc_template_symbol_supplement(sym->kind);
-    tssp->variant.function.routine = rtn;
-    tssp->variant.function.func_info = *func_info;
-    rtn->is_prototype_instantiation = TRUE;
-    rtn->is_template_function = TRUE;
-    tip->prototype_scope_symbols = func_info->prototype_scope_symbols;
-    if (!decl_info->is_trivial_default_constructor) {
-    /* Although it is not a template, it is an instantiatable function
-       and hence we create a placeholder a_template entry for it.  (Trivial
-       default constructors are not linked in the IL and hence do no need
-       that information.) */
-      a_template_ptr  templ = alloc_template();
-      templ->kind = (a_template_kind)templk_member_function;
-      set_source_corresp(&templ->source_corresp, sym);
-      set_class_membership((a_symbol_ptr)NULL, &templ->source_corresp,
-                            class_type);
-      templ->source_corresp.name_linkage =
+      sym->variant.routine.instance_ptr = tip = alloc_template_instance();
+      tip->instance_sym = tip->template_sym = sym;
+      tip->template_info = tssp = alloc_template_symbol_supplement(sym->kind);
+      tssp->variant.function.routine = rtn;
+      tssp->variant.function.func_info = *func_info;
+      rtn->is_prototype_instantiation = TRUE;
+      rtn->is_template_function = TRUE;
+      tip->prototype_scope_symbols = func_info->prototype_scope_symbols;
+      if (!decl_info->is_trivial_default_constructor) {
+      /* Although it is not a template, it is an instantiatable function
+         and hence we create a placeholder a_template entry for it.  (Trivial
+         default constructors are not linked in the IL and hence do no need
+         that information.) */
+        a_template_ptr  templ = alloc_template();
+        templ->kind = (a_template_kind)templk_member_function;
+        set_source_corresp(&templ->source_corresp, sym);
+        set_class_membership((a_symbol_ptr)NULL, &templ->source_corresp,
+                              class_type);
+        templ->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
-      /* Update the IL template pointer in the template symbol supplement. */
-      tssp->il_template_entry = templ;
-      templ->source_corresp.access = class_state->access;
-      /* A member function of a class template is exported if the enclosing
-         class is declared as exported and the function is not inline. */
-      templ->is_exported = class_is_exported(class_type) &&
-                           !func_info->is_inline;
-      add_to_templates_list(templ, decl_scope_level);
-      if (prototype_instantiations_in_il) {
-        templ->prototype_instantiation.routine = rtn;
+        /* Update the IL template pointer in the template symbol supplement. */
+        tssp->il_template_entry = templ;
+        templ->source_corresp.access = class_state->access;
+        /* A member function of a class template is exported if the enclosing
+           class is declared as exported and the function is not inline. */
+        templ->is_exported = class_is_exported(class_type) &&
+                             !func_info->is_inline;
+        add_to_templates_list(templ, decl_scope_level);
+        if (prototype_instantiations_in_il) {
+          templ->prototype_instantiation.routine = rtn;
+        }  /* if */
+        templ->canonical_template = templ;
+        if (func_info->is_definition) {
+          templ->definition_template = templ;
+        }  /* if */
+        rtn->assoc_template = templ;
       }  /* if */
-      templ->canonical_template = templ;
-      if (func_info->is_definition) {
-        templ->definition_template = templ;
-      }  /* if */
-      rtn->assoc_template = templ;
     }  /* if */
   }  /* if */
   if (!is_error_locator(*locator)) {
