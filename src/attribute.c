@@ -763,8 +763,8 @@ Specifically, these attributes take no arguments:
   constructor
   destructor
   unused
-  ak_used
-  ak_deprecated
+  used
+  deprecated
   noreturn
   volatile
   pure
