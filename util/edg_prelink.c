@@ -62,12 +62,13 @@ typedef struct a_pl_symbol {
 		global_sym;
 			/* Pointer to the global symbol table entry for this
 			   name. */
+  long		number_of_references;
+  a_pl_input_file_ptr
+		last_referenced_from;
   char		*name;
 			/* Name of the symbol. */
   a_byte_boolean
 		referenced;
-  a_byte_boolean
-		referenced_in_other_file;
   a_byte_boolean
 		defined;
   a_byte_boolean
@@ -174,6 +175,10 @@ static a_boolean		verbose = TRUE;
 
 /* TRUE if info files should be updated but compilations not done. */
 static a_boolean		suppress_compilation = FALSE;
+
+/* TRUE if we should give up after a certain number of iterations under
+   the assumption that we've run into an instantiation loop. */
+static a_boolean		limit_recursion = TRUE;
 
 
 #if DEBUG
@@ -323,10 +328,11 @@ Allocate a symbol, initialize it, and return a pointer to it.
   psp->next_in_symbol_table = NULL;
   psp->next_in_info_file = NULL;
   psp->global_sym = NULL;
+  psp->number_of_references = 0;
   psp->instantiation_file = NULL;
+  psp->last_referenced_from = NULL;
   psp->possible_instantiation_sites = NULL;
   psp->referenced = FALSE;
-  psp->referenced_in_other_file = FALSE;
   psp->defined = FALSE;
   psp->tentative_definition = FALSE;
   psp->multiple_definition = FALSE;
@@ -598,10 +604,17 @@ Add an input file to a list of files that can instantiate a given symbol.
 {
   a_pl_instantiation_site_ptr	pisp;
 
-  pisp = alloc_pl_instantiation_site();
-  pisp->input_file = pifp;
-  pisp->next = psp->possible_instantiation_sites;
-  psp->possible_instantiation_sites = pisp;
+  /* It is possible for this routine to be called more than once for
+     the same input file.  Since the input files are processed one at
+     a time we can detect this by checking whether the current input
+     file is already pointed to by the first entry. */
+  if (psp->possible_instantiation_sites == NULL ||
+      psp->possible_instantiation_sites->input_file != pifp) {
+    pisp = alloc_pl_instantiation_site();
+    pisp->input_file = pifp;
+    pisp->next = psp->possible_instantiation_sites;
+    psp->possible_instantiation_sites = pisp;
+  }  /* if */
 }  /* add_possible_instantiation_site */
 
 
@@ -730,6 +743,14 @@ table.
         sym = pl_find_symbol(&psp->name[PL_INSTANCE_REQUIRED_PREFIX_LEN],
                              psp, /*add=*/TRUE);
         sym->is_template = TRUE;
+        sym->referenced = TRUE;
+        if (sym->last_referenced_from != input_file) {
+          /* Keep track of the number of references.  Only update the counter
+             for the first reference in this file.  There can be multiple
+             references as a result of the special symbols. */
+          sym->last_referenced_from = input_file;
+          sym->number_of_references++;
+        }  /* if */
       } else if (strncmp(psp->name, PL_DO_NOT_INSTANTIATE_PREFIX,
                   PL_DO_NOT_INSTANTIATE_PREFIX_LEN) == 0) {
         is_special_symbol = TRUE;
@@ -750,6 +771,13 @@ table.
         sym = pl_find_symbol(&psp->name[PL_FIRST_VIRTUAL_FUNCTION_PREFIX_LEN],
                              psp, /*add=*/TRUE);
         sym->referenced = TRUE;
+        if (sym->last_referenced_from != input_file) {
+          /* Keep track of the number of references.  Only update the counter
+             for the first reference in this file.  There can be multiple
+             references as a result of the special symbols. */
+          sym->last_referenced_from = input_file;
+          sym->number_of_references++;
+        }  /* if */
         sym->is_template = TRUE;
         if (!input_file->is_archive) {
           sym->can_be_instantiated = TRUE;
@@ -768,17 +796,24 @@ table.
         sym->is_template = TRUE;
         if (!input_file->is_archive) {
           sym->can_be_instantiated = TRUE;
-#if !AUTOMATIC_TEMPLATE_INSTANTIATION_BY_IMPLICIT_INCLUSION
           /* Add the current input file to the list of files that could
              instantiate the symbol. */
           add_possible_instantiation_site(sym, input_file);
-#endif /* !AUTOMATIC_TEMPLATE_INSTANTIATION_BY_IMPLICIT_INCLUSION */
         }  /* if */
       }  /* if */
     }  /* if */
     if (!is_special_symbol) {
       sym = pl_find_symbol(psp->name, psp, /*add=*/TRUE);
-      sym->referenced |= psp->referenced;
+      if (psp->referenced) {
+        sym->referenced = TRUE;
+        if (sym->last_referenced_from != input_file) {
+          /* Keep track of the number of references.  Only update the counter
+             for the first reference in this file.  There can be multiple
+             references as a result of the special symbols. */
+          sym->last_referenced_from = input_file;
+          sym->number_of_references++;
+        }  /* if */
+      }  /* if */
       if (psp->defined) {
         if (sym->defined) {
          sym->multiple_definition = TRUE;
@@ -791,26 +826,6 @@ table.
     }  /* if */
     psp = psp->next;
   }  /* while */
-#if AUTOMATIC_TEMPLATE_INSTANTIATION_BY_IMPLICIT_INCLUSION
-  if (!input_file->is_archive) {
-    /* Go back through the symbols looking for symbols that are template
-       based.  For template based symbols add this file to the list of
-       possible instantiation sites. */
-    psp = pofp->symbols;
-    while (psp != NULL) {
-      a_pl_symbol_ptr	sym = psp->global_sym;
-      if (sym != NULL) {
-        if (sym->is_template) {
-          /* Add the current input file to the list of files that could
-             instantiate the symbol. */
-          add_possible_instantiation_site(sym, input_file);
-          sym->can_be_instantiated = TRUE;
-        }  /* if */
-      }  /* if */
-      psp = psp->next;
-    }  /* while */
-  }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION_BY_IMPLICIT_INCLUSION */
   pofp->included_in_output = TRUE;
 }  /* pl_add_symbols_from_object */
 
@@ -832,8 +847,8 @@ to resolve an undefined reference or a tentative definition.
       sym = pl_find_symbol(psp->name, psp, /*add=*/FALSE);
       if (sym != NULL && !sym->defined) {
         /* A previously undefined symbol may be resolved by a definition or
-           a tentative definition.  A tentative defintion may only be
-           resolved by a nontenative definition. */
+           a tentative definition.  A tentative definition may only be
+           resolved by a nontentative definition. */
         if (sym->referenced ||
             (sym->tentative_definition && psp->defined)) {
           result = TRUE;
@@ -926,9 +941,7 @@ Read the existing instantiation assignment information from the
         /* Read the instantiation list. */
         while (pl_read_input_line(ii_file)) {
           a_pl_symbol_ptr	sym;
-          /* Skip the first character which contains the referenced
-             flag from the previous prelink. */
-          sym = pl_find_symbol(&pl_input_line[1], (a_pl_symbol_ptr)NULL,
+          sym = pl_find_symbol(pl_input_line, (a_pl_symbol_ptr)NULL,
 			       /*add=*/TRUE);
           if (sym->instantiation_file != NULL) {
             /* The symbol is in the instantiation list of more than one file.
@@ -936,7 +949,6 @@ Read the existing instantiation assignment information from the
 	    pl_error("bad instantiation information file -- instantiation assigned to more than one file");
           }  /* if */
           sym->instantiation_file = pifp;
-          sym->referenced_in_other_file = pl_input_line[0] == '1';
           /* Add this to the front of the list of instantiation entries
              associated with this file. */
           sym->next_in_info_file = pifp->info_list;
@@ -948,6 +960,30 @@ Read the existing instantiation assignment information from the
     pifp = pifp->next;
   }  /* while */
 }  /* pl_read_instantiation_info_files */
+
+
+static a_boolean pl_check_for_ii_file(char *filename)
+/*
+Check for the existence of a .ii file.
+*/
+{
+  FILE			*ii_file;
+  char			*last_dot;
+
+  /* Build the name of the instantiation info file.  The input filename
+     is expected to be something like xyz.o.  We strip off the suffix
+     and add the suffix for the instantiation information file. */
+  strcpy(pl_filename_buffer, filename);
+  last_dot = strrchr(pl_filename_buffer, '.');
+  if (last_dot == NULL) {
+    /* No suffix -- set last_dot as if a suffix had followed the name. */
+    last_dot = pl_filename_buffer + strlen(pl_filename_buffer);
+  }  /* if */
+  strcpy(last_dot, INSTANTIATION_INFO_SUFFIX);
+  ii_file = fopen(pl_filename_buffer, "r");
+  fclose(ii_file);
+  return (ii_file != NULL);  
+}  /* pl_check_for_ii_file  */
 
 
 static a_boolean pl_determine_actions(void)
@@ -989,26 +1025,20 @@ static a_boolean pl_determine_actions(void)
           /* The symbol no longer represents a template.  Remove it from the
              instantiation information file. */
           remove_from_info_file = TRUE;
-        }  /* if */
-        if (!remove_from_info_file) {
+        } else if (!psp->referenced) {
+          /* The symbol was referenced by another file and now is not.
+             Recompile the file because it may not be needed at all. */
+#if 0
+          /* Should we provide an option that is not quite so pedantic
+             about immediately removing unneeded references. */
+#endif /* 0 */
+          remove_from_info_file = TRUE;
+          recompile_file = TRUE;
+        } else {
           /* Mark this symbol has having been instantiated. */
           psp->instantiated = TRUE;
-#if 0
-          if (psp->referenced_in_other_file && !psp->referenced) {
-            /* The symbol was referenced by another file and now is not.
-               Recompile the file because it may not be needed at all. */
-#if 0
-	    /* Should we provide an option that is not quite so pedantic
-               about immediately removing unneeded references. */
-#endif /* 0 */
-            pifp->info_file_updated = TRUE;
-            pifp->recompile = TRUE;
-	    if (verbose) {
-              fprintf(stdout, "%s may no longer be needed in %s -- recompile to verify\n", psp->name, pifp->filename);
-            }  /* if */
-          }  /* if */
-#endif /* 0 */
-        } else {
+        }  /* if */
+        if (remove_from_info_file) {
           /* Either the symbol is undefined or it is now defined in a
              different file.  In either case it should be removed from the
              instantiation list for this file.  This will be the case
@@ -1134,13 +1164,15 @@ has changed then write the updated list of instantiations to the file.
       /* Write the instantiation list to the file. */
       psp = pifp->info_list;
       while (psp != NULL) {
-        fprintf(ii_file, "%1d%s\n", psp->referenced, psp->name);
+        fprintf(ii_file, "%s\n", psp->name);
         psp = psp->next_in_info_file;
       }  /* while */
       fclose(ii_file);
-      return_status = pl_recompile_file(command_line_buffer);
-      /* Stop if an error occurs. */
-      if (return_status != 0) break;
+      if (!suppress_compilation) {
+        return_status = pl_recompile_file(command_line_buffer);
+        /* Stop if an error occurs. */
+        if (return_status != 0) break;
+      }  /* if */
     }  /* if */
     pifp = pifp->next;
   }  /* while */
@@ -1287,21 +1319,31 @@ int main(int argc, char *argv[])
   int		longest_filename = 0;
   int		return_status = 0;
   a_boolean	done = FALSE;
+  a_boolean	any_ii_files = FALSE;
   extern char	*optarg;
   extern int	optind;
   int		optchar;
+  long		number_of_iterations = 0;
 
-#define OPTION_LIST "nvd:"
+#define OPTION_LIST "lnvd:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
+      case 'l':
+        /* Don't stop after a certain number of iterations. */
+        limit_recursion = FALSE;
+        break;
       case 'n':
+        /* Update the instantiation list files but don't recompile the
+           files. */
         suppress_compilation = TRUE;
         break;
       case 'v':
+        /* Verbose mode. */
         verbose = TRUE;
         break;
       case 'd':
 #if DEBUG
+        /* Set the debug level */
         pl_debug_level = atoi(optarg);
         break;        
 #endif /* DEBUG */
@@ -1334,46 +1376,53 @@ int main(int argc, char *argv[])
     filename = argv[arg];
     strcat(command, " ");
     strcat(command, filename);
+    any_ii_files |= pl_check_for_ii_file(filename);
   }  /* for */
 #if DEBUG
   if (pl_debug_level >= 2) fprintf(stderr, "%s\n", command);
 #endif /* DEBUG */
 
-  do {
-    pl_input_files = NULL;
-    pl_input_file_tail = NULL;
-    pl_symbol_table_head = NULL;
-    memzero(pl_symbol_table, sizeof(pl_symbol_table));
+  if (any_ii_files) {
+    do {
+      pl_input_files = NULL;
+      pl_input_file_tail = NULL;
+      pl_symbol_table_head = NULL;
+      memzero(pl_symbol_table, sizeof(pl_symbol_table));
 
-    pl_command_output = popen(command, "r");
+      pl_command_output = popen(command, "r");
 
-    pl_read_nm_output();
-    pclose(pl_command_output);
+      pl_read_nm_output();
+      pclose(pl_command_output);
 
-    /* Read the information from any existing .ii files. */
-    pl_read_instantiation_info_files();
-
-#if DEBUG
-    if (pl_debug_level >= 3) {
-      pl_db_input_files();
-    }  /* if */
-#endif /* DEBUG */
-
-    pl_prelink();
+      /* Read the information from any existing .ii files. */
+      pl_read_instantiation_info_files();
 
 #if DEBUG
-    if (pl_debug_level >= 2) {
-      pl_db_global_symbols(/*all=*/FALSE);
-    }  /* if */
+      if (pl_debug_level >= 3) {
+        pl_db_input_files();
+      }  /* if */
 #endif /* DEBUG */
 
-    /* Determine what actions, if any, are needed. */
-    done = pl_determine_actions();
+      pl_prelink();
 
-    /* Write the modified info files back to the disk. */
-    return_status = pl_update_info_files();
-    if (!done) pl_free_all();
-  } while (!done || return_status != 0);
+#if DEBUG
+      if (pl_debug_level >= 2) {
+        pl_db_global_symbols(/*all=*/FALSE);
+      }  /* if */
+#endif /* DEBUG */
+
+      /* Determine what actions, if any, are needed. */
+      done = pl_determine_actions();
+
+      /* Write the modified info files back to the disk. */
+      return_status = pl_update_info_files();
+      if (limit_recursion && ++number_of_iterations == PL_MAX_ITERATIONS) {
+        pl_error("instantiation loop");
+      }  /* if */
+      if (return_status != 0) done = TRUE;
+      if (!done) pl_free_all();
+    } while (!done);
+  }  /* if */
 
   return (return_status);
 }  /* main */
