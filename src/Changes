@@ -1,5 +1,15 @@
 Version 2.37
 
+9/16/97   Microsoft compatibility: __based in a cast operation
+
+Based pointer types are now accepted in cast operations:
+
+  char c[10], *pc = c;
+  char __based(pc) *bpc;
+  void f() {
+    bpc = (char __based(pc) *)4;  // Spurious syntax error eliminated
+  }
+
 9/15/97   Microsoft compatibility: __declspec(allocate(...))
 
 In Microsoft compatibility mode, __declspec(allocate(...)) is now
