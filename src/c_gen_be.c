@@ -2788,7 +2788,8 @@ final semicolon if output_final_semi is TRUE.
           last_field = field;
         }  /* if */
       }  /* if */
-      if (type->kind != (a_type_kind)tk_union && !field->is_bit_field &&
+      if (!C_mode() &&
+          type->kind != (a_type_kind)tk_union && !field->is_bit_field &&
           field->next != NULL) {
         /* Add any required padding between fields.  This only comes
            up for empty base class layout, so check this only when
