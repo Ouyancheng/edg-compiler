@@ -1,10 +1,10 @@
 Version 2.37
 
-10/1/97   Abort in IL display program
+10/1/97   Spurious "invalid IL file" error in IL display program
 
-When MAINTAIN_NEEDED_FLAGS was configured to FALSE, the binary IL file
-produced for a program with a trivial default constructor of a nonaggregate
-class could trigger a failure in the IL display program.
+When MAINTAIN_NEEDED_FLAGS was configured to FALSE, a spurious catastrophic
+error could occur in the IL display program when the IL included an empty
+memory region (for a trivial default constructor of a nonaggregate class).
 
 9/29/97   Instantiation problem when using implicit inclusion
 
