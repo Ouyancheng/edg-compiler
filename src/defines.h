@@ -218,6 +218,7 @@ Flags to be set when using the KAI inliner.
 /* Options for UnixWare test version. */
 #define __ANSIC__ 1
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
+#define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 0
 #define INCLUDE_EDG_TEST_PRAGMAS 1
 #define TARG_ALIGNOF_DOUBLE 4
 #define TARG_ALIGNOF_LONG_DOUBLE 4
