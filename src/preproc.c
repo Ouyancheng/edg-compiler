@@ -869,6 +869,7 @@ or the specific definition flag (if instantiate is FALSE).
       a_function_instantiation_entry_ptr	fiep;
       fiep = sym->variant.routine.instance_ptr;
       if (instantiate) {
+	fiep->explicit_instantiation = TRUE;
         update_instantiation_required_flag(fiep, TRUE);
       } else {
         fiep->specific_def = TRUE;
@@ -1085,8 +1086,7 @@ assumed if the return type is omitted.
     a_func_info_block  func_info;
     a_type_ptr         bottom_derived_type = NULL;
     an_expr_node_ptr   dim_expr_ptr;
-    a_symbol_ptr       templ_sym;
-    a_symbol_ptr       orig_templ_sym;
+    a_symbol_ptr       orig_sym;
 
     add_stop_token(tok_newline);
     (void)decl_specifiers((DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
@@ -1105,12 +1105,12 @@ assumed if the return type is omitted.
     /* Look up the identifier scanned in the declarator.  If the
        declarator contains a qualified name it will already have
        been looked up. */
-    templ_sym = locator.specific_symbol;
-    if (templ_sym == NULL) {
-      templ_sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
+    sym = locator.specific_symbol;
+    if (sym == NULL) {
+      sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
     }  /* if */
-    orig_templ_sym = templ_sym;
-    if (templ_sym == NULL) {
+    orig_sym = sym;
+    if (sym == NULL) {
       /* No symbol was found.  If the declarator has a function type
 	 then say that the name is undefined.  If it was not a function
 	 type then say it is an invalid pragma argument. */
@@ -1123,16 +1123,16 @@ assumed if the return type is omitted.
 		     locator.symbol_header->identifier);
       }  /* if */
       err = TRUE;
-    } else if (!is_function_symbol(templ_sym)) {
+    } else if (!is_function_symbol(sym)) {
       /* Not a function symbol -- issue an error. */
       sym_error(ec_not_instantiatable_entity, sym);
       err = TRUE;
-    } else if (is_member_function_symbol(templ_sym)) {
+    } else if (is_member_function_symbol(sym)) {
       /* A member function symbol, find the member function that matches
 	 the specified type. */
-      sym = member_function_redecl_sym(templ_sym, type);
+      sym = member_function_redecl_sym(sym, type);
       if (sym == NULL) {
-	sym_error(ec_no_matching_function, orig_templ_sym);
+	sym_error(ec_no_matching_function, orig_sym);
 	err = TRUE;
       } else {
         /* Update the flags for the symbol found. */
@@ -1146,23 +1146,23 @@ assumed if the return type is omitted.
          more than one exists (or can be generated) an error is issued. */
       a_boolean		is_list;
       a_boolean		any_found = FALSE;
-      if (templ_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-        templ_sym = templ_sym->variant.overloaded_function.symbols;
+      if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+        sym = sym->variant.overloaded_function.symbols;
         is_list = TRUE;
       } else {
         is_list = FALSE;
       }  /* if */
-      for (; templ_sym != NULL; templ_sym = is_list ? templ_sym->next : NULL) {
+      for (; sym != NULL; sym = is_list ? sym->next : NULL) {
 	a_symbol_ptr	lookup_sym = NULL;
 	/* If this is a function template symbol, use it to find a function
 	   that matches the type we are looking for.  If it is a member
 	   function symbol, get the corresponding function template symbol
 	   from the function instantiation entry. */
-        if (templ_sym->kind == (a_symbol_kind)sk_function_template) {
-          lookup_sym = templ_sym;
-	} else if (templ_sym->kind == (a_symbol_kind)sk_member_function &&
-		   templ_sym->variant.routine.instance_ptr != NULL) {
-	  lookup_sym = templ_sym->variant.routine.instance_ptr->template_sym;
+        if (sym->kind == (a_symbol_kind)sk_function_template) {
+          lookup_sym = sym;
+	} else if (sym->kind == (a_symbol_kind)sk_member_function &&
+		   sym->variant.routine.instance_ptr != NULL) {
+	  lookup_sym = sym->variant.routine.instance_ptr->template_sym;
         }  /* if */
         /* Look for a match on the list of instantiations. */
         if (lookup_sym != NULL) {
@@ -1170,7 +1170,7 @@ assumed if the return type is omitted.
                                            &locator.source_position);
           if (sym != NULL) {
 	    if (any_found) {
-	      sym_error(ec_ambiguous_overloaded_function, orig_templ_sym);
+	      sym_error(ec_ambiguous_overloaded_function, orig_sym);
 	      err = TRUE;
 	      break;
             }  /* if */
@@ -1179,7 +1179,7 @@ assumed if the return type is omitted.
         }  /* if */
       }  /* for */
       if (!any_found) {
-	sym_error(ec_no_matching_function, orig_templ_sym);
+	sym_error(ec_no_matching_function, orig_sym);
 	err = TRUE;
       } else if (!err) {
         /* Update the flags for the symbol found. */
