@@ -322,24 +322,35 @@ exception.
 
 
 #if DEBUG
-EXTERN_C void __db_type_info(STD_NAMESPACE::type_info& info)
+EXTERN_C void __r_db_type_info(STD_NAMESPACE::type_info& info,
+                               int			 indent)
 /*
 Display debugging information about type information.
 */
 {
+/* Define a macro used to indent the output lines. */
+#define do_indent() fprintf(stderr, "%*s", indent, " ")
   /* Convert the user type_info pointer to a_info_impl_ptr. */
   a_type_info_impl_ptr	tiip = (a_type_info_impl_ptr)&info;
+  if (indent != 0) fprintf(stderr, "\n");
+  do_indent();
   fprintf(stderr, "Type information for: %s\n",
           tiip->name == NULL ? "<NULL>" : tiip->name);
+  do_indent();
   fprintf(stderr, "  unique_id: %p\n", (void*)tiip->unique_id);
+  do_indent();
   fprintf(stderr, "  dtor addr: %p\n", (void*)tiip->destructor);
   if (tiip->base_class_entries != NULL) {
     a_base_class_spec_ptr	bcsp;
+    do_indent();
     fprintf(stderr, "  base classes:\n");
     for (bcsp = tiip->base_class_entries;; bcsp++) {
       char	*name = bcsp->type_info->name;
+      do_indent();
       fprintf(stderr, "    name=%s\n", name == NULL ? "<NULL>" : name);
+      do_indent();
       fprintf(stderr, "    offset=%0ld\n", (long)bcsp->offset);
+      do_indent();
       fprintf(stderr, "    flags:");
       if (bcsp->flags & BCS_VIRTUAL) fprintf(stderr, " virtual");
       if (bcsp->flags & BCS_LAST) fprintf(stderr, " last");
@@ -350,12 +361,23 @@ Display debugging information about type information.
       if (bcsp->flags & BCS_LAST) break;
     }  /* for */
     /* Now display the full type information for the base classes. */
-    fprintf(stderr, "\n");
     for (bcsp = tiip->base_class_entries;; bcsp++) {
-      __db_type_info(bcsp->type_info->user_type_info);
+      __r_db_type_info(bcsp->type_info->user_type_info, indent + 2);
       if (bcsp->flags & BCS_LAST) break;
     }  /* for */
   }  /* if */
+#undef do_indent
+}  /* __r_db_type_info */
+
+
+EXTERN_C void __db_type_info(STD_NAMESPACE::type_info& info)
+/*
+Display debugging information about type information.  This routine
+calls __r_db_type_info and supplies a zero indent value.
+*/
+{
+  __r_db_type_info(info, 0);
+  fprintf(stderr, "\n");
 }  /* __db_type_info */
 #endif /* DEBUG */
 
