@@ -9989,7 +9989,7 @@ Display the current list of moves to perform.
   for (k = 0; k < n_scheduled_routine_moves; ++k) {
     a_routine_ptr  rp = scheduled_routine_moves[k].routine,
                    after = scheduled_routine_moves[k].insert_after;
-    fprintf(f_debug, "[%3lu] \"%s\" goes after \"%s\"\n", k,
+    fprintf(f_debug, "[%3lu] \"%s\" goes after \"%s\"\n", (unsigned long)k,
             rp == NULL ? "<NULL>" : rp->source_corresp.name,
             after == NULL ? "<NULL>" : after->source_corresp.name);
   }  /* for */
