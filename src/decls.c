@@ -4870,12 +4870,11 @@ is_definition is TRUE if the label is being scanned as part of a label.
            };
          }
     */
-    if (inside_local_class && label_sym != NULL) {
-      if (scope_stack[depth_innermost_function_scope].il_scope->number !=
-          label_sym->decl_scope) {
-        /* This label is from an outer routine.  Pretend it's not found. */
-        label_sym = NULL;
-      }  /* if */
+    if (label_sym != NULL &&
+        label_sym->decl_scope !=
+            scope_stack[depth_innermost_function_scope].il_scope->number) {
+      /* This label is from an outer routine.  Pretend it's not found. */
+      label_sym = NULL;
     }  /* if */  
   }  /* if */
   if (label_sym == NULL) {
