@@ -31,7 +31,8 @@ symbol_tbl.c - Symbol table management routines.
 #endif /* DO_IL_LOWERING */
 /* exprutil.h is needed to get an_expr_stack_entry for the scope stack. */
 #include "exprutil.h"
-
+/* statement.h is needed because of wrapup_control_flow_processing call. */
+#include "statements.h"
 
 /* The multiplier used in the hash algorithm that generates an index
    in the hash table from an identifier name string.  Do not change
@@ -7965,6 +7966,13 @@ End a name scope by popping an entry off the scope stack.
       pop_object_lifetimes_until(scope_stack[DEPTH_OF_FILE_SCOPE].
                                                   curr_scope_object_lifetime);
       curr_object_lifetime = ssep->saved_curr_object_lifetime;
+      if (kind == (a_scope_kind)sck_function &&
+          !il_scope->variant.routine.ptr->compiler_generated) {
+        /* Flow control wrapup for statement processing is done here because
+           part of what needs to be done is dependent on popping the object
+           lifetime of the function scope. */
+        wrapup_control_flow_processing(il_scope);
+      }  /* if */
     } else if (kind == (a_scope_kind)sck_template_instantiation) {
       check_assertion(curr_object_lifetime == scope_stack[DEPTH_OF_FILE_SCOPE].
                                                    curr_scope_object_lifetime);
