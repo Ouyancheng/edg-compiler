@@ -1,5 +1,13 @@
 Version 2.13
 
+12/15/92 C-generating back end processing of wide character strings
+
+The C-generating back end has been changed so that whenever the
+address of a wide character string is required the string is
+placed in a static temporary variable and the variable is used in
+place of the string.  This ensures that the alignment of the
+string is correct.
+
 12/15/92  Tab separator in cross-reference output
 
 The fields in each line of cross-reference output are now separated

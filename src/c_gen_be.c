@@ -3941,6 +3941,46 @@ non-arithmetic (hollerith or hex/octal) constant.
 }  /* non_arith_float_constant */
 
 #endif /* ifdef FFE */
+#ifdef CFE
+
+static a_boolean is_wide_string_constant(a_constant_ptr constant)
+/*
+Return TRUE if the indicated string is a wide string constant (L"abc").
+*/
+{
+  a_boolean  is_wide_string = FALSE;
+  a_type_ptr con_type, elem_type;
+
+  if (constant->kind == (a_constant_repr_kind)ck_string) {
+    con_type = skip_typerefs(constant->type);
+    elem_type = con_type->variant.array.element_type;
+    elem_type = skip_typerefs(elem_type);
+    /* Check for element type that is not some variety of char. */
+    is_wide_string = (elem_type->size != 1);
+  }  /* if */
+  return is_wide_string;
+}  /* is_wide_string_constant */
+
+#endif /* ifdef CFE */
+#ifdef CFE
+
+static a_boolean is_addr_of_wide_string_constant(a_constant_ptr constant)
+/*
+Return TRUE if the indicated constant is the address of a wide string
+constant (L"abc").
+*/
+{
+  a_boolean is_addr_of_wide_string = FALSE;
+
+  if (constant->kind == (a_constant_repr_kind)ck_address &&
+      constant->variant.address.kind == (an_address_base_kind)abk_constant &&
+      is_wide_string_constant(constant->variant.address.variant.constant)) {
+    is_addr_of_wide_string = TRUE;
+  }  /* if */
+  return is_addr_of_wide_string;
+}  /* is_addr_of_wide_string_constant */
+
+#endif /* ifdef CFE */
 
 static void dump_constant_value(a_constant_ptr constant)
 /*
@@ -3997,14 +4037,26 @@ Print out the constant value contained in one constant record.
       if (need_close_paren) fputc(')', f_C_output);
       break;
     case ck_string:
-      fputc('"', f_C_output);
-      for (a = 0; a < constant->variant.string.length; a++) {
-        ch = constant->variant.string.value[a];
-        if ((a != (constant->variant.string.length - 1)) || (ch != '\0')) {
-          dump_char(ch);
-        }  /* if */
-      }  /* for */
-      fputc('"', f_C_output);
+#ifdef CFE
+      if (is_wide_string_constant(constant) &&
+          constant->variant.string.value == NULL) {
+        /* Wide string constant has been stored in a static variable;
+           the variable is used here.  That's to ensure that the alignment
+           is right. */
+        fprintf(f_C_output, temp_name((char *)constant));
+      } else {
+#endif /* ifdef CFE */
+        fputc('"', f_C_output);
+        for (a = 0; a < constant->variant.string.length; a++) {
+          ch = constant->variant.string.value[a];
+          if ((a != (constant->variant.string.length - 1)) || (ch != '\0')) {
+            dump_char(ch);
+          }  /* if */
+        }  /* for */
+        fputc('"', f_C_output);
+#ifdef CFE
+      }  /* if */
+#endif /* ifdef CFE */
       break;
     case ck_float:
 #ifdef FFE
@@ -4748,27 +4800,6 @@ it is decremented to zero, start a new line and reset *count_until_newline.
 
 #ifdef CFE
 
-static a_boolean is_wide_string_constant(a_constant_ptr constant)
-/*
-Return TRUE if the indicated string is a wide string constant (L"abc").
-*/
-{
-  a_boolean  is_wide_string = FALSE;
-  a_type_ptr con_type, elem_type;
-
-  if (constant->kind == (a_constant_repr_kind)ck_string) {
-    con_type = skip_typerefs(constant->type);
-    elem_type = con_type->variant.array.element_type;
-    elem_type = skip_typerefs(elem_type);
-    /* Check for element type that is not some variety of char. */
-    is_wide_string = (elem_type->size != 1);
-  }  /* if */
-  return is_wide_string;
-}  /* is_wide_string_constant */
-
-#endif /* ifdef CFE */
-#ifdef CFE
-
 static void dump_exploded_wide_string(a_constant_ptr constant)
 /*
 Dump out a wide string constant.  Dump each wchar_t as a separate integer
@@ -4807,6 +4838,29 @@ value.
   }  /* for */
 #undef CONS_PER_LINE
 }  /* dump_exploded_wide_string */
+
+#endif /* ifdef CFE */
+#ifdef CFE
+
+static dump_var_for_wide_string_constant(a_constant_ptr constant)
+/*
+Write a definition for a static variable that contains the value of the
+wide string constant given by constant.  Wide string constants are put
+out in this way to guarantee their alignment.
+*/
+{
+  /* The string pointer is set to NULL once the variable has been put out. */
+  if (constant->variant.string.value != NULL) {
+    startline((a_seq_number)0);
+    (void)fprintf(f_C_output, "static ");
+    simple_type_reference(temp_name((char *)constant), constant->type);
+    (void)fprintf(f_C_output, " = {");
+    dump_exploded_wide_string(constant);
+    (void)fprintf(f_C_output, "};");
+    /* Mark the constant as having been put out. */
+    constant->variant.string.value = NULL;
+  }  /* if */
+}  /* dump_var_for_wide_string_constant */
 
 #endif /* ifdef CFE */
 
@@ -5092,6 +5146,33 @@ characters should be put out separately (to initialize a substring, probably).
   }  /* if */
 }  /* dump_initializer_part */
 
+#ifdef CFE
+
+static void prescan_for_addrs_of_wide_string_constants(a_constant_ptr constant)
+/*
+If the indicated initializer constant contains any references to the address
+of a wide string constant, generate a static variable that contains the
+wide string constant so that its address can be used.
+*/
+{
+  a_constant_ptr con;
+
+  if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
+    for (con = constant->variant.aggregate.first_constant;
+         con != NULL;
+         con = con->next) {
+      prescan_for_addrs_of_wide_string_constants(con);
+    }  /* for */
+  } else if (constant->kind == (a_constant_repr_kind)ck_init_repeat) {
+    con = constant->variant.init_repeat.constant;
+    prescan_for_addrs_of_wide_string_constants(con);
+  } else if (is_addr_of_wide_string_constant(constant)) {
+    con = constant->variant.address.variant.constant;
+    dump_var_for_wide_string_constant(con);
+  }  /* if */
+}  /* prescan_for_addrs_of_wide_string_constants */
+
+#endif /* ifdef CFE */
 
 static void dump_initializer(a_variable_ptr variable,
                              a_constant_ptr constant,
@@ -5345,6 +5426,13 @@ parameters.
     }  /* if */
 #endif /* ifdef FFE */
     start_unreferenced_bracket(&variable->source_corresp);
+#ifdef CFE
+    /* If the variable has an initializer, see if any wide string constants
+       therein need to be preprocessed. */
+    if (dump_initializers && init_con != NULL) {
+      prescan_for_addrs_of_wide_string_constants(init_con);
+    }  /* if */
+#endif /* ifdef CFE */
     startline(variable->source_corresp.decl_position.seq);
     storage_class = variable->storage_class;
 #ifdef FFE
@@ -7426,9 +7514,9 @@ its subtree.
       for (operand = op1; operand != NULL; operand = operand->next) {
         dump_expr_prescan_temps(operand);
       }  /* for */
-#ifdef FFE
     } else if (node->kind == (an_expr_node_kind)enk_constant) {
       a_constant_ptr con = node->variant.constant;
+#ifdef FFE
       if (non_arith_float_constant(con)) {
         /* A non-arithmetic float/complex constant in an expression must be
            stored in a temporary. */
@@ -7444,6 +7532,13 @@ its subtree.
         (void)fprintf(f_C_output, ";");
       }  /* if */
 #endif /* ifdef FFE */
+#ifdef CFE
+      if (is_addr_of_wide_string_constant(con)) {
+        /* Turn a wide string constant into an initialized static variable. */
+        dump_var_for_wide_string_constant(
+                                        con->variant.address.variant.constant);
+      }  /* if */
+#endif /* ifdef CFE */
     }  /* if */
   }  /* if */
 }  /* dump_expr_prescan_temps */
@@ -7458,6 +7553,9 @@ expression and its subtree.
 {
   switch (dip->kind) {
     case dik_constant:
+      /* Do special processing for constants that are addresses of
+         wide string constants. */
+      prescan_for_addrs_of_wide_string_constants(dip->variant.constant);
       break;
     case dik_expression:
       dump_expr_prescan_temps(dip->variant.expression);
