@@ -418,7 +418,10 @@ typedef enum /*an_error_code*/ {
   ec_missing_initializer_on_field,
   ec_cannot_initialize_field,
   ec_uninitialized_const_member,
-  ec_uninitialized_ref_member
+  ec_uninitialized_ref_member,
+  ec_missing_const_assignment_operator,
+  ec_no_suitable_assignment_operator,
+  ec_ambiguous_assignment_operator
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -1198,6 +1198,15 @@ error code.
     case ec_uninitialized_ref_member:
       m = "variable contains uninitialized reference member";
       break;
+    case ec_missing_const_assignment_operator:
+      m = "class \"%s\" has no assignment operator to copy a const object";
+      break;
+    case ec_no_suitable_assignment_operator:
+      m = "class \"%s\" has no suitable assignment operator";
+      break;
+    case ec_ambiguous_assignment_operator:
+      m = "ambiguous default assignment operator for class \"%s\"";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
