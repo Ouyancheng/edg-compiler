@@ -786,19 +786,6 @@ extern void il_lower_init(void);
 #endif /* DO_IL_LOWERING */
 #endif /* NEED_NAME_MANGLING */
 
-#if DO_IL_LOWERING
-/* Return TRUE if the virtual destructor for the indicated class should be
-   implicitly generated because of some requirement imposed by IL lowering. */
-#define virtual_dtor_should_be_generated_for_class(class_type)      \
-   inline_virtual_function_definitions_needed(class_type)
-#else /* !DO_IL_LOWERING */
-/* When IL lowering is disabled, virtual_dtor_should_be_generated_for_class
-   always returns TRUE (meaning a virtual destructor for a class should always
-   be generated).  This is the answer that does the most error checking, but
-   FALSE would be equally proper. */
-#define virtual_dtor_should_be_generated_for_class(class_type) TRUE
-#endif /* DO_IL_LOWERING */
-
 #endif /* ifndef LOWER_IL_H */
 
 /******************************************************************************
