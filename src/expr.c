@@ -810,7 +810,7 @@ Syntax:
       if (gcc_mode && is_pointer_type(operand_1->type) &&
                       is_void_type(type_pointed_to(operand_1->type))) {
         /* In some versions of GNU C a pointer to "void" can be subscripted. */
-        warning(ec_nonobject_pointer_arithmetic);
+        pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
         result_type = type_pointed_to(operand_1->type);
       } else if (
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
@@ -3240,7 +3240,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                            is_function_type(type_pointed_to(operand->type)))) {
             /* In some versions of GNU C void and function pointers can be
                incremented and decremented. */
-            warning(ec_nonobject_pointer_arithmetic);
+            pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
           } else if (!check_object_pointer_operand(
                                      operand, ec_expr_not_pointer_to_object)) {
             err = TRUE;
@@ -3469,7 +3469,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
                            is_function_type(type_pointed_to(operand.type)))) {
             /* In some versions of GNU C void and function pointers can be
                incremented and decremented. */
-            warning(ec_nonobject_pointer_arithmetic);
+            pos_warning(ec_nonobject_pointer_arithmetic, &start_position);
           } else if (!check_object_pointer_operand(
                                     &operand, ec_expr_not_pointer_to_object)) {
             err = TRUE;
@@ -9497,7 +9497,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                          is_function_type(type_pointed_to(operand_1->type)))) {
           /* Some versions of GNU C accept arithmetic on void and function
              pointers. */
-          warning(ec_nonobject_pointer_arithmetic);
+          pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
         } else {
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
           /* Pointer to incomplete array is also allowed. */
@@ -9550,7 +9550,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                     is_function_type(type_pointed_to(operand_1->type)))) {
           /* Some versions of GNU C allows arithmetic on pointers to void and
              pointers to functions. */
-          warning(ec_nonobject_pointer_arithmetic);
+          pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
           result_type = integer_type(targ_ptrdiff_t_int_kind);
         } else if (check_object_pointer_operand(
                                 operand_1, ec_expr_not_pointer_to_object) &
@@ -9580,7 +9580,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                        is_function_type(type_pointed_to(operand_2.type)))) {
         /* Fine, but issue a warning because some versions of GNU C are
            more strict. */
-        warning(ec_nonobject_pointer_arithmetic);
+        pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
       } else {
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
         /* Pointer to incomplete array is also allowed. */
@@ -11557,7 +11557,8 @@ See section 3.3.16 of the standard.
                 if (nonobject_pointer) {
                   /* Some versions of GNU C accept arithmetic on void and
                      function pointers.  Issue a warning in any case. */
-                  warning(ec_nonobject_pointer_arithmetic);
+                  pos_warning(ec_nonobject_pointer_arithmetic,
+                              &operator_position);
                 }  /* if */
                 pointer_add_sub = TRUE;
               }  /* if */
