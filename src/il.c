@@ -31,6 +31,7 @@ il.c -- Construction of intermediate language trees.
 #include "exprutil.h"
 #include "folding.h"
 #include "lexical.h"
+#include "il_to_str.h"
 
 #if ALTERNATE_IL_FILE_FORMAT
 #include "il_file.h"
@@ -957,138 +958,30 @@ class_struct_union:
 }  /* db_type */
 
 
+static void put_str_to_f_debug(char *str)
+/*
+Output the indicated string to f_debug.  This is used as an output routine
+when using the il_to_str routines.
+*/
+{
+  fputs(str, f_debug);
+}  /* put_str_to_f_debug */
+
+
 void db_constant(a_constant *cp)
 /*
 Dump the contents of the indicated constant, for debug purposes.
 */
 {
-  unsigned long  i;
-  char           c;
-  a_constant_ptr cp2;
-  a_variable_ptr vp;
-  a_routine_ptr  rp;
-  a_type_ptr     con_type;
-  a_float_kind   fkind;
-  a_source_correspondence
-                 *scp;
+  an_il_to_str_output_control_block octl;
 
-  con_type = cp->type;
-  if (con_type != NULL) {
-    con_type = skip_typerefs(con_type);
-    /* Dump the type preceding the constant, looking like a type cast. */
-    (void)fputc('(', f_debug);
-    if (has_name(con_type)) {
-      db_name(&con_type->source_corresp);
-    } else {
-      db_type(con_type);
-    }  /* if */
-    (void)fputc(')', f_debug);
-  }  /* if */
+  /* Set up for use of form_constant. */
+  clear_il_to_str_output_control_block(&octl);
+  octl.output_str = put_str_to_f_debug;
+  octl.gen_pcc_code = (C_dialect == C_dialect_pcc);
 
-  switch (cp->kind) {
-    case ck_error:
-      fputs("<error constant>", f_debug);
-      break;
-    case ck_integer:
-      write_integer_constant(f_debug, cp);
-      break;
-    case ck_string:
-      fputs("\"", f_debug);
-      for (i = 0; i < cp->variant.string.length; i++) {
-        c = cp->variant.string.value[i];
-        if (isprint((unsigned char)c)) {
-          (void)fputc(c, f_debug);
-        } else {
-          /* Print non-printable character in octal form.  Truncate
-             to right number of bits to avoid problems with signed chars. */
-          fprintf(f_debug, "\\%03o",
-                  (unsigned int)(c&((1<<targ_host_string_char_bit)-1)));
-        }  /* if */
-      }  /* for */
-      fputs("\"", f_debug);
-      break;
-    case ck_float:
-      fkind = skip_typerefs(cp->type)->variant.float_kind;
-      fputs(fp_to_string(fkind, &cp->variant.float_value), f_debug);
-      break;
-    case ck_address:
-      fputs("(&", f_debug);
-      switch (cp->variant.address.kind) {
-        case abk_routine:
-          rp = cp->variant.address.variant.routine;
-          db_name(&rp->source_corresp);
-          break;
-        case abk_variable:
-          vp = cp->variant.address.variant.variable;
-          db_name(&vp->source_corresp);
-          break;
-        case abk_constant:
-          db_constant(cp->variant.address.variant.constant);
-          break;
-#if CHECKING
-        default:
-          internal_error("db_constant: bad address constant kind");
-#endif /* CHECKING */
-      }  /* switch */
-      fprintf(f_debug, " + %ld)", cp->variant.address.offset);
-      break;
-    case ck_ptr_to_member:
-      /* C++ pointer-to-member. */
-      fprintf(f_debug, "(&-member ");
-      scp = NULL;
-      if (cp->variant.ptr_to_member.is_function_ptr) {
-        if (cp->variant.ptr_to_member.variant.routine != NULL) {
-          scp = &cp->variant.ptr_to_member.variant.routine->source_corresp;
-        }  /* if */
-      } else {
-        if (cp->variant.ptr_to_member.variant.field != NULL) {
-          scp = &cp->variant.ptr_to_member.variant.field->source_corresp;
-        }  /* if */
-      }  /* if */
-      if (scp == NULL) {
-        fprintf(f_debug, "<null %s>",
-                         cp->variant.ptr_to_member.is_function_ptr ?
-                                                    "function" : "field" );
-      } else {
-        db_name(scp);
-      }  /* if */
-      fprintf(f_debug, ")");
-      break;
-    case ck_aggregate:
-      (void)fputc('{', f_debug);
-      cp2 = cp->variant.aggregate.first_constant;
-      while (cp2 != NULL) {
-        db_constant(cp2);
-        cp2 = cp2->next;
-        if (cp2 != NULL) (void)fputc(',', f_debug);
-      }  /* while */
-      (void)fputc('}', f_debug);
-      break;
-    case ck_template_param:
-      fputs("<template-param", f_debug);
-      switch (cp->variant.template_param.kind) {
-        case tpck_param:
-          fprintf(f_debug, "#%lu ", (unsigned long)cp->variant.
-                                        template_param.variant.list_position);
-          db_name(&cp->source_corresp);
-          break;
-        case tpck_expression:
-          fprintf(f_debug, " **EXPR**");
-          break;
-        case tpck_member:
-          (void)fputc(' ', f_debug);
-          db_name(&cp->source_corresp);
-          break;
-#if CHECKING
-        default:
-          internal_error("db_constant: bad template param constant kind");
-#endif /* CHECKING */
-      }
-      (void)fputc('>', f_debug);
-      break;
-    default:
-      fputs("<bad constant>", f_debug);
-  }  /* switch */
+  /* Output the constant. */
+  form_constant(cp, &octl);
 }  /* db_constant */
 
 

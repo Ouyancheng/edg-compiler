@@ -28,6 +28,7 @@ symbol_tbl.c - Symbol table management routines.
 #include "decl_inits.h"
 #include "symbol_ref.h"
 #include "templates.h"
+#include "il_to_str.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
@@ -168,8 +169,49 @@ static an_access_error_descr_ptr
   col += strlen((str));						\
 }  /* put_string */
 
+
 /* Determines whether the current line has a certain amount of room left. */
 #define space_left(size)  (DEBUG_LINE_LENGTH - (size) + 1 >= col)
+
+
+/*
+Current output buffer pointer for put_str_into_db_symbol_buffer. */
+static char *db_symbol_buffer_pointer;
+
+static void put_str_into_db_symbol_buffer(char *str)
+/*
+Output a string into the db_symbol buffer.  Used once
+set_up_for_output_to_buffer has been called to set the buffer address.
+*/
+#if 0
+/* There is no overflow check on this. */
+#endif
+{
+  /* Copy the string including the terminating null. */
+  while ((*db_symbol_buffer_pointer++ = *str++) != '\0') {}
+  /* Back up onto the null character so it will be rewritten if something
+     else is added to the output. */
+  db_symbol_buffer_pointer--;
+}  /* put_str_into_db_symbol_buffer */
+
+
+/*
+Output control block used to interface to the il_to_str routines.
+*/
+static an_il_to_str_output_control_block octl;
+
+
+static void set_up_for_output_to_buffer(char *buffer)
+/*
+Set octl so that it can be passed into the il_to_str routines to tell them
+to output to the indicated buffer.
+*/
+{
+  clear_il_to_str_output_control_block(&octl);
+  octl.output_str = put_str_into_db_symbol_buffer;
+  octl.gen_pcc_code = (C_dialect == C_dialect_pcc);
+  db_symbol_buffer_pointer = buffer;
+}  /* set_up_for_output_to_buffer */
 
 
 static char *str_access(char                *buffer,
@@ -191,193 +233,22 @@ from db_symbol.
 }  /* str_access */
 
 
-/* Forward reference for recursion. */
-static char *str_qualified_name(char         buffer[],
-                                a_symbol_ptr sym);
+/* Display an access specifier. */
+#define put_access(access)                                      \
+{									\
+  (void)str_access(buffer, (an_access_specifier)(access)); put_string(buffer);\
+}
 
-static char *str_type(char        buffer[],
-                      a_type_ptr  tp)
+
+static void str_type(char        buffer[],
+                     a_type_ptr  tp)
 /*
 Construct a string in buffer that represents a type.
 */
-#if 0
-/*
-This should be integrated with db_type eventually, and be extended to
-handle routine types, etc.  Maybe it should be integrated with the
-facility in error.c for displaying types in error messages.  In any case,
-it's strange to have routines in three different files doing very similar
-work.  The reason this is used instead of db_type is that the latter
-simply writes to f_debug.  The buffer is needed for formatting, especially
-putting line-feeds at more or less the right places.
-*/
-#endif /* if 0 */
 {
-  char *s = NULL;
-
-  if (tp == NULL) {
-    s = "???";
-  } else {
-    switch (tp->kind) {
-      case tk_error:
-        s = "<error>";
-        break;
-      case tk_unknown:
-        s = "<unknown>";
-        break;
-      case tk_void:
-        s = "void";
-        break;
-      case tk_integer:
-        switch (tp->variant.integer.int_kind) {
-          case ik_char:               s = "char";       break;
-          case ik_signed_char:        s = "signedchar"; break;
-          case ik_unsigned_char:      s = "uchar";      break;
-          case ik_short:              s = "short";      break;
-          case ik_unsigned_short:     s = "ushort";     break;
-          case ik_int:                s = "int";        break;
-          case ik_unsigned_int:       s = "uint";       break;
-          case ik_long:               s = "long";       break;
-          case ik_unsigned_long:      s = "ulong";      break;
-#if LONG_LONG_ALLOWED
-          case ik_long_long:          s = "longlong";   break;
-          case ik_unsigned_long_long: s = "ulonglong";  break;
-#endif /* LONG_LONG_ALLOWED */
-          default:                    s = "???";        break;
-        }  /* switch */
-        break;
-      case tk_float:
-        switch (tp->variant.float_kind) {
-          case fk_float:              s = "float";      break;
-          case fk_double:             s = "double";     break;
-          case fk_long_double:        s = "longdouble"; break;
-          default:                    s = "???";        break;
-        }  /* switch */
-        break;
-      case tk_pointer:
-        (void)sprintf(&buffer[strlen(buffer)], "%s to ",
-                        (tp->variant.pointer.is_reference) ? "ref" : "ptr");
-        (void)str_type(&buffer[strlen(buffer)], tp->variant.pointer.type);
-        break;
-      case tk_array:
-        if (tp->variant.array.is_variable_size_array) {
-          (void)sprintf(&buffer[strlen(buffer)], "array [**EXPR**] of ");
-        } else {
-          (void)sprintf(&buffer[strlen(buffer)], "array [%lu] of ",
-                        tp->variant.array.variant.number_of_elements);
-        }  /* if */
-        (void)str_type(&buffer[strlen(buffer)], tp->variant.pointer.type);
-        break;
-      case tk_typeref:
-        if (!tp->variant.typeref.is_const &&
-            !tp->variant.typeref.is_volatile) {
-          (void)str_qualified_name(&buffer[strlen(buffer)],
-                                  (a_symbol_ptr)tp->source_corresp.assoc_info);
-        } else {
-          if (tp->variant.typeref.is_const) {
-            (void)sprintf(&buffer[strlen(buffer)], "const ");
-          }  /* if */
-          if (tp->variant.typeref.is_volatile) {
-            (void)sprintf(&buffer[strlen(buffer)], "volatile ");
-          }  /* if */
-          (void)str_type(&buffer[strlen(buffer)], tp->variant.typeref.type);
-        }  /* if */
-        break;
-      case tk_ptr_to_member:
-        /* Should be fixed. */
-        s = "<ptr-to-member>";
-        break;
-      case tk_routine:
-        /* Should be fixed. */
-        s = "<routine>";
-        break;
-      case tk_class:
-      case tk_struct:
-      case tk_union:
-        (void)str_qualified_name(&buffer[strlen(buffer)],
-                                 (a_symbol_ptr)tp->source_corresp.assoc_info);
-        break;
-      case tk_template_param:
-        s = (tp->source_corresp.name == NULL) ? "???" :
-                                                tp->source_corresp.name;
-        break;
-      default:
-        s = "???";
-    }  /* switch */
-  }  /* if */
-  if (s != NULL) (void)sprintf(&buffer[strlen(buffer)], s);
-  return buffer;
+  set_up_for_output_to_buffer(buffer);
+  form_type(tp, &octl);
 }  /* str_type */
-
-
-static char *str_constant(char           buffer[],
-                          a_constant_ptr cp)
-/*
-Construct a string in buffer that represents a constant.
-*/
-#if 0
-See comment on str_type above.  Similar concerns apply to str_constant.
-Note that this is a very minimal implementation.  Needs to be beefed up.
-#endif /* if 0 */
-{
-  char *s;
-
-  if (cp == NULL) {
-    s = "<null const>";
-  } else {
-    switch (cp->kind) {
-      case ck_integer:
-        s = str_for_integer_constant(cp);
-        break;
-      case ck_template_param:
-        if ((s = cp->source_corresp.name) != NULL) break;
-      default:
-        s = "<const ???>";
-        break;
-    }  /* switch */
-  }  /* if */
-  (void)sprintf(&buffer[strlen(buffer)], s);
-  return buffer;
-} /* str_constant */
-
-
-static char *str_class_qualifier(char        buffer[],
-                                 a_type_ptr  tp)
-/*
-Construct a string in buffer that represents the class-qualifier part
-of a qualified name (e.g., A::).  This routine calls itself recursively
-to deal with nested classes.
-*/
-{
-  char*               name_ptr;
-  a_template_arg_ptr  tap;
-
-  if (tp != NULL) {
-    (void)str_class_qualifier(&buffer[strlen(buffer)],
-                              tp->source_corresp.class_of_which_a_member);
-    name_ptr = tp->source_corresp.name;
-    if (name_ptr == NULL) {
-      (void)sprintf(&buffer[strlen(buffer)], "<null>::");
-    } else {
-      (void)sprintf(&buffer[strlen(buffer)], "%s", name_ptr);
-      tap = tp->variant.class_struct_union.extra_info->template_arg_list;
-      if (tap != NULL) {
-        (void)sprintf(&buffer[strlen(buffer)], "<");
-        do {
-          if (tap->is_type) {
-            (void)str_type(&buffer[strlen(buffer)], tap->variant.type);
-          } else {
-            (void)str_constant(&buffer[strlen(buffer)], tap->variant.constant);
-          }  /* if */
-          tap = tap->next;
-          if (tap != NULL) (void)sprintf(&buffer[strlen(buffer)], ",");
-        } while (tap != NULL);
-        (void)sprintf(&buffer[strlen(buffer)], ">");
-      }  /* if */
-      (void)sprintf(&buffer[strlen(buffer)], "::");
-    }  /* if */
-  }  /* if */
-  return buffer;
-}  /* str_class_qualifier */
 
 
 static char *str_qualified_name(char         buffer[],
@@ -389,7 +260,12 @@ from db_symbol.
 {
   buffer[0] = '\0';
   if (C_dialect == C_dialect_cplusplus) {
-    (void)str_class_qualifier(buffer, sym->class_of_which_a_member);
+    a_type_ptr class_type = sym->class_of_which_a_member;
+    /* Put out the class qualifier on a class member. */
+    if (class_type != NULL) {
+      set_up_for_output_to_buffer(buffer);
+      form_class_qualifier(class_type, &octl);
+    }  /* if */
   }  /* if */
   (void)sprintf(&buffer[strlen(buffer)], "%s", sym->header->identifier);
   return buffer;
@@ -445,16 +321,6 @@ from db_symbol.
   (void)sprintf(&buffer[0], "%s linkage", str);
   return buffer;
 }  /* str_name_linkage */
-
-
-#define put_access(access)                                      \
-{									\
-  (void)str_access(buffer, (an_access_specifier)(access)); put_string(buffer);\
-}
-
-#define put_qualified_name(class_name, name)                    \
-{ (void)str_qualfied_name(buffer, (class_name), (name));        \
-  put_string(buffer); }
 
 
 void db_symbol(a_symbol_ptr	sym,
@@ -685,11 +551,11 @@ do_variable:
           } else {
             estp = esp->exception_specification_type_list;
             (void)sprintf(buffer, "throws (");
-            (void)str_type(&buffer[strlen(buffer)], estp->type);
+            str_type(&buffer[strlen(buffer)], estp->type);
             for (estp = estp->next; estp != NULL; estp = estp->next) {
               put_string(buffer);
               buffer[0] = 0;
-              (void)str_type(buffer, estp->type);
+              str_type(buffer, estp->type);
             }  /* for */
             (void)sprintf(&buffer[strlen(buffer)], ")");
             put_string(buffer);
