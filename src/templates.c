@@ -3875,6 +3875,41 @@ structure.
 }  /* find_template_function */
 
 
+static a_template_nesting_depth nesting_depth_of_template_param
+                                                   (a_template_param_ptr tpp)
+/*
+Return the template nesting depth of the specified template parameter.
+*/
+{
+  a_template_nesting_depth	depth;
+
+  if (tpp->param_symbol->kind == (a_symbol_kind)sk_type) {
+    depth = tpp->variant.type->variant.template_param.coordinates.depth;
+  } else {
+    depth = tpp->variant.constant.ptr->
+                             variant.template_param.variant.coordinates.depth;
+  }  /* if */
+  return depth;
+}  /* nesting_depth_of_template_param */
+
+
+static
+a_boolean check_template_param_nesting_depths(a_template_param_ptr param_list,
+                                              a_symbol_ptr	   class_sym)
+/*
+Check the template parameter list pointed to by param_list with the
+parameter list of the class template pointed to by class_sym and make
+sure that they are at the same nesting depth.  Return TRUE if they are.
+*/
+{
+  a_template_param_ptr		class_tpp;
+
+  class_tpp = class_sym->variant.template_info->cache.decl_info->parameters;
+  return nesting_depth_of_template_param(param_list) ==
+                                  nesting_depth_of_template_param(class_tpp);
+}  /* check_template_param_nesting_depths */
+
+
 static a_boolean reconcile_template_param_lists
 					(a_template_param_ptr param_list,
                                          a_symbol_ptr         class_sym,
@@ -4040,34 +4075,63 @@ Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
 
 
 static a_boolean member_template_param_list_matches_class
-					(a_template_param_ptr param_list,
-                                         a_symbol_ptr         member_sym,
-					 a_source_position    *error_pos)
+				(a_template_decl_info_ptr start_decl_info,
+                                 a_symbol_ptr             member_sym,
+				 a_source_position        *error_pos)
 /*
-This routine is called for template declarations of member functions
-static data members of class templates.  It calls
-reconcile_template_param_lists to compare the template parameters of this
-declaration with the parameter list of the class declaration.
-Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
+This routine is called for template declarations of members of classes.
+It calls reconcile_template_param_lists to compare the template parameters
+of this declaration with the parameter list of the class declaration.
+If this is a member template, the template parameter lists at each level
+are compared.  Return TRUE if the parameter lists are compatible.
+Otherwise, return FALSE.
 */
 {
-  a_symbol_ptr	class_sym;
-  a_boolean	result;
-  a_type_ptr    type;
+  a_symbol_ptr			class_sym;
+  a_type_ptr    		type;
+  a_boolean			any_mismatches = FALSE;
+  a_template_decl_info_ptr	decl_info;
 
-  /* Find the type of the class.  If this class is nested in another class
-     find the type of the outermost class. */
+  /* If this declaration is for a member function template, skip out to the
+     next enclosing template parameter list because this routine is
+     only used for comparing the class template parameter lists. */
+  if (member_sym->kind == (a_symbol_kind)sk_function_template) {
+    start_decl_info = start_decl_info->enclosing_template_decl;
+  }  /* if */
   type = member_sym->parent.class_type;
-  while (type->source_corresp.is_class_member) {
-    type = type->source_corresp.parent.class_type;
-  }  /* while */
-  /* Get the symbol associated with the type.  This symbol is the
-     template class symbol. */
-  class_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-  /* Get a pointer to the symbol for the class template. */
-  class_sym = class_sym->variant.class_struct_union.extra_info->class_template;
-  result = reconcile_template_param_lists(param_list, class_sym, error_pos);
-  return result;
+  for (decl_info = start_decl_info;
+       decl_info != NULL; decl_info = decl_info->enclosing_template_decl) {
+    /* Find the nearest enclosing class template (class with a template
+       argument list. */
+    while (type->source_corresp.is_class_member &&
+           type->variant.class_struct_union.extra_info->
+                                                  template_arg_list == NULL) {
+      type = type->source_corresp.parent.class_type;
+    }  /* while */
+    /* Get the symbol associated with the type.  This symbol is the
+       template class symbol. */
+    class_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+    /* Get a pointer to the symbol for the class template. */
+    class_sym =
+             class_sym->variant.class_struct_union.extra_info->class_template;
+    /* Make sure that the template nesting depth of this parameter list
+       matches that of the original declaration.  There is no sense checking
+       each of the parameters if the lists are at different levels. */
+    if (!check_template_param_nesting_depths(decl_info->parameters,
+                                             class_sym)) {
+      pos_sy_error(ec_template_depth_mismatch, error_pos, member_sym);
+      any_mismatches = TRUE;
+      break;
+    }  /* if */
+    if (!reconcile_template_param_lists(decl_info->parameters,
+                                        class_sym, error_pos)) {
+      any_mismatches = TRUE;
+    }  /* if */
+    /* Skip out to the enclosing class type. */
+    type = type->source_corresp.is_class_member ?
+                               type->source_corresp.parent.class_type : NULL;
+  }  /* for */
+  return !any_mismatches;
 }  /* member_template_param_list_matches_class */
 
 
@@ -4217,15 +4281,17 @@ any classes that declared the nested class as a template friend.
 
 
 static void class_template_declaration
-                             (a_template_decl_info_ptr template_decl_info,
-                              an_access_specifier      access,
-                              a_scope_depth            effective_decl_level,
-			      a_boolean                *invalid_decl_scope_err,
-			      a_type_ptr               class_declared_in,    
-			      a_symbol_ptr             *p_sym_ptr,
-			      a_boolean                *resolution,
-			      a_type_ptr               *new_type,
-			      a_boolean                *defines_something)
+                        (a_template_decl_info_ptr template_decl_info,
+                         an_access_specifier   access,
+                         a_scope_depth         effective_decl_level,
+                         a_boolean             *invalid_decl_scope_err,
+                         unsigned long	       number_of_template_decl_scopes,
+		         a_type_ptr            class_declared_in,    
+		         a_symbol_ptr          *p_sym_ptr,
+		         a_boolean             *resolution,
+   		         a_type_ptr            *new_type,
+		         a_boolean             *defines_something)
+
 /*
 The beginning of a template declaration or definition has been scanned,
 e.g.,
@@ -4339,6 +4405,17 @@ instantiation.
       *invalid_decl_scope_err = TRUE;
     }  /* if */
   }  /* if */
+  if (!locator.is_qualified_name && !*invalid_decl_scope_err &&
+      !is_template_friend && number_of_template_decl_scopes > 1) {
+    /* This is a declaration of class template that is not a friend, but
+       it has multiple template parameter lists.  This is an error
+       except for member declarations done outside of the class.  We
+       know this is not one of those, the identifier is not a qualified
+       name. */
+    pos_error(ec_multiple_template_decls_not_allowed,
+              &locator.source_position);
+    *invalid_decl_scope_err = TRUE;
+  }  /* if */
   if (*invalid_decl_scope_err) {
     /* An error has already been issued on a template declaration that
        is not at file scope. */
@@ -4448,8 +4525,9 @@ instantiation.
         /* Either a definition or a redeclaration.  Make sure the template
            parameters are compatible with the previous declaration. */
         if (sym->kind != (a_symbol_kind)sk_class_template) {
-          if (!member_template_param_list_matches_class(templ_params, sym,
-                                                         &error_position)) {
+          if (!member_template_param_list_matches_class(template_decl_info,
+                                                        sym,
+                                                        &error_position)) {
             err = TRUE;
           } /* if */
         } else {
@@ -4533,7 +4611,10 @@ instantiation.
     /* This is a member class template declaration.  See if the enclosing
        class was also generated from a template.  If so, find the
        corresponding class template symbol from the prototype instantiation. */
-    find_class_template_member(sym, sym->parent.class_type);
+    if (class_declared_in != NULL) {
+      /* Only do this for the original declaration inside the class. */
+      find_class_template_member(sym, sym->parent.class_type);
+    }  /* if */
   }  /* if */
   if (is_definition) {
     a_token_sequence_number   first_token_number = curr_token_sequence_number;
@@ -5570,7 +5651,7 @@ returned to the caller.
     tssp = sym->variant.static_data_member.instance_ptr->template_info;
     /* Make sure the parameter list matches the class declaration. */
     if (!member_template_param_list_matches_class
-	(template_decl_info->parameters, sym, &error_position)) {
+                                (template_decl_info, sym, &error_position)) {
       err = TRUE;
     } /* if */
   }  /* if */
@@ -5755,7 +5836,8 @@ declaration.
   /* Process a function template declaration. */
   if (class_declared_in == NULL || (dso_flags & DSO_FRIEND)) {
     decl_function_template(locator, type, func_info, &sym, storage_class,
-                           decl_modifiers, template_param_list);
+                           decl_modifiers, template_param_list,
+                           effective_decl_level);
   } else {
     decl_member_function_template(locator, class_declared_in, type, func_info,
                                   effective_decl_level, access, dso_flags,
@@ -5781,7 +5863,7 @@ declaration.
   } /* if */
   tssp = template_supplement_for_symbol(sym);
   if (sym->kind == (a_symbol_kind)sk_function_template &&
-      sym->is_class_member) {
+      sym->is_class_member && !is_template_friend) {
     if (in_prototype_instantiation) {
       /* Save the token sequence number associated with this declaration.
          This is done here for function templates that are class members.
@@ -5793,14 +5875,18 @@ declaration.
       /* Find the associated template from the prototype instantiation.  This
          can be changed later if a specialization is seen before any
          instantiations are done. */
-      find_function_template_member(sym, class_declared_in);
+      if (class_declared_in != NULL) {
+        /* Only do this for the original declaration inside the class. */
+        find_function_template_member(sym, class_declared_in);
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Make sure that the template parameter list is compatible with
      any previous declaration (i.e., the declaration of the class
      if this is a member function. */
-  if (sym->is_class_member && class_declared_in == NULL) {
-    if (!member_template_param_list_matches_class(template_param_list,
+  if (sym->is_class_member &&
+      (class_declared_in == NULL || is_template_friend)) {
+    if (!member_template_param_list_matches_class(template_decl_info,
 						  sym, &error_position)) {
       err = TRUE;
     } /* if */
@@ -5930,7 +6016,8 @@ the declaration token cache.
   if (curr_token == tok_class || curr_token == tok_struct ||
       curr_token == tok_union) {
     (void)get_token();
-    if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL)) {
+    if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
+                                        GID_USE_PROTOTYPE_NOT_NONREAL)) {
       (void)get_token();
       if (curr_token == tok_end_of_source) {
         result = TRUE;
@@ -6008,8 +6095,11 @@ instantiation, then you don't know what X is.
   check_assertion(ssep->kind == (a_scope_kind)sck_template_declaration);
   tp = prescan_and_find_declarator(token_cache);
   if (tp != NULL) {
-    /* Skip out to the outermost nested class. */
-    while (tp->source_corresp.is_class_member) {
+    /* Skip out to the nearest enclosing class that has a template argument
+       list. */
+    while (tp->source_corresp.is_class_member &&
+           tp->variant.class_struct_union.extra_info->
+                                                  template_arg_list == NULL) {
       tp = tp->source_corresp.parent.class_type;
     }  /* while */
     /* Make sure that this is a class type.  If it is not, ignore the
@@ -6198,11 +6288,20 @@ as the current token; otherwise, it is consumed.
     discard_token_cache(&decl_token_cache);
     cache_template_declaration(&decl_token_cache, (a_token_cache_ptr)NULL);
   }  /* if */
+  if (is_member_decl && !is_template_friend &&
+      number_of_template_decl_scopes > 1) {
+    /* A declaration with more than one template declaration scope is only
+       valid in a namespace scope definition of a member template or in
+       a friend declaration. */
+    error(ec_multiple_template_decls_not_allowed);
+    invalid_decl_scope_err = TRUE;
+  }  /* if */
   /* See if it is a class template declaration.  If it is, scan the tokens
      of the definition (if any) and cache them away of later reference. */
   if (is_class_template_decl(&decl_token_cache)) {
     class_template_declaration(template_decl_info, access,
 	                       effective_decl_level, &invalid_decl_scope_err,
+                               number_of_template_decl_scopes,
 			       class_declared_in, &sym,
 			       &tag_resolution, &prototype_type,
 			       defines_something);
@@ -6240,8 +6339,17 @@ as the current token; otherwise, it is consumed.
                                 class_declared_in, invalid_decl_scope_err,
                                 &dso_flags, &do_flags, &locator, &type,
                                 &func_info, &storage_class, &decl_modifiers);
+      if (!locator.is_qualified_name && !invalid_decl_scope_err &&
+          !is_template_friend && number_of_template_decl_scopes > 1) {
+        /* This is a declaration of class template that is not a friend, but
+           it has multiple template parameter lists.  This is an error
+           except for member declarations done outside of the class.  We
+           know this is not one of those, the identifier is not a qualified
+           name. */
+        error(ec_multiple_template_decls_not_allowed);
+        invalid_decl_scope_err = TRUE;
+      }  /* if */
       if (invalid_decl_scope_err) {
-        pos_error(ec_bad_template_declaration_scope, &start_pos);
         set_to_named_error_locator(locator);
       }  /* if */
       if (!is_function_type(type) && 

@@ -290,7 +290,8 @@ extern void decl_function_template(a_symbol_locator     *locator,
                                    a_symbol_ptr         *symbol_ptr,
                                    a_storage_class      storage_class,
                                    a_decl_modifier      decl_modifiers,
-                                   a_template_param_ptr templ_param_list);
+                                   a_template_param_ptr templ_param_list,
+                                   a_scope_depth        orig_decl_level);
 
 extern void handler_declaration(a_statement_ptr     sp,
                                 a_source_position*  catch_pos);

@@ -823,6 +823,8 @@ ec_conflicts_with_predeclared_type_info;;"declaration conflicts with %sq (reserv
 ec_array_member_initialization;;"only \"()\" is allowed as initializer for array %n"
 ec_virtual_function_template;;"\"virtual\" is not allowed in a function template declaration"
 ec_anon_union_class_member_template;;"invalid anonymous union -- class member template is not allowed"
+ec_template_depth_mismatch;;"template nesting depth does not match the previous declaration of %n"
+ec_multiple_template_decls_not_allowed;;"this declaration cannot have multiple \"template <...>\" clauses"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

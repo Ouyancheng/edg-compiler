@@ -4234,7 +4234,8 @@ void decl_function_template(a_symbol_locator     *locator,
                             a_symbol_ptr         *symbol_ptr,
                             a_storage_class      storage_class,
                             a_decl_modifier	 decl_modifiers,
-                            a_template_param_ptr templ_param_list)
+                            a_template_param_ptr templ_param_list,
+                            a_scope_depth        orig_decl_level)
 /*
 Roughly speaking, this routine does for function templates what
 decl_routine does for ordinary functions.  Lookup and reuse or else
@@ -4245,10 +4246,11 @@ storage class, if any, specified in the declaration, and is_inline is TRUE
 if "inline" was specified in the declaration.  The function template may
 be part of an overload set, it may have been previously declared (but not
 defined), and it may be an out-of-line definition of a member function of a
-class template.
+class template.  orig_decl_level is the nearest enclosing scope that
+is not a template declaration scope.
 */
 {
-  a_scope_depth                     effective_decl_level;
+  a_scope_depth			    effective_decl_level;
   a_symbol_ptr                      sym = NULL;
   a_symbol_ptr                      overload_symbol = NULL;
   a_symbol_ptr                      homonym_symbol = NULL;
@@ -4275,8 +4277,8 @@ class template.
   /* Compute the effective declaration level.  If this is a friend,
      the proper adjustment will be made. */
   effective_decl_level =
-              compute_friend_effective_decl_level(depth_scope_stack - 1);
-  is_friend_decl = (effective_decl_level != depth_scope_stack - 1);
+              compute_friend_effective_decl_level(orig_decl_level);
+  is_friend_decl = effective_decl_level != orig_decl_level;
   if (locator->is_qualified_name && locator->is_class_member &&
       locator->specific_symbol != NULL) {
     /* Member function template. */
@@ -4287,6 +4289,7 @@ class template.
       sym = NULL;
       set_to_error_locator(*locator);
     } else if (sym->kind != (a_symbol_kind)sk_member_function &&
+               sym->kind != (a_symbol_kind)sk_function_template &&
                sym->kind != (a_symbol_kind)sk_overloaded_function) {
       /* We must have nonfunction class member.  This is an error, so set sym
          to NULL to force the creation of a fake member function symbol. */

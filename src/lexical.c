@@ -6488,11 +6488,40 @@ a routine to lookup the appropriate instance (or generate one if needed).
        B.  We find the prototype instantiation unless we are currently
        inside the instantiation of a different class. */
     a_boolean			prototype_allowed;
+    a_boolean			is_templ_member_class_sym = FALSE;
     a_scope_stack_entry_ptr	ssep;
     ssep = &scope_stack[depth_scope_stack];
+    /* Determine whether the template being used is either the class associated
+       with a member that is being defined, or a template enclosing that
+       class. */
+    {
+      a_symbol_ptr	tmc_sym = ssep->templ_member_class_sym;
+      while (tmc_sym != NULL) {
+        a_type_ptr	parent_type = NULL;
+        if (tmc_sym == template_sym) {
+          is_templ_member_class_sym = TRUE;
+          break;
+        }  /* while */
+        if (tmc_sym->is_class_member) {
+          /* Get the class template symbol associated with the nearest
+             enclosing class template. */
+          a_class_symbol_supplement_ptr	cssp;
+          parent_type = tmc_sym->parent.class_type;
+          while (parent_type->source_corresp.is_class_member &&
+                 parent_type->variant.class_struct_union.extra_info->
+                                                  template_arg_list == NULL) {
+            parent_type = parent_type->source_corresp.parent.class_type;
+          }  /* while */
+          cssp = symbol_supplement_for_class(parent_type);
+          tmc_sym = cssp->class_template;
+        } else {
+          tmc_sym = NULL;
+        }  /* if */
+      }  /* while */
+    }
     prototype_allowed = class_is_being_instantiated ||
                         ((options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0) ||
-                        ssep->templ_member_class_sym == template_sym;
+                        is_templ_member_class_sym;
     new_sym = find_template_class(template_sym, &arg_list, prototype_allowed);
     arg_list_coalesced = TRUE;
   } else {

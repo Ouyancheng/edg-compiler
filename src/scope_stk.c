@@ -1667,8 +1667,10 @@ scopes.
   /* Clear the flag that indicates that we are in a local class so that any
      scopes pushed by this routine will not be indicated as being within
      a local class.  This will be restored to the correct state when the
-     last scope pushed by this routine is popped. */
+     last scope pushed by this routine is popped.  The same is done for
+     the flag that indicates whether we are within a function scope. */
   inside_local_class = FALSE;
+  depth_innermost_function_scope = NO_SCOPE_DEPTH;
   /* If the template was defined in a namespace, reactivate the namespace
      scope before pushing the instantiation scope. */
   get_parent_information_for_template(decl_info->enclosing_scope,
