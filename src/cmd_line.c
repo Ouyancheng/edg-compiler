@@ -3394,6 +3394,24 @@ enable_microsoft_mode:
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
+#if COMPILE_MULTIPLE_TRANSLATION_UNITS
+  if (argc_file_list > 0) {
+    /* Multiple translation units were specified.  Check for any options that
+       cannot be used when using multiple translation units. */
+    if (list_makefile_dependencies) {
+      command_line_error(
+          ec_cl_list_make_dependencies_incompatible_with_multiple_trans_units);
+    }  /* if */
+    if (list_included_files) {
+      command_line_error(
+                   ec_cl_list_includes_incompatible_with_multiple_trans_units);
+    }  /* if */
+    if (generate_pp_output) {
+      command_line_error(
+                       ec_cl_pp_output_incompatible_with_multiple_trans_units);
+    }  /* if */
+  }  /* if */
+#endif /* COMPILE_MULTIPLE_TRANSLATION_UNITS */
 #else /* !(COMPILE_MULTIPLE_SOURCE_FILES ||
          COMPILE_MULTIPLE_TRANSLATION_UNITS) */
   /* Multiple source files cannot be compiled. */
