@@ -145,9 +145,12 @@ predicates.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-/* Macro that is TRUE if the two types have the same type attributes. */
+/* Macro that is TRUE if the two types have the same type attributes.
+   The types are already known not to be typerefs and to have the
+   same type kind. */
 #define same_type_attributes(type_1, type_2) \
-  (type_1->alignment == type_2->alignment)
+  (type_1->alignment == type_2->alignment || \
+   is_immediate_class_type(type_1))
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
