@@ -1,5 +1,10 @@
 Version 2.19
 
+8/11/93 Destruction of temporaries created in loop test expressions
+
+Temporaries created in loop test and increment expressions are now
+properly destroyed each time around the loop.
+
 8/11/93 IL lowering: destructor calls for temps in constructor wrappers
 
 Proper destructor calls are now generated to destroy temporaries
