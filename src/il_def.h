@@ -5936,7 +5936,9 @@ typedef struct a_new_delete_supplement {
 			   delete. */
   a_routine_ptr	routine;
 			/* Routine to call to do allocation (new) or
-			   deallocation (delete). */
+			   deallocation (delete).  Can be NULL for a
+			   template-dependent "new" in a prototype
+			   instantiation. */
 #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
 			/* NULL if the new or delete is for an array whose
 			   elements are a class type with a constructor or
