@@ -259,10 +259,7 @@ has type pointer to element.
   /* Make a constant for the address of the array, implicitly cast it to
      pointer-to-element-type, and make an expression whose value is the
      address constant.  This gives an address with the right type. */
-  clear_constant(&addr_constant, (a_constant_repr_kind)ck_address);
-  addr_constant.type = make_pointer_type(var->type);
-  addr_constant.variant.address.kind = (an_address_base_kind)abk_variable;
-  addr_constant.variant.address.variant.variable = var;
+  set_variable_address_constant(var, &addr_constant);
   implicit_cast(&addr_constant, ptr_element_type);
   var_node = alloc_node_for_constant(&addr_constant);
   return var_node;
@@ -1792,8 +1789,7 @@ termination.
     /* Address of __sti__module_id for "ctor" field. */
     init_con2 = alloc_constant((a_constant_repr_kind)ck_address);
     if (file_scope_init_routine != NULL) {
-      init_con2->variant.address.kind = (an_address_base_kind)abk_routine;
-      init_con2->variant.address.variant.routine = file_scope_init_routine;
+      set_routine_address_constant(file_scope_init_routine, init_con2);
       init_con2->type = ptr_func_type;
     } else {
       /* No init routine.  Use NULL. */
@@ -1802,8 +1798,7 @@ termination.
     /* Address of __std__module_id for "dtor" field. */
     init_con3 = alloc_constant((a_constant_repr_kind)ck_address);
     if (file_scope_term_routine != NULL) {
-      init_con3->variant.address.kind = (an_address_base_kind)abk_routine;
-      init_con3->variant.address.variant.routine = file_scope_term_routine;
+      set_routine_address_constant(file_scope_term_routine, init_con3);
       init_con3->type = ptr_func_type;
     } else {
       /* No init routine.  Use NULL. */
