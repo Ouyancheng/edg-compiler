@@ -607,15 +607,21 @@ symbols are listed under the same header).
   if (!match) {
     /* Only class members have a correspondence pointer set without testing
        whether the names match.  If the names don't match, an error
-       contrasting the to member entities would not make much sense.
-       Instead, report the error on the parent type. */
+       contrasting the two member entities would not make much sense.
+       Instead, report the error on the parent type.  Note that the IL entries
+       for some template members may not indicate that they are class members;
+       in those cases, the associated symbol entry should be examined.
+       */
     a_source_correspondence_ptr  scp1 = (a_source_correspondence_ptr)entity1;
-    check_assertion(scp1->is_class_member);
+    a_symbol_ptr                 sym1 = (a_symbol_ptr)scp1->assoc_info;
+    check_assertion(scp1->is_class_member || sym1->is_class_member);
     if (!C_mode()) {
       /* In C mode, two structs with the same name (and file scope) but with
          incompatible fields can coexist.  The correspondence will be cleared
          in that case, but no diagnostic should be produced. */
-      report_bad_trans_unit_corresp(scp1->parent.class_type);
+      report_bad_trans_unit_corresp(scp1->parent.class_type != NULL ?
+                                                    scp1->parent.class_type :
+                                                    sym1->parent.class_type);
     }  /* if */
   }  /* if */
   return match;
