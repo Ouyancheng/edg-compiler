@@ -1,5 +1,14 @@
 Version 2.30
 
+6/6/95   Type conversion on constant as template parameter
+
+In some cases, conversions done for nontype parameters of templates could
+result in an error constant appearing in the IL, which causes an internal
+error in IL lowering.
+
+  template <unsigned short inum1> class foo1 {};
+  template <int ONUM1> class foo4 : public foo1<ONUM1> {};
+
 6/6/95   IL CHANGE: class_of_which_a_member has been replaced
 
 As part of the changeover to support namespaces, the field
