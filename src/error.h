@@ -540,7 +540,8 @@ typedef enum /*an_error_code*/ {
   ec_redeclaration_of_template_param_name,
   ec_decl_hides_template_parameter,
   ec_must_be_prototype_instantiation,
-  ec_conversion_to_self_not_allowed
+  ec_conversion_to_self_not_allowed,
+  ec_bad_extra_arg_for_postfix_operator
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
