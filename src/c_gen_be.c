@@ -1034,11 +1034,13 @@ entity is unnamed, generate a name.
     } else {
       m_write_tok_str(name);
     }  /* if */
-  } else if (scp->class_of_which_a_member != NULL) {
-    /* No prefix on members of classes. */
+  } else if (scp->class_of_which_a_member != NULL ||
+             !scp->is_local_to_function) {
+    /* No prefix on members of classes or things that aren't local to
+       functions (e.g., file-scope typedefs). */
     m_write_tok_str(name);
   } else {
-    /* Not file-scope name; add the declaration position as a prefix to
+    /* Name has no linkage; add the declaration position as a prefix to
        the original name. */
     ensure_enough_room_on_line(strlen(name)+14);
     m_write_ch('_');
