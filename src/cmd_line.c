@@ -30,6 +30,9 @@ cmd_line.c -- Command-line parsing.
 #if BACK_END_IS_C_GEN_BE
 #include "c_gen_be.h"
 #endif /* BACK_END_IS_C_GEN_BE */
+#if USER_CONTROL_OF_STRUCT_PACKING
+#include "layout.h"
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 #ifdef HOSTID
 extern long gethostid(void);
@@ -384,6 +387,13 @@ Initialize the option information table.
   add_option_description(optk_wchar_t_is_keyword, "no_wchar_t_keyword",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if USER_CONTROL_OF_STRUCT_PACKING
+  /* Note -- the Microsoft-style "-Zpn" option is not supported.  The driver
+     that invokes the front end may convert it to "--pack_alignment=n". */
+  add_option_description(optk_pack_alignment, "pack_alignment",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* initialize_option_descriptions */
 
 
@@ -1197,6 +1207,20 @@ Process the arguments on the command line that invoked the compiler.
         /* wchar_t is or is not a keyword. */
         wchar_t_is_keyword = opt_value;
         break;
+#if USER_CONTROL_OF_STRUCT_PACKING
+      case optk_pack_alignment:
+        /* If a pack alignment value is given, it means the alignment of
+           nonstatic data members may be smaller than what is dictated by
+           the member's type.  In effect, the pack alignment value is the
+           maximum alignment permitted for a nonstatic data member.  This
+           default value may be overridden by #pragma pack. */
+        if (!check_pack_alignment_value(scan_opt_arg_number(opt_arg),
+                                        &default_max_member_alignment)) {
+          /* Invalid value. */
+          command_line_error(ec_bad_pack_alignment);
+        }  /* if */
+        break;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();

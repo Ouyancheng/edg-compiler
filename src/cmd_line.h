@@ -107,6 +107,9 @@ typedef enum /*an_option_kind*/ {
   optk_microsoft_mode,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_wchar_t_is_keyword,
+#if USER_CONTROL_OF_STRUCT_PACKING
+  optk_pack_alignment,
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -466,6 +469,18 @@ EXTERN a_boolean
                            keyword.  Once command line processing has been
 			   completed, this value must only be TRUE in C++
                            mode. */
+
+#if USER_CONTROL_OF_STRUCT_PACKING
+EXTERN a_targ_alignment
+		default_max_member_alignment /* = 0*/;
+			/* If nonzero, the maximum alignment of any nonstatic
+			   data member of a class, struct, or union, unless a
+			   "#pragma pack" overrides it.  Its value is based
+			   on command-line option "--pack_alignment".  (A zero
+			   value means that a member's alignment is based
+			   solely on its type.) */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
