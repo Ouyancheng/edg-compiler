@@ -3758,6 +3758,11 @@ where file.cil specifies the IL file.  Output is to stdout.
   for (region_number = FILE_SCOPE_REGION_NUMBER+1;
        region_number <= highest_used_region_number;
        region_number++) {
+#if MAINTAIN_NEEDED_FLAGS
+    /* Skip this memory region if the associated routine was removed from the
+       IL because it is unneeded. */
+    if (il_header.region_scope_entry[region_number] == NULL) continue;
+#endif /* MAINTAIN_NEEDED_FLAGS */
     read_memory_region(region_number);
     disp_routine_scope_il(region_number);
     free_memory_region(region_number);
