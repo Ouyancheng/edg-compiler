@@ -2529,9 +2529,6 @@ Add the type specifier to the type string being formed.
         tag_kind = "enum ";
         goto do_tag_name;
       }  /* if */
-      if (type->variant.integer.explicitly_signed) {
-        add_string_to_segment("signed ", seg_ptr);
-      }  /* if */
       form_int_kind_name(type->variant.integer.int_kind, seg_ptr);
       break;
     case tk_float:
