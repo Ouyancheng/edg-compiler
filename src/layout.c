@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1892,6 +1892,43 @@ bit field in a trailing bit field container of one of its bases.
   return result;
 }  /* gnu_may_use_bit_padding */
 
+
+static void warn_if_field_uses_tail_padding(a_field_ptr         field,
+                                            a_layout_block_ptr  lob)
+/*
+Issue a warning if the given field was allocated in the tail padding of a
+base class.
+*/
+{
+  a_type_ptr        class_type = lob->class_type;
+  a_base_class_ptr  bcp = base_classes_of(class_type);
+
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct) {
+      an_unnormalized_bit_offset
+                        dummy = 0;
+      a_class_type_supplement_ptr
+                        cts = bcp->type->variant.class_struct_union.extra_info;
+      a_targ_alignment  alignment = cts->alignment_without_virtual_base_classes;
+      a_targ_size_t     size = cts->size_without_virtual_base_classes;
+      do_alignment(&size, &dummy, alignment);
+      if (field->offset < bcp->offset + size) {
+        pos_warning(ec_field_uses_tail_padding,
+                    &field->source_corresp.decl_position);
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* If this is a bit field, GNU compilers may allocate it in the container
+     of an inherited bit field.  Warn about the layout difference if this is
+     such a situation. */
+  if (emulate_gnu_abi_bugs && field->is_bit_field &&
+      gnu_may_use_bit_padding(lob, field)) {
+    pos_warning(ec_gnu_may_use_bit_padding,
+                &field->source_corresp.decl_position);
+  }  /* if */
+}  /* warn_if_field_uses_tail_padding */
+
 #endif /* IA64_ABI */
 
 static a_boolean set_field_size_and_offset(a_field_ptr         field,
@@ -2078,18 +2115,7 @@ there's no overflow TRUE is returned.
   if (warn_about_tail_padding_use &&
       class_type->variant.class_struct_union.field_list == field) {
     /* First field.  See if it reuses tail padding. */
-    if (field->offset < lob->curr_base_extent) {
-      pos_warning(ec_field_uses_tail_padding,
-                  &field->source_corresp.decl_position);
-    }  /* if */
-    /* If this is a bit field, GNU compilers may allocate it in the container
-       of an inherited bit field.  Warn about the layout difference if this is
-       such a situation. */
-    if (emulate_gnu_abi_bugs && field->is_bit_field &&
-        gnu_may_use_bit_padding(lob, field)) {
-      pos_warning(ec_gnu_may_use_bit_padding,
-                  &field->source_corresp.decl_position);
-    }  /* if */
+    warn_if_field_uses_tail_padding(field, lob);
   }  /* if */
 #endif /* IA64_ABI */
   db_exit();
@@ -4352,6 +4378,6 @@ of the front end.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
