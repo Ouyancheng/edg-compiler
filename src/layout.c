@@ -160,7 +160,7 @@ must be unsigned.
 {
   a_boolean      use_signed = FALSE, smallest_is_negative;
   a_constant     smallest, largest;
-  int            bits_needed, bits_needed_largest;
+  unsigned long  bits_needed, bits_needed_largest;
   a_constant_ptr enum_con;
 
   enum_con = bit_field_type->variant.integer.enum_info.constant_list;
