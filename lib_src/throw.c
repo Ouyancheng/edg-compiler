@@ -499,10 +499,22 @@ static void db_throw_stack_entry(a_throw_stack_entry_ptr tsep)
   fprintf(__f_debug, "typinfo=%p ", (void*)tsep->type_info);
   fprintf(__f_debug, "flags=%0x ", tsep->flags);
   fprintf(__f_debug, "object_address=%p ", (void*)tsep->object_address);
-  fprintf(__f_debug, "is_rethrow=%0d ", tsep->is_rethrow);
-  fprintf(__f_debug, "discard_entry=%0d ", tsep->discard_entry);
-  fprintf(__f_debug, "dtor_called=%0d ", tsep->dtor_called);
-  fprintf(__f_debug, "in_handler=%0d ", tsep->in_handler);
+  if (tsep->is_rethrow) fprintf(__f_debug, "is_rethrow=%0d ", tsep->is_rethrow);
+  if (tsep->discard_entry) {
+    fprintf(__f_debug, "discard_entry=%0d ", tsep->discard_entry);
+  }  /* if */
+  if (tsep->dtor_called) {
+    fprintf(__f_debug, "dtor_called=%0d ", tsep->dtor_called);
+  }  /* if */
+  if (tsep->in_handler) {
+    fprintf(__f_debug, "in_handler=%0d ", tsep->in_handler);
+  }  /* if */
+  if (tsep->use_count != 0) {
+    fprintf(__f_debug, "use_count=%0lu ", tsep->use_count);
+  }  /* if */
+  if (tsep->primary_entry != NULL) {
+    fprintf(__f_debug, "primary_entry=%p ", tsep->primary_entry);
+  }  /* if */
 }  /* db_throw_stack_entry */
 
 
@@ -745,11 +757,15 @@ top of the throw stack.
             tsep);
   }  /* if */
 #endif /* DEBUG */
-  tsep->discard_entry = TRUE;
   /* If this is a rethrow, get a pointer to the throw stack entry associated
      with the original throw. */
   primary_tsep = tsep->is_rethrow ? tsep->primary_entry : tsep;
-  primary_tsep->use_count--;
+  if (!tsep->discard_entry) {
+    /* If this is the first time the routine has been called for this entry,
+       set the discard flag and decrement the use count. */
+    tsep->discard_entry = TRUE;
+    primary_tsep->use_count--;
+  }  /* if */
   /* If the entry can be destroyed, and the destructor has not already been
      called, then call it now. */
   if (primary_tsep->use_count == 0 && !primary_tsep->dtor_called) {
@@ -1061,7 +1077,7 @@ Rethrow the current thrown object.
 
   /* Find the throw stack entry for the throw currently being handled. */
   for (; tsep != NULL; tsep = tsep->next) {
-    if (tsep->in_handler) break;
+    if (tsep->in_handler && !tsep->is_rethrow) break;
   }  /* for */
   if (tsep == NULL) {
     /* No handler is currently active. */
