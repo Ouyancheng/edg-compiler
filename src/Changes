@@ -30,7 +30,7 @@ not set (they remained [0,0]).  They are now set.
 11/27/02  Spurious error on return statement in Microsoft mode templates
 
 In Microsoft C++ mode with prototype instantiations of function templates
-enabed (option --parse_templates), return statements of functions with
+enabled (option --parse_templates), return statements of functions with
 dependent return types elicited spurious errors.  For example:
 
   template<typename T> T f() {
