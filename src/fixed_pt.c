@@ -200,8 +200,8 @@ negative value has just the sign bit set.
 }  /* set_mantissa_to_saturated_value */
 
 
-static void fxp_negate(a_fixed_point_value	*op_1,
-		       a_boolean		*err)
+void fxp_negate(a_fixed_point_value	*op_1,
+	        a_boolean		*err)
 /*
 Negate a fixed-point value.  The result is returned in the first operand
 (op_1 = -op_1).  err is TRUE if an overflow occurred.
@@ -758,22 +758,23 @@ fxp_descr specifies the format of the fixed-point value.
 static void conv_long_double_to_fixed_point(
 				an_internal_float_value		*fp_value,
 				a_fixed_point_value		*fxp_value,
-				a_fixed_point_type_descr	*fxp_descr)
+				a_fixed_point_type_descr	*fxp_descr,
+				a_boolean			*err)
 /*
 Convert the long double fp_value to fixed-point and store it in fxp_value.
-fxp_descr specifies the format of the fixed-point value.
+fxp_descr specifies the format of the fixed-point value.  Set err if
+the value cannot be converted to the destination type.
 */
 {
   a_mantissa	mantissa;
   long		exponent;
   a_boolean	is_negative;
-  a_boolean	err;
   a_boolean	inexact;
 
   load_hex_fp_value(fp_value, (a_float_kind)fk_long_double, &mantissa,
                     &exponent, &is_negative, /*restore_implicit_bit=*/TRUE);
   conv_mantissa_to_fixed_point(&mantissa, exponent, is_negative, fxp_descr,
-                               /*overflow=*/FALSE, fxp_value, &err, &inexact);
+                               /*overflow=*/FALSE, fxp_value, err, &inexact);
 }  /* conv_long_double_to_fixed_point */
 
 
@@ -795,14 +796,132 @@ If an error occurs (e.g., overflow), err is set to TRUE.
   an_internal_float_value	fp_2;
   an_internal_float_value	fp_result;
   a_boolean			depends_on_fp_mode;
+  a_boolean			conv_err;
 
   *err = FALSE;
   conv_fixed_point_to_long_double(value_1, fxp_descr_1, &fp_1);
   conv_fixed_point_to_long_double(value_2, fxp_descr_2, &fp_2);
   fp_add((a_float_kind)fk_long_double, &fp_1, &fp_2, &fp_result, err,
          &depends_on_fp_mode);
-  conv_long_double_to_fixed_point(&fp_result, result, fxp_descr_result);
+  conv_long_double_to_fixed_point(&fp_result, result, fxp_descr_result,
+                                  &conv_err);
+  if (conv_err) *err = TRUE;
 }  /* fxp_add */
+
+
+void fxp_subtract(a_fixed_point_value      *value_1,
+	          a_fixed_point_type_descr *fxp_descr_1,
+	          a_fixed_point_value      *value_2,
+	          a_fixed_point_type_descr *fxp_descr_2,
+	          a_fixed_point_value      *result,
+	          a_fixed_point_type_descr *fxp_descr_result,
+	          a_boolean                *err)
+/*
+Subtract the fixed-point values value_1 and value_2 and store the value in
+result.  fxp_descr_1, fxp_descr_2, and fxp_descr_result describe the
+format of the fixed-point values of value_1, value_2, and result.
+If an error occurs (e.g., overflow), err is set to TRUE.
+*/
+{
+  an_internal_float_value	fp_1;
+  an_internal_float_value	fp_2;
+  an_internal_float_value	fp_result;
+  a_boolean			depends_on_fp_mode;
+  a_boolean			conv_err;
+
+  *err = FALSE;
+  conv_fixed_point_to_long_double(value_1, fxp_descr_1, &fp_1);
+  conv_fixed_point_to_long_double(value_2, fxp_descr_2, &fp_2);
+  fp_subtract((a_float_kind)fk_long_double, &fp_1, &fp_2, &fp_result, err,
+              &depends_on_fp_mode);
+  conv_long_double_to_fixed_point(&fp_result, result, fxp_descr_result,
+                                  &conv_err);
+  if (conv_err) *err = TRUE;
+}  /* fxp_subtract */
+
+
+void fxp_multiply(a_fixed_point_value      *value_1,
+	          a_fixed_point_type_descr *fxp_descr_1,
+	          a_fixed_point_value      *value_2,
+	          a_fixed_point_type_descr *fxp_descr_2,
+	          a_fixed_point_value      *result,
+	          a_fixed_point_type_descr *fxp_descr_result,
+	          a_boolean                *err)
+/*
+Multiply the fixed-point values value_1 and value_2 and store the value in
+result.  fxp_descr_1, fxp_descr_2, and fxp_descr_result describe the
+format of the fixed-point values of value_1, value_2, and result.
+If an error occurs (e.g., overflow), err is set to TRUE.
+*/
+{
+  an_internal_float_value	fp_1;
+  an_internal_float_value	fp_2;
+  an_internal_float_value	fp_result;
+  a_boolean			depends_on_fp_mode;
+  a_boolean			conv_err;
+
+  *err = FALSE;
+  conv_fixed_point_to_long_double(value_1, fxp_descr_1, &fp_1);
+  conv_fixed_point_to_long_double(value_2, fxp_descr_2, &fp_2);
+  fp_multiply((a_float_kind)fk_long_double, &fp_1, &fp_2, &fp_result, err,
+              &depends_on_fp_mode);
+  conv_long_double_to_fixed_point(&fp_result, result, fxp_descr_result,
+                                  &conv_err);
+  if (conv_err) *err = TRUE;
+}  /* fxp_multiply */
+
+
+void fxp_divide(a_fixed_point_value      *value_1,
+	        a_fixed_point_type_descr *fxp_descr_1,
+	        a_fixed_point_value      *value_2,
+	        a_fixed_point_type_descr *fxp_descr_2,
+	        a_fixed_point_value      *result,
+	        a_fixed_point_type_descr *fxp_descr_result,
+	        a_boolean                *err)
+/*
+Divide the fixed-point values value_1 and value_2 and store the value in
+result.  fxp_descr_1, fxp_descr_2, and fxp_descr_result describe the
+format of the fixed-point values of value_1, value_2, and result.
+If an error occurs (e.g., overflow), err is set to TRUE.
+*/
+{
+  an_internal_float_value	fp_1;
+  an_internal_float_value	fp_2;
+  an_internal_float_value	fp_result;
+  a_boolean			depends_on_fp_mode;
+  a_boolean			conv_err;
+
+  *err = FALSE;
+  conv_fixed_point_to_long_double(value_1, fxp_descr_1, &fp_1);
+  conv_fixed_point_to_long_double(value_2, fxp_descr_2, &fp_2);
+  fp_divide((a_float_kind)fk_long_double, &fp_1, &fp_2, &fp_result, err,
+              &depends_on_fp_mode);
+  conv_long_double_to_fixed_point(&fp_result, result, fxp_descr_result,
+                                  &conv_err);
+  if (conv_err) *err = TRUE;
+}  /* fxp_divide */
+
+
+int fxp_compare(a_fixed_point_value      *value_1,
+	        a_fixed_point_type_descr *fxp_descr_1,
+                a_fixed_point_value      *value_2,
+	        a_fixed_point_type_descr *fxp_descr_2)
+/*
+Compare two fixed-point values and return
+
+       value_1 > value_2   1
+       value_1 = value_2   0
+       value_1 < value_2  -1
+
+This routine requires that a_fixed_point_value be an_integer_value.
+*/
+{
+  int	result;
+
+  result = cmp_integer_values(value_1, !fxp_descr_1->is_unsigned,
+                              value_2, !fxp_descr_2->is_unsigned);
+  return result;
+}  /* fxp_compare */
 
 
 unsigned int fxp_hash(a_fixed_point_value  *value)

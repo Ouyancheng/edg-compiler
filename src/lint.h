@@ -373,6 +373,8 @@ extern int fileno(FILE *);
 /*lint -esym(765,get_integer_attributes)*/
 /*lint -esym(759,mantissa_is_zero)*/
 /*lint -esym(765,mantissa_is_zero)*/
+/*lint -esym(759,conv_mantissa_to_floating_point)*/
+/*lint -esym(765,conv_mantissa_to_floating_point)*/
 #endif /* !FIXED_POINT_EXTENSIONS_ALLOWED */
 #if !NAMED_ADDRESS_SPACES_ALLOWED
 /*lint -esym(759,named_address_spaces_allowed)*/
