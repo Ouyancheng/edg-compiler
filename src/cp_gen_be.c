@@ -266,16 +266,6 @@ Return TRUE if the given type has a definition.
    front end are duplicated here so that cp_gen_be.c can be compiled
    independently of a front end. */
 
-#define type_pointed_to(tp) (skip_typerefs(tp)->variant.pointer.type)
-#define is_pointer_type(tp) \
-  (skip_typerefs(tp)->kind == (a_type_kind)tk_pointer && \
-   !(tp)->variant.pointer.is_reference)
-#define is_reference_type(tp) \
-  (skip_typerefs(tp)->kind == (a_type_kind)tk_pointer && \
-   (tp)->variant.pointer.is_reference)
-#define is_integral_type(tp) \
-  (skip_typerefs(tp)->kind == (a_type_kind)tk_integer)
-
 /* Macro to strip tk_typeref entries from a type. */
 #define skip_typerefs(tp)                                             \
   ((tp)->kind != (a_type_kind)tk_typeref ? (tp) : local_skip_typerefs(tp))
@@ -301,6 +291,34 @@ that ordinarily this routine should not be called directly; use the macro
   }  /* while */
   return(type_ptr);
 }  /* local_skip_typerefs */
+
+
+static a_boolean is_pointer_type(a_type_ptr tp)
+/*
+Return TRUE if the indicated type is a pointer type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return (tp->kind == (a_type_kind)tk_pointer &&
+          !tp->variant.pointer.is_reference);
+}  /* is_pointer_type */
+
+
+static a_boolean is_reference_type(a_type_ptr tp)
+/*
+Return TRUE if the indicated type is a reference type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return (tp->kind == (a_type_kind)tk_pointer &&
+          tp->variant.pointer.is_reference);
+}  /* is_reference_type */
+
+
+#define type_pointed_to(tp) (skip_typerefs(tp)->variant.pointer.type)
+#define is_integral_type(tp) \
+  (skip_typerefs(tp)->kind == (a_type_kind)tk_integer)
+
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -3404,12 +3422,15 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_operation;
         case eok_cast:
           /* Normal casts can be eliminated if they are implicit. */
+          /* But watch out for casts that implement the implicit type decay
+             from array to pointer, or function to pointer. */
           /* This is necessary in cases where a function is called with
              an argument of a type that can be implicitly converted to
              a parameter type that uses a prototype scope type.  There's
              no way to write the cast explicitly, because the type can't
              be named at the call site. */
-          if (expr->variant.operation.compiler_generated) {
+          if (expr->variant.operation.compiler_generated &&
+              !is_pointer_type(expr->type)) {
             gen_expression(operand_1);
           } else {
             gen_cast(expr->type);
