@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1997 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1998 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1451,7 +1451,7 @@ common_cfront_mode_settings:
         fprintf(stderr,
                 "Edison Design Group C/C++ Front End, version %s (%s %s)\n",
                 VERSION_NUMBER, build_date, build_time);
-        fprintf(stderr, "Copyright 1988-1997 Edison Design Group, Inc.\n");
+        fprintf(stderr, "Copyright 1988-1998 Edison Design Group, Inc.\n");
 #ifdef DEMO_VERSION_ID
         fprintf(stderr, "Demonstration version for %s\n", DEMO_VERSION_ID);
 #endif /* ifdef DEMO_VERSION_ID */
@@ -2482,6 +2482,6 @@ proc_command_line handles the first file directly.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1997 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1998 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
