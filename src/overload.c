@@ -50,6 +50,7 @@ Clear a conversion description.
   conv->conversion_for_direct_reference_binding = FALSE;
   conv->copy_initialization_done_as_direct = FALSE;
   conv->user_conversion_for_class_copy_must_be_determined = FALSE;
+  conv->unknown_dependent_conversion   = FALSE;
   clear_std_conv_descr(&conv->std);
 }  /* clear_conv_descr */
 
@@ -8042,8 +8043,6 @@ because of an error.  This routine is used only in C++ mode.
   class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
   cssp = class_symbol->variant.class_struct_union.extra_info;
   source_type = source_operand->type;
-  check_assertion_str(!is_or_contains_template_param(source_type),
-                   "conversion_to_class_possible: conv from templ param type");
   source_qualifiers = get_type_qualifiers(source_type);
   source_type = skip_typerefs(source_type);
   /* candidate_functions will contain the list of viable functions. */
@@ -8076,6 +8075,11 @@ because of an error.  This routine is used only in C++ mode.
        match. */
     conversion->class_identity_or_bitwise_copy = TRUE;
     okay = TRUE;
+  } else if (is_or_contains_template_param(source_type)) {
+    /* Assume we can convert from an unknown type in a prototype
+       instantiation. */
+    okay = TRUE;
+    conversion->unknown_dependent_conversion = TRUE;
   } else {
     /* A same-class bitwise copy is not possible, so do the full overload
        resolution. */
@@ -8251,50 +8255,55 @@ C++ mode.
   db_enter(4, "conversion_from_class_possible");
   /* This routine is similar to select_overloaded_function. */
   clear_conv_descr(conversion);
-  candidate_functions = NULL;
-  check_assertion_str(dest_type == NULL ||
-                      !is_or_contains_template_param(dest_type),
-                   "conversion_from_class_possible: conv to templ param type");
-  /* Find any viable conversion functions. */
-  try_conversion_function_match(source_operand, dest_type,
-                                builtin_types_allowed, need_lvalue_result,
-                                is_copy_initialization,
-                                is_reference_binding,
-                                &candidate_functions);
-  /* Of the viable functions, select the best. */
-  select_best_candidate_functions(&candidate_functions,
-                                  &source_operand->position,
-                                  &undecidable_because_of_error,
-                                  ambiguous);
-  okay = FALSE;
-  if (undecidable_because_of_error) {
-    /* Note that candidate_functions is NULL (select_best_candidate_functions
-       returns it that way in this case), so a NULL ambiguity_list will
-       be returned to indicate "undecidable because of error".  *ambiguous
-       is also set to TRUE. */
-  } else if (candidate_functions == NULL) {
-    /* There are no viable conversion functions. */
-  } else if (*ambiguous) {
-    /* There are several equally desirable functions. */
-#if DEBUG
-    if (debug_level >= 4) {
-      db_candidate_function_list(candidate_functions);
-    }  /* if */
-#endif /* DEBUG */
-  } else {
-    /* There is exactly one best conversion function. */
+  if (dest_type != NULL &&
+      is_or_contains_template_param(dest_type)) {
+    /* Assume a conversion to an unknown type in a prototype instantiation
+       is allowed. */
     okay = TRUE;
-    /* Return information on how the conversion is to be done. */
-    *conversion = candidate_functions->conversion;
-  }  /* if */
-  if (*ambiguous) conversion->unusable = TRUE;
-  if (*ambiguous && ambiguity_list != NULL) {
-    /* Return the candidate functions list to the caller, for use in generating
-       an ambiguity error.  The caller will free the list. */
-    *ambiguity_list = candidate_functions;
+    conversion->unknown_dependent_conversion = TRUE;
   } else {
-    /* Free the candidate functions list. */
-    free_candidate_function_list(candidate_functions);
+    candidate_functions = NULL;
+    /* Find any viable conversion functions. */
+    try_conversion_function_match(source_operand, dest_type,
+                                  builtin_types_allowed, need_lvalue_result,
+                                  is_copy_initialization,
+                                  is_reference_binding,
+                                  &candidate_functions);
+    /* Of the viable functions, select the best. */
+    select_best_candidate_functions(&candidate_functions,
+                                    &source_operand->position,
+                                    &undecidable_because_of_error,
+                                    ambiguous);
+    okay = FALSE;
+    if (undecidable_because_of_error) {
+      /* Note that candidate_functions is NULL (select_best_candidate_functions
+         returns it that way in this case), so a NULL ambiguity_list will
+         be returned to indicate "undecidable because of error".  *ambiguous
+         is also set to TRUE. */
+    } else if (candidate_functions == NULL) {
+      /* There are no viable conversion functions. */
+    } else if (*ambiguous) {
+      /* There are several equally desirable functions. */
+#if DEBUG
+      if (debug_level >= 4) {
+        db_candidate_function_list(candidate_functions);
+      }  /* if */
+#endif /* DEBUG */
+    } else {
+      /* There is exactly one best conversion function. */
+      okay = TRUE;
+      /* Return information on how the conversion is to be done. */
+      *conversion = candidate_functions->conversion;
+    }  /* if */
+    if (*ambiguous) conversion->unusable = TRUE;
+    if (*ambiguous && ambiguity_list != NULL) {
+      /* Return the candidate functions list to the caller, for use in
+         generating an ambiguity error.  The caller will free the list. */
+      *ambiguity_list = candidate_functions;
+    } else {
+      /* Free the candidate functions list. */
+      free_candidate_function_list(candidate_functions);
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
@@ -8934,6 +8943,15 @@ in that case.
       temp_init_by_bitwise_copy_from_operand(operand,
                                              /*result_is_addr=*/FALSE);
     }  /* if */
+  } else if (conversion->unknown_dependent_conversion) {
+    /* Conversion from or to a template-dependent type in a prototype
+       instantiation.  Render as a cast. */
+    an_expr_node_ptr expr;
+    prep_generic_operand(operand);
+    expr = make_node_from_operand(operand);
+    expr = make_operator_node((an_expr_operator_kind)eok_cast, dest_type,
+                              expr);
+    make_expression_operand(expr, dest_type, operand);
   } else if (conversion_routine->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
     /* Conversion function. */

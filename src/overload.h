@@ -43,7 +43,8 @@ typedef struct a_conv_descr *a_conv_descr_ptr;
 typedef struct a_conv_descr {
   a_routine_ptr	routine;
 			/* The conversion routine entry.  NULL if
-			   class_identity_or_bitwise_copy is TRUE or if there
+			   class_identity_or_bitwise_copy or
+			   unknown_dependent_conversion is TRUE or if there
 			   is no user-defined part of the conversion. */
   a_symbol_ptr	routine_symbol;
 			/* Non-NULL only for conversion functions, in which
@@ -100,6 +101,12 @@ typedef struct a_conv_descr {
 			   in overload resolution, but the constructor
 			   to be called must be determined once it's known
 			   that this conversion will be used. */
+  a_byte_boolean
+		unknown_dependent_conversion;
+			/* If TRUE, the conversion is from or to a template
+			   dependent type in a prototype instantiation, and
+			   therefore we cannot know the right constructor
+			   or conversion function to call. */
   a_std_conv_descr
 		std;	/* The standard conversion part of the conversion. */
 } a_conv_descr;
@@ -110,7 +117,8 @@ part.
 */
 #define is_null_user_conv_descr(user_conversion)                      \
   ((user_conversion)->routine == NULL &&                              \
-   !(user_conversion)->class_identity_or_bitwise_copy)
+   !(user_conversion)->class_identity_or_bitwise_copy &&              \
+   !(user_conversion)->unknown_dependent_conversion)
 
 /*
 Macro that returns TRUE if a pointer to a conversion is usable (the
