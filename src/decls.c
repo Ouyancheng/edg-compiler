@@ -1705,8 +1705,8 @@ specification is handled later (see check_throw_specification).
   } else {
     if (func_info->is_main_function) {
       /* main() cannot have a throw specification, since there's no call stack
-         to unwind from main.  Issue an error, but scan it anyway. */
-      pos_error(ec_throw_specification_not_allowed, &pos_curr_token);
+         to unwind from main.  Issue a diagnostic, but scan it anyway. */
+      pos_warning(ec_throw_specification_not_allowed, &pos_curr_token);
     }  /* if */
     tsp = alloc_throw_specification();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -5609,14 +5609,26 @@ otherwise it is NULL.  The syntax is:
          start of a parenthesized initializer (C++ only). */
       /* Advance past the left parenthesis. */
       (void)get_token();
-      if (parenthesized_initializer_allowed &&
-          curr_token != tok_rparen && curr_token != tok_ellipsis) {
+      if (!parenthesized_initializer_allowed) {
+        /* Must be a function. */
+      } else if (locator->specific_symbol != NULL &&
+                 (locator->specific_symbol->kind ==
+                                 (a_symbol_kind)sk_static_data_member ||
+                  locator->specific_symbol->kind ==
+                                 (a_symbol_kind)sk_variable)) {
+        /* Can't be a function, so the "(" must introduce a parenthesized
+           initializer. */
+        *output_flags |= DO_PARENTHESIZED_INITIALIZER;
+        /* Function_declarator should not be called, so exit the loop. */
+        break;
+      } else if (parenthesized_initializer_allowed &&
+                 curr_token != tok_rparen && curr_token != tok_ellipsis) {
         /* The context and other information we have about the declarator do
-           not preclude a parenthesized initializer.  Nor does the token
-           following the left paren.  Be sure the declarator type (which
-           has not yet been assembled) is one for which a parenthesized
-           initializer is legal and see if the token(s) following the
-           left paren are not declarations. */
+           not preclude a parenthesized initializer, nor does the token that
+           follows the left paren.  Be sure the declarator type (which has not
+           yet been assembled) is one for which a parenthesized initializer is
+           legal and see if the token(s) following the left paren are not
+           declarations. */
         a_type_ptr  tp;
 
         tp = derived_type != NULL ? derived_type : complete_type;
