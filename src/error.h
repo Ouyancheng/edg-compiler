@@ -298,7 +298,8 @@ typedef enum /*an_error_code*/ {
   ec_reference_to_reference,
   ec_reference_to_void,
   ec_array_of_reference,
-  ec_missing_initializer
+  ec_missing_initializer,
+  ec_exp_comma
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

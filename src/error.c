@@ -804,6 +804,9 @@ error code.
     case ec_missing_initializer:
       m = "initializer is missing";
       break;
+    case ec_exp_comma:
+      m = "expected a \",\"";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
