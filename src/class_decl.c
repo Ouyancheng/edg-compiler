@@ -10600,14 +10600,16 @@ nested classes when their definition appears outside of the class template.
                               (a_scope_kind)sck_template_instantiation);
         scope_stack[depth].microsoft_specialization_instantiation_scope = TRUE;
       }  /* while */
-    }  /* if */
-    if (delayed_nested_class_def && !is_template_instantiation) {
+    } else if (delayed_nested_class_def && !is_template_instantiation) {
       /* This is a definition of a C++ nested class that appears outside the
          scope of the parent class definition itself.  Reactivate the
          lexical context.  Note that this is done before  the base specifiers
          are scanned so that symbols from the enclosing class are visible.
          For template instantiations, this is done when the template
-         instantiation scope is pushed. */
+         instantiation scope is pushed.  Note that this is not done when
+         a template instantiation scope is pushed for a specialization
+         in Microsoft mode (above) because that process reactivates the
+         enclosing class. */
       push_class_reactivation_scope(tag_sym->parent.class_type);
     }  /* if */
     if (curr_token == tok_colon) {
@@ -10630,7 +10632,8 @@ nested classes when their definition appears outside of the class template.
         err = TRUE;
         /* Clear the base-classes field to avoid problems down the line. */
         class_type->variant.class_struct_union.extra_info->base_classes = NULL;
-        if (delayed_nested_class_def && !is_template_instantiation) {
+        if (!instantiation_scope_pushed &&
+            delayed_nested_class_def && !is_template_instantiation) {
           /* Restore the scope stack to its original state. For template
              instantiations, this is done when the template instantiation
              scope is popped. */
@@ -10979,7 +10982,7 @@ next_declaration:
     }  /* if */
     if (delayed_nested_class_def) {
       /* A nested class defined outside the parent class definition. */
-      if (is_template_instantiation) {
+      if (is_template_instantiation || instantiation_scope_pushed) {
         /* The class reactivation scope is popped along with the template
            instantiation scope. */
       } else {
