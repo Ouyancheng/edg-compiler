@@ -5135,7 +5135,9 @@ typedef struct a_routine {
 			   the routine has a body.  If this field is non-NULL
 			   and the "defined" flag is FALSE during front-end
 			   processing, it means that scanning the function
-			   body has begun but is not yet complete. */
+			   body has begun but is not yet complete.  See
+			   also the note about discarded function bodies
+			   under the "defined" flag. */
 #ifdef CIL
                         /* See also prototype_scope under
                            a_routine_type_supplement. */
@@ -5202,7 +5204,11 @@ typedef struct a_routine {
   a_bit_field	defined:1;
 			/* TRUE once the definition of the function has been
 			   completed.  (While the function body is being
-			   scanned, "defined" remains FALSE.) */
+			   scanned, "defined" remains FALSE.)  Note that
+			   for some functions (e.g., trivial default
+			   constructors), the body is removed immediately
+			   it has been processed, so defined is TRUE when
+			   assoc_scope == NULL_region_number. */
   a_bit_field	called:1;
 			/* TRUE if this routine is directly called.
 			   For virtual functions in C++, this indicates that

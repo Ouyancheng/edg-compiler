@@ -2768,23 +2768,20 @@ specialized, return TRUE if a definition has been supplied for the
 associated template.
 */
 {
-  a_boolean    result = FALSE;
-  a_symbol_ptr sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+  a_boolean	result = FALSE;
 
   if (rp->is_template_function &&
       !rp->is_specialized && !rp->compiler_generated) {
     a_template_symbol_supplement_ptr	tssp;
+    a_symbol_ptr			sym;
     a_symbol_ptr			template_sym;
+    sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
     check_assertion(sym != NULL);
     template_sym = sym->variant.routine.instance_ptr->template_sym;
     tssp = template_supplement_for_symbol(template_sym);
     result = cache_for_template(tssp)->tokens.first_token != NULL;
-  } else if (sym != NULL && sym->defined) {
-    /* Use the defined flag in the symbol if that's available, to avoid
-       confusion regarding routines whose definitions have been deleted. */
+  } else if (routine_has_been_defined(rp)) {
     result = TRUE;
-  } else {
-    result = (rp->assoc_scope != NULL_region_number);
   }  /* if */
   return result;
 }  /* routine_defined */
