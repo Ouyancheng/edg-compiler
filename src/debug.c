@@ -388,22 +388,28 @@ correspondence, do nothing.
     /* Get the entity name. */
     char *name = db_name_str_full(scp, entry_kind,
                                   /*include_func_params=*/FALSE);
-    char *name_with_params = NULL;
+    unsigned long len_of_name_without_params = 0;
     if (entry_kind == (an_il_entry_kind)iek_routine) {
-      /* Also generate a version with parameter types in case it's needed. */
-      name_with_params = db_name_str_full(scp, entry_kind,
-                                          /*include_func_params=*/TRUE);
+      len_of_name_without_params = strlen(name);
+      /* Generate a version with parameter types in case it's needed. */
+      name = db_name_str_full(scp, entry_kind, /*include_func_params=*/TRUE);
     }  /* if */
     /* Compare it against the list of debug requests. */
     for (request = debug_requests; request != NULL; request = request->next) {
       if (request->action == da_name) {
-        char *eff_name = name;
-        char *eff_request_name = request->name;
-        if (name_with_params != NULL &&
-            strchr(eff_request_name, '(') != NULL) {
-          /* The request has a left parenthesis, so compare against the
-             form of the name with parameter types. */
-          eff_name = name_with_params;
+        char      *eff_name = name;
+        char      *eff_request_name = request->name;
+        char      name_char_to_restore = '\0';
+        a_boolean restore_char = FALSE;
+        if (len_of_name_without_params != 0 &&
+            strchr(eff_request_name, '(') == NULL) {
+          /* The request has no left parenthesis, so compare against the
+             form of the name without parameter types.  Truncate the
+             name temporarily by inserting a null character at the right
+             place. */
+          name_char_to_restore = name[len_of_name_without_params];
+          name[len_of_name_without_params] = '\0';
+          restore_char = TRUE;
         }  /* if */
         if (eff_request_name[0] != '[') {
           /* A name on the command line without a translation unit file
@@ -424,6 +430,9 @@ correspondence, do nothing.
           /* A match. */
           result = TRUE;
           break;
+        }  /* if */
+        if (restore_char) {
+          name[len_of_name_without_params] = name_char_to_restore;
         }  /* if */
       }  /* if */
     }  /* for */
