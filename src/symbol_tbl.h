@@ -1491,6 +1491,9 @@ typedef struct a_template_symbol_supplement {
 			/* TRUE if the template was created as a member of
 			   a proxy or nonreal class and does not represent
 			   an actual template declaration. */
+  a_bit_field	is_error:1;
+			/* TRUE if this is an error class template created
+			   for error recovery purposes. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When symbol kind = sk_class_template: */

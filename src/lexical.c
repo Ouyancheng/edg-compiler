@@ -8258,20 +8258,24 @@ this routine.  Its value is unchanged if no errors are detected.
             arg_ptr->variant.templ =
                            error_sym->variant.template_info->il_template_entry;
           }  /* if */
-	} else if (param_ptr->has_default_arg) {
-          /* A constant parameter.  The default value can be either a
-	     constant value or a token cache that needs to be scanned.
-             Call a routine that will rescan the type declaration and/or
-             default argument expression. */
-          (void)rescan_template_constant_parameter
+        } else {
+          /* A nontype argument. */
+          check_assertion(is_nontype_templ_arg(arg_ptr));
+	  if (param_ptr->has_default_arg) {
+            /* A constant parameter.  The default value can be either a
+  	       constant value or a token cache that needs to be scanned.
+               Call a routine that will rescan the type declaration and/or
+               default argument expression. */
+            (void)rescan_template_constant_parameter
                                     (template_sym, sym, param_ptr, arg_list,
                                      /*do_default_arg=*/TRUE, &constant);
-          arg_ptr->variant.constant = constant;
-        } else {
-	  /* A nontype constant without a default argument.  This also only
-	     occurs in error cases.  Use an error constant. */
-          constant = alloc_error_constant();
-          arg_ptr->variant.constant = constant;
+            arg_ptr->variant.constant = constant;
+          } else {
+            /* A nontype constant without a default argument.  This also only
+               occurs in error cases.  Use an error constant. */
+            constant = alloc_error_constant();
+            arg_ptr->variant.constant = constant;
+          }  /* if */
         }  /* if */
         /* Link this entry on to the argument list. */
         if (arg_list == NULL) arg_list = arg_ptr;
@@ -8474,18 +8478,26 @@ a routine to lookup the appropriate instance (or generate one if needed).
       goto skip_processing;
     } else {
       /* There is no template argument list.  If we are in an instantiation of
-          this class template, use the symbol associated with the innermost
-          instantiation of this class, otherwise just return the class
-          template symbol. */
-      new_sym = current_instantiation_sym;
-      if (class_is_being_instantiated) {
+         this class template, use the symbol associated with the innermost
+         instantiation of this class, otherwise just return the class
+         template symbol.  This mechanism is used when class name injection
+         is not enabled.  When class name injection is enabled, the injected
+         name will be found in place of the template in contexts in which
+         the current instance should be used.  When class name injection is
+         not enabled, the current instance will be used except when the
+         template was named with a qualified name. */
+      if (class_is_being_instantiated &&
+          !class_name_injection_enabled &&
+          !locator_for_curr_id.is_qualified_name) {
         /* We have the symbol for the current instantiation of the
            class template. */
+        new_sym = current_instantiation_sym;
         goto normal_exit;
       } else {
         if (options & GID_TEMPLATE_ARGS_OPTIONAL) {
            /* Template arguments are not required -- simply return the
               symbol of the class template. */
+           new_sym = template_sym;
            goto skip_processing;
         } else {
           /* Issue an error and return an error locator. */
@@ -8519,7 +8531,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
   /* Increment the number of template argument lists that are being scanned. */
   scope_stack[depth_scope_stack].pending_templ_arg_lists++;
   if (template_sym != NULL &&
-      !template_sym->variant.template_info->is_nonreal_member) {
+      !template_sym->variant.template_info->is_nonreal_member &&
+      !template_sym->variant.template_info->is_error) {
     /* Scan the template argument list. */
     arg_list = scan_template_argument_list(template_sym, &any_errors);
   } else {

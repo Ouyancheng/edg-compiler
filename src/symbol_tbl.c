@@ -1971,6 +1971,7 @@ and return a pointer to it.
   tssp->il_template_entry = NULL;
   tssp->is_specific_definition = FALSE;
   tssp->is_nonreal_member = FALSE;
+  tssp->is_error = FALSE;
 #if CHECKING 
   tssp->avoid_codecenter_warnings = FALSE;
 #endif /* CHECKING */
@@ -4120,6 +4121,7 @@ Return a pointer to an error class template.
        be nonreal. */
     tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
     tssp->il_template_entry = templ_ptr;
+    tssp->is_error = TRUE;
     error_class_template_symbol = sym;
   }  /* if */
   return error_class_template_symbol;

@@ -826,13 +826,17 @@ values needed for the previous call.
     if (tap != NULL) {
       /* A template argument exists for this parameter. */
       if (is_type_templ_arg(tap)) {
+        check_assertion(param_symbol->kind == (a_symbol_kind)sk_type);
         param_symbol->variant.type.ptr = tap->variant.type;
       } else if (is_template_templ_arg(tap)) {
         /* A template template argument. */
         a_template_symbol_supplement_ptr	tssp;
+        check_assertion(param_symbol->kind ==
+                                           (a_symbol_kind)sk_class_template);
         tssp = template_supplement_for_template(tap->variant.templ);
         param_symbol->variant.template_info = tssp;
       } else {
+        check_assertion(param_symbol->kind == (a_symbol_kind)sk_constant);
         param_symbol->variant.constant = tap->variant.constant;
       }  /* if */
       param_symbol->template_param_not_visible = FALSE;
@@ -866,6 +870,7 @@ declaration is scanned and are used as placeholders between instantiations.
     } else if (param_symbol->kind == (a_symbol_kind)sk_constant) {
       param_symbol->variant.constant = tpp->variant.constant.ptr;
     } else {
+      check_assertion(param_symbol->kind == (a_symbol_kind)sk_class_template);
       param_symbol->variant.template_info = tpp->variant.templ;
     }  /* if */
     param_symbol->template_param_not_visible = FALSE;

@@ -2992,6 +2992,57 @@ done:
 }  /* define_template_static_data_member */
 
 
+static a_boolean equiv_templates_given_supplement(
+				a_template_symbol_supplement_ptr	tssp1,
+				a_template_symbol_supplement_ptr	tssp2)
+/*
+Return TRUE if tssp1 and tssp2 are equivalent.  If either of the
+templates is a "real" template, the pointers must refer to the same
+template.  If they are both "nonreal" (either nonreal members or template
+template parameters), the two templates are equivalent if they have
+equivalent template parameter lists.
+*/
+{
+  a_boolean	result;
+  a_boolean	must_be_identical = TRUE;
+
+  if (tssp1->is_nonreal_member &&
+      tssp2->is_nonreal_member) {
+    must_be_identical = FALSE;
+  } else if (tssp1->variant.class_template.template_template_param &&
+             tssp2->variant.class_template.template_template_param) {
+    must_be_identical = FALSE;
+  }  /* if */
+  if (must_be_identical) {
+    result = tssp1 == tssp2;
+  } else {
+    result = equiv_template_param_lists(tssp1->cache.decl_info->parameters,
+                                        tssp2->cache.decl_info->parameters,
+				        /*issue_errors=*/FALSE,
+				        (a_source_position*)NULL);
+  }  /* if */
+  return result;
+}  /* equiv_templates_given_supplement */
+
+
+static a_boolean equiv_templates(a_template_ptr	templ1,
+				 a_template_ptr	templ2)
+/*
+Return TRUE if the templates specified by templ1 and templ2 are equivalent.
+*/
+{
+  a_symbol_ptr	sym1;
+  a_symbol_ptr	sym2;
+  a_boolean	result;
+
+  sym1 = (a_symbol_ptr)templ1->source_corresp.assoc_info;
+  sym2 = (a_symbol_ptr)templ2->source_corresp.assoc_info;
+  result = equiv_templates_given_supplement(sym1->variant.template_info,
+                                            sym2->variant.template_info);
+  return result;
+}  /* equiv_templates */
+
+
 a_boolean equiv_template_arg_lists(
 				a_template_arg_ptr list1,
 				a_template_arg_ptr list2,
@@ -3090,7 +3141,7 @@ the same constant.
       if (!equiv) break;
     } else {
       /* A template template argument. */
-      if (arg1->variant.templ == arg2->variant.templ) {
+      if (equiv_templates(arg1->variant.templ, arg2->variant.templ)) {
         /* Okay. */
       } else {
         equiv = FALSE;
@@ -7083,23 +7134,6 @@ structure.
 }  /* find_template_function */
 
 
-static a_boolean equiv_templates(a_template_symbol_supplement_ptr	tssp1,
-				 a_template_symbol_supplement_ptr	tssp2)
-/*
-Return TRUE if tssp1 and tssp2 are equivalent.  Two templates are
-equivalent if they have equivalent template parameter lists.
-*/
-{
-  a_boolean				result;
-
-  result = equiv_template_param_lists(tssp1->cache.decl_info->parameters,
-                                      tssp2->cache.decl_info->parameters,
-				      /*issue_errors=*/FALSE,
-				      (a_source_position*)NULL);
-  return result;
-}  /* equiv_templates */
-
-
 static
 a_boolean check_template_param_nesting_depths(a_template_param_ptr param_list,
                                               a_symbol_ptr	   class_sym)
@@ -7172,7 +7206,8 @@ describing any incompatibilities.
     } else {
       /* Template template parameters.  Compare the two templates. */
       check_assertion(old_sym->kind == (a_symbol_kind)sk_class_template);
-      err = equiv_templates(old_tpp->variant.templ, new_tpp->variant.templ);
+      err = !equiv_templates_given_supplement(old_tpp->variant.templ,
+                                              new_tpp->variant.templ);
     }  /* if */
     if (err) {
       if (issue_errors) {
@@ -7304,10 +7339,14 @@ list (the one specified by param_list).
         if (def_arg_involves_template_param) {
           to_tpp->default_arg.cache = from_tpp->default_arg.cache;
         } else {
-          if (new_tpp->param_symbol->kind == (a_symbol_kind)sk_constant) {
+          a_symbol_kind	new_sym_kind = new_tpp->param_symbol->kind;
+          if (new_sym_kind == (a_symbol_kind)sk_constant) {
             to_tpp->default_arg.constant = from_tpp->default_arg.constant;
-          } else {
+          } else if (new_sym_kind == (a_symbol_kind)sk_constant) {
             to_tpp->default_arg.type = from_tpp->default_arg.type;
+          } else {
+            check_assertion(new_sym_kind == (a_symbol_kind)sk_class_template);
+            to_tpp->default_arg.templ = from_tpp->default_arg.templ;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -7827,8 +7866,11 @@ the names of the template parameters specified by templ_param_list.
     param_sym = tpp->param_symbol;
     if (param_sym->kind == (a_symbol_kind)sk_type) {
       tap->variant.type = param_sym->variant.type.ptr;
-    } else {
+    } else if (param_sym->kind == (a_symbol_kind)sk_constant) {
       tap->variant.constant = param_sym->variant.constant;
+    } else {
+      check_assertion(param_sym->kind == (a_symbol_kind)sk_class_template);
+      tap->variant.templ = param_sym->variant.template_info->il_template_entry;
     }  /* if */
   }  /* for */
 } /* rename_prototype_arg_list */
