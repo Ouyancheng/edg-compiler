@@ -6822,7 +6822,7 @@ processing of function definition.
   ptp = extra_info->param_type_list;
 #if CHECKING
   if ((param_id == NULL) != (ptp == NULL)) {
-    internal_error("inline_function_definion: param_id and ptp out of sync");
+    internal_error("inline_function_definition: param_id and ptp out of sync");
   }  /* if */
 #endif /* CHECKING */
   for (; param_id != NULL;
@@ -6833,7 +6833,8 @@ processing of function definition.
     (void)make_parameter(ptp->type, param_id->storage_class, param_symbol_ptr);
 #if CHECKING
     if ((param_id->next == NULL) != (ptp->next == NULL)) {
-      internal_error("inline_function_definion: param_id and ptp out of sync");
+      internal_error(
+                   "inline_function_definition: param_id and ptp out of sync");
     }  /* if */
 #endif /* CHECKING */
   }  /* for */
