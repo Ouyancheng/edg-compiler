@@ -6436,14 +6436,7 @@ tricks.
      want to avoid generating incorrect code. */
   ptr_node = add_cast_if_necessary(
                    ptr_node, implicit_this_param_type_of(dtor_routine->type));
-#if !IA64_ABI
-  /* Add an implicit parameter to the destructor call with bits
-     0x2 (whole object) + 0x1 (free storage, if deallocate is TRUE). */
-  bit_mask = 2L;
-  if (delete_routine == NULL) bit_mask |= 1L;
-  ptr_node->next = node_for_integer_constant(bit_mask,
-                                             (an_integer_kind)ik_int);
-#else /* IA64_ABI */
+#if IA64_ABI
   /* Call the deleting version of the destructor.  However, for a class
      with a non-virtual destructor, call the complete object destructor
      and then call the delete routine.  The IA-64 ABI spec requires this
@@ -6488,6 +6481,14 @@ tricks.
        building the call of the delete routine. */
     ptr_node_delete = make_reusable_copy(ptr_node, /*vars_can_change=*/TRUE);
   }  /* if */
+#if !IA64_ABI
+  /* Add an implicit parameter to the destructor call with bits
+     0x2 (whole object) + 0x1 (free storage, if deallocate is TRUE). */
+  bit_mask = 2L;
+  if (delete_routine == NULL) bit_mask |= 1L;
+  ptr_node->next = node_for_integer_constant(bit_mask,
+                                             (an_integer_kind)ik_int);
+#endif /* !IA64 */
   /* Make a call of the destructor. */
   call_node = make_call_node(dtor_routine, ptr_node, /*honor_virtual=*/TRUE,
                              (an_insert_location *)NULL);
