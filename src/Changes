@@ -1,5 +1,14 @@
 Version 2.39
 
+6/5/98    Microsoft compatibility: pure specifier on function definition
+
+In Microsoft compatibility mode a pure specifier may appear on a virtual
+funtion definition:
+
+  class A {
+    virtual void f() = 0 { ... }    // No syntax error in Microsoft mode
+  };
+
 6/4/98    --ii_file_name option should not affect PCH usage
 
 The --ii_file_name option affected whether a given PCH file could be

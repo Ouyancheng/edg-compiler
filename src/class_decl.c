@@ -9546,15 +9546,34 @@ to be returned to the caller.
     if (!C_mode() && is_function_type(local_type) &&
         decl_info.storage_class != (a_storage_class)sc_typedef) {
       /* Member or friend function. */
-      a_boolean  function_def_present;
+      a_boolean  function_def_present = FALSE;
 
       if (mutable_specified) {
         /* "mutable" is only allowed on nonstatic data member decls. */
         pos_error(ec_mutable_not_allowed, &decl_start_pos);
       }  /* if */
-      function_def_present = ((curr_token == tok_lbrace) ||
-                              (decl_info.is_constructor &&
-                               (curr_token == tok_colon)));
+      if ((curr_token == tok_lbrace) ||
+          (decl_info.is_constructor && (curr_token == tok_colon))) {
+        function_def_present = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (microsoft_mode && curr_token == tok_assign) {
+        /* In Microsoft compatibility mode the pure specifier is permitted
+           on a definition; it's usually a syntax error. */
+        a_token_cache  cache;
+
+        clear_token_cache(&cache, /*reusable=*/FALSE);
+        /* Put the current token in the cache. */
+        cache_curr_token(&cache);
+        /* Advance to what may be "0". */
+        if (get_token() == tok_int_constant) {
+          cache_curr_token(&cache);
+          /* Advance past it and see if the next token is a left brace. */
+          if (get_token() == tok_lbrace) function_def_present = TRUE;
+        }  /* if */
+        /* Restore the lexical state. */
+        rescan_cached_tokens(&cache);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
       if (function_def_present && !decl_info.is_first_in_declarator_list) {
         pos_error(ec_exp_semicolon, &pos_curr_token);
       }  /* if */
@@ -9707,6 +9726,11 @@ to be returned to the caller.
       } else {
         done_with_func_info(func_info);
       }  /* if */
+      if (curr_token == tok_assign) {
+        /* Look for a pure specifier ("= 0"), which may appear on virtual
+           functions. */
+        scan_pure_specifier(rout_sym, class_type, &decl_info);
+      }  /* if */
       if (function_def_present) {
         a_token_sequence_number  first_token_number;
         a_token_sequence_number  last_token_number;
@@ -9768,12 +9792,9 @@ to be returned to the caller.
         goto next_declaration;
       } else {
         /* Not a function definition. */
-        if (curr_token == tok_assign) {
-          /* Look for a pure specifier ("= 0"), which may appear on virtual
-             functions. */
-          scan_pure_specifier(rout_sym, class_type, &decl_info);
-        } else if (!friend_specified) {
-          if (rout_sym->variant.routine.ptr->is_virtual) {
+        if (!friend_specified) {
+          if (rout_sym->variant.routine.ptr->is_virtual &&
+              !rout_sym->variant.routine.ptr->pure_virtual) {
             /* Virtual member function. */
             if (class_state->is_local_class) {
               /* A member function declared in a local class definition
