@@ -1903,7 +1903,7 @@ end_all_args_scan:;
         /* Other section kinds have an associated parameter number. */
         get_arg_value(rts_number, map);
         switch (rts_kind) {
-          case rt_left_raw_argument:
+          case rt_raw_argument:
           case rt_right_raw_argument:
             sect_len = map->raw_len;
             break;
@@ -1960,7 +1960,7 @@ end_all_args_scan:;
         /* Other section kinds have an associated parameter number. */
         get_arg_value(rts_number, map);
         switch (rts_kind) {
-          case rt_left_raw_argument:
+          case rt_raw_argument:
           case rt_right_raw_argument:
             sect_len = map->raw_len;
             text_loc = map->raw_text;
@@ -2441,14 +2441,17 @@ Create an IL entry for the macro described by macro_sym.
           }  /* for */
         }  /* for */
         break;
-      case rt_left_raw_argument:
-        /* parameter ## normal or parameter ## parameter. */
+      case rt_raw_argument:
+        /* parameter ## normal or parameter ## parameter, or pcc-mode
+           parameter. */
         put_string_into_temp_buffer(macro_param_name(rts_number, mdp), &pos);
-        put_string_into_temp_buffer("##", &pos);
-        /* If this is the parameter ## parameter case, suppress the "##"
-           when the second parameter is processed. */
-        if ((a_repl_text_seq_kind)*ptr == rt_right_raw_argument) {
-          suppress_paste = TRUE;
+        if (C_dialect != C_dialect_pcc) {
+          put_string_into_temp_buffer("##", &pos);
+          /* If this is the parameter ## parameter case, suppress the "##"
+             when the second parameter is processed. */
+          if ((a_repl_text_seq_kind)*ptr == rt_right_raw_argument) {
+            suppress_paste = TRUE;
+          }  /* if */
         }  /* if */
         break;
       case rt_right_raw_argument:
@@ -2758,8 +2761,7 @@ Scan and process a #define directive.
           if (mdefn_get_token(param_list, &param_num,
                               &any_white_space_skipped) == tok_paste ||
               pcc_preprocessing_mode) {
-            put_start_of_non_text_section(rt_left_raw_argument,
-                                          save_param_num);
+            put_start_of_non_text_section(rt_raw_argument, save_param_num);
           } else {
             /* Not "##", so put expanded version of argument into string. */
             put_start_of_non_text_section(rt_argument, save_param_num);
@@ -2825,8 +2827,8 @@ Scan and process a #define directive.
             fputs("\"\n", f_debug);
             temp_ptr += rts_number;
             break;
-          case rt_left_raw_argument:
-            fprintf(f_debug, "  left raw argument %lu\n",
+          case rt_raw_argument:
+            fprintf(f_debug, "  raw argument %lu\n",
                              (unsigned long)rts_number);
             break;
           case rt_right_raw_argument:
