@@ -656,7 +656,8 @@ of which type is an instance.  Return NULL otherwise.
 
 /* Returns TRUE if ns is the "std" namespace. */
 #define is_namespace_std(ns) \
-  ((a_symbol_ptr)(ns)->source_corresp.assoc_info == symbol_for_namespace_std)
+  (symbol_for_namespace_std != NULL && \
+   f_same_entities((ns), symbol_for_namespace_std->variant.namespace_info.ptr))
 
 /* Returns TRUE if scp is the source correspondence for an entity that is a
    member of the "std" namespace. */
