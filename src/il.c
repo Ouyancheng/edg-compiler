@@ -3856,7 +3856,7 @@ fields, and add it to the file-scope types list.
 }  /* add_placeholder_for_namespace_type */
 
 
-static void add_placeholder_for_class_instantiation(a_type_ptr  type_ptr)
+void add_placeholder_for_class_instantiation(a_type_ptr  type_ptr)
 /*
 When an instantiation occurs in the midst of a class definition, the
 instantiation may be dependent upon nested types from the class.  The
@@ -3884,6 +3884,7 @@ instantiations) below that on the scope stack.
   a_class_symbol_supplement_ptr  cssp;
   a_type_ptr                     inst_placeholder, inst_placeholder_parent;
 
+  db_enter(4, "add_placeholder_for_class_instantiation");
   ssep = &scope_stack[scope_depth];
   cssp = symbol_supplement_for_class(type_ptr);
   if (type_ptr->
@@ -3962,6 +3963,7 @@ instantiations) below that on the scope stack.
       cssp->partial_instantiation_placeholder = inst_placeholder;
     }  /* if */
   }  /* if */
+  db_exit();
 }  /* add_placeholder_for_class_instantiation */
 
 
@@ -4127,18 +4129,6 @@ determined directly.
         && !il_lowering_underway
 #endif /* DO_IL_LOWERING */
                                 ) {
-      if (is_immediate_class_type(type_ptr)) {
-        a_class_symbol_supplement_ptr cssp =
-                                        symbol_supplement_for_class(type_ptr);
-        if (cssp->is_instance && !cssp->is_nonreal_class) {
-          /* A class template instantiation (or a nontemplate class nested
-             in a template class); if it appears inside a class definition,
-             a placeholder typeref must often be added to the types list for
-             the class; if one had already been entered, it may have to be
-             removed. */
-          add_placeholder_for_class_instantiation(type_ptr);
-        }  /* if */
-      }  /* if */
       if (sp->kind == (a_scope_kind)sck_namespace) {
         /* Move the associated placeholder typedef (there ought to be one) to
            the end of the file-scope types list. */
