@@ -735,8 +735,7 @@ the final null of the concatenated string; see 3.1.4.
   char          *new_str;
   a_boolean     wide_strings;
 
-  if (first_string ->kind == (a_constant_repr_kind)ck_error ||
-      second_string->kind == (a_constant_repr_kind)ck_error) {
+  if (is_error_constant(first_string) || is_error_constant(second_string)) {
     /* One or the other of the strings had an error, leave the second
        string as is. */
   }  else {

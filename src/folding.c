@@ -1114,7 +1114,7 @@ diagnostics issued.
   *did_not_fold = FALSE;
   err_code = ec_no_error;
   err_severity = es_warning;
-  if (constant->kind == (a_constant_repr_kind)ck_error) {
+  if (is_error_constant(constant)) {
     /* The constant is an error constant; set the result to an error
        constant and return. */
     set_error_constant(result);
@@ -2339,8 +2339,7 @@ reason.  *err_pos is used as the position for any diagnostics issued.
   err_code = ec_no_error;
   err_severity = es_warning;
 
-  if ((constant_1->kind == (a_constant_repr_kind)ck_error) ||
-      (constant_2->kind == (a_constant_repr_kind)ck_error)) {
+  if (is_error_constant(constant_1) || is_error_constant(constant_2)) {
     /* One and/or the other of the constants is an error constant; set the
        result to an error constant and return. */
     set_error_constant(result);
@@ -2514,7 +2513,7 @@ field cannot be passed as a constant.
 
   *did_not_fold = FALSE;
   copy_constant(constant_1, result);
-  if (constant_1->kind == (a_constant_repr_kind)ck_error) {
+  if (is_error_constant(constant_1)) {
     /* An error constant stays the same. */
   } else if (field->bit_size != 0) {
     /* Cannot fold bit-field selection. */
