@@ -1,5 +1,10 @@
 Version 2.10
 
+9/15/92  Small change to overload resolution
+
+A one-line change to determine_arg_match_level in exprutil.c to
+drop type qualifiers.
+
 -------------------------------------------------------------------------------
 Version 2.09, September 15, 1992
 
