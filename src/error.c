@@ -1647,6 +1647,9 @@ error code.
     case ec_delete_of_function_pointer:
       m = "a pointer to function may not be deleted";
       break;
+    case ec_bad_conversion_function_decl:
+      m = "conversion function must be a nonstatic member function";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
