@@ -548,14 +548,6 @@ static a_boolean
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
-Flag that indicates whether a dollar sign was found in any identifiers.
-Used in strict ANSI mode to make sure that this diagnostic is only given
-once per compilation unit.
-*/
-static a_boolean
-		dollar_in_id_diagnostic_issued;
-
-/*
 Head of a list of history information about include files that have
 been processed.  Used to suppress subsequence inclusions of the same
 file.
@@ -14216,7 +14208,6 @@ of the front end.
   avail_reusable_cache_entries = NULL;
   avail_stop_token_stack_entries = NULL;
   avail_pending_pragmas = NULL;
-  dollar_in_id_diagnostic_issued = FALSE;
   token_insertion_buffer = NULL;
   in_token_insertion_from_string = FALSE;
   token_insertion_position = null_source_position;
