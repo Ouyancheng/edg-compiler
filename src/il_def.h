@@ -1495,15 +1495,16 @@ EXTERN char     *db_special_function_kinds[(int)sfk_last + 1]
 #endif /* DEBUG */
 #endif /* ifdef CIL */
 
-/* Numbering for virtual functions.  Each virtual member function in a given
-   class is assigned a unique number.  Although no specific implementation
-   of virtual function calls is predetermined by the front end, this number
-   be used as an virtual function table index value. */
-typedef unsigned short a_virtual_function_number;
-
 /*
 Data structures related to routines:
 */
+/* Numbering for virtual functions.  Each virtual member function in a given
+   class is assigned a unique number.  Although no specific implementation
+   of virtual function calls is predetermined by the front end, this number
+   can be used as a virtual function table index value. */
+typedef short a_virtual_function_number;
+#define MAX_VIRTUAL_FUNCTIONS_PER_CLASS SHRT_MAX
+
 typedef struct a_routine {
   /* Description of a routine.  Note that this is pointed to from a scope
      block, and the local variables (etc.) are declared there. */
