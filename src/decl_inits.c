@@ -1608,48 +1608,42 @@ scan_arg_for_scan_initialization:
            constructor.  Any subobject constructors must also be copy
            constructors, and fields and base classes that have no constructor
            must be accounted for, too. */
-        if (cssp == NULL || cssp->constructor == NULL) {
-          /* No constructor for field or base class.  Record the necessity
-             for a bitwise copy. */
+        a_boolean  class_bitwise_copy = FALSE;
+
+        /* The flag const_object_okay describes whether the top-level
+           constructor can accept a const object for copying; if it can,
+           then all constructors called to copy subobjects *must* accept a
+           const object for copying (a conclusion based in part on ARM 12.8).
+           By extension, the same applies to the volatile qualifier.  Thus
+           the parameter name on the other end of this call stipulates a
+           requirement on the search for a copy constructor.  If construction
+           by bitwise copy is allowed for this class, class_bitwise_copy will
+           be returned TRUE. */
+        rp = select_copy_constructor(tp,
+                                     const_object_okay, volatile_object_okay,
+                                     &error_position, &class_bitwise_copy);
+        if (class_bitwise_copy) {
+          /* Construction by bitwise copy is allowed. */
           if (cip->kind == (a_constructor_init_kind)cik_field) {
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_member_copy);
           } else {
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_base_class_copy);
           }  /* if */
-#if CHECKING
-        } else if (!cssp->has_copy_constructor) {
-            internal_error("ctor_initializer: missing copy constructor");
-#endif /* CHECKING */
+        } else if (rp == NULL) {
+          /* The copy constructor was invalid in some way or other. */
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
         } else {
-          /* Constructor initialization is required (not a bitwise copy), so
-             find the copy constructor for this field or base class. */
-          /* The flag const_object_okay describes whether the top-level
-             constructor can accept a const object for copying; if it can,
-             then all constructors called to copy subobjects *must* accept a
-             const object for copying (a conclusion based in part on ARM 12.8).
-             By extension, the same applies to the volatile qualifier.  Thus
-             the parameter name on the other end of this call stipulates a
-             requirement on the search for a copy constructor. */
-          rp = select_copy_constructor(
-                                    tp, /*const_required=*/const_object_okay,
-                                    /*volatile_required=*/volatile_object_okay,
-                                    &error_position);
-          if (rp == NULL) {
-            /* The copy constructor was invalid in some way or other. */
-            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-          } else {
-            /* A valid copy constructor does exist.  Generate the dynamic init
-               entry. */
-            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-            dip->variant.constructor.routine = rp;
-            /* No expression node is created to represent the subobject.  The
-               back end will compute the subobject's address based on the
-               base class or field just as it will compute the address of the
-               implicit "this" parameter, which is the address of the subobject
-               to be initialized by the copy. */
-            dip->variant.constructor.args = NULL;
-            dip->variant.constructor.is_copy_constructor_for_subobject = TRUE;
-          }  /* if */
+          /* A valid copy constructor does exist.  Generate the dynamic init
+             entry. */
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+          dip->variant.constructor.routine = rp;
+          /* No expression node is created to represent the subobject.  The
+             back end will compute the subobject's address based on the
+             base class or field just as it will compute the address of the
+             implicit "this" parameter, which is the address of the subobject
+             to be initialized by the copy. */
+          dip->variant.constructor.args = NULL;
+          dip->variant.constructor.is_copy_constructor_for_subobject = TRUE;
         }  /* if */
       } else {
         /* No copy constructor is required.  If any constructor exists, the
