@@ -4302,13 +4302,28 @@ of type_ptr should be added.  *end_of_list points to the end of the preorder
 list.  Returns a pointer to the new end of the list.
 */
 {
-  a_base_class_ptr bcp, disambiguator, new_base, old_base;
+  a_base_class_ptr first_base, bcp, disambiguator, new_base, old_base;
+  a_base_class_sequence_number next_base;
 
-  /* Walk through the direct bases of type_ptr. */
-  for (bcp = base_classes_of((base == NULL) ? type_ptr : base->type); 
-       bcp != NULL; bcp = bcp->next) {
-    /* Skip indirect base classes. */
-    if (!bcp->direct) continue;
+  first_base = base_classes_of((base == NULL) ? type_ptr : base->type);
+  /* Skip to the end if this type has no base classes.  */
+  if (first_base == NULL) goto done;
+  bcp = first_base;
+  for (next_base = 1; ; next_base++) {
+    a_base_class_ptr start = bcp;
+    /* Look for the base with the next sequence number. */
+    while (bcp->direct_base_number != next_base) {
+      bcp = bcp->next;
+      if (bcp == NULL) {
+        bcp = first_base;
+      }  /* if */
+      /* If we get back to the place where we started, then there is no next
+         base.  */
+      if (bcp == start) break;
+    }  /* while */
+    /* If there was no base with the next sequence number then we have reached
+       the end of the list.  */
+    if (bcp->direct_base_number != next_base) break;
     /* Find the base of type_ptr that corresponds to bcp. */
     if (base == NULL) {
       new_base = bcp;
@@ -4316,9 +4331,11 @@ list.  Returns a pointer to the new end of the list.
       disambiguator = find_disambiguator(base, bcp);
       new_base = corresponding_base_class(bcp, type_ptr, disambiguator);
     } /* if */
-    /* If the new_base is virtual, we may already have a copy on the list. */
+    /* If the new_base is virtual, we may already have a copy on the
+       list. */
     if (new_base->is_virtual) {
-      for (old_base = preorder_base_classes_of(type_ptr); old_base != NULL;
+      for (old_base = preorder_base_classes_of(type_ptr); 
+           old_base != NULL;
            old_base = old_base->next_preorder) {
         if (old_base == new_base) break;
       }  /* for */
@@ -4333,6 +4350,7 @@ list.  Returns a pointer to the new end of the list.
     end_of_list = compute_preorder_base_classes(type_ptr, new_base,
                                                 end_of_list);
   }  /* for */
+done:
   return end_of_list;
 }  /* compute_preorder_base_classes */
 
