@@ -1,5 +1,12 @@
 Version 3.5
 
+10/26/04 Embedded C: Conversion of negative fixed-point value to unsigned int
+
+A diagnostic is now issued on a compile-time conversion of a negative
+fixed-point value to an unsigned integer type.
+
+  unsigned long long l = -1.0k;
+
 10/26/04 Microsoft compatibility: __declspec and field declarations
 
 The front end previously silently ignored most __declspec specifiers on field

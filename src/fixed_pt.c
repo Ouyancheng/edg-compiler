@@ -703,6 +703,9 @@ to be issued; otherwise set err_code to ec_no_error.
   a_fixed_point_type_descr
 			*fxp_descr;
   an_integer_value	int_value;
+  an_integer_kind	ikind;
+  a_boolean		is_signed;
+  int			bit_size;
 
   check_assertion(old_constant->kind == (a_constant_repr_kind)ck_fixed_point);
   set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer);
@@ -715,6 +718,11 @@ to be issued; otherwise set err_code to ec_no_error.
   /* Convert and store the mantissa as an integer value. */
   make_integer_value_from_mantissa(&int_value, is_negative,
                                    &mantissa, exponent, &err);
+  /* Determine attributes (size, signedness) of the integer kind. */
+  get_integer_attributes(new_constant, &ikind, &is_signed, &bit_size);
+  /* If the value is negative and the destination is unsigned, issue as
+     diagnostic. */
+  if (is_negative && !is_signed) err = TRUE;
   if (err) {
     /* The conversion to integer does not fit in the result type.  This case
        occurs only if the fixed-point type does not fit in even the largest
