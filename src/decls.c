@@ -997,6 +997,7 @@ current scope.
   }  /* if */
   /* Allocate a variable to represent the anonymous union. */
   vp = make_variable(anon_union_type, storage_class, at_file_scope);
+  vp->is_anonymous_parent_object = TRUE;
   /* Promote the fields of the anonymous union to the current scope, and do
      some error checking on the anonymous union's members. */
   assoc_object_sym = make_anonymous_parent_object_symbol(
