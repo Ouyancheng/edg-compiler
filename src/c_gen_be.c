@@ -2217,7 +2217,7 @@ Print a typedef declaration.
 
 static void dump_enum_definition(a_type_ptr type)
 /*
-Output the definition of the indicated enum type.
+Output the definition of the indicated enum type.  No final ";" is added.
 */
 {
   a_constant_ptr enum_con;
@@ -2270,7 +2270,7 @@ Output the definition of the indicated enum type.
     write_tok_ch(',');
     incr_integer_value(&next_enum_value.variant.integer_value);
   }  /* for */
-  write_tok_str("};");
+  write_tok_ch('}');
 #if !C_GEN_BE_GENERATES_ANSI_C
   /* Close the #if 0 started above. */
   write_endif_0_directive();
@@ -2281,140 +2281,136 @@ done:;
 
 static void dump_struct_union_definition(a_type_ptr type)
 /*
-Output the definition of the indicated struct or union type.
+Output the definition of the indicated struct or union type.  No final ";"
+is added.
 */
 {
   a_field_ptr field;
 
   type->definition_put_out = TRUE;
-  if (start_unreferenced_bracket(&type->source_corresp)) {
-    /* Dump any pragmas associated with the type. */
-    dump_decl_associated_pragmas(&type->source_corresp);
-    set_output_position(&type->source_corresp.decl_position);
-    write_tok_str(tag_kind(type->kind));
-    write_space();
-    dump_type_name(type);
-    write_tok_str(" {");
-    indent += 2;
-    for (field = type->variant.class_struct_union.field_list;
-         field != NULL;
-         field = field->next) {
-      set_output_position(&field->source_corresp.decl_position);
-      if (!field->is_bit_field) {
-        /* Not a bit field. */
-        /* Note that a name will be generated for an anonymous union in C++. */
+  /* Dump any pragmas associated with the type. */
+  dump_decl_associated_pragmas(&type->source_corresp);
+  set_output_position(&type->source_corresp.decl_position);
+  write_tok_str(tag_kind(type->kind));
+  write_space();
+  dump_type_name(type);
+  write_tok_str(" {");
+  indent += 2;
+  for (field = type->variant.class_struct_union.field_list;
+       field != NULL;
+       field = field->next) {
+    set_output_position(&field->source_corresp.decl_position);
+    if (!field->is_bit_field) {
+      /* Not a bit field. */
+      /* Note that a name will be generated for an anonymous union in C++. */
+      /* Note that "const" is dropped; that's important so that
+         initialization code rewritten as executable code by IL lowering
+         can assign to this member and the overall struct. */
+      dump_general_declaration_using_type(field->type,
+                                          &field->source_corresp,
+                                          NO_VARIABLE, NO_TEMP,
+                                          /*suppress_const=*/TRUE);
+      write_tok_ch(';');
+    } else {
+      /* Bit field. */
+#if !C_GEN_BE_GENERATES_ANSI_C
+      if (type->kind == (a_type_kind)tk_union) {
+        /* When generating K&R C, don't generate bit fields in unions
+           because pcc doesn't allow them. */
+        /* Don't put out unnamed bit fields.  That's important to keep
+           the first initializable field first. */
+        if (has_name(field)) {
+          a_type_ptr       eff_type = field->type;
+          a_type_ptr       under_type = skip_typerefs(eff_type);
+          a_targ_size_t    union_size = type->size;
+          a_targ_alignment union_alignment = type->alignment;
+          a_type           local_type;
+          /* If the underlying type is bigger than the size allocated for
+             the union, use a smaller integral type. */
+          if (under_type->size > union_size ||
+              under_type->alignment > union_alignment) {
+            /* Find the largest integral type with the right signedness that
+               will fit in the union. */
+            an_integer_kind  ikind, eff_ikind;
+            a_targ_size_t    int_size;
+            a_targ_alignment int_alignment;
+            for (ikind = (an_integer_kind)ik_unsigned_int; ; ikind--) {
+              get_integer_size_and_alignment(ikind, &int_size, &int_alignment);
+              if (int_size <= union_size &&
+                  int_alignment <= union_alignment &&
+                  int_kind_is_signed[(int)ikind] ==
+                                                  field->bit_field_is_signed) {
+                /* This size is okay. */
+                eff_ikind = ikind;
+                break;
+              }  /* if */
+            }  /* for */
+            /* Make a local type (not allocated in the IL) that is the right
+               integer type.  We can't use integer_type in a "back end". */
+            local_type = *under_type;
+            eff_type = &local_type;
+            check_assertion(local_type.kind == (a_type_kind)tk_integer);
+            local_type.variant.integer.int_kind = eff_ikind;
+          }  /* if */
+          dump_general_declaration_using_type(eff_type,
+                                              &field->source_corresp,
+                                              NO_VARIABLE, NO_TEMP,
+                                              /*suppress_const=*/TRUE);
+          write_tok_ch(';');
+        }  /* if */
+      } else
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+      {
+        /* Put out a bit field declaration. */
+        /* Generate the bit field type to match the signedness. */
         /* Note that "const" is dropped; that's important so that
            initialization code rewritten as executable code by IL lowering
            can assign to this member and the overall struct. */
-        dump_general_declaration_using_type(field->type,
-                                            &field->source_corresp,
-                                            NO_VARIABLE, NO_TEMP,
-                                            /*suppress_const=*/TRUE);
-        write_tok_ch(';');
-      } else {
-        /* Bit field. */
-#if !C_GEN_BE_GENERATES_ANSI_C
-        if (type->kind == (a_type_kind)tk_union) {
-          /* When generating K&R C, don't generate bit fields in unions
-             because pcc doesn't allow them. */
-          /* Don't put out unnamed bit fields.  That's important to keep
-             the first initializable field first. */
-          if (has_name(field)) {
-            a_type_ptr       eff_type = field->type;
-            a_type_ptr       under_type = skip_typerefs(eff_type);
-            a_targ_size_t    union_size = type->size;
-            a_targ_alignment union_alignment = type->alignment;
-            a_type           local_type;
-            /* If the underlying type is bigger than the size allocated for
-               the union, use a smaller integral type. */
-            if (under_type->size > union_size ||
-                under_type->alignment > union_alignment) {
-              /* Find the largest integral type with the right signedness that
-                 will fit in the union. */
-              an_integer_kind  ikind, eff_ikind;
-              a_targ_size_t    int_size;
-              a_targ_alignment int_alignment;
-              for (ikind = (an_integer_kind)ik_unsigned_int;
-                   ; ikind--) {
-                get_integer_size_and_alignment(ikind, &int_size,
-                                               &int_alignment);
-                if (int_size <= union_size &&
-                    int_alignment <= union_alignment &&
-                    int_kind_is_signed[(int)ikind] ==
-                                                  field->bit_field_is_signed) {
-                  /* This size is okay. */
-                  eff_ikind = ikind;
-                  break;
-                }  /* if */
-              }  /* for */
-              /* Make a local type (not allocated in the IL) that is the right
-                 integer type.  We can't use integer_type in a "back end". */
-              local_type = *under_type;
-              eff_type = &local_type;
-              check_assertion(local_type.kind == (a_type_kind)tk_integer);
-              local_type.variant.integer.int_kind = eff_ikind;
-            }  /* if */
-            dump_general_declaration_using_type(eff_type,
-                                                &field->source_corresp,
-                                                NO_VARIABLE, NO_TEMP,
-                                                /*suppress_const=*/TRUE);
-            write_tok_ch(';');
-          }  /* if */
-        } else
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-        {
-          /* Put out a bit field declaration. */
-          /* Generate the bit field type to match the signedness. */
-          /* Note that "const" is dropped; that's important so that
-             initialization code rewritten as executable code by IL lowering
-             can assign to this member and the overall struct. */
-          write_tok_str(field->bit_field_is_signed ?
+        write_tok_str(field->bit_field_is_signed ?
 #if C_GEN_BE_GENERATES_ANSI_C
-                                       "signed int" : "unsigned int"
+                                     "signed int" : "unsigned int"
 #else /* !C_GEN_BE_GENERATES_ANSI_C */
-                                       "int" : "unsigned int"
+                                     "int" : "unsigned int"
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
-                       );
-          /* Write the name if the field is named. */
-          if (has_name(field)) {
-            write_space();
-            dump_field_name(field);
-          }  /* if */
-          write_tok_str(": ");
-          write_unsigned_num((unsigned long)field->bit_size);
-          write_tok_ch(';');
-        }
-      }  /* if */
-      if (annotate) {
-        /* Display the offset in an annotation comment. */
-        unsigned long temp = field->bit_offset / targ_char_bit;
-        write_space();
-        start_comment();
-        write_tok_str(" offset = ");
-        write_unsigned_num(temp);
-        write_tok_str((temp == 1) ? " byte" : " bytes");
-        temp = field->bit_offset % targ_char_bit;
-        if (temp != 0) {
-          write_tok_str(", ");
-          write_unsigned_num(temp);
-          write_tok_str((temp == 1) ? " bit" : " bits");
+                     );
+        /* Write the name if the field is named. */
+        if (has_name(field)) {
+          write_space();
+          dump_field_name(field);
         }  /* if */
-        write_space();
-        end_comment();
-        write_space();
-      }  /* if */
-    }  /* for */
-    if (next_initializable_field(type->variant.class_struct_union.field_list)==
-                                                                        NULL) {
-      /* Avoid a zero-sized struct for the bizarre case "struct {int :0;}"
-         (which is undefined behavior) and for fieldless classes from C++
-         passed through IL lowering. */
-      write_tok_str("char __dummy;");
+        write_tok_str(": ");
+        write_unsigned_num((unsigned long)field->bit_size);
+        write_tok_ch(';');
+      }
     }  /* if */
-    indent -= 2;
-    write_tok_str("};");
-    end_unreferenced_bracket(&type->source_corresp);
+    if (annotate) {
+      /* Display the offset in an annotation comment. */
+      unsigned long temp = field->bit_offset / targ_char_bit;
+      write_space();
+      start_comment();
+      write_tok_str(" offset = ");
+      write_unsigned_num(temp);
+      write_tok_str((temp == 1) ? " byte" : " bytes");
+      temp = field->bit_offset % targ_char_bit;
+      if (temp != 0) {
+        write_tok_str(", ");
+        write_unsigned_num(temp);
+        write_tok_str((temp == 1) ? " bit" : " bits");
+      }  /* if */
+      write_space();
+      end_comment();
+      write_space();
+    }  /* if */
+  }  /* for */
+  if (next_initializable_field(type->variant.class_struct_union.field_list)==
+                                                                        NULL) {
+    /* Avoid a zero-sized struct for the bizarre case "struct {int :0;}"
+       (which is undefined behavior) and for fieldless classes from C++
+       passed through IL lowering. */
+    write_tok_str("char __dummy;");
   }  /* if */
+  indent -= 2;
+  write_tok_ch('}');
 }  /* dump_struct_union_definition */
 
 
@@ -2436,10 +2432,17 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
          types, so nothing need be put out here. */
       if (type->variant.integer.enum_info.constant_list == NULL) break;
       /* Output enums only on the first pass. */
-      if (pass == 1) dump_enum_definition(type);
+      if (pass == 1) {
+        if (start_unreferenced_bracket(&type->source_corresp)) {
+          dump_enum_definition(type);
+          write_tok_ch(';');
+          end_unreferenced_bracket(&type->source_corresp);
+        }  /* if */
+      }  /* if */
       break;
     case tk_struct:
     case tk_union:
+      /* Struct or union. */
       /* Output a declaration on the first pass, and a definition on the
          second pass (if the struct/union is defined). */
       if (pass == 1) {
@@ -2455,7 +2458,11 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
           end_unreferenced_bracket(&type->source_corresp);
         }  /* if */
       } else if (type->size != 0) {
-        dump_struct_union_definition(type);
+        if (start_unreferenced_bracket(&type->source_corresp)) {
+          dump_struct_union_definition(type);
+          write_tok_ch(';');
+          end_unreferenced_bracket(&type->source_corresp);
+        }  /* if */
       }  /* if */
       break;
     case tk_typeref:
