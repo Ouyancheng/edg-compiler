@@ -30,7 +30,6 @@ static void prep_conversion_operand(an_operand        *source_operand,
                                     a_type_ptr        dest_type,
                                     a_conv_descr      *conversion,
                                     a_boolean         is_copy_initialization,
-                                    a_boolean         try_user_conversions,
                                     an_error_code     incompatible_err,
                                     a_source_position *err_pos);
 static a_boolean conversion_to_class_possible(
@@ -5528,7 +5527,6 @@ Adjust the operand type to match the type requirement.
         prep_conversion_operand(operand, specific_type,
                                 &arg_match->conversion,
                                 /*is_copy_initialization=*/TRUE,
-                                /*try_user_conversions=*/TRUE,
                                 ec_no_error,
                                 &operand->position);
       }  /* if */
@@ -6488,7 +6486,6 @@ static a_boolean conversion_possible(
                                    an_operand        *source_operand,
                                    a_type_ptr        dest_type,
                                    a_type_ptr        orig_dest_type,
-                                   a_boolean         try_user_conversions,
                                    a_boolean         need_lvalue_result,
                                    a_boolean         is_copy_initialization,
                                    a_boolean         is_reference_binding,
@@ -6500,8 +6497,7 @@ Check whether or not the source operand can be converted to the
 destination type, implicitly in an initialization.  If so, set
 *conversion to describe the conversion, and return TRUE.  If not, issue
 the error incompatible_err at the position err_pos, change the operand
-to an error operand, and return FALSE.  Try user-defined conversions
-only if try_user_conversions is TRUE.  The result of the conversion
+to an error operand, and return FALSE.  The result of the conversion
 must be an lvalue if need_lvalue_result is TRUE.  If
 is_copy_initialization is TRUE, this is copy-initialization
 ("="-form); otherwise, it's direct-initialization ("()"-form).  If
@@ -6528,7 +6524,7 @@ rewritten) for use in error messages.
     internal_error("conversion_possible: dest_type is reference");
   }  /* if */
 #endif /* CHECKING */
-  if (C_dialect == C_dialect_cplusplus && try_user_conversions &&
+  if (!C_mode() && !curr_expr_kind_is_const() &&
       user_defined_conversion_possible(source_operand, dest_type,
                                        need_lvalue_result,
                                        is_copy_initialization,
@@ -6927,7 +6923,6 @@ static a_boolean conversion_usable_or_possible(
                                    an_operand        *source_operand,
                                    a_type_ptr        dest_type,
                                    a_type_ptr        orig_dest_type,
-                                   a_boolean         try_user_conversions,
                                    a_boolean         need_lvalue_result,
                                    a_boolean         is_copy_initialization,
                                    a_boolean         is_reference_binding,
@@ -6941,8 +6936,7 @@ for details on the parameters).  Return TRUE if it can.  If *p_conversion
 is non-NULL, the feasibility of the conversion has previously been determined.
 Otherwise, set *p_conversion to point to *local_conversion (probably a
 local variable in the caller), and call conversion_possible to fill in
-the conversion information.  Try user-defined conversions only if
-try_user_conversions is TRUE.  The result of the conversion must be an
+the conversion information.  The result of the conversion must be an
 lvalue if need_lvalue_result is TRUE.  If is_copy_initialization is
 TRUE, this is copy-initialization ("="-form); otherwise, it's
 direct-initialization ("()"-form).  If is_reference_binding is TRUE,
@@ -6961,7 +6955,6 @@ type before any rewriting, for use in error messages.
   } else {
     *p_conversion = local_conversion;
     possible = conversion_possible(source_operand, dest_type, orig_dest_type,
-                                   try_user_conversions,
                                    need_lvalue_result,
                                    is_copy_initialization,
                                    is_reference_binding,
@@ -6976,7 +6969,6 @@ static void prep_conversion_operand(an_operand        *source_operand,
                                     a_type_ptr        dest_type,
                                     a_conv_descr      *conversion,
                                     a_boolean         is_copy_initialization,
-                                    a_boolean         try_user_conversions,
                                     an_error_code     incompatible_err,
                                     a_source_position *err_pos)
 /*
@@ -6986,8 +6978,7 @@ is copy-initialization ("="-form); otherwise, it's direct-initialization
 ("()"-form).  source_operand may be an rvalue or an lvalue.  On
 return, it will always be an rvalue.  If conversion is non-NULL, the
 conversion has previously been found to be acceptable, and *conversion
-describes it.  dest_type must not be a reference type.  Try
-user-defined conversions only if try_user_conversions is TRUE.
+describes it.  dest_type must not be a reference type.
 */
 {
   a_conv_descr local_conversion;
@@ -6999,7 +6990,6 @@ user-defined conversions only if try_user_conversions is TRUE.
 #endif /* CHECKING */
   /* See if the conversion is possible. */
   if (conversion_usable_or_possible(source_operand, dest_type, dest_type,
-                                    try_user_conversions,
                                     /*need_lvalue_result=*/FALSE,
                                     is_copy_initialization,
                                     /*is_reference_binding=*/FALSE,
@@ -7367,7 +7357,6 @@ the "=" semantics (copy-initialization).
   /* Look for a constructor to convert the expression to the required
      class type. */
   if (conversion_possible(source_operand, dest_type, dest_type,
-                          /*try_user_conversions=*/TRUE,
                           /*need_lvalue_result=*/FALSE,
                           /*is_copy_initialization=*/TRUE,
                           /*is_reference_binding=*/FALSE,
@@ -7464,7 +7453,6 @@ the address of the temporary.  Used only in C++ mode.
 static void convert_operand_into_temp(an_operand    *source_operand,
                                       a_type_ptr    dest_type,
                                       a_type_ptr    orig_dest_type,
-                                      a_boolean     try_user_conversions,
                                       a_boolean     need_lvalue_result,
                                       a_conv_descr  *conversion,
                                       an_error_code incompatible_err,
@@ -7480,8 +7468,7 @@ If the conversion is not possible, issue the error incompatible_err,
 convert source_operand to an error operand, and return *err TRUE.
 If a temporary is created or source_operand is already a temporary,
 return *temporary_used TRUE.  orig_dest_type is the destination type
-before any rewriting, for use in error messages.  Try user-defined
-conversions only if try_user_conversions is TRUE.  need_lvalue_result
+before any rewriting, for use in error messages.  need_lvalue_result
 is TRUE if we really want to find a conversion function that will
 produce an lvalue result of the right kind (if that's not possible,
 a temporary is generated in the usual way, but the caller will
@@ -7516,7 +7503,6 @@ type.  Only used in C++.  This is copy-initialization.
   is_reference_binding = !is_copy_initialization;
   /* See if the conversion is possible. */
   if (conversion_usable_or_possible(source_operand, dest_type, orig_dest_type,
-                                    try_user_conversions,
                                     need_lvalue_result,
                                     is_copy_initialization,
                                     is_reference_binding,
@@ -7801,7 +7787,6 @@ static void prep_reference_initializer_operand(
                               a_boolean     initializing_return_value,
                               a_boolean     initializing_variable,
                               a_boolean     static_lifetime,
-                              a_boolean     try_user_conversions,
                               a_boolean     bitwise_assignment_param,
                               an_error_code incompatible_err)
 /*
@@ -7813,7 +7798,6 @@ should be bound.  initializing_return_value is TRUE if the initialization
 is being done to return a value in a return statement.
 initializing_variable is TRUE if this initialization is for a variable.
 In that case, static_lifetime is TRUE if the variable is static.
-user-defined conversions are tried only if try_user_conversions is TRUE.
 If bitwise_assignment_param is TRUE, this call is analyzing the parameter
 of a notional generated copy assignment operator.  If the operand and
 type are incompatible, the error incompatible_err is issued.
@@ -7987,7 +7971,6 @@ to be acceptable, and *conversion describes it.
          that returns a reference of the right type; in that case no
          temporary is needed. */
       convert_operand_into_temp(source_operand, base_dest_type, dest_type,
-                                try_user_conversions,
                                 /*need_lvalue_result=*/
                                    !binding_to_rvalue_allowed &&
                                    !any_cfront_mode() && !allow_anachronisms,
@@ -8076,7 +8059,6 @@ void prep_initializer_operand(an_operand    *source_operand,
                               a_boolean     initializing_variable,
                               a_boolean     static_lifetime,
                               a_boolean     is_copy_initialization,
-                              a_boolean     try_user_conversions,
                               an_error_code incompatible_err)
 /*
 Check the operand for initializer compatibility against the type supplied.
@@ -8087,8 +8069,7 @@ to return a value in a return statement.  initializing_variable is
 TRUE if this initialization is for a variable.  In that case,
 static_lifetime is TRUE if the variable is static.  is_copy_initialization
 is TRUE if this is copy-initialization ("="-form); otherwise, it is
-direct-initialization ("()"-form).  User-defined conversions are tried
-only if try_user_conversions is TRUE.  If the operand and type are
+direct-initialization ("()"-form).  If the operand and type are
 incompatible, the error incompatible_err is issued.  This routine is
 used for initialization, function call arguments, and return
 expressions, i.e., for "="-type initializations.  It is not used when
@@ -8106,14 +8087,12 @@ initializer has previously been found to be acceptable, and
                                        conversion, initializing_return_value,
                                        initializing_variable,
                                        static_lifetime,
-                                       try_user_conversions,
                                        /*bitwise_assignment_param=*/FALSE,
                                        incompatible_err);
   } else {
     /* Normal case (not initializing a reference). */
     prep_conversion_operand(source_operand, dest_type, conversion,
                             is_copy_initialization,
-                            try_user_conversions,
                             incompatible_err,
                             &source_operand->position);
   }  /* if */
@@ -8142,7 +8121,6 @@ found to be acceptable, and *conversion describes it.
   /* See if the conversion is possible. */
   if (conversion_usable_or_possible(source_operand, param_type,
                                     param_type,
-                                    /*try_user_conversions=*/TRUE,
                                     /*need_lvalue_result=*/FALSE,
                                     /*is_copy_initialization=*/TRUE,
                                     /*is_reference_binding=*/FALSE,
@@ -8188,7 +8166,6 @@ to be acceptable, and *conversion describes it.
                              /*initializing_variable=*/FALSE,
                              /*static_lifetime=*/FALSE,
                              /*is_copy_initialization=*/TRUE,
-                             /*try_user_conversions=*/TRUE,
                              err_code);
   }  /* if */
 }  /* prep_argument_operand */
@@ -8224,7 +8201,6 @@ cases where bitwise copying applies.
                                        /*initializing_return_value=*/FALSE,
                                        /*initializing_variable=*/FALSE,
                                        /*static_lifetime=*/FALSE,
-                                       /*try_user_conversions=*/TRUE,
                                        /*bitwise_assignment_param=*/TRUE,
                                        incompatible_err);
     /* Turn the pointer produced for the reference binding back into an
@@ -8238,7 +8214,6 @@ cases where bitwise copying applies.
     prep_conversion_operand(source_operand, dest_type,
                             (a_conv_descr_ptr)NULL,
                             /*is_copy_initialization=*/TRUE,
-                            /*try_user_conversions=*/TRUE,
                             incompatible_err, err_pos);
   }  /* if */
 }  /* prep_assignment_operand */

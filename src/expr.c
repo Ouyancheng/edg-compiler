@@ -1265,7 +1265,7 @@ variable.
                            /*initializing_variable=*/FALSE,
                            /*static_lifetime=*/FALSE,
                            /*is_copy_initialization=*/FALSE,
-                           /*try_user_conversions=*/TRUE, err_code);
+                           err_code);
    /* Check for the required closing parenthesis. */
   check_closing_paren_after_expr_list();
   remove_matching_stop_token(tok_rparen);
@@ -10007,7 +10007,6 @@ the appropriate dynamic initialization entry and return NULL.
                                /*initializing_variable=*/FALSE,
                                /*static_lifetime=*/FALSE,
                                /*is_copy_initialization=*/TRUE,
-                               /*try_user_conversions=*/TRUE,
                                err_code);
     }  /* if */
     expression = make_node_from_operand(&result);
@@ -10258,7 +10257,6 @@ Return the constant in *constant.
                            /*initializing_variable=*/FALSE,
                            /*static_lifetime=*/FALSE,
                            /*is_copy_initialization=*/TRUE,
-                           /*try_user_conversions=*/FALSE,
                            ec_bad_nontype_template_arg);
   /* Make a constant from the operand. */
   extract_constant_from_operand(&result, constant);
@@ -10312,7 +10310,6 @@ copy-initialization ("="-form).
                            /*initializing_variable=*/TRUE,  /* Arbitrary. */
                            /*static_lifetime=*/FALSE,
                            /*is_copy_initialization=*/TRUE,
-                           /*try_user_conversions=*/FALSE,
                            ec_bad_initializer_type);
   /* Make a constant from the operand. */
   extract_constant_from_operand(&result, constant);
@@ -10354,7 +10351,6 @@ nonstandard class member constants.  Assumes copy-initialization
                            /*initializing_variable=*/TRUE,  /* Arbitrary. */
                            /*static_lifetime=*/FALSE,
                            /*is_copy_initialization=*/TRUE,
-                           /*try_user_conversions=*/FALSE,
                            ec_bad_initializer_type);
   /* Make a constant from the operand. */
   extract_constant_from_operand(&result, constant);
@@ -10417,7 +10413,6 @@ copy constructor elision is possible; see scan_class_initializer_expression.
                            /*initializing_variable=*/TRUE,
                            static_lifetime,
                            is_copy_initialization,
-                           /*try_user_conversions=*/TRUE,
                            ec_bad_initializer_type);
   /* Return a constant or expression depending on what was scanned. */
   *is_constant = TRUE;
