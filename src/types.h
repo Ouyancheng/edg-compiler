@@ -219,10 +219,12 @@ an lvalue.
 
 /*
 Return TRUE if a routine type is the type of a nonstatic member function.
-The type must be known to be a routine type (not, for example, an error type).
+The type must be known to be a routine type (not, for example, an error type),
+but it may have typerefs on top of it.
 */
 #define routine_type_is_nonstatic_member_function(routine_type)       \
- (routine_type->variant.routine.extra_info->implicit_this_param_type != NULL)
+ (f_skip_typerefs(routine_type)->                                     \
+          variant.routine.extra_info->implicit_this_param_type != NULL)
 
 /*
 Extract the class type from a nonstatic member function type.
