@@ -1799,7 +1799,7 @@ of the lookup is returned to the caller.
   db_enter(4, "do_using_directive_lookup");
   if (microsoft_bugs && sym_from_scope != NULL) {
     /* In Microsoft bugs mode, a class template symbol found suppresses the
-       in a scope suppresses the using-directive lookup from that scope. */
+       using-directive lookup from that scope. */
     a_symbol_ptr	fund_sym;
     fund_sym = fundamental_symbol_of(sym_from_scope);
     if (is_class_template_symbol(fund_sym)) {
