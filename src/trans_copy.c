@@ -352,6 +352,30 @@ into a declaration instead of a definition.
 }  /* clear_variable_initialization */
 
 
+static a_boolean type_should_be_merged(a_type_ptr type)
+/*
+Return TRUE if the indicated type, which has a corresponding type in the
+primary IL, should be merged into that type.
+*/
+{
+  a_boolean  merge = FALSE;
+  a_type_ptr corresp_type = (a_type_ptr)canonical_il_entry_of(type);
+
+  if ((is_immediate_class_type(type) &&
+       class_type_has_body(type) &&
+       !class_type_has_body(corresp_type)) ||
+      (is_immediate_enum_type(type) &&
+       !is_incomplete_type(type) &&
+       is_incomplete_type(corresp_type))) {
+    /* This type is a struct, union, class, or enum with a definition,
+       and the corresponding type has no definition.  Therefore the
+       definition must be merged into the corresponding type. */
+    merge = TRUE;
+  }  /* if */
+  return merge;
+}  /* type_should_be_merged */
+
+
 static void prepare_for_trans_unit_copy(
                                       a_scope_ptr scope,
                                       a_boolean   *any_removed_function_bodies)
@@ -420,19 +444,22 @@ set to TRUE if the body of a routine is eliminated.
     keep_on_list = TRUE;
     if (has_corresp(type)) {
       /* This entry corresponds to something in the primary IL. */
-      a_type_ptr corresp_type = (a_type_ptr)canonical_il_entry_of(type);
       keep_on_list = FALSE;
-      if ((is_immediate_class_type(type) &&
-           class_type_has_body(type) &&
-           !class_type_has_body(corresp_type)) ||
-          (is_immediate_enum_type(type) &&
-           !is_incomplete_type(type) &&
-           is_incomplete_type(corresp_type))) {
-        /* This type is a struct, union, class, or enum with a definition,
-           and the corresponding type has no definition.  Therefore the
-           definition must be merged into the corresponding type. */
+      if (type_should_be_merged(type)) {
+        /* This type should be merged into the corresponding type. */
         mark_to_merge(type);
         keep_on_list = TRUE;
+      }  /* if */
+    } else if (type->kind == (a_type_kind)tk_typeref &&
+               !typeref_is_typedef(type)) {
+      /* This is a placeholder typeref, used to give guidance to IL lowering
+         on the order of types promoted out of classes and namespaces.
+         Keep the placeholder only if the type pointed to has no
+         correspondence. */
+      a_type_ptr underlying_type = type->variant.typeref.type;
+      keep_on_list = TRUE;
+      if (has_corresp(underlying_type)) {
+        keep_on_list = FALSE;
       }  /* if */
     }  /* if */
     if (keep_on_list) {
