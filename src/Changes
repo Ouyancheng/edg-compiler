@@ -1,5 +1,14 @@
 Version 2.36
 
+6/9/97    declared_type field in function parameter variables
+
+When GENERATE_SOURCE_SEQUENCE_ENTRIES is TRUE, the declared_type field in
+variables that represent function parameters will now record the type as
+declared, before adjustments such as the decay of array type to pointer.
+The only exceptions are parameters of function template instantiations,
+since the template declaration may involve template parameter types (which
+are not permitted in the IL).
+
 6/9/97    EH cleanup state during initializations of file-scope entities
 
 A change made in 2.34 broke the code that sets the cleanup state when it's
