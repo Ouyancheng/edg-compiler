@@ -2423,7 +2423,7 @@ Update the "instantiation" lists for extern inline functions, if appropriate.
 }  /* ensure_routine_is_on_inline_list */
 
 
-static void finish_moved_entity_processing(a_scope_ptr scope);
+static void finish_scope_moved_entity_processing(a_scope_ptr scope);
 
 
 static void finish_type_list_moved_entity_processing(a_type_ptr type_list)
@@ -2442,7 +2442,7 @@ to the primary IL.
         a_scope_ptr class_scope =
                       type->variant.class_struct_union.extra_info->assoc_scope;
         if (class_scope != NULL) {
-          finish_moved_entity_processing(class_scope);
+          finish_scope_moved_entity_processing(class_scope);
         }  /* if */
       }  /* if */
     }  /* for */
@@ -2450,16 +2450,12 @@ to the primary IL.
 }  /* finish_type_list_moved_entity_processing */
 
 
-static void finish_moved_entity_processing(a_scope_ptr scope)
+static void finish_scope_moved_entity_processing(a_scope_ptr scope)
 /*
 Finish processing in the indicated scope and its subscopes for any
 entities that were moved or merged from the secondary translation unit IL
 to the primary IL.  The scope passed in is from the secondary translation
-unit except for local class and block scopes.  The processing done here
-differs from that done in finish_trans_unit_copy in that all entities, even
-those that are members of non-merged scopes (e.g., local classes) are
-processed here.  If some processing needs to be done on every entity
-moved or merged from the secondary IL, it must be done here.
+unit.
 */
 {
   a_routine_ptr   routine;
@@ -2468,13 +2464,10 @@ moved or merged from the secondary IL, it must be done here.
   a_boolean       is_class_scope = (scope->kind ==
                                          (a_scope_kind)sck_class_struct_union);
 
-  check_assertion(in_secondary_trans_unit(scope) ||
-                  (is_class_scope &&
-                   scope->variant.assoc_type->source_corresp.
-                                                        is_local_to_function));
+  check_assertion(in_secondary_trans_unit(scope));
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
     if (!nsp->is_namespace_alias) {
-      finish_moved_entity_processing(nsp->variant.assoc_scope);
+      finish_scope_moved_entity_processing(nsp->variant.assoc_scope);
     }  /* if */
   }  /* for */
   finish_type_list_moved_entity_processing(scope->types);
@@ -2484,7 +2477,7 @@ moved or merged from the secondary IL, it must be done here.
   for (sub_scope = scope->scopes;
        sub_scope != NULL;
        sub_scope = sub_scope->next) {
-    finish_moved_entity_processing(sub_scope);
+    finish_scope_moved_entity_processing(sub_scope);
   }  /* for */
 #if ONE_INSTANTIATION_PER_OBJECT || MAINTAIN_NEEDED_FLAGS
   { a_variable_ptr  variable;
@@ -2518,6 +2511,30 @@ moved or merged from the secondary IL, it must be done here.
     }  /* for */
   }
 #endif /* ONE_INSTANTIATION_PER_OBJECT || MAINTAIN_NEEDED_FLAGS */
+} /* finish_scope_moved_entity_processing */
+
+
+static void finish_moved_entity_processing(a_translation_unit_ptr tup)
+/*
+Finish processing in the indicated secondary translation unit for any
+entities that were moved or merged from the secondary translation unit IL
+to the primary IL.  The processing done here differs from that done in
+finish_trans_unit_copy in that all entities, even those that are members
+of non-merged scopes (e.g., local classes) are processed here.  If some
+processing needs to be done on every entity moved or merged from the
+secondary IL, it must be done here.
+*/
+{
+  a_scope_orphaned_list_header_ptr solhp;
+
+  /* Process the file scope and its subscopes. */
+  finish_scope_moved_entity_processing(tup->primary_scope);
+  /* Visit orphan lists to get local types. */
+  for (solhp = tup->il_header.scope_orphaned_list_headers;
+       solhp != NULL;
+       solhp = solhp->next) {
+    finish_type_list_moved_entity_processing(solhp->orphaned_types);
+  }  /* for */
 }  /* finish_moved_entity_processing */
 
 
@@ -2709,7 +2726,7 @@ therefore will not be copied.
     top_scope = tup->primary_scope;
     finish_trans_unit_copy(top_scope);
     merge_il_headers(tup);
-    finish_moved_entity_processing(top_scope);
+    finish_moved_entity_processing(tup);
     finish_scope_orphaned_list_processing(
                                    tup->il_header.scope_orphaned_list_headers);
 #if DEBUG
