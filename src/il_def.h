@@ -3157,6 +3157,12 @@ typedef struct a_type {
 			   that name in the source_corresp field), but not
 			   merely as a declaration -- a definition of the
 			   class is needed in the current translation unit. */
+      a_bit_field
+		keep_definition_in_il:1;
+			/* TRUE if this class's definition should be kept in
+			   the IL tree (i.e., should not be discarded before
+			   the IL is passed to the back end).  It is for
+			   front-end use only. */
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if USER_CONTROL_OF_STRUCT_PACKING
       a_targ_alignment

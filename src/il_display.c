@@ -978,6 +978,8 @@ do_struct_union:
 #if MAINTAIN_NEEDED_FLAGS
       disp_boolean("definition_needed",
                    ptr->variant.class_struct_union.definition_needed);
+      /* Note: the keep_definition_in_il flag is not displayed, since it is
+         for front-end use only. */
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if USER_CONTROL_OF_STRUCT_PACKING
       if (ptr->variant.class_struct_union.max_member_alignment != 0) {

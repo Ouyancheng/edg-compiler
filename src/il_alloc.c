@@ -854,6 +854,7 @@ to default values.
       pte->variant.class_struct_union.originally_unnamed = FALSE;
 #if MAINTAIN_NEEDED_FLAGS
       pte->variant.class_struct_union.definition_needed = FALSE;
+      pte->variant.class_struct_union.keep_definition_in_il = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
       /* The class type supplement is only allocated in C++ mode. */
       if (C_mode()) {
