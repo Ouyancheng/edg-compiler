@@ -7366,8 +7366,8 @@ is set to NULL by this function.
       a_template_ptr  templ = alloc_template();
       templ->kind = (a_template_kind)templk_member_function;
       set_source_corresp(&templ->source_corresp, sym);
-      set_class_membership_for_template((a_symbol_ptr)NULL, templ,
-                                        class_type);
+      set_class_membership((a_symbol_ptr)NULL, &templ->source_corresp,
+                            class_type);
       templ->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
       /* Update the IL template pointer in the template symbol supplement. */
@@ -8104,9 +8104,8 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
         set_source_corresp(&templ->source_corresp, sym);
         templ->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
-        set_class_membership_for_template((a_symbol_ptr)NULL,
-                                          templ,
-                                          class_type);
+        set_class_membership((a_symbol_ptr)NULL, &templ->source_corresp,
+                              class_type);
         templ->source_corresp.access = var->source_corresp.access;
         /* Update the IL template pointer in the template symbol supplement. */
         tip->template_info->il_template_entry = templ;

@@ -9976,8 +9976,8 @@ any classes that declared the nested class as a template friend.
       parent_class = class_type->source_corresp.parent.class_type;
       templ->kind = (a_template_kind)templk_member_class;
       set_source_corresp(&templ->source_corresp, sym);
-      set_class_membership_for_template((a_symbol_ptr)NULL, templ,
-                                        parent_class);
+      set_class_membership((a_symbol_ptr)NULL, &templ->source_corresp,
+                           parent_class);
       templ->source_corresp.access = class_type->source_corresp.access;
       templ->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
@@ -13481,9 +13481,9 @@ set, and its source sequence entry, if any, has been put out.)
       if (!err || sym->is_error) {
         /* Set parent information in the IL entry. */
         if (sym->is_class_member) {
-          set_class_membership_for_template((a_symbol_ptr)NULL,
-                                            il_template_entry,
-                                            sym->parent.class_type);
+          set_class_membership((a_symbol_ptr)NULL,
+                               &il_template_entry->source_corresp,
+                               sym->parent.class_type);
         } else if (sym->parent.namespace_ptr != NULL) {
           set_namespace_membership((a_symbol_ptr)NULL,
                                    &il_template_entry->source_corresp,

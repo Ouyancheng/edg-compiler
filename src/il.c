@@ -13807,11 +13807,17 @@ Add the IL template entry pointed to by tp to the indicated scope.
 
   assert_is_valid_scope_depth(scope_depth);
   ssep = &scope_stack[scope_depth];
-  if (ssep->in_prototype_instantiation && !prototype_instantiations_in_il) {
+  if (!prototype_instantiations_in_il &&
+      (ssep->in_prototype_instantiation ||
+       (tp->source_corresp.is_class_member &&
+        tp->source_corresp.parent.class_type->
+                               variant.class_struct_union.is_nonreal_class))) {
     /* We are not going to record the indicated scope (because it belongs to
        a prototype instantiation), but the given template must go on a list
        somewhere because assoc_template fields may point to it.
-       Add it to the file scope (arbitrary). */
+       Add it to the file scope.  Later, during the file scope wrapup,
+       the file scope templates list will be scanned, and the parent pointer
+       of templates from prototype instantiations will be cleared. */
     ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
   }  /* if */
   sp = ensure_il_scope_exists(ssep);

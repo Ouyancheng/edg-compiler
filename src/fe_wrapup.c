@@ -273,6 +273,28 @@ scope, or a class scope.
 
 #endif /* DO_IL_LOWERING */
 
+static void reset_template_parent_info(a_scope_ptr	il_scope)
+/*
+When prototype instantiations are not included in the IL, template entries
+whose parent class is a prototype instantiation must have their parent
+information cleared, because the parent prototype instantiation is not
+in the IL.
+*/
+{
+  a_template_ptr	templ;
+
+  for (templ = il_scope->templates; templ != NULL; templ = templ->next) {
+    if (templ->source_corresp.is_class_member) {
+      a_type_ptr	parent_class = templ->source_corresp.parent.class_type;
+      if (parent_class->variant.class_struct_union.is_nonreal_class) {
+        templ->source_corresp.parent.class_type = NULL;
+        templ->source_corresp.is_class_member = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* reset_template_parent_info */
+
+
 static void file_scope_il_wrapup_part_1(void)
 /*
 Do the processing required to complete the file scope IL.  This is
@@ -328,6 +350,13 @@ it needs to be executed after all templates have been instantiated.
 #endif /* DO_IL_LOWERING */
   }  /* if */
 #endif /* MANGLE_ALL_NAMES */
+  if (!C_mode()) {
+    if (!prototype_instantiations_in_il) {
+      /* Clear the parent information for any template entries that are
+         members of prototype instantiations. */
+      reset_template_parent_info(il_scope);
+    }  /* if */
+  }  /* if */
 }  /* file_scope_il_wrapup_part_1 */
 
 
