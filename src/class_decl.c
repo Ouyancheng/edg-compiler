@@ -5831,16 +5831,6 @@ declared member functions.
      creating the symbol, since an invalid conversion or operator should not
      be added to the overload list. */
   check_operator_function_params(member_type, class_type, locator);
-#if 0
-  /* We have at least one unresolved problem when a member function is
-     declared using a typedef name.  The referenced type will have no
-     implicit "this" param pointer, so by default such functions will be
-     static.  But when no static specifier appears, member_type could
-     have a "this" param type pointer added (this would involve making a
-     copy of member type), or if all functions are treated as static, a
-     warning should probably be issued.  The ARM is silent on how such
-     declarations should be handled. */
-#endif /* if 0 */
   /* Look for a prior declaration or function overloading. */
   sym = symbol_for_member_function(locator, member_type, class_type,
                                    decl_info, &overload_sym);
