@@ -1433,17 +1433,15 @@ Do C99 lowering on the indicated statement.
     saved_error_position = error_position;
     set_position_from_stmt_source_position(error_position,
                                            statement->position);
-    if (statement->expr != NULL) {
-      /* Lower the expression.  For an expression statement, pass the
-         statement pointer to allow better inlining. */
-      lower_c99_expr_full(statement->expr,
-                          (statement->kind == (a_statement_kind)stmk_expr) ?
-                                            statement : (a_statement_ptr)NULL,
+    if (statement->expr != NULL &&
+        statement->kind != (a_statement_kind)stmk_expr) {
+      /* Lower the expression.  For an expression statement, that's done
+         in a special way below. */
+      lower_c99_expr_full(statement->expr, (a_statement_ptr)NULL,
                           /*used_as_lvalue=*/FALSE);
       end_of_c99_full_expr();
     }  /* if */
     switch (statement->kind) {
-      case stmk_expr:
       case stmk_goto:
       case stmk_label:
 #if GNU_EXTENSIONS_ALLOWED
@@ -1471,6 +1469,13 @@ Do C99 lowering on the indicated statement.
 #endif /* UPC_EXTENSIONS_ALLOWED */
         /* Nothing to lower. */
         break; 
+      case stmk_expr:
+        /* Expression statement.  Pass in the statement to allow better
+           inlining. */
+        lower_c99_expr_full(statement->expr, statement,
+                            /*used_as_lvalue=*/FALSE);
+        end_of_c99_full_expr();
+        break;
       case stmk_if:
         lower_c99_statement(statement->variant.if_stmt.then_statement);
         if (statement->variant.if_stmt.else_statement != NULL) {

@@ -1,5 +1,19 @@
 Version 3.1
 
+12/16/02 C-mode inlining (C99, gcc) sometimes loops on recursive calls
+
+In some cases, minimal inlining in C99 or gcc mode could loop while
+trying to expand a recursive call.  The call had to be a full
+statement at block level with a very simple argument list.
+Now fixed.
+
+  inline static void f(int i) {
+    f(i);
+  }
+  void g() {
+    f(1);
+  }
+
 12/14/02 Microsoft mode: do-nothing cast to array type allowed and ignored
 
 In Microsoft bugs mode in C++, a do-nothing cast to an array type is
