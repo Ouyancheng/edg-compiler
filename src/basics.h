@@ -201,7 +201,8 @@ typedef unsigned char a_byte;
 #define BYTE_MAX UCHAR_MAX
 
 /* Simple boolean type: */
-typedef a_byte	a_boolean;
+typedef int	a_boolean;
+typedef a_byte	a_byte_boolean;
 #define FALSE 0
 #define TRUE 1
 
