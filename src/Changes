@@ -1,5 +1,17 @@
 Version 2.46
 
+4/16/01  C99 lowering of complex constants and
+         RECORD_CONSTANT_EXPRESSIONS_IN_IL
+
+The combination of C99 lowering and having RECORD_CONSTANT_EXPRESSIONS_IN_IL
+set to TRUE (an unusual configuration) did not work right for some cases
+involving lowering of complex constants.  Now fixed.
+
+  int main() {
+    _Complex long double c = 57.0;
+    const _Complex long double x[] = {0, -c * __I__};
+  }
+
 4/16/01  C99 extern inline function definitions out-of-lined
 
 In C99 mode, the front end now keeps inline function bodies in translation
