@@ -6560,16 +6560,16 @@ C and C++.
 /* Local macro that tests whether or not a symbol is acceptable. */
 /* symbol_may_precede_qualifier checks for a symbol that is a class,
    class template, namespace, or template type parameter. */
-#define is_acceptable_symbol(sym)                                       \
+#define is_acceptable_symbol(sym, fund_sym)                             \
   ((!must_be_class_or_namespace ||					\
-    symbol_may_precede_qualifier(fundamental_symbol_of(sym))) &&  \
-   (!must_be_tag   ||						   \
-    is_tag_or_tag_proxy_symbol(fundamental_symbol_of(sym))))
+    symbol_may_precede_qualifier(fund_sym)) &&                          \
+   (!must_be_tag   ||						        \
+    is_tag_or_tag_proxy_symbol(fund_sym)))
 /* Local macro that tests whether or not a symbol on the active list
    is acceptable.  See if the symbol is in the proper name space. */
-#define is_acceptable_active_symbol(sym)                              \
+#define is_acceptable_active_symbol(sym, fund_sym)                           \
   (name_space_for_symbol_kind[(int)sym->kind] == required_name_space_kind && \
-   is_acceptable_symbol(sym))
+   is_acceptable_symbol(sym, fund_sym))
 
 /* Local macro that skips over any symbols on the active list that are
    associated with the current scope. */
@@ -6642,7 +6642,8 @@ C and C++.
       for (sym = active_symbol_list; sym != NULL; sym = sym->next) {
         /* See if the symbol is acceptable (e.g., it's a class if it
            must be one). */
-        if (is_acceptable_active_symbol(sym)) break;
+        a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+        if (is_acceptable_active_symbol(sym, fund_sym)) break;
       }  /* for */
     } else {
       /* There are inactive symbols and they may be visible, so the more
@@ -6706,7 +6707,8 @@ C and C++.
                inactive_sym != NULL;
                inactive_sym = inactive_sym->next) {
             if (inactive_sym->decl_scope == ssep->number) {
-              if (is_acceptable_symbol(inactive_sym)) {
+              a_symbol_ptr	fund_sym = fundamental_symbol_of(inactive_sym);
+              if (is_acceptable_symbol(inactive_sym, fund_sym)) {
                 /* Found a symbol. */
                 /* If this is a template parameter symbol that should not
 		   be visible then continue looking for another symbol. */
@@ -6754,13 +6756,14 @@ C and C++.
              if any one is the symbol desired. */
           for (;active_sym != NULL && active_sym->decl_scope == ssep->number;
                prev_active_sym = active_sym, active_sym = active_sym->next) {
+            a_symbol_ptr	fund_sym = fundamental_symbol_of(active_sym);
             if (first_scope && skip_curr_function_scope) {
               /* IDL_SKIP_CURR_FUNCTION_SCOPE is being used.  Don't accept
                  symbols from the first scope entry.  This is used when
 		 looking up names from the initializer list of a
 		 constructor declaration.  The constructor parameters
 		 must not be visible during this lookup. */
-            } else if (is_acceptable_active_symbol(active_sym)) {
+            } else if (is_acceptable_active_symbol(active_sym, fund_sym)) {
               /* Found a symbol.  Record whether this symbol was found
                  at file scope.  If it was, we will later need to also
                  check for symbols visible as a result of using
@@ -6800,7 +6803,8 @@ C and C++.
             } else {
               /* A projection symbol was created.  It must still satisfy the
                  constraints for this lookup. */
-              if (is_acceptable_symbol(sym)) goto end_lookup;
+              a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+              if (is_acceptable_symbol(sym, fund_sym)) goto end_lookup;
               sym = NULL;
             }  /* if */
           } else {
@@ -6925,7 +6929,8 @@ check_for_using_directives:
            the anachronism was invoked. */
         if (allow_anachronisms) sym = find_nested_type_symbol(locator);
         if (sym != NULL) {
-          if (is_acceptable_symbol(sym)) {
+          a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+          if (is_acceptable_symbol(sym, fund_sym)) {
             locator->is_semivisible_nested_type = TRUE;
           } else {
             sym = NULL;
@@ -6985,8 +6990,11 @@ end_lookup:
 	     (either classes or tags) and because of the transitional model
 	     of nested type handling, will always be defined before a nested
 	     class of the same name can be used. */
-          if (sym != NULL && !is_acceptable_symbol(sym)) {
-	    sym = NULL;
+          if (sym != NULL) {
+            a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+            if (!is_acceptable_symbol(sym, fund_sym)) {
+              sym = NULL;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -7324,12 +7332,12 @@ namespace.  This routine is used only in C++ mode.
   a_boolean    	must_be_tag = (options & IDL_MUST_BE_TAG);
 
 /* Local macro that tests whether or not a symbol is acceptable. */
-#define is_acceptable_symbol(sym)                                     \
+#define is_acceptable_symbol(sym, fund_sym)                           \
   ((!(sym)->is_class_member) &&                                       \
    (sym)->parent.namespace_ptr == ns_ptr &&                           \
    (!must_be_class_or_namespace ||				      \
-    symbol_may_precede_qualifier(sym)) &&	     		      \
-   (!must_be_tag || is_tag_or_tag_proxy_symbol(sym)))
+    symbol_may_precede_qualifier(fund_sym)) &&      \
+   (!must_be_tag || is_tag_or_tag_proxy_symbol(fund_sym)))
 
   db_enter(4, "namespace_qualified_id_lookup");
   if ((sym = locator->specific_symbol) != NULL) {
@@ -7343,7 +7351,8 @@ namespace.  This routine is used only in C++ mode.
     for (sym = inactive_symbol_list_from_locator(*locator);
          sym != NULL;
          sym = sym->next) {
-      if (is_acceptable_symbol(sym)) {
+      a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+      if (is_acceptable_symbol(sym, fund_sym)) {
         /* Found an acceptable symbol. */
         /* If the symbol is a tag symbol, there's the possibility that
            there is a non-type symbol in the same scope later in the list
@@ -7366,7 +7375,8 @@ namespace.  This routine is used only in C++ mode.
     for (sym = symbol_list_from_locator(*locator);
          sym != NULL;
          sym = sym->next) {
-      if (is_acceptable_symbol(sym)) {
+      a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+      if (is_acceptable_symbol(sym, fund_sym)) {
         /* Found an acceptable symbol. */
         goto end_lookup;
       }  /* if */
@@ -7407,11 +7417,11 @@ nsk_other name space are considered.  This routine is used for the unary
 /* Local macro that tests whether or not a symbol is acceptable. */
 /* symbol_may_precede_qualifier checks for a symbol that is a class,
    class template, namespace, or template type parameter. */
-#define is_acceptable_symbol(sym)                                     \
+#define is_acceptable_symbol(sym, fund_sym)                           \
   ((sym)->decl_scope == FILE_SCOPE_NUMBER &&                          \
    (!must_be_class_or_namespace ||				      \
-    symbol_may_precede_qualifier(sym)) && 	     		      \
-   (!must_be_tag || is_tag_symbol(sym)))
+    symbol_may_precede_qualifier(fund_sym)) &&      \
+   (!must_be_tag || is_tag_symbol(fund_sym)))
 
   db_enter(4, "file_scope_id_lookup");
   if ((sym = locator->specific_symbol) != NULL) {
@@ -7421,7 +7431,8 @@ nsk_other name space are considered.  This routine is used for the unary
     for (sym = symbol_list_from_locator(*locator);
          sym != NULL;
          sym = sym->next) {
-      if (is_acceptable_symbol(sym)) break;
+      a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+      if (is_acceptable_symbol(sym, fund_sym)) break;
     }  /* for */
     locator->specific_symbol = sym;
   }  /* if */

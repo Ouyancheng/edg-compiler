@@ -2597,6 +2597,8 @@ to by the projection.
 #define reduce_projection_symbol_to_fundamental_symbol(symbol)        \
 { if ((symbol)->kind == (a_symbol_kind)sk_projection) {               \
     (symbol) = (symbol)->variant.projection.extra_info->fundamental_symbol;\
+  } else if ((symbol)->kind == (a_symbol_kind)sk_namespace_projection) {   \
+    (symbol) = (symbol)->variant.namespace_projection.fundamental_symbol;\
   }  /* if */                                                         \
 }  /* reduce_projection_symbol_to_fundamental_symbol */
 
@@ -2604,9 +2606,18 @@ to by the projection.
 Return the fundamental symbol for a given symbol.
 */
 #define fundamental_symbol_of(symbol)                                 \
-  (((symbol)->kind == (a_symbol_kind)sk_projection) ?                 \
-        (symbol)->variant.projection.extra_info->fundamental_symbol : \
-        (symbol))
+  (									   \
+  /* if */ ((symbol)->kind == (a_symbol_kind)sk_projection) /* { */ ?      \
+    (symbol)->variant.projection.extra_info->fundamental_symbol            \
+  /* } else { */  : 							   \
+    /* if */ ((symbol)->kind ==					   \
+                          (a_symbol_kind)sk_namespace_projection) /* { */ ? \
+      (symbol)->variant.namespace_projection.fundamental_symbol		   \
+    /* } else { */ :  							   \
+      (symbol)								   \
+    /* } */								   \
+  /* } */								   \
+  )
 
 /*
 Return TRUE if the base class indicated by the base class entry bcp
