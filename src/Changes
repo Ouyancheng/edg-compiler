@@ -1,5 +1,10 @@
 Version 2.29
 
+5/16/95  Using typedef names in explicit destructor calls
+
+In cfront mode, typedef names may now be used in explicit destructor
+calls.
+
 5/16/95  Template argument deduction; references to arrays and functions
 
 In template argument deduction, a parameter will now not be deduced to
