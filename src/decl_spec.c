@@ -399,6 +399,15 @@ caution when modifying this routine.
       }  /* if */
     }  /* if */
   }  /* if */
+  if (locator_for_curr_id.is_operator_name ||
+      locator_for_curr_id.is_conversion_name) {
+    /* Issue an error for something like "class operator+" or
+       "class operator int". */
+    pos_error(ec_operator_name_not_allowed,
+              &locator_for_curr_id.source_position);
+    tag_err = TRUE;
+    tag_sym = NULL;
+  }  /* if */
   if (tag_sym != NULL) {
     /* Tag symbol is a qualified name or a template class reference. */
     /* Return a copy of the locator to the caller. */
