@@ -2901,7 +2901,16 @@ are not checked.
         for (; routine != NULL && corresp_routine != NULL;
              routine = skip_generated_routine(routine->next),
              corresp_routine = skip_generated_routine(corresp_routine->next)) {
-          set_trans_unit_corresp(iek_routine, routine, corresp_routine);
+          if (routine->compiler_generated ==
+                                         corresp_routine->compiler_generated) {
+            set_trans_unit_corresp(iek_routine, routine, corresp_routine);
+          } else {
+            /* Do not set up a correspondence in this case because it could
+               confuse master instance processing (the compiler generated
+               case has no instance pointer). */
+            set_no_trans_unit_corresp(iek_routine, routine);
+            report_bad_trans_unit_corresp(type);
+          }  /* if */
           /* This could be a member of a template class.  If we're dealing
              with a prototype instantiation, this is a good opportunity to
              get to any a_template entry associated with an out-of-class
