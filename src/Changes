@@ -50,8 +50,11 @@ fixed.
 
 3/9/99   Microsoft compatibility: loop in Microsoft mode in version 2.41
 
-A Microsoft compatibility bug fix in 2.40 introduced a new bug that could
-cause an infinite loop in certain cases.  This has been fixed.
+A Microsoft compatibility bug fix in 2.40 introduced a new bug that
+could cause an infinite loop.  The loop occurred in certain cases when
+processing a template declaration that declares an operator function
+declared in a class template or a class template explicit specialization.
+This has been fixed. 
 
   template <class T> struct A;
   template<> struct A<int> {
