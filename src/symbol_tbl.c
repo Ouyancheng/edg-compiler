@@ -439,7 +439,7 @@ and indentation is the indentation desired.
     case sk_function_template:
       {
         a_template_symbol_supplement_ptr  tssp;
-        a_template_param_list_entry_ptr   tplep;
+        a_template_param_ptr   tplep;
         tssp = sym->variant.template.extra_info;
         /* Output information from the template symbol supplement. */
         put_string("template parameters =\n");
@@ -5250,16 +5250,15 @@ should act like a stack if the same entity has several fixups).
 }  /* alloc_etype_fixup */
 
 
-a_template_param_list_entry_ptr alloc_template_param_list_entry(void)
+a_template_param_ptr alloc_template_param(void)
 /*
 Allocate a new template parameter list entry and return a pointer to it.
 */
 {
-  register a_template_param_list_entry_ptr ptr;
+  register a_template_param_ptr ptr;
 
-  db_enter(5, "alloc_template_param_list_entry");
-  ptr = (a_template_param_list_entry_ptr)
-            alloc_fe(sizeof(a_template_param_list_entry));
+  db_enter(5, "alloc_template_param");
+  ptr = (a_template_param_ptr)alloc_fe(sizeof(a_template_param));
 #if DEBUG
   num_template_param_list_entries_allocated++;
 #endif /* DEBUG */

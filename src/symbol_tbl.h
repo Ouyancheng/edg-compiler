@@ -464,18 +464,18 @@ typedef struct a_class_symbol_supplement {
 
 
 
-typedef struct a_template_param_list_entry *a_template_param_list_entry_ptr;
-typedef struct a_template_param_list_entry {
+typedef struct a_template_param *a_template_param_ptr;
+typedef struct a_template_param {
   /* Information describing a template formal parameter.  Pointed to by the
      template symbol supplement. */
-  a_template_param_list_entry_ptr
+  a_template_param_ptr
                 next;
                         /* Pointer to the next template parameter. */
   a_symbol_ptr	param_symbol;
 			/* Symbol entry for a formal parameters of the
                            template. */
 
-} a_template_param_list_entry;
+} a_template_param;
 
 
 
@@ -483,7 +483,7 @@ typedef struct a_template_symbol_supplement *a_template_symbol_supplement_ptr;
 typedef struct a_template_symbol_supplement {
   /* Additional information about a C++ class or function template
      supplementing the information residing in the class's symbol entry. */
-  a_template_param_list_entry_ptr
+  a_template_param_ptr
                 parameters;
 			/* Symbol entries for formal parameters of the
                            template. */
