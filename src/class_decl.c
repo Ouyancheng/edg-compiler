@@ -1826,7 +1826,6 @@ corresponding entry is removed from the registry.
       slep->next = new_slep;
     }  /* if */
   } else {
-    check_assertion(orep->override_count < orep->virtual_function_count);
     /* Increment the override count. */
     orep->override_count += 1;
   }  /* if */
@@ -1853,11 +1852,7 @@ a mistake.  Both these warnings should perhaps be remarks.
 
   /* Loop through the registry of overrides. */
   for (; orep != NULL; orep = next_orep) {
-    check_assertion(orep->override_count <= orep->virtual_function_count);
-    if (orep->override_count == orep->virtual_function_count) {
-      /* Okay -- no diagnostic, even if there were additional nonoverriding
-         declarations of the same name. */
-    } else {
+    if (orep->override_count < orep->virtual_function_count) {
       /* Report possible "failed overrides". */
       for (slep = orep->override_failures; slep != NULL; slep = slep->next) {
         pos_sy2_warning(ec_nonoverriding_function_decl,
@@ -1870,6 +1865,11 @@ a mistake.  Both these warnings should perhaps be remarks.
         pos_sy2_warning(ec_partial_override, &tag_sym->decl_position,
                         orep->overridden_sym, tag_sym);
       }  /* if */
+    } else {
+      check_assertion(orep->override_count == orep->virtual_function_count ||
+                      total_errors > 0);
+      /* Okay -- no diagnostic, even if there were additional nonoverriding
+         declarations of the same name. */
     }  /* if */
     /* Return the entry to the available list and advance. */
     next_orep = orep->next;

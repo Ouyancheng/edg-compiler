@@ -1,5 +1,18 @@
 Version 2.35
 
+2/23/97  Internal error on error recovery
+
+An internal error encountered in the following has been fixed:
+
+  class B {
+    virtual void f();
+  };
+  class D : B {
+    virtual void f();
+    int f;               // Error
+    virtual void f();    // Another error -- but no longer aborts
+  };
+
 2/21/97  Overaggressive removal of source sequence entries
 
 A bug has been fixed compiling a case like the following with the
