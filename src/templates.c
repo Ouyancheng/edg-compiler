@@ -1646,8 +1646,12 @@ and create a function instantiation entry to bind the two symbols together.
   /* Normally, function instantiation entries are not marked for actual
      instantiation (that is, for generation of the function body) until there
      is an invocation of the function.  This is partly under user control,
-     however: if instantiation_mode is tim_all, mark it immediately. */
-  if (instantiation_mode == tim_all) {
+     however: if instantiation_mode is tim_all, mark it immediately.
+     Moreover, if the function is virtual, mark it for instantiation no
+     matter what the instantiation mode, since a virtual function table may
+     have to be put out for it. */
+  if (instantiation_mode == tim_all ||
+      rout_sym->variant.routine.ptr->is_virtual) {
     update_instantiation_required_flag(fiep, /*value=*/TRUE);
   }  /* if */
   db_exit();
