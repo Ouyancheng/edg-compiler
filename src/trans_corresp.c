@@ -3535,8 +3535,11 @@ are not checked.
            cle = type->variant.class_struct_union.extra_info->friend_classes,
            corresp_cle = corresp_type->variant.class_struct_union.extra_info
                                      ->friend_classes;
+        cle = skip_generated_friend_class(cle);
+        corresp_cle = skip_generated_friend_class(corresp_cle);
         for (; cle != NULL && corresp_cle != NULL;
-             cle = cle->next, corresp_cle = corresp_cle->next) {
+             cle = skip_generated_friend_class(cle->next),
+             corresp_cle = skip_generated_friend_class(corresp_cle->next)) {
           a_symbol_ptr  friend_sym = (a_symbol_ptr)cle
                                        ->class_type->source_corresp.assoc_info,
                         corresp_friend_sym = (a_symbol_ptr)corresp_cle
