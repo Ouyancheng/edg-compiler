@@ -402,83 +402,62 @@ way described by octl.
 #ifdef CFE
 
 /* Local macro that determines whether a given qualifier is present,
-   and if so, outputs the appropriate string. */
+   and if so outputs the appropriate string. */
 #define output_qualifier(flag, string)					\
-  {									\
-    if ((qualifiers & flag) != 0) {					\
-      if (qualifier_put_out) octl->output_str(" ");			\
-      qualifier_put_out = TRUE;						\
-      octl->output_str(string);						\
-    }  /* if */								\
-  }
+{									\
+  if ((qualifiers & flag) != 0) {					\
+    if (qualifier_put_out) octl->output_str(" ");			\
+    qualifier_put_out = TRUE;						\
+    octl->output_str(string);						\
+  }  /* if */								\
+}  /* output_qualifier */
 
 
 void form_type_qualifier(
-                     a_type_ptr                            type,
-                     a_boolean                             suppress_const,
+                     a_type_qualifier_set                  qualifiers,
                      a_boolean                             need_trailing_space,
                      an_il_to_str_output_control_block_ptr octl)
 /*
-Output a string for the type qualifier for the top type of the given type
-(i.e., just the first level).  The type must be a tk_typeref; usually, it
-will contain a qualifier, but if it doesn't nothing is put out.  If
-suppress_const is TRUE, suppress generation of top-level "const".
-If need_trailing_space is TRUE, put out a space after the type qualifier
-(if one is put out).  Do the output in the way described by octl.
+Output a string for the type qualifiers in the given qualifier set.
+If the qualifier set is empty, put out nothing.  If need_trailing_space
+is TRUE, put out a space after the type qualifier (if one is put out).
+Do the output in the way described by octl.
 */
 {
-  a_boolean            qualifier_put_out = FALSE;
-  a_type_qualifier_set qualifiers;
-
-  check_assertion_str(type->kind == (a_type_kind)tk_typeref,
-                      "form_type_qualifier: bad type kind");
-  qualifiers = type->variant.typeref.qualifiers;
-
+  a_boolean qualifier_put_out = FALSE;
 
   if (octl->gen_pcc_code) {
     /* Qualifiers are suppressed when generating K&R C. */
   } else {
-    if (suppress_const
 #if SUPPRESS_CONST_IN_GENERATED_C
-        || octl->c_generating_back_end
+    /* Suppress "const" in the output of the C-generating back end. */
+    if (octl->c_generating_back_end) qualifiers &= ~TQ_CONST;
 #endif /* SUPPRESS_CONST_IN_GENERATED_C */
-                                      ) {
-      /* "const" suppressed. */
-    } else {
-      output_qualifier(TQ_CONST, "const");
-    }  /* if */
+    output_qualifier(TQ_CONST, "const");
     output_qualifier(TQ_VOLATILE, "volatile");
 #if RESTRICT_ALLOWED
 #if SUPPRESS_RESTRICT_IN_GENERATED_CODE
-  /* Suppress "restrict" in generated compilable code. */
-  if (!octl->gen_compilable_code) {
+    /* Suppress "restrict" in generated compilable code. */
+    if (octl->gen_compilable_code) qualifiers &= ~TQ_RESTRICT;
 #endif /* SUPPRESS_RESTRICT_IN_GENERATED_CODE */
     output_qualifier(TQ_RESTRICT, "restrict");
-#if SUPPRESS_RESTRICT_IN_GENERATED_CODE
-  }  /* if */
-#endif /* SUPPRESS_RESTRICT_IN_GENERATED_CODE */
 #endif /* RESTRICT_ALLOWED */
+    /* Put out trailing space if required. */
+    if (need_trailing_space && qualifier_put_out) octl->output_str(" ");
   }  /* if */
-  /* Put out trailing space if required. */
-  if (need_trailing_space && qualifier_put_out) octl->output_str(" ");
 }  /* form_type_qualifier */
 
 #if MICROSOFT_KEYWORDS_ALLOWED
 
-void form_microsoft_qualifier(a_type_ptr                            type,
+void form_microsoft_qualifier(a_type_qualifier_set                  qualifiers,
                               an_il_to_str_output_control_block_ptr octl)
 /*
 Output a string for the Microsoft-specific type qualifiers in the
-indicated type, which is a tk_typeref.  Put a space after the qualifiers
-if any are put out.  Do the output in the way described by octl.
+indicated qualifier set.  Put a space after the qualifiers if any are
+put out.  Do the output in the way described by octl.
 */
 {
-  a_boolean            qualifier_put_out = FALSE;
-  a_type_qualifier_set qualifiers;
-
-  check_assertion_str(type->kind == (a_type_kind)tk_typeref,
-                      "form_microsoft_qualifier: bad type kind");
-  qualifiers = type->variant.typeref.qualifiers;
+  a_boolean qualifier_put_out = FALSE;
 
 #if SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
   if (octl->gen_compilable_code) {
@@ -538,29 +517,12 @@ end_of_routine:;
 }  /* form_bound */
 
 #endif /* ifdef FFE */
-#ifdef CFE
 
-/*
-Return TRUE if the indicated typedef is "invisible" now because (a) it's
-local to a function and we're suppressing local typedefs, or
-(b) suppress_const is TRUE (we're suppressing top-level "const") and the
-typedef contains a const qualifier.
-*/
-#define typedef_is_invisible(type, suppress_const)                    \
- (((type)->source_corresp.is_local_to_function &&                     \
-   octl->suppress_local_typedefs) ||                                  \
-  ((suppress_const) && is_top_level_const_qualified_type(type)))
-
-#endif /* ifdef CFE */
-
-static void form_type_specifier(
-                          a_type_ptr                            type,
-                          a_boolean                             suppress_const,
-                          an_il_to_str_output_control_block_ptr octl)
+static void form_type_specifier(a_type_ptr                            type,
+                                an_il_to_str_output_control_block_ptr octl)
 /*
 Output a string for a type specifier.  Do the output in the way described
-by octl.  If suppress_const is TRUE, suppress generation of top-level "const".
-Note that derived types should be handled above this level.
+by octl.
 */
 {
   switch (type->kind) {
@@ -613,34 +575,10 @@ Note that derived types should be handled above this level.
       form_tag_reference(type, octl);
       break;
     case tk_typeref:
-      if (is_immediate_type_qualifier(type)) {
-        /* The top type is a type qualifier.  Output it and move on to the
-           underlying type. */
-        if (octl->c_generating_back_end && !octl->gen_pcc_code) {
-          /* Some compilers have trouble with "const void".  Drop the const
-             in that case. */
-          if (typeref_is_const_qualified(type) &&
-              skip_typerefs(type->variant.typeref.type)->kind ==
-                                                        (a_type_kind)tk_void) {
-            suppress_const = TRUE;
-          }  /* if */
-        }  /* if */
-        form_type_qualifier(type, suppress_const, /*need_trailing_space=*/TRUE,
-                            octl);
-        /* "suppress_const" is right in the following if the current qualifier
-           doesn't contain const, and harmless (because there won't be
-           another const typeref) if it does. */
-        form_type_specifier(type->variant.typeref.type, suppress_const, octl);
-      } else if (!has_name(type) ||
-                 typedef_is_invisible(type, suppress_const)) {
-        /* This is an internally generated typeref, or a function-local
-           typedef that is not visible here, so just output the underlying
-           type. */
-        form_type_specifier(type->variant.typeref.type, suppress_const, octl);
-      } else {
-        /* A typedef; output its name. */
-        form_name(&type->source_corresp, iek_type, octl);
-      }  /* if */
+      /* A typeref here should be a typedef. */
+      check_assertion_str(typeref_is_typedef(type),
+                          "form_type_specifier: typeref is not typedef");
+      form_name(&type->source_corresp, iek_type, octl);
       break;
     case tk_template_param:
       form_name(&type->source_corresp, iek_type, octl);
@@ -711,28 +649,16 @@ Note that derived types should be handled above this level.
 
 #ifdef CFE
 
-static void form_pointer_type_qualifiers(
-                          a_type_ptr                            qual_type,
-                          a_type_ptr                            type,
-                          a_form_type_options_set               options,
-                          an_il_to_str_output_control_block_ptr octl)
 /*
-Output type qualifiers, if any, to follow a pointer "*", reference "&",
-or pointer-to-member "name::*".  qual_type is the full pointer type,
-and type is the unqualified version of that type (e.g., the tk_pointer
-entry).  If options contains FT_ADD_CONST, add an extra "const".
-If it contains FT_SUPPRESS_CONST, suppress generation of top-level
-"const".  Do the output in the way described by octl.
+Return TRUE if the indicated typedef is "invisible" now because (a) it's
+local to a function and we're suppressing local typedefs, or
+(b) suppress_const is TRUE (we're suppressing top-level "const") and the
+typedef contains a const qualifier.
 */
-{
-  for (; qual_type != type; qual_type = qual_type->variant.typeref.type) {
-    /* Put out a type qualifier.  Note that the subroutine will just
-       ignore typedefs and do-nothing typerefs if they occur. */
-    form_type_qualifier(qual_type, (options & FT_SUPPRESS_CONST) != 0,
-                        /*need_trailing_space=*/TRUE, octl);
-  }  /* for */
-  if (options & FT_ADD_CONST) octl->output_str("const ");
-}  /* form_pointer_type_qualifiers */
+#define typedef_is_invisible(type, suppress_const)                    \
+ (((type)->source_corresp.is_local_to_function &&                     \
+   octl->suppress_local_typedefs) ||                                  \
+  ((suppress_const) && is_top_level_const_qualified_type(type)))
 
 #endif /* ifdef CFE */
 
@@ -762,136 +688,168 @@ qualifiers like __cdecl.
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 {
   a_type_kind kind;
-  a_type_ptr  qual_type = type;
   a_boolean   suppress_const = (options & FT_SUPPRESS_CONST) != 0;
 #ifdef CFE
-  a_boolean   any_type_qualifiers = FALSE;
+  a_type_qualifier_set
+              qualifiers = TQ_NONE;
+  a_form_type_options_set
+              pointer_options = FT_NO_OPTIONS, array_options;
 #if MICROSOFT_KEYWORDS_ALLOWED
-  a_boolean   any_microsoft_qualifiers = FALSE;
+  a_type_qualifier_set
+              microsoft_qualifiers,
+              qualifiers_under_pointer;
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 #endif /* ifdef CFE */
 
 #ifdef CFE
   /* Remove type qualifiers but not typedefs.  Also drop typedefs
-     that aren't visible here. */
+     that aren't visible here.  Accumulate the type qualifier set. */
   while (type->kind == (a_type_kind)tk_typeref) {
-    if (!has_name(type)) {
-      /* Type qualifier typeref. */
-      a_type_qualifier_set quals = type->variant.typeref.qualifiers;
-#if MICROSOFT_KEYWORDS_ALLOWED
-      if ((quals & TQ_ALL_MICROSOFT_QUALIFIERS) != TQ_NONE) {
-        if (!(options & FT_SUPPRESS_MICROSOFT_QUALIFIERS)) {
-          /* This typeref contains some Microsoft qualifiers.  They are output
-             like full-fledged left-hand declarators instead of mere
-             qualifiers.  On the first one, do the recursive call to handle
-             the underlying type.  Then in all cases, put out the
-             qualifiers. */
-          if (!any_microsoft_qualifiers) {
-            form_type_first_part(qual_type,
-                                 /*under_lhs_declarator=*/TRUE,
-                                 /*need_trailing_space=*/TRUE,
-                                 options | FT_SUPPRESS_MICROSOFT_QUALIFIERS,
-                                 octl);
-            any_microsoft_qualifiers = TRUE;
-          }  /* if */
-          form_microsoft_qualifier(type, octl);
-        }  /* if */
-        quals &= ~TQ_ALL_MICROSOFT_QUALIFIERS;
-      }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
-      if (quals != TQ_NONE) any_type_qualifiers = TRUE;
-    } else if (typedef_is_invisible(type, suppress_const)) {
-      /* Invisible typedef. */
+    if (typeref_is_typedef(type)) {
+      /* Typedef.  Stop unless it's invisible. */
+      if (!typedef_is_invisible(type, suppress_const)) break;
     } else {
-      /* Normal typedef; stop. */
-      break;
+      /* Type qualifier typeref.  Accumulate the qualifiers. */
+      qualifiers |= type->variant.typeref.qualifiers;
+      /* If we're supposed to suppress "const" and this typeref has it, we
+         can take care of the suppression now. */
+      if (suppress_const && (qualifiers & TQ_CONST)) {
+        qualifiers &= ~TQ_CONST;
+        suppress_const = FALSE;
+      }  /* if */
     }  /* if */
     type = type->variant.typeref.type;
   }  /* while */
-#endif /* ifdef CFE */
+  /* Add top-level "const" if told to. */
+  if (options & FT_ADD_CONST) qualifiers |= TQ_CONST;
 #if MICROSOFT_KEYWORDS_ALLOWED
-  /* If some Microsoft qualifiers were handled, we're done already. */
-  if (!any_microsoft_qualifiers) {
+  /* Split the qualifiers into Microsoft and non-Microsoft qualifiers. */
+  /* Ignore Microsoft qualifiers if told to. */
+  if (options & FT_SUPPRESS_MICROSOFT_QUALIFIERS) {
+    microsoft_qualifiers = TQ_NONE;
+  } else {
+    microsoft_qualifiers = (qualifiers & TQ_ALL_MICROSOFT_QUALIFIERS);
+  }  /* if */
+  qualifiers &= ~TQ_ALL_MICROSOFT_QUALIFIERS;
+  /* When processing pointers, suppress processing of Microsoft qualifiers
+     under the pointer because they are processed at this level. */
+  pointer_options = FT_SUPPRESS_MICROSOFT_QUALIFIERS;
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
-    kind = type->kind;
-    if (kind == (a_type_kind)tk_pointer) {
-      /* Pointer or reference type. */
-      form_type_first_part(type->variant.pointer.type,
-                           /*under_lhs_declarator=*/TRUE,
-                           /*need_trailing_space=*/TRUE,
-                           FT_NO_OPTIONS,
-                           octl);
-      /* Output "*" or "&" for pointer or reference. */
-#ifdef CFE
-      if (type->variant.pointer.is_reference && !octl->c_generating_back_end) {
-        octl->output_str("&");
-      } else {
 #endif /* ifdef CFE */
-        octl->output_str("*");
+  kind = type->kind;
+  if (kind == (a_type_kind)tk_pointer) {
+    /* Pointer or reference type. */
+    form_type_first_part(type->variant.pointer.type,
+                         /*under_lhs_declarator=*/TRUE,
+                         /*need_trailing_space=*/TRUE,
+                         pointer_options,
+                         octl);
 #ifdef CFE
-      }  /* if */
-      /* Output the type qualifiers on the pointer, if any. */
-      if (any_type_qualifiers) {
-        form_pointer_type_qualifiers(qual_type, type, options, octl);
-      }  /* if */
-#endif /* ifdef CFE */
-#ifdef CFE
-    } else if (kind == (a_type_kind)tk_ptr_to_member) {
-      /* Pointer-to-member type. */
-      form_type_first_part(type->variant.ptr_to_member.type,
-                           /*under_lhs_declarator=*/TRUE,
-                           /*need_trailing_space=*/TRUE,
-                           FT_NO_OPTIONS,
-                           octl);
-      /* Output Classname::*. */
-      form_name(&type->variant.ptr_to_member.
-                                       class_of_which_a_member->source_corresp,
-                iek_type, octl);
-      octl->output_str("::*");
-      /* Output the type qualifiers on the pointer, if any. */
-      if (any_type_qualifiers) {
-        form_pointer_type_qualifiers(qual_type, type, options, octl);
-      }  /* if */
-#endif /* ifdef CFE */
-    } else if (kind == (a_type_kind)tk_routine) {
-      /* Function type. */
-      /* A qualifier on a function type shouldn't be possible without a
-         typedef.  When some typedefs are made invisible, though,
-         a typeref might appear and should be ignored. */
-      check_assertion_str(!any_type_qualifiers || suppress_const,
-                          "form_type_first_part: qualifier on function type");
-      form_type_first_part(type->variant.routine.return_type,
-                           /*under_lhs_declarator=*/FALSE,
-                           /*need_trailing_space=*/TRUE,
-                           FT_NO_OPTIONS,
-                           octl);
-      /* This is a right-side declarator, so if it's under a left-side
-         declarator parentheses are needed. */
-      if (under_lhs_declarator) octl->output_str("(");
-#ifdef CFE
-    } else if (kind == (a_type_kind)tk_array) {
-      /* Array type. */
-      /* A qualifier on an array type shouldn't be possible, period.
-         When some typedefs are made invisible, though, a typeref might
-         appear and should be ignored. */
-      check_assertion_str(!any_type_qualifiers || suppress_const,
-                          "form_type_first_part: qualifier on array type");
-      form_type_first_part(type->variant.array.element_type,
-                           /*under_lhs_declarator=*/FALSE,
-                           /*need_trailing_space=*/TRUE,
-                           options & FT_SUPPRESS_CONST,
-                           octl);
-      /* This is a right-side declarator, so if it's under a left-side
-         declarator parentheses are needed. */
-      if (under_lhs_declarator) octl->output_str("(");
-#endif /* ifdef CFE */
-    } else {
-      /* No declarator part to process.  Handle the specifier type. */
-      if (options & FT_ADD_CONST) octl->output_str("const ");
-      form_type_specifier(qual_type, suppress_const, octl);
-      if (need_trailing_space) octl->output_str(" ");
-    }  /* if */
 #if MICROSOFT_KEYWORDS_ALLOWED
+    /* Put out any Microsoft qualifiers under the pointer type. */
+    qualifiers_under_pointer = get_type_qualifiers(type->variant.pointer.type);
+    if (qualifiers_under_pointer & TQ_ALL_MICROSOFT_QUALIFIERS) {
+      form_microsoft_qualifier(qualifiers_under_pointer, octl);
+    }  /* if */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+    /* Output "*" or "&" for pointer or reference. */
+    if (type->variant.pointer.is_reference && !octl->c_generating_back_end) {
+      octl->output_str("&");
+    } else {
+#endif /* ifdef CFE */
+      octl->output_str("*");
+#ifdef CFE
+    }  /* if */
+    /* Output the type qualifiers on the pointer, if any. */
+    if (qualifiers != TQ_NONE) {
+      form_type_qualifier(qualifiers, /*need_trailing_space=*/TRUE, octl);
+    }  /* if */
+#endif /* ifdef CFE */
+#ifdef CFE
+  } else if (kind == (a_type_kind)tk_ptr_to_member) {
+    /* Pointer-to-member type. */
+    form_type_first_part(type->variant.ptr_to_member.type,
+                         /*under_lhs_declarator=*/TRUE,
+                         /*need_trailing_space=*/TRUE,
+                         pointer_options,
+                         octl);
+#if MICROSOFT_KEYWORDS_ALLOWED
+    /* Put out any Microsoft qualifiers under the pointer-to-member type. */
+    qualifiers_under_pointer =
+                         get_type_qualifiers(type->variant.ptr_to_member.type);
+    if (qualifiers_under_pointer & TQ_ALL_MICROSOFT_QUALIFIERS) {
+      form_microsoft_qualifier(qualifiers_under_pointer, octl);
+    }  /* if */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+    /* Output Classname::*. */
+    form_name(&type->variant.ptr_to_member.
+                                       class_of_which_a_member->source_corresp,
+              iek_type, octl);
+    octl->output_str("::*");
+    /* Output the type qualifiers on the pointer, if any. */
+    if (qualifiers != TQ_NONE) {
+      form_type_qualifier(qualifiers, /*need_trailing_space=*/TRUE, octl);
+    }  /* if */
+#endif /* ifdef CFE */
+  } else if (kind == (a_type_kind)tk_routine) {
+    /* Function type. */
+    /* A qualifier on a function type shouldn't be possible without a
+       typedef. */
+    check_assertion_str(qualifiers == TQ_NONE,
+                        "form_type_first_part: qualifier on function type");
+    form_type_first_part(type->variant.routine.return_type,
+                         /*under_lhs_declarator=*/FALSE,
+                         /*need_trailing_space=*/TRUE,
+                         FT_NO_OPTIONS,
+                         octl);
+    /* This is a right-side declarator, so if it's under a left-side
+       declarator parentheses are needed. */
+    if (under_lhs_declarator) octl->output_str("(");
+#ifdef CFE
+  } else if (kind == (a_type_kind)tk_array) {
+    /* Array type. */
+    /* A qualifier on an array type shouldn't be possible, period. */
+    check_assertion_str(qualifiers == TQ_NONE,
+                        "form_type_first_part: qualifier on array type");
+    array_options = FT_NO_OPTIONS;
+    if (suppress_const) array_options |= FT_SUPPRESS_CONST;
+#if MICROSOFT_KEYWORDS_ALLOWED
+    /* Microsoft qualifiers under the array type were already handled at
+       this level in C++ (because they're seen by get_type_qualifiers). */
+    if (!C_mode()) array_options |= FT_SUPPRESS_MICROSOFT_QUALIFIERS,
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+    form_type_first_part(type->variant.array.element_type,
+                         /*under_lhs_declarator=*/FALSE,
+                         /*need_trailing_space=*/TRUE,
+                         array_options,
+                         octl);
+    /* This is a right-side declarator, so if it's under a left-side
+       declarator parentheses are needed. */
+    if (under_lhs_declarator) octl->output_str("(");
+#endif /* ifdef CFE */
+  } else {
+    /* No declarator part to process.  Handle the specifier type. */
+    if (octl->c_generating_back_end && !octl->gen_pcc_code) {
+      /* Some compilers have trouble with "const void".  Drop the const
+         in that case. */
+      if ((qualifiers & TQ_CONST) &&
+          /* skip_typerefs needed because there might be a typedef of void. */
+          skip_typerefs(type)->kind == (a_type_kind)tk_void) {
+        qualifiers &= ~TQ_CONST;
+      }  /* if */
+    }  /* if */
+    if (qualifiers != TQ_NONE) {
+      form_type_qualifier(qualifiers, /*need_trailing_space=*/TRUE, octl);
+    }  /* if */
+    form_type_specifier(type, octl);
+    if (need_trailing_space) octl->output_str(" ");
+  }  /* if */
+#if MICROSOFT_KEYWORDS_ALLOWED
+  /* If there were any Microsoft qualifiers on the top of the type, put
+     them out now, right next to the place where the declarator name
+     will be. */
+  if (microsoft_qualifiers  != TQ_NONE) {
+    form_microsoft_qualifier(microsoft_qualifiers, octl);
   }  /* if */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 }  /* form_type_first_part */
@@ -952,14 +910,13 @@ in the way described by octl.
 #ifdef CFE
     /* Output a cv-qualifier for a member function, if there is one. */
     if (rtsp->implicit_this_param_type != NULL) {
-      a_type_ptr underlying_type =
+      a_type_ptr           underlying_type =
                                type_pointed_to(rtsp->implicit_this_param_type);
-      for (; is_immediate_type_qualifier(underlying_type);
-           underlying_type = underlying_type->variant.typeref.type) {
+      a_type_qualifier_set qualifiers = get_type_qualifiers(underlying_type);
+      if (qualifiers != TQ_NONE) {
         octl->output_str(" ");
-        form_type_qualifier(underlying_type, /*suppress_const=*/FALSE,
-                            /*need_trailing_space=*/FALSE, octl);
-      }  /* for */
+        form_type_qualifier(qualifiers, /*need_trailing_space=*/FALSE, octl);
+      }  /* if */
     }  /* if */
 #endif /* ifdef CFE */
   }  /* if */
@@ -1001,99 +958,72 @@ directly under a type that uses a left-side declarator, e.g., a pointer type.
 If options contains FT_SUPPRESS_CONST, suppress generation of top-level
 "const".  Do the output in the way described by octl.
 */
-#if MICROSOFT_KEYWORDS_ALLOWED
-/*
-FT_SUPPRESS_MICROSOFT_QUALIFIERS is TRUE to suppress the Microsoft
-qualifiers like __cdecl.
-*/
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 {
   a_type_kind kind;
-  a_type_ptr  qual_type = type;
   a_boolean   suppress_const = (options & FT_SUPPRESS_CONST) != 0;
 #ifdef CFE
-#if MICROSOFT_KEYWORDS_ALLOWED
-  a_boolean   any_microsoft_qualifiers = FALSE;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+  a_type_qualifier_set
+              qualifiers = TQ_NONE;
 #endif /* ifdef CFE */
 
 #ifdef CFE
   /* Remove type qualifiers but not typedefs.  Also drop typedefs
-     that aren't visible here. */
+     that aren't visible here.  Accumulate the type qualifier set. */
   while (type->kind == (a_type_kind)tk_typeref) {
-    if (!has_name(type)) {
-      /* Type qualifier typeref. */
-#if MICROSOFT_KEYWORDS_ALLOWED
-      if ((type->variant.typeref.qualifiers &
-           TQ_ALL_MICROSOFT_QUALIFIERS) != TQ_NONE &&
-          !(options & FT_SUPPRESS_MICROSOFT_QUALIFIERS)) {
-        /* This typeref contains some Microsoft qualifiers.  They are output
-           like full-fledged left-hand declarators instead of mere qualifiers.
-           On the first one, do the recursive call to handle the underlying
-           type.  Then exit the loop. */
-        form_type_second_part(qual_type,
-                              /*under_lhs_declarator=*/TRUE,
-                              options | FT_SUPPRESS_MICROSOFT_QUALIFIERS,
-                              octl);
-        any_microsoft_qualifiers = TRUE;
-        /* There's no need to look at any more of the typerefs. */
-        break;
-      }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
-    } else if (typedef_is_invisible(type, suppress_const)) {
-      /* Invisible typedef. */
+    if (typeref_is_typedef(type)) {
+      /* Typedef.  Stop unless it's invisible. */
+      if (!typedef_is_invisible(type, suppress_const)) break;
     } else {
-      /* Normal typedef; stop. */
-      break;
+      /* Type qualifier typeref.  Accumulate the qualifiers. */
+      qualifiers |= type->variant.typeref.qualifiers;
+      /* If we're supposed to suppress "const" and this typeref has it, we
+         can take care of the suppression now. */
+      if (suppress_const && (qualifiers & TQ_CONST)) {
+        qualifiers &= ~TQ_CONST;
+        suppress_const = FALSE;
+      }  /* if */
     }  /* if */
     type = type->variant.typeref.type;
   }  /* while */
 #endif /* ifdef CFE */
-#if MICROSOFT_KEYWORDS_ALLOWED
-  /* If some Microsoft qualifiers were handled, we're done already. */
-  if (!any_microsoft_qualifiers) {
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
-    kind = type->kind;
-    if (kind == (a_type_kind)tk_pointer) {
-      /* Pointer or reference type. */
-      form_type_second_part(type->variant.pointer.type,
-                            /*under_lhs_declarator=*/TRUE,
-                            FT_NO_OPTIONS,
-                            octl);
+  kind = type->kind;
+  if (kind == (a_type_kind)tk_pointer) {
+    /* Pointer or reference type. */
+    form_type_second_part(type->variant.pointer.type,
+                          /*under_lhs_declarator=*/TRUE,
+                          FT_NO_OPTIONS,
+                          octl);
 #ifdef CFE
-    } else if (kind == (a_type_kind)tk_ptr_to_member) {
-      /* Pointer-to-member type. */
-      form_type_second_part(type->variant.ptr_to_member.type,
-                            /*under_lhs_declarator=*/TRUE,
-                            FT_NO_OPTIONS,
-                            octl);
+  } else if (kind == (a_type_kind)tk_ptr_to_member) {
+    /* Pointer-to-member type. */
+    form_type_second_part(type->variant.ptr_to_member.type,
+                          /*under_lhs_declarator=*/TRUE,
+                          FT_NO_OPTIONS,
+                          octl);
 #endif /* ifdef CFE */
-    } else if (kind == (a_type_kind)tk_routine) {
-      /* Function type. */
-      /* This is a right-side declarator, so if it's under a left-side
-         declarator parentheses are needed. */
-      if (under_lhs_declarator) octl->output_str(")");
-      form_function_declarator(type, octl);
-      form_type_second_part(type->variant.routine.return_type,
-                            /*under_lhs_declarator=*/FALSE,
-                            FT_NO_OPTIONS,
-                            octl);
+  } else if (kind == (a_type_kind)tk_routine) {
+    /* Function type. */
+    /* This is a right-side declarator, so if it's under a left-side
+       declarator parentheses are needed. */
+    if (under_lhs_declarator) octl->output_str(")");
+    form_function_declarator(type, octl);
+    form_type_second_part(type->variant.routine.return_type,
+                          /*under_lhs_declarator=*/FALSE,
+                          FT_NO_OPTIONS,
+                          octl);
 #ifdef CFE
-    } else if (kind == (a_type_kind)tk_array) {
-      /* Array type. */
-      /* This is a right-side declarator, so if it's under a left-side
-         declarator parentheses are needed. */
-      if (under_lhs_declarator) octl->output_str(")");
-      form_array_declarator(type, octl);
-      form_type_second_part(type->variant.array.element_type,
-                            /*under_lhs_declarator=*/FALSE,
-                            FT_NO_OPTIONS,
-                            octl);
+  } else if (kind == (a_type_kind)tk_array) {
+    /* Array type. */
+    /* This is a right-side declarator, so if it's under a left-side
+       declarator parentheses are needed. */
+    if (under_lhs_declarator) octl->output_str(")");
+    form_array_declarator(type, octl);
+    form_type_second_part(type->variant.array.element_type,
+                          /*under_lhs_declarator=*/FALSE,
+                          FT_NO_OPTIONS,
+                          octl);
 #endif /* ifdef CFE */
-    }  /* if */
-#if MICROSOFT_KEYWORDS_ALLOWED
   }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 }  /* form_type_second_part */
 
 
