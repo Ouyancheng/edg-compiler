@@ -3125,9 +3125,10 @@ or enum.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     write_tok_str(tag_kind_str);
     write_space();
-    if (type->first_declaration_pending) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+    if (type->first_declaration_pending ||
+        type->emit_microsoft_class_decl_modifiers) {
       if (il_header.source_language == sl_Cplusplus) {
         if (type->kind != (a_type_kind)tk_enum) {
           /* On the first declaration put out declaration modifiers that apply
@@ -3138,8 +3139,10 @@ or enum.
            gen_microsoft_uuid_declspec(type->variant.integer.uuid_string);
         }  /* if */
       }  /* if */
+    }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (type->first_declaration_pending) {
       /* The initial declaration of a tag cannot use a qualified name. */
       if (type_is_prototype_instantiation(type)) {
         /* No template arguments on a prototype instantiation. */
@@ -8901,11 +8904,9 @@ Generate code for an instantiation directive.
       case iek_type:
         { a_type_ptr class_type = (a_type_ptr)idp->entity.ptr;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (idp->do_not_instantiate) {
-            /* Force output of class modifiers on an extern template
-               declaration, in case it is the first or only declaration. */
-            class_type->first_declaration_pending = TRUE;
-          }  /* if */
+        /* Force output of class modifiers on a template instantiation
+           directive, in case it is the first or only declaration. */
+        class_type->emit_microsoft_class_decl_modifiers = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           gen_tag_reference(class_type);
           write_tok_ch(';');

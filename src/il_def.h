@@ -5058,6 +5058,13 @@ typedef struct a_type {
 			   by references to a generated typedef.  This is used
 			   in the C++-generating end, to deal with a Microsoft
 			   bug. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	emit_microsoft_class_decl_modifiers:1;
+			/* TRUE if the Microsoft declaration modifiers
+			   (__declspec(...), etc.) should be inserted into a
+			   class declaration.  Set and used only within the
+			   C++-generating back end. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	alignment_set_explicitly:1;

@@ -1561,6 +1561,9 @@ variant fields to default values.
   pte->elaborated_type_specifier_needed = FALSE;
   pte->typedef_definition_has_been_put_out = FALSE;
   pte->replace_by_generated_typedef = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  pte->emit_microsoft_class_decl_modifiers = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   pte->alignment_set_explicitly = FALSE;
