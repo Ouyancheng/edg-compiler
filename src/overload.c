@@ -1275,14 +1275,18 @@ reference type if param_is_reference is TRUE.
 
 
 static a_boolean array_transformation_needed_on_reference_init(
-                                                       a_type_ptr arg_type,
+                                                       a_type_ptr *arg_type,
                                                        a_type_ptr param_type,
                                                        an_operand *arg_operand)
 /*
 Return TRUE if when initializing a parameter of type param_type (a reference
-type) from an argument of type arg_type (an array type), the array -->
+type) from an argument of type *arg_type (an array type), the array -->
 pointer transformation should be done.  arg_operand, if non-NULL, is
-the argument.
+the argument.  arg_type is passed with an extra level of indirection
+so that it can be updated if arg_operand is changed (e.g., because
+it is a reference to a template static data member which gets
+instantiated and changes from an unknown-bound array to a known-size
+array).
 */
 {
   a_boolean transform_needed = TRUE, dropping_qualifiers;
@@ -1293,7 +1297,7 @@ the argument.
        char (&r)[4] = "abc";
   */
   if (direct_reference_binding_possible(arg_operand,
-                                        arg_type,
+                                        *arg_type,
                                         param_type,
                                         &ref_to_const,
                                         &ref_to_const_volatile,
@@ -1301,6 +1305,7 @@ the argument.
                                         &dropping_qualifiers,
                                         (a_symbol **)NULL)) {
     transform_needed = FALSE;
+    if (arg_operand != NULL) *arg_type = arg_operand->type;
   }  /* if */
   return transform_needed;
 }  /* array_transformation_needed_on_reference_init */
@@ -1475,7 +1480,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
      should be done. */
   if (is_array_type(arg_type) &&
       (!param_is_reference ||
-       array_transformation_needed_on_reference_init(arg_type, param_type,
+       array_transformation_needed_on_reference_init(&arg_type, param_type,
                                                      arg_operand))) {
     /* Simulate the array --> pointer transformation.  After the transformation
        we have only a type for the argument, and no arg_operand. */
