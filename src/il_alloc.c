@@ -1926,8 +1926,8 @@ to it.
 
 a_switch_case_entry_ptr alloc_switch_case_entry(void)
 /*
-Allocate a storage to describe the position of switch cases, clear it to
-default values, and return a pointer to it.
+Allocate storage to describe the position of switch cases, clear it to default
+values, and return a pointer to it.
 */
 {
   a_switch_case_entry_ptr  info;
@@ -1935,8 +1935,8 @@ default values, and return a pointer to it.
   info = (a_switch_case_entry_ptr)alloc_cil(sizeof(a_switch_clause));
   info->next = NULL;
   info->constant = NULL;
-  clear_stmt_source_position(info->keyword_position)
-  clear_stmt_source_position(info->colon_position)
+  info->keyword_position = null_source_position;
+  info->colon_position = null_source_position;
 #if DEBUG
   num_switch_case_entries_allocated++;
 #endif /* DEBUG */
