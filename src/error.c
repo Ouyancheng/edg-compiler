@@ -35,6 +35,18 @@ error.c -- Error reporting routines.
 #endif /* ASM_FUNCTION_ALLOWED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+#if __ANSIC__
+/* Get bsearch definition. */
+#include <stdlib.h>
+#else /* __ANSIC__ */
+EXTERN_C void *bsearch(const a_generic_ptr *key,
+                       const a_generic_ptr *base,
+                       sizeof_t            nmemb,
+                       sizeof_t            size,
+                       int(*compar)(const a_generic_ptr *,
+                                    const a_generic_ptr *));
+#endif /* __ANSIC__ */
+
 
 /*
 Constants, structures and static variables used to format diagnostic
