@@ -2753,7 +2753,7 @@ the macro definition.
       case rt_charized_raw_argument:
         /* #parameter or #@parameter */
         put_str_to_temp_text_buffer(
-                           rts_kind == rt_charized_raw_argument ? "#" : "#@");
+                           rts_kind == rt_charized_raw_argument ? "#@" : "#");
         put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
         break;
       case rt_argument:
@@ -3181,15 +3181,15 @@ Scan and process a #define directive.
              "#@" -- Recognized in Microsoft mode only: similar to the
              stringizing "#" operator, but it produces a character literal
              instead of a string literal. */
+          a_boolean  charize = curr_token != tok_sharp;
           (void)mdefn_get_token(param_list, &param_num,
                                 &any_white_space_skipped);
           if (param_num == 0) {
             error(ec_exp_macro_param);
           } else {
-            put_start_of_non_text_section(
-                        (curr_token == tok_sharp) ? rt_stringized_raw_argument
-                                                  : rt_charized_raw_argument,
-                        param_num);
+            put_start_of_non_text_section(charize ? rt_charized_raw_argument
+                                                  : rt_stringized_raw_argument,
+                                          param_num);
             need_end_of_token_marker = TRUE;
             (void)mdefn_get_token(param_list, &param_num,
                                   &any_white_space_skipped);
