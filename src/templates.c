@@ -1270,14 +1270,16 @@ be NULL if the caller does not need to know whether a conversion was performed.
     /* The type from the template is not a template parameter type.  Before
        checking further, remove typedefs -- but keep the type qualifiers
        in place. */
-    a_type_kind	templ_type_kind = templ_type->kind;
-    a_type_kind	type_kind = type->kind;
+    a_type_kind	templ_type_kind;
+    a_type_kind	type_kind;
+    type = skip_typedefs(type);
+    templ_type = skip_typedefs(templ_type);
+    templ_type_kind = templ_type->kind;
+    type_kind = type->kind;
     /* Normalize the type kinds so that class and struct are treated as the
        same kind. */
     if (templ_type_kind == (a_type_kind)tk_struct) templ_type_kind = tk_class;
     if (type_kind == (a_type_kind)tk_struct) type_kind = tk_class;
-    type = skip_typedefs(type);
-    templ_type = skip_typedefs(templ_type);
     if (templ_type == type) {
       /* Identical type entries, so it's a match. */
       match = TRUE;
