@@ -1940,6 +1940,9 @@ and create a function instantiation entry to bind the two symbols together.
      point at each other. */
   tip->instance_sym = rout_sym;
   rout_sym->variant.routine.instance_ptr = tip;
+  /* Mark the routine entry as an instance of a member function template. */
+  rout_sym->variant.routine.ptr->is_instantiation = TRUE;
+
   db_exit();
 }  /* find_member_function_template */
 
@@ -2037,6 +2040,10 @@ Also, add the instance to the definitions list for the template.
   tssp = sym->variant.variable.instance_ptr->template_info;
   tip->next = tssp->variant.static_data_member.definitions;
   tssp->variant.static_data_member.definitions = tip;
+  /* Mark the variable entry as an instance of a static data member
+     template. */
+  static_data_member_sym->variant.variable.ptr->is_instantiation = TRUE;
+
   db_exit();
 }  /* find_static_data_member_template */
 
@@ -3439,6 +3446,20 @@ updated but not removed from the list.
 {
   a_symbol_ptr   sym;
 
+  db_enter(5, "update_instantiation_required_flag");
+#if DEBUG
+  if (debug_level >= 5) {
+    a_symbol_ptr sym = tip->instance_sym;
+    fprintf(f_debug, "Setting instantiation_required flag to %s for ",
+            value ? "TRUE" : "FALSE");
+    db_symbol(tip->instance_sym, "", 0);
+    fprintf(f_debug, "is_function_symbol=%d\n", is_function_symbol(sym));
+    fprintf(f_debug, "defined=%d\n", sym->defined);
+    if (is_function_symbol(sym)) {
+      fprintf(f_debug, "inline=%d\n", sym->variant.routine.ptr->is_inline);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
   if (instantiation_mode == tim_can_instantiate) {
     /* Leave the instantiation_required flag unchanged in this mode. */
   } else if (value) {
@@ -3454,14 +3475,16 @@ updated but not removed from the list.
       /* Inline (member or nonmember) functions are instantiated at the
          point of first use, in case the back end requires the function
          body immediately to perform inlining. */
-      instantiate_template_function(tip);
+      if (!tip->already_instantiated) {
+        instantiate_template_function(tip);
+      }  /* if */
       tip->instantiation_required = TRUE;
-    } else if (!tip->instantiation_required) {
-      /* The flag is not already set.  If we are in instantiation wrapup
-         then instantiate the function now instead of just adding it to
-         the end of the list.  This makes it possible to detect runaway
-         recursive instantiations that are very difficult to detect
-	 when the instantiations are done serially. */
+    } else {
+      /* If we are in instantiation wrapup then instantiate the function now
+	 instead of just adding it to the end of the list.  This makes
+	 it possible to detect runaway recursive instantiations that
+	 are very difficult to detect when the instantiations are done
+	 serially. */
       tip->instantiation_required = TRUE;
       if (in_instantiation_wrapup) {
         if (!tip->already_instantiated && should_be_instantiated(tip)) {
@@ -3483,6 +3506,7 @@ updated but not removed from the list.
        for automatic instantiation processing. */
     add_to_instantiations_required_list(tip);
   }  /* if */
+  db_exit();
 }  /* update_instantiation_required_flag */
 
 
@@ -3819,16 +3843,10 @@ is responsible for setting the appropriate flags.
       variable->can_be_instantiated = can_instantiate;
       variable->instance_required = tip->instantiation_required;
       variable->do_not_instantiate = tip->explicit_do_not_instantiate;
-#if 1
-      variable->is_instantiation = TRUE;
-#endif
     } else {
       routine->can_be_instantiated = can_instantiate;
       routine->instance_required = tip->instantiation_required;
       routine->do_not_instantiate = tip->explicit_do_not_instantiate;
-#if 1
-      routine->is_instantiation = TRUE;
-#endif
     }  /* if */
   }  /* for */
   db_exit();
