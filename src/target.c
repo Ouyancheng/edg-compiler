@@ -13,14 +13,14 @@ target.c -- Target configuration support
 
 */
 
-
 #include "basics.h"
+
+#if CHECKING
+
 #include "host_envir.h"
 #include "target.h"
 #include "error.h"
 #include "const_ints.h"
-
-#if CHECKING
 
 void check_target_configuration(void)
 /*
