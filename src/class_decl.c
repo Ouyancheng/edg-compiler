@@ -4451,11 +4451,38 @@ a diagnostic should be issued by the caller.
                                          tp2->variant.routine.return_type)) {
       /* Not a virtual function case.  The return types are also compatible.
          A diagnostic will be issued by the caller. */
-      *err = compat = TRUE;
+      compat = TRUE;
+#if 0
+#else /* if !0 */
+      /* It is unclear whether 7.3.3 para 13 applies to all member functions
+         (as the example suggests) or only to virtual functions (as the text
+         indicates).  For now we'll go with the example. */
+      if (!is_class_member) *err = TRUE;
+#endif /* if 0 */
     }  /* if */
   }  /* if */
   return compat;
 }  /* types_of_decl_and_using_decl_conflict */
+
+
+static void mark_class_member_using_decl_as_hidden(a_type_ptr    class_type,
+                                                   a_symbol_ptr  sym)
+/*
+*/
+{
+  a_class_member_using_decl_ptr  cmudp;
+  a_routine_ptr                  rp;
+
+  check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
+  rp = sym->variant.routine.ptr;
+  cmudp = class_type->variant.class_struct_union.extra_info->
+                                                   class_member_using_decls;
+  for (; cmudp != NULL; cmudp = cmudp->next) {
+    if (cmudp->entity.ptr == (char *)rp) {
+      cmudp->hidden = TRUE;
+    }  /* if */
+  }  /* for */
+}  /* mark_class_member_using_decl_as_hidden */
 
 
 void check_for_conflicts_with_using_decls(a_symbol_ptr       overload_sym,
@@ -4511,6 +4538,11 @@ using *pos as the error position.
         }  /* if */
         /* Remove the symbol from the overload list by skipping around it. */
         prev_in_overload_set->next = sym->next;
+        if (decl_sym->is_class_member) {
+          /* Remove the class-member-using-decl entry associated with sym. */
+          mark_class_member_using_decl_as_hidden(decl_sym->parent.class_type,
+                                                 using_sym);
+        }  /* if */
         /* Continue through the overload list -- there may be more than
            one projection symbol with which decl_sym conflicts. */
         continue;
