@@ -4350,7 +4350,7 @@ this routine to do a relatively simple copy of the all the fields.
 {
   a_field_ptr                 old_field, last_field;
   a_type_ptr                  subobject_type;
-  a_class_type_supplement_ptr ctsp;
+  a_class_type_supplement_ptr ctsp, subobject_ctsp;
   sizeof_t                    name_length;
   char                        *name_ptr, *new_name_ptr;
   a_scope_depth               scope_depth;
@@ -4367,6 +4367,7 @@ this routine to do a relatively simple copy of the all the fields.
   } else {
     /* Make a copy of the class type for use as the subobject type. */
     subobject_type = alloc_type((a_type_kind)tk_struct);
+    subobject_ctsp = subobject_type->variant.class_struct_union.extra_info;
     /* Give the struct a name that is a prefix followed by the original name.
        Also give it the same declaration position as the original type. */
     name_ptr = class_type->source_corresp.name;
@@ -4423,16 +4424,22 @@ added_to_list:;
     subobject_type->size = ctsp->size_without_virtual_base_classes;
     subobject_type->alignment = ctsp->alignment_without_virtual_base_classes;
     /* add_to_types_list is not called on purpose.  See above. */
-    subobject_type->variant.class_struct_union.extra_info->
-             virtual_function_info_offset = ctsp->virtual_function_info_offset;
+    subobject_ctsp->virtual_function_info_offset =
+                                            ctsp->virtual_function_info_offset;
+    /* Preserve the information on sharing of virtual function table pointers.
+       This is not terribly clean, in that the base class pointed to is not
+       a base class of the type-as-subobject.  However, by the end of IL
+       lowering this field is no longer meaningful, so the value is strange
+       only during IL lowering. */
+    subobject_ctsp->virtual_function_info_base_class =
+                                        ctsp->virtual_function_info_base_class;
 #if 0
     /* Following would perhaps be dangerous; class would not get virtual
        function table variables set (Could it share the main class vars?
        Does it need any?). */
     /* The subobject type has no virtual base classes and is therefore its
        own type as subobject. */
-    subobject_type->variant.class_struct_union.extra_info->type_as_subobject =
-                                                                subobject_type;
+    subobject_ctsp->type_as_subobject = subobject_type;
 #endif
   }  /* if */
   ctsp->type_as_subobject = subobject_type;
@@ -7061,7 +7068,7 @@ is_lvalue is TRUE.
                           &derived_class_cast_offset);
   if (node->variant.operation.kind ==
                                (an_expr_operator_kind)eok_derived_class_cast) {
-    /* A cast from a base class to a derived cast.  The call above collected
+    /* A cast from a base class to a derived class.  The call above collected
        the offsets and added them together.  The total is an amount to be
        subtracted from the pointer to the base class to get a pointer to the
        derived class.  Generate a pointer subtraction to actually adjust
@@ -9660,7 +9667,7 @@ constructor, but may instead be after an assignment to "this".
   an_insert_location     insert_location2;
   an_expr_node_ptr       null_constant_node, vbase_param_node, compare_node;
   an_expr_node_ptr       vaddr_node, vbptr_node, vtbl_addr_node, vptr_node;
-  a_variable_ptr         vtbl_var;
+  a_variable_ptr         primary_vtbl_var, vtbl_var;
 
   /* The following pseudo-code shows both the processing in this routine
      and the code added to the constructor routine.  Lines enclosed in [...]
@@ -9698,14 +9705,16 @@ constructor, but may instead be after an assignment to "this".
            initialization).
      [endfor]
      [If the current class has any virtual functions:]
-       Set the virtual function table pointers in the current class and
-       all of its base classes that have virtual functions.  Virtual
-       function table pointers in any virtual base classes must be accessed
-       using the virtual base class pointer parameters.  [If the current
-       class has no virtual functions but some base classes do, it is not
-       necessary to set the virtual function table pointers in the base
-       classes.  They will have been set by the constructors for the base
-       classes.]
+       Set the virtual function table pointer in the current class.
+     [endif]
+     [For each base class of the current class:]
+       [If the base class needs a virtual function table instance distinct
+           from the derived class instance:]
+         Set the virtual function table pointer in the base class.  Virtual
+             base classes must be accessed using the virtual base class
+             pointer parameters.
+       [endif]
+     [endfor]
   */
   /* The constructor_inits list contains a list of initializations.  Each
      initialization either appeared explicitly in the source or is a default
@@ -9811,13 +9820,13 @@ constructor, but may instead be after an assignment to "this".
                     class_type, insert_location);
   }  /* for */
   /* If the current class has any virtual functions, generate code to
-     set the virtual function table pointers in the current class. */
-  vtbl_var = ctsp->virtual_function_table_var;
-  if (vtbl_var != NULL) {
+     set the virtual function table pointer in the current class. */
+  primary_vtbl_var = ctsp->virtual_function_table_var;
+  if (primary_vtbl_var != NULL) {
     /* Assign the primary virtual table address to the virtual table pointer
        in the current class. */
-    vtbl_addr_node = make_variable_lvalue_node(vtbl_var);
-    vtbl_var->address_taken = TRUE;
+    vtbl_addr_node = make_variable_lvalue_node(primary_vtbl_var);
+    primary_vtbl_var->address_taken = TRUE;
     vptr_node = make_vptr_field_lvalue_from_var(this_param_var);
     (void)insert_assignment_statement(vptr_node,
                                       (an_expr_operator_kind)eok_passign,
@@ -9829,7 +9838,7 @@ constructor, but may instead be after an assignment to "this".
   /* Loop through the base classes of the current class. */
   for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
     vtbl_var = bcp->virtual_function_table_var;
-    if (vtbl_var != NULL) {
+    if (vtbl_var != NULL && vtbl_var != primary_vtbl_var) {
       /* The base class's virtual function table pointer must be set to
          reflect the fact that it exists as a subobject inside the current
          class. */
@@ -10079,7 +10088,7 @@ destructor scope.
   an_expr_node_ptr       zero_constant_node, complete_obj_param_node;
   an_expr_node_ptr       compare_node;
   an_expr_node_ptr       vtbl_addr_node, vptr_node;
-  a_variable_ptr         vtbl_var;
+  a_variable_ptr         primary_vtbl_var, vtbl_var;
   a_routine_ptr          dtor_routine = scope->variant.routine.ptr;
 
   /* The following pseudo-code shows both the processing in this routine
@@ -10092,14 +10101,15 @@ destructor scope.
      [endif]
      [If the current class has any virtual functions:]
        Set the virtual function table pointer in the current class.
-       [For each base class of the current class:]
-         [If the base class has any virtual functions:]
-           Set the virtual function table pointer in the base class.  Virtual
-               base classes must be accessed through the virtual base class
-               pointer.
-         [endif]
-       [endfor]
      [endif]
+     [For each base class of the current class:]
+       [If the base class needs a virtual function table instance distinct
+           from the derived class instance:]
+         Set the virtual function table pointer in the base class.  Virtual
+             base classes must be accessed through the virtual base class
+             pointer.
+       [endif]
+     [endfor]
      ... user destructor code goes here ...
          -- returns in the user code are turned into gotos to the following
             code:
@@ -10141,12 +10151,12 @@ destructor scope.
   ctsp = class_type->variant.class_struct_union.extra_info;
   /* If the current class has any virtual functions, generate code to
      set the virtual function table pointer in the current class. */
-  vtbl_var = ctsp->virtual_function_table_var;
-  if (vtbl_var != NULL) {
+  primary_vtbl_var = ctsp->virtual_function_table_var;
+  if (primary_vtbl_var != NULL) {
     /* Assign the primary virtual table address to the virtual table pointer
        in the current class. */
-    vtbl_addr_node = make_variable_lvalue_node(vtbl_var);
-    vtbl_var->address_taken = TRUE;
+    vtbl_addr_node = make_variable_lvalue_node(primary_vtbl_var);
+    primary_vtbl_var->address_taken = TRUE;
     vptr_node = make_vptr_field_lvalue_from_var(this_param_var);
     (void)insert_assignment_statement(vptr_node,
                                       (an_expr_operator_kind)eok_passign,
@@ -10159,7 +10169,7 @@ destructor scope.
      of classes derived from the current class. */
   for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
     vtbl_var = bcp->virtual_function_table_var;
-    if (vtbl_var != NULL) {
+    if (vtbl_var != NULL && vtbl_var != primary_vtbl_var) {
       /* The base class virtual function table pointer must be set
          to reflect the fact that it exists as a subobject inside the
          current class. */
