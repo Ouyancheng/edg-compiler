@@ -5883,7 +5883,7 @@ make_new_type:
             }  /* if */
           }  /* if */
           /* Allocate the param type entry and copy default arg info. */
-          new_ptp = alloc_param_type(tp);
+          new_ptp = make_param_type(tp, &null_source_position);
           if (ptp->has_default_arg) {
             new_ptp->has_default_arg = TRUE;
           }  /* if */

@@ -1,5 +1,38 @@
 Version 2.45
 
+8/31/00  Incorrect passing of function call arguments for calls through
+         certain template-dependent function pointers
+
+Parameters of certain instantiated pointer-to-function types were sometimes
+not marked as having to be copied using their copy-constructor.  Depending
+on the back end, this could lead to aborts or otherwise incorrect results.
+For example, the C-generating back end generated an extraneous bitwise copy
+in the following example:
+
+  extern "C" int printf(char const*, ...);
+  void *last_copy = 0;
+  struct S {
+    S() {}
+    S(S const&) { last_copy = this; }
+  };
+  template <typename A1, typename R, typename OP>
+  struct F {  
+    F(OP const &o): m_op(o) {}
+    F(F const &o): m_op(o.m_op) {}
+    R operator()(const A1 a1) const { return m_op(a1); }
+    OP m_op;  
+  };
+  template <typename A1,typename R> inline
+  F<A1, R, R (*)(A1)> const makeF(R (*pf)(A1)) {
+    return F<A1, R, R (*)(A1)>(pf);
+  }
+  void test(S v) { // "v" should be the most recent copy at this point
+    if (last_copy != &v) { printf("Unexpected address\n"); }
+  }
+  int main() { makeF(test)(S()); }
+
+This is now fixed.
+
 8/31/00  C++-generating back end: references to overloaded functions in
          the presence of using-declarations
 
