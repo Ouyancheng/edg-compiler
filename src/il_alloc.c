@@ -490,7 +490,7 @@ file scope region number).
     check_assertion(region == file_scope_region_number);
     new_string = alloc_il(length+1);
   }  /* if */
-  (void)strncpy(new_string, string, length);
+  (void)strncpy(new_string, string, size_t_arg(length));
   /* Terminate the string. */
   new_string[length] = '\0';
   return new_string;

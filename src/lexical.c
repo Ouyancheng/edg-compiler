@@ -13430,8 +13430,10 @@ is an interface to add_token_cache_segment_to_string that supplies default
 values for the starting/ending token sequence numbers.
 */
 {
-  add_token_cache_segment_to_string(cache, NO_TOKEN_SEQUENCE_NUMBER,
-                                    NO_TOKEN_SEQUENCE_NUMBER);
+  add_token_cache_segment_to_string(
+                            cache,
+                            (a_token_sequence_number)NO_TOKEN_SEQUENCE_NUMBER,
+                            (a_token_sequence_number)NO_TOKEN_SEQUENCE_NUMBER);
 }  /* add_token_cache_to_string */
 
 

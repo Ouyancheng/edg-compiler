@@ -1078,7 +1078,7 @@ Look up the identifier that names the attribute to be processed.
   } else {
     a_symbol_header_ptr	sym_hdr = locator_for_curr_id.symbol_header;
     attr_descr = find_attribute_kind(sym_hdr->identifier,
-                                     strlen(sym_hdr->identifier));
+                                     (sizeof_t)strlen(sym_hdr->identifier));
     if (attr_descr == NULL) {
       /* An unknown attribute -- issue a diagnostic.  This is only a warning
          if we accept unrecognized attributes. */
@@ -1233,7 +1233,7 @@ TRUE.  Note that "err" is not TRUE for an unexpected token kind.
     /* Add space for the null terminator. */
     length = strlen(str) + 1;
     clear_constant(&constant, (a_constant_repr_kind)ck_string);
-    constant.type = string_type(length);
+    constant.type = string_type((a_targ_size_t)length);
     constant.variant.string.length = length;
     constant.variant.string.value =
                           copy_string_to_region(file_scope_region_number, str);
