@@ -150,6 +150,17 @@ was deduced only from an array bound.  This has been fixed.
   };
   A<int[10]> a;
 
+1/8/97  Internal error after tentative lookup of invalid template instance
+
+An internal error has been fixed for the following invalid program:
+
+  class A {
+    int x;
+  };
+  class B : public A {
+    typedef x<int> a;     // Internal error has been fixed
+  };
+
 1/8/97  Partial lowering of EH: cleanup state for partially-constructed
         aggregates
 
