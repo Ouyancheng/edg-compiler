@@ -1813,6 +1813,9 @@ error code.
     case ec_vacuous_destructor_name_mismatch:
       m = "destructor name does not match left operand of \"->\" or \".\"";
       break;
+    case ec_bad_storage_class_on_template_decl:
+      m = "invalid storage class for a template declaration";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
