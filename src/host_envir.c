@@ -2997,9 +2997,11 @@ Do one-time initialization related to host specific processing.  This
 is done after command line processing.
 */
 {
+#if !STANDALONE_UTILITY_PROGRAM
 #if MODULE_ID_NEEDED
   register_trans_unit_variable(module_id);
 #endif /* MODULE_ID_NEEDED */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* host_envir_one_time_init */
 
 
