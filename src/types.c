@@ -1989,32 +1989,6 @@ qualification of a member function type.
 }  /* f_implicit_this_param_type_of */
 
 
-void extract_this_class_and_qualifiers(a_type_ptr            this_type,
-                                       a_type_ptr            *this_class,
-                                       a_type_qualifier_set  *qualifiers)
-/*
-Extract the class to which a member function should belong, and the qualifiers
-that it must have, so that its "this" parameter would have type this_type.
-If this_type is NULL, *this_class is set to NULL, and *qualifiers is set to
-TQ_NONE.
-*/
-{
-  if (this_type != NULL) {
-#if RESTRICT_ALLOWED
-    *qualifiers = get_top_level_type_qualifiers(this_type) & TQ_RESTRICT;
-#else /* !RESTRICT_ALLOWED */
-    *qualifiers = TQ_NONE;
-#endif /* RESTRICT_ALLOWED */
-    this_type = type_pointed_to(this_type);
-    *qualifiers |= get_top_level_type_qualifiers(this_type);
-    *this_class = skip_typerefs(this_type);
-  } else {
-    *qualifiers = TQ_NONE;
-    *this_class = NULL;
-  }  /* if */
-}  /* extract_this_class_and_qualifiers */
-
-
 #if SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
 static a_boolean same_repr_int_types(a_type_ptr type_1,
                                      a_type_ptr type_2)
@@ -5255,6 +5229,7 @@ the old list.  Only callable in C++ mode.  See ARM 13.
   a_type_ptr       old_this_class, new_this_class;
   a_type_qualifier_set
                    old_this_qualifiers, new_this_qualifiers;
+  a_boolean        old_this_qualified, new_this_qualified;
   a_boolean	   new_is_template = templ_param_list != NULL;
 
   db_enter(5, "overload_distinguishable");
@@ -5300,7 +5275,9 @@ the old list.  Only callable in C++ mode.  See ARM 13.
        nonstatic function distinguishable from a static function). */
     old_this_class = old_extra_info->this_class;
     old_this_qualifiers = old_extra_info->qualifiers;
-    if ((old_this_qualifiers != new_this_qualifiers && any_cfront_mode()) ||
+    old_this_qualified = (old_this_qualifiers != TQ_NONE);
+    new_this_qualified = (new_this_qualifiers != TQ_NONE);
+    if ((old_this_qualified != new_this_qualified && any_cfront_mode()) ||
         (old_this_class != NULL && new_this_class != NULL &&
          (old_this_qualifiers != new_this_qualifiers ||
           !equiv_class_types(old_this_class, new_this_class, TCF_NO_FLAGS)))) {
@@ -6528,7 +6505,7 @@ a new tree is built.
         new_return_type = tp;
       }  /* if */
       new_this_class = type->variant.routine.extra_info->this_class;
-      if (new_this_class != NULL && func(type, flags, &tp)) {
+      if (new_this_class != NULL && func(new_this_class, flags, &tp)) {
         new_this_class = tp->variant.routine.extra_info->this_class;
         goto make_new_type;
       } else if (new_return_type != type->variant.routine.return_type) {

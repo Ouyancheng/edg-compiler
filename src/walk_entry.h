@@ -629,7 +629,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                                       (a_routine_type_supplement_ptr)entry_ptr;
         walk_list(ptr->param_type_list, a_param_type_ptr, iek_param_type);
 #ifdef CFE
-        walk_ptr(ptr->this_class, a_type_ptr, iek_type);
+        remap_ptr(ptr->this_class, a_type_ptr, iek_type);
         walk_ptr(ptr->prototype_scope, a_scope_ptr, iek_scope);
         walk_ptr(ptr->exception_specification, an_exception_specification_ptr,
                  iek_exception_specification);

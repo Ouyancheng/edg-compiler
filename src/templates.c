@@ -1,4 +1,4 @@
-/******************************************************************************
+/*****************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
@@ -4696,8 +4696,8 @@ a pointer over a reference type or creating an array of references.
   int				reusable_param_types;
   a_template_arg_ptr		tap;
   a_type_ptr			new_return_type;
-  a_type_ptr			this_param_type;
-  a_type_ptr			new_this_param_type;
+  a_type_ptr			this_class;
+  a_type_ptr			new_this_class;
   a_type_ptr			first_new_type_for_param_types_list;
   a_param_type_ptr		ptp;
   a_param_type_ptr		new_ptp;
@@ -4848,17 +4848,17 @@ a pointer over a reference type or creating an array of references.
                                         type->variant.routine.return_type,
                                         templ_arg_list, depth, source_pos,
                                         options, copy_error);
-        this_param_type = implicit_this_param_type_of(type);
-        if (this_param_type == NULL) {
-          new_this_param_type = NULL;
+        this_class = type->variant.routine.extra_info->this_class;
+        if (this_class == NULL) {
+          new_this_class = NULL;
         } else {
-          new_this_param_type = copy_type_with_substitution(
-                                        this_param_type, templ_arg_list,
+          new_this_class = copy_type_with_substitution(
+                                        this_class, templ_arg_list,
                                         depth, source_pos, options,
                                         copy_error);
         }  /* if */
         if (new_return_type != type->variant.routine.return_type ||
-            new_this_param_type != this_param_type) {
+            new_this_class != this_class) {
           /* A substitution was made on the return type or the this-param
              type, so a new routine type will be required. */
           goto make_new_type;
@@ -4896,15 +4896,7 @@ make_new_type:
         *(new_type->variant.routine.extra_info) =
                                          *(type->variant.routine.extra_info);
         new_type->variant.routine.extra_info->assoc_routine = NULL;
-        { /* Adjust the attributes of "*this". */
-          a_type_ptr            this_class;
-          a_type_qualifier_set  qualifiers;
-
-          extract_this_class_and_qualifiers(
-                               new_this_param_type, &this_class, &qualifiers);
-          new_type->variant.routine.extra_info->this_class = this_class;
-          new_type->variant.routine.extra_info->qualifiers = qualifiers;
-        }
+        new_type->variant.routine.extra_info->this_class = new_this_class;
         /* Make copies of the entries on type's param types list, making the
            appropriate substitutions for template parameter type entries. */
         prev_ptp = NULL;
