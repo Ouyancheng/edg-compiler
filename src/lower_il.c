@@ -1839,35 +1839,26 @@ in that it does the cast to pointer-to-element.
 
 #endif /* DO_FULL_PORTABLE_EH_LOWERING || ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 
-static a_field_ptr field_at_offset(a_type_ptr    class_type,
-                                   a_targ_size_t byte_offset)
+static a_field_ptr field_at_offset_if_any(a_type_ptr    class_type,
+                                          a_targ_size_t byte_offset)
 /*
-Return a pointer to the field at the indicated byte offset of the indicated
-class type.
+Return a pointer to a field at the indicated byte offset of the indicated
+class type or NULL if there is no such field.
 */
 {
   a_field_ptr field_ptr;
 
 #if CHECKING
   if (!is_immediate_class_type(class_type)) {
-    internal_error("field_at_offset: bad class type");
+    internal_error("field_at_offset_if_any: bad class type");
   }  /* if */
 #endif /* CHECKING */
   /* It may be necessary to come up with a faster way of doing this, such
      as storing two field pointers in the base class entry and a pointer to
      the virtual function table pointer field in the class type supplement. */
   for (field_ptr = class_type->variant.class_struct_union.field_list;
-       ;
+       field_ptr != NULL;
        field_ptr = field_ptr->next) {
-#if CHECKING
-    if (field_ptr == NULL) {
-#if DEBUG
-      db_abbreviated_type(class_type);
-      fprintf(f_debug, ", byte offset = %lu\n", (unsigned long)byte_offset);
-#endif /* DEBUG */
-      internal_error("field_at_offset: field not found");
-    }  /* if */
-#endif /* CHECKING */
     /* Don't pick a zero-length field as the answer.  The field
        following it is probably what's wanted. */
     if (field_ptr->offset == byte_offset &&
@@ -1875,6 +1866,29 @@ class type.
         !field_has_zero_length(field_ptr)) break;
   }  /* for */
   return field_ptr;
+}  /* field_at_offset_if_any */
+
+
+static a_field_ptr field_at_offset(a_type_ptr    class_type,
+                                   a_targ_size_t byte_offset)
+/*
+Return a pointer to the field at the indicated byte offset of the indicated
+class type.  Such a field must exist.
+*/
+{
+  a_field_ptr  result = field_at_offset_if_any(class_type, byte_offset);
+
+#if CHECKING
+  if (result == NULL) {
+#if DEBUG
+    db_abbreviated_type(class_type);
+    fprintf(f_debug, ", byte offset = %lu\n", (unsigned long)byte_offset);
+#endif /* DEBUG */
+    internal_error("field_at_offset: field not found");
+  }  /* if */
+#endif /* CHECKING */
+  check_assertion(result != NULL);
+  return result;
 }  /* field_at_offset */
 
 
@@ -2202,10 +2216,11 @@ pointer to the new node.
       } else {
         /* There exists a field at the right offset; usually its address will
            do. */
-        base_field = field_at_offset(node_class_type, step_bcp->offset);
-        if (base_field->is_bit_field) {
+        base_field = field_at_offset_if_any(node_class_type, step_bcp->offset);
+        if (base_field == NULL || base_field->is_bit_field) {
           /* A bit field doesn't have an address; use some pointer arithmetic
-             instead. */
+             instead.  Do the same if there is no field at the desired address
+             (this can happen with optimized empty base classes). */
           a_type_ptr  char_ptr_type =
                     make_pointer_type(integer_type((an_integer_kind)ik_char));
           node = add_cast_if_necessary(node, char_ptr_type);
