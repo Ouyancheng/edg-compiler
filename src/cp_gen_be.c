@@ -6053,7 +6053,9 @@ as the front end.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Generate C++/C code. */
   cp_gen_be();
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
   free_memory_region(FILE_SCOPE_REGION_NUMBER);
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 }  /* back_end */
 #endif /* (else of) STANDALONE_CP_GEN_BE */
 
