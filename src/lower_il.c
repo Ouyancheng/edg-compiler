@@ -5991,16 +5991,16 @@ or "||" operation, to make the corresponding destruction dependent on
 whether the construction was done.
 */
 {
-  a_variable_ptr cond_var;
+  a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+  a_variable_ptr                  cond_var;
 
   cond_var = make_lowered_temporary(integer_type((an_integer_kind)ik_int));
-  dip->destructible_entity_descr->conditional_flag_var = cond_var;
+  dedp->conditional_flag_var = cond_var;
   if (exceptions_enabled) {
     /* Pre-assign the object address table slot for the conditional variable,
        because we're going to have to set that entry of the object address
        table right away. */
-    dip->destructible_entity_descr->conditional_flag_handle = 
-                                                     object_addr_table_index();
+    dedp->conditional_flag_handle = object_addr_table_index();
   }  /* if */
 }  /* add_conditional_flag */
 
@@ -6217,7 +6217,7 @@ will cover them while we destroy them.
   for (dip = curr_context->destructions;
        dip != NULL;
        dip = dip->next_in_destruction_list) {
-    if (dip->is_expr_temp_init) {
+    if (dip->is_expr_temp_init || dip->is_freeing_of_storage_on_exception) {
       /* An initialization for a temporary. */
       if (first_temp == NULL) first_temp = dip;
       if (last_temp != NULL) last_temp->next_in_destruction_list = dip;
@@ -6238,6 +6238,7 @@ will cover them while we destroy them.
     a_dynamic_init_ptr first_nontemp_after_temps =
                                            last_temp->next_in_destruction_list;
     last_temp->next_in_destruction_list = first_nontemp;
+    if (last_nontemp != NULL) last_nontemp->next_in_destruction_list = NULL;
     curr_object_lifetime->destructions = first_temp;
     if (first_nontemp_after_temps != first_nontemp) {
       /* Some region table entries must be cloned. */
@@ -6250,11 +6251,15 @@ will cover them while we destroy them.
         dip = first_nontemp;
       }  /* if */
       clone_region_table_entry_list(dip, first_nontemp_after_temps);
-      /* The entry for the first temporary need not be cloned, but its
-         next_region_number pointer needs to be updated to get the right
-         region when the destruction begins. */
-      first_temp->destructible_entity_descr->next_region_number =
+      if (need_regions_for_temps) {
+        /* The entry for the first temporary need not be cloned, but its
+           region_number_to_set_when_starting_destruction pointer needs to
+           be updated so we set the right region number when we do the
+           destruction. */
+        first_temp->destructible_entity_descr->
+                              region_number_to_set_when_starting_destruction =
                                                     cleanup_region_number(dip);
+      }  /* if */
     }  /* if */
     /* The current position is at the beginning of the regions for the
        temporaries if we cloned regions for those because we will be
@@ -6572,7 +6577,9 @@ code.
     for (;;) {
       /* Generate destructions in this context. */
       for (; dip != NULL; dip = dip->next_in_destruction_list) {
-        if (dip->is_expr_temp_init && skip_temporaries) {
+        if ((dip->is_expr_temp_init ||
+             dip->is_freeing_of_storage_on_exception) &&
+            skip_temporaries) {
           /* Skipping temporaries, so skip this destruction. */
         } else if (dip->is_constructor_init ||
                    dip->is_freeing_of_storage_on_exception) {

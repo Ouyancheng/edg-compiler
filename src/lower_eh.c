@@ -1627,11 +1627,10 @@ static a_constant_ptr
 		region_table_aggr_con;
 
 
-static void set_next_region_number(a_dynamic_init_ptr      dip,
-                                   a_cleanup_region_number next_region_number)
+static a_constant_ptr next_region_number_constant(a_dynamic_init_ptr dip)
 /*
-Set the next region number of the indicated destruction to next_region_number.
-This routine is used to relink entries after they've been created.
+Return a pointer to the next-region-number constant of the region table
+entry for the indicated destruction.
 */
 {
   a_destructible_entity_descr_ptr
@@ -1641,12 +1640,37 @@ This routine is used to relink entries after they've been created.
      list of constants in the region table entry.
      See add_region_table_entry. */
   a_constant_ptr con = aggr_con->variant.aggregate.first_constant->next->next;
+  return con;
+}  /* next_region_number_constant */
+
+
+static void set_next_region_number(a_dynamic_init_ptr      dip,
+                                   a_cleanup_region_number next_region_number)
+/*
+Set the next region number of the indicated destruction to next_region_number.
+This routine is used to relink entries after they've been created.
+*/
+{
+  a_constant_ptr con = next_region_number_constant(dip);
   a_constant_ptr con_next = con->next;
 
   set_unsigned_integer_constant(con, next_region_number,
                                 TARG_REGION_NUMBER_INT_KIND);
   con->next = con_next;
-  dedp->next_region_number = next_region_number;
+}  /* set_next_region_number */
+
+
+static a_cleanup_region_number get_next_region_number(a_dynamic_init_ptr dip)
+/*
+Fetch the next region number of the indicated destruction.
+*/
+{
+  a_constant_ptr          con = next_region_number_constant(dip);
+  a_boolean               ovflo;
+  a_cleanup_region_number next_region_number =
+                               unsigned_value_of_integer_constant(con, &ovflo);
+  check_assertion(!ovflo);
+  return next_region_number;
 }  /* set_next_region_number */
 
 
@@ -1722,8 +1746,8 @@ the aggregate constant.
                                                     TARG_VAR_HANDLE_INT_KIND);
   /* Make the next region index number.  It's always initialized to
      null_eh_region_number here and will usually be adjusted later.  NOTE that
-     set_next_region_number_of_region_table_entry expects the constant
-     to be the third one on the list. */
+     next_region_number_constant expects the constant to be the third one
+     on the list. */
   next_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_unsigned_integer_constant(next_con, next_region,
                                 TARG_REGION_NUMBER_INT_KIND);
@@ -1833,6 +1857,51 @@ aggregate constant for the region table entry.
 }  /* make_region_table_entry */
 
 
+static void maintain_unordered_destructions_set(a_dynamic_init_ptr dip)
+/*
+dip points to a destruction with the "unordered" flag TRUE, for which
+the region table entry was just created.  Do some extra processing
+required for unordered destructions.
+*/
+{
+  a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+  a_dynamic_init_ptr              next_dip = dip->next_in_destruction_list;
+
+  /* If this entry is part of an unordered set, all the region table entries
+     for the entities in the unordered set are treated as a block.  That is,
+     the entire block goes into the region table cleanup chain as soon as
+     any member of the set is initialized, and the entire block stays in
+     the region table cleanup chain until all of the entities have been
+     destroyed.  Each entity is given a conditional flag so that we can
+     tell at runtime which entities have been constructed and not yet
+     destroyed.  Since we do not want to go back and fix code, the
+     first unordered entry encountered establishes the beginning region
+     number for the block.  Subsequent contiguous unordered entries
+     are linked into the region table on a list following the region
+     table for the initial entry.  The final entry (so far) points to
+     the first region number past the ordered set, i.e., the original
+     next region number from the initial entry.  The region_number
+     and region_number_to_set_when_starting_destruction fields of the
+     entries after the first are set to the region number of the first
+     entry so that the entire block will be put into the cleanup chain
+     and kept there until the destruction for the initial entry is
+     generated (it gets generated after the destruction for the others). */
+  if (next_dip != NULL && next_dip->unordered) {
+    a_destructible_entity_descr_ptr
+                              next_dedp = next_dip->destructible_entity_descr;
+    /* Relink the previous last entry to this new entry, and this new
+       entry to point to the first region number beyond the ordered set. */
+    a_cleanup_region_number next_region_number_past_ordered_set =
+                                              get_next_region_number(next_dip);
+    set_next_region_number(next_dip, dedp->region_number);
+    set_next_region_number(dip, next_region_number_past_ordered_set);
+    dedp->region_number =
+      dedp->region_number_to_set_when_starting_destruction =
+                                                      next_dedp->region_number;
+  }  /* if */
+}  /* maintain_unordered_destructions_set */
+
+
 void make_dyn_init_region_table_entry(a_dynamic_init_ptr dip,
                                       an_insert_location *insert_location)
 /*
@@ -1851,7 +1920,8 @@ necessary.
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
 	
   check_assertion(dedp != NULL);
-  dedp->next_region_number = curr_cleanup_region_number;
+  dedp->region_number_to_set_when_starting_destruction =
+                                                    curr_cleanup_region_number;
   dedp->region_table_entry =
                          make_region_table_entry(&dedp->init_pos_descr,
                                                  dip->destructor,
@@ -1861,6 +1931,11 @@ necessary.
                                                  dedp->conditional_flag_handle,
                                                  &dedp->region_number,
                                                  insert_location);
+  if (dip->unordered) {
+    /* The destruction is unordered with respect to some surrounding
+       destructions, so do some extra processing. */
+    maintain_unordered_destructions_set(dip);
+  }  /* if */
 }  /* make_dyn_init_region_table_entry */
 
 
@@ -1930,6 +2005,12 @@ next_in_destruction_list pointer), stopping before the entry stop_before.
   /* Link the clone to the proper next entry. */
   next_region_number = cleanup_region_number(next_dip);
   set_next_region_number(dip, next_region_number);
+  dedp->region_number_to_set_when_starting_destruction = next_region_number;
+  if (dip->unordered) {
+    /* The destruction is unordered with respect to some surrounding
+       destructions, so do some extra processing. */
+    maintain_unordered_destructions_set(dip);
+  }  /* if */
 }  /* clone_region_table_entry_list */
 
 

@@ -40,12 +40,14 @@ static a_routine_ptr
 			   once created.  NULL until then. */
 
 
-/* Declaration needed because of forward reference: */
+/* Declarations needed because of forward references: */
 static void lower_destructor_dynamic_init(
                                    a_dynamic_init_ptr     dip,
                                    an_init_pos_descr_ptr  ipdp,
                                    a_boolean              have_complete_object,
                                    an_insert_location_ptr insert_location);
+static void reset_conditional_flag_var(a_variable_ptr     conditional_flag_var,
+                                       an_insert_location *insert_location);
 
 /*
 Put the current code_pos_for_lowering into a statement, if the statement
@@ -796,7 +798,7 @@ and return a pointer to it.
   dedp->conditional_flag_var = NULL;
   dedp->conditional_flag_handle = 0;
   dedp->region_number = null_eh_region_number;
-  dedp->next_region_number = null_eh_region_number;
+  dedp->region_number_to_set_when_starting_destruction = null_eh_region_number;
   dedp->region_table_entry = NULL;
   return dedp;
 }  /* alloc_destructible_entity_descr_copy */
@@ -1940,10 +1942,25 @@ and not for constructor_init entries in destructors.
 
   check_assertion(dedp != NULL);
   if (exceptions_enabled) {
+    if (dip->unordered) {
+      /* For unordered destructions, clear the associated conditional flag
+         to indicate that the destruction has been done.  That's necessary
+         because all of the members of the unordered set stay in the
+         active cleanup list in the region table until all of them have been
+         destroyed, and the conditional flags tell us which ones still
+         require destruction.  We don't need to do this on the last
+         destruction in an unordered set because the whole set comes out
+         of the region table at that point. */
+      a_dynamic_init_ptr next_dip = dip->next_in_destruction_list;
+      if (next_dip != NULL && next_dip->unordered) {
+        reset_conditional_flag_var(dedp-> conditional_flag_var,
+                                   insert_location);
+      }  /* if */
+    }  /* if */
     /* Set the region number to what it should be after the destruction,
        because as soon as we start the destruction it's the destructor's
        job to deal with partial destruction. */
-    set_eh_curr_region(dip->destructible_entity_descr->next_region_number,
+    set_eh_curr_region(dedp->region_number_to_set_when_starting_destruction,
                        insert_location);
   }  /* if */
   effective_insert_loc = insert_location;
@@ -3084,8 +3101,9 @@ complete object.  The statements are inserted at *insert_location
 and *insert_location is updated.
 */
 {
-  a_variable_ptr    variable;
-  a_source_position saved_error_position;
+  a_variable_ptr                  variable;
+  a_source_position               saved_error_position;
+  a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
 
   saved_error_position = error_position;
   variable = dip->variable;
@@ -3100,11 +3118,11 @@ and *insert_location is updated.
   }  /* if */
   if (exceptions_enabled) {
     /* Put the entity position in the destructible_entity_descr. */
-    copy_init_pos_descr(ipdp, &dip->destructible_entity_descr->init_pos_descr);
+    copy_init_pos_descr(ipdp, &dedp->init_pos_descr);
     /* Set the region number to what it should be after the destruction,
        because as soon as we start the destruction it's the destructor's
        job to deal with partial destruction. */
-    set_eh_curr_region(dip->destructible_entity_descr->next_region_number,
+    set_eh_curr_region(dedp->region_number_to_set_when_starting_destruction,
                        insert_location);
   }  /* if */
   add_destructor_call(dip->destructor, ipdp, have_complete_object,
@@ -4603,8 +4621,9 @@ early so that the next region number is available when each entry
 is processed.
 */
 {
-  a_dynamic_init_ptr      next_dip = dip->next_in_destruction_list;
-  a_cleanup_region_number region_number, next_region_number;
+  a_dynamic_init_ptr              next_dip = dip->next_in_destruction_list;
+  a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+  a_cleanup_region_number         region_number, next_region_number;
 
   /* Each destruction gets a region number one higher than the region
      number of the next destruction, or the next available number
@@ -4620,8 +4639,8 @@ is processed.
     next_region_number = null_eh_region_number;
     region_number = 0;  /* That is, the first region number. */
   }  /* if */
-  dip->destructible_entity_descr->region_number = region_number;
-  dip->destructible_entity_descr->next_region_number = next_region_number;
+  dedp->region_number = region_number;
+  dedp->region_number_to_set_when_starting_destruction = next_region_number;
   return region_number;
 }  /* assign_dtor_init_cleanup_region_number */
 
@@ -4636,6 +4655,8 @@ Use recursion to put out the list backwards.  Any required code
 is inserted at *insert_location.
 */
 {
+  a_destructible_entity_descr_ptr
+                          dedp = dip->destructible_entity_descr;
   a_dynamic_init_ptr      next_dip = dip->next_in_destruction_list;
 #if CHECKING
   a_cleanup_region_number old_region_number = cleanup_region_number(dip);
@@ -4647,11 +4668,10 @@ is inserted at *insert_location.
   }  /* if */
   /* Do the first entry on the list. */
   curr_cleanup_region_number =
-                            dip->destructible_entity_descr->next_region_number;
+                          dedp->region_number_to_set_when_starting_destruction;
   make_dyn_init_region_table_entry(dip, insert_location);
 #if CHECKING
-  check_assertion_str(dip->destructible_entity_descr->conditional_flag_var ==
-                                                                          NULL,
+  check_assertion_str(dedp->conditional_flag_var == NULL,
                       "make_dtor_init_region_table_entries: cond flag used");
   /* The region number assigned should be the one we pre-assigned in
      assign_dtor_init_cleanup_region_number. */

@@ -171,20 +171,22 @@ typedef struct a_destructible_entity_descr {
 		region_number;
 			/* When exceptions are enabled, this is the
 			   destructible object region number, i.e., the index
-			   into the region table.  Note that if the
-			   destruction is part of an unordered set, this
-			   number will be the number of the first member
-			   of the set.  Usually, this is set when the region
-			   table entry is created, but for constructor-inits
-			   in a destructor it is preassigned. */
+			   into the region table.  This is the region number
+			   to establish as the current region number once the
+			   construction of the entity has been finished.
+			   Usually, this is set when the region table entry
+			   is created, but for constructor-inits in a
+			   destructor it is preassigned.  Note that if the
+			   initialization/destruction is part of an unordered
+			   set, this number will be the number of the first
+			   member of the set. */
   a_cleanup_region_number
-		next_region_number;
-			/* When exceptions are enabled, this is the region
-			   number of the entry pointed to by the "next"
-			   field of this entry.  Can be a cleanup entry for
-			   a new-allocation instead of the usual
-			   destruction.  Matches the value in the proper
-			   constant under region_table_entry. */
+		region_number_to_set_when_starting_destruction;
+			/* When destroying this entity when exceptions are
+			   enabled, this is the region number to establish
+			   as the current region number when beginning the
+			   destruction.  It's the next region table entry to
+			   process after this entity is destroyed. */
   a_constant_ptr
 		region_table_entry;
 			/* When exceptions are enabled, this points to the
