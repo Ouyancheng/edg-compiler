@@ -169,6 +169,7 @@ typedef struct a_hidden_name_fixup {
 			   last entry. */
   a_bit_field	qualification_needed:1;
   a_bit_field	elaborated_type_specifier_needed:1;
+  a_bit_field	partially_hidden_by_microsoft_injected_class_name:1;
 			/* Flag values to restore. */
   a_tagged_pointer
 		entity;	/* Pointer to the entity to be fixed up. */
@@ -260,6 +261,10 @@ typedef int a_gen_name_options_set;
 #define GN_PARENS_IF_GLOBAL_QUALIFIER 0x4
 			/* Put parentheses around the name if it begins
 			   with a "::" global qualifier. */
+#define GN_QUALIFIER 0x8
+			/* gen_name is invoked recursively to generate a
+			   qualifier for a qualified name (e.g., "A::B" in
+			   "A::B::x"). */
 
 
 /* Needed because of forward references: */
@@ -397,12 +402,16 @@ hidden names in C, so there's no point in maintaining this information).
          or "::y") in the inner scopes. */
       a_source_correspondence *scp =
                                   (a_source_correspondence *)(hnp->entity.ptr);
-      if (!scp->qualification_needed) {
+      if (!scp->qualification_needed ||
+          hnp->partially_hidden_by_microsoft_injected_class_name !=
+                     scp->partially_hidden_by_microsoft_injected_class_name) {
         /* The qualification_needed flag needs to be set.  Also arrange for
            it to be reset at the end of the current name context. */
         alloc_hidden_name_fixup(hnp->entity);
         fixup_created = TRUE;
         scp->qualification_needed = TRUE;
+        scp->partially_hidden_by_microsoft_injected_class_name =
+                       hnp->partially_hidden_by_microsoft_injected_class_name;
       }  /* if */
     }  /* if */
     if (hnp->elaborated_type_specifier_needed) {
@@ -470,12 +479,16 @@ Pop the top entry off the name context stack.
 
   /* Process the hidden-name fixup list. */
   for (hnfp = ncp->fixups; hnfp != NULL; hnfp = hnfp_next) {
+    a_source_correspondence  *scp;
+
     hnfp_next = hnfp->next;
     hnfp->next = NULL;
     /* Restore the flag values to their state at the start of the current
        name context. */
-    ((a_source_correspondence *)(hnfp->entity.ptr))->
-                             qualification_needed = hnfp->qualification_needed;
+    scp = (a_source_correspondence *)hnfp->entity.ptr;
+    scp->qualification_needed = hnfp->qualification_needed;
+    scp->partially_hidden_by_microsoft_injected_class_name =
+                      hnfp->partially_hidden_by_microsoft_injected_class_name;
     if ((an_il_entry_kind)(hnfp->entity.kind) == iek_type) {
       ((a_type_ptr)(hnfp->entity.ptr))->elaborated_type_specifier_needed =
                                         hnfp->elaborated_type_specifier_needed;
@@ -1603,7 +1616,7 @@ See gen_name for the meaning of need_closing_paren.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Use recursion to handle multiple levels of nesting. */
-    gen_name(&class_type->source_corresp, iek_type, options,
+    gen_name(&class_type->source_corresp, iek_type, options | GN_QUALIFIER,
              need_closing_paren);
     write_tok_str("::");
   }  /* if */
@@ -1626,7 +1639,8 @@ the meaning of need_closing_paren.
   }  /* while */
   if (nsp != NULL) {
     /* Use recursion to handle multiple levels of nesting. */
-    gen_name(&nsp->source_corresp, iek_namespace, options, need_closing_paren);
+    gen_name(&nsp->source_corresp, iek_namespace, options | GN_QUALIFIER,
+             need_closing_paren);
     write_tok_str("::");
   }  /* if */
 }  /* gen_namespace_qualifier */
@@ -1662,11 +1676,16 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       /* Use a qualified name in some cases to avoid a cfront bug.  See
          gen_initializer. */
       if (curr_name_context->invisible_to_cfront) force_qualified_name = TRUE;
-      if (!force_qualified_name && !scp->qualification_needed &&
+      if (!force_qualified_name && 
+          (!scp->qualification_needed ||
+           (scp->partially_hidden_by_microsoft_injected_class_name &&
+            !(options & GN_QUALIFIER))) &&
           scope_is_in_name_context_stack(class_type->variant.
                                  class_struct_union.extra_info->assoc_scope)) {
         /* A qualified name is not needed, because we're inside a name context
-           for the class and the name is not hidden. */
+           for the class and the name is not hidden.  Note a subtle case in
+           Microsoft mode: if the hiding symbol was an injected class, the
+           hiding was effective only if the name was used as a qualifier. */
       } else {
         /* Use a qualified name. */
         gen_class_qualifier(class_type, /*bound_function=*/FALSE,

@@ -1,5 +1,30 @@
 Version 2.43
 
+11/17/99 Microsoft compatibility: treatment of names hidden by injected class
+         names in the C++ generating back end
+
+Injected class names are only visible to Microsoft compilers when they are
+used as qualifiers.  For example:
+
+  struct I { enum { max = 10 }; };
+  struct E {
+    typedef double I;
+    struct N: ::I {      // "Partially injected" class name I
+      N(::I *);
+      N(I *);            // (1) Refers to E::I (i.e., double); not a
+                         // redeclaration error
+      N(int a[I::max]);  // Refers to ::I
+    };
+  };
+
+In Microsoft mode, the C++ generating back end used to generate "E::I" for the
+unqualified use of "I" at line (1), but Microsoft compilers do not accept
+names qualified with class types for which a complete definition has not yet
+been seen.  The front end and C++ generating back end have been adapted to
+recognize such cases in Microsoft mode and generate C++ source that is
+accepted by Microsoft compilers (i.e., in the example above "I" in line (1)
+is left unqualified in the generated C++ source).
+
 11/16/99 Microsoft compatibility: use and replacement of inherited typename
 
 In Microsoft bugs mode, an inherited typename can be used with an unqualified

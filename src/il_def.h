@@ -1029,6 +1029,11 @@ typedef struct a_source_correspondence {
 			/* A qualified name should be used when referring to
 			   this entity.  Used within the C++-generating back
 			   end. */
+  a_bit_field	partially_hidden_by_microsoft_injected_class_name:1;
+			/* Used in Microsoft mode only.  Microsoft only sees
+			   injected class names when doing qualified lookup.
+			   However, they do not allow qualification with a
+			   class whose closing brace has not yet been seen. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if ONE_INSTANTIATION_PER_OBJECT
   a_bit_field	static_used_by_instantiation:1;
