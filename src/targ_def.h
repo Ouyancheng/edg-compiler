@@ -736,7 +736,8 @@ typedef long a_targ_ptrdiff_t;  /* Must be host "long". */
 /* a_targ_size_t is the container used to hold size_t values on the host.
    It must be large enough to hold all the target size_t values, but can
    be larger. */
-typedef a_host_large_unsigned a_targ_size_t;  /* Must a_host_large_unsigned. */
+typedef a_host_large_unsigned a_targ_size_t;  /* Must be
+						 a_host_large_unsigned. */
 /* TARG_SIZE_T_MAX defines the limit of the host representation
    of size_t constants; the range it defines can be equal to or smaller
    than the integer size implied by TARG_SIZE_T_INT_KIND.  Except when
