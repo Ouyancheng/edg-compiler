@@ -101,8 +101,9 @@ Interface to full_demangle_name for the simple case.
                      (a_template_param_block_ptr)NULL, (dctl))
 static char *demangle_operation(char                       *ptr,
                                 a_decode_control_block_ptr dctl);
-static char *demangle_operator(char *ptr,
-                               int  *mangled_length);
+static char *demangle_operator(char      *ptr,
+                               int       *mangled_length,
+                               a_boolean *takes_type);
 static char *demangle_type(char                       *ptr,
                            a_decode_control_block_ptr dctl);
 static char *full_demangle_type_name(char                       *ptr,
@@ -604,6 +605,7 @@ position following what was demangled.
   char          *p = ptr, *operator_str;
   int           op_length;
   unsigned long num_operands;
+  a_boolean     takes_type;
 
   /* An operation has the form
        Opl2Z1ZZ2ZO <-- "Z1 + Z2", Z1/Z2 indicating nontype template parameters.
@@ -617,38 +619,46 @@ position following what was demangled.
   */
   p++;  /* Advance past the "O". */
   /* Decode the operator name, e.g., "pl" is "+". */
-  operator_str = demangle_operator(p, &op_length);
+  operator_str = demangle_operator(p, &op_length, &takes_type);
   if (operator_str == NULL) {
     bad_mangled_name(dctl);
   } else {
     p += op_length;
     /* Put parentheses around the operation. */
     write_id_ch('(', dctl);
-    /* For a cast, get the type. */
-    if (strcmp(operator_str, "cast") == 0) {
-      write_id_ch('(', dctl);
+    /* For a cast, sizeof, or __ALIGNOF__, get the type. */
+    if (takes_type) {
+      if (strcmp(operator_str, "cast") == 0) {
+        write_id_ch('(', dctl);
+        operator_str = "";
+      } else {
+        write_id_str(operator_str, dctl);
+      }  /* if */
       p = demangle_type(p, dctl);
       write_id_ch(')', dctl);
-      operator_str = "";
     }  /* if */
     /* Get the count of operands. */
     p = get_number(p, &num_operands, dctl);
-    if (num_operands == 1) {
-      /* Unary operator -- operator comes first. */
-      write_id_str(operator_str, dctl);
-    }  /* if */
-    /* Process the first operand. */
-    p = demangle_constant(p, dctl);
-    if (num_operands > 1) {
-      /* Binary and ternary operators -- operator comes after first operand. */
-      write_id_str(operator_str, dctl);
-      /* Process the second operand. */
+    /* sizeof and __ALIGNOF__ take zero operands. */
+    if (num_operands != 0) {
+      if (num_operands == 1) {
+        /* Unary operator -- operator comes first. */
+        write_id_str(operator_str, dctl);
+      }  /* if */
+      /* Process the first operand. */
       p = demangle_constant(p, dctl);
-      if (num_operands > 2) {
-        /* Ternary operand -- "?". */
-        write_id_ch(':', dctl);
-        /* Process the third operand. */
+      if (num_operands > 1) {
+        /* Binary and ternary operators -- operator comes after first
+           operand. */
+        write_id_str(operator_str, dctl);
+        /* Process the second operand. */
         p = demangle_constant(p, dctl);
+        if (num_operands > 2) {
+          /* Ternary operand -- "?". */
+          write_id_ch(':', dctl);
+          /* Process the third operand. */
+          p = demangle_constant(p, dctl);
+        }  /* if */
       }  /* if */
     }  /* if */
     write_id_ch(')', dctl);
@@ -770,19 +780,22 @@ extra information on template parameters.
 }  /* demangle_template_arguments */
 
 
-static char *demangle_operator(char *ptr,
-                               int  *mangled_length)
+static char *demangle_operator(char      *ptr,
+                               int       *mangled_length,
+                               a_boolean *takes_type)
 /*
 Examine the first few characters at ptr to see if they are an encoding for
 an operator (e.g., "pl" for plus).  If so, return a pointer to a string for
-the operator (e.g., "+"), and set *mangled_length to the number of characters
-in the encoding.  If the first few characters are not an operator encoding,
-return NULL.
+the operator (e.g., "+"), set *mangled_length to the number of characters
+in the encoding, and *takes_type to TRUE if the operator takes a type
+modifier (e.g., cast).  If the first few characters are not an operator
+encoding, return NULL.
 */
 {
   char *s;
   int  len = 2;
 
+  *takes_type = FALSE;
   /* The length-3 codes are tested first to avoid taking their first two
      letters as one of the length-2 codes. */
   if (start_of_id_is("apl", ptr)) {
@@ -883,6 +896,13 @@ return NULL.
     s = "[]";
   } else if (start_of_id_is("cs", ptr)) {
     s = "cast";
+    *takes_type = TRUE;
+  } else if (start_of_id_is("sz", ptr)) {
+    s = "sizeof(";
+    *takes_type = TRUE;
+  } else if (start_of_id_is("af", ptr)) {
+    s = "__ALIGNOF__(";
+    *takes_type = TRUE;
   } else {
     s = NULL;
   }  /* if */
@@ -900,11 +920,12 @@ an operator function.  If so, return TRUE and set *demangled_name to
 the demangled form, and *mangled_length to the length of the mangled form.
 */
 {
-  char *s, *end_ptr;
-  int  len;
+  char      *s, *end_ptr;
+  int       len;
+  a_boolean takes_type;
 
   /* Get the operator name.*/
-  s = demangle_operator(ptr, &len);
+  s = demangle_operator(ptr, &len, &takes_type);
   if (s != NULL) {
     /* Make sure we took the whole name and nothing more. */
     end_ptr = ptr + len;
