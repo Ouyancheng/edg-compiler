@@ -1845,6 +1845,31 @@ by unnamed non-bit-fields.
 #endif /* ifdef CFE */
 #ifdef CFE
 
+static a_boolean is_signed_bit_field(a_field_ptr field)
+/*
+Return TRUE if the indicated field (which is is bit-field) is signed.
+*/
+{
+  a_boolean  is_signed;
+  a_type_ptr type;
+
+  type = field->type;
+#if CHECKING
+  if (type == NULL) internal_error("is_signed_bit_field: type NULL");
+#endif /* CHECKING */
+  type = skip_typerefs(type);
+#if CHECKING
+  if (type->kind != (a_type_kind)tk_integer) {
+    internal_error("is_signed_bit_field: bit field not integer");
+  }  /* if */
+#endif /* CHECKING */
+  is_signed = int_kind_is_signed[(int)type->variant.integer.int_kind];
+  return(is_signed);
+}  /* is_signed_bit_field */
+
+#endif /* ifdef CFE */
+#ifdef CFE
+
 static void dump_struct(a_type_ptr type,
                         a_boolean  body)
 /*
@@ -1872,9 +1897,16 @@ Dump the definition ({...}) if body is TRUE.
         dump_field_padding(curr_offset, field->type->alignment,
                            field->bit_size, field->bit_offset);
         startline(field->source_corresp.decl_position.seq);
-        simple_type_reference(field_name(field), field->type);
-        if (field->bit_size != 0) {
-          (void)fprintf(f_C_output, ": %d", field->bit_size);
+        if (field->bit_size == 0) {
+          /* Not bit field. */
+          simple_type_reference(field_name(field), field->type);
+        } else {
+          /* Bit field. */
+          (void)fprintf(f_C_output, "%s %s: %d",
+                                    is_signed_bit_field(field) ?
+                                       "int" : "unsigned int",
+                                    field_name(field),
+                                    field->bit_size);
         }  /* if */
         temp = field->bit_offset / TARG_CHAR_BIT;
         (void)fprintf(f_C_output, ";  /* offset = %lu byte%s", temp, 
@@ -1938,6 +1970,8 @@ Dump the definition ({...}) if body is TRUE.
       while (field != NULL) {
         startline(field->source_corresp.decl_position.seq);
         simple_type_reference(field_name(field), field->type);
+        /* Note that bit fields are legal but are not dumped as such, because
+           pcc compilers don't like bit fields in unions. */
         fputc(';', f_C_output);
         field = field->next;
       }  /* while */
@@ -2050,31 +2084,6 @@ static void dump_expression(an_expr_node_ptr expr,
 			    a_boolean        need_parens);
 static void dump_lvalue(an_expr_node_ptr node);
 
-#ifdef CFE
-
-static a_boolean is_signed_bit_field(a_field_ptr field)
-/*
-Return TRUE if the indicated field (which is is bit-field) is signed.
-*/
-{
-  a_boolean  is_signed;
-  a_type_ptr type;
-
-  type = field->type;
-#if CHECKING
-  if (type == NULL) internal_error("is_signed_bit_field: type NULL");
-#endif /* CHECKING */
-  type = skip_typerefs(type);
-#if CHECKING
-  if (type->kind != (a_type_kind)tk_integer) {
-    internal_error("is_signed_bit_field: bit field not integer");
-  }  /* if */
-#endif /* CHECKING */
-  is_signed = int_kind_is_signed[(int)type->variant.integer.int_kind];
-  return(is_signed);
-}  /* is_signed_bit_field */
-
-#endif /* ifdef CFE */
 #ifdef FFE
 
 static void dump_bound_value(a_bound_info_entry_ptr bound,
