@@ -697,6 +697,128 @@ type.
 }  /* conv_pointer_to_whatever */
 
 
+static a_boolean pm_constant_is_null(a_constant_ptr constant)
+/*
+constant is a pointer-to-member constant.  Return TRUE if it is a NULL
+constant.
+*/
+{
+  a_boolean is_null = constant->variant.ptr_to_member.is_function_ptr ?
+                    (constant->variant.ptr_to_member.variant.routine == NULL) :
+                    (constant->variant.ptr_to_member.variant.field == NULL);
+  return is_null;
+}  /* pm_constant_is_null */
+
+
+static a_type_ptr pm_constant_member_class(a_constant_ptr constant)
+/*
+constant is a non-NULL pointer-to-member constant.  Return the class
+of which the underlying member is a member.
+*/
+{
+  a_type_ptr class_type;
+
+  if (constant->variant.ptr_to_member.is_function_ptr) {
+    /* The underlying member is a function. */
+    class_type = constant->variant.ptr_to_member.variant.routine->
+                                        source_corresp.class_of_which_a_member;
+  } else {
+    /* The underlying member is a nonstatic data member. */
+    class_type = constant->variant.ptr_to_member.variant.field->
+                                        source_corresp.class_of_which_a_member;
+  }  /* if */
+  return class_type;
+}  /* pm_constant_member_class */
+
+
+static void set_pm_cast_base_class(a_constant_ptr   constant, 
+                                   a_type_ptr       new_type,
+                                   a_base_class_ptr bcp,
+                                   a_boolean        cast_to_base)
+/*
+constant is a pointer-to-member constant.  Cast it to new_type, which is
+a pointer to member of the class indicated by bcp.  If cast_to_base is TRUE,
+this cast is toward a base class; otherwise, it is toward a derived class
+(in which case bcp gives the base class entry for the current class as
+a base class of the derived class).
+*/
+{
+  a_type_ptr       member_class, new_class;
+  a_targ_ptrdiff_t offset;
+  a_base_class_ptr casting_base_class;
+
+  if (pm_constant_is_null(constant)) {
+    /* A NULL pointer-to-member keeps a NULL casting_base_class even
+       when cast to another type. */
+    implicit_cast(constant, new_type);
+  } else {
+    /* Determine the class type we're casting to. */
+    if (cast_to_base) {
+      new_class = bcp->type;
+    } else {
+      new_class = bcp->derived_class;
+    }  /* if */
+    /* Determine the offset for any casting already done to the constant. */
+    casting_base_class = constant->variant.ptr_to_member.casting_base_class;
+    if (casting_base_class == NULL) {
+      offset = 0;
+    } else {
+      offset = casting_base_class->offset;
+      if (constant->variant.ptr_to_member.cast_to_base) offset = -offset;
+    }  /* if */
+    /* Add the offset for the new cast. */
+    if (cast_to_base) {
+      offset -= bcp->offset;
+    } else {
+      offset += bcp->offset;
+    }  /* if */
+    /* Find the original class of the member. */
+    member_class = pm_constant_member_class(constant);
+    /* Find the base class to use as casting_base_class. */
+    if (new_class == member_class) {
+      /* The casts take us back to the original member class, so no
+         casting is needed. */
+      casting_base_class = NULL;
+      cast_to_base = FALSE;
+      constant->implicit_cast = FALSE;
+      constant->type = new_type;
+    } else {
+      /* Look for a base class of the new type which is the member class.
+         If one is found, the cast is to a derived class.  Use the offset
+         to distinguish different instances of the same class. */
+      for (casting_base_class = base_classes_of(new_class);
+           casting_base_class != NULL;
+           casting_base_class = casting_base_class->next) {
+        if (casting_base_class->type == member_class &&
+            casting_base_class->offset == offset) {
+          cast_to_base = FALSE;
+          goto have_base_class;
+        }  /* if */
+      }  /* for */
+      /* Look for a base class of the member class which is the new class.
+         if one if found, the cast is to a base class.  This is an unusual
+         case. */
+      for (casting_base_class = base_classes_of(member_class);
+           casting_base_class != NULL;
+           casting_base_class = casting_base_class->next) {
+        if (casting_base_class->type == new_class &&
+            casting_base_class->offset == -offset) {
+          cast_to_base = TRUE;
+          goto have_base_class;
+        }  /* if */
+      }  /* for */
+#if CHECKING
+      internal_error("set_pm_cast_base_class: could not find base class");
+#endif /* CHECKING */
+have_base_class:
+      implicit_cast(constant, new_type);
+    }  /* if */
+    constant->variant.ptr_to_member.casting_base_class = casting_base_class;
+    constant->variant.ptr_to_member.cast_to_base = cast_to_base;
+  }  /* if */
+}  /* set_pm_cast_base_class */
+
+
 static void fold_pm_base_class_cast(a_constant        *constant_1,
                                     a_base_class      *bcp,
                                     a_constant        *result,
@@ -704,7 +826,7 @@ static void fold_pm_base_class_cast(a_constant        *constant_1,
 /*
 Fold a C++ cast of a pointer to a member of a class to pointer to a member
 of a base class.  constant_1 is a pointer-to-member constant.  It is converted
-to a pointer-to-member for the base class indicated by bcp  and the new
+to a pointer-to-member for the base class indicated by bcp and the new
 constant is returned in *result.  result->type on entry indicates the
 desired pointer-to-member type, possibly with qualifiers.  If there is an
 error, issue it at *err_pos.  Note that casts of this type always come from
@@ -720,8 +842,8 @@ explicit casts, so checking for accessibility of base classes is not necessary.
     set_error_constant(result);
   } else {
     copy_constant(constant_1, result);
-    result->variant.ptr_to_member.class_of_which_a_member = bcp->type;
-    implicit_cast(result, new_type);
+    /* Set the constant to indicate the cast. */
+    set_pm_cast_base_class(result, new_type, bcp, /*cast_to_base=*/TRUE);
   }  /* if */
 }  /* fold_pm_base_class_cast */
 
@@ -774,8 +896,8 @@ If there is an error, it is issued at *err_pos.
       }  /* for */
     }  /* if */
     copy_constant(constant_1, result);
-    result->variant.ptr_to_member.class_of_which_a_member = derived_class_type;
-    implicit_cast(result, new_type);
+    /* Set the constant to indicate the cast. */
+    set_pm_cast_base_class(result, new_type, bcp, /*cast_to_base=*/FALSE);
   }  /* if */
 }  /* fold_pm_derived_class_cast */
 
@@ -884,8 +1006,6 @@ Convert an integer constant to a pointer to member.
   }  /* if */
 #endif /* CHECKING */
   set_constant_kind(new_constant, (a_constant_repr_kind)ck_ptr_to_member);
-  new_constant->variant.ptr_to_member.class_of_which_a_member =
-                                                       pm_class_type(new_type);
   new_constant->variant.ptr_to_member.is_function_ptr = is_function_ptr =
                                     is_function_type(pm_member_type(new_type));
   /* NULL pointer implies a NULL pointer-to-member constant. */
@@ -894,6 +1014,7 @@ Convert an integer constant to a pointer to member.
   } else {
     new_constant->variant.ptr_to_member.variant.field = NULL;
   }  /* if */
+  implicit_cast(new_constant, new_type);
 }  /* conv_integer_to_ptr_to_member */
 
 
@@ -1150,9 +1271,7 @@ operators.  Can also be used to test for a NULL pointer or pointer to member.
     is_false = (cmplit_integer_constant(constant, 0L) == 0);
   } else if (constant->kind == (a_constant_repr_kind)ck_ptr_to_member) {
     /* Pointer to member constant.  See if null. */
-    is_false = constant->variant.ptr_to_member.is_function_ptr ?
-                    (constant->variant.ptr_to_member.variant.routine == NULL) :
-                    (constant->variant.ptr_to_member.variant.field == NULL);
+    is_false = pm_constant_is_null(constant);
   }  /* if */
   /* Note that ck_address constants are always non-NULL and therefore
      is_false is left FALSE. */
@@ -2387,8 +2506,8 @@ and *result is set to an integer 0 or 1 for the result.
 {
   long result_value = FALSE;
 
-  if (constant_1->variant.ptr_to_member.class_of_which_a_member ==
-                   constant_2->variant.ptr_to_member.class_of_which_a_member &&
+  if (constant_1->variant.ptr_to_member.casting_base_class ==
+                        constant_2->variant.ptr_to_member.casting_base_class &&
       constant_1->variant.ptr_to_member.is_function_ptr ==
                            constant_2->variant.ptr_to_member.is_function_ptr) {
     if (constant_1->variant.ptr_to_member.is_function_ptr) {

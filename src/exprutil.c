@@ -2828,9 +2828,6 @@ of a "&" operator if is_operand_of_address_of is TRUE.
     check_protected_member_access(member_sym, position,
                                   member_proj_sym->class_of_which_a_member);
   }  /* if */
-  /* Note that the class of the pointer is always the class in which
-     the member was defined, not any derived class.  See ARM 5.3. */
-  member_class = member_sym->class_of_which_a_member;
   /* No need to instantiate the class; since we have a member of it, it must
      be instantiated already. */
   /* Build the constant. */
@@ -2857,7 +2854,9 @@ of a "&" operator if is_operand_of_address_of is TRUE.
       if_evaluating_mark_routine_referenced(rout, position);
     }  /* if */
   }  /* if */
-  constant.variant.ptr_to_member.class_of_which_a_member = member_class;
+  /* Note that the class of the pointer is always the class in which
+     the member was defined, not any derived class.  See ARM 5.3. */
+  member_class = member_sym->class_of_which_a_member;
   constant.type = ptr_to_member_type(member_type, member_class);
   make_constant_operand(&constant, result);
   result->position = *position;

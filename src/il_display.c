@@ -399,7 +399,7 @@ Print the first of possibly two parts of a type reference.
                          /*need_parens=*/TRUE);
     if (need_parens) putchar('(');
   } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
-    /* C*++ pointer to member type */
+    /* C++ pointer to member type */
 
     a_type_ptr tptr = type->variant.ptr_to_member.class_of_which_a_member;
 
@@ -454,7 +454,7 @@ dimension information.
     disp_type_second_part(type->variant.array.element_type,
                           /*need_parens=*/TRUE);
   } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
-    /* C*++ pointer to member type */
+    /* C++ pointer to member type */
     if (need_parens) putchar(')');
     disp_type_second_part(type->variant.ptr_to_member.type,
                           /*needs_parens=*/TRUE);
@@ -532,7 +532,8 @@ Print a short version of the constant at *cp.
       break;
 #endif /* ifdef FFE */
     case ck_string:
-      disp_string(cp->variant.string.value, (sizeof_t)cp->variant.string.length);
+      disp_string(cp->variant.string.value,
+                  (sizeof_t)cp->variant.string.length);
       break;
 #ifdef CFE
     case ck_address:
@@ -559,14 +560,22 @@ entity_name:
       }  /* if */
       break;
     case ck_ptr_to_member:
-      (void)printf("&");
-      scp = &cp->variant.ptr_to_member.class_of_which_a_member->source_corresp;
-      if (scp->name != NULL) (void)printf("%s::", scp->name);
+      scp = NULL;
       if (cp->variant.ptr_to_member.is_function_ptr) {
-        scp = &cp->variant.ptr_to_member.variant.routine->source_corresp;
-        if (scp->name != NULL) (void)printf("%s", scp->name);
+        a_routine_ptr rp = cp->variant.ptr_to_member.variant.routine;
+        if (rp != NULL) scp = &rp->source_corresp;
       } else {
-        scp = &cp->variant.ptr_to_member.variant.field->source_corresp;
+        a_field_ptr fp = cp->variant.ptr_to_member.variant.field;
+        if (fp != NULL) scp = &fp->source_corresp;
+      }  /* if */
+      if (scp == NULL) {
+        (void)printf("0");
+      } else {
+        (void)printf("&");
+        if (scp->class_of_which_a_member->source_corresp.name != NULL) {
+          (void)printf("%s::",
+                       scp->class_of_which_a_member->source_corresp.name);
+        }  /* if */
         if (scp->name != NULL) (void)printf("%s", scp->name);
       }  /* if */
       break;
@@ -977,9 +986,11 @@ Display the indicated constant entry.
       break;
     case ck_ptr_to_member:
       (void)printf("ck_ptr_to_member\n");
-      disp_ptr("class_of_which_a_member",
-               (char *)ptr->variant.ptr_to_member.class_of_which_a_member,
-               iek_type);
+      disp_ptr("casting_base_class",
+               (char *)ptr->variant.ptr_to_member.casting_base_class,
+               iek_base_class);
+      disp_boolean("cast_to_base",
+                   (a_boolean)ptr->variant.ptr_to_member.cast_to_base);
       disp_boolean("is_function_ptr",
                    (a_boolean)ptr->variant.ptr_to_member.is_function_ptr);
       if (ptr->variant.ptr_to_member.is_function_ptr) {

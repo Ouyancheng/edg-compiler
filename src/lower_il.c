@@ -407,31 +407,6 @@ and return a pointer to the base class entry.  It must be found.
 } /* find_virtual_base_class */
 
 
-a_targ_ptrdiff_t related_class_offset(a_type_ptr class_1,
-                                      a_type_ptr class_2)
-/*
-If class_1 and class_2 are related classes (one is derived from the other),
-return the offset of class_2 relative to class_1.  If class_1 is a base
-class of class_2, the offset may be negative.  If the classes are unrelated,
-return 0.
-*/
-{
-  a_targ_ptrdiff_t offset = 0;
-  a_base_class_ptr bcp;
-
-  if (class_1 == class_2) {
-    /* Classes are the same.  Offset is zero (already set). */
-  } else if ((bcp = find_base_class_of(class_1, class_2)) != NULL) {
-    /* class_2 is a base class of class_1. */
-    offset = bcp->offset;
-  } else if ((bcp = find_base_class_of(class_2, class_1)) != NULL) {
-    /* class_1 is a base class of class_2. */
-    offset = -bcp->offset;
-  }  /* if */
-  return offset;
-}  /* related_class_offset */
-
-
 static void add_field(char          *field_name,
                       a_type_ptr    field_type,
                       a_targ_size_t field_offset,
@@ -1884,6 +1859,27 @@ will not fit in an integer of kind TARG_DELTA_INT_KIND.
 }  /* set_delta_constant */
 
 
+a_targ_ptrdiff_t pm_cast_offset(a_constant_ptr constant)
+/*
+constant is a pointer to member constant.  Return the byte offset to be
+added to the basic member offset to account for casts done on the pointer
+to member.
+*/
+{
+  a_targ_ptrdiff_t offset;
+  a_base_class_ptr bcp;
+
+  bcp = constant->variant.ptr_to_member.casting_base_class;
+  if (bcp == NULL) {
+    offset = 0;
+  } else {
+    offset = bcp->offset;
+    if (constant->variant.ptr_to_member.cast_to_base) offset = -offset;
+  }  /* if */
+  return offset;
+}  /* pm_cast_offset */
+
+
 void repr_for_ptr_to_data_member_constant(a_constant_ptr   constant, 
                                           a_targ_ptrdiff_t *delta)
 /*
@@ -1892,13 +1888,7 @@ constant, and return information about it in *delta.
 */
 {
   a_field_ptr field;
-  a_type_ptr  class_of_pm, field_class_type;
 
-  /* Get the class type for which this is a pointer-to-member. */
-  /* Note that by the time this routine is called the constant->type
-     may have been lowered already; it cannot be used here. */
-  class_of_pm = constant->variant.ptr_to_member.class_of_which_a_member;
-  prelower_class_type(class_of_pm);
   field = constant->variant.ptr_to_member.variant.field;
   /* Use offset == 0 for NULL, otherwise the field offset. */
   if (field == NULL) {
@@ -1907,8 +1897,7 @@ constant, and return information about it in *delta.
     /* Add the offset of the field class relative to the pointer-to-member
        class and the offset of the field relative to its class.  Final
        "+1" is to reserve zero for NULL pointers. */
-    field_class_type = field->source_corresp.class_of_which_a_member;
-    *delta = related_class_offset(class_of_pm, field_class_type) +
+    *delta = pm_cast_offset(constant) +
              (field->bit_offset / TARG_CHAR_BIT) + 1;
   }  /* if */
 }  /* repr_for_ptr_to_data_member_constant */
@@ -1926,14 +1915,8 @@ function constant, and return information about it in *delta, *index,
 NULL.
 */
 {
-  a_type_ptr    class_of_pm, routine_class_type;
   a_routine_ptr routine;
 
-  /* Get the class type for which this is a pointer-to-member. */
-  /* Note that by the time this routine is called the constant->type
-     may have been lowered already; it cannot be used here. */
-  class_of_pm = constant->variant.ptr_to_member.class_of_which_a_member;
-  prelower_class_type(class_of_pm);
   routine = constant->variant.ptr_to_member.variant.routine;
   /* The first field is the delta value, the offset of the class of the
      routine relative to the class pointed to by the pointer-to-member. */
@@ -1941,8 +1924,7 @@ NULL.
     /* For a NULL ptr-to-member, delta is zero. */
     *delta = 0;
   } else {
-    routine_class_type = routine->source_corresp.class_of_which_a_member;
-    *delta = related_class_offset(class_of_pm, routine_class_type);
+    *delta = pm_cast_offset(constant);
   }  /* if */
   /* The second field is
        0 for a NULL pointer;
@@ -1979,7 +1961,8 @@ NULL.
     /* For a virtual function, the offset of the virtual function table
        pointer in the class of the routine is returned in *offset,
        *func == NULL. */
-    *offset = routine_class_type->variant.class_struct_union.extra_info->
+    *offset = routine->source_corresp.class_of_which_a_member->
+                                        variant.class_struct_union.extra_info->
                                                   virtual_function_info_offset;
     *func = NULL;
   }  /* if */

@@ -521,11 +521,23 @@ typedef struct a_constant {
     /* When kind == ck_ptr_to_member: */
     struct {
       /* A C++ pointer-to-member (data or function). */
-      a_type_ptr
-		class_of_which_a_member;
-			/* The class whose member this points to. */
-      a_byte_boolean
-		is_function_ptr;
+      /* Note that implicit_cast will be TRUE if the constant is a NULL
+         pointer to member or if casting_base_class is non-NULL. */
+      a_base_class_ptr
+		casting_base_class;
+			/* If non-NULL, indicates the derived or base class
+			   to which the pointer-to-member has been cast.
+			   Always NULL for a NULL pointer-to-member
+			   constant. */
+      unsigned int
+		cast_to_base:1;
+			/* If TRUE, the base class given by casting_base_class
+			   is a base class of the original class.  If FALSE,
+			   casting_base_class indicates a derived class (that
+			   is, it indicates the base class [of the derived
+			   class] that is the original class). */
+      unsigned int
+		is_function_ptr:1;
 			/* TRUE if the pointer is to a member function,
 			   FALSE if to a data member. */
       union {

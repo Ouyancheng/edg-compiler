@@ -292,8 +292,8 @@ the file scope, do not process it (but record an orphan in the latter case).
             }  /* switch */
             break;
           case ck_ptr_to_member:
-            remap_ptr(ptr->variant.ptr_to_member.class_of_which_a_member,
-                      a_type_ptr, iek_type);
+            remap_ptr(ptr->variant.ptr_to_member.casting_base_class,
+                      a_base_class_ptr, iek_base_class);
             if (ptr->variant.ptr_to_member.is_function_ptr) {
               remap_ptr(ptr->variant.ptr_to_member.variant.routine,
                         a_routine_ptr, iek_routine);
