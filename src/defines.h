@@ -104,7 +104,9 @@ Flags to be set when using the KAI inliner.
 #define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 1
 #define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE 1
 #define COMPOUND_LITERAL_ENABLING_POSSIBLE 1
+#ifndef SUNOS
 #define INSTANTIATE_EXTERN_INLINE 1
+#endif /* ifndef SUNOS */
 #ifdef SELFCOMP_VERSION
 /* Self-compiled version. */
 #define ALTERNATE_IL_FILE_FORMAT 0
