@@ -669,8 +669,9 @@ static void copy_virtual_function_override_list(
                                  an_overriding_virtual_function_ptr list,
                                  a_base_class_ptr                   base_class)
 /*
-Copy the list of overriding virtual functions from base class and add the
-new list to base_class.
+Make a copy of each item on "list" a linked list of overriding virtual
+function entries, and add add each of the copies to the list belonging to
+base_class.
 */
 {
   an_overriding_virtual_function_ptr  ovfp, new_ovfp;
