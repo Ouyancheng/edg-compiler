@@ -1817,7 +1817,7 @@ this function points to a tree that includes a dynamic-init entry.
               }  /* if */
             } else {
               unexpected_condition_str(
-                                   "get_initalizer: can't init 0-size member");
+                                  "get_initializer: can't init 0-size member");
             }  /* if */
           }  /* if */
         }  /* if */
