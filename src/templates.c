@@ -16305,7 +16305,7 @@ if one already exists.
        that the file will have been closed after all input was read so
        it must be reopened now. */
     f_ii_file = fopen(instantiation_request_file_name, "r");
-    if (any_instantiations_required()) {
+    if (automatic_instantiation_mode && any_instantiations_required()) {
       if (!use_template_info_file) {
         /* If the file does not exist, create it.  The file is only
            created when not using a template information file, because
