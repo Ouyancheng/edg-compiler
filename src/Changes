@@ -1,5 +1,11 @@
 Version 2.29
 
+5/18/95  Branching past initialization of static local variable
+
+No longer is an error issued on branching past dynamic initializations
+of static local variables -- it is not justified by the wording in
+WP 6.7 para 3, where only automatic variables are mentioned.
+
 5/18/95  Problem with no-exception-lowering in IL lowering
 
 When IL lowering is configured to do no lowering of exception handling
