@@ -5816,8 +5816,7 @@ instantiation.
                              (GID_CLASS_TEMPLATE_REQUIRED, ilm_linkage, &err);
       /* If the class name is a template ID, then this is probably a
          declaration of a partial specialization. */
-      if (!decl_state->is_template_friend &&
-          locator_for_curr_id.is_template_id) {
+      if (locator_for_curr_id.is_template_id) {
         is_partial_specialization = TRUE;
       }  /* if */
     } else {
@@ -5919,6 +5918,12 @@ instantiation.
          specialization. */
       pos_sy_error(ec_bad_partial_specialization, &locator.source_position,
                    sym);
+      err = TRUE;
+    }  /* if */
+    if (decl_state->is_template_friend &&
+        !decl_state->decl_scope_err && !err) {
+      /* A partial specialization is not permitted in a friend declaration. */
+      pos_error(ec_friend_partial_specialization, &locator.source_position);
       err = TRUE;
     }  /* if */
     if (err) {
