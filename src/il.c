@@ -7509,16 +7509,17 @@ static an_object_lifetime_ptr *addr_of_lifetime_ptr(
                                          an_object_lifetime_kind  kind)
 /*
 Given an IL entry kind and a pointer to the entry, return the address of the
-field of that entry that points to an object lifetime.  Scope entries have
-two such pointers, and for that case the flag ctor_init is used to decide
-which address to return -- it is set to TRUE if lifetime_of_constructor_inits
-is required and to FALSE otherwise.
+field of that entry that points to an object lifetime.  Since scope entries
+have several such pointers, the object lifetime kind is also passed in to
+help determine which address to return.
 */
 {
   an_object_lifetime_ptr *lifetime_addr;
 
   switch (entity_kind) {
     case iek_scope:
+      /* There are three lifetime pointers in a scope entry.  Use kind to
+         select the right one. */
       if (kind == (an_object_lifetime_kind)olk_constructor_init) {
         lifetime_addr = &((a_scope_ptr)entity_ptr)->
                               variant.routine.lifetime_of_constructor_inits;
@@ -7566,9 +7567,7 @@ void bind_object_lifetime(an_object_lifetime_ptr  olp,
 /*
 Set the object lifetime entry pointed to by olp to point to the IL entry
 represented by entity_kind and entity_ptr, and set the IL entry to point
-back to it.  Scope entries have two object lifetime pointers; ctor_init
-should is TRUE when it is the lifetime_of_constructor_inits field of the
-scope entry that should be updated.
+back to it.
 */
 {
   an_object_lifetime_ptr   *lifetime_addr;
@@ -7662,11 +7661,11 @@ void push_object_lifetime(an_il_entry_kind         entity_kind,
                           char                     *entity_ptr,
                           an_object_lifetime_kind  kind)
 /*
-Create a new object lifetime entry and push it onto the object lifetime
-stack by setting its parent pointer and then changing curr_object_lifetime
-to point to it.  Also, set its sibling pointer, and, if entity_ptr is
-non-NULL, bind it to the IL entity with which it is associated.  (When
-entity_ptr is NULL, the binding takes place later, when we are sure the
+Create a new object lifetime entry of the specified kind and push it onto the
+object lifetime stack by setting its parent pointer and then changing
+curr_object_lifetime to point to it.  Also, set its sibling pointer, and, if
+entity_ptr is non-NULL, bind it to the IL entity with which it is associated.
+(When entity_ptr is NULL, the binding takes place later, when we are sure the
 entry is needed.)
 */
 {
@@ -7806,8 +7805,12 @@ the dynamic init entry to the object lifetime.
 
 void mark_object_lifetime_as_useless(an_object_lifetime_ptr  olp)
 /*
-An object lifetime may be rendered useless by clearing its destructions
-pointer.
+Mark the indicated object lifetime entry as being useless, i.e., as one that
+can be discarded when popped off the object lifetime stack.  This is needed
+when errors occur, to avoid complaints at the time of popping that an object
+lifetime containing destructions has not been bound to anything.  The object
+lifetime is marked as useless by removing all the destructions on its
+list.
 */
 {
 #if CHECKING
@@ -7904,9 +7907,9 @@ return it to the appropriate available list.
     /* Return the entry to its available list. */
     (void)free_object_lifetime(olp);
   } else if (olp->kind == (an_object_lifetime_kind)olk_constructor_init) {
-    /* A constructor init lifetime remain unbound while it is on the
+    /* A constructor init lifetime remains unbound while it is on the
        object lifetime stack; it's only bound when the constructor init
-       processing is complete. */
+       processing is complete (and only if it is not "useless"). */
     bind_object_lifetime(olp, (an_il_entry_kind)iek_scope,
                          (char *)scope_stack[depth_scope_stack].il_scope);
 #if DEBUG
