@@ -5862,12 +5862,15 @@ function_lparen:
      where the reference to (use of) the type appears with the reference
      to the tag name.)  As written, this sets the referenced flag for all
      types, not just tags, which is harmless. */
-  if (specifiers_type != NULL && !is_error_type(complete_type)) {
-    check_assertion((*output_flags & DO_REAL_DECLARATOR_SCANNED) ||
-                    is_ptr_or_ref_type(complete_type) ||
-                    derived_type != NULL ||
-                    is_ptr_to_member_type(complete_type));
-    (skip_typerefs(specifiers_type))->source_corresp.referenced = TRUE;
+  if (specifiers_type != NULL) {
+    /* Use m_is_error_type instead of is_error_type for efficiency. */
+    if (!m_is_error_type(complete_type)) {
+      check_assertion((*output_flags & DO_REAL_DECLARATOR_SCANNED) ||
+                      is_ptr_or_ref_type(complete_type) ||
+                      derived_type != NULL ||
+                      is_ptr_to_member_type(complete_type));
+      (skip_typerefs(specifiers_type))->source_corresp.referenced = TRUE;
+    }  /* if */
   }  /* if */
   /* Use the position of the identifier as the position of this declarator
      for error purposes.  If this was an abstract declarator, declarator_pos
@@ -5879,10 +5882,11 @@ function_lparen:
      (pointer derived type list plus specifiers_list), making
      the full type.  Note that this involves error checking. */
   if (derived_type != NULL) {
-    if (is_error_type(derived_type)) {
+    /* Use m_is_error_type instead of is_error_type for efficiency. */
+    if (m_is_error_type(derived_type)) {
       bottom_derived_type = error_type();
     } else if (complete_type != NULL) {
-      if (bottom_derived_type->kind == (a_type_kind)tk_error) {
+      if (is_immediate_error_type(bottom_derived_type)) {
         /* The bottom derived type is an error, so we cannot attach the
            complete type to the bottom.  Also clear the pointer to the
            bottom-most pointer type, since it's in the complete_type
