@@ -1,5 +1,22 @@
 Version 2.32
 
+4/6/96    Fixes to bit-field support for better Microsoft compatibility
+
+-- TARG_ZERO_WIDTH_BIT_FIELD is now configured to -1 (which means to use
+   the underlying type of the bit field declaration as the container type)
+   when TARG_MICROSOFT_BIT_FIELD_ALLOCATION is TRUE.
+
+-- We've added TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT, which
+   is set by default to TRUE for cfront object-code compatibility and
+   when TARG_MICROSOFT_BIT_FIELD_ALLOCATION is TRUE.  When it's TRUE, the
+   alignment of the struct as a whole will be no less than the alignment
+   implied by any zero-width bit field declaration.
+
+-- A tweak was made in determining bit-field container compatibility
+   (when TARG_MICROSOFT_BIT_FIELD_ALLOCATION is TRUE) -- two different
+   integral types are considered compatible as long as their sizes are
+   the same.
+
 4/5/96    /**/ treated as token-pasting operator ## in SVR4 C mode
 
 In SVR4 C mode, the sequence /**/ in a macro definition is now treated
