@@ -4112,7 +4112,7 @@ Add to the mangled name the encoding for the type "type".
           if (emulate_gnu_abi_bugs &&
               type->variant.array.variant.element_count_constant->kind ==
                                      (a_constant_repr_kind)ck_template_param) {
-            /* Force bounds under this one it to be mangled as expressions
+            /* Force bounds under this one to be mangled as expressions
                to match a g++ bug. */
             mctl->force_dependent_array_mangling = TRUE;
           }  /* if */
@@ -4131,7 +4131,7 @@ Add to the mangled name the encoding for the type "type".
           /* Put out a constant bound as an expression to emulate a g++ bug. */
           check_assertion(emulate_gnu_abi_bugs);
           add_to_mangled_name('L', mctl);
-          add_to_mangled_name('i', mctl);  /* int type. */
+          add_str_to_mangled_name(MANGLING_STRING_FOR_INT, mctl);
           add_number_to_mangled_name((unsigned long)type->variant.array.
                                                     variant.number_of_elements,
                                      mctl);
