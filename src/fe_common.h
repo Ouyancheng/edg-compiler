@@ -68,11 +68,6 @@ incorporated:
 /* Target configuration variables. */
 #include "target.h"
 
-#if !STANDALONE_UTILITY_PROGRAM
-/* Variables set on the basis of command line options. */
-#include "cmd_line.h"
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-
 /* Additional declarations relating to memory management. */
 #include "mem_manage.h"
 
@@ -91,6 +86,10 @@ incorporated:
 
 /* Identifier lookup routines. */
 #include "lookup.h"
+
+/* Variables set on the basis of command line options. */
+#include "cmd_line.h"
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /* Type system support. */

@@ -680,20 +680,6 @@ EXTERN a_boolean
 			   if string literals are not shared because they
 			   might be writable (as in pcc mode). */
 
-typedef struct a_def_undef_string *a_def_undef_string_ptr;
-typedef struct a_def_undef_string {
-  /* Used to save -D (define symbol) and -U (undefined symbol) command-line
-     arguments.  There are separate lists for def and undef, so the
-     entry itself need not identify the function involved. */
-  a_def_undef_string_ptr
-		next;
-			/* Next entry on this list, or NULL if this is the
-			   last entry. */
-  char		*text;
-			/* The text of the argument (i.e., "x=1" for the
-			   option "-Dx=1", "x" for "-Ux"). */
-} a_def_undef_string;
-
 EXTERN a_def_undef_string_ptr
 		defs_from_cmd_line   /* = NULL */,
 		undefs_from_cmd_line /* = NULL */;

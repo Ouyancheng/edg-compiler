@@ -1259,6 +1259,21 @@ typedef struct a_template_param {
 } a_template_param;
 
 
+typedef struct a_def_undef_string *a_def_undef_string_ptr;
+typedef struct a_def_undef_string {
+  /* Used to save -D (define symbol) and -U (undefined symbol) command-line
+     arguments.  There are separate lists for def and undef, so the
+     entry itself need not identify the function involved. */
+  a_def_undef_string_ptr
+		next;
+			/* Next entry on this list, or NULL if this is the
+			   last entry. */
+  char		*text;
+			/* The text of the argument (i.e., "x=1" for the
+			   option "-Dx=1", "x" for "-Ux"). */
+} a_def_undef_string;
+
+
 /*
 Entry used to record information about a file containing exported
 template definitions.
