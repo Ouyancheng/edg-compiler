@@ -567,20 +567,18 @@ a structured statement has ended.
   }  /* if */
   /* Determine whether or not the code following the statement is reachable,
      and set curr_reachability appropriately. */
-  if (kind == ssk_while || kind == ssk_for) {
-    /* A top-test loop.  The code after the loop is reachable if and only
-       if the start is reachable and the loop is not an infinite loop. */
+  if (kind == ssk_while || kind == ssk_for || kind == ssk_do) {
+    /* A loop. */
     if (is_infinite_loop(sssep->statement)) {
+      /* An infinite loop.  The code after the loop is not reachable. */
       set_unreachable(curr_reachability);
+    } else if (kind == ssk_while || kind == ssk_do) {
+      /* A top-test loop.  The code after the loop is reachable if the current
+         location is reachable or if the start of the loop is reachable. */
+      merge_reachability(&sssep->start_reachable, &curr_reachability);
     } else {
-      curr_reachability = sssep->start_reachable;
-    }  /* if */
-  } else if (kind == ssk_do) {
-    /* A bottom-test loop.  The code after the loop is reachable if and only
-       if the end of the loop (i.e., the current location) is reachable and
-       the loop is not an infinite loop. */
-    if (is_infinite_loop(sssep->statement)) {
-      set_unreachable(curr_reachability);
+      /* A bottom-test loop.  The code after the loop is reachable if the
+         current location is reachable. */
     }  /* if */
   } else {
     /* Non-loop statement. */

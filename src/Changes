@@ -1,5 +1,21 @@
 Version 2.15
 
+2/19/93  Reachability of code following "while" and "for" loops
+
+The reachability of code following "while" and "for" loops was
+determined wrong when the loop is unreachable but contains a label:
+
+  int     main(void)
+  {
+    int     i;
+    goto label;
+    for (i = 0; i < 10; i++) {
+  label:
+      foo();
+    }  /* for */
+    /* This is reachable; return should be generated. */
+  }  /* main */
+
 2/19/93  Use of typedef name to specify an empty parameter list
 
 As an extension in both C and C++ modes (accompanied by a warning in
@@ -51,16 +67,6 @@ that specifies the name of an associated identifier.  This permits a
 diagnostic message to display the name actually specified in the user's
 code instead of "<error>" or "<error>::X".
 
-2/18/93  Bug in argument widening done in IL lowering
-
-The argument widening done when MAKE_ALL_FUNCTIONS_UNPROTOTYPED is true
-did not work for file-scope function calls, as in
-
-  int f(float);
-  int i = f(1.5f);
-
-The argument was not widened.  It is now.
-
 02/18/93  Error recovery for self-referential template references
 
 Cases such as these caused internal errors because a real instantiation
@@ -102,6 +108,17 @@ struct A<int> {
 
 -------------------------------------------------------------------------------
 Version 2.14, February 12, 1993
+
+2/18/93  Bug in argument widening done in IL lowering
+
+The argument widening done when MAKE_ALL_FUNCTIONS_UNPROTOTYPED is true
+did not work for file-scope function calls, as in
+
+  int f(float);
+  int i = f(1.5f);
+
+The argument was not widened.  It is now.  (This patch was incorporated into
+the release retroactively.)
 
 2/15/93  Error recovery on ambiguous conversions
 
