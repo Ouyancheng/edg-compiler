@@ -5149,7 +5149,7 @@ to indicate whether an enumeration is actually defined.
         }  /* if */
         /* Assign the value to the enumeration constant. */
         enum_con = alloc_constant((a_constant_repr_kind)ck_integer);
-        *enum_con = constant;
+        copy_constant(&constant, enum_con);
         set_source_corresp(&(enum_con->source_corresp), enum_sym);
         enum_sym->variant.constant = enum_con;
         enum_con->type = enum_con_type;
