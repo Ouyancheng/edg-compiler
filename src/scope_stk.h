@@ -251,9 +251,6 @@ typedef struct a_scope_stack_entry {
 			   (such as template instantiation scopes),
 			   but for which the context information should
 			   be suppressed. */
-  a_bit_field	suppress_diagnostics:1;
-			/* TRUE if diagnostics, issued when this is the
-			   current scope, should be suppressed. */
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
 			/* Pointer to a scope pointer block that should be

@@ -188,9 +188,6 @@ typedef struct a_type a_type_dummy_typedef;
 typedef struct a_source_file a_source_file_dummy_typedef;
 
 
-extern void begin_suppression_of_diagnostics(void);
-extern void end_suppression_of_diagnostics(void);
-
 extern char *format_type_string(struct a_type *type,
                                 sizeof_t      *len_ptr);
 #if !STANDALONE_UTILITY_PROGRAM

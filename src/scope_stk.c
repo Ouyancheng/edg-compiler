@@ -880,7 +880,6 @@ to the declaration information for the template declaration scope being pushed.
   ssep->within_unnamed_namespace = FALSE;
   ssep->namespace_pushed         = FALSE;
   ssep->exclude_from_context_output = FALSE;
-  ssep->suppress_diagnostics     = FALSE;
   ssep->reactivated_class_being_defined = FALSE;
   ssep->is_for_init_block        = FALSE;
   ssep->il_scope                 = sp;

@@ -900,12 +900,8 @@ identifiers to be coalesced.
   check_assertion_str2(src_cache != NULL,
                        "cache_token_stream_coalesce_identifiers:",
                        "no source cache specified");
-  /* Suppress diagnostics that result from this prescan. */
-  begin_suppression_of_diagnostics();
   cache_token_stream_with_coalesce_flag(cache, stop_tokens,
                                         /*coalesce_ids=*/TRUE, src_cache);
-
-  end_suppression_of_diagnostics();
 }  /* cache_token_stream_coalesce_identifiers */
 
 

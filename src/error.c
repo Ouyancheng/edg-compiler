@@ -2426,7 +2426,6 @@ current source position and severity or restore the previously saved settings.
 {
   static a_source_position  saved_error_position;
   static an_error_severity  saved_severity = (an_error_severity)es_default;
-  a_boolean		    suppress_diagnostic;
 
 #if CHECKING
   /* The saved severity level should be es_default if and only if this is a
@@ -2462,33 +2461,9 @@ current source position and severity or restore the previously saved settings.
     }  /* if */
 #endif /* CHECKING */
   }  /* if */
-  /* Return FALSE if the current severity is below the threshold or if
-     the flag is set in the scope stack entry that indicates that
-     diagnostics should be suppressed. */
-  suppress_diagnostic = depth_scope_stack != NO_SCOPE_DEPTH &&
-                        scope_stack[depth_scope_stack].suppress_diagnostics;
-  return ((int)*severity >= (int)error_threshold) && !suppress_diagnostic;
+  /* Return FALSE if the current severity is below the threshold. */
+  return ((int)*severity >= (int)error_threshold);
 }  /* check_severity */
-
-
-void begin_suppression_of_diagnostics(void)
-/*
-Set the flag in the scope stack entry that indicates that diagnostics
-should not be issued in this scope.
-*/
-{
-  scope_stack[depth_scope_stack].suppress_diagnostics = TRUE;
-}  /* begin_suppression_of_diagnostics */
-
-
-void end_suppression_of_diagnostics(void)
-/*
-Clear the flag in the scope stack entry that indicates that diagnostics
-should not be issued in this scope.
-*/
-{
-  scope_stack[depth_scope_stack].suppress_diagnostics = FALSE;
-}  /* end_suppression_of_diagnostics */
 
 
 #if !STANDALONE_UTILITY_PROGRAM
