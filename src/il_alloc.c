@@ -1728,6 +1728,7 @@ to it.
   scp->statements           = NULL;
   scp->implied_break_at_end = FALSE;
   clear_stmt_source_position(scp->break_position);
+  clear_stmt_source_position(scp->default_position);
   return scp;
 }  /* alloc_switch_clause */
 

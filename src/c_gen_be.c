@@ -4971,7 +4971,7 @@ static void dump_switch_statement(a_statement_ptr statement)
 Generate the code for a switch statement.
 */
 {
-  a_statement_ptr     case_statement, body_statement, statement_list;
+  a_statement_ptr     body_statement, statement_list;
   a_constant_ptr      constant;
   a_switch_clause_ptr switch_clause;
   /* curr_scope is saved here because dump_block_declarations may change it. */
@@ -5024,38 +5024,14 @@ Generate the code for a switch statement.
        switch_clause = switch_clause->next) {
     /* Indent for the case label. */
     indent += 2;
-    /* Try to determine a source position for the case label.  This would
-       be easier if there were a source position in the IL, but there
-       isn't. */
-    { a_source_position pos;
-      /* See if there is a statement in the clause that has a position. */
-      for (case_statement = switch_clause->statements;
-           case_statement != NULL;
-           case_statement = case_statement->next) {
-        set_position_from_stmt_source_position(pos, case_statement->position);
-        /* Ignore statements with no source position. */
-        if (pos.seq != 0) {
-          /* Found a statement with a position.  Use it. */
-          set_output_position(&pos);
-          goto position_set;
-        }  /* if */
-      }  /* for */
-      /* We didn't find a statement with a position.  See if there is a
-         break position. */
-      set_position_from_stmt_source_position(pos,
-                                             switch_clause->break_position);
-      if (pos.seq != 0) {
-        /* There is a break position.  Use it. */
-        set_output_position(&pos);
-      }  /* if */
-position_set:;
-    }
     constant = switch_clause->constant_list;
     if (constant == NULL) {
       /* This is the default case. */
+      set_output_position_for_stmt(&switch_clause->default_position);
       write_tok_str("default:");
     } else {
       do {
+        set_output_position(&constant->source_corresp.decl_position);
         write_tok_str("case ");
         dump_constant(constant);
         write_tok_ch(':');

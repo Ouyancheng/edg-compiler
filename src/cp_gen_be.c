@@ -4696,37 +4696,15 @@ The current function source sequence entry is for that switch clause.
                       "gen_case_label: wrong switch clause");
   /* Advance past the source sequence entry for the switch clause. */
   adv_curr_source_sequence_entry();
-  /* Try to determine a source position for the case label.  This would be
-     easier if there were a source position in the IL, but there isn't. */
-  { a_source_position pos;
-    /* See if there is a statement in the clause that has a position. */
-    for (clause_stmt = scp->statements;
-         clause_stmt != NULL;
-         clause_stmt = clause_stmt->next) {
-      set_position_from_stmt_source_position(pos, clause_stmt->position);
-      /* Ignore statements with no source position. */
-      if (pos.seq != 0) {
-        /* Found a statement with a position.  Use it. */
-        set_output_position(&pos);
-        goto position_set;
-      }  /* if */
-    }  /* for */
-    /* We didn't find a statement with a position.  See if there is a break
-       position. */
-    set_position_from_stmt_source_position(pos, scp->break_position);
-    if (pos.seq != 0) {
-      /* There is a break position.  Use it. */
-      set_output_position(&pos);
-    }  /* if */
-position_set:;
-  }
   con = scp->constant_list;
   if (con == NULL) {
     /* An empty list identifies the default clause. */
+    set_output_position_for_stmt(&scp->default_position);
     write_tok_str("default: ");
   } else {
     /* Put out a list of case labels. */
     for (; con != NULL; con = con->next) {
+      set_output_position(&con->source_corresp.decl_position);
       write_tok_str("case ");
       gen_constant(con, /*need_parens=*/FALSE);
       write_tok_str(": ");

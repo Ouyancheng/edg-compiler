@@ -5493,7 +5493,9 @@ typedef struct a_switch_clause {
 			/* Values of the switch expression for which this
 			   clause applies.  A list of integer constants,
 			   in ascending order.	NULL if this is the
-			   default clause. */
+			   default clause.  The source positions in the
+			   constants indicate the source positions of the
+			   corresponding case labels. */
   a_statement_ptr
 		statements;
 			/* The dependent statement sequence.  If
@@ -5517,6 +5519,11 @@ typedef struct a_switch_clause {
 			   (which is represented in the IL as an implied break
 			   at the end of the switch clause), the break
 			   statement's source position; otherwise zero. */
+  a_stmt_source_position
+		default_position;
+			/* If the clause contains a default label (i.e.,
+			   constant_list == NULL), this gives its source
+			   position. */
 } a_switch_clause;
 
 #endif /* ifdef CIL */

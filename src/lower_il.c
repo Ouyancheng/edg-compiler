@@ -7940,14 +7940,19 @@ it; otherwise, switch_lifetime is NULL.
   }  /* if */
   /* Loop through the switch clauses. */
   for (clause = clause_list; clause != NULL; clause = clause->next) {
+    /* Lower the case label constants. */
+    /* They have their own source positions. */
+    lower_constant_list(clause->constant_list);
     /* If the switch clause contains a statement, get a source position from
        that and use it as the position for any code created. */
     if (clause->statements != NULL) {
       set_position_from_stmt_source_position(code_pos_for_lowering,
                                              clause->statements->position);
-      error_position = code_pos_for_lowering;
+    } else {
+      set_position_from_stmt_source_position(code_pos_for_lowering,
+                                             clause->break_position);
     }  /* if */
-    lower_constant_list(clause->constant_list);
+    error_position = code_pos_for_lowering;
     /* Get the statement list before any insertions done for the start
        of an object lifetime. */
     clause_statements = clause->statements;

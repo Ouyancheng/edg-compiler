@@ -2194,6 +2194,10 @@ Display the indicated switch clause.
                             "break_position.seq",
                             "break_position.column",
                             ptr->break_position);
+  disp_stmt_source_position("default_position",
+                            "default_position.seq",
+                            "default_position.column",
+                            ptr->default_position);
 }  /* disp_switch_clause */
 
 

@@ -4210,11 +4210,13 @@ See also 3.6.6.4.
 
 
 static void add_switch_clause(a_struct_stmt_stack_entry_ptr sssep,
-                              a_constant_ptr                constant_ptr)
+                              a_constant_ptr                constant_ptr,
+                              a_source_position             *label_position)
 /*
 Begin a clause of the switch statement associated with the structured
 statement stack entry pointed to by sssep, for the case value indicated
 by *constant_ptr.  constant_ptr is NULL to indicate the default label.
+label_position indicates the source position of the label.
 */
 {
   a_switch_clause_ptr scp;
@@ -4260,7 +4262,7 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
         if (constant_ptr == NULL) {
           if (scp->constant_list == NULL) {
             /* "default" appears more than once. */
-            error(ec_default_label_appears_more_than_once);
+            pos_error(ec_default_label_appears_more_than_once, label_position);
             err = TRUE;
             break;
           }  /* if */
@@ -4278,7 +4280,8 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
             if (!is_error_constant(cp)) {
               check_assertion(cp->kind == (a_constant_repr_kind)ck_integer);
               if (cmp_integer_constants(cp, constant_ptr) == 0) {
-                error(ec_case_label_appears_more_than_once);
+                pos_error(ec_case_label_appears_more_than_once,
+                          label_position);
                 err = TRUE;
                 break;
               }  /* if */
@@ -4411,6 +4414,7 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
          indicate that the clause includes a default label. */
       scp->constant_list = NULL;
     }  /* if */
+    set_stmt_source_position(scp->default_position, *label_position);
   } else if (can_add_to_curr_clause && scp->constant_list == NULL) {
     /* The clause includes the default case (since constant_list is
        NULL), so specifying any other case-labels following "default" is
@@ -4479,7 +4483,7 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
         goto_stmt = add_statement((a_statement_kind)stmk_goto);
       } else {
         goto_stmt = alloc_statement((a_statement_kind)stmk_goto);
-        set_stmt_source_position(goto_stmt->position, pos_curr_token);
+        set_stmt_source_position(goto_stmt->position, *label_position);
         scp->statements = goto_stmt;
       }  /* if */
       goto_stmt->variant.label.ptr = label;
@@ -4580,6 +4584,7 @@ Scan a case label definition.  The syntax is:
   a_boolean                     did_not_fold;
   a_constant                    constant;
   a_constant_ptr                constant_ptr = NULL;
+  a_source_position             label_position;
 
   db_enter(4, "case_label");
 
@@ -4599,6 +4604,7 @@ Scan a case label definition.  The syntax is:
 #endif /* CHECKING */
   (void)get_token();
   constant_ptr = NULL;
+  label_position = pos_curr_token;
   /* Scan the constant expression. */
   scan_integral_constant_expression(&constant);
   if (is_error_constant(&constant)) {
@@ -4623,11 +4629,12 @@ Scan a case label definition.  The syntax is:
     }  /* if */
     /* Allocate a copy of the case constant. */
     constant_ptr = alloc_unshared_constant(&constant);
+    constant_ptr->source_corresp.decl_position = label_position;
   }  /* if */
   if (sssep != NULL) {
     if (constant_ptr != NULL) {
       /* Add the proper switch clause. */
-      add_switch_clause(sssep, constant_ptr);
+      add_switch_clause(sssep, constant_ptr, &label_position);
     } else {
       /* Make code reachable if the switch is reachable for the error case. */
       start_stmt_clause(sssep);
@@ -4653,6 +4660,7 @@ Scan a default case label definition.  The syntax is:
 */
 {
   a_struct_stmt_stack_entry_ptr sssep;
+  a_source_position             label_position;
 
   db_enter(4, "default_label");
 
@@ -4664,7 +4672,8 @@ Scan a default case label definition.  The syntax is:
   if (sssep != NULL) {
     /* Found the proper enclosing switch statement. */
     sssep->switch_has_default_clause = TRUE;
-    add_switch_clause(sssep, (a_constant_ptr)NULL);
+    label_position = pos_curr_token;
+    add_switch_clause(sssep, (a_constant_ptr)NULL, &label_position);
   }  else {
     /* We are not inside a switch statement. */
     error(ec_default_label_must_be_in_switch);

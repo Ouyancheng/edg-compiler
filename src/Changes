@@ -1,5 +1,13 @@
 Version 2.36
 
+5/14/97   IL CHANGE: Source position of case labels and default labels in IL
+
+In the IL representation of switch statements, the constants used for
+case label values now have their source positions set to the position at
+which the case label appears.  In addition, a new field default_position
+has been added to the a_switch_clause entry, to indicate the source
+position of the default label if there is one.
+
 5/12/97   Exception handling cleanup state in switch clauses
 
 The exception handling cleanup state determined in switch clauses
