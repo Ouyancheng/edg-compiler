@@ -2769,6 +2769,21 @@ entities.
 }  /* find_type_correspondence */
 
 
+static a_boolean parent_class_is_canonical(a_source_correspondence_ptr  scp)
+/*
+Return TRUE if and only if the given entity is a class member whose parent
+class is at the end of a (possibly singleton) correspondence chain.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (scp->is_class_member) {
+    result = !has_correspondence(scp->parent.class_type);
+  }  /* if */
+  return result;
+}  /* if */
+
+
 static a_symbol_list_entry_ptr find_class_template_instantiation(
                                        a_template_symbol_supplement_ptr  tssp,
                                        a_symbol_ptr                      inst)
@@ -2984,8 +2999,18 @@ symbol supplement.
     /* There was no correspondence for that routine. */
     set_no_trans_unit_corresp(routine);
   } else if (routine != sym_entry->symbol->variant.routine.ptr) {
-    record_trans_unit_corresp(routine,
-                              sym_entry->symbol->variant.routine.ptr);
+    a_routine_ptr  old_ce = (a_routine_ptr)canonical_il_entry_of(
+                                      sym_entry->symbol->variant.routine.ptr);
+    if (parent_class_is_canonical(&routine->source_corresp)) {
+      /* If a parent is canonical, all its members should be canonical too.
+         Hence, routine should become the canonical entry instead of the
+         entity under sym_entry. */
+      record_trans_unit_corresp(old_ce, routine);
+      set_no_trans_unit_corresp(routine);
+      sym_entry->symbol = (a_symbol_ptr)routine->source_corresp.assoc_info;
+    } else {
+      record_trans_unit_corresp(routine, old_ce);
+    }  /* if */
   }  /* if */
 }  /* record_function_template_instantiation */
 
