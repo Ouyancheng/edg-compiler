@@ -6059,7 +6059,60 @@ is not called for union initializations.
     (void)fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
-}  /* find_designator_insert_point */           
+}  /* find_designator_insert_point */
+
+
+static void process_union_designators(
+                                    a_constant_ptr  old_con,
+                                    a_constant_ptr  old_designator,
+                                    a_constant_ptr  new_designator,
+                                    an_init_con_pos *earlier_con,
+                                    a_constant_ptr  *saved_union_init_constant)
+/*
+Process designators for a union, as part of lowering designated initializers.
+old_con and old_designator give the previous value and member for the union,
+and new_designator identifies the member that is next to be initialized.
+old_designator and new_designator are NULL to indicate the first member
+of the union, and point to a ck_designator constant for the member to
+be initialized otherwise.  If the new member is the same as the old member,
+*earlier_con is set to the old value; otherwise (if the new member is
+different than the old member), the old value is added to
+*saved_union_init_constant, which is a list of superseded initializations.
+*/
+{
+  if ((old_designator == NULL || new_designator == NULL) ?
+              (old_designator == new_designator) :
+              (old_designator->variant.designator.field ==
+                        new_designator->variant.designator.field)) {
+    /* Same member.  Move the old constant to *earlier_con. */
+    set_init_con_pos(old_con, earlier_con);
+#if DEBUG
+    if (db_flag_is_set("designators")) {
+      (void)fprintf(f_debug,
+                    "Initializing same member of union, earlier_con->ptr = ");
+      db_constant(earlier_con->ptr);
+      (void)fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
+  } else {
+    /* Different member.  Add the old constant to saved_union_init_constant. */
+    if (old_con != NULL) {
+      if (*saved_union_init_constant != NULL) {
+        combine_initializer_constants(*saved_union_init_constant, old_con);
+      }  /* if */
+      *saved_union_init_constant = old_con;
+    }  /* if */
+#if DEBUG
+    if (db_flag_is_set("designators")) {
+      (void)fprintf(f_debug, "saved_union_init_constant = ");
+      db_constant(*saved_union_init_constant);
+      (void)fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
+    /* Clear *earlier_con. */
+    set_init_con_pos((a_constant_ptr)NULL, earlier_con);
+  }  /* if */
+}  /* process_union_designators */
   
 
 static void lower_aggregate_designated_initializers(
@@ -6080,33 +6133,52 @@ have already had their designated initializers lowered.
   a_boolean       union_init = is_union_type(aggr_type);
   an_init_con_pos con, earlier_con;
 
+  check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
+  set_init_con_pos(aggr_con->variant.aggregate.first_constant, &con);
+  prev_con = NULL;
   if (earlier_aggr_con != NULL) {
     /* There is an earlier list of constants, being overwritten. */
     check_assertion(earlier_aggr_con->kind ==
                                            (a_constant_repr_kind)ck_aggregate);
     temp_con = earlier_aggr_con->variant.aggregate.first_constant;
+    set_init_con_pos(temp_con, &earlier_con);
     if (union_init) {
-      /* For a union, previous processing may have left a ck_designator.
-         Put it off to the side. */
+      /* For a union, see whether the previous initialization and the
+         new one initialize the same member. */
+      a_constant_ptr prev_union_designator = NULL;
       if (temp_con != NULL &&
           temp_con->kind == (a_constant_repr_kind)ck_designator) {
-        union_designator = temp_con;
+        /* Take the designator off the old list. */
+        prev_union_designator = temp_con;
+        advance_init_con_pos(&earlier_con);
         temp_con = temp_con->next;
 #if DEBUG
         if (db_flag_is_set("designators")) {
-          (void)fprintf(f_debug, "union_designator = ");
-          db_constant(union_designator);
+          (void)fprintf(f_debug, "prev_union_designator = ");
+          db_constant(prev_union_designator);
           (void)fprintf(f_debug, "\n");
         }  /* if */
 #endif /* DEBUG */
       }  /* if */
+      if (con.ptr != NULL &&
+          con.ptr->kind == (a_constant_repr_kind)ck_designator) {
+        /* Take the designator off the new list. */
+        union_designator = con.ptr;
+        advance_init_con_pos(&con);
+        aggr_con->variant.aggregate.first_constant = con.ptr;
+      }  /* if */
+      /* See how the old and new union initializations interact, and set
+         up for correct processing as we continue in this routine. */
+      process_union_designators(temp_con,
+                                prev_union_designator,
+                                union_designator,
+                                &earlier_con,
+                                &saved_union_init_constant);
     }  /* if */
   } else {
-    temp_con = NULL;
+    /* No earlier constant was provided. */
+    set_init_con_pos((a_constant_ptr)NULL, &earlier_con);
   }  /* if */
-  set_init_con_pos(temp_con, &earlier_con);
-  set_init_con_pos(aggr_con->variant.aggregate.first_constant, &con);
-  prev_con = NULL;
   /* The outer loop is repeated for each ck_designator list found. */
   for (;;) {
     /* Go through the list of constants pointed to by con, looking for
@@ -6228,50 +6300,11 @@ have already had their designated initializers lowered.
          the final value later. */
       check_assertion(aggr_con->variant.aggregate.first_constant == NULL ||
                       aggr_con->variant.aggregate.first_constant->next==NULL);
-      if ((prev_union_designator == NULL || union_designator == NULL) ?
-                  (prev_union_designator == union_designator) :
-                  (prev_union_designator->variant.designator.field ==
-                        union_designator->variant.designator.field)) {
-        /* Same member. */
-        set_init_con_pos(aggr_con->variant.aggregate.first_constant,
-                         &earlier_con);
-#if DEBUG
-        if (db_flag_is_set("designators")) {
-          (void)fprintf(f_debug,
-                      "Initializing same member of union, earlier_con.ptr = ");
-          db_constant(earlier_con.ptr);
-          (void)fprintf(f_debug, "\n");
-        }  /* if */
-#endif /* DEBUG */
-      } else {
-        /* saved_union_init_constant contains all the superseded
-           initializations.  Add the current constant to the set. */
-        if (aggr_con->variant.aggregate.first_constant != NULL) {
-          if (saved_union_init_constant != NULL) {
-            combine_initializer_constants(
-                                   saved_union_init_constant,
-                                   aggr_con->variant.aggregate.first_constant);
-#if DEBUG
-            if (db_flag_is_set("designators")) {
-              (void)fprintf(f_debug,
-                            "After combining initializers =");
-              db_constant(aggr_con->variant.aggregate.first_constant);
-              (void)fprintf(f_debug, "\n");
-            }  /* if */
-#endif /* DEBUG */
-          }  /* if */
-          saved_union_init_constant =
-                                    aggr_con->variant.aggregate.first_constant;
-#if DEBUG
-          if (db_flag_is_set("designators")) {
-            (void)fprintf(f_debug, "saved_union_init_constant = ");
-            db_constant(saved_union_init_constant);
-            (void)fprintf(f_debug, "\n");
-          }  /* if */
-#endif /* DEBUG */
-        }  /* if */
-        set_init_con_pos((a_constant_ptr)NULL, &earlier_con);
-      }  /* if */
+      process_union_designators(aggr_con->variant.aggregate.first_constant,
+                                prev_union_designator,
+                                union_designator,
+                                &earlier_con,
+                                &saved_union_init_constant);
       aggr_con->variant.aggregate.first_constant = NULL;
     } else {
       /* Array or struct initialization. */
@@ -6327,12 +6360,45 @@ have already had their designated initializers lowered.
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
-#if EXPENSIVE_CHECKING
-  for (temp_con = aggr_con->variant.aggregate.first_constant;
-       temp_con != NULL && temp_con->next != NULL;
-       temp_con = temp_con->next) {}
-  check_assertion(aggr_con->variant.aggregate.last_constant == temp_con);
-#endif /* EXPENSIVE_CHECKING */
+#if CHECKING
+  /* Check that the types of the initializer constants match the types
+     of the aggregate members to be initialized. */
+  { an_aggregate_position aggr_pos;
+    an_init_con_pos       con_pos;
+    a_constant_ptr        last_con = NULL;
+    init_aggregate_position(aggr_con, &aggr_pos);
+    temp_con = aggr_con->variant.aggregate.first_constant;
+    if (temp_con->kind == (a_constant_repr_kind)ck_designator) {
+      /* A ck_designator left in for an initialization of a union member
+         other than the first. */
+      check_assertion(temp_con->variant.designator.field != NULL);
+      set_aggregate_position_for_field(temp_con->variant.designator.field,
+                                       &aggr_pos);
+      temp_con = temp_con->next;
+    }  /* if */
+    set_init_con_pos(temp_con, &con_pos);
+    while (con_pos.ptr != NULL) {
+      temp_con = con_pos.ptr;
+      if (temp_con->kind == (a_constant_repr_kind)ck_init_repeat) {
+        temp_con = temp_con->variant.init_repeat.constant;
+      }  /* if */
+#if CHECKING
+      { a_type_ptr con_type = skip_typerefs(temp_con->type);
+        a_type_ptr member_type = skip_typerefs(aggr_pos.member_type);
+        check_assertion_str(
+                     identical_types(con_type, member_type),
+                     "lower_aggregate_designated_initializers: type mismatch");
+      }
+#endif /* CHECKING */
+      last_con = con_pos.ptr;
+      advance_init_con_pos(&con_pos);
+      if (con_pos.ptr != NULL) {
+        advance_aggregate_position_to_next_member(&aggr_pos);
+      }  /* if */
+    }  /* while */
+    check_assertion(aggr_con->variant.aggregate.last_constant == last_con);
+  }
+#endif /* CHECKING */
 }  /* lower_aggregate_designated_initializers */
 
 
