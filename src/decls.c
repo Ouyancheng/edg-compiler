@@ -3621,7 +3621,7 @@ cross-reference output describing this declaration.
                integral types.  Just issue a warning in Microsoft C mode. */
             severity = es_warning;
           } else
-#endif MICROSOFT_EXTENSIONS_ALLOWED
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
           {
             severity = es_error;      
