@@ -35,17 +35,6 @@ instead passed on to the back end verbatim.
 #define ASM_FUNCTION_ALLOWED FALSE
 #endif /* ifndef ASM_FUNCTION_ALLOWED */
 
-#if ASM_FUNCTION_ALLOWED
-/*
-Flag that is TRUE if comments appearing within the text of an asm function
-body should be preserved as part of the string representation (and passed
-on to the back end).
-*/
-#ifndef INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
-#define INCLUDE_COMMENTS_IN_ASM_FUNC_BODY FALSE
-#endif /* ifndef INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
-#endif /* ASM_FUNCTION_ALLOWED */
-
 /*
 Flag that is TRUE if assignment to "this" (a C++ anachronism) should
 be allowed.  This affects the source language accepted.  If assignment
@@ -327,6 +316,24 @@ is set when ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifndef DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+
+
+/*
+Flag that is TRUE if comments appearing within the text of an asm function
+body or asm block should be preserved as part of the string representation
+(and passed on to the back end).  May be TRUE only if ASM_FUNCTION_ALLOWED
+or MICROSOFT_EXTENSIONS_ALLOWED is TRUE.
+*/
+#ifndef INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
+#define INCLUDE_COMMENTS_IN_ASM_FUNC_BODY FALSE
+#endif /* ifndef INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
+#if !ASM_FUNCTION_ALLOWED && !MICROSOFT_EXTENSIONS_ALLOWED
+#if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
+ #error -- INCLUDE_COMMENTS_IN_ASM_FUNC_BODY cannot be true unless       \
+           ASM_FUNCTION_ALLOWED or MICROSOFT_EXTENSIONS_ALLOWED is true
+#endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
+#endif /* !ASM_FUNCTION_ALLOWED && !MICROSOFT_EXTENSIONS_ALLOWED */
+
 
 /*
 Flag that is TRUE if "#pragma pack(n)" and command-line option
