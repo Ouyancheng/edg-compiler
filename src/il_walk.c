@@ -536,10 +536,12 @@ only the entries marked as "needed" are marked to keep in the IL.
       }  /* for */
       /* Visit the orphan lists. */
       walk_orphaned_entries_set_keep_in_il();
+#if GENERATE_SOURCE_SEQUENCE_LISTS
       /* Set keep_in_il on source correspondence entries to match the
          IL entries pointed to.  This must be done late so that all the
          keep_in_il flags have been set. */
       set_keep_in_il_on_source_sequence_entries(scope);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } /* if */
   }  /* if */
 
