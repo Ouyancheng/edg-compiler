@@ -11212,6 +11212,7 @@ caller.
     cache_function_template_body(decl_state, &local_token_cache,
                                  /*is_ctor=*/TRUE, decl_pos);
     discard_token_cache(&local_token_cache);
+    decl_state->decl_scope_err = TRUE;
   } else {
     a_token_cache               local_token_cache;
     a_token_sequence_number     first_token_number;
@@ -12910,6 +12911,54 @@ file we simply return.
 }  /* do_implicit_include_if_needed */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
+#if EXPENSIVE_CHECKING
+
+static void check_for_nonreal_instance(a_template_instance_ptr	tip)
+/*
+Make sure that none of the template parameters of the template instance
+specified by "tip" depend on a template parameter.
+*/
+{
+  a_symbol_ptr		sym;
+  a_template_arg_ptr	arg_list;
+  a_template_arg_ptr	tap;
+
+  sym = tip->instance_sym;
+  /* Get the template argument list for the routine or static data member. */
+  if (is_function_symbol(sym)) {
+    a_routine_ptr	rp;
+    rp = sym->variant.routine.ptr;
+    arg_list = rp->template_arg_list;
+  } else {
+    /* A static data member -- always a member of a class template. */
+    arg_list = NULL;
+  }  /* if */
+  if (arg_list == NULL) {
+    /* If the argument list is NULL this must be a member of a template
+       class.  Get the argument list from the parent class.  Find the
+       nearest enclosing class template (class with a template
+       argument list. */
+    a_type_ptr	type;
+    check_assertion(sym->is_class_member);
+    type = sym->parent.class_type;
+    while (type != NULL && type->source_corresp.is_class_member &&
+           type->variant.class_struct_union.extra_info->
+                                                  template_arg_list == NULL) {
+      type = type->source_corresp.parent.class_type;
+    }  /* while */
+    check_assertion(type != NULL);
+    arg_list = type->variant.class_struct_union.extra_info->template_arg_list;
+  }  /* if */
+  for (tap = arg_list; tap != NULL; tap = tap->next) {
+    a_boolean	result;
+    result = template_arg_involves_template_param(tap);
+    check_assertion_str2(!result, "check_for_nonreal_instance:",
+                         "nonreal instance on instantiation required list");
+  }  /* for */
+}  /* check_for_nonreal_instance */
+
+#endif /* EXPENSIVE_CHECKING */
+
 
 static void add_to_instantiations_required_list(a_template_instance_ptr  tip)
 /*
@@ -12937,6 +12986,11 @@ list.
       instantiations_required_tail->next_in_instantiation_list = tip;
     }  /* if */
     instantiations_required_tail = tip;
+#if EXPENSIVE_CHECKING
+    /* Make sure none of the template arguments depend on template
+       parameters. */
+    check_for_nonreal_instance(tip);
+#endif /* EXPENSIVE_CHECKING */
   }  /* if */
   db_exit();
 }  /* add_to_instantiations_required_list */
