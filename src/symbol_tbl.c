@@ -7038,26 +7038,29 @@ the counter of the function scope to which it belongs.
   a_boolean                is_local_to_function;
   a_scope_depth            scope_depth;
 
-  /* Get a pointer to the scope stack entry corresponding to the decl_scope
-     field of sym. */
-  scope_depth = scope_depth_of(sym, &is_local_to_function);
-  check_assertion(scope_depth != NO_SCOPE_DEPTH);
-  ssep = &scope_stack[scope_depth];
-  if (ssep->kind == (a_scope_kind)sck_block) {
-    /* sym was declared in a block scope, so we will need the function's
-       scope stack entry. */
-    ssep = &scope_stack[ssep->depth_innermost_function_scope];
+  if (sym->decl_seq == 0) {
+    /* Get a pointer to the scope stack entry corresponding to the decl_scope
+       field of sym. */
+    scope_depth = scope_depth_of(sym, &is_local_to_function);
+    check_assertion(scope_depth != NO_SCOPE_DEPTH);
+    ssep = &scope_stack[scope_depth];
+    if (ssep->kind == (a_scope_kind)sck_block) {
+      /* sym was declared in a block scope, so we will need the function's
+         scope stack entry. */
+      ssep = &scope_stack[ssep->depth_innermost_function_scope];
+    }  /* if */
+    /* Declarations are expected only in certain kinds of scopes. */
+    check_assertion_str((ssep->kind == (a_scope_kind)sck_file ||
+                         ssep->kind == (a_scope_kind)sck_function ||
+                         ssep->kind ==
+                                    (a_scope_kind)sck_template_declaration ||
+                         ssep->kind == (a_scope_kind)sck_func_prototype ||
+                         ssep->kind == (a_scope_kind)sck_class_struct_union),
+                        "set_decl_sequenc_number: bad scope kind");
+    /* Increment the counter that is kept in the scope stack entry and copy it
+       into the symbol. */
+    sym->decl_seq = ++ssep->decl_seq;
   }  /* if */
-  /* Declarations are expected only in certain kinds of scopes. */
-  check_assertion_str((ssep->kind == (a_scope_kind)sck_file ||
-                       ssep->kind == (a_scope_kind)sck_function ||
-                       ssep->kind == (a_scope_kind)sck_template_declaration ||
-                       ssep->kind == (a_scope_kind)sck_func_prototype ||
-                       ssep->kind == (a_scope_kind)sck_class_struct_union),
-                      "set_decl_sequenc_number: bad scope kind");
-  /* Increment the counter that is kept in the scope stack entry and copy it
-     into the symbol. */
-  sym->decl_seq = ++ssep->decl_seq;
 }  /* set_decl_sequence_number */
 
 
