@@ -242,11 +242,17 @@ routine recursively for each nested class.
   a_class_symbol_supplement_ptr     cssp;
   a_symbol_ptr                      sym;
   a_template_symbol_supplement_ptr  tssp = NULL;
-  a_boolean                         is_nonreal_instantiation;
+  a_boolean                         is_real_template_instantiation = FALSE;
+  a_boolean                         is_nonreal_template_instantiation = FALSE;
+  a_boolean                         is_friend;
 
   db_enter(3, "delayed_scan_fixup_for_class");
   cssp = class_sym->variant.class_struct_union.extra_info;
-  is_nonreal_instantiation = cssp->is_nonreal_class;
+  if (cssp->is_nonreal_class) {
+    is_nonreal_template_instantiation = TRUE;
+  } else if (is_template_based) {
+    is_real_template_instantiation = TRUE;
+  }  /* if */
   /* Process nested classes first. */
   if (cssp->any_nested_classes) {
     for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
@@ -261,113 +267,82 @@ routine recursively for each nested class.
   rfp = cssp->routine_fixup_list;
   if (rfp != NULL) {
     /* There is at least one fixup entry. */
-    if (is_nonreal_instantiation || is_template_based) {
-      /* There is special handling for the token caches created for
-         prototype instantiations and template classes.  For the former the
-         token caches are transferred to the associated template symbol
-         supplement for each affected member function; for the real
-         template instantiations the tokens are just discarded, since the
-         functions are instantiated "on demand" -- i.e., when the member
-         function is invoked rather than when it's class is referenced. */
-      /* Loop through the list of routine fixup entries. */
-      for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = next_rfp) {
-        /* The template symbol supplement is needed for prototype
-           instantiations and for default argument processing for
-	   real instantiations. */
-        sym = (a_symbol_ptr)rfp->routine->source_corresp.assoc_info;
-        if (!is_nonreal_instantiation) {
-	  /* Get the template symbol from the instance pointer. */
-	  sym = sym->variant.routine.instance_ptr->template_sym;
-	}  /* if */
-        if (sym->kind == (a_symbol_kind)sk_member_function) {
-          tssp = sym->variant.routine.instance_ptr->template_info;
-        } else {
-          tssp = sym->variant.template_info;
-        }  /* if */
-        /* Look at default argument expressions first. */
-        daefp = rfp->def_arg_expr_fixup_list;
-        if (daefp != NULL) {
-          if (is_nonreal_instantiation) {
-	    a_def_arg_expr_fixup_ptr	daefp_end;
-	    /* Link the default argument list from the template supplement
-	       onto the end of the list of current default arguments.  The
- 	       list in the supplement must be for arguments that follow the
-	       new list (otherwise it would be an error).  Find the end
-	       of the current list and link the existing list to the end. */
-	    daefp_end = daefp;
-	    if (daefp_end != NULL) {
-	      while (daefp_end->next != NULL) daefp_end = daefp_end->next;
-	      daefp_end->next = tssp->variant.function.def_arg_expr_list;
-	      tssp->variant.function.def_arg_expr_list = daefp;
-	    }  /* if */
-	    /* Make sure no further processing will be done here and
-	       make sure that the list isn't freed. */
-	    daefp = NULL;
-	    rfp->def_arg_expr_fixup_list = NULL;
-          } else {
-            /* Real instantiation -- discard the token caches. */
-            for (; daefp != NULL; daefp = daefp->next) {
-              discard_token_cache(&daefp->token_cache);
-            }  /* for */
-	    /* Scan the default arguments associated with the template
-	       for this function. */
-	    delayed_scan_for_function_template_default_args
-			(tssp->variant.function.routine, rfp->routine, tssp,
-			 sym->kind == (a_symbol_kind)sk_member_function);
-          }  /* if */
-        }  /* if */
-        if (rfp->function_body_token_cache.first_token != NULL) {
-          if (is_nonreal_instantiation) {
-            /* Prototype instantiation -- copy the cache. */
-            tssp->token_cache = rfp->function_body_token_cache;
-            clear_token_cache(&rfp->function_body_token_cache);
-	    /* Also copy the func_info block. */
-	    tssp->variant.function.func_info = rfp->func_info;
-          } else {
-            /* Real instantiation -- discard the cache. */
-            discard_token_cache(&rfp->function_body_token_cache);
-          }  /* if */
-        }  /* if */
-        /* Advance to the next routine fixup entry before freeing the current
-           one (returning it and any expr fixup entries attached to it to their
-           respective available-lists). */
-        next_rfp = rfp->next;
-        free_routine_fixup(rfp);
-      }  /* for */
-    } else {
-      /* Nontemplate case. */
-      class_type = skip_typerefs(class_sym->variant.class_struct_union.type);
+    class_type = skip_typerefs(class_sym->variant.class_struct_union.type);
 #if DEBUG
-      if (debug_level >= 3) {
-        fputs("delayed scan fixup for ", f_debug);
-        db_name(&class_type->source_corresp);
-        fputc('\n', f_debug);
-      }  /* if */
+    if (debug_level >= 3) {
+      fputs("delayed scan fixup for ", f_debug);
+      db_name(&class_type->source_corresp);
+      fputc('\n', f_debug);
+    }  /* if */
 #endif /* DEBUG */
-      /* Reactivate the class. */ 
-      push_class_reactivation_scope(class_type);
-      /* Go through all the routine fixup entries created for the class twice,
-         once for the default arguments, then for the function bodies.  This
-         is desirable to control dependencies, e.g.:
-           class A {
-             void f1() { f2(); }
-             void f2(int i=1) {}
-           };
-         Here we want to know about the default arguments for f2 before
-         processing the call to it in the body of f1. */
+    /* Reactivate the class. */ 
+    push_class_reactivation_scope(class_type);
+    /* Go through all the routine fixup entries created for the class twice,
+       once for the default arguments, then for the function bodies.  This
+       is desirable to control dependencies, e.g.:
+         class A {
+           void f1() { f2(); }
+           void f2(int i=1) {}
+         };
+       Here we want to know about the default arguments for f2 before
+       processing the call to it in the body of f1. */
 #if 0
-      /* This does not, however, fix dependency problems in a case like this:
-           class A {
-             int f1(int i=f2()) { return i; }
-             static int f2(int i=1) { return i; }
-           };
-      */
+    /* This does not, however, fix dependency problems in a case like this:
+         class A {
+           int f1(int i=f2()) { return i; }
+           static int f2(int i=1) { return i; }
+         };
+    */
 #endif /* if 0 */
-      /* First go though the routine fixup entries and scan the default
-         argument expressions. */
-      for (; rfp != NULL; rfp = rfp->next) {
-        daefp = rfp->def_arg_expr_fixup_list;
-        if (daefp != NULL) {
+    /* First go though the routine fixup entries and scan the default
+       argument expressions. */
+    for (; rfp != NULL; rfp = rfp->next) {
+      daefp = rfp->def_arg_expr_fixup_list;
+      if (daefp != NULL) {
+        /* There is at least one default argument associated with this
+           function. */
+        sym = (a_symbol_ptr)rfp->routine->source_corresp.assoc_info;
+        is_friend = (sym->class_of_which_a_member != class_type);
+        if ((is_real_template_instantiation && !is_friend) ||
+            (is_nonreal_template_instantiation && is_friend)) {
+          /* The token cache should be discarded for friend declarations in
+             prototype instantiations and for everything but friends in
+             real template instantiations. */
+          for (; daefp != NULL; daefp = daefp->next) {
+            discard_token_cache(&daefp->token_cache);
+          }  /* for */
+          if (is_real_template_instantiation) {
+            /* Scan the default arguments associated with the template for this
+               function. */
+            /* Get the template symbol from the instance pointer. */
+            sym = sym->variant.routine.instance_ptr->template_sym;
+            tssp = sym->variant.routine.instance_ptr->template_info;
+            delayed_scan_for_function_template_default_args
+                        (tssp->variant.function.routine, rfp->routine, tssp,
+                         sym->kind == (a_symbol_kind)sk_member_function);
+          }  /* if */
+        } else if (is_nonreal_template_instantiation) {
+          a_def_arg_expr_fixup_ptr    daefp_end;
+
+          /* Link the default argument list from the template supplement
+             onto the end of the list of current default arguments.  The
+             list in the supplement must be for arguments that follow the
+             new list (otherwise it would be an error).  Find the end
+             of the current list and link the existing list to the end. */
+          daefp_end = daefp;
+          if (daefp_end != NULL) {
+            while (daefp_end->next != NULL) daefp_end = daefp_end->next;
+            tssp = sym->variant.routine.instance_ptr->template_info;
+            daefp_end->next = tssp->variant.function.def_arg_expr_list;
+            tssp->variant.function.def_arg_expr_list = daefp;
+          }  /* if */
+          /* Make sure no further processing will be done here and
+             make sure that the list isn't freed. */
+          daefp = NULL;
+          rfp->def_arg_expr_fixup_list = NULL;
+        } else {
+          /* A friend function declaration in a real template instantiation
+             or just a normal (nontemplate) class. */
           /* The function prototype scope should be reactivated and its symbols
              reentered because parameter names hide names from enclosing scopes
              and, moreover, may not be used in default argument expressions
@@ -394,11 +369,32 @@ routine recursively for each nested class.
           /* Pop the reactivated function prototype scope off the stack. */
           pop_scope();
         }  /* if */
-      }  /* for */
-      /* Now go through the routine fixup entries a second time to scan inline
-         function bodies. */
-      for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = next_rfp) {
-        if (rfp->function_body_token_cache.first_token != NULL) {
+      }  /* if */
+    }  /* for */
+    /* Now go through the routine fixup entries a second time to scan inline
+       function bodies. */
+    for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = next_rfp) {
+      if (rfp->function_body_token_cache.first_token != NULL) {
+        sym = (a_symbol_ptr)rfp->routine->source_corresp.assoc_info;
+        is_friend = (sym->class_of_which_a_member != class_type);
+        if ((is_real_template_instantiation && !is_friend) ||
+            (is_nonreal_template_instantiation && is_friend)) {
+          /* Discard the token cache for member functions of template
+             classes -- instantiate_function_template does its thing based
+             on the tokens saved during prototype instantiation.  Also,
+             there is no reason to preserve the tokens for friend functions
+             during prototype instantiation. */
+          discard_token_cache(&rfp->function_body_token_cache);
+        } else if (is_nonreal_template_instantiation) {
+          /* Prototype instantiation -- copy the cache for memeber
+             functions. */
+          tssp = sym->variant.routine.instance_ptr->template_info;
+          tssp->token_cache = rfp->function_body_token_cache;
+          clear_token_cache(&rfp->function_body_token_cache);
+          /* Also copy the func_info block. */
+          tssp->variant.function.func_info = rfp->func_info;
+        } else {
+          /* Normal case. */
           /* Let get_token know about the cache. */
           rescan_cached_tokens(&rfp->function_body_token_cache);
           inline_function_definition(rfp->routine, &rfp->func_info);
@@ -410,15 +406,15 @@ routine recursively for each nested class.
              the prescan routine. */
           (void)get_token();
         }  /* if */
-        /* Advance to the next routine fixup entry before freeing the current
-           one (returning it and any expr fixup entries attached to it to their
-           respective available-lists). */
-        next_rfp = rfp->next;
-        free_routine_fixup(rfp);
-      }  /* for */
-      /* Pop the reactivated class scope from the scope stack. */
-      pop_class_reactivation_scope();
-    }  /* if */
+      }  /* if */
+      /* Advance to the next routine fixup entry before freeing the current
+         one (returning it and any expr fixup entries attached to it to their
+         respective available-lists). */
+      next_rfp = rfp->next;
+      free_routine_fixup(rfp);
+    }  /* for */
+    /* Pop the reactivated class scope from the scope stack. */
+    pop_class_reactivation_scope();
     /* The delayed scan fixup entries have been freed, so clear the
        pointer in the class symbol supplement. */
     cssp->routine_fixup_list = NULL;
@@ -6183,7 +6179,10 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
               }  /* if */
               if (function_def_present) {
                 /* Next token indicates start of a function definition. */
-                if (rout_sym->defined) {
+                if (friend_specified && is_nonreal_instantiation) {
+                  /* Friend definition within a template -- do nothing during
+                     the prototype instantiation. */
+                } else if (rout_sym->defined) {
                   pos_sy_error(ec_function_redefinition,
                                &locator.source_position, rout_sym);
                   /* A routine that's already defined may have been defined
@@ -6192,8 +6191,9 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                     clear_token_cache(&curr_routine_fixup->
                                                 function_body_token_cache);
                   }  /* if */
+                } else {
+                  rout_sym->defined = TRUE;
                 }  /* if */
-                rout_sym->defined = TRUE;
                 if (!friend_specified) {
                   /* The inline flag is set for friend functions in
                      decl_friend_function, which also handles cases in which
