@@ -4146,7 +4146,16 @@ a diagnostic is put out in some cases.
   }  /* if */
   /* Determine the return type, dealing with reference types and
      cv-qualifiers. */
-  return_type = return_type_of(function_type);
+  return_type = function_type->variant.routine.return_type;
+  if (is_reference_type(return_type)) {
+    /* If the function returns a reference type, make the result a
+       pointer. */
+    return_type = make_pointer_type(type_pointed_to(return_type));
+  } else {
+    /* The function returns a non-reference type, so the result is an
+       rvalue and cv-qualifiers should be dropped appropriately. */
+    return_type = rvalue_type(return_type);
+  }  /* if */
   /* Determine the operator to use for the call. */
   if (is_ptr_to_member_type(function_node->type)) {
     /* Call using a pointer-to-member-function. */
