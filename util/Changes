@@ -1,5 +1,12 @@
 Version 2.39
 
+5/31/98  INSTANTIATION_OBJECT_SUFFIX set incorrectly when __MICROSOFT_OS__
+         is TRUE
+
+edg_prelink.h did not set INSTANTIATION_OBJECT_SUFFIX properly when
+__MICROSOFT_OS__ is TRUE.  This would cause the prelinker to fail when
+one-instantiation-per-object mode was used on such systems.
+
 4/27/98  Prelinker problem when nonlocal files are used in conjunction with
          a definition list file
 

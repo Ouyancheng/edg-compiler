@@ -25,7 +25,11 @@ Declarations for EDG template prelink utility.
 
 /* Suffix to be used for instantiation object files created in one
    instantiation per object mode. */
+#if __MICROSOFT_OS__
+#define INSTANTIATION_OBJECT_SUFFIX ".int.obj"
+#else /* !__MICROSOFT_OS__ */
 #define INSTANTIATION_OBJECT_SUFFIX ".int.o"
+#endif /* __MICROSOFT_OS__ */
 
 /* Special mangled name prefixes used by the prelinker. */
 #define PL_CAN_BE_INSTANTIATED_PREFIX		"__CBI__"
