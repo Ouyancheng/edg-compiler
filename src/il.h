@@ -232,6 +232,11 @@ extern void copy_type(a_type_ptr from,
 /* Copy a constant entry. */
 #define copy_constant(from, to) (*(to) = *(from))
 
+/*
+Return TRUE if a constant is an error constant.
+*/
+#define is_error_constant(cp) ((cp)->kind == (a_constant_repr_kind)ck_error)
+
 /* Macro that returns TRUE if a variable's storage class has static storage
    duration.  See 3.1.2.4.  Note that storage classes have been 
    standardized during declaration processing. */
