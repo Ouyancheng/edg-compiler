@@ -2664,7 +2664,13 @@ a_type_ptr alloc_local_scope_type(a_type_kind    kind,
   a_type_ptr tp;
 
   db_enter(5, "alloc_local_scope_type");
-  tp = (a_type_ptr)alloc_cil(sizeof(a_type));
+  if (scope_stack[scope_level].kind == (a_scope_kind)sck_func_prototype) {
+    /* Types entered in the function prototype must be at file scope, since
+       the scope entry itself will always be allocated at file scope. */
+    tp = (a_type_ptr)alloc_il(sizeof(a_type));
+  } else {
+    tp = (a_type_ptr)alloc_cil(sizeof(a_type));
+  }  /* if */
 #if DEBUG
   num_types_allocated++;
 #endif /* DEBUG */
