@@ -107,7 +107,7 @@ extern a_boolean impl_conversion(a_type_ptr source_type,
 extern a_type_ptr composite_type(a_type_ptr type_1,
                                  a_type_ptr type_2);
 extern a_boolean overload_distinguishable(a_symbol_ptr old_sym_ptr,
-                                          a_symbol_ptr sym_ptr,
+                                          a_type_ptr   new_type,
                                           a_symbol_ptr *exact_match_symbol);
 extern a_type_ptr make_file_scope_type(a_type_ptr type);
 
