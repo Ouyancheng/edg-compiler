@@ -5163,6 +5163,19 @@ thus allowing us to continue adding (dead) code following the break.
 }  /* make_implicit_break_explicit */
 
 
+static a_boolean parent_block_has_vla_variable(void)
+/*
+Return TRUE if the control-flow graph indicates that the enclosing block
+has at least one VLA variable.
+*/
+{
+  return end_of_control_flow_descr_list != NULL &&
+         end_of_control_flow_descr_list->parent != NULL &&
+         end_of_control_flow_descr_list->parent
+                                            ->variant.block.any_vla_variables;
+}  /* parent_block_has_vla */
+
+
 static void break_statement(void)
 /*
 Scan a "break" statement and add it to the current statement sequence.
@@ -5217,12 +5230,16 @@ See also 3.6.6.3.
     if (sssep->kind == ssk_switch &&
         sssep->curr_switch_clause != NULL &&
         sssep->curr_switch_clause ==
-                      struct_stmt_stack[depth_stmt_stack].curr_switch_clause) {
+                     struct_stmt_stack[depth_stmt_stack].curr_switch_clause &&
+        !(vla_enabled && parent_block_has_vla_variable())) {
       /* This break statement exits a switch clause in a way that can
          be represented implicitly as the default action at the end of
          the clause.  No goto is required.  However, the current switch
          clause must be ended.  Note that this special trick can be done
-         only when the break is at the top level in the case clause. */
+         only when the break is at the top level in the case clause.
+         Also, if VLA variables may need to be deallocated, the break is
+         implemented as a goto preceded by any needed deallocation
+         statements. */
       sssep->curr_switch_clause->implied_break_at_end = TRUE;
       sssep->curr_switch_clause = NULL;
       struct_stmt_stack[depth_stmt_stack].curr_switch_clause = NULL;
