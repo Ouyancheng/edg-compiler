@@ -2104,6 +2104,9 @@ static void form_class_qualifier(a_type_ptr        type,
                                  a_msg_segment_ptr seg_ptr);
 static void form_type_name(a_type_ptr        type,
                            a_msg_segment_ptr seg_ptr);
+static void form_type(a_type_ptr        type,
+                      a_boolean         need_parens,
+                      a_msg_segment_ptr seg_ptr);
 
 
 static void form_constant(a_constant_ptr     cp,
@@ -2118,6 +2121,12 @@ Add a string representing a constant value to a string being formed.
   int                      i, count;
   a_float_kind             fkind;
 
+  if (cp->implicit_cast) {
+    /* If the constant is implicitly cast, put out a cast. */
+    add_string_to_segment("(", seg_ptr);
+    form_type(cp->type, /*need_parens=*/FALSE, seg_ptr);
+    add_string_to_segment(")", seg_ptr);
+  }  /* if */
   switch (cp->kind) {
     case ck_integer:
       add_string_to_segment(str_for_integer_constant(cp), seg_ptr);
@@ -2204,16 +2213,23 @@ Add a string representing a constant value to a string being formed.
       break;
     case ck_ptr_to_member:
       /* C++ pointer-to-member. */
-      add_string_to_segment("&", seg_ptr);
-      form_class_qualifier(cp->variant.ptr_to_member.class_of_which_a_member,
-                           seg_ptr);
-      add_string_to_segment(".", seg_ptr);
+      scp = NULL;
       if (cp->variant.ptr_to_member.is_function_ptr) {
-        scp = &cp->variant.ptr_to_member.variant.routine->source_corresp;
+        a_routine_ptr rp = cp->variant.ptr_to_member.variant.routine;
+        if (rp != NULL) scp = &rp->source_corresp;
       } else {
-        scp = &cp->variant.ptr_to_member.variant.field->source_corresp;
+        a_field_ptr fp = cp->variant.ptr_to_member.variant.field;
+        if (fp != NULL) scp = &fp->source_corresp;
       }  /* if */
-      add_string_to_segment(scp->name, seg_ptr);
+      if (scp == NULL) {
+        /* NULL pointer-to-member constant.  Note that implicit_cast will
+           be set, so the type will have been printed out above. */
+        add_string_to_segment("0", seg_ptr);
+      } else {
+        add_string_to_segment("&", seg_ptr);
+        form_class_qualifier(scp->class_of_which_a_member, seg_ptr);
+        add_string_to_segment(scp->name, seg_ptr);
+      }  /* if */
       break;
     case ck_template_param:
       add_string_to_segment(cp->source_corresp.name, seg_ptr);
@@ -2434,6 +2450,18 @@ array, print out the dimension information.
 }  /* form_type_second_part */
 
 
+static void form_type(a_type_ptr        type,
+                      a_boolean         need_parens,
+                      a_msg_segment_ptr seg_ptr)
+/*
+Add a type to the string being formatted.
+*/
+{
+  form_type_first_part(type, need_parens, seg_ptr);
+  form_type_second_part(type, need_parens, seg_ptr);
+}  /* form_type */
+
+
 static void form_param_list(a_routine_type_supplement_ptr suppl_ptr,
                             a_msg_segment_ptr             seg_ptr)
 /*
@@ -2450,8 +2478,7 @@ Add the parameter list of a function to the type string being formatted.
     for (param_ptr = suppl_ptr->param_type_list;
          param_ptr != NULL;
          param_ptr = param_ptr->next) {
-      form_type_first_part(param_ptr->type, /*need_parens=*/FALSE, seg_ptr);
-      form_type_second_part(param_ptr->type, /*need_parens=*/FALSE, seg_ptr);
+      form_type(param_ptr->type, /*need_parens=*/FALSE, seg_ptr);
       if (param_ptr->next != NULL || has_ellipsis) {
         add_string_to_segment(", ", seg_ptr);
       }  /* if */
@@ -2494,10 +2521,7 @@ surrounded by "<" and ">".
     for (;;) {
       if (template_arg->is_type) {
         /* Type argument. */
-        form_type_first_part(template_arg->variant.type,
-                             /*need_parens=*/FALSE, seg_ptr);
-        form_type_second_part(template_arg->variant.type,
-                              /*need_parens=*/FALSE, seg_ptr);
+        form_type(template_arg->variant.type, /*need_parens=*/FALSE, seg_ptr);
       } else {
         /* Constant argument */
         form_constant(template_arg->variant.constant, seg_ptr);
@@ -2574,8 +2598,7 @@ segment described by *seg_ptr.
 {
   add_string_to_segment("\"", seg_ptr);
   seg_ptr->first_quote = seg_ptr->segment + seg_ptr->length - 1;
-  form_type_first_part(tp, /*need_parens=*/FALSE, seg_ptr);
-  form_type_second_part(tp, /*need_parens=*/FALSE, seg_ptr);
+  form_type(tp, /*need_parens=*/FALSE, seg_ptr);
   add_string_to_segment("\"", seg_ptr);
   seg_ptr->second_quote = seg_ptr->segment + seg_ptr->length - 1;
 }  /* summarize_type */
@@ -2599,8 +2622,7 @@ string immediately into whichever memory region is appropriate.
   /* Make certain that there is a string buffer and that it contains an
      empty string. */
   add_string_to_segment("", curr_segment);
-  form_type_first_part(tp, /*need_parens=*/FALSE, curr_segment);
-  form_type_second_part(tp, /*need_parens=*/FALSE, curr_segment);
+  form_type(tp, /*need_parens=*/FALSE, curr_segment);
   /* Provide the length of the string and the address of the string
      buffer to the caller. */
   *len_ptr = curr_segment->length;
