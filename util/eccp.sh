@@ -449,6 +449,9 @@ do
          --display_error_number | \
 	 --old_line_commands | \
 	 --microsoft | \
+	 --no_microsoft | \
+	 --long_lifetime_temps | \
+	 --short_lifetime_temps | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Check for C or C++ mode
