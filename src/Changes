@@ -1,5 +1,15 @@
 Version 3.4
 
+2/25/04  Problem with inlining function returning bool
+
+The code generated for the inlining of a function call when
+the function returns bool and the return expression in the
+function has as top operator a pointer-to-member comparison
+(e.g., return pm1 != pm2;) was incorrect when the call
+appeared in an expression rather than as a top-level
+statement.  (The code for the inlined call returned zero in
+all cases.)  Now fixed.
+
 2/25/04  Internal error on member template used as template template argument
 
 In versions in which prototype instantiations are not included in the IL,

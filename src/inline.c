@@ -1671,6 +1671,9 @@ statement).
                 an_expr_node_ptr zero_node;
                 a_boolean        class_case =
                                        is_class_struct_union_type(needed_type);
+                check_assertion_str(!scope->assoc_block->variant.block.
+                                            extra_info->end_of_block_reachable,
+                                 "do_inlining_of_call: incorrect result type");
                 if (class_case) {
                   /* For a class case, make a null pointer to the type and
                      indirect through it. */

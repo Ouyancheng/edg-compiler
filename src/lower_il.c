@@ -9110,6 +9110,29 @@ Lower an eok_dynamic_cast expression.  The subtree has already been lowered.
 
 #endif /* ABI_CHANGES_FOR_RTTI */
 
+
+static void change_result_type_of_operator_returning_bool(
+                                                         an_expr_node_ptr expr)
+/*
+If expr points to an expression whose operator returns "bool" in C++ but
+"int" in C (e.g., "!="), add a cast on top of the expression to
+make it return bool.  However, if adjust_bool_operation_types has
+noted that this case can be optimized (by setting the type to "int"
+already), do nothing.
+*/
+{
+  if (bool_is_keyword &&
+      is_operation_node(expr) &&
+      is_operator_returning_bool(expr->variant.operation.kind)) {
+    if (is_bool_type(expr->type)) {
+      an_expr_node_ptr expr_copy = copy_node(expr);
+      expr_copy->type = integer_type((an_integer_kind)ik_int);
+      change_to_cast(expr, expr_copy, expr->type);
+    }  /* if */
+  }  /* if */
+}  /* change_result_type_of_operator_returning_bool */
+
+
 void transform_bool_cast(an_expr_node_ptr expr)
 /*
 Transform an eok_bool_cast operation into a comparison with zero.
@@ -10271,7 +10294,7 @@ first operand (but not the second) has been lowered already.
   an_expr_node_ptr compare_f_node;
 #endif /* !IA64_ABI */
   an_expr_node_ptr and_node, or_node;
-  a_type_ptr       int_type;
+  a_type_ptr       int_type, orig_expr_type = expr->type;
   a_boolean        ne_case = (expr->variant.operation.kind ==
                                               (an_expr_operator_kind)eok_pmne);
   a_boolean        vars_can_change;
@@ -10498,6 +10521,9 @@ first operand (but not the second) has been lowered already.
     expr->variant.operation.kind = ne_case ? (an_expr_operator_kind)eok_ine :
                                              (an_expr_operator_kind)eok_ieq;
   }  /* if */
+  /* Restore the "bool" type of the expression if it has one, to 
+     cause a later rewrite step (adding a cast) if appropriate. */
+  expr->type = orig_expr_type;
 #undef IA64_ABI_VARIANT_PMF
 }  /* lower_pm_comparison */
 
@@ -11084,6 +11110,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         /* Lower pointer-to-member comparison before the operands have been
            lowered, to allow an optimization on comparisons to constants. */
         lower_pm_comparison(expr, /*operand1_lowered=*/FALSE);
+        change_result_type_of_operator_returning_bool(expr);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (op == (an_expr_operator_kind)eok_assume &&
                  node_has_side_effects(operand_node, (a_boolean *)NULL)) {
@@ -11351,19 +11378,9 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             /* No action on most operators. */
             break;
         }  /* switch */
-        if (bool_is_keyword && is_operator_returning_bool(op)) {
-          /* Operators that return bool in C++ return int in C.  Unless
-             an optimization applies, a cast must be inserted to cast the
-             result (int) to the desired bool type.  The optimization
-             is detected by adjust_bool_operation_types and indicated
-             by setting the result type to int.  In that case no
-             transformation is needed. */
-          if (is_bool_type(expr->type)) {
-            an_expr_node_ptr expr_copy = copy_node(expr);
-            expr_copy->type = integer_type((an_integer_kind)ik_int);
-            change_to_cast(expr, expr_copy, expr->type);
-          }  /* if */
-        }  /* if */
+        /* Change the type of operators that return "bool" in C++ to
+           the "int" required in C. */
+        change_result_type_of_operator_returning_bool(expr);
 #if LOWER_LVALUE_RETURNING_OPERATIONS
         /* Transform lvalue-returning assignments, prefix ++/--, and "?" and
            "," operators into valid C. */
