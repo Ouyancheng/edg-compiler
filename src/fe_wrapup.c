@@ -449,9 +449,9 @@ It also handles the elimination of invalid placeholders in secondary
 translation units.
 */
 {
-#if MAINTAIN_NEEDED_FLAGS
   a_translation_unit_ptr tup;
 
+#if MAINTAIN_NEEDED_FLAGS
   /* The processing has three parts:
        1)  Needed-flag marking
        2)  Keep-in-il flag marking
