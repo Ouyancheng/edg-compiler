@@ -345,6 +345,29 @@ Cache the tokens that comprise a default argument expression.
 }  /* prescan_default_argument */
 
 
+static void prescan_initializer(a_token_cache	*token_cache_ptr)
+/*
+Cache the tokens that comprise an initializer of the form
+"= initializer-clause".
+*/
+{
+  a_stop_token_array        save_stop_token_array;
+
+  /* Save the current stop token state, and reinitialize it. */
+  copy_stop_tokens(stop_token_array, save_stop_token_array);
+  clear_stop_tokens();
+  /* In the normal case we will scan an expression and encounter a comma
+     or semicolon. */
+  add_stop_token(tok_comma);
+  add_stop_token(tok_semicolon);
+  cache_token_stream(token_cache_ptr);
+  /* Note that the terminating token (comma, etc.) is not added to
+     the cache. */
+  /* Restore the original stop token state. */
+  copy_stop_tokens(save_stop_token_array, stop_token_array);
+}  /* prescan_initializer */
+
+
 static void get_token_and_coalesce_if_identifier(void)
 /*
 Get a token and, if it is a tok_identifier, call
@@ -716,7 +739,7 @@ function_lparen:
        tokens that comprise the initializer and leave curr_token
        as the token following the initializer (usually a comma or
        a semicolon). */
-    prescan_default_argument(token_cache_ptr);
+    prescan_initializer(token_cache_ptr);
   }  /* if */
 done:;
 }  /* prescan_declarator */
