@@ -4201,50 +4201,32 @@ Determine the default operator new() function to be used for the indicated
 class and record it in the class's assoc_operator_new_routine field.
 */
 {
-  a_symbol_ptr                new_function_symbol, sym;
+  a_symbol_ptr                sym;
   a_class_type_supplement_ptr ctsp;
-  a_symbol_locator            locator;
 
   check_assertion(is_immediate_class_type(class_type));
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (ctsp->assoc_operator_new_routine == NULL) {
     /* Use the class "new" if there is one, and otherwise the global operator
        new. */
-    new_function_symbol = opname_member_function_symbol(
-                                                       (an_opname_kind)onk_new,
-                                                       class_type);
-    if (new_function_symbol != NULL) {
+    sym = opname_member_function_symbol((an_opname_kind)onk_new, class_type);
+    if (sym != NULL) {
       /* There is a class-specific operator new() (or several).  See if
          there is a default (one-argument) version. */
-      sym = extract_default_operator_new_sym(new_function_symbol);
-      if (sym != NULL &&
-          new_function_symbol->kind == (a_symbol_kind)sk_projection) {
-        /* The operator new function is inherited.  Check for ambiguity and
-           accessibility. */
-        if (fundamental_symbol_of(new_function_symbol)->kind ==
-                                     (a_symbol_kind)sk_overloaded_function) {
-          make_locator_for_symbol(sym, &locator);
-          overload_check_ambiguity_and_verify_access(&locator,
-                                                     new_function_symbol);
-        } else {
-          make_locator_for_symbol(new_function_symbol, &locator);
-          member_check_ambiguity_and_verify_access(&locator);
-        }  /* if */
-      }  /* if */
-      new_function_symbol = sym;
+      sym = extract_default_operator_new_sym(sym);
+      /* Note that no access or ambiguity checking is done.  If it's
+         appropriate, it's done at the point of call. */
     } else {
       /* Look for a global operator new(). */
-      new_function_symbol = opname_function_symbol((an_opname_kind)onk_new);
+      sym = opname_function_symbol((an_opname_kind)onk_new);
       /* "new" can be overloaded; find the default (one-argument) version
          of the routine if so.  Since the default version always exists,
          we must find something here. */
-      new_function_symbol =
-                         extract_default_operator_new_sym(new_function_symbol);
-      check_assertion(new_function_symbol != NULL);
+      sym = extract_default_operator_new_sym(sym);
+      check_assertion(sym != NULL);
     }  /* if */
-    if (new_function_symbol != NULL) {
-      ctsp->assoc_operator_new_routine =
-                                      new_function_symbol->variant.routine.ptr;
+    if (sym != NULL) {
+      ctsp->assoc_operator_new_routine = sym->variant.routine.ptr;
     }  /* if */
   }  /* if */
 }  /* set_class_assoc_operator_new_routine */
@@ -4292,37 +4274,31 @@ Determine the operator delete() function to be used for the indicated class
 and record it in the class's assoc_operator_delete_routine field.
 */
 {
-  a_symbol_ptr                delete_function_symbol;
+  a_symbol_ptr                sym;
   a_class_type_supplement_ptr ctsp;
-  a_symbol_locator            locator;
 
   check_assertion(is_immediate_class_type(class_type));
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (ctsp->assoc_operator_delete_routine == NULL) {
     /* Use the class "delete" if there is one, and otherwise the global
        operator delete. */
-    delete_function_symbol = opname_member_function_symbol(
-                                                    (an_opname_kind)onk_delete,
-                                                    class_type);
-    if (delete_function_symbol != NULL) {
-      /* If a member delete is found, check its accessibility and
-         ambiguity. */
-      if (delete_function_symbol->kind == (a_symbol_kind)sk_projection) {
-        make_locator_for_symbol(delete_function_symbol, &locator);
-        member_check_ambiguity_and_verify_access(&locator);
-        reduce_projection_symbol_to_fundamental_symbol(delete_function_symbol);
+    sym = opname_member_function_symbol((an_opname_kind)onk_delete,
+                                        class_type);
+    if (sym != NULL) {
+      /* A member delete.  If it was inherited get the fundamental symbol. */
+      if (sym->kind == (a_symbol_kind)sk_projection) {
+        
+        reduce_projection_symbol_to_fundamental_symbol(sym);
       }  /* if */
+      /* Note that no access or ambiguity checking is done.  If it's
+         appropriate, it's done at the point of call. */
     } else {
-      delete_function_symbol = 
-                           opname_function_symbol((an_opname_kind)onk_delete);
+      sym = opname_function_symbol((an_opname_kind)onk_delete);
     }  /* if */
     /* Since delete cannot be overloaded, the symbol should not be overloaded
        and should not be a function template. */
-    check_assertion(delete_function_symbol != NULL &&
-                    is_function_symbol(delete_function_symbol));
-    
-    ctsp->assoc_operator_delete_routine =
-                                   delete_function_symbol->variant.routine.ptr;
+    check_assertion(sym != NULL && is_function_symbol(sym));
+    ctsp->assoc_operator_delete_routine = sym->variant.routine.ptr;
   }  /* if */
 }  /* set_class_assoc_operator_delete_routine */
 
