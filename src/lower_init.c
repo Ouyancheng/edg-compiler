@@ -5212,13 +5212,6 @@ Do lowering on the file-scope dynamic initializations list.
     /* Generate the initializations. */
     for (; dip != NULL; dip = dip_next) {
       an_insert_location_ptr eff_insert_location = &insert_location;
-      /* Break the link between dynamic inits.  After lowering, no dynamic
-         inits remain on the file scope list.  However, they may remain on
-         object lifetime lists, and in those cases it's not good to have the
-         "next" pointer pointing off to dynamic inits that are otherwise
-         not linked into the IL. */
-      dip_next = dip->next;
-      dip->next = NULL;
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
       an_insert_location     insert_location2;
       if (dip->variable->is_template_static_data_member) {
@@ -5233,6 +5226,13 @@ Do lowering on the file-scope dynamic initializations list.
         }  /* if */
       }  /* if */
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
+      /* Break the link between dynamic inits.  After lowering, no dynamic
+         inits remain on the file scope list.  However, they may remain on
+         object lifetime lists, and in those cases it's not good to have the
+         "next" pointer pointing off to dynamic inits that are otherwise
+         not linked into the IL. */
+      dip_next = dip->next;
+      dip->next = NULL;
       set_var_init_pos_descr(dip->variable, &ipd);
       lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
