@@ -467,6 +467,8 @@ Dump a direct base class entry, for debug purposes.
   a_type     *tp = bcp->type;
   a_field    *fp;
   int        i;
+  a_base_class_derivation_ptr
+             bcdp;
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
   a_boolean  complete_subobject = bcp->complete_subobject;
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
@@ -476,10 +478,17 @@ Dump a direct base class entry, for debug purposes.
   fputs("[[ ", f_debug);
   if (bcp->is_virtual) {
     fputs("virtual ", f_debug);
+    for (bcdp = bcp->derivation; bcdp != NULL; bcdp = bcdp->next) {
+      if (bcdp->preferred) break;
+    }  /* for */
+    if (bcdp != NULL) {
+      db_access_control(bcdp->access);
+    } else {
+      fputs("<access?>", f_debug);
+    }  /* if */
+  } else {
+    db_access_control(bcp->derivation->access);
   }  /* if */
-#if 0
-  db_access_control(bcp->access);
-#endif /* if 0 */
   fprintf(f_debug, " base class %s", tp->source_corresp.name);
   if (bcp->is_virtual) {
     fprintf(f_debug, " (pointer offset = %lu", bcp->pointer_offset);
