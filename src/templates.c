@@ -4301,7 +4301,7 @@ supplement associated with the function template being used.
   for (stlep = tssp->variant.function.substituted_types;
        stlep != NULL; stlep = stlep->next) {
     if (equiv_template_arg_lists(templ_arg_list, stlep->templ_arg_list,
-                                 ETA_IGNORE_UNKNOWN_ARG_VALUES)) {
+                                 ETA_NO_OPTIONS)) {
       result_type = stlep->type;
       break;
     }  /* if */
@@ -4620,6 +4620,7 @@ static void verify_routine_type_matches_template(
 					a_routine_ptr		rout,
 					a_routine_ptr		templ_rout,
 					a_type_ptr		parent_class,
+					a_template_arg_ptr	templ_arg_list,
 					a_template_instance_ptr	tip)
 /*
 Verify that the routine type associated with rout is one that can be
@@ -4629,63 +4630,14 @@ has been affected by declarations that appeared after the template was
 declared and before the partial instantiation of the function was done.
 */
 {
-  a_type_ptr				type = rout->type;
-  a_type_ptr				templ_type = templ_rout->type;
-  a_boolean				match = FALSE;
-  a_template_arg_ptr			templ_arg_list = NULL;
-  a_template_param_ptr			templ_param_list = NULL;
-  a_template_symbol_supplement_ptr	tssp;
-  a_param_type_ptr			ptp;
-  a_param_type_ptr			tptp;
-  a_type_ptr				tp;
-  a_type_ptr				ttp;
-  a_boolean		 		is_conversion_operator;
+  a_type_ptr	substituted_type;
+  a_type_ptr	type = rout->type;
 
-  is_conversion_operator = is_conversion_function_symbol(templ_sym);
-  tssp = template_supplement_for_symbol(templ_sym);
-  templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
-  if (is_conversion_operator) {
-    /* For conversion operators, do the matching on the return type only. */
-    tp = type->variant.routine.return_type;
-    ttp = templ_type->variant.routine.return_type;
-    match = matches_template_type(tp, ttp, &templ_arg_list,
-                                  templ_param_list,
-                                  MTT_NO_FLAGS);
-  } else {
-    /* Attempt to do template argument matching on the parameter list of the
-       function that was generated.  The return type is not checked because the
-       return type is not a deducible context. */
-    ptp = type->variant.routine.extra_info->param_type_list;
-    tptp = templ_type->variant.routine.extra_info->param_type_list;
-    for (;;) {
-      if (ptp == NULL || tptp == NULL) {
-        /* One or both of the param type lists is exhausted.  It's a
-           match only if they're both done. */
-        match = (ptp == tptp);
-        break;
-      }  /* if */
-      tp = ptp->type;
-      ttp = tptp->type;
-      if (!matches_template_type(tp, ttp, &templ_arg_list,
-                                 templ_param_list,
-                                 MTT_NO_FLAGS)) {
-        /* The first param type for which there is a mismatch causes
-           a mismatch for the entire type.  No need to keep
-           looping. */
-        break;
-      }  /* if */
-      ptp = ptp->next;
-      tptp = tptp->next;
-    }  /* for */
-  }  /* if */
-  /* Make sure that the types of nontype template parameters that depend
-     on other template parameters agree with the types of the deduced
-     values. */
-  if (match) {
-    match = wrapup_function_template_argument_deduction(
-                          templ_arg_list, templ_sym, templ_param_list) != NULL;
-  }  /* if */
-  if (!match) {
+  substituted_type = substitute_template_arguments(
+                                  templ_sym, templ_arg_list,
+                                  (a_template_arg_ptr*)NULL,
+                                  (a_template_param_ptr)NULL);
+  if (!types_are_compatible(substituted_type, type)) {
     if (!is_or_contains_error_type(type) &&
         !is_or_contains_error_type(templ_rout->type)) {
       /* If the type contains an error type it is likely that the current
@@ -4693,8 +4645,8 @@ declared and before the partial instantiation of the function was done.
          Don't issue a diagnostic in this case, but still create an
          error routine type in case some of the parameter types were not
          already error types. */
-      pos_ty2_error(ec_bad_type_from_instantiation, &pos_curr_token, type,
-                    templ_rout->type);
+      pos_ty2_error(ec_bad_type_from_instantiation, &pos_curr_token,
+                    type, templ_rout->type);
     }  /* if */
     type = create_error_routine_type(templ_rout, parent_class);
     rout->type = type;
@@ -5077,7 +5029,7 @@ type based on the template argument list and the template parameter list
      template.  This is used to make sure the binding of names used in
      the declarations hasn't changed. */
   verify_routine_type_matches_template(templ_sym, rp, templ_rout,
-                                       parent_class, tip);
+                                       parent_class, templ_arg_list, tip);
   /* Make the function instantiation entry and its associated symbol
      point at each other. */
   tip->instance_sym = sym;
