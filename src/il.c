@@ -3840,7 +3840,7 @@ to default values.
       rtsp->assoc_routine_is_dtor    = FALSE;
       rtsp->suppress_diagnostic_on_incomplete_return_type = FALSE;
       rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
-      rtsp->arg_pragma               = (an_arg_pragma_kind)apk_none;
+      rtsp->arg_pragma               = (a_pragma_kind)pk_none;
       rtsp->implicit_this_param_type = NULL;
       rtsp->prototype_scope          = NULL;
       rtsp->throw_specification      = NULL;

@@ -1104,21 +1104,36 @@ Display a_param_type entry.
 
 #ifdef CFE
 
-static void disp_arg_pragma_kind_name(an_arg_pragma_kind kind)
+static void disp_pragma_kind_name(a_pragma_kind  kind)
 /*
-Print the name of an arg pragma kind.
+Print the name of a pragma kind.
 */
 {
   char *s;
 
   switch (kind) {
-    case apk_none:   s = "apk_none";                break;
-    case apk_printf: s = "apk_printf";              break;
-    case apk_scanf:  s = "apk_scanf";               break;
-    default:         s = "**BAD ARG PRAGMA KIND**";
+    case pk_none:                 s = "pk_none";                break;
+    case pk_printf_args:          s = "pk_printf_args";         break;
+    case pk_scanf_args:           s = "pk_scanf_args";          break;
+    case pk_lint_argsused:        s = "pk_lint_argsused";       break;
+    case pk_lint_varargs_count:   s = "pk_lint_varargs_count";  break;
+    case pk_lint_not_reached:     s = "pk_lint_not_reached";    break;
+    case pk_instantiate:          s = "pk_instantiate";         break;
+    case pk_do_not_instantiate:   s = "pk_do_not_instantiate";  break;
+    case pk_can_instantiate:      s = "pk_can_instantiate";     break;
+#if 0
+#else
+    /* Temporary, for testing purposes. */
+    case pk_test_next_statement:  s = "pk_test_next_statement"; break;
+    case pk_test_next_decl:       s = "pk_test_next_decl";      break;
+    case pk_test_immediate:       s = "pk_test_immediate";      break;
+    case pk_test_other:           s = "pk_test_other";          break;
+#endif /* if 0 */
+    default:                      s = "**BAD PRAGMA KIND**";    break;
   }  /* switch */
+
  (void) printf("%s\n", s);
-}  /* disp_arg_pragma_kind_name */
+}  /* disp_pragma_kind_name */
 
 #endif /* ifdef CFE */
 
@@ -1152,7 +1167,7 @@ Display a_routine_type_supplement.
   }  /* if */
   if (ptr->arg_pragma != (an_arg_pragma_kind)apk_none) {
     disp_name("arg_pragma");
-    disp_arg_pragma_kind_name(ptr->arg_pragma);
+    disp_pragma_kind_name(ptr->arg_pragma);
   }  /* if */
   if (ptr->implicit_this_param_type != NULL) {
     disp_ptr("implicit_this_param_type", (char *)ptr->implicit_this_param_type,
@@ -2518,55 +2533,7 @@ Display the indicated pragma entry.
   disp_string_ptr("pragma_text", ptr->pragma_text, iek_other_text,
                   (sizeof_t)0);
   disp_name("kind");
-  switch (ptr->kind) {
-    case pk_none:
-      (void)printf("pk_none\n");
-      break;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    case pk_printf_args:
-      (void)printf("pk_printf_args\n");
-      break;
-    case pk_scanf_args:
-      (void)printf("pk_scanf_args\n");
-      break;
-    case pk_lint_argsused:
-      (void)printf("pk_lint_argsused\n");
-      break;
-    case pk_lint_varargs_count:
-      (void)printf("pk_lint_varargs_count\n");
-      break;
-    case pk_lint_not_reached:
-      (void)printf("pk_lint_not_reached\n");
-      break;
-    case pk_instantiate:
-      (void)printf("pk_instantiate\n");
-      break;
-    case pk_do_not_instantiate:
-      (void)printf("pk_do_not_instantiate\n");
-      break;
-    case pk_can_instantiate:
-      (void)printf("pk_can_instantiate\n");
-      break;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if 0
-#else
-    /* Temporary, for testing purposes. */
-    case pk_test_next_statement:
-      (void)printf("pk_test_next_statement\n");
-      break;
-    case pk_test_next_decl:
-      (void)printf("pk_test_next_decl\n");
-      break;
-    case pk_test_immediate:
-      (void)printf("pk_test_immediate\n");
-      break;
-    case pk_test_other:
-      (void)printf("pk_test_other\n");
-      break;
-#endif /* if 0 */
-    default:
-      (void)printf("**BAD PRAGMA KIND**\n");
-  }  /* switch */
+  disp_pragma_kind_name(ptr->kind);
 }  /* disp_pragma */
 
 

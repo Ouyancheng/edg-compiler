@@ -1323,16 +1323,134 @@ typedef struct a_param_type {
 #endif /* ifdef CIL */
 } a_param_type;
 
-#ifdef CIL
-enum an_arg_pragma_kind_tag {
-  /* Indication of a #pragma requesting special checking of arguments
-     on calls to a function.  Used for printf/scanf type routines. */
-  apk_none,             /* No special checking. */
-  apk_printf,           /* printf checking. */
-  apk_scanf             /* scanf checking. */
+
+/* The pragma kinds representing the specific pragmas that are recognized
+   by the implementation.  Some may refer to pragmas for which entries of
+   type a_pragma are added to the IL for processing by the back end, but
+   some may be for front-end processing only. */
+enum a_pragma_kind_tag {
+  pk_none,
+  pk_printf_args,	/* Next function declaration has a printf-style format
+			   string that should be checked against the arguments
+			   in the call; front-end only. */
+  pk_scanf_args,	/* Next function declaration has a scanf-style format
+			   string that should be checked against the arguments
+			   in the call; front-end only. */
+  pk_lint_argsused,	/* Lint "argsused" comment; not strictly a pragma but
+			   processed similarly; front-end only. */
+  pk_lint_varargs_count,/* Lint "varargs" comment; not strictly a pragma but
+			   processed similarly; front-end only. */
+  pk_lint_not_reached,	/* Lint "not reached" comment; not strictly a pragma
+			   but processed similarly; front-end only. */
+  pk_instantiate,	/* Instantiation of the specified template entity
+			   is required; front-end only. */
+  pk_do_not_instantiate,/* Instantiation of the specified template entity
+			   should not be done in the current translation
+			   unit; front-end only. */
+  pk_can_instantiate,	/* Instantiation of the specified template entity
+			   may be done in the current translation unit if
+			   needed; front-end only. */
+
+#if 0
+#else
+  /* Temporary -- for testing only. */
+  pk_test_next_statement,
+  pk_test_next_decl,
+  pk_test_immediate,
+  pk_test_other,
+#endif /* if 0 */
+
+  /* The preceding pragma kinds are required for the default implementation
+     of the EDG front end.  If additional pragma kinds are supplied for a
+     given implementation, be sure to update pragma_ids, a_pragma (if
+     variant fields are required), and alloc_pragma (which initializes the
+     variant part of a_pragma), and add an entry to the pragma_descriptions
+     array. */
+
+  pk_last		/* Must be last. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_arg_pragma_kind;
+typedef a_byte a_pragma_kind;
+
+
+EXTERN char *pragma_ids[(int)pk_last + 1]
+#if VAR_INITIALIZERS
+= {
+/* pk_none */			"none",
+/* pk_printf_args */		"__printf_args",
+/* pk_scanf_args */		"__scanf_args",
+/* pk_lint_argsused */		"ARGSUSED",
+/* pk_lint_varargs_count */     "VARARGS",
+/* pk_lint_not_reached */	"NOTREACHED",
+/* pk_instantiate */		"instantiate",
+/* pk_do_not_instantiate */	"do_not_instantiate",
+/* pk_can_instantiate */	"can_instantiate",
+#if 0
+#else
+/* Temporary -- for testing only. */
+/* pk_test_next_statement */	"test_next_statement",
+/* pk_test_next_decl */		"test_next_decl",
+/* pk_test_immediate */		"test_immediate",
+/* pk_test_other */		"test_other",
+#endif /* if 0 */
+/* pk_last */			"last"
+} /* pragma_ids */
+#endif /* VAR_INITIALIZERS */
+;
+
+
+/* A pragma entry represents a pragma declaration that either has general
+   effect (over an entire translation unit or over the current scope) or is
+   bound to one or more entities (declarations or statements) in the current
+   scope.  The entities are in the IL because they represent state that is
+   passed to the back-end. */
+typedef struct a_pragma *a_pragma_ptr;
+typedef struct a_pragma {
+  a_pragma_ptr	next;
+			/* Next in a linked list of pragma entries
+			   declared in the current scope. */
+  a_pragma_kind	kind;
+			/* The kind of pragma. */
+  a_tagged_pointer
+		entity;
+			/* A struct containing a tag and a generic pointer to
+			   the entity (statement, variable, function, etc.) to
+			   which this pragma is bound; a given pragma entry
+			   is bound to only one such entity.  If the entity's
+			   ptr field is NULL, this pragma has general effect,
+			   either globally (if it is on the pragma list for
+			   the file scope) or locally (if it is on the pragma
+			   list for a nonfile scope). */
+  a_source_position
+		decl_position;
+			/* Source position of the pragma-id in the declaration
+			   of this pragma. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+		source_sequence_entry;
+			/* Pointer to source sequence entry that represents
+			   the place this pragma appears within the current
+			   file or function scope relative to other
+			   declarations, statements, comments, etc. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  char		*pragma_text;
+			/* For pragmas that are passed through to the
+			   back end as an uninterpretted character string,
+			   this points to the null terminated string.  The
+			   string begins with the token immediately following
+			   the #pragma keyword. */
+  union {
+    /* When kind == pk_none or refers to "front-end-only" pragma, no variant
+       fields. */
+    a_byte	dummy;
+			/* Remove this field (present only to avoid compiler
+			   diagnostics) if additional variant fields are
+			   added. */
+  } variant;
+} a_pragma;
+
+
+#ifdef CIL
 /* Type used to hold a lint varargs argument count: */
 typedef short a_lint_varargs_count;
 #define LINT_VARARGS_COUNT_MAX SHRT_MAX
@@ -1478,8 +1596,7 @@ typedef struct a_routine_type_supplement {
                            "varargs" comment.  The count is the argument to
                            the "varargs", indicating the number of fixed
                            arguments (or 0 if the argument is omitted). */
-  an_arg_pragma_kind
-                arg_pragma;
+  a_pragma_kind	arg_pragma;
                         /* Indicates whether or not a #pragma implying
                            special argument-type checking (e.g., for printf)
                            applies to this function type. */
@@ -4472,132 +4589,6 @@ typedef struct a_constructor_init {
 } a_constructor_init;
 
 #endif /* ifdef CIL */
-
-/* The pragma kinds representing the specific pragmas that are recognized
-   by the implementation.  Some may refer to pragmas for which entries of
-   type a_pragma are added to the IL for processing by the back end, but
-   some may be for front-end processing only. */
-enum a_pragma_kind_tag {
-  pk_none,
-  pk_printf_args,	/* Next function declaration has a printf-style format
-			   string that should be checked against the arguments
-			   in the call; front-end only. */
-  pk_scanf_args,	/* Next function declaration has a scanf-style format
-			   string that should be checked against the arguments
-			   in the call; front-end only. */
-  pk_lint_argsused,	/* Lint "argsused" comment; not strictly a pragma but
-			   processed similarly; front-end only. */
-  pk_lint_varargs_count,/* Lint "varargs" comment; not strictly a pragma but
-			   processed similarly; front-end only. */
-  pk_lint_not_reached,	/* Lint "not reached" comment; not strictly a pragma
-			   but processed similarly; front-end only. */
-  pk_instantiate,	/* Instantiation of the specified template entity
-			   is required; front-end only. */
-  pk_do_not_instantiate,/* Instantiation of the specified template entity
-			   should not be done in the current translation
-			   unit; front-end only. */
-  pk_can_instantiate,	/* Instantiation of the specified template entity
-			   may be done in the current translation unit if
-			   needed; front-end only. */
-
-#if 0
-#else
-  /* Temporary -- for testing only. */
-  pk_test_next_statement,
-  pk_test_next_decl,
-  pk_test_immediate,
-  pk_test_other,
-#endif /* if 0 */
-
-  /* The preceding pragma kinds are required for the default implementation
-     of the EDG front end.  If additional pragma kinds are supplied for a
-     given implementation, be sure to update pragma_ids, a_pragma (if
-     variant fields are required), and alloc_pragma (which initializes the
-     variant part of a_pragma), and add an entry to the pragma_descriptions
-     array. */
-
-  pk_last		/* Must be last. */
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_pragma_kind;
-
-
-EXTERN char *pragma_ids[(int)pk_last + 1]
-#if VAR_INITIALIZERS
-= {
-/* pk_none */			"none",
-/* pk_printf_args */		"__printf_args",
-/* pk_scanf_args */		"__scanf_args",
-/* pk_lint_argsused */		"ARGSUSED",
-/* pk_lint_varargs_count */     "VARARGS",
-/* pk_lint_not_reached */	"NOTREACHED",
-/* pk_instantiate */		"instantiate",
-/* pk_do_not_instantiate */	"do_not_instantiate",
-/* pk_can_instantiate */	"can_instantiate",
-#if 0
-#else
-/* Temporary -- for testing only. */
-/* pk_test_next_statement */	"test_next_statement",
-/* pk_test_next_decl */		"test_next_decl",
-/* pk_test_immediate */		"test_immediate",
-/* pk_test_other */		"test_other",
-#endif /* if 0 */
-/* pk_last */			"last"
-} /* pragma_ids */
-#endif /* VAR_INITIALIZERS */
-;
-
-
-/* A pragma entry represents a pragma declaration that either has general
-   effect (over an entire translation unit or over the current scope) or is
-   bound to one or more entities (declarations or statements) in the current
-   scope.  The entities are in the IL because they represent state that is
-   passed to the back-end. */
-typedef struct a_pragma *a_pragma_ptr;
-typedef struct a_pragma {
-  a_pragma_ptr	next;
-			/* Next in a linked list of pragma entries
-			   declared in the current scope. */
-  a_pragma_kind	kind;
-			/* The kind of pragma. */
-  a_tagged_pointer
-		entity;
-			/* A struct containing a tag and a generic pointer to
-			   the entity (statement, variable, function, etc.) to
-			   which this pragma is bound; a given pragma entry
-			   is bound to only one such entity.  If the entity's
-			   ptr field is NULL, this pragma has general effect,
-			   either globally (if it is on the pragma list for
-			   the file scope) or locally (if it is on the pragma
-			   list for a nonfile scope). */
-  a_source_position
-		decl_position;
-			/* Source position of the pragma-id in the declaration
-			   of this pragma. */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr
-		source_sequence_entry;
-			/* Pointer to source sequence entry that represents
-			   the place this pragma appears within the current
-			   file or function scope relative to other
-			   declarations, statements, comments, etc. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  char		*pragma_text;
-			/* For pragmas that are passed through to the
-			   back end as an uninterpretted character string,
-			   this points to the null terminated string.  The
-			   string begins with the token immediately following
-			   the #pragma keyword. */
-  union {
-    /* When kind == pk_none or refers to "front-end-only" pragma, no variant
-       fields. */
-    a_byte	dummy;
-			/* Remove this field (present only to avoid compiler
-			   diagnostics) if additional variant fields are
-			   added. */
-  } variant;
-} a_pragma;
-
 
 /*
 Numbering for scopes.  Each new scope is given a number.  These

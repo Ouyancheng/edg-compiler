@@ -32,6 +32,7 @@ expr.c -- Expression scanning routines.
 #include "target.h"
 #include "lang_feat.h"
 #include "templates.h"
+#include "pragma.h"
 
 /*
 The operators and their precedences are:
@@ -981,7 +982,7 @@ build an argument operand list and return a pointer to it in
   a_boolean           prototyped;
   a_boolean           has_ellipsis;
   a_boolean           have_param_info;
-  an_arg_pragma_kind  arg_kind;
+  a_pragma_kind       arg_list_kind;
   int                 varargs_count;
   int                 arg_ctr;
   an_operand          argument_operand;
@@ -1017,7 +1018,7 @@ build an argument operand list and return a pointer to it in
     prototyped = extra_info->prototyped;
     has_ellipsis = extra_info->has_ellipsis;
     have_param_info = (prototyped || extra_info->assoc_routine != NULL);
-    arg_kind = extra_info->arg_pragma;
+    arg_list_kind = extra_info->arg_pragma;
     /* Get the varargs count. */
     varargs_count = extra_info->lint_varargs_count;
   } else {
@@ -1027,7 +1028,7 @@ build an argument operand list and return a pointer to it in
     prototyped = FALSE;
     has_ellipsis = FALSE;
     have_param_info = FALSE;
-    arg_kind = (an_arg_pragma_kind)apk_none;
+    arg_list_kind = (a_pragma_kind)pk_none;
     varargs_count = NOT_LINT_VARARGS;
   }  /* if */
 
@@ -1182,8 +1183,8 @@ build an argument operand list and return a pointer to it in
          the format string.  See if it is constant; if so, we will be
          able to check the rest of the arguments against the format string
          as we scan them. */
-      if ((arg_kind == (an_arg_pragma_kind)apk_printf ||
-           arg_kind == (an_arg_pragma_kind)apk_scanf) &&
+      if ((arg_list_kind == (a_pragma_kind)pk_printf_args ||
+           arg_list_kind == (a_pragma_kind)pk_scanf_args) &&
           have_param_info && curr_param_type == NULL) {
         /* See if the format string is a constant (actually, the address
            of a constant string). */
@@ -1204,7 +1205,7 @@ build an argument operand list and return a pointer to it in
                 /* The constant pointed to is a string (and not a wide string).
                    Check that it is null-terminated. */
                 fmt_string = con_ptr->variant.string.value;
-                is_scanf = (arg_kind == (an_arg_pragma_kind)apk_scanf);
+                is_scanf = (arg_list_kind == (a_pragma_kind)pk_scanf_args);
                 pss = pss_new_specifier;
                 if (fmt_string[con_ptr->variant.string.length-1] != '\0') {
                   /* String is not null-terminated. */
