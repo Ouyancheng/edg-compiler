@@ -4786,10 +4786,17 @@ rescan_statement:
       get_another_statement = TRUE;
       break;
     case tok_identifier:
-      /* Identifier.  Probably the start of an expression-statement,
+      /* Identifier.  Make sure that the identifier is a simple identifier
+         (i.e., not a C++ qualified name, template-id or operator name).
+         A simple identifier is probably the start of an expression-statement,
          but first we must check to see if it is a label definition
          by looking to see if the next token is a colon. */
-      if (next_token() == tok_colon) {
+      if (!locator_for_curr_id.is_qualified_name &&
+          !locator_for_curr_id.is_template_id &&
+          !locator_for_curr_id.is_conversion_name &&
+          !locator_for_curr_id.is_operator_name &&
+          !is_error_locator(locator_for_curr_id) &&
+          next_token() == tok_colon) {
         /* This is a label definition. */
         wrapup_decl_statement();
         /* Scan the label identifier, and enter it into the symbol table
