@@ -194,9 +194,6 @@ this case and add it to the list for the current scope.
     case sk_extern_routine:
       /* Not in the same name space. */
       break;
-    case sk_projection:
-      /* Ignore projection symbols. */
-      break;
     case sk_overloaded_function:
       /* Enter members of an overload set separately. */
       for (sym = hidden_sym->variant.overloaded_function.symbols;
@@ -206,7 +203,20 @@ this case and add it to the list for the current scope.
                                       hidden_class_or_namespace_member, sp);
       }  /* for */
       break;
+    case sk_projection:
+      if (!hidden_sym->synthesized_namespace_projection) {
+        /* Ignore most projection symbols. */
+        break;
+      }  /* if */
+      /* Fall through. */
+    case sk_namespace_projection:
+      /* Enter the fundamental symbol of a namespace projection. */
+      record_defeatable_name_hiding(fundamental_symbol_of(hidden_sym),
+                                    tag_hidden_by_nontag,
+                                    hidden_class_or_namespace_member, sp);
+      break;
     case sk_class_template:
+      /* Enter each instance of a class template. */
       for (sym = hidden_sym->variant.template_info->
                                 variant.class_template.instantiations;
            sym != NULL;
@@ -218,11 +228,15 @@ this case and add it to the list for the current scope.
       }  /* for */
       break;
     case sk_function_template:
+      /* Enter each instance of a function template. */
       for (tip = hidden_sym->variant.template_info->
                                 variant.function.instantiations;
            tip != NULL;
            tip = tip->next) {
-        if (!tip->is_guiding_decl) {
+        if (tip->is_guiding_decl) {
+          /* Ignore guiding declarations -- they will have been picked up
+             elsewhere. */
+        } else {
           record_defeatable_name_hiding(tip->instance_sym,
                                         tag_hidden_by_nontag,
                                         hidden_class_or_namespace_member, sp);
@@ -280,36 +294,6 @@ this case and add it to the list for the current scope.
               }  /* if */
             }  /* if */
             fprintf(f_debug, "\"%s", hnp == NULL ? "" : " [modif]");
-#if 0
-            fprintf(f_debug, ":\n  %s hidden name entry for \"",
-                    hnp == NULL ? "adding" : "modifying");
-            if (kind == (an_il_entry_kind)iek_type) {
-              db_type_name((a_type_ptr)entity);
-            } else {
-              if (scp != NULL) {
-                db_name(scp);
-                if (kind == (an_il_entry_kind)iek_routine) {
-                  db_function_param_list(((a_routine_ptr)entity)->type);
-                }  /* if */
-              } else {
-                fprintf(f_debug, "\?\?\?");
-              }  /* if */
-            }  /* if */
-            fputs("\": ", f_debug);
-            if (hidden_class_or_namespace_member) {
-              char *s = "";
-              if (scp != NULL) {
-                if (scp->is_class_member) {
-                  s = "<class>";
-                } else if (scp->parent.namespace_ptr != NULL) {
-                  s = "<namespace>";
-                }  /* if */
-              }  /* if */
-              fprintf(f_debug, "use \"%s::\"", s);
-              if (tag_hidden_by_nontag) fputs(", ", f_debug);
-            }  /* if */
-            if (tag_hidden_by_nontag) fputs("use class-key", f_debug);
-#endif /* if 0 */
             fprintf(f_debug, "\n");
           }  /* if */
         }  /* if */
@@ -463,39 +447,51 @@ set pointed to by overload_sym.
 }  /* matches_member_of_overload_set */
 
 
-static a_boolean is_potentially_hidden_by(a_symbol_ptr  sym_ptr,
-                                          a_symbol_ptr  old_sym_ptr)
+static a_boolean is_potentially_hidden_by(a_symbol_ptr  sym1,
+                                          a_symbol_ptr  sym2)
 /*
+Return TRUE if the declaration of sym1 is potentially hidden by the
+declaration of sym2 -- that is, if a lookup of sym1 from a scope
+to which sym2 belongs (or a scope nested therein) will fail to find
+sym1 because it is hidden by sym2.
 */
 {
   a_boolean        is_potentially_hidden = FALSE;
   a_type_ptr       curr_parent_class, tp;
   a_namespace_ptr  curr_namespace, nsp;
 
-  if (sym_ptr->decl_scope == FILE_SCOPE_NUMBER) {
-    if (old_sym_ptr->decl_scope != FILE_SCOPE_NUMBER) {
+  if (sym1->decl_scope == FILE_SCOPE_NUMBER) {
+    if (sym2->decl_scope != FILE_SCOPE_NUMBER) {
+      /* sym2 belongs to a scope that is enclosed within the file scope
+         (the scope to which sym1 belongs) -- so sym1 is potentially hidden
+         by sym2. */
       is_potentially_hidden = TRUE;
     }  /* if */
-  } else if (sym_ptr->is_class_member) {
-    if (!old_sym_ptr->is_class_member) {
-      /* is_potenially_hidden = FALSE; */
+  } else if (sym1->is_class_member) {
+    if (!sym2->is_class_member) {
+#if 0
+/* What if sym2 is inside a member function body? */
+#endif /* if */
+      /* is_potentially_hidden = FALSE; */
     } else {
-      tp = old_sym_ptr->parent.class_type;
-      curr_parent_class = sym_ptr->parent.class_type;
-      if (tp != curr_parent_class) {
+      tp = sym2->parent.class_type;
+      curr_parent_class = sym1->parent.class_type;
+      if (tp == curr_parent_class) {
+        /* sym1 and sym2 are members of the same class. */
+      } else {
         do {
           if (find_base_class_of(tp, curr_parent_class) != NULL) {
-            /* The class to which *old_sym_ptr belongs is (or is nested
-               within a class that is) derived from the class to which
-               *sym_ptr belongs. */
+            /* The class to which sym2 belongs is (or is nested within a
+               class that is) derived from the class to which sym1 belongs --
+               so sym1 is potentially hidden by sym2. */
             is_potentially_hidden = TRUE;
           } else if (!tp->source_corresp.is_class_member) {
             break;
           } else {
             tp = tp->source_corresp.parent.class_type;
             if (tp == curr_parent_class) {
-              /* The class to which *old_sym_ptr belongs is nested within
-                 the class to which *sym_ptr belongs. */
+              /* The class to which sym2 belongs is nested within that of
+                 sym1 -- so sym1 is potentially hidden by sym2. */
               is_potentially_hidden = TRUE;
             }  /* if */
           }  /* if */
@@ -503,17 +499,32 @@ static a_boolean is_potentially_hidden_by(a_symbol_ptr  sym_ptr,
       }  /* if */
     }  /* if */
   } else {
-    check_assertion(!sym_ptr->is_class_member);
-    curr_namespace = sym_ptr->parent.namespace_ptr;
-    nsp = parent_namespace_for_symbol(old_sym_ptr);
-    while (nsp != NULL) {
-      nsp = skip_namespace_aliases(nsp);
+    /* sym1 is not a class member.  It may be a namespace member. */
+    curr_namespace = sym1->parent.namespace_ptr;
+    if (curr_namespace != NULL) {
+      /* See if the namespace to which sym2 belongs (if any) is nested
+         within that of sym1. */
+      nsp = parent_namespace_for_symbol(sym2);
       if (nsp == curr_namespace) {
-        is_potentially_hidden = TRUE;
-        break;
+        /* They belong to the same namespace. */
+        if (sym2->is_class_member) {
+          /* sym2 is in a class that is nested within the namespace to which
+             sym1 belongs -- so sym1 is potentially hidden by sym2. */
+          is_potentially_hidden = TRUE;
+        }  /* if */
+      } else {
+        while (nsp != NULL) {
+          nsp = skip_namespace_aliases(nsp);
+          if (nsp == curr_namespace) {
+            /* sym2 is in a namespace that is nested within the namespace to
+               which sym1 belongs -- so sym1 is potentially hidden by sym2. */
+            is_potentially_hidden = TRUE;
+            break;
+          }  /* if */
+          nsp = nsp->source_corresp.parent.namespace_ptr;
+        }  /* while */
       }  /* if */
-      nsp = nsp->source_corresp.parent.namespace_ptr;
-    }  /* while */
+    }  /* if */
   }  /* if */
   return is_potentially_hidden;
 }  /* is_potentially_hidden_by */
@@ -551,6 +562,12 @@ hiding.
               ssep->in_prototype_instantiation) &&
              sym_ptr->kind == (a_symbol_kind)sk_class_template) {
     /* We don't deal with class template definitions. */
+  } else if (sym_ptr->is_class_member &&
+             symbol_supplement_for_class(sym_ptr->parent.class_type)->
+                                                          is_nonreal_class) {
+    /* Ignore members of prototype instantiations. */
+  } else if (sym_ptr->is_template_param) {
+    /* Ignore template parameters. */
   } else if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
     /* Ignore template instantiation scopes. */
   } else if (is_template_class_symbol(sym_ptr)) {
@@ -722,6 +739,19 @@ hiding.
                      old_sym_ptr->is_class_member ||
                      old_sym_ptr->parent.namespace_ptr != NULL) {
             /* A qualifiable name. */
+            if (!is_potentially_hidden_by(old_sym_ptr, sym_ptr)) {
+              /* old_sym_ptr does not belong to a scope that is outside that
+                 of sym_ptr, so it can't be hidden by sym_ptr in a way that
+                 could resolved by adding a qualifier.  (This can come up
+                 when sym_ptr refers to a template instantiation.) */
+            } else {
+              tag_hidden_by_nontag = FALSE;
+              hidden_class_or_namespace_member = TRUE;
+              record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
+                                            hidden_class_or_namespace_member,
+                                            (a_scope_ptr)NULL);
+            }  /* if */
+          } else if (old_sym_ptr->synthesized_namespace_projection) {
             tag_hidden_by_nontag = FALSE;
             hidden_class_or_namespace_member = TRUE;
             record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
