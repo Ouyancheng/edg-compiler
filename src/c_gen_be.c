@@ -2957,7 +2957,7 @@ with a routine.
     store_at = mangled_name + name_length;
     *store_at++ = '_';
     *store_at++ = '_';
-    if (routine_name_length != 0) {
+    if (routine_name != NULL) {
       (void)strcpy(store_at, routine_name);
       store_at += routine_name_length;
     }  /* if */
