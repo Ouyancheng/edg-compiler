@@ -1,11 +1,23 @@
 #!/bin/sh
 # Run the EDG C++ front end into the system cc to compile C++.
 # Interface and command-line options are similar to CC.
+
+#
+# Initialize EDG_BASE.  This needs to be done before looking for the
+# config file below.
+#
+EDG_BASE=${EDG_BASE-/edg/cpfe}
+#
+# Look for a file in EDG_BASE called edg_eccp_config.  If such a file
+# exists, process it to initialize environment variables.
+config_file=$EDG_BASE/edg_eccp_config
+if [ -f $config_file ] ; then
+	. $config_file
+fi
 #
 # Predefined preprocessing variables.
 #
 defines=${EDG_DEFAULT_DEFINES-"-Dsparc -Dunix -Dsun"}
-EDG_BASE=${EDG_BASE-/edg/cpfe}
 EDG_CBASE=${EDG_CBASE-/edg/cpfe}
 #
 # Default include directories.  The default directories are specified by
