@@ -4098,23 +4098,25 @@ so efficiency is not a prime concern.
 }  /* unget_token */
 
 
-a_boolean get_class_qualifier(a_scope_number *scope_number)
+a_boolean get_class_qualifier(a_scope_number *scope_number,
+                              a_boolean      *err)
 /*
 Scan an optional class qualifier, e.g., "A::B::" (note that the final
 identifier of a qualified name is not scanned here; see get_qualified_name).
 Return TRUE if there was a qualifier, FALSE if not.  If there was a qualifier,
 set *scope_number to the scope number for the class indicated by the
 qualifier.  On return (if there was a qualifier) the current token will be
-the token following the last "::".  This routine should only be called
-in C++ mode.
+the token following the last "::".  Return *err TRUE and *scope_number
+set to NO_SCOPE_NUMBER if there was an error.  This routine may only be
+called in C++ mode.
 */
 {
   a_boolean         is_qualifier = FALSE;
   a_scope_number    class_scope;
   a_symbol_ptr      class_symbol;
   a_source_position start_position;
-  a_boolean         err = FALSE;
 
+  *err = FALSE;
   /* See if we have an identifier followed by "::". */
   if (curr_token == tok_identifier && next_token() == tok_colon_colon) {
     /* This is a qualifier. */
@@ -4134,9 +4136,9 @@ in C++ mode.
       /* Keep looping while there are more levels of class qualification. */
       if (class_symbol == NULL) {
         /* The identifier is followed by a "::" but is not a class symbol. */
-        if (!err) {
+        if (!*err) {
           error(ec_id_must_be_class_name);
-          err = TRUE;
+          *err = TRUE;
         }  /* if */
         class_scope = NO_SCOPE_NUMBER;
       } else {
@@ -4181,7 +4183,7 @@ qualified name.  They can include IDL_OKAY_TO_RETURN_PROJECTION_SYMBOL and
 IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL.
 */
 {
-  a_boolean         is_qualified_name = FALSE, okay = FALSE;
+  a_boolean         is_qualified_name = FALSE, qualifier_err, okay = FALSE;
   a_symbol_ptr      name_symbol;
   a_scope_number    class_scope;
   a_source_position start_position;
@@ -4195,7 +4197,7 @@ IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL.
       } else {
         /* See if there is a class qualifier (the "A::" part of "A::x"), and
            if so, get it and determine the scope number it represents. */
-        if (get_class_qualifier(&class_scope)) {
+        if (get_class_qualifier(&class_scope, &qualifier_err)) {
           /* This is a qualified name. */
           /* Save the start position of the qualified name (get_class_qualifier
              puts it in error_position). */
@@ -4223,9 +4225,7 @@ IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL.
               locator_for_curr_id.specific_symbol = name_symbol;
             } else {
               /* The identifier could not be found in the class. */
-              if (class_scope != NO_SCOPE_NUMBER) {
-                error(ec_not_a_member);
-              }  /* if */
+              if (!qualifier_err) error(ec_not_a_member);
             }  /* if */
           }  /* if */
           if (!okay) {

@@ -744,7 +744,8 @@ extern a_boolean loop_token(a_token_kind token);
 /* Look ahead at the token following the current one. */
 extern a_token_kind next_token(void);
 /* Get a C++ class-qualifiers, like "A::". */
-extern a_boolean get_class_qualifier(a_scope_number *scope_number);
+extern a_boolean get_class_qualifier(a_scope_number *scope_number,
+                                     a_boolean      *err);
 /* Get a C++ qualified name, like "A::x". */
 /* See symbol_tbl.h for the options set definition. */
 extern a_boolean get_qualified_name(an_id_lookup_options_set options);
