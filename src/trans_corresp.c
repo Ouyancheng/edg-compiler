@@ -952,6 +952,7 @@ type is in fact valid.
 {
   a_boolean   match = verify_name_correspondence(type);
   a_boolean   report_error = FALSE;
+  a_boolean   both_defined = TRUE;
   a_type_ptr  corresp_type = (a_type_ptr)canonical_il_entry_of(type);
 
   if (!match) {
@@ -964,6 +965,7 @@ type is in fact valid.
     /* The types are assumed to match in their inner structure since at least
        one is incomplete and therefore has no inner structure to conflict
        with. */
+    both_defined = FALSE;
   } else if (corresp_type != NULL) {
     /* Traverse fields: (both C and C++) */
     a_field_ptr  field = skip_generated_field(
@@ -1155,37 +1157,45 @@ type is in fact valid.
 #define corresp_info corresp_type->variant.class_struct_union
     a_class_type_supplement_ptr
         sup = class_info.extra_info, corresp_sup = corresp_info.extra_info;
-    if (class_info.any_const_member != corresp_info.any_const_member ||
-        class_info.any_mutable_member != corresp_info.any_mutable_member ||
-        class_info.any_virtual_base_classes !=
+    if ((both_defined &&
+         (class_info.any_const_member != corresp_info.any_const_member ||
+          class_info.any_mutable_member != corresp_info.any_mutable_member ||
+          class_info.any_virtual_base_classes !=
                                        corresp_info.any_virtual_base_classes ||
-        class_info.abstract != corresp_info.abstract ||
-        class_info.any_virtual_functions !=
+          class_info.abstract != corresp_info.abstract ||
+          class_info.any_virtual_functions !=
                                           corresp_info.any_virtual_functions ||
-        class_info.any_pure_virtual_functions !=
+          class_info.any_pure_virtual_functions !=
                                      corresp_info.any_pure_virtual_functions ||
-        class_info.any_virtual_functions_including_in_base_classes !=
+          class_info.any_virtual_functions_including_in_base_classes !=
                 corresp_info.any_virtual_functions_including_in_base_classes ||
-        class_info.originally_unnamed != corresp_info.originally_unnamed ||
+          class_info.originally_unnamed != corresp_info.originally_unnamed ||
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-        class_info.is_nonstd_anonymous_union_type !=
+          class_info.is_nonstd_anonymous_union_type !=
                                  corresp_info.is_nonstd_anonymous_union_type ||
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+          class_info.contains_flexible_array_member !=
+                                 corresp_info.contains_flexible_array_member ||
+#if USER_CONTROL_OF_STRUCT_PACKING
+          class_info.max_member_alignment !=
+                                           corresp_info.max_member_alignment ||
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+          class_info.is_empty_class != corresp_info.is_empty_class ||
+          (sup != NULL &&
+           (sup->virtual_function_info_offset !=
+                                   corresp_sup->virtual_function_info_offset ||
+            sup->anonymous_union_kind != corresp_sup->anonymous_union_kind ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            sup->inheritance_kind != corresp_sup->inheritance_kind
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                  )))) ||
         class_info.is_template_class != corresp_info.is_template_class ||
         class_info.is_nonreal_class != corresp_info.is_nonreal_class ||
         class_info.is_prototype_instantiation !=
                                      corresp_info.is_prototype_instantiation ||
         class_info.is_specialized != corresp_info.is_specialized ||
-        class_info.is_empty_class != corresp_info.is_empty_class ||
-        class_info.contains_flexible_array_member !=
-                                 corresp_info.contains_flexible_array_member ||
-#if USER_CONTROL_OF_STRUCT_PACKING
-        class_info.max_member_alignment != corresp_info.max_member_alignment ||
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
         (sup != NULL &&
-         (sup->virtual_function_info_offset !=
-                                   corresp_sup->virtual_function_info_offset ||
-          sup->anonymous_union_kind != corresp_sup->anonymous_union_kind ||
+         (
 #if NEAR_AND_FAR_ALLOWED
           sup->qualifiers != corresp_sup->qualifiers ||
 #endif /* NEAR_AND_FAR_ALLOWED */
@@ -1193,7 +1203,6 @@ type is in fact valid.
           sup->decl_modifiers != corresp_sup->decl_modifiers ||
 #endif /* DECL_MODIFIERS_IN_USE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          sup->inheritance_kind != corresp_sup->inheritance_kind ||
           !same_str(sup->uuid_string, corresp_sup->uuid_string) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           !same_field_entities(sup->anonymous_union_field,
@@ -1215,6 +1224,10 @@ done:
 }  /* verify_class_type_correspondence */
 
 
+#define is_class_or_struct(type)                                       \
+  ((type)->kind == (a_type_kind)tk_class ||                            \
+   (type)->kind == (a_type_kind)tk_struct)
+
 static a_boolean verify_type_correspondence(a_type_ptr  type)
 /*
 Check that the recorded translation unit correspondence for the given type
@@ -1224,6 +1237,8 @@ is in fact valid.
   a_boolean     match;
   a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
   a_type_ptr    corresp_type = (a_type_ptr)canonical_il_entry_of(type);
+  a_boolean     both_defined = type_has_definition(type) &&
+                               type_has_definition(corresp_type);
   a_source_correspondence_ptr
                 scp = &type->source_corresp,
                 corresp_scp = &corresp_type->source_corresp;
@@ -1266,10 +1281,13 @@ is in fact valid.
     }  /* if */
   }  /* if */
   if (match &&
-      (type->kind != corresp_type->kind ||
-       (type_has_definition(type) && type_has_definition(corresp_type) &&
-        (type->size != corresp_type->size ||
-         type->alignment != corresp_type->alignment)) ||
+      ((type->kind != corresp_type->kind &&
+        /* "class" and "struct" are interchangeable if not both entries are
+           definitions. */
+        !(!both_defined && is_class_or_struct(type) &&
+                           is_class_or_struct(corresp_type))) ||
+       (both_defined && (type->size != corresp_type->size ||
+                         type->alignment != corresp_type->alignment)) ||
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
        type->use_cfront_transitional_nested_type_name_mangling !=
              corresp_type->use_cfront_transitional_nested_type_name_mangling ||
@@ -1711,7 +1729,12 @@ unit correspondence pointer if one is found.
           same_parents(sym, type_sym)) {
         /* Two different declarations in the same namespace and with the same
            name: they should probably match up. */
-        if (sym->kind == type_sym->kind) {
+        if (sym->kind == type_sym->kind ||
+            /* "class" and "struct" are interchangeable if not both entries
+               are definitions. */
+            (sym->kind == (a_symbol_kind)sk_class_or_struct_tag &&
+             type_sym->kind == (a_symbol_kind)sk_class_or_struct_tag &&
+             sym->defined != type_sym->defined)) {
           /* Record the correspondence. */
           a_type_ptr  corresp_type = type_symbol_type(sym);
           record_trans_unit_corresp(type, corresp_type);
