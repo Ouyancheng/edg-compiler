@@ -2980,7 +2980,7 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
                                                    bound_function_selector);
         } else {
           /* Result is a data member. */
-          if (!microsoft_mode) {
+          if (!(microsoft_mode && microsoft_version < 1200)) {
             /* Add cv-qualifiers from the first operand to the result type.
                (This was not in the ARM, but it's in the WP, and cfront does
                it.)  Note: this isn't done for the pointer-to-member-function

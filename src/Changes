@@ -1,5 +1,13 @@
 Version 3.4
 
+4/13/04  Microsoft anachronism on pointer-to-member dereference no longer
+         emulated
+
+A microsoft anachronism that ignores cv-qualifiers from the first
+operand on a pointer-to-data-member dereference like (p->*pm)
+is no longer emulated when microsoft_version is >= 1200.
+MSVC++ 6.0 (at least) and after seem to no longer have this quirk.
+
 4/13/04  Missing code for base_class field of a_vcall_offset_entry in
          IL walk
 
