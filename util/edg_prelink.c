@@ -489,6 +489,7 @@ typedef enum /*a_pl_error_code*/ {
   pl_ec_popen_failed,
   pl_ec_specialized_and_instantiated,
   pl_ec_cannot_open_file_for_update,
+  pl_ec_nm_returned_error,
   pl_ec_last 	/* must be last */
 } a_pl_error_code;
 
@@ -569,6 +570,9 @@ string.
     break;
   case pl_ec_cannot_open_file_for_update:
     m = "file \"%s\" is read-only";
+    break;
+  case pl_ec_nm_returned_error:
+    m = "nm returned a nonzero error status";
     break;
   default:
     pl_internal_error("invalid error code");
@@ -3046,6 +3050,7 @@ end_of_options:
       a_pl_input_file_ptr	pifp;
       a_boolean			no_local_changes;
       a_boolean			no_nonlocal_changes;
+      int			nm_status;
 
       /* Determine the length of the command line.  Go through the list of
          file names in the command line and the list of library file names
@@ -3084,7 +3089,11 @@ end_of_options:
       if (f_command_output == NULL) pl_error(pl_ec_popen_failed, (char *)NULL);
       /* Read the nm output. */
       pl_read_nm_output();
-      pclose(f_command_output);
+      nm_status = pclose(f_command_output);
+      if (nm_status != 0) {
+        /* The nm command returned a nonzero status.  Issue a warning. */
+        pl_warning(pl_ec_nm_returned_error, (char*)NULL);
+      }  /* if */
 
       /* Read the information from any existing .ii files. */
       pl_read_instantiation_info_files();

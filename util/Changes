@@ -1,5 +1,10 @@
 Version 2.32
 
+5/25/96  Prelinker diagnostic when nm exits with an error
+
+The prelinker now issues a warning if the nm command that is
+executed returns a nonzero return status.
+
 5/15/96  Improved prelinker message when .ii file is not writable
 
 A better diagnostic is now issued if the .ii file is not writable
@@ -31,7 +36,7 @@ function shifts the return status 8 bits to the left before
 returning it.  The prelinker has been modified to adjust the
 return value by shifting it back to the right.
 
-2/28/96  Configuration file that defined variables used by eccp
+2/28/96  Configuration file that defines variables used by eccp
 
 eccp now looks in the directory specified by the EDG_BASE environment
 variable for a file named edg_eccp_config.  If such a file exists,
