@@ -1,5 +1,28 @@
 Version 2.33
 
+9/17/96 Overload resolution: reference to non-const cannot be bound to result
+        of promotion or standard conversion
+
+Overload resolution now recognizes that once a promotion or standard
+conversion is applied to an argument the result is an rvalue, and therefore
+a reference to non-const cannot be bound to it.  (If the function had been
+selected by overload resolution, an error was issued later.  Now, the
+function is rejected by overload resolution, which lets a different
+function be selected.)
+
+  struct C {};
+  struct D : public C {
+    C &operator>>(bool &);
+  };
+  struct A {
+    friend C &operator>>(C &, A *&);
+  };
+  void f() {
+    A *pa = 0;
+    D d;
+    d >> pa;  // No longer gets an ambiguity error
+  };
+
 9/16/96 IL for pointer comparisons: avoid dropping cv-qualifiers
 
 When pointers are compared, the cv-qualifiers of the types need not

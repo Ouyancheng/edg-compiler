@@ -1526,7 +1526,8 @@ have_level:;
       arg_summary->anachronism_used = TRUE;
     }  /* if */
     if (!source_can_be_rvalue &&
-        arg_operand != NULL && is_an_rvalue(arg_operand)) {
+        (arg_summary->match_level != aml_exact ||
+         (arg_operand != NULL && is_an_rvalue(arg_operand)))) {
       /* You can't bind a reference to non-const to an rvalue.  This was a
          post-ARM change (in the ARM, the binding would be okay in overload
          resolution and would get an error later if chosen). */
