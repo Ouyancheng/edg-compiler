@@ -6796,6 +6796,7 @@ return NULL.
         an_expr_node_ptr new_operand_3 = NULL;
         a_constant       constant_1, constant_2, constant_3;
         a_constant_ptr   alloc_con_1, alloc_con_2 = NULL, alloc_con_3 = NULL;
+        a_boolean        folded_to_constant = FALSE;
 
         /* Do substitution on the operands. */
         new_operand_1 = copy_template_param_expr(operand_1,
@@ -6827,94 +6828,99 @@ return NULL.
         if (new_operand_1 == NULL &&
             new_operand_2 == NULL &&
             new_operand_3 == NULL) {
-          a_boolean did_not_fold, template_constant;
-
-          /* All the operands are constant, so fold the operation. */
-          expr_copy = NULL;
+          /* All the operands are constant. */
           if (alloc_con_1 != NULL) constant_1 = *alloc_con_1;
           if (alloc_con_2 != NULL) constant_2 = *alloc_con_2;
           if (alloc_con_3 != NULL) constant_3 = *alloc_con_3;
-          if (operand_2 != NULL) {
-            if (operand_3 != NULL) {
-              /* Three-operand operation, "?". */
-              check_assertion(op == (an_expr_operator_kind)eok_question);
-              if (is_false_constant(&constant_1)) {
-                /* Operand 1 is false, so the result is operand 3. */
-                *alloc_con = alloc_con_3;
-                if (alloc_con_3 == NULL) *constant = constant_3;
+          /* Do not fold if any of the constants is still a
+             template parameter constant. */
+          if (constant_1.kind != (a_constant_repr_kind)ck_template_param &&
+              (operand_2 == NULL ||
+               constant_2.kind != (a_constant_repr_kind)ck_template_param) &&
+              (operand_3 == NULL ||
+               constant_3.kind != (a_constant_repr_kind)ck_template_param)) {
+            /* All the operands are constants and not template parameter
+               constants.  Fold the operation. */
+            a_boolean did_not_fold, template_constant;
+
+            expr_copy = NULL;
+            folded_to_constant = TRUE;
+            if (operand_2 != NULL) {
+              if (operand_3 != NULL) {
+                /* Three-operand operation, "?". */
+                check_assertion(op == (an_expr_operator_kind)eok_question);
+                if (is_false_constant(&constant_1)) {
+                  /* Operand 1 is false, so the result is operand 3. */
+                  *alloc_con = alloc_con_3;
+                  if (alloc_con_3 == NULL) *constant = constant_3;
+                } else {
+                  /* Operand 1 is true, so the result is operand 2. */
+                  *alloc_con = alloc_con_2;
+                  if (alloc_con_2 == NULL) *constant = constant_2;
+                }  /* if */
               } else {
-                /* Operand 1 is true, so the result is operand 2. */
-                *alloc_con = alloc_con_2;
-                if (alloc_con_2 == NULL) *constant = constant_2;
+                /* Two-operand operation. */
+                binary_operation(op, &constant_1, &constant_2,
+                                 expr->type, constant,
+                                 /*constant_context=*/TRUE,
+                                 /*evaluated_context=*/TRUE,
+                                 &did_not_fold,
+                                 &template_constant,
+                                 source_pos);
+                check_assertion(!did_not_fold);
+                *alloc_con = NULL;
               }  /* if */
             } else {
-              /* Two-operand operation. */
-              binary_operation(op, &constant_1, &constant_2,
-                               expr->type, constant,
-                               /*constant_context=*/TRUE,
-                               /*evaluated_context=*/TRUE,
-                               &did_not_fold,
-                               &template_constant,
-                               source_pos);
+              /* One-operand operation. */
+              unary_operation(op, &constant_1, expr->type, constant,
+                              /*constant_context=*/TRUE,
+                              /*evaluated_context=*/TRUE,
+                              &did_not_fold,
+                              &template_constant,
+                              source_pos);
               check_assertion(!did_not_fold);
               *alloc_con = NULL;
             }  /* if */
-          } else {
-            /* One-operand operation. */
-            unary_operation(op, &constant_1, expr->type, constant,
-                            /*constant_context=*/TRUE,
-                            /*evaluated_context=*/TRUE,
-                            &did_not_fold,
-                            &template_constant,
-                            source_pos);
-            check_assertion(!did_not_fold);
-            *alloc_con = NULL;
           }  /* if */
-        } else {
-          /* Some operand is non-constant. */
-          if (operand_1 == new_operand_1 &&
-              operand_2 == new_operand_2 &&
-              operand_3 == new_operand_3) {
-            /* The new operands are the same as the old ones, so return the
-               original expression. */
-          } else {
-            /* A new expression tree will be needed. */
-            /* Allocate the node for each operand if it has not been
-               allocated yet. */
-            if (new_operand_1 == NULL) {
-              if (alloc_con_1 != NULL) {
-                new_operand_1 = alloc_node_for_allocated_constant(alloc_con_1);
+        }  /* if */
+        if (!folded_to_constant) {
+          /* Some operand is non-constant or a template parameter, so
+             an expression is needed. */
+          /* Allocate the node for each operand if it has not been
+             allocated yet. */
+          if (new_operand_1 == NULL) {
+            if (alloc_con_1 != NULL) {
+              new_operand_1 = alloc_node_for_allocated_constant(alloc_con_1);
+            } else {
+              new_operand_1 = alloc_node_for_constant(&constant_1);
+            }  /* if */
+          }  /* if */
+          if (operand_2 != NULL) {
+            if (new_operand_2 == NULL) {
+              if (alloc_con_2 != NULL) {
+                new_operand_2 = alloc_node_for_allocated_constant(alloc_con_2);
               } else {
-                new_operand_1 = alloc_node_for_constant(&constant_1);
+                new_operand_2 = alloc_node_for_constant(&constant_2);
               }  /* if */
             }  /* if */
-            if (operand_2 != NULL) {
-              if (new_operand_2 == NULL) {
-                if (alloc_con_2 != NULL) {
-                  new_operand_2=alloc_node_for_allocated_constant(alloc_con_2);
-                } else {
-                  new_operand_2 = alloc_node_for_constant(&constant_2);
-                }  /* if */
-              }  /* if */
-              if (operand_3 != NULL) {
-                if (new_operand_3 == NULL) {
-                  if (alloc_con_3 != NULL) {
-                    new_operand_3 =
+            if (operand_3 != NULL) {
+              if (new_operand_3 == NULL) {
+                if (alloc_con_3 != NULL) {
+                  new_operand_3 =
                                 alloc_node_for_allocated_constant(alloc_con_3);
-                  } else {
-                    new_operand_3 = alloc_node_for_constant(&constant_3);
-                  }  /* if */
+                } else {
+                  new_operand_3 = alloc_node_for_constant(&constant_3);
                 }  /* if */
               }  /* if */
             }  /* if */
-            /* Link the operand expressions together and create a new
-               expression node. */
-            new_operand_1->next = new_operand_2;
-            if (new_operand_2 != NULL) {
-              new_operand_2->next = new_operand_3;
-            }  /* if */
-            expr_copy = make_operator_node(op, expr->type, new_operand_1);
           }  /* if */
+          /* Link the operand expressions together and create a new
+             expression node. */
+          new_operand_1->next = new_operand_2;
+          if (new_operand_2 != NULL) {
+            new_operand_2->next = new_operand_3;
+          }  /* if */
+          expr_copy = make_operator_node(op, expr->type, new_operand_1);
         }  /* if */
       }
       break;

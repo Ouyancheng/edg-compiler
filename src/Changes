@@ -1,5 +1,16 @@
 Version 2.41
 
+1/26/99   Abort on incomplete explicit template argument list
+
+An abort on processing a function call that includes an explicit template
+argument list that is incomplete is now fixed.
+
+  template <int I> struct A { A(int); };
+  template <int I, char J> void f( A < J * 12.34 >) {}
+  void g() {
+    f<'x'>(1);  // Gets error now, not abort.
+  }
+
 1/26/99   &T::x now allowed, where T is a template parameter
 
 Taking the address of a member of a class indicated by a template
