@@ -2902,6 +2902,11 @@ associated template.
     template_sym = sym->variant.routine.instance_ptr->template_sym;
     tssp = template_supplement_for_symbol(template_sym);
     result = cache_for_template(tssp)->tokens.first_token != NULL;
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (rp->aliased_routine != NULL) {
+    /* Consider an alias defined if the entity it aliases is defined. */
+    result = routine_defined(rp->aliased_routine);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (routine_has_been_defined(rp)) {
     result = TRUE;
   }  /* if */
@@ -3434,12 +3439,7 @@ NULL.
            a reference in, say, a sizeof operation doesn't count. */
         if ((rout_ptr->storage_class == (a_storage_class)sc_static ||
              is_member_of_unnamed_namespace(&rout_ptr->source_corresp)) &&
-             !routine_defined(rout_ptr)
-#if GNU_EXTENSIONS_ALLOWED
-             && (rout_ptr->aliased_routine == NULL ||
-                 !routine_defined(rout_ptr->aliased_routine))
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                                                             ) {
+             !routine_defined(rout_ptr)) {
           if (C_dialect == C_dialect_pcc) {
             /* In pcc mode, just change the routine to extern. */
             rout_ptr->storage_class = (a_storage_class)sc_extern;
