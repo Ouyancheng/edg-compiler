@@ -2599,7 +2599,7 @@ a memory fault.
 
 #if __BSD__
 #include <sys/time.h>
-#endif __BSD__
+#endif /* __BSD__ */
 #include <sys/resource.h>
 
 void set_cpu_time_limit(int	seconds)
