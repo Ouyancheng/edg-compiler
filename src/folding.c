@@ -410,14 +410,14 @@ static void conv_float_to_integer(a_constant        *old_constant,
 			          a_constant        *new_constant,
 			          an_error_code     *err_code,
 				  an_error_severity *err_severity,
-                                  a_boolean         *depends_on_rounding_mode)
+                                  a_boolean         *depends_on_fp_mode)
 /*
 Convert a float of some kind (in *old_constant) to an integer constant
 in *new_constant, with type as indicated therein.  Return *err_code and
 *err_severity set to indicate any error/warning detected, or
-*err_code == ec_no_error if everything went fine.  *depends_on_rounding_mode
+*err_code == ec_no_error if everything went fine.  *depends_on_fp_mode
 is returned TRUE if the result has been determined but might be different
-depending on the rounding mode.
+depending on the floating-point mode.
 */
 {
   a_host_large_integer    int_value;
@@ -454,13 +454,13 @@ depending on the rounding mode.
   if (is_signed) {
     /* Destination is a signed integer. */
     fp_to_host_large_integer(float_kind, float_value,
-                             &int_value, &err, depends_on_rounding_mode);
+                             &int_value, &err, depends_on_fp_mode);
     if (!err) set_integer_value(&result_value, int_value);
   } else {
     /* Destination is an unsigned integer. */
     fp_to_host_large_unsigned(float_kind, float_value,
                               &unsigned_int_value, &err,
-                              depends_on_rounding_mode);
+                              depends_on_fp_mode);
     if (!err) set_unsigned_integer_value(&result_value, unsigned_int_value);
   }  /* if */
 #if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
@@ -493,14 +493,14 @@ static void conv_float_to_float(a_constant           *old_constant,
 			        a_constant           *new_constant,
 			        an_error_code        *err_code,
 				an_error_severity    *err_severity,
-                                a_boolean            *depends_on_rounding_mode)
+                                a_boolean            *depends_on_fp_mode)
 /*
 Convert a float of some kind (in *old_constant) to a float constant
 in *new_constant, with type as indicated therein.  Return *err_code and
 *err_severity set to indicate any error/warning detected, or
-*err_code == ec_no_error if everything went fine.  *depends_on_rounding_mode
+*err_code == ec_no_error if everything went fine.  *depends_on_fp_mode
 is returned TRUE if the result has been determined but might be different
-depending on the rounding mode.
+depending on the floating-point mode.
 */
 {
   a_boolean            err;
@@ -544,7 +544,7 @@ depending on the rounding mode.
             /* Float to complex. */
             fp_change_kind(&old_constant->variant.float_value, old_kind,
                            &new_constant->variant.complex_value->real,
-                           new_kind, &err, depends_on_rounding_mode);
+                           new_kind, &err, depends_on_fp_mode);
             fp_host_large_integer_to_float(
                                     new_kind, (a_host_large_integer)0,
                                     &new_constant->variant.complex_value->imag,
@@ -571,7 +571,7 @@ depending on the rounding mode.
                                     &err);
             fp_change_kind(&old_constant->variant.float_value, old_kind,
                            &new_constant->variant.complex_value->imag,
-                           new_kind, &err, depends_on_rounding_mode);
+                           new_kind, &err, depends_on_fp_mode);
             break;
           default:
             unexpected_condition_str(
@@ -584,13 +584,13 @@ depending on the rounding mode.
             /* Complex to float.  Retain the real part only. */
             fp_change_kind(&old_constant->variant.complex_value->real,
                            old_kind, &new_constant->variant.float_value,
-                           new_kind, &err, depends_on_rounding_mode);
+                           new_kind, &err, depends_on_fp_mode);
             break;
           case tk_imaginary:
             /* Complex to imaginary.  Retain the imaginary part only. */
             fp_change_kind(&old_constant->variant.complex_value->imag,
                            old_kind, &new_constant->variant.float_value,
-                           new_kind, &err, depends_on_rounding_mode);
+                           new_kind, &err, depends_on_fp_mode);
             break;
           case tk_complex:
             /* Complex to complex. */
@@ -599,11 +599,11 @@ depending on the rounding mode.
             fp_change_kind(&old_constant->variant.complex_value->real,
                            old_kind,
                            &new_constant->variant.complex_value->real,
-                           new_kind, &err, depends_on_rounding_mode);
+                           new_kind, &err, depends_on_fp_mode);
             fp_change_kind(&old_constant->variant.complex_value->imag,
                            old_kind,
                            &new_constant->variant.complex_value->imag,
-                           new_kind, &err, depends_on_rounding_mode);
+                           new_kind, &err, depends_on_fp_mode);
             break;
           default:
             unexpected_condition_str(
@@ -621,7 +621,7 @@ depending on the rounding mode.
        imaginary constants). */
     fp_change_kind(&old_constant->variant.float_value, old_kind,
                    &new_constant->variant.float_value, new_kind,
-                   &err, depends_on_rounding_mode);
+                   &err, depends_on_fp_mode);
   }  /* if */
   if (err) {
     *err_code = ec_float_to_float_conversion;
@@ -1450,7 +1450,7 @@ to the constant is maintained, by adding a cast if necessary.
   a_constant        new_constant;
   an_error_code     err_code;
   an_error_severity err_severity;
-  a_boolean         depends_on_rounding_mode = FALSE;
+  a_boolean         depends_on_fp_mode = FALSE;
 
   db_enter(5, "type_change_constant");
   *did_not_fold = FALSE;
@@ -1579,7 +1579,7 @@ to the constant is maintained, by adding a cast if necessary.
           /* Converting float to integer. */
           conv_float_to_integer(constant, &new_constant,
                                 &err_code, &err_severity,
-                                &depends_on_rounding_mode);
+                                &depends_on_fp_mode);
           break;
         case tk_float:
           /* Converting float to float. */
@@ -1591,7 +1591,7 @@ to the constant is maintained, by adding a cast if necessary.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
           conv_float_to_float(constant, &new_constant,
                               &err_code, &err_severity,
-                              &depends_on_rounding_mode);
+                              &depends_on_fp_mode);
           break;
         default:
           unexpected_condition_str("type_change_constant: float to bad type");
@@ -1605,7 +1605,7 @@ to the constant is maintained, by adding a cast if necessary.
           /* Converting imaginary to integer (produces zero). */
           conv_float_to_integer(constant, &new_constant,
                                 &err_code, &err_severity,
-                                &depends_on_rounding_mode);
+                                &depends_on_fp_mode);
           break;
         case tk_float:
           /* Converting imaginary to float (produces zero). */
@@ -1615,7 +1615,7 @@ to the constant is maintained, by adding a cast if necessary.
           /* Converting imaginary to complex. */
           conv_float_to_float(constant, &new_constant,
                               &err_code, &err_severity,
-                              &depends_on_rounding_mode);
+                              &depends_on_fp_mode);
           break;
         default:
           unexpected_condition_str(
@@ -1629,7 +1629,7 @@ to the constant is maintained, by adding a cast if necessary.
           /* Converting complex to integer. */
           conv_float_to_integer(constant, &new_constant,
                                 &err_code, &err_severity,
-                                &depends_on_rounding_mode);
+                                &depends_on_fp_mode);
           break;
         case tk_float:
           /* Converting complex to float. */
@@ -1639,7 +1639,7 @@ to the constant is maintained, by adding a cast if necessary.
           /* Converting complex to complex. */
           conv_float_to_float(constant, &new_constant,
                               &err_code, &err_severity,
-                              &depends_on_rounding_mode);
+                              &depends_on_fp_mode);
           break;
         default:
           unexpected_condition_str(
@@ -1735,11 +1735,11 @@ exit:
     issue_folding_diagnostic(err_code, err_severity, constant_context,
                              evaluated_context, did_not_fold,
                              err_pos, &new_constant);
-    if (err_severity == es_error) depends_on_rounding_mode = FALSE;
+    if (err_severity == es_error) depends_on_fp_mode = FALSE;
   }  /* if */
-  if (depends_on_rounding_mode && !constant_context) {
+  if (depends_on_fp_mode && !constant_context) {
     /* In a non-constant context, leave an operation to be done at runtime
-       if its result depends on the floating-point rounding mode. */
+       if its result depends on the floating-point mode. */
     *did_not_fold = TRUE;
   }  /* if */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
@@ -2771,7 +2771,7 @@ static void do_fadd(a_constant        *constant_1,
 		    a_constant        *result,
 		    an_error_code     *err_code,
 		    an_error_severity *err_severity,
-                    a_boolean         *depends_on_rounding_mode)
+                    a_boolean         *depends_on_fp_mode)
 /*
 Do the addition operation on all types of float and imaginary values.
 */
@@ -2789,7 +2789,7 @@ Do the addition operation on all types of float and imaginary values.
          &constant_1->variant.float_value,
          &constant_2->variant.float_value,
          &result->variant.float_value, &err,
-         depends_on_rounding_mode);
+         depends_on_fp_mode);
   if (err) {
     *err_code = ec_bad_float_operation_result;
     *err_severity = es_error;
@@ -2806,7 +2806,7 @@ static void do_fsubtract(a_constant        *constant_1,
 		         a_constant        *result,
 		         an_error_code     *err_code,
 			 an_error_severity *err_severity,
-                         a_boolean         *depends_on_rounding_mode)
+                         a_boolean         *depends_on_fp_mode)
 /*
 Do the subtraction operation on all types of float and imaginary values.
 */
@@ -2824,7 +2824,7 @@ Do the subtraction operation on all types of float and imaginary values.
               &constant_1->variant.float_value,
               &constant_2->variant.float_value,
               &result->variant.float_value, &err,
-              depends_on_rounding_mode);
+              depends_on_fp_mode);
   if (err) {
     *err_code = ec_bad_float_operation_result;
     *err_severity = es_error;
@@ -2841,7 +2841,7 @@ static void do_fmultiply(a_constant        *constant_1,
                          a_constant        *result,
                          an_error_code     *err_code,
                          an_error_severity *err_severity,
-                         a_boolean         *depends_on_rounding_mode)
+                         a_boolean         *depends_on_fp_mode)
 /*
 Do the multiplication operation on all types of float.
 */
@@ -2867,7 +2867,7 @@ Do the multiplication operation on all types of float.
               &constant_1->variant.float_value,
               &constant_2->variant.float_value,
               &result->variant.float_value, &err,
-              depends_on_rounding_mode);
+              depends_on_fp_mode);
   if (err) {
     *err_code = ec_bad_float_operation_result;
     *err_severity = es_error;
@@ -2884,7 +2884,7 @@ static void do_fdivide(a_constant        *constant_1,
 		       a_constant        *result,
 		       an_error_code     *err_code,
 		       an_error_severity *err_severity,
-                       a_boolean         *depends_on_rounding_mode)
+                       a_boolean         *depends_on_fp_mode)
 /*
 Do the division operation on all types of float.
 */
@@ -2916,7 +2916,7 @@ Do the division operation on all types of float.
               &constant_1->variant.float_value,
               &constant_2->variant.float_value,
               &result->variant.float_value, &err,
-              depends_on_rounding_mode);
+              depends_on_fp_mode);
     if (err) {
       *err_code = ec_bad_float_operation_result;
       *err_severity = es_error;
@@ -3038,12 +3038,12 @@ static void do_xadd(a_constant        *constant_1,
 		    a_constant        *result,
 		    an_error_code     *err_code,
 		    an_error_severity *err_severity,
-                    a_boolean         *depends_on_rounding_mode)
+                    a_boolean         *depends_on_fp_mode)
 /*
 Do the addition operation on all types of complex.
 */
 {
-  a_boolean    err, accum_err = FALSE, depends_on_rounding;
+  a_boolean    err, accum_err = FALSE, depends_on_mode;
   a_type_ptr   constant_type = skip_typerefs(constant_1->type);
   a_float_kind float_kind = constant_type->variant.float_kind;
 
@@ -3055,16 +3055,16 @@ Do the addition operation on all types of complex.
          &constant_1->variant.complex_value->real,
          &constant_2->variant.complex_value->real,
          &result->variant.complex_value->real, &err,
-         &depends_on_rounding);
+         &depends_on_mode);
   accum_err |= err;
-  *depends_on_rounding_mode = depends_on_rounding;
+  *depends_on_fp_mode = depends_on_mode;
   fp_add(float_kind,
          &constant_1->variant.complex_value->imag,
          &constant_2->variant.complex_value->imag,
          &result->variant.complex_value->imag, &err,
-         &depends_on_rounding);
+         &depends_on_mode);
   accum_err |= err;
-  *depends_on_rounding_mode |= depends_on_rounding;
+  *depends_on_fp_mode |= depends_on_mode;
   if (accum_err) {
     *err_code = ec_bad_complex_operation_result;
     *err_severity = es_error;
@@ -3081,12 +3081,12 @@ static void do_xsubtract(a_constant        *constant_1,
                          a_constant        *result,
                          an_error_code     *err_code,
                          an_error_severity *err_severity,
-                         a_boolean         *depends_on_rounding_mode)
+                         a_boolean         *depends_on_fp_mode)
 /*
 Do the subtraction operation on all types of complex.
 */
 {
-  a_boolean    err, accum_err = FALSE, depends_on_rounding;
+  a_boolean    err, accum_err = FALSE, depends_on_mode;
   a_type_ptr   constant_type = skip_typerefs(constant_1->type);
   a_float_kind float_kind = constant_type->variant.float_kind;
 
@@ -3098,16 +3098,16 @@ Do the subtraction operation on all types of complex.
               &constant_1->variant.complex_value->real,
               &constant_2->variant.complex_value->real,
               &result->variant.complex_value->real, &err,
-              &depends_on_rounding);
+              &depends_on_mode);
   accum_err |= err;
-  *depends_on_rounding_mode = depends_on_rounding;
+  *depends_on_fp_mode = depends_on_mode;
   fp_subtract(float_kind,
               &constant_1->variant.complex_value->imag,
               &constant_2->variant.complex_value->imag,
               &result->variant.complex_value->imag, &err,
-              &depends_on_rounding);
+              &depends_on_mode);
   accum_err |= err;
-  *depends_on_rounding_mode |= depends_on_rounding;
+  *depends_on_fp_mode |= depends_on_mode;
   if (accum_err) {
     *err_code = ec_bad_complex_operation_result;
     *err_severity = es_error;
@@ -3124,12 +3124,12 @@ static void do_xmultiply(a_constant        *constant_1,
                          a_constant        *result,
                          an_error_code     *err_code,
                          an_error_severity *err_severity,
-                         a_boolean         *depends_on_rounding_mode)
+                         a_boolean         *depends_on_fp_mode)
 /*
 Do the multiplication operation on all types of complex.
 */
 {
-  a_boolean                err, accum_err = FALSE, depends_on_rounding;
+  a_boolean                err, accum_err = FALSE, depends_on_mode;
   a_type_ptr               constant_type = skip_typerefs(constant_1->type);
   a_float_kind             float_kind = constant_type->variant.float_kind;
   an_internal_float_value  temp_value;
@@ -3148,40 +3148,40 @@ Do the multiplication operation on all types of complex.
               &constant_1->variant.complex_value->real,
               &constant_2->variant.complex_value->real,
               &result->variant.complex_value->real, &err,
-              &depends_on_rounding);
+              &depends_on_mode);
   accum_err |= err;
-  *depends_on_rounding_mode = depends_on_rounding;
+  *depends_on_fp_mode = depends_on_mode;
   fp_multiply(float_kind,
               &constant_1->variant.complex_value->imag,
               &constant_2->variant.complex_value->imag,
               &temp_value, &err,
-              &depends_on_rounding);
+              &depends_on_mode);
   accum_err |= err;
-  *depends_on_rounding_mode |= depends_on_rounding;
+  *depends_on_fp_mode |= depends_on_mode;
   fp_subtract(float_kind, &result->variant.complex_value->real, &temp_value,
               &result->variant.complex_value->real,
-              &err, &depends_on_rounding);
+              &err, &depends_on_mode);
   accum_err |= err;
-  *depends_on_rounding_mode |= depends_on_rounding;
+  *depends_on_fp_mode |= depends_on_mode;
   /* Compute imaginary part of the result. */
   fp_multiply(float_kind,
               &constant_1->variant.complex_value->real,
               &constant_2->variant.complex_value->imag,
               &result->variant.complex_value->imag, &err,
-              &depends_on_rounding);
+              &depends_on_mode);
   accum_err |= err;
-  *depends_on_rounding_mode |= depends_on_rounding;
+  *depends_on_fp_mode |= depends_on_mode;
   fp_multiply(float_kind,
               &constant_1->variant.complex_value->imag,
               &constant_2->variant.complex_value->real,
-              &temp_value, &err, &depends_on_rounding);
+              &temp_value, &err, &depends_on_mode);
   accum_err |= err;
-  *depends_on_rounding_mode |= depends_on_rounding;
+  *depends_on_fp_mode |= depends_on_mode;
   fp_add(float_kind, &result->variant.complex_value->imag, &temp_value,
          &result->variant.complex_value->imag,
-         &err, &depends_on_rounding);
+         &err, &depends_on_mode);
   accum_err |= err;
-  *depends_on_rounding_mode |= depends_on_rounding;
+  *depends_on_fp_mode |= depends_on_mode;
   if (accum_err) {
     *err_code = ec_bad_complex_operation_result;
     *err_severity = es_error;
@@ -3198,12 +3198,12 @@ static void do_xdivide(a_constant        *constant_1,
                        a_constant        *result,
                        an_error_code     *err_code,
                        an_error_severity *err_severity,
-                       a_boolean         *depends_on_rounding_mode)
+                       a_boolean         *depends_on_fp_mode)
 /*
 Do the division operation on all types of complex.
 */
 {
-  a_boolean                err, accum_err = FALSE, depends_on_rounding;
+  a_boolean                err, accum_err = FALSE, depends_on_mode;
   a_type_ptr               constant_type = skip_typerefs(constant_1->type);
   a_float_kind             float_kind = constant_type->variant.float_kind;
   
@@ -3221,19 +3221,19 @@ Do the division operation on all types of complex.
   fp_multiply(float_kind,
               &constant_2->variant.complex_value->real,
               &constant_2->variant.complex_value->real,
-              &quad_norm, &err, &depends_on_rounding);
+              &quad_norm, &err, &depends_on_mode);
   accum_err |= err;
-  *depends_on_rounding_mode = depends_on_rounding;
+  *depends_on_fp_mode = depends_on_mode;
   fp_multiply(float_kind,
               &constant_2->variant.complex_value->imag,
               &constant_2->variant.complex_value->imag,
-              &temp_value, &err, &depends_on_rounding);
+              &temp_value, &err, &depends_on_mode);
   accum_err |= err;
-  *depends_on_rounding_mode |= depends_on_rounding;
+  *depends_on_fp_mode |= depends_on_mode;
   fp_add(float_kind, &quad_norm, &temp_value, &quad_norm,
-         &err, &depends_on_rounding);
+         &err, &depends_on_mode);
   accum_err |= err;
-  *depends_on_rounding_mode |= depends_on_rounding;
+  *depends_on_fp_mode |= depends_on_mode;
   if (!IEEE_handling_on_float_operation_exceptions &&
       fp_is_zero_constant(float_kind, &quad_norm)) {
     *err_code = ec_divide_by_zero;
@@ -3244,50 +3244,50 @@ Do the division operation on all types of complex.
                 &constant_1->variant.complex_value->real,
                 &constant_2->variant.complex_value->real,
                 &result->variant.complex_value->real, &err,
-                &depends_on_rounding);
+                &depends_on_mode);
     accum_err |= err;
-    *depends_on_rounding_mode |= depends_on_rounding;
+    *depends_on_fp_mode |= depends_on_mode;
     fp_multiply(float_kind,
                 &constant_1->variant.complex_value->imag,
                 &constant_2->variant.complex_value->imag,
                 &temp_value, &err,
-                &depends_on_rounding);
+                &depends_on_mode);
     accum_err |= err;
-    *depends_on_rounding_mode |= depends_on_rounding;
+    *depends_on_fp_mode |= depends_on_mode;
     fp_add(float_kind, &result->variant.complex_value->real, &temp_value,
            &result->variant.complex_value->real,
-           &err, &depends_on_rounding);
+           &err, &depends_on_mode);
     accum_err |= err;
-    *depends_on_rounding_mode |= depends_on_rounding;
+    *depends_on_fp_mode |= depends_on_mode;
     fp_divide(float_kind, &result->variant.complex_value->real, &quad_norm,
               &result->variant.complex_value->real,
-              &err, &depends_on_rounding);
+              &err, &depends_on_mode);
     accum_err |= err;
-    *depends_on_rounding_mode |= depends_on_rounding;
+    *depends_on_fp_mode |= depends_on_mode;
     /* Compute imaginary part of the result. */
     fp_multiply(float_kind,
                 &constant_1->variant.complex_value->real,
                 &constant_2->variant.complex_value->imag,
                 &result->variant.complex_value->imag, &err,
-                &depends_on_rounding);
+                &depends_on_mode);
     accum_err |= err;
-    *depends_on_rounding_mode |= depends_on_rounding;
+    *depends_on_fp_mode |= depends_on_mode;
     fp_multiply(float_kind,
                 &constant_1->variant.complex_value->imag,
                 &constant_2->variant.complex_value->real,
-                &temp_value, &err, &depends_on_rounding);
+                &temp_value, &err, &depends_on_mode);
     accum_err |= err;
-    *depends_on_rounding_mode |= depends_on_rounding;
+    *depends_on_fp_mode |= depends_on_mode;
     fp_subtract(float_kind, &temp_value, &result->variant.complex_value->imag,
                 &result->variant.complex_value->imag,
-                &err, &depends_on_rounding);
+                &err, &depends_on_mode);
     accum_err |= err;
-    *depends_on_rounding_mode |= depends_on_rounding;
+    *depends_on_fp_mode |= depends_on_mode;
     fp_divide(float_kind, &result->variant.complex_value->imag, &quad_norm,
               &result->variant.complex_value->imag,
-              &err, &depends_on_rounding);
+              &err, &depends_on_mode);
     accum_err |= err;
-    *depends_on_rounding_mode |= depends_on_rounding;
+    *depends_on_fp_mode |= depends_on_mode;
     if (accum_err) {
       *err_code = ec_bad_complex_operation_result;
       *err_severity = es_error;
@@ -3358,7 +3358,7 @@ static void do_jmultiply(a_constant        *constant_1,
                          a_constant        *result,
                          an_error_code     *err_code,
                          an_error_severity *err_severity,
-                         a_boolean         *depends_on_rounding_mode)
+                         a_boolean         *depends_on_fp_mode)
 /*
 Do the multiplication operation on two imaginary numbers (any precision).
 */
@@ -3375,7 +3375,7 @@ Do the multiplication operation on two imaginary numbers (any precision).
               &constant_1->variant.float_value,
               &constant_2->variant.float_value,
               &result->variant.float_value, &err,
-              depends_on_rounding_mode);
+              depends_on_fp_mode);
   accum_err |= err;
   fp_negate(float_kind, &result->variant.float_value,
             &result->variant.float_value, &err);
@@ -3396,7 +3396,7 @@ static void do_jdivide(a_constant        *constant_1,
                        a_constant        *result,
                        an_error_code     *err_code,
                        an_error_severity *err_severity,
-                       a_boolean         *depends_on_rounding_mode)
+                       a_boolean         *depends_on_fp_mode)
 /*
 Do the division of a real number by an imaginary number (any precision).
 */
@@ -3419,7 +3419,7 @@ Do the division of a real number by an imaginary number (any precision).
               &constant_1->variant.float_value,
               &constant_2->variant.float_value,
               &result->variant.float_value, &err,
-              depends_on_rounding_mode);
+              depends_on_fp_mode);
     accum_err |= err;
     fp_negate(float_kind, &result->variant.float_value,
               &result->variant.float_value, &err);
@@ -4013,7 +4013,7 @@ as the position for any diagnostics issued.
 {
   an_error_code     err_code;
   an_error_severity err_severity;
-  a_boolean         depends_on_rounding_mode = FALSE;
+  a_boolean         depends_on_fp_mode = FALSE;
 
 
   db_enter(5, "binary_operation");
@@ -4172,19 +4172,19 @@ as the position for any diagnostics issued.
           break;
         case eok_fadd:
           do_fadd(constant_1, constant_2, result, &err_code, &err_severity,
-                  &depends_on_rounding_mode);
+                  &depends_on_fp_mode);
           break;
         case eok_fsubtract:
           do_fsubtract(constant_1, constant_2, result, &err_code,
-                       &err_severity, &depends_on_rounding_mode);
+                       &err_severity, &depends_on_fp_mode);
           break;
         case eok_fmultiply:
           do_fmultiply(constant_1, constant_2, result, &err_code,
-                       &err_severity, &depends_on_rounding_mode);
+                       &err_severity, &depends_on_fp_mode);
           break;
         case eok_fdivide:
           do_fdivide(constant_1, constant_2, result, &err_code, &err_severity,
-                     &depends_on_rounding_mode);
+                     &depends_on_fp_mode);
           break;
         case eok_feq:
         case eok_fne:
@@ -4198,19 +4198,19 @@ as the position for any diagnostics issued.
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xadd:
           do_xadd(constant_1, constant_2, result, &err_code, &err_severity,
-                  &depends_on_rounding_mode);
+                  &depends_on_fp_mode);
           break;
         case eok_xsubtract:
           do_xsubtract(constant_1, constant_2, result,
-                       &err_code, &err_severity, &depends_on_rounding_mode);
+                       &err_code, &err_severity, &depends_on_fp_mode);
           break;
         case eok_xmultiply:
           do_xmultiply(constant_1, constant_2, result,
-                       &err_code, &err_severity, &depends_on_rounding_mode);
+                       &err_code, &err_severity, &depends_on_fp_mode);
           break;
         case eok_xdivide:
           do_xdivide(constant_1, constant_2, result,
-                     &err_code, &err_severity, &depends_on_rounding_mode);
+                     &err_code, &err_severity, &depends_on_fp_mode);
           break;
         case eok_xeq:
         case eok_xne:
@@ -4218,11 +4218,11 @@ as the position for any diagnostics issued.
           break;
         case eok_jmultiply:
           do_jmultiply(constant_1, constant_2, result,
-                       &err_code, &err_severity, &depends_on_rounding_mode);
+                       &err_code, &err_severity, &depends_on_fp_mode);
           break;
         case eok_jdivide:
           do_jdivide(constant_1, constant_2, result,
-                     &err_code, &err_severity, &depends_on_rounding_mode);
+                     &err_code, &err_severity, &depends_on_fp_mode);
           break;
         case eok_fjadd:
         case eok_jfadd:
@@ -4268,7 +4268,7 @@ as the position for any diagnostics issued.
       issue_folding_diagnostic(err_code, err_severity, constant_context,
                                evaluated_context, did_not_fold,
                                err_pos, result);
-      if (err_severity == es_error) depends_on_rounding_mode = FALSE;
+      if (err_severity == es_error) depends_on_fp_mode = FALSE;
     }  /* if */
     /* If either constant was formed using operations that are not allowed
        in forming a null pointer constant, the result cannot be used as
@@ -4280,9 +4280,9 @@ as the position for any diagnostics issued.
                         constant_2->null_pointer_constant_ruled_out ||
                         constant_2->kind != (a_constant_repr_kind)ck_integer ||
                         constant_2->implicit_cast;
-    if (depends_on_rounding_mode && !constant_context) {
+    if (depends_on_fp_mode && !constant_context) {
       /* In a non-constant context, leave an operation to be done at runtime
-         if its result depends on the floating-point rounding mode. */
+         if its result depends on the floating-point mode. */
       *did_not_fold = TRUE;
     }  /* if */
   }  /* if */

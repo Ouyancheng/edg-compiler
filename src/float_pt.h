@@ -37,7 +37,7 @@ extern void fp_change_kind(an_internal_float_value *old_value,
                            an_internal_float_value *new_value,
                            a_float_kind            new_kind,
                            a_boolean               *err,
-                           a_boolean               *depends_on_rounding_mode);
+                           a_boolean               *depends_on_fp_mode);
 
 extern
 void fp_hex_string_to_float(a_float_kind		kind,
@@ -81,7 +81,7 @@ extern void fp_to_host_large_integer(
 			an_internal_float_value *float_value,
 			a_host_large_integer    *int_value,
 			a_boolean               *err,
-			a_boolean               *depends_on_rounding_mode);
+			a_boolean               *depends_on_fp_mode);
 
 #ifdef CFE
 extern void fp_to_host_large_unsigned(
@@ -89,7 +89,7 @@ extern void fp_to_host_large_unsigned(
 			an_internal_float_value *float_value,
 			a_host_large_unsigned   *unsigned_value,
 			a_boolean               *err,
-			a_boolean               *depends_on_rounding_mode);
+			a_boolean               *depends_on_fp_mode);
 #endif /* ifdef CFE */
 
 extern a_boolean fp_is_zero_constant(a_float_kind            kind,
@@ -100,14 +100,14 @@ extern void fp_add(a_float_kind            kind,
                    an_internal_float_value *value_2,
                    an_internal_float_value *result,
                    a_boolean               *err,
-                   a_boolean               *depends_on_rounding_mode);
+                   a_boolean               *depends_on_fp_mode);
 
 extern void fp_subtract(a_float_kind            kind,
                         an_internal_float_value *value_1,
                         an_internal_float_value *value_2,
                         an_internal_float_value *result,
                         a_boolean               *err,
-                        a_boolean               *depends_on_rounding_mode);
+                        a_boolean               *depends_on_fp_mode);
 
 extern void fp_negate(a_float_kind            kind,
                       an_internal_float_value *value_1,
@@ -119,14 +119,14 @@ extern void fp_multiply(a_float_kind            kind,
                         an_internal_float_value *value_2,
                         an_internal_float_value *result,
                         a_boolean               *err,
-                        a_boolean               *depends_on_rounding_mode);
+                        a_boolean               *depends_on_fp_mode);
 
 extern void fp_divide(a_float_kind            kind,
                       an_internal_float_value *value_1,
                       an_internal_float_value *value_2,
                       an_internal_float_value *result,
                       a_boolean               *err,
-                      a_boolean               *depends_on_rounding_mode);
+                      a_boolean               *depends_on_fp_mode);
 
 extern int fp_compare(a_float_kind            kind,
                       an_internal_float_value *float_value_1,

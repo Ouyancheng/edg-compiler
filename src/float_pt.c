@@ -646,11 +646,11 @@ void fp_change_kind(an_internal_float_value *old_value,
                     an_internal_float_value *new_value,
                     a_float_kind            new_kind,
                     a_boolean               *err,
-                    a_boolean               *depends_on_rounding_mode)
+                    a_boolean               *depends_on_fp_mode)
 /*
 Move *old_value to *new_value, changing the float kind from old_kind to
 new_kind.  If there is an error, return *err TRUE.  If the result
-depends on the rounding mode, *depends_on_rounding_mode is returned TRUE
+depends on the floating-point mode, *depends_on_fp_mode is returned TRUE
 (*new_value is set anyway).
 */
 {
@@ -662,7 +662,7 @@ depends on the rounding mode, *depends_on_rounding_mode is returned TRUE
      conversion.  If a conversion is required, we can assume the value
      is a floating-point constant. */
   *err = FALSE;
-  *depends_on_rounding_mode = FALSE;
+  *depends_on_fp_mode = FALSE;
   if (old_kind != new_kind) {
     /* There is a change of size.  Fetch the old, convert, store the new. */
     temp = fetch_host_fp_value(old_kind, old_value);
@@ -885,9 +885,9 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
         /* make_fp_infinity returns a float.  If we need a different kind,
            convert the infinity to the proper kind. */
         a_boolean	dummy_err;
-        a_boolean	depends_on_rounding_mode;
+        a_boolean	depends_on_fp_mode;
         fp_change_kind(float_value, (a_float_kind)fk_float, float_value,
-                       kind, &dummy_err, &depends_on_rounding_mode);
+                       kind, &dummy_err, &depends_on_fp_mode);
       }  /* if */
     }  /* if */
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
@@ -1418,17 +1418,17 @@ void fp_to_host_large_integer(
 			an_internal_float_value *float_value,
 			a_host_large_integer    *int_value,
 			a_boolean               *err,
-			a_boolean               *depends_on_rounding_mode)
+			a_boolean               *depends_on_fp_mode)
 /*
 Convert float_value to a host large integer value in int_value.  Return
-*err TRUE if there is some error.  If the result depends on the rounding mode,
-*depends_on_rounding_mode is returned TRUE (*int_value is set anyway).
+*err TRUE if there is some error.  If the result depends on the floating-point
+mode, *depends_on_fp_mode is returned TRUE (*int_value is set anyway).
 */
 {
   a_host_fp_value temp;
 
   *err = FALSE;
-  *depends_on_rounding_mode = FALSE;
+  *depends_on_fp_mode = FALSE;
   temp = fetch_host_fp_value(kind, float_value);
 #if TARG_HAS_IEEE_FLOATING_POINT
   if (!is_finite(temp)) {
@@ -1453,18 +1453,18 @@ void fp_to_host_large_unsigned(
 			an_internal_float_value *float_value,
 			a_host_large_unsigned   *unsigned_value,
 			a_boolean               *err,
-			a_boolean               *depends_on_rounding_mode)
+			a_boolean               *depends_on_fp_mode)
 /*
 Convert float_value to a host large unsigned value in unsigned_value.
 Return *err TRUE if there is some error.  If the result depends on the
-rounding mode, *depends_on_rounding_mode is returned TRUE
+floating-point mode, *depends_on_fp_mode is returned TRUE
 (*unsigned_value is set anyway).
 */
 {
   a_host_fp_value temp;
 
   *err = FALSE;
-  *depends_on_rounding_mode = FALSE;
+  *depends_on_fp_mode = FALSE;
   temp = fetch_host_fp_value(kind, float_value);
   if (temp > (a_host_fp_value)MAX_HOST_LARGE_UNSIGNED ||
       temp < (a_host_fp_value)0) {
@@ -1494,18 +1494,18 @@ void fp_add(a_float_kind            kind,
             an_internal_float_value *value_2,
             an_internal_float_value *result,
             a_boolean               *err,
-            a_boolean               *depends_on_rounding_mode)
+            a_boolean               *depends_on_fp_mode)
 /*
 Add the floating-point values value_1 and value_2 and put the result in
 result.  The result has kind "kind".  If there is any error, set *err
-to TRUE.  If the result depends on the rounding mode,
-*depends_on_rounding_mode is returned TRUE (*result is set anyway).
+to TRUE.  If the result depends on the floating-point mode,
+*depends_on_fp_mode is returned TRUE (*result is set anyway).
 */
 {
   a_host_fp_value	tempr, temp1, temp2;
 
   *err = FALSE;
-  *depends_on_rounding_mode = FALSE;
+  *depends_on_fp_mode = FALSE;
   temp1 = fetch_host_fp_value(kind, value_1);
   temp2 = fetch_host_fp_value(kind, value_2);
   tempr = temp1 + temp2;
@@ -1518,18 +1518,18 @@ void fp_subtract(a_float_kind            kind,
                  an_internal_float_value *value_2,
                  an_internal_float_value *result,
                  a_boolean               *err,
-                 a_boolean               *depends_on_rounding_mode)
+                 a_boolean               *depends_on_fp_mode)
 /*
 Subtract the floating-point values value_1 and value_2 and put the result in
 result.  The result has kind "kind".  If there is any error, set *err
-to TRUE.  If the result depends on the rounding mode,
-*depends_on_rounding_mode is returned TRUE (*result is set anyway).
+to TRUE.  If the result depends on the floating-point mode,
+*depends_on_fp_mode is returned TRUE (*result is set anyway).
 */
 {
   a_host_fp_value tempr, temp1, temp2;
 
   *err = FALSE;
-  *depends_on_rounding_mode = FALSE;
+  *depends_on_fp_mode = FALSE;
   temp1 = fetch_host_fp_value(kind, value_1);
   temp2 = fetch_host_fp_value(kind, value_2);
   tempr = temp1 - temp2;
@@ -1562,18 +1562,18 @@ void fp_multiply(a_float_kind            kind,
                  an_internal_float_value *value_2,
                  an_internal_float_value *result,
                  a_boolean               *err,
-                 a_boolean               *depends_on_rounding_mode)
+                 a_boolean               *depends_on_fp_mode)
 /*
 Multiply the floating-point values value_1 and value_2 and put the result in
 result.  The result has kind "kind".  If there is any error, set *err
-to TRUE.  If the result depends on the rounding mode,
-*depends_on_rounding_mode is returned TRUE (*result is set anyway).
+to TRUE.  If the result depends on the floating-point mode,
+*depends_on_fp_mode is returned TRUE (*result is set anyway).
 */
 {
   a_host_fp_value tempr, temp1, temp2;
 
   *err = FALSE;
-  *depends_on_rounding_mode = FALSE;
+  *depends_on_fp_mode = FALSE;
   temp1 = fetch_host_fp_value(kind, value_1);
   temp2 = fetch_host_fp_value(kind, value_2);
   tempr = temp1 * temp2;
@@ -1586,18 +1586,18 @@ void fp_divide(a_float_kind            kind,
                an_internal_float_value *value_2,
                an_internal_float_value *result,
                a_boolean               *err,
-               a_boolean               *depends_on_rounding_mode)
+               a_boolean               *depends_on_fp_mode)
 /*
 Divide the floating-point values value_1 and value_2 and put the result in
 result.  The result has kind "kind".  If there is any error, set *err
-to TRUE.  If the result depends on the rounding mode,
-*depends_on_rounding_mode is returned TRUE (*result is set anyway).
+to TRUE.  If the result depends on the floating-point mode,
+*depends_on_fp_mode is returned TRUE (*result is set anyway).
 */
 {
   a_host_fp_value tempr, temp1, temp2;
 
   *err = FALSE;
-  *depends_on_rounding_mode = FALSE;
+  *depends_on_fp_mode = FALSE;
   temp1 = fetch_host_fp_value(kind, value_1);
   temp2 = fetch_host_fp_value(kind, value_2);
 #if !TARG_HAS_IEEE_FLOATING_POINT
