@@ -494,7 +494,8 @@ that do take arguments.
              been issued. */
           if (error_occurred) goto done;
           /* For overflow, issue the message now. */
-          if (ovflo || param_number < 0 || param_number > INT_MAX) {
+          if (ovflo || param_number < 0 ||
+              param_number > INT_MAX) { /*lint !e685*/
             goto error;
           }  /* if */
           /* Remember the value. */
@@ -520,7 +521,8 @@ that do take arguments.
            been issued. */
         if (error_occurred) goto done;
         /* For overflow, issue the message now. */
-        if (ovflo || param_number < 0 || param_number > INT_MAX) {
+        if (ovflo || param_number < 0 ||
+            param_number > INT_MAX) { /*lint !e685*/
           goto error;
         }  /* if */
         /* Remember the value. */
