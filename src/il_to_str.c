@@ -578,7 +578,7 @@ way described by octl.
        "unsigned int".  This is necessary when doing vacuous destructors. */
     str = "unsigned";
   } else if (str == NULL) {
-    str = int_type_name_full(type, octl->gen_compilable_code);
+    str = int_type_name_full(type, (a_boolean)octl->gen_compilable_code);
   }  /* if */
 #if CHECKING
   if (*str == '*'
