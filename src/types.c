@@ -394,7 +394,7 @@ Return TRUE if the given type is a union type.
 {
   tp = skip_typerefs(tp);
   return is_union(tp);
-}  /* is_class_struct_union_type */
+}  /* is_union_type */
 
 
 a_boolean is_illegal_abstract_class_type(a_type_ptr  tp)
@@ -3468,7 +3468,11 @@ is allocated, it is allocated in the file scope.
                                                      param2->default_arg_expr; 
                 comp_param->has_default_arg = param1->has_default_arg ||
                                               param2->has_default_arg;
-               /* Add the parameter type entry to the end of the list. */
+                if (param1->type_involves_template_param ||
+                    param2->type_involves_template_param) {
+                  comp_param->type_involves_template_param = TRUE;
+                }  /* if */
+                /* Add the parameter type entry to the end of the list. */
                 if (comp_param_list == NULL) {
                   comp_param_list = comp_param;
                 } else {
@@ -3799,7 +3803,10 @@ typedef int a_type_tree_traversal_flag_set;
 			/* When the type being traversed is a class type,
 			   apply the predicate check to its template args
                            (if it is a template class). */
-#define TTT_SKIP_TYPEDEFS 0x100
+#define TTT_SKIP_TYPEREFS 0x100
+			/* Skip over typerefs before applying the predicate
+			   check to a given type. */
+#define TTT_SKIP_TYPEDEFS 0x200
 			/* Skip over typedefs before applying the predicate
 			   check to a given type. */
 
@@ -3822,7 +3829,8 @@ care about.
 {
   a_boolean  is_local = FALSE;
 
-  if ((skip_typerefs(type_ptr))->source_corresp.is_local_to_function) {
+  if (type_ptr->source_corresp.is_local_to_function) {
+    check_assertion(type_ptr->kind != (a_type_kind)tk_typeref);
     *force_end_of_traversal = is_local = TRUE;
   }  /* if */
   return is_local;
@@ -3833,30 +3841,31 @@ care about.
    is_or_contains_local_or_unnamed_type. */
 static a_boolean is_unnamed_type;
 static a_boolean is_local_type;
-static a_boolean ttt_is_unnamed_or_local_type(a_type_ptr  type_ptr,
-                                     a_boolean   *force_end_of_traversal)
+static a_boolean ttt_is_unnamed_or_local_type(
+                                           a_type_ptr  type_ptr,
+                                           a_boolean   *force_end_of_traversal)
 /*
 This is a service function designed to be called from traverse_type_tree
 (whence the ttt_ prefix).  It returns TRUE if type_ptr is an unnamed or
-local class, struct, union, or enum.  Note that typedefs are skipped, as
+local class, struct, union, or enum.  Typedefs will have been skipped, as
 they in name mangling; it is the underlying type, not the typedef name
 (which can be declared anywhere) that we really care about.
 */
 {
-  a_type_ptr	tp = skip_typerefs(type_ptr);
-  a_symbol_ptr  sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+  a_symbol_ptr  sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
   a_boolean result = FALSE;
 
-  if (is_class_struct_union_type(tp)) {
+  if (is_class_struct_union(type_ptr)) {
     if (is_unnamed_class_symbol(sym)) {
       is_unnamed_type = *force_end_of_traversal = result = TRUE;
     }  /* if */
-  } else if (is_enum_type(tp)) {
+  } else if (is_enum_type(type_ptr)) {
     if (sym == NULL) {
       is_unnamed_type = *force_end_of_traversal = result = TRUE;
     }  /* if */
   }  /* if */
-  if (tp->source_corresp.is_local_to_function) {
+  if (type_ptr->source_corresp.is_local_to_function) {
+    check_assertion(type_ptr->kind != (a_type_kind)tk_typeref);
     is_local_type = *force_end_of_traversal = result = TRUE;
   }  /* if */
   return result;
@@ -4012,7 +4021,13 @@ its parameters?).
   a_template_arg_ptr  tap;
   a_boolean           status;
 
-  if (flags & TTT_SKIP_TYPEDEFS) type_ptr = skip_typedefs(type_ptr);
+  if (type_ptr->kind == (a_type_kind)tk_typeref) {
+    if (flags & TTT_SKIP_TYPEREFS) {
+      type_ptr = f_skip_typerefs(type_ptr);
+    } else if (flags & TTT_SKIP_TYPEDEFS) {
+      type_ptr = skip_typedefs(type_ptr);
+    }  /* if */
+  }  /* if */
   status = func(type_ptr, &force_end_of_traversal);
   if (force_end_of_traversal) {
     /* The function has determined that no further traversal is appropriate;
@@ -4143,7 +4158,8 @@ union or enum type or is a type tree containing such a type.
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_THIS_PARAM_TYPE |
-                                               TTT_PARAM_TYPES);
+                                               TTT_PARAM_TYPES |
+                                               TTT_SKIP_TYPEREFS);
 
   return (traverse_type_tree(type_ptr, ttt_is_local_type, ttt_flags));
 }  /* is_or_constains_local_type */
@@ -4163,7 +4179,8 @@ which of the conditions is true.
   a_boolean			  result;
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_THIS_PARAM_TYPE |
-                                               TTT_PARAM_TYPES);
+                                               TTT_PARAM_TYPES |
+                                               TTT_SKIP_TYPEREFS);
 
   /* Clear the variables that are used to return status information
      from ttt_is_unnamed_or_local_type. */
@@ -4174,7 +4191,7 @@ which of the conditions is true.
   *is_unnamed = is_unnamed_type;
   *is_local = is_local_type;
   return result;
-}  /* is_or_constains_unnamed_or_local_type */
+}  /* is_or_contains_unnamed_or_local_type */
 
 
 a_boolean is_or_contains_template_param(a_type_ptr  type_ptr)
@@ -4195,6 +4212,25 @@ a template parameter constant.
   return (traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
           ttt_flags));
 }  /* is_or_contains_template_param */
+
+
+void set_type_involves_template_param_flags(a_type_ptr  rout_type)
+/*
+Go through the parameters for rout_type, which is assumed to be a function
+type.  If any of the associated types involves a template parameter, mark
+the param type entry; this is useful for function arg matching.
+*/
+{
+  a_param_type_ptr  ptp;
+
+  check_assertion(is_function_type(rout_type));
+  ptp = skip_typerefs(rout_type)->variant.routine.extra_info->param_type_list;
+  for (; ptp != NULL; ptp = ptp->next) {
+    if (is_or_contains_template_param(ptp->type)) {
+      ptp->type_involves_template_param = TRUE;
+    }  /* if */
+  }  /* for */
+}  /* set_type_involves_template_param_flags */
 
 
 a_boolean is_or_contains_specific_template_param(a_type_ptr  type_ptr,
@@ -4389,20 +4425,20 @@ make_new_type:
       new_type->variant.routine.extra_info->implicit_this_param_type =
                                                      new_this_param_type;
       /* Make copies of the entries on type's param types list, making the
-         appropriate substitutions for template parameter type entries. */
+         appropriate modifications. */
       prev_ptp = NULL;
       for (ptp = type->variant.routine.extra_info->param_type_list;
            ptp != NULL;
            ptp = ptp->next) {
         if (reusable_param_types > 0) {
-          /* We have already called copy_type_with_substitution for this
-             parameter and we know we can reuse the existing type. */
+          /* We have already called modification routine for this parameter
+             and we know we can reuse the existing type. */
           tp = ptp->type;
           --reusable_param_types;
         } else if (first_new_type_for_param_types_list != NULL) {
-          /* We have already called copy_type_with_substitution for this
-             parameter and the type returned contained a substitution; we can
-             use that type. */
+          /* We have already called the modification routine for this param
+             and the type returned contained a substitution; we can use that
+             type. */
           tp = first_new_type_for_param_types_list;
           first_new_type_for_param_types_list = NULL;
         } else {
@@ -4417,6 +4453,10 @@ make_new_type:
             new_ptp->default_arg_expr= copy_expr_tree(ptp->default_arg_expr);
           }  /* if */
         }  /* if */
+        /* Recompute the value of the flag, if necessary. */
+        new_ptp->type_involves_template_param =
+              (ptp->type == tp) ? ptp->type_involves_template_param :
+                                  is_or_contains_template_param(new_ptp->type);
         /* Add the new param type entry to the param types list. */
         if (prev_ptp == NULL) {
           new_type->variant.routine.extra_info->param_type_list = new_ptp;
