@@ -189,7 +189,7 @@ extern void decl_spec_one_time_init(void);
 #define DSO_VIRTUAL 		((a_decl_flag_set)0x4)
 			/* If this bit is set the function specifier "virtual"
 			   was found. */
-#define DSO_FRIEND		 ((a_decl_flag_set)0x8)
+#define DSO_FRIEND		((a_decl_flag_set)0x8)
 			/* If this bit is set the declaration specifier
 			   "friend" was found. */
 #define DSO_DECLARES_SOMETHING	((a_decl_flag_set)0x10)
@@ -210,7 +210,7 @@ extern void decl_spec_one_time_init(void);
 			   semicolon following an class, struct, union, or
 			   enum declaration.  Error reporting is left to the
 			   caller in such cases. */
-#define DSO_NO_DECL_SPECIFIERS	 ((a_decl_flag_set)0x100)
+#define DSO_NO_DECL_SPECIFIERS	((a_decl_flag_set)0x100)
 			/* If this bit is set then no declaration specifiers
 			   were found before the first non-type-name
 			   identifier was encountered. */
@@ -241,7 +241,12 @@ extern void decl_spec_one_time_init(void);
                            linkage specifier; this is only accepted in
                            Microsoft mode (and only under restricted
                            circumstances). */
-#define DSO_TYPENAME		((a_decl_flag_set)0x8000)
+#if UPC_EXTENSIONS_ALLOWED
+#define DSO_UPC_SHARED_LAYOUT   ((a_decl_flag_set)0x8000)
+			/* If this bit is set, a UPC "shared" specifier was
+			   found with an explicit block size. */
+#endif /* UPC_EXTENSIONS_ALLOWED */
+#define DSO_TYPENAME		((a_decl_flag_set)0x10000)
 			/* This bit is set if and only if the keyword typename
 			   introduced an elaborated type specifier (i.e.,
 			   DSO_ELABORATED_TYPE_SPECIFIER must also be set). */

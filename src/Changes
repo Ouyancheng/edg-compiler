@@ -1,5 +1,20 @@
 Version 3.4
 
+1/21/03  UPC mode: Extensions and improvements
+
+Various changes were made to the front end to extend and improve its support
+for UPC constructs.  Specifically:
+
+  - shared [] void * is no longer a valid type (a change introduced
+    for version 1.1 of the UPC specifications).
+  - #pragma upc coherence [save | restore] is now supported.
+  - conversions involving shared UPC types are now more strictly
+    checked (e.g., implicit conversions between shared and non-
+    shared types are now diagnosed).
+  - THREADS-dimensioned arrays are now more strictly checked
+    (e.g., multidimensional array types with multiple THREADS-
+    dependent dimensions are now diagnosed).
+
 1/21/04  Warnings detected during command-line macro processing
 
 During command-line macro processing the front end maps all diagnostics

@@ -2998,7 +2998,8 @@ in the current IL memory region.
       break;
 #if UPC_EXTENSIONS_ALLOWED
     case pk_upc:
-      pp->variant.upc.access_method =
+      pp->variant.upc.kind = (a_upc_pragma_kind)upc_pk_access;
+      pp->variant.upc.value.access_method =
                                    (a_upc_access_method)upc_access_unspecified;
       break;
 #endif /* UPC_EXTENSIONS_ALLOWED */

@@ -4950,12 +4950,14 @@ Returns NULL in case of error.
 
 #if UPC_EXTENSIONS_ALLOWED
 
-static a_upc_block_size scan_upc_block_size(a_basic_type  basic_type,
-                                            a_boolean     *err)
+static a_upc_block_size scan_upc_block_size(a_basic_type     basic_type,
+                                            a_decl_flag_set  *output_flags,
+                                            a_boolean        *err)
 /*
 Scan and return the (constant) integer block size specified on a UPC shared
 type qualifier.  This routine also scans the enclosing brackets.  E.g.,
 	shared[100] int a[35];  // Block size 100
+If a block size was actually specified, the fact is recorded in *output_flags.
 */
 {
   /* If not otherwise specified, the block size will be 1. */
@@ -4963,6 +4965,7 @@ type qualifier.  This routine also scans the enclosing brackets.  E.g.,
 
   if (curr_token == tok_lbracket) {
     /* A shared block specifier. */
+    *output_flags |= DSO_UPC_SHARED_LAYOUT;
     if (basic_type != bt_none) {
       /* Usually one would write "shared [N] int ...", but "int shared [N] ..."
          is possible too.  In the latter case, the brackets are still treated
@@ -5829,7 +5832,7 @@ Returns TRUE if there is an error in the specifiers.
         }  /* if */
         /* Go past "shared" to see if a block size is specified. */
         (void)get_token();
-        block_size = scan_upc_block_size(basic_type, &err);
+        block_size = scan_upc_block_size(basic_type, output_flags, &err);
         if (multiple_shared_seen) {
           /* We've seen multiple UPC shared qualifiers.  Sometimes this
              is accepted with a warning, but if the block sizes are

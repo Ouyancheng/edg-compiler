@@ -11278,6 +11278,14 @@ continue_with_declaration:
       *last_specifier_attribute = declarator_attributes;
       attributes = specifier_attributes;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+      if (upc_mode && (dso_flags & DSO_UPC_SHARED_LAYOUT) &&
+          is_pointer_type(local_type_ptr) && is_void_type(type_ptr)) {
+      /* A layout qualifier cannot be used to qualify the target type of a
+         pointer to shared void. */
+        error(ec_bad_upc_shared_void_pointer_layout_qualifier);
+      } /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
       /* If a parenthesized constructor declarator is scanned, di_flags would
          not have DI_IS_CONSTRUCTOR set, but do_flags would have
          DO_IS_CONSTRUCTOR turned on. Similarly for destructors. Update the

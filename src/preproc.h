@@ -287,6 +287,11 @@ extern void preproc_trans_unit_init(void);
 
 extern void preproc_init(void);
 
+#if DEBUG
+/* Show and return the amount of memory used by preprocessing structures. */
+extern unsigned long show_preproc_space_used(void);
+#endif /* DEBUG*/
+
 #endif /* ifndef PREPROC_H */
 
 /******************************************************************************

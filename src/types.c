@@ -2003,6 +2003,16 @@ and a diagnostic is issued (unless suppress_error is TRUE).
       set_type_kind(array_type, (a_type_kind)tk_error);
       set_type_size(array_type);
       okay = FALSE;
+#if UPC_EXTENSIONS_ALLOWED
+    } else if (upc_mode &&
+               array_type->variant.array.is_threads_dimension &&
+               is_underlying_threads_dimensioned_array_type(elem_type)) {
+      /* There cannot be more than one THREADS dimension in an array */
+      if (!suppress_error) error(ec_duplicate_threads_dim);
+      set_type_kind(array_type, (a_type_kind)tk_error);
+      set_type_size(array_type);
+      okay = FALSE;
+#endif /* UPC_EXTENSIONS_ALLOWED */
     } else {
       /* Now that we know the multiplication will not overflow, compute the
          array size. */
@@ -2533,7 +2543,12 @@ Return TRUE if the two array types have identical bounds.
   } else {
     /* Both arrays have fixed bounds.  Just compare the element counts. */
     identical = (type_1->variant.array.variant.number_of_elements ==
-                 type_2->variant.array.variant.number_of_elements);
+                 type_2->variant.array.variant.number_of_elements)
+#if UPC_EXTENSIONS_ALLOWED
+                && (type_1->variant.array.is_threads_dimension ==
+                    type_2->variant.array.is_threads_dimension)
+#endif /* UPC_EXTENSIONS_ALLOWED */
+                                                               ;
   }  /* if */
   return identical;
 }  /* identical_array_type_level */
@@ -3837,6 +3852,10 @@ can be NULL if the caller does not need this flag returned.
         dest_type = pm_member_type(dest_type);
         source_type = pm_member_type(source_type);
       } else if (is_array_type(dest_type) && is_array_type(source_type) &&
+#if UPC_EXTENSIONS_ALLOWED
+                 dest_type->variant.array.is_threads_dimension ==
+                            source_type->variant.array.is_threads_dimension &&
+#endif /* UPC_EXTENSIONS_ALLOWED */
                  !has_unknown_specified_bound(dest_type) &&
                  !has_unknown_specified_bound(source_type) &&
                  dest_type->variant.array.variant.number_of_elements ==
@@ -4252,7 +4271,44 @@ FALSE.
   }  /* if */
   return result;
 }  /* cast_removes_qualifiers */
-				  
+
+#if UPC_EXTENSIONS_ALLOWED
+
+static a_boolean check_implicit_upc_pointer_conversion(a_type_ptr  src,
+                                                       a_type_ptr  dst)
+/*
+An implicit conversion is attempted from pointer type src to pointer type dst.
+Return FALSE if the conversion is between a pointer to shared and a pointer to
+non-shared, or if the conversion is between to pointer to shared types with
+unequal associated block sized.
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (is_ptr_to_shared_type(dst)) {
+    if (is_ptr_to_shared_type(src)) {
+      a_type_ptr  src_pointed_to = type_pointed_to(src);
+      a_type_ptr  dst_pointed_to = type_pointed_to(dst);
+      if (get_upc_block_size(src_pointed_to) !=
+                                         get_upc_block_size(dst_pointed_to) &&
+          !is_generic_shared_pointer_type(dst) &&
+          !is_generic_shared_pointer_type(src)) {
+        /* Unequal block sizes and neither of the pointers is a generic
+           shared pointer: No implicit conversion. */
+        result = FALSE;
+      }  /* if */
+    } else {
+      /* No implicit conversion of ptr-to-shared to ptr-to-non-shared. */
+      result = FALSE;
+    }  /* if */
+  } else if (is_ptr_to_shared_type(dst)) {
+    /* No implicit conversion of ptr-to-non-shared to ptr-to-shared. */
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* if */
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 a_boolean impl_pointer_conversion(
                          a_type_ptr           source_type,
@@ -4529,6 +4585,11 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         }  /* if */
       }  /* if */
     }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+    if (upc_mode && okay && !qualifiers_checked) {
+      okay = check_implicit_upc_pointer_conversion(source_type, dest_type);
+    }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
     if (okay && !qualifiers_checked && !allow_qualifier_or_eh_mismatch) {
       /* The types pointed to must be such that the type pointed to by the
          left has all the qualifiers of the type pointed to by the right.
@@ -5463,7 +5524,12 @@ well as C++ mode.
          of the pointer.  Issue a warning. */
       *warning_suggested = ec_pointer_conversion_loses_bits;
     }  /* if */
-  } else if (is_integral_or_enum(source_type) && is_pointer(dest_type)) {
+  } else if (is_integral_or_enum(source_type) && is_pointer(dest_type)
+#if UPC_EXTENSIONS_ALLOWED
+    /* Casting an integer to a ptr-to-shared is not allowed. */
+    && upc_mode && !is_ptr_to_shared_type(dest_type)
+#endif /* UPC_EXTENSIONS_ALLOWED */
+                                                                      ) {
     /* Integral or enum --> pointer. */
     okay = TRUE;
     if (!dest_of_ptr_cast_big_enough(source_type, dest_type)) {
@@ -5474,9 +5540,20 @@ well as C++ mode.
   } else if (is_pointer(source_type) && is_pointer(dest_type)) {
     /* Pointer --> pointer.  Get the types pointed to. */
     a_type_ptr source_type_pointed_to, dest_type_pointed_to;
+#if UPC_EXTENSIONS_ALLOWED
+    a_boolean  source_is_shared = FALSE, dest_is_shared = FALSE;
+#endif /* UPC_EXTENSIONS_ALLOWED */
     source_type_pointed_to = type_pointed_to(source_type);
+#if UPC_EXTENSIONS_ALLOWED
+    source_is_shared =
+       upc_mode && is_underlying_shared_qualified_type(source_type_pointed_to);
+#endif /* UPC_EXTENSIONS_ALLOWED */
     source_type_pointed_to = skip_typerefs(source_type_pointed_to);
     dest_type_pointed_to = type_pointed_to(dest_type);
+#if UPC_EXTENSIONS_ALLOWED
+    dest_is_shared =
+         upc_mode && is_underlying_shared_qualified_type(dest_type_pointed_to);
+#endif /* UPC_EXTENSIONS_ALLOWED */
     dest_type_pointed_to = skip_typerefs(dest_type_pointed_to);
     if (is_template_param(source_type_pointed_to) ||
         is_template_param(dest_type_pointed_to)) {
@@ -5489,6 +5566,12 @@ well as C++ mode.
          object/incomplete --> pointer to object/incomplete.  Allowed in both
          C and C++. */
       okay = TRUE;
+#if UPC_EXTENSIONS_ALLOWED
+      /* Do not allow a cast from non-shared to shared. */
+      if (!source_is_shared && dest_is_shared) {
+        okay = FALSE;
+      }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
     } else {
       /* Pointer to function --> pointer to object/incomplete, or pointer
          to object/incomplete --> pointer to function.  Allowed as an

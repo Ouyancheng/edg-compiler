@@ -2994,6 +2994,19 @@ to represent a type qualifier set.
 
 #if UPC_EXTENSIONS_ALLOWED
 
+/*
+For a "#pragma UPC ...", indicates the specific kind of UPC predefined
+pragma that is being used.
+*/
+enum a_upc_pragma_kind_tag {
+  upc_pk_access,
+  upc_pk_coherence
+};
+
+/* Storage size to be used to hold a UPC pragma kind. */
+typedef a_byte a_upc_pragma_kind;
+
+
 /* Tag values indicating the specific UPC access setting. */
 enum a_upc_access_method_tag {
   upc_access_unspecified,
@@ -3004,8 +3017,18 @@ enum a_upc_access_method_tag {
 /* Storage size to be used to hold the UPC access setting. */
 typedef a_byte a_upc_access_method;
 
+
+/* Tag values indicating UPC coherence stack operations. */
+enum a_upc_coherence_stack_operation_tag {
+  upc_coherence_stack_noop,
+  upc_coherence_stack_save,
+  upc_coherence_stack_restore
+};
+
+/* Storage size to be used to hold the UPC coherence stack operations. */
+typedef a_byte a_upc_coherence_stack_operation;
+
 #endif /* UPC_EXTENSIONS_ALLOWED */
- 
 
 /* Entry used on parameter type lists for functions. */
 typedef struct a_param_type *a_param_type_ptr;
@@ -3373,10 +3396,19 @@ typedef struct a_pragma {
 #if UPC_EXTENSIONS_ALLOWED
     /* When kind == pk_upc: */
     struct {
-      a_upc_access_method
+      a_upc_pragma_kind
+		kind;	/* For the UPC predefined pragmas, indicates
+			   the specific pragma being used. */
+      union {
+        a_upc_access_method
 		access_method;
 			/* Indicate which UPC access method ("strict" or
 			   "relaxed") was specified. */
+        a_upc_coherence_stack_operation
+		operation;
+			/* Indicate which UPC coherence stack operation
+			   ("save" or "restore") was specified. */
+      } value;
     } upc;
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if IDENT_DIRECTIVE_AND_PRAGMA

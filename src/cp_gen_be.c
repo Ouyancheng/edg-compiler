@@ -8050,6 +8050,26 @@ Generate one of the predefined C99 pragmas.
   gen_pragma_end(pp);
 }  /* gen_stdc_pragma */
 
+#if UPC_EXTENSIONS_ALLOWED
+
+static void gen_upc_pragma(a_pragma_ptr  pp)
+/*
+Generate one of the predefined UPC pragmas.
+*/
+{
+  gen_pragma_start(pp);
+  if (pp->variant.upc.kind == (a_upc_pragma_kind)upc_pk_access) {
+    a_boolean  is_strict = (pp->variant.upc.value.access_method ==
+                                       (a_upc_access_method)upc_access_strict);
+    write_str(is_strict ? "upc strict" : "upc relaxed");
+  } else {
+    a_boolean  is_save = (pp->variant.upc.value.operation ==
+                    (a_upc_coherence_stack_operation)upc_coherence_stack_save);
+    write_str(is_save ? "upc coherence save" : "upc coherence restore");
+  }  /* if */
+  gen_pragma_end(pp);
+}  /* gen_upc_pragma */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 static void gen_pragma(void)
 /*
@@ -8071,11 +8091,7 @@ is the one associated with the pragma.
 #if UPC_EXTENSIONS_ALLOWED
     /* Check for #pragma upc. */
     } else if (pp->kind == (a_pragma_kind)pk_upc) {
-      a_boolean  is_strict = (pp->variant.upc.access_method ==
-                                       (a_upc_access_method)upc_access_strict);
-      gen_pragma_start(pp);
-      write_str(is_strict ? "upc strict" : "upc relaxed");
-      gen_pragma_end(pp);
+      gen_upc_pragma(pp);
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if IDENT_DIRECTIVE_AND_PRAGMA
     /* Check for #pragma ident (= #ident). */

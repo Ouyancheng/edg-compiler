@@ -557,6 +557,16 @@ property fields).
             err = TRUE;
           }  /* if */
         }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+        /* If the numbers of threads is static (i.e., specified on the
+           command line), we should not see a THREADS-dependent dimension
+           here. */
+        check_assertion_str(
+           (err || upc_dynamic_threads() ||
+            !is_shared_qualified_type(new_type_ptr) ||
+            !(*bottom_derived_type)->variant.array.is_threads_dimension),
+           "add_to_derived_type_list: unexpected upc_threads dimension");
+#endif /* UPC_EXTENSIONS_ALLOWED */
         if (err) new_type_ptr = error_type();
         (*bottom_derived_type)->variant.array.element_type = new_type_ptr;
       } else if (is_pointer_type(*bottom_derived_type)) {
@@ -3812,11 +3822,11 @@ passed to r_declarator.)
   if (is_array_type(type)) {
     if (!(input_flags & (DI_IS_TYPEDEF_DECLARATION | DI_IS_PARAMETER_DECL)) &&
         upc_dynamic_threads() &&
-        is_underlying_threads_dimensioned_array_type(type) &&
+        !is_underlying_threads_dimensioned_array_type(type) &&
         get_underlying_upc_block_size(type) != UPC_BLOCK_SIZE_INDEFINITE &&
         is_underlying_shared_qualified_type(type) &&
         skip_typerefs(type)->variant.array.variant.number_of_elements != 0) {
-      /* Shared data must be THREADS-dimensions (except for parameters, but
+      /* Shared data must be THREADS-dimensioned (except for parameters, but
          they decay to pointers). */
       error(ec_shared_nonthreads_dim);
     }  /* if */

@@ -44,6 +44,7 @@ fe_wrapup.c - End of front end processing.
 #if DEBUG
 #include "exprutil.h"
 #include "macro.h"
+#include "preproc.h"
 #include "statements.h"
 #endif /* DEBUG */
 #if MAINTAIN_NEEDED_FLAGS || DO_IL_LOWERING
@@ -66,6 +67,7 @@ Show the amount of memory allocated.
   total_space += show_expr_space_used();
   total_space += show_il_space_used();
   total_space += show_statements_space_used();
+  total_space += show_preproc_space_used();
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   total_space += show_attribute_space_used();
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */

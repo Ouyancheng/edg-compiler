@@ -1861,6 +1861,76 @@ pragmas, process them now.
 }  /* check_for_stdc_pragmas */
 
 #if UPC_EXTENSIONS_ALLOWED
+/*
+Processing of UPC pragmas.
+*/
+
+typedef struct a_upc_pragma_stack_entry *a_upc_pragma_stack_entry_ptr;
+ 
+/* An entry on the UPC pragma stack. */
+typedef struct a_upc_pragma_stack_entry {
+  a_upc_pragma_stack_entry_ptr
+              next;
+                      /* Next entry on the stack.  NULL for the entry at
+                         the bottom of the stack. */
+  union {
+    a_upc_access_method
+              access_method;
+                      /* Indicates whether strict or relaxed UPC semantics
+                         are the default. */
+  } variant;
+} a_upc_pragma_stack_entry;
+
+#if DEBUG
+/*
+Counts of entries allocated, to track total use of memory.
+*/
+static unsigned long
+		num_upc_pragma_stack_entries_allocated;
+#endif /* DEBUG */
+
+a_upc_pragma_stack_entry_ptr
+		upc_coherence_stack;
+			/* Pointer to the top of the UPC pragma stack. */
+
+a_upc_pragma_stack_entry_ptr
+		avail_upc_pragma_stack_entries;
+			/* List of stack entries freed and available
+			   for reuse. */
+
+
+static void push_upc_pragma(void)
+/*
+Push an entry onto the top of the stack.
+*/
+{
+  a_upc_pragma_stack_entry_ptr  upsep;
+
+  if (avail_upc_pragma_stack_entries != NULL) {
+    upsep = avail_upc_pragma_stack_entries;
+    avail_upc_pragma_stack_entries = upsep->next;
+  } else {
+    upsep = (a_upc_pragma_stack_entry_ptr)alloc_fe(
+                                            sizeof(a_upc_pragma_stack_entry));
+  }  /* if */
+  upsep->next = upc_coherence_stack;
+  upc_coherence_stack = upsep;
+} /* push_upc_pragma */
+
+
+static void pop_upc_pragma(void)
+/*
+Pop the top entry from the UPC pragma stack and return it to the available
+list.
+*/
+{
+  a_upc_pragma_stack_entry_ptr  upsep = upc_coherence_stack;
+
+  upc_coherence_stack = upsep->next;
+  upsep->next = avail_upc_pragma_stack_entries;
+  avail_upc_pragma_stack_entries = upsep;
+}  /* pop_upc_pragma */
+
 
 static void process_upc_pragma(a_pending_pragma_ptr  ppp,
                                a_statement_ptr       assoc_statement)
@@ -1869,6 +1939,8 @@ Process a predefined UPC pragma.  These pragmas have the following form:
 
   #pragma upc relaxed
   #pragma upc strict
+  #pragma upc coherence save
+  #pragma upc coherence restore
 
 This routine is called to process the pragmas when they are known to appear
 in a valid location.  It is called in compound_statement for block scope
@@ -1877,41 +1949,97 @@ upc_pragma for pragmas that appear in the file scope (in which case
 assoc_statement should be NULL).
 */
 {
-  a_upc_access_method  value = (a_upc_access_method)upc_access_unspecified;
-  a_boolean            err = FALSE;
+  a_upc_access_method  access = (a_upc_access_method)upc_access_unspecified;
+  a_upc_coherence_stack_operation
+                       stack_op = (a_upc_coherence_stack_operation)
+                                                     upc_coherence_stack_noop;
+  a_boolean            err = FALSE, unrecognized = FALSE, bad_context = FALSE;
 
   begin_rescan_of_pragma_tokens(ppp);
-  if (curr_token == tok_identifier) {
+  if (curr_token != tok_identifier) {
+    unrecognized = TRUE;
+  } else {
     char  *str = locator_for_curr_id.symbol_header->identifier;
     if (strcmp(str, "strict") == 0) {
-      value = (a_upc_access_method)upc_access_strict;
+      access = (a_upc_access_method)upc_access_strict;
     } else if (strcmp(str, "relaxed") == 0) {
-      value = (a_upc_access_method)upc_access_relaxed;
+      access = (a_upc_access_method)upc_access_relaxed;
+    } else if (strcmp(str, "coherence") == 0) {
+      (void)get_token();
+      if (curr_token != tok_identifier) {
+        unrecognized = TRUE;
+      } else {
+        char  *str2 = locator_for_curr_id.symbol_header->identifier;
+        if (strcmp(str2, "save") == 0) {
+          stack_op = upc_coherence_stack_save;
+        } else if (strcmp(str2, "restore") == 0) {
+          stack_op = upc_coherence_stack_restore;
+          if (upc_coherence_stack == NULL) {
+            /* There is nothing to restore. */
+            bad_context = TRUE;
+          }  /* if */
+        } else {
+          unrecognized = TRUE;
+        }  /* if */
+        if (!unrecognized && assoc_statement != NULL) {
+          /* This pragma cannot appear here. */
+          bad_context = TRUE;
+        }  /* if */
+      }  /* if */
+    } else {
+      unrecognized = TRUE;
     }  /* if */
   }  /* if */
-  if (value == (a_upc_access_method)upc_access_unspecified) {
+  if (unrecognized) {
       pos_diagnostic(strict_ansi_error_severity, ec_unrecognized_upc_pragma,
                      &ppp->id_position);
       err = TRUE;
-  }  /* switch */
+  } else if (bad_context) {
+      pos_diagnostic(strict_ansi_error_severity,
+                     ec_pragma_may_not_be_used_here,
+                     &ppp->id_position);
+      err = TRUE;
+  }  /* if */
   /* Bypass the value. */
   if (!err) (void)get_token();
   wrapup_rescan_of_pragma_tokens(err);
-  if (!err) {
+  if (err) {
+    /* Nothing more to be done. */
+  } else if (access != (a_upc_access_method)upc_access_unspecified) {
     if (assoc_statement == (a_statement_ptr)NULL) {
       /* No associated statement, so update the global setting. */
-      curr_upc_access_method = value;
+      curr_upc_access_method = access;
     } else {
       check_assertion_str(
                         assoc_statement->kind == (a_statement_kind)stmk_block,
                         "process_upc_pragma: expected block");
       /* Save the local setting in the block. */
-      assoc_statement->variant.block.extra_info->upc_access_method = value;
+      assoc_statement->variant.block.extra_info->upc_access_method = access;
     }  /* if */
     /* Record the pragma in the IL. */
     create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
     if (ppp->il_pragma_entry != NULL) {
-      ppp->il_pragma_entry->variant.upc.access_method = value;
+      ppp->il_pragma_entry->variant.upc.kind =
+                                              (a_upc_pragma_kind)upc_pk_access;
+      ppp->il_pragma_entry->variant.upc.value.access_method = access;
+    }  /* if */
+  } else if (stack_op !=
+                  (a_upc_coherence_stack_operation)upc_coherence_stack_noop) {
+    check_assertion(assoc_statement == (a_statement_ptr)NULL);
+    if (stack_op ==
+                  (a_upc_coherence_stack_operation)upc_coherence_stack_save) {
+      push_upc_pragma();
+      upc_coherence_stack->variant.access_method = curr_upc_access_method;
+    } else {
+      curr_upc_access_method = upc_coherence_stack->variant.access_method;
+      pop_upc_pragma();
+    }  /* if */
+    /* Record the pragma in the IL. */
+    create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
+    if (ppp->il_pragma_entry != NULL) {
+      ppp->il_pragma_entry->variant.upc.kind =
+                                           (a_upc_pragma_kind)upc_pk_coherence;
+      ppp->il_pragma_entry->variant.upc.value.operation = stack_op;
     }  /* if */
   }  /* if */
 }  /* process_upc_pragma */
@@ -2352,18 +2480,56 @@ is asked to act like cpp.
   }  /* if */
 }  /* cpp_driver */
 
+#if DEBUG
+
+unsigned long show_preproc_space_used(void)
+/*
+Display and return the amount of space used for preprocessing structures.
+*/
+{
+  unsigned long num, size, total, grand_total = 0;
+
+#if UPC_EXTENSIONS_ALLOWED
+  db_space_used_lost("UPC pragma stack entries",
+                     avail_upc_pragma_stack_entries,
+                     num_upc_pragma_stack_entries_allocated,
+                     a_upc_pragma_stack_entry);
+#endif /* UPC_EXTENSIONS_ALLOWED */
+
+  db_space_used_total();
+
+  return (grand_total);
+}  /* show_preproc_space_used */
+
+#endif /* DEBUG */
 
 void preproc_one_time_init(void)
 /*
 One-time initialization for preproc.c and preproc.h variables.
 */
 {
+  /* Save variables that are needed for precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+#if UPC_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(avail_upc_pragma_stack_entries),
+#if DEBUG
+      pch_saved_var_array_elem(num_upc_pragma_stack_entries_allocated),
+#endif /* if DEBUG */
+#endif /* UPC_EXTENSIONS_ALLOWED */
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
   /* Global variables declared in preproc.h. */
   size_pp_dir_string_buffer = 0;
   /* Static variables declared in this file. */
   pp_if_stack = NULL;
   size_pp_if_stack = 0;
   pp_dir_string_buffer = NULL;
+#if UPC_EXTENSIONS_ALLOWED
+  register_trans_unit_variable(upc_coherence_stack);
+#endif /* UPC_EXTENSIONS_ALLOWED */
 }  /* preproc_one_time_init */
 
 
@@ -2394,6 +2560,9 @@ every translation unit.
   pp_if_stack_depth = -1;
   base_pp_if_stack_depth = -1;
   is_header_stop_dir = FALSE;
+#if UPC_EXTENSIONS_ALLOWED
+  upc_coherence_stack = NULL;
+#endif /* UPC_EXTENSIONS_ALLOWED */
 }  /* preproc_trans_unit_init */
 
 
@@ -2404,6 +2573,12 @@ for each compilation.  (Predefined macros are established by
 init_predefined_macros.)
 */
 {
+#if UPC_EXTENSIONS_ALLOWED
+  avail_upc_pragma_stack_entries = NULL;
+#if DEBUG
+  num_upc_pragma_stack_entries_allocated = 0;
+#endif /* DEBUG */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 }  /* preproc_init */
 
 
