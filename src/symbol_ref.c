@@ -353,14 +353,11 @@ hiding.
     locator.symbol_header = sym_ptr->header;
     if (!is_tag_symbol(sym_ptr)) {
       /* The current declaration is of something other than a tag name.
-         If it hides a tag, an elaborated type specifier can render the
-         tag visible.  For example:
+         If it hides a tag in the same scope, an elaborated type specifier
+         can render the tag visible.  For example:
            class x;
-           x = 1;                   // class x is hidden at file scope
-           class y;
-           void f() { y = 1; }      // class y is hidden inside f
-         In both cases an elaborated type specifier can be used to "defeat"
-         the hiding. */
+           int x = 1;                   // class x is hidden at file scope
+         An elaborated type specifier can be used to "defeat" the hiding. */
       old_sym_ptr = normal_id_lookup(&locator, IDL_MUST_BE_TAG);
       if (old_sym_ptr != NULL) {
         /* old_sym_ptr is a tag with the same name as sym_ptr and in the
@@ -373,7 +370,24 @@ hiding.
              old_sym_ptr -- something like "typedef struct S { ... } S;"
              There's no need to generate hidden-name info for this common
              construct. */
+        } else if (old_sym_ptr->decl_scope != sym_ptr->decl_scope &&
+                   (old_sym_ptr->is_class_member ||
+                    old_sym_ptr->parent.namespace_ptr != NULL ||
+                    scope_depth_of_symbol(old_sym_ptr,
+                                          &is_local_to_function) ==
+                                                   DEPTH_OF_FILE_SCOPE)) {
+          /* No need to defeat the name hiding with an elaborated type
+             specifier -- the tag name will be qualified, either by its
+             parent class or namespace or by a leading "::". */
         } else {
+          /* Either the two declarations are in the same scope or else
+             old_sym_ptr cannot be qualified -- e.g., its containing scope is
+             local to a function:
+               void f() {
+                 struct S { ... };
+                 { int S; ... }     // S is hidden in the block scope
+               }
+          */
           tag_hidden_by_nontag = TRUE;
           global_hidden_by_nonglobal = FALSE;
           record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
@@ -411,6 +425,13 @@ hiding.
          scope, but the hiding can be defeated (in a reactivation of that
          scope) by applying the :: qualifier. */
       global_hidden_by_nonglobal = TRUE;
+      tag_hidden_by_nontag = FALSE;
+      if (is_tag_symbol(sym_ptr)) {
+        clear_specific_symbol(locator);
+        (void)file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+        check_assertion(locator.specific_symbol != NULL);
+        tag_hidden_by_nontag = locator.specific_symbol != sym_ptr;
+      }  /* if */
       for (old_sym_ptr = sym_ptr->header->inactive_symbols;
            old_sym_ptr != NULL;
            old_sym_ptr = old_sym_ptr->next) {
@@ -441,8 +462,6 @@ hiding.
         } else {
           continue;
         }  /* if */
-        tag_hidden_by_nontag = is_tag_symbol(sym_ptr) &&
-                               !is_tag_symbol(old_sym_ptr);
         record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
                                       global_hidden_by_nonglobal, sp);
       }  /* for */
