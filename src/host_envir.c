@@ -1888,13 +1888,18 @@ a_void_ptr map_file_region(FILE		*file,
 /*
 Expand a memory mapped file.  This routine assumes that curr_size bytes
 have already been allocated and mapped, and that incremental_size bytes
-should be added.
+should be added.  incremental_size must be a multiple of the host
+page size.
 */
 {
-  int		fd = file->_file;
-  caddr_t	addr = NULL;
-  sizeof_t	size;
+  int			fd = file->_file;
+  caddr_t		addr = NULL;
+  sizeof_t		size;
+#if USE_FIXED_ADDRESS_FOR_MMAP
+  static a_void_ptr	map_address = (a_void_ptr)FIXED_ADDRESS_FOR_MMAP;
+#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 
+  db_enter(4, "map_file_region");
   size = curr_size + incremental_size;
   /* The file must be large enough to contain the mapped area. */
   if (fseek(file, (long)size, SEEK_SET) == 0) {
@@ -1903,9 +1908,17 @@ should be added.
     if (fputc(0, file) != EOF && fflush(file) == 0) {
       /* An extra byte is added to the size to stop CodeCenter from complaining
          about the after_end_of_block comparison in mem_manage.c. */
+#if USE_FIXED_ADDRESS_FOR_MMAP
+      addr = (a_void_ptr)mmap(map_address,
+                              incremental_size,
+                              PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_FIXED,
+                              fd, (off_t)curr_size);
+      map_address = ((char *)map_address) + incremental_size;
+#else /* !USE_FIXED_ADDRESS_FOR_MMAP */
       addr = (a_void_ptr)mmap((char*)0, incremental_size + 1,
                               PROT_WRITE | PROT_READ, MAP_PRIVATE,
                               fd, (off_t)curr_size);
+#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 #if DEBUG
       if (debug_level >= 5) {
         fprintf(f_debug, "Allocated %lu bytes of mmap memory at %p\n",
@@ -1916,6 +1929,7 @@ should be added.
       if (addr == (caddr_t)-1) addr = NULL;
     }  /* if */
   }  /* if */
+  db_exit();
   return addr;
 }  /* map_file_region */
 

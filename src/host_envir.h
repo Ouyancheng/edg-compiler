@@ -722,6 +722,28 @@ program, use of mmap is disabled by default.
 #endif /* ifndef USE_MMAP_FOR_MEMORY_REGIONS */
 
 /*
+When using memory mapped memory for memory regions, this flag is TRUE
+if a fixed address should be supplied to mmap as the address to
+which the memory should be mapped.  If this is FALSE, the system
+assigns the address.
+*/
+#ifndef USE_FIXED_ADDRESS_FOR_MMAP
+#define USE_FIXED_ADDRESS_FOR_MMAP FALSE
+#endif /* ifndef USE_FIXED_ADDRESS_FOR_MMAP */
+
+
+/*
+When used mapped memory at a fixed address, the fixed address must be
+specified.  FIXED_ADDRESS_FOR_MMAP is used to provide the address.
+*/
+#ifndef FIXED_ADDRESS_FOR_MMAP
+#if USE_FIXED_ADDRESS_FOR_MMAP
+  #error -- FIXED_ADDRESS_FOR_MMAP must be defined when \
+            USE_FIXED_ADDRESS_FOR_MMAP is set.
+#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+#endif /* ifndef FIXED_ADDRESS_FOR_MMAP */
+
+/*
 The flags HOSTID and HOSTID2 can be set to host id numbers if the
 front end is only allowed to be run on a few CPUs.  They should be left
 undefined otherwise.  An example of proper setting is
