@@ -65,6 +65,9 @@ typedef int a_local_expr_options_set;
 extern a_boolean node_has_side_effects(an_expr_node_ptr node,
                                        a_boolean        *suppress_warning);
 
+extern a_boolean is_invariant_expr(an_expr_node_ptr expr,
+                                   a_boolean        vars_can_change);
+
 extern void check_closing_paren_after_expr_list(void);
 
 extern a_boolean is_two_argument_delete(a_routine_ptr delete_routine);
@@ -185,6 +188,11 @@ extern a_symbol_ptr find_copy_constructor(
 
 extern void process_unattached_template_argument_list(
                                          a_template_arg_ptr template_arg_list);
+
+extern an_expr_node_ptr make_assignment_expr(
+                                      an_expr_node_ptr       lvalue_expr,
+                                      an_expr_operator_kind  op,
+                                      an_expr_node_ptr       rvalue_expr);
 
 /*
 Macro that is TRUE if the node is an operation node.

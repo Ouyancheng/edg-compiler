@@ -650,9 +650,6 @@ extern an_expr_node_ptr make_vbase_class_lvalue_from_var(
                                              a_base_class_ptr bcp,
                                              a_boolean        complete_object);
 
-extern a_boolean is_invariant_expr(an_expr_node_ptr expr,
-                                   a_boolean        vars_can_change);
-
 extern an_expr_node_ptr assign_expr_to_temp_and_make_expr_for_reuse(
                                                         an_expr_node_ptr expr);
 
@@ -679,11 +676,6 @@ extern a_statement_ptr insert_expr_statement(
 extern a_statement_ptr insert_expr_statement_set_pos(
                                        an_expr_node_ptr       node,
                                        an_insert_location_ptr insert_location);
-
-extern an_expr_node_ptr make_assignment_expr(
-                                      an_expr_node_ptr       lvalue_expr,
-                                      an_expr_operator_kind  op,
-                                      an_expr_node_ptr       rvalue_expr);
 
 extern an_expr_node_ptr make_var_assignment_expr(
                                           a_variable_ptr         lvalue_var,

@@ -27,6 +27,7 @@ statements.c -- Scanning of statements.
 #include "decls.h"
 #include "disambig.h"
 #include "expr.h"
+#include "exprutil.h"
 #include "folding.h"
 #include "pch.h"
 #include "pragma.h"
@@ -1449,15 +1450,15 @@ is not called for the top-level compound statement of a function.
 }  /* is_primary_block_of_switch_statement */
 
 
-a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
-                                          a_source_position  *stmt_pos)
+static void add_statement_list(a_statement_ptr  sp,
+                               a_boolean        reachable)
 /*
-Allocate a statement of the indicated kind, record the statement
-source position specified in *stmt_pos, and link it onto the end of
-the current statement sequence.
+Link the given list of statements onto the end of the current statement
+sequence.  If the first statement of the given list is reachable, reachable
+should be set to TRUE.
 */
 {
-  a_statement_ptr               sp;
+  a_boolean                     is_list = (sp->next != NULL);
   a_struct_stmt_stack_entry_ptr sssep;
   a_statement_ptr               ssp;
   a_statement_ptr               *head_ptr;
@@ -1468,12 +1469,12 @@ the current statement sequence.
   a_boolean                     in_guarded_statement_of_microsoft_try = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-  db_enter(4, "add_statement_at_stmt_pos");
+  db_enter(4, "add_statement_list");
   /* Find the header pointer for the statement list for the current
      structured statement. */
 #if CHECKING
   if (depth_stmt_stack < 0) {
-    internal_error("add_statement_at_stmt_pos: struct_stmt_stack is empty");
+    internal_error("add_statement_list: struct_stmt_stack is empty");
   }  /* if */
 #endif /* CHECKING */
   sssep = &struct_stmt_stack[depth_stmt_stack];
@@ -1540,23 +1541,15 @@ the current statement sequence.
 #if CHECKING
       default:
         internal_error(
-             "add_statement_at_stmt_pos: bad stmt kind in struct stmt stack");
+             "add_statement_list: bad stmt kind in struct stmt stack");
 #endif /* CHECKING */
     }  /* switch */
   }  /* if */
 
-  /* Maintain the code reachable flag.  Labels are always reachable. */
-  if (kind == (a_statement_kind)stmk_label) set_reachable(curr_reachability);
-
-  /* Allocate the statement entry. */
-  sp = alloc_statement(kind);
-  /* Set the position from *stmt_pos. */
-  set_stmt_source_position(sp->position, *stmt_pos);
-
   /* See if the statement can be attached under the existing statement. */
-  if (*head_ptr != NULL && !statement_list_allowed) {
-    /* The structured statement already has a statement attached to it,
-       and it is not a statement to which a list of statements may
+  if ((*head_ptr != NULL || is_list) && !statement_list_allowed) {
+    /* Sometimes, the structured statement already has a statement attached
+       to it, and it is not a statement to which a list of statements may
        be attached.  This happens in rare cases like
 
          if (a) b: c = 1;
@@ -1566,7 +1559,9 @@ the current statement sequence.
        one.  It also happens for "continue" labels.  For cases like this,
        we create an additional block to contain the list of statements. 
        If the dependent statement is a block (because the source dependent
-       statement is a block), that block is used. */
+       statement is a block), that block is used.
+       A similar approach is also needed if more than one statement is
+       being appended. */
     if ((*head_ptr)->kind == (a_statement_kind)stmk_block &&
         ((*head_ptr)->variant.block.extra_info->assoc_scope == NULL
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -1592,7 +1587,7 @@ the current statement sequence.
         while (temp_stmt->next != NULL) temp_stmt = temp_stmt->next;
       }  /* if */
       sssep->last_dep_statement = temp_stmt;
-      if (curr_reachability.reachable) {
+      if (reachable) {
         /* The end of the block is reachable if the new statement is
            reachable.  This is important because continue labels are
            always reachable. */
@@ -1627,7 +1622,34 @@ the current statement sequence.
     }  /* if */
     sssep->last_dep_statement->next = sp;
   }  /* if */
-  sssep->last_dep_statement = sp;
+  temp_stmt = sp;
+  while (temp_stmt->next != NULL) temp_stmt = temp_stmt->next;
+  sssep->last_dep_statement = temp_stmt;
+  db_exit();
+}  /*add_statement_list  */
+
+
+a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
+                                          a_source_position  *stmt_pos)
+/*
+Allocate a statement of the indicated kind, record the statement
+source position specified in *stmt_pos, and link it onto the end of
+the current statement sequence.
+*/
+{
+  a_statement_ptr  sp;
+
+  db_enter(5, "add_statement_at_stmt_pos");
+  /* Maintain the code reachable flag.  Labels are always reachable. */
+  if (kind == (a_statement_kind)stmk_label) set_reachable(curr_reachability);
+
+  /* Allocate the statement entry. */
+  sp = alloc_statement(kind);
+  /* Set the position from *stmt_pos. */
+  set_stmt_source_position(sp->position, *stmt_pos);
+
+  /* Append the statement. */
+  add_statement_list(sp, curr_reachability.reachable);
 
   /* Turn off curr_reachability if the current statement is an
      unconditional branch. */
@@ -1868,24 +1890,21 @@ the current function scope.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-static void add_vla_dealloc_stmts(a_control_flow_descr_ptr  start,
-                                  a_control_flow_descr_ptr  end,
-                                  a_boolean                 is_goto)
+static a_statement_ptr collect_vla_dealloc_stmts(
+                                              a_control_flow_descr_ptr  start,
+                                              a_control_flow_descr_ptr  end)
 /*
-Add a vla-dealloc statement to the statements list for each vla-decl
+Create a list (possibly NULL) of vla-dealloc statements for each vla-decl
 statement in the current block that represents the declaration (and
 therefore allocation) of a VLA object.  The vla-decl statements are located
-by traversing the control-flow list backwards from *start to *end.  is_goto
-is TRUE if vla-dealloc statements are to be inserted in front of *start,
-which is a goto statement.  (It can be a goto statement even when is_goto
-is FALSE.)
+by traversing the control-flow list backwards from *start to *end.
 */
 {
   a_control_flow_descr_ptr  cfdp, parent, end_parent, stop_at;
-  a_statement_ptr           dealloc_stmt, insert_point = NULL;
+  a_statement_ptr           dealloc_stmt, first = NULL, last;
   a_boolean                 done;
 
-  db_enter(4, "add_vla_dealloc_stmts");
+  db_enter(4, "collect_vla_dealloc_stmts");
   check_assertion(vla_dealloc_statements_in_il);
 #if DEBUG
   if (debug_level == 4) {
@@ -1948,50 +1967,15 @@ is FALSE.)
           if (cfdp->variant.init.is_vla_variable) {
             /* The declaration of a VLA variable has been located.  Create a
                new statement to represent its deallocation. */
-            if (!is_goto) {
-              /* If the deallocation point is the end of a block or a return
-                 statement, it is just added to the end of the statements
-                 list. */
-              dealloc_stmt = add_statement((a_statement_kind)stmk_vla_dealloc);
-            } else {
-              /* If the allocation point is a goto statement, the
-                 deallocation statement needs to be inserted immediately
-                 before the goto.  The trick is to turn the goto into a
-                 block statement with a single statement in its list
-                 (namely, the goto).  One or more vla-dealloc statements can
-                 then be inserted before it -- local variable insert_point
-                 is used to remember the point if multiple vla-decl
-                 statements are found. */
-              dealloc_stmt =
-                       alloc_statement((a_statement_kind)stmk_vla_dealloc);
-              if (insert_point == NULL) {
-                /* First deallocation statement required. */
-                a_statement_ptr  block_stmt, copy_of_goto_stmt;
-
-                /* Save the address of the goto statement in "block_stmt".
-                   It will become a block statement with the call of
-                   change_statement_into_block. */
-                block_stmt = start->variant.goto_statement.ptr;
-                change_statement_into_block(block_stmt, &copy_of_goto_stmt);
-                /* Reset the control flow entry pointing at the goto
-                   statement to use the new pointer. */
-                start->variant.goto_statement.ptr = copy_of_goto_stmt;
-                /* Link the deallocation statement into the block, and save
-                   it as the point after which the next deallocation
-                   statement, if any, is inserted. */
-                dealloc_stmt->next = copy_of_goto_stmt;
-                block_stmt->variant.block.statements = dealloc_stmt;
-                insert_point = dealloc_stmt;
-              } else {
-                /* There's already been at least one deallocation statement
-                   inserted in front of this goto statement. */
-                dealloc_stmt->next = insert_point->next;
-                insert_point->next = dealloc_stmt;
-              }  /* if */
-            }  /* if */
-            /* However the deallocation statement was added, bind the
-               VLA variable to it. */
+            dealloc_stmt = alloc_statement((a_statement_kind)stmk_vla_dealloc);
             dealloc_stmt->variant.vla_variable = cfdp->variant.init.variable;
+            /* Append it to the collected list. */
+            if (first == NULL) {
+              first = last = dealloc_stmt;
+            } else {
+              last->next = dealloc_stmt;
+              last = last->next;
+            }  /* if */
 #if DEBUG
             if (debug_level >= 4) {
               fputs("  adding vla-dealloc statement for \"", f_debug);
@@ -2029,6 +2013,63 @@ is FALSE.)
     }  /* if */
   }  /* while */
   db_exit();
+  return first;
+}  /* collect_vla_dealloc_stmts */
+
+
+static void add_vla_dealloc_stmts(a_control_flow_descr_ptr  start,
+                                  a_control_flow_descr_ptr  end,
+                                  a_boolean                 is_goto)
+/*
+Add a vla-dealloc statement to the statements list for each vla-decl
+statement in the current block that represents the declaration (and
+therefore allocation) of a VLA object.  The vla-decl statements are located
+by traversing the control-flow list backwards from *start to *end.  is_goto
+is TRUE if vla-dealloc statements are to be inserted in front of *start,
+which is a goto statement.  (It can be a goto statement even when is_goto
+is FALSE.)
+*/
+{
+  a_statement_ptr           dealloc_stmts;
+
+  db_enter(5, "add_vla_dealloc_stmts");
+  dealloc_stmts = collect_vla_dealloc_stmts(start, end);
+
+  if (dealloc_stmts == NULL) {
+    /* Nothing to do. */
+  } else if (!is_goto) {
+    /* If the deallocation point is the end of a block or a return statement,
+       the deallocation statements are just added to the end of the statements
+       list. */
+    add_statement_list(dealloc_stmts, curr_reachability.reachable);
+  } else {
+    /* If the allocation point is a goto statement, the
+       deallocation statement needs to be inserted immediately
+       before the goto.  The trick is to turn the goto into a
+       block statement with a single statement in its list
+       (namely, the goto).  One or more vla-dealloc statements can
+       then be inserted before it -- local variable insert_point
+       is used to remember the point if multiple vla-decl
+       statements are found. */
+    a_statement_ptr  block_stmt, copy_of_goto_stmt;
+    /* Save the address of the goto statement in "block_stmt".
+       It will become a block statement with the call of
+       change_statement_into_block. */
+    block_stmt = start->variant.goto_statement.ptr;
+    change_statement_into_block(block_stmt, &copy_of_goto_stmt);
+    /* Reset the control flow entry pointing at the goto statement to use the
+       new pointer. */
+    start->variant.goto_statement.ptr = copy_of_goto_stmt;
+    /* Link the deallocation statement into the block. */
+    block_stmt->variant.block.statements = dealloc_stmts;
+    /* Find the end of the list of deallocation statements to link the copied
+       goto statement after it. */
+    while (dealloc_stmts->next != NULL) {
+      dealloc_stmts = dealloc_stmts->next;
+    }  /* while */
+    dealloc_stmts->next = copy_of_goto_stmt;
+  }  /* if */
+  db_exit();
 }  /* add_vla_dealloc_stmts */
 
 
@@ -2049,7 +2090,8 @@ processing the normal end of a block.
 }  /* add_vla_dealloc_stmts_for_block */
 
 
-static void add_vla_dealloc_stmts_for_function(a_control_flow_descr_ptr  cfdp)
+static a_statement_ptr collect_vla_dealloc_stmts_for_function(
+                                               a_control_flow_descr_ptr  cfdp)
 /*
 Add vla-dealloc statements for all declarations of VLA objects in currently
 active scopes.  The active scopes are located by starting with *cfdp and
@@ -2059,8 +2101,8 @@ processing a return statement (implicit or explicit).
 */
 {
   check_assertion(end_of_control_flow_descr_list == cfdp);
-  add_vla_dealloc_stmts(cfdp, control_flow_descr_list, /*is_goto=*/FALSE);
-}  /* add_vla_dealloc_stmts_for_function */
+  return collect_vla_dealloc_stmts(cfdp, control_flow_descr_list);
+}  /* collect_vla_dealloc_stmts_for_function */
 
 
 static void add_vla_dealloc_stmts_for_goto(
@@ -4950,12 +4992,13 @@ The syntax is:
 See also 3.6.6.4.
 */
 {
-  a_statement_ptr    sp;
+  a_statement_ptr    sp, vla_dealloc_stmts = NULL;
   an_expr_node_ptr   return_expr;
   a_dynamic_init_ptr dip = NULL;
   a_routine_ptr      rout;
-  a_type_ptr         return_type, routine_type;
-  a_boolean          microsoft_C_mode_void_return = FALSE, expr_present;
+  a_type_ptr         return_type;
+  a_boolean          microsoft_C_mode_void_return = FALSE, expr_present,
+                       return_stmt_allowed = TRUE;
   a_source_position  return_pos;
 
   db_enter(3, "return_statement");
@@ -4975,14 +5018,14 @@ See also 3.6.6.4.
       curr_reachability.reachable) {
     /* Put out a vla-dealloc statement for each declaration of a VLA variable
        in the currently active blocks of the function. */
-    add_vla_dealloc_stmts_for_function(end_of_control_flow_descr_list);
+    vla_dealloc_stmts = collect_vla_dealloc_stmts_for_function(
+                                              end_of_control_flow_descr_list);
   }  /* if */
   (void)get_token();
   add_stop_token(tok_semicolon);
   /* Get a pointer to the current routine entry, and its return type. */
   rout = current_routine_entry();
-  routine_type = skip_typerefs(rout->type);
-  return_type = routine_type->variant.routine.return_type;
+  return_type = skip_typerefs(rout->type)->variant.routine.return_type;
   /* See if there is an expression after "return". */
   expr_present = (curr_token != tok_semicolon);
   if (rout->special_kind == (a_special_function_kind)sfk_constructor &&
@@ -4993,28 +5036,9 @@ See also 3.6.6.4.
        of a constructor. */
     pos_error(ec_return_from_ctor_function_try_block_handler, &return_pos);
     discard_curr_construct_pragmas();
-    sp = NULL;
-    routine_type = error_type();
+    return_type = error_type();
+    return_stmt_allowed = FALSE;
   } else {
-    if (expr_present && is_void_type(return_type) &&
-        microsoft_mode && C_mode()) {
-      /* In Microsoft C mode a return statement in a void function may have
-         the form "return expr;".  For this case the return statement is
-         allocated later so that the expression can be put out first as a
-         freestanding expression statement.  This feature is standard in C++,
-         and the rewrite in that case is handled by IL lowering. */
-      warning(ec_value_returned_in_void_function);
-      microsoft_C_mode_void_return = TRUE;
-      sp = add_statement((a_statement_kind)stmk_expr);
-    } else {
-      /* Allocate the return statement. */
-      sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,
-           &return_pos);
-      stmt_update_source_sequence_list(sp);
-    }  /* if */
-    /* Do processing required for any pragmas that are bound to the current
-       statement. */
-    process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
     /* See if the optional expression is present. */
     if (!expr_present) {
       /* The expression is missing. */
@@ -5058,6 +5082,52 @@ See also 3.6.6.4.
                                          ec_bad_return_value_type,
                                          &dip);
   }  /* if */
+  if (vla_dealloc_stmts != NULL) {
+    /* Insert the deallocation statements, but the return expression must be
+       evaluated first if it is not invariant. */
+    check_assertion(C_mode() && dip == NULL);
+    if (return_expr != NULL &&
+        !is_invariant_expr(return_expr, /*vars_can_change=*/TRUE)) {
+      /* Evaluate the return expression in a temporary and return that
+         temporary. */
+      a_statement_ptr  eval = add_statement((a_statement_kind)stmk_expr);
+      if (is_void_type(return_type)) {
+        /* No temporary is needed: just evaluate the expression. */
+        eval->expr = return_expr;
+        return_expr = NULL;
+      } else {
+        a_variable_ptr    tmp_var = alloc_temporary_variable(return_type);
+        an_expr_node_ptr  lhs = var_lvalue_expr(tmp_var);
+        eval->expr = make_assignment_expr(
+                          lhs, which_binary_operator(tok_assign, return_type),
+                          return_expr);
+        eval->expr->result_is_not_used = TRUE;
+        return_expr = var_rvalue_expr(tmp_var);
+      }  /* if */
+    }  /* if */
+    add_statement_list(vla_dealloc_stmts, curr_reachability.reachable);
+  }  /* if */
+  if (!return_stmt_allowed) {
+    sp = NULL;
+  } else if (expr_present && is_void_type(return_type) &&
+             microsoft_mode && C_mode()) {
+    /* In Microsoft C mode a return statement in a void function may have
+       the form "return expr;".  For this case the return statement is
+       allocated later so that the expression can be put out first as a
+       freestanding expression statement.  This feature is standard in C++,
+       and the rewrite in that case is handled by IL lowering. */
+    warning(ec_value_returned_in_void_function);
+    microsoft_C_mode_void_return = TRUE;
+    sp = add_statement((a_statement_kind)stmk_expr);
+  } else {
+    /* Allocate the return statement. */
+    sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,
+         &return_pos);
+    stmt_update_source_sequence_list(sp);
+  }  /* if */
+  /* Do processing required for any pragmas that are bound to the current
+     statement. */
+  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   if (sp != NULL) {
     /* Put the expression into the statement. */
     sp->expr = return_expr;
@@ -6169,7 +6239,10 @@ e.g., ({ ... }).
       if (vla_enabled && vla_dealloc_statements_in_il) {
         /* Put out a vla-dealloc statement for each declaration of a VLA
            variable in the currently active blocks of the function. */
-        add_vla_dealloc_stmts_for_function(end_of_control_flow_descr_list);
+        a_statement_ptr  vla_dealloc_stmts =
+                            collect_vla_dealloc_stmts_for_function(
+                                              end_of_control_flow_descr_list);
+        add_statement_list(vla_dealloc_stmts, curr_reachability.reachable);
       }  /* if */
       /* Make sure that a void return is acceptable here.  If this is the main
          routine, generate an implicit return value, if possible. */

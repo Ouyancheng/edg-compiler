@@ -2345,42 +2345,6 @@ indicated type.
 }  /* lowered_assignment_operator */
 
 
-a_boolean is_invariant_expr(an_expr_node_ptr expr,
-                            a_boolean        vars_can_change)
-/*
-Return TRUE if the indicated expression is invariant, meaning it has no
-side effects and will give the same value if evaluated more than once.
-vars_can_change indicates whether the values of variables should be
-considered to be changeable between successive evaluations for purposes
-of this determination.
-*/
-{
-  a_boolean is_invariant = FALSE;
-
-  if (vars_can_change) {
-    /* For the vars_can_change case, do a crude analysis: if the expression
-       is constant, it cannot be affected by changes in the values of
-       variables.  This could be improved, but it probably doesn't matter. */
-    if (is_constant_node(expr) || is_variable_address_node(expr) ||
-        is_routine_address_node(expr)) {
-      is_invariant = TRUE;
-    } else if (is_variable_node(expr) &&
-               expr->variant.variable->source_corresp.name == NULL) {
-      /* An unnamed variable is a temporary.  Assume that such a thing is
-         not changed in the "vars_can_change" mode.  This is important,
-         because if the expression has been assigned to a temporary once,
-         we want to use that temporary directly on subsequent calls to
-         make_reusable_copy. */
-      is_invariant = TRUE;
-    }  /* if */
-  } else {
-    /* Variables cannot change.  See if the expression has side effects. */
-    if (!node_has_side_effects(expr, (a_boolean *)NULL)) is_invariant = TRUE;
-  }  /* if */
-  return is_invariant;
-}  /* is_invariant_expr */
-
-
 static a_boolean is_assignment_to_temp(an_expr_node_ptr expr,
                                        a_variable_ptr   *temp_var)
 /*
@@ -2779,25 +2743,6 @@ statement.
   if (stmt != NULL) set_stmt_pos_to_code_pos_for_lowering(stmt);
   return stmt;
 }  /* insert_expr_statement_set_pos */
-
-
-an_expr_node_ptr make_assignment_expr(an_expr_node_ptr       lvalue_expr,
-                                      an_expr_operator_kind  op,
-                                      an_expr_node_ptr       rvalue_expr)
-/*
-Make an expression that assigns rvalue_expr to lvalue_expr using assignment
-operator op, and return a pointer to it.
-*/
-{
-  an_expr_node_ptr assign_node;
-  a_type_ptr       result_type =
-                     make_unqualified_type(type_pointed_to(lvalue_expr->type));
-
-  lvalue_expr->next = rvalue_expr;
-  /* Make the assignment node. */
-  assign_node = make_operator_node(op, result_type, lvalue_expr);
-  return assign_node;
-}  /* make_assignment_expr */
 
 
 an_expr_node_ptr make_var_assignment_expr(a_variable_ptr         lvalue_var,

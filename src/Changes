@@ -1,5 +1,20 @@
 Version 2.46
 
+10/1/01  Ordering of variable-length array deallocation and return expressions
+
+The front end used to create deallocation points for variable length arrays
+preceding return statements.  This was not valid if the return expression
+referred to a (incorrectly deallocated) variable length array.  For example:
+
+  int f(int n) {
+    int x[n];
+    /* stmk_vla_dealloc node for x used to precede evaluation of x[0]. */
+    return x[0];
+  }
+
+This is now fixed by evaluating the return expression into a temporary
+variable when necessary.
+
 9/25/01  Abort in C99 lowering on empty dependent statement
 
 When REPRESENT_EMPTY_STATEMENTS_IN_IL is FALSE, C99 lowering aborted
