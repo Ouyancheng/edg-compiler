@@ -4798,8 +4798,10 @@ Do one-time initialization of variables related to macro processing.
     after_end_of_aux_buffer_for_pcc_macros = NULL;
   }  /* if */
   avail_macro_args = NULL;
+#if DEBUG
   num_macro_args_allocated = 0;
   macro_arg_raw_text_space = 0;
+#endif /* DEBUG */
   registered_pointers = NULL;
   /* Save variables from macro.h and macro.c that are needed for
      precompiled headers */
