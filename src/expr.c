@@ -8502,7 +8502,7 @@ See section 3.3.16 of the standard.
             /* If the first operand is arithmetic or enum, the second must
                be also. */
             (void)check_arithmetic_or_enum_operand(&operand_2);
-          } else if (check_pointer_operand(
+          } else if (check_object_pointer_operand(
                                operand_1,
                                enum_type_is_integral ?
                                  ec_expr_not_scalar :
