@@ -27,7 +27,8 @@ extern a_boolean is_constructor_decl(a_type_ptr  class_type);
 extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 				 a_decl_flag_set      *output_flags,
 				 a_storage_class      *storage_class,
-				 a_type_ptr           *type_ptr);
+				 a_type_ptr           *type_ptr,
+                                 a_type_qualifier_set *qualifiers);
 
 /* Constants defining bits in the input bit vector used in calls to
    decl_specifiers. */
@@ -94,58 +95,52 @@ extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 #define DSO_HAS_EXPLICIT_TYPE_SPECIFIER 0x1
 			/* If this bit is set the declaration specifiers
 			   were found to have at least one type specifier. */
-#define DSO_CONST_QUALIFIED 0x2
-			/* If this bit is set the keyword "const" was found
-			   in the qualifiers list. */
-#define DSO_VOLATILE_QUALIFIED 0x4
-			/* If this bit is set the keyword "volatile" was found
-			   in the qualifiers list. */
-#define DSO_INLINE 0x8
+#define DSO_INLINE 0x2
 			/* If this bit is set the function specifier "inline"
 			   was found. */
-#define DSO_VIRTUAL 0x10
+#define DSO_VIRTUAL 0x4
 			/* If this bit is set the function specifier "volatile"
 			   was found. */
-#define DSO_FRIEND 0x20
+#define DSO_FRIEND 0x8
 			/* If this bit is set the declaration specifier
 			   "friend" was found. */
-#define DSO_DECLARES_SOMETHING 0x40
+#define DSO_DECLARES_SOMETHING 0x10
 			/* If this bit is set the declaration specifiers
 			   actually declare something (a tag or enumeration
 			   members). */
-#define DSO_DEFINES_SOMETHING 0x80
+#define DSO_DEFINES_SOMETHING 0x20
 			/* If this bit is set the declaration specifiers
 			   actually define something (a class, struct, union,
 			   or enumeration). */
-#define DSO_JUST_VOID 0x100
+#define DSO_JUST_VOID 0x40
 			/* If this bit is set the keyword "void" was found,
 			   and nothing else. */
-#define DSO_DANGLING_TYPE_SPECIFIER 0x200
+#define DSO_DANGLING_TYPE_SPECIFIER 0x80
 			/* If this bit is set a malformed type specification
 			   was detected, probably caused by a missing
 			   semicolon following an class, struct, union, or
 			   enum declaration.  Error reporting is left to the
 			   caller in such cases. */
-#define DSO_NO_DECL_SPECIFIERS 0x400
+#define DSO_NO_DECL_SPECIFIERS 0x100
 			/* If this bit is set then no declaration specifiers
 			   were found before the first non-type-name
 			   identifier was encountered. */
-#define DSO_ELABORATED_TYPE_SPECIFIER 0x800
+#define DSO_ELABORATED_TYPE_SPECIFIER 0x200
                         /* If this bit is set the declaration specifiers
                            consist of (1) a keyword class, struct, union, or
                            enum and (2) an identifier (and optionally (3) the
                            keyword friend). */
-#define DSO_CONSTRUCTOR 0x1000
+#define DSO_CONSTRUCTOR 0x400
 			/* If this bit is set the declaration is for a
 			   constructor, in which case the type returned from
 			   decl_specifiers is tk_void. */
-#define DSO_DESTRUCTOR 0x2000
+#define DSO_DESTRUCTOR 0x800
 			/* If this bit is set the declaration appears to be
                            that of a destructor (a "~" was seen, and the
                            specifiers, if any, are consistent with those
 			   allowed on a destructor declaration), and so a type
                            of tk_void was returned. */
-#define DSO_CLASS_TEMPLATE 0x4000
+#define DSO_CLASS_TEMPLATE 0x1000
 			/* If this bit is set the declaration appears to be
 			   that of a class template. */
 #define DSO_LAST DSO_CLASS_TEMPLATE
