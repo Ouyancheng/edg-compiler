@@ -75,6 +75,7 @@ Clear a conversion description.
   conv->copy_initialization_done_as_direct = FALSE;
   conv->user_conversion_for_class_copy_must_be_determined = FALSE;
   conv->unknown_dependent_conversion   = FALSE;
+  conv->is_explicit_cast               = FALSE;
   clear_std_conv_descr(&conv->std);
 }  /* clear_conv_descr */
 
@@ -7167,8 +7168,7 @@ be dependent).  This routine is called only in C++ mode.
                          conversion_type,
                          &arg_match_list->conversion,
                          (a_conv_descr *)NULL,
-                         /*force_temp_for_class_bitwise_copy=*/FALSE,
-                         /*is_explicit_cast=*/FALSE);
+                         /*force_temp_for_class_bitwise_copy=*/FALSE);
     /* See whether the conversion function returns a reference type. */
     if (arg_match_list->conversion.result_is_an_lvalue) {
       routine_type = conversion_type;
@@ -9059,8 +9059,7 @@ Adjust the operand type to match the type requirement.
         prep_for_known_possible_conversion(operand, &arg_match->conversion);
         user_convert_operand(operand, /*dest_type=*/(a_type_ptr)NULL,
                              &arg_match->conversion, (a_conv_descr *)NULL,
-                             /*force_temp_for_class_bitwise_copy=*/FALSE,
-                             /*is_explicit_cast=*/FALSE);
+                             /*force_temp_for_class_bitwise_copy=*/FALSE);
       } else {
         /* The conversion is not usable, e.g., because the conversion
            is ambiguous.  Redo the analysis of the conversion to get
@@ -10247,8 +10246,7 @@ Issue an error and set *processed to TRUE if the conversion is ambiguous.
       conversion.result_is_an_lvalue = FALSE;
       user_convert_operand(operand, /*dest_type=*/(a_type_ptr)NULL,
                            &conversion, (a_conv_descr *)NULL,
-                           /*force_temp_for_class_bitwise_copy=*/FALSE,
-                           /*is_explicit_cast=*/FALSE);
+                           /*force_temp_for_class_bitwise_copy=*/FALSE);
       *processed = TRUE;
     } else if (ambiguous) {
       /* There is more than one possible conversion to a built-in type. */
@@ -10923,8 +10921,7 @@ void user_convert_operand(an_operand   *operand,
                           a_type_ptr   dest_type,
                           a_conv_descr *conversion,
                           a_conv_descr *ctor_arg_conversion,
-                          a_boolean    force_temp_for_class_bitwise_copy,
-                          a_boolean    is_explicit_cast)
+                          a_boolean    force_temp_for_class_bitwise_copy)
 /*
 Do the user-defined conversion indicated by *conversion to convert
 *operand to dest_type.  dest_type may be NULL to indicate that
@@ -10937,13 +10934,13 @@ That's particularly significant when the "conversion" is a class bitwise
 copy: the adjustment here changes the operand to access the same class
 object with the new type, but does not copy it to a temporary.  However,
 if force_temp_for_class_bitwise_copy is TRUE, a temporary will be created
-in that case.  is_explicit_cast is TRUE if this conversion is due to
-an explicit cast.
+in that case.
 */
 {
   an_expr_node_ptr  rout_node, arg_expr_list;
   an_operand        orig_operand;
   a_routine_ptr     conversion_routine;
+  a_boolean         is_explicit_cast;
 
   orig_operand = *operand;
   conversion_routine = conversion->routine;
@@ -10954,6 +10951,7 @@ an explicit cast.
     internal_error("user_convert_operand: unusable conversion");
   }  /* if */
 #endif /* CHECKING */
+  is_explicit_cast = conversion->is_explicit_cast;
   if (conversion->class_identity_or_bitwise_copy) {
     /* Bitwise copy of a class. */
     a_boolean conv_to_rvalue = !conversion->result_is_an_lvalue;
@@ -11065,8 +11063,7 @@ The conversion is assumed not to be due to an explicit cast.
     /* Call a user-defined conversion routine. */
     user_convert_operand(source_operand, dest_type, conversion,
                          (a_conv_descr *)NULL,
-                         /*force_temp_for_class_bitwise_copy=*/FALSE,
-                         /*is_explicit_cast=*/FALSE);
+                         /*force_temp_for_class_bitwise_copy=*/FALSE);
   } else {
     /* Cast the operand to the result type. */
     cast_operand(dest_type, source_operand, /*check_cast_access=*/TRUE,
@@ -11467,8 +11464,7 @@ happen only in C++ mode.
          this point, and not to the destination type if it is different. */
       user_convert_operand(source_operand, (a_type_ptr)NULL,
                            conversion, (a_conv_descr *)NULL,
-                           /*force_temp_for_class_bitwise_copy=*/FALSE,
-                           /*is_explicit_cast=*/FALSE);
+                           /*force_temp_for_class_bitwise_copy=*/FALSE);
       /* See if the result of the conversion is already in a temporary
          of the right type. */
       if (identical_types(source_operand->type, dest_type) &&
@@ -11756,8 +11752,7 @@ copy-initialization.
          result of the conversion function rather than dest_type. */
       user_convert_operand(source_operand, /*dest_type=*/(a_type_ptr)NULL,
                            conversion, (a_conv_descr *)NULL,
-                           /*force_temp_for_class_bitwise_copy=*/FALSE,
-                           /*is_explicit_cast=*/FALSE);
+                           /*force_temp_for_class_bitwise_copy=*/FALSE);
     } else {
       /* Normal case. */
       convert_operand(source_operand, dest_type, conversion);

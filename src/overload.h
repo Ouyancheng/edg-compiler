@@ -107,6 +107,10 @@ typedef struct a_conv_descr {
 			   dependent type in a prototype instantiation, and
 			   therefore we cannot know the right constructor
 			   or conversion function to call. */
+  a_byte_boolean
+		is_explicit_cast;
+			/* If TRUE, the conversion is being done as the
+			   result of an explicit cast. */
   a_std_conv_descr
 		std;	/* The standard conversion part of the conversion. */
 } a_conv_descr;
@@ -662,8 +666,7 @@ extern void user_convert_operand(
                            a_type_ptr   dest_type,
                            a_conv_descr *conversion,
                            a_conv_descr *ctor_arg_conversion,
-                           a_boolean    force_temp_for_class_bitwise_copy,
-                           a_boolean    is_explicit_cast);
+                           a_boolean    force_temp_for_class_bitwise_copy);
 
 extern void prep_elision_initializer_operand(
                                   an_operand         *source_operand,

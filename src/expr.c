@@ -8277,8 +8277,9 @@ for non-class operands).  This routine is called only in C++ mode.
            if there is a class operand and no user-defined conversion
            applies, we know we have an error.  That's the reason that
            user_defined_conversion_possible is not called. */
-        a_boolean  possible = FALSE, template_case = FALSE;
+        a_boolean  possible = FALSE;
         a_type_ptr eff_type_cast_to = type_pointed_to(type_cast_to);
+        template_case = FALSE;
         if (could_be_dependent_class_type(operand->type)) {
           /* A template parameter type could be a class type, so assume that
              a conversion is possible.  A nonreal class type could have
@@ -8320,12 +8321,13 @@ for non-class operands).  This routine is called only in C++ mode.
              valid above. */
           if (template_case) {
              /* The source has a dependent type. */
-             generic_cast_operand(operand, make_pointer_type(eff_type_cast_to),
-                                  (an_expr_operator_kind)eok_cast,
-                                  /*is_implicit_cast=*/FALSE,
-                                  /*is_reference_cast=*/TRUE);
-           } else {
-             prep_reference_initializer_operand(
+            generic_cast_operand(operand, make_pointer_type(eff_type_cast_to),
+                                 (an_expr_operator_kind)eok_cast,
+                                 /*is_implicit_cast=*/FALSE,
+                                 /*is_reference_cast=*/TRUE);
+          } else {
+            conversion.is_explicit_cast = TRUE;
+            prep_reference_initializer_operand(
                                            operand,
                                            type_cast_to,
                                            &conversion,
@@ -8355,6 +8357,7 @@ for non-class operands).  This routine is called only in C++ mode.
                                          &ctor_arg_conversion,
                                          &failed)) {
           /* A user-defined conversion can be done. */
+          conversion.is_explicit_cast = TRUE;
           /* Force the result to an rvalue because the cast is not
              to a reference type (otherwise, when a conversion function
              that returns a reference is used, the result would be an
@@ -8365,8 +8368,7 @@ for non-class operands).  This routine is called only in C++ mode.
           user_convert_operand(operand, type_cast_to, &conversion,
                                &ctor_arg_conversion,
                                /*force_temp_for_class_bitwise_copy=*/
-                                                           !any_cfront_mode(),
-                               /*is_explicit_cast=*/TRUE);
+                                                           !any_cfront_mode());
           *processed = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_bugs && microsoft_version < 1100 &&
@@ -11872,8 +11874,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
           if (!ambig_2_to_3) {
             user_convert_operand(&operand_2, operand_3.type, &conv_2_to_3,
                                  (a_conv_descr *)NULL,
-                                 /*force_temp_for_class_bitwise_copy=*/FALSE,
-                                 /*is_explicit_cast=*/FALSE);
+                                 /*force_temp_for_class_bitwise_copy=*/FALSE);
           } else {
             /* The conversion is ambiguous.  Do the test again and this
                time issue an error. */
@@ -11889,8 +11890,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
           if (!ambig_3_to_2) {
             user_convert_operand(&operand_3, operand_2.type, &conv_3_to_2,
                                  (a_conv_descr *)NULL,
-                                 /*force_temp_for_class_bitwise_copy=*/FALSE,
-                                 /*is_explicit_cast=*/FALSE);
+                                 /*force_temp_for_class_bitwise_copy=*/FALSE);
           } else {
             /* The conversion is ambiguous.  Do the test again and this
                time issue an error. */
