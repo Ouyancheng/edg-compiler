@@ -2467,6 +2467,7 @@ are not checked.
         a_template_ptr  corresp_templ = corresp_scope->templates;
         for (; templ != NULL && corresp_templ != NULL;
              templ = templ->next, corresp_templ = corresp_templ->next) {
+#if 0 /* FIXME */
           a_symbol_ptr
                templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info,
                corresp_sym =
@@ -2497,7 +2498,9 @@ are not checked.
           } else {
             set_trans_unit_corresp(iek_template, templ, corresp_templ);
           }  /* if */
-          if (!has_correspondence(templ) ||
+#endif /*FIXME*/
+          set_trans_unit_corresp(iek_template, templ, corresp_templ);
+          if (/* FIXME !has_correspondence(templ) || */
               templ->kind != corresp_templ->kind) {
             /* Could only be due to an error. */
             f_report_bad_trans_unit_corresp(
