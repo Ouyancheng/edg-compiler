@@ -1040,20 +1040,17 @@ unreachable code).
 */
 {
   a_statement_ptr                   init_stmt;
-  a_boolean                         static_lifetime;
+  a_boolean                         is_local_static_var = FALSE;
   a_boolean                         at_file_scope;
 
   db_enter(4, "gen_dynamic_initialization");
   at_file_scope = (depth_stmt_stack < 0);
-  if (at_file_scope) {
-    static_lifetime = TRUE;
-  } else {
+  if (!at_file_scope) {
     check_assertion(scope_stack[depth_scope_stack].kind ==
                                               (a_scope_kind)sck_function ||
                     scope_stack[depth_scope_stack].kind ==
                                               (a_scope_kind)sck_block);
     check_assertion(vp->source_corresp.class_of_which_a_member == NULL);
-    static_lifetime = has_static_storage_duration(vp->storage_class);
     /* We are in executable code (i.e., inside a function or block rather
        than at file scope). */
     if (dip->kind != (a_dynamic_init_kind)dik_none) {
@@ -1069,14 +1066,11 @@ unreachable code).
     if (struct_stmt_stack[depth_stmt_stack].any_exec_statement_seen) {
       dip->follows_an_exec_statement = TRUE;
     }  /* if */
-  }  /* if */
-  /* The dynamic init entry should point at the variable. */
-  dip->variable = vp;
-  if (!at_file_scope) {
     /* Must be the initialization of a local variable. */
-    check_assertion(in_file_scope(vp) == static_lifetime);
+    is_local_static_var = has_static_storage_duration(vp->storage_class);
     check_assertion(!in_file_scope(dip));
-    if (static_lifetime) {
+    check_assertion(in_file_scope(vp) == is_local_static_var);
+    if (is_local_static_var) {
       /* Dynamic initialization of a local static variable.  Since the dynamic
          init entry is in the function scope memory region, the variable can't
          have a pointer to it.  Instead, create a local-static-variable-init
@@ -1106,9 +1100,11 @@ unreachable code).
        entry to the scope list. */
     add_to_dynamic_inits_list(dip);
   }  /* if */
+  /* The dynamic init entry should point at the variable. */
+  dip->variable = vp;
   /* If needed, create a destruction entry and associate it with the
      appropriate object-lifetime entry. */
-  record_end_of_lifetime_destruction(dip, static_lifetime);
+  record_end_of_lifetime_destruction(dip, is_local_static_var);
   /* Mark all dynamically initialized variables as referenced.  (They are
      "referenced" in the sense that a variable assigned to, even if never
      used, is referenced.)  It is especially important not to leave the
