@@ -11697,34 +11697,6 @@ of the routine, e.g., to call the routine).
 }  /* function_addr_expr */
 
 
-static a_boolean expr_has_non_indirection_operand(an_expr_node_ptr  expr)
-/*
-Return TRUE if the indicated expression tree has operands that
-cannot be indirected simply placing a "*" on top of the operand,
-e.g., an eok_bit_field (which doesn't really have an address).
-*/
-{
-  a_boolean non_ind = FALSE;
-
-  if (is_operation_node(expr)) {
-    an_expr_operator_kind op = expr->variant.operation.kind;
-    an_expr_node_ptr      operand1 = expr->variant.operation.operands;
-    an_expr_node_ptr      operand2 = operand1->next;
-    if (op == (an_expr_operator_kind)eok_bit_field) {
-      non_ind = TRUE;
-    } else if (op == (an_expr_operator_kind)eok_question &&
-               (expr_has_non_indirection_operand(operand2) ||
-                expr_has_non_indirection_operand(operand2->next))) {
-      non_ind = TRUE;
-    } else if (op == (an_expr_operator_kind)eok_comma &&
-               expr_has_non_indirection_operand(operand2)) {
-      non_ind = TRUE;
-    }  /* if */
-  }  /* if */
-  return non_ind;
-}  /* expr_has_non_indirection_operand */
-
-
 an_expr_node_ptr add_indirection_to_node(an_expr_node_ptr node)
 /*
 Add an indirection on top of the given node (or make a change that produces
@@ -11749,9 +11721,6 @@ the same effect), and return a pointer to the new expression.
     } else if (is_operation_node(node)) {
       /* An operation node. */
       an_expr_operator_kind op = node->variant.operation.kind;
-      an_expr_node_ptr operand1 = node->variant.operation.operands;
-      an_expr_node_ptr operand2 = operand1->next;
-      an_expr_node_ptr operand3;
       if (op == (an_expr_operator_kind)eok_padd ||
           op == (an_expr_operator_kind)eok_padd_subsc) {
         /* A pointer addition; change to a subscripting operation. */
@@ -11763,26 +11732,6 @@ the same effect), and return a pointer to the new expression.
         optimized_case = TRUE;
         node->variant.operation.kind =
                                   (an_expr_operator_kind)eok_extract_bit_field;
-      } else if (op == (an_expr_operator_kind)eok_question &&
-                 expr_has_non_indirection_operand(node)) {
-        /* Rewrite an lvalue-returning "?" by doing indirection on its
-           second and third operands. */
-        operand3 = operand2->next;
-        optimized_case = TRUE;
-        operand1->next = NULL;
-        operand2->next = NULL;
-        operand2 = add_indirection_to_node(operand2);
-        operand3 = add_indirection_to_node(operand3);
-        operand1->next = operand2;
-        operand2->next = operand3;
-      } else if (op == (an_expr_operator_kind)eok_comma &&
-                 expr_has_non_indirection_operand(node)) {
-        /* Rewrite an lvalue-returning comma by doing indirection on its
-           second operand. */
-        optimized_case = TRUE;
-        operand1->next = NULL;
-        operand2 = add_indirection_to_node(operand2);
-        operand1->next = operand2;
       }  /* if */
     }  /* if */
     if (is_template_param_type(node->type)) {
