@@ -1468,9 +1468,20 @@ not return.
   /*NOTREACHED*/
 }  /* term_compilation */
 
+/*
+The Sun C++ compiler requires a ... as the second parameter of the
+signal handler function.
+*/
+#ifdef __SUNPRO_CC
+#define SIGNAL_FUNCTION_ELLIPSIS , ...
+#else /* ifndef __SUNPRO_CC */
+#define SIGNAL_FUNCTION_ELLIPSIS /* nothing */
+#endif /* ifdef __SUNPRO_CC */
+
 
 /*ARGSUSED*/ /* <-- Because "sig" is not used. */
-static a_signal_handler_return_value term_on_signal(int sig, ...)
+static a_signal_handler_return_value term_on_signal(int sig
+                                                    SIGNAL_FUNCTION_ELLIPSIS)
 /*
 Routine set up as a signal handler, called to terminate compilation on
 receipt of a signal.
