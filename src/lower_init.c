@@ -6316,7 +6316,9 @@ destructor scope, and also lower the user code.
       /* Set the cleanup state at the end of the prologue (i.e., just before
          going into user code) to the first cleanup for the wrapper.
          Note that this is not set when exceptions are not enabled. */
-      curr_context->curr_cleanup_state = first_prologue_destruction;
+      curr_context->curr_cleanup_state =
+          curr_context->latest_initialization =
+              first_prologue_destruction;
       insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
                                             &prologue_insert_location,
                                             /*unreachable=*/FALSE);

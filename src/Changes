@@ -1,5 +1,29 @@
 Version 2.36
 
+6/16/97   EH cleanup state at break label in destructor
+
+The cleanup state set at a break label at the top level in a destructor
+did not include the destructions of members and base classes to be done
+in the destructor wrapper code.  Now fixed.
+
+  struct B {
+    B();
+    ~B();
+  };
+  struct A {
+    B mem;
+    A();
+    ~A();
+  };
+  void throws_exception();
+  A::~A() {
+    for (int j = 0; j < 5; j++) {
+      if (j == 3) { break; }
+    }
+    // Cleanup state at break label here does not destroy member "mem"
+    throws_exception();
+  }
+
 6/16/97   IL lowering bug on placement delete processing
 
 An IL lowering bug related to placement delete caused an internal
