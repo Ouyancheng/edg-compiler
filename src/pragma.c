@@ -28,6 +28,9 @@ pragma.c -- Routines to support #pragma directives
 #include "pragma.h"
 #include "statements.h"
 #include "templates.h"
+#if USER_CONTROL_OF_STRUCT_PACKING
+#include "layout.h"
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 /*
 Macro used to get a pointer to the active pointer to the current construct
@@ -285,6 +288,9 @@ possible.
     case pk_instantiate:
     case pk_do_not_instantiate:
     case pk_can_instantiate:
+#if USER_CONTROL_OF_STRUCT_PACKING
+    case pk_pack:
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       break;
     default:
       unexpected_condition_str2("alloc_pending_pragma:", "bad pragma kind");
@@ -1256,6 +1262,19 @@ Initialize the pragma description table.
 		 /*processing_C_code_in_pragma=*/TRUE,
 		 /*ignore_in_back_end=*/FALSE,
 		 es_error);
+#if USER_CONTROL_OF_STRUCT_PACKING
+  (void)add_immediate_pragma_kind_description
+		((a_pragma_kind)pk_pack,
+                 pack_pragma,
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code_in_pragma=*/FALSE,
+		 /*ignore_in_back_end=*/FALSE,
+                 es_error);
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if INCLUDE_EDG_TEST_PRAGMAS
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_test_next_decl,
