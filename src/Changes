@@ -107,16 +107,16 @@ As with the Microsoft compiler, only member enumerations are permitted.
   int f(){ return F::f1;}  // Not accepted by Microsoft compiler
 
 
-1/21/97 Omission of named field of struct in C mode
+1/21/97 struct with no named field in C mode
 
 Diagnostics on failing to declare at least one named field when defining a
 struct in C mode have been relaxed.  Declaring a struct with no fields at
 all remains an error, but if none of the fields declared is named, a
 diagnostic is issued only in strict mode.  For example:
 
-  struct A { };            // Still an error in all C modes
-  struct B { int:1; };     // Error (or warning) in strict C mode, no
-                           //   diagnostic otherwise
+  struct A { };            /* Still an error in all C modes */
+  struct B { int:1; };     /* Error (or warning) in strict C mode, no
+                                diagnostic otherwise */
 
 1/20/97 Incorrect processing of ?: operation in default argument expression
         in template
