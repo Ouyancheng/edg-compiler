@@ -1022,7 +1022,7 @@ the template.
                 set_to_named_error_locator(locator);
                 err = TRUE;
               }  /* if */
-              if (class_type_is_complete) {
+              if (class_type_is_complete && !err) {
                 /* The class has already been instantiated and can't now
                    be specialized. */
                 pos_sy_error(ec_specialization_of_referenced_entity,

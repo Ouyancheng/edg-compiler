@@ -1,5 +1,10 @@
 Version 2.35
 
+1/17/97 Internal error on specialization of invalid template
+
+  template <class T> class A {; 
+  template <> class A<T*> {};
+
 1/16/97 Microsoft compatibility: __declspec in declarator
 
 In Microsoft mode extended declaration specifiers are now permitted within
