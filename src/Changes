@@ -97,7 +97,7 @@ typename could result in spurious errors.  Now fixed.
 3/2/04   C++-generating back end: Unmovable members
 
 When FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS is TRUE, the
-front end may move in-class member and friend function definition out of
+front end may move in-class member and friend function definitions out of
 a class.  For some members this is not feasible because the member cannot
 be named outside the class.  Previously, the front end incorrectly handled
 the case of a member of a named class nested in an unnamed class.  That in
