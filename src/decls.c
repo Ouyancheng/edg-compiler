@@ -940,7 +940,7 @@ locator_for_curr_id.
   /* Set the entry's fields to default values. */
   pip->next = NULL;
   pip->locator = locator_for_curr_id;
-  pip->declaration_processed = FALSE;
+  pip->symbol = NULL;
   pip->type = NULL;
   pip->storage_class = (a_storage_class)sc_unspecified;
   db_exit();
@@ -6376,7 +6376,7 @@ explicitly specified (rather than defaulted to "int").
       /* Scan the list of identifiers, assign types to any that remain
          undeclared, and create the variable entries. */
       do {
-        if (!param_id->declaration_processed) {
+        if (param_id->symbol == NULL) {
           /* Enter any undeclared parameters with a type of int. */
           param_id->type = integer_type((an_integer_kind)ik_int);
           param_id->storage_class = (a_storage_class)sc_auto;
@@ -7167,11 +7167,15 @@ continue_with_declaration:
           /* Enter the declared object as a variable rather than 
              as a parameter. */
           is_parameter = FALSE;
-        } else {
-          /* The identifier being declared is on the param id list.
-             We don't check if it has already been declared; that is done
-             as the name is entered in the symbol table. */
-          param_id->declaration_processed = TRUE;
+        } else if (param_id->symbol != NULL) {
+          /* The parameter has already been declared.  We don't want to leave
+             the old parameter symbol in the symbol table since it is in an
+             incomplete state (NULL variable ptr) that could cause problems
+             later.  So issue the error here (rather than in enter_symbol) and
+             removed the old symbol from the symbol table. */
+          error(ec_id_already_declared);
+          remove_symbol(param_id->symbol);
+          param_id->symbol = NULL;
         }  /* if */
         adjust_parameter_type(&local_type_ptr);
         is_function = top_declarator_type_is_function = FALSE;
