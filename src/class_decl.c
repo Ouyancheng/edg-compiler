@@ -3997,7 +3997,8 @@ of the function, and again overloading is a possibility.
       /* Default storage class setting. */
       storage_class = (a_storage_class)sc_extern;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode && storage_class != (a_storage_class)sc_unspecified) {
+      if (microsoft_mode &&
+          decl_info->storage_class != (a_storage_class)sc_unspecified) {
         /* In Microsoft mode "extern" and "static" are permitted on a
            nonmember friend declaration. */
         storage_class = decl_info->storage_class;
