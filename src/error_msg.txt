@@ -735,6 +735,8 @@ ec_det_during_compiler_generated_function_context;INTERNAL;"detected during impl
 ec_det_during_template_function_declaration_context;INTERNAL;"detected during instantiation of %na %p"
 ec_det_during_template_class_argument_list_context;INTERNAL;"detected during processing of template argument list for %na %p"
 ec_det_during_implicit_static_data_member_definition;INTERNAL;"detected during implicit definition of %nf %p"
+ec_not_found_on_pack_alignment_stack;;"%sq not found on pack alignment stack"
+ec_empty_pack_alignment_stack;;"empty pack alignment stack"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
