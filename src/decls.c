@@ -3831,20 +3831,28 @@ on a prior declaration.
     reconcile_routine_types(sym->variant.routine, type_ptr,
                             /*preserve_rout_type=*/FALSE,
                             /*preserve_type_ptr=*/TRUE);
-    /* If the routine is a default constructor or a copy constructor, it may
-       be that this has not yet been recorded in the symbol. */
     if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
+      /* If the routine is a default constructor or a copy constructor, it may
+         be that this has not yet been recorded in the symbol.  (This becomes
+         possible if there are default arguments in the definition.) */
       a_class_symbol_supplement_ptr  cssp;
       cssp = symbol_supplement_for_class(class_type);
       if (!cssp->has_default_constructor && is_default_constructor(rp)) {
+        /* This is a default constructor, so set the flag. */
         cssp->has_default_constructor = TRUE;
       }  /* if */
-      if (!cssp->has_copy_constructor_for_const_object) {
+      /* There are three flags associated with copy constructors. */
+      if (!cssp->has_copy_constructor_for_const_object ||
+          cssp->construction_by_bitwise_copy_allowed) {
         a_boolean  const_okay, volatile_okay;
         if (is_copy_constructor(rp, class_type, &const_okay,
                                 &volatile_okay)) {
+          /* This is a copy constructor.  Note that the presence of a user-
+             defined copy constructor means that construction by bitwise
+             copying is not done. */
           cssp->has_copy_constructor = TRUE;
           cssp->has_copy_constructor_for_const_object = const_okay;
+          cssp->construction_by_bitwise_copy_allowed = FALSE;
         }  /* if */
       }  /* if */
     }  /* if */
