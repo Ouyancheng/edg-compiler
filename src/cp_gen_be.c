@@ -2132,7 +2132,11 @@ Generate a reference to the indicated type, which is a tag or a typedef.
 A reference is not the definition unless the type is unnamed.
 */
 {
-  if (type->kind == (a_type_kind)tk_typeref) {
+  if (type->replace_by_generated_typedef) {
+    /* Replace the reference to this type by a reference to a
+       generated typedef. */
+    gen_temp_name((char *)type);
+  } else if (type->kind == (a_type_kind)tk_typeref) {
     /* A typedef. */
     gen_type_name(type);
   } else {
@@ -3247,13 +3251,12 @@ typedef.
 {
   if (set) {
     if (!type->replace_by_generated_typedef) {
-      type->replace_by_generated_typedef = TRUE;
       write_tok_str("typedef ");
-      gen_name(&type->source_corresp,
-               iek_type, /*force_qualified_name=*/FALSE);
+      gen_type_reference(type);
       write_space();
       gen_temp_name((char *)type);
       write_tok_str("; ");
+      type->replace_by_generated_typedef = TRUE;
     }  /* if */
   } else {
     type->replace_by_generated_typedef = FALSE;
@@ -3287,8 +3290,9 @@ flags on the classes found on an earlier call.
           any_found = TRUE;
           /* Found a template class name used in a particular way in
              a template argument.  Generate a typedef and use it in place
-             of the template class name. */
-          establish_replacement_typedef(type_class, set);
+             of the argument type name.  Note that we are rewriting the
+             argument type, not the parent class type. */
+          establish_replacement_typedef(type, set);
         }  /* if */
       }  /* if */
     }  /* if */
