@@ -873,6 +873,9 @@ error code.
     case ec_old_style_parameter_list:
       m = "old-style parameter list";
       break;
+    case ec_declaration_after_statements:
+      m = "declaration may not appear after executable statement";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
