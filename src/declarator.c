@@ -852,7 +852,7 @@ specification is handled later (see check_exception_specification).
         /* Check the type to be sure it's not an incomplete type or a pointer
            to an incomplete type. */
         a_type_ptr     tp = estp->type;
-        an_error_code  error_code = es_none;
+        an_error_code  error_code = ec_no_error;
 
         /* Issue a diagnostic if an incomplete type is indicated in the
            exception specification.  According to the standard, this is always
@@ -877,7 +877,7 @@ specification is handled later (see check_exception_specification).
             }  /* if */
           }  /* if */
         }  /* if */
-        if (!ignoring_exception_spec && error_code != es_none) {
+        if (!ignoring_exception_spec && error_code != ec_no_error) {
           /* Defer a diagnostic if this is a top-level declarator and the
              type is something other than "void"; in strict mode or if the
              type is "void", issue a diagnostic.  Otherwise, suppress the
