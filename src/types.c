@@ -6936,7 +6936,7 @@ referring to a variably modified type.
   return found;
 }  /* ttt_is_variably_modified_type */    
 
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM
 
 static a_boolean ttt_warn_about_use_of_gnu_deprecated_type(
                                           a_type_ptr  type_ptr,
@@ -6976,7 +6976,7 @@ warning is issued for the given position.
   error_position = saved_pos;
 }  /* warn_about_use_of_gnu_deprecated_type */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
                              a_type_predicate_function_ptr  func,
