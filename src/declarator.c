@@ -3908,7 +3908,7 @@ function_lparen:
     /* Add the new type to the bottom of the existing derived type list.
        Note that this involves error checking. */
     add_to_derived_type_list(new_type_ptr, &derived_type, &bottom_derived_type,
-                             input_flags & DI_IS_MICROSOFT_PROPERTY);
+                             (input_flags & DI_IS_MICROSOFT_PROPERTY) != 0);
   }  /* while */
   /* Set the referenced flag on the specifiers type if this is the top-level
      scan of the declarator (i.e., if specifiers_type is non-NULL) -- but
@@ -4028,7 +4028,7 @@ function_lparen:
   if (derived_type != NULL && complete_type != NULL) {
     add_to_derived_type_list(complete_type,
                              &derived_type, &bottom_derived_type,
-                             input_flags & DI_IS_MICROSOFT_PROPERTY);
+                             (input_flags & DI_IS_MICROSOFT_PROPERTY) != 0);
     complete_type = derived_type;
   } else {
     if (derived_type != NULL) complete_type = derived_type;
