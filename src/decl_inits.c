@@ -2051,6 +2051,7 @@ scan_arg_for_scan_initialization:
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
             if (curr_token == tok_rparen) {
               /* No expression.  Leave the dynamic init entry as is. */
+              pos_warning(ec_exp_primary_expr, &pos_curr_token);
             } else {
               scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
                                                 init_type, dip);
