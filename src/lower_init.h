@@ -64,10 +64,6 @@ extern a_statement_ptr insert_var_assignment_statement(
                                        an_expr_node_ptr       rvalue_expr,
                                        an_insert_location_ptr insert_location);
 
-extern void free_init_pos_modifier_list(an_init_pos_modifier_ptr ipmp);
-
-extern void clear_init_pos_descr(an_init_pos_descr_ptr ipdp);
-
 extern void set_var_init_pos_descr(a_variable_ptr        var,
                                    an_init_pos_descr_ptr ipdp);
 
@@ -86,10 +82,9 @@ extern an_expr_node_ptr make_init_entity_node(
                                        a_boolean             using_as_address,
                                        a_boolean             using_as_dest);
 
-extern void init_conditional_flag_var(
-                               a_variable_ptr     cond_var,
-                               a_boolean          follows_an_exec_statement,
-                               an_insert_location *insert_location);
+extern void init_conditional_flag_var(a_variable_ptr     cond_var,
+                                      a_handle_number    cond_var_handle,
+                                      an_insert_location *insert_location);
 
 extern void lower_dynamic_init(a_dynamic_init_ptr       dip,
                                an_init_pos_descr_ptr    ipdp,

@@ -649,7 +649,7 @@ sometimes allocated on the stack.
 }  /* alloc_init_pos_modifier */
 
 
-void free_init_pos_modifier_list(an_init_pos_modifier_ptr ipmp)
+static void free_init_pos_modifier_list(an_init_pos_modifier_ptr ipmp)
 /*
 Free a list of initialization position modifier entries by putting them on
 the available list.
@@ -684,7 +684,7 @@ saved so that a destruction may be generated later.
 }  /* copy_init_pos_modifier_list */
 
 
-void clear_init_pos_descr(an_init_pos_descr_ptr ipdp)
+static void clear_init_pos_descr(an_init_pos_descr_ptr ipdp)
 /*
 Clear an initialization position description entry to default values.
 */
@@ -794,6 +794,7 @@ and return a pointer to it.
   dedp->next = NULL;
   clear_init_pos_descr(&dedp->init_pos_descr);
   dedp->conditional_flag_var = NULL;
+  dedp->conditional_flag_handle = 0;
   dedp->region_number = null_eh_region_number;
   dedp->next_region_number = null_eh_region_number;
   dedp->region_table_entry = NULL;
@@ -1564,9 +1565,10 @@ typedef struct a_generated_routine_context {
 } a_generated_routine_context;
 
 
-void push_generated_routine_context(a_scope_ptr                 scope,
-                                    a_memory_region_number      region_number,
-                                    a_generated_routine_context *grcontext)
+static void push_generated_routine_context(
+                                     a_scope_ptr                 scope,
+                                     a_memory_region_number      region_number,
+                                     a_generated_routine_context *grcontext)
 /*
 IL lowering is fabricating a routine that didn't exist in the source program.
 Push appropriate context for the generation.  scope is the function scope
@@ -1589,9 +1591,10 @@ grcontext is a local variable used to save state for later restoration.
 }  /* push_generated_routine_context */
 
 
-void pop_generated_routine_context(a_scope_ptr                 scope,
-                                   a_memory_region_number      region_number,
-                                   a_generated_routine_context *grcontext)
+static void pop_generated_routine_context(
+                                     a_scope_ptr                 scope,
+                                     a_memory_region_number      region_number,
+                                     a_generated_routine_context *grcontext)
 /*
 Pop function corresponding to push_generated_routine_context.
 */
@@ -2330,16 +2333,21 @@ may be many different such routines generated (all unnamed).
 
 
 void init_conditional_flag_var(a_variable_ptr     cond_var,
-                               a_boolean          follows_an_exec_statement,
+                               a_handle_number    cond_var_handle,
                                an_insert_location *insert_location)
 /*
 Insert code to initialize a conditional flag variable to zero.
-cond_var is the variable.  The code (if any is needed) is inserted at
-*insert_location.  That location follows an executable statement in its block
-if follows_an_exec_statement is TRUE (if the flag is FALSE, this routine
-will not generate anything that will change that state).
+cond_var is the variable.  cond_var_handle is the variable's index
+number in the object address table; code is inserted to set the
+object address table entry to the address of the variable.  The code is
+inserted at *insert_location.
 */
 {
+  an_init_pos_descr ipd;
+
+  /* Put the address of the variable into the object address table. */
+  set_var_init_pos_descr(cond_var, &ipd);
+  init_object_addr_table_entry(&ipd, cond_var_handle, insert_location);
   /* If the conditional flag is static, initialization to zero is
      implicit and requires nothing special in the IL. */
   if (cond_var->storage_class != (a_storage_class)sc_static) {
@@ -2350,7 +2358,7 @@ will not generate anything that will change that state).
     a_dynamic_init_ptr init_dip =
                          alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
     init_dip->variable = cond_var;
-    init_dip->follows_an_exec_statement = follows_an_exec_statement;
+    init_dip->follows_an_exec_statement = TRUE;
     /* The dynamic init entry is pointed to by the variable. */
     cond_var->init_kind = (an_init_kind)initk_dynamic;
     cond_var->initializer.dynamic = init_dip;
@@ -2662,7 +2670,6 @@ be kept, FALSE if it should be deleted.
                      lsvip = NULL;
   an_insert_location insert_location2;
   an_insert_location *eff_insert_location = insert_location;
-  a_boolean          follows_an_exec_statement= dip->follows_an_exec_statement;
   an_object_lifetime_ptr
                      lifetime, init_expr_lifetime;
   a_context          context, static_context;
@@ -2757,7 +2764,6 @@ be kept, FALSE if it should be deleted.
       insert_statement(block_stmt, insert_location);
       set_block_start_insert_location(block_stmt, &insert_location2);
       eff_insert_location = &insert_location2;
-      follows_an_exec_statement = FALSE;
       /* Rebind the object lifetime to the block. */
       if (!processing_file_scope_init_routine) {
         unbind_object_lifetime(init_expr_lifetime);
@@ -2796,9 +2802,7 @@ be kept, FALSE if it should be deleted.
          initialization routine, however, any lifetimes involved in
          the initialization have not been processed yet and must be
          processed now (e.g., to initialize conditional flags). */
-      begin_object_lifetime(temp_lifetime,
-                            follows_an_exec_statement,
-                            eff_insert_location);
+      begin_object_lifetime(temp_lifetime, eff_insert_location);
     }  /* if */
   }  /* if */
   switch (dip->kind) {
@@ -3475,6 +3479,7 @@ The subtree of the node has not yet been lowered.
         make_delete_region_table_entry(&ipd,
                                        ndsp->delete_routine,
                                        (a_variable_ptr)NULL,
+                                       (a_handle_number)0,
                                        &new_cleanup_region_number,
                                        &insert_location);
         /* Set the region number to the delete cleanup entry. */
@@ -4386,6 +4391,7 @@ constructor scope, and also lower the user code.
   a_variable_ptr     this_param_var = scope->variant.routine.parameters;
   an_expr_node_ptr   if_node;
   a_variable_ptr     cond_var;
+  a_handle_number    cond_var_handle;
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 
   saved_code_pos = code_pos_for_lowering;
@@ -4455,6 +4461,8 @@ constructor scope, and also lower the user code.
            allocation is done. */
         cond_var = 
                  make_lowered_temporary(integer_type((an_integer_kind)ik_int));
+        /* Assign it a number in the object address table. */
+        cond_var_handle = object_addr_table_index();
         /* Set the conditional_flag  variable to nonzero.  The code to
            initialize it to zero is inserted later in this routine. */
         set_conditional_flag_var(cond_var, &expr_insert_location);
@@ -4463,6 +4471,7 @@ constructor scope, and also lower the user code.
         make_delete_region_table_entry(&ipd,
                                        ctsp->assoc_operator_delete_routine,
                                        cond_var,
+                                       cond_var_handle,
                                        &new_cleanup_region_number,
                                        &expr_insert_location);
         /* Set the region number to the delete cleanup entry. */
@@ -4514,9 +4523,7 @@ constructor scope, and also lower the user code.
            enclose_routine_in_if is called so that the initialization is
            done at the right place (i.e., outside the "if"). */
         set_block_start_insert_location(scope->assoc_block, &insert_location);
-        init_conditional_flag_var(cond_var,
-                                  /*follows_an_exec_statement=*/FALSE,
-                                  &insert_location);
+        init_conditional_flag_var(cond_var, cond_var_handle, &insert_location);
       }  /* if */
     }  /* if */
   }
@@ -4827,7 +4834,16 @@ destructor scope, and also lower the user code.
       /* Assign cleanup region numbers to the destructions.  This is done
          early so that we will know the right value to set __eh_curr_region
          to when beginning each destruction. */
+      /* Find the first destruction in the prologue. */
       first_prologue_destruction = ctor_init->initializer;
+      /* Watch out for the case of an array initialization; the top-level
+         dynamic initialization is not on the destructions list. */
+      if (first_prologue_destruction->lifetime == NULL) {
+        for (first_prologue_destruction = scope->lifetime->destructions;
+             !first_prologue_destruction->is_constructor_init;
+             first_prologue_destruction =
+                       first_prologue_destruction->next_in_destruction_list) {}
+      }  /* if */
       (void)assign_dtor_init_cleanup_region_number(first_prologue_destruction);
     }  /* if */
     /* Generate a destructor call for each data member that appears on the

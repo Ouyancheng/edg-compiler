@@ -78,6 +78,10 @@ when a just-allocated entry requires lowering.
 typedef unsigned long a_cleanup_region_number;
 			/* Number for a destructible region, used for
 			   exception handling cleanup. */
+typedef unsigned long a_handle_number;
+			/* Number in the region table that identifies an
+			   entry in the object address table or in the array
+			   table. */
 
 /*
 Types used to describe a position within an initialization:
@@ -158,6 +162,11 @@ typedef struct a_destructible_entity_descr {
 			   conditional flag variable that is set to non-zero
 			   to indicate that the initialization has been
 			   done. */
+  a_handle_number
+		conditional_flag_handle;
+			/* If conditional_flag_var is non-NULL, this is
+			   the object table index number for the conditional
+			   flag variable. */
   a_cleanup_region_number
 		region_number;
 			/* When exceptions are enabled, this is the
@@ -351,10 +360,6 @@ extern void set_block_start_insert_location(
                                           a_statement_ptr    stmt,
                                           an_insert_location *insert_location);
 
-extern void set_switch_clause_start_insert_location(
-                                         a_switch_clause_ptr scp,
-                                         an_insert_location  *insert_location);
-
 extern void set_expr_insert_location(an_expr_node_ptr   node,
                                      an_insert_location *insert_location);
 
@@ -542,7 +547,6 @@ extern void lower_call(an_expr_node_ptr      expr,
 
 extern void begin_object_lifetime(
                               an_object_lifetime_ptr lifetime,
-                              a_boolean              follows_an_exec_statement,
                               an_insert_location     *insert_location);
 
 extern void begin_block_object_lifetime(

@@ -53,8 +53,10 @@ extern void lower_throw(an_expr_node_ptr expr);
 
 extern void init_object_addr_table_entry(
                                        an_init_pos_descr_ptr ipdp,
-                                       a_targ_size_t         entry_number,
+                                       a_handle_number       entry_number,
                                        an_insert_location    *insert_location);
+
+extern a_handle_number object_addr_table_index(void);
 
 extern a_variable_ptr make_caught_object_address_var(void);
 
@@ -67,11 +69,12 @@ extern void make_dtor_region_table_entry(a_dynamic_init_ptr dip,
                                          an_insert_location *insert_location);
 
 extern void make_delete_region_table_entry(
-                                  an_init_pos_descr_ptr   ipdp,
-                                  a_routine_ptr           delete_routine,
-                                  a_variable_ptr          conditional_flag_var,
-                                  a_cleanup_region_number *region_number,
-                                  an_insert_location      *insert_location);
+                               an_init_pos_descr_ptr   ipdp,
+                               a_routine_ptr           delete_routine,
+                               a_variable_ptr          conditional_flag_var,
+                               a_handle_number         conditional_flag_handle,
+                               a_cleanup_region_number *region_number,
+                               an_insert_location      *insert_location);
 
 extern void clone_region_table_entry_list(a_dynamic_init_ptr dip,
                                           a_dynamic_init_ptr stop_before);

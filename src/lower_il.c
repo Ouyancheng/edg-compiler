@@ -295,7 +295,7 @@ the block stmt.
 }  /* set_block_start_insert_location */
 
 
-void set_switch_clause_start_insert_location(
+static void set_switch_clause_start_insert_location(
                                           a_switch_clause_ptr scp,
                                           an_insert_location  *insert_location)
 /*
@@ -2165,9 +2165,18 @@ so the next insertion will be after the statement added.
          must have follows_an_exec_statement TRUE. */
       a_statement_ptr foll_stmt;
       for (foll_stmt = statement->next;
-           foll_stmt != NULL && foll_stmt->kind == (a_statement_kind)stmk_init;
+           foll_stmt != NULL;
            foll_stmt = foll_stmt->next) {
-        foll_stmt->variant.dynamic_init->follows_an_exec_statement = TRUE;
+        if (foll_stmt->kind == (a_statement_kind)stmk_init) {
+          foll_stmt->variant.dynamic_init->follows_an_exec_statement = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        } else if (foll_stmt->kind == (a_statement_kind)stmk_decl) {
+          /* Ignore stmk_decl statements. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        } else {
+          /* Some other kind of statement. */
+          break;
+        }  /* if */
       }  /* for */
     }  /* if */
   }  /* if */
@@ -5960,27 +5969,28 @@ static void add_conditional_flag(a_dynamic_init_ptr dip)
 Add a conditional flag to a dynamic initialization (pointed to by dip).
 This is needed, for example, inside a conditional operand of a "?", "&&",
 or "||" operation, to make the corresponding destruction dependent on
-whether the construction was done.  We add a temporary variable and
-initialize it to 0; if code must be inserted to do the initialization,
-it is inserted at *insert_location.
+whether the construction was done.
 */
 {
   a_variable_ptr cond_var;
 
   cond_var = make_lowered_temporary(integer_type((an_integer_kind)ik_int));
   dip->destructible_entity_descr->conditional_flag_var = cond_var;
+  /* Pre-assign the object address table slot for the conditional variable,
+     because we're going to have to set that entry of the object address
+     table right away. */
+  dip->destructible_entity_descr->conditional_flag_handle = 
+                                                     object_addr_table_index();
 }  /* add_conditional_flag */
 
 
 void begin_object_lifetime(an_object_lifetime_ptr lifetime,
-                           a_boolean              follows_an_exec_statement,
                            an_insert_location     *insert_location)
 /*
 Do processing required at the beginning of the indicated object lifetime
 (a block, block-after-label, or expression temporary lifetime).
 If any code needs to be inserted, it is inserted at *insert_location,
-and *insert_location is updated.  That location follows an executable
-statement in its block if follows_an_exec_statement is TRUE.
+and *insert_location is updated.
 */
 {
   a_dynamic_init_ptr     dip;
@@ -6011,11 +6021,14 @@ statement in its block if follows_an_exec_statement is TRUE.
            The conditional flag is used for the unordered case if we can't
            predict the order in which certain initializations will be
            done (because the C language leaves evaluation order weakly
-           defined). */
+           defined; a real back end could figure out the actual evaluation
+           order and would not need the flags for this case). */
         add_conditional_flag(dip);
         init_conditional_flag_var(dip->destructible_entity_descr->
                                                           conditional_flag_var,
-                                  follows_an_exec_statement, insert_location);
+                                  dip->destructible_entity_descr->
+                                                       conditional_flag_handle,
+                                  insert_location);
       }  /* if */
     }  /* if */
   }  /* for */
@@ -6026,7 +6039,7 @@ statement in its block if follows_an_exec_statement is TRUE.
     if (olp->kind != (an_object_lifetime_kind)olk_block &&
         olp->kind != (an_object_lifetime_kind)olk_block_after_label &&
         olp->kind != (an_object_lifetime_kind)olk_try_block) {
-      begin_object_lifetime(olp, follows_an_exec_statement, insert_location);
+      begin_object_lifetime(olp, insert_location);
     }  /* if */
   }  /* for */
 }  /* begin_object_lifetime */
@@ -6106,8 +6119,7 @@ if lifetime is NULL.
     check_assertion(lifetime->kind == (an_object_lifetime_kind)olk_block);
     /* Visit all object lifetimes in this lifetime, and all destructions
        within those lifetimes. */
-    begin_object_lifetime(lifetime, /*follows_an_exec_statement=*/FALSE,
-                          insert_location);
+    begin_object_lifetime(lifetime, insert_location);
     start_label_region_of_lifetime(lifetime, /*switch_clause=*/FALSE);
   }  /* if */
 }  /* begin_block_object_lifetime */
@@ -6132,8 +6144,7 @@ associated with a label in a block.
                                          stmt->position);
   /* Visit all object lifetimes in this lifetime, and all destructions
      within those lifetimes. */
-  begin_object_lifetime(lifetime, /*follows_an_exec_statement=*/TRUE,
-                        &insert_location);
+  begin_object_lifetime(lifetime, &insert_location);
   start_label_region_of_lifetime(lifetime, /*switch_clause=*/FALSE);
   code_pos_for_lowering = saved_code_pos;
 }  /* begin_block_label_object_lifetime */
@@ -6164,8 +6175,7 @@ associated with a switch clause.
   }  /* if */
   /* Visit all object lifetimes in this lifetime, and all destructions
      within those lifetimes. */
-  begin_object_lifetime(lifetime, /*follows_an_exec_statement=*/TRUE,
-                        &insert_location);
+  begin_object_lifetime(lifetime, &insert_location);
   start_label_region_of_lifetime(lifetime, /*switch_clause=*/TRUE);
   code_pos_for_lowering = saved_code_pos;
 }  /* begin_switch_clause_object_lifetime */
