@@ -876,7 +876,20 @@ Add "name" to the path name in "buffer".
 */
 {
   a_boolean need_to_add_slash = FALSE;
+  char	separator_char = DIRECTORY_SEPARATOR;
 
+#if __MICROSOFT_OS__
+  if (strchr(buffer->buffer, DIRECTORY_SEPARATOR) != NULL) {
+    /* The original path uses regular UNIX-style slashes; use one to splice
+       the file and path to make it look consistent. */
+    separator_char = DIRECTORY_SEPARATOR;
+  } else {
+    /* The directory name does not have any UNIX-style slashes or has no
+       slashes at all.  In either case, under MSDOS, use an MSDOS-style
+       slash. */
+    separator_char = '\\';
+  }  /* if */
+#endif /* __MICROSOFT_OS__ */
   remove_null_terminator_from_text_buffer(buffer);
   if (buffer->size > 0) {
     /* The current path name is not empty.  Add a directory separator. */
@@ -894,22 +907,7 @@ Add "name" to the path name in "buffer".
   } /* if */
   if (need_to_add_slash) {
     /* Add the slash following the directory name. */
-#if __MICROSOFT_OS__
-    char	separator_char;
-    if (strchr(dir_name, DIRECTORY_SEPARATOR) != NULL) {
-      /* The original path uses regular UNIX-style slashes; use one to splice
-         the file and path to make it look consistent. */
-      separator_char = DIRECTORY_SEPARATOR;
-    } else {
-      /* The directory name does not have any UNIX-style slashes or has no
-	 slashes at all.  In either case, under MSDOS, use an MSDOS-style
-	 slash. */
-      separator_char = '\\';
-    }  /* if */
     add_char_to_text_buffer(buffer, separator_char);
-#else /* __MICROSOFT_OS__ */
-    add_char_to_text_buffer(buffer, DIRECTORY_SEPARATOR);
-#endif /* __MICROSOFT_OS__ */
   }  /* if */
   /* Add the file name to the directory name. */
   add_string_to_text_buffer(buffer, name);
