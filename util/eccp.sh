@@ -641,6 +641,7 @@ check_abbreviation()
 --pending_instantiations
 --pic
 --preinclude
+--preinclude_macros
 --prelink_copy_if_nonlocal
 --prelink_local_only
 --prelink_objects
@@ -1185,6 +1186,7 @@ process_option()
 	 --definition_list_file | \
          --pending_instantiations | \
          --preinclude | \
+         --preinclude_macros | \
          --sys_include | \
          --template_directory | \
          --time_limit | \
@@ -1248,7 +1250,7 @@ process_option()
           --diag_error=* | \
           --microsoft_version=* | \
           --pending_instantiations=* | \
-          --preinclude=* | \
+          --preinclude_macros=* | \
           --sys_include=* | \
           --time_limit=* | \
           --incl_suffixes=* | \
