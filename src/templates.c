@@ -6480,7 +6480,7 @@ lists must by non-empty.
 */
 {
   a_template_decl_info_ptr	    prev_template_decl_info = NULL;
-  a_template_decl_info_ptr	    template_decl_info;
+  a_template_decl_info_ptr	    template_decl_info = NULL;
   a_boolean			    param_list_seen = FALSE;
 
   /* Loop until there are no more template parameter clauses.  Note that
