@@ -1029,8 +1029,8 @@ static a_boolean pl_determine_actions(void)
           pifp->recompile = recompile_file;
           done = FALSE;
           if (verbose) {
-            fprintf(stdout, "%s no longer needed in %s\n", psp->name,
-                    pifp->filename);
+            fprintf(stdout, "edg_prelink: %s no longer needed in %s\n",
+                    psp->name, pifp->filename);
           }  /* if */
         }  /* if */
         /* Don't update the previous pointer if the current item was
@@ -1066,7 +1066,7 @@ static a_boolean pl_determine_actions(void)
           pifp->recompile = TRUE;
           done = FALSE;
           if (verbose) {
-            fprintf(stdout, "%s assigned to file %s\n", sym->name,
+            fprintf(stdout, "edg_prelink: %s assigned to file %s\n", sym->name,
                     pifp->filename);
           }  /* if */
         }  /* if */
@@ -1091,11 +1091,7 @@ Execute the command to recompile a file.
   length = strlen(shell_format_string) + strlen(command_line);
   command = (char *)pl_malloc_with_check(length);
   sprintf(command, shell_format_string, command_line);
-#if DEBUG
-  if (pl_debug_level >= 0) {
-    fprintf(stderr, "Executing: %s\n", command);
-  }  /* if */
-#endif /* DEBUG */
+  fprintf(stdout, "edg_prelink: executing: %s\n", command);
   return system(command_line);
 }  /* pl_recompile_file */
 
