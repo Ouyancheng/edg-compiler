@@ -1,5 +1,23 @@
 Version 2.24
 
+6/8/94  Error on member function definition in a comma-list
+
+An error is now issued if a function definition appears in a comma-list
+within a class definition -- e.g.:
+
+  class A {
+    void f(), f(int) { }                // Error on second declaration
+  };
+
+6/8/94  Support for comma-list of constructors
+
+An error is no longer issued when a comma-list of constructor declarations
+appears in a class definition -- e.g.,
+
+  class A {
+    A(), A(int);                        // Now allowed
+  };
+
 6/7/94  Matching of template member declarations with prototype instantiation
 
 The algorithm used to match declarations found in an instantiation with
