@@ -1,5 +1,15 @@
 Version 3.2
 
+2/20/03  Nonempty class types marked as empty
+
+In some circumstances, a nonempty class type could have its is_empty_class
+flag set to true.  For example:
+
+  typedef int I;
+  struct S { I i; };  // Incorrectly marked as empty
+
+This is now fixed.
+
 2/20/03  Use of uninitialized variable in process_overloaded_operator_arrow
 
 Some code in process_overloaded_operator_arrow (used to check the

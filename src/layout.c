@@ -3971,7 +3971,7 @@ of nonzero size (such classes actually have size zero).
     for (field = type->variant.class_struct_union.field_list;
          field != NULL; 
          field = field->next) {
-      if (field->type->size != 0 &&
+      if (skip_typerefs(field->type)->size != 0 &&
           (!field->is_bit_field || field->bit_size != 0)) {
         result = FALSE;
         break;
