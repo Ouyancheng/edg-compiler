@@ -834,13 +834,12 @@ extern void pos_sy_start_error(an_error_code     error_code,
 extern void pos_sy_start_warning(an_error_code     error_code,
                                  a_source_position *error_pos,
                                  struct a_symbol   *symbol);
-#if 0
-/* This routine is not currently used by the compiler. */
+#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
 extern void pos_sy2_warning(an_error_code     error_code,
                             a_source_position *error_pos,
                             struct a_symbol   *symbol1,
                             struct a_symbol   *symbol2);
-#endif /* 0 */
+#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
 extern void sym_add_diag_info(an_error_code   error_code,
                               struct a_symbol *symbol);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
