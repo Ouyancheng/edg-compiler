@@ -2199,7 +2199,8 @@ in [over.ics.rank].
     } else if (conv1->reversed_cast != !init_conv_after_udc) {
       /* Normal case: derived --> base pointer cast.  Here, with a hierarchy
          A is-base-of B is-base-of C, we are looking for C* to B* is better
-         than C* to A*, or base class B of C is better than base class A of C.
+         than C* to A*, or base class B of C is better than base class
+         A of C. */
       /* Or, a pointer-to-member conversion for initialization, where the
          destination types are the same.  Here, we are looking for
          B::* to C::* is better than A::* to C::*, which requires the
