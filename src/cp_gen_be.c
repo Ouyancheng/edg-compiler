@@ -4212,8 +4212,9 @@ is the one associated with the definition of the class.
                                                        max_member_alignment;
 
   /* If required, put out a #pragma pack directive to set the pack
-     alignment for the current class. */
-  if (pack_alignment > 0) {
+     alignment for the current class.  (GNU compilers ignore the
+     pragma; attributes are issued instead.) */
+  if (pack_alignment > 0 && !gcc_is_generated_code_target) {
     if (pack_alignment == il_header.default_max_member_alignment) {
       /* No need to put out a pragma to override the default value. */
       pack_alignment = 0;
@@ -4332,7 +4333,7 @@ is the one associated with the definition of the class.
   (void)form_type_attributes(type, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if USER_CONTROL_OF_STRUCT_PACKING
-  if (pack_alignment > 0) {
+  if (pack_alignment > 0 && !gcc_is_generated_code_target) {
     /* Restore the packing alignment to a default state. */
     begin_pp_directive("#pragma pack()");
     end_pp_directive();
@@ -4427,8 +4428,7 @@ declaration following this one is such a continuation.
                                          (a_name_reference_ptr)NULL);
 #if GNU_EXTENSIONS_ALLOWED
       /* Emit any attributes associated with the typedef. */
-      (void)form_type_attributes(under_type, /*need_leading_space=*/TRUE,
-                                 &octl);
+      (void)form_type_attributes(type, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     /* See if there are comma-separated declarations attached to this one. */

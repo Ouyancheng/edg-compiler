@@ -1,5 +1,22 @@
 Version 3.4
 
+4/23/04  C/C++-generating back ends: Typedef attributes
+
+The C- and C++-generating back ends previously generated every attribute
+of the underlying type of a typedef type on the typedef definition.  This
+is now done differently depending on the kind of attribute: Some (like
+"unused") are generated only if the attribute is recorded in the typedef
+entry itself; others (like "transparent_union") are generated if the
+attribute is recorded on the underlying type entry.
+
+4/23/04  C/C++-generating back ends: Generate pack attribute for GNU targets
+
+The C- and C++-generating back ends previously generated a #pragma pack
+directive prior to the definition of packed class types.  However, that
+pragma is ignored by GNU compilers.  Now a GNU attribute is emitted instead
+of a pragma if the target compiler is a GNU compiler (i.e., when
+GCC_IS_GENERATED_CODE_TARGET is TRUE).
+
 4/23/04  Macro expansion with argument that does not require expanded form
 
 A bug in the preprocessor has been fixed.  It involved macros that

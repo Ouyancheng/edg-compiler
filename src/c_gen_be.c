@@ -2248,8 +2248,7 @@ Print a typedef declaration.
                                   &type->source_corresp);
 #if GNU_EXTENSIONS_ALLOWED
       /* Emit any attributes associated with the typedef. */
-      (void)form_type_attributes(type->variant.typeref.type,
-                                 /*need_leading_space=*/TRUE, &octl);
+      (void)form_type_attributes(type, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       write_tok_ch(';');
     }  /* if */
@@ -2602,9 +2601,10 @@ final semicolon if output_final_semi is TRUE.
   if (start_unreferenced_bracket(&type->source_corresp)) {
 #if USER_CONTROL_OF_STRUCT_PACKING
     a_targ_alignment  pack_alignment = get_pack_alignment(type);
-    if (pack_alignment != 0) {
+    if (pack_alignment != 0 && !gcc_is_generated_code_target) {
       /* Put out a #pragma pack directive to indicate the special alignment
-         requirements for this struct. */
+         requirements for this struct.  GNU compilers ignore the pragma;
+         an attribute will be emitted instead. */
       unsigned long saved_indent = indent;
       end_output_line_if_begun();
       indent = 0;
@@ -2869,7 +2869,7 @@ final semicolon if output_final_semi is TRUE.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (output_final_semi) write_tok_ch(';');
 #if USER_CONTROL_OF_STRUCT_PACKING
-    if (pack_alignment != 0) {
+    if (pack_alignment != 0 && !gcc_is_generated_code_target) {
       /* Restore the packing alignment to a default state. */
       unsigned long saved_indent = indent;
       end_output_line_if_begun();

@@ -4093,12 +4093,20 @@ described by octl.
 */
 {
   if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
+    /* First emit the attributes that when appearing on a typedef would be
+       recorded in the typedef entry itself (as opposed to the underlying
+       type). */
 #if USER_CONTROL_OF_STRUCT_PACKING
     if (type->alignment_set_explicitly) {
       /* Output an attribute to indicate the explicit alignment. */
       form_unsigned_argument_attribute("__aligned__",
                                        (a_host_large_unsigned)type->alignment,
                                        &need_leading_space, octl);
+    }  /* if */
+    if ((is_immediate_class_type(type) &&
+         type->variant.class_struct_union.is_packed) ||
+        (is_immediate_enum_type(type) && type->variant.integer.packed)) {
+      form_simple_attribute("__packed__", &need_leading_space, octl);
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if (type->variables_are_implicitly_referenced) {
@@ -4111,11 +4119,9 @@ described by octl.
          trigger were already issued by the front end. */
       form_simple_attribute("__deprecated__", &need_leading_space, octl);
     }  /* if */
-    if (type->kind == (a_type_kind)tk_integer &&
-        type->variant.integer.packed) {
-      /* Output the "packed" attribute. */
-      form_simple_attribute("__packed__", &need_leading_space, octl);
-    }  /* if */
+    /* The following attributes would be recorded on the underlying type
+       if the attribute appeared on a typedef. */
+    type = skip_typerefs(type);
     if (type->kind == (a_type_kind)tk_union &&
         type->variant.class_struct_union.is_transparent) {
       form_simple_attribute("__transparent_union__", &need_leading_space,

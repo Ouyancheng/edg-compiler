@@ -1731,7 +1731,7 @@ a typedef, is_typedef is TRUE.
     case ak_packed:
       if (is_typedef) {
         pos_warning(ec_packed_attribute_ignored_in_typedef, &ap->position);
-      } else if (is_enum_type(tp)) {
+      } else if (is_immediate_enum_type(tp)) {
         /* A packed enumerated type can be smaller than an "int". */
         tp->variant.integer.packed = TRUE;
       } else if (is_immediate_class_type(tp)) {
