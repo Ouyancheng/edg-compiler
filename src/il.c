@@ -211,7 +211,6 @@ Dump an access control specifier.
     case as_public:	  fputs("public", f_debug);	  break;
     case as_protected:	  fputs("protected", f_debug);	  break;
     case as_private:	  fputs("private", f_debug);	  break;
-    case as_inaccessible: fputs("inaccessible", f_debug); break;
   }  /* switch */
 }  /* db_access_control */
 
