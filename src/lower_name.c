@@ -1509,6 +1509,11 @@ of length specification in the mangling for lengths of literals.
         ^-------- Length of the literal.
        ^--------- "L" indicates a number.
      cfront 3.0.1 does not implement this, so we made it up. */
+  /* For IA-64, the encoding is
+       L <type> <value number> E
+     The <number> is a hexadecimal string for the constant value.
+  */
+  /* FIXME: not implemented yet. */
   str = fp_to_string(skip_typerefs(con->type)->variant.float_kind,
                      &con->variant.float_value,
                      (a_boolean *)NULL, (a_boolean *)NULL, (a_boolean *)NULL);
@@ -1612,6 +1617,9 @@ template classes.
 #endif /* IA64_ABI */
   if (abkind == (an_address_base_kind)abk_variable) {
     a_variable_ptr variable = con->variant.address.variant.variable;
+#if IA64_ABI
+    add_str_to_mangled_name("_Z", mctl);
+#endif /* IA64_ABI */
     if (variable->source_corresp.is_class_member ||
         variable->source_corresp.parent.namespace_ptr != NULL) {
       /* Static data member or namespace member variable. */
@@ -1646,6 +1654,7 @@ template classes.
     char       *uuid_str;
 
     /* Microsoft __uuidof. */
+    /* FIXME: IA-64 not implemented yet. */
     /* The uuid string attached to the associated type has the format
          hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
        (where "h" is a hexadecimal digit).  The mangled form is
@@ -1918,6 +1927,9 @@ specification in the mangling for lengths of literals.
       add_to_mangled_name('?', mctl);
       break;
     case ck_integer:
+      str = str_for_integer_constant(con);
+      /* Use "n" to represent a minus sign. */
+      if (str[0] == '-') str[0] = 'n';
 #if !IA64_ABI
       /* Integer: the encoding is like
            L3n12  <-- encoding for "-12"
@@ -1926,17 +1938,15 @@ specification in the mangling for lengths of literals.
             ^-------- Length of the literal.
            ^--------- "L" indicates a number.
          This is compatible with cfront 3.0.1. */
-#endif /* !IA64_ABI */
-      str = str_for_integer_constant(con);
-      /* Use "n" to represent a minus sign. */
-      if (str[0] == '-') str[0] = 'n';
-#if !IA64_ABI
       str_length = strlen(str);  /* Includes "-" sign if any. */
       add_to_mangled_name('L', mctl);
       store_digits_and_underscore((unsigned long)str_length, old_form, mctl);
       add_str_to_mangled_name(str, mctl);
 #else /* IA64_ABI */
-      /* IA-64 ABI: "L", type of literal, value, terminating "E". */
+      /* Integer: the encoding is
+           L <type> <value number> E
+         The <number> is like the above, with "n" indicating negative.
+      */
       add_to_mangled_name('L', mctl);
       mangled_encoding_for_type(con->type, mctl);
       add_str_to_mangled_name(str, mctl);
