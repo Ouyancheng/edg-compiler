@@ -63,18 +63,18 @@ using namespace std;
 /*
 Normal operator new routine.
 */
-void *operator new(size_t) /* throw(__EDG_STD_NAMESPACE::bad_alloc) */;
+void *operator new(size_t) throw(__EDG_STD_NAMESPACE::bad_alloc);
 
 /*
 Nothrow version of operator new.
 */
-void *operator new(size_t, const __EDG_STD_NAMESPACE::nothrow_t&) /* throw()*/;
+void *operator new(size_t, const __EDG_STD_NAMESPACE::nothrow_t&) throw();
 
 /*
 Placement new.  This was not in the ARM, but it is now standard in
 [lib.new.delete.placement].
 */
-void *operator new(size_t, void*);
+void *operator new(size_t, void*) throw();
 
 /*
 Placement delete.
