@@ -2452,7 +2452,7 @@ typedef struct a_symbol {
 			   projection symbols to names found in base classes
 			   that are ignored during normal lookup (when doing
 			   dependent name processing.  It is also used to
-                           disable keywords using pragma directives. */
+			   disable keywords using pragma directives. */
   a_bit_field	is_unknown_function:1;
 			/* TRUE if this symbol was created to represent an
 			   unknown function. */
