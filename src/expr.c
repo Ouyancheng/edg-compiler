@@ -5187,13 +5187,13 @@ type of the expression.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-
 static a_type_ptr scan_type_generic_expression_and_return_type(void)
 /*
 Scan an expression (beginning at the current token) that is an argument to a
 type-generic function.  Do not evaluate the expression; just determine its
 floating or complex type, converting an integral type to double, and return
-the type, stripped of typerefs.
+the type, stripped of typerefs.  Issue an error and return an error type
+if the type is not appropriate.
 */
 {
   an_operand  operand;
@@ -5272,10 +5272,88 @@ accordingly.  Set *err to TRUE if there is an error.
 }  /* scan_optional_type_generic_operator_expression */
 
 
+static void scan_type_generic_operator_trailing_arguments(
+                                            int               func_arg_number,
+                                            a_type_ptr        arg_type,
+                                            a_source_position *start_position,
+                                            int               first_arg_number,
+                                            int               last_arg_number,
+                                            an_operand        *result,
+                                            a_boolean         *err)
+/*
+Scan the final arguments of a type-generic pseudo-macro call (e.g.,
+__generic), specifically the arguments numbered first_arg_number through
+last_arg_number.  Return the argument numbered func_arg_number in *result,
+and ignore the other arguments.  arg_type is the type associated with
+the argument being selected, and start_position the start position of the
+overall pseudo-macro call, for error purposes.  *err is set to TRUE if
+there is an error.  func_arg_number is -1 if there was a previous error.
+*/
+{
+  int        arg_number;
+  an_operand operand;
+  a_boolean  saved_evaluated = expr_stack->evaluated,
+             saved_potentially_evaluated = expr_stack->potentially_evaluated;
+
+  check_assertion(func_arg_number == -1 ||
+                  (func_arg_number >= first_arg_number &&
+                   func_arg_number <= last_arg_number));
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "func_arg_number = %d, arg_type = ", func_arg_number);
+    if (arg_type == NULL) {
+      fputs("NULL", f_debug);
+    } else {
+      db_type(arg_type);
+    }  /* if */
+    fputs("\n", f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  /* Loop through the remaining arguments, ignoring everything
+     except the function name associated with the argument type -- i.e., the
+     expression at the position specified by func_arg_number. */
+  for (arg_number = first_arg_number;
+       arg_number <= last_arg_number;
+       arg_number++) {
+    /* Bypass the comma. */
+    (void)required_token(tok_comma, ec_exp_comma);
+    /* Examine the expression, if any. */
+    if (curr_token == tok_comma || curr_token == tok_rparen) {
+      /* Missing expression. */
+      if (arg_number == func_arg_number ||
+          (curr_token == tok_rparen && arg_number < func_arg_number)) {
+        /* There is no specific function corresponding to the type.  Issue
+           an error. */
+        pos_ty_error(ec_type_generic_function_mismatch, start_position,
+                     arg_type);
+        *err = TRUE;
+        if (curr_token == tok_rparen) break;
+      } else {
+        /* Okay. */
+      }  /* if */
+    } else {
+      /* The expression is evaluated if it's the one that is to be
+         returned. */
+      expr_stack->evaluated = 
+      expr_stack->potentially_evaluated = (arg_number == func_arg_number);
+      /* Scan the expression. */
+      scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+      if (arg_number == func_arg_number) {
+        /* This is the target position in the list of functions. */
+        copy_operand(&operand, result);
+        do_operand_transformations(result, TOPT_NO_OPTIONS);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  expr_stack->evaluated = saved_evaluated;
+  expr_stack->potentially_evaluated = saved_potentially_evaluated;
+}  /* scan_type_generic_operator_trailing_arguments */
+
+
 static void scan_type_generic_operator(an_operand *result)
 /*
 Scan the __generic operator, which implements C99 type-generic function
-macros.  The form of the macro expansion is:
+macros.  The form of the macro reference is:
 
    __generic(x, [y], [z], fnc-d, fnc-f, fnc-l, fnc-cd, fnc-cf, fnc-cl)
 
@@ -5302,12 +5380,10 @@ arguments.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position   end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  an_operand          operand;
   a_type_ptr          arg_type;
-  int                 arg_number, func_arg_number;
+  int                 func_arg_number;
   a_boolean           err = FALSE;
   an_expr_stack_entry expr_stack_entry;
-  a_boolean           saved_evaluated, saved_potentially_evaluated;
 
   db_enter(4, "scan_type_generic_operator");
 
@@ -5358,57 +5434,13 @@ arguments.
     if (arg_type->kind == (a_type_kind)tk_complex) func_arg_number += 3;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   }  /* if */
-  check_assertion(func_arg_number == -1 ||
-                  (func_arg_number >= 4 && func_arg_number <= 9));
-#if DEBUG
-  if (debug_level >= 4) {
-    fprintf(f_debug, "func_arg_number = %d, arg_type = ", func_arg_number);
-    if (arg_type == NULL) {
-      fputs("NULL", f_debug);
-    } else {
-      db_type(arg_type);
-    }  /* if */
-    fputs("\n", f_debug);
-  }  /* if */
-#endif /* DEBUG */
-  saved_evaluated = expr_stack_entry.evaluated;
-  saved_potentially_evaluated = expr_stack_entry.potentially_evaluated;
-  /* Now loop through the remaining arguments (4-9), ignoring everything
-     except the function name associated with the argument type -- i.e., the
-     expression at the position specified by func_arg_number. */
-  for (arg_number = 4; arg_number <= 9; arg_number++) {
-    /* Bypass the comma. */
-    (void)required_token(tok_comma, ec_exp_comma);
-    /* Examine the expression, if any. */
-    if (curr_token == tok_comma || curr_token == tok_rparen) {
-      /* Missing expression. */
-      if (arg_number == func_arg_number ||
-          (curr_token == tok_rparen && arg_number < func_arg_number)) {
-        /* There is no specific function corresponding to the type.  Issue
-           an error. */
-        pos_ty_error(ec_type_generic_function_mismatch, &start_position,
-                     arg_type);
-        err = TRUE;
-        if (curr_token == tok_rparen) break;
-      } else {
-        /* Okay. */
-      }  /* if */
-    } else {
-      /* The expression is evaluated if it's the one that is to be
-         returned. */
-      expr_stack_entry.evaluated = 
-      expr_stack_entry.potentially_evaluated = (arg_number == func_arg_number);
-      /* Scan the expression. */
-      scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-      if (arg_number == func_arg_number) {
-        /* This is the target position in the list of functions. */
-        copy_operand(&operand, result);
-        do_operand_transformations(result, TOPT_NO_OPTIONS);
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  expr_stack_entry.evaluated = saved_evaluated;
-  expr_stack_entry.potentially_evaluated = saved_potentially_evaluated;
+  /* Scan the remaining arguments, putting the one numbered func_arg_number
+     into result, and ignoring the others. */
+  scan_type_generic_operator_trailing_arguments(func_arg_number, arg_type,
+                                                &start_position,
+                                                /*first_arg_number=*/4,
+                                                /*last_arg_number=*/9,
+                                                result, &err);
   remove_stop_token(tok_comma);
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
@@ -5426,6 +5458,136 @@ arguments.
   db_exit();
 }  /* scan_type_generic_operator */
 
+#if FIXED_POINT_ALLOWED
+
+static a_type_ptr scan_fixed_point_type_generic_expression_and_return_type(
+                                                                          void)
+/*
+Scan an expression (beginning at the current token) that is an argument to a
+fixed-point type-generic function.  Do not evaluate the expression; just
+determine its fixed-point type and return it, stripped of typerefs.
+Issue an error and return an error type if the type is not fixed-point.
+*/
+{
+  an_operand  operand;
+  a_type_ptr  tp;
+
+  /* Scan the expression. */
+  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  /* Do not convert lvalues to rvalues, arrays to pointers, or functions to
+     pointers. */
+  do_operand_transformations(&operand,
+                             (TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                              TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                              TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION));
+  /* Get its type. */
+  if (is_error_operand(&operand)) {
+    tp = error_type();
+  } else {
+    tp = skip_typerefs(operand.type);
+    if (!is_fixed_point_type(tp)) {
+      pos_error(ec_expr_not_fixed_point, &operand.position);
+      tp = error_type();
+    }  /* if */
+  }  /* if */
+  return tp;
+}  /* scan_fixed_point_type_generic_expression_and_return_type */
+
+
+static void scan_fixed_point_type_generic_operator(an_operand *result)
+/*
+Scan the __genericfx operator, which implements C99 type-generic function
+macros for fixed-point types (an extension beyond the quasi-standard
+fixed-point types of the Embedded C TR).  The form of the macro reference is:
+
+   __genericfx(x, fnc-hr, fnc-uhr, fnc-r, fnc-ur, fnc-lr, fnc-ulr,
+                  fnc-hk, fnc-uhk, fnc-k, fnc-uk, fnc-lk, fnc-ulk)
+
+where x is the argument with which a type-generic function is called, and
+the remaining 12 arguments are the names of functions from which is selected
+the actual function to be called.  (The suffixes with which the function
+names are supplied here correspond to function parameter types: short _Fract,
+unsigned short _Fract, _Fract, unsigned _Fract, long _Fract, unsigned
+long _Fract, short _Accum, unsigned short _Accum, _Accum, unsigned _Accum,
+long _Accum, unsigned long _Accum, respectively.  The order is fixed.)
+Function names may be omitted.
+*/
+{
+  a_source_position   start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position   end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_type_ptr          arg_type;
+  int                 func_arg_number;
+  a_boolean           err = FALSE;
+  an_expr_stack_entry expr_stack_entry;
+
+  db_enter(4, "scan_fixed_point_type_generic_operator");
+
+  check_assertion(c99_mode && fixed_point_enabled);
+  /* Save the position of the __genericfx keyword. */
+  start_position = pos_curr_token;
+  (void)get_token();
+  /* Check for and pass over the left parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_matching_stop_token(tok_rparen);
+  add_stop_token(tok_comma);
+  /* Scan the first argument expression, but do not evaluate it -- just get
+     its type. */
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack_entry.evaluated = FALSE;
+  expr_stack_entry.potentially_evaluated = FALSE;
+  arg_type = scan_fixed_point_type_generic_expression_and_return_type();
+  if (is_error_type(arg_type)) err = TRUE;
+  pop_expr_stack();
+  /* Use arg_type to determine the argument number of the function that
+     matches the type of the expression. */
+  if (err) {
+    func_arg_number = -1;
+  } else {
+    a_fixed_point_type_descr *descr;
+    check_assertion(arg_type != NULL && is_fixed_point_type(arg_type));
+    descr = &arg_type->variant.fixed_point;
+    func_arg_number = descr->is_fract_type ? 0 : 1;
+    func_arg_number *= 3;
+    switch (descr->precision) {
+      case fpp_short:                         break;
+      case fpp_default: func_arg_number += 1; break;
+      case fpp_long:    func_arg_number += 2; break;
+      default:
+        unexpected_condition_str2("scan_fixed_point_type_generic_operator:",
+                                  "bad fixed-point precision");
+    }  /* switch */
+    func_arg_number *= 2;
+    if (descr->is_unsigned) func_arg_number += 1;
+  }  /* if */
+  /* Scan the remaining arguments, putting the one numbered func_arg_number
+     into result, and ignoring the others. */
+  scan_type_generic_operator_trailing_arguments(func_arg_number, arg_type,
+                                                &start_position,
+                                                /*first_arg_number=*/2,
+                                                /*last_arg_number=*/13,
+                                                result, &err);
+  remove_stop_token(tok_comma);
+  /* Check for and pass over the right parenthesis. */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_matching_stop_token(tok_rparen);
+  if (err) {
+    make_error_operand(result);
+  }  /* if */
+
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
+
+  db_exit();
+}  /* scan_fixed_point_type_generic_operator */
+
+#endif /* FIXED_POINT_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void scan_assume_operator(an_operand *result)
@@ -13300,6 +13462,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_typename:
     case tok_throw:
     case tok_generic:
+    case tok_genericfx:
     case tok_null:
     case tok_func_name:
     case tok_function_name:
@@ -15651,6 +15814,14 @@ see expr.h).
       /* __generic operation, implementing type-generic functions in C99. */
       scan_type_generic_operator(&local_result);
       break;
+
+#if FIXED_POINT_ALLOWED
+    case tok_genericfx:
+      /* __genericfx operation, implementing type-generic functions for
+         fixed-point types. */
+      scan_fixed_point_type_generic_operator(&local_result);
+      break;
+#endif /* FIXED_POINT_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_assume:

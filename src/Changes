@@ -1,5 +1,23 @@
 Version 3.6
 
+1/6/05   __genericfx pseudo-macro for generic fixed-point functions
+
+A new pseudo-macro __genericfx (similar to the existing __generic)
+has been added to help libraries to implement type-generic functions
+for fixed-point operands.  (This is an extension not required by
+the Embedded C TR.)  The macro reference looks like
+
+   __genericfx(x, fnc-hr, fnc-uhr, fnc-r, fnc-ur, fnc-lr, fnc-ulr,
+                  fnc-hk, fnc-uhk, fnc-k, fnc-uk, fnc-lk, fnc-ulk)
+
+where x is the argument with which a type-generic function is called, and
+the remaining 12 arguments are the names of functions from which is selected
+the actual function to be called.  (The suffixes with which the function
+names are supplied here correspond to function parameter types: short _Fract,
+unsigned short _Fract, _Fract, unsigned _Fract, long _Fract, unsigned
+long _Fract, short _Accum, unsigned short _Accum, _Accum, unsigned _Accum,
+long _Accum, unsigned long _Accum, respectively.  The order is fixed.)
+
 1/6/05   Embedded C: detecting problematic configurations for fixed-point
          folding
 
