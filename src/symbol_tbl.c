@@ -90,6 +90,11 @@ static a_scope_depth
 			   affect C++ access control, this is the depth of
 			   the innermost one.  Otherwise, NO_SCOPE_DEPTH. */
 
+static a_scope_depth
+		depth_of_innermost_instantiation_scope;
+			/* If there are template instantiation scopes on the
+                           scope stack, this is the depth of the innermost
+                           one.  Otherwise, NO_SCOPE_DEPTH. */
 
 /*
 Array used to hold an identifier for external name or destructor name
@@ -1817,21 +1822,23 @@ return TRUE.  If the symbol is a class template with no current
 instantiation, we return FALSE.
 */
 {
-  a_scope_depth  instantiation_depth;
+  a_scope_depth  depth = depth_of_innermost_instantiation_scope;
   a_boolean      found = TRUE;
 
   if ((*sym)->kind == (a_symbol_kind)sk_class_template) {
     found = FALSE;
-    /* Get the scope depth of the innermost instantiation of this class
-       template. */
-    instantiation_depth = (*sym)->variant.template.extra_info->
-                                             innermost_instantiation_scope;
-    if (instantiation_depth != NO_SCOPE_DEPTH) {
-      /* Get the instance symbol pointed to by the type from the scope
-         stack entry. */
-      *sym = (a_symbol_ptr)(scope_stack[instantiation_depth].assoc_type->
-                            source_corresp.assoc_info);
-      found = TRUE;
+    if (depth != NO_SCOPE_DEPTH) {
+      /* Compare the template symbol of the innermost instantiation scope
+         with the symbol of the class template passed by the caller.  If
+         they match get the symbol of the template class instance associated
+         with the current instantiation. */
+      if (scope_stack[depth].template_sym == *sym) {
+        /* Get the instance symbol pointed to by the type from the scope
+           stack entry. */
+        *sym = (a_symbol_ptr)(scope_stack[depth].assoc_type->
+                                                    source_corresp.assoc_info);
+        found = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return found;
@@ -4693,6 +4700,8 @@ must be NULL in other cases.
             ("push_scope: invalid arguments for instantiation scope.");
       }  /* if */
 #endif /* CHECKING */
+      /* Save the depth of the innermost instantiation scope. */
+      depth_of_innermost_instantiation_scope = depth_scope_stack;
       if (assoc_routine != NULL) {
         /* Function instantiation. */
         tap = assoc_instantiation->arg_list;
@@ -5428,9 +5437,9 @@ End a name scope by popping an entry off the scope stack.
       }  /* if */
     }  /* for */
   }  /* if */
-  /* Keep track of the number of current classes and class reactivations.
-     (If either count is non-zero name lookup is more involved.) */
   if (C_dialect == C_dialect_cplusplus) {
+    /* Keep track of the number of current classes and class reactivations.
+       (If either count is non-zero name lookup is more involved.) */
     if (kind == (a_scope_kind)sck_class_struct_union ||
         kind == (a_scope_kind)sck_class_reactivation) {
       num_classes_on_scope_stack--;
@@ -5455,19 +5464,29 @@ End a name scope by popping an entry off the scope stack.
         }  /* for */
       }  /* if */
     }  /* if */
-  }  /* if */
-  /* Maintain the depth of the innermost stack entry that affects access
-     control. */
-  if (C_dialect == C_dialect_cplusplus &&
-      is_scope_kind_that_affects_access_control(kind)) {
-    depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
-    for (scope_depth = depth_scope_stack; scope_depth >= 0; scope_depth--) {
-      if (is_scope_kind_that_affects_access_control(
-                                              scope_stack[scope_depth].kind)) {
-        depth_of_innermost_scope_that_affects_access_control = scope_depth;
-        break;
-      }  /* if */
-    }  /* for */
+    /* Maintain the depth of the innermost template instantiation scope. */
+    if (kind == (a_scope_kind)sck_template_instantiation) {
+      depth_of_innermost_instantiation_scope = NO_SCOPE_DEPTH;
+      for (scope_depth = depth_scope_stack; scope_depth >= 0; scope_depth--) {
+        if (scope_stack[scope_depth].kind ==
+            (a_scope_kind)sck_template_instantiation) {
+          depth_of_innermost_instantiation_scope = scope_depth;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    /* Maintain the depth of the innermost stack entry that affects access
+       control. */
+    if (is_scope_kind_that_affects_access_control(kind)) {
+      depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
+      for (scope_depth = depth_scope_stack; scope_depth >= 0; scope_depth--) {
+        if (is_scope_kind_that_affects_access_control(
+                                             scope_stack[scope_depth].kind)) {
+          depth_of_innermost_scope_that_affects_access_control = scope_depth;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   /* Maintain the current declarative level.  It is the same as 
      depth_scope_stack except when struct/union field scopes are
@@ -5993,10 +6012,10 @@ Allocate a new template parameter list entry and return a pointer to it.
 
 a_symbol_ptr get_template_class(a_symbol_ptr  template_symbol)
 /*
-The current identifier is a class template name.  It must be followed
-by a template argument list.  Scan the argument list and call
-a routine to lookup or create the symbol and type information for
-an instance of the class template.
+The current identifier is a class template name.  Look for an optional
+template argument list.  If an argument list is present, scan the argument
+list and call a routine to lookup or create the symbol and type information
+for an instance of the class template.
 */
 {
   a_source_position      start_pos;
@@ -6015,8 +6034,8 @@ an instance of the class template.
   /* Save the current locator. */
   orig_locator = locator_for_curr_id;
   if (next_token() != tok_lt) {
-     /* There is no template argument list.  If we are in a class
-        class instantiation, use the symbol associated with the innermost
+     /* There is no template argument list.  If we are in an instantiation of
+        this class template, use the symbol associated with the innermost
         instantiation of this class, otherwise just return the class
         template symbol. */
     new_sym = template_symbol;
@@ -6109,6 +6128,10 @@ an instance of the class template.
   } else {
     /* Free any allocated template arguments. */
     if (arg_list != NULL) free_template_arg_list(arg_list);
+    /* An error occurred while scanning the argument list so make an error
+       locator and return a pointer to its specific symbol. */
+    make_specific_symbol_error_locator(&locator_for_curr_id);
+    new_sym = locator_for_curr_id.specific_symbol;
   }  /* if */
   switch_back_to_original_region(region_to_switch_back_to);
   remove_stop_token(tok_gt);
