@@ -202,6 +202,12 @@ extern void check_throw_specification(a_func_info_block_ptr  func_info,
                                       a_routine_ptr          rp);
 
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+extern void set_rout_src_seq_entry_for_default_arg_decl(
+                                              a_routine_ptr      rp,
+                                              a_func_info_block  *func_info);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
 extern void decl_var_or_routine(a_symbol_locator             *locator,
                                 a_storage_class              storage_class,
                                 a_type_ptr                   type_ptr,
