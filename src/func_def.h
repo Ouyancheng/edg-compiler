@@ -23,15 +23,15 @@ func_def.h -- Declarations related to func_def.c (having to do with
 
 /* Constants defining bits in the input bit vector used in calls to
    scan_function_body. */
-#define SFB_NO_FLAGS 0x0
-#define SFB_IMPLICITLY_DECLARED_RETURN_TYPE 0x1
+#define SFB_NO_FLAGS (a_decl_flag_set)(0x0)
+#define SFB_IMPLICITLY_DECLARED_RETURN_TYPE (a_decl_flag_set)(0x1)
 			/* If this bit is set the return type was not
 			   explicitly declared (and is "int" by default). */
-#define SFB_NO_CLASS_REACTIVATION 0x2
+#define SFB_NO_CLASS_REACTIVATION (a_decl_flag_set)(0x2)
 			/* If this bit is set the scope for the parent
 			   class of a member function has already been
 			   reactivated. */
-#define SFB_NEW_STRUCT_STMT_STACK_REQUIRED 0x4
+#define SFB_NEW_STRUCT_STMT_STACK_REQUIRED (a_decl_flag_set)(0x4)
 			/* If this bit is set the function definition may be
 			   within a statement context -- e.g., an inline
 			   member function of a local class or an inline
@@ -39,7 +39,7 @@ func_def.h -- Declarations related to func_def.c (having to do with
 			   In such cases the structured statement stack should
 			   be reinitialized, and then restored once the
 			   function definition is complete. */
-#define SFB_OLD_STYLE_PARAM_DECL 0x8
+#define SFB_OLD_STYLE_PARAM_DECL (a_decl_flag_set)(0x8)
 			/* If this bit is set the declaration defining the
 			   function contains old-style parameter declarations.
 			   This may be true even in a case like this:
@@ -48,7 +48,7 @@ func_def.h -- Declarations related to func_def.c (having to do with
 			   where the type associated with the routine entry is
 			   marked as prototyped but the defining declaration
 			   is old-style. */
-#define SFB_IS_INSTANTIATION 0x10
+#define SFB_IS_INSTANTIATION (a_decl_flag_set)(0x10)
 			/* If this bit is set the definition is being generated
 			   by the compiler based on a template. */
 

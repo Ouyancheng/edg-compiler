@@ -68,26 +68,26 @@ abstract or real declarator.
 
 /* Constants defining bits in the input bit vector used in calls to
    declarator. */
-#define DI_NO_INPUT_FLAGS 0x0
-#define DI_REAL_DECLARATOR_ALLOWED 0x1
+#define DI_NO_INPUT_FLAGS (a_decl_flag_set)(0x0)
+#define DI_REAL_DECLARATOR_ALLOWED (a_decl_flag_set)(0x1)
 			/* If this bit is set the entity may be scanned as an
 			   declarator (rather than an abstract declarator). */
-#define DI_ABSTRACT_DECLARATOR_ALLOWED 0x2
+#define DI_ABSTRACT_DECLARATOR_ALLOWED (a_decl_flag_set)(0x2)
 			/* If this bit is set the entity may be scanned as an
 			   abstract declarator. */
-#define DI_QUALIFIED_NAME_ALLOWED 0x4
+#define DI_QUALIFIED_NAME_ALLOWED (a_decl_flag_set)(0x4)
 			/* If this bit is set it a qualified name is not
 			   in the declarator (e.g., for a formal parameter or
 			   a typedef declaration). */
-#define DI_PARENTHESIZED_INITIALIZER_ALLOWED 0x8
+#define DI_PARENTHESIZED_INITIALIZER_ALLOWED (a_decl_flag_set)(0x8)
 			/* If this bit is set a declarator may be followed
 			   by an initializer using the "(expr-list)"
 			   notation (ARM 8.4). */
-#define DI_DESTRUCTOR_SPECIFIERS 0x10
+#define DI_DESTRUCTOR_SPECIFIERS (a_decl_flag_set)(0x10)
 			/* If this bit is set decl_specifiers has seen a "~"
 			   and determined that specifiers preceding it, if any,
 			   are consistent with a destructor declaration.  */
-#define DI_NONSTATIC_MEMBER 0x20
+#define DI_NONSTATIC_MEMBER (a_decl_flag_set)(0x20)
 			/* If this bit is set the declarator is for a class
 			   member declared within a class definition without
 			   a "static" type specifier.  If the name turns out
@@ -95,51 +95,51 @@ abstract or real declarator.
 			   a nonstatic member function.  This is of importance
 			   to function_declarator in creating the implicit
 			   this param type entry for such functions. */
-#define DI_IS_CONSTRUCTOR 0x40
+#define DI_IS_CONSTRUCTOR (a_decl_flag_set)(0x40)
 			/* If this bit is set decl_specifiers has determined
 			   that the declaration is that of a constructor. */
-#define DI_DIMENSION_EXPRESSION_ALLOWED 0x80
+#define DI_DIMENSION_EXPRESSION_ALLOWED (a_decl_flag_set)(0x80)
 			/* If this bit is set the first dimension of an array
 			   declarator may be a nonconstant expression. */
-#define DI_IS_TEMPLATE_DECLARATION 0x100
+#define DI_IS_TEMPLATE_DECLARATION (a_decl_flag_set)(0x100)
 			/* If this bit is set declarator is called for a
 			   declaration of a template function or a template
 			   static data member. */
-#define DI_IS_TYPEDEF_DECLARATION 0x200
+#define DI_IS_TYPEDEF_DECLARATION (a_decl_flag_set)(0x200)
 			/* If this bit is set a storage class of "typedef" has
 			   been encountered. */
-#define DI_OPERATOR_NAME_ALLOWED 0x400
+#define DI_OPERATOR_NAME_ALLOWED (a_decl_flag_set)(0x400)
 			/* If this bit is set an operator name (e.g.,
 			   "operator+" or "operator int") is allowed as the
 			   declarator identifier. */
-#define DI_IS_FRIEND_DECL 0x800
+#define DI_IS_FRIEND_DECL (a_decl_flag_set)(0x800)
 			/* If this bit is set the declarator is part of a
 			   friend declaration. */
-#define DI_IS_PARAMETER_DECL 0x1000
+#define DI_IS_PARAMETER_DECL (a_decl_flag_set)(0x1000)
 			/* If this bit is set the declarator is part of a
 			   function parameter declaration. */
 #define DI_LAST DI_IS_PARAMETER_DECL
 			/* Last bit in the bit vector that is in use. */
 /* Constants defining bits in the output bit vector used in calls to
    declarator. */
-#define DO_NO_OUTPUT_FLAGS 0x0
-#define DO_PARENTHESIZED_INITIALIZER 0x1
+#define DO_NO_OUTPUT_FLAGS (a_decl_flag_set)(0x0)
+#define DO_PARENTHESIZED_INITIALIZER (a_decl_flag_set)(0x1)
 			/* If this bit was set the declarator appears to be
 			   followed by a parenthesized initializer. */
-#define DO_REAL_DECLARATOR_SCANNED 0x2
+#define DO_REAL_DECLARATOR_SCANNED (a_decl_flag_set)(0x2)
 			/* If this bit was set a name was scanned, indicating
 			   a real, not abstract, declarator. */
-#define DO_CFRONT_MEMBER_FUNCTION_TYPEDEF 0x4
+#define DO_CFRONT_MEMBER_FUNCTION_TYPEDEF (a_decl_flag_set)(0x4)
 			/* If this bit was set a nonstandard member-function
 			   typedef declaration was seen; these are recognized
 			   in cfront-compatibility mode only. */
-#define DO_CLASS_SCOPE_DEACTIVATION_REQUIRED 0x8
+#define DO_CLASS_SCOPE_DEACTIVATION_REQUIRED (a_decl_flag_set)(0x8)
 			/* If this bit was set a class scope was reactivated
 			   to handle a class member declaration.  This flag,
 			   used only when declarator is called recursively,
 			   lets the caller know that the scope needs to be
 			   popped. */
-#define DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY 0x10
+#define DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY (a_decl_flag_set)(0x10)
 			/* If this bit is set, the derived type constructed
 			   during declarator processing is an array type for
 			   which the restrict qualifier was specified.  This
