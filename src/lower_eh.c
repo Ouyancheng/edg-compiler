@@ -781,11 +781,11 @@ have been called on it at some previous point.
     /* Id object pointer. */
     curr_field_type = curr_field->type;
     id_con = alloc_constant((a_constant_repr_kind)ck_address);
-    /* Note that we test for nlk_external and not nlk_cplusplus_external here
-       because the linkage has already been rewritten in the class case. */
     if (is_class_type &&
         type->source_corresp.name_linkage !=
-                                           (a_name_linkage_kind)nlk_external) {
+                                           (a_name_linkage_kind)nlk_external &&
+        type->source_corresp.name_linkage !=
+                                 (a_name_linkage_kind)nlk_cplusplus_external) {
       /* Internally linked class; id object pointer is NULL. */
       make_zero_of_proper_type(curr_field_type, id_con);
     } else {
