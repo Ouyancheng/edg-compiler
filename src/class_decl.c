@@ -1909,11 +1909,14 @@ is a base class.
       recompute_path_and_access = TRUE;
     }  /* if */
   } else {
+    an_access_specifier temp;
+
+    /* Compute the accessibility of the new declaration. */
+    temp = normal_access_to_end_of_path(path);
+    temp = compute_access(new_access, temp);
     /* Give preference to the path of the previously declared base class
        unless the accessibility of the new declaration is greater. */
-    if (is_more_accessible(compute_access(normal_access_to_end_of_path(path),
-                                          new_access),
-                           base_class_access)) {
+    if (is_more_accessible(temp, base_class_access)) {
       recompute_path_and_access = TRUE;
       if (base_class->direct) {
         /* Since the other declaration, whose path will be superseded by the
