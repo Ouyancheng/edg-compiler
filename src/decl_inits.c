@@ -2048,25 +2048,6 @@ scan_paren:
               }  /* if */
             }  /* if */
           }  /* if */
-          if (exceptions_enabled && cssp != NULL &&
-              cssp->destructor != NULL && new_cip != NULL &&
-              new_cip->initializer != NULL) {
-            /* If exception handling is enabled, record the destructor in the
-               constructor initializer.  This is required if an exception
-               occurs in the middle of constructing an object of this type --
-               the information is used to register which destructors need to be
-               called for a partially constructed object. */
-            a_type_ptr  tp;
-            if (new_cip->kind == (a_constructor_init_kind)cik_field) {
-              tp = init_type;
-            } else {
-              tp = class_type;
-            }  /* if */
-            new_cip->initializer->destructor =
-                         select_destructor(init_type, tp, &error_position,
-                                           /*honor_virtual=*/FALSE,
-                                           /*evaluated=*/TRUE);
-          }  /* if */
         }  /* if */
       }  /* if */
       remove_stop_token(tok_comma);
@@ -2088,20 +2069,24 @@ scan_paren:
      appropriate. */
   prev_cip = NULL;
   for (cip = cip_list; cip != NULL; cip = next_cip) {
+    a_boolean          is_const_qualified;
+    a_source_position  err_pos;
+    /* object_class_type is the type of the object being created.
+       For base classes it will be different than the type associated
+       with the constructor being called.  For fields it will be
+       the same as the field type.  This is needed to check protected
+       member access. */
+    a_type_ptr         object_class_type;
+
     next_cip = cip->next;
     if (cip->initializer == NULL ||
-        cip->initializer->kind == (a_dynamic_init_kind)dik_none) {
-      a_boolean          is_const_qualified = FALSE;
-      a_source_position  err_pos;
-      /* object_class_type is the type of the object being created.
-         For base classes it will be different than the type associated
-         with the constructor being called.  For fields it will be
-         the same as the field type.  This is needed to check protected
-         member access. */
-      a_type_ptr         object_class_type = NULL;
-
-      /* No initializer was explicitly specified. */
+        cip->initializer->kind == (a_dynamic_init_kind)dik_none ||
+        exceptions_enabled) {
+      /* Either no initializer was explicitly specified or a destructor, if
+         any, has to be entered for exception handling support. */
       array_type = NULL;
+      object_class_type = NULL;
+      is_const_qualified = FALSE;
       if (user_defined) err_pos = pos_curr_token;
       if (cip->kind == (a_constructor_init_kind)cik_field) {
         /* Get the field type.  For arrays, we want the element type. */
@@ -2124,7 +2109,14 @@ scan_paren:
       }  /* if */
       cssp = is_class_struct_union_type(tp) ? symbol_supplement_for_class(tp) :
                                               NULL;
-      if (is_generated_cctor) {
+      if (cip->initializer != NULL &&
+          cip->initializer->kind != (a_dynamic_init_kind)dik_none) {
+        /* This must be a special exception handling case -- the initializer
+           has already been processed, and the destructor, if any, has to
+           recorded. */
+        check_assertion(array_type == NULL);
+        dip = cip->initializer;
+      } else if (is_generated_cctor) {
         /* The constructor for the object as a whole is a generated copy
            constructor.  Any subobject constructors must also be copy
            constructors, and fields and base classes that have no constructor
@@ -2233,16 +2225,16 @@ scan_paren:
              should be incorporated into the constructor call. */
           dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
         }  /* if */
-        if (exceptions_enabled && cssp->destructor != NULL) {
-          /* If exception handling is enabled, record the destructor in the
-             constructor initializer.  This is required if an exception
-             occurs in the middle of constructing an object of this type --
-             the information is used to register which destructors need to be
-             called for a partially constructed object. */
-          dip->destructor = select_destructor(tp, object_class_type, &err_pos,
-                                              /*honor_virtual=*/FALSE,
-                                              /*evaluated=*/TRUE);
-        }  /* if */
+      }  /* if */
+      if (exceptions_enabled && cssp != NULL && cssp->destructor != NULL) {
+        /* If exception handling is enabled, record the destructor in the
+           constructor initializer.  This is required if an exception
+           occurs in the middle of constructing an object of this type --
+           the information is used to register which destructors need to be
+           called for a partially constructed object. */
+        dip->destructor = select_destructor(tp, object_class_type, &err_pos,
+                                            /*honor_virtual=*/FALSE,
+                                            /*evaluated=*/TRUE);
       }  /* if */
       if (array_type != NULL &&
           dip->kind == (a_dynamic_init_kind)dik_constructor) {
