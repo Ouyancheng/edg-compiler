@@ -847,7 +847,7 @@ error is also issued.  Otherwise, it is accepted as an extension, and a
 warning is issued.
 
 This change also fixes an internal error in IL-lowering that occurred when
-a instance of the template was generated before the redeclaration was
+an instance of the template was generated before the redeclaration was
 encountered -- for instance:
 
   template <class T> void f(T*, T);
