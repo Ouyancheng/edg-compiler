@@ -126,8 +126,8 @@ namespace __cxxabiv1 {
     void *__cxa_vec_new3(size_t, size_t, size_t, void (*)(void *),
                          void (*)(void *), void *(*)(size_t),
                          void (*)(void *, size_t));
-    void *__cxa_vec_ctor(void *, size_t, size_t, void (*)(void *),
-                         void (*)(void *));
+    void __cxa_vec_ctor(void *, size_t, size_t, void (*)(void *),
+                        void (*)(void *));
     void __cxa_vec_dtor(void *, size_t, size_t, void (*)(void *));
     void __cxa_vec_cleanup(void *, size_t, size_t, void (*)(void *));
     void __cxa_vec_delete(void *, size_t, size_t, void (*)(void *));

@@ -758,7 +758,7 @@ operators where the delete operator, if any, takes two arguments.
 }  /* __cxa_vec_new3 */
 
 
-EXTERN_C void *ABI_NAMESPACE::__cxa_vec_ctor(
+EXTERN_C void ABI_NAMESPACE::__cxa_vec_ctor(
                                          void              *array_ptr,
                                          size_t            number_of_elements,
                                          size_t            element_size,
@@ -769,10 +769,10 @@ The entry point used for constructing an array of objects where the memory has
 already been allocated.
 */
 {
-  return (array_new_general(array_ptr, (int)number_of_elements,
-                            element_size, /*prefix_size=*/0, (void *)NULL,
-                            ctor, dtor, (a_new_ptr)NULL, (a_delete_ptr)NULL,
-                            /*is_two_arg=*/FALSE, /*zero_init=*/FALSE));
+  (void)(array_new_general(array_ptr, (int)number_of_elements,
+                           element_size, /*prefix_size=*/0, (void *)NULL,
+                           ctor, dtor, (a_new_ptr)NULL, (a_delete_ptr)NULL,
+                           /*is_two_arg=*/FALSE, /*zero_init=*/FALSE));
 }  /* __cxa_vec_ctor */
 
 
