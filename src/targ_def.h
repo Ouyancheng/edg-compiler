@@ -1348,7 +1348,7 @@ stack.
 Determine whether RTTI can be enabled.  It cannot be if we are doing IL
 lowering and the ABI changes for RTTI aren't enabled.
 */
-#ifndef RTTI_ENABLING_POSSIBL
+#ifndef RTTI_ENABLING_POSSIBLE
 #if DO_IL_LOWERING
 #if ABI_CHANGES_FOR_RTTI
 #define RTTI_ENABLING_POSSIBLE TRUE
