@@ -6609,7 +6609,7 @@ within a function scope.
   a_scope_ptr              sp;
   a_boolean                function_scope_entry_needed = FALSE;
 
-  if (C_mode() && ssep->entity.kind == (an_il_entry_kind)iek_field) {
+  if (C_mode() && ssep->entity.kind == (a_byte_il_entry_kind)iek_field) {
     /* In C mode source sequence entries for fields go out to file scope,
        with no proxies even if they are fields of local structs. */
     check_assertion(in_file_scope(ssep));
@@ -6769,7 +6769,7 @@ and linked in for this entity.
     force_alloc_in_filescope = FALSE;
   }  /* if */
   if (old_ssep != NULL) {
-    check_assertion(kind == old_ssep->entity.kind);
+    check_assertion(kind == (an_il_entry_kind)old_ssep->entity.kind);
     check_assertion(old_ssep->entity.ptr == NULL);
 #if 0
   /* Check for memory region? */
