@@ -1,5 +1,13 @@
 Version 2.29
 
+3/16/95  No leading zero in day-of-month in __DATE__
+
+The front end gets the date via ctime for use in __DATE__ and __TIME__.
+ctime is allowed the return a two-digit day-of-month with a leading zero,
+but __DATE__ requires a space in that position.  If ctime returns
+a leading zero, it is now converted to a space in __DATE__.  (Windows
+NT has this idiosyncrasy.)
+
 3/15/95  Internal error due to nonconst copy constructor
 
 As of version 2.28, a copy constructor with a reference to nonconst

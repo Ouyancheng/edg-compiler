@@ -3534,6 +3534,12 @@ curr_date_time passed in by the caller.
   date_of_translation[0] = date_of_translation[12] = '"';
   /* Copy "Mmm dd " into [1] .. [7]. */
   (void)memcpy(&date_of_translation[1], &curr_date_time[4], 7);
+  /* If the day-of-month has a leading zero, replace it with a space.
+     ctime is allowed to return a leading zero, but __DATE__ is required
+     to have a blank there.  Windows NT returns a leading zero from ctime. */
+  if (date_of_translation[5] == '0') {
+    date_of_translation[5] = ' ';
+  }  /* if */
   /* Copy "yyyy" into [8] .. [11]. */
   (void)memcpy(&date_of_translation[8], &curr_date_time[20], 4);
   date_of_translation[13] = '\0';
