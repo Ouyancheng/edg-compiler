@@ -1,5 +1,26 @@
 Version 2.22
 
+1/10/94  Ellipsis in parameter list of an operator function
+
+An error is now issued when the parameter list of an operator function
+declaration contains an ellipsis -- except for operator()() and operator
+new(), in which ellipsis is permitted as long as at least one parameter is
+explicitly declared.  For instance:
+
+  struct A {
+    operator int(...);               // Error
+    A *operator->(...);              // Error
+    void operator()(int, ...);       // Okay
+  };
+  int operator +(A&, int, ...);      // Error
+
+1/10/94  Handling of "overload" anachronism
+
+We now treat "overload" as a token -- this is more consistent with
+cfront's behavior -- but it is now recognized only in cfront compatibility
+mode.  The text of the diagnostic has also been changed.  Now, when cfront
+mode is not enabled, "overload" is just another identifier.
+
 1/9/94   Diagnostics on type declaration within function prototype scope
 
 For old-style parameter lists, a change has been in how diagnostics are
