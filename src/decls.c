@@ -4254,10 +4254,19 @@ Only the first form is accepted in C.
       /* A class qualifier is present.  This is a pointer-to-member
          declarator if the current token is a "*". */
       if (curr_token == tok_star && !is_file_scope_qualifier) {
-        /* It is a pointer-to-member declarator.  Construct the type entry. */
-        complete_type = ptr_to_member_type(complete_type,
-                                           class_type == NULL ? error_type() :
-                                                                class_type);
+        /* Qualified name followed by "*". */
+        if (class_type == NULL) {
+          /* It looks like a pointer-to-member declarator, but there was some
+             error in the class qualifier (e.g., nonclassname::*).  We don't
+             want a pointer-to-member type pointing at anything but a
+             valid class type, so make it an error type instead. */
+          complete_type = error_type();
+        } else {
+          /* A valid pointer-to-member declarator. */
+          complete_type = ptr_to_member_type(complete_type, class_type);
+        }  /* if */
+        /* Cached tokens do not need to be rescanned. */
+        discard_token_cache(&token_cache);
       } else {
         /* The class qualifier is not followed by a "*", so back up to the
            start of the class qualifier and exit the loop. */
