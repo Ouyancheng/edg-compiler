@@ -2382,6 +2382,42 @@ current file position.
 
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
+#if SVR4_TRAP_NULL_POINTER_REFERENCES
+#if !USE_MMAP_FOR_MEMORY_REGIONS
+/* This will already have been included if we are using mmap. */
+#include "mman.h"
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
+
+
+static void svr4_trap_null_pointer_references(void)
+/*
+Some systems don't trap NULL pointer references.  This routine may
+be used on SVR4 systems to have NULL pointer references result in
+a memory fault.
+*/
+{
+  int	*p;
+  p = 0;
+  /* Access page zero.  This needs to be done before the mprotect call. */
+  p = (int*)(*p);
+  /* Protect the first 4k bytes of memory. */
+  if (mprotect(0, 4096, PROT_NONE) == -1) {
+    unexpected_condition_str("mprotect failed");
+  }  /* if */
+}  /* svr4_trap_null_pointer_references */
+#endif /* SVR4_TRAP_NULL_POINTER_REFERENCES */
+
+
+void host_envir_one_time_init(void)
+/*
+Do one-time initialization related to host specific processing.
+*/
+{
+#if SVR4_TRAP_NULL_POINTER_REFERENCES
+  svr4_trap_null_pointer_references();
+#endif /* SVR4_TRAP_NULL_POINTER_REFERENCES */
+}  /* host_envir_one_time_init */
+
 
 void host_envir_init(void)
 /*

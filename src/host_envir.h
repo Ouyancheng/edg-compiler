@@ -744,6 +744,19 @@ options and #pragmas).
 #endif /* ifndef PCH_DECL_SEQ_THRESHOLD */
 
 /*
+Some systems don't trap NULL pointer references.  This flag may be set
+TRUE on SVR4 systems (or systems with an SVR4-compatible mprotect call)
+to enable trapping of NULL pointer references.  This flag must only
+be set on systems that don't already trap NULL references.  The code
+that sets this mode will abort on systems that already trap NULL
+references.
+*/
+#ifndef SVR4_TRAP_NULL_POINTER_REFERENCES
+#define SVR4_TRAP_NULL_POINTER_REFERENCES FALSE
+#endif /* ifndef SVR4_TRAP_NULL_POINTER_REFERENCES */
+
+
+/*
 The flags HOSTID and HOSTID2 can be set to host id numbers if the
 front end is only allowed to be run on a few CPUs.  They should be left
 undefined otherwise.  An example of proper setting is
@@ -1076,6 +1089,8 @@ is required when using the C generating back end.
 extern void change_non_id_characters(char *str);
 extern char *make_module_id(void);
 #endif /* MODULE_ID_NEEDED */
+
+extern void host_envir_one_time_init(void);
 
 extern void host_envir_init(void);
 

@@ -130,6 +130,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #define NEW_CAN_BE_FOLDED_INTO_CTOR 0
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
+#define SVR4_TRAP_NULL_POINTER_REFERENCES 1
 
 #endif /* defined(_WIN32) */
 #endif /* defined(sun) */

@@ -423,6 +423,7 @@ unit, in case multiple source files are allowed.
 #if CHECKING
   check_target_configuration();
 #endif /* CHECKING */
+  host_envir_one_time_init();
   class_decl_one_time_init();
   def_arg_one_time_init();
   error_one_time_init();
