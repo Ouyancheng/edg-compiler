@@ -211,16 +211,16 @@ no need to actually instantiate X<int> in the example above.
     class_type = alloc_type(tssp->variant.class.type_kind);
     sym->variant.class_struct_union.type = class_type;
     /* Record the argument list in the type.  It should be available in the
-       IL at least for name generation and possibly for debuggers, too. */
+       IL at least for name generation and possibly for debuggers, too.  Note,
+       however, that the type itself is not added to the scope types list
+       until a full instantiation takes place -- or, if there is none, in
+       pop_scope, as with ordinary classes. */
     class_type->variant.class_struct_union.extra_info->
                                             template_arg_list = new_list;
     set_source_corresp(&(class_type->source_corresp), sym);
-    /* All template instantiations have C++ external linkage, and the type
-       is entered in the file scope. */
+    /* All template instantiations have C++ external linkage. */
     class_type->source_corresp.name_linkage =
                                   (a_name_linkage_kind)nlk_cplusplus_external;
-    add_to_types_list(class_type, DEPTH_OF_FILE_SCOPE,
-                      /*in_old_style_param_decl_list=*/FALSE);
 #if DEBUG
     if (debug_level >= 3) {
       db_symbol(sym, "created: ", 2);
