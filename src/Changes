@@ -1,5 +1,27 @@
 Version 2.21
 
+11/18/93 Spurious errors in -tall mode
+
+When using the "all" instantiation mode the front end would
+attempt to instantiate a function during the instantiation of a
+template class.  This would fail if the function used the template
+class in a way that requires the class to be a complete type.
+The instantiation is now deferred until the class is complete.
+
+  template <class T> struct A {
+    inline friend A<T> operator+(const A<T>&, const A<T>&);
+  };
+  template <class T> inline A<T> operator+(const A<T>& x, const A<T>& y)
+  {
+    return x;
+  }
+  void main()
+  {
+    A<int> a;
+  }
+
+
+
 11/17/93 Problem with non-alternate file format
 
 Because IL lowering did not clear the pointers in a class scope
