@@ -1048,7 +1048,7 @@ type "type".
 
   /* The encoding for parameter types is as follows:
        (1)  For each parameter, the encoding for the type.  Except in the IA64
-            ABI, If a parameter has a type that has appeared already in the
+            ABI, if a parameter has a type that has appeared already in the
             parameter list, "Tn" is used to repeat the type of parameter "n"
             ("n" can be a multi-digit number; the first parameter is numbered
             1).  If several consecutive parameters have the same type as a
@@ -3847,7 +3847,8 @@ name.
    /* Count the routine's parameters. */
   num_operands = 0;
   for (ptp = routine_type->variant.routine.extra_info->param_type_list;
-       ptp != NULL; ptp = ptp->next) {
+       ptp != NULL;
+       ptp = ptp->next) {
     ++num_operands;
   }  /* for */
   /* If this is a member function, the object pointed to by this is an

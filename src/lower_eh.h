@@ -28,7 +28,8 @@ lower_eh.h -- Declarations related to lower_eh.c (having to do with IL
 #include "lower_il.h"
 #endif /* ifndef LOWER_IL_H */
 
-extern a_type_ptr make_typeinfo_type(void);
+extern a_type_ptr make_typeinfo_type(a_type_info_kind kind, 
+                                     a_type_ptr       type);
 
 extern void generate_typeinfo_vars(void);
 
@@ -37,12 +38,16 @@ extern a_variable_ptr make_typeinfo_var(a_type_ptr type);
 extern a_variable_ptr get_typeinfo_var(a_type_ptr type);
 
 #if ABI_CHANGES_FOR_RTTI
-EXTERN a_variable_ptr
-		vtbl_for_type_info;
-			/* The variable for the virtual function table for
-			   the user-visible type_info type, once created.
+EXTERN a_variable_ptr 
+		vtbls_for_type_info[(int)tik_last];
+			/* The variables for the virtual function tables for
+			   the user-visible typeinfo types, once created.
 			   NULL until then. */
 extern void lower_typeid(an_expr_node_ptr expr);
+
+extern a_type_info_kind is_type_info_type(a_type_ptr type);
+
+extern a_type_info_kind is_type_info_vtbl(a_variable_ptr vtbl);
 #endif /* ABI_CHANGES_FOR_RTTI */
 
 #if GENERATE_EH_TABLES

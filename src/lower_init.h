@@ -124,10 +124,21 @@ extern void make_ctor_implied_arg_list(a_routine_ptr    ctor_routine,
 
 extern void make_dtor_implied_arg_list(a_routine_ptr    dtor_routine,
                                        a_boolean        have_complete_object,
-                                       an_expr_node_ptr *implied_arg_node);
+                                       an_expr_node_ptr *implied_arg_list,
+                                       an_expr_node_ptr *end_implied_arg_list);
 
 extern void gen_one_destruction(a_dynamic_init_ptr     dip,
                                 an_insert_location_ptr insert_location);
+
+#if IA64_ABI
+extern void define_construction_vtbls_array(a_type_ptr              class_type,
+                                            a_variable_ptr          var,
+                                            a_construction_vtbl_ptr elements);
+
+extern a_routine_ptr alternate_entry_point(a_routine_ptr       routine,
+                                           a_ctor_or_dtor_kind ctor_dtor_kind,
+                                           a_boolean           define_now);
+#endif /* IA64_ABI */
 
 extern void add_constructor_wrapper_code(a_scope_ptr        scope,
                                          an_insert_location *insert_location);

@@ -524,10 +524,18 @@ typedef struct a_construction_vtbl {
   a_construction_vtbl_ptr
 		next;	/* Next entry on the list in array element order,
 			   or NULL for the last element. */
-  a_base_class_ptr
+  union {
+    /* When is_subobject is TRUE: */
+    a_base_class_ptr
 		base_class;
 			/* The base class used to determine overriding, e.g.,
 			   base class A in B in the above description. */
+#if IA64_ABI
+    /* When is_subobject is FALSE: */
+    a_type_ptr	derived_class;
+			/* The class used to determine overriding. */
+#endif /* IA64_ABI */
+  } variant;
   a_base_class_ptr
 		ctor_base_class;
 			/* The base class describing the subobject considered
@@ -542,9 +550,29 @@ typedef struct a_construction_vtbl {
 		virtual_function_table_var;
 			/* The variable for this instance of the virtual
 			   function table. */
+#if IA64_ABI
+  a_virtual_table_index
+		virtual_function_table_offset;
+			/* The index in the virtual_function_table_var where
+			   this construction virtual function table begins. */
+  a_byte_boolean
+		is_subobject;
+			/* TRUE if A and B are not the same class. */
+#endif /* IA64_ABI */
 } a_construction_vtbl;
 
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+
+/*
+TRUE if the base class given by bcp has its own virtual function table.
+*/
+#if !IA64_ABI
+#define base_class_has_vtbl(bcp) \
+  (bcp->virtual_function_table_var != NULL)
+#else /* IA64_ABI */
+#define base_class_has_vtbl(bcp) \
+  (bcp->virtual_function_table_offset != -1)
+#endif /* IA64_ABI */
 
 /*
 Data structure used to pass information between lower_destructor_code,
@@ -592,9 +620,17 @@ extern void finish_class_type(a_type_ptr class_type);
 
 extern void add_to_front_of_file_scope_types_list(a_type_ptr type);
 
-extern a_type_ptr make_mptr_type(void);
-
 extern a_type_ptr make_vtbl_entry_type(void);
+
+#if IA64_ABI
+extern a_type_ptr make_virtual_table_table_pointer_type(void);
+
+extern a_boolean contains_ptr_to_data_member(a_type_ptr type);
+
+extern void lower_initializer(a_variable_ptr     variable,
+                              an_init_kind       *init_kind,
+                              an_initializer_ptr initializer);
+#endif /* IA64_ABI */
 
 extern a_type_ptr underlying_type(a_type_ptr type);
 
@@ -619,17 +655,29 @@ extern void change_to_cast(an_expr_node_ptr node,
                            an_expr_node_ptr operand_node,
                            a_type_ptr       new_type);
 
+extern an_expr_node_ptr add_cast_to_char_star(an_expr_node_ptr node);
+
 #if DO_FULL_PORTABLE_EH_LOWERING || ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 extern an_expr_node_ptr array_var_lvalue_expr(a_variable_ptr var);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING || ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 
 extern an_expr_node_ptr make_node_for_il_constant(a_constant_ptr constant);
 
+#if !IA64_ABI
 extern an_expr_node_ptr make_vbptr_field_lvalue(an_expr_node_ptr node,
                                                 a_base_class_ptr bcp);
 
 extern an_expr_node_ptr make_vbptr_field_lvalue_from_var(a_variable_ptr   var,
                                                          a_base_class_ptr bcp);
+#else /* IA64_ABI */
+extern a_base_class_ptr find_base_sharing_virtual_function_table(
+                                                         a_base_class_ptr bcp);
+
+extern void put_variable_into_comdat_group(a_variable_ptr variable);
+
+extern a_boolean emit_vcall_offsets_in_virtual_function_table(
+                                                         a_base_class_ptr bcp);
+#endif /* !IA64_ABI */
 
 extern an_expr_node_ptr make_vptr_field_lvalue(an_expr_node_ptr node);
 
@@ -640,10 +688,12 @@ extern an_expr_node_ptr make_any_vptr_rvalue(an_expr_node_ptr expr,
 
 extern an_expr_node_ptr make_vptr_field_lvalue_from_var(a_variable_ptr var);
 
+#if !IA64_ABI
 extern an_expr_node_ptr make_vbase_class_lvalue_from_var(
                                              a_variable_ptr   var,
                                              a_base_class_ptr bcp,
                                              a_boolean        complete_object);
+#endif /* !IA64_ABI */
 
 extern an_expr_node_ptr assign_expr_to_temp_and_make_expr_for_reuse(
                                                         an_expr_node_ptr expr);
@@ -813,6 +863,9 @@ extern void prelower_class_type(a_type_ptr class_type);
 extern void lower_ptr_to_member_constant(a_constant_ptr constant);
 
 extern void lower_constant(a_constant_ptr constant);
+
+extern a_type_ptr type_of_cctor_param_after_adding_indirection(
+                                                         a_param_type_ptr ptp);
 
 extern void add_indirection_to_cctor_param_type(a_param_type_ptr ptp);
 
