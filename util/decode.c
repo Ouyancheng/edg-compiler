@@ -801,6 +801,9 @@ to the character position following what was demangled.
       case 'c':
         s = "char";
         break;
+      case 'w':
+        s = "wchar_t";
+        break;
       case 's':
         s = "short";
         break;
