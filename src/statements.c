@@ -1185,25 +1185,6 @@ done:;
 }  /* add_to_control_flow_descr_list */
 
 
-static a_statement_ptr nearest_enclosing_compound_statement(void)
-/*
-Return a pointer to the nearest enclosing compound statement.
-*/
-{
-  a_struct_stmt_stack_entry_ptr sssep;
-  a_statement_ptr               stmt;
-
-  for (sssep = &struct_stmt_stack[depth_stmt_stack]; ; sssep--) {
-    if (sssep->kind == ssk_compound) {
-      /* The structured statement is a compound statement. */
-      stmt = sssep->statement;
-      break;
-    }  /* if */
-  }  /* for */
-  return stmt;
-}  /* nearest_enclosing_compound_statement */
-
-
 static a_boolean is_throw_expr(an_expr_node_ptr node)
 /*
 Return TRUE if the given expression is a "throw".
@@ -1653,7 +1634,6 @@ Put out the definition for the indicated label.  If label == NULL, do nothing.
     sp = add_statement((a_statement_kind)stmk_label);
     label->variant.exec_stmt = sp;
     sp->variant.label.ptr = label;
-    label->parent_block = nearest_enclosing_compound_statement();
   }  /* if */
   db_exit();
 }  /* define_label */
@@ -2274,9 +2254,6 @@ being created to surround a dependent statement in C++.
       scope_stack[decl_scope_level].is_loop_scope = TRUE;
     }  /* if */
   }  /* if */
-  /* Make the parent pointer in the block point to the nearest enclosing
-     compound statement. */
-  block->parent_block = nearest_enclosing_compound_statement();
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_compound, block_stmt, olp);
   return block_stmt;
