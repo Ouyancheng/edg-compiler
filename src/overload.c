@@ -5656,7 +5656,7 @@ operand of "&&").  arg_match is the argument match entry for the operand.
 Adjust the operand type to match the type requirement.
 */
 {
-  a_boolean  processed;
+  a_boolean  processed = FALSE;
   a_type_ptr specific_type;
   /* Get the type code for this operand (see
      operand_type_pattern_for_operator). */
