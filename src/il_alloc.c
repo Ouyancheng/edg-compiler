@@ -346,6 +346,13 @@ ck_template_param constant.
     case tpck_member:
       /* No variant fields. */
       break;
+    case tpck_cast:
+      cp->variant.template_param.variant.constant = NULL;
+      break;
+    case tpck_sizeof:
+    case tpck_alignof:
+      cp->variant.template_param.variant.type = NULL;
+      break;
     default:
       unexpected_condition_str("set_template_param_constant_kind: bad kind");
   }  /* switch */

@@ -37,21 +37,22 @@ operation overflows.
 #endif /* TARG_NO_ERROR_ON_INTEGER_OVERFLOW */
 
 
-#if 0 /* Not used yet */
-static void make_cast_constant(a_constant  *cp,
-                               a_type_ptr  new_type)
+static void make_template_param_cast_constant(a_constant  *old_constant,
+                                              a_constant  *new_constant,
+                                              a_type_ptr  new_type)
 /*
-Turn *cp into a ck_cast constant entry.  Its type is new_type and the
-source constant of the cast is the original constant pointed to by cp.
+Make, in *new_constant, a ck_template_param/tpck_cast constant that
+represents *old_constant cast to the type new_type.
 */
 {
-  a_constant_ptr  old_cp = alloc_shareable_constant(cp);
+  a_constant_ptr old_cp = alloc_shareable_constant(old_constant);
 
-  clear_constant(cp, (a_constant_repr_kind)ck_cast);
-  cp->variant.source_constant = old_cp;
-  cp->type = new_type;
-}  /* make_cast_constant */
-#endif /* 0 */
+  clear_constant(new_constant, (a_constant_repr_kind)ck_template_param);
+  set_template_param_constant_kind(new_constant,
+                                   (a_template_param_constant_kind)tpck_cast);
+  new_constant->variant.template_param.variant.constant = old_cp;
+  new_constant->type = new_type;
+}  /* make_template_param_cast_constant */
 
 
 void implicit_cast(a_constant_ptr cp,
@@ -1153,17 +1154,12 @@ casts between unrelated classes.
     new_constant.type = new_type_with_typedefs;
     goto exit;
   }  /* if */
-  if (constant->kind == (a_constant_repr_kind)ck_template_param) {
-    /* A template parameter constant is cast to a new type by setting the
-       implicit_cast flag. */
-    copy_constant(constant, &new_constant);
-    implicit_cast(&new_constant, new_type_with_typedefs);
-    goto exit;
-  }  /* if */
-  if (is_template_param_type(new_type)) {
-    /* Casting to a template parameter type (i.e., an unknown type).
-       Change the constant to an error constant. */
-    set_error_constant(&new_constant);
+  if (!C_mode() &&
+      (constant->kind == (a_constant_repr_kind)ck_template_param ||
+       is_or_contains_template_param(new_type))) {
+    /* Casting a template parameter constant, or casting to a template
+       parameter type.  Use a special tpck_cast constant. */
+    make_template_param_cast_constant(constant, &new_constant, new_type);
     goto exit;
   }  /* if */
   if (is_bool_type(new_type)) {

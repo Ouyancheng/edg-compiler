@@ -3664,6 +3664,13 @@ Syntax:
      in bytes, of type size_t (see 3.3.3.4 and <stddef.h>). */
   if (is_error_type(sizeof_type)) {
     set_error_constant(&constant);
+  } else if (is_or_contains_template_param(sizeof_type)) {
+    /* For the size of a template type, use a ck_template_param. */
+    clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(&constant,
+                                  (a_template_param_constant_kind)tpck_sizeof);
+    constant.variant.template_param.variant.type = sizeof_type;
+    constant.type = integer_type(targ_size_t_int_kind);
   } else {
     set_unsigned_integer_constant(&constant, (unsigned long)sizeof_type->size,
                                   targ_size_t_int_kind);
@@ -3735,6 +3742,13 @@ be inappropriate, because the feature is probably used to implement
      the operand, of type size_t. */
   if (is_error_type(alignof_type)) {
     set_error_constant(&constant);
+  } else if (is_or_contains_template_param(alignof_type)) {
+    /* For __ALIGNOF__ of a template type, use a ck_template_param. */
+    clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(&constant,
+                                 (a_template_param_constant_kind)tpck_alignof);
+    constant.variant.template_param.variant.type = alignof_type;
+    constant.type = integer_type(targ_size_t_int_kind);
   } else {
     set_unsigned_integer_constant(&constant,
                                   (unsigned long)alignof_type->alignment,

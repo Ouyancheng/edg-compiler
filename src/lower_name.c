@@ -41,6 +41,12 @@ static sizeof_t mangled_member_variable_name(a_variable_ptr variable,
 static char *mangled_expr_operator_name(an_expr_operator_kind op);
 static sizeof_t mangled_encoding_for_expression(an_expr_node_ptr expr,
                                                 char             *store_at);
+static sizeof_t mangled_member_name(a_source_correspondence *scp,
+                                    a_boolean               is_specialization,
+                                    char                    *store_at);
+static sizeof_t mangled_encoding_for_constant(a_constant_ptr con,
+                                              a_boolean      old_form,
+                                              char           *store_at);
 
 
 static sizeof_t digits_to_represent(unsigned long value)
@@ -344,6 +350,57 @@ encoding.
 }  /* mangled_encoding_for_template_parameter */
 
 
+static sizeof_t mangled_encoding_for_constant_cast(a_type_ptr     type,
+                                                   a_constant_ptr con,
+                                                   char           *store_at)
+/*
+Place a mangled representation of the constant "con" cast to the type "type"
+at *store_at if store_at != NULL, and (always) return the length of the
+mangled form.
+*/
+{
+  sizeof_t mangled_expr_length, section_length;
+
+  /* Output has the form
+       Ocsi1Z1ZO <-- "(int)Z1", Z1 indicating a nontype template parameter.
+               ^---- "O" to end the operation encoding.
+            ^^^----- Operand.
+           ^-------- Count of operands, always 1 for cast.
+          ^--------- Encoding for type to cast to.
+        ^^---------- Operation, always "cs" for cast.
+       ^------------ "O" for operation.
+     mangled_encoding_for_expression generates a compatible structure, so
+     if you change this be sure to change that as well.
+  */
+  /* Put out the initial "O". */
+  mangled_expr_length = 1;
+  if (store_at != NULL) *store_at++ = 'O';
+  /* Put out the operator name "cs". */
+  mangled_expr_length += 2;
+  if (store_at != NULL) {
+    (void)strcpy(store_at, "cs");
+    store_at += 2;
+  }  /* if */
+  /* The operator name "cs" is followed by the encoding for the
+     type cast to. */
+  section_length = mangled_encoding_for_type(type, store_at);
+  mangled_expr_length += section_length;
+  if (store_at != NULL) store_at += section_length;
+  /* Put out the count of operands. */
+  mangled_expr_length++;
+  if (store_at != NULL) *store_at++ = '1';
+  /* Put out the operand. */
+  section_length = mangled_encoding_for_constant(con, /*old_form=*/FALSE,
+                                                 store_at);
+  mangled_expr_length += section_length;
+  if (store_at != NULL) store_at += section_length;
+  /* Put out the final "O". */
+  mangled_expr_length++;
+  if (store_at != NULL) *store_at++ = 'O';
+  return mangled_expr_length;
+}  /* mangled_encoding_for_constant_cast */
+
+
 static sizeof_t literal_representation(a_constant_ptr con,
                                        a_boolean      old_form,
                                        char           *store_at)
@@ -641,7 +698,24 @@ mangling for lengths of literals.
           literal_length = mangled_encoding_for_expression(
                                       con->variant.template_param.variant.expr,
                                       store_at);
+          if (store_at != NULL) store_at += literal_length;
           break;
+        case tpck_member:
+          /* A member of a template parameter type, e.g., T::x. */
+          literal_length = mangled_member_name(&con->source_corresp,
+                                               /*is_specialization=*/FALSE,
+                                               store_at);
+          if (store_at != NULL) store_at += literal_length;
+          break;
+        case tpck_cast:
+          literal_length = mangled_encoding_for_constant_cast(
+                                  con->type,
+                                  con->variant.template_param.variant.constant,
+                                  store_at);
+          if (store_at != NULL) store_at += literal_length;
+          break;
+        case tpck_sizeof:
+        case tpck_alignof:
         default:
           unexpected_condition_str(
                             "literal_representation: bad template param kind");
@@ -679,7 +753,9 @@ literals.
        ^^----- Type of constant, with "const" added.
      If the constant is a template parameter constant, skip the "C" and
      the type. */
-  if (con->kind != (a_constant_repr_kind)ck_template_param) {
+  if (con->kind != (a_constant_repr_kind)ck_template_param ||
+      con->variant.template_param.kind ==
+                                   (a_template_param_constant_kind)tpck_cast) {
     mangled_form_length++;
     if (store_at != NULL) *store_at++ = 'C';
     /* Put out the constant type. */
@@ -727,13 +803,8 @@ template arguments, and as dimensions of arrays in template signatures.
             ^^------------ Operation, using same encoding as for operator
                            function names.
            ^-------------- "O" for operation.
-         The final "O" avoids an ambiguity when the last operand is a literal
-         that ends with something like "L10" (meaning a literal of length 1
-         with the literal form "0".  The length of the literal is taken to
-         be a single digit, except when it's followed by an underscore, e.g.,
-         "L10_1234567890".  The problem is that if "L11" is followed by
-         an underscore for a different reason (e.g., to add the element type
-         of an array), the construct is ambiguous.
+         mangled_encoding_for_constant_cast generates a compatible structure,
+         so if you change this be sure to change that as well.
       */
       /* Put out the initial "O". */
       mangled_expr_length = 1;
@@ -745,6 +816,12 @@ template arguments, and as dimensions of arrays in template signatures.
       if (store_at != NULL) {
         (void)strcpy(store_at, operation_name);
         store_at += section_length;
+      }  /* if */
+      /* For a cast, put out the type cast to. */
+      if (operation_name[0] == 'c' && operation_name[1] == 's') {
+        section_length = mangled_encoding_for_type(expr->type, store_at);
+        mangled_expr_length += section_length;
+        if (store_at != NULL) store_at += section_length;
       }  /* if */
       /* Put out the count of operands. */
       for (num_operands = 0, operand = expr->variant.operation.operands;

@@ -1233,7 +1233,7 @@ enum a_template_param_constant_kind_tag {
 			       static char s[I+1];
 			     };
 			     template <int I> char A<I>::s[I+1] = { 0 }; */
-  tpck_member           /* The template param constant represents a member of
+  tpck_member,		/* The template param constant represents a member of
 			   a tk_template_param class, e.g., for T::k in the
 			   following:
 			     template <class T> class A {
@@ -1241,6 +1241,15 @@ enum a_template_param_constant_kind_tag {
 			     };
 			   (where, during prototype instantiation, k is
 			   assumed to be a member of T and a constant). */
+  tpck_cast,		/* The template param constant represents some constant
+			   (ck_template_param or other) cast to a type that
+			   contains a template parameter type. */
+  tpck_sizeof,		/* The template param constant represents the sizeof
+			   operator applied to a type that contains a template
+			   parameter type. */
+  tpck_alignof		/* The template param constant represents the
+			   __ALIGNOF__ operator applied to a type that
+			   contains a template parameter type. */
 };
 typedef a_byte a_template_param_constant_kind;
 
@@ -1506,6 +1515,15 @@ typedef struct a_constant {
 			   tpck_expression). */
 	/* When template param constant kind == tpck_member, no variant
            fields. */
+        /* When template param constant kind == tpck_cast: */
+        a_constant_ptr
+		constant;
+			/* The constant that is cast to the type indicated in
+			   the tpck_cast constant. */
+        /* When template param constant kind == tpck_sizeof or tpck_alignof: */
+        a_type_ptr
+		type;	/* The type whose sizeof or __ALIGNOF__ is
+			   represented. */
       } variant;
     } template_param;
     /* When kind == ck_cast: */

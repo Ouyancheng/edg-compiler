@@ -2254,6 +2254,9 @@ confusion.  Do the output in the way described by octl.
     } else {
       /* If the constant is implicitly cast to another type, ... */
       if (constant->implicit_cast ||
+          (constant->kind == (a_constant_repr_kind)ck_template_param &&
+           constant->variant.template_param.kind ==
+                                  (a_template_param_constant_kind)tpck_cast) ||
           constant->kind == (a_constant_repr_kind)ck_cast) {
         /* ... then prefix the constant with an explicit cast. */
         output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
@@ -2473,6 +2476,20 @@ confusion.  Do the output in the way described by octl.
           break;
         case tpck_expression:
           octl->output_str("<template-expr>");
+          break;
+        case tpck_cast:
+          form_constant(constant->variant.template_param.variant.constant,
+                        /*need_parens=*/FALSE, octl);
+          break;
+        case tpck_sizeof:
+          octl->output_str("sizeof(");
+          form_type(constant->variant.template_param.variant.type, octl);
+          octl->output_str(")");
+          break;
+        case tpck_alignof:
+          octl->output_str("__ALIGNOF__(");
+          form_type(constant->variant.template_param.variant.type, octl);
+          octl->output_str(")");
           break;
         default:
           octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**");

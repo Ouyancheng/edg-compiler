@@ -2953,8 +2953,13 @@ nonidentical.
   a_boolean  eq = FALSE, unordered;
   a_type_ptr cp1_type = cp1->type, cp2_type = cp2->type;
 
-  check_assertion(cp1 != cp2);
-  check_assertion(cp1->kind == cp2->kind);
+  if (cp1 == cp2) {
+    eq = TRUE;
+    goto end_of_routine;
+  } else if (cp1->kind != cp2->kind) {
+    eq = FALSE;
+    goto end_of_routine;
+  }  /* if */
   if (!strictly_identical) {
     cp1_type = skip_typerefs(cp1_type);
     cp2_type = skip_typerefs(cp2_type);
@@ -3051,6 +3056,18 @@ nonidentical.
               eq = (cp1->source_corresp.assoc_info ==
                     cp2->source_corresp.assoc_info);
               break;
+            case tpck_cast:
+              eq = compare_constants(cp1->variant.template_param.variant.
+                                                                      constant,
+                                     cp2->variant.template_param.variant.
+                                                                      constant,
+                                     strictly_identical);
+              break;
+            case tpck_sizeof:
+            case tpck_alignof:
+              eq = identical_types(cp1->variant.template_param.variant.type,
+                                   cp2->variant.template_param.variant.type);
+              break;
 #if CHECKING
             default:
               internal_error("compare_constants: bad templ param const kind");
@@ -3069,6 +3086,7 @@ nonidentical.
 #endif /* CHECKING */
     }  /* switch */
   }  /* if */
+end_of_routine:
   return eq;
 }  /* compare_constants */
 
@@ -3081,15 +3099,8 @@ to decide whether two constant entries are sufficiently alike to be
 shared, such that only one of them need appear in the IL.
 */
 {
-  a_boolean  eq = FALSE;
+  a_boolean eq = compare_constants(cp1, cp2, /*strictly_identical=*/TRUE);
 
-  if (cp1 == cp2) {
-    /* Same pointer implies same constant. */
-    eq = TRUE;
-  } else if (cp1->kind == cp2->kind) {
-    check_assertion(cp1->kind != (a_constant_repr_kind)ck_template_param);
-    eq = compare_constants(cp1, cp2, /*strictly_identical=*/TRUE);
-  }  /* if */
   return eq;
 }  /* identical_constants */
 
@@ -3102,14 +3113,8 @@ value.  Thus, "(int)5" and "(const int)5" are equivalent -- even though they
 would not be considered "identical", since the type qualifiers are different.
 */
 {
-  a_boolean  eq = FALSE;
+  a_boolean eq = compare_constants(cp1, cp2, /*strictly_identical=*/FALSE);
 
-  if (cp1 == cp2) {
-    /* Same pointer implies same constant. */
-    eq = TRUE;
-  } else if (cp1->kind == cp2->kind) {
-    eq = compare_constants(cp1, cp2, /*strictly_identical=*/FALSE);
-  }  /* if */
   return eq;
 }  /* eq_constants */
 
@@ -3121,7 +3126,7 @@ cp is either a pointer to a simple template parameter constant or else
 NULL (indicating any template param constant will do).  If cp is NULL, return
 TRUE if node is or contains any template parameter constant.  If it is not
 NULL, return TRUE if node refers to that particular constant directly or
-contains it among its operands.
+contains it among its operands (in a position that can be deduced from).
 */
 {
   a_boolean         found = FALSE;
@@ -3137,25 +3142,13 @@ contains it among its operands.
       if (cp == NULL) {
         found = TRUE;
       } else {
-        switch (cp2->variant.template_param.kind) {
-          case tpck_param:
-            found = eq_constants(cp, cp2);
-            break;
-          case tpck_expression:
-            found = expr_tree_contains_template_param_constant(
-                                cp2->variant.template_param.variant.expr, cp);
-            break;
-          case tpck_member:
-            break;
-          default:
-            unexpected_condition_str(
-       "expr_tree_contains_template_param_constant: bad templ param con kind");
-        }  /* switch */
+        found = eq_constants(cp, cp2);
       }  /* if */
     }  /* if */
-  } else if (node->kind == (an_expr_node_kind)enk_operation) {
+  } else if (node->kind == (an_expr_node_kind)enk_operation && cp == NULL) {
     for (op = node->variant.operation.operands; op != NULL; op = op->next) {
-      if (expr_tree_contains_template_param_constant(op, cp)) {
+      if (expr_tree_contains_template_param_constant(op,
+                                                     (a_constant_ptr)NULL)) {
         found = TRUE;
         break;
       }  /* if */
@@ -3287,6 +3280,11 @@ put it on a list of constants).
            "alloc_shareable_constant: implicitly-cast const has assoc_info");
     }  /* if */
 #endif /* CHECKING */
+  } else if (cp->kind == (a_constant_repr_kind)ck_template_param) {
+    /* Template param constants should not be made part of the IL tree
+       proper.  Those with assoc_info non-NULL were handled above.
+       For others, make a new copy every time. */
+    scp = alloc_unshared_constant(cp);
   } else {
     /* The constant has no source correspondence. */
     /* If the current IL region is not the file scope region (i.e., it's
