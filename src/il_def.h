@@ -1996,6 +1996,8 @@ typedef struct a_routine {
   unsigned int	compiler_generated:1;
 			/* TRUE for functions that are created by the
 			   compiler, e.g., default constructors in C++. */
+  unsigned int  called:1;
+			/* TRUE if this routine is directly called. */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   unsigned int	assignment_to_this_done:1;
 			/* TRUE if an assignment to "this" (an anachronism)
