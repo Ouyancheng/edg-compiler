@@ -2725,6 +2725,12 @@ Print a set of Microsoft declaration modifiers.
     if (decl_modifiers & DM_NAKED) {
       write_tok_str("naked ");
     }  /* if */
+    if (decl_modifiers & DM_SELECTANY) {
+      write_tok_str("selectany ");
+    }  /* if */
+    if (decl_modifiers & DM_NOTHROW) {
+      write_tok_str("nothrow ");
+    }  /* if */
     write_tok_str(") ");
   }  /* if */
   if (decl_modifiers & DM_MICROSOFT_INLINE) {
