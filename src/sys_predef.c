@@ -701,7 +701,7 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_function((a_builtin_function_kind)bfk_snprintf,
 			     int_type,
 			     char_star_type,
-			     unsigned_type,
+			     size_t_type,
 			     const_char_star_type,
 			     (a_type_ptr)NULL,
 			     /*is_varargs=*/TRUE);
@@ -722,7 +722,7 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_function((a_builtin_function_kind)bfk_vsnprintf,
 			     int_type,
 			     char_star_type,
-			     unsigned_type,
+			     size_t_type,
 			     const_char_star_type,
 			     char_star_type,
 			     /*is_varargs=*/FALSE);

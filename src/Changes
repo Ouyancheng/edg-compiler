@@ -1,5 +1,11 @@
 Version 3.5
 
+10/11/04 GNU compatibility: __builtin_snprintf and __builtin_vsnprintf
+
+In GNU mode, the type of the third parameter of the builtin-in functions
+__builtin_snprintf and __builtin_vsnprintf was changed from always being
+"unsigned int" to "size_t" (which is "unsigned int" on many platforms).
+
 10/11/04 Module IDs: "weak" and "selectany" definitions
 
 The front end no longer considers variables and functions marked as "weak"
