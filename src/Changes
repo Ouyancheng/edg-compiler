@@ -1,5 +1,19 @@
 Version 2.45
 
+12/21/00 C++-generating back end: elaborated type specifier omitted on
+         reference to previously invisible name
+
+When friend name injection is disabled, an elaborated type specifier
+must sometimes be considered to be the first visible declaration of a
+name, and such a reference, when emitted by the C++-generating back end,
+must include the elaborated type specifier.  Such references are now
+emitted properly.
+
+  struct XX {
+    friend class X;
+  };
+  class X *x;  // formerly emitted as simply "X *x"
+
 12/21/00 static_cast of bool to enum type
 
 A static_cast from bool to an enum type is now allowed.  The C++ standard

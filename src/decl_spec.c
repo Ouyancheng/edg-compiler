@@ -2286,10 +2286,12 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
       record_symbol_declaration(srk_flags, tag_sym, &locator.source_position,
                                 (a_source_sequence_entry_ptr)NULL);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (is_predeclared_type_decl && !is_class_definition) {
-        /* This is the first explicit declaration of a predeclared type --
-           set the first_declaration flag in the associated source-sequence
-           secondary declaration entry. */
+      if ((is_predeclared_type_decl || previously_invisible) &&
+          !is_class_definition) {
+        /* This is the first explicit declaration of a predeclared type,
+           or this is the first visible declaration of a previously
+           invisible symbol.  Set the first_declaration flag in the
+           associated source-sequence secondary declaration entry. */
         (void)set_src_seq_secondary_decl_fields((char *)class_type,
                                                 (a_type_ptr)NULL,
                                                 SSSD_FIRST_DECLARATION);
