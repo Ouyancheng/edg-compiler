@@ -7512,6 +7512,7 @@ ones are allocated in the scope specified by decl_scope_level.
   db_exit();
 }  /* check_anonymous_union_symbols */
 
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 
 static a_boolean is_compiler_generated_member_function(a_symbol_ptr  sym)
 /*
@@ -7538,6 +7539,7 @@ function or an overload set of compiler generated member functions.
   return result;
 }  /* is_compiler_generated_member_function */
 
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 static a_boolean is_anonymous_union_decl(a_type_ptr              member_type,
                                          a_member_decl_info_ptr  decl_info)
