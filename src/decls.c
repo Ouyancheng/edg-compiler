@@ -2083,8 +2083,7 @@ generating cross-reference output describing this declaration.
     /* There is a previous identifier of this name in the same scope,
        to which this declaration is linked. */
     if (is_function && linked_symbol->kind == (a_symbol_kind)sk_routine &&
-        linked_symbol->variant.routine.instance_ptr != NULL &&
-        !linked_symbol->variant.routine.instance_ptr->specific_decl) {
+        linked_symbol->variant.routine.instance_ptr != NULL) {
       /* This is not actually a redeclaration -- linked_symbol refers to a
          function template instantiation. */
       template_function_specific_decl = TRUE;
@@ -2245,51 +2244,75 @@ generating cross-reference output describing this declaration.
            error. */
         template_function_specific_decl = FALSE;
         linked_redecl_error = TRUE;
-      } else if (template_function_specific_decl) {
-        /* This is an explicit declaration of a template function.  Its symbol
-           is already on the template's function instantiation list, but it
-           needs to be added to the overload list as well, to assure that it
-           will be found by the ordinary overload resolution algorithm. */
-        sym = linked_symbol;
-        overload_symbol = add_symbol_to_overload_list(sym, homonym_symbol);
-        sym->variant.routine.instance_ptr->specific_decl = TRUE;
-        routine_ptr = sym->variant.routine.ptr;
-        old_decl_has_body = (routine_ptr->assoc_scope != NULL_region_number);
-        if (old_decl_has_body) {
+        goto skip_overloading;
+      }  /* if */
+    }  /* if */
+    if (template_function_specific_decl &&
+        effective_decl_level == DEPTH_OF_FILE_SCOPE) {
+      /* This is an explicit declaration of a template function.  Note that
+         we are only interested in file-scope declarations -- declarations at
+         local scope are handled separately. */
+      sym = linked_symbol;
+      routine_ptr = sym->variant.routine.ptr;
+      old_decl_has_body = (routine_ptr->assoc_scope != NULL_region_number);
+      if (is_function_def) {
+        /* The current declaration is a definition. */
+        if (!old_decl_has_body) {
+          /* Okay. */
           routine_ptr->specific_def = TRUE;
           sym->variant.routine.instance_ptr->specific_def = TRUE;
-          if (is_function_def) {
+        } else {
+          /* There is already a definition.  This is some sort of error. */
+          if (routine_ptr->specific_def) {
+            /* Already defined. */
+            pos_sy_error(ec_already_defined, &locator->source_position, sym);
+          } else {
+            /* It must be that this function has a body as a result of a
+               prior instantiation. */
             check_assertion(routine_ptr->is_inline && routine_ptr->called);
-            /* This is a case where an inline function template has been
-               declared, an instance of it has been referenced and therefore
-               instantiated on the fly, and now a specializing declaration
-               appears.  Issue an error (you can't reference an inline template
-               function that is specialized before the specialization is
-               declared) and obliterate evidence of the instantiation. */
+              /* An inline function template has been declared, an instance
+                 of it has been referenced and therefore instantiated on
+                 the fly, and now a specializing declaration appears.
+                 Issue an error (you can't reference an inline template
+                 function that is specialized before the specialization is
+                 declared) and treat it as a redeclaration error. */
             pos_error(ec_specialization_of_called_inline_template_function,
                       &locator->source_position);
-            old_decl_has_body = FALSE;
-            sym->defined = FALSE;
-            routine_ptr->assoc_scope = NULL_region_number;
-            routine_ptr->type->
-                            variant.routine.extra_info->assoc_routine = NULL;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-            routine_ptr->declared_type = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           }  /* if */
+          linked_redecl_error = TRUE;
+          template_function_specific_decl = FALSE;
+          redecl_error_already_issued = TRUE;
+          set_to_named_error_locator(*locator);
+          /* Set a flag to suppress reuse of the existing external-routine
+             symbol and of the routine already in use.  Also, to suppress a
+             possible declared-but-not-used message, set the referenced flag
+             in the linked symbol. */
+          suppress_ext_sym_lookup = TRUE;
+          mark_symbol_to_suppress_warnings(linked_symbol);
+        }  /* if */
+      }  /* if */
+      if (!linked_redecl_error) {
+        if (!sym->variant.routine.instance_ptr->specific_decl) {
+          check_assertion(homonym_symbol != NULL);
+          /*  Its symbol is already on the template's function instantiation
+              list, but it needs to be added to the overload list as well,
+              to assure that it will be found by the ordinary overload
+              resolution algorithm. */
+          overload_symbol = add_symbol_to_overload_list(sym, homonym_symbol);
+          sym->variant.routine.instance_ptr->specific_decl = TRUE;
         }  /* if */
         *old_type = routine_ptr->type;
         reconcile_routine_types(routine_ptr, type_ptr,
                                 /*preserve_rout_type=*/old_decl_has_body,
                                 /*preserve_type_ptr=*/is_function_def);
-      } else {
-        /* Overloaded function.  Create the new symbol, which will be on the
-           list of functions connected to an sk_overloaded symbol. */
-        sym = enter_overloaded_symbol((a_symbol_kind)sk_routine, locator,
-                                      homonym_symbol, &overload_symbol);
       }  /* if */
-skip_overloading:;
+    } else if (homonym_symbol != NULL) {
+      /* Overloaded function.  Create the new symbol, which will be on the
+         list of functions connected to an sk_overloaded symbol. */
+      sym = enter_overloaded_symbol((a_symbol_kind)sk_routine, locator,
+                                    homonym_symbol, &overload_symbol);
     }  /* if */
+skip_overloading:;
   }  /* if */
   if (linked_redecl_error) {
     /* There is a linked symbol, but it is not compatible with the new
