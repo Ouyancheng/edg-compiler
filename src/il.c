@@ -2485,7 +2485,7 @@ correspondence entry.
 
   if (cptr != NULL) {
     for (; *cptr != '\0'; cptr++) {
-      hash_value = (hash_value << 6) + *cptr;
+      hash_value = (hash_value << 5) + hash_value + *cptr;
     }  /* for */
   }  /* if */
   return hash_value;
@@ -2501,6 +2501,7 @@ bucket of the shareable_constants_table to use for the constant.
   a_constant_hash_value hash_value;
   a_targ_size_t         length;
   a_boolean             ovflo;
+  char                  *p;
 
   /* Compute a hash value from the constant.  The hash doesn't have to
      be perfect, but it should spread the expected constants fairly widely.
@@ -2517,12 +2518,13 @@ bucket of the shareable_constants_table to use for the constant.
       hash_value = (a_constant_hash_value)value_of_integer_constant(cp,&ovflo);
       break;
     case ck_string:
-      /* String.  Use the first and last characters and the length to make
-         a hash value. */
-      length = cp->variant.string.length;
-      hash_value = (a_constant_hash_value)(
-                            100 + length + (*(cp->variant.string.value) << 6) +
-                                         *(cp->variant.string.value+length-1));
+      /* String.  Hash all the characters. */
+      hash_value = 100;
+      for (length = cp->variant.string.length, p = cp->variant.string.value;
+           length > 0;
+           length--, p++) {
+        hash_value = (hash_value << 5) + hash_value + *p;
+      }  /* for */
       break;
     case ck_float:
       /* Use a host-dependent routine for floating-point constants. */

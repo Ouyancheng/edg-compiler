@@ -1,5 +1,11 @@
 Version 2.26
 
+9/25/94  Hash for strings/names in looking for shareable constants
+
+The hash algorithm used for strings and names in looking for shareable
+constants (see hash_constant) has been improved to avoid some unfortunate
+(slow) behavior on machine-generated strings and names.
+
 9/19/94  Macros in IL
 
 RECORD_MACROS_IN_IL can now be set to get IL entries for macros.
