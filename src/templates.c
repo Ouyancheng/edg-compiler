@@ -3110,7 +3110,6 @@ included in the search.
 {
   a_symbol_ptr                      sym;
   a_symbol_ptr 			    prototype_sym;
-  a_type_ptr			    prototype_type;
   a_template_arg_ptr                old_list;
   a_type_ptr                        class_type;
   a_template_symbol_supplement_ptr  tssp;
@@ -3262,6 +3261,7 @@ included in the search.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
       a_symbol_ptr	prototype_template_prototype_sym;
+      a_type_ptr	prototype_type;
       /* Update the Microsoft decl modifier information for this class based
          on the information stored in the prototype instantiation.  If this
          is an instance of a subordinate template, use the prototype
