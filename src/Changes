@@ -49,7 +49,7 @@ This kind of usage now suppresses the creation of a PCH file.
 
 8/8/03   GNU IA-64 ABI: Additional base class conflicts
 
-If a direct nonvirtual base contains an field of empty class type E at a small
+If a direct nonvirtual base contains a field of empty class type E at a small
 (less than 8 or 16 bytes, depending on the platform) but nonzero offset,
 GNU C++ will not place that base at the same offset as an empty base of type E
 or a type derived from E.  The front end already emulated this behavior for
