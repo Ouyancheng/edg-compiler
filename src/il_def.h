@@ -4793,6 +4793,11 @@ typedef struct an_expr_node {
 			   thread-safe code, the "?" and the first assignment
 			   within it should be rendered as an atomic
 			   test-and-set. */
+  a_bit_field	generated_default_arg:1;
+			/* TRUE if this node is a copy of a default argument
+			   expression pointed to by a param-type entry; one
+			   such copy is associated with each call that uses
+			   the default argument. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == enk_error or enk_address_of_ellipsis, no variant fields. */

@@ -6105,9 +6105,10 @@ an_expr_node_ptr copy_default_arg_expr(an_expr_node_ptr expr)
 /*
 Copy a default argument expression and return a pointer to the copy.
 This routine is used to copy such expressions when they are added implicitly
-to calls, but not to copy them when function types pointing to
-default argument expressions are copied.  The difference between the two is
-in the handling of object lifetimes.
+to calls, but not to copy them when function types pointing to default
+argument expressions are copied.  The difference between the two is in the
+handling of object lifetimes.  In addition, a flag is set to identify this
+as a "generated" default argument expression.
 */
 {
   if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
@@ -6117,6 +6118,7 @@ in the handling of object lifetimes.
     expr = expr->variant.object_lifetime.expr;
   }  /* if */
   expr = copy_expr_tree(expr);
+  expr->generated_default_arg = TRUE;
   return expr;
 }  /* copy_default_arg_expr */
 

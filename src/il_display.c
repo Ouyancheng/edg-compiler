@@ -1935,6 +1935,9 @@ Display the indicated expression node.
   if (ptr->is_initialization_guard) {
     disp_boolean("is_initialization_guard", TRUE);
   }  /* if */
+  if (ptr->generated_default_arg) {
+    disp_boolean("generated_default_arg", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:
