@@ -114,6 +114,7 @@ typedef enum /*an_il_entry_kind*/ {
 			/* a_class_type_supplement */
   iek_constructor_init, /* a_constructor_init */
   iek_asm_entry,        /* an_asm_entry */
+  iek_template_arg,     /* a_template_arg */
 #endif /* ifdef CIL */
   iek_orphaned_il_list, /* an_orphaned_il_list */
   iek_last		/* Marks the end of the list. */
