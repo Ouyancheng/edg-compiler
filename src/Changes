@@ -10,7 +10,7 @@ name of a function specified in a friend function declaration.  For example:
     friend void X::priv();  // No longer triggers an accessibility error.
   };
 
-6/25/03  Spurious error error caused by using-declaration referring to a
+6/25/03  Spurious error caused by using-declaration referring to a
          dependent base
 
 The front end sometimes emitted various spurious errors when a using-
