@@ -4881,9 +4881,10 @@ continue_with_declaration:
       /* top_declarator_type_is_function is TRUE if the fact that this is a
          function is derived from the declarator and not from a typedef.  It
          is sufficient that the result type is a function type and a
-         declarator was scanned. */
+         declarator was scanned (but watch out for type qualifiers). */
       top_declarator_type_is_function = (is_function &&
-				         local_type_ptr != type_ptr);
+				         skip_typerefs(local_type_ptr) !=
+                                                      skip_typerefs(type_ptr));
       if (is_function && !top_declarator_type_is_function &&
           any_cfront_mode()) {
         a_type_ptr                     tp = skip_typerefs(local_type_ptr);
