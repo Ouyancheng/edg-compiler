@@ -664,9 +664,9 @@ the file scope, do not process it (but record an orphan in the latter case).
                      iek_condition_supplement);
             break;
           case enk_object_lifetime:
-#if !NEEDED_FLAG_WALK
             walk_ptr(ptr->variant.object_lifetime.expr, an_expr_node_ptr,
                      iek_expr_node);
+#if !NEEDED_FLAG_WALK
             remap_ptr(ptr->variant.object_lifetime.ptr, an_object_lifetime_ptr,
                       iek_object_lifetime);
 #endif /* !NEEDED_FLAG_WALK */
