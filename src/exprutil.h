@@ -247,7 +247,7 @@ one that describes no conversion to be done.
 #define is_null_user_conv_descr(user_conversion)                      \
   ((user_conversion)->routine == NULL &&                              \
    !(user_conversion)->class_identity_or_bitwise_copy &&              \
-   (user_conversion)->ambiguous)
+   !(user_conversion)->ambiguous)
 
 /*
 Argument match levels for overloaded function call resolution; See ARM 13.2.
