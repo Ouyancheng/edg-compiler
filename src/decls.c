@@ -5893,11 +5893,11 @@ recorded in the IL, the template header is passed via template_decl.
     /* Restore the previous state wrt. the generation of source sequence
        entries. */
     source_sequence_entries_disallowed = saved_sses_disallowed;
+    if (func_info->is_definition) {
+      set_routine_declared_type(rout_ptr, func_info->declared_type);
+    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } /* if */
-  if (func_info->is_definition) {
-    set_routine_declared_type(rout_ptr, func_info->declared_type);
-  }  /* if */
   update_routine_decl_modifiers(rout_ptr, decl_modifiers,
                                 &locator->source_position, redeclaration,
                                 (a_boolean)func_info->is_definition,

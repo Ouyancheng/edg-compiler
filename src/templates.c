@@ -2513,7 +2513,9 @@ A pointer to the head of the list is returned in tcsp.
                               /*is_template_instantiation=*/TRUE,
                               (a_decl_pos_block_ptr)NULL);
   prototype_type->source_corresp.access = access_for_symbol(template_sym);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   prototype_type->autonomous_primary_tag_decl = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   pending_class_definitions--;
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
@@ -8612,7 +8614,9 @@ initially used when processing the declaration of a partial specialization.
     /* Now create a new type entry. */
     prototype_type = alloc_type(tssp->variant.class_template.type_kind);
     prototype_type->source_corresp.access = access_for_symbol(sym);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     prototype_type->autonomous_primary_tag_decl = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     prototype_type->variant.class_struct_union.is_template_class = TRUE;
     prototype_sym->variant.class_struct_union.type = prototype_type;
     set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
