@@ -1675,11 +1675,16 @@ argument matches.
     a_boolean some_function_needs_selector = FALSE;
     /* Check the first or only function to see whether or not it requires
        a selector. */
-    if (function_symbol->kind != (a_symbol_kind)sk_function_template) {
+    if (function_symbol->kind == (a_symbol_kind)sk_function_template) {
+      /* Template -- might be a member function template. */
+      routine_type = function_symbol->variant.template_info->
+                                                variant.function.routine->type;
+      routine_type = skip_typerefs(routine_type);      
+    } else {
       routine_type = routine_symbol_type(function_symbol);
-      if (routine_type_is_nonstatic_member_function(routine_type)) {
-        some_function_needs_selector = TRUE;
-      }  /* if */
+    }  /* if */
+    if (routine_type_is_nonstatic_member_function(routine_type)) {
+      some_function_needs_selector = TRUE;
     }  /* if */
     /* If the first function of a list of functions does not need a selector,
        and the mixed_static_nonstatic says the list contains both static
@@ -1828,10 +1833,11 @@ argument matches.
                     "try_overloaded_function_match: no param, no default arg");
     /* All the arguments can be made to match the parameters. */
     /* See if the "this" parameter, if any, matches. */
-    /* Template functions do not have "this" parameters. */
+    /* Template functions do not have "this" parameters usually, but member
+       templates do. */
     /* Do not process the "this" parameter for constructors in a conversion
        case. */
-    if (!function_template_case && !user_conversion_case) {
+    if (!user_conversion_case) {
       function_is_nonstatic_member_function =
                        routine_type_is_nonstatic_member_function(routine_type);
       if (have_selector) {
