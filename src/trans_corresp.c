@@ -3684,6 +3684,25 @@ translation unit correspondence pointer if one is found.
     } else {
       set_trans_unit_corresp(iek_namespace, nsp, primary_std_namespace);
     }  /* if */
+#if IA64_ABI
+  } else if (nsp_sym == symbol_for_namespace_abi) {
+    /* The __cxxabiv1 namespace is treated identically to the std namespace
+       above.  When it exists, it is the second namespace on the list of
+       namespaces of the primary scope. */
+    a_namespace_ptr  primary_abi_namespace = translation_units
+                                            ->primary_scope->namespaces->next;
+    check_assertion(primary_abi_namespace != NULL &&
+                    primary_abi_namespace
+                              ->source_corresp.parent.namespace_ptr == NULL &&
+                    strncmp(primary_abi_namespace->source_corresp.name,
+                            "__cxxabiv1", 10) == 0);
+    if (nsp == primary_abi_namespace) {
+      /* A namespace in the primary translation unit is always canonical. */
+      set_no_trans_unit_corresp(iek_namespace, primary_abi_namespace);
+    } else {
+      set_trans_unit_corresp(iek_namespace, nsp, primary_abi_namespace);
+    }  /* if */
+#endif /* IA64_ABI */
   } else if (is_member_of_unnamed_namespace(&unaliased_nsp->source_corresp)) {
     /* A member of an unnamed namespace does not correspond to a similar
        member in another translation unit.  This also applies to aliases of
