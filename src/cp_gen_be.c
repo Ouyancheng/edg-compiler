@@ -394,10 +394,8 @@ hidden names in C, so there's no point in maintaining this information).
       if (!scp->qualification_needed) {
         /* The qualification_needed flag needs to be set.  Also arrange for
            it to be reset at the end of the current name context. */
-        if (!fixup_created) {
-          alloc_hidden_name_fixup(hnp->entity);
-          fixup_created = TRUE;
-        }  /* if */
+        alloc_hidden_name_fixup(hnp->entity);
+        fixup_created = TRUE;
         scp->qualification_needed = TRUE;
       }  /* if */
     }  /* if */
@@ -3593,10 +3591,10 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
 #if CHECKING
       check_assertion_str(dip->kind == (a_dynamic_init_kind)dik_constructor,
                           "gen_temp_init: bad kind for old-style cast");
-      { an_expr_node_ptr expr = dip->variant.constructor.args;
-        check_assertion_str(expr != NULL &&
-                            (expr->next == NULL ||
-                             expr->next->generated_default_arg),
+      { an_expr_node_ptr cexpr = dip->variant.constructor.args;
+        check_assertion_str(cexpr != NULL &&
+                            (cexpr->next == NULL ||
+                             cexpr->next->generated_default_arg),
                          "gen_temp_init: old-style cast allows only one expr");
       }
 #endif /* CHECKING */
@@ -6650,7 +6648,7 @@ TRUE if the declaration following this one is such a continuation.
     if (rtsp->lint_varargs_count != NOT_LINT_VARARGS) {
       disable_line_wrapping();
       write_str("/*VARARGS");
-      write_unsigned_num((unsigned long)rtsp->lint_varargs_count);
+      write_unsigned_num((unsigned long)(long)rtsp->lint_varargs_count);
       write_str("*/ ");
       enable_line_wrapping();
     }  /* if */
