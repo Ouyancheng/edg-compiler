@@ -1891,7 +1891,7 @@ ambiguity.
           }  /* if */
         }  /* for */
         if (!is_nonreal_instantiation &&
-            !(overriders_in_unambiguous_bases == 1 &&
+            !(overriders_in_unambiguous_bases <= 1 &&
               (microsoft_bugs || sun_mode || any_cfront_mode()))) {
           a_symbol_ptr sym = (a_symbol_ptr)vfp->source_corresp.assoc_info;
           sym_diagnostic(es_discretionary_error,
