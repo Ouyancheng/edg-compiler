@@ -2821,6 +2821,8 @@ returned set to TRUE.
     /* There was no error that precludes initialization, so update the
        variable entry with the initializer. */
     a_routine_ptr  dtor = NULL;
+    /* Remember whether the initializer uses the "()" form or the "=" form. */
+    vp->has_parenthesized_initializer = parenthesized_initializer;
     if (init_err) {
       /* There was an error in the initializer.  Put an error constant
          into the initializer field of the variable, if only to be sure

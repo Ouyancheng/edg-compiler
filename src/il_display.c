@@ -1641,6 +1641,9 @@ Display the indicated variable.
   if (ptr->is_compound_literal) {
     disp_boolean("is_compound_literal", TRUE);
   }  /* if */
+  if (ptr->has_parenthesized_initializer) {
+    disp_boolean("has_parenthesized_initializer", TRUE);
+  }  /* if */
 #endif /* ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);

@@ -1,5 +1,26 @@
 Version 2.44
 
+7/24/00  C++-generating back end: "=" versus "()" form of initializers
+         preserved
+
+The form of an initializer ("(...)" versus "= ...") is now preserved
+by the C++-generating back end.  Failure to do so caused the output
+to run into disambiguation problems.
+
+  struct B {
+    B();
+  };
+  struct A {
+    A();
+    A(const B&);
+  };
+  void f() {
+    A a = B();  // Output of "A a(B());" looks like a declaration
+  }
+
+IL CHANGE: the flag has_parenthesized_initializer was added to the
+IL variable entry.
+
 7/24/00  IL version number changed to 2.36
 
 7/20/00  Elision of implicit cast, no type change

@@ -1433,6 +1433,7 @@ to it.
   vp->promoted_local_static       = FALSE;
 #endif /* DO_IL_LOWERING */
   vp->is_compound_literal         = FALSE;
+  vp->has_parenthesized_initializer = FALSE;
 #endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   vp->declared_type               = NULL;

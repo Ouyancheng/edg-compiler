@@ -7595,19 +7595,10 @@ is a condition variable if is_condition is TRUE.
            nothing. */
         break;
       }  /* if */
-      /* Use the parenthesized initialization form, e.g.,
-           A x(y);
-         for classes with constructors, and the "=" form, e.g.,
-           A x = y;
-         Otherwise.  Conditions allow only the "=" form. */
-      if (!is_condition &&
-          (dip->kind == (a_dynamic_init_kind)dik_constructor ||
-           dip->kind == (a_dynamic_init_kind)dik_zero ||
-           dip->kind == (a_dynamic_init_kind)dik_none)) {
-        parenthesized_init = TRUE;
-      } else {
+      check_assertion(dip->kind != (a_dynamic_init_kind)dik_zero);
+      parenthesized_init = var->has_parenthesized_initializer;
+      if (!parenthesized_init) {
         write_tok_str(" = ");
-        parenthesized_init = FALSE;
       }  /* if */
       gen_dynamic_init(dip, var->type, parenthesized_init,
                        /*force_parens=*/FALSE);
