@@ -8946,11 +8946,6 @@ and for the instantiation of template functions.
      type entry. */
   rout_ptr->assoc_scope = curr_il_region_number;
   rtsp->assoc_routine = rout_ptr;
-  /* If a lint-style "argsused" or "varargs" comment appeared, remember that in
-     the function type.  That will suppress any warnings about unused
-     parameters or variable arguments. */
-  rtsp->lint_argsused_flag = lint_argsused_flag;
-  rtsp->lint_varargs_count = lint_varargs_count;
   /* The lint "argsused" and "varargs" flags last only one declaration;
      clear them before entering the function body. */
   clear_decl_lint_and_pragma_globals();
@@ -9121,6 +9116,57 @@ and for the instantiation of template functions.
   db_exit();
 }  /* scan_function_body */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+static void pragma_update_source_sequence_list(a_pragma_kind      kind,
+                                               a_source_position  *pos)
+/*
+*/
+{
+  a_pragma_ptr   pp;
+
+  pp = alloc_pragma(kind);
+  check_assertion(in_file_scope(pp));
+  pp->decl_position = *pos,
+  add_to_pragma_list(pp, DEPTH_OF_FILE_SCOPE);
+  f_update_source_sequence_list((char *)pp, (an_il_entry_kind)iek_pragma,
+                                &pp->decl_position,
+                                (a_source_sequence_entry_ptr)NULL);
+}  /* pragma_update_source_sequence_list */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+void set_lint_argsused_and_varargs_state(a_type_ptr  rout_type)
+/*
+Set fields in the routine type to reflect the current argsused and varargs
+state, as indicated by a comment immediately preceding the current function
+definition.
+*/
+{
+  a_pending_pragma_ptr           ppp;
+  a_pragma_kind                  kind;
+
+  /* Go though the pragmas that are meant to apply to the current
+     declaration. */
+  for(ppp = scope_stack[depth_scope_stack].pragmas_bound_to_curr_decl_or_stmt;
+      ppp != NULL;
+      ppp = ppp->next) {
+    kind = ppp->descr_ptr->kind;
+    if (kind == (a_pragma_kind)pk_lint_argsused) {
+      rout_type->variant.routine.extra_info->lint_argsused_flag = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      pragma_update_source_sequence_list(kind, &ppp->id_position);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    } else if (kind == (a_pragma_kind)pk_lint_varargs_count) {
+      rout_type->variant.routine.extra_info->lint_varargs_count =
+                                            ppp->variant.lint_varargs_count;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      pragma_update_source_sequence_list(kind, &ppp->id_position);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    }  /* if */
+  }  /* for */
+}  /* set_lint_argsused_and_varargs_state */
+
 
 static void function_definition(a_symbol_locator   *locator,
                                 a_type_ptr         rout_type,
@@ -9284,6 +9330,10 @@ specified (rather than defaulted to "int").
   routine_ptr = symbol_ptr->variant.routine.ptr;
   check_assertion(make_unqualified_type(routine_ptr->type) ==
                                                       unqualified_rout_type);
+  /* If a lint-style "argsused" or "varargs" comment appeared, record that in
+     the function type.  That will suppress any warnings about unused
+     parameters or variable arguments. */
+  set_lint_argsused_and_varargs_state(routine_ptr->type);
   if (!is_member_function_def &&
       storage_class == (a_storage_class)sc_unspecified &&
       routine_ptr->source_corresp.name != NULL &&
@@ -9883,6 +9933,12 @@ of local variables (and types, etc.) of functions and in blocks.
       goto return_point;
     }  /* if */
   }  /* if */
+  /* Move cached #pragma declarations (if any) to the current scope stack
+     entry so they can be examined and acted upon in subsequent processing. */
+  select_pragmas_bound_to_curr_decl_or_stmt(
+                               /*decl_allowed=*/TRUE,
+                               /*stmt_allowed=*/!function_definition_allowed,
+                               /*merge_with_existing_list=*/FALSE);
   add_stop_token(tok_semicolon);
   need_semicolon_remove_stop_token = TRUE;
   if (curr_token == tok_asm) {
