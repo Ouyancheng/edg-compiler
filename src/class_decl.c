@@ -8879,6 +8879,14 @@ specific information about the member declaration, respectively.
       class_type->variant.class_struct_union.any_mutable_member = TRUE;
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (decl_info->decl_modifiers.get_property_name != NULL ||
+      decl_info->decl_modifiers.put_property_name != NULL) {
+    /* The field for a property doesn't really exist, so pragmas cannot be
+       bound to it. */
+    cannot_bind_to_curr_construct();
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (member_sym != NULL && !decl_info->is_anonymous_union) {
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, member_sym,
                               &locator->source_position,

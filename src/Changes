@@ -1,5 +1,13 @@
 Version 3.1
 
+8/17/02   IL write/read error, pragma on Microsoft property field
+
+Inconsistent IL (and an IL write/read error if an IL file is written)
+resulted from placing a pragma on a field that is declared to be
+a property in Microsoft mode.  The problem is that the field does
+not really exist, and is removed by IL lowering.  A pragma in
+such cases is now ignored, with a diagnostic.
+
 8/16/02   GNU compatibility: x86 calling convention attributes on typedefs
 
 When GNU_X86_ATTRIBUTES_ALLOWED is TRUE, the front end now allows the

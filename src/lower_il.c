@@ -5589,6 +5589,8 @@ Do IL lowering of the fields of the indicated class and everything under them.
     /* Remove any fields declared __declspec(property(...)). */
     if (field->get_property_name != NULL ||
         field->put_property_name != NULL) {
+      check_assertion_str(!field->source_corresp.has_associated_pragma,
+                          "property field has associated pragma");
       if (prev_field == NULL) {
         class_type->variant.class_struct_union.field_list = field->next;
       } else {
