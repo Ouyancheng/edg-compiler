@@ -3821,10 +3821,9 @@ entirely.
     }  /* if */
     tp->next = NULL;
   }  /* if */
-  if (!keep && is_immediate_class_type(type_ptr)) {
-    /* Clear the flag in the class symbol supplement. */
-    symbol_supplement_for_class(type_ptr)->
-             referenced_by_namespace_type_placeholder_typeref = FALSE;
+  if (!keep) {
+    /* Clear the flag in the type. */
+    type_ptr->referenced_by_namespace_placeholder_typeref = FALSE;
   }  /* if */
 }  /* move_or_remove_placeholder_for_namespace_type */
 
@@ -3955,12 +3954,12 @@ nothing else needs to be done in regard to placeholder management.
       }  /* if */
     }  /* if */
     if (is_partial_instantiation ||
-        !cssp->referenced_by_namespace_type_placeholder_typeref) {
+        !type_ptr->referenced_by_namespace_placeholder_typeref) {
       /* There is not already a namespace-type placeholder for the class. */
       if (ns_placeholder_needed) {
         /* Create one and add it to the file-scope types list. */
         add_placeholder_for_namespace_type(type_ptr);
-        cssp->referenced_by_namespace_type_placeholder_typeref = TRUE;
+        type_ptr->referenced_by_namespace_placeholder_typeref = TRUE;
       }  /* if */
     } else {
       /* They placeholder that is already on the file-scope types list either
