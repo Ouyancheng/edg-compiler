@@ -2422,10 +2422,11 @@ will be involved in overloading.
   an_id_linkage_kind linkage;
   a_boolean          is_object, is_function, file_scope, decls_at_same_scope;
   a_boolean          is_list, is_friend_decl = FALSE;
-  a_symbol_ptr       other_decl, sym;
+  a_symbol_ptr       other_decl, sym, other_decl_saved;
   a_boolean          is_default_global_operator_new = FALSE;
   a_storage_class    local_storage_class = *storage_class;
   a_boolean          is_function_template_decl = FALSE;
+  a_boolean          function_template_seen = FALSE;
 
   *linked_symbol = NULL;
   *overload_symbol = NULL;
@@ -2525,6 +2526,7 @@ will be involved in overloading.
           } else {
             is_list = FALSE;
           }  /* if */
+          other_decl_saved = other_decl;
           /* Go through the list of functions and look for type compatibility.
              If types_are_compatible returns TRUE, this is a redeclaration.
              If no type match is found, this is a candidate for overloading. */
@@ -2543,18 +2545,10 @@ will be involved in overloading.
                   goto determine_linkage;
                 }
               } else {
-                /* Look for a match on the list of instantiations. */
-                a_symbol_ptr sym;
-                sym = find_template_function(other_decl, type,
-                                             (a_param_type_ptr)NULL,
-                                             &locator->source_position);
-                if (sym != NULL) {
-                  *linked_symbol = other_decl = sym;
-                  if (sym->variant.routine.instance_ptr->specific_decl) {
-                    *overload_symbol = NULL;
-                  }  /* if */
-                  goto determine_linkage;
-                }  /* if */
+                /* There may a match involving an instance of this function
+                   template, but we delay searching its list of instantiations
+                   until all normally declared functions have been seen. */
+                function_template_seen = TRUE;
               }  /* if */
             } else {
               if (is_function_template_decl) {
@@ -2569,6 +2563,31 @@ will be involved in overloading.
               }  /* if */
             }  /* if */
           }  /* for */
+          if (other_decl == NULL && function_template_seen) {
+            /* We didn't find a match, but there was at least one function
+               template.  See if it either provides a match with an
+               existing instance of the template or if a new instance can
+               be created based on the current type. */
+            for (other_decl = other_decl_saved;
+                 other_decl != NULL;
+                 other_decl = is_list ? other_decl->next : NULL) {
+              if (other_decl->kind == (a_symbol_kind)sk_function_template) {
+                /* Look for a match on the list of instantiations. */
+                a_symbol_ptr sym;
+                sym = find_template_function(other_decl, type,
+                                             (a_param_type_ptr)NULL,
+                                             &locator->source_position);
+                if (sym != NULL) {
+                  /* Found a match. */
+                  *linked_symbol = other_decl = sym;
+                  if (sym->variant.routine.instance_ptr->specific_decl) {
+                    *overload_symbol = NULL;
+                  }  /* if */
+                  goto determine_linkage;
+                }  /* if */
+              }  /* if */
+            }  /* for */
+          }  /* if */
         }  /* if */
         if (decls_at_same_scope || is_friend_decl) {
           /* The function symbol was located in the current scope. If there
