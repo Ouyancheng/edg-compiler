@@ -6569,8 +6569,10 @@ be included in the initialization routine.
                      region_number;
   unsigned long      eff_needed_bit_number = needed_bit_number;
 #if ONE_INSTANTIATION_PER_OBJECT
-  a_dynamic_init_ptr process_list, end_process_list, last_dtor_process_list;
-  a_dynamic_init_ptr delay_list, end_delay_list, last_dtor_delay_list;
+  a_dynamic_init_ptr process_list, end_process_list;
+  a_dynamic_init_ptr dtor_process_list, end_dtor_process_list;
+  a_dynamic_init_ptr delay_list, end_delay_list;
+  a_dynamic_init_ptr dtor_delay_list, end_dtor_delay_list;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if !USE_INIT_SECTION_IN_GENERATED_C
   a_routine_ptr      init_rout;
@@ -6581,14 +6583,15 @@ be included in the initialization routine.
   if (needed_bit_number == 1) eff_needed_bit_number = 0;
   if (needed_bit_number != 0) {
     a_dynamic_init_ptr dip_next;
+    a_boolean          process;
     /* We're putting out separate initialization routines for each
        instantiation.   Split the dynamic initializations list into two
        lists: one that gets processed on this call (because the variables
        are assigned to the current slice), and another that does not get
        processed and goes back on the list after we're done with this call,
        for processing on a subsequent call. */
-    process_list = end_process_list = last_dtor_process_list = NULL;
-    delay_list = end_delay_list = last_dtor_delay_list = NULL;
+    process_list = end_process_list = NULL;
+    delay_list = end_delay_list = NULL;
     for (; dip != NULL; dip = dip_next) {
       dip_next = dip->next;
       dip->next = NULL;
@@ -6601,10 +6604,6 @@ be included in the initialization routine.
           end_process_list->next = dip;
         }  /* if */
         end_process_list = dip;
-        if (dip->lifetime != NULL) {
-          dip->next_in_destruction_list = last_dtor_process_list;
-          last_dtor_process_list = dip;
-        }  /* if */
       } else {
         /* This dynamic initialization does not get processed on this call
            and goes back on the list. */
@@ -6614,15 +6613,44 @@ be included in the initialization routine.
           end_delay_list->next = dip;
         }  /* if */
         end_delay_list = dip;
-        if (dip->lifetime != NULL) {
-          dip->next_in_destruction_list = last_dtor_delay_list;
-          last_dtor_delay_list = dip;
+      }  /* if */
+    }  /* for */
+    /* Sweep backwards through the destructions to split the list that way
+       too. */
+    dtor_process_list = end_dtor_process_list = NULL;
+    dtor_delay_list = end_dtor_delay_list = NULL;
+    process = FALSE;
+    for (dip = file_scope->lifetime->destructions;
+         dip != NULL;
+         dip = dip_next) {
+      dip_next = dip->next_in_destruction_list;
+      dip->next_in_destruction_list = NULL;
+      if (dip->variable != NULL) {
+        process =  (dip->variable->instantiation_needed_bit_number ==
+                                                       eff_needed_bit_number);
+      }  /* if */
+      if (process) {
+        /* This destruction gets processed on this call. */
+        if (end_dtor_process_list == NULL) {
+          dtor_process_list = dip;
+        } else {
+          end_dtor_process_list->next_in_destruction_list = dip;
         }  /* if */
+        end_dtor_process_list = dip;
+      } else {
+        /* This destruction does not get processed on this call and goes
+           back on the list. */
+        if (end_dtor_delay_list == NULL) {
+          dtor_delay_list = dip;
+        } else {
+          end_dtor_delay_list->next_in_destruction_list = dip;
+        }  /* if */
+        end_dtor_delay_list = dip;
       }  /* if */
     }  /* for */
     file_scope->dynamic_inits = dip = process_list;
     if (file_scope->lifetime != NULL) {
-      file_scope->lifetime->destructions = last_dtor_process_list;
+      file_scope->lifetime->destructions = dtor_process_list;
     }  /* if */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
@@ -6688,7 +6716,7 @@ be included in the initialization routine.
   if (needed_bit_number != 0) {
     file_scope->dynamic_inits = delay_list;
     if (file_scope->lifetime != NULL) {
-      file_scope->lifetime->destructions = last_dtor_delay_list;
+      file_scope->lifetime->destructions = dtor_delay_list;
     }  /* if */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
