@@ -731,8 +731,8 @@ new fields are set properly.
 
 static void check_scope_for_new_or_delete(a_symbol_locator  *locator)
 /*
-Issue an error on declaring an operator new or delete function that is a
-namespace member.
+Issue an error (or a warning in Microsoft compatibility mode) on declaring
+an operator new or delete function that is a namespace member.
 */
 {
   if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
@@ -742,11 +742,25 @@ namespace member.
     /* This operator declaration either appears inside a namespace or else
        has the effect of injecting a declaration into a namespace.  Be sure
        it's not operator new, new[], delete, or delete[]. */
+    an_error_code      error_code = ec_no_error;
+    an_error_severity  severity;
+
     if (is_new_operator(locator->variant.opname)) {
-      error(ec_allocation_operator_in_namespace);
-      set_to_named_error_locator(*locator);
+      error_code = ec_allocation_operator_in_namespace;
     } else if (is_delete_operator(locator->variant.opname)) {
-      error(ec_deallocation_operator_in_namespace);
+      error_code = ec_deallocation_operator_in_namespace;
+    }  /* if */
+    if (error_code != ec_no_error) {
+      /* Issue a warning instead of an error in Microsoft mode. */
+      severity = microsoft_mode ? es_warning : es_error;
+      diagnostic(severity, error_code);
+      /* Set the is_error flag in the locator. */
+      /* Do this even in Microsoft mode -- processing will continue, except
+         that the symbol for the operator new/delete will not be added to
+         the symbol table. This seems to match Microsoft's behavior pretty
+         well -- it issues no diagnostic on a new/delete declaration that
+         appears inside a namespace but then ignores it when a new/delete
+         expression is processed. */
       set_to_named_error_locator(*locator);
     }  /* if */
   }  /* if */

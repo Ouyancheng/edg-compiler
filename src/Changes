@@ -1,5 +1,20 @@
 Version 2.40
 
+11/19/98  Microsoft compatibility: operator new declared as namespace member
+
+In Microsoft compatibility mode a warning is now issued instead of an
+error if operator new or delete is declared in a namespace.  Microsoft
+does not actually find such declarations when processing new or delete
+expressions, and we don't either.
+
+  void *operator new(size_t);
+  namespace N {
+    void *operator new(size_t);  // warning in Microsoft mode
+    void f() {
+      int *p = new int;          // still calls ::operator new()
+    }
+  }
+
 11/18/98  "main" declared inside a namespace
 
 An internal error could be generated if "main" was declared both in a
@@ -8,7 +23,7 @@ namespace and in the global scope.  This has been fixed.
   namespace N {
     int main();
   }
-  int main() {             // internal error is no longer issued
+  int main() {                   // internal error has been fixed
     return 0;
   }
 
