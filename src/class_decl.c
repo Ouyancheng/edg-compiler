@@ -7444,7 +7444,9 @@ respectively.
     /* Unions are not allowed to have members of reference type. */
     pos_diagnostic(strict_ansi_error_severity, ec_ref_not_allowed_in_union,
                    &decl_info->decl_start_pos);
-    if (strict_ansi_error_severity > es_warning) field_type = error_type();
+    if ((int)strict_ansi_error_severity > (int)es_warning) {
+      field_type = error_type();
+    } /* if */
   }  /* if */
   if (curr_token == tok_colon) {
     /* Bit-field declaration -- be sure the type is okay. */
