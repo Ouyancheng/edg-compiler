@@ -15,19 +15,6 @@ which could lead to incorrect behavior if they happened to come
 out as 1/TRUE.  The fields are the "variadic" field in a_macro_def
 and the "using_directives_apply" field in a_scope_stack_entry.
 
-10/30/02 Using types without name linkage in entity with linkage
-
-In strict C++ mode, the front end used to not consistently diagnose the
-declaration of entities (functions or variables) with linkage that involve
-types with no name linkage.  For example:
-
-  typedef struct {} const X;
-  void f(X) {}  // Used to be accepted with no diagnostic.
-                // Now a warning in default C++ mode, and an error in
-                // strict C++ mode.
-
-This is now fixed (see also Changes entry of 6/18/99).
-
 10/30/02 Performance improvement in looking up operator=
 
 Because each class has an operator= function, the inactive list for
