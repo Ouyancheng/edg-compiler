@@ -7435,9 +7435,11 @@ this routine.  Its value is unchanged if no errors are detected.
 
   param_ptr = template_sym->variant.template_info->cache.decl_info->parameters;
   do {
+    a_source_position  arg_pos;
     /* If the current token is a ">" then exit the loop.  This should only be
        possible on the first iteration if we have an empty argument list. */
     if (curr_token == tok_gt) break;
+    arg_pos = pos_curr_token;
     /* If the template parameter list is empty, exit the loop.  This only
        occurs in error cases. */
     if (param_ptr == NULL) break;
@@ -7447,9 +7449,6 @@ this routine.  Its value is unchanged if no errors are detected.
     is_type_param = (sym->kind == (a_symbol_kind)sk_type);
     arg_ptr = alloc_template_arg(is_type_param);
     if (is_type_param) {
-      a_source_position  arg_pos;
-
-      arg_pos = pos_curr_token;
       type_name(&argument_type);
       if (is_or_contains_local_type(argument_type)) {
         /* Be sure the type does not involve any local classes -- only
@@ -7473,6 +7472,12 @@ this routine.  Its value is unchanged if no errors are detected.
       }  /* if */
       constant = fs_constant((a_constant_repr_kind)ck_error);
       scan_template_argument_constant_expression(constant_type, constant);
+      /* Make sure the constant does not use a local or nonexternal
+         variable, etc. */
+      if (constant_references_non_external_entity(constant)) {
+        pos_error(ec_nonexternal_entity_in_template_arg, &arg_pos);
+        set_error_constant(constant);
+      }  /* if */
       arg_ptr->variant.constant = constant;
     }  /* if */
     /* Link this entry on to the argument list. */
