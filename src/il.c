@@ -1676,6 +1676,7 @@ physical line position for the sequence number.
   a_seq_number	    first_seq_for_cache;
   long		    line_offset;
 
+  db_enter(5, "source_file_for_seq");
   *at_end_of_source = FALSE;
   *line_number = 0;
   *nesting_depth = 0;
@@ -1812,10 +1813,11 @@ examine_children:
   }  /* if */
 #if DEBUG
   if (debug_level >= 5) {
-    fprintf(f_debug, "File=%s, Line=%lu\n",
-                     curr_file->file_name, *line_number);
+    fprintf(f_debug, "File=%s, Line=%lu, sequence number=%lu\n",
+                     curr_file->file_name, *line_number, seq_number);
   }  /* if */
 #endif /* DEBUG */
+  db_exit();
   return curr_file;
 }  /* source_file_for_seq */
 
@@ -8592,7 +8594,6 @@ in il_init.)
      headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
-      pch_saved_var_array_elem(il_header),
       pch_saved_var_array_elem(float_types),
       pch_saved_var_array_elem(il_error_type),
       pch_saved_var_array_elem(il_unknown_type),
