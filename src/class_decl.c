@@ -321,6 +321,61 @@ Dump a sequence of virtual function numbers, for debug purposes.
 #endif /* DEBUG */
 
 
+a_boolean simplify_curr_class_qualified_name(void)
+/*
+
+If the current token is the start of a qualified name in which the class
+name component is the name of a class currently being defined, advance past
+the class name and the "::" so that the current token is a non-qualified
+name.  Return TRUE if such a modification is done and FALSE otherwise.
+This routine is called in C++ only.
+
+This functionality is provided to deal with declarations of class members
+where a qualified name is used instead of a simple name, e.g., when a
+constructor for class A is declared A::A() rather than A().  The ARM does
+not specifically allow this syntax, but it is supported by cfront.
+*/
+{
+  a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
+  a_symbol_ptr             class_sym;
+  a_token_cache            cache;
+  a_boolean                is_member_id = FALSE;
+
+  db_enter(3, "simplify_curr_class_qualified_name");
+  if (curr_token == tok_identifier && next_token() == tok_colon_colon &&
+      ssep->kind == (a_scope_kind)sck_class_struct_union) {
+    class_sym = (a_symbol_ptr)ssep->assoc_type->source_corresp.assoc_info;
+    if (locator_for_curr_id.symbol_header == class_sym->header) {
+      /* We are inside a class declaration and the name is a qualified
+         name starting with the name of the class being declared.  Advance
+         to the member name, but cache the tokens so they are not lost. */
+      clear_token_cache(&cache);
+      /* Put the class name token in the cache. */
+      cache_curr_token(&cache);
+      /* Advance to the "::" and put it in the cache, too. */
+      (void)get_token();
+      cache_curr_token(&cache);
+      /* Now get the next token. */
+      (void)get_token();
+      if (curr_token == tok_identifier || curr_token == tok_compl ||
+          curr_token == tok_operator) {
+        /* We specifically check for A::<name> and A::~ and A::operator
+           to be sure we don't have a pointer-to-member. */
+        is_member_id = TRUE;
+      }  /* if */
+      rescan_cached_tokens(&cache);
+      if (is_member_id) {
+        /* Advance past the class name and the "::". */
+        (void)get_token();
+        (void)get_token();
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  db_exit();
+  return is_member_id;
+}  /* simplify_curr_class_qualified_name */
+
+
 static void report_virtual_function_ambiguities(a_type_ptr class_type)
 /* 
 Report errors in virtual function declarations that result from the failure
@@ -5110,16 +5165,19 @@ class/struct/union is actually defined.
         }  /* if */
         /* Scan a member declaration. */
         add_stop_token(tok_semicolon);
-        if (curr_token == tok_identifier &&
-            get_qualified_name(IDL_NO_OPTIONS) &&
-            next_token() == tok_semicolon) {
-          /* This looks syntactically like an access adjustment declaration.
-             Be sure the semantics are correct. */
-          access_adjustment_decl(access, class_type);
-          /* Advance to the semicolon and past it. */
-          (void)get_token();
-          (void)get_token();
-          goto next_declaration;
+        if (C_dialect == C_dialect_cplusplus) {
+          if (curr_token == tok_identifier &&
+              !simplify_curr_class_qualified_name() &&
+              get_qualified_name(IDL_NO_OPTIONS) &&
+              next_token() == tok_semicolon) {
+            /* This looks syntactically like an access adjustment declaration.
+               Be sure the semantics are correct. */
+            access_adjustment_decl(access, class_type);
+            /* Advance to the semicolon and past it. */
+            (void)get_token();
+            (void)get_token();
+            goto next_declaration;
+          }  /* if */
         }  /* if */
         copy_source_position(pos_curr_token, decl_start_pos);
         member_type = NULL;
