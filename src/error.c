@@ -371,8 +371,7 @@ Return a pointer to the error text for the message identified by the given
 error code.
 */
 {
-  check_assertion_str2((int)error_code >= (int)ec_no_error &&
-                       (int)error_code < (int)ec_last,
+  check_assertion_str2((int)error_code < (int)ec_last,
                        "error_text: ", "invalid error code");
   return (message_text[(int)error_code]);
 }  /* error_text */
@@ -910,6 +909,7 @@ declaration position to eliminate redundant file names in a diagnostic.
           goto symbol_name;
         }  /* if */
       }
+      /*FALLTHROUGH*/
     case sk_class_template:
       entity_kind = "class template ";
       goto symbol_name;
@@ -1290,7 +1290,7 @@ NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
 check_for_seq_number:
           curr_segment->sequence_no = 1;
           if (isdigit((unsigned char)*msg_ptr)) {
-            i = (unsigned)*msg_ptr - (unsigned)'0';
+            i = *msg_ptr - '0';
             if (i > 0 && i <= MAX_ERR_SEG_KIND_PER_MSG) {
               curr_segment->sequence_no = i;
               msg_ptr++;
@@ -1473,11 +1473,11 @@ made is returned.
 #if CHECKING
     if (curr_file == NULL) {
 #if DEBUG
-    if (debug_level > 0) {
-      (void)fprintf(f_debug,
-                    "Missing file index entry for source file \"%s\"\n", 
-                    src_file->full_name);
-    }  /* if */
+      if (debug_level > 0) {
+        (void)fprintf(f_debug,
+                      "Missing file index entry for source file \"%s\"\n", 
+                      src_file->full_name);
+      }  /* if */
 #endif /* DEBUG */
       internal_error("update_file_index: missing file index entry");
     }  /* if */
@@ -1505,7 +1505,7 @@ made is returned.
        INITIAL_PHYSICAL_LINE_COUNT_INCREMENT each time the table is
        filled. */
     mid_index = NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES / 2;
-    spacing = curr_file->line_number[mid_index] / mid_index;
+    spacing = curr_file->line_number[mid_index] / (a_line_number)mid_index;
     /* Eliminate the first entry in the top half of the table that is less
        than the value should be at the desired interval. */
     for (index = 0; index < mid_index; index++ ) {
@@ -1537,7 +1537,7 @@ made is returned.
     fprintf(f_debug, "Updated error file index entries:\n");
     for (index = 0;
          index < NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES; ++index) {
-      fprintf(f_debug, "entry %0d=%5lu\n", index,
+      fprintf(f_debug, "entry %d=%5lu\n", index,
               curr_file->line_number[index]);
     }  /* for */
     fprintf(f_debug, "\n");
@@ -1785,7 +1785,7 @@ column for the caret in the second pass.
 { if (pass_for_caret && curr_column >= source_pos->column) {          \
     goto end_of_loop;                                                 \
   } else {                                                            \
-    if (!pass_for_caret || (out_char) == '\t') {                      \
+    if (/*lint --e(506)*/ !pass_for_caret || (out_char) == '\t') {    \
       putcb(out_char);                                                \
     } else {                                                          \
       putcb(' ');                                                     \
@@ -2189,6 +2189,8 @@ handle_embedded_quoted_text:
           }  /* if */
         }  /* if */
         break;
+      default:
+        unexpected_condition_str("write_message: bad message kind");
     }  /* switch */
     start_of_message = FALSE;
   }  /* for */
@@ -2304,7 +2306,7 @@ the output.
     case es_discretionary_error:
     case es_error:
       if (local_display_error_number ||
-          ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES) {
+          ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES) { /*lint !e506 !e774*/
         severity_string = "error";
       } else {
         severity_string = "";
@@ -2344,7 +2346,7 @@ the output.
        severity may be changed. */
     a_boolean	is_discretionary;
     is_discretionary = ((int)severity <= (int)es_discretionary_error);
-    *line_len += fprintf(stderr, " #%0d%s: ", (int)error_code,
+    *line_len += fprintf(stderr, " #%d%s: ", (int)error_code,
                          is_discretionary ? "-D" : "");
   } else {
     *line_len += fprintf(stderr, ": ");
@@ -2602,7 +2604,7 @@ An assertion has failed.  Abort the compilation.
   }  /* if */
   
   if (string1 == NULL) {
-    sprintf(buffer, "assertion failed at: \"%s\", line %0d\n",
+    sprintf(buffer, "assertion failed at: \"%s\", line %d\n",
             filename, line_number);
   } else {
     /* Print the two strings.  Only separate them by a blank if the second
@@ -2614,7 +2616,7 @@ An assertion has failed.  Abort the compilation.
     } else {
       separator = " ";
     }  /* if */
-    sprintf(buffer, "assertion failed: %s%s%s (%s, line %0d)\n", string1,
+    sprintf(buffer, "assertion failed: %s%s%s (%s, line %d)\n", string1,
             separator, string2, filename, line_number);
   }  /* if */
   internal_error(buffer);
@@ -2960,6 +2962,8 @@ and doing any required expansions, the diagnostic is written.
                               error_pos, curr_seg);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
           break;
+        default:
+          unexpected_condition_str("diag_message: bad message kind");
       }  /* switch */
     }  /* for */
 #if CHECKING
@@ -3024,7 +3028,6 @@ and doing any required expansions, the diagnostic is written.
         }  /* if */
         for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; --sd) {
           a_scope_stack_entry_ptr ssep = &scope_stack[sd];
-          a_symbol_ptr		  sym;
           if (!include_in_context_output(ssep, &sym,
                                          &context_error_code,
 					 /*add_detected_prefix=*/
@@ -3045,12 +3048,12 @@ and doing any required expansions, the diagnostic is written.
           diag_message(context_error_code,
                        &error_position, severity, context_diag_kind);
         }  /* for */
-       /* Issue an "end context" message to indicate that all of the
-          context information has been supplied. */
-       init_error_params();
-       context_required = FALSE;
-       diag_message(ec_no_error, (a_source_position *)NULL, es_none,
-                    dck_end_context);
+        /* Issue an "end context" message to indicate that all of the
+           context information has been supplied. */
+        init_error_params();
+        context_required = FALSE;
+        diag_message(ec_no_error, (a_source_position *)NULL, es_none,
+                     dck_end_context);
       }  /* if */
     }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -3112,15 +3115,15 @@ return TRUE, otherwise return FALSE.
 */
 {
   an_error_code			error_code;
-  a_boolean			error;
+  a_boolean			err;
 
 
-  error = (error_number <= (int)ec_no_error || error_number >= (int)ec_last);
-  if (!error) {
+  err = (error_number <= (int)ec_no_error || error_number >= (int)ec_last);
+  if (!err) {
     error_code = (an_error_code)error_number;
     severity_for_error_code[(int)error_code] = severity;
   }  /* if */
-  return error;
+  return err;
 }  /* set_severity_for_error_number */
 
 
