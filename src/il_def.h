@@ -8479,9 +8479,11 @@ typedef struct an_expr_node {
 		arg_dependent_lookup_suppressed_on_call:1;
 			/* TRUE for a call on which argument-dependent
 			   lookup was a possibility but was suppressed because
-			   the function name was not a simple name (e.g.,
-			   it was a qualified name or enclosed in
-			   parentheses). */
+			   the function name was not followed by a left
+			   parenthesis.  Note that that there are other things
+			   that will suppress argument-dependent lookup (e.g.,
+			   using a qualified name) but those are not reflected
+			   in this flag. */
       bitfield_to_avoid_codecenter_warnings()
       an_expr_node_ptr  
                 operands;

@@ -6451,6 +6451,12 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         /* Done early to optimize parentheses. */
         gen_expr(operand_1, need_parens);
         goto done_with_operation_after_parens;
+      } else if (op == (an_expr_operator_kind)eok_call) {
+        /* Suppress parentheses around a function call.  They're not needed
+           (the function call (...) binds at the highest possible precedence)
+           and g++ 3.2 (at least) gets confused by a constructor "call"
+           surrounded by parentheses, e.g., (X()). */
+        need_parens = FALSE;
       }  /* if */
       if (need_parens) m_write_tok_ch('(');
       if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {

@@ -1,5 +1,23 @@
 Version 3.5
 
+7/15/04  C++-generating back end: parentheses around function calls
+
+The C++-generating back end no longer puts an extra set of parentheses
+around a function call in the generated code.  These extra parentheses
+are unnecessary (because the (...) of a function call binds very
+tightly to the function name) and because we ran into a g++ bug
+on a constructor "call": (X()) was mistakenly taken as a cast even
+if there is no expression following it.  X() is accepted without
+problems, and that is what is now generated.
+
+Also, the change of 6/12/04 to suppress parentheses around function
+names in cases where argument-dependent lookup is suppressed has
+been adjusted further so that the parentheses around the function
+name are not put out when the function name is a qualified name
+(the use of a qualified name suppresses argument-dependent lookup,
+and some compilers had problems with the extra parentheses in
+a case like (::f)().
+
 7/15/04  Microsoft compatibility: __TIMESTAMP__ macro
 
 The Microsoft __TIMESTAMP__ macro is now supported.  It expands to the

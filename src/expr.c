@@ -1258,11 +1258,14 @@ Syntax:
       /* For the cases that are simple names, record that argument dependent
          lookup was suppressed.  Note that non-overloaded functions 
          come here as overloaded functions when argument-dependent lookup
-         is enabled. */
-      /* Argument-dependent lookup does not apply to member functions,
-         so don't record it as "suppressed" for them. */
-      if (!operand->variant.symbol->is_class_member) {
-        arg_dep_lookup_suppressed = TRUE;
+         is enabled.  The flag here only indicates suppression because
+         of the lack of an immediately following left parenthesis. */
+      if (!operand->is_routine_name_followed_by_left_paren) {
+        /* Argument-dependent lookup does not apply to member functions,
+           so don't record it as "suppressed" for them. */
+        if (!operand->variant.symbol->is_class_member) {
+          arg_dep_lookup_suppressed = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
