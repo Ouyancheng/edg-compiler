@@ -631,6 +631,7 @@ specification is handled later (see check_exception_specification).
   an_exception_specification_type_ptr  estp, other_estp, end_of_list = NULL;
   a_source_position                    type_pos;
   a_stop_token_array                   save_stop_token_array;
+  a_boolean                            ignoring_exception_spec = FALSE;
 
   db_enter(4, "scan_exception_specification");
   if (exceptions_enabled || curr_token == tok_throw) {
@@ -644,14 +645,29 @@ specification is handled later (see check_exception_specification).
     /* No explicit throw specification, meaning anything may be thrown. */
     goto done;
   }  /* if */
-  if (!exception_spec_allowed) {
-    pos_diagnostic(es_discretionary_error,
-                   ec_exception_specification_not_allowed, &pos_curr_token);
-  } else if (exceptions_enabled) {
+  if (!exceptions_enabled || !exception_spec_allowed ||
+      ignore_exception_specifications) {
+    /* If exception-handling support is not enabled, or if this is a context
+       in which an exception specification is not allowed, or if (e.g., in
+       Microsoft-compatibility mode) exception specifications are recognized
+       but ignored, set a flag to control the diagnostics that are put out. */
+    ignoring_exception_spec = TRUE;
+  }  /* if */
+  if (!ignoring_exception_spec) {
     esp = alloc_exception_specification();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     esp->throw_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  } else if (!exception_spec_allowed) {
+    /* This is a declaration on which an exception specification is not
+       allowed. */
+    pos_diagnostic((!exceptions_enabled || ignore_exception_specifications) ?
+                       es_warning : es_discretionary_error,
+                   ec_exception_specification_not_allowed, &pos_curr_token);
+  } else if (ignore_exception_specifications) {
+    /* Issue a warning (e.g., in Microsoft mode) -- exception specifications
+       are parsed and discarded. */
+    pos_warning(ec_exception_specification_ignored, &pos_curr_token);
   }  /* if */
   /* Bypass "throw". */
   (void)get_token();
@@ -702,7 +718,8 @@ specification is handled later (see check_exception_specification).
         complete_type_is_needed(tp);
         if (is_incomplete_type(tp)) {
           /* A exception specification type must be complete. */
-          pos_error(ec_incomplete_type_not_allowed, &type_pos);
+          pos_diagnostic(ignoring_exception_spec ? es_warning : es_error,
+                         ec_incomplete_type_not_allowed, &type_pos);
         } else if (is_ptr_or_ref_type(tp)) {
           tp = type_pointed_to(tp);
           if (is_void_type(tp)) {
@@ -713,7 +730,8 @@ specification is handled later (see check_exception_specification).
             if (is_incomplete_type(tp)) {
               /* A exception specification type cannot be a pointer or
                  reference to incomplete type. */
-              pos_error(ec_ptr_or_ref_to_incomplete_type, &type_pos);
+              pos_diagnostic(ignoring_exception_spec ? es_warning : es_error,
+                             ec_ptr_or_ref_to_incomplete_type, &type_pos);
             }  /* if */
           }  /* if */
         }  /* if */

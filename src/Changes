@@ -1,5 +1,13 @@
 Version 2.35
 
+2/10/97 Microsoft compatiblilty: exception specifications are ignored
+
+In Microsoft-compatibility mode exception specifications on function
+declarators are parsed but ignored (with a warning).  As a result, errors
+are no longer issued in Microsoft mode when a function is redeclared with a
+different exception specification or when an incomplete type (or pointer or
+reference to incomplete type) appears in an exception specification.
+
 2/7/97  Default argument expression dependencies involving nested classes
 
 The error issued on the following (complaining about failing to
