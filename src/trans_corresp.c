@@ -617,19 +617,22 @@ associated symbols are listed under the same header).
 
   if (scp1->name == scp2->name) {
     match = TRUE;
+  } else if (scp1->assoc_info == NULL || scp2->assoc_info == NULL) {
+    /* A mismatch in which one of the entities is unnamed. */
+    check_assertion(!(scp1->assoc_info == NULL && scp2->assoc_info == NULL));
+    match = FALSE;
   } else {
-    check_assertion(scp1->assoc_info != NULL && scp2->assoc_info != NULL);
     sh1 = ((a_symbol_ptr)scp1->assoc_info)->header;
     sh2 = ((a_symbol_ptr)scp2->assoc_info)->header;
     match = (sh1 == sh2);
-  }  /* if */
-  if (!match) {
-    /* This is possible if the associated symbol is not part of the symbol
-       table (which is TRUE of template instances). */
-    match = !strncmp(sh1->identifier, sh2->identifier,
-                     (sh1->identifier_length < sh2->identifier_length) ?
+    if (!match) {
+      /* This is possible if the associated symbol is not part of the symbol
+         table (which is TRUE of template instances). */
+      match = !strncmp(sh1->identifier, sh2->identifier,
+                       (sh1->identifier_length < sh2->identifier_length) ?
                                              (size_t)sh1->identifier_length :
                                              (size_t)sh2->identifier_length);
+    }  /* if */
   }  /* if */
   return match;
 }  /* f_same_name */
@@ -711,8 +714,8 @@ is in fact valid.
   if (has_correspondence(field)) {
     a_field_ptr  corresp_field = (a_field_ptr)canonical_il_entry_of(field);
     a_source_correspondence_ptr
-                   scp = &field->source_corresp,
-                   corresp_scp = &corresp_field->source_corresp;
+                 scp = &field->source_corresp,
+                 corresp_scp = &corresp_field->source_corresp;
   
     match = verify_name_correspondence(field);
     if (match &&
@@ -736,7 +739,15 @@ is in fact valid.
          scp->name_linkage != corresp_scp->name_linkage)) {
       match = FALSE;
       if (!C_mode()) {
-        process_bad_trans_unit_corresp(field);
+        if (scp->assoc_info != (char*)unnamed_field_symbol()) {
+          /* A named field: */
+          process_bad_trans_unit_corresp(field);
+        } else {
+          /* An unnamed field has a meaningless associated symbol.  Report
+             the error on the associated class instead. */
+          report_bad_trans_unit_corresp(scp->parent.class_type);
+          set_no_trans_unit_corresp(field);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
