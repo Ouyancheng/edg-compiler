@@ -249,7 +249,7 @@ static an_id_lookup_options_set idl_options_for_lookup_mode[ilm_last + 1] = {
   /* ilm_normal */		IDL_NO_OPTIONS,
   /* ilm_class */		IDL_MUST_BE_CLASS,
   /* ilm_tag */			IDL_MUST_BE_TAG,
-  /* ilm_tentative_type */	IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME,
+  /* ilm_tentative_type */	IDL_TENTATIVE_TYPE_LOOKUP,
   /* ilm_ctor_initializer_name */ IDL_SKIP_CURR_FUNCTION_SCOPE,
   /* ilm_last */		IDL_NO_OPTIONS
 };

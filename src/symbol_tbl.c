@@ -5821,7 +5821,7 @@ class_type that is a ck_template_param.
      lookup then we create the symbol as a type; otherwise we create it
      as a constant. */
   is_type = options & IDL_MUST_BE_CLASS || options & IDL_MUST_BE_TAG ||
-            options & IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME;
+            options & IDL_TENTATIVE_TYPE_LOOKUP;
   /* Create a symbol for the member.  mark_declared is not called
      because this symbol is not visible to the user. */
   kind = (a_symbol_kind)(is_type ? sk_type : sk_constant);
@@ -6240,8 +6240,7 @@ C and C++.
            found, see if there is a projection of some symbol into the
            scope. */
         if (look_for_projected_symbol) {
-          must_be_type_name = 
-                    (options & IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME);
+          must_be_type_name = (options & IDL_TENTATIVE_TYPE_LOOKUP);
           if (find_projected_symbol(ssep->assoc_type, locator, must_be_tag,
                                     must_be_type_name, add_to_active_list,
                                     insert_sym, &sym)) {
@@ -6345,11 +6344,12 @@ next_scope:
       sym = add_member_to_proxy_or_nonreal_class(class_with_nonreal_base,
 						 options, locator);
     }  /* if */
-    if (sym == NULL && SVR4_C_mode) {
+    if (sym == NULL && SVR4_C_mode &&
+        (options & IDL_TENTATIVE_TYPE_LOOKUP) == 0) {
       /* In SVR4 C compatibility mode, a symbol declared as a block extern in
          a block that is no longer in scope may be referenced later.  Look
          for an external variable or routine that matches the name being
-         looked up. */
+         looked up.  This is not done during tentative type lookups. */
       sym = find_svr4_out_of_scope_declaration(locator);
     }  /* if */
 end_lookup:

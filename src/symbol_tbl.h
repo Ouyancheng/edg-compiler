@@ -55,13 +55,20 @@ typedef int an_id_lookup_options_set;
 #define IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR 0x4
 				/* Suppress the error on a qualified name
 				   not being found on lookup. */
-#define IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME 0x8
-				/* If the symbol found is a projection from
-				   a base class, do not actually create the
-				   symbol to represent that projection unless
-				   is a type name -- a typedef or tag symbol
-				   (class, struct, union, or enum) -- but
-				   return NULL instead. */
+#define IDL_TENTATIVE_TYPE_LOOKUP 0x8
+                                /* We are looking up a symbol to see if it is
+				   a type name.  This mode suppresses the
+				   introduction of new symbols as a consequence
+				   of the lookup.  The primary example of this
+				   is when the symbol found is a projection
+				   from a base class.  In that case we do not
+				   actually create the symbol to represent
+				   that projection unless is a type name -- a
+				   typedef or tag symbol (class, struct,
+				   union, or enum) -- but return NULL instead.
+				   This flag also suppresses the out of
+				   scope declaration lookup in SVR4 C
+				   compatibility mode. */
 #define IDL_SKIP_CURR_FUNCTION_SCOPE 0x10
 				/* Causes normal_id_lookup to skip over
 				   the innermost scope entry which
