@@ -366,7 +366,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_param_type_ptr ptr = (a_param_type_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_param_type_ptr, iek_param_type);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
+#if !NEEDED_FLAG_WALK
         walk_ptr(ptr->default_arg_expr, an_expr_node_ptr, iek_expr_node);
+#endif /* !NEEDED_FLAG_WALK */
       }
       break;
     case iek_routine_type_supplement:
@@ -383,7 +385,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->assoc_routine, a_routine_ptr, iek_routine);
       }
       break;
-#if !MAINTAIN_NEEDED_FLAGS
+#if !NEEDED_FLAG_WALK
     case iek_based_type_list_member:
       {
         a_based_type_list_member_ptr ptr =
@@ -393,16 +395,16 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->based_type, a_type_ptr, iek_type);
       }
       break;
-#endif /* !MAINTAIN_NEEDED_FLAGS */
+#endif /* !NEEDED_FLAG_WALK */
     case iek_type:
       {
         a_type_ptr ptr = (a_type_ptr)entry_ptr;
         walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, a_type_ptr, iek_type);
-#if !MAINTAIN_NEEDED_FLAGS
+#if !NEEDED_FLAG_WALK
         walk_list(ptr->based_types, a_based_type_list_member_ptr,
                   iek_based_type_list_member);
-#endif /* !MAINTAIN_NEEDED_FLAGS */
+#endif /* !NEEDED_FLAG_WALK */
 #if DO_IL_LOWERING
         remap_ptr(ptr->typeinfo_var, a_variable_ptr, iek_variable);
 #endif /* DO_IL_LOWERING */
@@ -454,13 +456,13 @@ the file scope, do not process it (but record an orphan in the latter case).
           case tk_class:
           case tk_struct:
           case tk_union:
-#if MAINTAIN_NEEDED_FLAGS
+#if NEEDED_FLAG_WALK
             /* The subtree of a class is not visited until the
                end-of-file-scope wrapup phase.  That avoids processing
                before the class is fully defined, and before prelowering has
                been done on the class. */
             if (end_of_file_scope_needed_flags_phase)
-#endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* NEEDED_FLAG_WALK */
             {
               walk_list(ptr->variant.class_struct_union.field_list,
                         a_field_ptr, iek_field);
@@ -524,14 +526,14 @@ the file scope, do not process it (but record an orphan in the latter case).
     case iek_variable:
       {
         a_variable_ptr ptr = (a_variable_ptr)entry_ptr;
-#if MAINTAIN_NEEDED_FLAGS
+#if NEEDED_FLAG_WALK
         /* The subtree of the variable is not visited until the
            end-of-file-scope wrapup phase.  That avoids processing the
            initializer before it has been lowered.  For function-local
            variables, don't delay the processing. */
         if (end_of_file_scope_needed_flags_phase ||
             ptr->source_corresp.is_local_to_function)
-#endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* NEEDED_FLAG_WALK */
         {
           walk_source_corresp(ptr->source_corresp);
           remap_next_ptr(ptr->next, a_variable_ptr, iek_variable);
@@ -1329,12 +1331,12 @@ the file scope, do not process it (but record an orphan in the latter case).
           remap_ptr(ptr->variant.assoc_namespace, a_namespace_ptr,
                     iek_namespace);
         } else {
-#if !MAINTAIN_NEEDED_FLAGS
+#if !NEEDED_FLAG_WALK
           /* When doing the "needed" flag walk, the members of a namespace are
              not considered needed merely because the namespace itself is
              needed. */
           walk_ptr(ptr->variant.assoc_scope, a_scope_ptr, iek_scope);
-#endif /* !MAINTAIN_NEEDED_FLAGS */
+#endif /* !NEEDED_FLAG_WALK */
         }  /* if */
       }
       break;
