@@ -6764,6 +6764,7 @@ This routine is only used in C++ mode.
       conversion_routine = base_conversion_symbol->variant.routine.ptr;
       conv_routine_type = conversion_routine->type;
     } else {
+      a_type_ptr eff_dest_type = dest_type;
       /* The symbol is a function template. */
       /* Don't do type deduction if that would produce a conversion
          function that returns an abstract class type (which would be
@@ -6774,18 +6775,22 @@ This routine is only used in C++ mode.
       conversion_routine = tssp->variant.function.routine;
       conv_routine_type = conversion_routine->type;
       return_type = return_type_of(conv_routine_type);
+      if (is_reference_binding) {
+        check_template_arg_type_qualifiers(&return_type, &eff_dest_type);
+      } else {
+        eff_dest_type = skip_typerefs(eff_dest_type);
+      }  /* if */
       /* Determine whether the desired type matches the type returned by the
          conversion template.  If normal deduction fails, check whether a
          qualification conversion can be used to obtain the desired type. */
-      if (!matches_template_type(is_reference_binding ?
-                                          dest_type : skip_typerefs(dest_type),
+      if (!matches_template_type(eff_dest_type,
                                  return_type,
                                  &template_arg_list,
                                  tssp->variant.function.decl_cache.
                                                          decl_info->parameters,
                                  MTT_NO_FLAGS) &&
           !matches_template_type_with_qualification_conversion(
-                                 dest_type,
+                                 eff_dest_type,
                                  return_type,
                                  &template_arg_list,
                                  tssp->variant.function.decl_cache.
