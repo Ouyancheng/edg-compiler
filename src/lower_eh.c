@@ -186,12 +186,16 @@ all denote the same type.  type must be an externally-linked class type.
 }  /* make_id_object_var */
 
 
-static a_variable_ptr make_unnamed_local_static_array_var(a_type_ptr elem_type)
+static a_variable_ptr make_unnamed_local_static_array_var(
+                                                  a_type_ptr elem_type,
+                                                  a_boolean  in_function_scope)
 /*
 Create an unnamed local static variable whose type is an array of elem_type,
 and return a pointer to the variable.  The array size is begun as [0] and
 will be adjusted as elements are added.  finish_unnamed_local_static_array_var
 must be called sometime later to set the size on the type.
+If in_function_scope is TRUE, put the variable in the function scope instead
+of the current scope (which might be a block scope).
 */
 {
   a_variable_ptr var;
@@ -206,13 +210,14 @@ must be called sometime later to set the size on the type.
   array_type->variant.array.element_type = elem_type;
   /* set_type_size is not called yet. */
   /* Make the variable.  It is unnamed and static. */
-  var = make_unnamed_local_static_variable(array_type);
+  var = make_unnamed_local_static_variable(array_type, in_function_scope);
   return var;
 }  /* make_unnamed_local_static_array_var */
 
 
 static a_variable_ptr make_init_unnamed_local_static_array_var(
-                                                          a_type_ptr elem_type)
+                                                  a_type_ptr elem_type,
+                                                  a_boolean  in_function_scope)
 /*
 Create an unnamed local static variable whose type is an array of elem_type,
 and return a pointer to the variable.  The array size is begun as [0] and
@@ -220,6 +225,8 @@ will be adjusted as elements are added.  finish_unnamed_local_static_array_var
 must be called sometime later to set the size on the type.  The variable
 will be initialized; to start the process, an aggregate constant is attached
 to the variable.  Initial values must be added under the aggregate.
+If in_function_scope is TRUE, put the variable in the function scope instead
+of the current scope (which might be a block scope).
 */
 {
   a_variable_ptr var;
@@ -228,7 +235,7 @@ to the variable.  Initial values must be added under the aggregate.
   /* The current region is already the file scope memory region when
      this routine is called. */
   /* Make the variable with an array type. */
-  var = make_unnamed_local_static_array_var(elem_type);
+  var = make_unnamed_local_static_array_var(elem_type, in_function_scope);
   /* The initial value is an aggregate constant pointing to a list of
      aggregate constants. */
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
@@ -518,6 +525,7 @@ is TRUE, change the typeinfo variable to static.
   } else {
     /* The class has a destructor.  Make a pointer to the routine. */
     a_routine_ptr dtor_routine = dtor_sym->variant.routine.ptr;
+    dtor_routine->source_corresp.referenced = TRUE;
     set_routine_address_constant(dtor_routine, dtor_con);
     implicit_cast(dtor_con, curr_field_type);
   }  /* if */
@@ -1150,7 +1158,8 @@ object address array to the address of the object.
     switch_to_file_scope_region(&region_to_switch_back_to);
     /* The variable is an array whose elements have type "void *". */
     object_addr_table_var =
-                         make_unnamed_local_static_array_var(void_star_type());
+               make_unnamed_local_static_array_var(void_star_type(),
+                                                   /*in_function_scope=*/TRUE);
     /* Return to the memory region that was current when this routine was
        entered. */
     switch_back_to_original_region(region_to_switch_back_to);
@@ -1216,7 +1225,8 @@ the size is not available in the region description entry).
   if (array_table_var == NULL) {
     /* The variable is an array whose elements have type array_descr. */
     array_table_var =
-             make_init_unnamed_local_static_array_var(make_array_descr_type());
+          make_init_unnamed_local_static_array_var(make_array_descr_type(),
+                                                   /*in_function_scope=*/TRUE);
   }  /* if */
   /* Make the aggregate constant for the entry in the array table.  It consists
      of the index in the object address table, the size of each element, and
@@ -1259,14 +1269,15 @@ the size is not available in the region description entry).
 
 
 /*
-Variable entries for __eh_curr_region, __curr_eh_stack_entry, and
-__catch_clause_number, global variables used for exception processing.
+Variable entries for the global variables used for exception processing.
 NULL until created.
 */
 static a_variable_ptr
 		eh_curr_region_var,
 		curr_eh_stack_entry_var,
-		catch_clause_number_var;
+		catch_clause_number_var,
+		caught_object_address_var;
+
 
 static a_variable_ptr make_eh_curr_region_var(void)
 /*
@@ -1317,6 +1328,23 @@ if it has not already been made.  Return a pointer to it.
   }  /* if */
   return catch_clause_number_var;
 }  /* make_catch_clause_number_var */
+
+
+a_variable_ptr make_caught_object_address_var(void)
+/*
+Make __caught_object_address, a global variable used for exception processing,
+if it has not already been made.  Return a pointer to it.
+*/
+{
+  if (caught_object_address_var == NULL) {
+    caught_object_address_var =
+                             make_lowered_variable("__caught_object_address",
+                                                   /*already_il_name=*/FALSE,
+                                                   void_star_type(),
+                                                   (a_storage_class)sc_extern);
+  }  /* if */
+  return caught_object_address_var;
+}  /* make_caught_object_address_var */
 
 
 /*
@@ -1379,7 +1407,8 @@ pointer can be examined.
   if (region_table_var == NULL) {
     /* The variable is an array whose elements have type array_descr. */
     region_table_var =
-            make_init_unnamed_local_static_array_var(make_region_descr_type());
+          make_init_unnamed_local_static_array_var(make_region_descr_type(),
+                                                   /*in_function_scope=*/TRUE);
   }  /* if */
   /* Make the aggregate constant for the entry in the region description
      table.  It has a structure as follows:
@@ -1505,7 +1534,8 @@ specification entries, and return a pointer to the variable.
   /* Make a variable that is an array of exception type specification
      entries. */
   var = make_init_unnamed_local_static_array_var(
-                                              make_exception_type_spec_type());
+                                              make_exception_type_spec_type(),
+                                              /*in_function_scope=*/FALSE);
   return var;
 }  /* make_exception_type_spec_array_var */
 
@@ -1887,6 +1917,35 @@ catch clauses on the indicated list.  Return a pointer to the variable.
 }  /* make_catch_array_var */
 
 
+void initialize_catch_parameter(a_handler_ptr handler)
+/*
+Generate code to initialize the parameter of the indicated catch handler,
+if there is one.
+*/
+{
+  an_init_pos_descr  ipd;
+  a_boolean          keep_dynamic_init;
+  an_insert_location insert_location;
+
+  /* If there is no parameter, do nothing. */
+  if (handler->parameter != NULL) {
+    /* Insert code to initialize the catch clause parameter from the
+       runtime variable __caught_object_address. */
+    set_block_start_insert_location(handler->statement, &insert_location);
+    set_var_init_pos_descr(handler->parameter, &ipd);
+    lower_dynamic_init(handler->dynamic_init, &ipd,
+                       /*first_time_test_var=*/(a_variable_ptr)NULL,
+                       /*is_expr_temporary=*/FALSE,
+                       (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
+                       (a_constructor_init_ptr)NULL,
+                       &insert_location, &keep_dynamic_init);
+    check_assertion(keep_dynamic_init == FALSE);
+    /* Mark the parameter as referenced. */
+    handler->parameter->source_corresp.referenced = TRUE;
+  }  /* if */
+}  /* initialize_catch_parameter */
+
+
 /*
 Pointer to the routine entry for the runtime routine setjmp.  NULL until
 created.
@@ -1980,7 +2039,7 @@ Do IL lowering for an stmk_try_block statement.
     a_statement_ptr dep_statement = handler->statement;
     catch_clause_number++;
     prev_if_stmt = if_stmt;
-    /* lower the dependent statement of the catch clause. */
+    /* Lower the dependent statement of the catch clause. */
     lower_statement(dep_statement);
     if (handler->parameter == NULL) {
       /* This is an ellipsis entry.  No "if" is required, since it accepts
@@ -1994,6 +2053,8 @@ Do IL lowering for an stmk_try_block statement.
          returned by the runtime if an "if" statement:
            if (__catch_clause_number == n) ...
       */
+      /* Note that the code to initialize the parameter is generated during
+         the lowering of the dependent statement. */
       catch_clause_number_node =
                                var_rvalue_expr(make_catch_clause_number_var());
       catch_clause_number_node->next = 
@@ -2003,14 +2064,15 @@ Do IL lowering for an stmk_try_block statement.
                                         catch_clause_number_node->type,
                                         catch_clause_number_node);
       if_stmt = alloc_statement((a_statement_kind)stmk_if);
-#if 0
-      /* Position in a_handler? */
-#endif /* 0 */
-      if_stmt->position = dep_statement->position;
+      if_stmt->position = handler->catch_position;
       if_stmt->expr = compare_node;
       if_stmt->variant.if_stmt.then_statement = dep_statement;
       prev_if_stmt->variant.if_stmt.else_statement = if_stmt;
     }  /* if */
+    /* Clear the assoc_handler pointer in the handler scope because it's not
+       a C field. */
+    handler->statement->variant.block.extra_info->assoc_scope->
+                                                  variant.assoc_handler = NULL;
   }  /* for */
 }  /* lower_try_block */
 
@@ -2051,6 +2113,7 @@ invocation of the front end.
   eh_curr_region_var = NULL;
   curr_eh_stack_entry_var = NULL;
   catch_clause_number_var = NULL;
+  caught_object_address_var = NULL;
   setjmp_routine = NULL;
   /* Make a constant for the maximum region number, also used for the
      null region number.  */
