@@ -16424,7 +16424,7 @@ by "sym".
     a_variable_ptr	variable;
     variable = sym->variant.static_data_member.variable;
     variable = (a_variable_ptr)canonical_il_entry_of(variable);
-    name = get_mangled_static_data_member_name(variable);
+    name = get_mangled_member_variable_name(variable);
   } else if (is_function_symbol(sym)) {
     a_routine_ptr	routine;
     routine = sym->variant.routine.ptr;

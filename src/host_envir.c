@@ -26,6 +26,8 @@ This version for UNIX, MS-DOS, VAX/VMS, and Windows NT.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
+#include "lower_name.h"
+
 #if EDG_WIN32
 #include <windows.h>
 #endif /* EDG_WIN32 */
@@ -2107,6 +2109,76 @@ Change any non-identifier characters in the indicated string to underscores.
 }  /* change_non_id_characters */
 
 
+static char *find_external_name_in_scope(a_scope_ptr	scope)
+/*
+Go through the variables and routines lists of "scope" to find an external
+definition whose name can be used as part of the module ID.
+*/
+{
+  a_variable_ptr	variable;
+  a_routine_ptr		routine;
+  char			*name = NULL;
+
+  /* Find an externally visible variable or routine definition whose name
+     can be used as part of the module ID. */
+  for (variable = scope->variables;
+       variable != NULL; variable = variable->next) {
+    /* Only consider variables that are defined.  Make sure that the
+       init_kind is not none -- this eliminates tentative definitions.
+       Also ignore variables whose names begin with "__"; one such case
+       is typeinfo variables, and when this routine is called from IL
+       lowering they may yet become static variables. */
+    if (variable->storage_class == (a_storage_class)sc_unspecified &&
+        variable->init_kind != (an_init_kind)initk_none &&
+        variable->source_corresp.name[0] != '_' &&
+        variable->source_corresp.name[1] != '_') {
+      /* Don't use template static data members.  Some implementations
+         may generate these in multiple files. */
+      if (variable->is_template_static_data_member) continue;
+      /* If the variable is a namespace member, get its mangled name;
+         otherwise use unmangled name. */
+      if (scope->kind == (a_scope_kind)sck_file) {
+        name = variable->source_corresp.name;
+      } else {
+        name = get_mangled_member_variable_name(variable);
+      }  /* if */
+      check_assertion(name != NULL);
+      break;
+    }  /* if */
+  }  /* for */
+  if (name == NULL) {
+    /* No external variable was found, look for an external routine.
+       Make sure its type does not involve an unnamed namespace (otherwise
+       its mangled name would involve the module ID). */
+    for (routine = scope->routines;
+         routine != NULL; routine = routine->next) {
+      if (routine->storage_class == (a_storage_class)sc_unspecified &&
+          !is_or_contains_unnamed_namespace_type(routine->type)) {
+        /* Don't use template functions.  Some implementations
+           may generate these in multiple files. */
+        if (routine->is_template_function) continue;
+        name = get_mangled_function_name(routine);
+        check_assertion(name != NULL);
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (name == NULL) {
+      /* No name was found in the scope.  Look through any namespace scopes. */
+    a_namespace_ptr	nsp;
+    for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+      /* Ignore namespace alias entries. */
+      if (nsp->is_namespace_alias) continue;
+      /* Ignore unnamed namespaces. */
+      if (unmangled_name_of(&nsp->source_corresp) == NULL) continue;
+      /* Look for an external name in this namespace. */
+      name = find_external_name_in_scope(nsp->variant.assoc_scope);
+    }  /* for */
+  }  /* if */
+  return name;
+}  /* find_external_name_in_scope */
+
+
 static char	*module_id /* = NULL */;
 			/* A string used to qualify static names that are put
 			   out as external names to make them unique. */
@@ -2133,8 +2205,6 @@ Set module_id to the string.
   char			*file_name;
   sizeof_t		file_name_len;
   a_scope_ptr		scope = il_header.primary_scope;
-  a_variable_ptr	variable;
-  a_routine_ptr		routine;
   char			*external_name = NULL;
   char			*str1;
   char			*str2;
@@ -2152,41 +2222,9 @@ Set module_id to the string.
          units. */
       file_name = il_header.primary_source_file->file_name;
     }  /* if */
-    /* Find an externally visible variable or routine definition whose name
-       can be used as part of the module ID. */
-    for (variable = scope->variables;
-         variable != NULL; variable = variable->next) {
-      /* Only consider variables that are defined.  Make sure that the
-         init_kind is not none -- this eliminates tentative definitions.
-         Also ignore variables whose names begin with "__"; one such case
-         is typeinfo variables, and when this routine is called from IL
-         lowering they may yet become static variables. */
-      if (variable->storage_class == (a_storage_class)sc_unspecified &&
-          variable->init_kind != (an_init_kind)initk_none &&
-	  variable->source_corresp.name[0] != '_' &&
-	  variable->source_corresp.name[1] != '_') {
-        /* Don't use template static data members.  Some implementations
-           may generate these in multiple files. */
-        if (variable->is_template_static_data_member) continue;
-        external_name = variable->source_corresp.name;
-        check_assertion(external_name != NULL);
-        break;
-      }  /* if */
-    }  /* for */
-    if (external_name == NULL) {
-      /* No external variable was found, look for an external routine. */
-      for (routine = scope->routines;
-           routine != NULL; routine = routine->next) {
-        if (routine->storage_class == (a_storage_class)sc_unspecified) {
-          /* Don't use template functions.  Some implementations
-             may generate these in multiple files. */
-          if (routine->is_template_function) continue;
-          external_name = routine->source_corresp.name;
-          check_assertion(external_name != NULL);
-          break;
-        }  /* if */
-      }  /* for */
-    }  /* if */
+    /* Try to an external variable or routine name that can be used to
+       make the module ID unique. */
+    external_name = find_external_name_in_scope(scope);
     if (external_name == NULL) {
       /* In the very unlikely event that the file does not define any
          externally visible variables or routines, use the modification
@@ -2199,6 +2237,12 @@ Set module_id to the string.
       str1 = external_name;
       str2 = NULL;
     }  /* if */
+#if DEBUG
+    if (db_flag_is_set("module_id")) {
+      fprintf(f_debug, "make_module_id: str1 = %s, str2 = %s\n",
+              str1, str2 == NULL ? "NULL" : str2);
+    }  /* if */
+#endif /* DEBUG */
     { /* The identifier is made of the primary source file name plus
          either the name of an externally defined variable or routine,
          or (if no such entity is available) the current directory and
@@ -2241,6 +2285,11 @@ Set module_id to the string.
       /* Change non-identifier characters to "_". */
       change_non_id_characters(module_id);
     }
+#if DEBUG
+    if (db_flag_is_set("module_id")) {
+      fprintf(f_debug, "make_module_id: final string = %s\n", module_id);
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
   return module_id;
 }  /* make_module_id */

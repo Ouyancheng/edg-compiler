@@ -2609,7 +2609,7 @@ mangled without parameter encoding.
   return mangling_needed;
 }  /* function_name_mangling_needed */
 
-#if TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED
+#if TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED || MODULE_ID_NEEDED
 
 char *get_mangled_function_name(a_routine_ptr routine)
 /*
@@ -2641,7 +2641,8 @@ name in the routine entry.
   return mangled_name;
 }  /* get_mangled_function_name */
 
-#endif /* TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED ||
+          MODULE_ID_NEEDED */
 
 static void mangled_member_name(a_source_correspondence  *scp,
                                 a_boolean                is_specialization,
@@ -2714,14 +2715,15 @@ Add to the mangled name the encoding for the name of the member variable
   mangled_member_name(&variable->source_corresp, is_specialization, mctl);
 }  /* mangled_member_variable_name */
 
-#if TEMPLATE_LOOKUP_NEEDED
+#if TEMPLATE_LOOKUP_NEEDED || MODULE_ID_NEEDED
 
-char *get_mangled_static_data_member_name(a_variable_ptr variable)
+char *get_mangled_member_variable_name(a_variable_ptr variable)
 /*
-Get the mangled name for the indicated static data member, and return
-a pointer to it.  If the variable name has not been mangled yet, create a
-copy of the mangled name in a temporary buffer but do not change the
-name in the variable entry.
+Get the mangled name for the indicated variable or static data member, and
+return a pointer to it.  If the variable name has not been mangled yet,
+create a copy of the mangled name in a temporary buffer but do not change
+the name in the variable entry.  The variable must be a namespace member
+or a static data member (e.g., not a file scope variable).
 */
 {
   a_mangling_control_block mctl;
@@ -2740,9 +2742,9 @@ name in the variable entry.
                                 /*final=*/TRUE, &mctl);
   }  /* if */
   return mangled_name;
-}  /* get_mangled_static_data_member_name */
+}  /* get_mangled_member_variable_name */
 
-#endif /* TEMPLATE_LOOKUP_NEEDED */
+#endif /* TEMPLATE_LOOKUP_NEEDED || MODULE_ID_NEEDED */
 
 /* Declaration required because of forward reference: */
 static void do_scope_other_name_mangling(a_scope_ptr scope);
