@@ -812,6 +812,9 @@ itself recursively to process classes nested within this class.
         /* Under certain conditions the instance pointer will be NULL.  This
            occurs for compiler generated routines and under some error
            conditions.  Simply skip this routine. */
+      } else if (rout->is_prototype_instantiation) {
+        /* Don't add prototype instantiations of member templates to the
+           instantiations required list. */
       } else if (!tip->instantiation_required) {
         /* Simply add the function to the instantiation list, without setting
            the flag. */
