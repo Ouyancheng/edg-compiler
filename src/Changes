@@ -7,9 +7,10 @@ represent a "partial instantiation" -- that is, an instantiation of a
 template declaration only, as opposed to a full instantiation that
 indicates the definition of the template instance.  The front end records
 this information by means of a secondary-declaration source sequence entry
-when either NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS or
+when NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS and/or
 CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE.  For
-example, if the original source looked like this:
+example, if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE
+and the original source looks like this:
 
   template <class T> struct S { ... };
   S<int> *psi;
