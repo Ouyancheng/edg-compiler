@@ -114,8 +114,7 @@ specifier (except for the typedef and friend cases).  (3.5.2)
 Macro that is TRUE if the current token is the start of a type qualifier
 (3.5.3).
 */
-#define is_type_qualifier()                                           \
-  (curr_token == tok_const    || curr_token == tok_volatile )
+#define is_type_qualifier() is_type_qualifier_token(curr_token)
 
 /*
 If type_ptr is float, change it to double.  Used in pcc mode to promote
