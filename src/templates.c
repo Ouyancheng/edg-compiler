@@ -1626,6 +1626,10 @@ included in the search.
       /* Update the friend information associated with this template.
          These are the classes that declared this template as a friend. */
       update_befriending_classes_for_class(tssp, class_type);
+      /* Add the type to the types list of the appropriate scope.  Pass
+         NO_SCOPE_DEPTH to the subroutine to force it to compute which scope's
+         list it belongs to. */
+      add_to_types_list(class_type, NO_SCOPE_DEPTH);
     }  /* if */
 #if DEBUG
     if (debug_level >= 3 || db_flag_is_set("instantiations")) {

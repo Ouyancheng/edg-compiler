@@ -3640,6 +3640,90 @@ base class bcp.  This path has a single step to the virtual base class.
 }  /* cast_virtual_derivation_path_of */
 
 
+a_boolean may_be_added_to_types_list(a_type_ptr     type_ptr,
+                                     a_scope_depth  decl_level)
+/*
+Return TRUE unless there is any reason why type_ptr should not be added to
+the types-list for the scope associated with the indicated scope depth.
+Note: the type may already be on the list; this routine is also called when
+it's to be moved to another position in the list.
+*/
+{
+  a_boolean                may_be_added = TRUE;
+  a_scope_stack_entry_ptr  ssep;
+
+  if (is_immediate_class_type(type_ptr) || is_immediate_enum_type(type_ptr)) {
+    ssep = &scope_stack[decl_level];
+    if (C_mode()) {
+      if (type_ptr->declared_in_function_prototype &&
+          ssep->kind != (a_scope_kind)sck_func_prototype) {
+        /* If the tag was declared in a prototype scope and is now being
+           resolved within the function, as in
+             int f(struct f p) {struct f{int a;};  ... }
+           we may assume the type entry has already been entered on the types
+           list. */
+        may_be_added = FALSE;
+      }  /* if */
+    } else if (ssep->kind == (a_scope_kind)sck_template_declaration) {
+      /* Must be an error case -- e.g., a class definition within a template
+         parameter declaration.  Don't try to enter the class in the IL. */
+      may_be_added = FALSE;
+    } else if (type_ptr->source_corresp.is_class_member) {
+      if (ssep->kind != (a_scope_kind)sck_class_struct_union ||
+          ssep->assoc_type != type_ptr->source_corresp.parent.class_type) {
+        /* May be an out-of-class definition of a C++ nested class.  It's
+           already on the list. */
+        may_be_added = FALSE;
+      }  /* if */
+    } else if (ssep->in_prototype_instantiation) {
+      /* Except for member types, the type entries created for a class
+         template are not added to the types list. */
+      may_be_added = FALSE;
+    }  /* if */
+  }  /* if */
+  return may_be_added;
+}  /* may_be_add_to_types_list */
+
+
+static a_scope_ptr get_scope_for_list(
+                                 a_scope_depth               scope_level,
+                                 a_source_correspondence     *scp,
+                                 a_scope_pointers_block_ptr  *pointers_block)
+/*
+An IL entry that has been declared at the indicated scope and with the
+source-correspondence pointed to by scp is to be added to (or is already on)
+a list pointed to by an IL scope entry.  Return a pointer to that IL scope
+entry, along with the associated pointers-block.  When scope_level is
+NO_SCOPE_DEPTH, the scope is either the file scope or the scope associated
+with the namespace of which the entry is a member.
+*/
+{
+  a_scope_stack_entry_ptr  ssep;
+  a_scope_ptr              sp;
+  a_namespace_ptr          nsp = NULL;
+
+  if (scope_level == NO_SCOPE_DEPTH) {
+    /* No scope depth is specified, so either use the namespace or the file
+       scope. */
+    if (!scp->is_class_member) {
+      nsp = scp->parent.namespace_ptr;
+    }  /* if */
+    if (nsp == NULL) scope_level = DEPTH_OF_FILE_SCOPE;
+  }  /* if */
+  if (nsp != NULL) {
+    /* Use the IL scope from the namespace. */
+    sp = nsp->variant.assoc_scope;
+    *pointers_block = &namespace_supplement_for_namespace(nsp)->pointers_block;
+  } else {
+    /* Use the IL scope associate with scope_level. */
+    ssep = &scope_stack[scope_level];
+    sp = ensure_il_scope_exists(ssep);
+    *pointers_block = assoc_pointers_block_of(ssep);
+  }  /* if */
+  return sp;
+}  /* get_scope_for_list */
+
+
 void add_to_types_list(a_type_ptr     type_ptr,
                        a_scope_depth  scope_level)
 /*
@@ -3647,14 +3731,11 @@ Add the given type to the types list for the scope corresponding to
 scope_level.
 */
 {
-  a_scope_stack_entry_ptr ssep;
-  a_scope_ptr             sp;
+  a_scope_ptr                 sp;
   a_scope_pointers_block_ptr  pointers_block;
 
   /* Get a pointer to the current or file scope entry. */
-  ssep = &scope_stack[scope_level];
-  /* Create the IL scope if necessary (for block scopes). */
-  /* If we are currently inside the declaration list for the old-style
+  /* Note:  If we are currently inside the declaration list for the old-style
      parameters of a function -- e.g., in the "struct" declaration in
 
        int f(a) struct s {int b;} a; { }
@@ -3668,13 +3749,14 @@ scope_level.
        int f(struct s {int b;} a);
 
      The prototype scope is hardly ever needed, and therefore it is not
-     allocated by default.  It is allocated in ensure_il_scope_exists. */
-  sp = ensure_il_scope_exists(ssep);
+     allocated by default.  It is allocated in ensure_il_scope_exists, which
+     is called by get_scope_for_list. */
+  sp = get_scope_for_list(scope_level, &type_ptr->source_corresp,
+                          &pointers_block);
   if (sp == NULL) {
     /* May be an error case. */
   } else {
     /* Add the type to the list of types for this scope. */
-    pointers_block = assoc_pointers_block_of(ssep);
     if (sp->types == NULL) {
       sp->types = type_ptr;
     } else {
@@ -3696,6 +3778,86 @@ scope_level.
   }  /* if */
   type_ptr->next = NULL;
 }  /* add_to_types_list */
+
+
+void move_to_end_of_types_list(a_type_ptr     type_ptr,
+                               a_scope_depth  scope_level)
+/*
+Move the indicated type, which is already on the types list of an IL scope,
+to the end of that list.  Use scope_level to find the appropriate IL scope.
+*/
+{
+  a_scope_ptr                 sp;
+  a_scope_pointers_block_ptr  pointers_block;
+  a_type_ptr                  tp, prev_tp;
+
+  /* Get a pointer to the scope entry. */
+  sp = get_scope_for_list(scope_level, &type_ptr->source_corresp,
+                          &pointers_block);
+  check_assertion_str(sp != NULL, "move_to_end_of_types_list: NULL scope");
+  if (pointers_block->last_type == type_ptr) {
+    /* It's already the last entry on the list. */
+  } else {
+    /* Scan the list until a match is found. */
+    prev_tp = NULL;
+    tp = sp->types;
+    while (tp != type_ptr) {
+      prev_tp = tp;
+      tp = tp->next;
+      check_assertion_str2(tp != NULL, "move_to_end_of_types_list:",
+                           "cannot find type on types list");
+    }  /* while */
+    /* Link around the entry. */
+    if (prev_tp == NULL) {
+      sp->types = type_ptr->next;
+    } else {
+      prev_tp->next = type_ptr->next;
+    }  /* if */
+    /* Reenter it onto the end of the list. */
+    pointers_block->last_type->next = type_ptr;
+    pointers_block->last_type = type_ptr;
+    type_ptr->next = NULL;
+  }  /* if */
+  if (sp->kind == (a_scope_kind)sck_namespace) {
+    /* The associated placeholder typedef should also be move to the end of
+       its list. */
+    a_scope_stack_entry_ptr  ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+
+    sp = ensure_il_scope_exists(ssep);
+    pointers_block = assoc_pointers_block_of(ssep);
+    tp = pointers_block->last_type;
+    if (tp->kind == (a_type_kind)tk_typeref &&
+        tp->variant.typeref.is_placeholder_for_namespace_type &&
+        tp->variant.typeref.type == type_ptr) {
+      /* The placeholder entry is already the last on the list. */
+    } else {
+      /* Scan the list until a match is found. */
+      prev_tp = NULL;
+      tp = sp->types;
+      for (;;) {
+        if (tp->kind == (a_type_kind)tk_typeref &&
+            tp->variant.typeref.is_placeholder_for_namespace_type &&
+            tp->variant.typeref.type == type_ptr) {
+          break;
+        }  /* if */
+        prev_tp = tp;
+        tp = tp->next;
+        check_assertion_str2(tp != NULL, "move_to_end_of_types_list:",
+                             "cannot find placeholder type on types list");
+      }  /* for */
+      /* Link around the entry. */
+      if (prev_tp == NULL) {
+        sp->types = tp->next;
+      } else {
+        prev_tp->next = tp->next;
+      }  /* if */
+      /* Reenter it onto the end of the list. */
+      pointers_block->last_type->next = tp;
+      pointers_block->last_type = tp;
+      tp->next = NULL;
+    }  /* if */
+  }  /* if */
+}  /* move_to_end_of_types_list */
 
 
 an_integer_kind char_int_kind_from_string_type(a_type_ptr str_type)

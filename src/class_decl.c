@@ -7765,41 +7765,13 @@ next_declaration:
       error(ec_no_named_fields);
       add_error_field(class_type, &end_of_field_list);
     }  /* if */
-    /* Adding the type to the current scope's types list is done after
-       reaching the closing brace to get the IL types list in the right
-       order. */
-    if (C_dialect != C_dialect_cplusplus &&
-        tag_sym->reentered_from_prototype_scope) {
-      /* If the tag was declared in a prototype scope and is now being resolved
-         within the function, as in
-           int f(struct f p) {struct f{int a;};  ... }
-         we may assume the type entry has already been entered on the types
-         list. */
-    } else if (cssp->is_prototype_instantiation &&
-               !tag_sym->is_class_member) {
-      /* The type entries created for a class template are not added to the
-         types list. */
-    } else if (scope_stack[effective_decl_level].kind ==
-                                   (a_scope_kind)sck_template_declaration) {
-      /* This is an error case -- a class definition within a template
-         parameter declaration.  Don't try to enter the class in the IL. */
-    } else if (delayed_nested_class_def) {
-      /* Out-of-class definition of a C++ nested class.  It's already been
-         added to the list (in end_of_scope_symbol_check). */
-    } else if (class_type->source_corresp.is_class_member &&
-               (scope_stack[effective_decl_level].kind !=
-                      (a_scope_kind)sck_class_struct_union ||
-                scope_stack[effective_decl_level].assoc_type !=
-                      class_type->source_corresp.parent.class_type)) {
-      /* This must be a definition of an anonymous union member type that
-         appears outside the scope of the anonymous union.  It's already on
-         a list. */
-    } else {
-      /* Add the class type to the list for the current scope.  Note that
-         incomplete structs/unions are not added to the type list (this code
-         is bypassed) because the actual definition has not yet appeared.  See
-         pop_scope; they get added at the end of the scope. */
-      add_to_types_list(class_type, effective_decl_level);
+    if (!is_nonreal_instantiation &&
+        may_be_added_to_types_list(class_type, effective_decl_level)) {
+      /* The type will already have been added to the current scope's types
+         list.  However, it should be moved to the end of the list (unless
+         it's already there), since its location in the types list should
+         record where it was defined, not where it was initially declared. */
+      move_to_end_of_types_list(class_type, effective_decl_level);
       if (is_template_instantiation) {
         /* Special processing in case this instantiation occurred in the
            midst of a class definition, to enable il-lowering to get the
@@ -8038,8 +8010,7 @@ next_declaration:
       pop_class_reactivation_scope();
       /* Enter a typedef entry that points at the nested class just defined.
          It will serve to indicate just where (in the sequence of type
-         declarations the delayed nested
-         type definition appeared. */
+         declarations) the delayed nested type definition appeared. */
       placeholder = alloc_type((a_type_kind)tk_typeref);
       placeholder->variant.typeref.type = class_type;
       placeholder->variant.typeref.is_placeholder_for_nested_class_def = TRUE;

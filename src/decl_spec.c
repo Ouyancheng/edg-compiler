@@ -366,6 +366,7 @@ caution when modifying this routine.
                                    (a_namespace_ptr)NULL);
           /* The referenced flag may have been reset by set_source_corresp). */
           type_of_type_info->source_corresp.referenced = tag_sym->referenced;
+          add_to_types_list(type_of_type_info, decl_scope_level);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -654,6 +655,7 @@ to indicate whether the class/struct/union is actually defined.
   a_symbol_reference_kind srk_flags;
   a_boolean               delayed_nested_class_def = FALSE;
   a_boolean               namespace_extension_pushed = FALSE;
+  a_boolean               is_redeclaration;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_decl_modifier         decl_modifiers = DM_NONE;
   a_type_qualifier_set    class_qualifiers = TQ_NONE;
@@ -1016,6 +1018,7 @@ to indicate whether the class/struct/union is actually defined.
        allocated in the file scope memory region, though local types will be
        added to the function scope's types list. */
     class_type = alloc_type(type_kind);
+    is_redeclaration = FALSE;
     if (scope_stack[effective_decl_level].kind ==
                                            (a_scope_kind)sck_func_prototype) {
       /* A type is actually declared in a function prototype scope only in
@@ -1128,6 +1131,7 @@ to indicate whether the class/struct/union is actually defined.
   } else {
     /* Using an existing type.  Fetch the type pointer from it. */
     class_type = tag_sym->variant.class_struct_union.type;
+    is_redeclaration = TRUE;
     /* Record cross-reference information. */
     if (is_class_definition ||
         (curr_token == tok_semicolon &&
@@ -1154,6 +1158,11 @@ to indicate whether the class/struct/union is actually defined.
       mark_referenced(tag_sym, &locator.source_position);
       *declares_something = FALSE;
     }  /* if */
+  }  /* if */
+  if (!is_redeclaration &&
+      may_be_added_to_types_list(class_type, effective_decl_level)) {
+    /* This is the initial declaration of this class type. */
+    add_to_types_list(class_type, effective_decl_level);
   }  /* if */
   if (is_class_definition || curr_token == tok_semicolon) {
     /* Do processing required for any pragmas that are bound to the current
@@ -1239,12 +1248,12 @@ to indicate whether an enumeration is actually defined.
   a_constant               max_value, min_value;
   a_boolean                done, min_max_set;
   a_source_position        pos_comma;
-  a_boolean                prototype_tag_resolution = FALSE;
   a_memory_region_number   region_to_switch_back_to;
   a_scope_stack_entry_ptr  ssep;
   a_type_ptr               class_of_which_a_member;
   an_access_specifier      access;
   a_scope_depth            effective_decl_level = decl_scope_level;
+  a_boolean                is_redeclaration;
 
   db_enter(3, "enum_specifier");
 
@@ -1278,17 +1287,6 @@ to indicate whether an enumeration is actually defined.
                             &effective_decl_level, &tag_resolution);
     if (tag_resolution) {                            
       /* Resolution of a previous incomplete declaration. */
-      if (C_dialect != C_dialect_cplusplus) {
-        /* If the tag was declared in a prototype scope and is now being
-           resolved within the function, as in
-             int f(enum f p) {enum f{a, b};  ... }
-           we must switch into the file scope for the duration of the
-           definition.  (In C++ a tag declared in a prototype scope
-           refers to a file scope type, so this check is not relevant.) */
-        if (ssep->kind == (a_scope_kind)sck_function) {
-          prototype_tag_resolution = TRUE;
-        }  /* if */
-      }  /* if */
       if (effective_decl_level != decl_scope_level) {
         class_of_which_a_member = NULL;
         access = (an_access_specifier)as_public;
@@ -1326,6 +1324,7 @@ to indicate whether an enumeration is actually defined.
     /* Create a new enumerated type.  All enumeration type entries are
        allocated in the file scope memory region. */
     enum_type = alloc_type((a_type_kind)tk_integer);
+    is_redeclaration = FALSE;
     /* set_type_size is called later, once the final type is known. */
     /* Set a default representation of "int", which may be adjusted later. */
     enum_type->variant.integer.int_kind = (an_integer_kind)ik_int;
@@ -1400,6 +1399,7 @@ to indicate whether an enumeration is actually defined.
   } else {
     /* Using an existing type.  Fetch the enumerated type pointer from it. */
     enum_type = tag_sym->variant.type;
+    is_redeclaration = TRUE;
     /* Record cross-reference information. */
     if (curr_token == tok_lbrace) {
       mark_defined(tag_sym, &locator.source_position);
@@ -1668,23 +1668,22 @@ to indicate whether an enumeration is actually defined.
     }  /* if */
     /* Set the type size (based on the integral type it is mapped onto). */
     set_type_size(enum_type);
-    /* Add the type to the types list for the current scope.  This is done
-       after the closing brace, if any, to get the IL types list in the
-       right order.  Note that incomplete enums are not added
-       to the type list, because the actual definition has not yet
-       appeared.  See pop_scope; they get added at the end of the scope. */
-    if (prototype_tag_resolution) {
-      /* Tags that were declared in a prototype scope were added to the type
-         list at the end of the prototype scope, so do not add them again. */
-    } else if (scope_stack[effective_decl_level].kind ==
-                                   (a_scope_kind)sck_template_declaration) {
-      /* This is an error case -- an enum definition within a template
-         parameter declaration.  Don't try to enter the type in the IL. */
-    } else {
+  }  /* if */
+  /* Add the type to the types list for the current scope.  This is done
+     after the closing brace, if any, to get the IL types list in the right
+     order.  Incomplete enums are added to the types list even though the
+     actual definition has not yet appeared; however, it will be reentered
+     on the list if and when the definition appears. */
+  if (may_be_added_to_types_list(enum_type, effective_decl_level)) {
+    if (!is_redeclaration) {
+      /* This is the initial declaration of this enum type. */
       add_to_types_list(enum_type, effective_decl_level);
+    } else if (*defines_something) {
+      /* This is a redeclaration and also a definition.  Remove the enum type
+         from the types list and reenter it at the end. */
+      move_to_end_of_types_list(enum_type, effective_decl_level);
     }  /* if */
   }  /* if */
-
   *type_ptr = enum_type;
   db_exit();
 }  /* enum_specifier */

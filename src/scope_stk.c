@@ -1779,7 +1779,7 @@ NULL.
 */
 {
   a_storage_class storage_class;
-  a_type_ptr      var_type, type_ptr;
+  a_type_ptr      var_type;
   a_variable_ptr  var_ptr;
   a_routine_ptr   rout_ptr;
 #if CHECKING
@@ -1979,45 +1979,6 @@ NULL.
       scp = &rout_ptr->source_corresp;
 #endif /* CHECKING */
       break;
-    case sk_class_or_struct_tag:
-    case sk_union_tag:
-    case sk_enum_tag:
-      /* Struct, union, or enum tag. */
-      type_ptr = type_symbol_type(sym);
-      if (is_incomplete_type(type_ptr)) {
-        /* A tag that was never completed.  This is not an error. It's not
-           even a warning, because people really do this intentionally.
-           Declaring something of this type would be an error; declaring
-           something a pointer to this type would be allowed. */
-        if (scope_stack[depth_scope_stack].kind ==
-                               (a_scope_kind)sck_template_instantiation) {
-          /* Type was declared in a prototype instantiation.  It should not
-             be added to a types list. */
-        } else if (sym->reentered_from_prototype_scope) {
-          /* Tags reentered from the prototype scope should not be added
-             again -- they will have been added when the prototype scope was
-             popped. */
-        } else if (sym->kind != (a_symbol_kind)sk_enum_tag &&
-                   !is_real_class_symbol(sym)) {
-          /* Non-real template class instantiation. */
-        } else if (type_ptr->source_corresp.is_class_member &&
-                   (scope_stack[depth_scope_stack].kind !=
-                            (a_scope_kind)sck_class_struct_union ||
-                    scope_stack[depth_scope_stack].assoc_type !=
-                            type_ptr->source_corresp.parent.class_type)) {
-          /* This must be the symbol for an anonymous union member type that
-             has been promoted out of the scope of the anonymous union.
-             The type is already on a list. */
-        } else {
-          /* Add it now to the current scope's type list.  It was not added
-             previously because no actual definition appeared. */
-          add_to_types_list(type_ptr, depth_scope_stack);
-        }  /* if */
-      }  /* if */
-#if CHECKING
-      scp = &type_ptr->source_corresp;
-#endif /* CHECKING */
-      break;
     case sk_label:
       /* Label. */
       if (sym->variant.label.ptr->variant.exec_stmt == NULL) {
@@ -2121,6 +2082,12 @@ NULL.
       break;
     case sk_type:
       scp = &sym->variant.type->source_corresp;
+      break;
+    case sk_class_or_struct_tag:
+    case sk_union_tag:
+    case sk_enum_tag:
+      /* Struct, union, or enum tag. */
+      scp = &type_symbol_type(sym)->source_corresp;
       break;
 #endif /* CHECKING */
     case sk_class_template:

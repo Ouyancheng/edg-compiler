@@ -141,8 +141,14 @@ extern void set_arg_transfer_method_flag(a_param_type_ptr   ptp,
 extern a_param_type_ptr make_param_type(a_type_ptr         tp,
                                         a_source_position  *decl_pos);
 
+extern a_boolean may_be_added_to_types_list(a_type_ptr     type_ptr,
+                                            a_scope_depth  decl_level);
+
 extern void add_to_types_list(a_type_ptr     type_ptr,
                               a_scope_depth  scope_level);
+
+extern void move_to_end_of_types_list(a_type_ptr     type_ptr,
+                                      a_scope_depth  scope_level);
 
 extern an_integer_kind char_int_kind_from_string_type(a_type_ptr str_type);
 
