@@ -1147,6 +1147,37 @@ a_boolean def_initializer(a_symbol_ptr       sym,
 
 
 a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout)
+/*
+Process the explicit and implicit constructor initializations for constructor
+routine ctor_rout.
+
+The explicit initialization are scanned from the source, based on the
+following syntax:
+
+    ctor-initializer
+              ":" mem-initializer-list
+    mem-initializer
+              complete-class-name "(" expression-list    ")"
+                                                     opt
+              identifier "(" expression-list    ")"
+                                            opt
+
+complete-class-name identifies a base class from which the class to which
+the constructor belongs is derived, in which case the initializer list entry
+means "invoke the constructor X::X with the (possibly null) actual arguments
+given by expression-list".  identifier represents a nonstatic data member of
+the current class, and expression-list contains the value(s) with which it
+is to be initialized.
+
+The implicit initializations are performed for base classes and class-type
+data members for which no explicit initializers were specified and for which
+constructor initialization is required; in such cases default constructors
+are invoked.
+
+There are rules governing order of initialization, virtual base classes, and
+which subojects require initialization and therefore must be implicitly
+initialized.  These are addressed in the course of the processing.
+*/
 {
   a_boolean                     err;
   a_type_ptr                    class_type, init_type, tp, array_type;
