@@ -3745,8 +3745,13 @@ to NULL.
         redecl_error_already_issued = TRUE;
         /* We can't add a symbol to the overload list, so change to locator
            to an error locator to prevent hiding the overload symbol when the
-           new symbol is entered.. */
+           new symbol is entered. */
         set_to_error_locator(*locator);
+        /* Don't treat this as a template function specific declaration even
+           if it was previously thought to be.  Do treat it as a redeclaration
+           error. */
+        template_function_specific_decl = FALSE;
+        linked_redecl_error = TRUE;
       } else if (template_function_specific_decl) {
         /* This is an explicit declaration of a template function.  Its symbol
            is already on the template's function instantiation list, but it
