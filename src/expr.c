@@ -2207,26 +2207,8 @@ bound with the function in *bound_function_selector.
       dtor_type = qualifier_class_type(locator_for_curr_id);
       if (is_error_locator(locator_for_curr_id) || dtor_type == NULL) {
         err = TRUE;
-      }  /* if */
-      if (!err) {
-        /* Check that the type of the thing named on the right side
-           is the same as the type of the left side, or a base class. */
+      } else {
         dtor_type = skip_typerefs(dtor_type);
-        if (types_are_compatible(class_struct_union_type, dtor_type) ||
-            (is_class_struct_union_type(dtor_type) &&
-             operand_1_is_complete_class &&
-             is_same_class_or_base_class_thereof(class_struct_union_type,
-                                                 dtor_type))) {
-          /* Okay. */
-        } else {
-          /* This is an error case like
-               float *p;
-               p->int::~int();
-          */
-          pos_error(ec_vacuous_destructor_name_mismatch,
-                    &qualified_member_position);
-          err = TRUE;
-        }  /* if */
       }  /* if */
     } else {
       /* Not a vacuous destructor case, i.e., normal case. */

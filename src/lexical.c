@@ -8143,6 +8143,25 @@ selection operator, in which case it points to the type of the left operand.
         curr_token = tok_identifier;
       }  /* if */
       locator_for_curr_id.is_destructor_name = TRUE;
+      if (!err && field_sel_type != NULL) {
+        /* When field_sel_type is non-NULL we are processing the right hand
+           side of a field selection (e.g., "p->~X()").  Make sure that the
+           destructor type that has been found matches the type of the
+           left operand. */
+        check_assertion(dtor_type != NULL);
+        if (!identical_types(field_sel_type, dtor_type)) {
+          pos_ty_error(ec_invalid_destructor_name, &tilde_position,
+                       field_sel_type);
+          err = TRUE;
+        }  /* if */
+      }  /* if */
+      if (err) {
+        /* An error has occurred.  Set the result types to NULL to prevent
+           subsequent errors. */
+        qualifier_type = NULL;
+        dtor_type = NULL;
+        dtor_class_type = NULL;
+      }  /* if */
     } else if (((options & GID_DTOR_RECOGNIZED) ||
                 (is_qualified_name && qualifier_is_type)) &&
                !is_file_scope_qualified_name) {
