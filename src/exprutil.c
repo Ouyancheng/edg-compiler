@@ -1847,8 +1847,10 @@ except for casts to ambiguous or inaccessible base classes.
      ok_expression the node type would have to be adjusted as well.
      Leave that to cast_node.  However, we can check for exact pointer
      equality ("il_identical_types" includes some cases where the pointers
-     aren't exactly the same). */
-  if (new_type != operand->type) {
+     aren't exactly the same).  Don't do the optimization for constants,
+     because type_change_constant does some special things with null
+     pointer constants and casts. */
+  if (new_type != operand->type && !is_constant_operand(operand)) {
     /* Save the operand's source position, etc. */
     orig_operand = *operand;
     if (m_is_error_type(new_type)) {
@@ -2491,6 +2493,7 @@ a_boolean check_compatibility_of_pointer_operands(
 /*
 operand_1 and operand_2 are the operands of a pointer operation.  Check
 to see that the operands are compatible or can be made compatible.
+One or the other of the operands, or both, must have a pointer type.
 Return the operation type in *operation_type.  (The operands are not cast
 to the operation type; the caller must do that.)  operator_position gives the
 operator position (for errors).  The other switches indicate the legality
@@ -2525,15 +2528,17 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
                       (C_mode() &&
                        is_constant_operand(operand_1) &&
                        is_null_pointer_constant(&operand_1->variant.constant));
-      if (!operand_1_is_void_star_0 &&
-          impl_pointer_conversion(operand_2_type,
-                                  is_constant_operand(operand_2),
-                                  &operand_2->variant.constant,
-                                  operand_1_type,
-                                  /*check_as_operands_not_conversion=*/TRUE,
-                                  suppress_extensions,
-                                  ec_incompatible_operands,
-                                  &std_conv)) {
+      if (operand_1_is_void_star_0 && operand_2_is_pointer) {
+        /* Don't try the conversion in this direction -- leave it to be done
+           in the other direction below. */
+      } else if (impl_pointer_conversion(operand_2_type,
+                                         is_constant_operand(operand_2),
+                                         &operand_2->variant.constant,
+                                         operand_1_type,
+                                     /*check_as_operands_not_conversion=*/TRUE,
+                                         suppress_extensions,
+                                         ec_incompatible_operands,
+                                         &std_conv)) {
         *operation_type = operand_1_type;
         okay = TRUE;
         break;
@@ -2549,15 +2554,17 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
                       (C_mode() &&
                        is_constant_operand(operand_2) &&
                        is_null_pointer_constant(&operand_2->variant.constant));
-      if ((!operand_2_is_void_star_0 || operand_1_is_void_star_0) &&
-          impl_pointer_conversion(operand_1_type,
-                                  is_constant_operand(operand_1),
-                                  &operand_1->variant.constant,
-                                  operand_2_type,
-                                  /*check_as_operands_not_conversion=*/TRUE,
-                                  suppress_extensions,
-                                  ec_incompatible_operands,
-                                  &std_conv)) {
+      if (operand_2_is_void_star_0 && operand_1_is_pointer &&
+          !operand_1_is_void_star_0) {
+        /* Don't try the conversion in this direction. */
+      } else if (impl_pointer_conversion(operand_1_type,
+                                         is_constant_operand(operand_1),
+                                         &operand_1->variant.constant,
+                                         operand_2_type,
+                                     /*check_as_operands_not_conversion=*/TRUE,
+                                         suppress_extensions,
+                                         ec_incompatible_operands,
+                                         &std_conv)) {
         *operation_type = operand_2_type;
         okay = TRUE;
         break;
@@ -5295,6 +5302,8 @@ expression to "!= 0" form if necessary.
            constant. */
         make_integer_constant_operand(operand,
                                       (long)(!op_is_false_constant(operand)));
+        operand->variant.constant.null_pointer_constant_ruled_out =
+                 orig_operand.variant.constant.null_pointer_constant_ruled_out;
         break;
 #if CHECKING
       default:
