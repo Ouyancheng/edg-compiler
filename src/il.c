@@ -16,6 +16,7 @@ il.c -- Construction of intermediate language trees.
 #include "basics.h"
 #include "host_envir.h"
 #include "il.h"
+#include "il_walk.h"
 #include "mem_tables.h"
 #include "mem_manage.h"
 #include "target.h"
@@ -5504,14 +5505,14 @@ of the front end.
                                                    0;  /* Arbitrary: 0 or 1. */
   /* Variable in il_def.h: */
 #if CHECKING
-#if ORPHANED_PROCESSING_NEEDED
+#if ORPHAN_PROCESSING_NEEDED
   /* Check that the table of il-entry sizes is correctly initialized, i.e.,
      that the enumeration an_il_entry_kind and the array sizeof_il_entry
      are in sync. */
   if (sizeof_il_entry[(int)iek_last] != IEK_LAST_CHECK_SIZE) {
     internal_error("il_init: bad initialization of sizeof_il_entry");
   }  /* if */
-#endif /* if ORPHANED_PROCESSING_NEEDED */
+#endif /* if ORPHAN_PROCESSING_NEEDED */
 #if DEBUG
   /* Check that the table of storage class names is correctly initialized.
      This guards against someone changing the enumeration and forgetting to
