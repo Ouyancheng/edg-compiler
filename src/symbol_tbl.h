@@ -970,6 +970,14 @@ Extract the type from a type symbol (one for which is_type_symbol is TRUE).
                                (sym)->variant.type :                  \
                                (sym)->variant.class_struct_union.type)
 
+/*
+Extract a pointer to the class symbol supplement for a given type for
+which is_class_struct_union_type is TRUE.
+*/
+#define symbol_supplement_for_class(tp)                              \
+  (((a_symbol_ptr)(skip_typerefs(tp))->source_corresp.assoc_info)->  \
+                            variant.class_struct_union.extra_info)
+
 /* Return a pointer to the current routine entry (only usable when within
    a routine definition). */
 #define current_routine_entry()                                       \
