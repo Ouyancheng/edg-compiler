@@ -3167,7 +3167,8 @@ are not checked.
                                        ->class_type->source_corresp.assoc_info,
                         corresp_friend_sym = (a_symbol_ptr)corresp_cle
                                        ->class_type->source_corresp.assoc_info;
-          if ((trans_unit_corresp_of(cle->class_type) == NULL ||
+          if (same_name(cle->class_type, corresp_cle->class_type) &&
+              (trans_unit_corresp_of(cle->class_type) == NULL ||
                trans_unit_corresp_of(corresp_cle->class_type) == NULL) &&
               !cle->class_type->source_corresp.is_class_member &&
               !corresp_cle->class_type->source_corresp.is_class_member &&
