@@ -4739,6 +4739,13 @@ static a_constant_ptr specific_template_param_constant;
 static a_boolean ttt_contains_template_param_constant(
                                        a_type_ptr  type_ptr,
                                        a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  If specific_template_param_constant is NULL, it
+returns TRUE if type_ptr is is based on a template parameter constant.  If
+specific_template_param_type is non-NULL, it returns TRUE if type_ptr is
+based on the specified template parameter constant.
+*/
 {
   an_expr_node_ptr    count;
   a_template_arg_ptr  tap;
@@ -4755,11 +4762,6 @@ static a_boolean ttt_contains_template_param_constant(
       }  /* if */
     }  /* if */
   } else if (is_class_struct_union(type_ptr)) {
-    /* For nested classes only the outermost class can have template
-       arguments.  Find the outermost class before doing the check. */
-    while (type_ptr->source_corresp.is_class_member) {
-      type_ptr = type_ptr->source_corresp.parent.class_type;
-    }  /* while */
     /* Examing each template argument, if any. */
     for (tap = type_ptr->variant.class_struct_union.extra_info->
                                                          template_arg_list;
@@ -5023,12 +5025,6 @@ its parameters?).
 check_enclosing_classes:
         /* Conditional traversal of contained types. */
         if (flags & TTT_TEMPLATE_ARGS) {
-	  /* For nested classes only the outermost class can have
-	     template arguments.  Find the outermost class before doing
-	     the check. */
-          while (type_ptr->source_corresp.is_class_member) {
-            type_ptr = type_ptr->source_corresp.parent.class_type;
-          }  /* while */
           for (tap = type_ptr->variant.class_struct_union.extra_info->
                                                           template_arg_list;
                tap != NULL;
@@ -5041,6 +5037,10 @@ check_enclosing_classes:
               }  /* if */
             }  /* if */
           }  /* for */
+          if (!status && type_ptr->source_corresp.is_class_member) {
+            tp = type_ptr->source_corresp.parent.class_type;
+            status = traverse_type_tree(tp, func, flags);
+          }  /* if */      
         }  /* if */
         break;
       case tk_ptr_to_member:
