@@ -746,6 +746,14 @@ Initialize the option information table.
                          "no_const_string_literals",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_class_name_injection,
+                         "class_name_injection",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_class_name_injection,
+                         "no_class_name_injection",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1163,6 +1171,9 @@ by a command line option.
     }  /* if */
     if (!option_kind_used[(int)optk_const_string_literals]) {
       string_literals_are_const = FALSE;
+    }  /* if */
+    if (!option_kind_used[(int)optk_class_name_injection]) {
+      class_name_injection_enabled = FALSE;
     }  /* if */
     if (!option_kind_used[(int)optk_late_tiebreaker]) {
       do_late_ovl_res_tiebreaker = microsoft_bugs;
@@ -1945,6 +1956,11 @@ enable_microsoft_mode:
         /* String literals are const. */
         string_literals_are_const = opt_value;
         break;
+      case optk_class_name_injection:
+        /* Class names should or should not be injected into the scope of
+           the class. */
+        class_name_injection_enabled = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -2046,6 +2062,9 @@ enable_microsoft_mode:
     if (option_kind_used[(int)optk_nonstandard_qualifier_deduction]) {
       command_line_error(
               ec_cl_nonstandard_qualifier_deduction_option_only_in_cplusplus);
+    }  /* if */
+    if (option_kind_used[(int)optk_class_name_injection]) {
+      command_line_error(ec_cl_class_name_injection_option_only_in_cplusplus);
     }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
     if (option_kind_used[(int)optk_one_instantiation_per_object]) {
@@ -2306,6 +2325,11 @@ enable_microsoft_mode:
         /* If string_literals_are_const was not explicitly set by a
            command line option, set it now. */
         string_literals_are_const = TRUE;
+      }  /* if */
+      if (!(option_kind_used[(int)optk_class_name_injection])) {
+        /* If class name injection was not explicitly set by a command
+           line option, set it now. */
+        class_name_injection_enabled = TRUE;
       }  /* if */
       if (!(option_kind_used[(int)optk_nonstandard_qualifier_deduction])) {
         /* If nonstandard_qualifier_deduction was not set on the command line,

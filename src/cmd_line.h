@@ -174,6 +174,7 @@ typedef enum /*an_option_kind*/ {
   optk_import_dir,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_const_string_literals,
+  optk_class_name_injection,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -461,6 +462,15 @@ EXTERN a_boolean
 			/* TRUE if string literals are const, i.e.,
 			   array[n] of const char.  Also controls wide
 			   string literals. */
+
+EXTERN a_boolean
+		class_name_injection_enabled
+#if VAR_INITIALIZERS
+                                             = DEFAULT_CLASS_NAME_INJECTION
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* TRUE if class names are injected into the scope
+			   of the class. */
 
 EXTERN a_boolean
 		special_subscript_cost

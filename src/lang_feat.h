@@ -311,6 +311,16 @@ The variable can also be controlled from the command line by
 #endif /* ifndef DEFAULT_STRING_LITERALS_ARE_CONST */
 
 /*
+Flag that is used as the default setting for global variable
+class_name_injection_enabled.  This controls whether the name of a
+class is injected into the scope of the class.  The variable can also
+be controlled from the command line by --[no_]class_name_injection.
+*/
+#ifndef DEFAULT_CLASS_NAME_INJECTION
+#define DEFAULT_CLASS_NAME_INJECTION TRUE
+#endif /* DEFAULT_CLASS_NAME_INJECTION */
+
+/*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
 should be allowed.  This flag in turn changes the default value of
 a set of configuration flags.
