@@ -1,5 +1,25 @@
 Version 2.16
 
+4/22/93  Bug in constructor wrapper code (IL Lowering)
+
+A bug in the code generated to access virtual base classes in constructor
+wrappers has been fixed.  The problem was that an uninitialized pointer
+to a virtual base class was used in determining the address of another
+virtual base class.
+
+  class Object {};
+  class Link : public virtual Object {};
+  class QLink : public Link {};
+  class AllLink : public Link {};
+  class Vehicle : public AllLink, public QLink {};
+  class LandVeh : public virtual Vehicle {};
+  LandVeh lv;
+
+The bad code was in the constructor for LandVeh.  This problem only
+occurred with very complicated virtual base class interactions, and only
+when cfront layout compatibility is chosen (which is the default when we
+ship the front end).
+
 4/21/93  Bug in computing base class offsets
 
 A bug in the management of base classes has been fixed.  It could only

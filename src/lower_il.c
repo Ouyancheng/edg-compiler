@@ -872,39 +872,6 @@ operand.
 }  /* operator_takes_lvalue_operand */
 
 
-static a_base_class_ptr find_direct_base_class_of(a_type_ptr derived_class,
-                                                  a_type_ptr base_class)
-/*
-derived_class and base_class are both class types, and base_class is a
-direct base class of derived_class.  Find the corresponding base class
-entry and return a pointer to it.
-*/
-{
-  a_base_class_ptr bcp;
-
-#if CHECKING
-  if (!is_immediate_class_type(derived_class)) {
-    internal_error("find_direct_base_class_of: bad derived_class type");
-  }  /* if */
-  if (!is_immediate_class_type(base_class)) {
-    internal_error("find_direct_base_class_of: bad base_class type");
-  }  /* if */
-#endif /* CHECKING */
-  for (bcp = derived_class->variant.class_struct_union.extra_info->
-                                                                  base_classes;
-       ;
-       bcp = bcp->next) {
-#if CHECKING
-    if (bcp == NULL) {
-      internal_error("find_direct_base_class: virtual base class not found");
-    }  /* if */
-#endif /* CHECKING */
-    if (bcp->direct && bcp->type == base_class) break;
-  }  /* for */
-  return bcp;
-}  /* find_direct_base_class_of */
-
-
 static a_base_class_ptr find_virtual_base_class_of(a_type_ptr derived_class,
                                                    a_type_ptr virt_base_class)
 /*
@@ -2050,9 +2017,47 @@ assumed to point at a complete object.
       /* The virtual base class is allocated in a base class.  Get the address
          of the proper base class. */
       if (data_section_bcp->is_virtual) {
+        /* The base class is virtual. */
         node = make_cobj_vbase_class_lvalue(node, data_section_bcp);
-      } else {
+      } else if (!data_section_bcp->any_virtual_steps_in_derivation) {
+        /* The base class is not virtual and there are no virtual steps in
+           getting to it. */
         node = make_base_class_lvalue(node, data_section_bcp);
+      } else {
+        /* The base class is not virtual and there is at least one virtual
+           step in getting to it. */
+        a_derivation_step_ptr dsp, virt_dsp = NULL;
+        a_type_ptr            step_class_type;
+        /* Find the last virtual step in the derivation. */
+        for (dsp = data_section_bcp->derivation;
+             dsp != NULL;
+             dsp = dsp->next) {
+          if (dsp->base_class->is_virtual) virt_dsp = dsp;
+        }  /* for */
+        check_assertion(virt_dsp != NULL);
+        /* Use recursion to get to the class of the last virtual step. */
+        node = make_cobj_vbase_class_lvalue(node, virt_dsp->base_class);
+        /* Do the non-virtual steps that follow the last virtual step.
+           In the following, step_class_type is the class type from the
+           derivation we're following, and node_class_type is the class type
+           from the expression node so far, which will be either the same as
+           step_class_type or will be the associated type-as-subobject. */
+        step_class_type = virt_dsp->base_class->type;
+        for (dsp = virt_dsp->next; dsp != NULL; dsp = dsp->next) {
+          a_base_class_ptr step_bcp;
+          a_type_ptr       node_class_type;
+          /* Get the base class that describes the step from the class we
+             have to the next level in the derivation. */
+          step_bcp = find_direct_base_class_of(step_class_type,
+                                               dsp->base_class->type);
+          /* Add a field selection down to the next level. */
+          node_class_type = type_pointed_to(node->type);
+          node_class_type = skip_typerefs(node_class_type);
+          node = field_lvalue_selection_expr(node,
+                                             field_at_offset(node_class_type,
+                                                            step_bcp->offset));
+          step_class_type = dsp->base_class->type;
+        }  /* for */
       }  /* if */
       /* The following line does not use data_section_bcp->type because the
          type here could be either that type or the corresponding
@@ -2074,7 +2079,7 @@ static an_expr_node_ptr make_cobj_vbase_class_lvalue_from_var(
                                                          a_base_class_ptr bcp)
 /*
 Make an expression node that is an lvalue for the base class bcp of the
-class pointed to by node.  Return a pointer to the new node.  node is
+class pointed to by var.  Return a pointer to the new node.  var is
 assumed to point at a complete object.
 */
 {
