@@ -242,11 +242,6 @@ static a_boolean
 			   added entities should be generated at the end of
 			   the compilation. */
 
-static a_text_buffer_ptr
-		file_read_buffer;
-			/* Buffer used when reading from the various template
-			   files. */
-
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 typedef struct a_can_instantiate_entry *a_can_instantiate_entry_ptr;
@@ -17333,44 +17328,6 @@ symbol_found:
 }  /* find_instance */
 
 
-static char *read_line_from_file(FILE *f_file)
-/*
-Reads a line of input from the file specified by f_file.  Returns a pointer
-to a buffer containing the line read, or NULL at end-of-file.  The pointer
-returned points to a static buffer that is reused for each call.
-*/
-{
-  int      ch;
-  char     *result;
-
-  reset_text_buffer(file_read_buffer);
-  while (ch = getc(f_file), ch != EOF && ch != '\n') {
-    add_char_to_text_buffer(file_read_buffer, (char)ch);
-  }  /* while */
-  /* Determine whether to return end-of-file (NULL). */
-  result = file_read_buffer->buffer;
-  if (ch == EOF && file_read_buffer->size == 0) {
-    result = NULL;
-  } else if (file_read_buffer->size > 0) {
-    /* Strip any trailing blanks.*/
-    char	*ptr = &file_read_buffer->buffer[file_read_buffer->size - 1];
-    char	*orig_ptr = ptr;
-    /* Find the last non-blank. */
-    while (*ptr == ' ' && ptr >= result) ptr--;
-    if (ptr != orig_ptr) {
-      /* Set the position at which to add characters to one past the last
-         non blank.  If the buffer is all blanks, this will make the buffer
-         empty. */
-      ptr++;
-      set_buffer_position(file_read_buffer, ptr);
-    }  /* if */
-  }  /* if */
-  /* Terminate string with a null character. */
-  add_char_to_text_buffer(file_read_buffer, '\0');
-  return (result);
-}  /* read_line_from_file */
-
-
 static a_boolean open_instantiation_request_file(void)
 /*
 Open the instantiation request file associated with the primary source
@@ -21202,8 +21159,6 @@ Initializations for template.
   f_exported_template = NULL;
   remove_exported_template_file = FALSE;
   memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
-  /* Allocate a buffer used to read the various template files. */
-  file_read_buffer = alloc_text_buffer(1024);
   memzero((char *)template_lookup_table, sizeof(template_lookup_table));
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 }  /* templates_init */

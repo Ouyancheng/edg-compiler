@@ -1376,6 +1376,19 @@ Add "length" characters of "string" to the text buffer pointed to "buffer".
   buffer->size = new_size;
 }  /* add_to_text_buffer */
 
+
+void remove_null_terminator_from_text_buffer(a_text_buffer_ptr	buffer)
+/*
+If the last character of the text buffer is a null terminator, update
+the buffer size to remove the terminator from the string (so that other
+text can be added).
+*/
+{
+  if (buffer->size > 0 && buffer->buffer[buffer->size - 1] == '\0') {
+    buffer->size--;
+  }  /* if */
+}  /* remove_null_terminator_from_text_buffer */
+
 #if DEBUG
 
 void db_text_buffer(char		*prefix,

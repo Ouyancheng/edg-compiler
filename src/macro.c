@@ -481,6 +481,7 @@ Clear a macro definition entry to default values.
   mdp->variadic                            = FALSE;
   mdp->param_list                          = NULL;
   mdp->repl_text                           = NULL;
+  mdp->is_predefined                       = FALSE;
 #if RECORD_MACROS_IN_IL
   mdp->macro                               = NULL;
 #endif /* RECORD_MACROS_IN_IL */
@@ -3227,8 +3228,7 @@ the macro definition.
   set_source_corresp(&mp->source_corresp, macro_sym);
   mdp->macro = mp;
   mp->is_command_line_definition = (curr_command_line_macro_def != NULL);
-  mp->is_predefined = (macro_pos->seq == 0 &&
-                       macro_pos->column == SP_COL_UNKNOWN);
+  mp->is_predefined = mdp->is_predefined;
   /* Add the macro to the IL list. */
   add_to_macros_list(mp);
 }  /* make_il_macro_entry */
@@ -3309,6 +3309,24 @@ beginning of the encoding of the replacement list.
   }  /* if */
 }  /* db_dump_macro_def */
 #endif /* DEBUG */
+
+static a_boolean equiv_replacement_text(char		*repl_text,
+					sizeof_t	repl_text_length,
+					a_macro_def_ptr	mdp)
+/*
+Return TRUE if the replacement text specified by repl_text, with a length
+of repl_text_length is the same as that of the macro definition mdp.  Note
+that repl_text_length does not include the rt_null terminator.
+*/
+{
+  a_boolean	result;
+
+  result = mdp->repl_text != NULL &&
+           smemcmp(mdp->repl_text, repl_text, repl_text_length) == 0 &&
+           mdp->repl_text[repl_text_length] == (char)rt_null;
+  return result;
+}  /* equiv_replacement_text */
+
 
 void proc_define(void)
 /*
@@ -3728,9 +3746,7 @@ Scan and process a #define directive.
       sizeof_t new_length = next_avail_in_macro_buffer - buffer_start;
       mdp = assoc_symbol->variant.macro_def;
       if ((a_boolean)mdp->object_like == object_like &&
-          mdp->repl_text != NULL &&
-          smemcmp(mdp->repl_text, buffer_start, new_length) == 0 &&
-          mdp->repl_text[new_length] == (char)rt_null) {
+          equiv_replacement_text(buffer_start, new_length, mdp)) {
         /* Check parameter lists to make sure they match. */
         for (pp = param_list, pp2 = mdp->param_list;
              pp != NULL && pp2 != NULL;
@@ -4357,39 +4373,62 @@ repl_text_length is not NULL.
 }  /* make_repl_text */
 
 
-a_symbol_ptr enter_predef_macro(char      *repl_text,
+a_symbol_ptr enter_predef_macro(char      *macro_value,
                                 char      *macro_name,
                                 a_boolean cannot_be_redefined,
                                 a_boolean ref_suppresses_pch_file)
 /*
-Enter a predefined macro.  macro_name is the name, repl_text the replacement
+Enter a predefined macro.  macro_name is the name, macro_value the replacement
 text string (or NULL for a special macro).  cannot_be_redefined is TRUE
 if this is a predefined macro that cannot be redefined.  A pointer to the
 symbol entry is returned.
 */
 {
-  register a_symbol_ptr    sym_ptr;
-  register a_macro_def_ptr mdp;
+  a_symbol_ptr		sym_ptr;
+  a_macro_def_ptr	mdp;
+  a_symbol_locator	locator;
+  char			*repl_text = NULL;
+  sizeof_t		repl_text_length = 0;
 
-  sym_ptr = full_enter_symbol(macro_name, (sizeof_t)(strlen(macro_name)),
-                              (a_symbol_kind)sk_macro, NO_SCOPE_DEPTH);
-  sym_ptr->variant.macro_def = mdp = alloc_macro_def();
-  mdp->object_like = TRUE;
-  mdp->cannot_be_redefined = cannot_be_redefined;
-  mdp->ref_suppresses_pch_file = ref_suppresses_pch_file;
-  mdp->param_list  = NULL;
-  mdp->repl_text   = (repl_text != NULL) ?
-                          make_repl_text(repl_text, (sizeof_t*)NULL) : NULL;
-#if RECORD_MACROS_IN_IL
-  /* Insert predefined macros into the macro list.  This covers
-     macros like __STDC__, __cplusplus, and __DATE__. */
-  if (mdp->repl_text != NULL) {
-    a_source_position pos;
-    pos.seq = 0;
-    pos.column = SP_COL_UNKNOWN;
-    make_il_macro_entry(sym_ptr, &pos);
+  /* Construct a replacement text string for the macro value. */
+  if (macro_value != NULL) {
+    repl_text = make_repl_text(macro_value, &repl_text_length);
   }  /* if */
+  /* Look for a previous definition of the predefined macro.  If found, it
+     must have the same replacement string. */
+  clear_locator(&locator, &null_source_position);
+  sym_ptr = find_macro_symbol_by_name(macro_name, strlen(macro_name),
+                                      &locator);
+  if (sym_ptr != NULL) {
+    /* Make sure that the replacement text is the same.  The "-1" is
+       needed because the length returned by make_repl_text includes the
+       rt_null terminator. */
+    if (!equiv_replacement_text(repl_text, repl_text_length - 1,
+                                 sym_ptr->variant.macro_def)) {
+      /* The macro definition is not the same as the previous one. */
+      str_catastrophe(ec_bad_predef_macro_redef, macro_name);
+    }  /* if */
+  } else {
+    sym_ptr = full_enter_symbol(macro_name, (sizeof_t)(strlen(macro_name)),
+                                (a_symbol_kind)sk_macro, NO_SCOPE_DEPTH);
+    sym_ptr->variant.macro_def = mdp = alloc_macro_def();
+    mdp->object_like = TRUE;
+    mdp->cannot_be_redefined = cannot_be_redefined;
+    mdp->is_predefined = TRUE;
+    mdp->ref_suppresses_pch_file = ref_suppresses_pch_file;
+    mdp->param_list  = NULL;
+    mdp->repl_text   = repl_text;
+#if RECORD_MACROS_IN_IL
+    /* Insert predefined macros into the macro list.  This covers
+       macros like __STDC__, __cplusplus, and __DATE__. */
+    if (mdp->repl_text != NULL) {
+      a_source_position pos;
+      pos.seq = 0;
+      pos.column = SP_COL_UNKNOWN;
+      make_il_macro_entry(sym_ptr, &pos);
+    }  /* if */
 #endif /* RECORD_MACROS_IN_IL */
+  }  /* if */
   return(sym_ptr);
 }  /* enter_predef_macro */
 
@@ -4727,6 +4766,229 @@ Enter symbols for the predefined macros of GNU C and C++.
 }  /* init_gnu_predefined_macros */
 
 
+void set_predef_macro_mode(a_predef_macro_mode	mode,
+			   a_boolean		value)
+/*
+Set the entry in the predefined macro mode value table entry of "mode"
+to "value".
+*/
+{
+  predef_macro_mode_values[(int)mode] = value;
+}  /* set_predef_macro_mode */
+
+
+static a_boolean get_predef_macro_mode_value(char	*name)
+/*
+Return the value of the predefined macro mode associated with "name".
+A catastrophic error is issued if the mode name is invalid.
+*/
+{
+  unsigned int		i;
+  a_predef_macro_mode	mode = pmm_none;
+
+  /* Look for the specified name in the mode names table. */
+  for (i = pmm_none + 1; i < (int)pmm_last; ++i) {
+    if (strcmp(name, predef_macro_mode_names[i]) == 0) {
+      mode = (a_predef_macro_mode)i;
+      break;
+    }  /* if */
+  }  /* for */
+  if (mode == pmm_none) {
+    /* No matching name was found. */
+    str_catastrophe(ec_bad_macro_mode_name, name);
+  }  /* if */
+  return predef_macro_mode_values[(int)mode];
+}  /* get_predef_macro_mode_value */
+
+
+static a_boolean process_predefined_macro_entry(char	*line,
+						char	**error_string)
+/*
+Scan a predefined macro file entry.  The format is:
+
+mode,!mode,mode   cannot_redefine   macro_name   macro_value
+
+- "mode" is a label from the predefined macro modes table.  The macro is
+  defined if the mode is set, or if the mode is not set when "!mode" is
+  used.  The macro is defined if any of the mode tests is TRUE.
+
+- cannot_redefine indicates whether the predefined macro may later be
+  redefined.  The value must be "yes" or "no".
+
+- macro_name is the name of the macro to be defined.
+
+- macro_value is the value to which the macro should be defined.  All of
+  the characters until the end of the line are used as the macro value.
+
+An entry may also be empty (just whitespace).  A line that begins with
+a "#" is a comment and is ignored.
+
+Return TRUE if the macro line was processed successfully, FALSE otherwise.
+When FALSE is returned, error_string points to a description of the error
+that occurred.
+*/
+{
+  char		*ptr;
+  a_boolean	result = FALSE;
+  a_boolean	done;
+  char		*end_pos;
+  a_boolean	cannot_redefine;
+  a_boolean	mode_value = FALSE;
+  char		*macro_value;
+  char		*macro_name;
+
+#if DEBUG
+  if (db_flag_is_set("predef_macro_entry")) {
+    fprintf(f_debug, "Predef macro line: %s\n", line);
+  }  /* if */
+#endif /* DEBUG */
+#define skip_blanks() for (; *ptr == ' ' || *ptr == '\t'; ++ptr) {}
+  *error_string = NULL;
+  ptr = line;
+  /* Skip any leading white space. */
+  skip_blanks();
+  /* Check for an empty or comment line. */
+  if (*ptr == '\0' || *ptr == '#') goto exit;
+  /* Process the mode flags. */
+  for (done = FALSE; !done;) {
+    a_boolean	required_value = TRUE;
+    /* Check for the "!" that indicates the mode must not be set. */
+    if (*ptr == '!') required_value = FALSE, ptr++;
+    /* Find the end of the mode. */
+    for (end_pos = ptr;
+         *end_pos != ',' && *end_pos != ' ' &&
+         *end_pos != '\t' && *end_pos != '\0'; end_pos++) {}
+    /* We shouldn't be at the end of the string. */
+    if (*end_pos == '\0') {
+      *error_string = "missing cannot-redefine flag";
+      goto error_exit;
+    }  /* if */
+    /* See if this is the last mode value. */
+    if (*end_pos != ',') done = TRUE;
+    /* Replace the delimiter with a null. */
+    *end_pos = '\0';
+    /* See if the specified mode matches the required value. */
+    if (get_predef_macro_mode_value(ptr) == required_value) mode_value = TRUE;
+    ptr = end_pos + 1;
+    /* There can't be white space in the mode list. */
+    if (!done && (*ptr == ' ' || *ptr == '\t')) {
+      *error_string = "missing mode after ','";
+      goto error_exit;
+    }  /* if */
+  }  /* for */
+  /* Skip any whitespace to find the cannot-redefine flag. */
+  skip_blanks();
+  /* Find the end of the cannot-redefine flag. */
+  for (end_pos = ptr;
+       *end_pos != ' ' && *end_pos != '\t' && *end_pos != '\0'; end_pos++) {}
+  /* We shouldn't be at the end of the string. */
+  if (*end_pos == '\0') {
+    *error_string = "missing macro name";
+    goto error_exit;
+  }  /* if */
+  /* Replace the delimiter with a null. */
+  *end_pos = '\0';
+  if (strcmp(ptr, "yes") == 0 ) {
+    cannot_redefine = TRUE;
+  } else if (strcmp(ptr, "no") == 0) {
+    cannot_redefine = FALSE;
+  } else {
+    /* An invalid cannot-redefine value. */
+    *error_string = "invalid cannot-redefine value";
+    goto error_exit;
+  }  /* if */
+  ptr = end_pos + 1;
+  /* Skip any whitespace to find the macro name. */
+  skip_blanks();
+  /* We shouldn't be at the end of the string. */
+  if (*ptr == '\0') {
+    *error_string = "missing macro name";
+    goto error_exit;
+  }  /* if */
+  macro_name = ptr;
+  /* Find the end of the name. */
+  for (end_pos = ptr;
+       *end_pos != ' ' && *end_pos != '\t' && *end_pos != '\0'; end_pos++) {}
+  /* Replace the delimiter with a null. */
+  *end_pos = '\0';
+  ptr = end_pos + 1;
+  /* Skip any whitespace to find the macro name. */
+  skip_blanks();
+  macro_value = ptr;
+  if (mode_value) {
+    /* The macro should be defined based on the mode parameters. */
+    enter_predef_macro(macro_value, macro_name, cannot_redefine,
+                       /*ref_suppresses_pch_file=*/FALSE);
+#if DEBUG
+    if (db_flag_is_set("predef_macro_entry")) {
+      fprintf(f_debug,
+              "  macro_name=%s, value=%s, mode_value=%s, cannot redefine=%s\n",
+              macro_name, macro_value, mode_value ? "TRUE" : "FALSE",
+              cannot_redefine ? "TRUE" : "FALSE");
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+exit:
+  result = TRUE;
+error_exit:
+  /* The error string should be set in error cases. */
+  check_assertion(result || *error_string != NULL);
+  return result;
+}  /* process_predefined_macro_entry */
+
+
+static FILE *open_predefined_macro_file(void)
+/*
+Construct the name of the predefined macro file, and open the file.
+Return the file descriptor.
+*/
+{
+  a_text_buffer_ptr	buf;
+  char			*file_name;
+  FILE			*f_file;
+
+  buf = combine_dir_and_file_name(edg_base_directory,
+                                  PREDEFINED_MACRO_DIR_NAME,
+                                  (a_text_buffer_ptr)NULL);
+  append_to_path_name(buf, PREDEFINED_MACRO_FILE_NAME);
+  file_name = buf->buffer;
+  f_file = fopen(file_name, "r");
+  if (f_file == NULL) {
+    str_catastrophe(ec_cannot_open_predef_macro_file, file_name);
+  }  /* if */
+  return f_file;
+}  /* open_predefined_macro_file */
+
+
+static void process_predefined_macro_file(void)
+/*
+Read macro definition entries from the file:
+
+  edg_base_directory/lib/PREDEFINED_MACRO_FILE_NAME
+
+PREDEFINED_MACRO_FILE_NAME is a macro whose value is used to create the
+file name.
+*/
+{
+  FILE		*f_predef_macros;
+  char		*line;
+  unsigned long	line_number = 0;
+  char		*error_string;
+
+  f_predef_macros = open_predefined_macro_file();
+  while ((line = read_line_from_file(f_predef_macros)) != NULL) {
+    line_number++;
+    if (!process_predefined_macro_entry(line, &error_string)) {
+      /* The predefined macro line was invalid. */
+      pos_str2_catastrophe(ec_bad_predef_macro_line,
+                           conv_unsigned_long_to_str(line_number),
+			   error_string, &null_source_position);
+    }  /* if */
+  }  /* while */
+  (void)fclose(f_predef_macros);
+}  /* process_predefined_macro_file */
+
+
 void init_predefined_macros(char  curr_date_time[26])
 /*
 Enter symbols for predefined macros, including those established by
@@ -5035,6 +5297,8 @@ command line -D options.
   }  /* if */
   /* Enter system specific macros and assertions. */
   enter_system_specific_predefined_macros_and_assertions();
+  /* Look for a file containing predefined macro definitions. */
+  if (use_predefined_macro_file) process_predefined_macro_file();
   /* Now process command-line defines of symbols (-D). */  
   process_command_line_macro_definitions(defs_from_cmd_line);
   /* Now undefines (-U).  Note that since they are done together after the

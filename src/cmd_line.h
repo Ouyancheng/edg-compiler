@@ -225,6 +225,7 @@ typedef enum /*an_option_kind*/ {
 #if NAMED_ADDRESS_SPACES_ALLOWED
   optk_named_address_spaces,
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+  optk_edg_base_directory,
 #if NAMED_REGISTERS_ALLOWED
   optk_named_registers,
 #endif /* NAMED_REGISTERS_ALLOWED */

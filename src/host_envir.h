@@ -1568,6 +1568,37 @@ options and #pragmas).
 #endif /* ifndef PCH_DECL_SEQ_THRESHOLD */
 
 /*
+The default directory to be used to find things such as the table of
+predefined macros.
+*/
+#ifndef DEFAULT_EDG_BASE
+#define DEFAULT_EDG_BASE ""
+#endif /* DEFAULT_EDG_BASE */
+
+/*
+The name of the directory in EDG_BASE that contains the predefined macro
+definition file.  May be an empty string, but not NULL.
+*/
+#ifndef PREDEFINED_MACRO_DIR_NAME
+#define PREDEFINED_MACRO_DIR_NAME "lib"
+#endif /* PREDEFINED_MACRO_DIR_NAME */
+
+/*
+The name of the predefined macro definition file to be used.
+*/
+#ifndef PREDEFINED_MACRO_FILE_NAME
+#define PREDEFINED_MACRO_FILE_NAME "predefined_macros.txt"
+#endif /* PREDEFINED_MACRO_FILE_NAME */
+
+/*
+Flag that is TRUE if the file specified by PREDEFINED_MACRO_FILE_NAME should
+be used to predefine macros at the start of compilation.
+*/
+#ifndef DEFAULT_USE_PREDEFINED_MACRO_FILE
+#define DEFAULT_USE_PREDEFINED_MACRO_FILE FALSE
+#endif /* DEFAULT_USE_PREDEFINED_MACRO_FILE */
+
+/*
 Some systems don't trap NULL pointer references.  This flag may be set
 TRUE on SVR4 systems (or systems with an SVR4-compatible mprotect call)
 to enable trapping of NULL pointer references.  This flag must only
@@ -1918,11 +1949,18 @@ handled separately.
 #define DIRECTORY_SEPARATOR_STRING "/"
 #endif /* DIRECTORY_SEPARATOR_STRING */
 
+/* Add a component to a path name. */
+extern void append_to_path_name(a_text_buffer_ptr	buffer,
+				char			*name);
+
 /* Combine a directory name and file name into a full path name. */
 extern a_text_buffer_ptr combine_dir_and_file_name(
 				char			*dir_name,
 				char			*file_name,
 				a_text_buffer_ptr	buffer);
+
+/* Read a line from a file. */
+extern char *read_line_from_file(FILE *f_file);
 
 /* Replace the suffix of a file name with a specified suffix. */
 extern void replace_file_name_suffix(char		*new_suffix,
@@ -2311,6 +2349,54 @@ EXTERN a_boolean
 		host_little_endian;
 			/* TRUE if the host system uses little-endian
 			   byte ordering. */
+
+EXTERN char	*edg_base_directory;
+			/* The directory in which to find files needed by
+			   the front end at execution time (e.g., the
+			   predefined macro table). */
+
+EXTERN a_boolean
+		use_predefined_macro_file
+#if VAR_INITIALIZERS
+					  = DEFAULT_USE_PREDEFINED_MACRO_FILE
+#endif /* VAR_INITIALIZERS */
+                                                                             ;
+			/* TRUE if the file specified by
+			   PREDEFINED_MACRO_FILE_NAME should be used to
+			   predefine macros at the start of compilation. */
+
+typedef enum a_predef_macro_mode {
+  pmm_none,
+  pmm_gnu,		/* Any GNU mode. */
+  pmm_gcc,		/* gcc mode. */
+  pmm_gpp,		/* g++ mode. */
+  pmm_microsoft,	/* Microsoft mode. */
+  pmm_strict,		/* Strict mode. */
+  pmm_cpp,		/* Compiling C++. */
+  pmm_last
+} a_predef_macro_mode;
+
+EXTERN a_boolean
+		predef_macro_mode_values[(int)pmm_last];
+			/* TRUE if a given predefined macro mode should be
+			   considered to be in effect. */
+
+EXTERN char	*predef_macro_mode_names[(int)pmm_last + 1]
+			/* A list of the mode strings that may be used in
+			   predefined macro definition entries. */
+#if VAR_INITIALIZERS
+= {
+/* pmm_none */		NULL,
+/* pmm_gnu */		"gnu",
+/* pmm_gcc */		"gcc",
+/* pmm_gpp */		"gpp",
+/* pmm_microsoft */	"gpp",
+/* pmm_strict */	"strict",
+/* pmm_cpp */		"cpp",
+/* pmm_last */		"last"
+}
+#endif /* VAR_INITIALIZERS */
+;
 
 #endif /* ifndef HOST_ENVIR_H */
 

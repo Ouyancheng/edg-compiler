@@ -129,6 +129,10 @@ Flags to be set when using the KAI inliner.
 
 #include "defines_solaris.h"
 
+#ifndef DEFAULT_EDG_BASE
+#define DEFAULT_EDG_BASE "/edg/cpfe"
+#endif /* DEFAULT_EDG_BASE */
+
 #if SUN_TEST_VERSION
 
 /* Options common to Sun-hosted versions. */

@@ -1381,6 +1381,11 @@ ec_register_storage_class_conflict;;"named-register storage class conflicts with
 ec_aliased_variable_cannot_have_register_storage_class;;"named-register storage class cannot be specified for aliased variable"
 ec_register_in_use;;"named-register storage specifier is already in use"
 ec_embedded_c_option_incompatible_with_individual_feature_options;;"option \"embedded_c\" cannot be combined with options to control individual Embedded C features"
+ec_cl_invalid_edg_base_directory;;"invalid EDG_BASE directory: "
+ec_cannot_open_predef_macro_file;;"cannot open predefined macro file: %sq"
+ec_bad_predef_macro_line;;"invalid predefined macro entry at line %s: %s2"
+ec_bad_macro_mode_name;;"invalid macro mode name %sq"
+ec_bad_predef_macro_redef;;"incompatible redefinition of predefined macro %sq"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

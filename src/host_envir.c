@@ -345,6 +345,10 @@ error -- unknown MS-DOS compiler.
 #endif /* __MICROSOFT_OS__ */
 
 
+static a_text_buffer_ptr
+		file_read_buffer;
+			/* Buffer used when reading from the various files. */
+
 static a_directory_name_entry_ptr
 		avail_directory_name_entries = NULL;
 			/* Available list of directory name entries. */
@@ -865,6 +869,55 @@ be passed to the back end.
 }  /* derived_name */
 
 
+void append_to_path_name(a_text_buffer_ptr	buffer,
+			 char			*name)
+/*
+Add "name" to the path name in "buffer".
+*/
+{
+  a_boolean need_to_add_slash = FALSE;
+
+  remove_null_terminator_from_text_buffer(buffer);
+  if (buffer->size > 0) {
+    /* The current path name is not empty.  Add a directory separator. */
+    /* See if a slash will have to be added between the two. */
+    char	last_char = buffer->buffer[buffer->size - 1];
+#if __VMS__
+    need_to_add_slash = FALSE;
+#else /* !__VMS__ */
+    need_to_add_slash = (last_char != DIRECTORY_SEPARATOR);
+#if __MICROSOFT_OS__
+    /* Under MSDOS, both kinds of slashes need to be checked. */
+    need_to_add_slash = need_to_add_slash && (last_char != '\\');
+#endif /* __MICROSOFT_OS__ */
+#endif /* __VMS__ */
+  } /* if */
+  if (need_to_add_slash) {
+    /* Add the slash following the directory name. */
+#if __MICROSOFT_OS__
+    char	separator_char;
+    if (strchr(dir_name, DIRECTORY_SEPARATOR) != NULL) {
+      /* The original path uses regular UNIX-style slashes; use one to splice
+         the file and path to make it look consistent. */
+      separator_char = DIRECTORY_SEPARATOR;
+    } else {
+      /* The directory name does not have any UNIX-style slashes or has no
+	 slashes at all.  In either case, under MSDOS, use an MSDOS-style
+	 slash. */
+      separator_char = '\\';
+    }  /* if */
+    add_char_to_text_buffer(buffer, separator_char);
+#else /* __MICROSOFT_OS__ */
+    add_char_to_text_buffer(buffer, DIRECTORY_SEPARATOR);
+#endif /* __MICROSOFT_OS__ */
+  }  /* if */
+  /* Add the file name to the directory name. */
+  add_string_to_text_buffer(buffer, name);
+  /* Add a null terminator. */
+  add_char_to_text_buffer(buffer, '\0');
+}  /* append_to_path_name */
+
+
 a_text_buffer_ptr combine_dir_and_file_name(
 				char			*dir_name,
 				char			*file_name,
@@ -876,9 +929,6 @@ in buffer, otherwise it is constructed in a default buffer (that will be
 overwritten by the next call that uses it).
 */
 {
-  sizeof_t  dir_length;
-  a_boolean need_to_add_slash;
-
   /* If no buffer was specified by the caller, use a default buffer. */
   if (buffer == NULL) {
     /* Allocate the default buffer the first time that it is needed. */
@@ -889,53 +939,55 @@ overwritten by the next call that uses it).
   }  /* if */
   /* Clear the buffer. */
   reset_text_buffer(buffer);
-  /* If the directory name is the current directory, then produce
-     a joined name that is just the file name.  This makes for nicer-looking
-     file names. */
-  dir_length = strlen(dir_name);
-  if (dir_length == 0) {
-    add_string_to_text_buffer(buffer, file_name);
-  } else {
-    /* See if a slash will have to be added between the two. */
-#if __VMS__
-    need_to_add_slash = FALSE;
-#else /* !__VMS__ */
-    need_to_add_slash = (dir_name[dir_length-1] != DIRECTORY_SEPARATOR);
-#if __MICROSOFT_OS__
-    /* Under MSDOS, both kinds of slashes need to be checked. */
-    need_to_add_slash = need_to_add_slash && (dir_name[dir_length-1] != '\\');
-#endif /* __MICROSOFT_OS__ */
-#endif /* __VMS__ */
-    /* Copy the directory name. */
-    add_string_to_text_buffer(buffer, dir_name);
-    if (need_to_add_slash) {
-      /* Add the slash following the directory name. */
-#if __MICROSOFT_OS__
-      char	separator_char;
-      if (strchr(dir_name, DIRECTORY_SEPARATOR) != NULL) {
-	/* The original path uses regular UNIX-style slashes; use one to splice
-	   the file and path to make it look consistent. */
-        separator_char = DIRECTORY_SEPARATOR;
-      } else {
-	/* The directory name does not have any UNIX-style slashes or has no
-	   slashes at all.  In either case, under MSDOS, use an MSDOS-style
-	   slash. */
-        separator_char = '\\';
-      }  /* if */
-      add_char_to_text_buffer(buffer, separator_char);
-#else /* __MICROSOFT_OS__ */
-      add_char_to_text_buffer(buffer, DIRECTORY_SEPARATOR);
-#endif /* __MICROSOFT_OS__ */
-    }  /* if */
-    /* Add the file name to the directory name. */
-    add_string_to_text_buffer(buffer, file_name);
-  }  /* if */
-  /* Add a null terminator. */
-  add_char_to_text_buffer(buffer, '\0');
+  add_string_to_text_buffer(buffer, dir_name);
+  /* Add the file name to the directory name. */
+  append_to_path_name(buffer, file_name);
   return buffer;
 }  /* combine_dir_and_file_name */
 
 #if !STANDALONE_UTILITY_PROGRAM
+
+char *read_line_from_file(FILE *f_file)
+/*
+Reads a line of input from the file specified by f_file.  Returns a pointer
+to a buffer containing the line read, or NULL at end-of-file.  The pointer
+returned points to a static buffer that is reused for each call.
+*/
+{
+  int      ch;
+  char     *result;
+
+  if (file_read_buffer == NULL) {
+    /* Allocate a buffer into which the line is read. */
+    file_read_buffer = alloc_text_buffer(1024);
+  }  /* if */
+  reset_text_buffer(file_read_buffer);
+  while (ch = getc(f_file), ch != EOF && ch != '\n') {
+    add_char_to_text_buffer(file_read_buffer, (char)ch);
+  }  /* while */
+  /* Determine whether to return end-of-file (NULL). */
+  result = file_read_buffer->buffer;
+  if (ch == EOF && file_read_buffer->size == 0) {
+    result = NULL;
+  } else if (file_read_buffer->size > 0) {
+    /* Strip any trailing blanks.*/
+    char	*ptr = &file_read_buffer->buffer[file_read_buffer->size - 1];
+    char	*orig_ptr = ptr;
+    /* Find the last non-blank. */
+    while (*ptr == ' ' && ptr >= result) ptr--;
+    if (ptr != orig_ptr) {
+      /* Set the position at which to add characters to one past the last
+         non blank.  If the buffer is all blanks, this will make the buffer
+         empty. */
+      ptr++;
+      set_buffer_position(file_read_buffer, ptr);
+    }  /* if */
+  }  /* if */
+  /* Terminate string with a null character. */
+  add_char_to_text_buffer(file_read_buffer, '\0');
+  return (result);
+}  /* read_line_from_file */
+
 
 void replace_file_name_suffix(char		*new_suffix,
                               a_text_buffer_ptr	file_name_buffer)
@@ -3200,6 +3252,11 @@ This is done before command line processing.
   macro_preinclude_file_tail = NULL;
   template_search_path = NULL;
   template_search_path_tail = NULL;
+  /* Get the name of the EDG_BASE directory.  This may be overridden by
+     a command-line option.  If the environment variable is not set, use
+     a built-time default value. */
+  edg_base_directory = getenv("EDG_BASE");
+  if (edg_base_directory == NULL) edg_base_directory = DEFAULT_EDG_BASE;
   /* Determine whether the host system is big or little endian. */
   /* Suppress the CodeCenter warning that would be issued because we
      access an "int" using a "char" pointer. */
@@ -3207,6 +3264,14 @@ This is done before command line processing.
   { int		i = 1;
     host_little_endian = (*(char *)&i) == 1;
   }
+  file_read_buffer = NULL;
+  /* Make sure the predefined macro mode enumeration and the array of
+     mode names match. */
+  check_assertion_str2(predef_macro_mode_names[(int)pmm_last] != NULL &&
+                       strcmp(predef_macro_mode_names[(int)pmm_last],
+                              "last") == 0,
+                       "host_envir_early_init",
+                       "predef_macro_mode_names not initialized properly");
 }  /* host_envir_early_init */
 
 

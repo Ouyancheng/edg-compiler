@@ -1,5 +1,59 @@
 Version 3.4
 
+4/27/04  Predefined macro definition file
+
+A new mechanism for specifying predefined macros is now provided.  The
+motivation for this feature is the fact that newer versions of g++ provide
+large numbers of predefined macros (see the g++ predefined macros entry
+below for more information about g++ compatibility), but this facility
+can be used for any sort of predefined macro.
+
+The front end can be configured to read macro definitions from a file.  The
+file EDG_BASE/PREDEFINED_MACRO_DIR_NAME/PREDEFINED_MACRO_FILE_NAME is read
+to provide the macro definitions.  The EDG_BASE directory can be specified
+by an environment variable (EDG_BASE), build-time macro (DEFAULT_EDG_BASE),
+or command-line option (--edg_base_dir).  PREDEFINED_MACRO_DIR_NAME and
+PREDEFINED_MACRO_FILE_NAME are configuration macros with default values of
+"lib" and "predefined_macros.txt".  The format of the entries in the file
+is:
+
+mode,!mode,mode   cannot_redefine   macro_name   macro_value
+
+- "mode" is a label from the predefined macro modes table.  The macro is
+  defined if the mode is set, or if the mode is not set when "!mode" is
+  used.  The macro is defined if any of the mode tests is TRUE.  The set
+  of mode values is specified in host_envir.h.
+
+- cannot_redefine indicates whether the predefined macro may later be
+  redefined.  The value must be "yes" or "no".
+
+- macro_name is the name of the macro to be defined.
+
+- macro_value is the value to which the macro should be defined.  All of
+  the characters until the end of the line are used as the macro value.
+
+For example:
+
+gcc no  __GXX_ABI_VERSION 102
+gpp no  __DBL_DENORM_MIN__ 4.9406564584124654e-324
+gnu no  __GNUC_PATCHLEVEL__ 0
+
+The file may also contain comments (lines that begin with a #) and
+empty lines.  The fields of each line are separated by white space.
+The DEFAULT_USE_PREDEFINED_MACRO_FILE macro specifies whether or not
+a predefined macro file should be used.
+
+4/27/04  GNU C++ compatibility: g++ predefined macros
+
+Recent versions of g++ (3.3 and above) predefine a large number of macros.
+The predefined macro definition file mechanism described above can be
+used to provide the appropriate predefined macros in g++ mode (it
+can also be used to provide the smaller number of macros predefined in
+gcc mode).  A script (make_predefined_macro_file) is provided that
+automatically generates the predefined_macros.txt file for a given
+version of gcc/g++.  It does this by invoking gcc and g++ and capturing
+the predefined macro information.
+
 4/23/04  C/C++-generating back ends: Typedef attributes
 
 The C- and C++-generating back ends previously generated every attribute

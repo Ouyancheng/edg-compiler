@@ -43,7 +43,7 @@ Linux using the gcc/g++ header files.
   (void)enter_predef_macro("int", "__PTRDIFF_TYPE__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-  (void)enter_predef_macro("unsigned", "__SIZE_TYPE__",
+  (void)enter_predef_macro("unsigned int", "__SIZE_TYPE__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
   (void)enter_predef_macro("1", "__linux__", /*cannot_be_redefined=*/TRUE,

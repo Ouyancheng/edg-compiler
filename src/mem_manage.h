@@ -323,6 +323,9 @@ extern void add_to_text_buffer(a_text_buffer_ptr	buffer,
 			       char			*string,
 			       sizeof_t			length);
 
+extern
+void remove_null_terminator_from_text_buffer(a_text_buffer_ptr	buffer);
+
 /*
 Add the specified string to a text buffer.
 */

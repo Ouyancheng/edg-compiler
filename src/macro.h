@@ -122,6 +122,9 @@ extern a_symbol_ptr enter_predef_macro(char      *repl_text,
 
 extern void fixup_predefined_macros(char  curr_date_time[26]);
 
+extern void set_predef_macro_mode(a_predef_macro_mode	mode,
+				  a_boolean		value);
+
 extern void init_predefined_macros(char  curr_date_time[26]);
 
 #if DEBUG

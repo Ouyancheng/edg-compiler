@@ -472,6 +472,8 @@ typedef struct a_macro_def {
   a_bit_field	variadic:1;
 			/* TRUE if the formal parameter list of this macro
 			   ended with the ellipsis token (an extension). */
+  a_bit_field	is_predefined:1;
+			/* TRUE for predefined macros. */
   a_macro_param_ptr
 		param_list;
 			/* Pointer to a list of entries describing the
