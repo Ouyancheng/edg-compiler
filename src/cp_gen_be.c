@@ -2097,6 +2097,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           (!scp->qualification_needed ||
            (options & GN_DECLARATION) ||
            (scp->partially_hidden_by_microsoft_injected_class_name &&
+            msvc_target_version_number < 1300 &&
             !(options & GN_QUALIFIER))) &&
           (scp->visible_as_unqualified_name ||
            (class_type->variant.class_struct_union.is_nonreal_class &&
@@ -2105,7 +2106,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         /* A qualified name is not needed, because we're inside a name context
            for the class and the name is not hidden.  Note a subtle case in
            Microsoft mode: if the hiding symbol was an injected class, the
-           hiding was effective only if the name was used as a qualifier. */
+           hiding was effective only if the name was used as a qualifier
+           (only in versions prior to 7.0). */
       } else {
         /* Use a qualified name. */
         if (entry_kind == iek_type &&

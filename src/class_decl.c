@@ -13493,7 +13493,10 @@ classes.
         if (microsoft_bugs &&
             class_type->variant.class_struct_union.extra_info->
                                                   template_arg_list != NULL) {
-          /* In Microsoft bugs mode, template class names are not injected. */
+          /* In Microsoft bugs mode, template class names are not injected.
+             (NB: code in check_hiding_by_inherited_names duplicates this
+             test to simulate an injected class name for the hidden name
+             table.  If this condition changes, so should that one.) */
         } else {
           enter_injected_class_name_symbol(tag_sym);
         }  /* if */

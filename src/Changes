@@ -1,5 +1,41 @@
 Version 3.5
 
+9/21/04 C++-generating back end: injected class names in Microsoft mode
+
+In Microsoft compilers prior to version 7.0, an injected class name was
+visible only when used as a qualifier (see Changes entries of 11/17/99 and
+3/4/03).  The C++-generating back end formerly generated code in Microsoft
+mode assuming that this nonstandard treatment of injected class names was in
+effect.  It has now been updated so that this assumption applies only if
+msvc_target_version_number is < 1300.  For example:
+
+  struct B { };
+  struct O {
+    struct B {
+    };
+    struct D: ::B {
+      O::B b;    // Formerly generated as "B b;" for all Microsoft versions,
+                 // now as "O::B b;" for Microsoft versions 7.0 and later
+    };
+  };
+
+Microsoft compilers through version 7.1 continue not to inject the name of
+a class template instance.  As a result, the C++-generating back end used
+unqualified names to refer to entities that would otherwise have been
+hidden by the injected name.  In order to produce more portable code, the
+C++ generating back end now qualifies such names, as if the class template
+name had been injected.  For instance:
+
+  template<typename T> struct iterator { };
+  struct vec {
+  public:
+    struct iterator: public ::iterator<bool> { }; 
+    struct const_iterator: public ::iterator<bool> {
+      const_iterator(vec::iterator x) { }  // Formerly generated as "iterator",
+                                           // now as "vec::iterator"
+    };
+  }; 
+
 9/20/04  Microsoft compatibility: missing in-class specialization definition
 
 Version 3.4 introduced a regression in the processing of in-class function

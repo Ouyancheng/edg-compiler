@@ -586,6 +586,56 @@ This allows the following example to work:
 }  /* check_defeatable_base_inaccessibility */
 
 
+static void record_defeatable_hiding_if_not_same(
+                                            a_symbol_ptr sym_ptr,
+                                            a_scope_ptr  sp,
+                                            a_boolean    sym_is_injected_class)
+/*
+Look up an inherited symbol in the current scope and record the hiding, if any.
+If sym_is_injected_class is TRUE, make sure that the found symbol and sym_ptr
+are not the same class type.
+*/
+{
+  a_symbol_ptr     old_sym_ptr;
+  a_symbol_locator locator;
+
+  /* Perform a lookup. */
+  clear_locator(&locator, &sym_ptr->decl_position);
+  locator.symbol_header = sym_ptr->header;
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+    fputs("    ...doing lookup (inherited names)\n", f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  (void)normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
+  old_sym_ptr = locator.specific_symbol;
+  /* If something was found, see if it is hidden by sym_ptr. */
+  if (old_sym_ptr != NULL) {
+    a_symbol_ptr  tag_sym = NULL;
+    if (sym_is_injected_class &&
+        (is_tag_symbol(old_sym_ptr) ||
+         is_class_template_symbol(old_sym_ptr))) {
+      tag_sym =
+           (a_symbol_ptr)(skip_typerefs(type_symbol_type(sym_ptr))->
+                                              source_corresp.assoc_info);
+    }  /* if */
+    if (tag_sym != NULL && symbols_are_equivalent(old_sym_ptr, tag_sym)) {
+      /* sym_ptr does not hide old_sym_ptr -- they represent the same
+         declaration. */
+    } else if (old_sym_ptr->decl_scope == file_scope_number ||
+               old_sym_ptr->is_class_member ||
+               old_sym_ptr->parent.namespace_ptr != NULL) {
+      /* The name hiding can be defeated by using a qualifier. */
+      record_defeatable_name_hiding(
+                              old_sym_ptr,
+                              /*tag_hidden_by_nontag=*/FALSE,
+                              /*hidden_class_or_namespace_member=*/TRUE,
+                              sp, sym_ptr);
+    }  /* if */
+  }  /* if */
+}  /* record_defeatable_name_hiding_if_not_same */
+
+
 static void check_hiding_by_inherited_names(a_type_ptr  class_type,
                                             a_scope_ptr sp,
                                             a_boolean   top_level)
@@ -643,41 +693,24 @@ hidden name checking on its own members, too.
       /* Unhide the injected class names since they can now be accessed
          using an unqualified name even if that was not so in the base. */
       check_name_unhiding(sym_ptr, sp);
-      /* Perform a lookup. */
-      clear_locator(&locator, &sym_ptr->decl_position);
-      locator.symbol_header = sym_ptr->header;
-#if DEBUG
-      if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
-        fputs("    ...doing lookup (inherited names)\n", f_debug);
-      }  /* if */
-#endif /* DEBUG */
-      (void)normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
-      old_sym_ptr = locator.specific_symbol;
-      /* If something was found, see if it is hidden by sym_ptr. */
-      if (old_sym_ptr != NULL) {
-        a_symbol_ptr  tag_sym = NULL;
-        if (is_injected_class_symbol(sym_ptr) &&
-            (is_tag_symbol(old_sym_ptr) ||
-             is_class_template_symbol(old_sym_ptr))) {
-          tag_sym =
-               (a_symbol_ptr)(skip_typerefs(type_symbol_type(sym_ptr))->
-                                                  source_corresp.assoc_info);
-        }  /* if */
-        if (tag_sym != NULL && symbols_are_equivalent(old_sym_ptr, tag_sym)) {
-          /* sym_ptr does not hide old_sym_ptr -- they represent the same
-             declaration. */
-        } else if (old_sym_ptr->decl_scope == file_scope_number ||
-                   old_sym_ptr->is_class_member ||
-                   old_sym_ptr->parent.namespace_ptr != NULL) {
-          /* The name hiding can be defeated by using a qualifier. */
-          record_defeatable_name_hiding(
-                                  old_sym_ptr,
-                                  /*tag_hidden_by_nontag=*/FALSE,
-                                  /*hidden_class_or_namespace_member=*/TRUE,
-                                  sp, sym_ptr);
-        }  /* if */
-      }  /* if */
+      /* Look up the name in the current scope and record the hiding. */
+      record_defeatable_hiding_if_not_same(sym_ptr,
+                                           sp,
+                                           is_injected_class_symbol(sym_ptr));
     }  /* for */
+    if (microsoft_bugs &&
+        class_type->variant.class_struct_union.extra_info->
+                                                   template_arg_list != NULL) {
+      /* Microsoft compilers do not inject the name of a template instance,
+         so this class does not contain an injected class name.  However, to
+         enable the C++-generating back end to generate correctly-qualified
+         code for consumption by other compilers, we need to simulate an
+         injected class name in this case for hidden name processing. */
+      sym_ptr = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+      record_defeatable_hiding_if_not_same(sym_ptr,
+                                           sp,
+                                           /*sym_is_injected_class=*/TRUE);
+    }  /* if */
   }  /* if */
 }  /* check_hiding_by_inherited_names */
 
