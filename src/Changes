@@ -1,5 +1,18 @@
 Version 2.27
 
+11/14/94 IL CHANGE: a_local_static_variable_init
+
+A new IL entry, a_local_static_variable_init, has been created to represent
+a dynamic or aggregate-constant initialization of a local static variable.
+The variable entry itself (which is in the file scope memory region) cannot
+point at its initializer (which, as the result of a related change, is in
+the function scope memory region), and so this construct is used to
+represent the initialization.  These new entries are always allocated in
+the function scope memory region and appear on a list pointed to by a
+function or block scope.  When one is used, the variable's init kind
+is initk_function_local; the associated local static variable init entry
+must be searched for (see find_local_static_variable_init in il.c).
+
 11/14/94 Fixed name lookup bug in friend processing
 
 In the following case, the lookup on the friend declaration used to be
