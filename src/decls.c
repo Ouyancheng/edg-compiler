@@ -918,9 +918,10 @@ type is legal.
                    pm_member_type(temp_type) == NULL) {
           /* This is an incomplete ptr-to-member type, presumably a
              pointer to member function.  Okay. */
-        } else if (is_class_struct_union_type(temp_type)) {
-          /* As an extension, allow arrays of incomplete struct or union
-             types.  Obviously, these have to be completed before they
+        } else if (C_dialect != C_dialect_cplusplus &&
+                   is_class_struct_union_type(temp_type)) {
+          /* As an extension in C mode, allow arrays of incomplete struct or
+             union types.  Obviously, these have to be completed before they
              are actually used.  Add the array type to a list of array
              types to be fixed up when struct or union declarations are
              completed. */
@@ -938,6 +939,9 @@ type is legal.
             err = TRUE;
           } else if (is_reference_type(temp_type)) {
 	    error(ec_array_of_reference);
+	    err = TRUE;
+          } else if (is_incomplete_type(temp_type)) {
+	    error(ec_array_of_incomplete_type);
 	    err = TRUE;
           } else if (temp_type->kind == (a_type_kind)tk_error) {
             /* Error already put out. */
@@ -3616,8 +3620,7 @@ static void define_static_data_member(a_symbol_locator   *locator,
                                       a_storage_class	 storage_class,
 				      a_type_ptr	 type_ptr,
 				      a_symbol_ptr       *symbol_ptr,
-                                      an_id_linkage_kind *linkage_ptr,
-                                      a_source_position  *decl_start_pos)
+                                      an_id_linkage_kind *linkage_ptr)
 /*
 Enter the definition of a static data member.  *locator gives the symbol
 locator (and thus its name and its declaration position).  storage_class and
@@ -3655,10 +3658,8 @@ the symbol and its linkage (which is always "none").
       pos_sy_error(ec_already_defined, &locator->source_position, sym);
       err = TRUE;
     } else if (!types_are_compatible(type_ptr, var->type)) {
-      pos_sy_error(ec_not_compatible_with_previous_decl, decl_start_pos, sym);
-      err = TRUE;
-    } else if (is_incomplete_type(type_ptr)) {
-      pos_error(ec_incomplete_type_not_allowed, decl_start_pos);
+      pos_sy_error(ec_not_compatible_with_previous_decl,
+                   &locator->source_position, sym);
       err = TRUE;
     } else {
       /* The type of the variable should be the composite of the two types. */
@@ -3678,7 +3679,8 @@ the symbol and its linkage (which is always "none").
                 &locator->source_position);
     } else if (is_member_function_symbol(sym)) {
       /* A member function -- this is treated as a type incompatibility. */
-      pos_sy_error(ec_not_compatible_with_previous_decl, decl_start_pos, sym);
+      pos_sy_error(ec_not_compatible_with_previous_decl,
+                   &locator->source_position, sym);
     } else if (sym->kind == (a_symbol_kind)sk_projection) {
       /* A member of a base class. */
       pos_error(ec_inherited_member_not_allowed, &locator->source_position);
@@ -8061,8 +8063,10 @@ continue_with_declaration:
         decl_typedef(&locator, local_type_ptr, &symbol_ptr);
       } else if (is_static_data_member) {
         define_static_data_member(&locator, local_storage_class,
-				  local_type_ptr, &symbol_ptr, &linkage,
-                                  &decl_start_pos);
+				  local_type_ptr, &symbol_ptr, &linkage);
+        /* Fetch the type of the symbol again, since it might have been
+           changed when reconciled with the original declaration. */
+        local_type_ptr = symbol_ptr->variant.variable->type;
       } else {
         if (is_parameter) {
           /* We are in an old-style param declaration but a name was found
@@ -8124,6 +8128,10 @@ continue_with_declaration:
              may have already been set based on storage class and scope
              level. */
           symbol_ptr->defined = TRUE;
+        } else if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
+          /* Fetch the type of the symbol again, since it might have been
+             changed if it was an incomplete array and was initialized. */
+          local_type_ptr = symbol_ptr->variant.variable->type;
         }  /* if */
       } else if ((symbol_ptr->kind == (a_symbol_kind)sk_variable ||
                   symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) &&
@@ -8200,14 +8208,18 @@ continue_with_declaration:
       copy_source_position(locator.source_position, error_position);
       /* If a variable has no linkage, the type must be complete here.
          A case like "void i;" at file scope is also an error, since it
-         can never be completed. */
-      if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
-          !is_parameter && is_incomplete_type(local_type_ptr) &&
-          (linkage == idl_none ||
-           (local_storage_class == (a_storage_class)sc_unspecified &&
-            is_void_type(local_type_ptr)))) {
-        error(ec_incomplete_type_not_allowed);
-        symbol_ptr->variant.variable->type = error_type();
+         can never be completed.  Since static data members have only one
+         defining declaration (namely, this one), they must always have
+         a complete type. */
+      if (is_incomplete_type(local_type_ptr)) {
+        if ((symbol_ptr->kind == (a_symbol_kind)sk_variable && !is_parameter &&
+              (linkage == idl_none ||
+                (local_storage_class == (a_storage_class)sc_unspecified &&
+                 is_void_type(local_type_ptr)))) ||
+            symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
+          error(ec_incomplete_type_not_allowed);
+          symbol_ptr->variant.variable->type = error_type();
+        }  /* if */
       }  /* if */
       remove_stop_token(tok_comma);
       need_comma_remove_stop_token = FALSE;
