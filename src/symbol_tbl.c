@@ -1684,6 +1684,8 @@ ct_symbol is the symbol of the class template.
   /* Create the symbol.  Use the current source position as the declaration
      position. */
   sym = alloc_symbol(kind, ct_symbol->header, pos);
+  /* Set the pointer that points back to the original class template symbol. */
+  sym->variant.class_struct_union.extra_info->class_template = ct_symbol;
   mark_declared(sym, pos, /*save_as_decl_position=*/TRUE);
   /* Make the declaration scope the same as the class template's. */
   sym->decl_scope = ct_symbol->decl_scope;
