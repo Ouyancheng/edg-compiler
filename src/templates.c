@@ -5080,7 +5080,7 @@ declaration.
         /* The func_info block should point to the declaration associated
            with the definition, if a definition is present. */
         tssp->variant.function.func_info = *func_info;
-        /* Copy the func_info block and then null out its the param-id
+        /* Copy the func_info block and then null out its param-id
            pointer so that it won't be freed. */
         func_info->param_id_list = NULL;
       } /* if */
