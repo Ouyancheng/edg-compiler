@@ -4486,7 +4486,9 @@ assignment operator.
       /* Exactly one assignment operator function is best. */
       /* Check that the function is accessible and mark it referenced. */
       reference_to_implicitly_invoked_function(opass_sym, err_pos,
-					       (a_type_ptr)NULL);
+					       (a_type_ptr)NULL,
+                                               /*honor_virtual=*/FALSE,
+                                               /*evaluated=*/TRUE);
     }  /* if */
     opass_routine = opass_sym->variant.routine.ptr;
   }  /* if */
@@ -4867,7 +4869,9 @@ the condition in which the access error should be suppressed.
 void reference_to_implicitly_invoked_function
 				(a_symbol_ptr       sym,
                                  a_source_position  *err_pos,
-				 a_type_ptr         class_of_object)
+				 a_type_ptr         class_of_object,
+                                 a_boolean          honor_virtual,
+                                 a_boolean          evaluated)
 /*
 sym is points to a symbol for a special member function that is invoked
 implicitly -- e.g., a copy constructor that is called when a class object
@@ -4882,11 +4886,15 @@ access checking is not needed. Also, if the routine is compiler generated,
 it may still need to be defined, since the definition may have been put off
 until an actual reference occurred (e.g., ARM 12.8).  This function deals
 with implicitly called constructors, destructors, assignment operators,
-and conversion functions.
+and conversion functions.  If honor_virtual is TRUE, and the function is
+virtual, the reference is considered to be a virtual call; that means
+the access control checking is done, but the IL entry is not marked as
+referenced.  If evaluated is FALSE, the reference is within an unevaluated
+expression; again, access control checking is done, but the IL entry is not
+marked as referenced.
 */
 {
-  a_routine_ptr            rp = sym->variant.routine.ptr;
-  a_template_instance_ptr  tip;
+  a_routine_ptr rp = sym->variant.routine.ptr;
 
 #if CHECKING
   if (rp->special_kind != (a_special_function_kind)sfk_constructor &&
@@ -4915,22 +4923,14 @@ and conversion functions.
        object of a derived class. */
     check_protected_member_access(sym, err_pos, class_of_object);
   }  /* if */
-  /* Mark the IL entry as referenced. */
-  rp->source_corresp.referenced = TRUE;
-  /* Mark the IL entry as called. */
-  rp->called = TRUE;
-   /* Mark the routine's class as referenced. */
-  sym->class_of_which_a_member->source_corresp.referenced = TRUE;
-  /* If necessary, create the function body for a compiler generated
-     routine. */
-  if (rp->compiler_generated && rp->assoc_scope == NULL_region_number) {
-    define_special_member_function(rp, sym->class_of_which_a_member, err_pos);
-  }  /* if */
-  /* If the function is an instance of a function template, mark it
-     as requiring an instantiation. */
-  tip = sym->variant.routine.instance_ptr;
-  if (tip != NULL) {
-    update_instantiation_required_flag(tip, TRUE);
+  if (!evaluated) {
+    /* Unevaluated expression.  Do not set referenced (etc.). */
+  } else if (rp->is_virtual && honor_virtual) {
+    /* Virtual function call.  Do not set referenced (etc.) because the
+       call might actually be of an overriding function. */
+  } else {
+    /* Non-virtual call. */
+    mark_routine_referenced(rp, err_pos);
   }  /* if */
 }  /* reference_to_implicitly_invoked_function */
 
