@@ -2189,6 +2189,16 @@ typedef struct a_scope_stack_entry {
                         /* Depth of the nearest enclosing namespace scope or,
 			   by default, the depth of the file scope. This is
 			   a copy of the global variable of the same name. */
+  long		num_of_extra_times_pushed;
+			/* Namespace scopes may be pushed more than once
+			   under some circumstances (such as defining a
+			   member of a nested namespace in the enclosing
+			   namespace).  When this occurs, the scope is
+			   not duplicated on the scope stack.  Instead,
+			   this counter is incremented so that when the
+			   scope is popped, it is possible to know when
+			   the scope should actually be removed from
+			   the stack. */
 } a_scope_stack_entry;
 
 
@@ -2728,6 +2738,8 @@ extern a_scope_ptr push_template_instantiation_scope
 			    a_boolean            nested_instantiation);
 /* End a name scope. */
 extern void pop_scope(void);
+extern void push_namespace_reactivation_scope(a_namespace_ptr nsp);
+extern void pop_namespace_reactivation_scope(void);
 extern void push_class_reactivation_scope(a_type_ptr class_type);
 extern void pop_class_reactivation_scope(void);
 
