@@ -8138,7 +8138,7 @@ fields, and return a pointer to it.
 
 a_template_ptr alloc_template(void)
 /*
-Allocate a template entry in the file-scope memory region, initialialize its
+Allocate a template entry in the file-scope memory region, initialize its
 fields, and return a pointer to it.
 */
 {
@@ -8184,7 +8184,7 @@ Add the IL template entry pointed to by tp to the list for the file scope.
 
 a_macro_ptr alloc_macro(void)
 /*
-Allocate a macro entry in the file-scope memory region, initialialize its
+Allocate a macro entry in the file-scope memory region, initialize its
 fields, and return a pointer to it.
 */
 {
