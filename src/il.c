@@ -809,13 +809,13 @@ Dump the contents of the indicated type entry, for debug purposes.
         if (tp->variant.pointer.is_reference) {
           fputs("ref to ", f_debug);
         } else {
-  #if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
           if (tp->variant.pointer.base_variable != NULL) {
             fputs("based(", f_debug);
             db_name(&tp->variant.pointer.base_variable->source_corresp);
             fputs(") ", f_debug);
           }  /* if */
-  #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           fputs("ptr to ", f_debug);
         }  /* if */
         db_abbreviated_type(tp->variant.pointer.type);
@@ -848,7 +848,7 @@ Dump the contents of the indicated type entry, for debug purposes.
   class_struct_union:
         fputs(" ", f_debug);
         ctsp = tp->variant.class_struct_union.extra_info;
-  #if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
         if (ctsp != NULL) {
           a_type_kind  orig_type_kind = ctsp->orig_type_kind;
           if (orig_type_kind != tp->kind) {
@@ -862,7 +862,7 @@ Dump the contents of the indicated type entry, for debug purposes.
             fputs("] ", f_debug);
           }  /* if */
         }  /* if */
-  #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         db_type_name(tp);
         if (tp->variant.class_struct_union.field_list == NULL &&
             (ctsp == NULL || ctsp->assoc_scope == NULL)) {
@@ -898,9 +898,9 @@ Dump the contents of the indicated type entry, for debug purposes.
             if (ctsp != NULL) bcp = ctsp->base_classes;
             for (; bcp != NULL; bcp = bcp->next) {
               if (bcp->is_virtual) {
-  #if !CFRONT_OBJECT_CODE_COMPATIBILITY
+#if !CFRONT_OBJECT_CODE_COMPATIBILITY
                 if (!bcp->direct) continue;
-  #endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
+#endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
                 db_virtual_base_class_ptr(bcp, 0);
               }  /* if */
             } /* for */
@@ -955,12 +955,12 @@ Dump the contents of the indicated type entry, for debug purposes.
         break;
       case tk_routine:
         rtsp = tp->variant.routine.extra_info;
-  #if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
         if (rtsp->calling_convention != (a_calling_convention)cc_default) {
           fprintf(f_debug, "%s ",
                   calling_convention_names[(int)rtsp->calling_convention]);
         }  /* if */
-  #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (rtsp->routine_name_linkage != (a_name_linkage_kind)nlk_none) {
           fputs("[", f_debug);
           db_name_linkage((a_name_linkage_kind)rtsp->routine_name_linkage);
@@ -997,13 +997,13 @@ Dump the contents of the indicated type entry, for debug purposes.
             }  /* if */
             if (qualifiers & TQ_VOLATILE) {
               fputs("volatile", f_debug);
-  #if RESTRICT_ALLOWED
+#if RESTRICT_ALLOWED
               qualifiers &= ~TQ_VOLATILE;
               if (qualifiers != TQ_NONE) fputs(" ", f_debug);
             }  /* if */
             if (qualifiers & TQ_RESTRICT) {
               fputs("restrict", f_debug);
-  #endif /* RESTRICT_ALLOWED */
+#endif /* RESTRICT_ALLOWED */
             }  /* if */
             fputs("] ", f_debug);
           }  /* if */
@@ -1046,20 +1046,20 @@ Dump the contents of the indicated type entry, for debug purposes.
         if (typeref_is_qualified(tp)) {
           if (typeref_is_const_qualified(tp)) fputs("const ", f_debug);
           if (typeref_is_volatile_qualified(tp)) fputs("volatile ", f_debug);
-  #if RESTRICT_ALLOWED
+#if RESTRICT_ALLOWED
           if (typeref_is_restrict_qualified(tp)) fputs("restrict ", f_debug);
-  #endif /* RESTRICT_ALLOWED */
-  #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+#endif /* RESTRICT_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
           { a_type_qualifier_set qualifiers = tp->variant.typeref.qualifiers;
-  #if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
             if (qualifiers & TQ_UNALIGNED) fputs("unaligned ", f_debug);
-  #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  #if NEAR_AND_FAR_ALLOWED
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
             if (qualifiers & TQ_NEAR) fputs("near ", f_debug);
             if (qualifiers & TQ_FAR) fputs("far ", f_debug);
-  #endif /* NEAR_AND_FAR_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
           }
-  #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
         } else {
           fputs("typeref ", f_debug);
           if (has_name(tp)) { 

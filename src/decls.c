@@ -3251,7 +3251,7 @@ symbol whose type is to be verified.  error_pos determines where any error
 should be reported.
 */
 {
-  a_boolean  is_function = (sym->kind == sk_routine);
+  a_boolean  is_function = (sym->kind == (a_symbol_kind)sk_routine);
   a_type_ptr type = is_function? sym->variant.routine.ptr->type :
                                  sym->variant.variable.ptr->type;
   if (is_or_contains_local_type(type)) {
@@ -4849,9 +4849,9 @@ skip_overloading:;
          compiler generated ::operator new or ::operator delete).  It was
          created during initialization, but is overridden by the present
          declaration. */
-      check_assertion_str(routine_ptr->source_corresp.decl_position.seq == 0,
-                          "decl_routine: compiler-generated function was"
-                          " already assigned a position");
+      check_assertion_str2(routine_ptr->source_corresp.decl_position.seq == 0,
+                           "decl_routine: compiler-generated function was",
+                           "already assigned a position");
       routine_ptr->compiler_generated = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
       /* Since the flag is cleared here, we're guaranteed that this is the
