@@ -4806,7 +4806,8 @@ how to form the function's signature.
      in the current translation unit. */
   decl_routine(locator, (a_storage_class)sc_extern, rout_type, &func_info,
                (a_source_sequence_entry_ptr)NULL, SRK_DECLARATION,
-               &decl_modifiers, &sym, &linkage, &old_type, &ext_sym);
+               &decl_modifiers, &sym, &linkage, &old_type, &ext_sym,
+               (a_decl_pos_block_ptr)NULL);
   sym->variant.routine.ptr->compiler_generated = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
@@ -7825,6 +7826,14 @@ locator_for_curr_id.
   pip->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   pip->dummy_vla_variable = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  pip->specifiers_range.start = null_source_position;
+  pip->specifiers_range.end = null_source_position;
+  pip->declarator_range.start = null_source_position;
+  pip->declarator_range.end = null_source_position;
+  pip->identifier_range.start = null_source_position;
+  pip->identifier_range.end = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
   return(pip);
 }  /* alloc_param_id */

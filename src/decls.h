@@ -265,7 +265,8 @@ extern void decl_typedef(a_symbol_locator             *locator,
                          a_type_ptr                   type_ptr,
                          a_type_ptr                   class_type,
                          a_symbol_ptr                 *symbol_ptr,
-                         a_source_sequence_entry_ptr  declarator_ssep);
+                         a_source_sequence_entry_ptr  declarator_ssep,
+                         a_decl_pos_block_ptr         decl_pos_block);
 
 extern void record_lint_argsused_and_varargs_state(a_symbol_ptr  rout_sym);
 
@@ -307,7 +308,8 @@ extern void decl_routine(a_symbol_locator             *locator,
                          a_symbol_ptr                 *symbol_ptr,
                          an_id_linkage_kind           *linkage_ptr,
                          a_type_ptr                   *old_type,
-                         a_symbol_ptr                 *ext_sym);
+                         a_symbol_ptr                 *ext_sym,
+                         a_decl_pos_block_ptr         decl_pos_block);
 
 void decl_variable(a_symbol_locator             *locator,
                    a_storage_class              storage_class,
