@@ -13,12 +13,17 @@ symbol_ref.c - Routines to manage references to symbols.
 
 */
 
-#include "basics.h"
-#include "symbol_ref.h"
-#include "cmd_line.h"
-#include "il.h"
-#include "il_to_str.h"
+/* Header files common to all files. */
+#include "fe_common.h"
 #include "symbol_tbl.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Insert a marker in case headers are saved and restored. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
+#include "symbol_ref.h"
 
 
 static an_il_to_str_output_control_block

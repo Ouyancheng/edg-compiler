@@ -13,25 +13,22 @@ il.c -- Construction of intermediate language trees.
 
 */
 
-#include "basics.h"
-#include "host_envir.h"
-#include "il.h"
-#include "il_walk.h"
-#include "debug.h"
-#include "mem_tables.h"
-#include "mem_manage.h"
-#include "target.h"
-#include "lang_feat.h"
-#include "symbol_tbl.h"
-#include "error.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Include types.h before the hdrstop.  It will cause symbol_tbl.h and
+   lexical.h to be pulled in, too, so they don't need to be specified
+   explicitly. */
 #include "types.h"
-#include "cmd_line.h"
-#include "float_pt.h"
-#include "const_ints.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Insert a marker in case headers are saved and restored. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
+#include "il_walk.h"
 #include "exprutil.h"
 #include "folding.h"
-#include "lexical.h"
-#include "il_to_str.h"
 
 #if ALTERNATE_IL_FILE_FORMAT
 #include "il_file.h"
