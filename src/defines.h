@@ -173,6 +173,7 @@ Flags to be set when using the KAI inliner.
 /* The EDG driver on NT does not support the template information file
    which is needed for one instantiation per object mode, etc. */
 #define DRIVER_COMPATIBILITY_VERSION 236
+#define INSTANTIATION_REQUEST_LINES_RESERVED 1
 
 #if OPTIMIZED_VERSION
 #define IL_SHOULD_BE_WRITTEN_TO_FILE 0
