@@ -797,6 +797,7 @@ If it involves no template-parameter type, simply return "type".
   int                            i, reusable_param_types;
   a_template_arg_ptr             tap;
   a_type_ptr                     new_return_type;
+  a_type_ptr                     this_param_type, new_this_param_type;
   a_type_ptr                     first_new_type_for_param_types_list;
   a_param_type_ptr               ptp, new_ptp, prev_ptp;
   a_class_symbol_supplement_ptr  cssp;
@@ -897,9 +898,19 @@ If it involves no template-parameter type, simply return "type".
         new_return_type = copy_type_with_substitution(
                                         type->variant.routine.return_type,
                                         templ_arg_list, source_pos);
-        if (new_return_type != type->variant.routine.return_type) {
-          /* A substitution was made on the return type, so a new routine type
-             will be required. */
+        this_param_type =
+                   type->variant.routine.extra_info->implicit_this_param_type;
+        if (this_param_type == NULL) {
+          new_this_param_type = NULL;
+        } else {
+          new_this_param_type = copy_type_with_substitution(
+                                        this_param_type, templ_arg_list,
+                                        source_pos);
+        }  /* if */
+        if (new_return_type != type->variant.routine.return_type ||
+            new_this_param_type != this_param_type) {
+          /* A substitution was made on the return type or the this-param
+             type, so a new routine type will be required. */
           goto make_new_type;
         }  /* if */
         /* Now examine each of the parameters. */
@@ -934,6 +945,8 @@ make_new_type:
         *(new_type->variant.routine.extra_info) =
                                          *(type->variant.routine.extra_info);
         new_type->variant.routine.extra_info->assoc_routine = NULL;
+        new_type->variant.routine.extra_info->implicit_this_param_type =
+                                                       new_this_param_type;
         /* Make copies of the entries on type's param types list, making the
            appropriate substitutions for template parameter type entries. */
         prev_ptp = NULL;
@@ -1266,6 +1279,12 @@ yet been created, extend the template argument list to include n entries.
             ptp = type->variant.routine.extra_info->param_type_list;
             tptp = templ_type->variant.routine.extra_info->param_type_list;
             for (;;) {
+              if (ptp == NULL || tptp == NULL) {
+                /* One or both of the param type lists is exhausted.  It's a
+                   match only if they're both done. */
+                match = (ptp == tptp);
+                break;
+              }  /* if */
               tp = ptp->type;
               ttp = tptp->type;
               if (!matches_template_type(tp, ttp, templ_arg_list)) {
@@ -1275,12 +1294,6 @@ yet been created, extend the template argument list to include n entries.
               }  /* if */
               ptp = ptp->next;
               tptp = tptp->next;
-              if (ptp == NULL || tptp == NULL) {
-                /* One or both of the param type lists is exhausted.  It's a
-                   match only if they're both done. */
-                match = (ptp == tptp);
-                break;
-              }  /* if */
             }  /* for */
           }  /* if */
           break;
