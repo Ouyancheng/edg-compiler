@@ -2640,8 +2640,8 @@ do_assoc_type:
 #ifdef CFE
   disp_ptr("asm_entries", (char *)ptr->asm_entries, iek_asm_entry);
   disp_ptr("scopes", (char *)ptr->scopes, iek_scope);
-  if (ptr->kind == (a_scope_kind)iek_file ||
-      ptr->kind == (a_scope_kind)iek_namespace) {
+  if (ptr->kind == (a_scope_kind)sck_file ||
+      ptr->kind == (a_scope_kind)sck_namespace) {
     disp_ptr("namespaces", (char *)ptr->namespaces, iek_namespace);
   }  /* if */
   disp_ptr("dynamic_inits", (char *)ptr->dynamic_inits, iek_dynamic_init);
