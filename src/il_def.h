@@ -2045,7 +2045,7 @@ typedef struct a_template_param_type_descr {
      in a qualified name) this structure points to a class type that provides
      the information inferred (e.g., names of members).  When a
      template parameter is used in an elaborated type specifier, this
-     saved the tag kind associated with the elaborated type.  (C++ front
+     records the tag kind associated with the elaborated type.  (C++ front
      end only.) */
   a_type_ptr	class_type;
 			/* The "proxy" class type associated with a given
@@ -2069,7 +2069,7 @@ typedef struct a_template_param_type_descr {
 			/* If the template parameter was used in an elaborated
 			   type specifier, this field contains the kind of
 			   specifier that was used.  For "enum" tags, this
- 			   field contains tk_enum which is really a synonym
+ 			   field contains tk_enum, which is really a synonym
 			   for tk_integer.  If the template parameter has not
 			   been used in an elaborated type specifier, this
 			   field will contain tk_unknown. */
