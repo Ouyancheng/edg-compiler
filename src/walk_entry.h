@@ -761,7 +761,9 @@ the file scope, do not process it (but record an orphan in the latter case).
            to call walk_routine_scope_il if it wants to. */
 #ifdef CFE
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
-        if (ptr->defined) {
+        /* Note that we do not test "defined" here because defined gets cleared
+           before some calls to walk the IL. */
+        if (ptr->assoc_scope != NULL_region_number) {
           /* This is a defined routine, so its return type must be complete. */
           a_type_ptr rout_type = ptr->type;
           rout_type = skip_typerefs(rout_type);
