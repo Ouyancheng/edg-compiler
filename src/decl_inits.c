@@ -2377,14 +2377,8 @@ scan_paren:
         (void)get_token();
         copy_source_position(pos_curr_token, lparen_pos);
         if (required_token(tok_lparen, ec_exp_lparen)) {
-          if (array_type != NULL && curr_token != tok_rparen) {
-            /* Arrays can be default-initialized only if the expression-list
-               is omitted. */
-            sym_error(ec_cannot_initialize, member_or_base_sym);
-            array_type = NULL;
-            init_type = error_type();
-          }  /* if */
-          if (is_class_struct_union_type(init_type)) {
+          if (is_class_struct_union_type(init_type) &&
+              (array_type == NULL || curr_token == tok_rparen)) {
             cssp = symbol_supplement_for_class(init_type);
           } else {
             cssp = NULL;
@@ -2461,30 +2455,41 @@ scan_paren:
               }  /* if */
             } else {
               add_stop_token(tok_rparen);
-              /* Allocate a new dynamic init entry, setting the kind to
-                 dik_none for now.  It will be adjusted after the scan. */
-              dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-              (void)scan_initializer_of_simple_object(
+              if (array_type != NULL) {
+                /* Arrays can only be default-initialized -- i.e., the
+                   expression-list must be omitted. */
+                sym_error(ec_array_member_initialization, member_or_base_sym);
+                /* Set the initializer field to record that an initialization
+                   was attempted. */
+                dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+                flush_to_end_of_arg_list();
+              } else {
+                /* Allocate a new dynamic init entry, setting the kind to
+                   dik_none for now.  It will be adjusted after the scan. */
+                dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+                (void)scan_initializer_of_simple_object(
                                                 /*nonconst_allowed=*/TRUE,
                                                 /*static_lifetime=*/FALSE,
                                                 /*force_object_lifetime=*/TRUE,
                                                 init_type, &dip);
-              /* If the initializer produced an object lifetime for the full
-                 expression, remove it temporarily from the object lifetime
-                 tree and restore it in the correct position later. */
-              detach_from_object_lifetime_tree(init_expr_lifetime_of(dip));
-              remove_stop_token(tok_rparen);
-              if (!required_token(tok_rparen, ec_exp_rparen)) {
-                /* Special code to avoid poor error recovery in cases where
-                   a comma-list appears between the parens in what is taken
-                   to be the initializer of a simple object -- e.g.,
-                       A::A(int i, int j) : x(i,j) { }
-                   If there is no constructor for x then it is interpreted
-                   as a simple object, only "i" is scanned, and an error is
-                   issued on the expected ")".  After that we want to bypass
-                   the rest of the comma-list before resuming scanning. */
-                if (curr_token == tok_comma) flush_to_end_of_arg_list();
+                /* If the initializer produced an object lifetime for the full
+                   expression, remove it temporarily from the object lifetime
+                   tree and restore it in the correct position later. */
+                detach_from_object_lifetime_tree(init_expr_lifetime_of(dip));
+                if (!required_token(tok_rparen, ec_exp_rparen)) {
+                  /* Special code to avoid poor error recovery in cases where
+                     a comma-list appears between the parens in what is taken
+                     to be the initializer of a simple object -- e.g.,
+                         A::A(int i, int j) : x(i,j) { }
+                     If there is no constructor for x then it is interpreted
+                     as a simple object, only "i" is scanned, and an error is
+                     issued on the expected ")".  After that we want to bypass
+                     the rest of the comma-list before resuming scanning. */
+                  if (curr_token == tok_comma) flush_to_end_of_arg_list();
+                }  /* if */
               }  /* if */
+              remove_stop_token(tok_rparen);
+              if (curr_token == tok_rparen) (void)get_token();
             }  /* if */
           }  /* if */
           check_assertion(dip != NULL);
