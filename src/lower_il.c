@@ -2266,8 +2266,9 @@ the constant.
     troublesome = TRUE;
     /* See if the variable has been allocated already.  If so, a pointer to
        the variable will have been stored in the assoc_info field. */
-    assoc_var = (a_variable_ptr)constant->source_corresp.assoc_info;
-    if (assoc_var == NULL) {
+    if (constant->assoc_var_assigned) {
+      assoc_var = (a_variable_ptr)constant->source_corresp.assoc_info;
+    } else {
       /* The variable must be allocated. */
       assoc_var = make_temporary_possibly_at_file_scope(
                       make_mptr_type(),
@@ -2275,6 +2276,7 @@ the constant.
       /* Save the pointer in the assoc_info field so the variable can be
          reused. */
       constant->source_corresp.assoc_info = (char *)assoc_var;
+      constant->assoc_var_assigned = TRUE;
       /* Make the ck_aggregate constant the initial value of the variable. */
       assoc_var->init_kind = (an_init_kind)initk_static;
       assoc_var->initializer.constant = constant;
