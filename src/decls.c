@@ -6294,6 +6294,7 @@ block.
   a_scope_pointers_block_ptr  pointers_block;
   a_boolean                   err = FALSE;
   a_symbol_reference_kind     srk_flags = SRK_DECLARATION;
+  a_boolean                   bad_scope_for_namespace_def = FALSE;
 
   /* Save the source position of the declaration. */
   namespace_pos = pos_curr_token;
@@ -6335,6 +6336,7 @@ block.
       pos_error(ec_namespace_def_not_allowed, &namespace_pos);
       set_to_error_locator(locator);
       err = TRUE;
+      bad_scope_for_namespace_def = TRUE;
     } else {
       /* This is a namespace alias definition, which can also occur in
          function and block scopes. */
@@ -6453,6 +6455,16 @@ block.
     }  /* if */
     remove_stop_token(tok_semicolon);
     (void)required_token(tok_semicolon, ec_exp_semicolon);
+  } else if (bad_scope_for_namespace_def) {
+    /* Attempting to define a namespace within something other than the
+       file scope or a namespace scope.  Ignore all the declarations between
+       the braces. */
+    discard_curr_construct_pragmas();
+    if (curr_token == tok_lbrace) {
+      /* Ignore the namespace definition. */
+      flush_until_matching_token();
+      if (curr_token == tok_rbrace) (void)get_token();
+    }  /* if */
   } else {
     /* Namespace definition. */
     if (required_token(tok_lbrace, ec_exp_lbrace)) {
