@@ -24,7 +24,7 @@ Free the memory pointed to by ptr.
   if (ptr != NULL) {
     free(ptr);
   }  /* if */
-}  /* operator delete */
+}  /* operator delete */ 
 
 
 /******************************************************************************
