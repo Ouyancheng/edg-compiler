@@ -1905,7 +1905,7 @@ bound with the function in *bound_function_selector.
   a_boolean             is_arrow_operator;
   a_type_ptr            class_struct_union_type, orig_class_struct_union_type;
   a_boolean             err = FALSE, processed = FALSE, found_id = FALSE;
-  a_boolean             operand_1_is_complete_class = FALSE;
+  a_boolean             operand_1_is_complete_class = FALSE, local_err;
   a_boolean             need_operand_1_type_check = FALSE;
   a_boolean             need_member_sym_check;
   a_ref_entry_ptr       rep;
@@ -2025,7 +2025,8 @@ bound with the function in *bound_function_selector.
     is_qualified_name = coalesce_and_lookup_qualified_name(
                                                gid_flags |
                                                  GID_DISALLOW_GLOBAL_QUALIFIER,
-                                               ilm_normal, &err);
+                                               ilm_normal, &local_err);
+    err |= local_err;
     /* If the member is something like "A::x", member_position will give
        the position of the "x" and qualified_member_position will give the
        position of the "A". */

@@ -1,5 +1,16 @@
 Version 2.21
 
+11/23/93 Fixed abort on vacuous destructor field selection error
+
+An abort no longer occurs on a vacuous destructor reference in which the
+left operand has an error:
+
+  void m() {
+    struct X { typedef int T; }
+    px->X::T::~T();  // "px" undefined; caused abort
+  }
+
+
 11/23/93 Improved error diagnosis for invalid class template member function
 
 A more descriptive error message is now issued when an attempt is made to
