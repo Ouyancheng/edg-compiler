@@ -7166,7 +7166,6 @@ As an anachronism, allow an expression inside the [ ].
       is_template_dependent_type(operand.type)) {
     /* A template parameter type is acceptable in a prototype instantiation. */
     template_case = TRUE;
-    processed = TRUE;
   }  /* if */
   if (!processed) {
     do_operand_transformations(&operand, TOPT_NO_OPTIONS);
