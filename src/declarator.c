@@ -83,33 +83,125 @@ language defined in the ARM, it is supported for cfront compatibility.
 
 #if RESTRICT_ALLOWED
 
-a_boolean type_may_not_be_restrict_qualified(a_type_ptr  type,
-                                             a_boolean   is_parameter)
+a_boolean restrict_qualifier_is_allowed(a_type_ptr         type,
+                                        a_source_position  *error_pos)
 /*
 Return TRUE if type may be qualified by the "restrict" qualifier.  It may be
 applied to pointer and reference types (but not pointer-to-function-type),
 pointer-to-member types (but not pointers to member functions), and (in
-parameter declarations only) array types.
+parameter declarations only) array types.  If a restrict qualifier is not
+allowed, issue a diagnostic and return FALSE.
 */
 {
-  a_type_ptr  tp;
-  a_boolean   err = FALSE;
-
+  a_type_ptr     tp;
+  an_error_code  error_code = es_none;
+  
   if (!is_error_type(type)) {
     if (is_ptr_or_ref_type(type)) {
       tp = type_pointed_to(type);
-      if (tp != NULL && is_function_type(tp)) err = TRUE;
+      if (tp != NULL && is_function_type(tp)) {
+        error_code = ec_restrict_pointer_to_function;
+      }  /* if */
     } else if (is_ptr_to_member_type(type)) {
       tp = pm_member_type(type);
-      if (tp != NULL && is_function_type(tp)) err = TRUE;
+      if (tp != NULL && is_function_type(tp)) {
+        error_code = ec_restrict_pointer_to_function;
+      }  /* if */
     } else if (is_array_type(type)) {
-      if (!is_parameter) err = TRUE;
+      if (scope_stack[depth_scope_stack].kind ==
+                              (a_scope_kind)sck_func_prototype) {
+        /* Since we are in the midst of a parameter declaration, this *may* be
+           okay -- if the array is "top-level".  It will be checked later. */
+      } else {
+        error_code = ec_restrict_not_allowed;
+      }  /* if */
     } else {
-      err = TRUE;
+      error_code = ec_restrict_not_allowed;
+    }  /* if */
+    if (error_code != es_none) {
+      pos_error(error_code, error_pos);
     }  /* if */
   }  /* if */
-  return err;
-}  /* type_may_not_be_restrict_qualified */
+  return (error_code == es_none);
+}  /* restrict_qualifier_is_allowed */
+
+
+static void check_for_restrict_qualifier_on_derived_type(
+                                              a_type_ptr  new_type_ptr,
+                                              a_type_ptr  *derived_type,
+                                              a_type_ptr  *bottom_derived_type)
+/*
+*derived_type is the top of a derived type that is being constructed, and
+*bottom_derived_type is the bottom, which is about to be updated to link to
+new_type_ptr.  Check for the presence of improperly applied restrict
+qualifier: if *bottom_derived_type is some kind of pointer or reference type
+and is about to be updated to point to a function type, then the restrict
+qualifier, if there is one, is invalid.  Issue a diagnostic and rewrite the
+derived type to remove the restrict qualifier.
+*/
+{
+  a_type_ptr            tp, prev_tp, new_tp;
+  a_type_qualifier_set  qualifiers;
+
+  if (is_function_type(new_type_ptr)) {
+    check_assertion(is_ptr_or_ref_type(*bottom_derived_type) ||
+                    is_ptr_to_member_type(*bottom_derived_type));
+    /* We are about to form a derived type that is pointer-to-function-type,
+       reference-to-function-type, or ptr-to-member-function.  Such pointer
+       types, unlike other pointer types, may not be restrict qualified.
+       Go through the derived type list looking for restrict qualifier that
+       applies to the pointer type. */
+    for (tp = *derived_type, prev_tp = NULL;
+         tp != *bottom_derived_type;
+         prev_tp = tp, tp = underlying_type_of_derived_type(tp)) {
+      if (tp->kind == (a_type_kind)tk_typeref) {
+        /* Check for qualifiers on a typeref. */
+        qualifiers = get_top_level_type_qualifiers(tp);
+        tp = skip_typerefs(tp);
+        if (tp == *bottom_derived_type) {
+          if (qualifiers & TQ_RESTRICT) {
+            /* A restrict qualifier was found and it applies to the pointer
+               type that is going to be set to point to the function type.
+               Issue a diagnostic and remove the restrict qualifier. */
+            error(ec_restrict_pointer_to_function);
+            if (qualifiers == TQ_RESTRICT) {
+              new_tp = *bottom_derived_type;
+            } else {
+              new_tp = make_qualified_type(*bottom_derived_type,
+                                           (qualifiers & ~TQ_RESTRICT));
+              *bottom_derived_type = skip_typerefs(new_tp);
+            }  /* if */
+            if (prev_tp == NULL) {
+              *derived_type = new_tp;
+            } else {
+              switch (prev_tp->kind) {
+                case tk_pointer:  /* Includes C++ reference too. */
+                  prev_tp->variant.pointer.type = new_tp;
+                  break;
+                case tk_ptr_to_member:
+                  prev_tp->variant.ptr_to_member.type = new_tp;
+                  break;
+                case tk_array:
+                  prev_tp->variant.array.element_type = new_tp;
+                  break;
+                case tk_routine:
+                  prev_tp->variant.routine.return_type = new_tp;
+                  break;
+#if CHECKING
+                default:
+                  internal_error("check_for_restrict...: bad type kind");
+#endif /* CHECKING */
+              }  /* switch */
+            }  /* if */
+            *bottom_derived_type = skip_typerefs(new_tp);
+          }  /* if */
+          break;
+        }  /* if */
+      }  /* if */
+      /* Continue to the next type in the derived type sequence. */
+    }  /* for */
+  }  /* if */  
+}  /* check_for_restrict_qualifier_on_derived_type */
 
 #endif /* RESTRICT_ALLOWED */
 
@@ -249,6 +341,11 @@ type is legal.
             error(ec_pointer_to_reference);
             new_type_ptr = error_type();
           }  /* if */
+#if RESTRICT_ALLOWED
+          check_for_restrict_qualifier_on_derived_type(new_type_ptr,
+                                                       derived_type,
+                                                       bottom_derived_type);
+#endif /* RESTRICT_ALLOWED */
           (*bottom_derived_type)->variant.pointer.type = new_type_ptr;
         }  /* if */
       } else if (is_reference_type(*bottom_derived_type)) {
@@ -264,6 +361,11 @@ type is legal.
 	  err = TRUE;
         }  /* if */
 	if (err) new_type_ptr = error_type();
+#if RESTRICT_ALLOWED
+        check_for_restrict_qualifier_on_derived_type(new_type_ptr,
+                                                     derived_type,
+                                                     bottom_derived_type);
+#endif /* RESTRICT_ALLOWED */
         (*bottom_derived_type)->variant.pointer.type = new_type_ptr;
       } else if (is_ptr_to_member_type(*bottom_derived_type)) {
         /* Pointer-to-member type. */
@@ -271,6 +373,11 @@ type is legal.
           new_type_ptr = error_type();
           err = TRUE;
         }  /* if */
+#if RESTRICT_ALLOWED
+        check_for_restrict_qualifier_on_derived_type(new_type_ptr,
+                                                     derived_type,
+                                                     bottom_derived_type);
+#endif /* RESTRICT_ALLOWED */
         (*bottom_derived_type)->variant.ptr_to_member.type = new_type_ptr;
       } else {
         /* Function type. */
@@ -302,6 +409,10 @@ type is legal.
              just issue a remark for "const void". */
           if (is_void_type(skip_typerefs(new_type_ptr))) {
             remark(ec_useless_type_qualifiers);
+#if RESTRICT_ALLOWED
+          } else if (get_type_qualifiers(new_type_ptr) == TQ_RESTRICT) {
+            /* Okay. */
+#endif /* RESTRICT_ALLOWED */
           } else {
             warning(ec_useless_type_qualifiers);
           }  /* if */
@@ -1449,23 +1560,25 @@ parameter controls the restrictions imposed by the context.
       (void)decl_specifiers(DSI_COLLECT_TYPE_QUALIFIERS, &dso_flags,
                             &dummy_storage_class, &dummy_type_ptr,
                             &qualifiers);
+      check_assertion(qualifiers != TQ_NONE);
 #if RESTRICT_ALLOWED
-      if (qualifiers & TQ_RESTRICT) {
-        /* "restrict" may not be applied to a pointer or reference to a
-           function type. */
-        if (type_may_not_be_restrict_qualified(complete_type,
-                                               /*is_parameter=*/FALSE)) {
-          error(ec_restrict_not_allowed);
-          qualifiers &= ~TQ_RESTRICT;
-       }  /* if */
+      /* Check for invalid use of the restrict qualifier. */
+      if (qualifiers & TQ_RESTRICT &&
+          !restrict_qualifier_is_allowed(complete_type, &error_position)) {
+        /* Diagnostic has already been issued.  Just remove TQ_RESTRICT
+           from the qualifier set. */
+        qualifiers &= ~TQ_RESTRICT;
       }  /* if */
-      if (is_reference_type(complete_type)) {
-        if ((qualifiers & ~TQ_RESTRICT) != TQ_NONE) {
-          qualifiers &= TQ_RESTRICT;
-          diagnostic(strict_ansi_mode ?
-                        strict_ansi_error_severity : es_warning,
-                     ec_qualified_reference_type);
-        }  /* if */
+      /* Check for using qualifiers (other than restrict) with a reference
+         type. */
+      if (is_reference_type(complete_type) &&
+          (qualifiers & ~TQ_RESTRICT) != TQ_NONE) {
+        /* There is at least one qualifier besides restrict.  Clear all but
+           but restrict from the qualifiers set. */
+        qualifiers &= TQ_RESTRICT;
+        /* Issue the diagnostic. */
+        diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
+                   ec_qualified_reference_type);
       }  /* if */
 #else /* !RESTRICT_ALLOWED */
       if (is_reference_type(complete_type)) {
