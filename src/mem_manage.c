@@ -63,7 +63,7 @@ static a_mem_block_header_ptr
 Size of a_mem_block_header after adjustment so that the storage following
 it will be properly aligned.  This is a constant.
 */
-sizeof_t adjusted_header_size = (sizeof_t)(sizeof(a_mem_block_header) +
+static sizeof_t adjusted_header_size = (sizeof_t)(sizeof(a_mem_block_header) +
   ((sizeof(a_mem_block_header) % HOST_ALIGNMENT_REQUIRED) == 0 ?
      0 : (HOST_ALIGNMENT_REQUIRED -
           (sizeof(a_mem_block_header) % HOST_ALIGNMENT_REQUIRED))));
