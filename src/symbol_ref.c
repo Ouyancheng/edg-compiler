@@ -430,8 +430,8 @@ flags cleared.  Note that this happens even if no hiding had occurred.
     clear_locator(&locator, &sym_ptr->decl_position);
     locator.symbol_header = sym_ptr->header;
     check_assertion(sp->kind == (a_scope_kind)sck_class_struct_union);
-    class_qualified_id_lookup(&locator, sp->variant.assoc_type,
-                              IDL_HIDDEN_NAME_LOOKUP);
+    (void)class_qualified_id_lookup(&locator, sp->variant.assoc_type,
+                                    IDL_HIDDEN_NAME_LOOKUP);
     /* If the lookup produced the injected symbol, it is not hidden by
        another member. */
     if (locator.specific_symbol != NULL &&
