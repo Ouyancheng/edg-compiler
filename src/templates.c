@@ -18258,9 +18258,6 @@ are instantiated using a mechanism like the template instantiation mechanism.
 #if INSTANTIATE_EXTERN_INLINE
   if (instantiate_extern_inline) {
     a_routine_list_entry_ptr	rlep;
-
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
     for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
       set_body_needed_flag_for_inline_function(rlep->routine);
     }  /* for */
