@@ -686,7 +686,7 @@ might not be able to if the template itself has not yet been defined.
 #endif /* CHECKING */
       mark_defined(instance_sym, &instance_sym->decl_position);
       /* Scan the base specifiers list, if any, and the body of the class. */
-      (void)scan_class_definition(class_type, DEPTH_OF_FILE_SCOPE,
+      (void)scan_class_definition(class_type, depth_innermost_namespace_scope,
                                   /*is_local_class=*/FALSE,
                                   /*delayed_nested_class_def=*/FALSE,
                                   /*class_decl_modifiers=*/DM_NONE);
@@ -699,7 +699,7 @@ might not be able to if the template itself has not yet been defined.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Process any pragmas that are to be bound to this instance. */
       process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
-      pop_scope();
+      pop_template_instantiation_scope();
       /* In the normal case the current token should be end_of_source,
          which was inserted to mark the end of the cached token stream.
          If necessary, keep flushing until end-of-source is found. */
@@ -852,13 +852,13 @@ encountered.
   }  /* if */
 #endif /* CHECKING */
   /* Scan the base specifiers list, if any, and the body of the class. */
-  (void)scan_class_definition(prototype_type, DEPTH_OF_FILE_SCOPE,
+  (void)scan_class_definition(prototype_type, depth_innermost_namespace_scope,
                               /*is_local_class=*/FALSE,
                               /*delayed_nested_class_def=*/FALSE,
                               /*class_decl_modifiers=*/DM_NONE);
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
-  pop_scope();
+  pop_template_instantiation_scope();
   cssp->instantiation_in_progress = FALSE;
   /* In the normal case the current token should be end_of_source,
      which was inserted to mark the end of the cached token stream.
@@ -932,7 +932,7 @@ Pop any scopes pushed by a prior call of reactivate_class_declared_in.
   pop_class_reactivation_scope();
   if (instantiation_scope_pushed) {
     /* Pop the template instantiation scope. */
-    pop_scope();
+    pop_template_instantiation_scope();
   }  /* if */
 }  /* deactivate_class_declared_in */
 
@@ -1100,7 +1100,7 @@ Instantiate the body of the template function associated with tip.
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(rout_sym, (a_statement_ptr)NULL);
   /* Pop the template instantiation scope. */
-  pop_scope();
+  pop_template_instantiation_scope();
   /* Pop the reactivation of the class in which this template was declared,
      if necessary. */
   if (class_declared_in != NULL) {
@@ -1205,7 +1205,7 @@ and the class instantiation will detect the runaway case.
     /* Process any pragmas that are to be bound to this instance. */
     process_curr_construct_pragmas(static_data_member_sym,
                                    (a_statement_ptr)NULL);
-    pop_scope();
+    pop_template_instantiation_scope();
 
   } else {
     mark_defined(static_data_member_sym, &tip->template_sym->decl_position);
@@ -2616,7 +2616,7 @@ type based on the template argument list and the template parameter list
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   /* Pop the template instantiation scope. */
-  pop_scope();
+  pop_template_instantiation_scope();
   /* Pop the reactivation of the class in which this template was declared,
      if necessary. */
   if (class_declared_in != NULL) {
@@ -2637,7 +2637,7 @@ type based on the template argument list and the template parameter list
       delayed_scan_for_function_template_default_args
 			(templ_rout, rp, tssp);
       /* Pop the template instantiation scope. */
-      pop_scope();
+      pop_template_instantiation_scope();
     }  /* if */
     /* If this is a user-defined conversion or an overloaded operator,
        check for errors in the argument list.  The routine we are
@@ -4472,7 +4472,7 @@ resulting constant is stored in the pointer pointed to by "constant".
   error_position = saved_error_position;
   pos_curr_token = saved_pos_curr_token;
   /* Pop the template instantiation scope. */
-  pop_scope();
+  pop_template_instantiation_scope();
   return constant_type;
 }  /* rescan_template_constant_parameter */
 
@@ -4518,7 +4518,7 @@ existing type is simply used.
   error_position = saved_error_position;
   pos_curr_token = saved_pos_curr_token;
   /* Pop the template instantiation scope. */
-  pop_scope();
+  pop_template_instantiation_scope();
   return tp;
 }  /* rescan_template_type_default_arg */
 

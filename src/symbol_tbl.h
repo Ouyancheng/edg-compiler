@@ -2782,6 +2782,9 @@ extern a_scope_ptr push_template_instantiation_scope
 			    a_symbol_ptr         template_sym,
 			    a_template_arg_ptr   template_arg_list,
 			    a_boolean            nested_instantiation);
+
+extern void pop_template_instantiation_scope(void);
+
 /* End a name scope. */
 extern void pop_scope(void);
 extern void push_namespace_reactivation_scope(a_namespace_ptr nsp);

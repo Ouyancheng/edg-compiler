@@ -8860,12 +8860,40 @@ scopes.
 */
 {
   a_scope_ptr scope;
+  /* If the template was defined in a namespace, reactivate the namespace
+     scope before pushing the instantiation scope. */
+  if (!template_sym->is_class_member &&
+       template_sym->parent.namespace_ptr != NULL) {
+    push_namespace_reactivation_scope(template_sym->parent.namespace_ptr);
+  }  /* if */
   scope = push_scope_full((a_scope_kind)sck_template_instantiation,
                           scope_number_to_reuse, assoc_type, assoc_routine,
                           (a_namespace_ptr)NULL, instance_sym, template_sym,
                           template_arg_list, nested_instantiation);
   return scope;
 }  /* push_template_instantiation_scope */
+
+
+void pop_template_instantiation_scope(void)
+/*
+Interface to pop_scope that is used for template instantiation scopes.
+*/
+{
+  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+  a_symbol_ptr			template_sym;
+  check_assertion_str2(ssep->kind == (a_scope_kind)sck_template_instantiation,
+                       "pop_template_instantiation_scope:",
+                       "current scope is not instantiation scope");
+  template_sym = ssep->template_sym;
+  /* Pop the actual template instantiation scope. */
+  pop_scope();
+  /* If the template was defined in a namespace, reactivate the namespace
+     scope before pushing the instantiation scope. */
+  if (!template_sym->is_class_member &&
+       template_sym->parent.namespace_ptr != NULL) {
+    pop_namespace_reactivation_scope();
+  }  /* if */
+}  /* pop_template_instantiation_scope */
 
 
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
