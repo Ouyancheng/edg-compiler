@@ -1,5 +1,16 @@
 Version 2.32
 
+5/6/96  Indication of specialization in mangled names
+
+Under control of the configuration variable
+distinct_mangling_for_specializations, whose initial value is established
+by DEFAULT_DISTINCT_MANGLING_FOR_SPECIALIZATIONS, the mangled names for
+explicit specializations of template functions and template static data
+members now include the suffix "__S" to differentiate a user-written
+specialization from a compiler-generated instance with the same
+signature.  The special suffix is added only for specializations
+written using the new "template<>" syntax.
+
 5/5/96  IL CHANGE: field in a_src_seq_end_of_construct has been renamed
 
 In a_src_seq_end_of_construct "source_position" is now "position".

@@ -1435,6 +1435,29 @@ names.
 }  /* mangled_operator_name */
 
 
+static sizeof_t mangled_specialization_suffix(char *store_at)
+/*
+Output the mangled name suffix that indicates an explicit specialization.
+Place the suffix at *store_at if store_at != NULL, and (always) return
+the length of the suffix.
+*/
+{
+  sizeof_t mangled_name_length = 0;
+
+  if (distinct_mangling_for_specializations) {
+    /* Explicit specializations get an extra "__S" at the end to distinguish
+       them from compiler-generated instantiations. */
+    mangled_name_length += 3;
+    if (store_at != NULL) {
+      *store_at++ = '_';
+      *store_at++ = '_';
+      *store_at++ = 'S';
+    }  /* if */
+  }  /* if */
+  return mangled_name_length;
+}  /* mangled_specialization_suffix */
+
+
 static sizeof_t mangled_function_name(a_routine_ptr routine,
                                       a_boolean     suppress_param_encoding,
                                       char          *store_at)
@@ -1545,6 +1568,14 @@ types; just put out the base encoded name.
     section_length = mangled_encoding_for_function_type(routine_type,
                                                         store_at);
     mangled_name_length += section_length;
+    if (store_at != NULL) store_at += section_length;
+  }  /* if */
+  if (routine->is_specialization) {
+    /* Explicit specializations get an extra suffix at the end to distinguish
+       them from compiler-generated instantiations. */
+    section_length = mangled_specialization_suffix(store_at);
+    mangled_name_length += section_length;
+    if (store_at != NULL) store_at += section_length;
   }  /* if */
   return mangled_name_length;
 }  /* mangled_function_name */
@@ -1625,6 +1656,7 @@ name in the routine entry.
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 static sizeof_t mangled_member_name(a_source_correspondence *scp,
+                                    a_boolean               is_specialization,
                                     char                    *store_at)
 /*
 Determine the mangled form of the name of the class or namespace member
@@ -1632,7 +1664,8 @@ whose source correspondence is given by scp.  Place the mangled name
 at *store_at if store_at != NULL, and (always) return the length of the
 name.  See ARM 7.2.1c for name encoding.  This routine must be called
 only for static data member variables, namespace member variables, and
-class and namespace member constants.
+class and namespace member constants.  is_specialization is TRUE if the
+variable is a template static data member specialization.
 */
 {
   sizeof_t mangled_name_length, section_length;
@@ -1665,6 +1698,14 @@ class and namespace member constants.
   /* Output the mangled parent name. */
   section_length = mangled_parent_qualifier(scp, store_at);
   mangled_name_length += section_length;
+  if (store_at != NULL) store_at += section_length;
+  if (is_specialization) {
+    /* Explicit specializations get an extra suffix at the end to distinguish
+       them from compiler-generated instantiations. */
+    section_length = mangled_specialization_suffix(store_at);
+    mangled_name_length += section_length;
+    if (store_at != NULL) store_at += section_length;
+  }  /* if */
   return mangled_name_length;
 }  /* mangled_member_name */
 
@@ -1688,7 +1729,8 @@ See ARM 7.2.1c for name encoding.
                         "mangled_member_variable_name: unnamed class member");
     give_unnamed_member_variable_a_name(variable);
   }  /* if */
-  return mangled_member_name(&variable->source_corresp, store_at);
+  return mangled_member_name(&variable->source_corresp,
+                             variable->is_specialization, store_at);
 }  /* mangled_member_variable_name */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
@@ -1851,12 +1893,14 @@ extension) a declared class member constant.
     error_position = con->source_corresp.decl_position;
     /* Determine how long the mangled name is. */
     mangled_name_length = mangled_member_name(&con->source_corresp,
+                                              /*is_specialization=*/FALSE,
                                               (char *)NULL);
     /* Allocate space for the mangled name and build it.  The old name is
        just thrown away. */
     alloc_length = mangled_name_length + 1;
     mangled_name = alloc_lowered_name_string(alloc_length);
-    (void)mangled_member_name(&con->source_corresp, mangled_name);
+    (void)mangled_member_name(&con->source_corresp,
+                              /*is_specialization=*/FALSE, mangled_name);
     /* Store the final null. */
     mangled_name[mangled_name_length] = '\0';
     con->source_corresp.unmangled_name = con->source_corresp.name;
