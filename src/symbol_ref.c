@@ -295,7 +295,7 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
           for (hnp = sp->hidden_names; hnp != NULL; hnp = hnp->next) {
             if (hnp->entity.ptr == entity) break;
           }  /* for */
-  #if DEBUG
+#if DEBUG
           if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
             if (hnp == NULL ||
                 ((tag_hidden_by_nontag &&
@@ -329,7 +329,7 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
               fprintf(f_debug, "\n");
             }  /* if */
           }  /* if */
-  #endif /* DEBUG */
+#endif /* DEBUG */
           if (hnp == NULL) {
             /* No existing entry.  Allocate a new one. */
             a_scope_depth           scope_depth;
