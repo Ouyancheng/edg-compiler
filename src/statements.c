@@ -2123,6 +2123,9 @@ where handler-seq is a sequence of one or more handlers of the form
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_try_block, sp);
+  /* Push an object lifetime. */
+  push_object_lifetime(iek_try_supplement, (char *)sp->variant.try_block,
+                       olk_local);
   current_routine_entry()->contains_try_block = TRUE;
 #if CHECKING
   if (curr_token != tok_try) {
@@ -2158,6 +2161,7 @@ where handler-seq is a sequence of one or more handlers of the form
       catch_pos = pos_curr_token;
     } while (loop_token(tok_catch));
   }  /* if */
+  pop_object_lifetime();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
 
