@@ -7883,9 +7883,7 @@ and type are incompatible, issue the error incompatible_err at position
 cases where bitwise copying applies.
 */
 {
-  if (!C_mode() && is_class_struct_union_type(dest_type) &&
-      /* cfront does bitwise assignment the simpler way. */
-      !any_cfront_mode()) {
+  if (!C_mode() && is_class_struct_union_type(dest_type)) {
     a_type_ptr class_type = skip_typerefs(dest_type), param_type;
     /* C++ assignment of a class. */
     check_assertion_str(symbol_supplement_for_class(class_type)->
