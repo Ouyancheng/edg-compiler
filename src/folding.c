@@ -2700,7 +2700,8 @@ union(s).
   /* See if the field is a member of an anonymous union. */
   field_class = field->source_corresp.class_of_which_a_member;
   ctsp = field_class->variant.class_struct_union.extra_info;
-  if (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field) {
+  if (ctsp != NULL &&
+      ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field) {
     /* Yes, the field is a member of an anonymous union.  Add the offset
        for the anonymous union.  Note that fields of anonymous union
        variables would not come here. */
