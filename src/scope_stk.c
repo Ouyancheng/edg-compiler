@@ -3766,6 +3766,7 @@ NULL.
                  !var_type->variables_are_implicitly_referenced &&
                  var_ptr->section == NULL &&
                  !var_ptr->has_gnu_unused_attribute &&
+                 !var_ptr->has_gnu_used_attribute &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
                  !(is_immediate_class_type(var_type) &&
                    (var_type->variant.class_struct_union.is_nonreal_class ||
@@ -4848,7 +4849,7 @@ it is an external definition).
          even though the individual entries may have had internal linkage. */
       is_needed = TRUE;
     } else if (var->storage_class == (a_storage_class)sc_static &&
-               (var->has_gnu_unused_attribute || var->is_weak)) {
+               (var->has_gnu_used_attribute || var->is_weak)) {
       /* GNU C doesn't eliminate unreferenced static variables.  This front end
          may do so, but some attributes are taken as an indication that the
          entry should be kept. */
@@ -5085,7 +5086,7 @@ e.g., because it's externally defined.
        at program startup. */
     is_needed = TRUE;
   } else if (rout->storage_class == (a_storage_class)sc_static &&
-             (rout->has_gnu_unused_attribute || rout->is_weak)) {
+             (rout->has_gnu_used_attribute || rout->is_weak)) {
     /* GNU C doesn't eliminate unreferenced static functions.  This front end
        may do so, but some attributes are taken as an indication that the
        entry should be kept. */

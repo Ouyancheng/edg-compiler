@@ -1308,6 +1308,11 @@ attributes were specified on a definition.
       case ak_unused:
         vp->has_gnu_unused_attribute = TRUE;
         break;
+      case ak_used:
+        if (check_variable_not_local(vp, ap, /*allow_local_static=*/TRUE)) {
+          vp->has_gnu_used_attribute = TRUE;
+        }  /* if */
+        break;
       case ak_deprecated:
         vp->source_corresp.is_deprecated = TRUE;
         break;

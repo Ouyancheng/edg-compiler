@@ -5952,6 +5952,9 @@ typedef struct a_variable {
   a_bit_field   has_gnu_unused_attribute:1;
 			/* TRUE if this variable was declared with the
 			   GNU "unused" attribute. */
+  a_bit_field   has_gnu_used_attribute:1;
+			/* TRUE if this variable was declared with the
+			   GNU "used" attribute. */
   a_bit_field   is_not_common:1;
 			/* TRUE if this variable should not be placed in
 			   COMMON (or an equivalent) even if it is

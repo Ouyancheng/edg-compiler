@@ -1,5 +1,21 @@
 Version 3.4
 
+3/3/04   GNU mode: Attributes "used" and "unused"
+
+In GNU mode, the front end now accepts with no diagnostic the attribute "used"
+when it appears on variables with static storage duration (previously the
+attribute was ignored with a warning).  Variables marked with this attribute
+are not removed from the IL even if they appear to be unused.  Furthermore,
+no warning is issued if they are not used.  For example:
+
+  static __attribute__((used)) int x;  // Never eliminated.  No warning
+                                       // if unreferenced.
+
+In addition, the effect of attribute "unused" on functions and variables is
+now limited to inhibiting warnings if the marked entity is unreferenced.
+Previously, "unused" also caused the marked entity to be kept in the IL when
+unreferenced: That is no longer the case.
+
 3/3/04   Microsoft compatibility: repeated typename keyword
 
 The Microsoft compiler allows the typename keyword to be repeated in

@@ -4217,6 +4217,9 @@ If *need_leading_space is TRUE, precede the attribute with a leading space.
     if (var->has_gnu_unused_attribute) {
       form_simple_attribute("__unused__", need_leading_space, octl);
     }  /* if */
+    if (var->has_gnu_used_attribute) {
+      form_simple_attribute("__used__", need_leading_space, octl);
+    }  /* if */
     if (var->source_corresp.is_deprecated && !octl->c_generating_back_end) {
       /* If we're generating output for the C-generating back end, we do not
          output the attribute __deprecated__ because any diagnostics it might

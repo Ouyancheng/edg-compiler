@@ -1799,6 +1799,7 @@ to it.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   vp->is_weak                     = FALSE;
   vp->has_gnu_unused_attribute    = FALSE;
+  vp->has_gnu_used_attribute      = FALSE;
   vp->is_not_common               = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
