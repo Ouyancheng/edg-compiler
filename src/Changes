@@ -1,5 +1,10 @@
 Version 2.43
 
+8/13/99  Compilation problem when INSTANTIATION_BY_IMPLICIT_INCLUSION is 0
+
+The front end did not build properly when INSTANTIATION_BY_IMPLICIT_INCLUSION
+is set to 0.  This problem was introduced in 2.42.  Now fixed.
+
 8/12/99  Keep function bodies in IL even when the declarator is qualified
 
 The front end used to too eagerly remove function bodies when the definition

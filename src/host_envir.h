@@ -1481,14 +1481,13 @@ extern char *combine_dir_and_file_name (char *dir_name,
                                         char *file_name,
 				        char *buffer,
 				        int  buffer_size);
-#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+
 /* Replace the suffix of a file name with a specified suffix. */
 extern char *replace_file_name_suffix(char  *suffix,
                                       char  *file_name,
                                       char  *buffer,
                                       int   buffer_size,
                                       char  **suffix_loc);
-#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 /*
 Include the files needed to define the types used with the stat()

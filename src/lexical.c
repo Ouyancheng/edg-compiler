@@ -360,8 +360,6 @@ static an_id_lookup_options_set idl_options_for_lookup_mode[(int)ilm_last+1]= {
   /* ilm_last */		IDL_NO_OPTIONS
 };
 
-
-#if INSTANTIATION_BY_IMPLICIT_INCLUSION
 /*
 Data structure used to represent a list of file suffixes.
 */
@@ -377,8 +375,11 @@ typedef struct a_file_suffix {
 			   to be used between the filename and the suffix. */
 } a_file_suffix;
 
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+
 static a_file_suffix_ptr
 		 implicit_instantiation_file_suffix_list = NULL;
+
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 static a_file_suffix_ptr
@@ -397,9 +398,7 @@ static unsigned long
                 num_cached_tokens_in_reusable_caches,
                 num_pragmas_in_reusable_caches,
 		num_cached_constants_allocated,
-#if INSTANTIATION_BY_IMPLICIT_INCLUSION
                 num_file_suffixes_allocated,
-#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 		num_include_file_histories_allocated,
 		cached_pp_token_string_space,
                 num_stop_token_stack_entries_allocated,
@@ -11188,10 +11187,8 @@ Display and return the amount of space used for various lexical tables.
                  num_pragmas_in_reusable_caches, a_pending_pragma);
   db_space_used("pragma kind descriptions", num_pragma_descriptions_allocated,
                 a_pragma_kind_description);
-#if INSTANTIATION_BY_IMPLICIT_INCLUSION
   db_space_used("file suffixes", num_file_suffixes_allocated,
                 a_file_suffix);
-#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   db_space_used("include file histories", num_include_file_histories_allocated,
                 an_include_file_history);
   db_space_used_other("cached pp token strings", cached_pp_token_string_space,
@@ -11374,10 +11371,10 @@ are handled in lexical_init.)
     }  /* for */
 #endif /* CHECKING */
   }
-#if INSTANTIATION_BY_IMPLICIT_INCLUSION
 #if DEBUG
   num_file_suffixes_allocated = 0;
 #endif /* DEBUG */
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
   /* Create the instantiation file suffix list. */
   implicit_instantiation_file_suffix_list =
        conv_string_to_file_suffix_list(DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST);

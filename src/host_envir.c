@@ -847,7 +847,6 @@ to allocate the space in the intermediate language memory region.
 }  /* combine_dir_and_file_name */
 
 #if !STANDALONE_UTILITY_PROGRAM
-#if INSTANTIATION_BY_IMPLICIT_INCLUSION
 
 char *replace_file_name_suffix(char  *new_suffix,
                                char  *file_name,
@@ -936,7 +935,7 @@ delimiter).
   return new_file_name;
 #undef SUFFIX_DELIMITER
 }  /* replace_file_name_suffix */
-#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
