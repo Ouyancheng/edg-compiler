@@ -833,19 +833,24 @@ consistent with that of the previous declaration.
 
   db_enter(4, "check_exception_specification");
   if (exceptions_enabled && rp->type->kind != (a_type_kind)tk_typeref) {
-    rout_sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
     old_tsp = skip_typerefs(rp->type)->
                          variant.routine.extra_info->exception_specification;
     new_tsp = skip_typerefs(new_rout_type)->
                     variant.routine.extra_info->exception_specification;
+    /* Set rout_sym and error_code for issuing diagnostics. */
+    rout_sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
     if (is_redecl) {
       /* This a function redeclaration -- the exception specifications have to
          match. */
       error_code = ec_incompatible_exception_specification;
     } else {
-      /* Not a redeclaration -- probably a template specialization, where the
-         specialization needs to match the template itself. */
+      /* Not a redeclaration -- probably a template specialization. */
       error_code = ec_bad_exception_specification_for_specialization;
+      if (rout_sym->variant.routine.instance_ptr != NULL) {
+        /* In diagnostics refer to template rather than a previous declaration
+           of this instance. */
+        rout_sym = rout_sym->variant.routine.instance_ptr->template_sym;
+      }  /* if */
     }  /* if */
     if (old_tsp == NULL) {
       /* Previous specification asserted that any exception may be thrown.
