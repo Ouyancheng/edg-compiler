@@ -30,10 +30,6 @@ il.c -- Construction of intermediate language trees.
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
-#if ALTERNATE_IL_FILE_FORMAT
-#include "il_file.h"
-#endif /* ALTERNATE_IL_FILE_FORMAT */
-
 #if !STANDALONE_UTILITY_PROGRAM
 #include "func_def.h"
 #include "pch.h"
