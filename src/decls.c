@@ -11486,6 +11486,16 @@ continue_with_declaration:
              complete. */
           symbol_ptr->is_invisible = FALSE;
         }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+        if (gpp_mode && has_parenthesized_initializer) {
+          /* Scan any trailing attributes. */
+          an_attribute_ptr  trailing_attributes = scan_attributes();
+          /* Apply the attributes to the variable declaration. */
+          apply_attributes_to_variable(trailing_attributes, var_ptr);
+          /* Free up the list of attributes. */
+          free_attribute_list(trailing_attributes);
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
             !is_old_style_param_decl) {
           /* All initialized variables are considered defined.  This flag
