@@ -1,5 +1,11 @@
 Version 3.4
 
+2/24/04  Internal error on invalid exported template directory
+
+An internal error would result if an invalid directory was specified
+in the --template_directory option when compiling a program that uses
+exported templates.  Now fixed.
+
 2/24/04  Template name lookup and using-directives
 
 When using the default template lookup mechanism (i.e., when not using

@@ -18065,6 +18065,8 @@ compilation can be looked up to find the corresponding definition.
   db_enter(2, "find_exported_template_files");
   for (dnep = template_search_path; dnep != NULL; dnep = dnep->next) {
     an_export_info_file	export_info;
+    /* Ignore this search path entry if the directory does not exist. */
+    if (!is_directory(dnep->dir_name)) continue;
     /* Look for an export information file in this directory. */
     init_export_info_file(&export_info);
     export_info.dir_name_entry = dnep;
