@@ -5,7 +5,9 @@ Version 3.1
 The code to do truncation of mangled names to ensure that they
 do not exceed a maximum length (given by DEFAULT_MAX_MANGLED_NAME_LENGTH)
 did not work correctly for names that are already within 10 characters
-of the maximum length.  Now fixed.
+of the maximum length.  This potentially caused string copies that
+overwrote characters beyond the end of space alocated for the name,
+which could have various unfortunate consequences.  Now fixed.
 
 7/15/02  GNU compatibility: Excess aggregate initializers
 
