@@ -2563,21 +2563,23 @@ the constant.
     if (constant->assoc_var_assigned) {
       assoc_var = (a_variable_ptr)constant->source_corresp.assoc_info;
     } else {
-      if (!in_file_scope((char *)constant)) {
+      a_constant_ptr init_constant = constant;
+      /* The variable must be allocated. */
+      (void)make_mptr_type();
+      if (in_file_scope((char *)constant)) {
+        /* The constant is in the file scope (and therefore possibly shared),
+           so use a file-scope variable. */
+        assoc_var = make_file_scope_temporary(mptr_type);
+      } else {
         /* The constant is in the function scope, so a copy must be made so
            it can be used as the initial value of a static variable. */
         a_memory_region_number region_to_switch_back_to = NULL_region_number;
         switch_to_file_scope_region(&region_to_switch_back_to);
-        constant = copy_unshared_constant(constant);
+        init_constant = copy_unshared_constant(init_constant);
         switch_back_to_original_region(region_to_switch_back_to);
-    }  /* if */
-      /* The variable must be allocated. */
-      (void)make_mptr_type();
-      if (lowering_file_scope) {
-        assoc_var = make_file_scope_temporary(mptr_type);
-      } else {
+        /* Use a function-local static variable. */
         assoc_var = make_unnamed_local_static_variable(mptr_type,
-                                                  /*in_function_scope=*/FALSE);
+                                                   /*in_function_scope=*/TRUE);
       }  /* if */
       /* Save the pointer in the assoc_info field so the variable can be
          reused. */
@@ -2585,7 +2587,7 @@ the constant.
       constant->assoc_var_assigned = TRUE;
       /* Make the ck_aggregate constant the initial value of the variable. */
       assoc_var->init_kind = (an_init_kind)initk_static;
-      assoc_var->initializer.constant = constant;
+      assoc_var->initializer.constant = init_constant;
     }  /* if */
   }  /* if */
   *temp_var = assoc_var;
