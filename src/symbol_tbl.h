@@ -1920,11 +1920,15 @@ public members are accessible, which means
       have member access to the derived class or to one of its derived
       classes.
 */
-#define is_accessible_base_class(bcp, derived_class)                  \
+/* If you need to do this for non-immediate base classes, see the
+   function is_accessible_base_class. */
+#define is_accessible_imm_base_class(bcp, derived_class)              \
   ((bcp)->access == (an_access_specifier)as_public ||                 \
    have_member_access_privilege(derived_class) ||                     \
    ((bcp)->access == (an_access_specifier)as_protected &&             \
     have_protected_member_access_privilege(derived_class)))
+
+extern a_boolean is_accessible_base_class(a_base_class_ptr bcp);
 
 extern a_symbol_ptr curr_scope_id_lookup(a_symbol_locator         *locator,
                                          an_id_lookup_options_set options);

@@ -3914,7 +3914,7 @@ have_proj_sym:
     } else {
       /* Determine whether or not the base class is accessible.  A base class
          is accessible if its public members are accessible from the derived
-         class.  This is like the macro is_accessible_base_class, but
+         class.  This is like the macro is_accessible_imm_base_class, but
          optimized to use whatever we've already determined about member
          access to the viewpoint class. */
       bcp = derivation->base_class;
@@ -4231,6 +4231,31 @@ function.
     pos_syty_error(ec_protected_access_problem, err_pos, sym, access_class);
   }  /* if */
 }  /* f_check_protected_member_access */
+
+
+a_boolean is_accessible_base_class(a_base_class_ptr bcp)
+/*
+Return TRUE if the base class indicated by bcp is accessible from the
+current point in the program, relative to the class of which it is a
+base class.
+*/
+{
+  a_boolean             accessible = TRUE;
+  a_derivation_step_ptr dsp;
+  a_base_class_ptr      base_class;
+  a_type_ptr            curr_type;
+
+  curr_type = bcp->derived_class;
+  for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
+    base_class = dsp->base_class;
+    if (!is_accessible_imm_base_class(base_class, curr_type)) {
+      accessible = FALSE;
+      break;
+    }  /* if */
+    curr_type = base_class->type;
+  }  /* for */
+  return accessible;
+}  /* is_accessible_base_class */
 
 
 /* Declaration needed because of mutual recursion: */
