@@ -9024,6 +9024,7 @@ specific version of the template.
   ssep->defer_access_checks      = FALSE;
   ssep->is_try_block             = FALSE;
   ssep->within_try_block         = FALSE;
+  ssep->within_unnamed_namespace = FALSE;
   ssep->il_scope                 = sp;
   ssep->assoc_type               = assoc_type;
   ssep->assoc_routine            = assoc_routine;
@@ -9310,6 +9311,11 @@ specific version of the template.
                       (a_symbol_ptr)assoc_namespace->source_corresp.assoc_info;
       ssep->assoc_pointers_block =
                      &sym->variant.namespace_info.extra_info->pointers_block;
+      if (assoc_namespace->source_corresp.name == NULL ||
+          scope_stack[depth_innermost_namespace_scope].
+                                            within_unnamed_namespace) {
+        ssep->within_unnamed_namespace = TRUE;
+      }  /* if */
       /* Maintain the depth of the innermost namespace scope. */
       depth_innermost_namespace_scope =
             ssep->depth_innermost_namespace_scope = depth_scope_stack;

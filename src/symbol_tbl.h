@@ -2012,6 +2012,10 @@ typedef struct a_scope_stack_entry {
 			   the symbols made visible by the using directive
 			   are to be visible when the lookup reaches this
 			   scope. */
+  a_bit_field	within_unnamed_namespace:1;
+			/* TRUE if the current entry on the scope stack is
+			   itself an unnamed namespace or is a named
+			   namespace contained within an unnamed namespace. */
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
 			/* Pointer to a scope pointer block that should be
