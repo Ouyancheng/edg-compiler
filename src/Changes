@@ -1,5 +1,11 @@
 Version 2.16
 
+4/8/93  Setting is_instantiation
+
+The is_instantiation flags in the routine and variable entries
+were not being set for functions and static data members generated
+from templates.  This has been corrected.
+
 4/8/93  Warning on missing expression in ctor-initializer
 
 Now, when a nonclass field is being initialized in a ctor-initializer and
