@@ -48,7 +48,7 @@ pointer type to another and casting integer constants to pointer types.
   /* Clear the source correspondence information.  If this was a
      manifest constant macro, the new constant should no longer be
      associated with the original constant. */
-  set_default_source_corresp(&cp->source_corresp);
+  break_source_corresp(&cp->source_corresp);
 }  /* implicit_cast */
 
 
