@@ -1,5 +1,13 @@
 Version 2.42
 
+6/17/99  Separate configuration option for nonconst call anachronism
+
+The anachronism of calling a nonconst member function on a const
+object, allowed in cfront 2.1 mode and Microsoft mode for versions
+less than 1000, is now controlled by the variable
+allow_nonconst_call_anachronism and the macro
+DEFAULT_ALLOW_NONCONST_CALL_ANACHRONISM.
+
 6/15/99  Minimal inlining: no temporaries for pointer-to-member-function
          constant arguments
 

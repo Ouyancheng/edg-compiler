@@ -1235,6 +1235,7 @@ by a command line option.
     }  /* if */
     single_ref_qual_ovl_res_tiebreaker = microsoft_bugs;
     allow_nonconst_ref_anachronism = TRUE;
+    allow_nonconst_call_anachronism = (microsoft_version < 1000);
   }  /* if */
 }  /* set_microsoft_mode_flags */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1426,6 +1427,7 @@ Process the arguments on the command line that invoked the compiler.
         cfront_2_1_mode = TRUE;
         cfront_3_0_mode = FALSE;
         special_subscript_cost = FALSE;
+        allow_nonconst_call_anachronism = TRUE;
         goto common_cfront_mode_settings;
       case optk_cfront_3_0_mode:
         /* cfront 3.0 compatibility mode.  If both 2.1 and 3.0 modes are
@@ -1434,6 +1436,7 @@ Process the arguments on the command line that invoked the compiler.
         cfront_3_0_mode = TRUE;
         cfront_2_1_mode = FALSE;
         special_subscript_cost = TRUE;
+        allow_nonconst_call_anachronism = FALSE;
 common_cfront_mode_settings:
         /* This option implies C++ dialect. */
         C_dialect = C_dialect_cplusplus;

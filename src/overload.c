@@ -1647,7 +1647,7 @@ with a const selector is enabled, allow that kind of mismatch here.
                             /*try_user_conversions=*/FALSE, match_summary);
   match_summary->is_match_for_this_param = TRUE;
   if (match_summary->match_level == aml_none &&
-      (cfront_2_1_mode || (microsoft_mode && microsoft_version < 1000))) {
+      allow_nonconst_call_anachronism) {
     /* No match.  Try the anachronism of calling a function that
        does not require a const "this" with a const selector.  See also
        set_up_for_conversion_function_call. */

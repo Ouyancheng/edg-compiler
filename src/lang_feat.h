@@ -64,6 +64,15 @@ a command line option.
 #endif /* ifndef DEFAULT_ALLOW_ANACHRONISMS */
 
 /*
+Flag that is TRUE to allow the anachronism of calling a non-const
+member function on a const object.  This is the default value for the
+variable allow_nonconst_call_anachronism.
+*/
+#ifndef DEFAULT_ALLOW_NONCONST_CALL_ANACHRONISM
+#define DEFAULT_ALLOW_NONCONST_CALL_ANACHRONISM FALSE
+#endif /* ifndef DEFAULT_ALLOW_NONCONST_CALL_ANACHRONISM */
+
+/*
 Flag that is the default value for allow_nonconst_ref_anachronism,
 which controls the anachronism of allowing a reference to nonconst to bind
 to a class rvalue of the right type.

@@ -219,6 +219,15 @@ EXTERN a_boolean
                         /* Indicates whether anachronisms should be
                            accepted.  The default is supplied by a
                            configuration parameter. */
+EXTERN a_boolean
+                allow_nonconst_call_anachronism
+#if VAR_INITIALIZERS
+                          = DEFAULT_ALLOW_NONCONST_CALL_ANACHRONISM
+#endif /* VAR_INITIALIZERS */
+                                                                   ;
+			/* Indicates whether the anachronism of calling
+			   a non-const function on a const object should
+			   be accepted. */
 
 #if DEBUG
 EXTERN int	init_debug_level /* = 0 */;
