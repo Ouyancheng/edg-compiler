@@ -4708,7 +4708,8 @@ This is needed in the IA-64 ABI because pointers to data members use
   /* Build a model for the zero-initialized entity. */
   model_var = make_temporary_in_scope(type, scope, /*force_static=*/FALSE);
   model_var->init_kind = (an_init_kind)initk_zero;
-  lower_initializer(model_var, &model_var->init_kind, &model_var->initializer);
+  lower_initializer(model_var, &model_var->init_kind, &model_var->initializer,
+                    &insert_location);
   /* Build a loop to zero-initialize the entities. */
   loop_stmt = alloc_statement((a_statement_kind)stmk_while);
   loop_stmt->expr = make_operator_node((an_expr_operator_kind)eok_ipost_decr,
@@ -5485,7 +5486,7 @@ do_assignment:;
         /* Check for the need to generate code to zero pointers to data
            members. */
         lower_initializer(variable, &variable->init_kind,
-                          &variable->initializer);
+                          &variable->initializer, eff_insert_location);
 #endif /* IA64_ABI */
       } else {
         variable->init_kind = (an_init_kind)initk_none;

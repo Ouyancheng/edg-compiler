@@ -639,7 +639,8 @@ extern a_boolean contains_ptr_to_data_member(a_type_ptr type);
 
 extern void lower_initializer(a_variable_ptr     variable,
                               an_init_kind       *init_kind,
-                              an_initializer_ptr initializer);
+                              an_initializer_ptr initializer,
+                              an_insert_location *insert_location);
 #endif /* IA64_ABI */
 
 extern a_type_ptr underlying_type(a_type_ptr type);

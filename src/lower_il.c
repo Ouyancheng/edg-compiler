@@ -7215,18 +7215,20 @@ Do IL lowering of the indicated list of variables and everything under it.
 }  /* lower_variable_list */
 
 #if !IA64_ABI
-/*ARGSUSED*/ /* <-- variable is not used in that case. */
+/*ARGSUSED*/ /* <-- variable and insert_location are not used in that case. */
 #define LOWER_INITIALIZER_LINKAGE static
 #else /* IA64_ABI */
 #define LOWER_INITIALIZER_LINKAGE /*external*/
 #endif /* IA64_ABI */
 LOWER_INITIALIZER_LINKAGE void lower_initializer(
-                                               a_variable_ptr     variable,
-                                               an_init_kind       *init_kind,
-                                               an_initializer_ptr initializer)
+                                           a_variable_ptr     variable,
+                                           an_init_kind       *init_kind,
+                                           an_initializer_ptr initializer,
+                                           an_insert_location *insert_location)
 /*
 Lower an initializer, which might be in a variable or a
-local-variable-static-init entry.
+local-variable-static-init entry.  insert_location, if non-NULL, gives
+a location at which code can be inserted.
 */
 {
   switch (*init_kind) {
@@ -7251,10 +7253,17 @@ local-variable-static-init entry.
           initializer->constant = cp;
         } else {
           /* Automatic variable; use dynamic initialization to a constant. */
+          a_statement_ptr    stmk_init_stmt;
+          a_dynamic_init_ptr dip;
           *init_kind = (an_init_kind)initk_dynamic;
-          initializer->dynamic =
+          initializer->dynamic = dip =
                          alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-          initializer->dynamic->variant.constant = cp;
+          dip->variant.constant = cp;
+          dip->variable = variable;
+          check_assertion(insert_location != NULL);
+          stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
+          stmk_init_stmt->variant.dynamic_init = dip;
+          insert_statement(stmk_init_stmt, insert_location);
         }  /* if */
       }  /* if */
       break;
@@ -7357,7 +7366,8 @@ Do IL lowering of the indicated variable and everything under it.
       variable->modified_within_try_block = FALSE;
     }  /* if */
     /* Lower the initializer if any. */
-    lower_initializer(variable, &variable->init_kind, &variable->initializer);
+    lower_initializer(variable, &variable->init_kind, &variable->initializer,
+                      (an_insert_location *)NULL);
   }  /* if */
 }  /* lower_variable */
 
@@ -7373,7 +7383,8 @@ memory region).
 */
 {
   for (; lsvip != NULL; lsvip = lsvip->next) {
-    lower_initializer(lsvip->variable, &lsvip->init_kind, &lsvip->initializer);
+    lower_initializer(lsvip->variable, &lsvip->init_kind, &lsvip->initializer,
+                      (an_insert_location *)NULL);
   }  /* for */
 }  /* lower_local_static_variable_init_list */
 
