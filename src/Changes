@@ -1,5 +1,23 @@
 Version 2.27
 
+12/13/94 Order dependencies in member function rewriting
+
+There was an inconsistency in how we dealt with dependencies between
+default argument fixup and function body scanning for inline member
+functions:
+
+  struct A {
+    static void f(int i = 0);
+    void g() { f(); }          // Okay
+    struct N {
+      void h() { f(); }        // Used to be an error
+    };
+  };
+
+This has now been fixed: all default argument fixup (for member functions
+both of the containing class and of classes nested inside it) is done
+before any inline function bodies are scanned.
+
 12/12/94 Bug in processing member function of unnamed nested class
 
 A bug has been fixed in processing a member function of an unnamed nested
