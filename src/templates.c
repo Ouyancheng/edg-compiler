@@ -3944,7 +3944,7 @@ were entered in the hash table; otherwise returns FALSE.
     /* If the file does not exist, the open routine will return FALSE. */
     /* Skip over initial lines of the instantiation information file
        that don't contain instantiation entries. */
-    for (i = 1; i < INSTANTIATION_INFO_LINES_TO_BE_SKIPPED; ++i) {
+    for (i = 1; i <= INSTANTIATION_INFO_LINES_TO_BE_SKIPPED; ++i) {
       /* Read and discard the line. */
       (void)read_info_file();
     }  /* if */
