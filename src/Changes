@@ -243,7 +243,7 @@ class, routine, or variable (for static data members) contains a
 pointer to the template from which it was generated.
 
 The IL for prototype instantiations can contain some new "generic"
-expression operands (e.g., eok_add, eok_lvalue) and can have a null
+expression operators (e.g., eok_add, eok_lvalue) and can have a null
 pointer for the constructor routine in a dik_constructor dynamic
 initialization.  The C++-generating back end has been enhanced so
 that can generate source code from the IL for prototype instantiations.
