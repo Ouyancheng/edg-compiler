@@ -31,10 +31,11 @@ if defined (non-NULL pointer).
   void *ptr;
 
   while ((ptr = (void *)malloc(size)) == NULL) {
-    if (_new_handler != NULL)
+    if (_new_handler != NULL) {
       (*_new_handler) ();
-    else
+    } else {
       return (void *)NULL;
+    }  /* if */
   }  /* while */
   return ptr;
 }  /* operator new */
