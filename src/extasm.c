@@ -661,6 +661,10 @@ The syntax is
 }  /* asm_clobbers_spec */
 
 
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+BEGIN_EXTERN_C_BLOCK
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
+
 static int compare_n2r(const void *a,
                        const void *b)
 /*
@@ -672,6 +676,10 @@ by their name strings.
   struct name_to_reg *y = (struct name_to_reg *)b;
   return strcmp(x->name, y->name);
 }  /* compare_n2r */
+
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+END_EXTERN_C_BLOCK
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 
 void extasm_one_time_init(void)
