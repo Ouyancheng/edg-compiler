@@ -5215,6 +5215,7 @@ base class casts and virtual function calls.
   return complete_object_type;
 }  /* operand_complete_object_type */
 
+#if OPTIMIZE_VIRTUAL_FUNCTION_CALLS
 
 static a_routine_ptr function_from_virtual_function_operand(
                                                   an_operand *function_operand)
@@ -5244,7 +5245,11 @@ function, but that case does not come here).
   return con->variant.address.variant.routine;
 }  /* function_from_virtual_function_operand */
 
+#endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
 
+#if !OPTIMIZE_VIRTUAL_FUNCTION_CALLS
+/*ARGSUSED*/  /* <-- bound_function_selector is not used in that case. */
+#endif /* !OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
 void bind_member_function_operand_to_selector(
                                            an_operand *function_operand,
                                            an_operand *bound_function_selector)
@@ -5254,10 +5259,11 @@ complete object type can be determined, convert a virtual function call
 into a direct call if possible.
 */
 {
-  a_routine_ptr function;
-
   function_operand->bound_function = TRUE;
+#if OPTIMIZE_VIRTUAL_FUNCTION_CALLS
   if (function_operand->virtual_function) {
+    a_routine_ptr function;
+
     /* Virtual function call */
     a_type_ptr complete_object_type =
                           operand_complete_object_type(bound_function_selector,
@@ -5348,6 +5354,7 @@ into a direct call if possible.
       }  /* if */
     }  /* if */
   }  /* if */
+#endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
 }  /* bind_member_function_operand_to_selector */
 
 

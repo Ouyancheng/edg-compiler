@@ -2125,6 +2125,20 @@ and "?" are eliminated.  For example, "1 ? i : j" becomes simply "i".
 #endif /* ifndef ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
 
 /*
+If this is TRUE, the front end will attempt to optimize virtual
+function calls into non-virtual calls when it knows the complete
+object type in a call.  For many source-analysis applications
+this is best left turned off.
+*/
+#ifndef OPTIMIZE_VIRTUAL_FUNCTION_CALLS
+#if DO_IL_LOWERING
+#define OPTIMIZE_VIRTUAL_FUNCTION_CALLS TRUE
+#else /* !DO_IL_LOWERING */
+#define OPTIMIZE_VIRTUAL_FUNCTION_CALLS FALSE
+#endif /* DO_IL_LOWERING */
+#endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
+
+/*
 If this is TRUE, explicit casts that do nothing, for example
   int i = 0; int j = (int)i;
 are preserved in the IL.  This may be desirable for certain source-analysis
@@ -3336,6 +3350,17 @@ implementation.
 #define UCN_ESCAPE_REWRITE_CHAR '_' /* Incomplete solution, see above. */
 #endif /* ifndef UCN_ESCAPE_REWRITE_CHAR */
 #endif /* ifndef REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING */
+
+/*
+Flag that is TRUE if IL lowering can generate an optimized code sequence
+for certain pointer to member calls for classes that have no virtual
+functions.  The C++ standard disallows this optimization, but some
+older compilers have done it.  See the WG21 paper N0644 for a description
+of the disallowed optimization.
+*/
+#ifndef DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED
+#define DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED FALSE
+#endif /* ifndef DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED */
 
 /*
 Integer kind to use for an offset into a class.  This is used for delta

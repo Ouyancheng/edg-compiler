@@ -40,6 +40,12 @@ Also, as part of this change more virtual function calls are
 optimized to call a specific function when the complete object
 type is known.  Specifically, calls of virtual functions using
 a derived-class object are now optimized in many cases.
+All such optimization (including the cases that were done
+previously) is now controlled by OPTIMIZE_VIRTUAL_FUNCTION_CALLS.
+That is on by default when IL lowering is done, and off otherwise,
+which means that versions that do not use IL lowering, e.g,.
+C++-generating back end versions, will see less optimization than
+they saw previously.
 
 7/24/04  Cast to reference type can use conversion to non-reference
 

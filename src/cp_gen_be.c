@@ -6232,6 +6232,14 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
     naming_class = rout->source_corresp.parent.class_type;
     selection_class = naming_class;
   } else {
+#if OPTIMIZE_VIRTUAL_FUNCTION_CALLS
+    /* If bind_member_function_operand_to_selector optimizes virtual
+       calls to non-virtual, we would need to know how to undo the casts
+       added by retrace_base_casts and we would need to know not to use
+       a qualified name even though the call is non-virtual. */
+ #error -- OPTIMIZE_VIRTUAL_FUNCTION_CALLS should be FALSE for the \
+           C++-generating back end
+#endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
     /* Remove any cast that just adjusts the type qualifiers (e.g., adds
        const); it's implied by the context. */
     object_expr= skip_implicit_ptr_type_qualifier_adjustment_cast(object_expr);

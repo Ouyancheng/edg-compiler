@@ -730,6 +730,7 @@ EXTERN a_boolean
 			    should be accepted. */
 #endif /* NAMED_REGISTERS_ALLOWED */
 
+#if DO_IL_LOWERING
 EXTERN a_boolean
 		pointer_to_member_call_optimization_allowed
 #if VAR_INITIALIZERS
@@ -739,6 +740,7 @@ EXTERN a_boolean
 			/* TRUE if optimized code can be generated for certain
 			   pointer to member calls.  The C++ standard disallows
 			   this optimization. */
+#endif /* DO_IL_LOWERING */
 
 EXTERN a_boolean
 		no_access_check_on_friend_declarator_ids
