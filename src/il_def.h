@@ -5240,13 +5240,16 @@ typedef struct a_routine {
 			   complete program.  This flag is set for all
 			   routines because a routine can be declared inline
 			   after it has been called. */
-  a_bit_field	suppress_inline_body:1;
-			/* This field is used when inline functions are
-			   instantiated using a mechanism similar to the
-			   template instantiation mechanism.  This field
-			   is TRUE when the body of an extern inline function
-			   should not be emitted by the back end. */
 #endif /* INSTANTIATE_EXTERN_INLINE */
+  a_bit_field	suppress_inline_body:1;
+			/* This field is TRUE when the body of an extern
+			   inline function should not be emitted by the back
+			   end.	 This field is used both in C99 mode, for
+			   so-call "inline definitions" (see 6.7.4), and
+			   when INSTANTIATE_EXTERN_INLINE is TRUE (i.e.,
+			   when inline functions are instantiated using a
+			   mechanism similar to the template instantiation
+			   mechanism). */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier

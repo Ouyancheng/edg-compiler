@@ -1615,8 +1615,8 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if INSTANTIATE_EXTERN_INLINE
   rp->inline_instance_required    = FALSE;
-  rp->suppress_inline_body        = FALSE;
 #endif /* INSTANTIATE_EXTERN_INLINE */
+  rp->suppress_inline_body        = FALSE;
 #if CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

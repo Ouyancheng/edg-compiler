@@ -5264,13 +5264,24 @@ rescan_statement:
       break;
     default:
 expr_statement:
-      /* An expression statement. */
-      if ((mixed_decls_and_statements_allowed &&
-           is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) ||
-          (C_dialect == C_dialect_cplusplus &&
-           (curr_token == tok_using || curr_token == tok_namespace))) {
+      /* An expression statement or a declaration.  Declarations can be
+         interspersed among executable statements in C++ and C99. */
+      if (C_dialect == C_dialect_cplusplus) {
+        /* Distinguishing between an expression and a declaration in C++
+           may require disambiguation. */
+        if (curr_token == tok_using || curr_token == tok_namespace ||
+            is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) {
+          is_declaration = TRUE;
+        }  /* if */
+      } else if (mixed_decls_and_statements_allowed) {
+        /* In C mode the distinction is more straightforward. */
+        if (is_decl_start(/*expr_context=*/TRUE,
+                          /*real_declarator_allowed=*/TRUE)) {
+          is_declaration = TRUE;
+        }  /* if */
+      }  /* if */
+      if (is_declaration) {
         /* Scan a declaration (C++ and C99 only). */
-        is_declaration = TRUE;
         decl_statement();
       } else {
         /* expression-statement (3.6.3). */

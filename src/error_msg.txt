@@ -1077,6 +1077,8 @@ ec_cl_dep_name_requires_parse_nonclass_templates;;"option \"dep_name\" cannot be
 ec_cl_incompatible_language_modes;;"language modes specified are incompatible"
 ec_invalid_nested_class_redecl;;"invalid redeclaration of nested class"
 ec_flexible_array_member_not_allowed;;"type containing an unknown-size array is not allowed"
+ec_static_variable_in_inline_function;;"a variable with static storage duration cannot be defined within an inline function"
+ec_bad_linkage_of_ref_within_inline_function;;"an entity with internal linkage cannot be referenced within an inline function with external linkage"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

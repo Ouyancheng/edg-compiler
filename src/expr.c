@@ -10885,6 +10885,50 @@ to reflect the error.
 }  /* bad_nested_function_variable_ref */
 
 
+static void check_reference_from_inline_function(a_symbol_ptr  sym_ptr)
+/*
+sym_ptr is a symbol for a variable or routine being referenced in an
+expression.  In C99 mode, if the reference occurs within an inline function
+body with external linkage, be sure the reference is not to an entity with
+internal linkage (see 6.7.4 of the C99 standard).  Issue a diagnostic if the
+constraint is violated.
+*/
+{
+  a_boolean          bad_ref;
+  a_routine_ptr      curr_rout;
+  an_error_severity  severity;
+
+  check_assertion(c99_mode);
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    curr_rout = scope_stack[depth_innermost_function_scope].assoc_routine;
+    check_assertion(curr_rout != NULL);
+    if (curr_rout->is_inline &&
+        curr_rout->storage_class != (a_storage_class)sc_static) {
+      /* The current routine is an inline function with external linkage. */
+      if (sym_ptr->kind == (a_symbol_kind)sk_variable) {
+        /* A variable reference -- see if it is a non-local variable with
+           internal linkage. */
+        a_variable_ptr  vp = sym_ptr->variant.variable.ptr;
+        bad_ref = (vp->storage_class == (a_storage_class)sc_static &&
+                   !vp->source_corresp.is_local_to_function);
+      } else {
+        check_assertion(sym_ptr->kind == (a_symbol_kind)sk_routine);
+        /* A function reference -- see if it is a function with internal
+           linkage. */
+        bad_ref = (sym_ptr->variant.routine.ptr->storage_class ==
+                                              (a_storage_class)sc_static);
+      }  /* if */
+      if (bad_ref) {
+        /* Issue the diagnostic. */
+        severity = strict_ansi_mode ? strict_ansi_discretionary_severity :
+                                      es_discretionary_error;
+        diagnostic(severity, ec_bad_linkage_of_ref_within_inline_function);
+      }  /* if */
+    }  /* if */
+  } /* if */
+}  /* check_reference_from_inline_function */
+
+
 static a_symbol_ptr anonymous_parent_variable_of(a_symbol_ptr field_sym)
 /*
 field_sym is an sk_field symbol with anonymous_parent_object non-NULL.
@@ -11122,6 +11166,9 @@ variable:
             if (bad_nested_function_variable_ref(sym_ptr, result, &rep)) {
               /* Error. */
             } else {
+              /* In C99 mode check that a variable referenced within an
+                 inline function is valid. */
+              if (c99_mode) check_reference_from_inline_function(sym_ptr);
               /* Make a variable operand that is a variable address node.
                  The type of the operand is a pointer to the type of the
                  variable. */
@@ -11146,6 +11193,9 @@ normal_function:
             change_refs_to_error(rep);
             rep = NULL;
           } else {
+            /* In C99 mode check that a unction referenced within an
+               inline function is valid. */
+            if (c99_mode) check_reference_from_inline_function(sym_ptr);
             /* Make a function designator operand for the function. */
             make_function_designator_operand(projection_sym_ptr,
                                              (a_boolean)locator_for_curr_id.

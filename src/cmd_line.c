@@ -1503,6 +1503,8 @@ Set the various flags appropriate to C99 mode.
   mixed_decls_and_statements_allowed = TRUE;
   /* The final field of a struct may be an incomplete array. */
   flexible_array_members_allowed = TRUE;
+  /* inline does not necessarily imply internal linkage in C99. */
+  extern_inline_allowed = TRUE;
 }  /* set_c99_mode_flags */
 
 
@@ -1512,14 +1514,6 @@ Set the various flags appropriate for the specific C mode we are going to
 process.
 */
 {
-  if (SVR4_C_mode) {
-    /* Turn on features implied by SVR4 C mode. */
-    address_of_ellipsis_allowed = TRUE;
-    allow_ellipsis_only_param_in_C_mode = TRUE;
-  } else if (c99_mode) {
-    /* Turn on features implied by C99 mode. */
-    set_c99_mode_flags();
-  } /* if */
   /* Turn off language features that must not be on in C mode, in case
      the default value is on. */
   exceptions_enabled = FALSE;
@@ -1568,6 +1562,14 @@ process.
     /* Normal C mode. */
     end_of_line_comments_allowed = END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE;
   }  /* if */
+  if (SVR4_C_mode) {
+    /* Turn on features implied by SVR4 C mode. */
+    address_of_ellipsis_allowed = TRUE;
+    allow_ellipsis_only_param_in_C_mode = TRUE;
+  } else if (c99_mode) {
+    /* Turn on features implied by C99 mode. */
+    set_c99_mode_flags();
+  } /* if */
 }  /* set_c_mode_flags */
 
 

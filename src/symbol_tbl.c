@@ -765,6 +765,7 @@ do_variable:
           }  /* if */
         }  /* if */
         if (rp->is_inline) put_string("inline");
+        if (rp->suppress_inline_body) put_string("suppress inline body");
         if (rp->compiler_generated) put_string("compiler generated");
         if (rp->is_trivial_default_constructor) {
           put_string("trivial default-ctor");

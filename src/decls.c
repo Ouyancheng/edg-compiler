@@ -224,7 +224,7 @@ optimization is suppressed.
     }  /* if */
   }  /* if */
   return(is_start);
-}  /* is_decl_bstart */
+}  /* is_decl_start */
 
 
 void clear_decl_pos_block(a_decl_pos_block_ptr  decl_pos_block)
@@ -4200,6 +4200,28 @@ cross-reference output describing this declaration.
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (c99_mode) {
+    if (is_variable_def &&
+        depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+        variable_ptr->storage_class == (a_storage_class)sc_static &&
+        !is_const_qualified_type(variable_ptr->type)) {
+      /* The definition of a local static variable that is modifiable --
+         in C99 it is an error for such a variable to be defined within the
+         body of an inline function with external linkage. */
+      a_routine_ptr      rp;
+      an_error_severity  severity;
+
+      rp = scope_stack[depth_innermost_function_scope].assoc_routine;
+      check_assertion(rp != NULL);
+      if (rp->is_inline &&
+          rp->storage_class == (a_storage_class)sc_unspecified) {
+        severity = strict_ansi_mode ? strict_ansi_discretionary_severity :
+                                      es_discretionary_error;
+        pos_diagnostic(severity, ec_static_variable_in_inline_function,
+                       &locator->source_position);
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (vla_enabled) {
     if (is_variably_modified_type(type_ptr)) {
       /* Since the type may have various run-time dependencies, put out a
@@ -4433,6 +4455,7 @@ on for use in generating cross-reference output describing this declaration.
   a_boolean                first_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
   an_id_linkage_block      idlb;
+  a_boolean                suppress_inline_body = FALSE;
 
   db_enter(3, "decl_routine");
   *old_type = NULL;
@@ -4462,12 +4485,25 @@ on for use in generating cross-reference output describing this declaration.
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (C_dialect == C_dialect_cplusplus) {
-    if (func_info->is_inline && !extern_inline_allowed) {
+  if (func_info->is_inline) {
+    if (extern_inline_allowed) {
+      if (c99_mode && storage_class == (a_storage_class)sc_unspecified) {
+        /* In C99 mode, if a function is declared "inline" every time it is
+           declared in a given translation unit and is never declared with
+           an explicitly specified storage class, then its definition is
+           regarded as an "inline definition" instead of an "external
+           definition" (see 6.9, 6.7.4).  An inline function with an "inline
+           definition", even though it has external linkage, is not visible
+           outside the current translation unit. */
+        suppress_inline_body = TRUE;
+      }  /* if */
+    } else {
       check_assertion_str(storage_class == (a_storage_class)sc_unspecified ||
                           storage_class == (a_storage_class)sc_static,
                           "decl_routine: bad storage class for inline");
     }  /* if */
+  }  /* if */
+  if (C_dialect == C_dialect_cplusplus) {
     /* Verify that we are not declaring a const or volatile function through
        a typedef (other cases are caught while parsing). */
     if (type_ptr->kind == (a_type_kind)tk_typeref &&
@@ -5233,6 +5269,15 @@ skip_overloading:;
     }  /* if */
   }  /* if */
   if (func_info->is_inline) routine_ptr->is_inline = TRUE;
+  if (c99_mode) {
+    /* In C99 mode the suppress_inline_body flag is set only if that is
+       justified by every declaration of a given inline function. */
+    if (redeclaration) {
+      routine_ptr->suppress_inline_body &= suppress_inline_body;
+    } else {
+      routine_ptr->suppress_inline_body = suppress_inline_body;
+    }  /* if */
+  }  /* if */
   source_corresp_ptr = &routine_ptr->source_corresp;
   update_routine_decl_modifiers(routine_ptr, decl_modifiers,
                                 &locator->source_position, redeclaration,
