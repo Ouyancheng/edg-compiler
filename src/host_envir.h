@@ -956,6 +956,8 @@ files when using names but as a single file when using inode numbers.
 typedef struct a_file_identifier {
   dev_t		st_dev;
   ino_t		st_ino;
+  a_byte_boolean
+		is_stdin;
 } a_file_identifier;
 #else /* !STAT_INFORMATION_INCLUDES_INODE */
 typedef sizeof_t
@@ -970,7 +972,8 @@ Macro that compares two file identifiers.
 /* When the inode number is available, use the device and inode numbers
    to do the comparison. */
 #define file_ids_are_equal(name1, id1, name2, id2)			\
-  ((id1).st_dev == (id2).st_dev && (id1).st_ino == (id2).st_ino)
+  ((id1).st_dev == (id2).st_dev && (id1).st_ino == (id2).st_ino &&	\
+   (id1).is_stdin == (id2).is_stdin)
 #else /* !STAT_INFORMATION_INCLUDES_INODE */
 /* When the inode number is not available, just compare the strings.
    In this case, id1 and id2 contain the string lengths which can be used

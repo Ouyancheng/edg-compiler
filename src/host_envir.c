@@ -1581,9 +1581,14 @@ used as an initial test before comparing the strings.
 {
 #if STAT_INFORMATION_INCLUDES_INODE
   struct stat	buf;
-  if (stat(file_name, &buf) == 0) {
+  if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
+    id->st_dev = 0;
+    id->st_ino = 0;
+    id->is_stdin = TRUE;
+  } else if (stat(file_name, &buf) == 0) {
     id->st_dev = buf.st_dev;
     id->st_ino = buf.st_ino;
+    id->is_stdin = FALSE;
   } else {
     unexpected_condition_str2("get_file_identifier:", "stat() failed");
   }  /* if */  
