@@ -4365,7 +4365,7 @@ This is done before command line processing.
      ILP64 porting diagnostics should be remarks. */
   (void)set_severity_for_error_number((int)ec_ilp64_will_narrow, es_remark,
                                       /*make_default=*/TRUE);
-  memzero(predef_macro_mode_values, sizeof(predef_macro_mode_values));
+  memzero((char*)predef_macro_mode_values, sizeof(predef_macro_mode_values));
 }  /* cmd_line_early_init */
 
 
