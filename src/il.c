@@ -307,6 +307,13 @@ Buffer into which names are written for db_name_str
 static a_text_buffer_ptr
 		db_name_str_buffer;
 
+/*
+Buffer used to generate output by db_qualifier_str.
+*/
+static a_text_buffer_ptr
+
+		db_qualifiers_str_buffer;
+
 
 static void put_str_into_db_name_str_buffer(char *str)
 /*
@@ -953,9 +960,27 @@ If tp is a routine type, dump the function parameters, for debug purposes.
 }  /* db_function_param_list */
 
 
-static void db_qualifiers(a_type_qualifier_set  qualifiers)
+static void db_add_qualifier_to_string(a_type_qualifier_set	qualifier,
+				       a_type_qualifier_set	qualifiers,
+				       char			*name)
 /*
-Print the given qualifiers in human readable form.
+If "qualifier" is set in "qualifiers" add "name" to the qualifier
+buffer.  If "qualifier" is TQ_NONE, unconditionally add "name"
+*/
+{
+  if ((qualifiers & qualifier) != 0 || qualifier == TQ_NONE) {
+    /* Put a space between qualifiers. */
+    if (db_qualifiers_str_buffer->size != 0) {
+      add_char_to_text_buffer(db_qualifiers_str_buffer, ' ');
+    }  /* if */
+    add_string_to_text_buffer(db_qualifiers_str_buffer, name);
+  }  /* if */
+}  /* db_add_qualifier_to_string */
+
+
+char* db_qualifiers_str(a_type_qualifier_set  qualifiers)
+/*
+Return a string containing the given qualifiers in human readable form.
 */
 {
 #if NAMED_ADDRESS_SPACES_ALLOWED
@@ -963,27 +988,54 @@ Print the given qualifiers in human readable form.
                   nas_id = named_address_space_from_qualifier_set(qualifiers);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
-  if (qualifiers & TQ_CONST) fputs("const ", f_debug);
-  if (qualifiers & TQ_VOLATILE) fputs("volatile ", f_debug);
-  if (qualifiers & TQ_RESTRICT) fputs("restrict ", f_debug);
+  if (db_qualifiers_str_buffer == NULL) {
+    db_qualifiers_str_buffer = alloc_text_buffer(128);
+  }  /* if */
+  reset_text_buffer(db_qualifiers_str_buffer);
+  db_add_qualifier_to_string((a_type_qualifier_set)TQ_CONST,
+                             qualifiers, "const");
+  db_add_qualifier_to_string((a_type_qualifier_set)TQ_VOLATILE,
+                             qualifiers, "volatile");
+  db_add_qualifier_to_string((a_type_qualifier_set)TQ_RESTRICT,
+                             qualifiers, "restrict");
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (qualifiers & TQ_UNALIGNED) fputs("unaligned ", f_debug);
+  db_add_qualifier_to_string((a_type_qualifier_set)TQ_UNALIGNED,
+                             qualifiers, "unaligned");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
-  if (qualifiers & TQ_NEAR) fputs("near ", f_debug);
-  if (qualifiers & TQ_FAR) fputs("far ", f_debug);
+  db_add_qualifier_to_string((a_type_qualifier_set)TQ_NEAR,
+                             qualifiers, "near");
+  db_add_qualifier_to_string((a_type_qualifier_set)TQ_FAR,
+                             qualifiers, "far");
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   /* TQ_UPC_SHARED is handled by db_shared_block_size. */
-  if (qualifiers & TQ_UPC_STRICT) fputs("strict ", f_debug);
-  if (qualifiers & TQ_UPC_RELAXED) fputs("relaxed ", f_debug);
+  db_add_qualifier_to_string((a_type_qualifier_set)TQ_UPC_STRICT,
+                             qualifiers, "strict");
+  db_add_qualifier_to_string((a_type_qualifier_set)TQ_UPC_RELAXED,
+                             qualifiers, "relaxed");
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if NAMED_ADDRESS_SPACES_ALLOWED
   if (nas_id != 0) {
     /* A named address space qualifier. */
-    fprintf(f_debug, "%s ", named_address_spaces[nas_id].name);
+    db_add_qualifier_to_string((a_type_qualifier_set)TQ_NONE,
+                               qualifiers, named_address_spaces[nas_id].name);
   }  /* if */
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+  /* Terminate the buffer. */
+  add_char_to_text_buffer(db_qualifiers_str_buffer, '\0');
+  return db_qualifiers_str_buffer->buffer;
+}  /* db_qualifiers_str */
+
+
+static void db_qualifiers(a_type_qualifier_set  qualifiers)
+/*
+Print the given qualifiers in human readable form.
+*/
+{
+  if (qualifiers != TQ_NONE) {
+    fprintf(f_debug, "%s ", db_qualifiers_str(qualifiers));
+  }  /* if */
 }  /* db_qualifiers */
 
 
@@ -16427,6 +16479,7 @@ in il_init.)
   /* Initialize certain global variables declared in il.h. */
 #if DEBUG
   db_name_str_buffer = NULL;
+  db_qualifiers_str_buffer = NULL;
 #endif /* DEBUG */
 
   /* Save variables from il.h and il.c that are needed for precompiled

@@ -1,5 +1,10 @@
 Version 3.5
 
+10/14/04 Member function qualifiers displayed by db_symbol_name
+
+db_symbol_name, which is used for things like instantiation debug output,
+now displays the qualifiers associated with member functions.
+
 10/13/04 Embedded C: error on pointer difference with incompatible named
          address spaces
 

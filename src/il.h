@@ -1372,6 +1372,8 @@ extern void db_type(a_type *tp);
 
 extern void db_function_param_list(a_type_ptr  tp);
 
+extern char* db_qualifiers_str(a_type_qualifier_set  qualifiers);
+
 extern void db_abbreviated_type(a_type *tp);
 
 /* Abbreviated version of db_abbreviated type. */

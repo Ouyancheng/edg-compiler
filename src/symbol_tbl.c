@@ -467,7 +467,15 @@ specified symbol.
   if (sym->kind == (a_symbol_kind)sk_routine ||
       sym->kind == (a_symbol_kind)sk_member_function) {
     a_type_ptr  tp = routine_symbol_type(sym);
-    if (tp != NULL) db_function_param_list(tp);
+    if (tp != NULL) {
+       a_type_qualifier_set	qualifiers;
+       tp = skip_typerefs(tp);
+       db_function_param_list(tp);
+       qualifiers = tp->variant.routine.extra_info->qualifiers;
+       if (qualifiers != TQ_NONE) {
+         fprintf(f_debug, " %s", db_qualifiers_str(qualifiers));
+       }  /* if */
+    }  /* if */
   }  /* if */
   fprintf(f_debug, "\"");
 }  /* db_symbol_name */
