@@ -2010,6 +2010,7 @@ fields to default values.
 #if DEBUG
       num_try_supplements_allocated++;
 #endif /* DEBUG */
+      tsp->is_function_try_block = FALSE;
       tsp->statement = NULL;
       tsp->handlers  = NULL;
       tsp->lifetime  = NULL;

@@ -2510,6 +2510,7 @@ static void disp_try_supplement(a_try_supplement_ptr ptr)
 Display the indicated exception-handling "try" supplement.
 */
 {
+  disp_boolean("is_function_try_block", (a_boolean)ptr->is_function_try_block);
   disp_ptr("statement", (char *)ptr->statement, iek_statement);
   disp_ptr("handlers", (char *)ptr->handlers, iek_handler);
   disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);

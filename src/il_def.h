@@ -6272,6 +6272,9 @@ typedef struct a_handler {
 /* Description of an exception-handling "try" statement and the associated
    "catch" clauses. */
 typedef struct a_try_supplement {
+  a_byte_boolean
+		is_function_try_block;
+			/* TRUE if this is a function-try-block. */
   a_statement_ptr
 		statement;
 			/* The list of statements contained within the try

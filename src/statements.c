@@ -5498,6 +5498,7 @@ function try block has to have been established first.
   cfdp->variant.block.object_lifetime = curr_object_lifetime;
   add_to_control_flow_descr_list(cfdp);
   sp = alloc_statement((a_statement_kind)stmk_try_block);
+  sp->variant.try_block->is_function_try_block = TRUE;
   stmt_update_source_sequence_list(sp);
   /* Do additional initialization generic to scanning a try statement. */
   start_of_try_block(sp);
