@@ -2208,6 +2208,9 @@ error code.
     case ec_pragma_must_precede_decl_or_stmt:
       m = "this pragma must immediately precede a declaration or statement"; 
       break;
+    case ec_pragma_may_not_be_used_here:
+      m = "this kind of pragma may not be used here";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

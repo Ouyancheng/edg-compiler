@@ -653,7 +653,8 @@ typedef enum /*an_error_code*/ {
   ec_float_template_parameter,
   ec_pragma_must_precede_declaration,
   ec_pragma_must_precede_statement,
-  ec_pragma_must_precede_decl_or_stmt
+  ec_pragma_must_precede_decl_or_stmt,
+  ec_pragma_may_not_be_used_here,
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
