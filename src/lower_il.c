@@ -3294,8 +3294,11 @@ that are not defined in this translation unit.
 {
   a_boolean     needed = FALSE, force_static;
   a_routine_ptr first_virtual;
+  a_boolean     saved_il_lowering_underway;
 
   if (il_lowering_needed()) {
+    saved_il_lowering_underway = il_lowering_underway;
+    il_lowering_underway = TRUE;
     /* Force generation of the virtual function table variable (if any) for the
        class. */
     prelower_class_type(class_type);
@@ -3312,6 +3315,7 @@ that are not defined in this translation unit.
          so it will need to take the addresses of inline virtual functions. */
       needed = TRUE;
     }  /* if */
+    il_lowering_underway = saved_il_lowering_underway;
   }  /* if */
   return needed;
 }  /* inline_virtual_function_definitions_needed */
