@@ -3850,18 +3850,21 @@ static a_boolean ttt_set_force_external_linkage_flag(
 /*
 This is a service function designed to be called from traverse_type_tree
 (whence the ttt_ prefix).  It always returns FALSE and always sets
-*force_end_of_traversal to FALSE.  If type_ptr is a class type with
-internal linkage it sets the force_external_linkage flag in its class symbol
-supplement (or in that of its top-level parent class).
+*force_end_of_traversal to FALSE.  If type_ptr is a class or enum type with
+internal linkage it sets the force_external_linkage flag in its symbol (or
+in that of its top-level parent class).
 */
 {
-  if (is_immediate_class_type(type_ptr)) {
+  a_symbol_ptr  sym;
+
+  if (is_immediate_class_type(type_ptr) || is_immediate_enum_type(type_ptr)) {
     if (type_ptr->source_corresp.name_linkage ==
                                         (a_name_linkage_kind)nlk_internal) {
       while (type_ptr->source_corresp.class_of_which_a_member != NULL) {
         type_ptr = type_ptr->source_corresp.class_of_which_a_member;
       }  /* while */
-      symbol_supplement_for_class(type_ptr)->force_external_linkage = TRUE;
+      sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
+      sym->force_external_linkage = TRUE;
     }  /* if */
   }  /* if */
   *force_end_of_traversal = FALSE;
@@ -4089,23 +4092,33 @@ in the type tree represented by tp.
 #endif /* if 0 */
 
 
+void set_force_external_linkage_flag(a_type_ptr  type_ptr)
+/*
+Set the force_external_linkage flag in the symbol associated with any
+class or enum type contained in type_ptr.
+*/
+{
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_SKIP_TYPEDEFS |
+                                               TTT_RETURN_TYPE |
+                                               TTT_PARAM_TYPES |
+                                               TTT_THIS_PARAM_TYPE);
+
+  (void)traverse_type_tree(type_ptr, ttt_set_force_external_linkage_flag,
+                           ttt_flags);
+}  /* set_force_external_linkage_flag */
+
+
 void set_used_in_exception_flag(a_type_ptr  type_ptr)
 /*
 Set the used_in_exception flag in type_ptr and traverse its type tree to
-set the force_external_linkage flag for each class type in the tree.
+set the force_external_linkage flag for each class and enum type in the tree.
 */
 {
   if (type_ptr->used_in_exception) {
     /* Already set.  No further action is required. */
   } else {
-    a_type_tree_traversal_flag_set  ttt_flags = (TTT_SKIP_TYPEDEFS |
-                                                 TTT_RETURN_TYPE |
-                                                 TTT_PARAM_TYPES |
-                                                 TTT_THIS_PARAM_TYPE);
-
     type_ptr->used_in_exception = TRUE;
-    (void)traverse_type_tree(type_ptr, ttt_set_force_external_linkage_flag,
-                             ttt_flags);
+    set_force_external_linkage_flag(type_ptr);
   }  /* if */
 }  /* set_used_in_exception_flag */
 
