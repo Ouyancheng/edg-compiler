@@ -392,6 +392,18 @@ into a declaration instead of a definition.
 }  /* clear_variable_initialization */
 
 
+static void clear_body_for_routine(a_routine_ptr routine)
+/*
+Eliminate the body of the indicated routine.
+*/
+{
+  a_scope_ptr routine_scope =
+                            il_header.region_scope_entry[routine->assoc_scope];
+  check_assertion(routine_scope != NULL);
+  clear_function_body(routine_scope);
+}  /* clear_body_for_routine */
+
+
 static a_boolean type_should_be_merged(a_type_ptr type)
 /*
 Return TRUE if the indicated type, which has a corresponding type in the
@@ -470,10 +482,7 @@ any_removed_function_bodies is NULL, that deletion is suppressed.
       merge = TRUE;
     } else if (any_removed_function_bodies != NULL) {
       /* Both instances have definitions.  Eliminate the body of this copy. */
-      a_scope_ptr routine_scope =
-                            il_header.region_scope_entry[routine->assoc_scope];
-      check_assertion(routine_scope != NULL);
-      clear_function_body(routine_scope);
+      clear_body_for_routine(routine);
       *any_removed_function_bodies = TRUE;
     }  /* if */
   }  /* if */
@@ -794,8 +803,11 @@ entity associated with the scope should be kept on the caller's list
           /* The function is not a generated template. */
           /* The definition should have been eliminated at pop_scope
              time (the definition will be put out when the file is compiled
-             as a primary file). */
-          check_assertion(routine->assoc_scope == NULL_region_number);
+             as a primary file) unless the routine is inline. */
+          if (routine->assoc_scope != NULL_region_number) {
+            check_assertion(routine->is_inline);
+            clear_body_for_routine(routine);
+          }  /* if */
 #if DO_IL_LOWERING
           if (il_lowering_needed() &&
               routine->storage_class == (a_storage_class)sc_static) {
@@ -1283,10 +1295,7 @@ end_of_variable_list_add:;
           if (primary_routine->assoc_scope != NULL_region_number) {
             /* Eliminate the body of the primary routine (this happens when
                the secondary has a specialization and the primary does not). */
-            a_scope_ptr primary_routine_scope =
-                    il_header.region_scope_entry[primary_routine->assoc_scope];
-            check_assertion(primary_routine_scope != NULL);
-            clear_function_body(primary_routine_scope);
+            clear_body_for_routine(primary_routine);
           }  /* if */
           if (!is_class_scope) {
             remove_from_primary_file_routines_list(primary_routine);
