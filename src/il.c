@@ -8935,11 +8935,13 @@ It also may do fix up on entries it removes.
       /* Found -- stop looping. */
       break;
     }  /* if */
-    if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_pragma
+    if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_pragma ||
 #if RECORD_MACROS_IN_IL
-        || ss_entry_kind(ssep) == (an_il_entry_kind)iek_macro
+        ss_entry_kind(ssep) == (an_il_entry_kind)iek_macro ||
 #endif /* RECORD_MACROS_IN_IL */
-                                                             ) {
+        (ss_entry_kind(ssep) == (an_il_entry_kind)iek_template &&
+         !ss_entry_ptr(ssep, a_template_ptr)->
+                                 source_corresp.is_class_member)) {
       if (il_entry_prefix_of(ssep->entity.ptr).keep_in_il) {
         /* Link around a needed macro or pragma that appears inside this
            class/struct/union body. */
