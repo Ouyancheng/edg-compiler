@@ -1,0 +1,515 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C Front End                            - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+host_envir.h -- Declarations relating to host_envir.c (having to do with
+                the host environment, operating system, and file names).
+
+*/
+
+/* Avoid including these declarations more than once: */
+#ifndef HOST_ENVIR_H
+#define HOST_ENVIR_H 1
+
+/*
+Vertical tab character.  Defined in this way because \v is not in K&R.
+*/
+#define VERTICAL_TAB_CHARACTER '\013'
+
+/*
+Return codes to be used when the highest error severity is as given:
+*/
+#if __VMS__
+#define RC_NORMAL      0x18000001
+#define RC_WARNING     0x18000000
+#define RC_ERROR       0x18000002
+#define RC_CATASTROPHE 0x18000004
+#else /* !__VMS__ */
+#define RC_NORMAL      0
+#define RC_WARNING     0
+#define RC_ERROR       2
+#define RC_CATASTROPHE 4
+#endif /* __VMS__ */
+
+/*
+Alignment required of pointers to malloc'd space (i.e., the maximum
+alignment required by the host computer).  Use "1" if there are no
+alignment requirements.  This must be defined as an actual constant
+rather than as something like "sizeof(int)"; see mem_manage.c.
+Note that space allocated by malloc must provide at least this
+alignment, or the front end is powerless to provide the requested
+alignment.
+*/
+#ifndef HOST_ALIGNMENT_REQUIRED
+#define HOST_ALIGNMENT_REQUIRED 4
+#endif /* ifndef HOST_ALIGNMENT_REQUIRED */
+
+/*
+Size of allocation blocks (space is requested from malloc in blocks of
+this size, and is then parceled out as needed).  Should be fairly large
+to reduce the work in in_file_scope.  Unused pieces at the ends of
+regions are freed when the regions are completed, so there's no waste.
+Larger blocks will be allocated if needed (say, for incredibly large
+string literals formed by token concatenation).
+*/
+#ifndef HOST_ALLOCATION_INCREMENT
+#define HOST_ALLOCATION_INCREMENT 65536
+#endif /* ifndef HOST_ALLOCATION_INCREMENT */
+
+/*
+Width at which error message lines should be wrapped to another line
+(typically, a "normal" terminal width).
+*/
+#ifndef MAX_ERROR_OUTPUT_LINE_LENGTH
+#define MAX_ERROR_OUTPUT_LINE_LENGTH 79
+			/* 79, not 80, to avoid line wrap on some terminals. */
+#endif /* ifndef MAX_ERROR_OUTPUT_LINE_LENGTH */
+
+/*
+File "name" to be used when primary input is from stdin.  This should
+not be acceptable as a real file name (or at least, you should be willing to
+forgo allowing an input file with this name).
+*/
+#define FILE_NAME_FOR_STDIN "-"
+
+/*
+Flag that is TRUE if char * pointers can be compared even if they do not
+point to the same array.  This is non-ANSI, but usually okay.  It is not
+okay on a PC-AT, at least with the Microsoft C compiler, where only the
+offsets are compared.  The ptr_in_range macro gives a convenient way
+to use this flag to test that a pointer lies in a certain range.
+*/
+#ifndef ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED
+#ifdef __SABER__
+/* Avoid Saber-C warnings about non-standard comparisons. */
+#define ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED FALSE
+#else /* !defined(__SABER__) */
+#if __MSDOS__
+#define ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED FALSE
+#else /* !__MSDOS__ */
+#define ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED TRUE
+#endif /* __MSDOS__ */
+#endif /* ifdef __SABER__ */
+#endif /* ifndef ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED */
+
+/* Check that a pointer lies within a certain address range (lower bound
+   included, upper bound not included, following the usual C idiom). */
+#if ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED
+#define ptr_in_range(ptr, start, after_end) \
+  ((char *)(start) <= (char *)(ptr) && (char *)(ptr) < (char *)(after_end))
+#else /* !ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED */
+/* Use a cast to unsigned long if addresses cannot be directly compared. */
+#define ptr_in_range(ptr, start, after_end) \
+  ((unsigned long)(start) <= (unsigned long)(ptr) && \
+   (unsigned long)(ptr) < (unsigned long)(after_end))
+#endif /* ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED */
+
+/*
+Flag that is TRUE if multiple input files can be compiled in a single
+invocation of the front end.  This is useful on systems where the cost
+of forking a process is high (e.g., VMS).
+*/
+#ifndef COMPILE_MULTIPLE_SOURCE_FILES
+#define COMPILE_MULTIPLE_SOURCE_FILES FALSE
+#endif /* ifndef COMPILE_MULTIPLE_SOURCE_FILES */
+
+/*
+Flag that is TRUE if the front end is being run from a driver program.
+This suppresses sign-off messages on stderr (like "Compilation terminated."),
+with the expectation that the driver will produce those.
+*/
+#ifndef USING_DRIVER
+#define USING_DRIVER FALSE	/* Not using a driver. */
+#endif /* ifndef USING_DRIVER */
+
+/*
+Flag that is TRUE if a signoff message should be written at the end of
+the compilation, giving the count of errors; such a message is only
+written if there are errors.
+*/
+#ifndef WRITE_SIGNOFF_MESSAGE
+#define WRITE_SIGNOFF_MESSAGE (!USING_DRIVER)
+#endif /* ifndef WRITE_SIGNOFF_MESSAGE */
+
+/*
+The flag STANDALONE_UTILITY_PROGRAM is set to TRUE when compiling one of
+the standalone utility programs (the C-generating back end c_gen_be or
+the IL display utility il_display).  It should be set to TRUE on the
+command line if needed; the code here should not be changed.
+*/
+#ifndef STANDALONE_UTILITY_PROGRAM
+#define STANDALONE_UTILITY_PROGRAM FALSE /* Do not change this. */
+#else /* defined(STANDALONE_UTILITY_PROGRAM) */
+#undef STANDALONE_UTILITY_PROGRAM
+#define STANDALONE_UTILITY_PROGRAM TRUE /* Do not change this. */
+#define IL_SHOULD_BE_WRITTEN_TO_FILE TRUE  /* Do not change this. */
+#endif /* ifndef STANDALONE_UTILITY_PROGRAM */
+
+/*
+Flag that is TRUE if the intermediate language should be written to a file.
+FALSE means the IL is passed in memory to the back end.
+*/
+#ifndef IL_SHOULD_BE_WRITTEN_TO_FILE
+#define IL_SHOULD_BE_WRITTEN_TO_FILE FALSE
+#endif /* ifndef IL_SHOULD_BE_WRITTEN_TO_FILE */
+
+/*
+If the IL is written to a file, this flag selects the file format.
+The "usual" form (flag FALSE) is written out and read back in as
+large blocks of memory, and a tree walk is required on the receiving
+side.  The "alternate" form (flag TRUE) requires a tree walk on the
+sending side, and is written and read in single-entry chunks, with
+each entry preceded by the entry kind and an identifying number.
+The advantage of the alternate form is that it allows alteration of
+the entries on the receiving side (e.g., enlarging them to add extra
+information required in the back end); the disadvantage is that it's 
+slower.
+*/
+
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+#ifndef ALTERNATE_IL_FILE_FORMAT
+#define ALTERNATE_IL_FILE_FORMAT TRUE
+#endif /* ifndef ALTERNATE_IL_FILE_FORMAT */
+#else /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
+#define ALTERNATE_IL_FILE_FORMAT FALSE
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+
+/*
+If the IL is written to a file, this defines the suffix to be used in
+generating the default file name.
+*/
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+#ifndef IL_FILE_SUFFIX
+#define IL_FILE_SUFFIX ".cil"
+#endif /* ifndef IL_FILE_SUFFIX */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+
+/*
+Flag that is TRUE if a back end should be called.  The FALSE setting would
+be used when the back end is invoked by the driver as a separate program.
+*/
+#if !STANDALONE_UTILITY_PROGRAM
+#ifndef BACK_END_SHOULD_BE_CALLED
+#define BACK_END_SHOULD_BE_CALLED TRUE  /* You can change this. */
+#endif /* ifndef BACK_END_SHOULD_BE_CALLED */
+#else /* STANDALONE_UTILITY_PROGRAM */
+/* Compiling a standalone utility program, so the back end is not
+   being called (not from the front end, anyway). */
+#undef BACK_END_SHOULD_BE_CALLED
+#define BACK_END_SHOULD_BE_CALLED FALSE  /* Do not change this. */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+/*
+Is the C-generating back end included in the program currently being 
+compiled?  This flag should be set to TRUE externally when compiling the
+C-generating back end; here, it's set for the compilation of the front
+end (i.e., FALSE if the back end is not being called, as appropriate
+if the back end is being called).
+*/
+#ifndef BACK_END_IS_C_GEN_BE
+#if BACK_END_SHOULD_BE_CALLED
+#define BACK_END_IS_C_GEN_BE TRUE  /* You can change this. */
+#else /* !BACK_END_SHOULD_BE_CALLED */
+/* Back end is not called, so back end is not included. */
+#undef BACK_END_IS_C_GEN_BE
+#define BACK_END_IS_C_GEN_BE FALSE  /* Do not change this. */
+#endif /* BACK_END_SHOULD_BE_CALLED */
+#endif /* ifndef BACK_END_IS_C_GEN_BE */
+
+/*
+When the C-generating back end (c_gen_be) is run, this is the suffix
+appended to the base of the primary source file to get the name of
+the generated C output file.
+*/
+#if BACK_END_IS_C_GEN_BE
+#if __MSDOS__
+/* File names under MSDOS cannot have multiple periods. */
+#define GEN_C_FILE_SUFFIX "_int.c"
+#else /* !__MSDOS__ */
+#define GEN_C_FILE_SUFFIX ".int.c"
+#endif /* if __MSDOS__ */
+#endif /* BACK_END_IS_C_GEN_BE */
+
+/*
+Flag that is TRUE to cause IL lowering to be done, to lower C++ IL
+to C IL, allowing the C++ front end to be used with a C back end.
+*/
+#ifndef DO_IL_LOWERING
+#define DO_IL_LOWERING TRUE
+#endif /* ifndef DO_IL_LOWERING */
+#if BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING
+error -- IL lowering must be done for the C-generating back end.
+#endif /* BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING */
+
+/*
+Default system include directory.
+*/
+#ifndef DEFAULT_USR_INCLUDE
+#define DEFAULT_USR_INCLUDE "/usr/include"
+#endif /* ifndef DEFAULT_USR_INCLUDE */
+
+/*
+Flag that is TRUE to suppress the inclusion of DEFAULT_USER_INCLUDE (or the
+value of the environment variable USR_INCLUDE) in the include file
+search path.  This may be desirable for cross versions.
+*/
+#ifndef NO_USR_INCLUDE
+#define NO_USR_INCLUDE FALSE
+#endif /* ifndef NO_USR_INCLUDE */
+
+/*
+Object file suffix.  This is added to the base name of the primary input file
+to get the object file name.  That name is used only for generating object
+file dependencies for a makefile.
+*/
+#ifndef OBJECT_FILE_SUFFIX
+#define OBJECT_FILE_SUFFIX ".o"
+#endif /* ifndef OBJECT_FILE_SUFFIX */
+
+/*
+Flag that is TRUE to generate the trailing include file push/pop codes
+(a la SUN cc) on the ends of the line-identifying directives generated
+in preprocessing output.  see gen_pp_line_info in lexical.c.
+*/
+#ifndef GEN_EXTRA_LINE_ID_INFO
+#define GEN_EXTRA_LINE_ID_INFO FALSE
+#endif /* ifndef GEN_EXTRA_LINE_ID_INFO */
+
+/*
+Flag that is TRUE to include the "asm" statement in the language.
+*/
+#ifndef ASM_STATEMENT_ALLOWED
+#define ASM_STATEMENT_ALLOWED FALSE
+#endif /* ifndef ASM_STATEMENT_ALLOWED */
+
+/*
+Flag that is TRUE to include asm function definitions in the language.
+Note that in the standard version the code to implement this is not
+included, so this flag cannot be set to TRUE.
+*/
+#ifndef ASM_FUNCTION_ALLOWED
+#define ASM_FUNCTION_ALLOWED FALSE
+#endif /* ifndef ASM_FUNCTION_ALLOWED */
+
+/*
+The flags HOSTID and HOSTID2 can be set to host id numbers if the
+front end is only allowed to be run on a few CPUs.  They should be left
+undefined otherwise.  An example of proper setting is
+
+#define HOSTID  0x12008fd2
+#define HOSTID2 0x12008d32
+
+If only one CPU id is needed, HOSTID should be set, and HOSTID2 should be
+left undefined.
+*/
+
+/*
+The flag DEMO_VERSION_ID can be defined with a string identifying a demo
+version if this is a demo version.  The string is printed on startup with
+the -v option.
+*/
+
+/*
+Primary source file name, as given on the command line.  FILE_NAME_FOR_STDIN
+if the primary source file is stdin.  The string is allocated in general
+storage, not IL storage.
+*/
+EXTERN char	*primary_source_file_name;
+#if COMPILE_MULTIPLE_SOURCE_FILES
+EXTERN a_boolean
+		more_than_one_source_file /* = FALSE */;
+			/* TRUE if more than one primary source file appears
+			   on the command line. */
+#endif /* COMPILE_MULTIPLE_SOURCE_FILES */
+
+/*
+Object file name, usually derived from the primary source file name.
+Really used only in generating makefile dependency information.
+The string is allocated in general storage, not IL storage.
+*/
+EXTERN char	*object_file_name;
+
+/*
+Data structure that defines a list of directory names (as for a search
+path for include file opens).
+*/
+typedef struct a_directory_name_entry *a_directory_name_entry_ptr;
+typedef struct a_directory_name_entry {
+  char		*dir_name;
+			/* The directory name. */
+  a_directory_name_entry_ptr
+		next;
+			/* The next entry on the search path list, or NULL
+			   if this is the last entry. */
+} a_directory_name_entry;
+
+/*
+Search path for include files.
+*/
+EXTERN a_directory_name_entry_ptr
+		incl_search_path,
+		end_incl_search_path;
+			/* Beginning and end pointers for the list.
+			   The name strings are in general storage. */
+
+/*
+Search path for <...> include files (the tail of incl_search_path).
+*/
+EXTERN a_directory_name_entry_ptr
+		sys_incl_search_path;
+			/* The name strings are in general storage. */
+
+/* Static variable used by directory_of; here in the .h file so it
+   can be initialized by fe_init. */
+EXTERN a_directory_name_entry_ptr
+		dir_name_list;
+			/* List of all directory name strings used, so that
+			   they can be shared.  The name strings are in
+			   IL storage. */
+
+/* Included because term_compilation needs "an_error_severity". */
+#ifndef ERROR_H
+#include "error.h"
+#endif /* ifndef ERROR_H */
+
+/* Add the default system include file search path. */
+extern void add_default_include_search_path(void);
+/* Add a directory to the end of the include file search path. */
+extern void add_to_include_search_path(char *dir_name);
+/* Add a directory to the front of the include file search path. */
+extern void add_to_front_of_include_search_path(char *dir_name);
+
+#ifdef CFE
+/* Routine is used in pcc mode to make #includes be relative to the
+   directory containing the source file in which the #include appears. */
+#define NEED_CHANGE_PRIMARY_INCLUDE_SEARCH_DIR TRUE
+#else /* !defined(CFE) */
+#if COMPILE_MULTIPLE_SOURCE_FILES
+/* Routine is used when compiling multiple source files to change the
+   entry for the directory of the primary source file. */
+#define NEED_CHANGE_PRIMARY_INCLUDE_SEARCH_DIR TRUE
+#endif /* COMPILE_MULTIPLE_SOURCE_FILES */
+#endif /* ifdef CFE */
+#ifndef NEED_CHANGE_PRIMARY_INCLUDE_SEARCH_DIR
+#define NEED_CHANGE_PRIMARY_INCLUDE_SEARCH_DIR FALSE
+#endif /* ifndef NEED_CHANGE_PRIMARY_INCLUDE_SEARCH_DIR */
+#if NEED_CHANGE_PRIMARY_INCLUDE_SEARCH_DIR
+/* Change the directory name in the primary include file search path entry. */
+extern void change_primary_include_search_dir(char *dir_name);
+#endif /* NEED_CHANGE_PRIMARY_INCLUDE_SEARCH_DIR */
+/* Extract the directory name from a file name. */
+extern char *directory_of(char *file_name);
+extern char *gs_directory_of(char *file_name);
+
+#ifdef CFE
+/* derived_type is needed in the CFE to generate the object file name for
+   makefile output. */
+#define NEED_DERIVED_NAME TRUE
+#else /* !defined(CFE) */
+#if BACK_END_SHOULD_BE_CALLED
+#if BACK_END_IS_C_GEN_BE
+/* If the back end is c_gen_be and it's called in the same program,
+   derived_name is used to generate the C output file name. */
+#define NEED_DERIVED_NAME TRUE
+#endif /* BACK_END_IS_C_GEN_BE */
+#else /* !BACK_END_SHOULD_BE_CALLED */
+/* If the back end is not called in the current program, derived_type
+   is needed to generate the name of the IL file. */
+#define NEED_DERIVED_NAME TRUE
+#endif /* BACK_END_SHOULD_BE_CALLED */
+#endif /* ifdef CFE */
+#ifndef NEED_DERIVED_NAME
+#define NEED_DERIVED_NAME FALSE
+#endif /* ifndef NEED_DERIVED_NAME */
+#if NEED_DERIVED_NAME
+/* Extract the base name from a file name. */
+extern char *derived_name(char *file_name,
+                          char *suffix);
+#endif /* NEED_DERIVED_NAME */
+/* Test whether or not a file name is absolute (a full path name). */
+#if __MSDOS__
+#define is_absolute_file_name(file_name) \
+  (((file_name)[0] == '/') || ((file_name)[0] == '\\') || \
+   (isalpha((file_name)[0]) && ((file_name)[1] == ':')))
+#else /* __MSDOS__ */
+#define is_absolute_file_name(file_name) ((file_name)[0] == '/')
+#endif /* __MSDOS__ */
+/* Combine a directory name and file name into a full path name. */
+extern char *combine_dir_and_file_name (char *dir_name,
+                                        char *file_name,
+				        char *buffer,
+				        int  buffer_size);
+/* Open a source file. */
+extern FILE *open_source_file(char          *file_name,
+                              a_boolean     *not_found,
+                              a_boolean     *bad_format,
+                              a_boolean     *bad_name);
+/* Reopen a source file. */
+extern FILE *reopen_source_file(char *file_name);
+/* Check whether or not a file is acceptable as an output file. */
+extern a_boolean okay_as_output_file(char *file_name);
+/* Open an output file. */
+extern FILE *open_output_file(char          *file_name,
+                              a_boolean     binary_file,
+                              a_boolean     update_mode,
+                              a_boolean     *cannot_open,
+                              a_boolean     *bad_name);
+/* Reopen standard error. */
+extern void reopen_error_output_file(char          *file_name,
+                                     a_boolean     *cannot_open,
+                                     a_boolean     *bad_name);
+
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+extern void delete_file(char *file_name);
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+
+/* Temp files are only needed:
+   a)  Within the C-generating back end.
+   b)  When writing an IL file that will be passed to c_gen_be in the
+       same program.
+   When (b) is true, (a) is always true, so just test (a).
+*/
+#define NEED_TEMP_FILES BACK_END_IS_C_GEN_BE
+#if NEED_TEMP_FILES
+/* Open a temporary file. */
+extern FILE *open_temp_file(a_boolean binary_file);
+/* Close a temporary file. */
+extern void close_temp_file(FILE *temp_file);
+#endif /* NEED_TEMP_FILES */
+
+#if STANDALONE_UTILITY_PROGRAM
+extern void normal_termination(void);
+#endif /* STANDALONE_UTILITY_PROGRAM */
+
+#if COMPILE_MULTIPLE_SOURCE_FILES
+/* Identify the source file being compiled. */
+extern void identify_source_file(void);
+#endif /* COMPILE_MULTIPLE_SOURCE_FILES */
+/* Terminate the compilation. */
+extern void term_compilation(an_error_severity severity);
+/* Write a compilation signoff message if appropriate. */
+extern void write_signoff(void);
+/* Terminate the compilation without a signoff message. */
+extern void exit_compilation(an_error_severity severity);
+
+/* Set up signal handlers. */
+extern void set_signal_handlers(void);
+
+#endif /* ifndef HOST_ENVIR_H */
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C Front End                            - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+*                                                                             *
+******************************************************************************/
