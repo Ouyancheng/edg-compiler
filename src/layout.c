@@ -278,7 +278,14 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   bit_field_type = skip_typerefs(base_type);
   if (!is_integral_type(bit_field_type)) {
     /* Error, not an integral type. */
-    if (!is_error_type(bit_field_type)) error(ec_bad_bit_field_type);
+    if (is_error_type(bit_field_type)) {
+      /* An error has already been issued. */
+    } else if (is_template_param_type(bit_field_type)) {
+      /* We're in a prototype instantiation -- don't issue an error. */
+    } else {
+      /* Invalid type. */
+      error(ec_bad_bit_field_type);
+    }  /* if */
     bit_field_type = integer_type((an_integer_kind)ik_int);
   } else {
     /* Integral base type.  In strict ANSI mode, give a diagnostic about a
@@ -300,6 +307,9 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   scan_integral_constant_expression(&constant);
   if (is_error_constant(&constant)) {
     /* Use small value to avoid more errors, but not 1 which is special. */
+    bit_field_size = TARG_CHAR_BIT;
+  } else if (constant.kind == (a_constant_repr_kind)ck_template_param) {
+    /* We're in a prototype instantiation -- pick an arbitrary value. */
     bit_field_size = TARG_CHAR_BIT;
   } else {
 #if CHECKING
