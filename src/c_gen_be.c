@@ -1073,7 +1073,8 @@ Print out the type specifier.
       (void)fprintf(f_C_output, "union %s", get_name(&type->source_corresp));
       break;
     case tk_typeref:
-      if (type->source_corresp.name == NULL) {
+      if (type->source_corresp.name == NULL ||
+          type->variant.typeref.is_function_scope_tag) {
 	/* This is an internally generated typeref, so use the type of the
 	   typeref. */
 	dump_type_specifier(type->variant.typeref.type);
