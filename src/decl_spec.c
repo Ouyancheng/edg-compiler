@@ -3249,7 +3249,7 @@ process_class_specifier:
                                      (a_storage_class)sc_static) ? 1 : 0) +
                                  ((*output_flags & DSO_EXPLICIT) ? 1 : 0) +
                                  (is_inline ? 1 : 0))) {
-            a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
+            a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
             a_type_ptr               class_type;
 
             if (ssep->kind == (a_scope_kind)sck_template_instantiation ||
