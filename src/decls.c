@@ -3774,7 +3774,7 @@ otherwise it is NULL.  The syntax is:
                   class_symbol_header;
   a_boolean       is_constructor_or_destructor;
   a_boolean       is_nonstatic_member_function = FALSE;
-  a_boolean       is_first_dimension = TRUE;
+  a_boolean       nonconstant_dimension_allowed;
 
   db_enter(3, "declarator");
   set_err_pos_to_curr_token();
@@ -3783,6 +3783,8 @@ otherwise it is NULL.  The syntax is:
   real_declarator_allowed = input_flags & DI_REAL_DECLARATOR_ALLOWED;
   abstract_declarator_allowed = input_flags & DI_ABSTRACT_DECLARATOR_ALLOWED;
   is_constructor_or_destructor = (input_flags & DI_IS_CONSTRUCTOR) != 0;
+  nonconstant_dimension_allowed =
+                            (input_flags & DI_DIMENSION_EXPRESSION_ALLOWED);
   if (!real_declarator_allowed) {
     func_info = NULL;
     locator = NULL;
@@ -3831,6 +3833,10 @@ otherwise it is NULL.  The syntax is:
     if (local_do_flags & DO_REAL_DECLARATOR_SCANNED) {
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
     }  /* if */
+    /* A nonconstant dimension, if allowed at all, is allowed only on the
+       topmost type (an interpretation of the language specification in ARM
+       5.3.3).  Set the flag to FALSE for subsequent processing. */
+    nonconstant_dimension_allowed = FALSE;
     /* Check for and get the closing parenthesis. */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
@@ -4110,13 +4116,12 @@ function_lparen:
       }  /* if */
     } else {
       /* Left bracket, indicating array declarator. */
-      if (is_first_dimension &&
-          (input_flags & DI_DIMENSION_EXPRESSION_ALLOWED)) {
+      if (nonconstant_dimension_allowed) {
         /* In C++ a array declarator that appears in an operator new()
            expression may have a nonconstant expression in the first
-           dimension. */
+           dimension (ARM 5.3.3).  Subsequent dimension must be constants. */
         nonconstant_array_declarator(&new_type_ptr, dim_expr_ptr);
-        is_first_dimension = FALSE;
+        nonconstant_dimension_allowed = FALSE;
       } else {
         /* The normal case. */
         array_declarator(&new_type_ptr);
