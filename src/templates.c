@@ -14153,11 +14153,12 @@ the body should be emitted by the back end.
 
   emit_function = inline_function_should_be_emitted(rout_ptr);
   rout_ptr->suppress_inline_body = !emit_function;
-#if MAINTAIN_NEEDED_FLAGS
   if (emit_function) {
+    rout_ptr->source_corresp.referenced = TRUE;
+#if MAINTAIN_NEEDED_FLAGS
     mark_as_needed((char*)rout_ptr, (an_il_entry_kind)iek_routine);
-  }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
+  }  /* if */
   if (emit_function && rout_ptr->compiler_generated) {
     /* If this is a compiler generated routine, make sure it has a body. */
     force_definition_of_compiler_generated_routine(rout_ptr);
