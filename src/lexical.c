@@ -5927,8 +5927,11 @@ This routine may only be called in C++ mode.
     goto exit;
   }  /* if */
   /* Look for a leading unary "::".  Don't be fooled by "::new" and
-     "::delete". */
-  if (curr_token == tok_colon_colon && !is_global_new_or_delete()) {
+     "::delete".  Don't treat ::* as a pointer to member declarator.
+     ::* would be rejected below as a pointer to member declarator, but
+     doing so here provides better error recovery. */
+  if (curr_token == tok_colon_colon && !is_global_new_or_delete() &&
+      next_token() != tok_star) {
     is_global_qualified_name = TRUE;
     is_file_scope_qualified_name = TRUE;
     is_qualified_name = TRUE;
@@ -6228,8 +6231,9 @@ This routine may only be called in C++ mode.
   }  /* if */
   /* Assume we have found an identifier until we discover otherwise. */
   is_identifier = TRUE;
-  if (is_qualified_name) {
-    /* This is a qualifier -- see if it is a pointer to member. */
+  if (is_qualified_name && !is_file_scope_qualified_name) {
+    /* This is a qualifier (but not a file scope qualified name such as
+       ::x) -- see if it is a pointer to member. */
     if (curr_token == tok_star) {
       /* We have a pointer to member token (i.e, A::*).  Update the current
          token. */

@@ -1,5 +1,13 @@
 Version 2.23
 
+3/1/94  Missing diagnostic on incorrectly formed pointer to member declaration
+
+The front end failed to issue a diagnostic on this kind of usage.  This
+resulted in an internal error in IL lowering.  This has been corrected.
+
+  int ::*x;
+
+
 3/1/94  Omission of the declarator on a field declaration
 
 Treatment of the following in C mode has been changed:
