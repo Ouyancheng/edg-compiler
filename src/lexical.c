@@ -4927,7 +4927,7 @@ normal_exit:
      and restore the source position of the beginning of the template
      class reference. */
   locator_for_curr_id.specific_symbol = new_sym;
-  locator_pos = locator_for_curr_id.source_position;
+  locator_for_curr_id.source_position = locator_pos;
   /* Set source position for error reporting. */
   error_position = start_position;
 
