@@ -625,7 +625,9 @@ extern void add_to_front_of_file_scope_types_list(a_type_ptr type);
 
 extern a_type_ptr make_mptr_type(void);
 
-extern a_type_ptr make_vtbl_entry_type(void);
+extern a_type_ptr pointer_to_vtbl_type(void);
+
+extern a_targ_size_t vtbl_entry_size(void);
 
 #if IA64_ABI
 extern a_type_ptr make_virtual_table_table_pointer_type(void);

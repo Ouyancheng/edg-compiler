@@ -196,7 +196,7 @@ NULL.
        in bytes of the function. */
     /* This is for the variant for architectures where the address of a
        function can have a 1 in the low-order bit. */
-    *offset = routine->virtual_function_number * make_vtbl_entry_type()->size;
+    *offset = routine->virtual_function_number * vtbl_entry_size();
 #endif /* IA64_ABI */
     *func = NULL;
   }  /* if */
@@ -1155,19 +1155,46 @@ cast).
 }  /* make_mptr_type */
 
 
-a_type_ptr make_vtbl_entry_type(void)
+static a_type_ptr make_vtbl_entry_type(void)
 /*
 Return the type of a virtual function table entry.
 */
 {
+  a_type_ptr vtbl_entry_type;
+
 #if IA64_ABI
   /* The IA-64 virtual function table contains offsets and pointers.
      The element type is considered to be a large integral type. */
-  return integer_type(targ_ptrdiff_t_int_kind);
+  vtbl_entry_type = integer_type(targ_ptrdiff_t_int_kind);
 #else /* !IA64_ABI */
-  return make_mptr_type();
+  vtbl_entry_type = make_mptr_type();
 #endif /* IA64_ABI */
+  return vtbl_entry_type;
 }  /* make_vtbl_entry_type */
+
+
+a_type_ptr pointer_to_vtbl_type(void)
+/*
+Return the type of a pointer to a virtual function table, which
+is a pointer to an element thereof, i.e., "pointer to const virtual
+function table entry".  The type is const because virtual function
+tables are const.
+*/
+{
+  a_type_ptr type = make_vtbl_entry_type();
+  type = make_qualified_type(type, TQ_CONST);
+  type = make_pointer_type(type);
+  return type;
+}  /* pointer_to_vtbl_type */
+
+
+a_targ_size_t vtbl_entry_size(void)
+/*
+Return the size of an entry in a virtual function table.
+*/
+{
+  return make_vtbl_entry_type()->size;
+}  /* vtbl_entry_size */
 
 #if IA64_ABI
 
@@ -1176,7 +1203,7 @@ a_type_ptr make_virtual_table_table_pointer_type(void)
 Return the type of a pointer to a virtual table table.
 */
 {
-  return make_pointer_type(make_pointer_type(make_vtbl_entry_type()));
+  return make_pointer_type(pointer_to_vtbl_type());
 }  /* make_virtual_table_table_pointer_type */
 
 #endif /* IA64_ABI */
@@ -1781,10 +1808,8 @@ an address for the struct, and produces the address of the field.
   /* Use a different operator for bit field references. */
   op = (field->is_bit_field) ? (an_expr_operator_kind)eok_value_bit_field :
                                (an_expr_operator_kind)eok_value_field;
-  /* The selected field has all the type qualifiers of both the field
-     and the selecting pointer. */
-  selection_type = type_plus_qualifiers_from_second_type(field->type,
-                                                         node->type);
+  /* The selected field is an rvalue and therefore has no cv-qualifiers. */
+  selection_type = rvalue_type(field->type);
   /* Make the field selection node. */
   node = make_operator_node(op, selection_type, node);
   return node;
@@ -1984,11 +2009,8 @@ pointed to by node, at the position given by index.  index is counted
 in virtual table entries.  The result is of type ptrdiff_t.
 */
 {
-  a_type_ptr        vtbl_entry_ptr_type;
   an_expr_node_ptr  vptr_expr, vtbl_expr, index_expr, entry_expr;
 
-  /* Build the type of a pointer to a virtual table entry. */
-  vtbl_entry_ptr_type = make_pointer_type(make_vtbl_entry_type());
   /* Create an expression for the address of node's virtual table. */
   vptr_expr = make_vptr_field_lvalue(node);
   /* Dereference to obtain an expression for the virtual table. */
@@ -1999,7 +2021,7 @@ in virtual table entries.  The result is of type ptrdiff_t.
   vtbl_expr->next = index_expr;
   /* Index into the virtual table. */
   entry_expr = make_operator_node((an_expr_operator_kind)eok_padd,
-                                  vtbl_entry_ptr_type, vtbl_expr);
+                                  pointer_to_vtbl_type(), vtbl_expr);
   /* Dereference to obtain the desired value. */
   entry_expr = add_indirection_to_node(entry_expr);
   return entry_expr;
@@ -2129,7 +2151,7 @@ any better if we did know it was a complete object).
       if (!is_class_struct_union_type(field->type)) break;
       vptr_class_type = field->type;
     }  /* for */
-    check_assertion(field->type == make_pointer_type(make_vtbl_entry_type()));
+    check_assertion(field->type == pointer_to_vtbl_type());
   }
 #endif /* IA64_ABI */
   return node;
@@ -3674,7 +3696,8 @@ definition.
      later. */
   array_type = alloc_type((a_type_kind)tk_array);
   array_type->variant.array.variant.number_of_elements = 0;  /* i.e., [] */
-  array_type->variant.array.element_type = make_vtbl_entry_type();
+  array_type->variant.array.element_type =
+                         make_qualified_type(make_vtbl_entry_type(), TQ_CONST);
   set_type_size(array_type);
   /* Make the variable. */
   /* Develop the mangled name, which looks like
@@ -6626,7 +6649,7 @@ routine assumes the class type is as complete as it will ever get.
         /* The class has virtual functions, so it needs a virtual function
            table pointer.  Also, the pointer is not shared with a base
            class.  Make a dummy field for a virtual function table pointer. */
-        add_dummy_field("__vptr", make_pointer_type(make_vtbl_entry_type()),
+        add_dummy_field("__vptr", pointer_to_vtbl_type(),
                         ctsp->virtual_function_info_offset, class_type);
       }  /* if */
       /* Make a type for the class for use when the class is a subobject.
@@ -8487,7 +8510,7 @@ Lower an eok_dynamic_cast expression.  The subtree has already been lowered.
     offset_to_top_node = make_vtbl_entry_expr(src_copy_copy, -2L);
     /* Cast the original pointer to `char *' to avoid scaling when
        performing pointer arithmetic. */
-    src_copy = add_cast(src_copy, char_star_type());
+    src_copy = add_cast_to_char_star(src_copy);
     src_copy->next = offset_to_top_node;
     /* Make the addition node. */
     call_node = make_operator_node((an_expr_operator_kind)eok_padd,
@@ -9390,7 +9413,7 @@ the expression have already been lowered.
     /* We now have a pointer to the virtual table pointer in the object.
        Cast it to a pointer to a pointer and indirect to get the value of 
        the pointer to the virtual function table. */
-    ptr_to_vtbl_entry_type = make_pointer_type(make_vtbl_entry_type());
+    ptr_to_vtbl_entry_type = pointer_to_vtbl_type();
     cast_node = add_cast(padd_node, make_pointer_type(ptr_to_vtbl_entry_type));
     vtbl_addr_node = add_indirection_to_node(cast_node);
     /* Make "pmf.i", the offset into the virtual function table. */
@@ -9402,7 +9425,7 @@ the expression have already been lowered.
     /* We're using the "f" field of __mptr as a ptrdiff_t. */
     offset_node = add_cast(offset_node, integer_type(targ_ptrdiff_t_int_kind));
     /* Scale the offset by the size of a vtable entry. */
-    offset_node->next = node_for_integer_constant(make_vtbl_entry_type()->size,
+    offset_node->next = node_for_integer_constant(vtbl_entry_size(),
                                                   targ_ptrdiff_t_int_kind);
     offset_node = make_operator_node((an_expr_operator_kind)eok_idivide,
                                      offset_node->type,

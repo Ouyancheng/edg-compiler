@@ -344,7 +344,7 @@ refers to the corresponding type built by IL lowering.
     set_name_for_typeinfo_type(typeinfo_types[(int)tik_user], "__type_info");
     last_field = NULL;
     /* Make a field for the virtual function table pointer. */
-    make_lowered_field("__vptr", make_pointer_type(make_vtbl_entry_type()),
+    make_lowered_field("__vptr", pointer_to_vtbl_type(),
                        typeinfo_types[(int)tik_user], &last_field);
 #if IA64_ABI
     /* Make a field for the mangled name. */
@@ -1377,11 +1377,11 @@ typeinfo variable in a COMDAT group.
        skip the offset and typeinfo pointer.  (We know that there are no
        virtual bases in the typeinfo class hierarchy, so there are no vbase or
        vcall offsets.) */
-    vptr_con->variant.address.offset = 2 * make_vtbl_entry_type()->size;
+    vptr_con->variant.address.offset = 2 * vtbl_entry_size();
 #endif /* !IA64_ABI */
     vtbls_for_type_info[(int)typeinfo_kind]->source_corresp.referenced = TRUE;
     /* Do the array --> pointer decay. */
-    implicit_cast(vptr_con, make_pointer_type(make_vtbl_entry_type()));
+    implicit_cast(vptr_con, pointer_to_vtbl_type());
     /* Make the constant for the type_info.  For cases invoving a
        derived class, this ends up being the initializer for the
        base class part of the object. */
@@ -1656,7 +1656,7 @@ typeinfo variable in a COMDAT group.
 	      offset_con = alloc_constant((a_constant_repr_kind)ck_integer);
               if (base->is_virtual) {
                 offset = (a_host_large_integer)(base->vbase_offset_index *
-                          (a_virtual_table_index)make_vtbl_entry_type()->size);
+                                     (a_virtual_table_index)vtbl_entry_size());
               } else {
                 offset = (a_host_large_integer)base->offset;
               }  /* if*/

@@ -216,8 +216,7 @@ element.
   if (bcp != NULL) {
     vtbl_index += bcp->virtual_function_table_offset;
   }  /* if */
-  addr_constant.variant.address.offset = 
-                                     vtbl_index * make_vtbl_entry_type()->size;
+  addr_constant.variant.address.offset = vtbl_index * vtbl_entry_size();
 #endif /* IA64_ABI */
   var_node = alloc_node_for_constant(&addr_constant);
   return var_node;
@@ -7924,8 +7923,7 @@ the temporary variable.
 {
   a_variable_ptr var;
 
-  var = make_lowered_temporary(make_pointer_type(
-                                   make_pointer_type(make_vtbl_entry_type())));
+  var = make_lowered_temporary(make_pointer_type(pointer_to_vtbl_type()));
   return var;
 }  /* make_construction_vtbl_temporary */
 
@@ -7984,12 +7982,12 @@ given by the elements.
     set_variable_address_constant(elements->virtual_function_table_var, &con,
                                   /*set_address_taken_flag=*/TRUE);
     /* Do the array --> pointer decay. */
-    implicit_cast(&con, make_pointer_type(make_vtbl_entry_type()));
+    implicit_cast(&con, pointer_to_vtbl_type());
 #if IA64_ABI
     /* In the IA64 ABI, the value of the vptr in the object is not the same as
        the address of the virtual function table variable.  */
     vtbl_index = elements->virtual_function_table_index;
-    con.variant.address.offset = vtbl_index * make_vtbl_entry_type()->size;
+    con.variant.address.offset = vtbl_index * vtbl_entry_size();
 #endif /* IA64_ABI */
     elements->virtual_function_table_var->source_corresp.referenced = TRUE;
     conp = alloc_unshared_constant(&con);
@@ -8046,8 +8044,7 @@ to the variable.
 #endif /* IA64_ABI */
   /* Create the array type. */
   array_type = alloc_type((a_type_kind)tk_array);
-  array_type->variant.array.element_type = 
-                                     make_pointer_type(make_vtbl_entry_type());
+  array_type->variant.array.element_type = pointer_to_vtbl_type();
 #if !IA64_ABI
   /* Create the local static array variable. */
   var = make_unnamed_local_static_variable(array_type,
@@ -10747,7 +10744,7 @@ The overriding function must have a definition in the current compilation.
       /* Treat the object as a pointer to a pointer to a virtual function
          table. */
       vcall_expr = add_cast_if_necessary(vcall_expr,
-                 make_pointer_type(make_pointer_type(make_vtbl_entry_type())));
+                                    make_pointer_type(pointer_to_vtbl_type()));
       /* Dereference to get a pointer to the virtual function table. */
       vcall_expr = add_indirection_to_node(vcall_expr);
       /* Add the vcall index to find the vcall offset. */

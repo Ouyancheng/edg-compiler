@@ -6022,7 +6022,7 @@ pointer, or performs the "this" adjustments.
   add_to_mangled_name('_', &mctl);
   if (entry_routine->vcall_index != 0) {
     add_signed_number_to_mangled_name((entry_routine->vcall_index *
-                                       (long)(make_vtbl_entry_type()->size)),
+                                       (long)vtbl_entry_size()),
                                       &mctl);
     add_to_mangled_name('_', &mctl);
   }  /* if */
@@ -6038,7 +6038,7 @@ pointer, or performs the "this" adjustments.
     add_to_mangled_name('_', &mctl);
     if (entry_routine->vbase_index != 0) {
       add_signed_number_to_mangled_name((entry_routine->vbase_index * 
-                                         make_vtbl_entry_type()->size), 
+                                         vtbl_entry_size()), 
                                         &mctl);
       add_to_mangled_name('_', &mctl);
     }  /* if */
