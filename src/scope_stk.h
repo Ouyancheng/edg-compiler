@@ -801,7 +801,7 @@ this will be FALSE for an instantiation performed during the initial scan
 of a translation unit (which should only occur for prototype instantiations).
 */
 #define in_exported_template_instantiation()				\
-  (translation_unit_needed_only_for_exported_templates &&		\
+  (secondary_trans_units_on_stack > 0 &&				\
    depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&		\
    scope_stack[DEPTH_OF_FILE_SCOPE].is_reactivation)
 
