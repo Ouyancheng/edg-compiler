@@ -1738,7 +1738,7 @@ Dump a statement, for debug purposes.
     fprintf(f_debug, ", at %lu/%lu", sp->position.seq, sp->position.column);
     if (sp->end_position.seq != 0) {
       fprintf(f_debug, " -- %lu/%lu", sp->end_position.seq,
-              sp->end_position.column);
+              (unsigned long)sp->end_position.column);
     }  /* if */
     fputc('\n', f_debug);
 #else /* !(EXTRA_SOURCE_POSITIONS_IN_IL && FULL_SOURCE_POS_IN_IL_STATEMENT) */
@@ -1818,11 +1818,11 @@ the dump (this one counts as the first).
                 if (seq != 0) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL && FULL_SOURCE_POS_IN_IL_STATEMENT
                   fprintf(f_debug, ", at %lu/%lu", seq,
-                          scp->break_position.column);
+                          (unsigned long)scp->break_position.column);
                   if (scp->break_end_position.seq != 0) {
                     fprintf(f_debug, " -- %lu/%lu",
                             scp->break_end_position.seq,
-                            scp->break_end_position.column);
+                            (unsigned long)scp->break_end_position.column);
                   }  /* if */
 #else /* !(EXTRA_SOURCE_POSITIONS_IN_IL && FULL_SOURCE_POS_IN_IL_STATEMENT) */
                   fprintf(f_debug, ", at %lu", seq);
