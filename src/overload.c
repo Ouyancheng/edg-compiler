@@ -2159,18 +2159,15 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
         param_type2 = drop_tiebreaker_ref_ptr_types(param_type2, arg2);
         if (arg1->conversion.std.type_qualifiers_added &&
             same_type_with_added_qualifiers(param_type1, param_type2,
-                                            /*ignore_qualifiers=*/FALSE,
-                                            /*nonstandard_test=*/TRUE,
-                                            (a_boolean *)NULL)) {
+					    /*ignore_qualifiers=*/FALSE)) {
           /* param_type1 has more qualifiers than param_type2, and the
              types are otherwise compatible.  Therefore fewer qualifiers
              are added to get to param_type2, and argument 2 is better. */
           cmp = -1;
         } else if (arg2->conversion.std.type_qualifiers_added &&
                    same_type_with_added_qualifiers(param_type2, param_type1,
-                                                   /*ignore_qualifiers=*/FALSE,
-                                                   /*nonstandard_test=*/TRUE,
-                                                   (a_boolean *)NULL)) {
+						   /*ignore_qualifiers=*/
+						                      FALSE)) {
           /* param_type2 has more qualifiers than param_type1, and the
              types are otherwise compatible.  Therefore fewer qualifiers
              are added to get to param_type1, and argument 1 is better. */
@@ -2217,9 +2214,7 @@ the former has additional type qualifiers.
     if (is_reference_type(type1)) type1 = type_pointed_to(type1);
     if (is_reference_type(type2)) type2 = type_pointed_to(type2);
     if (same_type_with_added_qualifiers(type1, type2,
-                                        /*ignore_qualifiers=*/FALSE,
-                                        /*nonstandard_test=*/TRUE,
-                                        (a_boolean *)NULL)) {
+					/*ignore_qualifiers=*/FALSE)) {
       same_with_added_qualifiers = TRUE;
     }  /* if */
   }  /* if */
@@ -6500,10 +6495,8 @@ initializer has previously been found to be acceptable, and
                is_pointer_type(unqual_dest_type) &&
                is_pointer_type(unqual_source_type) &&
                same_type_with_added_qualifiers(unqual_dest_type,
-                                               unqual_source_type,
-                                               /*ignore_qualifiers=*/FALSE,
-					       /*nonstandard_test=*/TRUE,
-					       (a_boolean*)NULL)) {
+					       unqual_source_type,
+					       /*ignore_qualifiers=*/FALSE)) {
       /* The type is a pointer type and is correct, except that the
          destination type has some qualifiers that are not present on
          the source type (at any level).  Standard C++ processing can
