@@ -1,5 +1,18 @@
 Version 2.38
 
+11/27/97  Inlining of function containing char array initialized to string
+
+When MINIMAL_INLINING is enabled, an attempt to inline a function that
+contains a character array variable initialized to a string produced
+an internal error in which_binary_operator.  Now fixed.
+
+  inline void f(int) {
+    char a[32] = "";
+  }
+  void g(int n) {
+    f(n);
+  }
+
 11/26/97  Nondeduced contexts in partial specializations
 
 In version 2.37, template argument deduction was modified to handle

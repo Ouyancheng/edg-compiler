@@ -1049,8 +1049,10 @@ If not, *failed is set.
              of copying and inserting the stmk_init.  The only negative to
              that is that it doesn't allow inlining aggregate
              initializations in statement insert mode. */
-          var->initialization_rewritten_as_assignment = TRUE;
-          if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+          if (is_array_type(var->type)) {
+            /* Aggregates can't be handled. */
+            goto cannot_inline_ever;
+          } else if (dip->kind == (a_dynamic_init_kind)dik_constant) {
             /* Aggregates can't be handled. */
             if (dip->variant.constant->kind ==
                                           (a_constant_repr_kind)ck_aggregate) {
@@ -1076,6 +1078,7 @@ If not, *failed is set.
                                     f_skip_typerefs(var->type),
                                     var_expr);
           (void)insert_expr_statement(expr, insert_location);
+          var->initialization_rewritten_as_assignment = TRUE;
         }
         break;
       case stmk_while:
