@@ -4126,6 +4126,9 @@ constructor, but may instead be after an assignment to "this".
   this_param_var = scope->variant.routine.parameters;
   class_type =
             scope->variant.routine.ptr->source_corresp.class_of_which_a_member;
+  /* Mark the class as referenced because, at the very least, the
+     "this" parameter uses it. */
+  class_type->source_corresp.referenced = TRUE;
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (class_type->variant.class_struct_union.any_virtual_base_classes) {
     /* Put out code that tests whether or not the virtual base classes need
@@ -4555,6 +4558,10 @@ destructor scope, and also lower the user code.
   this_param_var = scope->variant.routine.parameters;
   complete_obj_param_var = this_param_var->next;
   class_type = dtor_routine->source_corresp.class_of_which_a_member;
+  /* Mark the class as referenced because, at the very least, the
+     "this" parameter uses it.  For some cases involving generated virtual
+     destructors, this is necessary. */
+  class_type->source_corresp.referenced = TRUE;
   ctsp = class_type->variant.class_struct_union.extra_info;
   /* Remember where the user code (if any) is. */
   user_code_stmts = scope->assoc_block->variant.block.statements;
