@@ -1,5 +1,20 @@
 Version 2.20
 
+10/18/93 Restriction on inheritance: class X cannot inherit an X
+
+A change has been made to find_projected_symbol to deal with cases like
+this:
+
+  class A {
+    typedef int B;
+  };
+  class B : public A {
+    B* p;                // p is "ptr-to-B", not "ptr-to-int"
+  };
+
+The justification is that a B cannot be added to class B by inheritance
+because that name is reserved for the constructor.
+
 10/18/93 Sign extension of pcc mode integer constants when long long allowed
 
 If the front end is configured to allow integers larger than long,
