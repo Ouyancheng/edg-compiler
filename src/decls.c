@@ -2152,15 +2152,15 @@ declaration of this symbol.
 
   db_enter(4, "enter_local_symbol");
   if (scope_stack[scope_level].kind == (a_scope_kind)sck_func_prototype) {
-    if (kind == sk_variable) {
+    if (kind == sk_variable || kind == sk_constant) {
       /* A variable declared in a function prototype scope is the result of
          an error in an old-style param list. */
     } else {
-      /* Other other declaration expected in a prototype scope is that of a
-         type. */
+      /* Any other declaration expected in a prototype scope is that of a
+         type or an enumeration constant. */
 #if CHECKING
       if (kind != sk_class_or_struct_tag && kind != sk_union_tag &&
-          kind != sk_enum_tag && kind != sk_type) {
+          kind != sk_enum_tag && kind != sk_type && kind != sk_constant) {
         internal_error("enter_local_symbol: bad sym kind for func prototype");
       }  /* if */
 #endif /* CHECKING */
@@ -2177,13 +2177,15 @@ declaration of this symbol.
         scope_level = DEPTH_OF_FILE_SCOPE;
       } else {
         /* In C-mode a type declared in a parameter declaration is local to
-           function.  Issue a warning, since it will not be visible outside
-           the function declaration.  For example:
+           function.  Issue a warning on type declarations, since they will
+           not be visible outside the function declaration.  For example:
                inf f(struct s a;);
                struct s {int b;};
            The first "struct s" is a different type than the second, which is
            probably not what was wanted. */
-        pos_warning(ec_decl_in_prototype_scope, &locator->source_position);
+        if (kind != sk_constant) {
+          pos_warning(ec_decl_in_prototype_scope, &locator->source_position);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
