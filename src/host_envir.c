@@ -2209,7 +2209,7 @@ definition whose name can be used as part of the module ID.
       if (name != NULL) break;
     }  /* for */
   }  /* if */
-  if (name == NULL) {
+  if (name == NULL && !C_mode()) {
     /* We have still not found a name.  Look through any class scopes. */
     a_type_ptr tp;
     for (tp = scope->types; tp != NULL; tp = tp->next) {
