@@ -1685,6 +1685,7 @@ of "const" in ANSI C mode.
                       "dump_type_qualifier: bad type kind");
   if (type->variant.typeref.is_const) {
 #if C_GEN_BE_GENERATES_ANSI_C
+    suppress_const = TRUE;  /* Temporarily disabled. */
     if (suppress_const) start_comment();
     write_tok_str("const");
     if (suppress_const) end_comment();
