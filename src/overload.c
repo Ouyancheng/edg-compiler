@@ -3501,7 +3501,7 @@ routine is called only in C++ mode.
       /* A nonstatic member function is used someplace where there is no
          "this" available, e.g., outside of a member function. */
       pos_error(ec_member_ref_requires_object, call_position);
-    } if (sym_is_undefined && !some_function_tried) {
+    } else if (sym_is_undefined && !some_function_tried) {
       /* The function symbol is not defined, and no functions were added
          by argument-dependent lookup, so the best diagnostic is one
          that says the name is undefined. */
