@@ -5134,12 +5134,13 @@ of the function, and again overloading is a possibility.
             locator->is_file_scope_qualified_name :
             depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE)) {
         /* Friendship is being given to the global main() function. */
+        a_boolean  is_inline = func_info->is_inline;
+
         func_info->is_main_function = TRUE;
-        if (func_info->is_inline) {
-          /* But it can't be declared "inline" or defined inline. */
-          pos_error(ec_inline_main, &locator->source_position);
-          func_info->is_inline = FALSE;
-        }  /* if */
+        check_main_function(func_info, function_type,
+                            &decl_info->storage_class, &is_inline,
+                            &decl_info->decl_pos_block);
+        func_info->is_inline = is_inline;
       } else if (func_info->is_definition) {
         if (class_type->source_corresp.is_local_to_function) {
           /* It is an error to define a function in a friend declaration

@@ -1,5 +1,14 @@
 Version 2.44
 
+5/24/00  Complete diagnostics when main() is declared as a friend function
+
+The front end now diagnoses violations of constraints on main() when it is
+declared as a friend function.  For example:
+
+  struct S {
+    friend void main();  // Warning or error: return type should be "int"
+  };
+
 5/23/00  Source position on expression for argument passed via elided
          copy constructor
 

@@ -9134,6 +9134,59 @@ error cases.
 }  /* remove_all_local_stop_tokens */
 
 
+void check_main_function(a_func_info_block_ptr  func_info,
+                         a_type_ptr             type,
+                         a_storage_class        *declared_storage_class,
+                         a_boolean              *is_inline,
+                         a_decl_pos_block_ptr   pos)
+/*
+Check some C++ constraints on the main() function declared with type "type"
+and storage class "*declared_storage_class".  If "*is_inline" is TRUE, the
+function was declared "inline" (or was defined as an in-class friend).
+Additional information is provided through the "func_info" parameter, while
+the "pos" parameter determines which positions should be reported in any
+diagnostics.
+*/
+{
+  /* Not a class or namespace member named "main". */
+  a_routine_type_supplement_ptr  rtsp;
+  a_type_ptr                     return_type, int_type;
+
+  /* Perform some error checking that is specific to C++. */
+  return_type = skip_typerefs(type)->variant.routine.return_type;
+  int_type = integer_type((an_integer_kind)ik_int);
+  if (!identical_types(return_type, int_type)) {
+    /* main must return "int" (3.6.1). */
+    pos_diagnostic(strict_ansi_mode ?
+                     strict_ansi_discretionary_severity : es_warning,
+                   ec_bad_return_type_on_main, &pos->declarator_range.start);
+  }  /* if */
+  rtsp = skip_typerefs(type)->variant.routine.extra_info;
+  if (rtsp->routine_name_linkage_is_explicit) {
+    pos_warning(ec_linkage_specifier_not_allowed,
+                &pos->declarator_range.start);
+    rtsp->routine_name_linkage_is_explicit = FALSE;
+  }  /* if */
+  rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
+  if (rtsp->exception_specification != NULL) {
+    /* main() cannot have a throw specification, since there's no
+       call stack to unwind from main. */
+    pos_warning(ec_exception_specification_not_allowed,
+                &func_info->throw_position);
+    rtsp->exception_specification = NULL;
+  }  /* if */
+  /* "inline" and "static" are not allowed (ARM 3.4). */
+  if (*declared_storage_class == (a_storage_class)sc_static) {
+    pos_error(ec_static_not_allowed, &pos->storage_class_pos);
+    *declared_storage_class = (a_storage_class)sc_unspecified;
+  }  /* if */
+  if (*is_inline) {
+    pos_error(ec_inline_main, &pos->declarator_range.start);
+    *is_inline = FALSE;
+  }  /* if */
+}  /* check_main_function */
+
+
 void declaration(a_boolean       function_definition_allowed,
                  a_boolean       is_old_style_param_decl,
                  a_boolean       is_top_level_declaration,
@@ -9595,49 +9648,13 @@ continue_with_declaration:
                that's unqualified but in a namespace scope, can't refer to
                global main. */
           } else {
-            /* Not a class or namespace member named "main". */
-            a_routine_type_supplement_ptr  rtsp;
-            a_type_ptr                     return_type, int_type;
-
             check_assertion(locator.specific_symbol == NULL ||
                             (!locator.specific_symbol->is_class_member &&
                              locator.specific_symbol->
                                           parent.namespace_ptr == NULL));
-            func_info.is_main_function = is_main_function = TRUE;
-            /* Perform some error checking that is specific to C++. */
-            return_type = skip_typerefs(local_type_ptr)->
-                                              variant.routine.return_type;
-            int_type = integer_type((an_integer_kind)ik_int);
-            if (!identical_types(return_type, int_type)) {
-              /* main must return "int" (3.6.1). */
-              pos_diagnostic(strict_ansi_mode ?
-                               strict_ansi_discretionary_severity : es_warning,
-                             ec_bad_return_type_on_main, &decl_start_pos);
-            }  /* if */
-            rtsp = skip_typerefs(local_type_ptr)->variant.routine.extra_info;
-            if (rtsp->routine_name_linkage_is_explicit) {
-              pos_warning(ec_linkage_specifier_not_allowed, &declarator_pos);
-              rtsp->routine_name_linkage_is_explicit = FALSE;
-            }  /* if */
-            rtsp->routine_name_linkage =
-                                 (a_name_linkage_kind)nlk_cplusplus_external;
-            if (rtsp->exception_specification != NULL) {
-              /* main() cannot have a throw specification, since there's no
-                 call stack to unwind from main. */
-              pos_warning(ec_exception_specification_not_allowed,
-                          &func_info.throw_position);
-              rtsp->exception_specification = NULL;
-            }  /* if */
-            /* "inline" and "static" are not allowed (ARM 3.4). */
-            if (declared_storage_class == (a_storage_class)sc_static) {
-              pos_error(ec_static_not_allowed,
-                        &decl_pos_block.storage_class_pos);
-              declared_storage_class = (a_storage_class)sc_unspecified;
-            }  /* if */
-            if (inline_specified) {
-              pos_error(ec_inline_main, &declarator_pos);
-              inline_specified = FALSE;
-            }  /* if */
+            check_main_function(&func_info, local_type_ptr,
+                                &declared_storage_class, &inline_specified,
+                                &decl_pos_block);
           }  /* if */
         } else {
           /* C mode. */
