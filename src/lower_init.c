@@ -5458,9 +5458,11 @@ Do IL lowering of an enk_temp_init expression node.
 {
   a_dynamic_init_ptr dip;
   a_type_ptr         temp_type;
+  an_init_pos_descr  ipd;
   a_boolean          result_is_addr, result_is_not_used;
   an_insert_location insert_location;
   a_boolean          is_constructor_init;
+  a_variable_ptr     temp_var;
 
   dip = expr->variant.init.dynamic_init;
   result_is_addr = expr->variant.init.result_is_addr;
@@ -5486,32 +5488,41 @@ Do IL lowering of an enk_temp_init expression node.
         dip->has_temporary_lifetime) {
       /* Simple case; a temporary that lasts until the end of the full
          expression will do. */
-      dip->variable = make_local_temporary(temp_type);
+      temp_var = make_local_temporary(temp_type);
     } else {
-      dip->variable = make_temporary_in_scope(temp_type,
-                                              (a_scope_ptr)NULL,
-                                              (a_boolean)
+      temp_var = make_temporary_in_scope(temp_type,
+                                         (a_scope_ptr)NULL,
+                                         (a_boolean)
                                                expr->variant.init.static_temp);
     }  /* if */
+    dip->variable = temp_var;
     /* Change the enk_temp_init to a reference to the value or address
        of the temporary. */
     if (result_is_addr) {
       set_expr_node_kind(expr, (an_expr_node_kind)enk_variable_address);
       /* The address of the temporary escapes (or might escape) into the
          surrounding context, so set its address_taken flag. */
-      set_lowering_variable_address_taken(dip->variable);
+      set_lowering_variable_address_taken(temp_var);
     } else {
       set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
     }  /* if */
-    expr->variant.variable = dip->variable;
+    expr->variant.variable = temp_var;
+    /* Generate code for the dynamic init. */
+    set_var_init_pos_descr(temp_var, &ipd);
     /* Test the kind before calling lower_dynamic_init because that routine
        clears the kind in some cases. */
-    is_constructor_init = (dip->kind==(a_dynamic_init_kind)dik_constructor);
+    is_constructor_init = (dip->kind == (a_dynamic_init_kind)dik_constructor);
     /* Any code generated for the dynamic initialization will be
        inserted before the (modified) original expression. */
     set_expr_insert_location(expr, &insert_location);
-    if (dip->kind == (a_dynamic_init_kind)dik_zero &&
-        !has_static_storage_duration(dip->variable->storage_class)) {
+    lower_dynamic_init(dip, &ipd,
+                       (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
+                       (a_constructor_init_ptr)NULL, LDIO_NONE,
+                       /*others_follow_in_aggr=*/FALSE,
+                       &insert_location, (a_boolean *)NULL,
+                       (a_constant **)NULL);
+    if (temp_var->init_kind == (an_init_kind)initk_zero &&
+        !has_static_storage_duration(temp_var->storage_class)) {
       /* We need to zero an automatic temporary, which can't be done by
          setting its init_kind to initk_zero, because we don't know that
          the block of the temporary will be entered at the top.  Make
@@ -5521,20 +5532,11 @@ Do IL lowering of an enk_temp_init expression node.
                                                         (a_scope_ptr)NULL,
                                                         /*force_static=*/TRUE);
       static_temp->init_kind = (an_init_kind)initk_zero;
-      (void)insert_assignment_statement(var_lvalue_expr(dip->variable),
+      (void)insert_assignment_statement(var_lvalue_expr(temp_var),
                                         (an_expr_operator_kind)eok_bassign,
                                         var_lvalue_expr(static_temp),
                                         &insert_location);
-    } else {
-      /* Normal case.  Generate code for the dynamic init. */
-      an_init_pos_descr ipd;
-      set_var_init_pos_descr(dip->variable, &ipd);
-      lower_dynamic_init(dip, &ipd,
-                         (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                         (a_constructor_init_ptr)NULL, LDIO_NONE,
-                         /*others_follow_in_aggr=*/FALSE,
-                         &insert_location, (a_boolean *)NULL,
-                         (a_constant **)NULL);
+      temp_var->init_kind = (an_init_kind)initk_none;
     }  /* if */
     /* Optimization -- if the initialization is done by a constructor,
        and the enk_temp_init returns the address of the temporary,
