@@ -4478,18 +4478,20 @@ End a name scope by popping an entry off the scope stack.
        functions. */
     check_for_done_with_all_function_memory_regions();
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-    /* Set the IL flags used to pass automatic instantiation information to
-       the link-time instantiation processor.  The timing of this call is
-       important.  It must follow the call to eliminate_unneeded_il_entries,
-       which may clear the instantiation_required flag in the associated
-       template instance entry.  And it must precede the call to
-       check_for_done_with_memory_region, since it modifies IL entries and
-       (if DO_IL_LOWERING is TRUE) may allocate variables that are added to
-       the IL. */
-    update_auto_instantiation_flags();
-    /* Do the similar processing for inline functions, when instantiating
-       inline functions similarly to templates. */
-    update_inline_function_flags();
+    if (total_errors == 0) {
+      /* Set the IL flags used to pass automatic instantiation information to
+         the link-time instantiation processor.  The timing of this call is
+         important.  It must follow the call to eliminate_unneeded_il_entries,
+         which may clear the instantiation_required flag in the associated
+         template instance entry.  And it must precede the call to
+         check_for_done_with_memory_region, since it modifies IL entries and
+         (if DO_IL_LOWERING is TRUE) may allocate variables that are added to
+         the IL. */
+      update_auto_instantiation_flags();
+      /* Do the similar processing for inline functions, when instantiating
+         inline functions similarly to templates. */
+      update_inline_function_flags();
+    }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
 
