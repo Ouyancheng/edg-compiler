@@ -2079,6 +2079,7 @@ Returns TRUE if there is an error in the specifiers.
       case tok_static:
       case tok_auto:
       case tok_register:
+      case tok_mutable:
         /* A storage class specifier (3.5.1). */
         if (!(input_flags & DSI_STORAGE_CLASS_SPECIFIER_ALLOWED)) {
           error(ec_storage_class_not_allowed);
@@ -2088,7 +2089,8 @@ Returns TRUE if there is an error in the specifiers.
           error(ec_storage_class_not_allowed);
           err = TRUE;
 #endif /* ASM_FUNCTION_ALLOWED */
-        } else if (*storage_class != (a_storage_class)sc_unspecified) {
+        } else if (*storage_class != (a_storage_class)sc_unspecified ||
+                   (*output_flags & DSO_MUTABLE)) {
           /* More than  one storage class may not be specified. */
           error(ec_mult_storage_classes);
           err = TRUE;
@@ -2108,6 +2110,17 @@ Returns TRUE if there is an error in the specifiers.
         } else if (is_inline && curr_token != tok_static) {
           error(ec_bad_storage_class_with_inline);
           err = TRUE;
+
+        } else if (curr_token == tok_mutable) {
+          if (!is_member_decl) {
+            error(ec_mutable_not_allowed);
+            err = TRUE;
+          } else {
+            /* Aside from interactions with storage classes, errors cannot
+               be issued on mutable until the declarator has been scanned.
+               Just return a flag to the called. */
+            *output_flags |= DSO_MUTABLE;
+          }  /* if */
         } else if (is_member_decl &&
                    curr_token != tok_static && curr_token != tok_typedef) {
           error(ec_bad_member_storage_class);
