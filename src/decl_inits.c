@@ -608,7 +608,10 @@ The syntax is:
   db_enter(3, "initializer");
 
   if (is_parameter) {
-    /* Parameter declarations cannot contain an initializer. */
+    /* Parameter declarations cannot contain an initializer.  (Declarations
+       for which is_parameter is TRUE are old-style C parameter declarations.
+       A C++ default argument, which looks a bit like a parameter with an
+       initializer -- e.g., void f(int i = 1) -- are handled elsewhere.) */
     error(ec_initializer_in_param);
     err = TRUE;
   } else if (symbol_ptr->kind != (a_symbol_kind)sk_variable &&
@@ -678,6 +681,7 @@ The syntax is:
     if (!scan_constructor_arguments(cssp->constructor, &rp, &arg_list)) {
       err = TRUE;
     } else {
+      /* Set the dynamic init entry to represent constructor initialization. */
       clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
       local_di.variant.constructor.routine = rp;
       local_di.variant.constructor.args = arg_list;
@@ -685,6 +689,9 @@ The syntax is:
     initialization_is_dynamic = TRUE;
   } else if (cssp != NULL && cssp->constructor != NULL &&
              curr_token == tok_lbrace) {
+    /* This is an attempt to do C-style aggregate initialization on a class
+       object for which a constructor exists.  In such cases the constructor
+       must be used. */
     syntax_error(ec_brace_initialization_not_allowed);
     err = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
@@ -695,6 +702,7 @@ The syntax is:
        be any expression of a type for which there is a type conversion to S.
        Thus S y = 1 is a legal initialization if S(int) exists to perform the
        conversion. */
+    /* Scan the expression on the right hand side of the equal sign. */
     expression = scan_argument_expression();
     if (cssp->constructor == NULL) {
       /* The case of C-style structs.  No constructor exists, but simple
@@ -703,10 +711,23 @@ The syntax is:
       node_prepare_assignment(&expression, vp_type,
                               ec_bad_initializer_type, &err);
       if (!err) {
+        /* Set the dynamic init entry to represent non-constant assignment
+           initialization. */
         clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_expression);
         local_di.variant.expression = expression;
       }  /* if */
     } else {
+      /* Initializing a class object that has a constructor in a statement
+         that looks like an assignment (see discussion in ARM 12.6.1).
+         It is as though the expression on the right hand side is constructed
+         into a temporary and then a copy constructor is called to actually
+         do the initialization -- e.g., complex x = 1 is to be treated as
+         complex x = complex(1).  The policy is that the copy constructor
+         (which is guaranteed to exist) must be accessible for the statement
+         to be legal, but, as an optimization, it need not actually be used in
+         the operation.  Accordingly, the following constructs directly into
+         the object being initialized -- e.g., complex x = 1 is treated as
+         complex x(1). */
       a_routine_ptr   rp;
 
 #if CHECKING
@@ -714,20 +735,25 @@ The syntax is:
         internal_error("initializer: missing copy constructor");
       }  /* if */
 #endif /* CHECKING */
+      /* Look for a constructor to convert the right hand side to the
+         required class type. */
       if (!select_constructor(cssp->constructor, &rp,
                               &expression, source_pos)) {
+        /* No such constructor was found.  Abort the initialization. */
         err = TRUE;
       } else if (rp != cssp->copy_constructor->variant.routine) {
-        /* If something other than the copy constructor was returned, be sure
+        /* Something other than the copy constructor was returned, so be sure
            the copy constructor is accessible. */
         if (!have_access_to_symbol(cssp->copy_constructor)) {
-#if 0
-          error(...);
-#endif /* if 0 */
+          /* It is an error if the copy constructor is inaccessible, even
+             though it is being optimized away. */
+          pos_error(ec_inaccessible_copy_constructor, source_pos);
           err = TRUE;
         }  /* if */
       }  /* if */
       if (!err) {
+        /* Set the dynamic init entry to represent constructor
+           initialization. */
         clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
         local_di.variant.constructor.routine = rp;
         local_di.variant.constructor.args = expression;
@@ -735,14 +761,27 @@ The syntax is:
     }  /* if */
     initialization_is_dynamic = TRUE;
   } else if (is_aggregate_or_union_type(vp_type)) {
+    /* Ordinary C-style aggregate initialization, usually with a brace-
+       enclosed list of values.  Except in C++ such lists may include
+       non-constants. */
     a_constant_ptr       cp;
     a_dynamic_init_ptr   di_list = NULL, end_of_di_list = NULL;
 
+    /* Scan the initializer list. */
     cp = get_initializer(&vp_type, &di_list, &end_of_di_list,
                          /*top_level=*/TRUE);
     if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
+      /* Scan was successful and the value list was recorded as a list of
+         constant entries hanging off a ck_aggregate constant. */
+      /* Set the dynamic init entry to represent aggregate initialization.
+         (A local dynamic init entry is used only for convenience -- dynamic
+         initialization is not presumed.) */
       clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_aggregate);
       local_di.variant.aggregate.aggr_const = cp;
+      /* If a list of dynamic init entries was returned, it means that some
+         of the items on the initializer list were not constants (but rather
+         expressions or constructor calls).  If di_list is not NULL, dynamic
+         initialization is called for. */
       local_di.variant.aggregate.dynamic_init = di_list;
       initialization_is_dynamic = (di_list != NULL);
       if (put_init_in_variable) {
@@ -762,6 +801,9 @@ The syntax is:
       err = TRUE;
     }  /* if */
   } else {
+    /* A non-aggregate object is being initialized.  Braces or parens are
+       permitted (but not both, of course).  A constant or non-constant
+       expression is permitted as the initializer. */
     if (paren_flag) {
       add_stop_token(tok_rparen);
     } else {
@@ -776,6 +818,7 @@ The syntax is:
               /*convert_array_to_pointer=*/!is_char_array_type(vp_type),
               &is_constant, &expression, &constant, &err);
     } else {
+      /* Non-constant is not allowed. */
       scan_constant_initializer_expression(
               /*convert_array_to_pointer=*/!is_char_array_type(vp_type),
               &constant, &err);
@@ -788,6 +831,9 @@ The syntax is:
            change the constant type if necessary. */
         check_constant_initializer(&constant, &vp_type, &err);
         if (!err) {
+          /* Set the dynamic init entry to represent constant initialization.
+             (A local dynamic init entry is used only for convenience -- dynamic
+             initialization is not presumed.) */
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constant);
           local_di.variant.constant = alloc_unshared_constant(&constant);
         }  /* if */
@@ -797,6 +843,8 @@ The syntax is:
         node_prepare_assignment(&expression, vp_type, ec_bad_initializer_type,
                                 &err);
         if (!err) {
+          /* Set the dynamic init entry to represent non-constant assignment
+             initialization. */
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_expression);
           local_di.variant.expression = expression;
         }  /* if */
@@ -808,6 +856,8 @@ The syntax is:
          class reactivated.  Restore the scope to what it was before. */
       pop_scope();
     }  /* if */
+    /* Check for matching delimiter if lparen or lbrace appeared in front of
+       the initializer. */
     if (paren_flag) {
       remove_stop_token(tok_rparen);
       (void)required_token(tok_rparen, ec_exp_rparen);
@@ -818,11 +868,19 @@ The syntax is:
     }  /* if */
   }  /* if */
   if (put_init_in_variable) {
+    /* There was no error that precludes initialization, so update the
+       variable entry with the initializer. */
     if (err) {
+      /* There was an error in the initializer.  Put an error constant
+         into the initializer field of the variable, if only to be sure
+         another initialization will be prevented. */
       clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constant);
       set_error_constant(&constant);
       local_di.variant.constant = alloc_unshared_constant(&constant);
     }  /* if */
+    /* Sometimes the need for dynamic initialization can be inferred from the
+       initializer itself, but all initialization of non-static variables must
+       be handled at run time.  Set a flag to that effect. */
     dynamic_init_required = !has_static_storage_duration(vp->storage_class);
     /* Check for the existence of a destructor independently of checks for a
        constructor.  This is to catch the unusual case in which a user has
@@ -841,10 +899,11 @@ The syntax is:
         }  /* if */
       }  /* if */
       /* Generate a dynamic initialization entry (based on local_di) and
-         attach it to the variable, and generate an stmk_init statement if
-         appropriate. */
+         attach it to the variable, and generate an stmk_init statement. */
       gen_dynamic_initialization(vp, &local_di);
     } else {
+      /* Neither the variable nor the initializer require initialization to be
+         dynamic. */
       vp->init_kind = (an_init_kind)initk_static;
       vp->initializer.constant = local_di.variant.constant;
     }  /* if */
