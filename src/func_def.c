@@ -450,6 +450,10 @@ pointer decay).
   a_variable_ptr    vp;
   a_type_ptr        tp;
   a_symbol_locator  locator;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean         is_real_instantiation = function_instantiation &&
+                   !scope_stack[depth_scope_stack].in_prototype_instantiation;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "decl_parameter");
   /* Choose the type to use, the one in the param-type entry or the one in
@@ -543,9 +547,14 @@ pointer decay).
     sym->variant.variable.ptr = vp;
     set_source_corresp(&(vp->source_corresp), sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Since real instantiations of a same template share the same param_id
+       list, new source sequence entries should be created for the
+       corresponding parameters (if source sequence entries are at all
+       generated for instantiations). */
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                               &sym->decl_position,
-                              param_id->source_sequence_entry);
+                              is_real_instantiation ?
+                                      NULL : param_id->source_sequence_entry);
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
     mark_defined(sym, &sym->decl_position);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -719,7 +728,6 @@ and for the instantiation of template functions.
       }  /* if */
 #endif /* DEBUG */
       for (; ssep != NULL; ssep = next_ssep) {
-        a_param_id_ptr  inst_param_id = NULL;
         next_ssep = ssep->next;
         ssep->prev = ssep->next = NULL;
         switch (ss_entry_kind(ssep)) {
@@ -730,21 +738,8 @@ and for the instantiation of template functions.
                the corresponding parameter (the lists are not necessarily in
                the same order). */
             param_id = func_info->param_id_list;
-            if (is_real_instantiation) {
-              /* If we're dealing with an instantiation, also find the
-                 corresponding param_id for the instantiation.  (param_id
-                 is shared among the instantiations.) */
-              a_symbol_ptr  rout_sym =
-                            (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
-              a_template_instance_ptr
-                            tip = rout_sym->variant.routine.instance_ptr;
-              inst_param_id = tip->param_id_list;
-            }  /* if */
             for (; param_id != NULL; param_id = param_id->next) {
               if (param_id->source_sequence_entry == ssep) break;
-              if (inst_param_id != NULL) {
-                inst_param_id = inst_param_id->next;
-              }  /* if */
             }  /* for */
 #if DEBUG
             if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
@@ -753,8 +748,6 @@ and for the instantiation of template functions.
               db_source_sequence_entry(ssep);
             }  /* if */
 #endif /* DEBUG */
-            /* If necessary, move the source sequence entry from the file
-               scope to the function scope. */
             if (param_id == NULL) {
               /* This source sequence entry is not associated with one of the
                  parameters.  For instance:
@@ -764,18 +757,17 @@ and for the instantiation of template functions.
             } else {
               /* Take the entry off the file-scope list and add one (also
                  empty so far) to the function-scope list. */
-              if (is_real_instantiation) {
+              ssep->next = stack_ptr->source_sequence_avail_list;
+              stack_ptr->source_sequence_avail_list = ssep;
+              param_id->source_sequence_entry = NULL;
+              if (!is_real_instantiation) {
                 /* Instantiations share the same param_id list; so one should
                    not override the source sequence entry of another.  (Only
                    significant when source sequence entries are recorded for
                    instantiations.) */
-                param_id = inst_param_id;
-              } else {
-                ssep->next = stack_ptr->source_sequence_avail_list;
-                stack_ptr->source_sequence_avail_list = ssep;
-              }  /* if */
-              param_id->source_sequence_entry =
+                param_id->source_sequence_entry =
                                             add_empty_source_sequence_entry();
+              }  /* if */
             }  /* if */
             break;
           default:
@@ -856,21 +848,12 @@ and for the instantiation of template functions.
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      a_type_ptr      declared_param_type = orig_param_id->declared_type;
-      a_param_id_ptr  param_id_to_update = param_id;
+      a_type_ptr  declared_param_type = orig_param_id->declared_type;
       if (instantiate_param_declared_type) {
-        /* A guiding declaration may have inhibited the scan of the declared
-           type for a specific instantiation.  In that case, we instantiate
-           that declared type now. */
         declared_param_type = instantiate_type_for_template_function(
                                                declared_param_type, rout_ptr);
-      } else if (is_real_instantiation) {
-        /* param_id is shared by all instantiations.  Use the instantiation-
-           specific id instead. */
-        param_id_to_update = orig_param_id;
       }  /* if */
-      decl_parameter(param_id_to_update,
-                     declared_param_type, ptp, is_instantiation);
+      decl_parameter(param_id, declared_param_type, ptp, is_instantiation);
       orig_param_id = orig_param_id->next;
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
       decl_parameter(param_id, (a_type_ptr)NULL, ptp, is_instantiation);
