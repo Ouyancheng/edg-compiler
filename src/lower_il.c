@@ -5519,6 +5519,7 @@ Lower an eok_bool_cast node, which converts an operand to bool.
   an_expr_operator_kind op;
 
   /* A cast to bool in C++ is rewritten as a "!= 0" test in C. */
+  operand = integral_promote_node(operand);
   make_zero_of_proper_type(operand->type, &zero_constant);
   zero_node = alloc_node_for_constant(&zero_constant);
   operand->next = zero_node;
