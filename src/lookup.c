@@ -706,9 +706,9 @@ routine.
       /* Create a static data member whose type is the unknown nontype
          type. */
       a_variable_ptr	var;
-      var = alloc_variable((a_storage_class)sc_extern);
+      var = make_variable(type_of_unknown_templ_param_nontype,
+                          (a_storage_class)sc_extern, NO_SCOPE_DEPTH);
       sym->variant.static_data_member.variable = var;
-      var->type = type_of_unknown_templ_param_nontype;
       scp = &var->source_corresp;
       break;
     }
