@@ -5092,82 +5092,92 @@ Do IL lowering of an enk_temp_init expression node.
   a_boolean          is_constructor_init;
 
   dip = expr->variant.init.dynamic_init;
-  /* Determine the type of the temporary. */
-  temp_type = expr->type;
-  result_is_not_used = expr->result_is_not_used;
   result_is_addr = expr->variant.init.result_is_addr;
-  if (result_is_addr) {
-    /* The value of the enk_temp_init node is the address of the temporary,
-       so drop the pointer-to to get the temporary type. */
-    temp_type = type_pointed_to(temp_type);
-  }  /* if */
-  /* Create a temporary variable.  Make it static if necessary. */
-  if (!expr->variant.init.static_temp && !long_lifetime_temps &&
-      dip->has_temporary_lifetime) {
-    /* Simple case; a temporary that lasts until the end of the full
-       expression will do. */
-    dip->variable = make_local_temporary(temp_type);
+  if (dip->kind == (a_dynamic_init_kind)dik_expression && !result_is_addr &&
+      dip->destructor == NULL) {
+    /* For a simple expression temporary case where the address of the
+       temporary is not taken, just lower the expression and create no
+       temporary.  This is a useful for cases where a function returns
+       a class by value (i.e., the class has no copy constructor). */
+    lower_expr(dip->variant.expression, /*is_lvalue=*/FALSE);
+    overwrite_node(expr, dip->variant.expression);
   } else {
-    dip->variable = make_temporary_in_scope(temp_type,
-                                            (a_scope_ptr)NULL,
-                                            (a_boolean)
+    result_is_not_used = expr->result_is_not_used;
+    /* Determine the type of the temporary. */
+    temp_type = expr->type;
+    if (result_is_addr) {
+      /* The value of the enk_temp_init node is the address of the temporary,
+         so drop the pointer-to to get the temporary type. */
+      temp_type = type_pointed_to(temp_type);
+    }  /* if */
+    /* Create a temporary variable.  Make it static if necessary. */
+    if (!expr->variant.init.static_temp && !long_lifetime_temps &&
+        dip->has_temporary_lifetime) {
+      /* Simple case; a temporary that lasts until the end of the full
+         expression will do. */
+      dip->variable = make_local_temporary(temp_type);
+    } else {
+      dip->variable = make_temporary_in_scope(temp_type,
+                                              (a_scope_ptr)NULL,
+                                              (a_boolean)
                                                expr->variant.init.static_temp);
-  }  /* if */
-  /* Change the enk_temp_init to a reference to the value or address
-     of the temporary. */
-  if (result_is_addr) {
-    set_expr_node_kind(expr, (an_expr_node_kind)enk_variable_address);
-    /* The address of the temporary escapes (or might escape) into the
-       surrounding context, so set its address_taken flag. */
-    set_lowering_variable_address_taken(dip->variable);
-  } else {
-    set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-  }  /* if */
-  expr->variant.variable = dip->variable;
-  /* Generate code for the dynamic init. */
-  set_var_init_pos_descr(dip->variable, &ipd);
-  /* Test the kind before calling lower_dynamic_init because that routine
-     clears the kind in some cases. */
-  is_constructor_init = (dip->kind == (a_dynamic_init_kind)dik_constructor);
-  /* Any code generated for the dynamic initialization will be
-     inserted before the (modified) original expression. */
-  set_expr_insert_location(expr, &insert_location);
-  lower_dynamic_init(dip, &ipd,
-                     (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                     (a_constructor_init_ptr)NULL, LDIO_NONE,
-                     /*others_follow_in_aggr=*/FALSE,
-                     &insert_location, (a_boolean *)NULL);
-  /* Optimization -- if the initialization is done by a constructor,
-     and the enk_temp_init returns the address of the temporary,
-     use the pointer returned from the constructor as the value of
-     the expression.  Likewise, if the result of the expression is not
-     used, the node for the temporary value or address is not needed. */
-  if ((result_is_addr && is_constructor_init) || result_is_not_used) {
-    /* Check for the form (ctor-call(args),  temp)
-                       or (ctor-call(args), &temp) as appropriate.
-       Note that we do not do the optimization if some other terms have
-       been inserted (e.g., setting a conditional destruction flag). */
-    if (is_operation_node(expr) &&
-        expr->variant.operation.kind == (an_expr_operator_kind)eok_comma) {
-      an_expr_node_ptr first_operand = expr->variant.operation.operands;
-      an_expr_node_ptr second_operand = first_operand->next;
-      if (is_operation_node(first_operand) &&
-          first_operand->variant.operation.kind ==
+    }  /* if */
+    /* Change the enk_temp_init to a reference to the value or address
+       of the temporary. */
+    if (result_is_addr) {
+      set_expr_node_kind(expr, (an_expr_node_kind)enk_variable_address);
+      /* The address of the temporary escapes (or might escape) into the
+         surrounding context, so set its address_taken flag. */
+      set_lowering_variable_address_taken(dip->variable);
+    } else {
+      set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+    }  /* if */
+    expr->variant.variable = dip->variable;
+    /* Generate code for the dynamic init. */
+    set_var_init_pos_descr(dip->variable, &ipd);
+    /* Test the kind before calling lower_dynamic_init because that routine
+       clears the kind in some cases. */
+    is_constructor_init = (dip->kind == (a_dynamic_init_kind)dik_constructor);
+    /* Any code generated for the dynamic initialization will be
+       inserted before the (modified) original expression. */
+    set_expr_insert_location(expr, &insert_location);
+    lower_dynamic_init(dip, &ipd,
+                       (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
+                       (a_constructor_init_ptr)NULL, LDIO_NONE,
+                       /*others_follow_in_aggr=*/FALSE,
+                       &insert_location, (a_boolean *)NULL);
+    /* Optimization -- if the initialization is done by a constructor,
+       and the enk_temp_init returns the address of the temporary,
+       use the pointer returned from the constructor as the value of
+       the expression.  Likewise, if the result of the expression is not
+       used, the node for the temporary value or address is not needed. */
+    if ((result_is_addr && is_constructor_init) || result_is_not_used) {
+      /* Check for the form (ctor-call(args),  temp)
+                         or (ctor-call(args), &temp) as appropriate.
+         Note that we do not do the optimization if some other terms have
+         been inserted (e.g., setting a conditional destruction flag). */
+      if (is_operation_node(expr) &&
+          expr->variant.operation.kind == (an_expr_operator_kind)eok_comma) {
+        an_expr_node_ptr first_operand = expr->variant.operation.operands;
+        an_expr_node_ptr second_operand = first_operand->next;
+        if (is_operation_node(first_operand) &&
+            first_operand->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_call &&
-          (result_is_addr ? is_variable_address_node(second_operand) :
-                            is_variable_node(second_operand))) {
-        /* The optimization is possible. */
-        /* If necessary, add a cast to adjust qualification.  We check the
-           second level for compatibility because the first is likely to be
-           a pointer in one case and a reference in the other. */
-        if (!result_is_not_used &&
-            !il_identical_types(type_pointed_to(expr->type),
-                                type_pointed_to(first_operand->type))) {
-          first_operand->next = NULL;
-          first_operand->result_is_not_used = FALSE;
-          first_operand = add_cast(first_operand, expr->type);
+            (result_is_addr ? is_variable_address_node(second_operand) :
+                              is_variable_node(second_operand))) {
+          /* The optimization is possible. */
+          /* If necessary, add a cast to adjust qualification.  We check the
+             second level for compatibility because the first is likely to be
+             a pointer in one case and a reference in the other. */
+          if (!result_is_not_used &&
+              !il_identical_types(type_pointed_to(expr->type),
+                                  type_pointed_to(first_operand->type))) {
+            first_operand->next = NULL;
+            first_operand->result_is_not_used = FALSE;
+            first_operand = add_cast(first_operand, expr->type);
+          }  /* if */
+          overwrite_node(expr, first_operand);
         }  /* if */
-        overwrite_node(expr, first_operand);
       }  /* if */
     }  /* if */
   }  /* if */
