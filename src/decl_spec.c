@@ -1116,6 +1116,7 @@ caution when modifying this routine.
   if (gpp_mode && gnu_version < 30400 &&
       tag_kind != (a_symbol_kind)sk_enum_tag &&
       !locator_for_curr_id.is_error &&
+      !locator_for_curr_id.is_class_member &&
       locator_for_curr_id.is_qualified_name) {
     /* GNU C++ compilers treat elaborated class names qualified with the
        current namespace scope as unqualified names. */
