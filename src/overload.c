@@ -4873,6 +4873,7 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
   an_operand_state      saved_operand_state = operand->state;
   an_expr_operator_kind op;
 
+#if !RECORD_CONSTANT_EXPRESSIONS_IN_IL
   if (curr_expr_kind_is_const()) {
     /* In a constant expression, just throw away the left operand.  This
        comes up in prototype instantiations and with an extension in
@@ -4881,7 +4882,10 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
          int x[a.e1];
     */
     discard_operand(bound_function_selector);
-  } else {
+  } else
+#endif /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  /* Do not insert code here. */
+  {
     orig_operand = *operand;
     /* In some cases (with bound function references) the selector is
        standardized to a pointer.  Change back to the "." form for
@@ -4912,8 +4916,21 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
     if (is_an_lvalue(operand)) {
       expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
     } /* if */
-    make_expression_operand(expr, operand->type, operand);
-    operand->state = saved_operand_state;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    if (curr_expr_kind_is_const()) {
+      /* In a constant expression, record the selection as the expression
+         behind the constant. */
+      if (!is_error_operand(operand)) {
+        check_assertion(is_constant_operand(operand));
+        operand->variant.constant.expr = expr;
+      }  /* if */
+    } else
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+    /* Do not insert code here. */
+    {
+      make_expression_operand(expr, operand->type, operand);
+      operand->state = saved_operand_state;
+    }  /* if */
     restore_operand_details(operand, &orig_operand);
   }  /* if */
 }  /* combine_unneeded_selector_with_operand */

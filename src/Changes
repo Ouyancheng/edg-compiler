@@ -1,5 +1,19 @@
 Version 2.46
 
+8/28/01  C++-generating back end: unnamed classes/structs not given names
+
+The C++-generating back end no longer gives names to unnamed classes
+and structs.  This was formerly necessary for some cast cases, but
+those casts were implicit and are now suppressed, so there's no
+longer any reason to generate names.
+
+As part of making this change, the original expression is now
+preserved for the cfront- and Microsoft-extension use of expressions
+like x.e1 or p->e1 as constants, when RECORD_CONSTANT_EXPRESSIONS_IN_IL
+is TRUE.  This was necessary because the class of the constant
+might be unnamed, and formerly the constants were put out as
+class_name::constant.
+
 8/28/01  Typedefs and cv-qualifiers preserved in runtime sizeof type
 
 The type recorded in an enk_runtime_sizeof expression node

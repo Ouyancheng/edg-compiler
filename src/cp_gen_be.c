@@ -3612,15 +3612,14 @@ is the one associated with the definition of the class.
     /* The type is a nonstandard anonymous union or struct, so suppress
        the name. */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-  } else if (type->variant.class_struct_union.originally_unnamed &&
-             has_name_before_mangling(type)) {
-    /* The type was unnamed but got a name from a typedef, so suppress the
-       name here.  For example:
+  } else if (type->variant.class_struct_union.originally_unnamed) {
+    /* The type was unnamed, so suppress the name here.  This includes
+       the case where an unnamed class gets a name from a typedef.
+       For example:
          typedef struct { int A; } A;
     */
   } else {
-    /* Put out the name.  Note that a name will be generated for an
-       unnamed class, which can be useful for casts. */
+    /* Put out the name. */
     a_gen_name_options_set options = GN_DECLARATION;
     if (type_is_prototype_instantiation(type)) {
       /* Suppress the template argument list on a prototype instantiation. */
@@ -4590,17 +4589,20 @@ with the operator indicated by opstr.
      to avoid generating something like "x.2". */
   if (!is_lvalue_2 && is_constant_node(operand_2)) {
     con = operand_2->variant.constant;
-    if (con->kind == (a_constant_repr_kind)ck_template_param) {
-      if (con->variant.template_param.kind ==
+    /* Named constants are okay. */
+    if (!has_name(con)) {
+      if (con->kind == (a_constant_repr_kind)ck_template_param) {
+        if (con->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_unknown_function ||
-          con->variant.template_param.kind ==
+            con->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_template_ref) {
-        unknown_function_case = TRUE;
+          unknown_function_case = TRUE;
+        }  /* if */
       }  /* if */
-    }  /* if */
-    if (!unknown_function_case) {
-      opstr = ",";
-      use_comma = TRUE;
+      if (!unknown_function_case) {
+        opstr = ",";
+        use_comma = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (operand_1_type != NULL && is_template_param_type(operand_1_type)) {
