@@ -1314,9 +1314,7 @@ extern void wrapup_rescan_of_pragma_tokens(void);
 
 extern void add_to_curr_token_pragma_list(a_pending_pragma_ptr ppp);
 
-extern void select_pragmas_bound_to_curr_decl_or_stmt(a_boolean	is_decl);
-
-extern void wrapup_pragmas_bound_to_curr_decl_or_stmt(void);
+extern a_boolean select_pragmas_bound_to_curr_decl_or_stmt(a_boolean  is_decl);
 
 /* Macro to check prevent calling the error checking function unless some
    error flags have been specified. */

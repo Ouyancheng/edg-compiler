@@ -386,20 +386,6 @@ Allocate a cached constant entry.  Reuse a freed entry if possible.
 }  /* alloc_cached_constant */
 
 
-/*ARGSUSED*/ /* <-- because ppp is not used but is present because this
-                is a pragma processing function whose type is specified
-                by the type an_immediate_pragma_function. */
-static void set_lint_not_reached_flag(a_pending_pragma_ptr ppp)
-/*
-Pragma processing function invoked when a lint NOTREACHED comment is
-encountered.  This routine just sets the global flag that indicates that
-a the lint comment has been seen.
-*/
-{
-  lint_notreached_flag = TRUE;
-}  /* set_lint_not_reached_flag */
-
-
 static a_pragma_kind_description_ptr add_pragma_description
                       (a_pragma_kind 	     kind,
 		       a_pragma_binding_kind binding_kind,
@@ -611,6 +597,17 @@ void free_pending_pragma(a_pending_pragma_ptr ppp)
 Return a pending pragma entry to the available list.
 */
 {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* If this source sequence entry was never bound to another IL entry,
+     remove it from the source sequence list. */
+  if (ppp->source_sequence_entry != NULL &&
+      ppp->source_sequence_entry->entity.kind ==
+                                      (an_il_entry_kind)iek_none) {
+    a_src_seq_sublist_ptr  sublist = NULL;
+    remove_from_source_sequence_list(ppp->source_sequence_entry, &sublist);
+    ppp->source_sequence_entry = NULL;
+  }  /* if */
+#endif /* if GENERATE_SOURCE_SEQUENCE_LISTS */
   ppp->next = avail_pending_pragmas;
   avail_pending_pragmas = ppp;
 #if 0
@@ -771,14 +768,17 @@ pbk_immediate pragmas are processed here.
 }  /* process_curr_token_pragmas */
 
 
-void select_pragmas_bound_to_curr_decl_or_stmt(a_boolean	is_decl)
+a_boolean select_pragmas_bound_to_curr_decl_or_stmt(a_boolean	is_decl)
 /*
 This routine scans the current token pragma list for any pbk_next_construct
 pragmas.  If the binding kind matches the flags passed by the caller,
 the pragma is copied to the pragmas_bound_to_curr_decl_or_stmt list.
 If binding kind does not match the flags passed by the caller an error
 is issued.  Pragmas that don't bind to the next declaration/statement
-remain on the current token pragma list.
+remain on the current token pragma list.  If there are any pragmas on
+the pragmas_bound_to_curr_decl_or_stmt (either ones that were already
+on the list, or new ones added by this call) return TRUE; otherwise
+return FALSE.
 */
 {
   a_scope_stack_entry_ptr	ssep;
@@ -870,24 +870,9 @@ remain on the current token pragma list.
     ppp = next_ppp;
   }  /* while */
   ssep->pragmas_bound_to_curr_decl_or_stmt = list_start;
+  /* Return TRUE if there are any entrys of the list. */
+  return list_start != NULL;
 }  /* select_pragma_bound_to_curr_decl_or_stmt */
-
-
-void wrapup_pragmas_bound_to_curr_decl_or_stmt(void)
-/*
-This routine is called at the end of processing a declaration or
-statement to remove any entries that still remain on the
-pragmas_bound_to_curr_decl_or_stmt list.
-*/
-{
-  a_scope_stack_entry_ptr	ssep;
-  a_pending_pragma_ptr		list_start;
-
-  ssep = &scope_stack[depth_scope_stack];
-  list_start = ssep->pragmas_bound_to_curr_decl_or_stmt;
-  ssep->pragmas_bound_to_curr_decl_or_stmt = NULL;
-  free_pending_pragma_list(list_start);
-}  /* wrapup_pragmas_bound_to_curr_decl_or_stmt */
 
 
 /*
@@ -7374,11 +7359,12 @@ Initialize the pragma description table.
                  /*expand_macros=*/FALSE,
                  /*processing_C_code_in_pragma=*/FALSE,
                  es_warning);
-  (void)add_immediate_pragma_description
+  (void)add_next_construct_pragma_description
 		(pk_lint_not_reached,
-		 set_lint_not_reached_flag,
+		 (a_next_construct_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/TRUE,
-                 /*global=*/FALSE,
+		 /*may_bind_to_decl=*/TRUE,
+		 /*may_bind_to_stmt=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
