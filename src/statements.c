@@ -735,7 +735,7 @@ See also 3.6.4.2.
       /* pcc treats all switch expressions as int.  This differs from
          ANSI in that even long is cast to int. */
       cast_node(&sp->expr, integer_type((an_integer_kind)ik_int),
-                /*implicit_cast=*/TRUE, &error_position);
+                /*is_implicit_cast=*/TRUE, &error_position);
     }  /* if */
     /* Issue a remark if the selector is constant. */
     if (is_constant_node(sp->expr)) {
@@ -1417,8 +1417,6 @@ Scan a case label definition.  The syntax is:
   a_boolean                     err, did_not_fold;
   a_constant                    constant;
   a_constant_ptr                constant_ptr = NULL;
-  an_error_code                 err_code;
-  an_error_severity             err_severity;
 
   db_enter(4, "case_label");
 
@@ -1452,17 +1450,9 @@ Scan a case label definition.  The syntax is:
        label value is in the "long" range. */
     if (sssep != NULL) {
       type_change_constant(&constant, sssep->switch_selector_type,
-                           /*issue_type_chg_warning=*/TRUE,
+                           /*is_implicit_cast=*/TRUE,
                            /*constant_context=*/TRUE, &did_not_fold,
-                           &err_code, &err_severity);
-      if (err_code != ec_no_error) {
-        if (err_severity == es_warning) {
-          warning(err_code);
-        } else {
-          error(err_code);
-          err = TRUE;
-        }  /* if */
-      }  /* if */
+                           &error_position);
     }  /* if */
     if (!err) {
       /* Allocate a copy of the case constant. */
