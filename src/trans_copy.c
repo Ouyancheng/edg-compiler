@@ -994,18 +994,6 @@ to the secondary translation unit.
                       type->variant.class_struct_union.extra_info->assoc_scope;
       keep_on_list = prepare_for_trans_unit_copy(class_scope,
                                                  any_removed_function_bodies);
-    } else if (entry_should_be_copied(type)) {
-      /* The type doesn't exist in the primary IL, and just gets copied
-         over. */
-      keep_on_list = TRUE;
-    } else if (entry_should_overwrite_primary_entry(type)) {
-      /* The type overwrites the corresponding type in the primary IL.
-         This happens, for example, when the type is an enum with a definition
-         in the secondary translation unit but only a declaration in the
-         primary IL. */
-      check_assertion(check_member_merges);
-      keep_on_list = TRUE;
-      mark_to_merge(type, iek_type);
     } else if (type->kind == (a_type_kind)tk_typeref &&
                !typeref_is_typedef(type)) {
       /* This is a placeholder typeref, used to give guidance to IL lowering
@@ -1018,6 +1006,18 @@ to the secondary translation unit.
       } while (ref_type->kind == (a_type_kind)tk_typeref &&
                !typeref_is_typedef(ref_type));
       keep_on_list = entry_should_be_kept(ref_type);
+    } else if (entry_should_be_copied(type)) {
+      /* The type doesn't exist in the primary IL, and just gets copied
+         over. */
+      keep_on_list = TRUE;
+    } else if (entry_should_overwrite_primary_entry(type)) {
+      /* The type overwrites the corresponding type in the primary IL.
+         This happens, for example, when the type is an enum with a definition
+         in the secondary translation unit but only a declaration in the
+         primary IL. */
+      check_assertion(check_member_merges);
+      keep_on_list = TRUE;
+      mark_to_merge(type, iek_type);
     } else {
       /* The type is a duplicate of one elsewhere and should be discarded. */
       keep_on_list = FALSE;
