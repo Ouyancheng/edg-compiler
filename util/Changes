@@ -1,5 +1,11 @@
 Version 2.32
 
+5/6/96   Name demangler recognizes new suffix for specializations
+
+The name demangler now recognizes the "__S" suffix added to identify
+explicit specializations, and adds " (explicit specialization)" to
+the demangled name string.
+
 3/4/96   Error status returned by prelinker when recompiles fail
 
 The prelinker uses the system() function to recompile source files

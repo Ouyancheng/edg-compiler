@@ -1059,7 +1059,7 @@ not empty, because it contains a name or a derived type).
     dctl->suppress_id_output++;
     p = demangle_function_parameters(p+1, dctl);
     dctl->suppress_id_output--;
-    if (*p == '_') {
+    if (*p == '_' && p[1] != '_') {
       /* The return type is present. */
       p = demangle_type_first_part(p+1, /*under_lhs_declarator=*/FALSE,
                                    /*need_trailing_space=*/TRUE, dctl);
@@ -1134,7 +1134,7 @@ use of parentheses around parts of the declarator.)
       write_id_ch(' ', dctl);
       (void)demangle_type_qualifiers(qualp, dctl);
     }  /* if */
-    if (*p == '_') {
+    if (*p == '_' && p[1] != '_') {
       /* Process the return type. */
       p = demangle_type_second_part(p+1, /*under_lhs_declarator=*/FALSE, dctl);
     }  /* if */
@@ -1236,7 +1236,8 @@ a pointer to the character position following what was demangled.
       write_id_str("::", dctl);
       /* If the name ends here, this is a simple member (e.g., a static
          data member). */
-      if (*end_ptr == '\0') simple_member = TRUE;
+      if (*end_ptr == '\0' ||
+          (end_ptr[0] == '_' && end_ptr[1] == '_')) simple_member = TRUE;
     }  /* if */
     if (simple_member) {
       /* Simple member.  Just write the name. */
@@ -1254,6 +1255,12 @@ a pointer to the character position following what was demangled.
       end_ptr = demangle_type_second_part(end_ptr,
                                           /*under_lhs_declarator=*/FALSE,
                                           dctl);
+    }  /* if */
+    /* "__S" at the end of a function or static data member name indicates
+       an explicit specialization. */
+    if (end_ptr[0] == '_' && end_ptr[1] == '_' && end_ptr[2] == 'S') {
+      write_id_str(" (explicit specialization)", dctl);
+      end_ptr += 3;
     }  /* if */
   }  /* if */
 end_of_routine:
