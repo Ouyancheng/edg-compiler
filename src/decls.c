@@ -4663,6 +4663,10 @@ function_lparen:
             }  /* if */
           }  /* if */
         }  /* if */
+      } else {
+        /* Normal C case.  If the derived type is nonnull this is not the
+           top-most type, so we don't want to fetch the extra function info. */
+        if (derived_type != NULL) func_info = NULL;
       }  /* if */
       function_declarator(&new_type_ptr, func_info, locator,
                           member_parent_type, is_nonstatic_member_function,
