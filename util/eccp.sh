@@ -1404,7 +1404,7 @@ do
     # A name was specified -- pass it to the front end.
     ii_file_option="--ii_file=$ii_file_name"
     if [ $driver_version -ge 237 ] ; then
-      ti_file_option="--template_info_file_name=$ti_file_name"
+      ti_file_option="--template_info_file=$ti_file_name"
     fi
   fi
   instantiation_dir_option=
@@ -1445,7 +1445,7 @@ do
       fi
     fi
   fi
-  command=${CPFE}" "$feoptions" "$gen_c_option" "$ii_file_option" "$instantiation_dir_option" "$EDG_CPFE_DEFAULT_OPTIONS" "$cfile
+  command=${CPFE}" "$feoptions" "$gen_c_option" "$ii_file_option" "$ti_file_option" "$instantiation_dir_option" "$EDG_CPFE_DEFAULT_OPTIONS" "$cfile
   if [ $driver_debug -ne 0 ] ; then
     echo $command
   fi
