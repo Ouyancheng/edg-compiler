@@ -4638,10 +4638,11 @@ enk_temp_node.
 }  /* attach_expr_under_temp_init */
 
 
-an_expr_node_ptr func_call_expr(an_expr_node_ptr function_node,
-                                a_type_ptr       function_type,
-                                a_boolean        is_virtual,
-                                a_boolean        new_or_delete_call_for_array)
+an_expr_node_ptr func_call_expr(an_expr_node_ptr  function_node,
+                                a_type_ptr        function_type,
+                                a_boolean         is_virtual,
+                                a_boolean         new_or_delete_call_for_array,
+                                a_source_position *err_pos)
 /*
 Make an expression for a call of the function indicated by function_node,
 whose type is function_type, and which is virtual if is_virtual is TRUE or
@@ -4650,7 +4651,8 @@ pointer-to-member-function.  new_or_delete_call_for_array is TRUE
 if the call is of a C++ new or delete routine to allocate or free an
 array.  The arguments of the call are already attached to function_node.
 A skip_typerefs need not have been done on function_type.  Return
-a pointer to the call node.
+a pointer to the call node.  *err_pos gives an error position for the
+case where the function return type is invalid (i.e., incomplete).
 */
 {
   an_expr_operator_kind         op;
@@ -4665,6 +4667,21 @@ a pointer to the call node.
      do not have qualified types. */
   call_type = return_type =
                      skip_typerefs(function_type->variant.routine.return_type);
+  /* The function return type must be void or object type and not array
+     type.  Half of this check is in add_to_derived_type_list.
+     The check here is necessary because it is valid to declare a
+     function returning a class/struct/enum type that is incomplete
+     at the point of declaration of the function so long as it is completed
+     by the time the function is defined or called (if it is). */
+#if CHECKING
+  if (is_array_type(return_type) || is_function_type(return_type)) {
+    internal_error("func_call_expr: function returns array or function");
+  }  /* if */
+#endif /* CHECKING */
+  /* Return type may not be incomplete (but void is okay). */
+  if (is_incomplete_type(return_type) && !is_void_type(return_type)) {
+    pos_error(ec_incomplete_return_type_not_allowed, err_pos);
+  }  /* if */
   rtsp = function_type->variant.routine.extra_info;
   /* If the function is one for which the caller must supply a place for
      the result, allocate a temporary for that and insert it into the
@@ -4768,13 +4785,15 @@ in IL lowering and in generated routines (like assignment operator functions).
 }  /* make_array_assignment_statement */
 
 
-a_statement_ptr make_call_assignment_statement(a_routine_ptr    rout,
-                                               an_expr_node_ptr dest,
-                                               an_expr_node_ptr source)
+a_statement_ptr make_call_assignment_statement(a_routine_ptr     rout,
+                                               an_expr_node_ptr  dest,
+                                               an_expr_node_ptr  source,
+                                               a_source_position *err_pos)
 /*
 Create an expression statement pointing to a call operator that
 calls "rout" to assign the lvalue "source" to the lvalue "dest".  Return
-a pointer to the statement.
+a pointer to the statement.  *err_pos is a source position to be used
+for errors (e.g., the function has an invalid return type).
 */
 {
   a_statement_ptr  stmt = alloc_statement((a_statement_kind)stmk_expr);
@@ -4788,7 +4807,8 @@ a pointer to the statement.
   /* Make the call node. */
   node = func_call_expr(func_addr_node, rout->type,
                         (a_boolean)rout->is_virtual,
-                        /*new_or_delete_call_for_array=*/FALSE);
+                        /*new_or_delete_call_for_array=*/FALSE,
+                        err_pos);
   /* Put the call node under the statement. */
   stmt->expr = node;
   return stmt;

@@ -1439,10 +1439,6 @@ Syntax:
         routine_type = type_pointed_to(operand->type);
       }  /* if */
     }  /* if */
-    if (routine_type != NULL) {
-      /* Check the function return type. */
-      check_return_type(operand, routine_type);
-    }  /* if */
     if (expression_kind != (an_expression_kind)ek_not_evaluated) {
       /* Change the kind in the cross-reference entries to reference. */
       /* This changes the address-taken entry for the function back to
@@ -3411,7 +3407,7 @@ specification allow a variable-sized array as the top type.
       make_function_call(function_node, new_routine->type,
                          (a_boolean)new_routine->is_virtual,
                          /*new_or_delete_call_for_array=*/array_new,
-                         result);
+                         &new_position, result);
       /* Cast the pointer returned by "new" to the right type. */
       cast_operand(ptr_new_type, result, expression_kind,
                    /*is_implicit_cast=*/TRUE);
@@ -3690,7 +3686,7 @@ As an anachronism, allow an expression inside the [ ].
       make_function_call(function_node, delete_routine->type,
                          (a_boolean)delete_routine->is_virtual,
                          /*new_or_delete_call_for_array=*/array_delete,
-                         result);
+                         &delete_position, result);
 #if ASSIGNMENT_TO_THIS_ALLOWED
       if (is_class_struct_union_type(delete_type)) {
         /* Determine and remember the default operator delete() routine for

@@ -4948,7 +4948,8 @@ operator routine or do bitwise assignment.
                                                &error_position);
           }  /* if */
           sp = sp->next = make_call_assignment_statement(rp, dest_expr,
-                                                         source_expr);
+                                                         source_expr,
+                                                         &error_position);
         }  /* if */
       }  /* if */
       /* Advance to the next base class. */
@@ -5072,7 +5073,8 @@ operator routine or do bitwise assignment.
             }  /* if */
             /* Make the call of the assignment operator function. */
             call_stmt = make_call_assignment_statement(rp, dest_expr,
-                                                       source_expr);
+                                                       source_expr,
+                                                       &error_position);
             if (array_type != NULL) {
               /* Array case; the call goes under the do-while. */
               sp->variant.loop_statement = call_stmt;

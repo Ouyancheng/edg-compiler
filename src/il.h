@@ -374,10 +374,11 @@ extern void attach_expr_under_temp_init(an_expr_node_ptr *node,
                                         an_expr_node_ptr temp_init_node);
 
 extern an_expr_node_ptr func_call_expr(
-                                an_expr_node_ptr function_node,
-                                a_type_ptr       function_type,
-                                a_boolean        is_virtual,
-                                a_boolean        new_or_delete_call_for_array);
+                                an_expr_node_ptr  function_node,
+                                a_type_ptr        function_type,
+                                a_boolean         is_virtual,
+                                a_boolean         new_or_delete_call_for_array,
+                                a_source_position *err_pos);
 
 extern a_statement_ptr make_assignment_statement(an_expr_node_ptr dest,
                                                  an_expr_node_ptr source);
@@ -385,9 +386,11 @@ extern a_statement_ptr make_assignment_statement(an_expr_node_ptr dest,
 extern a_statement_ptr make_array_assignment_statement(an_expr_node_ptr dest,
                                                       an_expr_node_ptr source);
 
-extern a_statement_ptr make_call_assignment_statement(a_routine_ptr    rout,
-                                                      an_expr_node_ptr dest,
-                                                      an_expr_node_ptr source);
+extern a_statement_ptr make_call_assignment_statement(
+                                                   a_routine_ptr     rout,
+                                                   an_expr_node_ptr  dest,
+                                                   an_expr_node_ptr  source,
+                                                   a_source_position *err_pos);
 
 extern a_switch_clause_ptr alloc_switch_clause(void);
 
