@@ -857,8 +857,8 @@ error code.
     case ec_dupl_base_class_name:
       m = "duplicate base class name";
       break;
-    case ec_base_class_undefined:
-      m = "base class definition is incomplete";
+    case ec_bad_base_class:
+      m = "invalid base class";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
