@@ -1,5 +1,11 @@
 Version 2.32
 
+5/6/96   Name demangler enhancements for distinct template mangling
+
+The name demangler has been enhanced to deal with the new form of
+mangling for templates.  See the primary Changes file for details
+on the new encodings.
+
 5/6/96   Error if an entity is both specialized and instantiated
 
 The prelinker now issues an error if an entity is referenced as both
@@ -9,12 +15,6 @@ is enabled in the front end.  The feature can be enabled or disabled
 using the -s1 or -s0 option to the prelinker.  The default value for
 this option is specified by the PL_DEFAULT_CHECK_SPECIALIZATION_ERRORS
 flag in edg_prelink.h.
-
-5/6/96   Name demangler recognizes new suffix for specializations
-
-The name demangler now recognizes the "__S" suffix added to identify
-explicit specializations, and adds " (explicit specialization)" to
-the demangled name string.
 
 3/4/96   Error status returned by prelinker when recompiles fail
 
