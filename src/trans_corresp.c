@@ -3136,6 +3136,8 @@ given type.
     if (canon == type) {
       /* This is presumably the first class body instantiation. */
       clear_class_type_correspondence(type, /*visited=*/TRUE);
+    } else if (!is_immediate_class_type(canon)) {
+      expect_error();
     } else {
       a_boolean  canon_defined = type_has_definition(canon);
       if (!canon_defined || !in_secondary_trans_unit(type)) {
