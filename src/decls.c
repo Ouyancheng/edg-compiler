@@ -932,28 +932,6 @@ specified scope.
 }  /* make_routine */
 
 
-static a_variable_ptr make_variable(a_type_ptr      type_ptr,
-                                    a_storage_class storage_class,
-                                    a_scope_depth   scope_depth)
-/*
-Allocate an entry for a variable with type type_ptr and storage class
-storage_class, and return a pointer to it.  Add the variable to the
-scope indicated by scope_depth.
-*/
-{
-  a_variable_ptr          vp;
-
-  /* Allocate the variable at the file scope if requested.  Variables
-     receiving static storage, even if they are not to go on the file scope
-     variables list, should also be allocated in the file scope memory
-     region. */
-  vp = alloc_variable(storage_class);
-  vp->type = type_ptr;
-  add_to_variables_list(vp, scope_depth);
-  return vp;
-}  /* make_variable */
-
-
 static void make_anonymous_union_variable(a_type_ptr      anon_union_type,
                                           a_storage_class storage_class)
 /*

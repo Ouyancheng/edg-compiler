@@ -6477,6 +6477,28 @@ Add the given parameter to the parameters list for the current scope.
 }  /* add_to_parameters_list */
 
 
+a_variable_ptr make_variable(a_type_ptr      type_ptr,
+                             a_storage_class storage_class,
+                             a_scope_depth   scope_depth)
+/*
+Allocate an entry for a variable with type type_ptr and storage class
+storage_class, and return a pointer to it.  Add the variable to the
+scope indicated by scope_depth.
+*/
+{
+  a_variable_ptr          vp;
+
+  /* Allocate the variable at the file scope if requested.  Variables
+     receiving static storage, even if they are not to go on the file scope
+     variables list, should also be allocated in the file scope memory
+     region. */
+  vp = alloc_variable(storage_class);
+  vp->type = type_ptr;
+  add_to_variables_list(vp, scope_depth);
+  return vp;
+}  /* make_variable */
+
+
 a_variable_ptr make_handler_parameter(a_type_ptr  type_ptr)
 /*
 Create a handler parameter variable with the specified type, add it to the
@@ -6487,11 +6509,8 @@ parameter field of the current block scope, and return a pointer to it.
 
   db_enter(5, "make_handler_parameter");
   /* Allocate the variable. */
-  vp = alloc_variable((a_storage_class)sc_auto);
-  vp->type = type_ptr;
+  vp = make_variable(type_ptr, (a_storage_class)sc_auto, decl_scope_level);
   vp->is_handler_param = TRUE;
-  /* Add it to the scope entry. */
-  add_to_variables_list(vp, decl_scope_level);
 
   db_exit();
   return vp;
@@ -6519,14 +6538,12 @@ Make a temporary variable whose type is temp_type.  Return a pointer to it.
     storage_class = (a_storage_class)sc_static;
     at_file_scope = TRUE;
   }  /* if */
-  /* alloc_variable uses the appropriate memory region, based on storage
-     class.*/
-  temp_var = alloc_variable(storage_class);
-  temp_var->type = temp_type;
+  /* make_variable/alloc_variable uses the appropriate memory region,
+     based on storage class.*/
+  temp_var = make_variable(temp_type, storage_class,
+                           at_file_scope ? depth_innermost_namespace_scope :
+                                           decl_scope_level);
   /* Name linkage stays nlk_none. */
-  add_to_variables_list(temp_var,
-                        at_file_scope ? depth_innermost_namespace_scope :
-                                        decl_scope_level);
   return temp_var;
 }  /* alloc_temporary_variable */
 
