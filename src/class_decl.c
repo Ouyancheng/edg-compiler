@@ -2665,13 +2665,10 @@ of the function, and again overloading is a possibility.
                         sym->kind == (a_symbol_kind)sk_overloaded_function;
       sym = member_function_redecl_sym(sym, function_type);
       if (sym == NULL) {
-        if (is_overloaded_function) {
-          str_error(ec_overloaded_function_incompatible_type,
-                    locator->symbol_header->identifier);
-        } else {
-          sym_error(ec_not_compatible_with_previous_decl,
-                    locator->specific_symbol);
-        }  /* if */
+        sym_error(is_overloaded_function ?
+                        ec_overloaded_function_incompatible_type :
+                        ec_not_compatible_with_previous_decl,
+                  locator->specific_symbol);
         set_to_error_locator(*locator);
       } else {
         if (is_inline && !is_function_def_with_body &&
@@ -5582,7 +5579,7 @@ and "class_type" indicates the class in which the declaration occurs.
     error(ec_bad_base_class);
     goto done;
   } else if (bcp->ambiguous) {
-    error(ec_ambiguous_base_class);
+    type_error(ec_ambiguous_base_class, bcp->type);
     set_to_error_locator(locator_for_curr_id);
     goto done;
   }  /* if */
@@ -6362,8 +6359,8 @@ to indicate whether the class/struct/union is actually defined.
                    curr_token == tok_colon)) {
                 /* Next token indications start of a function definition. */
                 if (rout_sym->defined) {
-                  pos_error(ec_function_redefinition,
-                            &locator.source_position);
+                  pos_sy_error(ec_function_redefinition,
+                               &locator.source_position, rout_sym);
                   /* A routine that's already defined may have been defined
                      inline.  Clear the token cache. */
                   clear_token_cache(&curr_routine_fixup->

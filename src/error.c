@@ -1068,7 +1068,7 @@ error code.
       m = "derived class has this class as a virtual base class";
       break;
     case ec_no_matching_constructor:
-      m = "none of the available constructors matches this argument list";
+      m = "no instance of constructor %no matches the argument list";
       break;
     case ec_ambiguous_copy_constructor:
       m = "copy constructor for class %t is ambiguous";
@@ -1098,7 +1098,7 @@ error code.
       m = "inherited member is not allowed";
       break;
     case ec_indeterminate_overloaded_function:
-      m = "cannot determine which instance of overloaded function is intended";
+      m = "cannot determine which instance of %n is intended";
       break;
     case ec_bound_function_must_be_called:
       m =
@@ -1108,13 +1108,13 @@ error code.
       m = "typedef name has already been declared (with same type)";
       break;
     case ec_function_redefinition:
-      m = "this function has already been defined";
+      m = "%n has already been defined";
       break;
     case ec_overloaded_function_incompatible_type:
-      m = "type does not match any instance of overloaded function %sq";
+      m = "type does not match any instance of %n";
       break;
     case ec_no_matching_function:
-      m = "no instance of this overloaded function matches this argument list";
+      m = "no instance of %n matches the argument list";
       break;
     case ec_type_def_not_allowed_in_func_type_decl:
       m = "type definition not allowed in function return type declaration";
@@ -1126,11 +1126,11 @@ error code.
       m = "redefinition of default argument";
       break;
     case ec_ambiguous_overloaded_function:
-      m =
-       "more than one overloaded function instance matches this argument list";
+      m = "more than one instance of %n matches the argument list";
       break;
     case ec_ambiguous_constructor:
-      m = "more than one constructor matches this argument list";
+      m =
+        "more than one instance of constructor %no matches the argument list";
       break;
     case ec_bad_default_arg_type:
       m = "default argument expression is incompatible with parameter";
@@ -1218,7 +1218,7 @@ error code.
       m = "linkage specification is incompatible with previous declaration";
       break;
     case ec_overloaded_function_linkage:
-      m = "more than one instance of overloaded %n has \"C\" linkage";
+      m = "more than one instance of %n has \"C\" linkage";
       break;
     case ec_ambiguous_default_constructor:
       m = "more than one default constructor for class %t";
@@ -1357,14 +1357,13 @@ error code.
       m = "a pointer to const may not be deleted";
       break;
     case ec_no_matching_new_function:
-      m =
-       "none of the available operator new() functions matches these operands";
+      m = "no instance of overloaded %no matches these operands";
       break;
     case ec_delete_already_declared:
       m = "operator delete() may not be overloaded";
       break;
     case ec_no_match_for_addr_of_overloaded_function:
-      m = "no instance of overloaded %n matches the required type";
+      m = "no instance of %n matches the required type";
       break;
     case ec_delete_count_anachronism:
       m = "delete array size expression ignored (anachronism)";

@@ -3663,16 +3663,11 @@ on a prior declaration.
     sym = member_function_redecl_sym(locator->specific_symbol, type_ptr);
     if (sym == NULL) {
       /* No member function with a matching type was found.  Issue an error. */
-      if (locator->specific_symbol->kind ==
-                                     (a_symbol_kind)sk_overloaded_function) {
-        /* Special message for overloaded function. */
-        pos_st_error(ec_overloaded_function_incompatible_type,
-                     &locator->source_position,
-                     locator->symbol_header->identifier);
-      } else {
-        pos_sy_error(ec_not_compatible_with_previous_decl,
-                     &locator->source_position, locator->specific_symbol);
-      }  /* if */
+      pos_sy_error(locator->specific_symbol->kind ==
+                                     (a_symbol_kind)sk_overloaded_function ?
+                        ec_overloaded_function_incompatible_type :
+                        ec_not_compatible_with_previous_decl,
+                   &locator->source_position, locator->specific_symbol);
     } else if (sym->variant.routine->compiler_generated) {
       /* Attempting to give a definition for a function that was implicitly
          declared. */
@@ -3693,7 +3688,7 @@ on a prior declaration.
 
     if (sym != NULL) {
       /* Type was okay, but this member function has a body. */
-      pos_error(ec_function_redefinition, &locator->source_position);
+      pos_sy_error(ec_function_redefinition, &locator->source_position, sym);
       other_rp = sym->variant.routine;
       type_ptr->variant.routine.extra_info->implicit_this_param_type =
           other_rp->type->variant.routine.extra_info->implicit_this_param_type;
