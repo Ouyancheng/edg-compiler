@@ -12411,7 +12411,6 @@ selection operator, in which case it points to the type of the left operand.
       /* Make sure a vacuous destructor reference is correctly formed. 
          These tests only apply if the vacuous destructor is part of
          a qualified name. */
-      check_assertion(qualifier_is_type == TRUE);
       if (!is_nonclass_dtor) {
 	/* If qualifier_type is NULL an error must have already occurred. */
         if (qualifier_type != NULL) {
