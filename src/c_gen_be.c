@@ -292,20 +292,26 @@ static an_expr_node_ptr
 			   type.  This expression gives the cast to be added
 			   at each return statement. */
 static a_scope_ptr
-		covariant_return_wrapper_scope;
+		entry_routine_scope;
 			/* If non-NULL, we are expanding the body of an
 			   overriding virtual function with a covariant return
-			   type.  This is the top-level scope of the
+			   type, a thunk, or an alternate entry point for a
+			   constructor or destructor in the IA-64 ABI.
+			   This is the top-level scope of the
 			   entry/wrapper function. */
 static a_scope_ptr
-		covariant_return_master_scope;
+		master_routine_scope;
 			/* If non-NULL, we are expanding the body of an
 			   overriding virtual function with a covariant return
-			   type.  This is the top-level scope of the
-			   original function for which
-			   covariant_return_wrapper_scope gives the
+			   type, a thunk, or an alternate entry point for a
+			   constructor or destructor in the IA-64 ABI.
+			   This is the top-level scope of the underlying
+			   function for which entry_routine_scope gives the
 			   entry/wrapper function scope. */
-
+static int	num_master_params_added;
+			/* The number of additional parameters that the
+			   master routine has relative to the entry/wrapper
+			   routine. */
 static an_il_to_str_output_control_block
 		octl;	/* Output control block for interface to il_to_str
 			   routines. */
@@ -1795,7 +1801,7 @@ Dump out the name of a parameter variable as it must appear in the declaration
 of the parameter.
 */
 {
-  if (covariant_return_wrapper_scope != NULL &&
+  if (entry_routine_scope != NULL &&
       var->is_parameter && !var->is_this_parameter) {
     /* While putting out the parameters of a wrapper routine for a
        virtual function with a covariant return type, use the parameter
@@ -1804,13 +1810,23 @@ of the parameter.
        is duplicated in the wrapper it will contain references to the
        parameters by (original) name. */
     a_variable_ptr master_param_var =
-                     covariant_return_master_scope->variant.routine.parameters;
+                              master_routine_scope->variant.routine.parameters;
     a_variable_ptr wrapper_param_var =
-                    covariant_return_wrapper_scope->variant.routine.parameters;
+                               entry_routine_scope->variant.routine.parameters;
     for (; wrapper_param_var != var;
          master_param_var = master_param_var->next,
            wrapper_param_var = wrapper_param_var->next) {
       check_assertion(master_param_var != NULL && wrapper_param_var != NULL);
+      if (num_master_params_added > 0 && 
+          master_param_var->is_this_parameter) {
+        /* The master routine has extra parameters following the "this"
+           parameter.  Advance over them. */
+        int n;
+        for (n = 1; n <= num_master_params_added; n++) {
+          master_param_var = master_param_var->next;
+          check_assertion(master_param_var != NULL);
+        }  /* for */
+      }  /* if */
     }  /* for */
     var = master_param_var;
   }  /* if */
@@ -6741,12 +6757,12 @@ Dump out the declarations (if any) for a block.
      does not have a scope pointer even though there is an associated
      scope). */
   if (innermost_function_scope->assoc_block == statement) {
-    if (covariant_return_wrapper_scope != NULL) {
+    if (entry_routine_scope != NULL) {
       /* At the start of the top block of a function being generated
          as a wrapper for an overriding virtual function with a covariant
          return type, generate the declarations from the wrapper, which could
          include temporaries used in the wrapper cast to a base class. */
-      dump_scope_variables(covariant_return_wrapper_scope,
+      dump_scope_variables(entry_routine_scope,
                            /*interleave_asm_decls=*/FALSE,
                            /*dump_vars_without_initializers=*/TRUE,
                            /*dump_initializers=*/TRUE);
@@ -7764,6 +7780,81 @@ Set *region_number to the function memory region number.
   return scope;
 }  /* get_scope_for_routine_definition */
 
+#if IA64_ABI
+
+static unsigned long num_parameters(a_scope_ptr scope)
+/*
+Return the count of parameters for the indicated function scope.
+*/
+{
+  a_variable_ptr param_var;
+  unsigned long  num;
+
+  for (param_var = scope->variant.routine.parameters, num = 0;
+       param_var != NULL;
+       param_var = param_var->next, num++) {}
+  return num;
+}  /* num_parameters */
+
+
+static void set_up_parameters_for_alternate_entry(void)
+/*
+Set up the parameters for processing of an alternate entry point for
+a constructor or destructor in the IA-64 ABI.  entry_routine_scope
+gives the scope for the alternate entry point, and master_routine_scope
+gives the scope for the underlying constructor or destructor.
+This routine is called only if num_master_params_added is non-zero,
+meaning that the master routine has extra parameters relative to
+the entry routine.  This function issues declarations for those parameters
+with initialization to the proper values.
+*/
+{
+  a_statement_ptr  stmt = entry_routine_scope->
+                                         assoc_block->variant.block.statements;
+  a_variable_ptr   master_param =
+                              master_routine_scope->variant.routine.parameters;
+  int              n;
+  an_expr_node_ptr call_expr, arg;
+
+  /* One or more parameters starting with the second must be
+     assigned from the call arguments.  These are parameters
+     that the entry has that the underlying routine does not,
+     for example a VTT parameter or a destructor "whole-object"
+     parameter.  The first parameter is always the "this"
+     parameter, so advance past that. */
+  master_param = master_param->next;
+  /* Get the call that is the body of the wrapper, and get to its
+     arguments. */
+  check_assertion(stmt != NULL &&
+                  stmt->kind == (a_statement_kind)stmk_expr);
+  call_expr = stmt->expr;
+  check_assertion(is_operation_node(call_expr) &&
+                  call_expr->variant.operation.kind ==
+                                              (an_expr_operator_kind)eok_call);
+  arg = call_expr->variant.operation.operands;
+  check_assertion(is_routine_address_node(arg) &&
+                  arg->variant.routine ==
+                                    master_routine_scope->variant.routine.ptr);
+  /* Skip past the function address and the "this" argument. */
+  arg = arg->next;
+  arg = arg->next;
+  /* Generate declarations for the added master routine parameters
+     and initialize them to the corresponding argument expressions. */
+  for (n = 1;
+       n <= num_master_params_added;
+       n++, master_param = master_param->next, arg = arg->next) {
+    check_assertion(master_param != NULL && arg != NULL);
+    set_output_position(&master_param->source_corresp.decl_position);
+    dump_declaration_using_type(master_param->type,
+                                &master_param->source_corresp);
+    write_tok_str(" = ");
+    dump_expr_with_parens(arg);
+    write_tok_str("; ");
+  }  /* if */
+}  /* set_up_parameters_for_alternate_entry */
+
+
+#endif /* IA64_ABI */
 
 static void dump_routine_definition(a_routine_ptr rout)
 /*
@@ -7775,15 +7866,19 @@ by dump_routine_decl.
   a_memory_region_number scope_region_number;
   a_scope_ptr            scope, saved_curr_scope = curr_scope;
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+  a_routine_ptr          master_routine = NULL;
   a_memory_region_number master_scope_region_number = NO_SCOPE_NUMBER;
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
   a_statement_ptr        this_adjustment_stmt = NULL;
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+  a_boolean              need_unindent = FALSE;
 
   /* Get the top-level scope for the routine definition.  Read it in if
      necessary. */
   scope = get_scope_for_routine_definition(rout, &scope_region_number);
   innermost_function_scope = curr_scope = scope;
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+  /* Note that ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN is always
+     TRUE when IA64_ABI is TRUE. */
   if (rout->overriding_function_for_covariant_return_type != NULL) {
     /* This routine is a wrapper for an overriding virtual function with
        a covariant return type.  Its body is just a return statement giving
@@ -7791,43 +7886,87 @@ by dump_routine_decl.
        function to give it the right type.  Save the cast expression and
        fetch the body of the master routine, so it can be put out as part
        of the definition of the wrapper. */
-    a_statement_ptr return_stmt = scope->assoc_block->variant.block.statements;
-    check_assertion(return_stmt != NULL);
-    if (return_stmt->kind != (a_statement_kind)stmk_return) {
+    a_statement_ptr stmt = scope->assoc_block->variant.block.statements;
+    check_assertion(stmt != NULL);
+    if (stmt->kind == (a_statement_kind)stmk_expr) {
       /* Sometimes there is an adjustment to the "this" pointer before the
          return statement, e.g., for an IA-64 ABI thunk. */
-      this_adjustment_stmt = return_stmt;
-      return_stmt = return_stmt->next;
+      this_adjustment_stmt = stmt;
+      stmt = stmt->next;
+      check_assertion(stmt != NULL);
     }  /* if */
-    check_assertion(return_stmt->kind == (a_statement_kind)stmk_return);
-    covariant_return_expr = return_stmt->expr;
-    covariant_return_wrapper_scope = scope;
-    covariant_return_master_scope =
-                  get_scope_for_routine_definition(
-                           rout->overriding_function_for_covariant_return_type,
-                           &master_scope_region_number);
+    check_assertion(stmt->kind == (a_statement_kind)stmk_return);
+    covariant_return_expr = stmt->expr;
+    if (covariant_return_expr->kind ==
+                        (an_expr_node_kind)enk_result_of_overriding_function) {
+      /* Optimization -- if the return isn't actually covariant, i.e.,
+         the purpose of the thunk is only to adjust "this", don't
+         change the return statements. */
+      covariant_return_expr = NULL;
+    }  /* if */
+    master_routine = rout->overriding_function_for_covariant_return_type;
+#if IA64_ABI
+  } else if (rout->primary_ctor_or_dtor != NULL) {
+    /* This routine is an alternate entry point for a constructor or
+       destructor in the IA-64 ABI.  If the routine is a constructor with
+       an ellipsis, expand the body of the underlying constructor because
+       otherwise we have no way of passing the arguments through.
+       The body of the alternate entry point is simply a call to the
+       underlying routine, but may we have to assign values to some
+       parameters. */
+    if (skip_typerefs(rout->type)->variant.routine.extra_info->has_ellipsis) {
+      master_routine = rout->primary_ctor_or_dtor;
+    }  /* if */
+#endif /* IA64_ABI */
+  }  /* if */
+  if (master_routine != NULL) {
+    /* This is a wrapper routine.  Get the body of the underlying routine. */
+    entry_routine_scope = scope;
+    master_routine_scope =
+                 get_scope_for_routine_definition(master_routine,
+                                                  &master_scope_region_number);
+    num_master_params_added = 0;
+#if IA64_ABI
+    if (rout->primary_ctor_or_dtor != NULL) {
+      /* See whether any parameters get added. */
+      num_master_params_added = (int)(num_parameters(master_routine_scope) -
+                                      num_parameters(entry_routine_scope));
+    }  /* if */
+#endif /* IA64_ABI */
   }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
   octl.suppress_local_typedefs = FALSE;
   /* Generate the routine name and the parameter declarations. */
   dump_func_definition_type(rout, scope);
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-  if (this_adjustment_stmt != NULL) {
-    write_tok_ch('{');
-    indent += 2;
-    dump_statement(this_adjustment_stmt);
-  }  /* if */
-  if (rout->overriding_function_for_covariant_return_type != NULL) {
-    /* More processing for a wrapper for an overriding virtual function with
-       a covariant return type. */
-    rout = rout->overriding_function_for_covariant_return_type;
-    scope = covariant_return_master_scope;
+  if (master_routine != NULL) {
+    /* More processing for a wrapper routine. */
+    if (this_adjustment_stmt != NULL) {
+      /* Adjust "this". */
+      write_tok_ch('{');
+      indent += 2;
+      need_unindent = TRUE;
+      dump_statement(this_adjustment_stmt);
+#if IA64_ABI
+    } else if (rout->primary_ctor_or_dtor != NULL) {
+      if (num_master_params_added > 0) {
+        /* Generate declarations for the added parameters. */
+        write_tok_ch('{');
+        indent += 2;
+        need_unindent = TRUE;
+        set_up_parameters_for_alternate_entry();
+      }  /* if */
+#endif /* IA64_ABI */
+    }  /* if */
+    /* From here on, expand the underlying routine. */
+    rout = master_routine;
+    scope = master_routine_scope;
     innermost_function_scope = curr_scope = scope;
   }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
   /* Generate the body statement. */
   dump_statement(scope->assoc_block);
-  if (this_adjustment_stmt != NULL) {
+  if (need_unindent) {
     indent -= 2;
     write_tok_ch('}');
   }  /* if */
@@ -7839,14 +7978,15 @@ by dump_routine_decl.
   free_memory_region(scope_region_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-  if (master_scope_region_number != NO_SCOPE_NUMBER) {
-    /* Finished a covariant return wrapper routine. */
+  if (master_routine != NULL) {
+    /* Finished a wrapper routine. */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
     free_memory_region(master_scope_region_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     covariant_return_expr = NULL;
-    covariant_return_wrapper_scope = NULL;
-    covariant_return_master_scope = NULL;
+    entry_routine_scope = NULL;
+    master_routine_scope = NULL;
+    num_master_params_added = 0;
   }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 }  /* dump_routine_definition */
@@ -8498,8 +8638,9 @@ must be redone for each generated C file.
   curr_scope = NULL;
   wide_string_constants_to_unbind_at_end_of_scope = NULL;
   covariant_return_expr = NULL;
-  covariant_return_wrapper_scope = NULL;
-  covariant_return_master_scope = NULL;
+  entry_routine_scope = NULL;
+  master_routine_scope = NULL;
+  num_master_params_added = 0;
 #if ASM_FUNCTION_ALLOWED
   within_asm_function_definition = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */

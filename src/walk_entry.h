@@ -1110,6 +1110,7 @@ the file scope, do not process it (but record an orphan in the latter case).
           conditionally_clear_fe_pointer(
                                 ptr->variant.ctor_dtor.alternate_entry_points);
         }  /* if */
+        remap_ptr(ptr->primary_ctor_or_dtor, a_routine_ptr, iek_routine);
 #endif /* IA64_ABI && DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         remap_ptr(ptr->overridden_function, a_routine_ptr, iek_routine);

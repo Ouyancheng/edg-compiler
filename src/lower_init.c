@@ -3186,6 +3186,7 @@ destructors in the IA-64 ABI.
                                      routine->source_corresp.parent.class_type;
     set_routine_special_kind(new_routine, routine->special_kind);
     new_routine->ctor_dtor_kind = kind;
+    new_routine->primary_ctor_or_dtor = routine;
     new_routine->compiler_generated = TRUE;
     new_routine->pure_virtual = routine->pure_virtual;
 #if ONE_INSTANTIATION_PER_OBJECT
