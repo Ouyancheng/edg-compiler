@@ -295,11 +295,10 @@ function).
   /* Note that we drop type qualifiers so we won't add a cast to drop
      type qualifiers. */
   arg_type = skip_typerefs(arg_type);
-  if (is_integral_type(arg_type)) {
-    /* Note that default_argument_promotion is not used for integral
-       expressions because special handling is required for bit fields. */
-    promoted_type = node_type_after_integral_promotion(expr);
-  } else if (is_floating_type(arg_type)) {
+  if (is_integral_type(arg_type) || is_floating_type(arg_type)) {
+    /* Note that no special handling is done for bit fields because they
+       have already been cast to the prototyped parameter type and therefore
+       have lost whatever type malleability they might have had. */
     promoted_type = default_argument_promotion(arg_type);
   } else if (is_or_was_ptr_to_data_member_type(arg_type)) {
     /* Widen pointers-to-data-members (which have been or will be turned into

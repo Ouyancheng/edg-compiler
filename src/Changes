@@ -1,5 +1,21 @@
 Version 2.27
 
+10/25/94 Promotion of bit fields under MAKE_ALL_FUNCTIONS_UNPROTOTYPED
+
+Unsigned bit fields passed to unsigned parameters are now promoted
+correctly by IL lowering (that is, usually not at all) when
+MAKE_ALL_FUNCTIONS_UNPROTOTYPED is TRUE.  For example:
+
+  extern void f(unsigned);
+  struct BitField {
+     unsigned int n : 2;
+  } s;
+  void sub ()
+  {
+      f(s.n);  // No cast to int added on argument now
+  }
+
+
 10/25/94 Conversion of Derived<T> to Base<T> on template match in strict mode
 
 The code example shown in the fix of 7/29/94 (below) is now accepted
