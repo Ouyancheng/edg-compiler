@@ -7083,6 +7083,7 @@ to indicate whether the class/struct/union is actually defined.
       /* Check for tag mismatch.  This can only happen when an instance of a
          class template is being referenced in an elaborated type specifier. */
       if (tag_sym->kind == (a_symbol_kind)sk_type) {
+#if CHECKING
         if (tag_sym->variant.type->kind == (a_type_kind)tk_template_param) {
           /* Template param used in with a class-key -- for instance:
                template <class T> class A {
@@ -7091,19 +7092,18 @@ to indicate whether the class/struct/union is actually defined.
              During prototype instantiation we have to assume that T can be a
              valid class name.  Therefore "class T x" is treated as synonymous
              with "T x".  In addition, "friend class T" is also supported. */
-        } else if (cfront_compatibility_mode && curr_token == tok_semicolon) {
+        } else if (cfront_compatibility_mode) {
           /* Cfront 2.1 bug that allows this:
                typedef class A B;
                class B;
-             The current declaration must be a vacuous declaration and the
+               class B *pa;
+             The current declaration must not be a definition and the
              typedef name must refer to a class type. */
           check_assertion(is_class_struct_union_type(tag_sym->variant.type));
-          mark_declared(tag_sym, &locator.source_position);
-#if CHECKING
         } else {
           internal_error("class_specifier: invalid sk_type tag_sym");
-#endif /* CHECKING */
         }  /* if */
+#endif /* CHECKING */
       } else if (tag_sym->kind != tag_kind) {
         check_assertion(is_template_class_symbol(tag_sym));
         /* Error -- tag-kind mismatch in a specialization. */
@@ -7256,8 +7256,12 @@ skip_tag_scan:
       mark_declared(tag_sym, &locator.source_position);
     }  /* if */
   } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
-    /* Use of template parameter name as a proxy tag name during a
-       prototype instantiation. */
+    if (tag_sym->variant.type->kind == (a_type_kind)tk_template_param) {
+      /* Use of template parameter name as a proxy tag name during a
+         prototype instantiation. */
+    } else {
+      mark_declared(tag_sym, &locator.source_position);
+    }  /* if */
   } else {
     /* Using an existing type.  Fetch the type pointer from it. */
     class_type = tag_sym->variant.class_struct_union.type;

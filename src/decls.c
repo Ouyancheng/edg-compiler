@@ -6507,6 +6507,27 @@ caution when modifying this routine.
       /* This is the first appearance of the tag in the current scope.  This
          is not its definition, so it is either a reference to an existing
          tag or a declaration of a new (incomplete) tag. */
+      /* Check for a cfront bug (violation of ARM 7.1.3, which says a typedef
+         name may not appear in an elaborated type specifier) which allows
+         a typedef name as long as it refers to a class/struct/union type. */
+      if (cfront_compatibility_mode &&
+          tag_kind != (a_symbol_kind)sk_enum_tag) {
+        /* Look up the name again in the current scope, but this time don't
+           restrict the search to tag names. */
+        a_symbol_ptr  sym = curr_scope_id_lookup(locator, IDL_NO_OPTIONS);
+        if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
+          /* Name is already declared in the current scope as a typedef. */
+          a_type_ptr  tp = skip_typerefs(sym->variant.type);
+          if (is_immediate_class_type(tp) &&
+              ((tag_kind == (a_symbol_kind)sk_union_tag) ==
+               (tp->kind == (a_type_kind)tk_union))) {
+            /* This is the special case.  Return an sk_type symbol instead
+               of the normally expected sk_class_or_struct_tag. */
+            tag_sym = sym;
+            goto done;
+          }  /* if */
+        }  /* if */
+      }  /* if */
       /* Check for a "vacuous declaration" (e.g. "struct S;" or "enum E;").
          The effect of a vacuous declaration (unless we are in pcc mode) is
          to establish the name in the current scope, even if the tag name
@@ -6515,23 +6536,6 @@ caution when modifying this routine.
           C_dialect != C_dialect_pcc) {
         /* This is indeed a vacuous declaration.  Leave tag_sym set to NULL
            to force the creation of a new symbol in the current scope. */
-        if (cfront_compatibility_mode &&
-            tag_kind != (a_symbol_kind)sk_enum_tag) {
-          /* ... except in cfront compatibility mode, where a vacuous class
-             declaration may specify a typedef name that refers to a class. */
-          a_symbol_ptr  sym = curr_scope_id_lookup(locator, IDL_NO_OPTIONS);
-          if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
-            /* Name is already declared in the current scope as a typedef. */
-            a_type_ptr  tp = skip_typerefs(sym->variant.type);
-            if (is_immediate_class_type(tp) &&
-                ((tag_kind == (a_symbol_kind)sk_union_tag) ==
-                 (tp->kind == (a_type_kind)tk_union))) {
-              /* This is the special case.  Return an sk_type symbol instead
-                 of the normally expected sk_class_or_struct_tag. */
-              tag_sym = sym;
-            }  /* if */
-          }  /* if */
-        }  /* if */
       } else {
         /* This may be a reference to an existing tag from a containing
            scope or a base class.  This can be ascertained by doing a full
@@ -6604,6 +6608,7 @@ caution when modifying this routine.
       }  
     }  /* if */
   }  /* if */
+done:
   if (tag_err) {
     /* If an error occurred while scanning the tag, make the locator that
        is returned to the caller an error locator. */
