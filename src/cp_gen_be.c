@@ -469,7 +469,7 @@ nested class, also push the containing classes.
 {
   a_type_ptr class_type = scp->class_of_which_a_member;
 
-  if (class_type != NULL) {
+  if (il_header.source_language == sl_Cplusplus && class_type != NULL) {
     /* The entity is a class member. */
     /* Push the surrounding class(es) for a nested class. */
     push_class_name_context_if_member(&class_type->source_corresp);
@@ -489,7 +489,7 @@ nested class, also pop the containing classes.
 {
   a_type_ptr class_type = scp->class_of_which_a_member;
 
-  if (class_type != NULL) {
+  if (il_header.source_language == sl_Cplusplus && class_type != NULL) {
     /* The entity is a class member. */
     pop_name_context();
     /* Pop the surrounding class(es) for a nested class. */
