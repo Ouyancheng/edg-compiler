@@ -1,5 +1,18 @@
 Version 3.5
 
+10/8/04  Enumerator constants incorrectly marked as being "a simple zero"
+
+The IL entry type a_constant has a field "is_simple_zero" that indicates the
+constant is associated with a source token that is a plain "0".  This flag
+was sometimes set for enumerator constants (and sometimes even for nonzero
+enumerator constants).  For example:
+
+  enum E { e1 = 0, e2 };  // The IL entries representing e1 and e2 were both
+                          // flagged "simple zeros".  The flag is now FALSE
+                          // for both entries.
+
+This is now fixed (enumerator constants always have the flag set to FALSE).
+
 10/7/04  GNU compatibility: Arrays of abstract classes as parameter types
 
 In GNU C++ mode, the front end now accepts function parameter types that are

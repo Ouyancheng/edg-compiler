@@ -3612,6 +3612,9 @@ describes Microsoft attributes preceding the enum specifier (if any).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           /* Scan the constant expression. */
           scan_fs_integral_constant_expression(&constant);
+          /* Even though the constant may just be "0", that property should
+             not be carried into the enumerators derived from it. */
+          constant.is_simple_zero = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           enum_value_range.end = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
