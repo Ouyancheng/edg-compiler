@@ -35,7 +35,6 @@ EXTERN a_symbol_ptr
 			/* Pointers to the symbol entries for the special
 			   macros "__LINE__", "__FILE__", and "defined". */
 
-extern a_macro_def_ptr alloc_macro_def(void);
 
 /* Find a macro symbol on a list of symbols. */
 extern a_symbol_ptr find_defined_macro(a_symbol_ptr assoc_symbol);

@@ -497,7 +497,7 @@ Clear a macro definition entry to default values.
 }  /* clear_macro_def */
 
 
-a_macro_def_ptr alloc_macro_def(void)
+static a_macro_def_ptr alloc_macro_def(void)
 /*
 Allocate a macro definition entry (used for preprocessor macros), clear it
 to default values, and return a pointer to it.
