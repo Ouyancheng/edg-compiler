@@ -3751,6 +3751,12 @@ As an anachronism, allow an expression inside the [ ].
       /* The type pointed to may not be const-qualified. */
       error_in_operand(ec_delete_of_const_pointer, &operand);
       make_error_operand(result);
+    } else if (is_function_type(delete_type)) {
+      /* The type pointed to may not be a function type.  The ARM doesn't
+         say that explicitly, but it does say it must be a pointer returned
+         by "new". */
+      error_in_operand(ec_delete_of_function_pointer, &operand);
+      make_error_operand(result);
     } else {
       /* Valid type. */
       ptr_node = make_node_from_operand(&operand);

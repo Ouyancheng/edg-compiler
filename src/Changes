@@ -1,5 +1,7 @@
 Version 2.10
 
+9/21/92  Error on attempt to delete a pointer to a function
+
 9/21/92  Error on strict C++ mode void return from non-void function
 
 Formerly, this was a warning.

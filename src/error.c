@@ -1644,6 +1644,9 @@ error code.
     case ec_bad_nonconst_ref_init:
       m = "initial value of reference to non-const has incorrect type";
       break;
+    case ec_delete_of_function_pointer:
+      m = "a pointer to function may not be deleted";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
