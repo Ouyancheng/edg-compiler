@@ -1525,7 +1525,8 @@ by a command line option.
       export_keyword_enabled = FALSE;
     }  /* if */
     if (!option_kind_used[(int)optk_late_tiebreaker]) {
-      do_late_ovl_res_tiebreaker = microsoft_bugs;
+      do_late_ovl_res_tiebreaker = (microsoft_bugs &&
+                                    microsoft_version <= 1300);
     }  /* if */
     if (!(option_kind_used[(int)optk_const_string_literals])) {
       /* String literals are const starting with version 7.1. */

@@ -1,5 +1,22 @@
 Version 3.4
 
+8/16/03  Microsoft compatibility: early versus late tie-breakers
+
+MSVC++ 7.1 has apparently changed to the standard "early" tie-breakers
+in overload resolution, where previous versions used the "late"
+tie-breakers like Cfront did.  The C++ Front End therefore now
+uses early tie-breakers when microsoft_version >= 1310.
+
+  // MSVC++ 6.0, 7.0 output 1
+  // MSVC++ 7.1 gets ambiguity
+  extern "C" int printf(const char *, ...);
+  void f(const int *, int) { printf("1\n"); }
+  void f(      int *, char) { printf("2\n"); }
+  int *p;
+  int main () {
+    f(p, 0);
+  }
+
 8/14/03  GNU mode: Attribute init_priority only applies to definitions
 
 In GNU modes, the front end now issues an error when attempting to apply the
