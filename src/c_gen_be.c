@@ -563,24 +563,25 @@ etc.
   a_boolean         line_directive_needed = FALSE, started_new_line = FALSE;
   a_source_file_ptr new_output_file;
 
-  /* When generating debug-oriented output, put each thing on a separate
-     line. */
-  if (annotate) end_output_line_if_begun();
   /* Record the position for use in internal errors. */
   error_position = *pos;
   if (seq == 0) {
     /* For an unknown position, continue on the same line. */
-    if (!curr_output_pos_known) {
+    if (!curr_output_pos_known || annotate) {
       /* If the current output position is unknown, start a new line with
-         a #line directive for the last known good line position. */
+         a #line directive for the last known good line position.
+         If annotating, start a new line for the same line number. */
       continue_on_new_line();
       started_new_line = TRUE;
     }  /* if */
   } else {
-    /* Find the file in which this sequence number lies. */
     a_line_number line_number;
     a_boolean     at_end_of_source;
     unsigned long nesting_depth;
+    /* When generating debug-oriented output, put each thing on a separate
+       line. */
+    if (annotate) end_output_line_if_begun();
+    /* Find the file in which this sequence number lies. */
     /* physical_line == FALSE means consider information from #line
        directives as well as true file information. */
     new_output_file = source_file_for_seq(seq, &line_number,
@@ -646,6 +647,7 @@ the next time a specific output position is requested.
   end_output_line_if_begun();
   curr_output_pos_known = FALSE;
   curr_output_line = 0;
+  curr_output_file = NULL;
   /* Set the position for errors to "unknown". */
   error_position.seq = 0;
   error_position.column = SP_COL_UNKNOWN;
@@ -3624,7 +3626,7 @@ process_assignment:
         if (annotate && op == (an_expr_operator_kind)eok_comma) {
           /* Indent the second operand of a comma operator the same as
              the first. */
-          end_output_line();
+          continue_on_new_line();
           while (comma_column-- > 0) write_space();
         } else {
           m_write_space();
