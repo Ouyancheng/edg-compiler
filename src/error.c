@@ -3520,6 +3520,21 @@ and source position.
 }  /* pos_start_diagnostic */
 
 
+extern void pos_ty_start_diagnostic(an_error_severity  error_severity,
+                                    an_error_code      error_code,
+                                    a_source_position *error_pos,
+                                    struct a_type     *type)
+/*
+Begin a multiple message diagnostic with the specified severity, error code,
+source position, and type fill-in.
+*/
+{
+  init_error_params();
+  error_msg_types[1] = type;
+  diag_message(error_code, error_pos, error_severity, dck_primary);
+}  /* pos_ty_start_diagnostic */
+
+
 void pos_start_error(an_error_code     error_code,
                      a_source_position *error_pos)
 /*
@@ -3614,6 +3629,21 @@ being processed.
 }  /* add_diag_info */
 
 #if !STANDALONE_UTILITY_PROGRAM
+
+extern void pos_sy_start_diagnostic(an_error_severity  error_severity,
+                                    an_error_code      error_code,
+                                    a_source_position  *error_pos,
+                                    a_symbol_ptr       symbol)
+/*
+Begin a multiple message diagnostic with the specified severity, error code,
+source position, and symbol fill-in.
+*/
+{
+  init_error_params();
+  error_msg_syms[1] = symbol;
+  diag_message(error_code, error_pos, error_severity, dck_primary);
+}  /* pos_sy_start_diagnostic */
+
 
 void pos_sy_start_error(an_error_code     error_code,
                         a_source_position *error_pos,

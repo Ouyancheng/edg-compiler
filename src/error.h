@@ -379,6 +379,10 @@ extern DOES_NOT_RETURN catastrophe(an_error_code error_code);
 extern void pos_start_diagnostic(an_error_severity  error_severity,
                                  an_error_code      error_code,
                                  a_source_position  *error_pos);
+extern void pos_ty_start_diagnostic(an_error_severity  error_severity,
+                                    an_error_code      error_code,
+                                    a_source_position *error_pos,
+                                    struct a_type     *type);
 extern void pos_start_error(an_error_code     error_code,
                             a_source_position *error_pos);
 extern void pos_st_start_error(an_error_code     error_code,
@@ -397,6 +401,10 @@ extern void str_add_diag_info(an_error_code error_code,
                               char          *error_string);
 extern void add_diag_info(an_error_code error_code);
 #if !STANDALONE_UTILITY_PROGRAM
+extern void pos_sy_start_diagnostic(an_error_severity  error_severity,
+                                    an_error_code      error_code,
+                                    a_source_position *error_pos,
+                                    struct a_symbol   *symbol);
 extern void pos_sy_start_error(an_error_code     error_code,
                                a_source_position *error_pos,
                                struct a_symbol   *symbol);
