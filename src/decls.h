@@ -157,6 +157,9 @@ extern a_boolean is_decl_start(void);
 
 extern void type_name(a_type_ptr *type_ptr);
 
+extern void new_type_name(a_type_ptr        *type_ptr,
+                          an_expr_node_ptr  *dimension_expr);
+
 extern a_boolean scan_conversion_operator(a_source_position  *pos);
 
 extern a_type_ptr type_keyword(void);

@@ -5188,6 +5188,64 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
 }  /* type_name */
 
 
+void new_type_name(a_type_ptr  *type_ptr)
+{
+  a_type_ptr            specifiers_type, complete_type, new_type_ptr;
+  a_type_ptr            derived_type, bottom_derived_type = NULL;
+  a_decl_flag_set       dso_flags;
+  a_source_position     start_pos;
+  a_storage_class       storage_class;
+  an_extern_linkage     dummy_linkage;
+
+  db_enter(3, "type_name");
+  set_err_pos_to_curr_token();
+  copy_source_position(pos_curr_token, start_pos);
+  (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
+			&storage_class, &specifiers_type, &dummy_linkage);
+  if (C_dialect == C_dialect_cplusplus && dso_flags & DSO_DEFINES_SOMETHING) {
+    /* Definition of a class, struct, union, or enum type is not allowed. */
+    pos_error(ec_type_definition_not_allowed, &start_pos);
+  } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+    /* Missing type specifier. */
+    warning(ec_missing_type_specifier);
+  }  /* if */
+  /* Note -- the check for dangling_type_specifier is not relevant here. */
+  bottom_derived_type = NULL;
+  complete_type = pointer_declarator(specifiers_type,
+                                     &bottom_derived_type);
+  derived_type = NULL;
+  bottom_derived_type = NULL;
+  add_stop_token(tok_lbracket);
+  if (curr_token == tok_lbracket) {
+#if 0
+    non_constant_array_declarator(&new_type_ptr);
+    add_to_derived_type_list(new_type_ptr,
+                             &derived_type, &bottom_derived_type);
+#endif /* if 0 */
+    while (curr_token == tok_lbracket) {
+      array_declarator(&new_type_ptr);
+      /* Add the new type to the bottom of the existing derived type list.
+         Note that this involves error checking. */
+      add_to_derived_type_list(new_type_ptr,
+                               &derived_type, &bottom_derived_type);
+    }  /* while */
+    if (derived_type != NULL) {
+      if (complete_type != NULL) {
+        if (!is_error_type(bottom_derived_type)) {
+          /* Combine derived_type and complete_type. */
+          add_to_derived_type_list(complete_type,
+                                   &derived_type, &bottom_derived_type);
+        }  /* if */
+      }  /* if */
+      complete_type = derived_type;
+    }  /* if */
+  }  /* if */
+  remove_stop_token(tok_lbracket);
+  *type_ptr = complete_type;
+  db_exit();
+}  /* new_type_name */
+
+
 a_boolean scan_conversion_operator(a_source_position  *id_pos)
 /*
 The token "operator" has been seen and passed; we are now on the token
