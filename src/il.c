@@ -2892,6 +2892,16 @@ members), and does not enter those.
         could_be_orphan = TRUE;
         break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      case iek_base_class:
+        /* Dependent base classes in prototype instantiations can be
+           orphans. */
+        { a_base_class_ptr bcp = (a_base_class_ptr)entry_ptr;
+          could_be_orphan = FALSE;
+          if (bcp->type->variant.class_struct_union.is_nonreal_class) {
+            could_be_orphan = TRUE;
+          }  /* if */
+        }
+        break;
       default:
         could_be_orphan = FALSE;
         break;

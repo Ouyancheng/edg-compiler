@@ -2251,6 +2251,7 @@ end_sizeof:;
         remap_ptr(ptr->type, a_type_ptr, iek_type);
         set_proper_definition_needed_flag(ptr->type);
         remap_ptr(ptr->derived_class, a_type_ptr, iek_type);
+        set_proper_definition_needed_flag(ptr->derived_class);
         conditionally_clear_fe_pointer(ptr->trans_unit_corresp);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
         remap_ptr_not_needed(ptr->data_section_base_class, a_base_class_ptr,
