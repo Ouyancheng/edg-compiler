@@ -8252,16 +8252,15 @@ continue_with_declaration:
           curr_token != tok_semicolon && curr_token != tok_comma &&
           curr_token != tok_assign && curr_token != tok_end_of_source) {
         if (!has_explicit_type_specifier && !is_main_function) {
-          /* Function with no explicitly specified return type. */
-          if (C_dialect == C_dialect_cplusplus) {
-            /* Issue a warning in C++, unless this is a constructor or
-               destructor definition. */
-            if (!is_constructor_or_destructor && !locator.is_conversion_name) {
-              pos_warning(ec_missing_type_specifier, &declarator_pos);
+          /* Function with no explicitly specified return type.  Issue a
+             remark (except in pcc mode and except for C++ constructors,
+             destructors, and conversion operators). */
+          if (C_dialect != C_dialect_pcc) {
+            if (C_dialect != C_dialect_cplusplus ||
+                (!is_constructor_or_destructor &&
+                 !locator.is_conversion_name)) {
+              pos_remark(ec_missing_type_specifier, &declarator_pos);
             }  /* if */
-          } else if (C_dialect != C_dialect_pcc) {
-            /* Ordinary C -- issue a remark. */
-            pos_remark(ec_missing_type_specifier, &declarator_pos);
           }  /* if */
         }  /* if */
         remove_all_local_stop_tokens();
@@ -8312,17 +8311,15 @@ continue_with_declaration:
           }  /* if */
         } else if (!has_explicit_type_specifier) {
           if (is_function) {
-            /* For implicitly typed function declarations, issue a warning in
-               C++, a remark in ordinary C, and no diagnostic in pcc mode. */
-            if (C_dialect == C_dialect_cplusplus) {
-              /* Issue a warning in C++, unless this is a constructor or
-                 destructor definition. */
-              if (!is_constructor_or_destructor) {
-                pos_warning(ec_missing_type_specifier, &declarator_pos);
+            /* Function with no explicitly specified return type.  Issue a
+               remark (except in pcc mode and except for C++ constructors,
+               destructors, and conversion operators). */
+            if (C_dialect != C_dialect_pcc) {
+              if (C_dialect != C_dialect_cplusplus ||
+                  (!is_constructor_or_destructor &&
+                   !locator.is_conversion_name)) {
+                pos_remark(ec_missing_type_specifier, &declarator_pos);
               }  /* if */
-            } else if (C_dialect != C_dialect_pcc) {
-              /* Ordinary C -- issue a remark. */
-              pos_remark(ec_missing_type_specifier, &declarator_pos);
             }  /* if */
           } else {
             /* For implicitly typed nonfunction declarations (variables,

@@ -5944,9 +5944,9 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                      constructors, destructors, and conversion functions. */
                 } else {
                   /* Type specifier is missing.  The type defaults to int,
-                     but issue a warning. */
+                     but issue a diagnostic. */
                   if (first_declarator) {
-                    pos_warning(ec_missing_type_specifier, &decl_start_pos);
+                    pos_remark(ec_missing_type_specifier, &decl_start_pos);
                   }  /* if */
                 }  /* if */
               }  /* if */
