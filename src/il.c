@@ -9491,6 +9491,8 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
   an_il_entry_kind  kind = (an_il_entry_kind)ssep->entity.kind;
   a_statement_ptr   sp;
   a_seq_number      seq;
+  a_boolean         print_type = FALSE;
+  a_type_ptr        declared_type = NULL;
 
   fputs(il_entry_kind_names[(int)kind], f_debug);
   if (kind == (an_il_entry_kind)iek_src_seq_sublist) {
@@ -9588,12 +9590,16 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
     } else if (kind == (an_il_entry_kind)iek_instantiation_directive) {
       an_instantiation_directive_ptr  idp;
       idp = (an_instantiation_directive_ptr)ssep->entity.ptr;
-      fprintf(f_debug, " (at %lu): \"", idp->position.seq);
+      fprintf(f_debug, " (at %lu", idp->position.seq);
+      if (idp->do_not_instantiate) fputs(", do not instantiate", f_debug);
+      fputs("): \"", f_debug);
       if (idp->entity.kind == (a_byte_il_entry_kind)iek_type) {
         db_type_name((a_type_ptr)idp->entity.ptr);
       } else {
         db_name(source_corresp_for_il_entry(idp->entity.ptr,
                                          (an_il_entry_kind)idp->entity.kind));
+        declared_type = ((a_routine_ptr)idp->entity.ptr)->type;
+        print_type = TRUE;
       }  /* if */
       fputc('"', f_debug);
     } else {
@@ -9610,8 +9616,6 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       a_boolean                     first_decl = FALSE;
       a_boolean                     other_scope_def = FALSE;
       a_type_ptr                    type_entry_type = NULL;
-      a_type_ptr                    declared_type = NULL;
-      a_boolean                     print_type = FALSE;
       a_src_seq_secondary_decl_ptr  sssdp = NULL;
 
       if (ssep->entity.ptr == NULL) {
@@ -9756,20 +9760,20 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
             }  /* if */
           }  /* if */
         }  /* if */
-        if (print_type) {
-          fprintf(f_debug, " (");
-          if (declared_type == NULL) {
-            fputs("type = ***NULL***", f_debug);
-          } else if (has_name(declared_type)) {
-            fputc('"', f_debug);
-            db_type_name(declared_type);
-            fputc('"', f_debug);
-          } else {
-            db_abbreviated_type(declared_type);
-          }  /* if */
-          fputc(')', f_debug);
-        }  /* if */
       }  /* if */
+    }  /* if */
+    if (print_type) {
+      fprintf(f_debug, " (");
+      if (declared_type == NULL) {
+        fputs("type = ***NULL***", f_debug);
+      } else if (has_name(declared_type)) {
+        fputc('"', f_debug);
+        db_type_name(declared_type);
+        fputc('"', f_debug);
+      } else {
+        db_abbreviated_type(declared_type);
+      }  /* if */
+      fputc(')', f_debug);
     }  /* if */
     fputc('\n', f_debug);
   }  /* if */
