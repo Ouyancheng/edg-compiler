@@ -855,8 +855,8 @@ and return a pointer to it.
 #endif /* DEBUG */
     /* Allocate an initial raw text array.  This can be expanded later
        if necessary, but the size here should be able to cover most
-       needs.  Note the use of alloc_general here, since only space
-       allocated via alloc_general can be realloced. */
+       needs.  Note the use of alloc_resizable_buffer here, since only space
+       allocated via that routine can be realloced. */
     map->raw_alloc_len = ARG_RAW_TEXT_INITIAL_ALLOCATION;
     /* Allocate one more byte than required, so that a pointer past the end
        will not have the same address as a pointer to the next object in
