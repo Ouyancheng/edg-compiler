@@ -1,3 +1,10 @@
+Version 2.35
+
+12/19/96 IL display program did not set f_debug
+
+The IL display program did not intialize the f_debug variable, causing an
+abort if the program attempted to produce debug output.  This has been fixed.
+-------------------------------------------------------------------------------
 Version 2.34, December 18, 1996
 
 12/18/96 IL version number changed to 2.26

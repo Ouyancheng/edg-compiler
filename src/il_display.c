@@ -3866,6 +3866,11 @@ where file.cil specifies the IL file.  Output is to stdout.
   int                    optind = 1;
   a_memory_region_number region_number;
 
+#if DEBUG
+  /* Initialize the file variable used for debug output.  This should be
+     done before anything else that could potentially produce debug output. */
+  f_debug = stderr;
+#endif /* DEBUG */
   /* Set the position for errors to "unknown". */
   error_position.seq = 0;
   error_position.column = SP_COL_UNKNOWN;
