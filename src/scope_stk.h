@@ -420,6 +420,13 @@ typedef struct a_scope_stack_entry {
 			/* TRUE when conversion_parent_type is set and the
 			   conversion type was specified using the form
 			   "A::operator B". */
+  a_bit_field	initial_decl_of_namespace_std:1;
+			/* TRUE if this is the first explicit declaration of
+			   namespace std.  This flag is needed because the
+			   std namespace is predeclared and as a result the
+			   first use in the program results in a namespace
+			   extension scope stack entry instead of the
+			   expected namespace scope stack entry. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;

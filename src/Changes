@@ -1,3 +1,23 @@
+Version 3.3
+
+5/13/03  Microsoft compatibility: problem with using-directive bug emulation
+
+In Microsoft bugs mode, when Microsoft version is <= 1200, we emulate a
+Microsoft using-directive bug that makes visible certain names that
+should not be visible.  There was a bug in this emulation that could
+result in lookup errors when the using-directive in question appeared in
+the std namespace.  This has been fixed.
+
+  namespace std {
+    namespace N {
+      typedef int X;
+    };
+    using namespace N;
+  };
+  class X;
+  int f(X *); // spurious ambiguity on X
+
+-------------------------------------------------------------------------------
 Version 3.2, May 12, 2003
 
 5/11/03  IL version number changed to 3.2

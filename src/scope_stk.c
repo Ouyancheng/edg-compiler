@@ -1796,6 +1796,7 @@ the scope being pushed.
   ssep->next_nondependent_call   = NULL;
   ssep->qualified_conversion_operator = FALSE;
   ssep->conversion_parent_type   = NULL;
+  ssep->initial_decl_of_namespace_std = FALSE;
   ssep->fp_contract_state        = curr_fp_contract_state;
   ssep->fenv_access_state        = curr_fenv_access_state;
   ssep->cx_limited_range_state   = curr_cx_limited_range_state;
@@ -2367,14 +2368,20 @@ template instantiation process.
   a_namespace_ptr		assoc_namespace;
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
   a_scope_kind			kind;
+  a_boolean			initial_decl_of_namespace_std;
 
   kind = ssep->kind;
+  /* The first use of namespace std is actually pushed as a namespace
+     extension.  This must be ignored for purposes of checking this
+     Microsoft bug. */
+  initial_decl_of_namespace_std = ssep->initial_decl_of_namespace_std;
   check_assertion(kind == (a_scope_kind)sck_namespace ||
                   kind == (a_scope_kind)sck_namespace_extension);
   assoc_namespace = ssep->assoc_namespace;
   pop_scope();
   if (microsoft_bugs && microsoft_version <= 1200 &&
-      kind == (a_scope_kind)sck_namespace_extension) {
+      kind == (a_scope_kind)sck_namespace_extension &&
+      !initial_decl_of_namespace_std) {
     /* Make any using-directives in this namespace visible in the file
        scope (to emulate a Microsoft bug). */
     microsoft_using_directive_bug_processing(assoc_namespace);

@@ -9314,6 +9314,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
   a_boolean                   bad_scope_for_namespace_def = FALSE;
   a_source_sequence_entry_ptr namespace_ssep = NULL;
   a_boolean		      namespace_scope_pushed = FALSE;
+  a_boolean		      initial_decl_of_namespace_std = FALSE;
 
   db_enter(3, "namespace_declaration");
   /* Save the source position of the declaration. */
@@ -9533,6 +9534,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
            Reuse the predeclared symbol. */
         ns_sym = symbol_for_namespace_std;
         enter_symbol_for_namespace_std(&locator);
+        initial_decl_of_namespace_std = TRUE;
         srk_flags |= SRK_DEFINITION;
 #if IA64_ABI
       } else if (locator.symbol_header == symbol_for_namespace_abi->header &&
@@ -9625,6 +9627,8 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
                                    skip_namespace_aliases(nsp));
         scope_stack[depth_scope_stack].
                                explicitly_declared_namespace_extension = TRUE;
+        scope_stack[depth_scope_stack].initial_decl_of_namespace_std =
+                                                 initial_decl_of_namespace_std;
         namespace_scope_pushed = TRUE;
       }  /* if */
     }  /* if */
