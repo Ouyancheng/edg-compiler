@@ -6425,6 +6425,20 @@ EXTERN struct il_header {
 			/* Pointer to a list of entries containing the text
 			   of all macros declared in the translation unit. */
 #endif /* RECORD_MACROS_IN_IL */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_byte_boolean
+		microsoft_16_mode;
+			/* TRUE if Microsoft 16-bit extensions are to be
+			   accepted.  This is a sub-mode of microsoft_mode. */
+  a_byte_boolean
+		far_data_pointers;
+			/* Default size (near/far) to be used for data
+			   pointers in 16-bit Microsoft mode. */
+  a_byte_boolean
+		far_code_pointers;
+			/* Default size (near/far) to be used for code
+			   pointers in 16-bit Microsoft mode. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } il_header;
 
 

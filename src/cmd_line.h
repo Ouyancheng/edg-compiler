@@ -522,14 +522,6 @@ EXTERN a_boolean
 #endif /* VAR_INITIALIZERS */
                                                        ;
 			/* TRUE if Microsoft extensions are to be accepted. */
-EXTERN a_boolean
-		microsoft_16_mode
-#if VAR_INITIALIZERS
-                                  = DEFAULT_MICROSOFT_16_MODE
-#endif /* VAR_INITIALIZERS */
-                                                             ;
-			/* TRUE if Microsoft 16-bit extensions are to be
-			   accepted.  This is a sub-mode of microsoft_mode. */
 EXTERN a_calling_convention
 		default_calling_convention
 #if VAR_INITIALIZERS
@@ -539,22 +531,6 @@ EXTERN a_calling_convention
 			/* The default calling convention.  cc_default is
 			   considered compatible with this calling
 			   convention. */
-EXTERN a_boolean
-		far_data_pointers
-#if VAR_INITIALIZERS
-                                  = DEFAULT_FAR_DATA_POINTERS
-#endif /* VAR_INITIALIZERS */
-                                                             ;
-			/* Default size (near/far) to be used for data
-			   pointers in 16-bit Microsoft mode. */
-EXTERN a_boolean
-		far_code_pointers
-#if VAR_INITIALIZERS
-                                  = DEFAULT_FAR_CODE_POINTERS
-#endif /* VAR_INITIALIZERS */
-                                                             ;
-			/* Default size (near/far) to be used for code
-			   pointers in 16-bit Microsoft mode. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN a_boolean

@@ -1335,21 +1335,21 @@ common_cfront_mode_settings:
       case optk_microsoft_mode:
         /* Enable or disable Microsoft extensions, in 32-bit mode. */
         microsoft_mode = opt_value;
-        microsoft_16_mode = FALSE;
+        il_header.microsoft_16_mode = FALSE;
         break;
       case optk_microsoft_16_mode:
         /* Enable or disable Microsoft extensions, in 16-bit mode. */
         check_assertion(opt_value == TRUE);
         microsoft_mode = TRUE;
-        microsoft_16_mode = TRUE;
+        il_header.microsoft_16_mode = TRUE;
         break;
       case optk_far_data_pointers:
         /* Set size of data pointers in Microsoft 16-bit mode. */
-        far_data_pointers = opt_value;
+        il_header.far_data_pointers = opt_value;
         break;
       case optk_far_code_pointers:
         /* Set size of code pointers in Microsoft 16-bit mode. */
-        far_code_pointers = opt_value;
+        il_header.far_code_pointers = opt_value;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case optk_wchar_t_is_keyword:
@@ -1609,7 +1609,7 @@ common_cfront_mode_settings:
     targ_enum_types_can_be_smaller_than_int = FALSE;
     stack_referenced_include_directories = TRUE;
   } else {
-    microsoft_16_mode = FALSE;
+    il_header.microsoft_16_mode = FALSE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
