@@ -6718,10 +6718,6 @@ next_declaration:
     remove_stop_token(tok_rbrace);
     /* Check for and ignore the closing brace. */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
-    /* Enter a decl-sequence number for the class to mark where it terminates
-       relative to other declarations.  This is used by IL lowering in certain
-       unusual cases to get type declarations in the right order. */
-    cssp->final_decl_seq = get_decl_sequence_number();
     if (C_dialect == C_dialect_cplusplus) {
       /* Rescan tokens that were cached (inline function definitions, default
          arguments). */

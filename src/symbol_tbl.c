@@ -479,18 +479,10 @@ and indentation is the indentation desired.
 
   if (sym->decl_seq > 0) {
     (void)sprintf(buffer, "#%lu", sym->decl_seq);
-    if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
-        sym->kind == (a_symbol_kind)sk_union_tag) {
-      a_decl_sequence_number  final_decl_seq = sym->variant.
-                                 class_struct_union.extra_info->final_decl_seq;
-      if (final_decl_seq > 0) {
-        (void)sprintf(&buffer[strlen(buffer)],"/#%lu", final_decl_seq);
-      }  /* if */
-    }  /* if */
+    put_separator("", strlen(buffer));
+    fputs(buffer, f_debug);
+    col += strlen(buffer);
   }  /* if */
-  put_separator("", strlen(buffer));
-  fputs(buffer, f_debug);
-  col += strlen(buffer);
 
   (void)sprintf(buffer, "(%lu/%u)", sym->decl_position.seq,
 		sym->decl_position.column);
@@ -1415,7 +1407,6 @@ state.
         cssp->routine_fixup_list = NULL;
         cssp->class_template = NULL;
         cssp->member_decl_scope = NO_SCOPE_NUMBER;
-        cssp->final_decl_seq = 0;
         cssp->template_param_for_proxy_class = NULL;
         cssp->constructor_required = FALSE;
         cssp->destructor_required = FALSE;
@@ -7089,13 +7080,10 @@ is called only in C++.
 }  /* pop_class_reactivation_scope */
 
 
-a_decl_sequence_number get_decl_sequence_number(void)
 /*
-Return the next declaration sequence number.
+Set the declaration sequence number of the symbol pointed to by sym.
 */
-{
-  return ++decl_seq_counter;
-}  /* get_decl_sequence_number */
+#define set_decl_sequence_number(sym) (sym)->decl_seq = ++decl_seq_counter
 
 
 static void write_xref_entry(a_symbol_reference_kind kind,
@@ -7309,7 +7297,7 @@ be put out.
        associated with this declaration (again, unconditionally, since this is
        the definition). */
     sym_ptr->decl_position = *source_position;
-    sym_ptr->decl_seq = get_decl_sequence_number();
+    set_decl_sequence_number(sym_ptr);
   }  /* if */
   /* Update the cross reference file if it exists and if this is not a
      template instantiation. */
@@ -7348,7 +7336,7 @@ Indicate that the given symbol is declared at the given position.
                                     /*is_primary_decl=*/FALSE);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
-  if (sym_ptr->decl_seq == 0) sym_ptr->decl_seq = get_decl_sequence_number();
+  if (sym_ptr->decl_seq == 0) set_decl_sequence_number(sym_ptr);
 }  /* mark_declared */
 
 
