@@ -1944,6 +1944,9 @@ error code.
     case ec_period_used_as_qualifier:
       m = "\".\" used for qualification (cfront anachronism)";
       break;
+    case ec_const_function_anachronism:
+      m = "non-const function called for const object (cfront anachronism)";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
