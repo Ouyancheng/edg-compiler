@@ -2003,6 +2003,99 @@ is allocated, it is allocated in the file scope.
 }  /* composite_type */
 
 
+a_boolean overload_distinguishable(a_symbol_ptr old_sym_ptr,
+                                   a_type_ptr   new_type,
+                                   a_symbol_ptr *exact_match_symbol)
+/*
+Return TRUE if the new function type new_type is distinguishable under
+overload resolution from all the types of the functions indicated
+old_sym_ptr (which might be a simple function or an sk_overloaded_function
+symbol).  If the new function is compatible with (i.e., essentially
+identical to) some function on the old list, *exact_match_symbol
+will be set to point to that function; otherwise, it will be NULL.
+Only callable in C++ mode.  See ARM 13.
+*/
+{
+  a_boolean        distinguishable;
+  a_boolean        old_is_list, reference_dropped;
+  a_type_ptr       old_type, old_param_type, new_param_type;
+  a_param_type_ptr old_param, new_param;
+
+  db_enter(5, "overload_distinguishable");
+  *exact_match_symbol = NULL;
+  /* See if the old symbol is a list of overloaded functions. */
+  if (old_sym_ptr->kind == (a_symbol_kind)sk_overloaded_function) {
+    old_is_list = TRUE;
+    old_sym_ptr = old_sym_ptr->variant.function_symbols;
+  } else {
+    old_is_list = FALSE;
+  }  /* if */
+  new_type = skip_typerefs(new_type);
+  do {
+    /* See if old_sym_ptr and new_type are distinguishable. */
+    distinguishable = FALSE;
+    old_type = old_sym_ptr->variant.routine->type;
+    old_type = skip_typerefs(old_type);
+    if (types_are_compatible(old_type, new_type)) {
+      /* The types are compatible. */
+      *exact_match_symbol = old_sym_ptr;
+      /* distinguishable = FALSE; -- already set. */
+    } else {
+      /* The types aren't compatible, so see if they are sufficiently
+         different that they are distinguishable by overload resolution.
+         Compare the parameter types. */
+#if 0
+          default arguments
+#endif
+      for (old_param = old_type->variant.routine.extra_info->param_type_list,
+           new_param = old_type->variant.routine.extra_info->param_type_list;
+           old_param != NULL || new_param != NULL;
+           old_param = old_param->next, new_param = new_param->next) {
+        if (old_param == NULL || new_param == NULL) {
+          /* The parameter lists do not end at the same point, so they
+             are distinguishable. */
+          distinguishable = TRUE;
+          break;
+        } else {
+          old_param_type = old_param->type;
+          new_param_type = new_param->type;
+          /* See if one of the types is a reference to the other type,
+             e.g., T and T&. */
+          reference_dropped = FALSE;
+          if (is_reference_type(old_param_type)) {
+            old_param_type = type_referenced(old_param_type);
+            reference_dropped = TRUE;
+          }  /* if */
+          if (is_reference_type(new_param_type)) {
+            new_param_type = type_referenced(new_param_type);
+            reference_dropped = TRUE;
+          }  /* if */
+          /* If neither top-level type was a reference, drop the type
+             qualifiers (it's impossible to distinguish between T, const T,
+             and volatile T, but it's possible to distinguish between
+             T&, const T&, and volatile T&). */
+          if (!reference_dropped) {
+            old_param_type = skip_typerefs(old_param_type);
+            new_param_type = skip_typerefs(new_param_type);
+          }  /* if */
+          /* Now compare the types. */
+          if (!types_are_compatible(old_param_type, new_param_type)) {
+            /* The two types are distinguishable. */
+            distinguishable = TRUE;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      /* Note that the return types are not tested.  Two functions that differ
+         only in return type are not distinguishable. */
+    }  /* if */
+  } while (old_is_list && distinguishable &&
+           (old_sym_ptr = old_sym_ptr->next) != NULL);
+  db_exit();
+  return distinguishable;
+}  /* overload_distinguishable */
+
+
 /*
 Memory region to switch back to after file_scope_type copy, if non-zero.
 */

@@ -20,6 +20,9 @@ types.h -- Declarations related to types.c (having to do with types).
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */
+#ifndef SYMBOL_TBL_H
+#include "symbol_tbl.h"
+#endif /* ifndef SYMBOL_TBL_H */
 
 /* There are copies of this macro in il_display.c and in c_gen_be.c;
    if you change this, you should probably change those definitions
@@ -103,6 +106,9 @@ extern a_boolean impl_conversion(a_type_ptr source_type,
                                  a_boolean  *warning_suggested);
 extern a_type_ptr composite_type(a_type_ptr type_1,
                                  a_type_ptr type_2);
+extern a_boolean overload_distinguishable(a_symbol_ptr old_sym_ptr,
+                                          a_symbol_ptr sym_ptr,
+                                          a_symbol_ptr *exact_match_symbol);
 extern a_type_ptr make_file_scope_type(a_type_ptr type);
 
 /*
