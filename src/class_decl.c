@@ -1141,6 +1141,36 @@ done:;
 }  /* return_types_are_override_compatible */
 
 
+static a_boolean shares_virtual_function_info(a_type_ptr        class_type,
+                                              a_base_class_ptr  bcp)
+/*
+bcp points to a base class of class_type.  If class_type shares its virtual
+function info with a base class and that base class is bcp or the base class
+with which bcp shares its virtual function info, return TRUE.
+*/
+{
+  a_boolean         shares = FALSE;
+  a_base_class_ptr  virtual_function_info_base_class;
+
+  virtual_function_info_base_class =
+                          class_type->variant.class_struct_union.extra_info->
+                                              virtual_function_info_base_class;
+  if (virtual_function_info_base_class == bcp) {
+    shares = TRUE;
+  } else if (virtual_function_info_base_class != NULL) {
+    bcp = bcp->type->variant.class_struct_union.extra_info->
+                                              virtual_function_info_base_class;
+    if (bcp != NULL) {
+      bcp = corresponding_base_class(bcp, (a_type_ptr)NULL, class_type);
+      if (virtual_function_info_base_class == bcp) {
+        shares = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return shares;
+}  /* shares_virtual_function_info */
+
+
 static a_boolean check_for_virtual_function(a_boolean        virtual_specified,
                                             a_symbol_ptr     rout_sym,
                                             a_type_ptr       class_type,
@@ -1188,7 +1218,7 @@ routine entry and return TRUE; otherwise return FALSE.
           /* Base class destructor is virtual. */
           is_virtual = TRUE;
           record_virtual_function_override(bcp, rp, rout);
-          if (bcp == ctsp->virtual_function_info_base_class) {
+          if (shares_virtual_function_info(class_type, bcp)) {
             /* The virtual function table is being shared, so we must use the
                identical number. */
             virtual_function_number = rp->virtual_function_number;
@@ -1244,7 +1274,7 @@ routine entry and return TRUE; otherwise return FALSE.
                    entry.  It can be used later, e.g., for building a virtual
                    function table. */
                 record_virtual_function_override(bcp, rp, rout);
-                if (bcp == ctsp->virtual_function_info_base_class) {
+                if (shares_virtual_function_info(class_type, bcp)) {
                   /* The virtual function table is being shared, so we must
                      use the identical number. */
                   virtual_function_number = rp->virtual_function_number;
