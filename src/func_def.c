@@ -477,8 +477,11 @@ pointer decay).
     if (remove_qualifiers_from_param_types) {
       /* A top-level type qualifier may have been stripped off.  The type
          qualifier has been recorded in the param type entry; it should
-         correspond to the parameter variable's type qualifier. */
-      check_assertion(ptp->qualifiers == get_type_qualifiers(param_id->type));
+         correspond to the parameter variable's type qualifier.  It is also
+         possible that top-level qualifiers were present on a guiding
+         declaration, but not on the corresponding template declaration. */
+      check_assertion(guiding_decls_allowed ||
+                      ptp->qualifiers == get_type_qualifiers(param_id->type));
     }  /* if */
 #endif /* CHECKING */
   }  /* if */

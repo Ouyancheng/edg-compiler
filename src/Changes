@@ -1,5 +1,19 @@
 Version 2.44
 
+6/14/00  Internal error on old-style specializations when guiding declarations
+         are allowed
+
+When the definition of an explicit function template specialization was
+encountered without the "template<>" prefix (i.e., using the old pre-ANSI
+syntax), the front end used to abort if one of the parameter types was
+declared with a top-level qualifier.  This only happened when guiding
+declarations were allowed.
+
+  template<class T> void f(T a);
+  void f(int const a) {}  // Used to abort with --guiding_decls
+
+This is now fixed.
+
 6/13/00  Microsoft compatibility: const/volatile anonymous unions
 
 When ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE, the front end accepts
