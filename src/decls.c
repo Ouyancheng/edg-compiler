@@ -6158,10 +6158,12 @@ to indicate whether an enumeration is actually defined.
         pos_error(ec_qualified_name_not_allowed, &locator.source_position);
         tag_sym = NULL;
         set_to_error_locator(locator);
+#if 0
       } else if (tag_sym->defined) {
         pos_sy_error(ec_already_defined, &locator.source_position, tag_sym);
         tag_sym = NULL;
         set_to_error_locator(locator);
+#endif /* if 0 */
       }  /* if */
     }  /* if */
   } else {
