@@ -3167,7 +3167,8 @@ typedef struct a_type {
 			   enum type (which has enum_type == TRUE), indicating
 			   that the present type is an integral type that
 			   came from the indicated enumerated type.  Used
-			   to suppress conversion warnings. */
+			   to suppress conversion warnings.  Always NULL
+			   in C++. */
       } enum_info;
 #endif /* ifdef CIL */
     } integer;
