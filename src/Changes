@@ -1,5 +1,24 @@
 Version 3.0
 
+2/23/02  Microsoft mode: overload resolution, template constructors
+
+MSVC++ has some quirks related to overload resolution involving
+template copy constructors.  These quirks are slightly different
+in MSVC++ 6 and MSVC++ 7.  They are now emulated in the appropriate
+mode.
+
+  extern "C" int printf(const char*,...);
+  struct function2 {
+    function2() {}
+    template<typename Functor>
+    function2(Functor&) { printf("in function2 template ctor\n"); }
+  };
+  int main() {
+    function2 f1;
+    function2 f2(f1);  // Chooses the generated copy constructor in
+                       // Microsoft bugs mode
+  }
+
 2/22/02  Precompiled header processing problem when DEBUG == 0
 
 Compilations that make use of a precompiled header file may fail when

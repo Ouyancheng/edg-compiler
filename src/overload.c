@@ -3424,6 +3424,68 @@ entry to the next argument match.
   ((cfp)->current_arg_match = (cfp)->current_arg_match->next)
 
 
+static a_boolean suppress_microsoft_late_tiebreakers(
+                                    a_candidate_function_ptr cfp1,
+                                    a_candidate_function_ptr cfp2)
+/*
+MSVC++ has certain quirks regarding tiebreakers, copy constructors,
+and templates.  Examine the two candidate functions cfp1 and cfp2,
+and return TRUE if the tiebreakers should be suppressed for this case.
+*/
+{
+  a_boolean suppress = FALSE;
+
+  check_assertion(microsoft_mode);
+  /* The quirks come up when one function is a template and the other
+      is not. */
+  if (cfp1->is_function_template != cfp2->is_function_template) {
+    a_symbol_ptr non_template_sym, template_sym;
+    if (cfp1->is_function_template) {
+      template_sym = cfp1->function_symbol;
+      non_template_sym = cfp2->function_symbol;
+    } else {
+      template_sym = cfp2->function_symbol;
+      non_template_sym = cfp1->function_symbol;
+    }  /* if */
+    if (non_template_sym != NULL && template_sym != NULL) {
+      reduce_projection_symbol_to_fundamental_symbol(non_template_sym);
+      reduce_projection_symbol_to_fundamental_symbol(template_sym);
+      /* See whether the non-template function is a copy constructor. */
+      if (non_template_sym->kind == (a_symbol_kind)sk_member_function) {
+        a_routine_ptr        rout = non_template_sym->variant.routine.ptr;
+        a_type_qualifier_set qualifiers;
+        a_type_ptr           class_of_which_a_member =
+                                       rout->source_corresp.parent.class_type;
+        if (is_copy_constructor(rout, class_of_which_a_member, &qualifiers,
+                                /*is_declarative_context=*/FALSE)) {
+          /* A non-template copy constructor against a template.  Suppress
+              the tiebreakers. */
+          suppress = TRUE;
+          /* In MSVC++ 6, certain combinations of generated copy constructors
+             and templates with reference parameters get special treatment. */
+          if (microsoft_version == 1200 &&
+              template_sym->kind == (a_symbol_kind)sk_function_template) {
+            a_template_symbol_supplement_ptr tssp;
+            a_routine_ptr                    trout;
+            a_type_ptr                       trout_type;
+            a_routine_type_supplement_ptr    rtsp;
+            a_boolean                        ref_param;
+            tssp = template_supplement_for_symbol(template_sym);
+            trout = tssp->variant.function.routine;
+            trout_type = skip_typerefs(trout->type);
+            rtsp = trout_type->variant.routine.extra_info;
+            ref_param = (rtsp->param_type_list != NULL &&
+                         is_reference_type(rtsp->param_type_list->type));
+            suppress = (rout->compiler_generated == ref_param);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return suppress;
+}  /* suppress_microsoft_late_tiebreakers */
+
+
 static int compare_late_tiebreakers(a_candidate_function_ptr cfp1,
                                     a_candidate_function_ptr cfp2)
 /*
@@ -3447,6 +3509,10 @@ otherwise equivalent.  This is nonstandard, but it's what some compilers
   if (any_cfront_mode() &&
       (cfp1->is_function_template || cfp2->is_function_template)) {
     /* Cfront doesn't consider tiebreakers for templates. */
+  } else if (microsoft_bugs &&
+             suppress_microsoft_late_tiebreakers(cfp1, cfp2)) {
+    /* MSVC++ has some quirks with tiebreakers, copy constructors, and
+       templates. */
   } else {
     /* Compare each argument. */
     for (arg1 = cfp1->arg_matches, arg2 = cfp2->arg_matches;
