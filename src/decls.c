@@ -1147,6 +1147,8 @@ locator_for_curr_id.
   pip->next = NULL;
   pip->symbol = NULL;
   pip->type = NULL;
+  pip->type_pos.seq = 0;
+  pip->type_pos.column = SP_COL_UNKNOWN;
   pip->storage_class = (a_storage_class)sc_unspecified;
   db_exit();
   return(pip);
@@ -1209,6 +1211,7 @@ return NULL.
 
 static void add_to_param_id_list(a_symbol_locator      *locator,
                                  a_type_ptr            type_ptr,
+                                 a_source_position     *type_pos,
                                  a_storage_class       storage_class,
                                  a_func_info_block_ptr func_info,
                                  a_param_id_ptr        *last_param_id)
@@ -1245,8 +1248,11 @@ storage_class are the type and storage class for the parameter.
     if (is_prototype_param_decl || !is_error_locator(*locator)) {
       new_param_id = alloc_param_id();
       /* Save the type and storage class for the later declaration. */
-      new_param_id->type = type_ptr;
-      new_param_id->storage_class = storage_class;
+      if (is_prototype_param_decl) {
+        new_param_id->type = type_ptr;
+        copy_source_position(*type_pos, new_param_id->type_pos);
+        new_param_id->storage_class = storage_class;
+      }  /* if */
       /* Create a parameter symbol.  It is used during parameter processing
          only.  The corresponding symbol in the function scope itself is a
          variable symbol for which the variable's is_parameter flag is set to
@@ -1763,10 +1769,6 @@ scope is that of a class definition.
             /* X::X(X) is not allowed -- ARM 12.1. */
             pos_error(ec_bad_constructor_param, &param_type_pos);
             param_type_ptr = error_type();
-          } else if (is_incomplete_type(param_type_ptr)) {
-            /* Incomplete type is not allowed. */
-            pos_error(ec_incomplete_type_not_allowed, &param_type_pos);
-            param_type_ptr = error_type();
           } else if (C_dialect == C_dialect_cplusplus &&
                      is_illegal_abstract_class_type(param_type_ptr)) {
             /* Abstract class may not be used as an arg type (ARM 10.3). */
@@ -1805,7 +1807,7 @@ scope is that of a class definition.
               func_info->any_prototype_names_omitted = TRUE;
             }  /* if */
             add_to_param_id_list(&param_locator, param_type_ptr,
-                                 param_storage_class,
+                                 &param_type_pos, param_storage_class,
                                  func_info, &last_param_id);
           }  /* if */
           if (curr_token == tok_assign && C_dialect == C_dialect_cplusplus) {
@@ -1919,6 +1921,7 @@ scope is that of a class definition.
           }  /* if */
           /* Add the identifier to the parameter id list. */
           add_to_param_id_list(&locator_for_curr_id, (a_type_ptr)NULL,
+                               (a_source_position*)NULL,
                                (a_storage_class)sc_unspecified,
                                func_info, &last_param_id);
           /* Advance past the identifier. */
@@ -3993,7 +3996,8 @@ return_point:
 }  /* decl_typedef */
 
 
-static void decl_parameter(a_param_id_ptr     param_id)
+static void decl_parameter(a_param_id_ptr    param_id,
+                           a_param_type_ptr  ptp)
 /*
 Enter the declaration of an identifier for a parameter.  *locator gives
 the symbol locator (and thus its name and its declaration position).
@@ -4005,7 +4009,12 @@ a pointer to it in *symbol_ptr.
   a_variable_ptr vp;
 
   db_enter(3, "decl_parameter");
-  vp = make_param_variable(param_id->type, param_id->storage_class);
+  if (is_incomplete_type(ptp->type)) {
+    /* Incomplete type is not allowed. */
+    pos_error(ec_incomplete_type_not_allowed, &param_id->type_pos);
+    ptp->type = error_type();
+  }  /* if */
+  vp = make_param_variable(ptp->type, param_id->storage_class);
   add_to_parameters_list(vp);
   sym = param_id->symbol;
   if (sym == NULL) {
@@ -6873,6 +6882,8 @@ explicitly specified (rather than defaulted to "int").
           /* Enter any undeclared parameters with a type of int. */
           param_id->type = integer_type((an_integer_kind)ik_int);
           param_id->storage_class = (a_storage_class)sc_auto;
+          copy_source_position(param_id->symbol->decl_position,
+                               param_id->type_pos);
         }  /* if */
         /* The param_type entry must be allocated in the file-scope region. */
         ptp = alloc_param_type(param_id->type);
@@ -6882,7 +6893,7 @@ explicitly specified (rather than defaulted to "int").
            list rather than the order in which they appear in the
            declarations.  Note that the variable entry is allocated
            in the current (function) scope, not at the file scope. */
-        decl_parameter(param_id);
+        decl_parameter(param_id, ptp);
         /* Now build the list of parameter types that is attached to the 
            routine type (needed for checking type compatibility -- see
            types_are_compatible). */
@@ -6959,8 +6970,7 @@ explicitly specified (rather than defaulted to "int").
     for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
-      param_id->type = ptp->type;
-      decl_parameter(param_id);
+      decl_parameter(param_id, ptp);
 #if CHECKING
       if ((param_id->next == NULL) != (ptp->next == NULL)) {
         internal_error("function_definition: param_id and ptp out of sync");
@@ -7117,8 +7127,7 @@ processing of function definition.
          param_id = param_id->next, ptp = ptp->next) {
     /* Declare each parameter identifier to have the associated type
        from the parameter type list. */
-    param_id->type = ptp->type;
-    decl_parameter(param_id);
+    decl_parameter(param_id, ptp);
 #if CHECKING
     if ((param_id->next == NULL) != (ptp->next == NULL)) {
       internal_error(
@@ -8026,12 +8035,8 @@ continue_with_declaration:
         symbol_ptr = param_id->symbol;
         copy_source_position(locator.source_position,
                              symbol_ptr->decl_position);
-        if (is_incomplete_type(local_type_ptr)) {
-          /* Incomplete type is not allowed. */
-          pos_error(ec_incomplete_type_not_allowed, &decl_start_pos);
-          local_type_ptr = error_type();
-        }  /* if */
         param_id->type = local_type_ptr;
+        copy_source_position(decl_start_pos, param_id->type_pos);
         param_id->storage_class = local_storage_class;
       } else if (local_storage_class == (a_storage_class)sc_typedef) {
         decl_typedef(&locator, local_type_ptr, &symbol_ptr);
@@ -8182,6 +8187,7 @@ continue_with_declaration:
            (local_storage_class == (a_storage_class)sc_unspecified &&
             is_void_type(local_type_ptr)))) {
         error(ec_incomplete_type_not_allowed);
+        symbol_ptr->variant.variable->type = error_type();
       }  /* if */
       remove_stop_token(tok_comma);
       need_comma_remove_stop_token = FALSE;
