@@ -217,8 +217,8 @@ a copy is made and modified.
   array_type = alloc_type((a_type_kind)tk_array);
   copy_type(incomplete_type, array_type);
   array_type->variant.array.variant.number_of_elements = size;
-  if (gcc_mode && size == 0) {
-    /* In GNU C mode (but not in GNU C++ mode), an empty pair of braces can
+  if (gnu_mode && size == 0) {
+    /* In GNU C and C++ mode, an empty pair of braces can
        be a valid initializer for a zero-length array. */
     array_type->variant.array.bound_is_zero = TRUE;
   }  /* if */
