@@ -482,12 +482,20 @@ extern a_base_class_derivation_ptr direct_virtual_derivation_of(
 Macros that return information about base classes that may, for virtual base
 classes, be contingent on the derivation selected.
 */
-/* bcp is a virtual base class; return a pointer to the virtual derivation
-   entry associated with its preferred path (which is always the first in
-   list). */
+/* If bcp is a virtual base class, return a pointer to the virtual derivation
+   entry associated with its preferred path; otherwise return a pointer to
+   the derivation entry pointed to from bcp. */
 #define preferred_derivation_of(bcp)                                 \
-  ((bcp)->is_virtual ? (bcp)->derivation :                           \
-                       preferred_virtual_derivation_of(bcp))
+  ((bcp)->is_virtual ? preferred_virtual_derivation_of(bcp) :        \
+                       (bcp)->derivation)
+
+/* bcp is assumed to point to a base class for which direct is set to TRUE.
+   If it is a virtual base class, return a pointer to the virtual derivation
+   entry associated with its direct path; otherwise return a pointer to
+   whatever derivation entry it points to. */
+#define direct_derivation_of(bcp)                                    \
+  ((bcp)->is_virtual ? direct_virtual_derivation_of(bcp) :           \
+                       (bcp)->derivation)
 
 /* Return TRUE if bcp is a direct nonvirtual base class or a virtual base
    class whose preferred derivation is direct. */
