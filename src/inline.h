@@ -68,6 +68,11 @@ typedef struct a_variable_remapping_for_inlining {
 			/* Argument expression and the original "next" pointer
 			   thereof.  arg_expr is NULL if this information is
 			   not applicable. */
+  a_byte_boolean
+		remapping_used;
+			/* TRUE if this remapping has been used.  That prevents
+			   certain optimizations that involve changing the
+			   remapping. */
 } a_variable_remapping_for_inlining;
 
 

@@ -1,5 +1,14 @@
 Version 2.38
 
+12/11/97  Obscure bug in minimal inlining
+
+A change made recently (Changes entry of 12/2/97), which added an
+optimization in inlining, uncovered an existing bug, which relates to
+expansion of a constructor call that calls an inline "new" that
+returns a constant address (that happens in test cases, but is unlikely
+to happen in real programs).  The symptom was an IL reference to a
+temporary variable that did not appear on the list of local variables.
+
 12/10/97  Microsoft compatibility: non-standard "anonymous struct" in C++
 
 In Microsoft C++ compatibility mode, a struct with a compiler-generated

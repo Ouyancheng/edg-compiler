@@ -90,6 +90,7 @@ The entry is placed on the variable_remappings_for_inlining global list.
   vrip->kind = vrk_none;
   vrip->arg_expr = NULL;
   vrip->arg_expr_next = NULL;
+  vrip->remapping_used = FALSE;
   return vrip;
 }  /* alloc_variable_remapping_for_inlining */
 
@@ -447,6 +448,7 @@ other than a temporary variable.
     check_assertion_str(vrip->kind == vrk_temporary,
                         "remap_var_for_inlining: wrong kind of remap");
     new_var = vrip->variant.variable;
+    vrip->remapping_used = TRUE;
   } else {
     /* There is no remapping, so return the original variable. */
     new_var = var;
@@ -499,6 +501,7 @@ variables.
           unexpected_condition_str(
                       "adjust_copied_expression_for_inlining: bad remap kind");
       }  /* switch */
+      vrip->remapping_used = TRUE;
     }  /* if */
   } else if (kind == (an_expr_node_kind)enk_variable_address) {
     /* Address of a variable.  See if the variable is remapped. */
@@ -722,6 +725,8 @@ otherwise, do no copying and return FALSE.
       a_variable_ptr var = operand->variant.variable;
       if (var->is_temp_for_constructor_this_inlined_param ||
           var->is_temp_for_unmodified_inlined_param) {
+        a_variable_remapping_for_inlining_ptr vrip;
+        a_boolean                             temp_elim_possible = FALSE;
         /* This is a temporary with special properties.  If the value
            being assigned to the temporary is constant (and non-null,
            for the constructor "this" case), the temporary can be remapped
@@ -736,10 +741,14 @@ otherwise, do no copying and return FALSE.
         if (is_constant_valued_expression(operand2, &is_non_null) &&
             (!var->is_temp_for_constructor_this_inlined_param ||
              is_non_null)) {
-          a_variable_remapping_for_inlining_ptr vrip =
-                                           get_var_remapping_for_inlining(var);
-          a_constant                            constant;
+          vrip = get_var_remapping_for_inlining(var);
           check_assertion(vrip != NULL && vrip->kind == vrk_temporary);
+          /* The temporary elimination cannot be done if the temporary has
+             already been referenced. */
+          if (!vrip->remapping_used) temp_elim_possible = TRUE;
+        }  /* if */
+        if (temp_elim_possible) {
+          a_constant constant;
           /* Change the remapping of the temporary.  Note that changing the
              remapping means that the temporary variable will not be
              added to the scope at the end of the current inline expansion,
