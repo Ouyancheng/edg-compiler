@@ -3922,7 +3922,7 @@ declared and before the partial instantiation of the function was done.
 
   is_conversion_operator = is_conversion_function_symbol(templ_sym);
   tssp = template_supplement_for_symbol(templ_sym);
-  templ_param_list = tssp->cache.decl_info->parameters;
+  templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
   if (is_conversion_operator) {
     /* For conversion operators, do the matching on the return type only. */
     tp = type->variant.routine.return_type;
@@ -3967,7 +3967,8 @@ declared and before the partial instantiation of the function was done.
                                          templ_param_list);
   }  /* if */
   if (!match) {
-    if (!is_or_contains_error_type(type) &&
+    if (!tssp->variant.function.cannot_be_called &&
+        !is_or_contains_error_type(type) &&
         !is_or_contains_error_type(templ_rout->type)) {
       /* If the type contains an error type it is likely that the current
          routine type is already an error routine type produced earlier.
