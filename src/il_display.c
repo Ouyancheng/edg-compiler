@@ -863,6 +863,9 @@ Display the indicated constant entry.
   if (ptr->explicit_braces_on_aggregate) {
     disp_boolean("explicit_braces_on_aggregate", TRUE);
   }  /* if */
+  if (ptr->from_undefined_preproc_id) {
+    disp_boolean("from_undefined_preproc_id", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:

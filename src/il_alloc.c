@@ -777,6 +777,7 @@ associated variant fields to default values.
   cp->null_keyword = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   cp->explicit_braces_on_aggregate = FALSE;
+  cp->from_undefined_preproc_id = FALSE;
 #if CENTERLINE_CHECKING
   cp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

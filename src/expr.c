@@ -14779,6 +14779,14 @@ see expr.h).
     case tok_char_constant:
     case tok_true:
     case tok_false:
+      if (const_for_curr_token.from_undefined_preproc_id) {
+        if (curr_expr_is_evaluated()) {
+          /* An undefined identifier in a #if expression has been replaced
+             with zero. */
+          remark(ec_undefined_preproc_id);
+        }  /* if */
+        const_for_curr_token.from_undefined_preproc_id = FALSE;
+      }  /* if */
       make_constant_operand(&const_for_curr_token, &local_result);
       if (any_cfront_mode() && const_for_curr_token.is_simple_zero) {
         /* Cfront accepts only a simple 0 as a null pointer constant.

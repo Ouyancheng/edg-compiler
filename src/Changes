@@ -1,5 +1,15 @@
 Version 3.4
 
+5/4/04   No remark on undefined identifier in unevaluated part of #if
+         expression
+
+The remark "zero used for undefined preprocessing identifier" is no
+longer issued for references in unevaluated parts of expressions.
+
+  #define A 0
+  #if A && B  // No longer a remark on "B"
+  #endif
+
 5/2/04   Microsoft compatibility: cast to pointer type in nontype template
          argument
 

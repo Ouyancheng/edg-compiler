@@ -8144,8 +8144,8 @@ id_scan:
            in a preprocessing #if expression, replace the identifier with
            the value 0L.  ("true" and "false" are the exception.) */
         if (in_pp_if_expression) {
-          remark(ec_undefined_preproc_id);
           ctoken = make_pp_int_constant(0L);
+          const_for_curr_token.from_undefined_preproc_id = TRUE;
         }  /* if */
       }  /* if */
 end_id_scan:

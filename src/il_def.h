@@ -2079,6 +2079,10 @@ typedef struct a_constant {
 			   TRUE if the values were surrounded by explicit
 			   braces { ... }.  This affects the meaning of
 			   some designated initializers. */
+  a_bit_field	from_undefined_preproc_id:1;
+			/* This constant was generated from a reference to
+			   an undefined preprocessing identifier (i.e.,
+			   it's zero). */
   bitfield_to_avoid_codecenter_warnings()
   a_constant_repr_kind
                 kind;
