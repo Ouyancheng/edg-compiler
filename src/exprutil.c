@@ -2904,6 +2904,8 @@ information is not being maintained.
 */
 {
   a_routine_ptr routine;
+  a_function_instantiation_entry_ptr
+                instance_ptr;
 
 #if CHECKING
   if (routine_sym->kind != (a_symbol_kind)sk_routine &&
@@ -2934,6 +2936,12 @@ information is not being maintained.
      referenced. */
   if (!result->virtual_function) {
     mark_routine_referenced(routine, position);
+  }  /* if */
+  /* If the function is an instance of a function template, mark it
+     as requiring an instantiation. */
+  instance_ptr = routine_sym->variant.routine.instance_ptr;
+  if (instance_ptr != NULL) {
+    update_instantiation_required_flag(instance_ptr, TRUE);
   }  /* if */
 }  /* make_function_designator_operand */
 
@@ -3305,6 +3313,31 @@ to (or a function designator).
 }  /* conv_object_pointer_to_lvalue */
 
 
+static void prep_possible_ellipsis_argument_operand(
+                                            an_operand         *operand,
+                                            a_param_type_ptr   param,
+                                            an_error_code      err_code,
+                                            an_expression_kind expression_kind)
+/*
+operand is the actual argument value for the parameter described by param.
+Adjust it for use in the call.  Specifically, check its type and cast it
+to the proper type.  Issue the error err_code for a type incompatibility.
+expression_kind indicates the kind of the current expression.  param may
+be NULL to indicate that the argument falls under an ellipsis or old-style
+function.
+*/
+{
+  if (param == NULL) {
+    /* The actual argument was accepted under an ellipsis.  Do default
+       argument promotions. */
+    arg_default_promote_operand(operand, expression_kind);
+  } else {
+    /* Cast the argument to the right type. */
+    prep_argument_operand(operand, param, err_code, expression_kind);
+  }  /* if */
+}  /* prep_possible_ellipsis_argument_operand */
+
+
 static void set_up_for_constructor_call(an_operand         *operand,
                                         a_routine_ptr      ctor_routine,
                                         an_expression_kind expression_kind,
@@ -3320,6 +3353,8 @@ only in C++ mode.
   a_symbol_ptr     ctor_symbol;
   a_type_ptr       routine_type;
   a_param_type_ptr param_list;
+  a_routine_type_supplement_ptr
+                   rtsp;
 
   /* Check that the constructor is accessible and mark it as referenced. */
   ctor_symbol = (a_symbol_ptr)(ctor_routine->source_corresp.assoc_info);
@@ -3327,22 +3362,26 @@ only in C++ mode.
   routine_type = skip_typerefs(ctor_routine->type);
   /* Convert the operand to the proper type to be an argument of the
      constructor. */
-  param_list = routine_type->variant.routine.extra_info->param_type_list;
+  rtsp = routine_type->variant.routine.extra_info;
+  param_list = rtsp->param_type_list;
 #if CHECKING
-  if (param_list == NULL) {
+  if (param_list == NULL && !rtsp->has_ellipsis) {
     internal_error("set_up_for_constructor_call: no first parameter");
   }  /* if */
 #endif  /* CHECKING */
   /* Convert the argument to the right type.  We don't expect an error
      here, since presumably we've chosen the proper function to call
      through overload resolution. */
-  prep_argument_operand(operand, param_list, ec_incompatible_param,
-                        expression_kind);
+  prep_possible_ellipsis_argument_operand(operand, param_list,
+                                          ec_incompatible_param,
+                                          expression_kind);
   /* Make an expression for the argument. */
   *arg_expr_list = make_node_from_operand(operand);
   /* If the constructor has default arguments after the first, add
      arguments for them. */
-  (*arg_expr_list)->next = copy_default_arg_expr_list(param_list->next);
+  if (param_list != NULL) {
+    (*arg_expr_list)->next = copy_default_arg_expr_list(param_list->next);
+  }  /* if */
 }  /* set_up_for_constructor_call */
 
 
@@ -5814,9 +5853,11 @@ end_exact_test:;
         }  /* if */
       }  /* if */
     }  /* for */
-    if (number_in_best_match_set != 0) {
-      /* Exactly one function template matches, or more than one function
-         template matches.  Either way, the best-match set is correct. */
+    if (number_in_best_match_set == 1) {
+      /* Exactly one function template matches. */
+      goto create_final_list;
+    } else if (number_in_best_match_set > 1) {
+      /* More than one function template matches.  Ambiguity. */
       goto create_final_list;
     }  /* if */
     /* No function templates match, so take them out of the candidate
@@ -6096,15 +6137,10 @@ of parameters (remaining arguments will be processed under an ellipsis).
        alternatives. */
     issue_warning_from_arg_match_summary(arg_match,
                                          &arg_operand->operand.position);
-    if (param == NULL) {
-      /* The actual argument was accepted under an ellipsis.  Do default
-         argument promotions. */
-      arg_default_promote_operand(&arg_operand->operand, expression_kind);
-    } else {
-      /* Cast the argument to the right type. */
-      prep_argument_operand(&arg_operand->operand, param,
-                            ec_incompatible_param, expression_kind);
-    }  /* if */
+    /* Cast the argument to the right type. */
+    prep_possible_ellipsis_argument_operand(&arg_operand->operand, param,
+                                            ec_incompatible_param,
+                                            expression_kind);
     arg = make_node_from_operand(&arg_operand->operand);
   }  /* if */
   return arg;
