@@ -568,6 +568,10 @@ extern a_src_seq_secondary_decl_ptr alloc_src_seq_secondary_decl(void);
 extern a_comment_ptr alloc_comment(void);
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 
+/* Make sure a_decl_seq_info is declared before using it in a parameter
+   list. */
+typedef struct a_decl_seq_info a_decl_seq_info_dummy_typedef;
+
 extern void update_source_sequence_list(char                 *entity_ptr,
                                         an_il_entry_kind     kind,
                                         a_source_position    *pos,
