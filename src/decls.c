@@ -4673,9 +4673,16 @@ on for use in generating cross-reference output describing this declaration.
     }  /* if */
 #if CHECKING
     if (linked_symbol->overload_set_member && !is_friend_decl) {
-      check_assertion(overload_symbol != NULL &&
-                      overload_symbol->kind ==
-                                   (a_symbol_kind)sk_overloaded_function);
+      /* Normally we should have a record of which overload set the symbol
+         belongs to.  The exception occurs when redeclaring an entity that
+         is visible only through a using-declaration in Sun or Microsoft 
+         mode. */
+      check_assertion((redeclaration && (microsoft_mode || sun_mode) &&
+                       scope_stack[decl_scope_level].number !=
+                                                 linked_symbol->decl_scope) ||
+                      (overload_symbol != NULL &&
+                       overload_symbol->kind ==
+                                      (a_symbol_kind)sk_overloaded_function));
     }  /* if */
 #endif /* CHECKING */
   }  /* if */
