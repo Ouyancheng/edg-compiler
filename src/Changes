@@ -1,5 +1,12 @@
 Version 2.40
 
+9/2/98    Microsoft compatibility: allow __uuidof of template parameter
+
+The processing for __uuidof did not deal correctly with a template
+parameter name in the type.  Now fixed.
+
+  template <class T, const GUID* piid = &__uuidof(T)> struct A { };
+
 9/2/98    Microsoft compatibility: ignore case when comparing GUID strings
 
 The comparison for GUID strings on redeclarations in Microsoft mode

@@ -4741,9 +4741,12 @@ The value of the operation is an lvalue of type "const struct _GUID".
       uuidof_type = type_pointed_to(uuidof_type);
     }  /* if */
     uuidof_type = skip_typerefs(uuidof_type);
-    if (!is_class_struct_union_type(uuidof_type) ||
-        uuidof_type->variant.class_struct_union.extra_info->uuid_string ==
-                                                                        NULL) {
+    if (is_template_param_type(uuidof_type)) {
+      /* A template parameter type.  We must be in a prototype
+         instantiation. */
+    } else if (!is_class_struct_union_type(uuidof_type) ||
+               uuidof_type->variant.class_struct_union.extra_info->uuid_string
+                                                                     == NULL) {
       if (!is_error_type(uuidof_type)) {
         error(ec_uuidof_requires_uuid_class_type);
       }  /* if */
