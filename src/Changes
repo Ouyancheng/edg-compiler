@@ -3,10 +3,8 @@ Version 2.28
 1/12/95 Symbol reference kind for initializations
 
 A new symbol reference kind, SRK_INITIALIZATION, has been added for
-variable and static data member initializations.  It is a modifier of
-SRK_DEFINITION, and it may in turn be modified by SRK_IMPLICIT when no
-explicit initializer appears in the source but implicit initialization is
-performed by calling a default constructor.
+implicit and explicit variable and static data member initializations.  It
+is a modifier of SRK_DEFINITION.
 
 1/12/95 Const member with type array-of-class-type
 
