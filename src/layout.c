@@ -1476,10 +1476,7 @@ Reserve space at the end of the class object for virtual base classes.
 }  /* set_virtual_base_class_offsets */
 
 
-static void set_base_class_offsets(a_base_class_ptr       proximate_derivation,
-                                   a_base_class_ptr       list_to_search,
-                                   a_derivation_step_ptr  path,
-                                   a_derivation_step_ptr  end_of_path)
+static void set_base_class_offsets(a_base_class_ptr  proximate_derivation)
 /*
 The offset of base class proximate_derivation has been computed, but the
 offsets of its own base classes have not.  The confusing part of this
@@ -1509,11 +1506,11 @@ base class immediately derived from it (e.g., B) to its own offset within
 that class (e.g., A's offset within B); in other words, the D::A offset
 equals the D::B offset plus the B::A offset.
 
-Suppose that proximate_derivation is the D::B base class entry.
-list_to_search includes all 4 base classes from the most derived class.
-path will be simply ==>B, and end_of_path will be the same.  The algorithm
-involves going through B's direct base classes (there's only one in this
-case), finding the corresponding base class entry on list_to_search, and
+The algorithm involves going through direct base classes of
+proximate_derivation (in this example "B in D" is the proximate_derivation,
+and it has only one direct base class of its own, namely, "A in B"),
+finding the corresponding base class entry in the most derived class (e.g.,
+finding the appropriate "A in D" -- the one whose path is ==>B==A), and
 setting the offset field in the latter.
 */
 {
@@ -1529,9 +1526,8 @@ setting the offset field in the latter.
 #if DEBUG
   if (debug_level >= 4) {
     if (ref_bcp != NULL) {
-      fputs("root base class ", f_debug);
-      db_name(&proximate_derivation->type->source_corresp);
-      fprintf(f_debug, " at offset %ld\n", proximate_derivation->offset);
+      fputs("setting offsets for base classes of:\n  ", f_debug);
+      db_base_class(proximate_derivation, /*show_offset=*/TRUE);
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
@@ -1542,60 +1538,30 @@ setting the offset field in the latter.
 #if DEBUG
       if (debug_level >= 4) {
         fputs("reference base class ", f_debug);
-        db_name(&ref_bcp->type->source_corresp);
-        fprintf(f_debug, " at offset %ld\n", ref_bcp->offset);
+        db_base_class(ref_bcp, /*show_offset=*/TRUE);
       }  /* if */
 #endif /* DEBUG */
-      /* Look for a match in the base classes list of the most derived
-         class. */
-      for (bcp = list_to_search; bcp != NULL; bcp = bcp->next) {
-        /* Look for an indirect base class that is of the same type. */
-        if (!bcp->direct && bcp->type == ref_bcp->type &&
-            bcp->is_virtual == ref_bcp->is_virtual) {
-          /* We seem to have found a match, but we have to check the path
-             as well as the type (e.g., to distinguish B::A from C::A in the
-             example above. */
-          end_of_path->next = make_derivation_step(bcp,
-                                                  (a_derivation_step_ptr)NULL);
-          if (congruent_paths(path, bcp->derivation)) {
-            /* It is a match.  If this is a virtual base class, it is the
-               pointer_offset field that needs to be updated. */
-            if (!bcp->is_virtual) {
-              bcp->offset = proximate_derivation->offset + ref_bcp->offset;
+      bcp = corresponding_base_class(ref_bcp, (a_type_ptr)NULL,
+                                     proximate_derivation->derived_class);
+      if (!bcp->is_virtual) {
+        bcp->offset = proximate_derivation->offset + ref_bcp->offset;
 #if !CFRONT_OBJECT_CODE_COMPATIBILITY
-            } else {
-              bcp->pointer_offset = proximate_derivation->offset +
-                                    ref_bcp->pointer_offset;
+      } else {
+        bcp->pointer_offset =
+                      proximate_derivation->offset + ref_bcp->pointer_offset;
 #endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
-            }  /* if */
-#if DEBUG
-            if (debug_level >= 4) {
-              fputs("base class ", f_debug);
-              db_name(&bcp->type->source_corresp);
-              fprintf(f_debug, ": setting %soffset to %ld\n",
-                               bcp->is_virtual ? "pointer " : "",
-                               bcp->is_virtual ? bcp->pointer_offset :
-                                                 bcp->offset);
-            }  /* if */
-#endif /* DEBUG */
-            /* Make a recursive call to apply this processing to the next
-               level of base classes. */
-            set_base_class_offsets(bcp, list_to_search,
-                                   path, end_of_path->next);
-          }  /* if */
-          free_derivation_step(end_of_path->next);
-          end_of_path->next = NULL;
-          break;
-        }  /* if */
-      }  /* for */
-#if CHECKING
-      if (bcp == NULL && !ref_bcp->is_virtual) {
-        /* Normal exit from loop means no match was found.  This is only
-           possible when we're dealing with virtual base classes. */
-        internal_error(
-                 "set_base_class_offsets: no base class matches reference");
+      } else {
+        continue;
       }  /* if */
-#endif /* CHECKING */
+#if DEBUG
+      if (debug_level >= 4) {
+        fputs("new offset for ", f_debug);
+        db_base_class(bcp, /*show_offset=*/TRUE);
+      }  /* if */
+#endif /* DEBUG */
+      /* Make a recursive call to apply this processing to the next level of
+         base classes. */
+      set_base_class_offsets(bcp);
     }  /* if */
   }  /* for */
   db_exit();
@@ -1611,14 +1577,13 @@ been handled.  The processing of this routine and its subroutines is
 addressed to indirect base classes.
 */
 {
-  a_base_class_ptr      bcp, bcp_list;
-  a_derivation_step_ptr end_of_path;
+  a_base_class_ptr      bcp;
 
   db_enter(4, "set_offsets_for_indirect_base_classes");
-  bcp_list = base_classes_of(class_type);
+  bcp = base_classes_of(class_type);
 #if DEBUG
   if (debug_level >= 4) {
-    if (bcp_list != NULL) {
+    if (bcp != NULL) {
       fputs("before setting offsets: ", f_debug);
       db_base_class_list(class_type);
     }  /* if */
@@ -1627,15 +1592,9 @@ addressed to indirect base classes.
   /* Loop through the list of base classes, direct and indirect, that are
      defined for the class, but ignore all but the direct base classes.  The
      rest are handled by recursively scanning the base class tree. */
-  for (bcp = bcp_list; bcp != NULL; bcp = bcp->next) {
+  for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct) {
-      end_of_path = bcp->derivation;
-      /* We need to search for the end of the path (rather than assume, as
-         is generally the case, that direct base classes have one-step
-         derivations, to cover the case of virtual base classes that are
-         more accessible along an indirect than the direct path. */
-      while (end_of_path->next != NULL) end_of_path = end_of_path->next;
-      set_base_class_offsets(bcp, bcp_list, bcp->derivation, end_of_path);
+      set_base_class_offsets(bcp);
     }  /* if */
   }  /* for */
   db_exit();
