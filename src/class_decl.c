@@ -10948,8 +10948,12 @@ to be returned to the caller.
                decl_info.storage_class == (a_storage_class)sc_unspecified) {
       /* Provide support for the nonstandard declaration of a member constant
          of scalar type -- e.g., "const int I = 2;". */
-      decl_nonstd_member_constant(&locator, class_type, local_type,
-                                  class_state, &decl_info);
+      if (in_expression_context()) {
+        syntax_error(ec_nonstd_const_member_decl_not_allowed);
+      } else {
+        decl_nonstd_member_constant(&locator, class_type, local_type,
+                                    class_state, &decl_info);
+      }  /* if */
     } else {
       if (mutable_specified &&
           is_const_qualified_type(local_type)) {

@@ -1070,6 +1070,7 @@ ec_name_not_class_in_file_scope;;"the global scope has no class named %sq"
 ec_recursive_inst_of_templ_default_arg;;"recursive instantiation of template default argument"
 ec_no_access_or_using_decl_in_union;;"access declarations and using-declarations cannot appear in unions"
 ec_not_class_member;;"%no is not a class member"
+ec_nonstd_const_member_decl_not_allowed;;"nonstandard member constant declaration is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -1,5 +1,17 @@
 Version 2.44
 
+5/15/00  Internal error when declaring a nonstandard member constant in an
+         expression context
+
+The front use to abort when encountering a nonstandard member being declared
+as part of an expression:
+
+  void f() {
+    (struct S { int const K = 20; })0;  // Used to abort; now a normal error
+  }
+
+This is now fixed (normal errors are issued).
+
 5/15/00  Microsoft compatibility: using-declaration of extern "C" function
 
 In Microsoft mode, declarations of synonymous extern "C" functions in
