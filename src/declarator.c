@@ -1117,7 +1117,8 @@ scope is that of a class definition.
   }
   remove_stop_token(tok_rparen);
   if (C_dialect == C_dialect_cplusplus) {
-    a_type_ptr  this_param_type = NULL;
+    a_type_ptr            this_param_type = NULL;
+    a_type_qualification  qualifier;
 
     /* Create a pointer to the implicit this parameter.  This can be done
        for nonstatic function declarations within a class definition or
@@ -1164,10 +1165,11 @@ scope is that of a class definition.
         }  /* if */
         this_param_type = member_function_parent_type;
       } else {
-        this_param_type =
-                      make_qualified_type(member_function_parent_type,
-		                          dso_flags & DSO_CONST_QUALIFIED,
-		                          dso_flags & DSO_VOLATILE_QUALIFIED);
+        qualifier = TQ_NONE;
+        if (dso_flags & DSO_CONST_QUALIFIED) qualifier |= TQ_CONST;
+        if (dso_flags & DSO_VOLATILE_QUALIFIED) qualifier |= TQ_VOLATILE;
+        this_param_type = make_qualified_type(member_function_parent_type,
+                                              qualifier);
       }  /* if */
       if (qualifier_err) {
         pos_error(ec_function_qualifier_not_allowed, &qualifier_pos);
@@ -1182,8 +1184,8 @@ scope is that of a class definition.
          class-type" or, if there was a const qualifier on the function,
          "const pointer to const class-type". */
       this_param_type = make_pointer_type(this_param_type);
-      this_param_type = make_qualified_type(this_param_type, /*is_const=*/TRUE,
-                                            /*is_volatile=*/FALSE);
+      qualifier = TQ_CONST;
+      this_param_type = make_qualified_type(this_param_type, qualifier);
       extra_info->implicit_this_param_type = this_param_type;
     }  /* if */
 #if 0
@@ -1408,9 +1410,10 @@ parameter controls the restrictions imposed by the context.
     /* Take a type qualifier list (const, volatile, or both) if one appears. */
     (void)get_token();
     if (is_type_qualifier()) {
-      a_decl_flag_set    dso_flags;
-      a_storage_class    dummy_storage_class;
-      a_type_ptr         dummy_type_ptr;
+      a_decl_flag_set       dso_flags;
+      a_storage_class       dummy_storage_class;
+      a_type_ptr            dummy_type_ptr;
+      a_type_qualification  qualifier = TQ_NONE;
 
       set_err_pos_to_curr_token();
       (void)decl_specifiers(DSI_COLLECT_TYPE_QUALIFIERS, &dso_flags,
@@ -1419,10 +1422,9 @@ parameter controls the restrictions imposed by the context.
         diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
                    ec_qualified_reference_type);
       } else {
-        complete_type = 
-                  make_qualified_type(complete_type,
-                                      dso_flags & DSO_CONST_QUALIFIED,
-                                      dso_flags & DSO_VOLATILE_QUALIFIED);
+        if (dso_flags & DSO_CONST_QUALIFIED) qualifier |= TQ_CONST;
+        if (dso_flags & DSO_VOLATILE_QUALIFIED) qualifier |= TQ_VOLATILE;
+        complete_type = make_qualified_type(complete_type, qualifier);
       }  /* if */
     }  /* if */
   }  /* while */

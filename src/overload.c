@@ -1217,12 +1217,10 @@ class or a derived class thereof (except for error cases).
       /* Make the type that the "this" parameter would have if the routine
          were const, and try again. */
       const_this_param_base_type = make_qualified_type(this_param_base_type,
-                                                       /*is_const=*/TRUE,
-                                                       /*is_volatile=*/FALSE);
+                                                       TQ_CONST);
       const_this_param_type = make_pointer_type(const_this_param_base_type);
       const_this_param_type = make_qualified_type(const_this_param_type,
-                                                  /*is_const=*/TRUE,
-                                                  /*is_volatile=*/FALSE);
+                                                  TQ_CONST);
       determine_arg_match_level((an_operand *)NULL, ptr_selector_type,
                                 const_this_param_type,
                                 /*try_user_conversions=*/FALSE,

@@ -4798,6 +4798,7 @@ routine body is generated at this time.
   a_symbol_locator          locator;
   a_source_position         pos;
   a_func_info_block         func_info;
+  a_type_qualification      qualifier = TQ_CONST;
 
   db_enter(3, "generate_special_function");
   /* Allocate and initialize the routine type entry for the function. */
@@ -4824,8 +4825,8 @@ routine body is generated at this time.
   }  /* if */
   extra_info->param_type_list = ptp;
   extra_info->implicit_this_param_type =
-           make_qualified_type(make_pointer_type(class_type),
-                               /*is_const=*/TRUE, /*is_volatile=*/FALSE);
+                            make_qualified_type(make_pointer_type(class_type),
+                                                qualifier);
   extra_info->prototyped = TRUE;
   /* Check whether the routine needs special support for returning a class
      object by value.  This call should be superfluous; it is included just
@@ -5051,6 +5052,7 @@ The routine body is not generated until it is known to be needed.
   a_param_type_ptr              ptp;
   a_class_symbol_supplement_ptr cssp;
   a_boolean                     const_okay, dummy_flag;
+  a_type_qualification          qualifier;
 
   db_enter(3, "check_special_member_functions");
   cssp = symbol_supplement_for_class(class_type);
@@ -5062,10 +5064,9 @@ The routine body is not generated until it is known to be needed.
   if (cssp->constructor != NULL && !cssp->has_copy_constructor) {
     default_copy_constructor_check(class_type, &const_okay);
     /* Generate a copy constructor. */
+    qualifier = const_okay ? TQ_CONST : TQ_NONE;
     ptp = alloc_param_type(make_reference_type(
-                             make_qualified_type(class_type,
-                                                 /*is_const=*/const_okay,
-                                                 /*is_volatile=*/FALSE)));
+                               make_qualified_type(class_type, qualifier)));
     /* Set a flag in the param type entry if its associated type is or contains
        a template parameter. */
     ptp->type_involves_template_param =
@@ -5088,10 +5089,9 @@ The routine body is not generated until it is known to be needed.
     /* Only try to generate a default assignment operator if bitwise
        copying is not allowed. */
     const_okay = default_assignment_of_const_object_okay(class_type);
+    qualifier = const_okay ? TQ_CONST : TQ_NONE;
     ptp = alloc_param_type(make_reference_type(
-                               make_qualified_type(class_type,
-                                                   /*is_const=*/const_okay,
-                                                   /*is_volatile=*/FALSE)));
+                               make_qualified_type(class_type, qualifier)));
     /* Set a flag in the param type entry if its associated type is or contains
        a template parameter. */
     ptp->type_involves_template_param =
@@ -6347,8 +6347,7 @@ Scan the body of a class definition, including the base classes list.
                   a_type_ptr tp;
 
                   tp = make_pointer_type(class_type);
-                  tp = make_qualified_type(tp, /*is_const=*/TRUE,
-                                           /*is_volatile=*/FALSE);
+                  tp = make_qualified_type(tp, TQ_CONST);
                   local_type->variant.routine.extra_info->
                                     implicit_this_param_type = tp;
                 } else if (any_cfront_mode()) {
