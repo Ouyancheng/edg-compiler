@@ -1,5 +1,12 @@
 Version 3.2
 
+3/12/03  Incorrect code for C99 _Bool decrement
+
+IL lowering generated incorrect code for prefix or postfix decrement
+of a _Bool variable in C99 mode.  The C99 standard requires that
+such a decrement flip the value (0->1, 1->0), and we had implemented
+setting the variable to zero instead.  Now fixed.
+
 3/12/03  Diagnostic control pragmas
 
 Pragmas have been provided that can be used to override the severity of

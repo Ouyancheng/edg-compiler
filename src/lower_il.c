@@ -8999,38 +8999,27 @@ void lower_bool_incr_decr(an_expr_node_ptr expr)
 Rewrite an increment of a bool (eok_ipost_incr or eok_ipre_incr).
 Those operations set the lvalue to true instead of incrementing.
 For C99 mode, also handles decrement of a bool, which sets the
-lvalue to false.
+lvalue to its logical "not".
 */
 {
   an_expr_node_ptr operand_node = expr->variant.operation.operands;
   an_expr_node_ptr result_value_node;
   a_constant       result_constant;
-  a_boolean        is_incr;
 
   if (expr->variant.operation.kind == (an_expr_operator_kind)eok_ipre_incr ||
-      expr->variant.operation.kind == (an_expr_operator_kind)eok_ipost_incr) {
-    is_incr = TRUE;
-  } else {
-    check_assertion(
-      expr->variant.operation.kind == (an_expr_operator_kind)eok_ipre_decr ||
-      expr->variant.operation.kind == (an_expr_operator_kind)eok_ipost_decr);
-    is_incr = FALSE;
-  }  /* if */
-  /* Build a constant one, but make sure it has bool type to preserve
-     bool-correctness in the IL for back ends that care.  For decrement,
-     build a constant zero. */
-  set_integer_constant(&result_constant,
-                       is_incr ? (a_host_large_integer)1 :
-                                 (a_host_large_integer)0,
-                       targ_bool_int_kind);
-  result_constant.type = expr->type;
-  result_value_node = alloc_node_for_constant(&result_constant);
-  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_ipre_incr ||
-      expr->result_is_not_used) {
+      (expr->variant.operation.kind == (an_expr_operator_kind)eok_ipost_incr &&
+       expr->result_is_not_used)) {
     /* Preincrement: ++x becomes (x = 1).  Also used for postincrement
-       when result is not used.  Predecrement becomes (x = 0). */
+       when result is not used. */
     a_boolean returns_lvalue = expr->variant.operation.
                                         returns_lvalue_instead_of_usual_rvalue;
+    /* Build a constant one, but make sure it has bool type to preserve
+       bool-correctness in the IL for back ends that care. */
+    set_integer_constant(&result_constant,
+                         (a_host_large_integer)1,
+                         targ_bool_int_kind);
+    result_constant.type = expr->type;
+    result_value_node = alloc_node_for_constant(&result_constant);
     operand_node->next = result_value_node;
     set_node_operator(expr, (an_expr_operator_kind)eok_iassign,
                       expr->type, operand_node);
@@ -9038,7 +9027,10 @@ lvalue to false.
                                                                 returns_lvalue;
   } else {
     /* Postincrement: x++ becomes (temp = x, x = 1, temp).
-       Postdecrement: x-- becomes (temp = x, x = 0, temp). */
+       Postdecrement: x-- becomes (temp = x, x = !temp, temp).
+       Predecrement:  --x becomes (temp = x, x = !temp).
+       Decrement follows the C99 requirement; it's not valid in C++. */
+
     an_expr_node_ptr x_lvalue_copy =
                           make_lvalue_reusable_copy(operand_node,
                                                     /*vars_can_change=*/FALSE);
@@ -9047,13 +9039,46 @@ lvalue to false.
                                   make_reusable_copy(x_rvalue,
                                                      /*vars_can_change=*/TRUE);
     an_expr_node_ptr assign_node, comma_node;
+    a_boolean        predecr_case = (expr->variant.operation.kind ==
+                                         (an_expr_operator_kind)eok_ipre_decr);
+
+    if (expr->variant.operation.kind == (an_expr_operator_kind)eok_ipost_incr){
+      /* Increment. */
+      /* Build a constant one, but make sure it has bool type to preserve
+         bool-correctness in the IL for back ends that care. */
+      set_integer_constant(&result_constant,
+                           (a_host_large_integer)1,
+                           targ_bool_int_kind);
+      result_constant.type = expr->type;
+      result_value_node = alloc_node_for_constant(&result_constant);
+    } else {
+      /* Decrement.  Build !temp. */
+      result_value_node = make_operator_node((an_expr_operator_kind)eok_not,
+                                             integer_type(ik_int),
+                                             x_rvalue_copy);
+      result_value_node = add_cast(result_value_node, x_rvalue->type);
+      if (!predecr_case) {
+        x_rvalue_copy = make_reusable_copy(x_rvalue, /*vars_can_change=*/TRUE);
+      } /* if */
+    }  /* if */
+    /* Make the assignment: (x = 1) or (x = !temp). */
     x_lvalue_copy->next = result_value_node;
     assign_node = make_operator_node((an_expr_operator_kind)eok_iassign,
                                      x_rvalue->type, x_lvalue_copy);
-    comma_node = make_comma_node(x_rvalue, assign_node);
-    comma_node->next = x_rvalue_copy;
-    set_node_operator(expr, (an_expr_operator_kind)eok_comma,
-                      x_rvalue_copy->type, comma_node);
+    if (!predecr_case) {
+      comma_node = make_comma_node(x_rvalue, assign_node);
+      /* Change the original expression into a comma node whose second
+         operand is the overall result. */
+      comma_node->next = x_rvalue_copy;
+      set_node_operator(expr, (an_expr_operator_kind)eok_comma,
+                        x_rvalue_copy->type, comma_node);
+    } else {
+      /* The prefix case: change the original expression into a
+         comma node where the second operand is the assignment. */
+      x_rvalue->next = assign_node;
+      set_node_operator(expr, (an_expr_operator_kind)eok_comma,
+                        assign_node->type, x_rvalue);
+    }  /* if */
   }  /* if */
 }  /* lower_bool_incr_decr */                  
 
