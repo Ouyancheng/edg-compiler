@@ -2809,9 +2809,10 @@ of the function, and again overloading is a possibility.
       } else {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
-      decl_var_or_routine(locator, storage_class, function_type, func_info,
-                          /*is_variable_def=*/FALSE, &sym, &linkage,
-                          &old_type, &ext_sym);
+      decl_var_or_routine(locator, storage_class, function_type,
+                          func_info, (a_source_sequence_entry_ptr)NULL,
+                          /*is_variable_def=*/FALSE, &sym,
+                          &linkage, &old_type, &ext_sym);
       /* WP 11.4 para 5 prohibits defining a nonmember function in a local
          class friend declaration. */
       if (func_info->is_definition &&
@@ -2851,11 +2852,9 @@ of the function, and again overloading is a possibility.
           set_to_error_locator(*locator);
         } else {
           if (func_info->is_definition) {
-            mark_defined(sym, &locator->source_position,
-                         (a_decl_seq_info_ptr)NULL);
+            mark_defined(sym, &locator->source_position);
           } else {
-            mark_declared(sym, &locator->source_position,
-                          (a_decl_seq_info_ptr)NULL);
+            mark_declared(sym, &locator->source_position);
           }  /* if */
           /* Do throw specification compatibility checking. */
           check_throw_specification(func_info, sym->variant.routine.ptr);
@@ -3241,6 +3240,10 @@ special function kind (e.g., constructor, destructor), if any.
     redecl_member_function(sym, member_type, access,
                            (a_boolean)func_info->is_inline, is_virtual,
                            &locator->source_position);
+
+    update_source_sequence_list((char *)rtn, (an_il_entry_kind)iek_routine,
+                                &locator->source_position,
+                                func_info->declarator_ssep);
   } else {
     sym->class_of_which_a_member = class_type;
     /* Create the routine entry for the member function. */
@@ -3265,11 +3268,11 @@ special function kind (e.g., constructor, destructor), if any.
       rtn->compiler_generated = TRUE;
     } else {
       if (func_info->is_definition) {
-        mark_defined(sym, &locator->source_position,
-                     (a_decl_seq_info_ptr)NULL);
+        f_mark_defined(sym, &locator->source_position,
+                       func_info->declarator_ssep);
       } else {
-        mark_declared(sym, &locator->source_position,
-                      (a_decl_seq_info_ptr)NULL);
+        f_mark_declared(sym, &locator->source_position,
+                        func_info->declarator_ssep);
       }  /* if */
     }  /* if */
     add_throw_specification(func_info, rtn);
@@ -3530,7 +3533,7 @@ no other qualifier, and where the resulting type is a scalar type -- e.g.,
   cp->source_corresp.access = access;
   cp->source_corresp.class_of_which_a_member =
                           sym->class_of_which_a_member = class_type;
-  mark_defined(sym, &locator->source_position, (a_decl_seq_info_ptr)NULL);
+  mark_defined(sym, &locator->source_position);
   add_to_constants_list(cp, /*at_file_scope=*/FALSE);
   db_exit();
 }  /* decl_member_constant */
@@ -3542,7 +3545,8 @@ static void decl_static_data_member(a_symbol_locator *locator,
                                     an_access_specifier access,
                                     a_boolean        is_anonymous_union,
                                     a_boolean        is_nonreal_class,
-                                    a_symbol_ptr     corresp_prototype_tag_sym)
+                                    a_symbol_ptr     corresp_prototype_tag_sym,
+                                    a_source_sequence_entry_ptr  ssep)
 /*
 Do processing for a static data member, including entering it in the symbol
 table.
@@ -3577,7 +3581,7 @@ table.
   set_source_corresp(&var->source_corresp, sym);
   /* This is entered as a declaration rather than a definition, since the
      definition must appear outside the class definition. */
-  mark_declared(sym, &locator->source_position, (a_decl_seq_info_ptr)NULL);
+  f_mark_declared(sym, &locator->source_position, ssep);
   if (is_anonymous_union) {
     /* A static data members is not allowed to be an anonymous union.  An error
        will have been issued already, but promote the fields anyway. */
@@ -3883,6 +3887,7 @@ static void decl_nonstatic_data_member(a_symbol_locator    *locator,
                                        an_access_specifier access,
 				       a_boolean	   unnamed_field,
 				       a_boolean	   is_anonymous_union,
+                                       a_source_sequence_entry_ptr  ssep,
                                        a_field_ptr         *end_of_list)
 /*
 Scan a nonstatic data member of a class, struct, or union, create a field
@@ -3948,9 +3953,7 @@ class, struct, or union.
        from mark_defined).  An exception is made for unnamed fields; call
        the subroutine directly. */
     update_source_sequence_list((char *)field, (an_il_entry_kind)iek_field,
-                                &locator->source_position,
-                                (a_decl_seq_info_ptr)NULL);
-    
+                                &locator->source_position, ssep);
   } else if (!is_anonymous_union) {
     /* Create the field symbol. */
     member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
@@ -3959,8 +3962,7 @@ class, struct, or union.
     member_sym->class_of_which_a_member = class_type;
     member_sym->variant.field.ptr = field;
     set_source_corresp(&(field->source_corresp), member_sym);
-    mark_defined(member_sym, &locator->source_position,
-                 (a_decl_seq_info_ptr)NULL);
+    f_mark_defined(member_sym, &locator->source_position, ssep);
   }  /* if */
   field->source_corresp.class_of_which_a_member = class_type;
   field->source_corresp.access = access;
@@ -5445,8 +5447,7 @@ and "class_type" indicates the class in which the declaration occurs.
       aap->next = ctsp->access_adjustments;
       ctsp->access_adjustments = aap;
       /* Update cross-reference and source sequence info, if required. */
-      mark_declared(sym, &locator_for_curr_id.source_position,
-                    (a_decl_seq_info_ptr)NULL);
+      mark_declared(sym, &locator_for_curr_id.source_position);
     }  /* for */
   }  /* if */
 
@@ -5990,6 +5991,8 @@ Scan the body of a class definition, including the base classes list.
           a_type_ptr         local_type;
           a_boolean          unnamed_field = FALSE;
           a_func_info_block  func_info;
+          a_source_sequence_entry_ptr
+                             declarator_ssep = NULL;
 
           add_stop_token(tok_comma);
           add_stop_token(tok_colon);
@@ -6075,7 +6078,7 @@ Scan the body of a class definition, including the base classes list.
                        member_type,
                        friend_specified ? (a_type_ptr)NULL : class_type,
                        &locator, &local_type, &bottom_derived_type,
-                       &func_info);
+                       &declarator_ssep, &func_info);
             if (C_dialect == C_dialect_cplusplus) {
               /* Abstract class objects are prohibited (ARM 10.3). */
               if (member_storage_class != (a_storage_class)sc_typedef &&
@@ -6298,10 +6301,28 @@ Scan the body of a class definition, including the base classes list.
               }  /* if */
               if (!function_def_present) {
                 if (func_info.param_id_list != NULL) {
+                  /* After updating xref information on each symbol, free the
+                     list of parameter identifiers -- they're not needed if
+                     there's no definition. */
+                  a_param_id_ptr  pid = func_info.param_id_list;
+                  for (; pid != NULL; pid = pid->next) {
+                    if (pid->symbol != NULL) {
+                      mark_declared(pid->symbol, &pid->symbol->decl_position);
+                    }  /* if */
+                    if (pid->source_sequence_entry != NULL) {
+                      remove_from_source_sequence_list(
+                                                  &pid->source_sequence_entry,
+                                                  (a_type_ptr)NULL);
+                    }  /* if */
+                  }  /* for */
                   /* Free the list of parameter identifiers -- they're not
                      needed if there's no definition. */
                   free_param_id_list(&(func_info.param_id_list));
                 }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+              } else {
+                func_info.class_in_which_defined_inline = class_type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
               }  /* if */
               if (curr_routine_fixup != NULL) {
                 curr_routine_fixup->routine = rout_sym->variant.routine.ptr;
@@ -6401,7 +6422,8 @@ Scan the body of a class definition, including the base classes list.
               warning(ec_missing_type_specifier);
             }  /* if */
             /* Typedef declaration. */
-            decl_typedef(&locator, local_type, &typedef_sym_ptr);
+            decl_typedef(&locator, local_type, &typedef_sym_ptr,
+                         declarator_ssep);
             typedef_sym_ptr->class_of_which_a_member = class_type;
             typedef_sym_ptr->variant.type->source_corresp.access = access;
             typedef_sym_ptr->variant.type->
@@ -6450,7 +6472,8 @@ Scan the body of a class definition, including the base classes list.
               decl_static_data_member(&locator, class_type, local_type,
                                       access, is_anonymous_union,
                                       is_nonreal_instantiation,
-                                      corresp_prototype_tag_sym);
+                                      corresp_prototype_tag_sym,
+                                      declarator_ssep);
             } else {
               /* Non-static data member (= field). */
               /* The type specified must be complete. */
@@ -6529,7 +6552,7 @@ Scan the body of a class definition, including the base classes list.
               }  /* if */
               decl_nonstatic_data_member(&locator, &layout_block, &local_type,
                                          access, unnamed_field,
-                                         is_anonymous_union,
+                                         is_anonymous_union, declarator_ssep,
                                          &end_of_field_list);
               if (!class_aggregate_ruled_out) {
                 /* The ARM says that classes with private or protected members
@@ -7074,11 +7097,9 @@ skip_tag_scan:
       }  /* if */
     }  /* if */
     if (is_class_definition) {
-      mark_defined(tag_sym, &locator.source_position,
-                   (a_decl_seq_info_ptr)NULL);
+      mark_defined(tag_sym, &locator.source_position);
     } else {
-      mark_declared(tag_sym, &locator.source_position,
-                    (a_decl_seq_info_ptr)NULL);
+      mark_declared(tag_sym, &locator.source_position);
     }  /* if */
   } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
     /* Use of template parameter name as a proxy tag name during a
@@ -7089,11 +7110,9 @@ skip_tag_scan:
     /* Record cross-reference information. */
     if (is_class_definition) {
       if (is_template_class_instantiation) {
-        mark_declared(tag_sym, &locator.source_position,
-                      (a_decl_seq_info_ptr)NULL);
+        mark_declared(tag_sym, &locator.source_position);
       } else {
-        mark_defined(tag_sym, &locator.source_position,
-                     (a_decl_seq_info_ptr)NULL);
+        mark_defined(tag_sym, &locator.source_position);
       }  /* if */
       /* Allow for alternating between class and struct, but stay with the
          one associated with the definition.  The difference only affects
