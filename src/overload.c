@@ -6306,7 +6306,6 @@ conversion part (if any) of any required conversion.
   an_expr_node_ptr   temp_init_node;
   a_dynamic_init_ptr dip;
 
-  set_arg_transfer_method_flag(formal_param);
   if (formal_param->passed_via_copy_constructor) {
     /* Argument is initialized by a copy constructor. */
     /* See if the conversion is possible. */
