@@ -1102,6 +1102,7 @@ ec_undeclared_parameter;;"standard requires that %n be given a type by a subsequ
 ec_inline_never_defined;;"a definition is required for inline %n"
 ec_conversion_to_pointer_loses_bits;;"conversion from integer to smaller pointer"
 ec_missing_floating_point_type;;"a floating-point type must be included in the type specifier for a _Complex or _Imaginary type"
+ec_type_decl_in_anon_union;;"types cannot be declared in anonymous unions"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

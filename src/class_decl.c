@@ -7818,25 +7818,29 @@ nonstandard anonymous unions is_nonstd is TRUE.
       case sk_class_or_struct_tag:
       case sk_union_tag:
       case sk_enum_tag:
-        /* Unlink the symbol from the inactive list and link it back into
-           the symbol table in the current scope. */
-        tp = type_symbol_type(sym);
-        /* Set parent information in the symbol but not in the IL entry.  The
-           symbol is promoted, but the type remains nested. */
-        if (class_type != NULL) {
-          set_class_membership(sym, (a_source_correspondence *)NULL,
-                               class_type);
+        if (!(microsoft_mode || sun_mode)) {
+          pos_error(ec_type_decl_in_anon_union, &sym->decl_position);
         } else {
-          set_namespace_membership(sym, (a_source_correspondence *)NULL,
-                                   (a_namespace_ptr)NULL);
+          /* Unlink the symbol from the inactive list and link it back into
+             the symbol table in the current scope. */
+          tp = type_symbol_type(sym);
+          /* Set parent information in the symbol but not in the IL entry.  The
+             symbol is promoted, but the type remains nested. */
+          if (class_type != NULL) {
+            set_class_membership(sym, (a_source_correspondence *)NULL,
+                                 class_type);
+          } else {
+            set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                                     (a_namespace_ptr)NULL);
+          }  /* if */
+          /* The members of an anonymous union within a class take on the
+             access specifier of the anonymous union itself; the members
+             of a variable anonymous union should be (i.e., should remain)
+             public. */
+          tp->source_corresp.access = assoc_object_access;
+          remove_anonymous_union_member_from_inactive_symbols_list(sym);
+          reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
         }  /* if */
-        /* The members of an anonymous union within a class take on the
-           access specifier of the anonymous union itself; the members
-           of a variable anonymous union should be (i.e., should remain)
-           public. */
-        tp->source_corresp.access = assoc_object_access;
-        remove_anonymous_union_member_from_inactive_symbols_list(sym);
-        reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
         break;
       case sk_constant:
         /* An enum constant. */
