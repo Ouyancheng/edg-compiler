@@ -434,7 +434,7 @@ necessary to make it directly accessible in memory.
                         (long)region_number);
         }  /* if */
         (void)fprintf(f_debug,
-                    "     entry kind = %3ld,   written: %4ld,   read = %4ld\n",
+                    "     entry kind =%3ld,   written =%4ld,   read =%4ld\n",
                     (long)byte_entry_kind,
                     (long)entry_count_array_ptr[byte_entry_kind],
                     (long)count_of_entries_read[byte_entry_kind]);
