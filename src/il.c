@@ -8510,8 +8510,10 @@ expression node.  options is a set of options for the copy.
                                           is_static_object_lifetime_kind(kind);
     new_dip->lifetime = NULL;
     new_dip->next_in_destruction_list = NULL;
-    record_end_of_lifetime_destruction(new_dip, static_lifetime,
-                                       /*block_lifetime=*/FALSE);
+    if (!(options & CE_COPY_NOT_EVALUATED)) {
+      record_end_of_lifetime_destruction(new_dip, static_lifetime,
+                                         /*block_lifetime=*/FALSE);
+    }  /* if */
     if (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR) {
       /* Instantiate the destructor. */
       instantiate_il_entity(&dip->destructor->source_corresp);
@@ -11394,6 +11396,8 @@ potentially_evaluated is TRUE if the expression is potentially evaluated.
         /* The copy will be inside a conditional part of an expression. */
         options |= CE_INSIDE_CONDITIONAL_EXPRESSION;
       }  /* if */
+    } else {
+      options = CE_COPY_NOT_EVALUATED;
     }  /* if */
     expr = copy_expr_tree(expr, options);
     expr->generated_default_arg = TRUE;

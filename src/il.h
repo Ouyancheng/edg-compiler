@@ -767,6 +767,8 @@ typedef int an_expr_copy_options_set;
 			   point to ck_string constants with sequence_number
 			   != 0 are rewritten as the addresses of the
 			   generated variables. */
+#define CE_COPY_NOT_EVALUATED 0x80
+			/* TRUE if the copy is in an unevaluated context. */
 
 a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
                                   a_constant_ptr           new_constant,
