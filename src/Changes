@@ -1,5 +1,17 @@
 Version 2.46
 
+10/10/01 Partial specialization permitted to be declared outside of a class
+
+The standard permits a partial specialization of a member class template to
+be added outside of the class containing the member class template.  This
+feature is now implemented.
+
+  template <class T> struct A {
+    template <class T2> struct B { };
+  };
+  template <class T> template <class T2> struct A<T>::B<T2*> { };
+  A<int>::B<char*> ab1;
+
 10/7/01  Missing diagnostic on invalid template-id in destructor call
 
 No diagnostic was issued when the type of a template-id used as a

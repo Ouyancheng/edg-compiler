@@ -36,6 +36,7 @@ typedef struct a_template_instance *a_template_instance_ptr;
 typedef struct a_nondependent_call_info *a_nondependent_call_info_ptr;
 typedef struct a_template_cache *a_template_cache_ptr;
 typedef struct a_control_flow_descr a_control_flow_descr_dummy_typedef;
+typedef struct a_tmpl_decl_state a_tmpl_decl_state_dummy_typedef;
 typedef struct an_exception_spec_error_descr
                                           *an_exception_spec_error_descr_ptr;
 typedef struct an_attribute    an_attribute_dummy_typedef;
@@ -1612,6 +1613,32 @@ typedef struct a_templ_friend_info {
 } a_templ_friend_info;
 
 
+/*
+Entry used to record information about partial specializations of members
+of class templates that are declared outside of the parent class template.
+When an instance of the enclosing class template is instantiated, each
+of the entries on this list is processed to create a declaration of the
+partial specialization for that instance of the enclosing class.
+*/
+typedef struct an_out_of_class_partial_spec *an_out_of_class_partial_spec_ptr;
+typedef struct an_out_of_class_partial_spec {
+  an_out_of_class_partial_spec_ptr
+		next;	/* Pointer to the next entry on the list or NULL for
+			   the last entry. */
+  a_symbol_ptr	symbol;
+			/* The class template symbol of the partial
+			   specialization. */
+  a_template_cache
+		cache;	/* The cache containing the declaration of the
+			   partial specialization. */
+  struct a_tmpl_decl_state
+		*tmpl_decl_state;
+			/* Pointer to a copy of the template declaration
+			   state entry used when the partial specialization
+			   was first scanned. */
+} an_out_of_class_partial_spec;
+
+
 /* Used to track the number of pending instantiations of a given class. */
 typedef unsigned long a_pending_instantiation_count;
 
@@ -1749,6 +1776,20 @@ typedef struct a_template_symbol_supplement {
 			/* For partial specialization, points back to the
 			   primary template of which this is a partial
 			   specialization. */
+      an_out_of_class_partial_spec_ptr
+		out_of_class_partial_specs;
+			/* When a partial specialization of a class template
+			   that is a member of another class template is
+			   declared outside of the enclosing class, the
+			   partial specialization must be evaluated for
+			   each instantiation of the enclosing class.  This
+			   happens automatically for partial specializations
+			   that appear inside the enclosing class (because
+			   those tokens are rescanned during the instantiation
+			   of the enclosing class).  For partial
+			   specializations that appear outside of the class
+			   this is done by rescanning the declarations
+			   associated with the entries on this list. */
       a_templ_friend_info_ptr
 		friend_info;
 			/* Information about default arguments of friend
@@ -2757,6 +2798,8 @@ a_template_cache_segment_ptr alloc_template_cache_segment(
 
 extern void free_template_cache_segment(a_template_cache_segment_ptr tcsp);
 
+extern an_out_of_class_partial_spec_ptr alloc_out_of_class_partial_spec(void);
+
 extern a_template_decl_info_ptr alloc_template_decl_info(void);
 
 extern a_nondependent_call_info_ptr get_nondependent_call_info(
@@ -2787,6 +2830,10 @@ extern a_symbol_ptr enter_symbol(a_symbol_kind    sym_kind,
 extern void reenter_symbol(a_symbol_ptr     symbol_to_reenter,
                            a_scope_depth    scope_depth,
                            a_boolean        suppress_error);
+
+extern void enter_copy_of_symbol(a_symbol_ptr     orig_sym,
+				 a_scope_depth    scope_depth,
+		                 a_boolean        suppress_error);
 
 extern a_symbol_ptr enter_extern_symbol(a_symbol_kind    sym_kind,
                                         a_symbol_locator *locator);

@@ -900,7 +900,7 @@ ec_expr_not_arithmetic_or_enum_or_pointer;;"expression must have arithmetic, enu
 ec_cast_not_integral_or_enum;;"type of cast must be integral or enum"
 ec_cast_not_arithmetic_or_enum_or_pointer;;"type of cast must be arithmetic, enum, or pointer"
 ec_expr_not_object_pointer;;"expression must be a pointer to a complete object type"
-ec_member_partial_spec_not_in_class;;"a partial specialization of a member class template must be declared in the class of which it is a member"
+REMOVED;ec_member_partial_spec_not_in_class;;"a partial specialization of a member class template must be declared in the class of which it is a member"
 ec_partial_spec_nontype_expr;;"a partial specialization nontype argument must be the name of a nontype parameter or a constant"
 ec_different_return_type_on_virtual_function_override;;"return type is not identical to return type %t of overridden virtual function %n"
 ec_cl_guiding_decls_option_only_in_cplusplus;;"option \"guiding_decls\" can be used only when compiling C++"

@@ -87,6 +87,7 @@ static unsigned long
 		num_type_list_entries_allocated,
 		num_substituted_type_list_entries_allocated,
 		num_template_cache_segments_allocated,
+                num_out_of_class_partial_specs_allocated,
 		num_template_decl_info_allocated,
 		num_nondependent_call_info_allocated,
 		num_templ_friend_info_allocated,
@@ -2049,6 +2050,27 @@ Free a template cache segment entry and return it to the available list.
 }  /* free_template_cache_segment */
 
 
+an_out_of_class_partial_spec_ptr alloc_out_of_class_partial_spec(void)
+/*
+Allocate a new template declaration information entry, initialize its
+fields, and return a pointer to it.
+*/
+{
+  an_out_of_class_partial_spec_ptr  oocpsp;
+
+  /* Allocate a template declaration information entry. */
+  oocpsp = alloc_fe_of_type(an_out_of_class_partial_spec);
+  oocpsp->next = NULL;
+  oocpsp->symbol = NULL;
+  clear_template_cache(&oocpsp->cache, /*is_reusable=*/TRUE);
+#if DEBUG
+  num_out_of_class_partial_specs_allocated++;
+#endif /* DEBUG */
+
+  return oocpsp;
+}  /* alloc_out_of_class_partial_spec */
+
+
 a_template_decl_info_ptr alloc_template_decl_info(void)
 /*
 Allocate a new template declaration information entry, initialize its
@@ -2336,6 +2358,7 @@ and return a pointer to it.
       tssp->variant.class_template.prototype_instantiation = NULL;
       tssp->variant.class_template.partial_specializations = NULL;
       tssp->variant.class_template.primary_template_sym = NULL;
+      tssp->variant.class_template.out_of_class_partial_specs = NULL;
       tssp->variant.class_template.friend_info = NULL;
       tssp->variant.class_template.prototype_instantiation_complete = FALSE;
       tssp->variant.class_template.access =
@@ -3913,6 +3936,38 @@ defined in that scope and name space unless suppress_error is TRUE.
                                 suppress_error);
   db_exit();
 }  /* reenter_symbol */
+
+
+void enter_copy_of_symbol(a_symbol_ptr     orig_sym,
+			  a_scope_depth    scope_depth,
+	                  a_boolean        suppress_error)
+/*
+Enter a copy of a symbol table entry into the symbol table.  orig_sym
+points to a symbol that is in the symbol table.  scope_depth indicates the
+level of the scope stack at which the symbol should be entered.  Generate
+an error if the symbol is already defined in that scope and name space
+unless suppress_error is TRUE.
+*/
+{
+  a_symbol_ptr	new_sym;
+
+  db_enter(4, "enter_copy_of_symbol");
+  /* Allocate a new symbol into which the symbol will be copied. */
+  new_sym = alloc_symbol(orig_sym->kind, orig_sym->header,
+                         &orig_sym->decl_position);
+  *new_sym = *orig_sym;
+  /* Clear the next pointers. */
+  new_sym->next = NULL;
+  new_sym->next_in_scope = NULL;
+  /* Add the symbol to the proper scope's symbol list. */
+  add_symbol_to_scope_list(new_sym, scope_depth, &suppress_error);
+  /* Add the symbol to the symbol table.  This must be done after the symbol
+     is added to the scope list, because that sets the scope number, which
+     is needed to check for redeclaration. */
+  link_symbol_into_symbol_table(new_sym, scope_depth,
+                                suppress_error);
+  db_exit();
+}  /* enter_copy_of_symbol */
 
 
 void reactivate_prototype_scope_symbols(a_symbol_ptr  prototype_scope_symbols)
@@ -10305,6 +10360,9 @@ for space tracking purposes.
                      a_template_cache_segment);
   db_space_used("template decl info", num_template_decl_info_allocated,
                 a_template_decl_info);
+  db_space_used("out of class partial spec",
+                num_out_of_class_partial_specs_allocated,
+                an_out_of_class_partial_spec);
   db_space_used("nodependent call info", num_nondependent_call_info_allocated,
                 a_nondependent_call_info);
   db_space_used("templ friend def arg", num_templ_friend_info_allocated,
@@ -10683,6 +10741,7 @@ of the front end.
   num_substituted_type_list_entries_allocated  = 0;
   num_template_cache_segments_allocated        = 0;
   num_template_decl_info_allocated             = 0;
+  num_out_of_class_partial_specs_allocated     = 0;
   num_nondependent_call_info_allocated         = 0;
   num_templ_friend_info_allocated              = 0;
   num_namespace_list_entries_allocated         = 0;

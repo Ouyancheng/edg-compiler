@@ -424,6 +424,7 @@ static unsigned long
 		num_template_lookup_entries_allocated,
                 num_exported_template_files_allocated,
 #endif /* TEMPLATE_LOOKUP_NEEDED */
+		num_tmpl_decl_states_allocated,
 		num_partial_order_candidates_allocated;
 #endif /* DEBUG */
 
@@ -470,6 +471,11 @@ typedef struct a_tmpl_decl_state {
   a_boolean	export_present;
 			/* TRUE if the "export" keyword was used on the
 			   declaration. */
+  a_boolean	partial_spec_outside_of_class_template;
+			/* TRUE if this is the declaration of a partial
+			   specialization of a class that is a member of
+			   a class template, and the declaration appears
+			   outside of the parent class. */
   a_source_position
 		export_position;
 			/* If export_present is TRUE, the position of the
@@ -579,6 +585,7 @@ Initialize a template declaration state block.
   tdsp->in_prototype_instantiation = FALSE;
   tdsp->decl_scope_err = FALSE;
   tdsp->export_present = FALSE;
+  tdsp->partial_spec_outside_of_class_template = FALSE;
   tdsp->export_position = null_source_position;
   tdsp->access = (an_access_specifier)as_public;
   tdsp->nesting_depth = 0;
@@ -2100,6 +2107,170 @@ enclosing template.
 }  /* determine_referencing_namespace */
 
 
+/* Forward declarations. */
+static void class_template_declaration(
+                         a_tmpl_decl_state_ptr decl_state,
+		         a_symbol_ptr          *p_sym_ptr,
+		         a_boolean             *resolution,
+			 a_boolean	       out_of_class_partial_spec);
+
+static
+void complete_il_template_entry(a_tmpl_decl_state_ptr  decl_state,
+                                a_symbol_ptr           sym);
+
+
+static void update_export_flag_for_class(
+			a_tmpl_decl_state_ptr			decl_state,
+			a_template_symbol_supplement_ptr	tssp);
+
+static void set_il_template_entry(
+			a_tmpl_decl_state_ptr			decl_state,
+			a_symbol_ptr				sym,
+			a_template_symbol_supplement_ptr	tssp);
+
+
+static void reactivate_template_declaration_scope(
+				a_template_decl_info_ptr	decl_info)
+/*
+Push a template declaration scope for the template declaration described
+by "decl_info".  Enter copies of the template parameter symbols into the
+symbol table.
+*/
+{
+  a_template_param_ptr	tpp;
+
+  push_template_declaration_scope(decl_info);
+  for (tpp = decl_info->parameters; tpp != NULL; tpp = tpp->next) {
+    a_symbol_ptr	sym = tpp->param_symbol;
+    enter_copy_of_symbol(sym, depth_scope_stack, /*suppress_error=*/TRUE);
+  }  /* for */
+}  /* reactivate_template_declaration_scope */
+
+
+static void create_decl_state_for_partial_spec_rescan(
+                                a_tmpl_decl_state_ptr		tdsp,
+                                a_tmpl_decl_state_ptr		orig_tdsp,
+				a_template_decl_info_ptr	decl_info,
+				a_type_ptr			class_type)
+/*
+We are about to rescan the declaration of a partial specialization that
+was declared outside of the class template of which it is a member.
+
+Construct a template declaration state block that can be used for this
+rescan.  "tdsp" is the declaration state being created.  "orig_tdsp" is
+a copy of the declaration state made when the original declaration
+was scanned.  "decl_info" is the template declaration information of the
+partial specialization.  "class_type" is the parent class. type.
+*/
+{
+  init_templ_decl_state(tdsp);
+  tdsp->is_member_decl = TRUE;
+  tdsp->nesting_depth = orig_tdsp->nesting_depth;
+  tdsp->decl_info = decl_info;
+  tdsp->class_declared_in = class_type;
+  tdsp->effective_decl_level = DEPTH_OF_FILE_SCOPE;
+  tdsp->il_template_entry = make_il_template_entry(tdsp);
+}  /* create_decl_state_for_partial_spec_rescan */
+
+
+static void instantiate_out_of_class_partial_spec(
+		an_out_of_class_partial_spec_ptr     oocpsp,
+		a_symbol_ptr			     instance_sym,
+		a_type_ptr			     class_type,
+		a_symbol_ptr			     template_sym,
+		a_template_arg_ptr		     template_arg_list)
+/*
+Create a declaration for the out-of-class partial specialization specified
+by oocpsp in the class template instance specified by "instance_sym".
+"class_type" is the class of which the partially specialized class template
+is a member.  "template_sym" is the template of which "instance_sym" is
+an instance.  "template_arg_list" is the template argument list associated
+with "instance_sym".
+*/
+{
+  a_template_decl_info_ptr		parent_decl_info;
+  a_template_decl_info_ptr		decl_info;
+  a_symbol_ptr				ps_sym;
+  a_template_symbol_supplement_ptr	ps_tssp;
+  a_template_symbol_supplement_ptr	new_tssp;
+  a_boolean				resolution;
+  a_symbol_ptr				new_sym;
+  a_tmpl_decl_state			decl_state;
+
+  ps_sym = oocpsp->symbol;
+  ps_tssp = ps_sym->variant.template_info;
+  decl_info = ps_tssp->cache.decl_info;
+  parent_decl_info = decl_info->enclosing_template_decl;
+  push_template_instantiation_scope(parent_decl_info,
+			            class_type,
+				    (a_routine_ptr)NULL,
+				    instance_sym, template_sym,
+				    template_arg_list,
+                                    /*push_stop_tokens=*/TRUE,
+                                    PS_NO_OPTIONS);
+  reactivate_template_declaration_scope(decl_info);
+  /* The rescan requires a template declaration state block.  Build
+     one to represent the state in which the partial specialization
+     is to be processed. */
+  create_decl_state_for_partial_spec_rescan(&decl_state,
+                                            oocpsp->tmpl_decl_state,
+                                            decl_info, class_type);
+  /* Reactivate any pragmas that should be bound to the generated
+     instance. */
+  reactivate_curr_construct_pragmas(ps_tssp->pragmas_bound_to_template);
+  rescan_reusable_cache(&oocpsp->cache.tokens);
+  class_template_declaration(&decl_state, &new_sym, &resolution,
+                             /*out_of_class_partial_spec=*/TRUE);
+  new_tssp = new_sym->variant.template_info;
+  /* Process any pragmas that are to be bound to this instance. */
+  process_curr_construct_pragmas(new_sym, (a_statement_ptr)NULL);
+  /* Make sure we reached the end of the cache. */
+  flush_past_token_cache_terminator();
+  /* Pop the template declaration scope. */
+  pop_scope();
+  /* Pop the instantiation scope. */
+  pop_template_instantiation_scope();
+  /* Set the source correspondence information for the template entry
+     associated with this declaration. */
+  set_il_template_entry(&decl_state, new_sym, new_tssp);
+  /* If the partial specialization was exported, set the export flag for
+     this instantiation of it. */
+  if (ps_tssp->il_template_entry->is_exported) {
+    new_tssp->il_template_entry->is_exported = TRUE;
+  } else {
+    /* Set the export flag based on the export information of the enclosing
+       class. */
+    update_export_flag_for_class(&decl_state, ps_tssp);
+  }  /* if */
+  /* Update the IL template entry to reflect the information from this
+     declaration. */
+  complete_il_template_entry(&decl_state, new_sym);
+}  /* instantiate_out_of_class_partial_spec */
+
+
+static void instantiate_out_of_class_partial_specs(
+		a_symbol_ptr			     instance_sym,
+		a_type_ptr			     class_type,
+		a_symbol_ptr			     template_sym,
+		a_template_arg_ptr		     template_arg_list,
+		a_template_symbol_supplement_ptr     tssp_of_prototype)
+/*
+Go through the list of out-of-class partial specializations for the
+template specified by "tssp_of_prototype" and create declarations
+in the instance specified by "instance_sym".
+*/
+{
+  an_out_of_class_partial_spec_ptr	oocpsp;
+
+  for (oocpsp = tssp_of_prototype->
+                           variant.class_template.out_of_class_partial_specs;
+       oocpsp != NULL; oocpsp = oocpsp->next) {
+    instantiate_out_of_class_partial_spec(oocpsp, instance_sym, class_type,
+                                          template_sym, template_arg_list);
+  }  /* for */
+}  /* instantiate_out_of_class_partial_specs */
+
+
 void f_instantiate_template_class(a_type_ptr  class_type)
 /*
 class_type is an incomplete class type.  If it is an instance of a class
@@ -2327,6 +2498,12 @@ might not be able to if the template itself has not yet been defined.
          class template. */
       cssp->instantiation_in_progress = FALSE;
       --(tssp->pending_instantiations);
+      /* Process the declarations of any partial specializations declared
+         outside of the class. */
+      instantiate_out_of_class_partial_specs(
+                                 instance_sym, class_type, template_sym,
+				 template_arg_list,
+				 tssp_of_prototype);
       /* Call a routine that manages the correspondence of entities between
          translation units to notify it that the class type is complete.
          This causes the correspondence of the class members to be
@@ -9528,14 +9705,58 @@ Return TRUE if an error was detected.
 }  /* check_unqualified_template_redecl_scope */
 
 
+static a_boolean locator_parent_matches_symbol(
+				a_symbol_locator	*locator,
+				a_symbol_ptr		sym,
+				a_symbol_ptr		*locator_parent_sym)
+/*
+If "sym" is a class or namespace member, make sure that the parent
+class or namespace of "locator" matches the parent of symbol.  Return
+TRUE if they match.  Return the symbol associated with the locator
+parent class or namespace in locator_parent_sym.
+*/
+{
+  a_symbol_ptr	parent_sym = NULL;
+  a_boolean	result = FALSE;
+
+  check_assertion(locator->is_class_member == sym->is_class_member);
+  if (locator->is_class_member) {
+    a_type_ptr	parent_class;
+    parent_class = locator->parent.class_type;
+    if (parent_class->kind == (a_type_kind)tk_template_param) {
+      /* If the locator parent is a template parameter, use its proxy class. */
+      parent_class = proxy_class_for_template_param(parent_class);
+    }  /* if */
+    result = identical_types(parent_class, sym->parent.class_type);
+    parent_sym = (a_symbol_ptr)parent_class->source_corresp.assoc_info;
+  } else if (locator->parent.namespace_ptr != NULL) {
+    a_namespace_ptr	parent_namespace;
+    parent_namespace = locator->parent.namespace_ptr;
+    result = parent_namespace == sym->parent.namespace_ptr;
+    parent_sym = (a_symbol_ptr)parent_namespace->source_corresp.assoc_info;
+  } else {
+    /* No parent information in the locator. */
+    result = TRUE;
+  }  /* if */
+  *locator_parent_sym = parent_sym;
+  return result;
+}  /* locator_parent_matches_symbol */
+
+
 static a_boolean check_qualified_template_redecl_scope(
-					a_tmpl_decl_state_ptr	decl_state,
-					a_symbol_ptr		sym,
-					a_symbol_locator	*locator,
-					a_boolean		is_definition)
+			a_tmpl_decl_state_ptr	decl_state,
+			a_symbol_ptr		sym,
+			a_symbol_locator	*locator,
+			a_boolean		is_definition,
+			a_boolean		out_of_class_partial_spec)
 /*
 Make sure the current scope is a valid scope for sym to be redeclared
 using a qualified name.  Return TRUE if an error was detected.
+
+is_definition is TRUE if the entity is being defined.
+out_of_class_partial_spec is TRUE if this is the instantiation of a
+partial specialization that was declared outside of the class template
+of which it is a member.
 */
 {
   a_scope_stack_entry_ptr	ssep =
@@ -9543,6 +9764,7 @@ using a qualified name.  Return TRUE if an error was detected.
   a_namespace_ptr		nsp;
   a_namespace_ptr		curr_nsp;
   a_boolean			result = FALSE;
+  a_symbol_ptr			parent_sym;
 
   /* Get the namespace that is currently being defined. */
   curr_nsp = scope_stack[depth_innermost_namespace_scope].assoc_namespace;
@@ -9554,15 +9776,17 @@ using a qualified name.  Return TRUE if an error was detected.
     pos_error(ec_qualifier_in_namespace_member_decl,
               &locator->source_position);
     result = TRUE;
-  } else if (!is_definition) {
+  } else if (!is_definition && !out_of_class_partial_spec) {
     /* A declaration using a qualified name.  This is only allowed if it
-       is a friend declaration. */
+       is a friend declaration, or for the instantiation of an
+       out-of-class declaration of a partial specialization. */
     if (!decl_state->is_template_friend) {
       pos_sy_error(ec_bad_scope_for_redeclaration,
                    &locator->source_position, sym);
       result = TRUE;
     }  /* if */
-  } else if (decl_state->class_declared_in != NULL) {
+  } else if (decl_state->class_declared_in != NULL &&
+             !out_of_class_partial_spec) {
     /* A definition using a qualified name in a class scope.  This is
        not allowed. */
     pos_error(ec_qualifier_in_member_declaration, &locator->source_position);
@@ -9575,6 +9799,13 @@ using a qualified name.  Return TRUE if an error was detected.
     pos_sy_error(ec_bad_scope_for_definition,
                  &locator->source_position, sym);
     result = TRUE;
+  } else if (!locator_parent_matches_symbol(locator, sym, &parent_sym)) {
+    /* The symbol is something like X::Y, but the locator has a parent
+       class or namespace of Z.  This can occur if X::Y is an inherited
+       member or one made visible by a using-directive. */
+
+      pos_stsy_error(ec_not_an_actual_member, &locator->source_position,
+                     locator->symbol_header->identifier, parent_sym);
   } else {
     /* Check for the definition of a nonreal member. */
     a_template_symbol_supplement_ptr	tssp;
@@ -9686,10 +9917,93 @@ may have been present when the enclosing class was declared.
 }  /* update_export_flag_for_class */
 
 
+static void add_partial_spec_to_existing_instantiations(
+			a_symbol_ptr				parent_sym,
+			a_template_symbol_supplement_ptr	parent_tssp,
+			an_out_of_class_partial_spec_ptr	oocpsp)
+/*
+oocpsp describes a partial specialization of a member of a class template
+that was declared outside of the class of which it is a member.  Check
+for any previously instantiated instances of the parent class template and
+add this partial specialization to those instances.
+*/
+{
+  a_symbol_ptr	instance_sym;
+
+  for (instance_sym = parent_tssp->variant.class_template.instantiations;
+       instance_sym != NULL; instance_sym = next_instance_sym(instance_sym)) {
+    a_type_ptr				instance_type;
+    a_template_arg_ptr			template_arg_list;
+    instance_type = instance_sym->variant.class_struct_union.type;
+    /* Skip nonreal classes.  This includes prototype instantiations. */
+    if (instance_type->variant.class_struct_union.is_nonreal_class) continue;
+    /* Skip specialized classes. */
+    if (instance_type->variant.class_struct_union.is_specialized) continue;
+    /* Skip the instance if a full instantiation has not yet been done. */
+    if (is_incomplete_type(instance_type)) continue;
+    template_arg_list = templ_arg_list_for_class(instance_type);
+    instantiate_out_of_class_partial_spec(oocpsp, instance_sym, instance_type,
+                                          parent_sym, template_arg_list);
+  }  /* for */
+}  /* add_partial_spec_to_existing_instantiations */
+
+
+static void create_out_of_class_entry_for_partial_spec(
+	                         a_tmpl_decl_state_ptr decl_state,
+			         a_symbol_ptr          sym)
+/*
+We have scanned the declaration of a partial specialization for a
+primary template that is a member of a class template.  The partial
+specialization was first declared in this declaration, which appeared
+outside of the parent class.
+
+A partial specialization that is declared inside the class is rescanned
+for each instantiation of the enclosing class.  Similar processing must
+be done for partial specializations that are declared outside of the
+class.
+
+This routine records information about the partial specialization so that
+the necessary processing can be done.
+
+"sym" is the class template symbol for the partial specialization.
+*/
+{
+  an_out_of_class_partial_spec_ptr	oocpsp;
+  a_type_ptr				parent_class;
+  a_symbol_ptr				parent_sym;
+  a_symbol_ptr				parent_templ_sym;
+  a_template_symbol_supplement_ptr	parent_tssp;
+
+  oocpsp = alloc_out_of_class_partial_spec();
+  check_assertion(sym->is_class_member);
+  parent_class = sym->parent.class_type;
+  parent_sym = (a_symbol_ptr)parent_class->source_corresp.assoc_info;
+  parent_templ_sym = template_symbol_for_class_symbol(parent_sym);
+  parent_tssp = parent_templ_sym->variant.template_info;
+  oocpsp->symbol = sym;
+  set_template_cache_info(&oocpsp->cache, &decl_state->decl_token_cache,
+                          decl_state->decl_info);
+  /* Prevent the declaration token cache from being freed. */
+  decl_state->decl_token_cache_used = TRUE;
+  /* Save a copy of the template declaration state information. */
+  oocpsp->tmpl_decl_state = alloc_fe_of_type(a_tmpl_decl_state);
+  *(oocpsp->tmpl_decl_state) = *decl_state;
+  add_partial_spec_to_existing_instantiations(parent_templ_sym, parent_tssp,
+                                              oocpsp);
+  /* Add this to the list of out-of-class partial specializations for the
+     enclosing class.  Note this must be done after the partial specialization
+     has been added to existing instantiations. */
+  oocpsp->next = parent_tssp->
+                             variant.class_template.out_of_class_partial_specs;
+  parent_tssp->variant.class_template.out_of_class_partial_specs = oocpsp;
+}  /* create_out_of_class_entry_for_partial_spec */
+
+
 static void class_template_declaration(
                          a_tmpl_decl_state_ptr decl_state,
 		         a_symbol_ptr          *p_sym_ptr,
-		         a_boolean             *resolution)
+		         a_boolean             *resolution,
+			 a_boolean	       out_of_class_partial_spec)
 
 /*
 The beginning of a template declaration or definition has been scanned,
@@ -9706,6 +10020,9 @@ declared previously but not defined, and this is a defining declaration,
 return *resolution TRUE.  In addition, if this is a defining declaration,
 cache all the tokens that make up the declaration and do a prototype
 instantiation.
+
+out_of_class_partial_spec is TRUE if this is the instantiation of the
+declaration of a partial specialization declared outside of its class.
 */
 {
   a_boolean                         suppress_redecl_error = FALSE;
@@ -9724,6 +10041,7 @@ instantiation.
   a_token_cache_ptr		    definition_token_cache = NULL;
   a_token_kind			    next_tok;
   a_boolean			    is_partial_specialization = FALSE;
+  a_boolean			    partial_spec_outside_of_class = FALSE;
   a_symbol_ptr			    partial_spec_nonreal_sym = sym;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_extended_decl_info_block       extended_decl_info;
@@ -9927,17 +10245,7 @@ instantiation.
     } else if (is_nonreal_instance_class_symbol(sym)) {
       a_scope_stack_entry_ptr	ssep =
                                 &scope_stack[decl_state->effective_decl_level];
-      if (sym->is_class_member && decl_state->class_declared_in == NULL &&
-          !template_for_instance(sym)->
-                               variant.template_info->is_specific_definition) {
-        /* A partial specialization must be declared in the class of which it
-           is a member.  An exception is made for partial specializations
-           of a template that is itself a specialization of a member class
-           template. */
-        pos_error(ec_member_partial_spec_not_in_class,
-                  &locator.source_position);
-        err = TRUE;
-      } else if (!decl_state->is_template_friend &&
+      if (!decl_state->is_template_friend &&
                  decl_state->class_declared_in != NULL &&
                  (!sym->is_class_member ||
                    sym->parent.class_type != decl_state->class_declared_in)) {
@@ -9952,6 +10260,34 @@ instantiation.
                   &locator.source_position);
         err = TRUE;
       } else {
+        if (sym->is_class_member && decl_state->class_declared_in == NULL) {
+          /* A partial specialization declared outside of the class.  These
+             must be handled specially because the partial specialization
+             must be declared for each instance of the enclosing class (if
+             the enclosing class is a class template).  For a partial
+             specialization declared inside the class, this happens
+             automatically when the tokens are rescanned. */
+          a_symbol_ptr	parent_class_sym;
+          partial_spec_outside_of_class = TRUE;
+          parent_class_sym = (a_symbol_ptr)sym->parent.class_type->
+                                                     source_corresp.assoc_info;
+          if (template_for_instance(sym)->
+                               variant.template_info->is_specific_definition) {
+            /* The primary template is specialized, so a partial specialization
+               declared outside requires no subsequent special processing. */
+          } else if (is_prototype_instantiation_symbol(parent_class_sym)) {
+            /* The parent is a class template.  Further special processing
+               is required to evaluate this partial specialization for each
+               generated instance. */
+            decl_state->partial_spec_outside_of_class_template = TRUE;
+          } else {
+            /* The parent is not a prototype specialization.  This means the
+               parent is either a normal (non-template) class or is a
+               real class instance.  In either case, we can just add the
+               partial specialization to the class and no further processing is
+               needed. */
+          }  /* if */
+        }  /* if */
         partial_spec_nonreal_sym = sym;
         sym = NULL;
       }  /* if */
@@ -10042,12 +10378,18 @@ instantiation.
     } else if (locator.is_qualified_name) {
       if (sym != NULL) {
         suppress_redecl_error = check_qualified_template_redecl_scope(
-                                     decl_state, sym, &locator, is_definition);
+                                     decl_state, sym, &locator, is_definition,
+                                     /*out_of_class_partial_spec=*/FALSE);
       } else if (is_partial_specialization &&
                  partial_spec_nonreal_sym != NULL) {
+        /* Note that for an out-of-class partial specialization, we pass
+           in a TRUE value for the "is_definition" parameter so that an
+           out-of-class declaration will be accepted. */
         suppress_redecl_error = check_qualified_template_redecl_scope(
-                                          decl_state, partial_spec_nonreal_sym,
-                                          &locator, is_definition);
+                                   decl_state, partial_spec_nonreal_sym,
+                                   &locator, is_definition,
+                                   out_of_class_partial_spec ||
+                                   partial_spec_outside_of_class);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -10373,7 +10715,7 @@ instantiation.
          on the definition of the template.  This information is saved
          for the definition and also for the initial declaration. */
      set_template_cache_info(&tssp->cache, definition_token_cache,
-                              decl_state->decl_info);
+                             decl_state->decl_info);
     }  /* if */
     if (is_partial_specialization && !is_redecl) {
       /* Check any existing instances to see if the new partial specialization
@@ -13260,7 +13602,8 @@ any non-empty template parameter lists that were scanned.
      of the definition (if any) and cache them away of later reference. */
   if (is_class_template_decl(&decl_state->decl_token_cache)) {
     class_template_declaration(decl_state, &sym,
-			       &tag_resolution);
+			       &tag_resolution,
+                               /*out_of_class_partial_spec=*/FALSE);
     tssp = sym != NULL ? template_supplement_for_symbol(sym) : NULL;
     is_class_template = TRUE;
     if (decl_state->defines_something && sym != NULL) {
@@ -13467,6 +13810,12 @@ any non-empty template parameter lists that were scanned.
       sssdp->friend_decl = decl_state->is_template_friend;
       sssdp->autonomous_tag_decl = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    }  /* if */
+    /* If this is an out-of-class declaration of a partial specialization,
+       create a special entry used to instantiate declarations of this
+       partial specialization. */
+    if (decl_state->partial_spec_outside_of_class_template) {
+      create_out_of_class_entry_for_partial_spec(decl_state, sym);
     }  /* if */
   } else if (nonclass_prototype_instantiations && sym != NULL) {
     if (is_function_or_template_symbol(sym)) {
@@ -18555,6 +18904,9 @@ routines is reported as part of the symbol table memory used.
   db_space_used_lost("partial spec candidates", avail_partial_order_candidates,
                      num_partial_order_candidates_allocated,
                      a_partial_order_candidate);
+  db_space_used("template decl states",
+                 num_tmpl_decl_states_allocated,
+                 a_tmpl_decl_state);
 #if TEMPLATE_LOOKUP_NEEDED
   db_space_used("template lookup entries", 
                  num_template_lookup_entries_allocated,
@@ -18589,6 +18941,7 @@ One-time initialization for templates.c static variables.
       pch_saved_var_array_elem(type_of_unknown_templ_param_nontype),
 #if DEBUG
       pch_saved_var_array_elem(num_partial_order_candidates_allocated),
+      pch_saved_var_array_elem(num_tmpl_decl_states_allocated),
 #if TEMPLATE_LOOKUP_NEEDED
       pch_saved_var_array_elem(num_template_lookup_entries_allocated),
       pch_saved_var_array_elem(num_exported_template_files_allocated),
@@ -18661,6 +19014,7 @@ Initializations for template.
   master_instantiations_tail = NULL;
 #if DEBUG
   num_partial_order_candidates_allocated = 0;
+  num_tmpl_decl_states_allocated = 0;
 #if TEMPLATE_LOOKUP_NEEDED
   num_template_lookup_entries_allocated = 0;
   num_exported_template_files_allocated = 0;
