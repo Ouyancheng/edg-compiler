@@ -1791,6 +1791,17 @@ incorrectly considered to be incomplete.  This has been fixed.
 
   template <class T> struct A { int n[sizeof(T::X)]; };
 
+3/5/96    #pragma pack and class template instantiation
+
+An instantiation of a class template takes the packing characteristics
+that are enabled at the point of the template definition instead of
+those of the instantiation context:
+
+  #pragma pack(2)
+  template <class T> class A { ... };
+  #pragma pack(4)
+  A<int> x;          // maximum alignment for A<int> members is 2, not 4
+
 3/4/96    C++-generating back end: fix to deal with cfront bug
 
 cfront has a bug in initialization of static data members that are
