@@ -2864,6 +2864,7 @@ before the copy.
       special_case = TRUE;
       operand2 = operand1->next;
       operand3 = operand2->next;
+      vars_can_change |= node_has_side_effects(expr, (a_boolean *)NULL);
       operand1_copy = make_reusable_copy_full(operand1, vars_can_change,
                                               temp_init_used);
       operand2_copy = make_lvalue_reusable_copy_full(operand2, vars_can_change,
@@ -2876,12 +2877,17 @@ before the copy.
       operand2_copy->next = operand3_copy;
       expr_copy = make_operator_node((an_expr_operator_kind)eok_question,
                                      expr->type, operand1_copy);
+      expr_copy->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+                expr->variant.operation.returns_lvalue_instead_of_usual_rvalue;
     } else if (op == (an_expr_operator_kind)eok_comma) {
       /* For a "," operator, make a reusable copy of the second operand. */
       special_case = TRUE;
       operand2 = operand1->next;
+      vars_can_change |= node_has_side_effects(expr, (a_boolean *)NULL);
       expr_copy = make_lvalue_reusable_copy_full(operand2, vars_can_change,
                                                  temp_init_used);
+      expr_copy->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+                expr->variant.operation.returns_lvalue_instead_of_usual_rvalue;
     }  /* if */
   }  /* if */
   if (!special_case) {
@@ -9630,11 +9636,11 @@ is_lvalue is TRUE.
       op2_node->type = expr->type;
       op2_node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
                                                               result_is_lvalue;
-#if LOWER_LVALUE_RETURNING_OPERATIONS
-      lower_operations_returning_lvalue_instead_of_usual_rvalue(op2_node,
-                                                                is_lvalue);
-#endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
     }  /* if */
+#if LOWER_LVALUE_RETURNING_OPERATIONS
+    lower_operations_returning_lvalue_instead_of_usual_rvalue(op2_node,
+                                                              is_lvalue);
+#endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
     op_node = make_comma_node(op_node, op2_node);
     op_node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
                                                               result_is_lvalue;

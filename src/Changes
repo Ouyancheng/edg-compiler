@@ -1,5 +1,24 @@
 Version 3.5
 
+8/31/04  Incorrect IL for lowered lvalue "?" involving bit fields
+
+The lowered code for a compound assignment to bool involving
+a "?" operation and bit fields as the destination was not
+correct, in that it left some eok_bit_field operations in
+the tree in non-lvalue positions.  Now fixed.  A bug that
+caused the first operand of the "?" not to be saved in a
+temporary for reuse has also been corrected.
+
+  struct A {
+    bool b:1;
+  } a[5];
+  int f();
+  int main() {
+    int i = 1;
+    (i ? a[f()].b : a[f()+1].b) += 3;  // Invalid IL previously; aborted
+                                       // in C-generating back end
+  }
+
 8/27/04  IL lowering for fixed-point types and operations
 
 When LOWER_FIXED_POINT is TRUE, IL lowering now lowers fixed-point
