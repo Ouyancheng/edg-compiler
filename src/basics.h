@@ -175,9 +175,9 @@ extern int memcmp(char *, char *, int);
 #if __BSD__
 #include <strings.h>
 /* Remap string and block functions that do not appear in BSD C. */
-extern bcopy(char *, char *, int);
+extern int bcopy(char *, char *, int);
 extern int bcmp(char *, char *, int);
-extern bzero(char *, int);
+extern int bzero(char *, int);
 #define memcpy(dest, src, nbytes) bcopy(src, dest, nbytes)
 #define memcmp(src1, src2, nbytes) bcmp(src1, src2, nbytes)
 #define memzero(dest, nbytes) bzero(dest, nbytes)
