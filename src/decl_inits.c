@@ -1795,6 +1795,7 @@ this function points to a tree that includes a dynamic-init entry.
          or a union, or an error type. */
       a_targ_size_t curr_array_element = 0, array_size = 0;
       a_field_ptr   curr_field;
+      a_boolean     discard_initializers = FALSE;
       /* In ANSI C and C++, the top-level initializer for a struct, union, or
          array must be surrounded by braces.  e.g., "int a[1] = 1;" is
          not allowed.  However, pcc will allow initialization with
@@ -1821,15 +1822,25 @@ this function points to a tree that includes a dynamic-init entry.
         /* See whether a designator is next. */
         if (get_designator(init_info, &context, &curr_array_element,
                            &curr_field)) {
-          /* A designator was present and has been processed. */
+          /* A designator was present and has been processed.  If initializers
+             were being discarded because we ran out of array elements, we can
+             now start recording the initializers again (GNU C mode). */
+          discard_initializers = FALSE;
         } else {
           /* No designator. */
           if (!any_more_members) {
             /* There are more undesignated initializers, but we've run out of
                members into which to put them. */
-            error(ec_too_many_initializer_values);
-            context.type = error_type();
-            any_more_members = TRUE;
+            if (gcc_mode) {
+              if (!discard_initializers) {
+                warning(ec_excess_initializers_ignored);
+              }  /* if */
+              discard_initializers = TRUE;
+            } else {
+              error(ec_too_many_initializer_values);
+              context.type = error_type();
+              any_more_members = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
         /* Determine the type of the member being initialized. */
@@ -1934,8 +1945,10 @@ this function points to a tree that includes a dynamic-init entry.
             context.repeat = NULL;
           }  /* if */
         }  /* if */
-        /* Add the constant entry to the list of constants. */
-        append_initializer_constant(&context, member_con);
+        if (!discard_initializers) {
+          /* Add the constant entry to the list of constants. */
+          append_initializer_constant(&context, member_con);
+        }  /* if */
         /* If a designation was active, it is now consumed: */
         init_info->designation_state = ds_no_designation;
         remove_stop_token(tok_comma);

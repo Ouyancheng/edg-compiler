@@ -1209,6 +1209,7 @@ ec_qualified_void_return_type;;"void return type cannot be qualified"
 ec_auto_ignored;;"the auto specifier is ignored here (invalid in standard C/C++)"
 ec_alignment_reduction_ignored;;"a reduction in alignment without the \"packed\" attribute is ignored"
 ec_corresp_member_template_is_different_kind;;"a member template corresponding to %no is declared as a template of a different kind in another translation unit"
+ec_excess_initializers_ignored;;"excess initializers are ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
