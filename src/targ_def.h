@@ -23,7 +23,10 @@ the compiler is invoked.
 #ifndef TARG_DEF_H
 #define TARG_DEF_H 1
 
+#if __ANSIC__
+/* Include float.h to get the definition of things like FLT_MANT_DIG, etc. */
 #include <float.h>
+#endif /* __ANSIC__ */
 
 #ifndef HOST_ENVIR_H
 #include "host_envir.h"
