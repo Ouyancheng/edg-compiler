@@ -1,5 +1,19 @@
 Version 3.6
 
+2/9/05   GNU C++ compatibility: Extraneous qualification in elaborated names
+
+In GNU C++ mode, with gnu_version < 30400, the front end now ignores a
+qualifier in an elaborated class name if the qualifier indicates the current
+scope and that scope is the global scope or a namespace scope.  For example:
+
+  struct ::X *p1;  // Now accepted in some GNU C++ modes.  (Normally an error
+                   // because ::X is not declared yet.)
+  class C {
+    friend class ::Y;  // Error even in GNU C++ modes: The current scope is
+  };                   // not the global scope or a namespace scope.
+
+(See also the Changes entry of 11/2/04 which deals with a similar issue.)
+
 2/9/05   GNU C++ compatibility: sizeof(incomplete class) in template
 
 In g++ mode (with gnu_version < 30400), a sizeof an incomplete class

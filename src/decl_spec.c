@@ -1113,6 +1113,29 @@ caution when modifying this routine.
     error(ec_exp_identifier);
     tag_err = TRUE;
   }  /* if */
+  if (gpp_mode && gnu_version < 30400 &&
+      tag_kind != (a_symbol_kind)sk_enum_tag &&
+      !locator_for_curr_id.is_error &&
+      locator_for_curr_id.is_qualified_name) {
+    /* GNU C++ compilers treat elaborated class names qualified with the
+       current namespace scope as unqualified names. */
+    a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+    if (((ssep->kind == (a_scope_kind)sck_namespace ||
+          ssep->kind == (a_scope_kind)sck_namespace_extension) &&
+         ssep->il_scope->variant.assoc_namespace ==
+                            qualifier_namespace_ptr(locator_for_curr_id)) ||
+        (ssep->kind == (a_scope_kind)sck_file &&
+         qualifier_namespace_ptr(locator_for_curr_id) == NULL)) {
+      an_error_code  err_code;
+      if (ssep->kind == (a_scope_kind)sck_file) {
+        err_code = ec_nonstd_qualifier_in_global_scope_decl;
+      } else {
+          err_code = ec_nonstd_qualifier_in_namespace_member_decl;
+      }  /* if */
+      pos_warning(err_code, &pos_curr_token);
+      clear_qualifier_from_locator(&locator_for_curr_id);
+    }  /*  if */
+  }  /* if */
   if (!C_mode() || microsoft_mode) {
     /* The effective scope depth for the current declaration may need to be
        reset.  Compute the depth to which it should be reset now, since it's
