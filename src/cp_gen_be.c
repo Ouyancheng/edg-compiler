@@ -1882,37 +1882,39 @@ is the one associated with the definition of the enum.
      necessary in C mode to allow the necessary casts of enumerator
      constants, and it's not a bad thing in general.) */
   gen_decl_name(&type->source_corresp, iek_type);
-  enum_con = type->variant.integer.enum_info.constant_list;
   write_tok_str(" { ");
-  /* Output the enumeration constants. */
-  /* Start with an expected value of 0 next. */
-  next_enum_value = *enum_con;
-  set_integer_value(&next_enum_value.variant.integer_value, 0L);
-  for (;;) {
-    /* The source sequence entry for the enum constant should be next. */
-    check_for_and_take_source_seq_entry(
+  enum_con = type->variant.integer.enum_info.constant_list;
+  if (enum_con != NULL) {
+    /* Output the enumeration constants. */
+    /* Start with an expected value of 0 next. */
+    next_enum_value = *enum_con;
+    set_integer_value(&next_enum_value.variant.integer_value, 0L);
+    for (;;) {
+      /* The source sequence entry for the enum constant should be next. */
+      check_for_and_take_source_seq_entry(
                                enum_con->source_corresp.source_sequence_entry);
-    set_output_position(&enum_con->source_corresp.decl_position);
-    /* Output the constant's name. */
-    gen_decl_name(&enum_con->source_corresp, iek_constant);
-    /* Output the value if it's not the next value in sequence. */
-    if (cmp_integer_constants(enum_con, &next_enum_value) != 0) {
-      write_tok_str(" = ");
-      write_tok_str(str_for_integer_constant(enum_con));
-      next_enum_value = *enum_con;
-    }  /* if */
-    enum_con = enum_con->next;
-    /* Stop if at the end of the list of constants. */
-    if (enum_con == NULL) break;
-    /* Not the end of the list, so output a separator and keep looping. */
-    write_tok_str(", ");
-    incr_integer_value(&next_enum_value.variant.integer_value);
-    /* Skip any type declarations in the expression following an
-       enumerator, as in
-         enum E { e1, e2 = sizeof(struct A *) };
-    */
-    skip_embedded_declarations();
-  }  /* for */
+      set_output_position(&enum_con->source_corresp.decl_position);
+      /* Output the constant's name. */
+      gen_decl_name(&enum_con->source_corresp, iek_constant);
+      /* Output the value if it's not the next value in sequence. */
+      if (cmp_integer_constants(enum_con, &next_enum_value) != 0) {
+        write_tok_str(" = ");
+        write_tok_str(str_for_integer_constant(enum_con));
+        next_enum_value = *enum_con;
+      }  /* if */
+      enum_con = enum_con->next;
+      /* Stop if at the end of the list of constants. */
+      if (enum_con == NULL) break;
+      /* Not the end of the list, so output a separator and keep looping. */
+      write_tok_str(", ");
+      incr_integer_value(&next_enum_value.variant.integer_value);
+      /* Skip any type declarations in the expression following an
+         enumerator, as in
+           enum E { e1, e2 = sizeof(struct A *) };
+      */
+      skip_embedded_declarations();
+    }  /* for */
+  }  /* if */
   /* The current source sequence entry should now be the end-of-construct
      marker for the enum. */
   { a_src_seq_end_of_construct_ptr ssecp =
