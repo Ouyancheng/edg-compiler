@@ -4007,7 +4007,6 @@ of the function, and again overloading is a possibility.
       }  /* if */
       /* Default storage class setting. */
       storage_class = (a_storage_class)sc_extern;
-#if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode &&
           decl_info->storage_class != (a_storage_class)sc_unspecified) {
         /* In Microsoft mode "extern" and "static" are permitted on a
@@ -4021,7 +4020,6 @@ of the function, and again overloading is a possibility.
           storage_class = (a_storage_class)sc_extern;
         }  /* if */
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (func_info->is_inline && !extern_inline_allowed) {
         /* Treat any inline function as static. */
         storage_class = (a_storage_class)sc_static;
@@ -4042,13 +4040,11 @@ of the function, and again overloading is a possibility.
         diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
                    ec_self_friendship);
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode &&
           decl_info->storage_class != (a_storage_class)sc_unspecified) {
         /* Member function -- storage class is not allowed. */
         pos_warning(ec_storage_class_not_allowed, &decl_info->decl_start_pos);
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* It's a member function.  Find the right type signature for this
          member function name.  This could potentially be an instance of
          a member function template.  If none can be found, NULL is
@@ -6651,27 +6647,21 @@ respectively.
 
     /* This extension is allowed only in C mode, or in Microsoft C++ mode
        if the class is an aggregate. */
-    if (C_mode()
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        || (microsoft_mode &&
-            !class_state->class_aggregate_ruled_out &&
-            class_state->access == (an_access_specifier)as_public)
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                  ) {
+    if (C_mode() ||
+        (microsoft_mode && !class_state->class_aggregate_ruled_out &&
+         class_state->access == (an_access_specifier)as_public)) {
       /* The member must be an incomplete array, but not one whose
          underlying element type is incomplete. */
       if (is_array_type(field_type) &&
           !is_incomplete_type(underlying_array_element_type(field_type))) {
         if (is_union_type(class_state->class_type)) {
           /* Incomplete member in a union; not usually allowed. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_mode) {
             /* In Microsoft mode, any member of a union can have such an
                array type.  The problem of a zero-sized union is dealt with
                in the layout code. */
             incomplete_okay = TRUE;
           }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           /* struct/class: an incomplete array is allowed only as the last
              member.  Test for "last" by looking for the right brace or
@@ -6680,11 +6670,7 @@ respectively.
               (curr_token == tok_semicolon && next_token() == tok_rbrace)) {
             /* This is the last member.  It can't be the first/only member,
                except in Microsoft mode. */
-            if (!class_state->is_first_field
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                || microsoft_mode
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                 ) {
+            if (!class_state->is_first_field || microsoft_mode) {
               incomplete_okay = TRUE;
             }  /* if */
           }  /* if */

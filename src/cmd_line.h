@@ -602,14 +602,19 @@ EXTERN a_boolean
 			   have lifetimes that end at end of scope, label,
 			   or end of switch clause. */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_boolean
 		microsoft_mode
 #if VAR_INITIALIZERS
+#if MICROSOFT_EXTENSIONS_ALLOWED
                                = DEFAULT_MICROSOFT_MODE
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+                               = FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* VAR_INITIALIZERS */
                                                        ;
 			/* TRUE if Microsoft extensions are to be accepted. */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_calling_convention
 		default_calling_convention
 #if VAR_INITIALIZERS

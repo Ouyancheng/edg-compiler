@@ -1435,13 +1435,10 @@ issue an error if a default argument expression is encountered.
       /* Scan the list of identifiers. */
       if (curr_token != tok_identifier) {
         if (curr_token == tok_ellipsis && next_token() == tok_rparen) {
-          an_error_severity  severity = es_error;
-#if MICROSOFT_EXTENSIONS_ALLOWED
           /* In Microsoft C an ellipsis is permitted (and ignored) on an
              old-style param list. */
-          if (microsoft_mode) severity = es_warning;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          diagnostic(severity, ec_ellipsis_not_allowed);
+          diagnostic(microsoft_mode ? es_warning : es_error,
+                     ec_ellipsis_not_allowed);
           /* Advance past the ellipsis. */
           (void)get_token();
         } else {
@@ -1621,9 +1618,6 @@ issue an error if a default argument expression is encountered.
 #if !RESTRICT_ALLOWED
 /*ARGSUSED*/ /* <-- because "restrict_allowed" is not used. */
 #endif /* !RESTRICT_ALLOWED */
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- because "top_level_field_decl" is not used. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void array_declarator(a_type_ptr *new_type_ptr,
                       a_boolean  nonconstant_dimension_allowed,
                       a_boolean  top_level_field_decl,
@@ -1699,7 +1693,6 @@ of a class.
             num_of_elements =
                         unsigned_value_of_integer_constant(&constant, &err);
             if (err) error(ec_array_size_too_large);
-#if MICROSOFT_EXTENSIONS_ALLOWED
           } else if (microsoft_mode && top_level_field_decl &&
                      sign_of_integer_constant(&constant) == 0) {
             /* In Microsoft C mode a field may be zero-size array type if
@@ -1710,7 +1703,6 @@ of a class.
                "aggregate".  Note: last-field restriction and the aggregate
                restriction in C++ are enforced in scan_class_definition. */
             num_of_elements = 0;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             error(ec_array_size_must_be_positive);
             err = TRUE;
@@ -1942,9 +1934,6 @@ Expands to nothing when Microsoft extensions are not being used.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* var is used only for Microsoft extensions. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 static a_type_ptr make_possibly_based_pointer_type(a_type_ptr     tp,
                                                    a_variable_ptr *var)
 /*
@@ -1954,16 +1943,14 @@ Clear the pointer stored in "var" if it is used.
 */
 {
   a_type_ptr new_tp;
-#if MICROSOFT_EXTENSIONS_ALLOWED
+
   if (*var != NULL) {
+    check_assertion(microsoft_mode);
     new_tp = make_based_pointer_type(tp, *var);
     *var = NULL;
   } else {
     new_tp = make_pointer_type(tp);
   }  /* if */
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-  new_tp = make_pointer_type(tp);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return new_tp;
 }  /* make_possibly_based_pointer_type */
 
