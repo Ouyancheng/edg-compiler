@@ -2756,6 +2756,37 @@ Generate the name of the field from the indicated node (an enk_field node).
   gen_field_name(field);
 }  /* gen_field_reference */
 
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+
+static an_expr_node_ptr remove_nonstandard_anonymous_union_field_selections(
+                                                  an_expr_node_ptr object_expr)
+/*
+object_expr is the first operand of a selection operation.  If it is itself
+a selection operation, one involving an unnamed field from a nonstandard
+anonymous union, remove that level of selection so that the selection of the
+unnamed field is not put out.  If there are several such selections,
+remove them all.  Return the updated pointer to the object expression.
+This routine also works for rvalue field selections.
+*/
+{
+  while (is_operation_node(object_expr)) {
+    a_boolean             done = TRUE;
+    an_expr_operator_kind op = object_expr->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_field ||
+        op == (an_expr_operator_kind)eok_value_field) {
+      an_expr_node_ptr subobject_expr= object_expr->variant.operation.operands;
+      an_expr_node_ptr subfield_expr = subobject_expr->next;
+      a_field_ptr      subfield = subfield_expr->variant.field;
+      if (!has_name(subfield)) {
+        object_expr = subobject_expr;
+        done = FALSE;
+      }  /* if */
+    }  /* if */
+    if (done) break;
+  }  /* while */
+  return object_expr;
+}  /* remove_nonstandard_anonymous_union_field_selections */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 static void gen_simple_field_selection(an_expr_node_ptr object_expr,
                                        an_expr_node_ptr field_expr)
@@ -2770,7 +2801,11 @@ this selection.
   if (il_header.source_language == sl_Cplusplus) {
     /* Remove unnecessary base class casts. */
     object_expr = optimized_expr_for_selection(object_expr, &naming_class);
+    selection_class = type_pointed_to(object_expr->type);
   }  /* if */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  object_expr=remove_nonstandard_anonymous_union_field_selections(object_expr);
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   if (is_variable_node(object_expr) &&
       !object_expr->implicit_reference_indirection) {
     /* Optimize "(*p).i" as "p->i".  Don't do it when there's an implicit
@@ -2790,7 +2825,6 @@ this selection.
   if (il_header.source_language == sl_Cplusplus) {
     /* Use a qualified name if the class in which we want to name the member
        is not the class indicated by the pointer. */
-    selection_class = type_pointed_to(object_expr->type);
     selection_class = skip_typerefs(selection_class);
     if (selection_class != naming_class) gen_class_qualifier(naming_class);
   }  /* if */
@@ -3568,6 +3602,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_value_bit_field:
           /* Selection of a field or bit field from an rvalue.  Not used
              in C++ except for simple aggregate classes. */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+          operand_1 = remove_nonstandard_anonymous_union_field_selections(
+                                                                    operand_1);
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
           gen_expr_with_parens(operand_1);
           write_tok_ch('.');
           gen_field_reference(operand_2);
