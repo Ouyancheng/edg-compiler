@@ -13382,7 +13382,7 @@ See section 3.3.16 of the standard.
               is_pointer_type(operand_2.type)) {
              /* C++ allows bool += pointer.  In C99 this is disallowed
                 by a type constraint in 6.5.16.2p1. */
-            check_object_pointer_operand(&operand_2,
+            (void)check_object_pointer_operand(&operand_2,
                                     ec_expr_not_arithmetic_or_enum_or_pointer);
             pointer_add_sub = TRUE;
             break;
