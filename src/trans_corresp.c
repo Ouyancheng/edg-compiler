@@ -509,10 +509,14 @@ always appear in the same order on the types list of a class scope.)
          result->source_corresp.name_has_been_mangled ||
 #endif /* NEED_NAME_MANGLING */
           /* Nonprototype instantiations can differ from one translation unit
-             to another. */
+             to another.  (The check on template_arg_list ensures that we
+             only skip actual instantiations as opposed to members of
+             instantiations.) */
           (is_immediate_class_type(result) &&
            result->variant.class_struct_union.is_template_class &&
-           !result->variant.class_struct_union.is_prototype_instantiation))) {
+           !result->variant.class_struct_union.is_prototype_instantiation &&
+           result->variant.class_struct_union.extra_info->template_arg_list
+                                                                  != NULL))) {
     result = result->next;
   }  /* while */
   return result;
