@@ -1223,6 +1223,11 @@ extern void clear_token_cache(a_token_cache *cache,
 extern void discard_token_cache(a_token_cache *cache);
 /* Save an end-of-source token in the token cache. */
 extern void terminate_token_cache(a_token_cache *cache);
+/* Create a token cache entry for a given token kind. */
+extern
+a_cached_token_ptr build_cached_token(a_token_kind	      kind,
+                                      a_token_sequence_number sequence_number,
+                                      a_source_position	      *position);
 /* Save the current token in a token cache. */
 extern void cache_curr_token(a_token_cache *cache);
 /* Save a token stream in a token cache. */
@@ -1239,6 +1244,10 @@ extern
 void adjust_overlapping_token_caches(a_token_cache *cache1,
                                      a_token_cache *cache2,
                                      a_boolean     move_preceding_token);
+/* Free a token from a reusable cache. */
+extern
+void free_cached_token_from_reusable_cache(a_token_cache_ptr  token_cache,
+                                           a_cached_token_ptr ctp);
 
 /*
 Data structure used in deciding where to put extra blanks to separate

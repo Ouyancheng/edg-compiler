@@ -478,6 +478,28 @@ Save an end-of-source token on the end of the list of tokens saved in *cache.
 }  /* terminate_token_cache */
 
 
+a_cached_token_ptr build_cached_token(a_token_kind	      kind,
+                                      a_token_sequence_number sequence_number,
+                                      a_source_position	      *position)
+/*
+Create a cached token of the specified token kind, with the specified
+token sequence number and source position.  The token kind must be one
+for which there is no associated extra information.  Return a pointer to
+the newly created token.
+*/
+{
+  a_cached_token_ptr ctp;
+
+  /* Build an entry for the end-of-source token. */
+  alloc_cached_token(ctp);
+  ctp->token = (a_byte_token_kind)kind;
+  ctp->token_sequence_number = sequence_number;
+  ctp->source_position = *position;
+  ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
+  return ctp;
+}  /* build_cached_token */
+
+
 void cache_curr_token(a_token_cache *cache)
 /*
 Save the current token on the end of the list of tokens saved in *cache.
@@ -837,7 +859,6 @@ the cached token is freed.
 #if !DEBUG
 /*ARGSUSED*/ /* <-- because "token_cache" is only used in debug code. */
 #endif /* !DEBUG */
-static
 void free_cached_token_from_reusable_cache(a_token_cache_ptr  token_cache,
                                            a_cached_token_ptr ctp)
 /*

@@ -775,6 +775,116 @@ done:;
 }  /* f_check_for_uninstantiated_template_class */
 
 
+static
+void extract_member_function_body(a_template_symbol_supplement_ptr class_tssp,
+                                  a_template_instance_ptr          tip)
+/*
+Remove the tokens for the member function instance pointed to by tip from
+the class template token cache in class_tssp.
+*/
+{
+  a_token_sequence_number		first_to_remove;
+  a_token_sequence_number		last_to_remove;
+  a_template_symbol_supplement_ptr	rout_tssp;
+  a_cached_token_ptr			ctp;
+  a_cached_token_ptr			prev_ctp;
+  a_cached_token_ptr			first_to_discard;
+  a_cached_token_ptr			replacement_token;
+  a_token_cache_ptr			class_cache;
+
+  rout_tssp = tip->template_info;
+  first_to_remove = rout_tssp->token_cache.first_token->token_sequence_number;
+  /* Find the next to last token.  The last token is the cache terminator
+     which is ignored. */
+  for (ctp = rout_tssp->token_cache.first_token;
+       ctp != NULL && ctp->next != NULL;
+       ctp = ctp->next) prev_ctp = ctp;
+  last_to_remove = prev_ctp->token_sequence_number;
+  /* Find the first token of the function in the class's token cache. */
+  prev_ctp = NULL;
+  for (prev_ctp = NULL, ctp = class_tssp->token_cache.first_token;
+       ctp != NULL;
+       prev_ctp = ctp, ctp = ctp->next) {
+    if (ctp->token_sequence_number == first_to_remove) break;
+  }  /* for */
+  for (; ctp != NULL; ctp = ctp->next) {
+    if (ctp->token_sequence_number == last_to_remove) break;
+  }  /* for */
+  /* At this point prev_ctp points to the token prior to the first token to
+     be removed and ctp points to the last token to be removed. */
+  check_assertion_str2(prev_ctp != NULL && ctp != NULL,
+                       "extract_member_function_body:",
+                       "could not find start or end of body");
+  first_to_discard = prev_ctp->next;
+  /* Make a new cached token entry for a semicolon, the function body
+     will be replaced with the semicolon.  Give it the same token
+     sequence number as the first token of the body. */
+  replacement_token = build_cached_token(tok_semicolon, first_to_remove,
+                                         &first_to_discard->source_position);
+  /* Link the replacement token into the cache in the place of the body. */
+  prev_ctp->next = replacement_token;
+  replacement_token->next = ctp->next;
+  ctp->next = NULL;
+  /* Remove the extracted tokens from the original cache. */
+  class_cache = &class_tssp->token_cache;
+  ctp = first_to_discard;
+  while (ctp != NULL) {
+    a_cached_token_ptr	next_ctp = ctp->next;
+    free_cached_token_from_reusable_cache(class_cache, ctp);
+    ctp = next_ctp;
+  }  /* while */
+}  /* extract_member_function_body */
+
+
+static
+void extract_member_bodies(a_type_ptr	                    prototype_type,
+                           a_template_symbol_supplement_ptr tssp)
+/*
+Goes through the member functions of the class template associated
+with template_sym, and the classes nested within, and removes the
+tokens from the token cache and replaces them with a semicolon.
+*/
+{
+  a_class_type_supplement_ptr	ctsp;
+  a_symbol_ptr			sym;
+  a_template_instance_ptr	tip;
+  a_routine_ptr			rout;
+  a_type_ptr			type;
+
+  db_enter(4, "extract_member_bodies");
+  ctsp = prototype_type->variant.class_struct_union.extra_info;
+  /* The assoc_scope pointer can be NULL if errors occurred during the
+     instantiation of the class. */
+  if (ctsp->assoc_scope != NULL) {
+    rout = ctsp->assoc_scope->routines;
+    while (rout != NULL) {
+      sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
+      tip = sym->variant.routine.instance_ptr;
+      if (tip != NULL && !tip->instantiation_required) {
+        /* Under certain conditions the instance pointer will be NULL.  This
+           occurs for compiler generated routines and under some error
+           conditions.  Simply skip this routine if there is no instance
+           pointer.  If there is a template instance, remove the function's
+           token's from the classes token cache.  */
+        extract_member_function_body(tssp, tip);
+      }  /* if */
+      rout = rout->next;
+    }  /* while */
+    /* Process any classes nested within this class. */
+    type = ctsp->assoc_scope->types;
+    while (type != NULL) {
+      a_type_kind	tk = type->kind;
+      if (tk == (a_type_kind)tk_class ||
+          tk == (a_type_kind)tk_struct || tk == (a_type_kind)tk_union) {
+        extract_member_bodies(type, tssp);
+      }  /* if */
+      type = type->next;
+    }  /* while */
+  }  /* if */
+  db_exit();
+}  /* extract_member_bodies */
+
+
 static void instantiate_class_template(a_symbol_ptr  template_sym,
                                        a_type_ptr    prototype_type)
 /*
@@ -5436,36 +5546,64 @@ as the current token; otherwise, it is consumed.
       free_pending_pragma_list(pragmas_bound_to_template);
     }  /* if */
   }
-  if (!invalid_decl_scope_err && prototype_type != NULL) {
+  {
+    /* Save and clear the prototype_type.  After the code below is executed
+       prototype_type will only be non-NULL for valid cases where the
+       prototype instantiation has actually been done. */
+    a_type_ptr	saved_prototype_type = prototype_type;
+    prototype_type = NULL;
+    if (!invalid_decl_scope_err && saved_prototype_type != NULL) {
 #if CHECKING
-    if (sym == NULL || sym->kind != (a_symbol_kind)sk_class_template ||
-        (tssp = sym->variant.template_info) == NULL ||
-        tssp->variant.class_template.instantiations == NULL ||
-        tssp->variant.class_template.instantiations->
-                         variant.class_struct_union.type != prototype_type) {
-      internal_error("template_declaration: sym & prototype_type out of sync");
-    }  /* if */
+      if (sym == NULL || sym->kind != (a_symbol_kind)sk_class_template ||
+          (tssp = sym->variant.template_info) == NULL ||
+          tssp->variant.class_template.instantiations == NULL ||
+          tssp->variant.class_template.instantiations->
+                     variant.class_struct_union.type != saved_prototype_type) {
+        internal_error(
+                     "template_declaration: sym & prototype_type out of sync");
+      }  /* if */
 #endif /* CHECKING */
-    if (!sym->is_error) {
-      /* Do a "prototype instantiation" of the class template -- i.e., parse
-         the declarative information looking for gross syntax errors. */
-      instantiate_class_template(sym, prototype_type);
-      if (tag_resolution) {
-        /* This is the resolution of a previously incomplete template
-	   declaration.  If there are any incomplete instantiations that were
-	   involved in array type declarations, fix them up now. */
-	fixup_types_that_refer_to_incomplete_instantiations(sym,
-							    prototype_type);
+      if (!sym->is_error) {
+        /* Do a "prototype instantiation" of the class template -- i.e., parse
+           the declarative information looking for gross syntax errors. */
+        prototype_type = saved_prototype_type;
+        instantiate_class_template(sym, prototype_type);
+        if (tag_resolution) {
+          /* This is the resolution of a previously incomplete template
+             declaration.  If there are any incomplete instantiations that were
+             involved in array type declarations, fix them up now. */
+          fixup_types_that_refer_to_incomplete_instantiations(sym,
+		                                              prototype_type);
+        }  /* if */
       }  /* if */
     }  /* if */
-  }  /* if */
+  }
+  {
+    a_boolean	member_bodies_need_extraction = prototype_type != NULL;
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    /* Member function bodies are extracted before the template string is
+       constructed when member function instantiations are included in the
+       source sequence lists.  In this mode, member function bodies are
+       put out as specializations (by the C++ generating back end, and 
+       the function bodies cannot be present in the class template body. */
+    if (member_bodies_need_extraction) {
+      extract_member_bodies(prototype_type, tssp);
+      member_bodies_need_extraction = FALSE;
+    }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if RECORD_TEMPLATES_IN_IL
-  complete_il_template_entry(il_template_entry, sym, &decl_token_cache,
-			     &template_param_list_cache,
-			     p_template_body_cache);
-  /* The cache for the template parameter list is no longer needed. */
-  discard_token_cache(&template_param_list_cache);
+    complete_il_template_entry(il_template_entry, sym, &decl_token_cache,
+                               &template_param_list_cache,
+                               p_template_body_cache);
+    /* The cache for the template parameter list is no longer needed. */
+    discard_token_cache(&template_param_list_cache);
 #endif /* RECORD_TEMPLATES_IN_IL */
+    /* When member function bodies are not extract above, they are done now
+       that the template string for the class has been created. */
+    if (member_bodies_need_extraction) {
+      extract_member_bodies(prototype_type, tssp);
+    }  /* if */
+  }
   /* If the declaration token cache is not needed, discard it. */
   if (!decl_token_cache_used) {
     discard_token_cache(&decl_token_cache);
