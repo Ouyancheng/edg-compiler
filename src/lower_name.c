@@ -1952,7 +1952,10 @@ variable.
   sizeof_t mangled_name_length, alloc_length;
   char     *mangled_name;
 
-  if (!variable->source_corresp.name_has_been_mangled) {
+  if (!variable->source_corresp.name_has_been_mangled &&
+      /* Do not mangle namespace members with extern "C" linkage. */
+      variable->source_corresp.name_linkage == 
+                                 (a_name_linkage_kind)nlk_cplusplus_external) {
     error_position = variable->source_corresp.decl_position;
     /* Determine how long the mangled name is. */
     mangled_name_length = mangled_member_variable_name(variable, (char *)NULL);
