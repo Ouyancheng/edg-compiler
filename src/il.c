@@ -1047,7 +1047,13 @@ including the associated block size.
 */
 {
   if (tp->variant.typeref.qualifiers & TQ_UPC_SHARED) {
-    fprintf(f_debug, "shared [%ld] ", tp->variant.typeref.upc_block_size);
+    if (tp->variant.typeref.upc_block_size == UPC_BLOCK_SIZE_NONE) {
+      fprintf(f_debug, "shared ");
+    } else if (tp->variant.typeref.upc_block_size == UPC_BLOCK_SIZE_BLOCK) {
+      fprintf(f_debug, "shared [*] ");
+    } else {
+      fprintf(f_debug, "shared [%ld] ", tp->variant.typeref.upc_block_size);
+    }  /* if */
   }  /* if */
 } /* db_shared_block_size */
 #endif /* UPC_EXTENSIONS_ALLOWED */

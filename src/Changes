@@ -1,5 +1,24 @@
 Version 3.6
 
+1/19/05  UPC mode: Branching in and out of upc_forall statements
+
+In UPC mode, the front end previously issued an error for every goto or return
+statement that might (if executed) cause a UPC thread to branch into or out of
+a upc_forall loop body.  This was overly drastic since the UPC specification
+only indicates that actually executing such statements results in undefined
+behavior.  Now, a warning is issued instead.  In addition, a similar warning
+is issued for break statements that might break out of a upc_forall statement.
+If the front end determines that any such statement cannot be reached, the
+warning is inhibited.
+
+1/19/05  UPC mode: THREADS and UPC_MAX_BLOCK_SIZE
+
+In UPC mode with a a static threads count (i.e., a threads count specified with
+the --upc_threads command-line option), the identifiers THREADS is now a macro
+that expands to an integer literal representing the number of threads.
+Furthermore, in all UPC modes, the macro UPC_MAX_BLOCK_SIZE now expands to an
+integer literal describing the maximum allowable UPC block size.
+
 1/19/05  Internal error when building front end with an empty defines.h file
 
 Version 3.5 introduced an assertion check to verify that the values of

@@ -580,7 +580,9 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_upc_notify,      "upc_notify");
     enter_keyword((a_token_kind)tok_upc_wait,        "upc_wait");
     enter_keyword((a_token_kind)tok_upc_fence,       "upc_fence");
-    enter_keyword((a_token_kind)tok_upc_threads,     "THREADS");
+    if (upc_dynamic_threads()) {
+      enter_keyword((a_token_kind)tok_upc_threads,     "THREADS");
+    }  /* if */
     enter_keyword((a_token_kind)tok_upc_mythread,    "MYTHREAD");
     enter_keyword((a_token_kind)tok_upc_blocksizeof, "upc_blocksizeof");
     enter_keyword((a_token_kind)tok_upc_localsizeof, "upc_localsizeof");
