@@ -1896,6 +1896,9 @@ error code.
     case ec_class_template_same_name_as_templ_param:
       m = "class template and template parameter may not have the same name";
       break;
+    case ec_bad_constructor_name:
+      m = "%no cannot be used to designate constructor for %n2";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
