@@ -631,15 +631,20 @@ there is additional processing to be done.
     pp->pragma_text = ppp->pragma_text;
     pp->ignore_in_back_end = ppp->descr_ptr->ignore_in_back_end;
     if (entity_ptr != NULL) {
-      check_assertion(ppp->descr_ptr->binding_kind ==
-                                  (a_pragma_binding_kind)pbk_next_construct);
       pp->entity.kind = (a_byte_il_entry_kind)entity_kind;
       pp->entity.ptr = entity_ptr;
+      /* Set the has_associated_pragma field.  This is in the source
+         correspondence structure for most IL entries.  Statements have
+         no source correspondence structure, but do have a
+         has_associated_pragma in the statement structure. */
       if (entity_kind == (an_il_entry_kind)iek_statement) {
         ((a_statement_ptr)entity_ptr)->has_associated_pragma = TRUE;
       } else {
-        ((a_variable_ptr)entity_ptr)->
-                       source_corresp.has_associated_pragma = TRUE;
+        a_source_correspondence *scp;
+        scp = source_corresp_for_il_entry(entity_ptr, entity_kind);
+        check_assertion_str2(scp != NULL, "add_pragma_to_il:",
+                             "invalid entity kind (no source corresp)");
+        scp->has_associated_pragma = TRUE;
       }  /* if */
     }  /* if */
     add_to_pragma_list(pp, at_file_scope, class_type);
@@ -673,27 +678,24 @@ or sp pointer must be supplied.  The IL entry is then added to the IL.
   char              		 *entity;
   an_il_entry_kind	 	 entity_kind;
   a_boolean	         	 at_file_scope;
-  a_boolean			 is_bound_to_curr_construct;
+  a_boolean			 is_bound_to_il;
   a_pragma_kind_description_ptr	 pkdp;
   a_type_ptr			 class_type = NULL;
 
   db_enter(5, "create_il_entry_for_pragma");
   pkdp = ppp->descr_ptr;
-  is_bound_to_curr_construct = pkdp->binding_kind == pbk_next_construct;
-  /* A symbol pointer or statement pointer may only be supplied for
-     pbk_next_construct pragmas. */
+  /* Next construct pragmas must be bound to an IL entry.  Other binding
+     kinds may optionally be bound to an IL entry. */
+  is_bound_to_il = pkdp->binding_kind == pbk_next_construct ||
+                   (sp != NULL || sym != NULL);
 #if CHECKING
-  if (is_bound_to_curr_construct) {
+  if (is_bound_to_il) {
     check_assertion_str
           ((sym == NULL) != (sp == NULL),
           "create_il_entry_for_pragma: invalid next_construct call");
-  } else {
-    check_assertion_str
-           (sym == NULL && sp == NULL,
-            "create_il_entry_for_pragma: binding kind/argument mismatch");
   }  /* if */
 #endif /* CHECKING */
-  if (is_bound_to_curr_construct) {
+  if (is_bound_to_il) {
     if (sym != NULL) {
       entity = il_entry_for_symbol(sym, &entity_kind);
       class_type = sym->class_of_which_a_member;
@@ -1139,6 +1141,34 @@ has been reached.
 }  /* process_pragmas_at_end_of_source */
 
 
+#if INCLUDE_EDG_TEST_PRAGMAS
+static void test_immediate_pragma(a_pending_pragma_ptr ppp)
+/*
+Routine called by the "#pragma test_immediate", a pragma included
+by EDG for testing purposes.
+*/
+{
+  a_stop_token_array save_stop_tokens_array;
+  a_symbol_ptr       sym = NULL;
+  a_boolean          err = FALSE;
+
+  begin_rescan_of_pragma_tokens(ppp, save_stop_tokens_array);
+  if (is_generalized_identifier_start(GID_NO_OPTIONS)) {
+    sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
+						     ilm_normal, &err);
+  }  /* if */
+  /* Flush to the end of the pragma. */
+  while (curr_token != tok_newline && curr_token != tok_end_of_source) {
+    (void)get_token();
+  }  /* while */
+  wrapup_rescan_of_pragma_tokens(err, save_stop_tokens_array);
+  if (sym != NULL) {
+    create_il_entry_for_pragma(ppp, sym, (a_statement_ptr)NULL);
+  }  /* if */
+}  /* test_immediate_pragma */
+#endif /* INCLUDE_EDG_TEST_PRAGMAS */
+
+
 void pragma_one_time_init(void)
 /*
 Do one-time initialization of variables related to pragma processing.
@@ -1318,13 +1348,13 @@ Initialize the pragma description table.
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_test_immediate,
-                 (an_immediate_pragma_function_ptr)NULL,
+                 test_immediate_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*make_text_not_tokens=*/FALSE,
-                 /*expand_macros=*/FALSE,
-                 /*processing_C_code_in_pragma=*/FALSE,
+                 /*expand_macros=*/TRUE,
+                 /*processing_C_code_in_pragma=*/TRUE,
 		 /*ignore_in_back_end=*/FALSE,
                  es_error);
   (void)add_other_pragma_kind_description
