@@ -397,6 +397,7 @@ expression node.
 */
 {
   register an_expr_node_ptr node;
+  a_constant_ptr            con;
 
   switch (operand->kind) {
     case ok_error:
@@ -408,9 +409,18 @@ expression node.
       node = operand->variant.expression;
       break;
     case ok_constant:
-      /* Create a constant node and copy the constant in the operand to the
-	 node. */
-      node = alloc_node_for_constant(&operand->variant.constant);
+      con = &operand->variant.constant;
+      if (con->kind == (a_constant_repr_kind)ck_template_param &&
+          con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression) {
+        /* For a ck_template_param case that represents an expression,
+           return the expression. */
+        node = con->variant.template_param.variant.expr;
+      } else {
+        /* Create a constant node and copy the constant in the operand to the
+           node. */
+        node = alloc_node_for_constant(con);
+      }  /* if */
       break;
 #if CHECKING
     default:
@@ -734,6 +744,37 @@ otherwise.
   copy_source_position(pos_curr_token, operand->position);
   operand->xref_entries_list = xep;
 }  /* make_sym_for_member_operand */
+
+
+void make_template_param_expr_constant_operand(
+                                              an_operand            *operand_1,
+                                              an_operand            *operand_2,
+                                              an_expr_operator_kind op,
+                                              a_type_ptr            type,
+                                              an_operand            *result)
+/*
+Build an operand for a ck_template_param constant for the expression
+"operand_1 op operand_2" (or, if operand_2 is NULL, "op operand_1").
+The result type is "type".  Return the operand in *result.
+*/
+{
+  an_expr_node_ptr node;
+  a_constant       con;
+
+  node = make_node_from_operand(operand_1);
+  if (operand_2 != NULL) {
+    node ->next = make_node_from_operand(operand_2);
+  }  /* if */
+  node = make_operator_node(op, type, node);
+  /* Build the ck_template_param constant. */
+  set_constant_kind(&con, (a_constant_repr_kind)ck_template_param);
+  con.variant.template_param.kind =
+                               (a_template_param_constant_kind)tpck_expression;
+  con.variant.template_param.variant.expr = node;
+  con.type = type;
+  /* Make the operand. */
+  make_constant_operand(&con, result);
+}  /* make_template_param_expr_constant_operand */
 
 
 /*
@@ -2591,7 +2632,7 @@ result_type indicates the type of result; the result is placed in
 if possible.
 */
 {
-  a_boolean did_not_fold;
+  a_boolean did_not_fold, template_constant;
   a_boolean just_past_end;
   a_boolean try_folding;
 
@@ -2615,6 +2656,7 @@ if possible.
     /* Try to fold the operation if both operands are constants and the
        current expression is being evaluated. */
     did_not_fold = TRUE;
+    template_constant = FALSE;
     if (try_folding && curr_expr_is_evaluated() &&
         is_constant_operand(operand_1) && is_constant_operand(operand_2)) {
       clear_operand((an_operand_kind)ok_constant, result);
@@ -2633,11 +2675,17 @@ if possible.
                          &operand_2->variant.constant,
                          result_type, &result->variant.constant,
                          curr_expr_kind_is_const(),
-                         &did_not_fold, operator_position);
+                         &did_not_fold, &template_constant, operator_position);
       }  /* if */
     }  /* if */
     if (did_not_fold) {
-      if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
+      if (template_constant) {
+        /* For an expression based on a template parameter, scanned
+           during the prototype instantiation, make a ck_template_param
+           constant for the result. */
+        make_template_param_expr_constant_operand(operand_1, operand_2,
+                                                  op, result_type, result);
+      } else if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
         /* An operation on constants could not be folded.  For example,
            a pointer comparison between pointers that aren't in the
            same object can't be represented as a constant.  In a
