@@ -7450,7 +7450,9 @@ pos is used to mark the location that carries any diagnostic.
     if (is_incomplete_type(type) && !is_void_type(type)) {
       pos_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
                      ec_ptr_or_ref_to_incomplete_type, pos);
-      result = TRUE;
+      /* If we only issued warnings, report a valid catch type so that code
+         generation may proceed normally. */
+      result = (total_errors != 0);
     }  /* if */
   } else if (is_abstract_class_type(type)) {
     report_abstract_class_error(ec_abstract_class_catch_type, type, pos);

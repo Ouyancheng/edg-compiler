@@ -1,5 +1,18 @@
 Version 2.44
 
+2/3/00   Internal error when allowing pointers to incomplete types in catch
+         clauses
+
+A bug was introduced in version 2.43 when stricter checking of catch types was
+implemented (entry of 8/25/99).  In modes where pointers to incomplete types
+are allowed in catch clauses, the front end would abort when lowering the
+representation of an incomplete catch type.
+
+  struct S;
+  int main() { try {} catch (S*) {} }  // Used to abort in --microsoft mode
+
+This is now fixed.
+
 2/2/00   Abort while processing command-line macros
 
 The changes made to allow function-style macros on the command line (entry of
