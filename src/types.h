@@ -62,15 +62,6 @@ extern a_type_ptr pointer_referenced_type(a_type_ptr pointer_type);
 #define is_qualified_type(tp)                                         \
   ((tp)->kind == (a_type_kind)tk_typeref && f_is_qualified_type(tp))
 
-/*
-Return the type of the variable (lvalue) represented by node.  This mainly
-involves removing the extra "pointer to" in the expression type for
-an lvalue.
-*/
-#define lvalue_expr_type(node)                                        \
-(is_error_type((node)->type) ? (node)->type :                         \
-                               pointer_referenced_type((node)->type))
-
 extern a_boolean f_is_const_qualified_type(a_type_ptr tp);
 extern a_boolean f_is_volatile_qualified_type(a_type_ptr tp);
 extern a_boolean f_is_qualified_type(a_type_ptr tp);
@@ -98,6 +89,21 @@ extern a_boolean types_pointed_to_are_compatible(
 extern a_type_ptr composite_type(a_type_ptr type_1,
                                  a_type_ptr type_2);
 extern a_type_ptr make_file_scope_type(a_type_ptr type);
+
+/*
+Return the type of the variable (lvalue) represented by node.  This mainly
+involves removing the extra "pointer to" in the expression type for
+an lvalue.
+*/
+#define lvalue_expr_type(node)                                        \
+(is_error_type((node)->type) ? (node)->type :                         \
+                               pointer_referenced_type((node)->type))
+
+/*
+Return TRUE if a routine type is the type of a nonstatic member function.
+*/
+#define routine_type_is_nonstatic_member_function(routine_type)       \
+ ((routine_type)->variant.routine.extra_info->implicit_this_param_type != NULL)
 
 #endif /* ifndef TYPES_H */
 
