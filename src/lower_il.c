@@ -977,6 +977,46 @@ it.  The variable has no name.
   return param_var;
 }  /* make_lowered_param_variable */
 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+
+static void make_instantiation_info_var(
+                                       char                    *prefix,
+                                       a_source_correspondence *source_corresp)
+/*
+Create a variable whose name records information on instantiation of some
+entity.  Such variables are used as part of the automatic instantiation scheme.
+source_corresp identifies the entity (variable or routine) for which some
+information is to be encoded.  The name of the generated variable encodes
+the information about that entity; it consists of the indicated prefix
+(e.g., something like "__DNI__" to indicate "do not instantiate") followed
+by the mangled name of the entity.
+*/
+{
+  char     *mangled_name, *info_name;
+  sizeof_t mangled_name_length, info_name_length, prefix_length, alloc_length;
+
+  /* The name of the entity should be mangled already. */
+  check_assertion(source_corresp->name_has_been_mangled);
+  mangled_name = source_corresp->name;
+  mangled_name_length = strlen(mangled_name);
+  prefix_length = strlen(prefix);
+  info_name_length = prefix_length + mangled_name_length;
+  /* Allocate space for the info name, including the final null. */
+  alloc_length = info_name_length + 1;
+  info_name = alloc_il(alloc_length);
+#if DEBUG
+  allocated_name_string_length += alloc_length;
+#endif /* DEBUG */
+  /* Build the mangled name. */
+  (void)strcpy(info_name, prefix);
+  (void)strcpy(info_name+prefix_length, mangled_name);
+  /* Make the variable.  Note that it is a definition of an external name. */  
+  (void)make_lowered_variable(info_name, /*already_il_name=*/TRUE,
+                              integer_type((an_integer_kind)ik_int),
+                              (a_storage_class)sc_unspecified);
+}  /* make_instantiation_info_var */
+
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 an_expr_node_ptr make_node_for_il_constant(a_constant_ptr constant)
 /*
@@ -3615,6 +3655,21 @@ Do IL lowering of the indicated variable and everything under it.
         internal_error("lower_variable: bad kind");
 #endif /* CHECKING */
     }  /* switch */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+    if (variable->source_corresp.class_of_which_a_member != NULL) {
+      /* Static data member. */
+      if (variable->do_not_instantiate) {
+        /* This variable cannot be instantiated. */
+        make_instantiation_info_var("__DNI__", &variable->source_corresp);
+      }  /* if */
+#if !AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION
+      if (variable->can_be_instantiated) {
+        /* This variable can be instantiated. */
+        make_instantiation_info_var("__CBI__", &variable->source_corresp);
+      }  /* if */
+#endif /* !AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION */
+    }  /* if */
+#endif /* AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION */
   }  /* if */
 }  /* lower_variable */
 
@@ -3752,6 +3807,25 @@ Do IL lowering of the indicated routine and everything under it.
     /* Clear the befriending classes field to make the routine entry legal
        C IL. */
     routine->befriending_classes = NULL;
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+    /* For automatic instantiation, generate a variable or variables with names
+       that encode instantiation information. */
+    if (routine->is_instantiation &&
+        routine->source_corresp.class_of_which_a_member == NULL) {
+      /* This routine is a template function. */
+      make_instantiation_info_var("__TF__", &routine->source_corresp);
+    }  /* if */
+    if (routine->do_not_instantiate) {
+      /* This routine cannot be instantiated. */
+      make_instantiation_info_var("__DNI__", &routine->source_corresp);
+    }  /* if */
+#if !AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION
+    if (routine->can_be_instantiated) {
+      /* This routine can be instantiated. */
+      make_instantiation_info_var("__CBI__", &routine->source_corresp);
+    }  /* if */
+#endif /* !AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
 }  /* lower_routine */
 
