@@ -3196,6 +3196,10 @@ of a function template.
     if (is_member_decl && (*dso_flags & DSO_CONSTRUCTOR) != 0) {
       di_flags |= DI_IS_CONSTRUCTOR;
     }  /* if */
+    if (!(*dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) &&
+        qualifiers == TQ_NONE) {
+      di_flags |= DI_NO_TYPE_SPECIFIERS;
+    }  /* if */
     declarator(di_flags, do_flags, *type,
                !friend_specified ? parent_class : (a_type_ptr)NULL,
                locator, type,
@@ -7153,7 +7157,7 @@ that follows.
   a_storage_class               storage_class;
   a_type_ptr                    type;
   a_symbol_locator              locator;
-  a_decl_flag_set               do_flags, dso_flags;
+  a_decl_flag_set               do_flags, dso_flags, di_flags;
   a_type_qualifier_set          qualifiers;
   a_decl_modifier	        decl_modifiers;
   a_source_sequence_entry_ptr   declarator_ssep;
@@ -7216,10 +7220,16 @@ that follows.
     add_stop_token(tok_semicolon);
     clear_func_info(&func_info);
     func_info.is_inline = ((dso_flags & DSO_INLINE) != 0);
-    declarator((DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED |
-                DI_OPERATOR_NAME_ALLOWED | DI_IS_SPECIALIZATION |
-                DI_PARENTHESIZED_INITIALIZER_ALLOWED),
-               &do_flags, type, (a_type_ptr)NULL, &locator, &type,
+    di_flags = DI_REAL_DECLARATOR_ALLOWED |
+               DI_QUALIFIED_NAME_ALLOWED |
+               DI_IS_SPECIALIZATION |
+               DI_PARENTHESIZED_INITIALIZER_ALLOWED |
+               DI_OPERATOR_NAME_ALLOWED;
+    if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) &&
+        qualifiers == TQ_NONE) {
+      di_flags |= DI_NO_TYPE_SPECIFIERS;
+    }  /* if */
+    declarator(di_flags, &do_flags, type, (a_type_ptr)NULL, &locator, &type,
                &declarator_ssep, &func_info);
     sym = NULL;
     has_parenthesized_initializer =
@@ -8985,7 +8995,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   a_storage_class               storage_class;
   a_type_ptr                    type;
   a_symbol_locator              locator;
-  a_decl_flag_set               do_flags, dso_flags;
+  a_decl_flag_set               do_flags, dso_flags, di_flags;
   a_type_qualifier_set          qualifiers;
   a_decl_modifier	        decl_modifiers;
   a_symbol_ptr                  new_sym;
@@ -9043,9 +9053,15 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   } else {
     a_func_info_block  	func_info;
     clear_func_info(&func_info);
-    declarator((DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED |
-                DI_OPERATOR_NAME_ALLOWED | DI_IS_EXPLICIT_INSTANTIATION),
-               &do_flags, type, (a_type_ptr)NULL, &locator, &type,
+    di_flags = DI_REAL_DECLARATOR_ALLOWED |
+               DI_QUALIFIED_NAME_ALLOWED |
+               DI_IS_EXPLICIT_INSTANTIATION |
+               DI_OPERATOR_NAME_ALLOWED;
+    if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) &&
+        qualifiers == TQ_NONE) {
+      di_flags |= DI_NO_TYPE_SPECIFIERS;
+    }  /* if */
+    declarator(di_flags, &do_flags, type, (a_type_ptr)NULL, &locator, &type,
                &declarator_ssep, &func_info);
     record_param_id_list_declarations(func_info.param_id_list);
     done_with_func_info(func_info);
