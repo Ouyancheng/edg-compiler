@@ -2541,7 +2541,7 @@ source sequence entry is the one associated with the constant.
   write_tok_str(" = ");
   /* Generate the constant value. */
   gen_constant(constant);
-  write_tok_str("; ");
+  write_tok_ch(';');
 }  /* gen_member_constant_decl */
 
 
@@ -2567,7 +2567,7 @@ source sequence entry is the one associated with the field.
     write_tok_ch(':');
     write_unsigned_num((unsigned long)field->bit_size);
   }  /* if */
-  write_tok_str("; ");
+  write_tok_ch(';');
 }  /* gen_field_decl */
 
 
@@ -2607,7 +2607,7 @@ entry is the one associated with the access adjustment.
   }  /* switch */
   /* Write the access declaration, which is just a qualified name. */
   gen_qualified_name(scp, NO_TYPE);
-  write_tok_str("; ");
+  write_tok_ch(';');
   /* For overloaded functions, there is an access adjustment and a source
      sequence entry for each function in the set.  If that is the case here,
      advance over the other entries. */
@@ -2742,6 +2742,7 @@ is the one associated with the definition of the class.
       default:
         unexpected_condition_str("gen_class_definition: bad entity kind");
     }  /* switch */
+    write_space();
   }  /* for */
 done:;
   if (il_header.source_language == sl_Cplusplus) pop_name_context();
@@ -2896,17 +2897,19 @@ a member type, nonmember type, or friend.
 
 
 static an_expr_node_ptr optimized_expr_for_selection(
-                                                  an_expr_node_ptr object_expr)
+                                                an_expr_node_ptr object_expr,
+                                                a_type_ptr       *naming_class)
 /*
 object_expr is an expression that gives the address of a class object.
 It is being used as the address for a member selection.  Examine the
 base-class casts on the object, if there are any, and determine which
 of those can be folded into the member name.  Return the expression to
 be used to address the object (the part not including the casts that
-can be elided).
+can be elided), and set *naming_class to the class qualifier name
+to be used to name the member.
 */
 {
-  an_expr_node_ptr node = object_expr;
+  an_expr_node_ptr node = object_expr, naming_node = NULL;
 
   /* An example will help:
 
@@ -2924,17 +2927,28 @@ can be elided).
         Cast to B *                                        (2)
             |
             V
-        Addr of c
+        Addr of c                                          (3)
 
      Expression (1) is given to this routine.  Node (1) is passed over
-     because it is implicit in the naming.  Node (2) is returned, and
-     the reference will be to B::i. */
+     because it is implicit in the naming.  Node (2) is also passed over,
+     but since it is not implicit in the naming, *naming_class is set
+     to class B.  Node (3) is returned. */
   while (is_operation_node(node) &&
          node->variant.operation.kind ==
                                   (an_expr_operator_kind)eok_base_class_cast &&
-         node->variant.operation.implicit_in_member_naming) {
+         node->variant.operation.compiler_generated) {
+    if (!node->variant.operation.implicit_in_member_naming &&
+        naming_node == NULL) {
+      /* Remember the first node after the casts implied by naming. */
+      naming_node = node;
+    }  /* if */
     node = node->variant.operation.operands;
   }  /* while */
+  /* If there were no base class casts, or none not implied by naming,
+     the final node is used to determine the selection class. */
+  if (naming_node == NULL) naming_node = node;
+  /* Fetch the class type to be used to name the member. */
+  *naming_class = f_skip_typerefs(type_pointed_to(naming_node->type));
   return node;
 }  /* optimized_expr_for_selection */
 
@@ -2949,31 +2963,37 @@ Generate the name of the field from the indicated node (an enk_field node).
   check_assertion_str(node->kind == (an_expr_node_kind)enk_field,
                       "gen_field_reference: not enk_field");
   field = node->variant.field;
-  /* Use an unqualified name because the selector expression will
-     provide the class context. */
+  /* Put out the (unqualified) field name. */
   gen_field_name(field);
 }  /* gen_field_reference */
 
 
-static void gen_simple_field_selection(an_expr_node_ptr operand_1,
-                                       an_expr_node_ptr operand_2)
+static void gen_simple_field_selection(an_expr_node_ptr object_expr,
+                                       an_expr_node_ptr field_expr)
 /*
-Generate "operand_1 . operand_2".  operand_1 is an address (or lvalue),
-and operand_2 is an enk_field node.
+Generate "object_expr . field_expr".  object_expr is an address (or lvalue),
+and field_expr is an enk_field node.
 */
 {
+  a_type_ptr naming_class, selection_class;
+
   /* Remove unnecessary base class casts. */
-  operand_1 = optimized_expr_for_selection(operand_1);
-  if (operand_1->kind == (an_expr_node_kind)enk_variable) {
+  object_expr = optimized_expr_for_selection(object_expr, &naming_class);
+  if (object_expr->kind == (an_expr_node_kind)enk_variable) {
     /* Optimize "(*p).i" as "p->i". */
-    gen_expression(operand_1);
+    gen_expression(object_expr);
     write_tok_str("->");
   } else {
     /* Normal "." case. */
-    gen_lvalue(operand_1);
+    gen_lvalue(object_expr);
     m_write_tok_ch('.');
   }  /* if */
-  gen_field_reference(operand_2);
+  /* Use a qualified name if the class in which we want to name the member
+     is not the class indicated by the pointer. */
+  selection_class = type_pointed_to(object_expr->type);
+  selection_class = skip_typerefs(selection_class);
+  if (selection_class != naming_class) gen_class_qualifier(naming_class);
+  gen_field_reference(field_expr);
 }  /* gen_simple_field_selection */
 
 
@@ -3400,6 +3420,8 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
 */
 {
   a_routine_ptr rout;
+  a_type_ptr    naming_class, selection_class;
+
 
   check_assertion(func_expr->kind == (an_expr_node_kind)enk_routine_address);
   rout = func_expr->variant.routine;
@@ -3410,19 +3432,30 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
     gen_temp_init(object_expr, /*need_parens=*/FALSE);
     write_tok_str(".");
   } else {
-    /* Normal case.  Use a pointer and "->". */
+    /* Normal case. */
     /* Remove unnecessary base class casts. */
-    object_expr = optimized_expr_for_selection(object_expr);
-    gen_expr_with_parens(object_expr);
-    write_tok_str("->");
+    object_expr = optimized_expr_for_selection(object_expr, &naming_class);
+    if (is_variable_address_node(object_expr)) {
+      /* Optimize (&x)->f as x.f. */
+      gen_lvalue(object_expr);
+      write_tok_ch('.');
+    } else {
+      /* Use a pointer and "->". */
+      gen_expr_with_parens(object_expr);
+      write_tok_str("->");
+    }  /* if */
   }  /* if */
   if (suppress_virtual && rout->is_virtual) {
     /* The routine being called is a virtual function, and we're supposed
        to suppress its virtual-ness in this call, so use a qualified name. */
     gen_qualified_name(&rout->source_corresp, NO_TYPE);
   } else {
-    /* Normal case.  Use an unqualified name because the class of the
-       object selects the proper class. */
+    /* Normal case. */
+    /* Use a qualified name if the class in which we want to name the member
+       is not the class indicated by the pointer. */
+    selection_class = type_pointed_to(object_expr->type);
+    selection_class = skip_typerefs(selection_class);
+    if (selection_class != naming_class) gen_class_qualifier(naming_class);
     gen_unqualified_name(&rout->source_corresp, NO_TYPE);
   }  /* if */
 }  /* gen_bound_function */
@@ -4437,7 +4470,7 @@ Generate code for the indicated statement.
 {
   a_statement_kind    kind;
   a_switch_clause_ptr scp;
-  a_boolean           optimized_away = FALSE;
+  a_boolean           suppress_trailing_space = FALSE;
 
   if (statement == NULL) {
     /* Empty statement. */
@@ -4544,7 +4577,7 @@ Generate code for the indicated statement.
            inline routines, so it's desirable that it be omitted. */
         if (simple_return && is_return_at_end_of_function(statement)) {
           /* Simple return omitted. */
-          optimized_away = TRUE;
+          suppress_trailing_space = TRUE;
         } else {
           /* Put out the return statement. */
           write_tok_str("return");
@@ -4619,12 +4652,13 @@ Generate code for the indicated statement.
           gen_declaration();
         }  /* while */
       }  /* if */
+      suppress_trailing_space = TRUE;
       break;
     default:
       unexpected_condition_str("gen_statement: bad statement kind");
   }  /* switch */
 done:;
-  if (!optimized_away) write_space();
+  if (!suppress_trailing_space) write_space();
 }  /* gen_statement */
 
 
