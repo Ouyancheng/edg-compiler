@@ -2536,13 +2536,11 @@ generated is inserted at insert_location.
   /* Make a call of the runtime routine __free_thrown_object.  This tells
      the runtime it can now destroy the caught object and free the space
      for it. */
-  a_statement_ptr call_stmt = make_call_statement(
-                              make_runtime_routine("__free_thrown_object",
-                                                   &free_thrown_object_routine,
-                                                   void_type()),
-                              (an_expr_node_ptr)NULL);
-  /* Insert the statement at the right place. */
-  insert_statement(call_stmt, insert_location);
+  make_call_statement(make_runtime_routine("__free_thrown_object",
+                                           &free_thrown_object_routine,
+                                           void_type()),
+                      (an_expr_node_ptr)NULL,
+                      insert_location);
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* In other schemes, insert an enk_lowered_eh_construct/leck_catch_epilogue
      expression node. */
