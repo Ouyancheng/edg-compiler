@@ -749,8 +749,8 @@ allocated.
     case tak_nontype:
       /* It is not really necessary to initialize all of these fields, but
          this can be important in certain debugging modes. */
-      tap->variant.constant = NULL;
       tap->variant.integer_value = 0;
+      tap->variant.constant = NULL;
       break;
     default:
       unexpected_condition_str2("alloc_template_arg:", "bad kind");
