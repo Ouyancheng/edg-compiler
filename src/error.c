@@ -2288,18 +2288,20 @@ Add the parameter list of a function to the type string being formatted.
   a_boolean		has_ellipsis;
 
   add_string_to_segment("(", seg_ptr);
-  has_ellipsis = suppl_ptr->has_ellipsis;
-  for (param_ptr = suppl_ptr->param_type_list;
-       param_ptr != NULL;
-       param_ptr = param_ptr->next) {
-    form_type_first_part(param_ptr->type, /*need_parens=*/FALSE, seg_ptr);
-    form_type_second_part(param_ptr->type, /*need_parens=*/FALSE, seg_ptr);
-    if (param_ptr->next != NULL || has_ellipsis) {
-      add_string_to_segment(", ", seg_ptr);
+  if (suppl_ptr->prototyped || suppl_ptr->old_style_params_scanned) {
+    has_ellipsis = suppl_ptr->has_ellipsis;
+    for (param_ptr = suppl_ptr->param_type_list;
+         param_ptr != NULL;
+         param_ptr = param_ptr->next) {
+      form_type_first_part(param_ptr->type, /*need_parens=*/FALSE, seg_ptr);
+      form_type_second_part(param_ptr->type, /*need_parens=*/FALSE, seg_ptr);
+      if (param_ptr->next != NULL || has_ellipsis) {
+        add_string_to_segment(", ", seg_ptr);
+      }  /* if */
+    }  /* for */
+    if (has_ellipsis) {
+      add_string_to_segment("...", seg_ptr);
     }  /* if */
-  }  /* for */
-  if (has_ellipsis) {
-    add_string_to_segment("...", seg_ptr);
   }  /* if */
   add_string_to_segment(")", seg_ptr);
 #ifdef CFE
