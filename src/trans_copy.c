@@ -1107,7 +1107,54 @@ Interface macro for f_check_no_pending_copies.
 #define check_no_pending_copies(ptr) \
   f_check_no_pending_copies((char *)(ptr))
 #else /* !CHECKING */
-#define check_no_pending_copies(type) /* Nothing */
+#define check_no_pending_copies(ptr) /* Nothing */
+#endif /* CHECKING */
+
+#if CHECKING
+
+static void f_check_parent_correspondences(char             *ptr,
+                                           an_il_entry_kind kind)
+/*
+ptr points to an entity of kind "kind" that has a source correspondence field.
+Check that if the member has a correspondence its parents do too.
+*/
+{
+  if (trans_unit_corresp_pointer_of(ptr) != NULL &&
+      trans_unit_corresp_pointer_of(ptr) != ptr &&
+      /* Ignore extern "C" functions because when they are in
+         namespaces the parent information is weird. */
+      (kind != (an_il_entry_kind)iek_routine || C_mode() ||
+       ((a_routine_ptr)ptr)->source_corresp.name_linkage !=
+                                          (a_name_linkage_kind)nlk_external)) {
+    a_source_correspondence *scp = (a_source_correspondence *)ptr;
+    for (;;) {
+      if (scp->is_class_member) {
+        scp = &scp->parent.class_type->source_corresp;
+      } else if (scp->parent.namespace_ptr != NULL) {
+        scp = &scp->parent.namespace_ptr->source_corresp;
+      } else {
+        break;
+      }  /* if */
+      if (!(trans_unit_corresp_pointer_of(scp) != NULL &&
+            trans_unit_corresp_pointer_of(scp) != (char *)scp)) {
+        db_entity_info(ptr, iek_none);
+        db_entity_info((char *)scp, iek_none);
+        internal_error("entity has correspondence but parent does not");
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* f_check_parent_correspondences */
+
+#endif /* CHECKING */
+
+/*
+Interface macro for f_check_parent_correspondences.
+*/
+#if CHECKING
+#define check_parent_correspondences(ptr, kind) \
+  f_check_parent_correspondences((char *)(ptr), (kind))
+#else /* !CHECKING */
+#define check_parent_correspondences(ptr, kind) /* Nothing */
 #endif /* CHECKING */
 
 
@@ -1259,6 +1306,7 @@ the lists.
   prev_type = NULL;
   for (type = scope->types; type != NULL; type = type->next) {
     check_no_pending_copies(type);
+    check_parent_correspondences(type, iek_type);
     keep_on_list = TRUE;
     if (is_immediate_class_type(type) &&
         type->variant.class_struct_union.extra_info != NULL &&
@@ -1322,6 +1370,7 @@ the lists.
     a_variable_ptr corresp_variable =
                                (a_variable_ptr)canonical_il_entry_of(variable);
     check_no_pending_copies(variable);
+    check_parent_correspondences(variable, iek_variable);
     keep_on_list = TRUE;
     /* If we're supposed to copy only generated templates, other variables
        are made external (if necessary) and their definitions are
@@ -1398,6 +1447,7 @@ the lists.
     a_routine_ptr corresp_routine =
                                  (a_routine_ptr)canonical_il_entry_of(routine);
     check_no_pending_copies(routine);
+    check_parent_correspondences(routine, iek_routine);
     keep_on_list = TRUE;
     /* If we're supposed to copy only generated templates, other routines
        are made external (if necessary) and their definitions are
@@ -1476,6 +1526,7 @@ the lists.
        templ != NULL;
        templ = templ->next) {
     check_no_pending_copies(templ);
+    check_parent_correspondences(templ, iek_template);
     keep_on_list = TRUE;
     if (has_corresp_that_may_require_merge(templ)) {
       /* This entry corresponds to something in the primary IL, so remove
@@ -1502,6 +1553,7 @@ the lists.
        nsp != NULL;
        nsp = nsp->next) {
     check_no_pending_copies(nsp);
+    check_parent_correspondences(nsp, iek_namespace);
     /* Entities with correspondences don't get copied; they get merged
        into the corresponding entry.  Set a flag to indicate that. */
     if (!nsp->is_namespace_alias) {
