@@ -9753,11 +9753,8 @@ Value that identifies a kind of Microsoft attribute.
 enum an_ms_attribute_kind_tag {
   msak_none,		/* Must be first. */
   msak_unrecognized,	/* Used to represent unrecognized attributes. */
-  msak_aggregatable,
-  msak_coclass,
-  msak_com_interface_entry,
-  msak_emitidl,
-  msak_soap_handler,
+  msak_misc,		/* Used for predefined attributes that don't require
+			   special processing. */
 #if INCLUDE_EDG_TEST_ATTRIBUTES
   msak_edg_test,
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */

@@ -325,17 +325,17 @@ are accepted.
   /* Save a pointer to the special "unrecognized" attribute kind. */
   unrecognized_attribute = curr_attribute_descr;
   /* [aggregatable(value)] */
-  make_attribute_description((an_ms_attribute_kind)msak_aggregatable,
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "aggregatable", msat_class);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_enumeration,
                           "value",
                           /*is_unnamed=*/FALSE,
                           "never,allowed,always");
   /* [coclass] */
-  make_attribute_description((an_ms_attribute_kind)msak_coclass,
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "coclass", msat_class);
   /* [com_interface_entry] */
-  make_attribute_description((an_ms_attribute_kind)msak_com_interface_entry,
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "com_interface_entry", msat_class);
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
@@ -343,7 +343,7 @@ are accepted.
                           /*is_unnamed=*/TRUE,
                           NULL);
   /* [emitidl] */
-  make_attribute_description((an_ms_attribute_kind)msak_emitidl,
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "emitidl", msat_standalone);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_enumeration,
                           "mode",
@@ -353,8 +353,14 @@ are accepted.
                           "defaultimports",
                           /*is_unnamed=*/FALSE,
                           NULL);
+  /* [in] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "in", msat_parameter);
+  /* [out] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "out", msat_parameter);
   /* [soap_handler] */
-  make_attribute_description((an_ms_attribute_kind)msak_soap_handler,
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "soap_handler", msat_class);
 #if INCLUDE_EDG_TEST_ATTRIBUTES
   /* These are special attributes included for testing purposes. */
