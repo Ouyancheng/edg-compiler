@@ -1538,8 +1538,7 @@ by id_linkage.
           if (other_decl->kind == (a_symbol_kind)sk_function_template) {
             /* Look for a match on the list of instantiations. */
             a_symbol_ptr sym;
-            sym = matching_template_function(other_decl, type,
-                                             &locator->source_position);
+            sym = matching_template_function(other_decl, type);
             if (sym != NULL) {
               /* Found a match. */
               linked_symbol = other_decl = sym;

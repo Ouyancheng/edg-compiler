@@ -180,8 +180,7 @@ reference.  See ARM 13.3, "Address of Overloaded Function".
         sym = fundamental_symbol_of(proj_sym);
         if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* Function template. */
-          instance_sym = matching_template_function(sym, dest_underlying_type,
-                                                    source_pos);
+          instance_sym = matching_template_function(sym, dest_underlying_type);
           if (instance_sym != NULL) {
             /* Template match. */
             match_sym = instance_sym;

@@ -74,8 +74,7 @@ extern a_boolean is_match_for_function_template(
 
 extern a_symbol_ptr matching_template_function
                                   (a_symbol_ptr        function_template_sym,
-                                   a_type_ptr          curr_type,
-                                   a_source_position   *source_pos);
+                                   a_type_ptr          curr_type);
 
 extern void record_predeclared_template_function(
                                         a_symbol_ptr         templ_sym,
