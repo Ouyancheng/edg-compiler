@@ -8552,6 +8552,7 @@ list and template argument list of a partial specialization are valid.
         a_constant_ptr	cp = tap->variant.constant;
         if (is_or_contains_template_param(cp->type)) {
           error(ec_partial_spec_arg_depends_on_templ_param);
+          tap->variant.constant = alloc_error_constant();
         } else if (cp->kind == (a_constant_repr_kind)ck_template_param &&
                    cp->variant.template_param.kind !=
                                  (a_template_param_constant_kind)tpck_param) {
@@ -8559,6 +8560,7 @@ list and template argument list of a partial specialization are valid.
              only supposed to be a single nontype parameter.  If we have
              something other than a tpck_param, issue an error. */
           error(ec_partial_spec_nontype_expr);
+          tap->variant.constant = alloc_error_constant();
         }  /* if */
       }  /* if */
     }  /* for */
