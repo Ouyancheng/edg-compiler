@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1683,7 +1683,7 @@ versions of those routines.
 void inline_one_time_init(void)
 /*
 Do one-time initialization of static variables declared in inline.c.
-(Variables that need to be reinitialized with each new translation unit
+(Variables that need to be reinitialized with each new compilation
 are handled in inline_init.)
 */
 {
@@ -1704,10 +1704,8 @@ are handled in inline_init.)
 
 void inline_init(void)
 /*
-Initialize static variables related to this file.  This is done as a
-subroutine (rather than relying on static initialization) so that it
-can be redone to compile more than one source file in a single invocation
-of the front end.
+Initialize static variables related to this file that must be initialized
+for each compilation.
 */
 {
   /* Variables in inline.h: */
@@ -1729,6 +1727,6 @@ of the front end.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
