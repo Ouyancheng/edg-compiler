@@ -13,18 +13,24 @@ that uses the name from the IL entry.  It does not affect the
 C++-generating back end, which regenerates the name from the return
 type in all cases.
 
-11/1/99  C++-generating back end: unqualified name on typedef redeclaration
-         in presence of using-declaration
+11/1/99  New IL entry created for typedef redeclaring type in presence
+	 of using-declaration
 
-The C++-generating back end no longer puts out a qualified name on the
-redeclaration of a typedef that is visible because of a using-declaration:
+A new IL entry is now created on a typedef that redeclares a type name
+that was previously visible via a using-declaration.  That is, the second
+typedef in the following is now considered to declare ::ptrdiff_t rather
+than to redeclare std::ptrdiff_t:
 
   namespace std {
     typedef int ptrdiff_t;
   }
   using std::ptrdiff_t;
-  typedef int ptrdiff_t;  // No qualified name on this redeclaration
+  typedef int ptrdiff_t;  // declares ::ptrdiff_t
   ptrdiff_t x;
+
+This change should be invisible to programmers, but it fixes some
+incorrect output produced by the C++-generating back end on the above
+test program.
 
 10/31/99 Loop with NEAR_AND_FAR_ENABLED but not MICROSOFT_EXTENSIONS_ALLOWED
 
