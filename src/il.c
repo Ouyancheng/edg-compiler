@@ -370,8 +370,8 @@ class_struct_union:
         fp = fp->next;
       }  /* while */
       if (ctsp != NULL) {
-	a_variable_ptr	vp = ctsp->static_data_members;
-        a_routine_ptr   rp = ctsp->member_functions;
+	a_variable_ptr	vp = ctsp->assoc_scope->variables;
+        a_routine_ptr   rp = ctsp->assoc_scope->routines;
 	while (vp != NULL) {
 	  db_static_data_member(vp);
 	  vp = vp->next;
@@ -919,7 +919,7 @@ Return a pointer to the scope entry.
   a_scope_ptr sp;
 
   /* Allocate the scope entry. */
-  ssep->il_scope = sp = alloc_scope();
+  ssep->il_scope = sp = alloc_scope(ssep->number, (a_scope_kind)sck_block);
   /* Add it to the scopes list for the scope enclosing the scope indicated
      by ssep. */
   add_to_scopes_list(sp, ssep-1);
@@ -1557,25 +1557,29 @@ at_file_scope == TRUE.
 }  /* alloc_param_type */
 
 
-a_class_type_supplement_ptr alloc_class_type_supplement(void)
+a_class_type_supplement_ptr alloc_class_type_supplement(
+                                        a_type_ptr     class_struct_union_type,
+                                        a_scope_number scope_number)
 /*
 Allocate a class-type-supplement entry, initialize its fields, and return
-a pointer to it.
+a pointer to it.  The associated class/struct/union type is given by
+class_struct_union_type; the associated scope number is scope_number.
 */
 {
-  a_class_type_supplement_ptr	ctsp;
+  a_class_type_supplement_ptr ctsp;
+  a_scope_ptr                 class_scope;
 
   ctsp = (a_class_type_supplement_ptr)alloc_cil(
 			      sizeof(a_class_type_supplement));
 #if DEBUG
   num_class_type_supplements_allocated++;
 #endif /* DEBUG */
-  ctsp->static_data_members           = NULL;
-  ctsp->member_functions              = NULL;
   ctsp->base_classes                  = NULL;
   ctsp->access_adjustments            = NULL;
   ctsp->befriending_classes           = NULL;
-  ctsp->types                         = NULL;
+  ctsp->assoc_scope = class_scope     = alloc_scope(scope_number,
+                                         (a_scope_kind)sck_class_struct_union);
+  class_scope->variant.assoc_type = class_struct_union_type;
   return ctsp;
 }  /* alloc_class_type_supplement */
 
@@ -1675,14 +1679,13 @@ in_old_style_param_decl_list is TRUE.
 {
   a_scope_stack_entry_ptr ssep;
   a_scope_ptr             sp;
-  a_scope_ptr             *scope_ptr_ptr;
+  a_type_ptr              routine_type;
   a_type_ptr              last_type_ptr;
   a_type_ptr              *last_type_ptr_ptr;
-  a_memory_region_number  region_to_switch_back_to;
 
   /* Get a pointer to the current or file scope entry. */
   ssep = &scope_stack[at_file_scope ? DEPTH_OF_FILE_SCOPE : decl_scope_level];
-  sp = *(scope_ptr_ptr = &ssep->il_scope);
+  sp = ssep->il_scope;
   last_type_ptr_ptr = &ssep->last_type;
   /* Create the IL scope if necessary in a block scope. */
   if (sp == NULL && ssep->kind == sck_block) sp = create_block_scope(ssep);
@@ -1720,19 +1723,26 @@ in_old_style_param_decl_list is TRUE.
        a function. */
 #if CHECKING
     if (sp == NULL) internal_error("add_to_types_list: missing il_scope");
-    if (sp->assoc_routine == NULL) {
+    if (sp->variant.routine.ptr == NULL) {
       internal_error("add_to_types_list: missing assoc_routine");
     }  /* if */
-    if (sp->assoc_routine->type == NULL ||
-        sp->assoc_routine->type->kind != (a_type_kind)tk_routine) {
+#endif /* CHECKING */
+    routine_type = sp->variant.routine.ptr->type;
+#if CHECKING
+    if (routine_type == NULL) {
+      internal_error("add_to_types_list: NULL routine type");
+    }  /* if */
+#endif /* CHECKING */
+    /* In C++, there can be type qualifiers above the tk_routine entry. */
+    routine_type = skip_typerefs(routine_type);
+#if CHECKING
+    if (routine_type->kind != (a_type_kind)tk_routine) {
       internal_error("add_to_types_list: bad routine type");
     }  /* if */
 #endif /* CHECKING */
     /* Get the prototype scope pointer from the routine type supplement.
        It may already have been created. */
-    scope_ptr_ptr = &sp->assoc_routine->type->variant.routine.extra_info->
-                    prototype_scope;
-    sp = *scope_ptr_ptr;
+    sp = routine_type->variant.routine.extra_info->prototype_scope;
     /* Find the last type on the list, since we have no last pointer we can
        use directly.  These lists are not likely to be long, so this is not
        a big deal. */
@@ -1750,29 +1760,22 @@ in_old_style_param_decl_list is TRUE.
   }  /* if */
   if (sp == NULL) {
     /* A prototype scope must be allocated.  add_to_scopes_list is not
-       called because this is not a scope for a statement block.  For the
-       old-style function parameter list case, we must switch to the
-       file scope and back again so that the prototype scope is allocated
-       in the same scope as the routine entry. */
-    if (in_old_style_param_decl_list) {
-      region_to_switch_back_to = curr_il_region_number;
-      switch_il_region(FILE_SCOPE_REGION_NUMBER);
-    }  /* if */
-    sp = alloc_scope();
-    *scope_ptr_ptr = sp;
-    if (in_old_style_param_decl_list) {
-      switch_il_region(region_to_switch_back_to);
-    } else {
-      /* For a function prototype scope, store the pointer to the prototype
-         scope in prototype_scope in the routine type supplement of the
-         associated routine type. */
+       called because this is not a scope for a statement block. */
+    sp = alloc_scope(ssep->number, (a_scope_kind)sck_func_prototype);
+    if (!in_old_style_param_decl_list) {
+      /* Function prototype scope. */
+      ssep->il_scope = sp;
+      routine_type = ssep->assoc_routine_type;
 #if CHECKING
-      if (ssep->assoc_routine_type == NULL) {
+      if (routine_type == NULL) {
         internal_error("add_to_types_list: assoc_routine_type is NULL");
       }  /* if */
 #endif /* CHECKING */
-      ssep->assoc_routine_type->variant.routine.extra_info->prototype_scope=sp;
     }  /* if */
+    /* Link the routine type to the prototype scope entry. */
+    routine_type->variant.routine.extra_info->prototype_scope = sp;
+    /* Link the prototype scope entry to the routine type. */
+    sp->variant.assoc_type = routine_type;
   }  /* if */
   /* Add the type to the list of types for this scope. */
   if (sp->types == NULL) {
@@ -2104,8 +2107,8 @@ Add the given parameter to the parameters list for the current scope.
 #if CHECKING
   if (sp == NULL) internal_error("add_to_parameters_list: NULL IL scope");
 #endif /* CHECKING */
-  if (sp->parameters == NULL) {
-    sp->parameters = param_ptr;
+  if (sp->variant.routine.parameters == NULL) {
+    sp->variant.routine.parameters = param_ptr;
   } else {
     ssep->last_parameter->next = param_ptr;
   }  /* if */
@@ -2221,19 +2224,19 @@ found_routine:
 }  /* remove_from_routines_list */
 
 
-void add_to_routines_list(a_routine_ptr rout_ptr)
+void add_to_routines_list(a_routine_ptr rout_ptr,
+                           a_boolean    at_file_scope)
 /*
-Add the given routine to the routines list for the file scope.  Routines are
-always added at the file scope level; the symbols for them may be in
-more restricted name scopes.
+Add the given routine to the routines list for the current scope, or
+for the file scope if at_file_scope is TRUE.
 */
 {
   a_scope_stack_entry_ptr
 		 ssep;
   a_scope_ptr    sp;
 
-  /* Get pointer to the file scope entry. */
-  ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+  /* Get pointer to current or file scope entry. */
+  ssep = &scope_stack[at_file_scope ? DEPTH_OF_FILE_SCOPE : decl_scope_level];
   sp = ssep->il_scope;
 #if CHECKING
   if (sp == NULL) internal_error("add_to_routines_list: NULL IL scope");
@@ -2552,10 +2555,12 @@ to it.  The statement kind is set as indicated.
 }  /* alloc_statement */
 
 
-a_scope_ptr alloc_scope(void)
+a_scope_ptr alloc_scope(a_scope_number number,
+                        a_scope_kind   kind)
 /*
 Allocate a scope entry, and return a pointer to it.  Set fixed fields to
-default values.
+default values.  number indicates the unique number for the scope, and
+kind indicates the scope kind (e.g., function, block).
 */
 {
   a_scope_ptr sp;
@@ -2567,9 +2572,29 @@ default values.
   num_scopes_allocated++;
 #endif /* DEBUG */
   sp->next                = NULL;
-  sp->assoc_routine       = NULL;
-  sp->parameters          = NULL;
-  sp->this_param_variable = NULL;
+  sp->number              = number;
+  sp->kind                = kind;
+  switch (kind) {
+    case sck_file:
+    case sck_block:
+      /* No variant fields. */
+      break;
+    case sck_func_prototype:
+    case sck_class_struct_union:
+      sp->variant.assoc_type = NULL;
+      break;
+    case sck_function:
+      sp->variant.routine.ptr                 = NULL;
+      sp->variant.routine.parameters          = NULL;
+      sp->variant.routine.this_param_variable = NULL;
+#ifdef FIL
+      sp->variant.routine.function_result_var = NULL;
+#endif /* ifdef FIL */
+#if CHECKING
+    default:
+      internal_error("alloc_scope: bad scope kind");
+#endif /* CHECKING */
+  }  /* switch */
   sp->assoc_block         = NULL;
   sp->constants           = NULL;
   sp->types               = NULL;
@@ -2578,7 +2603,6 @@ default values.
   sp->routines            = NULL;
   sp->scopes              = NULL;
 #ifdef FIL
-  sp->function_result_var = NULL;
   sp->entries             = NULL;
   sp->namelist_groups     = NULL;
 #endif /* ifdef FIL */
