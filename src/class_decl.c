@@ -3340,25 +3340,24 @@ of the function, and again overloading is a possibility.
            friendship.  Issue a diagnostic. */
         diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
                    ec_self_friendship);
-      } else {
-        /* It's a member function.  Find the right type signature for this
-           member function name.  If none can be found, NULL is returned. */
-        is_overloaded_function =
+      }  /* if */
+      /* It's a member function.  Find the right type signature for this
+         member function name.  If none can be found, NULL is returned. */
+      is_overloaded_function =
                           sym->kind == (a_symbol_kind)sk_overloaded_function;
-        sym = member_function_redecl_sym(sym, function_type);
-        if (sym == NULL) {
-          /* Doesn't match. */
-          sym_error(is_overloaded_function ?
-                          ec_overloaded_function_incompatible_type :
-                          ec_not_compatible_with_previous_decl,
-                    locator->specific_symbol);
-          set_to_error_locator(*locator);
-        } else {
-          /* "inline" may not be introduced by this declaration. */
-          if (func_info->is_inline && !func_info->is_definition &&
-              !sym->variant.routine.ptr->is_inline) {
-            error(ec_inline_not_allowed);
-          }  /* if */
+      sym = member_function_redecl_sym(sym, function_type);
+      if (sym == NULL) {
+        /* Doesn't match. */
+        sym_error(is_overloaded_function ?
+                        ec_overloaded_function_incompatible_type :
+                        ec_not_compatible_with_previous_decl,
+                  locator->specific_symbol);
+        set_to_error_locator(*locator);
+      } else {
+        /* "inline" may not be introduced by this declaration. */
+        if (func_info->is_inline && !func_info->is_definition &&
+            !sym->variant.routine.ptr->is_inline) {
+          error(ec_inline_not_allowed);
         }  /* if */
       }  /* if */
       if (sym != NULL) {

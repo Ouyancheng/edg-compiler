@@ -1,5 +1,16 @@
 Version 2.30
 
+8/24/95  Declaring a member function as a friend of its parent class
+
+An error recovery problem has been fixed when a member function is
+declared a friend of its parent class and defined in the friend
+declaration -- e.g.,
+
+  class A {
+    void f(int);
+    friend void A::f() { }    // No longer aborts
+  };
+
 8/24/95  Spurious assertion failure
 
 An assertion check, which could have been tripped after an error (but
@@ -8,7 +19,7 @@ from decl_variable.  For example:
 
   int i;
   typedef int i;
-  int i;               // No longer aborts
+  int i;                     // No longer aborts
 
 8/24/95  IL CHANGE: Two placeholder typeref flags renamed
 
