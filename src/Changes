@@ -51,7 +51,7 @@ configurations.)  The output is now corrected.
 
 In Microsoft bugs mode, with microsoft_version equal to 1200 (which
 corresponds to Microsoft Visual C++ 6.0), the front end now accepts
-and discards duplicate function templates specializations.  For example:
+and discards duplicate function template specializations.  For example:
 
   template<class T> int f(T) { return 0; }
   template<> int f(int) { return 1; }  // OK.
