@@ -1522,6 +1522,15 @@ enum an_expr_operator_kind_tag {
   eok_or,               /* Bitwise or ("|" operator). */
   eok_xor,              /* Exclusive or ("^" operator). */
   eok_comma,            /* The comma operator. */
+  eok_bound_function_ptr,
+			/* C++ non-virtual bound function pointer.  First
+			   operand is the object pointer; the second is the
+			   function pointer.  Used only in the front end,
+			   to carry the bound object pointer along with
+			   the function pointer.  Means effectively the same
+			   as a comma operator, i.e., evaluate the object
+			   pointer, discard it, and return the function
+			   pointer. */
 #endif /* ifdef CIL */
   eok_land,             /* Logical intersection, with the operand standardized
                            to integer/logical. */
@@ -2421,7 +2430,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "[]", "->", "v.", "b->", "bv.", "b.",
    "<<", ">>",
    "&", "|", "^",
-   ",",
+   ",", "<-bound->", 
 #endif /* ifdef CIL */
    "&&", "||",
 #ifdef FIL
