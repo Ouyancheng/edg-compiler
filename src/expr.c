@@ -1560,7 +1560,7 @@ Syntax:
          the selector object, and the function call operator routine
          becomes the operand. */
       copy_operand(operand, bound_function_selector);
-      conv_operand_to_object_pointer(bound_function_selector);
+      conv_class_operand_to_object_pointer(bound_function_selector);
       make_indefinite_function_operand(member_function_symbol,
                                        /*is_qualified_name=*/FALSE, operand);
       bind_member_function_operand_to_selector(operand,
@@ -4384,7 +4384,7 @@ type conversions.
       } else if (is_a_function_designator(operand)) {
         conv_function_designator_to_ptr_to_function(operand);
       } else if (is_class_struct_union_type(operand->type)) {
-        conv_operand_to_object_pointer(operand);
+        conv_class_operand_to_object_pointer(operand);
       } else {
         if (!is_error_operand(operand)) {
           error_in_operand(ec_expr_not_an_lvalue, operand);

@@ -596,7 +596,7 @@ extern void take_address_of_lvalue(an_operand *operand);
 
 extern void conv_object_pointer_to_lvalue(an_operand *operand);
 
-extern void conv_operand_to_object_pointer(an_operand *operand);
+extern void conv_class_operand_to_object_pointer(an_operand *operand);
 
 extern void conv_lvalue_to_rvalue(an_operand *operand);
 
