@@ -3271,6 +3271,7 @@ rescan_statement:
          by looking to see if the next token is a colon. */
       if (next_token() == tok_colon) {
         /* This is a label definition. */
+        wrapup_decl_statement();
         /* Scan the label identifier, and enter it into the symbol table
            if needed. */
         label = scan_label(/*is_definition=*/TRUE);
@@ -3279,7 +3280,6 @@ rescan_statement:
           sym_error(ec_already_defined,
                     (a_symbol_ptr)label->source_corresp.assoc_info);
           set_reachable(curr_reachability);
-          wrapup_decl_statement();
         } else {
           /* The label has not previously been declared, so put out the
              definition. */
