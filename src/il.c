@@ -192,6 +192,12 @@ Return a pointer to a string describing the integer type indicated by kind.
     case ik_unsigned_int:    p = "unsigned int";    break;
     case ik_long:            p = "long";            break;
     case ik_unsigned_long:   p = "unsigned long";   break;
+#if LONG_LONG_ALLOWED
+    case ik_long_long:       p = "long long";       break;
+    case ik_unsigned_long_long:
+                             p = "unsigned long long";
+                                                    break;
+#endif /* LONG_LONG_ALLOWED */
     default:                 p = "<bad integer kind>";
   }  /* switch */
   return p;

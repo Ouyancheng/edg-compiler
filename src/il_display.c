@@ -171,6 +171,12 @@ Print the name of an integer type.
     case ik_unsigned_int:   s = "unsigned int";     break;
     case ik_long:           s = "long";             break;
     case ik_unsigned_long:  s = "unsigned long";    break;
+#if LONG_LONG_ALLOWED
+    case ik_long_long:      s = "long long";        break;
+    case ik_unsigned_long_long:
+                            s = "unsigned long long";
+                                                    break;
+#endif /* LONG_LONG_ALLOWED */
     default:                s = "**BAD INT KIND**";
   }  /* switch */
   (void)printf(s);

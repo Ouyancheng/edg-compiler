@@ -983,6 +983,14 @@ do_unsigned_char:
     case ik_unsigned_long:
       fputs("unsigned long", f_C_output);
       break;
+#if LONG_LONG_ALLOWED
+    case ik_long_long:
+      fputs("long long", f_C_output);
+      break;
+    case ik_unsigned_long_long:
+      fputs("unsigned long long", f_C_output);
+      break;
+#endif /* LONG_LONG_ALLOWED */
 #if CHECKING
     default:
       internal_error("dump_integer_type_name: bad integer type");
@@ -3934,6 +3942,11 @@ Print out the constant value contained in one constant record.
       if (ikind == (an_integer_kind)ik_long           ||
           ikind == (an_integer_kind)ik_unsigned_long) {
         fputc('L', f_C_output);
+#if LONG_LONG_ALLOWED
+      } else if (ikind == (an_integer_kind)ik_long_long ||
+                 ikind == (an_integer_kind)ik_unsigned_long_long) {
+        fputs("LL", f_C_output);
+#endif /* LONG_LONG_ALLOWED */
       }  /* if */
       if (need_close_paren) fputc(')', f_C_output);
       break;
