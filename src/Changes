@@ -1,5 +1,22 @@
 Version 2.36
 
+5/21/97   IL write/read error eliminated, return value optimization
+
+A bug in IL lowering's processing of return value optimization has been
+eliminated.  The symptom was an IL write/read internal error when
+exception handling is enabled and object lifetime information is
+preserved.
+
+  struct A { ~A (); };
+  struct S {
+    S(const S& str, const A& a = A ());
+    S();
+  };
+  S f() {
+    S str;
+    return str;
+  }
+
 5/20/97   &(X::Y) as pointer-to-member in cfront mode
 
 In version 2.35, a change was made such that a reference of the form

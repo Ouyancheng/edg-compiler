@@ -8583,23 +8583,29 @@ Lower an stmk_return statement.
      code for the dynamic initialization.  However, if return value
      optimization applies, just skip the copy constructor call
      altogether. */
-  if (dip != NULL &&
-      innermost_function_scope->variant.routine.
+  if (dip != NULL) {
+    if (innermost_function_scope->variant.routine.
                                                return_value_variable == NULL) {
-    /* This routine returns its value via a copy constructor.
-       The dynamic initialization entry indicates the operation to
-       be done. */
-    an_init_pos_descr ipd;
-    set_var_indirect_init_pos_descr(return_value_pointer_variable, &ipd);
-    /* Put the return statement under a block so we can insert in
-       front of it. */
-    turn_branch_into_block(statement, &insert_location, &return_statement);
-    make_block = FALSE;
-    lower_dynamic_init(dip, &ipd,
-                       (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
-                       (a_variable_ptr *)NULL,
-                       &insert_location, (a_boolean *)NULL);
+      /* This routine returns its value via a copy constructor.
+         The dynamic initialization entry indicates the operation to
+         be done. */
+      an_init_pos_descr ipd;
+      set_var_indirect_init_pos_descr(return_value_pointer_variable, &ipd);
+      /* Put the return statement under a block so we can insert in
+         front of it. */
+      turn_branch_into_block(statement, &insert_location, &return_statement);
+      make_block = FALSE;
+      lower_dynamic_init(dip, &ipd,
+                         (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
+                         (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
+                         (a_variable_ptr *)NULL,
+                         &insert_location, (a_boolean *)NULL);
+    } else {
+      /* Return value optimization was done. */
+      if (dip->init_expr_lifetime != NULL) {
+        unbind_object_lifetime(dip->init_expr_lifetime);
+      }  /* if */
+    }  /* if */
   }  /* if */
   any_cleanup_on_return =
                        any_cleanup_actions(innermost_function_scope->lifetime);
