@@ -476,6 +476,8 @@ extern a_type_ptr underlying_type(a_type_ptr type);
 
 extern a_boolean is_or_was_ptr_to_data_member_type(a_type_ptr type);
 
+extern a_boolean is_or_was_ptr_to_member_function_type(a_type_ptr type);
+
 extern an_expr_node_ptr au_field_lvalue_selection_expr(an_expr_node_ptr node,
                                                        a_field_ptr      field);
 

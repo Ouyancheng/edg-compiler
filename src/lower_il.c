@@ -1079,7 +1079,7 @@ Return TRUE if type is (or was, before lowering) a pointer to data member.
 }  /* is_or_was_ptr_to_data_member_type */
 
 
-static a_boolean is_or_was_ptr_to_member_function_type(a_type_ptr type)
+a_boolean is_or_was_ptr_to_member_function_type(a_type_ptr type)
 /*
 Return TRUE if type is (or was, before lowering) a pointer to member
 function.
