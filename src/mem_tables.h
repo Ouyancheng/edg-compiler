@@ -244,34 +244,38 @@ the file-scope IL entry at ptr.
 #define SPACE_FOR_FS_ORPHAN_POINTER 0
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
-/* Amount of space to allocate for the canonical IL entry pointer
-   that is used when compiling multiple translation units.  This is
-   allocated for file scope memory regions of secondary translation
-   units.  The size is the smallest multiple of HOST_ALIGNMENT_REQUIRED
-   that is at least as large as the size of a "char *".  This preserves the
-   necessary alignment for the entry itself. */
-#define SPACE_FOR_CANONICAL_IL_POINTER                                \
+/* Amount of space to allocate for the translation unit correspondence
+   pointer that is used when compiling multiple translation units.
+   (Such a pointer links to the IL for the same entity in a previous
+   translation unit.  By following the links the "canonical" entry for a
+   certain entity can be found.)  This is allocated for file scope memory
+   regions of secondary translation units.  The size is the smallest
+   multiple of HOST_ALIGNMENT_REQUIRED that is at least as large as the
+   size of a "char *".  This preserves the necessary alignment for the
+   entry itself. */
+#define SPACE_FOR_TRANS_UNIT_CORRESP_POINTER                          \
  ((((sizeof(char *)-1)/HOST_ALIGNMENT_REQUIRED)+1)*                   \
   HOST_ALIGNMENT_REQUIRED)
 
 /*
-Macro to allow reference to the canonical IL entry pointer that precedes
-the file-scope IL entry at ptr.
+Macro to allow reference to the translation unit correspondence pointer
+that precedes the file-scope IL entry at ptr.
 */
-#define canonical_entry_pointer_of(ptr)                               \
+#define trans_unit_corresp_pointer_of(ptr)                            \
   (*(char **)((char *)(ptr) -                                         \
               SPACE_FOR_IL_ENTRY_PREFIX -                             \
               SPACE_FOR_FS_ORPHAN_POINTER -                           \
-              SPACE_FOR_CANONICAL_IL_POINTER))
+              SPACE_FOR_TRANS_UNIT_CORRESP_POINTER))
 
 /*
-Macro to retrieve the value of the canonical IL entry pointer that precedes
-the file-scope IL entry at ptr or NULL if there is no such pointer.
+Macro to retrieve the value of the translation unit correspondence pointer
+that precedes the file-scope IL entry at ptr or NULL if there is no such
+pointer.
 */
-#define canonical_entry_for(ptr)                                      \
+#define trans_unit_corresp_for(ptr)                                   \
   ((il_entry_prefix_of(ptr).secondary_trans_unit &&                   \
     il_entry_prefix_of(ptr).file_scope) ?                             \
-     canonical_entry_pointer_of(ptr) : NULL)
+     trans_unit_corresp_pointer_of(ptr) : NULL)
 
 /*
 Return TRUE if the IL entry pointed to by ptr is in the file scope

@@ -29,6 +29,7 @@ types.c -- Utility routines that check types.
 #include "symbol_ref.h"
 #include "templates.h"
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#include "trans_corresp.h"
 
 /*
 Macros defining some basic classes of types (see 3.1.2.5).  Defined as
@@ -2324,6 +2325,34 @@ be customized if additional linkage kinds are added to a_name_linkage_kind
 }  /* routine_linkages_are_identical */
 
 
+static a_boolean change_to_canonical_types(a_type_ptr  *type_1,
+                                           a_type_ptr  *type_2)
+/*
+If the given types have a canonical correspondence in another translation
+unit change the pointers to point to those entries and return TRUE.
+Otherwise, return FALSE.
+*/
+{
+  a_boolean   changed = FALSE;
+  a_type_ptr  new_type_1 = *type_1, new_type_2 = *type_2;
+
+  if (il_entry_prefix_of(new_type_1).secondary_trans_unit) {
+    new_type_1 = (a_type_ptr)canonical_il_entry_of(new_type_1);
+    if (new_type_1 != *type_1) {
+      *type_1 = new_type_1;
+      changed = TRUE;
+    }  /* if */
+  }  /* if */
+  if (il_entry_prefix_of(new_type_2).secondary_trans_unit) {
+    new_type_2 = (a_type_ptr)canonical_il_entry_of(new_type_2);
+    if (new_type_2 != *type_2) {
+      *type_2 = new_type_2;
+      changed = TRUE;
+    }  /* if */
+  }  /* if */
+  return changed;
+}  /* change_to_canonical_types */
+
 a_boolean f_identical_types(a_type_ptr      type_1,
                             a_type_ptr      type_2,
                             an_itf_flag_set flags)
@@ -2364,7 +2393,14 @@ for more information.
     if (type_1 == type_2) {
       /* If the types are now the same, they are identical. */
       identical = TRUE;
-    } else if (equiv_type_kinds(type_1->kind, type_2->kind)) {
+    } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
+      /* The top level kinds are different, so the types are different. */
+      /* identical = FALSE;  -- Already set. */
+    } else if (change_to_canonical_types(&type_1, &type_2)) {
+      /* The types might have been if different translation units, so restart
+         the comparison with the canonical entries instead. */
+      identical = f_identical_types(type_1, type_2, flags);
+    } else {
       /* The top level kinds are the same, check further. */
       switch (type_1->kind) {
         case tk_error:

@@ -29,6 +29,7 @@ fe_wrapup.c - End of front end processing.
 #include "il_write.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #include "templates.h"
+#include "trans_corresp.h"
 #if DEBUG
 #include "exprutil.h"
 #if DO_IL_LOWERING
@@ -75,6 +76,8 @@ Do any processing that is required at the end of a translation unit
 (primary or secondary).
 */
 {
+  a_scope_ptr  file_scope;
+
   db_enter(1, "translation_unit_wrapup");
 
 #if CHECKING
@@ -96,6 +99,13 @@ Do any processing that is required at the end of a translation unit
 
   /* Pop the file scope off the scope stack. */
   pop_scope();
+
+  /* If this is a secondary translation unit, establish any IL
+     correspondences. */
+  file_scope = curr_translation_unit->primary_scope;
+  if (il_entry_prefix_of(file_scope).secondary_trans_unit) {
+    establish_trans_unit_correspondences_for_scope(file_scope);
+  }  /* if */
 
   db_exit();
 }  /* translation_unit_wrapup */
