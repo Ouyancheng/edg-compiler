@@ -9475,6 +9475,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       copy_operand(&operand_2, result);
       other_operand = &operand_3;
     }  /* if */
+    result->is_simple_string_literal = FALSE;
     if (is_constant_operand(result)) {
       if (!is_constant_operand(other_operand) ||
           other_operand->variant.constant.null_pointer_constant_ruled_out ||
@@ -9483,7 +9484,6 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
         result->variant.constant.null_pointer_constant_ruled_out = TRUE;
       }  /* if */
       result->variant.constant.is_simple_zero = FALSE;
-      result->is_simple_string_literal = FALSE;
     }  /* if */
   } else {
     /* Build the expression. */
