@@ -166,6 +166,9 @@ typedef enum /*an_option_kind*/ {
   optk_late_tiebreaker,
   optk_preinclude,
   optk_pending_instantiations,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  optk_import_dir,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1017,6 +1020,12 @@ EXTERN unsigned long
 			   of a given template that may be in process
 			   at a given time.  This is used to detect
 			   runaway recursive instantiations. */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+EXTERN char	*import_dir_name /* = NULL */;
+			/* The name of the directory in which files should be
+			   sought for the Microsoft #import directive. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

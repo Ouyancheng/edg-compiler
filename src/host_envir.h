@@ -1395,31 +1395,9 @@ EXTERN a_boolean
 extern char *directory_of(char *file_name);
 extern char *gs_directory_of(char *file_name);
 
-#ifdef CFE
-/* derived_type is needed in the CFE to generate the object file name for
-   makefile output. */
-#define NEED_DERIVED_NAME TRUE
-#else /* !defined(CFE) */
-#if BACK_END_SHOULD_BE_CALLED
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-/* If the back end is c_gen_be or cp_gen_be and it's called in the same
-   program, derived_name is used to generate the C output file name. */
-#define NEED_DERIVED_NAME TRUE
-#endif /* BACK_END_IS_C_GEN_BE || ... */
-#else /* !BACK_END_SHOULD_BE_CALLED */
-/* If the back end is not called in the current program, derived_type
-   is needed to generate the name of the IL file. */
-#define NEED_DERIVED_NAME TRUE
-#endif /* BACK_END_SHOULD_BE_CALLED */
-#endif /* ifdef CFE */
-#ifndef NEED_DERIVED_NAME
-#define NEED_DERIVED_NAME FALSE
-#endif /* ifndef NEED_DERIVED_NAME */
-#if NEED_DERIVED_NAME
 /* Extract the base name from a file name. */
 extern char *derived_name(char *file_name,
                           char *suffix);
-#endif /* NEED_DERIVED_NAME */
 
 /*
 The character used to separate components of a path name.  On Microsoft

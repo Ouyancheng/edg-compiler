@@ -1,5 +1,14 @@
 Version 2.39
 
+2/2/97    Microsoft compatibility: #import
+
+The #import preprocessing directive is now supported in Microsoft mode.
+Our implementation depends on the fact that the Microsoft compiler
+generates a header file (with a .TLH suffix) in the object directory
+when it processes an #import directive.  We treat #import as an #include
+of the previously-generated file.  The directory for such files can
+be specified via the --import_dir command-line option.
+
 1/31/98   Extra source position information on prefix incr/decr and
           field selection
 

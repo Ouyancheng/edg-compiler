@@ -624,7 +624,6 @@ in IL storage.  No pooling of strings is done.
   return(dir_name);
 }  /* gs_directory_of */
 
-#if NEED_DERIVED_NAME
 
 #if __MICROSOFT_OS__
 static void truncate_msdos_filename(char *filename)
@@ -672,8 +671,6 @@ the base if necessary.
 }  /* truncate_msdos_filename */
 #endif /* __MICROSOFT_OS__ */
 
-#endif /* NEED_DERIVED_NAME */
-#if NEED_DERIVED_NAME
 
 char *derived_name(char *file_name,
                    char *suffix)
@@ -726,7 +723,6 @@ be passed to the back end.
   return(der_name);
 }  /* derived_name */
 
-#endif /* NEED_DERIVED_NAME */
 
 char *combine_dir_and_file_name (char *dir_name,
                                  char *file_name,

@@ -43,12 +43,17 @@ typedef enum /*a_pp_directive_kind*/ {
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
   ppd_assert, ppd_unassert,
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ppd_import,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ppd_not_valid
 } a_pp_directive_kind;
 
 #if DEBUG
 /*
-Table of names of PCH event kinds.
+Table of names of preprocessing directives, used as event kinds for PCH
+processing.  This is not the definition of the preprocessing directive
+keywords (see identify_dir_keyword).
 */
 EXTERN char	*pp_directive_kind_names[(int)ppd_not_valid+1]
 #if VAR_INITIALIZERS
@@ -76,6 +81,9 @@ EXTERN char	*pp_directive_kind_names[(int)ppd_not_valid+1]
     "assert",
     "unassert",
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    "import",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     "not_valid"
   }
 #endif /* VAR_INITIALIZERS */

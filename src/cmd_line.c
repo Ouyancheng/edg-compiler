@@ -724,6 +724,12 @@ Initialize the option information table.
                          "pending_instantiations",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  add_option_description(optk_import_dir,
+                         "import_dir",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* initialize_option_descriptions */
 
 
@@ -1891,6 +1897,13 @@ enable_microsoft_mode:
           max_pending_instantiations = ULONG_MAX;
         }  /* if */
         break;
+      case optk_import_dir:
+        import_dir_name = opt_arg;
+        if (!is_directory(import_dir_name)) {
+          str_command_line_error(ec_cl_invalid_import_directory,
+                                 import_dir_name);
+        }  /* if */
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -2259,7 +2272,13 @@ enable_microsoft_mode:
     /* Microsoft mode is not being used. */
     microsoft_bugs = FALSE;
     il_header.microsoft_16_mode = FALSE;
+    if (import_dir_name != NULL) {
+      /* --import_dir is allowed only in Microsoft mode. */
+      command_line_error(ec_cl_import_only_in_microsoft);
+    }  /* if */
   }  /* if */
+  /* If no directory was specified for #import, use the current directory. */
+  if (import_dir_name == NULL) import_dir_name = ".";
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (instantiation_mode == tim_local && automatic_instantiation_mode) {

@@ -179,6 +179,11 @@ the "#" the current token (at least logically).
       /* #unassert directive (an AT&T extension in System V release 4). */
       kind = ppd_unassert;
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode && curr_id_is("import")) {
+      /* #import directive (a Microsoft extension). */
+      kind = ppd_import;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       kind = ppd_not_valid;
     }  /* if */
@@ -825,7 +830,9 @@ Scan and process a #include directive.
     is_system_include = *start_of_curr_token == '<';
     /* Allocate space for and copy the name. */
     /* Escapes are not processed.  That's an implementation choice; you
-       can change this if you'd rather have it the other way. */
+       can change this if you'd rather have it the other way.  (But note
+       that Microsoft compatibility requires ignoring the escapes, because
+       "\" can be used in file names.) */
     name_start_pos = copy_header_name(/*process_escapes=*/FALSE);
     /* Move past the header name. */
     (void)get_token();
@@ -853,6 +860,67 @@ Scan and process a #include directive.
   }  /* if */
 }  /* proc_include */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void proc_import(void)
+/*
+Scan and process an #import directive.  This is a Microsoft extension.
+We do not do the full processing done by the Microsoft compiler.  Rather,
+we count on the fact that the Microsoft compiler's processing will create
+a header file (with a .tlh suffix) in the object directory, and we can
+simply include that.
+*/
+{
+  char   *name;
+  a_byte ifg_state;
+
+  /* The syntax is
+
+     # import "name.xxx" ... rest ignored ...
+     # import <name.xxx> ... rest ignored ...
+
+  */
+  ifg_state = get_ifg_state();
+  if (ifg_state < IFG_STATE_FAIL) {
+    /* If another include is seen outside of the #ifndef/#endif guard
+       code of the current file then it is not a candidate for suppression
+       of a subsequent include. */
+    set_ifg_state(IFG_STATE_FAIL);
+  }  /* if */
+  /* Try to expand macros to get one of the normal forms. */
+  expand_macros = TRUE;
+  exp_header_name = TRUE;
+  (void)get_token();
+  exp_header_name = FALSE;
+  if (curr_token != tok_header_name) {
+    /* Missing include file name. */
+    catastrophe(ec_exp_file_name);
+  } else {
+    /* A header name was scanned. */
+    /* Allocate space for and copy the name. */
+    /* Escapes are not processed.  That is appropriate since "\" is used
+       in file names on Microsoft systems. */
+    name = copy_header_name(/*process_escapes=*/FALSE);
+    /* Move past the header name. */
+    (void)get_token();
+    /* Ignore the rest of the directives on the line. */
+    flush_to_newline();
+    /* Make the name of the file to be included.  It is the base name of
+       the imported file name, with a .tlh suffix and the directory
+       specified by import_dir_name. */
+    name = derived_name(name, ".tlh");
+    name = combine_dir_and_file_name(import_dir_name, name, (char *)NULL, 0);
+    /* Push the name and associated search directory onto the input stack,
+       thus starting input from that file. */
+    open_file_and_push_input_stack(name,
+                                   /*use_search_path=*/TRUE,
+                                   /*is_include_file=*/TRUE,
+                                   /*is_system_include=*/FALSE,
+                                   /*is_preinclude=*/FALSE);
+  }  /* if */
+}  /* proc_import */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void proc_line(a_boolean cpp_output_form)
 /*
@@ -1571,11 +1639,15 @@ execute the preprocessor directive.
      generate_precompiled_header. */
   local_is_header_stop_dir = is_header_stop_position(start_of_dir_position);
   if (is_header_stop_dir || local_is_header_stop_dir) {
-    if (dir_kind == ppd_include) {
+    if (dir_kind == ppd_include
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        || dir_kind == ppd_import
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                 ) {
       /* When we have completed scanning of this include file, generate
          the precompiled header.  This test is done here, because
          the flag must be set before the input stack is pushed.  If the
-         include is optimized away, pop_scope won't be able to
+         include is optimized away, pop_input_stack won't be able to
          generate the PCH file. */
       is_header_stop_dir = FALSE;
       local_is_header_stop_dir = FALSE;
@@ -1647,6 +1719,11 @@ execute the preprocessor directive.
         proc_unassert();
         break;
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case ppd_import:
+        proc_import();
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case ppd_null:
         /* Null directive -- ignore. */
         break;
@@ -1671,15 +1748,19 @@ execute the preprocessor directive.
       case ppd_else:
       case ppd_endif:
       case ppd_include:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case ppd_import:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Processing for these directives is done in the specific routines
            called above. */
         break;
       default:
         {
           a_byte	ifg_state = get_ifg_state();
-          if (ifg_state < IFG_STATE_FAIL)
-	    set_ifg_state(IFG_STATE_FAIL);
+          if (ifg_state < IFG_STATE_FAIL) {
+            set_ifg_state(IFG_STATE_FAIL);
           }  /* if */
+        }
         break;
     }  /* switch */
     /* Check that all of the text of the directive was taken. */
@@ -1700,7 +1781,11 @@ execute the preprocessor directive.
   /* Restore the error position as at entry. */
   copy_source_position(save_error_position, error_position);
   if (is_header_stop_dir || local_is_header_stop_dir) {
-    if (dir_kind != ppd_include) {
+    if (dir_kind != ppd_include
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        && dir_kind != ppd_import
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                 ) {
       /* This is the last directive in a precompiled header file that is
          to be generated. */
       is_header_stop_dir = FALSE;
