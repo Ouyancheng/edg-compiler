@@ -1,6 +1,24 @@
 Version 2.31
 
-12/19/95  C++-generating back end -- extern "C" on variable definitions
+12/19/95  C++-generating back end: cv-qualifiers on parameter types in
+          function declarations
+
+Top-level cv-qualifiers on function parameter types are ignored in modern
+C++, except on the type of the parameter variable within the function
+definition.  The C++-generating back end previously put out function
+declarations with the qualifiers removed, and definitions with the
+qualifiers present, as in
+
+  struct A {
+    void f(const int);  // Was put out as just "int", now "const int"
+  };
+  void A::f(const int p) {}  // Was put out as "const int", still is.
+
+This was valid C++ by the modern definition, but ran afoul of some
+compilers, so now the qualifiers from the definition are put out
+in all cases.
+
+12/19/95  C++-generating back end: extern "C" on variable definitions
 
 The source construct
 
