@@ -21,10 +21,15 @@ fe_wrapup.c - End of front end processing.
 #include "cmd_line.h"
 #include "macro.h"
 #include "class_decl.h"
+#include "exprutil.h"
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_write.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+
+#if DO_IL_LOWERING
+#include "lower_il.h"
+#endif /* DO_IL_LOWERING */
 
 
 #if DEBUG
@@ -39,7 +44,11 @@ Show the amount of memory allocated.
   total_space += show_symbol_space_used();
   total_space += show_macro_space_used();
   total_space += show_lexical_space_used();
+  total_space += show_expr_space_used();
   total_space += show_il_space_used();
+#if DO_IL_LOWERING
+  total_space += show_lowering_space_used();
+#endif /* DO_IL_LOWERING */
 
   show_mem_manage_space_used(total_space);
 }  /* show_space_used */

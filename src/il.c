@@ -5755,6 +5755,18 @@ Display and return the amount of space used for various IL tables.
                    (unsigned long)sizex, total);                      \
   grand_total += total;                                               \
 }  /* write_onex */
+#define write_loss(avail_list, counter, type)                         \
+{ type          *ptr;                                                 \
+  unsigned long count = 0;                                            \
+  for (ptr = avail_list; ptr != NULL; ptr = ptr->next) count++;       \
+  if (count != counter) {                                             \
+    fprintf(f_debug, "%25s %8s %8s %8lu lost\n", "", "", "", counter-count); \
+  }  /* if */                                                         \
+}  /* write_loss */
+#define write_onel(name, avail_list, counter, type)                   \
+{ write_one(name, counter, type);                                     \
+  write_loss(avail_list, counter, type);                              \
+}  /* write_onel */
 
   write_one("source file", num_source_files_allocated, a_source_file);
   write_one("constant", num_constants_allocated, a_constant);
@@ -5805,18 +5817,9 @@ Display and return the amount of space used for various IL tables.
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total", "", "", grand_total);
 
   (void)fputc('\n', f_debug);
-  write_one("rewritten temporary", num_rewritten_temporaries_allocated,
-            a_rewritten_temporary);
-  /* Count the freed rewritten temporary entries to see if any were lost. */
-  { a_rewritten_temporary_ptr rtp;
-    unsigned long             count = 0;
-    for (rtp = avail_rewritten_temporaries; rtp != NULL; rtp = rtp->next) {
-      count++;
-    }  /* if */
-    if (count != num_rewritten_temporaries_allocated) {
-      fprintf(f_debug, "%25s %8s %8s %8lu lost\n", "", "", "", count);
-    }  /* if */
-  }
+  write_onel("rewritten temporary", avail_rewritten_temporaries,
+             num_rewritten_temporaries_allocated, a_rewritten_temporary);
+
   (void)fputc('\n', f_debug);
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "get_based_type calls", "", "",
                                           num_get_based_type_calls);  
@@ -5845,6 +5848,8 @@ Display and return the amount of space used for various IL tables.
   return grand_total;
 #undef write_one
 #undef write_onex
+#undef write_loss
+#undef write_onel
 }  /* show_il_space_used */
 #endif /* DEBUG */
 
