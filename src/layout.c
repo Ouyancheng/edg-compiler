@@ -1357,11 +1357,6 @@ bugs).
       if (
 #if IA64_ABI
           eff_bcp->offset_is_set && eff_bcp->offset <= offset &&
-          /* Early GNU implementations of the IA-64 ABI do not consider
-             empty base conflicts with virtual primary bases (and bases
-             thereof). */
-          !(emulate_gnu_abi_bugs && eff_bcp->offset == 0 &&
-            eff_bcp->is_virtual && eff_bcp->shares_virtual_function_info) &&
 #else /* !IA64_ABI */
           eff_bcp->offset == atype_offset && 
 #endif /* !IA64_ABI */
