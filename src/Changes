@@ -1,5 +1,10 @@
 Version 2.32
 
+3/28/96   Virtual function in an unnamed class
+
+An error is now issued if a virtual function is declared but not defined
+inside an unnamed class.
+
 3/26/96   Partially-lowered EH instructions: loop on needed-flag IL walk
 
 The code for the partially-lowered exception handling instructions
