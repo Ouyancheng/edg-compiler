@@ -120,7 +120,7 @@ These macros permit components of the IL prefix to be allocated using only
 the alignment actually required by each component.  The default value of
 these macros should be correct on most systems, but may require adjustment.
 
-When CHECKING code is enabled, the values of these macros is tested during
+When CHECKING code is enabled, the values of these macros are tested during
 the initialization of the front end.  If they are not set correctly, an
 internal error is issued.  Checking code is also now provided for the
 HOST_ALIGNMENT_REQUIRED macro.
