@@ -1,5 +1,22 @@
 Version 3.1
 
+11/7/02  Block-extern declaration mismatch ignored in K&R/pcc mode
+
+In K&R/pcc mode, two block-extern declarations with the same name but in
+different scopes can have a different type (and hence no diagnostic is
+issued in case of a mismatch).  For example:
+
+  void f1() {
+    void g();
+  }
+  void f2() {
+    int g();  /* No error (but warning) in pcc mode. */
+  }
+
+This was accepted in versions 2.40 and earlier of the front end, but
+versions 2.41 through 3.0.1 diagnosed such cases as errors.  Now it is
+again accepted, but with a warning.
+
 11/7/02  Spurious error on using declaration of member of dependent base
 
 Certain kinds of using-declarations naming members of dependent classes
@@ -68,23 +85,6 @@ be reached.
   int f2() {
     /*NOTREACHED*/   // A hint indicating this point is never reached
   }                  // inhibits the warning about a missing return.
-
-11/4/02  Block-extern declaration mismatch ignored in K&R/pcc mode
-
-In K&R/pcc mode, two block-extern declarations with the same name but in
-different scopes can have a different type (and hence no diagnostic is
-issued in case of a mismatch).  For example:
-
-  void f1() {
-    void g();
-  }
-  void f2() {
-    int g();  /* No error in pcc mode. */
-  }
-
-This was accepted in versions 2.40 and earlier of the front end, but
-versions 2.41 through 3.0.1 diagnosed such cases as errors.  Now it is
-again accepted.
 
 11/4/02  GNU C++ compatibility: Predefined macro _GNU_SOURCE on Linux
 

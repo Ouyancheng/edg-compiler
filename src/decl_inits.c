@@ -2621,7 +2621,7 @@ vp had an incomplete array type that has been completed by an initializer.
                                      (a_type_ptr)NULL, &ext_locator);
       check_assertion(ext_sym != NULL);
       (void)reconcile_external_symbol_types(ext_sym, source_pos, vp_type,
-                                        /*suppress_incompatible_error=*/FALSE);
+                                            es_error);
     }  /* if */
   }  /* if */
   /* Put the updated type into the variable. */

@@ -2488,7 +2488,7 @@ a_boolean reconcile_external_symbol_types(
                              a_symbol_ptr          ext_sym,
                              a_source_position_ptr position,
                              a_type_ptr            type_ptr,
-                             a_boolean             suppress_incompatible_error)
+                             an_error_severity     incompatible_severity)
 /*
 Change the type of the external symbol ext_sym to type_ptr.  External
 symbol entries are constructed for all variables and routines with
@@ -2496,16 +2496,15 @@ linkage (external or internal) as a place to keep the pointer to the
 unique IL entry (needed because the normal symbol entries will not
 necessarily stay in scope for the entire compilation).  *position
 gives the source position to be used in case of error.
-If suppress_incompatible_error is TRUE, do not issue an error about
-a type incompatibility (presumably because the caller has already
-issued a similar error).  Return FALSE if there is some error.
+An error about a type incompatibility  should not be more severe than
+incompatible_severity.  Return FALSE if there is some error.
 */
 {
   an_extern_symbol_descr_ptr esdp;
   a_type_ptr                 old_type;
   a_boolean                  okay = TRUE;
   a_boolean                  is_routine;
-  an_error_severity          severity;
+  an_error_severity          severity = incompatible_severity;
   a_symbol_ptr               sym;
   a_boolean                  compat;
   a_boolean                  incompatible_linkage_spec = FALSE;
@@ -2549,7 +2548,7 @@ issued a similar error).  Return FALSE if there is some error.
           */
           if (is_routine &&
               incompatible_types_are_SVR4_compatible(old_type, type_ptr)) {
-            severity = es_warning;
+            severity = (severity>es_warning) ? es_warning : severity;
             /* Record the most recent type as the external symbol's type. */
             esdp->type = type_ptr;
             goto issue_diagnostic;
@@ -2558,7 +2557,7 @@ issued a similar error).  Return FALSE if there is some error.
           /* Array types are compatible when the element types are the same
              no matter what the visibility constraints are. */
           if (incompatible_types_are_SVR4_compatible(old_type, type_ptr)) {
-            severity = es_warning;
+            severity = (severity>es_warning) ? es_warning : severity;
             goto issue_diagnostic;
           }  /* if */
         } else {
@@ -2580,7 +2579,7 @@ issued a similar error).  Return FALSE if there is some error.
             /* Either there was no other declaration in scope (e.g., when the
                external symbol records another block extern declaration) or
                else there was an intervening declaration.  Issue a warning. */
-            severity = es_warning;
+            severity = (severity>es_warning) ? es_warning : severity;
             if (incompatible_types_are_SVR4_compatible(old_type, type_ptr)) {
               /* If this is a variable, record the most recent type as the
                  external symbol's type. */
@@ -2639,16 +2638,15 @@ issued a similar error).  Return FALSE if there is some error.
           /* In Microsoft C++ mode extern "C" routine declarations are
              allowed to have incompatible types when they appear in
              different namespaces. */
-          severity = es_warning;
+          severity = (severity>es_warning) ? es_warning : severity;
           goto issue_diagnostic;
         }  /* if */
       }  /* if */
-      severity = es_error;
       /* Decide how to proceed and which type to select for recovery: */
       recover_from_irreconcilable_external_symbol_types(type_ptr, esdp, &okay);
 issue_diagnostic:
       /* The old and new types are incompatible.  Error. */
-      if (!suppress_incompatible_error) {
+      if (incompatible_severity != es_none) {
         pos_sy_diagnostic(severity,
                           incompatible_linkage_spec ?
                             ec_incompatible_linkage_specifier :
@@ -2701,6 +2699,7 @@ created; the caller must set it.
   a_type_ptr                 preexisting_type;
   a_boolean                  is_implicit_declaration;
   a_boolean                  is_function;
+  an_error_severity          incomp_severity = es_error;
 
   db_enter(4, "create_external_symbol_for_linked_entity");
   if (func_info != NULL) {
@@ -2750,13 +2749,34 @@ created; the caller must set it.
         ext_sym = NULL;
       }  /* if */
     }  /* if */
-    if (!err) {
+    if (C_dialect == C_dialect_pcc && ext_sym != NULL &&
+        depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+      /* In pcc mode, block-external declarations declared in other function
+         scopes need not be compatible with the current declaration. */
+      a_source_correspondence  *scp;
+      if (ext_sym->kind == (a_symbol_kind)sk_extern_variable) {
+        scp = &esdp->variant.variable->source_corresp;
+      } else {
+        scp = &esdp->variant.routine.ptr->source_corresp;
+      }  /* if */
+      if (scp->assoc_info != NULL) {
+        a_symbol_ptr  prev_sym = (a_symbol_ptr)scp->assoc_info;
+        a_boolean     is_local_to_function;
+        if (scope_depth_of_symbol(prev_sym, &is_local_to_function)) {
+          /* ext_sym was created for a scope that has already been discarded.
+             Incompatibilities are not fatal in such cases. */
+          incomp_severity = es_warning;
+        }  /* if */
+      }
+    }  /* if */
+    if (ext_sym != NULL) {
       if (ext_sym_kind != ext_sym->kind) {
         /* The old entity is a variable and the new one is a routine, or
            vice-versa; error. */
         if (!suppress_incompatible_error) {
-          pos_sy_error(ec_decl_incompatible_with_previous_use,
-                       &locator->source_position, ext_sym);
+          pos_sy_diagnostic(incomp_severity,
+                            ec_decl_incompatible_with_previous_use,
+                            &locator->source_position, ext_sym);
         }  /* if */
         err = TRUE;
         /* Force creation of a new external symbol. */
@@ -2767,7 +2787,7 @@ created; the caller must set it.
         err = !reconcile_external_symbol_types(ext_sym,
                                                &locator->source_position,
                                                type_ptr,
-                                               suppress_incompatible_error);
+                                               incomp_severity);
         if (ext_sym_kind == (a_symbol_kind)sk_extern_routine) {
           /* If this declaration is not the result of an implicit
              declaration, clear the is_implicit_declaration flag in the
