@@ -139,6 +139,17 @@ Add the indicated null-terminated string to the mangled name.
 }  /* add_str_to_mangled_name */
 
 
+static void end_mangling(a_mangling_control_block_ptr mctl)
+/*
+Do processing at the end of mangling a name.  At the least, this includes
+adding the final null character.
+*/
+{
+  /* Add the final null. */
+  add_to_mangled_name('\0', mctl);
+}  /* end_mangling */
+
+
 static void add_number_to_mangled_name(unsigned long            value,
                                        a_mangling_control_block *mctl)
 /*
@@ -2245,8 +2256,7 @@ name in the routine entry.
     start_mangling(&mctl);
     /* Create the name. */
     mangled_function_name(routine, suppress_param_encoding, &mctl);
-    /* Add the final null. */
-    add_to_mangled_name('\0', &mctl);
+    end_mangling(&mctl);
     mangled_name = temp_text_buffer;
   }  /* if */
   return mangled_name;
@@ -2337,8 +2347,7 @@ name in the variable entry.
     /* Generate the mangled name in a buffer. */
     start_mangling(&mctl);
     mangled_member_variable_name(variable, &mctl);
-    /* Add the final null. */
-    add_to_mangled_name('\0', &mctl);
+    end_mangling(&mctl);
     mangled_name = temp_text_buffer;
   }  /* if */
   return mangled_name;
@@ -2369,8 +2378,7 @@ Mangle the name of the indicated class, if necessary.
       !class_type->source_corresp.name_has_been_mangled) {
     start_mangling(&mctl);
     mangled_basic_class_name(class_type, &mctl);
-    /* Add the final null. */
-    add_to_mangled_name('\0', &mctl);
+    end_mangling(&mctl);
     /* Allocate space for the mangled name and copy it. */
     mangled_name = alloc_lowered_name_string(mctl.length);
     (void)strcpy(mangled_name, temp_text_buffer);
@@ -2471,8 +2479,7 @@ extension) a declared class member constant.
     /* Determine how long the mangled name is. */
     mangled_member_name(&con->source_corresp,
                         /*is_specialization=*/FALSE, &mctl);
-    /* Add the final null. */
-    add_to_mangled_name('\0', &mctl);
+    end_mangling(&mctl);
     /* Allocate space for the mangled name and copy it. */
     mangled_name = alloc_lowered_name_string(mctl.length);
     (void)strcpy(mangled_name, temp_text_buffer);
@@ -2543,8 +2550,7 @@ Mangle the name of the indicated function, if necessary.
       /* Mangle the function name. */
       start_mangling(&mctl);
       mangled_function_name(routine, suppress_param_encoding, &mctl);
-      /* Add the final null. */
-      add_to_mangled_name('\0', &mctl);
+      end_mangling(&mctl);
       /* Allocate space for the mangled name and copy it. */
       mangled_name = alloc_lowered_name_string(mctl.length);
       (void)strcpy(mangled_name, temp_text_buffer);
@@ -2572,8 +2578,7 @@ variable.
                                       variable->source_corresp.name_linkage)) {
     start_mangling(&mctl);
     mangled_member_variable_name(variable, &mctl);
-    /* Add the final null. */
-    add_to_mangled_name('\0', &mctl);
+    end_mangling(&mctl);
     /* Allocate space for the mangled name and copy it. */
     mangled_name = alloc_lowered_name_string(mctl.length);
     (void)strcpy(mangled_name, temp_text_buffer);
@@ -2673,8 +2678,7 @@ other name mangling that might use the name is done.
     start_mangling(&mctl);
     add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
     mangled_type_name(type, &mctl);
-    /* Add the final null. */
-    add_to_mangled_name('\0', &mctl);
+    end_mangling(&mctl);
     /* Allocate space for the mangled name and copy it. */
     mangled_name = alloc_lowered_name_string(mctl.length);
     (void)strcpy(mangled_name, temp_text_buffer);
@@ -3008,8 +3012,7 @@ be copied elsewhere.
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
   /* Add the derived class name. */
   mangled_vtbl_class_name(class_type, &mctl);
-  /* Add the final null. */
-  add_to_mangled_name('\0', &mctl);
+  end_mangling(&mctl);
   return temp_text_buffer;
 }  /* mangled_vtbl_name */
 
@@ -3026,8 +3029,7 @@ The name returned is in a temporary buffer and must be copied elsewhere.
 
   start_mangling(&mctl);
   mangled_class_name_internal(type, &mctl);
-  /* Add the final null. */
-  add_to_mangled_name('\0', &mctl);
+  end_mangling(&mctl);
   return temp_text_buffer;
 }  /* mangled_class_name */
 
@@ -3047,8 +3049,7 @@ be copied elsewhere.
   add_str_to_mangled_name(prefix, &mctl);
   /* Add the mangled name of the type. */
   mangled_encoding_for_type(type, &mctl);
-  /* Add the final null. */
-  add_to_mangled_name('\0', &mctl);
+  end_mangling(&mctl);
   return temp_text_buffer;
 }  /* mangled_prefixed_type_encoding */
 
@@ -3158,8 +3159,7 @@ and that is after normal name mangling has been done.
     if (routine->source_corresp.name != NULL) {
       mangled_function_name(routine, /*suppress_param_encoding=*/FALSE, &mctl);
     }  /* if */
-    /* Add the final null. */
-    add_to_mangled_name('\0', &mctl);
+    end_mangling(&mctl);
     /* Allocate space for the mangled name and copy it.  The old name is
        saved as unmangled_name. */
     mangled_name = alloc_lowered_name_string(mctl.length);
@@ -3204,8 +3204,7 @@ entry_routine (it has no name on entry).
   mangled_function_name(prim_routine,
                         /*suppress_param_encoding=*/FALSE,
                         &mctl);
-  /* Add the final null. */
-  add_to_mangled_name('\0', &mctl);
+  end_mangling(&mctl);
   /* Allocate space for the mangled name and copy it. */
   mangled_name = alloc_lowered_name_string(mctl.length);
   (void)strcpy(mangled_name, temp_text_buffer);
