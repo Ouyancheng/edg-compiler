@@ -1948,7 +1948,7 @@ allocated at that offset.  This function returns TRUE in that case.
 }  /* gnu_leading_empty_base_conflict */
 
 
-static a_targ_size_t virtual_base_offset_computed_for_last_direct_base_type(
+static a_targ_size_t virtual_base_offset_computed_for_direct_base_type(
                                                        a_base_class_ptr  ebcp)
 /*
 The given base class should be an empty virtual base.  If this base had
@@ -1968,17 +1968,42 @@ emulate a strange GNU IA-64 layout bug.
       a_base_class_ptr  sub_bcp = base_classes_of(bcp->type);
       for (; sub_bcp != NULL; sub_bcp = sub_bcp->next) {
         if (sub_bcp->is_virtual && same_entities(sub_bcp->type, ebcp->type)) {
-          if (sub_bcp->offset != 0) {
-            /* Ignore previous allocations at offset zero. */
-            result = sub_bcp->offset;
-          }  /* if */
-          break;
+          result = sub_bcp->offset;
+          goto done;
         }  /* if */
       }  /* for */
     }  /* if */
   }  /* for */
+done:
   return result;
-}  /* virtual_base_offset_computed_for_last_direct_base_type */
+}  /* virtual_base_offset_computed_for_direct_base_type */
+
+
+static void reposition_gnu_disconnected_virtual_bases(a_layout_block_ptr  lob)
+/*
+A GNU IA-64 layout bug can cause virtual bases to end up outside the space
+occupied by the complete object.  Since this can lead to strange memory
+corruption bugs, we do not allow the bug to be emulated in those cases.
+Instead, such virtual bases are repositioned to the end of the object and
+a warning is issued.  This routine performs this adjustment (when needed).
+*/
+{
+  a_base_class_ptr  bcp = base_classes_of(lob->class_type);
+
+  check_assertion(emulate_gnu_abi_bugs);
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->is_virtual && bcp->offset > lob->byte_offset) {
+      /* This should never happen for virtual bases that are also direct
+         bases (see: allocate_empty_base). */
+      check_assertion(!bcp->direct);
+      pos_sy2_warning(
+                    ec_no_gnu_virtual_base_gap, &bcp->decl_position,
+                    (a_symbol_ptr)bcp->type->source_corresp.assoc_info,
+                    (a_symbol_ptr)lob->class_type->source_corresp.assoc_info);
+      bcp->offset = lob->byte_offset;
+    }  /* if */
+  }  /* for */
+}  /* reposition_gnu_disconnected_virtual_bases */
 
 
 static a_field_ptr trailing_nonclass_field(a_type_ptr     class_type,
@@ -2390,7 +2415,7 @@ Allocate bcp (an empty base class).
      virtual base: Instead they may use an offset computed for the virtual
      base in one of the direct base types. */
   if (emulate_gnu_abi_bugs && bcp->is_virtual) {
-    offset = virtual_base_offset_computed_for_last_direct_base_type(bcp);
+    offset = virtual_base_offset_computed_for_direct_base_type(bcp);
     if (offset != 0) {
       /* If offset corresponds to the offset of the first significant field of
          the complete object type, no further conflict checking is needed. */
@@ -2400,16 +2425,6 @@ Allocate bcp (an empty base class).
         /* Carry over the offset computed for a direct base. */
         bcp->offset = offset;
         goto done;
-      } else if (!bcp->direct) {
-        /* Indirect virtual bases can end up with an offset larger than the
-           size of a class.  This is a dangerous GNU layout bug and we
-           therefore do not emulate it.  By setting offset to zero, we return
-           to the normal layout rules. */
-        pos_sy2_warning(
-                    ec_no_gnu_virtual_base_gap, &bcp->decl_position,
-                    (a_symbol_ptr)bcp->type->source_corresp.assoc_info,
-                    (a_symbol_ptr)lob->class_type->source_corresp.assoc_info);
-        offset = 0;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2421,17 +2436,17 @@ Allocate bcp (an empty base class).
   } else {
     /* It didn't work at offset zero; try putting it at the end of the object 
        as created so far. */
-    if (offset != 0) {
+    offset += lob->byte_offset;
+    if (bcp->direct) {
       /* If a GNU compiler initially tried a nonzero offset it effectively
          adds that offset to the current end of the object (thereby creating
          a "gap" in the layout).  However, if the virtual base is not also a
-         direct base, GNU C++ will not update the object size.  We do not
-         attempt to emulate the latter bug since it can cause a virtual base
-         to end up at an offset larger than the size of the class.  In such
-         cases, offset will have been set to zero above. */
-      lob->byte_offset += offset;
+         direct base, GNU C++ will not update the object size.  The latter
+         bug can cause a virtual base to end up at an offset larger than the
+         size of the class.  In such cases, offset will be adjusted in
+         reposition_gnu_disconnected_virtual_bases. */
+      lob->byte_offset = offset;
     }  /* if */
-    offset = lob->byte_offset;
     size = bcp->type->variant.class_struct_union.extra_info->
                                         alignment_without_virtual_base_classes;
     while (base_subobject_conflict(bcp, offset)) {
@@ -4423,9 +4438,9 @@ for handling virtual bases and functions.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if IA64_ABI
-  /* If there are empty bases "off the end" of the class, update the class
-     size now. */
   if (C_dialect == C_dialect_cplusplus) {
+    /* If there are empty bases "off the end" of the class, update the class
+       size now. */
     adjust_size_for_empty_bases(&lob);
   }  /* if */
   if (targ_reuse_tail_padding) {
@@ -4468,6 +4483,13 @@ for handling virtual bases and functions.
        large. */
     check_base_class_offsets(&lob);
   }  /* if */
+#if IA64_ABI
+  /* Limit the emulation of a strange GNU ABI bug to relatively safe
+     cases. */
+  if (emulate_gnu_abi_bugs) {
+    reposition_gnu_disconnected_virtual_bases(&lob);
+  }  /* if */
+#endif /* IA64_ABI */
   /* Record the overall size and alignment in the class's type entry. */
   class_type->size = lob.byte_offset;
   class_type->alignment = lob.alignment;

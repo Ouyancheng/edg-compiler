@@ -1330,7 +1330,7 @@ ec_too_many_ms_attr_args;;"too many attribute arguments"
 ec_conv_from_inaccessible_base_class;;"conversion from inaccessible base class %t is not allowed"
 ec_cl_export_template_requires_distinct_templ_sigs;;"option \"export\" requires distinct template signatures"
 ec_mixed_string_concatenation;;"narrow and wide string literals cannot be concatenated"
-ec_no_gnu_virtual_base_gap;;"GNU layout bug not emulated because it may place virtual base %no1 outside %no2 object boundaries"
+ec_no_gnu_virtual_base_gap;;"GNU layout bug not emulated because it places virtual base %no1 outside %no2 object boundaries"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
