@@ -32,6 +32,7 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 #include "exprutil.h"
 #include "class_decl.h"
 #include "layout.h"
+#include "il_walk.h"
 #endif /* DO_IL_LOWERING */
 
 /* Only include this code if it is needed.  The first few routines are
@@ -4237,11 +4238,12 @@ Do IL lowering of the indicated type and everything under it.
            member type. */
         type->variant.typeref.orig_type = copy_of_pm_type;
 #if MAINTAIN_NEEDED_FLAGS
-        /* Set the "needed" flag to match the "needed" flag of the
-           implementation type.  Without this, the typeref could be marked
-           as needed and that might prevent processing of the underlying
-           type. */
-        type->source_corresp.needed = new_type->source_corresp.needed;
+        /* Set the "needed" flag appropriately.  Without this, the typeref
+           could be marked as needed and that might prevent processing of
+           the underlying type. */
+        if (type->source_corresp.needed) {
+          mark_as_needed((char *)new_type, iek_type);
+        }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
         break;
       case tk_routine:
