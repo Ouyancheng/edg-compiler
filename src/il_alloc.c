@@ -2693,7 +2693,7 @@ initialize its fields, and return a pointer to it.
 #endif /* DEBUG */
   set_default_source_corresp(tpp->source_corresp);
   tpp->next = NULL;
-  tpp->kind = tpk_error;
+  tpp->kind = (a_template_parameter_kind)tpk_error;
 
   return tpp; 
 }  /* alloc_template_parameter */
