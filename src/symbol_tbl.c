@@ -6398,15 +6398,21 @@ NULL.
            intentionally.  Declaring something of this type would
            be an error; declaring something a pointer to this type
            would be allowed. */
-        /* Add it now to the current scope's type list.  It was not added
-           previously because no actual definition appeared.   Don't
-           do this for non-real template class instantiations.  Don't
-	   do this for tags reentered from the prototype scope because they
-	   will have added when the prototype scope was popped. */
-        if ((sym->kind == (a_symbol_kind)sk_enum_tag ||
-	     is_real_class_symbol(sym)) &&
-	    !sym->reentered_from_prototype_scope) {
-          add_to_types_list(type_ptr, depth_scope_stack);
+        if (scope_stack[depth_scope_stack].kind ==
+                               (a_scope_kind)sck_template_instantiation) {
+          /* Type was declared in a prototype instantiation.  It should not
+             be added to a types list. */
+        } else {
+          /* Add it now to the current scope's type list.  It was not added
+             previously because no actual definition appeared.   Don't
+             do this for non-real template class instantiations.  Don't
+             do this for tags reentered from the prototype scope because they
+             will have added when the prototype scope was popped. */
+          if ((sym->kind == (a_symbol_kind)sk_enum_tag ||
+               is_real_class_symbol(sym)) &&
+              !sym->reentered_from_prototype_scope) {
+            add_to_types_list(type_ptr, depth_scope_stack);
+          }  /* if */
         }  /* if */
       }  /* if */
 #if CHECKING
