@@ -4921,6 +4921,50 @@ non-NULL return *con_value == NULL.
 }  /* conv_lvalue_expr_to_rvalue */
 
 
+static void conv_lvalue_in_string_to_char_rvalue(an_operand *operand,
+                                                 a_boolean  *optimized_case)
+/*
+"operand" is an lvalue for the address of a string.  Convert it to an
+rvalue for the character value at the proper position in the string, and
+return *optimized_case = TRUE.  If the character cannot be extracted,
+return without setting *optimized_case to TRUE.
+*/
+{
+  /* The address constant must have type "pointer to char" (signed or
+     unsigned) for this optimization to work. */
+  a_type_ptr addr_type = operand->variant.constant.type;
+  if (is_pointer_type(addr_type)) {
+    a_type_ptr char_type = f_skip_typerefs(type_pointed_to(addr_type));
+    if (is_character_type(char_type)) {
+      a_constant_ptr con = &operand->variant.constant;
+      a_constant_ptr string_constant = con->variant.address.variant.constant;
+      /* Check that the offset is within the string. */
+      a_targ_ptrdiff_t offset = con->variant.address.offset;
+      if (offset >= 0 &&
+          offset < string_constant->variant.string.length) {
+        /* The address is a valid address of a character in the string.
+           Build an operand for the character from the string. */
+        an_integer_kind ikind = char_type->variant.integer.int_kind;
+        long char_value = string_constant->variant.string.value[offset];
+        /* Remove any sign extension. */
+        char_value &= ~((~0L) << targ_char_bit);
+        clear_operand((an_operand_kind)ok_constant, operand);
+        set_integer_constant(&operand->variant.constant, char_value, ikind);
+        /* Sign-extend the character if necessary. */
+        if (int_kind_is_signed[(int)ikind]) {
+          sign_extend_integer_value(&operand->variant.constant.
+                                                         variant.integer_value,
+                                    targ_char_bit);
+        }  /* if */ 
+        operand->type = char_type;
+        operand->state = (an_operand_state)os_rvalue;
+        *optimized_case = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* conv_lvalue_in_string_to_char_rvalue */
+
+
 void conv_lvalue_to_rvalue(an_operand *operand)
 /*
 Convert an lvalue operand to an rvalue operand.  See section 3.2.2.1 of the
@@ -4966,7 +5010,7 @@ not an lvalue, it is left alone.
       conv_to_error_operand(operand);
     } else if (is_incomplete_type(operand_type)) {
       /* Converting an lvalue with incomplete type to an rvalue is undefined
-         behavior (standard, 3.2.2.1); we treat it as an error. */
+         behavior (ANSI C standard, 3.2.2.1); we treat it as an error. */
       error_in_operand(ec_incomplete_type_not_allowed, operand);
     } else {
       using_lvalue(operand);
@@ -4989,11 +5033,27 @@ not an lvalue, it is left alone.
             make_expression_operand(node, node->type, operand);
           }  /* if */
         } else {
-          /* Not the address of a variable; add an indirection. */
-          node = alloc_node_for_constant(&operand->variant.constant);
-          node = add_indirection_to_node(node);
-          qualifiers_dropped = TRUE;
-          make_expression_operand(node, node->type, operand);
+          /* Not the address of a variable.  Check for something like
+             "abc"[2]. */
+          a_boolean optimized_case = FALSE;
+          if (con->kind == (a_constant_repr_kind)ck_address &&
+              con->variant.address.kind== (an_address_base_kind)abk_constant &&
+              con->variant.address.variant.constant->kind ==
+                                             (a_constant_repr_kind)ck_string) {
+            /* The lvalue address is an address within a string constant.
+               Therefore, the rvalue is the value of the character at that
+               position. */
+            conv_lvalue_in_string_to_char_rvalue(operand, &optimized_case);
+            /* Suppress an error except in strict mode. */
+            if (optimized_case && !strict_ansi_mode) constant_case = TRUE;
+          }  /* if */
+          if (!optimized_case) {
+            /* Not the address of a variable or string; add an indirection. */
+            node = alloc_node_for_constant(&operand->variant.constant);
+            node = add_indirection_to_node(node);
+            qualifiers_dropped = TRUE;
+            make_expression_operand(node, node->type, operand);
+          }  /* if */
         }  /* if */
       } else {
 #if CHECKING
