@@ -2682,6 +2682,34 @@ reason.  *err_pos is used as the position for any diagnostics issued.
 }  /* binary_operation */
 
 
+static a_targ_size_t field_byte_offset(a_field_ptr field)
+/*
+Return the offset of the indicated field in its struct, in bytes.  This
+is a subroutine because it must deal with anonymous union fields, where
+the offset is the sum of the field offset and the offset of the anonymous
+union(s).
+*/
+{
+  a_targ_size_t	offset;
+  a_type_ptr	field_class;
+  a_class_type_supplement_ptr
+		ctsp;
+
+  /* Get the field offset and convert from bits to bytes. */
+  offset = field->bit_offset / TARG_CHAR_BIT;
+  /* See if the field is a member of an anonymous union. */
+  field_class = field->source_corresp.class_of_which_a_member;
+  ctsp = field_class->variant.class_struct_union.extra_info;
+  if (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field) {
+    /* Yes, the field is a member of an anonymous union.  Add the offset
+       for the anonymous union.  Note that fields of anonymous union
+       variables would not come here. */
+    offset += field_byte_offset(ctsp->anonymous_union.field);
+  }  /* if */
+  return offset;
+}  /* field_byte_offset */
+
+
 void fold_field_selection(a_constant            *constant_1,
                           a_field_ptr           field,
                           a_type_ptr            result_type,
@@ -2709,7 +2737,7 @@ field cannot be passed as a constant.
     /* Take the pointer offset, ... */
     offset = pointer_offset(constant_1);
     /* ... add the offset of the field (converting from bits to bytes), ... */
-    offset += field->bit_offset / TARG_CHAR_BIT;
+    offset += field_byte_offset(field);
     /* ... and put the offset into the result pointer constant.  Note that
        no overflow/object-size checking is needed, since the field has
        to be within the underlying object. */
