@@ -3422,7 +3422,7 @@ class, struct, or union.
           /* Constructor and destructor are not allowed, but other checking
              is required. */
           check_anonymous_union_symbols(class_type, field,
-                                        /*assoc_var_object=*/NULL);
+                                        (a_variable_ptr)NULL);
         } else {
           /* If a nonstatic data member of a class is itself a class object
              (or an array whose elements are class objects) and the subobject
@@ -5777,7 +5777,7 @@ class/struct/union is actually defined.
                      declarations.  This is consistent with Cfront 2.1,
                      though the ARM is silent. */
                   pos_error(ec_exp_semicolon, &pos_curr_token);
-                  get_token();
+                  (void)get_token();
                   remove_stop_token(tok_comma);
                   goto next_declaration;
                 }  /* if */

@@ -444,7 +444,7 @@ continue as though "overload" had not been seen.
     /* Issue a diagnostic indicating that "overload" is ignored. */
     warning(ec_overload_ignored);
     /* Bypass "overload" */
-    get_token();
+    (void)get_token();
     if (curr_token == tok_identifier) {
       next_tok = next_token();
       if (next_tok == tok_semicolon || next_tok == tok_comma) {
@@ -1717,12 +1717,12 @@ current scope.
       case sc_unspecified:
         /* Disallowed (ARM 9.5). */
         error(ec_anon_union_storage_class);
-        storage_class = sc_static;
+        storage_class = (a_storage_class)sc_static;
         break;
       default:
         /* Invalid for any variable at file scope. */
         error(ec_bad_file_scope_storage_class);
-        storage_class = sc_static;
+        storage_class = (a_storage_class)sc_static;
     }  /* switch */
   } else {
     /* Not at file scope. */

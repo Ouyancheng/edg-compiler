@@ -4575,7 +4575,6 @@ the error on the final identifier not being found on lookup.
 #endif /* DEBUG */
     }  /* if */
   }  /* if */
-done:
   return is_qualified_name;
 }  /* get_qualified_name */
 
