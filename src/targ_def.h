@@ -505,7 +505,7 @@ match the target machine behavior on integer operations in C.
 			   targ_plain_int_bit_field_is_unsigned. */
 #endif /* ifndef TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED */
 
-/* Signedness for enum bit fields (an extension): if TRUE, enum bit fields
+/* Signedness for enum bit fields (an extension in C): if TRUE, enum bit fields
    are always unsigned.  If FALSE, the rules are: (a) if the enum contains
    any negative values, the field is signed; otherwise (b) if the enum
    contains values large enough that they won't fit if one bit is allocated
