@@ -223,7 +223,6 @@ no name.
     /* Print spaces to get the following data in column Label_indent+1. */
     (void)printf("%*c", Label_indent - name_len, ' ');
   }  /* if */
-#undef Label_indent
 }  /* disp_name */
 
 
@@ -473,14 +472,20 @@ Display the indicated source correspondence entry.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
   if (scp->per_instantiation_needed_flags != NULL) {
-    char     *ptr = scp->per_instantiation_needed_flags;
-    sizeof_t byte_count =
+    char          *ptr = scp->per_instantiation_needed_flags;
+    sizeof_t      byte_count =
                    il_header.per_instantiation_needed_flags_vector_byte_length;
-    disp_name("per_instantiation_needed_flags");
+    unsigned long bit_number = 0;
+    disp_name("  per_instantiation_needed_flags");
     while (byte_count-- > 0) {
       a_byte curr_byte = (a_byte)(*ptr++);
       int    i;
       for (i = 0; i < CHAR_BIT; i++) {
+        bit_number++;
+        if (bit_number != 1 && (bit_number-1) % 50 == 0) {
+          /* Put out a position label every 50 bits. */
+          (void)printf("\n%*c%6d ", Label_indent - 7, ' ', bit_number);
+        }  /* if */
         (void)printf("%c", ((curr_byte >> i)&1) ? '1' : '0');
       }  /* for */
     }  /* while */
