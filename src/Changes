@@ -34,6 +34,15 @@ overload set, only one using-decl entry in the set is pointed to by an
 iek_using_decl source-sequence entry; the rest are on a linked list (see
 next_in_overload_set in a_using_decl).
 
+9/4/96  Spurious assertion failure -- globally qualified name on friend decl
+
+An internal error is no longer triggered by the following:
+
+  template <class T> void f(T);
+  class B {
+    friend void ::f(int);
+  };
+
 9/4/96  Ambiguous undefined namespace projection symbol causes internal error
 
 An internal error may result when an ambiguous namespace projection symbol
