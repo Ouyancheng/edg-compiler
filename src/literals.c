@@ -395,9 +395,8 @@ return_point:
 
 range_check:
   /* Check that the value of c is legal for a character.  The standard
-     (3.1.3.4) requires that this be diagnosed, but also says that it's
-     implementation-defined.  That means it has to be a warning rather
-     than an error.  Range is different for wide characters. */
+     (3.1.3.4) requires that this be diagnosed.  Range is different for
+     wide characters. */
   if (!range_error) {
     /* The comparison here is always done as unsigned, even if char or
        wchar_t are signed.  That's because octal and hexadecimal escapes
