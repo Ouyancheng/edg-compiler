@@ -5719,7 +5719,7 @@ instantiation.
         pos_error(ec_member_partial_spec_not_in_class,
                   &locator.source_position);
         err = TRUE;
-      } else if (!sym->is_class_member && sym->parent.namespace_ptr != NULL &&
+      } else if (!sym->is_class_member &&
                  ssep->assoc_namespace != sym->parent.namespace_ptr) {
         pos_error(ec_member_partial_spec_not_in_namespace,
                   &locator.source_position);
@@ -5794,7 +5794,7 @@ instantiation.
     sym = NULL;
     suppress_redecl_error = TRUE;
   }  /* if */
-  {
+  if (!decl_state->decl_scope_err) {
     a_boolean	err = FALSE;
     if (!locator.is_qualified_name) {
       if (sym != NULL) {
@@ -5822,8 +5822,9 @@ instantiation.
       sym = NULL;
       suppress_redecl_error = TRUE;
       set_to_named_error_locator(locator);
+      decl_state->decl_scope_err = TRUE;
     }  /* if */
-  }
+  }  /* if */
   {
     a_boolean			err = FALSE;
     if (templ_params == NULL) {
