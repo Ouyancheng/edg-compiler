@@ -5607,7 +5607,7 @@ done:
   /* Reset the flag that indicates that this default value has not yet
      been evaluated. */
   ptp->has_unevaluated_template_default = FALSE;
-  ptp->default_being_instantiated = TRUE;
+  ptp->default_being_instantiated = FALSE;
 }  /* instantiate_default_argument */
 
 
