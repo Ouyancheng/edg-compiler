@@ -3571,15 +3571,39 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
       (dip->kind == (a_dynamic_init_kind)dik_constructor ||
        dip->kind == (a_dynamic_init_kind)dik_zero ||
        dip->kind == (a_dynamic_init_kind)dik_none)) {
-    /* For a class temporary requiring a constructor, use the form
-       A(arg1, arg2, ...).  dik_zero or dik_none will produce "A()". */
-    /* Note that parentheses are not put around this, because that would
-       make the expression look like a cast. */
-    gen_type(temp_type);
-    gen_dynamic_init(dip,
-                     (a_type_ptr)NULL, /* Not a reference, not needed. */
-                     /*parenthesized_init=*/TRUE,
-                     /*force_parens=*/TRUE);
+    if (has_name(temp_type)) {
+      /* For a class temporary requiring a constructor, use the form
+         A(arg1, arg2, ...).  dik_zero or dik_none will produce "A()". */
+      /* Note that parentheses are not put around this, because that would
+         make the expression look like a cast. */
+      gen_type(temp_type);
+      gen_dynamic_init(dip,
+                       (a_type_ptr)NULL, /* Not a reference, not needed. */
+                       /*parenthesized_init=*/TRUE,
+                       /*force_parens=*/TRUE);
+    } else {
+      /* A type without a name, e.g., a cv-qualified class type.
+         Use an old-style cast. */
+      /* The initialization must be a constructor call with only one explicit
+         argument. */
+#if CHECKING
+      check_assertion_str(dip->kind == (a_dynamic_init_kind)dik_constructor,
+                          "gen_temp_init: bad kind for old-style cast");
+      { an_expr_node_ptr expr = dip->variant.constructor.args;
+        check_assertion_str(expr != NULL &&
+                            (expr->next == NULL ||
+                             expr->next->generated_default_arg),
+                         "gen_temp_init: old-style cast allows only one expr");
+      }
+#endif /* CHECKING */
+      write_tok_ch('(');
+      gen_cast(temp_type);
+      gen_dynamic_init(dip,
+                       (a_type_ptr)NULL, /* Not a reference, not needed. */
+                       /*parenthesized_init=*/TRUE,
+                       /*force_parens=*/FALSE);
+      write_tok_ch(')');
+    }  /* if */
   } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
     /* Non-class initialized to zero.  Use an old-style cast operating on
        zero, e.g., "(int)0".  This is necessary if the type cannot be

@@ -63,6 +63,9 @@ by calling a constructor, the cv-unqualified class type was used.
 A similar issue comes up with typedefs of a class type in the C++-generating
 back end.  Now, a temporary of the typedef type (instead of the class
 type) is created, which avoids some naming errors in the generated code.
+This prompted another change: casts to cv-qualified class type are now
+put out in old-style cast form, since something like "const A(x)" is
+not a valid functional-notation cast.
 
 12/2/97   Inlining of constructor calls on cv-qualified objects
 
