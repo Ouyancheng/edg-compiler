@@ -1,11 +1,24 @@
 Version 2.42
 
+3/18/99  Internal error in decl_routine eliminated
+
+An internal error could occur in decl_routine when the following was
+compiled with --guiding_decls; the declaration of f(int) was erroneously
+viewed as a guiding declaration for template N::f.  Now fixed.
+
+  namespace N {
+    template <class T> void f(T);
+  }
+  using N::f;
+  template <class T> void f(T*);
+  void f(int);                            // Abort fixed
+
 3/18/99  lower_dynamic_cast did not work right for ABI versions < 241
 
 lower_dynamic_cast made reference to an uninitialized local variable
 when the front end is built with an ABI version < 241.  Now fixed.
 
-3/18/99  Abort in composite_array_type eliminated
+3/18/99  Internal error in composite_array_type eliminated
 
 A template redeclaration could trigger an internal error in
 composite_array_type if the type involved an array with a dimension

@@ -1721,12 +1721,20 @@ called by id_linkage.
            template argument list. */
         a_symbol_ptr                   sym, match = NULL;
         a_partial_order_candidate_ptr  candidates_list = NULL;
+        a_symbol_ptr                   fund_other_decl;
 
         for (other_decl = other_decl_saved;
              other_decl != NULL;
              other_decl = is_list ? other_decl->next : NULL) {
-          a_symbol_ptr	fund_other_decl;
-          fund_other_decl = fundamental_symbol_of(other_decl);
+          if (locator->is_template_id || locator->is_qualified_name) {
+            fund_other_decl = fundamental_symbol_of(other_decl);
+          } else {
+            /* Just a possible guiding-declaration, so ignore projections of
+               function templates -- they are pulled into the current scope
+               by using-declarations, and so declarations in the current
+               scope can't serve as guiding declarations for them. */
+            fund_other_decl = other_decl;
+          }  /* if */
           if (fund_other_decl->kind == (a_symbol_kind)sk_function_template) {
             /* Look for a match on the list of instantiations. */
             if (has_matching_template_function(fund_other_decl, idlbp->type,
