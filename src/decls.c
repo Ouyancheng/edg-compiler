@@ -8176,11 +8176,9 @@ no_get_token:
          for a type-specifier keyword or (if this is not a typedef declaration)
          a type name.  E.g.,
            class A {...} int...                 <== Dangling type specifier
-           class B; typedef class {...} B...    <== Error detected elsewhere
-           class C; typedef class C {...} C...  <== Legal
          Note that this logic works for both C++ and standard C. */
       if (is_type_specifier()) {
-        /* The current token is either a type keyword; treat it as the start
+        /* The current token is a type keyword; treat it as the start
            of a new declaration.  The error on missing punctuation will be
            handled by the caller. */
         dangling_type_specifier = TRUE;
@@ -10061,9 +10059,9 @@ continue_with_declaration:
       }  /* if */
     }  /* if */
   } else if (dangling_type_specifier) {
-    /* A class, struct, union, or enum definition was followed by a
-       a type specifier keyword.  Issue a missing-semicolon error, since
-       the type specifier can be taken as introducing a new declaration. */
+    /* A class, struct, union, or enum definition was followed by a type
+       specifier keyword.  Issue a missing-semicolon error, since the type
+       specifier can be taken as introducing a new declaration. */
     set_err_pos_to_curr_token();
     if (is_old_style_param_decl && declares_something) {
       /* An old style param declaration that introduces a named struct or
