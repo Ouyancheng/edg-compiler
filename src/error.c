@@ -895,7 +895,7 @@ error code.
       m = "invalid base class";
       break;
     case ec_no_access_to_name:
-      m = "member name is inaccessible";
+      m = "member %n is inaccessible";
       break;
     case ec_ambiguous_name:
       m = "member name is ambiguous";
