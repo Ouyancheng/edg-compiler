@@ -6044,15 +6044,20 @@ NULL.
       /* Look for variables that have retained an incomplete type
          that isn't just plain "void". */
       if (is_completable_type(var_type)) {
-        if (storage_class == (a_storage_class)sc_unspecified &&
+        if ((storage_class == (a_storage_class)sc_unspecified ||
+             (C_dialect != C_dialect_cplusplus &&
+              storage_class == (a_storage_class)sc_static)) &&
             is_array_with_complete_element_type(var_type)) {
-          /* A file-scope incomplete array with no storage class,
-             for example "int a[];" at file scope.  Such an array is
+          /* A file-scope incomplete array with no storage class, for example
+             "int a[];" at file scope; or else (in C mode) a file-scope
+             incomplete array with static storage class.  Such an array is
              defined by the standard (3.7.2 semantics) to be equivalent
              to "int a[] = {0};"; change the size to 1 here.  However, if
              the extern_variable entry has more complete type information
-             (i.e., an exact dimension), use that. */
-         /* The test for complete element type disallows arrays of
+             (i.e., an exact dimension), use that.  Note that no explicit
+             check for scope depth is required since sk_extern_variable
+             symbols are generated for file-scope variables only. */
+          /* The test for complete element type disallows arrays of
              incomplete struct/unions (which are an extension). */
           if (!is_incomplete_type(sym->variant.extern_symbol_descr->type)){
             /* The external symbol entry has a dimension for the array.
@@ -6064,7 +6069,8 @@ NULL.
           } else {
             /* There is no additional information; the array has an
                unknown size. */
-            if (C_dialect != C_dialect_pcc) {
+            if (C_dialect != C_dialect_pcc ||
+                storage_class == (a_storage_class)sc_static) {
               /* Change the array size to 1. */
               a_type_ptr array_type = alloc_type((a_type_kind)tk_array);
               copy_type(var_type, array_type);
