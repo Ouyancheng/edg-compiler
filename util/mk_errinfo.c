@@ -142,7 +142,6 @@ typedef struct an_error_info *an_error_info_ptr;
 typedef struct an_error_info {
   char	*text;
   char	*enumerator;
-  char	*tag;
 } an_error_info;
 
 
@@ -207,6 +206,7 @@ int main(int argc, char *argv[])
   FILE		*data_output_file;
   int		number_of_errors = 0;
   int		number_of_tags = 0;
+  int		removed_count = 0;
   int		i;
 
   if (argc < 4) {
@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
     /* A line that begins with a "#" is a comment.  Blank lines are
        ignored. */
     if (*ptr == '#' || *ptr == '\0') continue; 
-   enumerator_start = ptr;
+    enumerator_start = ptr;
     ptr = strchr(enumerator_start, ';');
     if (ptr == NULL) me_invalid_input();
     *ptr++ = '\0';
@@ -263,6 +263,17 @@ int main(int argc, char *argv[])
     if (ptr == NULL) me_invalid_input();
     *ptr++ = '\0';
     skip_blanks(ptr);
+    if (strcmp(enumerator_start, "REMOVED") == 0) {
+       /* A line that begins with "REMOVED" indicates that this error
+          code is no longer in use, but the sequence number must be
+          reserved to preserve the sequence numbers of the error codes
+          that follow. */
+       sprintf(me_input_line, "ec_removed_%0d", ++removed_count);
+       error_info[number_of_errors].enumerator = me_copy_string(me_input_line);
+       error_info[number_of_errors].text = (char *)NULL;
+       number_of_errors++;
+       continue;
+    }  /* if */
     /* Make sure the string begins with a quote. */
     if (*ptr != '"') me_invalid_input();
     /* Note that text_start points to the opening quote. */
@@ -293,13 +304,16 @@ int main(int argc, char *argv[])
        the ec_ prefix, though. */
     if (*tag_start == '\0') tag_start = me_input_line+3;
     copy_of_tag = me_copy_string(tag_start);
-    error_info[number_of_errors].tag = copy_of_tag;
     tag_info[number_of_tags].enumerator = copy_of_enumerator;
     tag_info[number_of_tags].tag = copy_of_tag;
     number_of_errors++;
     number_of_tags++;
   }  /* while */
   fclose(message_input_file);
+  /* Add a dummy "last" error code. */
+  error_info[number_of_errors].enumerator = "ec_last";
+  error_info[number_of_errors].text = (char *)NULL;
+  number_of_errors++;
   /* Generate the output file.  Start with the error code enumeration. */
   fprintf(codes_output_file, "typedef enum /*an_error_code*/ {\n");
   for (i = 0; i < number_of_errors; ++i) {
@@ -310,11 +324,8 @@ int main(int argc, char *argv[])
   }  /* for */
   fprintf(codes_output_file, "\n} an_error_code;\n\n");
   /* Generate the error text array. */
-  /* Output the number of error codes to the error code file. */
-  fprintf(codes_output_file, "#define NUMBER_OF_ERROR_CODES %0d\n",
-          number_of_errors);
   fprintf(data_output_file,
-          "static char *message_text[NUMBER_OF_ERROR_CODES] = {\n");
+          "static char *message_text[(int)ec_last + 1] = {\n");
   for (i = 0; i < number_of_errors; ++i) {
     char	*ptr;
     /* If this is not the first time through, terminate the previous line. */
@@ -322,10 +333,16 @@ int main(int argc, char *argv[])
     fprintf(data_output_file, "  /* %s */\n", error_info[i].enumerator);
     putc(' ', data_output_file);
     putc(' ', data_output_file);
-    for (ptr = error_info[i].text; *ptr != '\0'; ++ptr) {
-      char ch = *ptr;
-      putc(ch, data_output_file);
-    }  /* for */
+    ptr = error_info[i].text;
+    if (ptr == NULL) {
+      /* There is no error text.  This is used for REMOVED errors. */
+      fprintf(data_output_file, "(char *)NULL");
+    } else {
+      for (; *ptr != '\0'; ++ptr) {
+        char ch = *ptr;
+        putc(ch, data_output_file);
+      }  /* for */
+    }  /* if */
   }  /* for */
   fprintf(data_output_file, "\n};\n");
   /* Sort the error information by enumeration code so that the enumerations
@@ -374,7 +391,7 @@ int main(int argc, char *argv[])
   qsort((void *)tag_info, (size_t)number_of_tags, sizeof(a_tag_info),
         compare_tag_info);
   /* Output the number of tags to the error code file. */
-  fprintf(codes_output_file, "#define NUMBER_OF_ERROR_TAGS %0d\n",
+  fprintf(data_output_file, "#define NUMBER_OF_ERROR_TAGS %0d\n",
           number_of_tags);
   /* Generate the sorted list of tags and associated enumerators. */
   fprintf(data_output_file,
