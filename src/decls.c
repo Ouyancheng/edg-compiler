@@ -5411,26 +5411,6 @@ In C++, however, the declaration list is optional (3.4):
     }  /* if */
   } else {
     for (;;) {
-      if (header_stop_position_pending &&
-          (curr_ise == NULL || !curr_ise->is_include_file)) {
-        /* We are looking for the header stop position and we are not
-           in an include file.  curr_ise can be NULL if we've already
-           popped the primary source file off of the input stack at end
-           of source. */
-        if ((header_stop_is_end_of_source &&
-             curr_token == tok_end_of_source) ||
-            (curr_ise != NULL &&
-             curr_ise->actual_line ==
-              (a_line_number)header_stop_source_position.seq &&
-             pos_curr_token.column == header_stop_source_position.column)) {
-          /* This should be the first declaration in the primary source file
-             (i.e., excluding preprocessor directives).  If there were any
-             include files and if the current state otherwise qualifies, write
-             out the IL, symbol table, etc. to a precompiled header file. */
-          generate_precompiled_header();
-        }  /* if */
-        header_stop_no_longer_pending();
-      }  /* if */
       if (curr_token == tok_end_of_source) break;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* For each declaration at file scope, reset the source-sequence insert
