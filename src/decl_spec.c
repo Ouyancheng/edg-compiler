@@ -3599,10 +3599,10 @@ describes Microsoft attributes preceding the enum specifier (if any).
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
-    apply_microsoft_attributes(p_ms_attributes, (char*)enum_type,
-                               (an_il_entry_kind)iek_type, MSAT_ENUM);
-  }  /* if */
+    if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
+      apply_microsoft_attributes(p_ms_attributes, (char*)enum_type,
+                                 (an_il_entry_kind)iek_type, MSAT_ENUM);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry marking the end of the enum definition. */
