@@ -7096,8 +7096,11 @@ that follows.
   a_func_info_block             func_info;
   a_symbol_reference_kind       srk_flags = SRK_DECLARATION;
   a_boolean                     is_definition;
-  a_source_position             decl_start_pos;
+  a_source_position             decl_start_pos, id_pos;
   a_boolean                     has_parenthesized_initializer;
+  a_source_correspondence       *scp;
+  a_routine_ptr                 rp;
+  a_variable_ptr                vp;
 
   db_enter(3, "full_specialization");
   decl_start_pos = pos_curr_token;
@@ -7152,6 +7155,7 @@ that follows.
     has_parenthesized_initializer =
                               (do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
     if (!is_error_locator(locator)) {
+      id_pos = locator.source_position;
       sym = locator.specific_symbol;
       if (sym == NULL) {
         sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
@@ -7186,22 +7190,28 @@ that follows.
         sym = NULL;
       }  /* if */
     }  /* if */
+    vp = NULL;
+    rp = NULL;
+    scp = NULL;
     if (sym != NULL) {
-      a_source_correspondence	*scp;
       /* Determine whether this entity has already been referenced by
          looking at the source correspondence entry.  An entity that
          has already been referenced cannot be specialized. */
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-        scp = &sym->variant.static_data_member.variable->source_corresp;
+        vp = sym->variant.static_data_member.variable;
+        scp = &vp->source_corresp;
       } else {
         check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
                         sym->kind == (a_symbol_kind)sk_member_function);
-        scp = &sym->variant.routine.ptr->source_corresp;
+        rp = sym->variant.routine.ptr;
+        scp = &rp->source_corresp;
       }  /* if */
       if (scp->referenced) {
         pos_sy_error(ec_specialization_of_referenced_entity,
                      &locator.source_position, sym);
         sym = NULL;
+      } else {
+        scp->decl_position = id_pos;
       }  /* if */
     }  /* if */
     if (sym == NULL) {
@@ -7215,6 +7225,7 @@ that follows.
       }  /* if */
     } else {
       /* The symbol is not NULL. */
+      sym->decl_position = id_pos;
       /* See if this is a declaration or a definition. */
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
         is_definition = (curr_token == tok_assign ||
@@ -7230,9 +7241,6 @@ that follows.
                                 declarator_ssep);
 
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-        a_variable_ptr  vp = sym->variant.static_data_member.variable;
-        a_template_instance_ptr	tip =
-                                 sym->variant.static_data_member.instance_ptr;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Do fixup on the source sequence entry that was just created to
            represent the current declaration. */
@@ -7244,7 +7252,6 @@ that follows.
           if (vp->declared_type == NULL) vp->declared_type = type;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-        tip->specific_decl = TRUE;
         vp->is_specialization = TRUE;
         vp->suppress_instantiation = TRUE;
         /* Deal with initializer. */
@@ -7263,8 +7270,6 @@ that follows.
         }  /* if */
         (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
       } else {
-        a_routine_ptr  rp = sym->variant.routine.ptr;
-        a_template_instance_ptr	tip = sym->variant.routine.instance_ptr;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Do fixup on the source sequence entry that was just created to
            represent the current declaration. */
@@ -7276,11 +7281,20 @@ that follows.
           if (rp->declared_type == NULL) rp->declared_type = type;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-        tip->specific_decl = TRUE;
         rp->is_specialization = TRUE;
         rp->suppress_instantiation = TRUE;
-        if (func_info.is_inline) {
-          rp->is_inline = TRUE;
+        if (func_info.is_inline) rp->is_inline = TRUE;
+        if (func_info.is_inline ||
+            storage_class == (a_storage_class)sc_static ||
+            (scp->is_class_member ?
+             (scp->parent.class_type->source_corresp.name_linkage ==
+                                      (a_name_linkage_kind)nlk_internal) :
+             (scp->parent.namespace_ptr != NULL &&
+              (symbol_supplement_for_namespace(scp->parent.namespace_ptr)->
+                                                within_unnamed_namespace)))) {
+          /* Function was declared "inline" or "static" or is a member of
+             an unnamed namespace or of a class that belongs to an unnamed
+             namespace. */
           rp->storage_class = (a_storage_class)sc_static;
           rp->source_corresp.name_linkage =
                                  (a_name_linkage_kind)nlk_internal;
