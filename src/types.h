@@ -47,6 +47,7 @@ extern a_type_ptr skip_typedefs(a_type_ptr type_ptr);
 extern a_boolean is_error_type(a_type_ptr tp);
 extern a_boolean is_function_type(a_type_ptr tp);
 extern a_boolean is_incomplete_type(a_type_ptr tp);
+extern a_boolean class_type_has_body(a_type_ptr tp);
 extern a_boolean is_object_type(a_type_ptr tp);
 extern a_boolean is_void_type(a_type_ptr tp);
 extern a_boolean is_void_star_type(a_type_ptr tp);

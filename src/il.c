@@ -887,8 +887,7 @@ Dump the contents of the indicated type entry, for debug purposes.
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         db_type_name(tp);
-        if (tp->variant.class_struct_union.field_list == NULL &&
-            (ctsp == NULL || ctsp->assoc_scope == NULL)) {
+        if (!class_type_has_body(tp)) {
           fputs(" (undefined)", f_debug);
         } else {
           a_base_class_ptr  bcp = NULL;

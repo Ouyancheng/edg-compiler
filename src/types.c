@@ -221,6 +221,23 @@ Return TRUE if the given type is an incomplete type (3.1.2.5).
 }  /* is_incomplete_type */
 
 
+a_boolean class_type_has_body(a_type_ptr tp)
+/*
+Return TRUE if the indicated type (a struct, union, or class type) has
+a definition.
+*/
+{
+  a_boolean                   has_body;
+  a_class_type_supplement_ptr ctsp;
+
+  check_assertion(is_immediate_class_type(tp));
+  ctsp = tp->variant.class_struct_union.extra_info;
+  has_body = (tp->variant.class_struct_union.field_list != NULL ||
+              (ctsp != NULL && ctsp->assoc_scope != NULL));
+  return has_body;
+}  /* class_type_has_body */
+
+
 a_boolean is_object_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an object type (3.1.2.5).
