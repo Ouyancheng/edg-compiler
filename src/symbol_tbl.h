@@ -1514,6 +1514,10 @@ typedef struct a_template_instance {
   a_bit_field	on_instantiations_list:1;
 			/* TRUE if this entry is already on the instantiations
 			   required list. */
+  a_bit_field	error_issued:1;
+			/* TRUE if an error has already been issued for this
+			   instance.  This is used to suppress duplicate
+			   messages. */
   a_source_position
 		explicit_instantiation_pos;
 			/* The position of the instantiation request pragma

@@ -382,6 +382,8 @@ extern void finalize_instantiation_wrapup(void);
 
 extern void instantiation_wrapup(void);
 
+extern void template_and_inline_function_wrapup(void);
+
 extern void inline_function_wrapup(void);
 
 extern a_boolean any_exported_templates(void);

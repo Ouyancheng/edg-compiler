@@ -351,29 +351,19 @@ static a_routine_list_entry_ptr
 			   this points to a list of inline functions
 			   defined in this translation unit. */
 
+static a_boolean
+		additional_instantiation_wrapup_required;
+			/* TRUE if additional instances or inline functions
+			   were created during this phase of instantiation
+			   wrapup requiring another pass through the list
+			   to make sure all entries have been considered. */
+
 #if CHECKING
 static a_boolean
 		after_instantiation_wrapup;
 			/* TRUE after instantiation wrapup processing has
 			   completed. */
 #endif /* CHECKING */
-
-static a_boolean
-		entries_updated_during_instantiation_wrapup;
-			/* TRUE when entries on the instantiation required
-			   list have their instantiation required flag
-			   set during instantiation wrapup.  This is used to
-			   detect situations when an entry that may have
-			   already been visited by instantiation wrapup
-			   has its instantiation required flag updated
-			   while processing an entry later on the list. */
-
-static a_boolean
-		implicit_inclusion_done_during_instantiation_wrapup;
-			/* TRUE if a file was implicitly included during
-			   instantiation wrapup.  An implicit inclusion
-			   could make it possible to instantiate some entity
-			   that previously could not be instantiated. */
 
 static a_symbol_list_entry_ptr
 		exported_templates_list;
@@ -14978,8 +14968,10 @@ file we simply return.
             scan_implicitly_included_template_definition_file();
             if (in_instantiation_wrapup ) {
               /* Set a flag if this implicit inclusion was done during
-                 instantiation wrapup. */
-              implicit_inclusion_done_during_instantiation_wrapup = TRUE;
+                 instantiation wrapup.  The presence of additional code
+		 means we need to recheck whether some instantiations can
+		 be done. */
+              additional_instantiation_wrapup_required = TRUE;
             }  /* if */
 	  }  /* if */
         } else {
@@ -15057,16 +15049,10 @@ added, FALSE if it was already on the list.
         tip->instantiation_required &&
         !master_instance_of(tip)->already_instantiated) {
       /* The instantiation required flag has been set for an entry already
-         on the list.  This means that instantiation_wrapup must make another
+         on the list.  This means that instantiation wrapup must make another
          pass over the instantiations list.  We don't need to do this if
          we have already generated the instantiation. */
-      if (curr_translation_unit == trans_unit_for_symbol(tip->instance_sym)) {
-        /* We only update this flag if the symbol is for the current
-           translation unit.  We only reach this point if we were unable to
-           instantiate the entity.  If we can't instantiate it now, there
-           is no way that we will be able to do so later. */
-        entries_updated_during_instantiation_wrapup = TRUE;
-      }  /* if */
+      additional_instantiation_wrapup_required = TRUE;
     }  /* if */
   } else {
     /* The entry must be added to the end of the list.  This is because new
@@ -15293,10 +15279,11 @@ template entities.
          templates under the assumption that the file containing the
          definition has not yet been compiled. */
       if (tip->explicit_instantiation && !tip->class_explicitly_instantiated &&
-          !template_is_exported(tip->template_sym)) {
+          !template_is_exported(tip->template_sym) && !tip->error_issued) {
         pos_sy_error(ec_instantiation_requested_no_definition_supplied,
   	           &tip->explicit_instantiation_pos,
   		    tip->instance_sym);
+        tip->error_issued = TRUE;
       }  /* if */
     } else {
       /* There is a body or a declared specialization. */
@@ -15304,9 +15291,10 @@ template entities.
         /* A specialization was declared (but not necessarily defined).
            Simply skip the instantiation unless an instantiation was
            explicitly requested. */
-        if (tip->explicit_instantiation) {
+        if (tip->explicit_instantiation && !tip->error_issued) {
           pos_sy_error(ec_instantiation_requested_and_specialized,
   	             &tip->explicit_instantiation_pos, tip->instance_sym);
+          tip->error_issued = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -17544,56 +17532,51 @@ that might be required.
 {
   a_template_instance_ptr	tip;
 
-  do {
-    entries_updated_during_instantiation_wrapup = FALSE;
-    implicit_inclusion_done_during_instantiation_wrapup = FALSE;
-    for (tip = instantiations_required;
-         tip != NULL;
-         tip = tip->next_in_instantiation_list) {
-      a_master_instance_ptr	mip;
-      mip = master_instance_of(tip);
-      /* Make sure the is_static_or_inline flag is set (if needed)
-         for this entity. */
-      (void)is_static_or_inline_template_entity(tip);
-      /* Skip entries that have already been instantiated. */
-      if (mip->already_instantiated) continue;
+  for (tip = instantiations_required;
+       tip != NULL;
+       tip = tip->next_in_instantiation_list) {
+    a_master_instance_ptr	mip;
+    mip = master_instance_of(tip);
+    /* Make sure the is_static_or_inline flag is set (if needed)
+       for this entity. */
+    (void)is_static_or_inline_template_entity(tip);
+    /* Skip entries that have already been instantiated. */
+    if (mip->already_instantiated) continue;
 #if DEBUG
-      if (db_flag_is_set("dani")) {
-        fprintf(f_debug, "do_any_needed_instantiations, checking: ");
-        db_symbol_name_trans_unit(tip->instance_sym);
-        fprintf(f_debug, "\n");
-      }  /* if */
+    if (db_flag_is_set("dani")) {
+      fprintf(f_debug, "do_any_needed_instantiations, checking: ");
+      db_symbol_name_trans_unit(tip->instance_sym);
+      fprintf(f_debug, "\n");
+    }  /* if */
 #endif /* DEBUG */
-      /* See if the entity should be instantiated.  Note that the value
-         returned by can_be_instantiated is not used to determine whether
-         should_be_instantiated is called because the tests done by
-         should_be_instantiated can result the generation of diagnostics
-         that are required even if the entity can't be instantiated. */
-      (void)entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE);
-      if ((instantiation_mode == tim_all ||
-           tip->instantiation_required) &&
-          !mip->already_instantiated) {
-        if (should_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE)) {
+    /* See if the entity should be instantiated.  Note that the value
+       returned by can_be_instantiated is not used to determine whether
+       should_be_instantiated is called because the tests done by
+       should_be_instantiated can result the generation of diagnostics
+       that are required even if the entity can't be instantiated. */
+    (void)entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE);
+    if ((instantiation_mode == tim_all ||
+         tip->instantiation_required) &&
+        !mip->already_instantiated) {
+      if (should_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE)) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-          /* Reset the insert point for instantiations to NULL.  This assures
-             that the source sequence entry for the instantiation will be
-             added to the end of the source-sequence list. */
-          reset_ss_list_instantiation_insert_point();
+        /* Reset the insert point for instantiations to NULL.  This assures
+           that the source sequence entry for the instantiation will be
+           added to the end of the source-sequence list. */
+        reset_ss_list_instantiation_insert_point();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-          instantiate_entity(tip);
-        }  /* if */
+        instantiate_entity(tip);
       }  /* if */
+    }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-      /* See if the entity should be instantiated as a result of an
-         assignment by the automatic instantiation mechanism. */
-      if (entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE) &&
-          mip->automatically_instantiated && !mip->already_instantiated) {
-        do_automatic_instantiation_of_entity(tip);
-      }  /* if */
+    /* See if the entity should be instantiated as a result of an
+       assignment by the automatic instantiation mechanism. */
+    if (entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE) &&
+        mip->automatically_instantiated && !mip->already_instantiated) {
+      do_automatic_instantiation_of_entity(tip);
+    }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-    }  /* for */
-  } while (entries_updated_during_instantiation_wrapup ||
-           implicit_inclusion_done_during_instantiation_wrapup);
+  }  /* for */
 }  /* do_any_needed_instantiations */
 
 
@@ -17735,7 +17718,7 @@ after instantiation_wrapup has been done for all of the translation units.
 }  /* finalize_instantiation_wrapup */
 
 
-void instantiation_wrapup(void)
+void trans_unit_instantiation_setup(void)
 /*
 Performs end-of-compilation processing for template instantiation.  An
 instantiation will be done if an explicit instantiation has been
@@ -17749,7 +17732,7 @@ specific definition that made it unnecessary.
 {
   a_template_instance_ptr           tip;
 
-  db_enter(3, "instantiation_wrapup");
+  db_enter(3, "trans_unit_instantiation_setup");
   /* Now that all input has been processed including any instantiations that
      may be done, process the classes that have been put on the can
      instantiate list. */
@@ -17805,13 +17788,81 @@ specific definition that made it unnecessary.
   /* If any friend state changed between the initial prescan and the later one,
      an error should have been issued somewhere. */
   check_assertion_str2(!any_friend_state_changed || total_errors != 0,
-                       "instantiation_wrapup:",
+                       "trans_unit_instantiation_setup:",
                        "silent change in friend state");
-#if CHECKING
-  after_instantiation_wrapup = TRUE;
-#endif /* CHECKING */
   db_exit();
-}  /* instantiation_wrapup */
+}  /* trans_unit_instantiation_setup */
+
+
+void template_and_inline_function_wrapup(void)
+/*
+For each translation unit, generate any instantiations needed by that
+translation unit; generate any virtual destructors that may be required;
+and determine which extern inline functions require definitions in this
+translation unit.
+*/
+{
+  a_translation_unit_ptr	tup;
+
+  /* Push the primary translation unit.  This should be the first entry
+     on the stack. */
+  check_assertion(curr_translation_unit_stack_entry == NULL);
+  check_assertion(!C_mode());
+  push_translation_unit_stack(translation_units);
+  /* Do one-time processing (not per-translation unit) for instantiation
+     wrapup. */
+  instantiation_wrapup_setup();
+  for (tup = translation_units; tup != NULL; tup = tup->next) {
+    /* Push the translation unit (but don't repush the primary translation
+       unit). */
+    if (tup != translation_units) push_translation_unit_stack(tup);
+#if DO_IL_LOWERING
+    if (il_lowering_needed()) {
+      /* To improve efficiency of name mangling in the instantiation
+         process, pre-generate the mangled names of classes. */
+      do_class_name_mangling();
+    }  /* if */
+#endif /* DO_IL_LOWERING */
+    /* Do any translation-unit specific processing that is required before
+       doing the actual instantiations. */
+    trans_unit_instantiation_setup();
+    /* Pop the translation unit if pushed above. */
+    if (tup != translation_units) pop_translation_unit_stack();
+  }  /* for */
+  /* Iterate over the routines that do instantiations and inline function
+     processing.  These are repeated until no additional instantiations or
+     inline functions are generated. */
+  do {
+    additional_instantiation_wrapup_required = FALSE;
+    for (tup = translation_units; tup != NULL; tup = tup->next) {
+      /* Push the translation unit (but don't repush the primary translation
+         unit). */
+      if (tup != translation_units) push_translation_unit_stack(tup);
+      /* Do any template instantiation that may be required.  This is called
+         first because it may generate additional function bodies and class
+         definitions that need to be processed by the operations that
+         follow. */
+      do_any_needed_instantiations();
+      /* Go through the classes in the file scope and each namespace scope
+         and generate bodies for virtual destructors, as required. */
+      generate_required_virtual_destructor_bodies(il_header.primary_scope);
+      /* Determine which extern inline functions should have bodies emitted
+         as part of this translation unit. */
+      inline_function_wrapup();
+#if CHECKING
+      after_instantiation_wrapup = TRUE;
+#endif /* CHECKING */
+      /* Pop the translation unit if pushed above. */
+      if (tup != translation_units) pop_translation_unit_stack();
+    }  /* for */
+  } while (additional_instantiation_wrapup_required);
+  /* Pop the primary translation unit off of the stack. */
+  pop_translation_unit_stack();
+  /* Do processing that is required after instantiation wrapup has been
+     performed for all translation units. */
+  finalize_instantiation_wrapup();
+}  /* template_and_inline_function_wrapup */
+
 
 #if INSTANTIATE_EXTERN_INLINE 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
@@ -19018,6 +19069,12 @@ Add the routine to an "instantiation list" of inline functions.
     rlep->next = inline_function_list;
     inline_function_list = rlep;
     rout_ptr->on_inline_function_list = TRUE;
+    if (in_instantiation_wrapup ) {
+      /* Set a flag if this entry was added during instantiation wrapup.
+         The addition of inline functions could cause additional instantiations
+         to be done. */
+      additional_instantiation_wrapup_required = TRUE;
+    }  /* if */
   }  /* if */
 }  /* add_to_inline_function_list */
 
@@ -19124,7 +19181,6 @@ One-time initialization for templates.c static variables.
   register_trans_unit_variable(exported_templates_list);
   register_trans_unit_variable(exported_templates_tail);
   register_trans_unit_variable(inline_function_list);
-  register_trans_unit_variable(entries_updated_during_instantiation_wrapup);
   register_trans_unit_variable(can_instantiate_list);
 #if CHECKING
   register_trans_unit_variable(any_friend_state_changed);
@@ -19139,13 +19195,11 @@ given translation unit.
 */
 {
   in_instantiation_wrapup = FALSE;
-  implicit_inclusion_done_during_instantiation_wrapup = FALSE;
   instantiations_required = NULL;
   instantiations_required_tail = NULL;
   exported_templates_list = NULL;
   exported_templates_tail = NULL;
   inline_function_list = NULL;
-  entries_updated_during_instantiation_wrapup = FALSE;
   can_instantiate_list = NULL;
 #if CHECKING
   any_friend_state_changed = FALSE;
@@ -19186,6 +19240,7 @@ Initializations for template.
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   any_instantiated_entities_added_to_request_file = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  additional_instantiation_wrapup_required = FALSE;
 #endif /* DEBUG */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   request_file_check_needed = FALSE;

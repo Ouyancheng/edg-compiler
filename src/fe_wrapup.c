@@ -452,57 +452,6 @@ Complete the file scope of each of the translation units.
 }  /* wrap_up_file_scopes */
 
 
-static void template_and_inline_function_wrapup(void)
-/*
-For each translation unit, call instantiation_wrapup to generate any
-instantiations needed by that translation unit; generate any virtual
-destructors that may be required; and determine which extern inline
-functions require definitions in this translation unit.
-*/
-{
-  a_translation_unit_ptr	tup;
-
-  /* Push the primary translation unit.  This should be the first entry
-     on the stack. */
-  check_assertion(curr_translation_unit_stack_entry == NULL);
-  check_assertion(!C_mode());
-  push_translation_unit_stack(translation_units);
-  /* Do one-time processing (not per-translation unit) for instantiation
-     wrapup. */
-  instantiation_wrapup_setup();
-  for (tup = translation_units; tup != NULL; tup = tup->next) {
-    /* Push the translation unit (but don't repush the primary translation
-       unit. */
-    if (tup != translation_units) push_translation_unit_stack(tup);
-#if DO_IL_LOWERING
-    if (il_lowering_needed()) {
-      /* To improve efficiency of name mangling in the instantiation
-         process, pre-generate the mangled names of classes. */
-      do_class_name_mangling();
-    }  /* if */
-#endif /* DO_IL_LOWERING */
-    /* Do any template instantiation that may be required.  This is called
-       first because it may generate additional function bodies and class
-       definitions that need to be processed by the operations that follow. */
-    instantiation_wrapup();
-
-    /* Go through the classes in the file scope and each namespace scope
-       and generate bodies for virtual destructors, as required. */
-    generate_required_virtual_destructor_bodies(il_header.primary_scope);
-    /* Determine which extern inline functions should have bodies emitted
-       as part of this translation unit. */
-    inline_function_wrapup();
-    /* Pop the translation unit if pushed above. */
-    if (tup != translation_units) pop_translation_unit_stack();
-  }  /* for */
-  /* Pop the primary translation unit off of the stack. */
-  pop_translation_unit_stack();
-  /* Do processing that is required after instantiation wrapup has been
-     performed for all translation units. */
-  finalize_instantiation_wrapup();
-}  /* template_and_inline_function_wrapup */
-
-
 void fe_wrapup(void)
 /*
 Do any processing required at the end of execution of the front end,
