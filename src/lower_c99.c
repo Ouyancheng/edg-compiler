@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2000-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 2000 Edison Design Group Inc.                        [_]          *
 *                                                                             *
 ******************************************************************************/
 
@@ -710,7 +710,9 @@ static void lower_c99_complex_type(a_float_kind  kind,
   make_lowered_field("_Vals", array_type, cmplx_type, &last_field);
   finish_class_type(cmplx_type);
   add_to_front_of_file_scope_types_list(cmplx_type);
+#if MAINTAIN_NEEDED_FLAGS
   set_class_keep_definition_in_il(cmplx_type);
+#endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* lower_c99_complex_type */
 
 
@@ -727,3 +729,12 @@ void lower_c99_nonreal_float_types(void)
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 2000 Edison Design Group Inc.                        [_]          *
+*                                                                             *
+******************************************************************************/
