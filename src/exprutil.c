@@ -510,6 +510,25 @@ entries are used to hold arguments of function calls.
 }  /* alloc_arg_operand */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/* ARGSUSED */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+void free_attachments_to_operand(an_operand *operand)
+/*
+Free any dynamically-allocated attachments to the indicated operand.
+The operand will not be used further.
+*/
+{
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_property_ref_operand(operand)) {
+    /* An ok_property_ref operand has some an_arg_operand entries attached. */
+    free_arg_operand_list(operand->variant.property_ref.subscripts);
+    operand->variant.property_ref.subscripts = NULL;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* free_attachments_to_operand */
+
+
 void free_arg_operand_list(an_arg_operand_ptr aop)
 /*
 Free the list of argument operands pointed to by aop.
@@ -519,6 +538,21 @@ Free the list of argument operands pointed to by aop.
 
   for (; aop != NULL; aop = aop_next) {
     aop_next = aop->next;
+    /* Free any dynamically-allocated attachments to the operand. */
+    free_attachments_to_operand(&aop->operand);
+#if CHECKING && DEBUG
+    /* Make the sure the entry was not previously freed. */
+    if (db_active) {
+      an_arg_operand_ptr taop;
+      for (taop = avail_arg_operands;
+           taop != NULL;
+           taop = taop->next) {
+        if (taop == aop) {
+          internal_error("free_arg_operand_list: entry freed twice");
+        }  /* if */
+      }  /* for */
+    }
+#endif /* CHECKING && DEBUG */
     /* Add the entry to the available list. */
     aop->next = avail_arg_operands;
     avail_arg_operands = aop;
@@ -1073,6 +1107,13 @@ to default values.
     case ok_undefined_symbol:
       operand->variant.symbol = NULL;
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case ok_property_ref:
+      operand->variant.property_ref.object = NULL;
+      operand->variant.property_ref.field = NULL;
+      operand->variant.property_ref.subscripts = NULL;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CHECKING
     default:
       internal_error("set_operand_kind: bad kind");
@@ -1156,6 +1197,23 @@ Display an expression operand for debugging purposes.
       (void)fprintf(f_debug, "undefined symbol = ");
       db_symbol(operand->variant.symbol, "", 0);
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case ok_property_ref:
+      (void)fprintf(f_debug, "property ref = \n");
+      (void)fprintf(f_debug, "object =\n");
+      db_expression(operand->variant.property_ref.object);
+      (void)fprintf(f_debug, "field = ");
+      db_name(&operand->variant.property_ref.field->source_corresp);
+      (void)fprintf(f_debug, "\nsubscripts =\n");
+      { an_arg_operand_ptr aop;
+        for (aop = operand->variant.property_ref.subscripts;
+             aop != NULL;
+             aop = aop->next) {
+          db_operand(&aop->operand);
+        }  /* for */
+      }
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:
       (void)fprintf(f_debug, "<bad operand kind>");
       break;
@@ -1286,14 +1344,28 @@ Create an error operand.
 }  /* make_error_operand */
 
 
+void operand_will_not_be_used_because_of_error(an_operand *operand)
+/*
+The indicated operand will not be used further because an error has
+been detected.  There is also the implication that because of the
+error we cannot tell how the operand would have been used.  Do any
+cleanup required.
+*/
+{
+  /* Change the references to errors. */
+  change_operand_refs_to_error(operand);
+  /* Free any dynamically-allocated attachments to the operand. */
+  free_attachments_to_operand(operand);
+}  /* operand_will_not_be_used_because_of_error */
+
+
 void conv_to_error_operand(an_operand *operand)
 /*
 Take an existing operand and convert it to an error operand.  Retain the
 position field as the error position.
 */
 {
-  /* Change the references to errors. */
-  change_operand_refs_to_error(operand);
+  operand_will_not_be_used_because_of_error(operand);
   set_operand_kind(operand, (an_operand_kind)ok_error);
   operand->type = error_type();
   operand->state = (an_operand_state)os_none;
@@ -5637,27 +5709,16 @@ void rewrite_property_field_reference(an_operand *operand,
                                       an_operand *put_operand)
 /*
 *operand is an operand for a reference to a field declared with the
-Microsoft extension __declspec(property(...)).  Transform it to a
+Microsoft C++ extension __declspec(property(...)).  Transform it to a
 call of an accessor routine.  The access is a "put" if put_operand
 is non-NULL (and *put_operand gives the value to be put); the access
 is a "get" if put_operand is NULL.
 */
 {
-  /* The operands of the eok_property_field operation are:
-       1)  The expression for the object pointer.
-       2)  The enk_field expression for the field.
-       3)  Optionally, expressions for subscript values, when the
-           reference is subscripted.
-  */
-  an_expr_node_ptr expr, object_expr, field_expr, subscript_expr;
-  a_field_ptr      field;
+  an_expr_node_ptr object_expr = operand->variant.property_ref.object;
+  a_field_ptr      field = operand->variant.property_ref.field;
   char             *getput_property_name;
 
-  expr = operand->variant.expression;
-  object_expr = expr->variant.operation.operands;
-  field_expr = object_expr->next;
-  field = field_expr->variant.field;
-  subscript_expr = field_expr->next;
   /* Get the "get" or "put" function name from the field. */
   getput_property_name = (put_operand != NULL) ? field->put_property_name :
                                                  field->get_property_name;
@@ -5668,7 +5729,7 @@ is a "get" if put_operand is NULL.
   } else {
     a_symbol_locator locator;
     a_symbol_ptr     getput_sym;
-    a_type_ptr       class_type = NULL;
+    a_type_ptr       class_type, tp;
 
     /* Look up the "get" or "put" function name in the symbol table to get
        the locator set. */
@@ -5677,8 +5738,10 @@ is a "get" if put_operand is NULL.
                       (sizeof_t)strlen(getput_property_name),
                       &locator);
     /* Get the class type from the object pointer expression. */
-    if (is_pointer_type(object_expr->type)) {
-      a_type_ptr tp = type_pointed_to(object_expr->type);
+    class_type = NULL;
+    tp = object_expr->type;
+    if (is_pointer_type(tp)) {
+      tp = type_pointed_to(tp);
       tp = skip_typerefs(tp);
       if (is_class_struct_union_type(tp)) class_type = tp;
     }  /* if */
@@ -5695,36 +5758,37 @@ is a "get" if put_operand is NULL.
                      &operand->position, getput_property_name);
         conv_to_error_operand(operand);
       } else {
-        an_operand         bound_function_selector, function_operand;
-        an_arg_operand_ptr arg_operand_list, end_arg_operand_list;
-        an_expr_node_ptr   subscript_expr_next, argument_list;
+        an_operand         function_operand;
+        an_operand         bound_function_selector;
+        an_arg_operand_ptr arg_operand_list;
+        an_expr_node_ptr   argument_list;
 
         /* Use a projection symbol if there is one. */
         getput_sym = locator.specific_symbol;
         /* Make an operand for the object pointer. */
-        make_expression_operand(object_expr, object_expr->type,
+        make_expression_operand(operand->variant.property_ref.object,
+                                operand->variant.property_ref.object->type,
                                 &bound_function_selector);
-        arg_operand_list = end_arg_operand_list = NULL;
+        /* The arg_operand list is the subscript expression list, if any. */
+        arg_operand_list = operand->variant.property_ref.subscripts;
+        /* The subscript arg_operands will be freed by the overload
+           resolution process, so detach them from the operand. */
+        operand->variant.property_ref.subscripts = NULL;
         if (put_operand != NULL) {
-          /* The first argument for a "put" is the value to be put. */
-          arg_operand_list = end_arg_operand_list = alloc_arg_operand();
-          arg_operand_list->operand = *put_operand;
-        }  /* if */
-        /* Add the subscript operands, if any, to the arg_operand_list. */
-        for (; subscript_expr != NULL; subscript_expr = subscript_expr_next) {
+          /* The last argument for a "put" is the value to be put. */
           an_arg_operand_ptr new_arg_operand = alloc_arg_operand();
-          subscript_expr_next = subscript_expr->next;
-          subscript_expr->next = NULL;
-          make_expression_operand(subscript_expr, subscript_expr->type,
-                                  &new_arg_operand->operand);
+          new_arg_operand->operand = *put_operand;
           if (arg_operand_list == NULL) {
             arg_operand_list = new_arg_operand;
           } else {
+            an_arg_operand_ptr end_arg_operand_list = arg_operand_list;
+            while (end_arg_operand_list->next != NULL) {
+              end_arg_operand_list = end_arg_operand_list->next;
+            }  /* if */
             end_arg_operand_list->next = new_arg_operand;
           } /* if */
-          end_arg_operand_list = new_arg_operand;
-        }  /* for */
-        /* Do overlaod resolution to determine the function to call. */
+        }  /* if */
+        /* Do overload resolution to determine the function to call. */
         getput_sym = select_and_prepare_to_call_overloaded_function(
                                             getput_sym,
                                             /*have_selector=*/TRUE,
@@ -5768,6 +5832,16 @@ The flags in options can be used to suppress one or more of these
 transformations.
 */
 {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_property_ref_operand(operand)) {
+    if (!(options & TOPT_SUPPRESS_RVALUE_PROPERTY_REWRITE)) {
+      /* This operand is a field selection for a field declared with
+         __declspec(property(...)).  Change it to a call of the appropriate
+         "get" function. */
+      rewrite_property_field_reference(operand, (an_operand *)NULL);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_array_type(operand->type)) {
     /* An array lvalue or rvalue. */
     if (!(options & TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION)) {
@@ -5805,22 +5879,6 @@ transformations.
                            operand, operand->variant.symbol);
     }  /* if */
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode &&
-      !(options & TOPT_SUPPRESS_RVALUE_PROPERTY_REWRITE)) {
-    if (is_expression_operand(operand)) {
-      an_expr_node_ptr expr = operand->variant.expression;
-      if (is_operation_node(expr) &&
-          expr->variant.operation.kind ==
-                                   (an_expr_operator_kind)eok_property_field) {
-        /* This operand is a field selection for a field declared with
-           __declspec(property(...)).  Change it to a call of the appropriate
-           "get" function. */
-        rewrite_property_field_reference(operand, (an_operand *)NULL);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* do_operand_transformations */
 
 

@@ -170,6 +170,10 @@ enum an_operand_kind_tag {
 			   "p->f(1)"), etc.  Not used for overloaded
 			   functions (ok_indefinite_function is used
 			   instead).  Used only in C++. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ok_property_ref,	/* A reference to a field declared with the Microsoft
+			   C++ extension __declspec(property(...)). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ok_undefined_symbol	/* An undefined symbol encountered while scanning an
 			   expression.  Could be an implicit function
 			   declaration or a genuine undefined symbol.
@@ -250,6 +254,21 @@ typedef struct an_operand {
 			/* Pointer to the symbol.  May be a projection
 			   symbol for ok_indefinite_function or
 			   ok_sym_for_member. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* When kind == ok_property_ref: */
+    /* This is used for a reference to a field declared with the Microsoft
+       C++ extension __declspec(property(...)). */
+    struct {
+      an_expr_node_ptr
+		object;	/* Expression for the class object pointer. */
+      a_field_ptr
+		field;	/* The field referenced. */
+      an_arg_operand_ptr
+		subscripts;
+			/* Optional list of subscript expressions, for cases
+			   like p->x[y][z]. */
+    } property_ref;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } variant;
 } an_operand;
 
@@ -510,6 +529,15 @@ Macro that is TRUE if the operand is an undefined symbol operand.
 */
 #define is_undefined_symbol_operand(operand)				\
 	((operand)->kind == (an_operand_kind)ok_undefined_symbol)
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/*
+Macro that is TRUE if the operand is one that references a field declared
+with the Microsoft C++ extension __declspec(property(...)).
+*/
+#define is_property_ref_operand(operand)				\
+	((operand)->kind == (an_operand_kind)ok_property_ref)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Macro that is TRUE if the operand is an lvalue.  Note that this isn't
@@ -802,6 +830,8 @@ extern void base_class_cast_operand(an_operand       *operand_1,
                                     a_boolean        implicit_in_naming);
 
 extern void make_error_operand(an_operand *operand);
+
+extern void operand_will_not_be_used_because_of_error(an_operand *operand);
 
 extern void conv_to_error_operand(an_operand *operand);
 

@@ -120,12 +120,6 @@ should be suppressed.
         has_side_effects = TRUE;
       }  /* if */
       break;
-    case eok_property_field:
-      /* For reference to field declared with the Microsoft extension
-         __declspec(property(...)).  Equivalent to a call, so has side
-         effects. */
-      has_side_effects = TRUE;
-      break;
     default:;
   }  /* switch */
 
@@ -471,6 +465,9 @@ Syntax:
   a_type_ptr         result_type;
   a_source_position  operator_position;
   a_boolean          err = FALSE, processed = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_type_ptr         field_type;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_subscript_operator");
 
@@ -500,8 +497,38 @@ Syntax:
   if (err) {
     /* Subscripting is not allowed in this kind of expression. */
     make_error_operand(result);
-    change_operand_refs_to_error(operand_1);
-    change_operand_refs_to_error(&operand_2);
+    operand_will_not_be_used_because_of_error(operand_1);
+    operand_will_not_be_used_because_of_error(&operand_2);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode &&
+             is_property_ref_operand(operand_1) &&
+             ((field_type =
+                 f_skip_typerefs(operand_1->variant.property_ref.field->type)),
+              (is_array_type(field_type) &&
+                !field_type->variant.array.is_variable_size_array &&
+                field_type->variant.array.variant.number_of_elements == 0))) {
+    /* The operand is a field selection for a field declared with the
+       Microsoft C++ extension __declspec(property(...)), and the field has
+       an array type with an unknown bound.  Add the subscript expression to
+       the operand.  It will be included as an argument in the call of a
+       "get" or "put" function when this operand is rewritten later. */
+    an_arg_operand_ptr last_subscript;
+    an_arg_operand_ptr subscript = alloc_arg_operand();
+
+    subscript->operand = operand_2;
+    /* Attach the arg_operand for the subscript to the end of the existing
+       list of subscripts (if any). */
+    last_subscript = operand_1->variant.property_ref.subscripts;
+    if (last_subscript == NULL) {
+      operand_1->variant.property_ref.subscripts = subscript;
+    } else {
+      while (last_subscript->next != NULL) {
+        last_subscript = last_subscript->next;
+      }  /* while */
+      last_subscript->next = subscript;
+    }  /* if */
+    *result = *operand_1;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         (is_overloadable_type_operand(operand_1) ||
@@ -1915,22 +1942,15 @@ The result is placed in *result.
   } else if (microsoft_mode &&
              (field->get_property_name != NULL ||
               field->put_property_name != NULL)) {
-    /* A field declared with __declspec(property(...)) in Microsoft mode.
-       Render as an eok_property_field expression, which will be rewritten
+    /* A field declared with __declspec(property(...)) in Microsoft C++ mode.
+       Render as an ok_property_ref operand, which will be rewritten
        later as a function call. */
-    an_expr_node_ptr object_node;
-    an_expr_node_ptr field_node= alloc_expr_node((an_expr_node_kind)enk_field);
-    field_node->type = unknown_type();
-    field_node->variant.field = field;
+    clear_operand((an_operand_kind)ok_property_ref, result);
+    result->state = (an_operand_state)os_lvalue;
+    result->type = unknown_type();
+    result->variant.property_ref.field = field;
     conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
-    object_node = make_node_from_operand(operand_1);
-    object_node->next = field_node;
-    make_expression_operand(make_operator_node(
-                                     (an_expr_operator_kind)eok_property_field,
-                                     unknown_type(),
-                                     object_node),
-                            unknown_type(),
-                            result);
+    result->variant.property_ref.object = make_node_from_operand(operand_1);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Determine the result type. */
@@ -2198,7 +2218,7 @@ bound with the function in *bound_function_selector.
   }  /* if */
   if (err) {
     /* Operation is not allowed in this kind of expression. */
-    change_operand_refs_to_error(operand_1);
+    operand_will_not_be_used_because_of_error(operand_1);
   } else {
     /* In C++, the first operand of "->" may be a class object that is
        converted to a class pointer via an operator->() function.  The operator
@@ -2512,7 +2532,7 @@ qualified_name_check:
        if there was an error in the first operand, make an error operand out
        of the result. */
     make_error_operand(result);
-    change_operand_refs_to_error(operand_1);
+    operand_will_not_be_used_because_of_error(operand_1);
   } else if (is_vacuous_destructor_reference) {
     an_expr_node_ptr node;
     a_boolean        rvalue_case;
@@ -2715,7 +2735,7 @@ nonstatic_member_function:
         case sk_union_tag:
         case sk_enum_tag:
           /* The identifier is a type identifier. */
-          discard_operand(operand_1);
+          operand_will_not_be_used_because_of_error(operand_1);
           error_and_make_error_operand(ec_type_identifier_not_allowed, result);
           break;
 #if CHECKING
@@ -2795,8 +2815,8 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
   if (err) {
     /* Operator is not allowed in this kind of expression. */
     make_error_operand(result);
-    change_operand_refs_to_error(operand_1);
-    change_operand_refs_to_error(&operand_2);
+    operand_will_not_be_used_because_of_error(operand_1);
+    operand_will_not_be_used_because_of_error(&operand_2);
   } else {
     if (is_arrow_operator &&
         (is_overloadable_type_operand(operand_1) ||
@@ -2986,7 +3006,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
     /* Postfix ++/-- not allowed in constant expressions. */
     pos_error(ec_bad_constant_operator, &operator_position);
     make_error_operand(result);
-    change_operand_refs_to_error(operand);
+    operand_will_not_be_used_because_of_error(operand);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         is_overloadable_type_operand(operand)) {
@@ -3197,7 +3217,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
   if (err) {
     /* Operator not allowed in this kind of expression. */
     make_error_operand(result);
-    change_operand_refs_to_error(&operand);
+    operand_will_not_be_used_because_of_error(&operand);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         is_overloadable_type_operand(&operand)) {
@@ -3376,7 +3396,7 @@ operation is a pointer-to-member (see ARM 5.3).
     if (err) {
       /* Operator is not allowed in this kind of expression. */
       make_error_operand(result);
-      change_operand_refs_to_error(&operand);
+      operand_will_not_be_used_because_of_error(&operand);
     } else {
       if (C_dialect == C_dialect_cplusplus &&
           is_overloadable_type_operand(&operand)) {
@@ -3497,7 +3517,7 @@ See section 3.3.3.2 of the standard.
   if (err) {
     /* Operator is not allowed in this kind of expression. */
     make_error_operand(result);
-    change_operand_refs_to_error(&operand);
+    operand_will_not_be_used_because_of_error(&operand);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         is_overloadable_type_operand(&operand)) {
@@ -3624,7 +3644,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&start_position);
     make_error_operand(result);
-    change_operand_refs_to_error(&operand);
+    operand_will_not_be_used_because_of_error(&operand);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
              is_overloadable_type_operand(&operand)) {
@@ -7141,8 +7161,8 @@ be of integral type.  See section 3.3.5 of the standard.
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
-    change_operand_refs_to_error(operand_1);
-    change_operand_refs_to_error(&operand_2);
+    operand_will_not_be_used_because_of_error(operand_1);
+    operand_will_not_be_used_because_of_error(&operand_2);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
              (is_overloadable_type_operand(operand_1) ||
@@ -7237,8 +7257,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
-    change_operand_refs_to_error(operand_1);
-    change_operand_refs_to_error(&operand_2);
+    operand_will_not_be_used_because_of_error(operand_1);
+    operand_will_not_be_used_because_of_error(&operand_2);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
              (is_overloadable_type_operand(operand_1) ||
@@ -7427,8 +7447,8 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
-    change_operand_refs_to_error(operand_1);
-    change_operand_refs_to_error(&operand_2);
+    operand_will_not_be_used_because_of_error(operand_1);
+    operand_will_not_be_used_because_of_error(&operand_2);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
              (is_overloadable_type_operand(operand_1) ||
@@ -7601,8 +7621,8 @@ standard.
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
-    change_operand_refs_to_error(operand_1);
-    change_operand_refs_to_error(&operand_2);
+    operand_will_not_be_used_because_of_error(operand_1);
+    operand_will_not_be_used_because_of_error(&operand_2);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
              (is_overloadable_type_operand(operand_1) ||
@@ -7748,8 +7768,8 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
-    change_operand_refs_to_error(operand_1);
-    change_operand_refs_to_error(&operand_2);
+    operand_will_not_be_used_because_of_error(operand_1);
+    operand_will_not_be_used_because_of_error(&operand_2);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
              (is_overloadable_type_operand(operand_1) ||
@@ -7895,8 +7915,8 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
-    change_operand_refs_to_error(operand_1);
-    change_operand_refs_to_error(&operand_2);
+    operand_will_not_be_used_because_of_error(operand_1);
+    operand_will_not_be_used_because_of_error(&operand_2);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
              (is_overloadable_type_operand(operand_1) ||
@@ -8060,8 +8080,8 @@ standard.
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
-    change_operand_refs_to_error(operand_1);
-    change_operand_refs_to_error(&operand_2);
+    operand_will_not_be_used_because_of_error(operand_1);
+    operand_will_not_be_used_because_of_error(&operand_2);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
              (is_overloadable_type_operand(operand_1) ||
@@ -8406,9 +8426,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
-    change_operand_refs_to_error(operand_1);
-    change_operand_refs_to_error(&operand_2);
-    change_operand_refs_to_error(&operand_3);
+    operand_will_not_be_used_because_of_error(operand_1);
+    operand_will_not_be_used_because_of_error(&operand_2);
+    operand_will_not_be_used_because_of_error(&operand_3);
     processed = TRUE;
     err = TRUE;
   } else if (C_dialect == C_dialect_cplusplus) {
@@ -8799,17 +8819,6 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
 }  /* check_assignment_to_this_pointer */
 
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-/* Return TRUE if an operand is an eok_property_field selection.  Used for
-   fields declared with the Microsoft extension __declspec(property(...)). */
-#define is_property_selection_operand(operand) \
-  (is_expression_operand(operand) && \
-   is_operation_node((operand)->variant.expression) && \
-   (operand)->variant.expression->variant.operation.kind == \
-         (an_expr_operator_kind)eok_property_field)
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void scan_simple_assignment_operator(an_operand *operand_1,
                                             an_operand *result)
@@ -8842,11 +8851,10 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
   if (err) {
     /* Operator is not allowed in this kind of expression. */
     make_error_operand(result);
-    change_operand_refs_to_error(operand_1);
-    change_operand_refs_to_error(&operand_2);
+    operand_will_not_be_used_because_of_error(operand_1);
+    operand_will_not_be_used_because_of_error(&operand_2);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode &&
-             is_property_selection_operand(operand_1)) {
+  } else if (is_property_ref_operand(operand_1)) {
     /* The operand is a field selection for a field declared with the
        Microsoft extension __declspec(property(...)).  Rewrite it as
        a call of the "put" function for the field. */
@@ -8959,8 +8967,8 @@ See section 3.3.16 of the standard.
   if (err) {
     /* Operator is not allowed in this kind of expression. */
     make_error_operand(result);
-    change_operand_refs_to_error(operand_1);
-    change_operand_refs_to_error(&operand_2);
+    operand_will_not_be_used_because_of_error(operand_1);
+    operand_will_not_be_used_because_of_error(&operand_2);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         (is_overloadable_type_operand(operand_1) ||
@@ -9218,7 +9226,7 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
   if (err) {
     /* Operator not allowed in this kind of expression. */
     make_error_operand(result);
-    if (expr_present) change_operand_refs_to_error(&operand);
+    if (expr_present) operand_will_not_be_used_because_of_error(&operand);
   } else {
     /* Build the throw node. */
     throw_node = alloc_expr_node((an_expr_node_kind)enk_throw);
@@ -9321,8 +9329,8 @@ EOPT_DISALLOW_COMMA_OPERATOR).
   if (err) {
     /* Operator is not allowed in this kind of expression. */
     make_error_operand(result);
-    change_operand_refs_to_error(operand_1);
-    change_operand_refs_to_error(&operand_2);
+    operand_will_not_be_used_because_of_error(operand_1);
+    operand_will_not_be_used_because_of_error(&operand_2);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         (is_overloadable_type_operand(operand_1) ||

@@ -5179,14 +5179,6 @@ enum an_expr_operator_kind_tag {
                            used only to determine when an expression tree
                            cannot be built because of errors in the
                            operands. */
-  eok_property_field,	/* Used (only in the front end) to implement
-			   references to fields declared with the Microsoft C++
-			   extension __declspec(property(...)).  The operands
-			   are the pointer to the object, an enk_field for the
-			   referenced field, plus optionally some expressions
-			   for subscripts specified.  The field reference
-			   is rewritten as a call (of either the get or put
-			   routine specified) before the back end sees it. */
   eok_last              /* Marks the end of the list. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -7300,7 +7292,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #ifdef FIL
    "()", "v()",
 #endif /* ifdef FIL */
-   "error", "->property", "last"
+   "error", "last"
 }
 #endif /* VAR_INITIALIZERS */
 ;
