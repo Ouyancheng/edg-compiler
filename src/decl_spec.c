@@ -805,6 +805,10 @@ skip_tag_scan:
              may be promoted later, based on how it's used, etc. */
           class_type->source_corresp.name_linkage =
                                 (a_name_linkage_kind)nlk_internal;
+        } else if (is_member_of_unnamed_namespace(	
+                                           &class_type->source_corresp)) {
+          /* Declared inside an unnamed namespace -- no linkage. */
+          /* Should already be set to nlk_none. */
         } else {
           /* Ordinary default for classes is C++ external linkage. */
           class_type->source_corresp.name_linkage =
