@@ -1,5 +1,11 @@
 Version 2.30
 
+7/26/95  Source sequence entry for template member function instantiation
+
+A change has been made to assure that a source sequence entry will be
+put out for a template member function instantiation when the front end
+is configured to put out source sequence entries for its body.
+
 7/25/95  Spurious cfront transitional nested type error
 
 In cfront compatibility mode when CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
