@@ -86,6 +86,12 @@ Flags to be set when using the KAI inliner.
 #define TARG_SIZEOF_LONG_DOUBLE 8
 #endif /* SUNOS */
 
+/* Assume we are generate code for gcc when being compiled by gcc or
+   codecenter. */
+#if defined(__GNUC__) || defined(__CENTERLINE__)
+#define GCC_IS_GENERATED_CODE_TARGET 1
+#endif /* defined(__GNUC__) || defined(__CENTERLINE__) */
+
 #ifndef SUN_TEST_VERSION
 #define SUN_TEST_VERSION 1
 #endif /* ifndef SUN_TEST_VERSION */
