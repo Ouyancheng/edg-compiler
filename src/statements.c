@@ -1898,6 +1898,7 @@ where handler-seq is a sequence of one or more handlers of the form
   stmt_update_source_sequence_list(sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_try_block, sp);
+  current_routine_entry()->contains_try_block = TRUE;
 #if CHECKING
   if (curr_token != tok_try) {
     internal_error("try_block_statement: expected try");

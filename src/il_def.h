@@ -2887,6 +2887,11 @@ typedef struct a_routine {
 			   no implicit instantiation will be done). The
 			   specific_decl flag will always be TRUE when this
 			   flag is set. */
+  unsigned int	contains_try_block:1;
+			/* TRUE if the routine has a definition that contains
+			   at least one "try" block.  This may affect
+			   optimization relating to local variables of the
+			   routine. */
   a_class_list_entry_ptr
                 befriending_classes;
                         /* A linked list of entries identifying classes that

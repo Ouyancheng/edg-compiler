@@ -1846,6 +1846,9 @@ Display the indicated routine.
   if (ptr->specific_def) {
     disp_boolean("specific_def", TRUE);
   }  /* if */
+  if (ptr->contains_try_block) {
+    disp_boolean("contains_try_block", TRUE);
+  }  /* if */
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);
   }  /* if */
