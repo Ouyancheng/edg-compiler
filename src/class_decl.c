@@ -209,7 +209,6 @@ constructor initializer is present, a colon.
 }  /* prescan_function_definition */
 
 
-#if 0
 void prescan_default_arg_expr(a_param_type_ptr  ptp)
 /*
 Place the tokens for a default argument expression into a token cache, to
@@ -252,7 +251,6 @@ await actual processing at a later point.
   add_to_delayed_scan_fixup_list(dsfp, &scope_stack[depth_scope_stack-1]);
   db_exit();
 }  /* prescan_default_arg_expr */
-#endif /* if 0 */
 
 
 static void delayed_scan_of_default_arg_expr(a_param_type_ptr param_type_entry)
