@@ -7028,8 +7028,20 @@ Return TRUE if the indicated symbol is accessible from the current location
 in the source program.
 */
 {
-  a_symbol_ptr fund_sym = fundamental_symbol_of(symbol);
-  a_boolean    have_access = have_access_across_derivations(fund_sym, symbol);
+  a_symbol_ptr	fund_sym = fundamental_symbol_of(symbol);
+  a_boolean	have_access = TRUE;
+
+  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+    /* Suppress access checking during prototype instantiations.  Access
+       checking cannot be done for a template, only for instances. */
+  } else if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    /* For overloaded functions, do not check access now.  The check will
+       be done after the specific function is determined. */
+  } else if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
+    /* Likewise treat templates as sets of overloaded functions. */
+  } else {
+    have_access = have_access_across_derivations(fund_sym, symbol);
+  }  /* if */
   return have_access;
 }  /* have_access_to_symbol */
 
@@ -7151,14 +7163,6 @@ accepted even though the injected class symbol is ambiguous.
 
     pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
     set_to_error_locator(*locator);
-  } else if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
-    /* Suppress access checking during prototype instantiations.  Access
-       checking cannot be done for a template, only for instances. */
-  } else if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    /* For overloaded functions, do not check access now.  The check will
-       be done after the specific function is determined. */
-  } else if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
-    /* Likewise treat templates as sets of overloaded functions. */
   } else if (locator->is_template_id) {
     /* The access of the template is checked when the template name
        is looked up.  For functions, access is checked after overload
