@@ -587,7 +587,7 @@ a_type_qualifier_set f_get_type_qualifiers(a_type_ptr  tp,
                                            a_boolean   top_level)
 /*
 Form a bit vector representing the type qualifiers on tp.  If top_level is
-FALSE and tp is an array, this mean checking for a qualifier on the element
+FALSE and tp is an array, this means checking for a qualifier on the element
 type; top_level is usually TRUE in C mode (3.1.2.5).  As a general rule,
 macros get_type_qualifiers and get_top_level_type_qualifiers should be
 used instead of calling this routine directly.
