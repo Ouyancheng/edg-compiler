@@ -4788,8 +4788,8 @@ qualified reference either to A::i or to C::i will pick up A::i).
                                                    dominated_bcp);
         }  /* if */
       }  /* if */
-      /* If bcp is on any possible derivation of dominated_bcp, return TRUE.
-         Here's an example:
+      /* If they are the same base class or if bcp is on any possible
+         derivation of dominated_bcp, return TRUE.  Here's an example:
                        X
                       /|\
                      A B C
@@ -4805,7 +4805,7 @@ qualified reference either to A::i or to C::i will pick up A::i).
           The second may be assumed, since the search up the derivation graph
           stops when a name match is found; if the path through D were the
           only path to X, A, etc., X::i, A::i, etc., would not be found. */
-      if (dominated_bcp != bcp &&
+      if (dominated_bcp == bcp ||
           is_on_any_derivation_of(bcp, dominated_bcp)) {
         dominated = TRUE;
         break;
