@@ -1127,9 +1127,6 @@ error code.
     case ec_inaccessible_assignment_operator:
       m = "assignment operator \"%s\" is inaccessible";
       break;
-    case ec_qualified_name_in_member_decl:
-      m = "qualified name is not allowed in declaration of class member";
-      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -396,8 +396,7 @@ typedef enum /*an_error_code*/ {
   ec_no_args_with_class_type,
   ec_default_arg_expr_not_allowed,
   ec_ambiguous_conversion_constructor,
-  ec_inaccessible_assignment_operator,
-  ec_qualified_name_in_member_decl
+  ec_inaccessible_assignment_operator
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
