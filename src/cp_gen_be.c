@@ -7556,7 +7556,7 @@ switch statement.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-static void gen_local_label_declarations(a_scope_ptr  scope)
+static void gen_local_label_declarations(void)
 /*
 Generate the local label declarations (a GNU C extension) of the given scope
 (if any).
@@ -7615,7 +7615,7 @@ Generate code for a block statement ("{ ... }").
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   /* Generate local label declarations (if any). */
-  gen_local_label_declarations(scope);
+  gen_local_label_declarations();
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Generate the statements inside the block. */
   gen_statement_list(statement->variant.block.statements,

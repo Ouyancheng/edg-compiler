@@ -5699,7 +5699,7 @@ Scan a case label definition.  The syntax is:
     /* This is a GNU C case range. E.g.: case 'a' ... 'z': */
     /* Skip the ellipsis. */
     ellipsis_position = pos_curr_token;
-    get_token();
+    (void)get_token();
     range_end = scan_case_label_constant(sssep);
     /* Check that *range_end > *constant_ptr. */
     if (range_end != NULL &&
