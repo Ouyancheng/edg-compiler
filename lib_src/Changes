@@ -1,5 +1,11 @@
 Version 2.42
 
+6/9/99   Including standard headers
+
+The references in the runtime library to standard header files have been
+modified to use the form specified by the standard (e.g., "#include <new>"
+instead of "#include <new.h>").
+
 6/4/99   Bug in nothrow version of new when not using exceptions
 
 A bug in the nothrow version of new would cause it to loop if called
