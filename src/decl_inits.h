@@ -33,7 +33,8 @@ extern void initializer(a_symbol_ptr       symbol_ptr,
 extern a_boolean def_initializer(a_symbol_ptr       sym,
                                  a_source_position  *err_pos);
 
-extern a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout);
+extern a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout,
+                                               a_boolean      user_defined);
 
 extern a_constructor_init_ptr dtor_initializer(a_routine_ptr  dtor_rout);
 
