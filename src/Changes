@@ -1,5 +1,18 @@
 Version 3.3
 
+6/3/03   Microsoft compatibility: abort on in-class specialization
+
+An abort would occur if a Microsoft in-class specialization of a class
+template contained a member declaration with a default argument.  This
+has been fixed.
+
+  template<class T> class A {
+    template<class U1, class U2, class U3> class B {};
+    template<> class B<char, char, char> {
+      B(int = 0);
+    };
+  };
+
 6/2/03   Microsoft compatibility: Interface class types
 
 In Microsoft C++ mode, the front end now supports interface class types.

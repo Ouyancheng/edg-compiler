@@ -954,6 +954,17 @@ Process the default argument expressions for the indicated class.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     for (; rfp != NULL; rfp = rfp->next) {
+      a_boolean	fixup_class_is_real_template_instantiation =
+                                                is_real_template_instantiation;
+      a_boolean	fixup_class_is_nonreal_template_instantiation =
+					     is_nonreal_template_instantiation;
+      if (is_nonreal_template_instantiation &&
+          rfp->class_type->variant.class_struct_union.is_specialized) {
+        /* In Microsoft mode a class specialization may appear in a prototype
+           instantiation.  Process such a class as a real instantiation. */
+        fixup_class_is_real_template_instantiation = TRUE;
+        fixup_class_is_nonreal_template_instantiation = FALSE;
+      }  /* if */
       daefp = rfp->def_arg_expr_fixup_list;
       if (rfp->is_template) {
         /* A routine fixup for a template function declaration.  The default
@@ -962,7 +973,7 @@ Process the default argument expressions for the indicated class.
            is not done for real template instantiations -- they get their
            default information from the information saved during the
            prototype instantiation. */
-        if (!is_real_template_instantiation) {
+        if (!fixup_class_is_real_template_instantiation) {
           sym = rfp->symbol;
           if (daefp != NULL && nonclass_prototype_instantiations) {
             default_arg_prototype_instantiation(
@@ -986,7 +997,7 @@ Process the default argument expressions for the indicated class.
                      (!sym->is_class_member ||
                       !same_entities(sym->parent.class_type,
                                      rfp->class_type)));
-        if (is_nonreal_template_instantiation) {
+        if (fixup_class_is_nonreal_template_instantiation) {
           /* Prototype instantiation. */
           if (sym->kind == (a_symbol_kind)sk_member_function && !is_friend) {
             a_def_arg_expr_fixup_ptr  daefp_end;
@@ -1054,7 +1065,7 @@ Process the default argument expressions for the indicated class.
                 rfp->class_type, is_template_based, /*extend_namespace=*/TRUE);
           curr_scope_class_type = rfp->class_type;
         }  /* if */
-        if (is_real_template_instantiation &&
+        if (fixup_class_is_real_template_instantiation &&
             sym->kind == (a_symbol_kind)sk_member_function && !is_friend) {
           /* This is a real template instantiation and the default argument
              list is for a member function of the class being instantiated.
