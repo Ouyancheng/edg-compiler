@@ -6836,7 +6836,7 @@ yield an int.
 
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 
-#define adjust_operands_for_microsoft_int_long_bug() /* Nothing */
+#define adjust_operands_for_microsoft_int_long_bug(op1, op2) /* Nothing */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
