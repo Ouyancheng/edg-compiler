@@ -202,19 +202,26 @@ constructor or conversion function.  Can also be used (with all fields
 at default values) as a description of "no user-defined conversion";
 see is_null_user_conv_descr below.  Also used to describe a bitwise
 copy of a class in C or C++, which is not really a "user-defined conversion".
+Perhaps a more precise way of describing the information contained here
+is "anything that isn't just a cast".  If this entry is used in
+describing a conversion that is part of a reference initialization, the
+conversion is the one done on the initial value to bring it to the
+underlying type of the reference, not a conversion to the reference
+type itself.
 */
 typedef struct a_user_conv_descr *a_user_conv_descr_ptr;
 typedef struct a_user_conv_descr {
   a_routine_ptr	routine;
 			/* The conversion routine entry.  NULL if
-			   class_bitwise_copy is TRUE. */
+			   class_identity_or_bitwise_copy is TRUE. */
   a_byte_boolean
-		class_bitwise_copy;
-			/* If TRUE, the "conversion" is a bitwise copy
-			   (substituting for either a copy constructor or
-			   an assignment operator).  Note that the source
-			   type may be a derived class of the destination
-			   type. */
+		class_identity_or_bitwise_copy;
+			/* If TRUE, the "conversion" for a class is either
+			   identity (the class already has the right type) or
+			   is a bitwise copy (substituting for either a
+			   copy constructor or an assignment operator).
+			   Note that the source type may be a derived class
+			   of the destination type. */
   a_byte_boolean
 		std_conversion_needed;
 			/* If TRUE, a standard conversion is required after
@@ -236,7 +243,7 @@ one that describes no conversion to be done.
 */
 #define is_null_user_conv_descr(user_conversion)                      \
   ((user_conversion)->routine == NULL &&                              \
-   !(user_conversion)->class_bitwise_copy)
+   !(user_conversion)->class_identity_or_bitwise_copy)
 
 /*
 Argument match levels for overloaded function call resolution; See ARM 13.2.
@@ -298,7 +305,11 @@ typedef struct an_arg_match_summary {
 			   describes the user-defined conversion.
 			   Note that in one case involving cfront
 			   compatibility, no conversion is indicated even
-			   through match_level is aml_user_conversion. */
+			   through match_level is aml_user_conversion.
+			   Also, when passing a class that requires a copy
+			   constructor by value, this will indicate the
+			   copy constructor even though the match level
+			   is aml_std_conversion or aml_exact. */
   an_error_code	warning_suggested;
 			/* If not ec_no_error, the code for a warning to be
 			   issued if this match is chosen. */
