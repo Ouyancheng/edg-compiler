@@ -2071,9 +2071,10 @@ at_file_scope == TRUE.
 #endif /* DEBUG */
   ptp->next = NULL;
   ptp->type = NULL;
-  ptp->default_arg_expr = NULL;
   ptp->il_walk_flag = curr_initial_il_walk_flag_setting;
   ptp->has_default_arg = FALSE;
+  ptp->default_arg_expr = NULL;
+  ptp->dynamic_init = NULL;
 
   db_exit();
   return (ptp);
@@ -2297,6 +2298,7 @@ to default values.
 #endif /* DEBUG */
       rtsp->param_type_list          = NULL;
       rtsp->implicit_this_param_type = NULL;
+      rtsp->return_dynamic_init      = NULL;
       rtsp->prototype_scope          = NULL;
       rtsp->assoc_routine            = NULL;
       rtsp->prototyped               = FALSE;
@@ -2976,6 +2978,7 @@ to it.
   set_default_source_corresp(&(vp->source_corresp));
   vp->next                        = NULL;
   vp->type                        = NULL;
+  vp->assoc_param_type            = NULL;
   vp->storage_class               = (a_storage_class)sc_unspecified;
   vp->address_taken               = FALSE;
   vp->is_parameter                = FALSE;

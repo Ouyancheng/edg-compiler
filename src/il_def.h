@@ -660,20 +660,15 @@ typedef struct a_param_type {
                            this is the last one. */
   a_type_ptr    type;
                         /* Type of the parameter. */
-  an_expr_node_ptr
-		default_arg_expr;
-			/* Expression node representing the default value
-			   to be used as the actual argument on a function
-			   call when the actual argument corresponding to
-			   this parameter is omitted (C++ only). */
   a_byte	il_walk_flag;
                         /* Like the flag in a_source_correspondence:
                            indicates whether or not this entry has been
                            visited in the current walk through the IL tree.
                            necessary in this entry because these entries can
                            be shared between routine entries (e.g., when
-                           they comes from a typedef'd function type used
-                           as the type of an extern function. */
+                           they come from a typedef'd function type used
+                           as the type of an extern function). */
+#ifdef CIL
   a_byte_boolean
 		has_default_arg;
              		/* TRUE if a default argument has been declared for
@@ -682,6 +677,20 @@ typedef struct a_param_type {
 			   flag may be set even though default_arg_expr
                            remains NULL; this a temporary state and applies to
 			   front-end processing only. */
+  an_expr_node_ptr
+		default_arg_expr;
+			/* Expression node representing the default value
+			   to be used as the actual argument on a function
+			   call when the actual argument corresponding to
+			   this parameter is omitted (C++ only). */
+  a_dynamic_init_ptr
+		dynamic_init;
+			/* If the parameter has a type that requires a copy
+			   constructor or destructor to be called, this points
+			   to a dynamic initialization entry that describes
+			   the actions required.  NULL otherwise.  Only
+			   non-NULL in C++ mode. */
+#endif /* ifdef CIL */
 } a_param_type;
 
 #ifdef CIL
@@ -734,6 +743,15 @@ typedef struct a_routine_type_supplement {
 			/* Pointer to the type of the implicit "this"
 			   parameter of C++ member functions; NULL for all
 			   other functions. */
+  a_dynamic_init_ptr
+		return_dynamic_init;
+			/* If the return type requires a copy constructor or
+			   destructor to be called, this points to a dynamic
+			   initialization entry that describes the actions
+			   required.  NULL otherwise.  Only non-NULL in C++
+			   mode.  When non-NULL, calls of the routine will
+			   include an argument specifying a temporary to be
+			   used for the return value. */
 #endif /* ifdef CIL */
 #ifndef CIL
 #ifdef FIL  /* Note double definition of has_ellipsis. */
@@ -1390,6 +1408,10 @@ typedef struct a_variable {
                            scope. */
   a_type_ptr    type;
 			/* Type of the variable. */
+  a_param_type_ptr
+		assoc_param_type;
+			/* If is_parameter is TRUE, this points to the
+			   associated a_param_type entry.  NULL otherwise. */
   a_storage_class
                 storage_class;
                         /* Storage class. */
@@ -2074,9 +2096,16 @@ enum an_expr_operator_kind_tag {
                            operand is the routine and the rest are its
                            arguments. */
 #ifdef CIL
+			/* Compiler-generated arguments for the object address
+			   (for member functions) and/or for a temporary (if
+			   the return type is a class that has a copy
+			   constructor or a destructor) follow the first
+			   argument. */
   eok_virtual_call,	/* A call of a C++ virtual function.  The first operand
-			   is the routine, the second is the object, and
-			   the rest are the other arguments. */
+			   is the routine, the second is the object address,
+			   and the rest are the other arguments.  A temporary
+			   address may also be added after the object address
+			   argument, if required. */
 #endif /* ifdef CIL */
 #ifdef FIL
   eok_fsubscript,       /* Fortran subscripting operation.  The first operand
