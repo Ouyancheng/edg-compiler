@@ -4594,7 +4594,7 @@ non-NULL if an explicitly specified template argument list was provided.
 #endif /* CHECKING */
   curr_type = skip_typerefs(curr_type);
   tssp = template_supplement_for_symbol(templ_sym);
-  templ_param_list = tssp->cache.decl_info->parameters;
+  templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
   if (is_match_for_function_template(templ_sym, curr_type,
                                      &templ_arg_list, &sym,
                                      templ_param_list,
@@ -4642,7 +4642,7 @@ non-NULL if an explicitly specified template argument list was provided.
 #endif /* CHECKING */
   curr_type = skip_typerefs(curr_type);
   tssp = template_supplement_for_symbol(templ_sym);
-  templ_param_list = tssp->cache.decl_info->parameters;
+  templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
   result = is_match_for_function_template(templ_sym, curr_type,
                                           &templ_arg_list, &sym,
                                           templ_param_list,
