@@ -1,0 +1,701 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+scope_stk.h - Declarations related to management of the scope stack and
+              related routines.
+
+*/
+
+/* Avoid including these declarations more than once. */
+#ifndef SCOPE_STK_H
+#define SCOPE_STK_H 1
+
+/*
+Forward declaration needed for definition of a_scope_pointers_block.
+*/
+typedef struct an_active_using_directive *an_active_using_directive_ptr;
+
+/*
+Structure that is logically (and historically) part of a_scope_stack_entry,
+but which must persist longer than a scope stack entry for namespace scopes
+(since "extension-definitions" are allowed for them).  Therefore,
+a_scope_pointers_block is also part of a_namespace_symbol_supplement.  When
+an sck_namespace or sck_namespace_extension scope is pushed onto the stack, a
+pointer in the scope stack entry is set to refer to the persistent scope
+pointers block (the one in the symbol supplement) -- and the one in the scope
+stack entry itself is unused.
+*/
+typedef struct a_scope_pointers_block *a_scope_pointers_block_ptr;
+typedef struct a_scope_pointers_block {
+  a_symbol_ptr	symbols;
+			/* Pointer to the head of a linked list of all symbols
+			   declared in this scope (linked by the field
+			   next_in_scope); NULL if there are no such
+			   declarations. */
+  a_symbol_ptr	synth_namespace_projection_symbols;
+			/* Pointer to the head of a list of synthesized
+			   projection symbols created in this scope.
+			   These are linked by the next_in_scope field in
+                           the symbol. */
+  a_symbol_ptr	last_symbol;
+			/* End of the symbol list pointed to by symbols. */
+  a_constant_ptr
+		last_constant;
+			/* End of list of named constants of this scope,
+			   NULL if none. */
+  a_type_ptr	last_type;
+			/* End of list of local types of this scope, NULL if
+			   none. */
+  a_variable_ptr
+		last_variable;
+			/* End of list of local variables of this scope, NULL
+			   if none. */
+  a_routine_ptr	last_routine;
+			/* End of list of local routines of this scope, NULL
+			   if none.  Includes both routines with definitions
+			   and those that are just declarations of interfaces
+			   to external routines. */
+  an_asm_entry_ptr
+		last_asm_entry;
+			/* End of list of asm entries of this scope, NULL if
+			   none. */
+  a_namespace_ptr
+		last_namespace;
+			/* End of list of namespace entries in this scope,
+			   NULL if there are none. */
+  a_using_directive_ptr
+		last_using_directive;
+			/* End of list of using-directive entries in this
+			   scope; NULL if there are none. */
+  a_pragma_ptr	last_pragma;
+			/* End of list of IL pragma entries entered on the
+			   pragma_list of il_scope, NULL if none. */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  a_hidden_name_ptr
+		last_hidden_name;
+			/* End of the list of hidden-name entries entered on
+			   the corresponding IL scope entry; NULL if none. */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if RECORD_TEMPLATES_IN_IL
+  a_template_ptr
+		last_template;
+			/* End of the list of template entries entered on
+			   the corresponding IL scope entry; NULL if none. */
+#endif /* RECORD_TEMPLATES_IN_IL */
+  a_symbol_ptr	unnamed_namespace_sym;
+			/* For sck_file and sck_namespace scopes only, pointer
+			   to the symbol representing the unnamed namespace
+			   for the current scope; NULL if there is none. */
+  a_bit_field	add_symbols_to_inactive_list:1;
+			/* TRUE for sck_namespace_reactivation scopes if
+			   symbols added to the scope should be added
+			   directly to the inactive list, instead of being
+			   added to the active list as is usually done. */
+} a_scope_pointers_block;
+
+
+/* Scope stack, containing an entry for each currently-active scope. */
+typedef struct a_scope_stack_entry *a_scope_stack_entry_ptr;
+typedef struct a_scope_stack_entry {
+  a_scope_number
+		number;
+			/* Scope number (unique identifier) for this scope. */
+  a_scope_kind	kind;
+			/* Kind of scope (file, function, block, function
+			   prototype, etc.).  See the definition of
+			   a_scope_kind in il_def.h. */
+  a_bit_field /*an_access_specifier*/
+		current_access:2;
+			/* The access control specification that currently
+			   prevails for declarations in the current scope;
+			   as_public by default, but may be otherwise for
+			   C++ class definitions.  (For instance, if an
+                           enumeration is defined as a member type of a class,
+			   the access to be applied to the enumeration
+			   constants may be derived from the setting of this
+			   field.) */
+  a_bit_field	inactive_symbols_may_be_visible:1;
+			/* TRUE if the scope stack to this depth contains any
+			   class reactivation entries or class entries for
+			   classes with base classes.  In either case,
+			   symbols on a symbol header's inactive list may be
+			   visible from the current scope. */
+  a_bit_field	inside_local_class:1;
+			/* TRUE if the current scope level is that of a local
+			   class or is (logically) within the scope of a local
+			   class.  Once this flag is set it is usually
+			   propagated each time a new scope is pushed onto
+			   the stack; the exception is when a template
+			   instantiation scope is pushed, in which case the
+			   flag is cleared. */
+  a_bit_field	template_param_decl_scope:1;
+			/* TRUE if this is the first scope that
+			   affects the declarative level after a template
+			   instantiation scope. */
+  a_bit_field	is_loop_scope:1;
+			/* TRUE if this scope is associated with the compound
+			   statement of a for, do, or while loop. */
+  a_bit_field	slow_lookup_required:1;
+			/* TRUE if this is a scope for which a slow lookup
+			   is required because the scope stack contains a
+			   scope in which certain symbols on the active list
+			   must not be visible. */
+  a_bit_field	return_value_optimization_possible:1;
+			/* TRUE if this scope is a function scope and return
+			   value optimization is possible for the routine.
+			   That is, the routine returns a class value via
+			   a copy constructor, and all return statements
+			   return a single local variable. */
+  a_bit_field	in_prototype_instantiation:1;
+			/* TRUE if kind is sck_template_instantiation and
+			   what is being instantiated is the prototype for a
+			   class template. */
+  a_bit_field	defer_access_checks:1;
+			/* TRUE while scanning the decl-specifiers and
+			   declarator of a global or namespace-level
+                           declaration.  Access checks for names
+			   scanned while this is TRUE cannot be done
+			   until the declarator has been scanned. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_bit_field	source_sequence_entries_disallowed:1;
+			/* TRUE if the current scope establishes or belongs to
+			   a context in which source sequence entries should
+			   not be issued -- e.g. a template declaration, a
+			   a template instantiation, or a pragma. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_bit_field	nested_instantiation:1;
+                        /* TRUE for a template instantiation scope that
+			   is expected to be nested inside of another
+			   instantiation scope.  This occurs when a friend
+			   template declaration from a class template is
+			   being instantiated.  This flag lets name lookups
+			   continue on past the nested instantiation scope so
+			   that names from the outer instantiation scope can
+			   be visible. */
+  a_bit_field	is_try_block:1;
+			/* TRUE if the scope is that of the compound statement
+			   of a try block (sck_block only).  Note: not set
+			   for the scope pushed for a catch clause. */
+  a_bit_field	within_try_block:1;
+			/* TRUE if is_try_block is TRUE or if this scope is
+			   an sck_block scope nested within a scope for which
+			   is_try_block is set. */
+  a_bit_field	using_directives_apply:1;
+			/* One or more using directives are present in this
+			   scope or a scope nested within this scope for which
+			   the symbols made visible by the using directive
+			   are to be visible when the lookup reaches this
+			   scope. */
+  a_bit_field	within_unnamed_namespace:1;
+			/* TRUE if the current entry on the scope stack is
+			   itself an unnamed namespace or is a named
+			   namespace contained within an unnamed namespace. */
+  a_scope_pointers_block_ptr
+		assoc_pointers_block;
+			/* Pointer to a scope pointer block that should be
+			   used (in place of the one that is embedded in
+			   this scope stack entry); NULL when the embedded
+			   scope-pointer-block should be used.  This pointer
+			   will be non-NULL when kind is sck_namespace or
+			   sck_namespace_extension; otherwise it is NULL. */
+  a_scope_pointers_block
+		pointers_block;
+			/* A block of pointers associated with this scope,
+			   including a pointer to the linked list of all
+			   symbols declared in this scope and pointers to
+			   the last entry in linked lists of IL entries
+			   entered in the associated IL scope. */
+  a_scope_ptr	il_scope;
+			/* Pointer to the intermediate language scope
+			   entry for this scope.  This can be a real
+			   pointer rather than a memory region number because
+			   the entry must always be in memory when the scope
+			   is active.  NULL if the scope entry has not yet
+			   been allocated, which happens in function 
+			   declarators and blocks (almost always, a scope
+			   entry is not needed, so we wait until something is
+			   declared to allocate it).  The entry pointed
+			   to can be the one attached to a_routine (usually)
+			   or the one attached to a routine type entry
+			   (rarely). */
+  a_memory_region_number
+		il_memory_region;
+			/* The number of the IL memory region for this scope.
+			   Set even if il_scope == NULL.  Note that this is
+			   the "base" memory region; the "current" memory
+			   region might switch between this "base" region and
+			   the file scope region many times during the
+			   processing of the scope. */
+  a_memory_region_number
+		prev_il_memory_region;
+			/* The number of the IL memory region that was the
+			   current region at the time this scope was entered.
+			   This is restored by pop_scope. */
+  a_type_ptr	assoc_type;
+			/* When kind == sck_func_prototype, this points to
+			   the function type whose prototype scope this is.
+			   When kind == sck_class_struct_union or
+			   kind == sck_class_reactivation, this points
+			   to the class type. */
+  a_routine_ptr	assoc_routine;
+			/* When kind == sck_function or when kind == 
+			   sck_template_instantiation for a function
+			   instantiation, this points to the routine
+			   whose scope this is. */
+  a_namespace_ptr
+		assoc_namespace;
+			/* When kind == sck_namespace, sck_namespace_extension,
+			   or sck_namespace_reactivation, this points to the
+			   namespace. */
+  an_extern_type_fixup_ptr
+		extern_type_fixup_list;
+			/* List of types of variables and routines to be
+			   reset at the end of the scope.  Used when
+			   inner- and outer-scope declarations of entities
+			   with linkage have compatible but not identical
+			   types, and the outer-scope type must be restored
+			   at the end of the inner scope. */
+  a_constant_ptr
+		shareable_constants_list;
+			/* List of shared constants for the current scope.
+			   Only used if the scope is a function scope.
+			   These are constants that refer to something local
+			   to the scope, and therefore cannot be shared at 
+			   the file scope.  The only meaningful case is
+			   a constant indicating the address of a local
+			   variable. */
+  a_routine_fixup_ptr
+		last_routine_fixup;
+			/* Defined for sck_class_struct_union scopes only:
+			   the tail of a list of entities used in the token
+			   caching and delayed scanning scheme required for
+			   C++ member functions (routine bodies and default
+			   arguments). */
+  /* The following pointers are the end pointers for the lists begun
+     in the current IL scope entry.  They are needed only while the scope
+     is active (to add entries to the ends of lists), and are therefore
+     here instead of in the a_scope entry to save space. */
+  a_variable_ptr
+		last_parameter;
+			/* End of list of parameters of the associated routine,
+			   if assoc_routine != NULL.  In declaration order.
+			   NULL if no parameters. */
+  a_variable_ptr
+		last_nonstatic_variable;
+			/* End of list of nonstatic local variables of this
+			   scope, NULL if none. */
+  a_label_ptr	last_label;
+			/* End of list of local labels of this scope, NULL
+			   if none. */
+  a_scope_ptr	first_scope,
+		last_scope;
+			/* Start and end of list of local scopes (those
+			   associated with blocks containing declarations,
+			   not with functions or prototypes), NULL if none.
+			   A first_scope pointer is needed for those cases
+			   where il_scope is NULL.  For ease of implementation,
+			   the scopes list is always built using first_scope/
+			   last_scope, then transferred to the il_scope entry
+			   or into the parent scope when the current scope
+			   is popped. */
+  a_dynamic_init_ptr
+		last_dynamic_init;
+			/* End of list of local dynamic initializations, NULL
+			   if none. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+		last_source_sequence_entry;
+			/* For file and function scopes, the last in the
+			   linked list of source sequence entries that are
+			   pointed to by il_scope; NULL if none. */
+  a_source_sequence_entry_ptr
+		source_sequence_avail_list;
+			/* List of freed source sequence entries that are
+			   available for reuse; NULL if none. */
+  a_src_seq_sublist_ptr
+		last_src_seq_sublist;
+			/* For function scopes, the last in the linked list
+			   of source sequence sublist entries that are pointed
+			   to by il_scope; NULL if none. */
+  a_scope_depth depth_innermost_ss_list_scope;
+			/* Depth of the innermost scope on the scope stack
+			   with a source sequence list (= DEPTH_OF_FILE_SCOPE
+			   or depth_innermost_function_scope). */
+  a_source_sequence_entry_ptr
+		ss_list_instantiation_insert_point;
+			/* If kind == sck_file, pointer to a source sequence
+			   entry before which source sequence entries for a
+			   template instantiation should be inserted, or NULL
+			   if they should be added to the end of the list.
+			   If kind == sck_template_instantiation, the current
+			   pointer in the file scope entry when push_scope is
+			   called and to which that pointer is restored by
+			   pop_scope.  Not used for any other scope kinds. */
+  a_source_sequence_entry_ptr
+		saved_last_ss_entry;
+			/* If kind == sck_template_instantiation, the current
+			   value of last_source_sequence_entry in the file
+			   scope when push_scope is called and to which that
+			   pointer is restored by pop_scope.  Not used for
+			   any other scope kinds. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_scope_depth depth_template_declaration_scope;
+			/* Depth of the sck_template_declaration scope entry,
+			   if any, that the current scope is enclosed by;
+			   otherwise, NO_SCOPE_DEPTH. */
+  a_scope_depth depth_innermost_instantiation_scope;
+                        /* Depth of the nearest enclosing instantiation scope
+			   of any kind.  This is a copy of the global
+			   variable of the same name. */
+  a_symbol_ptr  instance_sym;
+                        /* When kind == sck_template_instantiation, contains
+                           a pointer to the symbol for the class or function
+			   being instantiated or the static data member being
+			   defined. */
+  a_symbol_ptr  template_sym;
+                        /* When kind == sck_template_instantiation, contains
+                           a pointer to the symbol for a symbol providing
+			   information about the template on which the
+			   instantiation is based.  When a template class is
+			   being instantiated it points to an sk_class_template
+			   symbol; for a nonmember function it points to an
+			   sk_function_template symbol; for member functions
+			   and static data members of an instance of a class
+			   template, it points to an sk_member_function or
+			   sk_static_data_member symbol that is a member of
+			   a prototype instantiation of the template class. */
+  a_template_arg_ptr
+                template_arg_list;
+                        /* When kind == sck_template_instantiation, contains
+                           a pointer to a template argument list. */
+  a_source_position
+		source_position;
+			/* The source position when the scope was pushed
+			   onto the stack. */
+  a_scope_depth depth_innermost_function_scope;
+			/* The scope depth of the containing function scope,
+			   or NO_SCOPE_DEPTH if there is no containing
+			   function scope or if the scope of a local class or
+			   template instantiation intervenes between the
+			   current scope and the containing function scope. */
+  a_template_param_ptr
+		template_param_list;
+                        /* When kind == sck_template_instantiation, contains
+			   a pointer to the template parameter list. */
+  a_decl_sequence_number
+		last_label_decl_seq;
+			/* When kind == sck_function, the declaration sequence
+			   number of the last label defined (so far) in the
+			   current scope; 0 if this is not a function scope
+			   or if there are no label definitions.  The value
+			   is updated each time a label definition is seen. */
+  a_pending_pragma_ptr
+		pending_pragmas;
+			/* A list of pragmas that have been cached by
+			   the lexical routines but have not yet been
+			   fully processed.  This list contains only
+			   pbk_other pragmas. */
+  a_pending_pragma_ptr
+		curr_construct_pragmas;
+			/* Points to the list of pbk_next_construct
+			   pragmas for the construct that is currently
+			   being scanned.  This is in the scope stack entry
+			   so that it will automatically nest when
+			   template instantiations are performed. */
+  a_scope_depth	next_scope_that_affects_access_control;
+			/* Depth of the first scope stack entry below this
+			   one that has an effect on access control.
+			   Indicates the next entry on a list headed by
+			   depth_of_innermost_scope_that_affects_access_control
+			   (a global variable).  Also set in scope stack
+			   entries that are not part of the list because they
+			   do not affect access control. */
+  an_access_error_descr_ptr
+		deferred_access_checks;
+			/* When defer_access_checks is TRUE, this contains
+			   a list of access checks that were done (and failed)
+			   and must be repeated once the declarator has been
+			   scanned. */
+  an_access_error_descr_ptr
+		last_deferred_access_check;
+			/* When defer_access_checks is TRUE, this points
+			   to the last element in a list of access checks. */
+  a_scope_depth	saved_curr_deferred_access_scope;
+			/* The value of curr_deferred_access_scope when
+			   this scope was pushed.  Used to restore the value
+			   when the scope is popped. */
+  struct an_expr_stack_entry /* struct form used to avoid having to include
+			        exprutil.h all over. */
+		*saved_expr_stack;
+			/* The value of expr_stack when this scope was pushed,
+			   used to restore the value when the scope is
+			   popped. */
+  an_object_lifetime_ptr
+		curr_scope_object_lifetime;
+			/* A pointer to the object lifetime created for this
+			   scope. */
+  an_object_lifetime_ptr
+		saved_curr_object_lifetime;
+			/* The value of curr_object_lifetime when the scope
+			   is pushed onto the stack, and the value to which
+			   it will be restored when the scope is popped. */
+  an_object_lifetime_ptr
+		object_lifetime_avail_list;
+			/* List of freed object lifetime entries that are
+			   available for reuse.  Only used for file and
+			   function scopes; the entries on the list belong to
+			   the memory region associated with the scope. */
+  a_symbol_ptr	templ_member_class_sym;
+			/* For sck_template_declaration scopes, this points
+			   to the symbol of the class of which the entity
+			   currently being defined is a member (e.g., if
+			   A<T>::f is being defined, this points to the
+			   class type of A<T>.  Contains NULL if the
+			   template is not a member. */
+  a_scope_depth depth_innermost_namespace_scope;
+                        /* Depth of the nearest enclosing namespace scope or,
+			   by default, the depth of the file scope. This is
+			   a copy of the global variable of the same name. */
+  long		num_of_extra_times_pushed;
+			/* Namespace scopes may be pushed more than once
+			   under some circumstances (such as defining a
+			   member of a nested namespace in the enclosing
+			   namespace).  When this occurs, the scope is
+			   not duplicated on the scope stack.  Instead,
+			   this counter is incremented so that when the
+			   scope is popped, it is possible to know when
+			   the scope should actually be removed from
+			   the stack. */
+  an_active_using_directive_ptr
+		active_using_directives;
+			/* Linked list of entries representing the
+			   using-directives currently active in the current
+			   scope; NULL if none. */
+  a_scope_depth	previous_scope;
+			/* Scope depth of the scope that logically precedes
+			   the current one.  This allows scopes on the stack
+			   to be skipped over for name lookup and other
+			   purposes.  This is primarily used to hide certain
+			   scopes during template instantiation. */
+  a_scope_depth	instantiation_context_scope;
+			/* Present only for template instantiation scopes.
+			   Contains the scope depth of the innermost
+			   namespace scope at the point that the instantiation
+			   was initiated. */
+  a_scope_depth	instantiation_common_scope;
+			/* Present only for template instantiation scopes.
+			   Contains the scope depth of the scope that is
+			   part of both the template definition context and
+			   the context at the point of instantiation. */
+} a_scope_stack_entry;
+
+
+/*
+Given a pointer a scope stack entry, return the address of the associated
+scope-pointers-block -- it may either be part of the entry itself or part of
+another data structure elsewhere (as indicated by the value of the
+assoc_pointers_block field in the scope stack entry).
+*/
+#define assoc_pointers_block_of(ssep)                                    \
+  ((ssep)->assoc_pointers_block == NULL ?                                \
+     &((ssep)->pointers_block) : (ssep)->assoc_pointers_block)
+
+/*
+Given a pointer to a scope stack entry, return the address of the previous
+scope stack entry according to the previous_scope field.  Return NULL if there
+is no previous scope.
+*/
+#define previous_scope_of(ssep)						\
+  ((ssep)->previous_scope == NO_SCOPE_DEPTH				\
+                                ? NULL : &scope_stack[(ssep)->previous_scope])
+
+
+/*
+Given a pointer to a scope stack entry, return the scope depth.  If the
+pointer is NULL, return NO_SCOPE_DEPTH.
+*/
+#define scope_depth_of(ssep)						\
+  ((ssep) == NULL ? NO_SCOPE_DEPTH : (ssep - &scope_stack[0]))
+
+
+
+EXTERN a_scope_stack_entry_ptr
+		scope_stack /* = NULL */;
+			/* Stack of entries describing active scopes.
+			   scope_stack[0] is the entry for the file scope,
+			   scope_stack[1] is an entry for a function scope,
+			   etc.  Dynamically allocated; can be expanded
+			   if necessary.  size_scope_stack gives the
+			   number of elements currently allocated.
+			   Allocation is not per-file. */
+/* Note that the following variables, which give positions in the scope stack,
+   are defined as indexes into the array, not as pointers.  Pointers into
+   the scope stack are dangerous because the scope stack can be reallocated
+   and moved on a push_scope. */
+EXTERN a_scope_depth
+		depth_scope_stack;
+			/* Current depth of the scope stack.  NO_SCOPE_DEPTH
+			   (i.e., -1) indicates that the stack is empty. */
+EXTERN a_scope_depth
+		decl_scope_level;
+			/* Level in the scope stack that contains the
+			   current declaration level.  In C, differs from
+			   depth_scope_stack when the innermost "scopes"
+			   are for struct/union fields; decl_scope_level
+			   then contains the real scope level rather than
+			   the struct/union pseudo-scope level.  In C++,
+			   differs from depth_scope_stack when the innermost
+			   "scope" is a class reactivation. */
+EXTERN a_scope_depth
+		depth_innermost_function_scope;
+			/* Level in the scope stack that contains the innermost
+			   function scope, or NO_SCOPE_DEPTH if there isn't
+			   one. */
+EXTERN a_scope_ptr
+		innermost_function_scope;
+			/* The innermost function scope, or NULL if there isn't
+			   one.  Usually matches
+			   depth_innermost_function_scope, but can be
+			   different in situations where a function is being
+			   processed where no scope stack entry exists
+			   (e.g., in IL lowering, when routines are
+			   generated). */
+EXTERN a_scope_depth
+		depth_innermost_instantiation_scope;
+			/* If there are template instantiation scopes on the
+                           scope stack, this is the depth of the innermost
+                           one.  Otherwise, NO_SCOPE_DEPTH. */
+EXTERN a_scope_depth
+		depth_template_declaration_scope;
+			/* Depth of the sck_template_declaration scope entry,
+			   if any, that the current scope is enclosed by;
+			   otherwise, NO_SCOPE_DEPTH. */
+EXTERN a_scope_depth
+		curr_deferred_access_scope;
+			/* Depth of the scope entry to be used to determine
+			   whether access checking should be deferred, and if
+			   so, the entry to which the deferred access checks
+			   should be attached.  Set to NO_SCOPE_DEPTH if
+			   access checking cannot be deferred in this scope. */
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+EXTERN a_scope_depth
+		depth_innermost_ss_list_scope;
+			/* Depth of the innermost scope on the scope stack
+			   with a source sequence list (= DEPTH_OF_FILE_SCOPE
+			   or depth_innermost_function_scope). */
+EXTERN a_boolean
+		source_sequence_entries_disallowed;
+			/* TRUE if the current scope establishes or belongs to
+			   a context in which source sequence entries should
+			   not be issued -- e.g. a template declaration, a
+			   a template instantiation, or a pragma. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+EXTERN a_boolean
+		inside_local_class;
+			/* TRUE if we are currently inside a local class,
+			   i.e., a class defined within a function. */
+EXTERN a_scope_depth
+		depth_innermost_namespace_scope;
+			/* If there are any namespace scopes on the scope
+			   stack, this is the depth of the innermost one.
+			   Otherwise, it is the depth of the file scope.
+			   It is defined in both C and C++. */
+EXTERN a_scope_number
+		next_scope_number;
+			/* Next scope number to be assigned.  These are
+			   unique identifiers for each scope, not just
+			   the scope nesting depth.  Also used for the
+			   pseudo-scopes associated with the members of
+			   structs and unions in C (not C++). */
+
+EXTERN a_scope_depth
+		depth_of_innermost_scope_that_affects_access_control;
+			/* If there are scopes on the scope stack that
+			   affect C++ access control, this is the depth of
+			   the innermost one.  Otherwise, NO_SCOPE_DEPTH.
+			   Heads a list linked by
+			   next_scope_that_affects_access_control. */
+
+EXTERN a_scope_depth
+		num_classes_on_scope_stack;
+			/* Current count of sck_class_struct_union and
+			   sck_class_reactivation entries in scope_stack.
+			   When non-zero, we are inside a class or
+			   reactivation of the scope of a class, and name
+			   lookup is more complicated. */
+
+/* Begin a name scope. */
+extern a_scope_ptr push_scope(a_scope_kind       kind,
+       	                      a_scope_number     scope_number_to_reuse,
+                              a_type_ptr         assoc_type,
+                              a_routine_ptr      assoc_routine);
+
+extern a_scope_ptr push_namespace_scope(a_scope_kind    kind,
+                                        a_namespace_ptr assoc_namespace);
+
+extern a_scope_ptr push_template_instantiation_scope
+                           (a_scope_number       scope_number_to_reuse,
+			    a_type_ptr           assoc_type,
+			    a_routine_ptr        assoc_routine,
+			    a_symbol_ptr         instance_sym,
+			    a_symbol_ptr         template_sym,
+			    a_template_arg_ptr   template_arg_list,
+			    a_boolean            nested_instantiation);
+
+extern void pop_template_instantiation_scope(void);
+
+/* End a name scope. */
+extern void pop_scope(void);
+extern void push_namespace_extension_scope(a_namespace_ptr nsp);
+extern void pop_namespace_extension_scope(void);
+extern void push_namespace_reactivation_scope(a_namespace_ptr nsp);
+extern void pop_namespace_reactivation_scope(void);
+extern void push_class_reactivation_scope(a_type_ptr class_type);
+extern void pop_class_reactivation_scope(void);
+
+extern
+a_scope_depth scope_depth_of_symbol(a_symbol_ptr  sym,
+                                    a_boolean     *is_local_to_function);
+extern a_boolean namespace_is_enclosed_by_scope(a_symbol_ptr             sym,
+                                                a_scope_stack_entry_ptr  ssep);
+/*
+Call namespace_is_enclosed_by_scope for the current scope.
+*/
+#define namespace_is_enclosed_by_curr_scope(sym)                     \
+  (namespace_is_enclosed_by_scope((sym), &scope_stack[depth_scope_stack]))
+
+extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
+
+extern void add_active_using_directive(a_using_directive_ptr udp);
+
+extern void scope_stk_one_time_init(void);
+
+extern void scope_stk_init(void);
+
+#if DEBUG
+extern int db_scope_kind(a_scope_kind sck);
+extern void db_scope_stack_entry(a_scope_stack_entry_ptr ssep);
+extern void db_scope_stack(void);
+#endif /* DEBUG */
+
+#endif /* ifndef SCOPE_STK_H */
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/

@@ -561,6 +561,7 @@ unit, in case multiple source files are allowed.
   pragma_one_time_init();
   statements_one_time_init();
   symbol_tbl_one_time_init();
+  scope_stk_one_time_init();
   templates_one_time_init();
 #if DO_IL_LOWERING
   if (!suppress_il_lowering) {
@@ -616,6 +617,7 @@ to replace the initial portion of this compilation.
   il_init();
   lexical_init();
   symbol_tbl_init();
+  scope_stk_init();
   class_decl_init();
   layout_init();
   def_arg_init();

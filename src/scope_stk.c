@@ -1,0 +1,3032 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+scope_stk.c - Management of the scope stack and related routines.
+
+*/
+
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Although symbol_tbl.c is not really a "declaration processing file",
+   it turns out that most of the header files it needs are in decl_hdrs.h. */
+#include "decl_hdrs.h"
+
+#ifdef PCH_PRAGMA_GUARD
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* ifdef PCH_PRAGMA_GUARD */
+
+/* Additional header files. */
+#if DO_IL_LOWERING
+#include "lower_il.h"
+#endif /* DO_IL_LOWERING */
+/* exprutil.h is needed to get an_expr_stack_entry for the scope stack. */
+#include "exprutil.h"
+/* statement.h is needed because of wrapup_control_flow_processing call. */
+#include "statements.h"
+
+/*
+Variables and constants related to the scope_stack:
+*/
+#define SCOPE_STACK_INCREMENTAL_ALLOCATION 30
+			/* The number of elements added to scope_stack each
+			   time it is reallocated; also the initial
+			   allocation. */
+
+
+#if DEBUG
+int db_scope_kind(a_scope_kind sck)
+/*
+Put out a scope kind name (for debugging).
+*/
+{
+  char	*s;
+
+  switch (sck) {
+    case sck_file:                   s = "file";                     break;
+    case sck_namespace:              s = "namespace";                break;
+    case sck_namespace_extension:    s = "namespace extension";      break;
+    case sck_namespace_reactivation: s = "namespace reactivation";   break;
+    case sck_func_prototype:         s = "function prototype";       break;
+    case sck_block:                  s = "block";                    break;
+    case sck_class_struct_union:     s = "class/struct/union";       break;
+    case sck_class_reactivation:     s = "class reactivation";       break;
+    case sck_function:               s = "function";                 break;
+    case sck_template_declaration:   s = "template declaration";     break;
+    case sck_template_instantiation: s = "template instantiation";   break;
+    case sck_pragma:		     s = "pragma";		     break;
+    case sck_function_access:	     s = "function access";	     break;
+    case sck_condition:              s = "condition";                break;
+    default:                         s = "***UNKNOWN SCOPE KIND***"; break;
+  }  /* switch */
+  fputs(s, f_debug);
+  return strlen(s);
+}  /* db_scope_kind */
+
+
+void db_scope_stack_entry(a_scope_stack_entry_ptr ssep)
+/*
+Display one scope stack entry.
+*/
+{
+  int                      len;
+
+  fprintf(f_debug, "%s%3d %3d ",
+          (ssep == &scope_stack[decl_scope_level]) ? "**" : "  ",
+          ssep->number, scope_depth_of(ssep));
+  len = db_scope_kind(ssep->kind);
+  fprintf(f_debug, "%-*s", 25-len, "");
+  fprintf(f_debug, "prev=%3d ", ssep->previous_scope);
+  switch (ssep->kind) {
+    case sck_function:
+      if (ssep->il_scope == NULL) {
+        fprintf(f_debug, "null IL scope");
+      } else {
+        db_name(&ssep->il_scope->variant.routine.ptr->source_corresp);
+      }  /* if */
+      break;
+    case sck_file:
+      break;
+    case sck_block:
+      if (ssep->il_scope == NULL) {
+        fprintf(f_debug, "null IL scope");
+      }  /* if */
+      break;
+    case sck_namespace:
+    case sck_namespace_extension:
+    case sck_namespace_reactivation:
+      if (ssep->il_scope == NULL) {
+        fprintf(f_debug, "null IL scope");
+      } else {
+        a_namespace_ptr  nsp = ssep->il_scope->variant.assoc_namespace;
+        if (nsp == NULL) {
+          fprintf(f_debug, "null assoc_namespace");
+        } else {
+          db_name(&nsp->source_corresp);
+        }  /* if */
+      }  /* if */
+      break;
+    case sck_class_struct_union:
+    case sck_class_reactivation:
+      db_abbreviated_type(ssep->assoc_type);
+      break;
+    case sck_template_instantiation:
+      if (ssep->template_sym == NULL) {
+        fputs("<null template symbol>", f_debug);
+      } else {
+        char* s = symbol_kind_names[(int)ssep->template_sym->kind];
+        fprintf(f_debug, "<%s> %s", s,
+                ssep->template_sym->header->identifier);
+      }  /* if */
+      break;
+    case sck_template_declaration:
+    case sck_func_prototype:
+    default:;
+  }  /* switch */
+  fputs("\n", f_debug);
+}  /* db_scope_stack_entry */
+
+
+void db_scope_stack(void)
+/*
+Dump the entire scope stack (for debugging).
+*/
+{
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+
+  for (; ssep != NULL;
+       ssep = ssep->kind == (a_scope_kind)sck_file ? NULL : ssep - 1) {
+    db_scope_stack_entry(ssep);
+  }  /* for */
+}  /* db_scope_stack */
+
+#endif /* DEBUG */
+
+
+a_scope_depth scope_depth_of_symbol(a_symbol_ptr  sym,
+                                    a_boolean     *is_local_to_function)
+/*
+Given a symbol with a decl_scope (which is a scope number), search the
+scope stack for the scope stack entry that corresponds to it, and return
+the depth.  Also return TRUE in *is_local_to_function if the declaration
+is in within a function body.
+*/
+{
+  a_scope_depth  scope_depth;
+
+  if (sym->decl_scope == FILE_SCOPE_NUMBER) {
+    /* Leave the is_local_to_function flag FALSE. */
+    scope_depth = DEPTH_OF_FILE_SCOPE;
+  } else if (sym->decl_scope == NO_SCOPE_NUMBER) {
+    /* Leave the is_local_to_function flag FALSE. */
+    /* Some entities (e.g., macros) have no decl_scope number. */
+    scope_depth = NO_SCOPE_DEPTH;
+  } else if (sym->decl_scope == scope_stack[decl_scope_level].number) {
+    /* The normal case is when the current decl_scope_level corresponds to
+       what's in the symbol.  Use the global variables. */
+    if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
+        inside_local_class) {
+      *is_local_to_function = TRUE;
+    }  /* if */
+    scope_depth = decl_scope_level;
+  } else {
+    /* In certain unusual cases (e.g., when an entity is first seen in a
+       friend declaration) it is necessary to compute the scope depth by
+       running through the scope stack. */
+    for (scope_depth = depth_scope_stack; ; --scope_depth) {
+      if (scope_depth < DEPTH_OF_FILE_SCOPE) {
+        scope_depth = NO_SCOPE_DEPTH;
+        break;
+      } else if (scope_stack[scope_depth].number == sym->decl_scope) {
+        /* This is the scope stack entry corresponding to the declaration
+           scope number, where relevant characteristics of the scope are
+           recorded. */
+        if (scope_stack[scope_depth].depth_innermost_function_scope !=
+                                                           NO_SCOPE_DEPTH ||
+            scope_stack[scope_depth].inside_local_class) {
+          *is_local_to_function = TRUE;
+        }  /* if */
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return scope_depth;
+}  /* scope_depth_of_symbol */
+
+
+a_boolean namespace_is_enclosed_by_scope(a_symbol_ptr            sym,
+                                         a_scope_stack_entry_ptr ssep)
+/*
+Determine whether the namespace in which sym is defined is enclosed
+within the scope specified by ssep.  Return TRUE if it is, FALSE otherwise.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (ssep->kind == (a_scope_kind)sck_file) {
+    /* Everything is enclosed within the file scope. */
+    result = TRUE;
+  } else if (ssep->kind != (a_scope_kind)sck_namespace &&
+             ssep->kind != (a_scope_kind)sck_namespace_extension) {
+    /* This is not a namespace scope.  A namespace cannot be enclosed
+       within. */
+  } else {
+    a_namespace_ptr	nsp;
+    /* If this is a class member, skip out to the outermost class type. */
+    if (sym->is_class_member) {
+      a_type_ptr	tp = sym->parent.class_type;
+      while (tp->source_corresp.is_class_member) {
+        tp = tp->source_corresp.parent.class_type;
+      }  /* while */
+      /* Get the namespace pointer from the outermost class. */
+      nsp = tp->source_corresp.parent.namespace_ptr;
+    } else {
+      nsp = sym->parent.namespace_ptr;
+    }  /* if */
+    if (nsp == NULL) {
+      /* The symbol has no associated namespace, and so, is not enclosed
+         within the current namespace. */
+    } else {
+      /* The symbol has a namespace.  See if its namespace, or one of
+         its parent namespaces, matches the current namespace. */
+      a_namespace_ptr     curr_nsp;
+      curr_nsp = ssep->il_scope->variant.assoc_namespace;
+      while (curr_nsp != nsp && nsp != NULL) {
+        nsp = nsp->source_corresp.parent.namespace_ptr;
+      }  /* while */
+      if (nsp != NULL) result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* namespace_is_enclosed_by_curr_scope */
+
+
+static an_active_using_directive_ptr alloc_active_using_directive(void)
+/*
+Allocate a new active using directive entry, initialize its fields, and
+return a pointer to the new entry. Reuse a freed entry if possible.
+*/
+{
+  an_active_using_directive_ptr  audp;
+
+  if (avail_active_using_directives != NULL) {
+    /* Reuse a freed entry. */
+    audp = avail_active_using_directives;
+    avail_active_using_directives = avail_active_using_directives->next;
+  } else {
+    /* Allocate a new entry. */
+    audp = (an_active_using_directive_ptr)
+                                  alloc_fe(sizeof(an_active_using_directive));
+#if DEBUG
+    num_active_using_directives_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  audp->entry               = NULL;
+  audp->next                = NULL;
+  return audp;
+}  /* alloc_active_using_directive */
+
+
+static a_scope_depth
+determine_scope_at_which_using_directive_applies(a_symbol_ptr            sym,
+                                                 a_scope_stack_entry_ptr ssep)
+/*
+Given a symbol that points to a namespace (sym), find the scope at which
+names in that namespace should be visible as a consequence of a using
+directive.  This is done by going back through the scope stack, starting
+with ssep, looking for namespace scopes.
+*/
+{
+  a_scope_depth	depth;
+  /* Compute the scope depth associated with the scope stack entry pointer
+     passed by the caller. */
+  for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
+    depth = scope_depth_of(ssep);
+    if (ssep->kind == (a_scope_kind)sck_file ||
+        ssep->kind == (a_scope_kind)sck_namespace ||
+        ssep->kind == (a_scope_kind)sck_namespace_extension ||
+        ssep->kind == (a_scope_kind)sck_namespace_reactivation) {
+      /* This is a namespace scope (the file scope is treated as a
+         namespace scope).  See if it encloses the namespace from
+         the using directive. */
+      if (namespace_is_enclosed_by_scope(sym, ssep)) break;
+    }  /* if */
+  }  /* for */
+  return depth;
+}  /* determine_scope_at_which_using_directive_applies */
+
+
+/* Forward declaration. */
+static
+void add_active_using_directive_to_scope(a_using_directive_ptr    udp,
+                                         a_scope_stack_entry_ptr  ssep);
+
+
+static
+void add_active_using_directives_for_namespace(a_namespace_ptr         nsp,
+                                               a_scope_stack_entry_ptr ssep)
+/*
+Create active using directive entries for any using directives present
+in the specified namespace.
+*/
+{
+  a_using_directive_ptr	udp = nsp->variant.assoc_scope->using_directives;
+  while (udp != NULL) {
+    add_active_using_directive_to_scope(udp, ssep);
+    udp = udp->next;
+  }  /* while */
+}  /* add_active_using_directives_for_namespace */
+
+
+static
+void add_active_using_directive_to_scope(a_using_directive_ptr    udp,
+                                         a_scope_stack_entry_ptr  ssep)
+/*
+Allocate a new active using directive entry, initialize its fields, and
+link it into a list of active using directives for the current scope.
+Reuse a freed entry if possible.  If the specified namespace is already
+on the list for the scope, a new entry is not added.
+*/
+{
+  an_active_using_directive_ptr  	audp;
+  a_namespace_ptr		 	nsp;
+  a_symbol_ptr			 	ns_sym;
+  a_scope_depth			 	new_depth;
+  a_namespace_symbol_supplement_ptr	nssp;
+  a_scope_depth				curr_depth = scope_depth_of(ssep);
+  a_boolean				add_to_list = FALSE;
+
+  /* Get a pointer to the namespace to be used. */
+  nsp = skip_namespace_aliases(udp->assoc_namespace);
+  ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
+  nssp = ns_sym->variant.namespace_info.extra_info;
+  /* Determine the depth at which this using directive applies. */
+  new_depth = determine_scope_at_which_using_directive_applies(ns_sym, ssep);
+  /* Determine whether this namespace is already on the active using list
+     for this scope. */
+  if (curr_depth == nssp->depth_innermost_active_using_directive) {
+    /* The namespace is already on the active using list for this scope. */
+  } else if (nssp->depth_innermost_active_using_directive == NO_SCOPE_DEPTH) {
+    /* The namespace is not on any list, so we know we have to add it to this
+       one. */
+    add_to_list = TRUE;
+  } else {
+    /* We can't quickly tell whether or not the namespace is on the list
+       for this scope.  Look through the list to find out. */
+    audp = ssep->active_using_directives;
+    for (; audp != NULL; audp = audp->next) {
+      if (skip_namespace_aliases(audp->entry->assoc_namespace) == nsp) break;
+    }  /* for */
+    add_to_list = audp == NULL;
+  }  /* if */
+  if (add_to_list) {
+    /* Add the using directive to the active list for this scope. */
+    if (new_depth > nssp->scope_depth_at_which_using_directive_applies) {
+      /* Only set the scope depth if it is greated than the existing value.
+         When entries are added to previous scopes, we don't want to
+         reset this value. */
+      nssp->scope_depth_at_which_using_directive_applies = new_depth;
+    }  /* if */
+    /* Record the depth of the innermost scope for which this namespace
+       is on the scopes active using list.  This is done so that it
+       is possible to quickly determine whether a namespace is on the
+       active using list of the innermost scope. */
+    if (curr_depth > nssp->depth_innermost_active_using_directive) {
+      nssp->depth_innermost_active_using_directive = curr_depth;
+    }  /* if */
+    audp = alloc_active_using_directive();
+    audp->entry = udp;
+    audp->namespace_supplement = nssp;
+    audp->next = ssep->active_using_directives;
+    audp->scope_depth_at_which_using_directive_applies = new_depth;
+    ssep->active_using_directives = audp;
+    /* Set a flag in the scope at which this using directive applies that
+       indicates that the using directive processing must be done for
+       that scope. */
+    scope_stack[new_depth].using_directives_apply = TRUE;
+    /* Add active using directives for the namespaces that should be
+       visible because of the transitivity of using directives. */
+    add_active_using_directives_for_namespace(nsp, ssep);
+    /* Now that a using directive is active, inactive symbols may be
+       visible. */
+    scope_stack[depth_scope_stack].inactive_symbols_may_be_visible = TRUE;
+  }  /* if */
+}  /* add_active_using_directive_to_scope */
+
+
+void add_active_using_directive(a_using_directive_ptr udp)
+/*
+Add a new active using directive entry that was specified in
+the current scope.
+*/
+{
+  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+
+  add_active_using_directive_to_scope(udp, ssep);
+  if (ssep->kind == (a_scope_kind)sck_namespace ||
+      ssep->kind == (a_scope_kind)sck_namespace_extension) {
+    a_namespace_ptr	namespace_added_to;
+    /* When a using directive is added to a namespace scope, we need to
+       go through any previous scope stack entries to see if they reference
+       the enclosing namespace.  If so, the new using directive, and any
+       new namespaces transitively referenced by the new using directive,
+       must be added to the previous scope stack entries. */
+    /* Note: This code does not need to deal with scopes being skipped
+       as a consequence of instantiation scopes because there no way that
+       a using directive can be added to a namespace scope as a consequence
+       of a template instantiation. */
+    namespace_added_to = ssep->il_scope->variant.assoc_namespace;
+    namespace_added_to = skip_namespace_aliases(namespace_added_to);
+    for (;; ssep--) {
+      an_active_using_directive_ptr	audp;
+      /* Look for namespace_added_to on the list of active using directives for
+         this scope. */
+      audp = ssep->active_using_directives;
+      for (; audp != NULL; audp = audp->next) {
+        a_namespace_ptr	audp_namespace;
+        audp_namespace = skip_namespace_aliases(audp->entry->assoc_namespace);
+        if (audp_namespace == namespace_added_to) break;
+      }  /* for */
+      if (audp != NULL) {
+        /* The enclosing namespace is on the list.  Add the using directive
+           to this scope. */
+        add_active_using_directive_to_scope(udp, ssep);
+      }  /* if */
+      if (ssep->kind == (a_scope_kind)sck_file) break;
+    }  /* for */
+  }  /* if */
+}  /* add_active_using_directive */
+
+
+static
+void free_active_using_directive_list(an_active_using_directive_ptr audp)
+/*
+Free the specified list of active using directives to the available list.
+*/
+{
+  an_active_using_directive_ptr	last_audp = audp;
+
+  /* Find the end of the list. */
+  while (last_audp->next != NULL) last_audp = last_audp->next;
+  /* Add the current available list to the end of this one.  Set the
+     pointer to the start of the available list to the start of the
+     list passed by the caller. */
+  last_audp->next = avail_active_using_directives;
+  avail_active_using_directives = audp;
+}  /* free_active_using_directive_list */
+
+
+
+
+a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym)
+/*
+If the symbol is a class template that is currently being instantiated,
+or if a specific definition of the class is being defined, the symbol of
+the instantiation (or the specific definition) is returned in *sym,
+otherwise the original symbol is left unchanged.  If the symbol returned
+is not a class template symbol (either because the symbol passed by the
+caller was not a class template or because we succeeded in finding an
+instantiation or definition) we return TRUE.  If the symbol is a class
+template with no current instantiation or definition, we return FALSE.
+*/
+{
+  a_scope_depth  depth;
+  a_boolean      found = TRUE;
+  a_boolean      is_instantiation_scope;
+  a_symbol_ptr   instance_sym;
+
+  if ((*sym)->kind == (a_symbol_kind)sk_class_template) {
+    found = FALSE;
+    /* We can skip the lookup if there are no class scopes (including
+       reactivation scopes) or instantiation scopes on the stack. */
+    if ((num_classes_on_scope_stack > 0) ||
+        (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH)) {
+      /* Loop through the scope stack looking at the instantiation scopes
+         and the class declaration and reactivation scopes.  Stop after
+         finding the first instantiation scope.  Check each of these
+         scopes to see if the associated type is a template class associated
+         with the class template symbol. */
+      for (depth = depth_scope_stack; depth >= 0; --depth) {
+        a_scope_stack_entry_ptr ssep = &scope_stack[depth];
+        is_instantiation_scope =
+                        ssep->kind == (a_scope_kind)sck_template_instantiation;
+        if (is_instantiation_scope ||
+            ssep->kind == (a_scope_kind)sck_class_struct_union ||
+            ssep->kind == (a_scope_kind)sck_class_reactivation) {
+          /* Get the instance symbol pointed to by the type from the scope
+             stack entry. */
+          if (is_instantiation_scope) {
+              /* Don't look beyond the innermost instantiation scope that
+                 is not a nested instantiation. */
+            if (!ssep->nested_instantiation) break;
+          } else {
+            check_assertion_str(ssep->assoc_type != NULL,
+				"ccsict: assoc_type is NULL");
+            instance_sym = (a_symbol_ptr)(ssep->assoc_type->
+                                                    source_corresp.assoc_info);
+            /* A class/struct/union scope or reactivation scope. */
+            if (instance_sym->variant.class_struct_union.
+                            extra_info->class_template == *sym) {
+              found = TRUE;
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      if (found) *sym = instance_sym;
+    }  /* if */
+  }  /* if */
+  return found;
+}  /* current_class_symbol_if_class_template */
+
+
+static void update_template_param_symbols(a_template_param_ptr  tpp,
+                                          a_template_arg_ptr    arg_list)
+/*
+Update the symbol entries for template formal parameters to reflect the
+values to be used for a given instantiation.  This routine is called by
+push_scope to update the parameters for a new instantiation and is called
+by pop_scope in the case of a recursive instantiation to recreate the
+values needed for the previous call.
+*/
+{
+  a_template_arg_ptr    tap = arg_list;
+
+  db_enter(4, "update_template_param_symbols");
+  /* Loop through the parameters and arguments.  There may be fewer
+     template arguments than parameters when push_scope is done while
+     scanning a the template argument list of a template class reference. */
+  while (tpp != NULL) {
+    register a_symbol_ptr  param_symbol = tpp->param_symbol;
+    if (tap != NULL) {
+      /* A template argument exists for this parameter. */
+      if (tap->is_type) {
+        param_symbol->variant.type = tap->variant.type;
+      } else {
+        param_symbol->variant.constant = tap->variant.constant;
+      }  /* if */
+      param_symbol->template_param_not_visible = FALSE;
+      tap = tap->next;
+    } else {
+      /* No template parameter exists for this parameter.  Set the "not
+         visible field in the symbol. */
+      param_symbol->template_param_not_visible = TRUE;
+    }  /* if */
+    tpp = tpp->next;
+  }  /* while */
+  db_exit();
+}  /* update_template_param_symbols */
+
+
+static void restore_default_template_params(a_template_param_ptr  tpp)
+/*
+Update the symbol entries for template formal parameters to their
+"resting values".  These are the initial values supplied when the template
+declaration is scanned and are used as placeholders between instantiations.
+*/
+{
+  db_enter(4, "restore_default_template_params");
+  /* Loop through the parameters and and set them to either the original
+     template type or the original template constant (as specified by the
+     type or constant field). */
+  while (tpp != NULL) {
+    register a_symbol_ptr  param_symbol = tpp->param_symbol;
+    if (param_symbol->kind == (a_symbol_kind)sk_type) {
+      param_symbol->variant.type = tpp->variant.type;
+    } else {
+      param_symbol->variant.constant = tpp->variant.constant.ptr;
+    }  /* if */
+    param_symbol->template_param_not_visible = FALSE;
+    tpp = tpp->next;
+  }  /* while */
+ db_exit();
+}  /* restore_default_template_params */
+
+
+static void set_active_using_list_scope_depths(a_scope_depth starting_depth,
+                                               a_boolean     set_value)
+/*
+This routine goes through the active using list for the scopes that
+are now active and updates the scope at which the using directive
+applies for each of the namespaces referenced.  If set_value is TRUE,
+the flag is set to the value specified in the active using directive
+entry.  If set_value is FALSE the flag is set to NO_SCOPE_DEPTH.
+starting_depth is the innermost scope to be processed.
+*/
+{
+  a_scope_stack_entry_ptr	ssep = &scope_stack[starting_depth];
+  for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
+    a_scope_depth			curr_depth = scope_depth_of(ssep);
+    an_active_using_directive_ptr	audp = ssep->active_using_directives;
+    /* Set the flag for any active using directives for this scope. */
+    for (; audp != NULL; audp = audp->next) {
+      a_namespace_symbol_supplement_ptr	nssp;
+      a_scope_depth			new_depth;
+      new_depth = set_value 
+                    ? audp->scope_depth_at_which_using_directive_applies
+                    : NO_SCOPE_DEPTH;
+      nssp = audp->namespace_supplement;
+      nssp->scope_depth_at_which_using_directive_applies = new_depth;
+      /* Record the scope depth of the innermost active using directive for
+         this namespace.  If we are clearing the flags, reset this depth
+         to NO_SCOPE_DEPTH. */
+      if (set_value) {
+        if (curr_depth > nssp->depth_innermost_active_using_directive) {
+          nssp->depth_innermost_active_using_directive = curr_depth;
+        }  /* if */
+        /* Set the flag in the scope entry for which this using directive
+           applies. */
+        scope_stack[new_depth].using_directives_apply = TRUE;
+      } else {
+        nssp->depth_innermost_active_using_directive = NO_SCOPE_DEPTH;
+      }  /* if */
+    }  /* for */
+    /* If we are clearing the flags, clear the flag for this scope that
+       indicates that there are using directives that must be processed
+       when this scope is reached. */
+    if (!set_value) ssep->using_directives_apply = FALSE;
+  }  /* for */
+}  /* set_active_using_list_scope_depths */
+
+
+/*
+Return TRUE if the scope stack entry kind given by kind is for something
+that has an effect on access control (a class, class reactivation, or
+function).  Access control only exists in C++.
+*/
+#define is_scope_kind_that_affects_access_control(kind)               \
+   ((kind) == (a_scope_kind)sck_class_struct_union ||                 \
+    (kind) == (a_scope_kind)sck_class_reactivation ||                 \
+    (kind) == (a_scope_kind)sck_function ||			      \
+    (kind) == (a_scope_kind)sck_function_access)
+
+
+/*
+Return TRUE if the scope stack entry kind is for something that should
+affect the current declarative level.  In C, the current declarative
+level is the same as depth_scope_stack except when struct/union field
+scopes are active; when they are, it indicates the first non-struct-or-union
+scope.  In C++, struct/union/class scopes are real scopes; however,
+class and namespace reactivations and template instantiations are not
+real scopes.
+*/
+#define is_scope_kind_that_affects_declarative_level(kind)		\
+   ((C_dialect != C_dialect_cplusplus) ?				\
+       /* C -- struct/union classes are not real scopes. */		\
+        ((kind) != (a_scope_kind)sck_class_struct_union) :		\
+        /* C++ -- class reactivations are not real scopes. */		\
+        ((kind) != (a_scope_kind)sck_class_reactivation &&		\
+         (kind) != (a_scope_kind)sck_namespace_reactivation &&		\
+         (kind) != (a_scope_kind)sck_template_instantiation))
+
+
+static a_scope_ptr push_scope_full(a_scope_kind         kind,
+				   a_scope_number       scope_number_to_reuse,
+				   a_type_ptr           assoc_type,
+				   a_routine_ptr        assoc_routine,
+                                   a_namespace_ptr      assoc_namespace,
+				   a_symbol_ptr         instance_sym,
+				   a_symbol_ptr         template_sym,
+				   a_template_arg_ptr   template_arg_list,
+				   a_boolean            nested_instantiation)
+/*
+Begin a new name scope by pushing an entry on the scope stack.  kind indicates
+the kind of scope (file, function, block, function prototype, etc.).  Returns
+a pointer to the IL scope allocated (or NULL if no IL scope is allocated,
+as happens, for example, with function prototype scopes).  For function
+scopes, scope_number_to_reuse is the scope number to be used (it was chosen
+when the function prototype was scanned, or is NO_SCOPE_NUMBER if it hasn't
+been chosen yet); for class reactivation scopes, scope_number_to_reuse is
+the class scope number; for the other cases, a new scope number is generated.
+assoc_type points to an associated type for the cases where that's
+meaningful (function prototype, class, class reactivation, and template
+instantiation (for class templates only) scopes); it must be NULL in other
+cases.  assoc_routine points to a routine for the function scope case and
+for function access scopes; it must be NULL in other cases.  instance_symbol,
+template_symbol, and template_arg_list are non-NULL only when a template
+instantiation scope is being pushed; they represent, respectively, the symbol
+for the class or function being instantiated or the static data member being
+defined; the symbol identifying the template on which the instantiation or
+definition is based; and the template argument list the produces the
+specific version of the template.
+*/
+{
+  a_scope_stack_entry_ptr ssep;
+  a_scope_ptr             sp = NULL;
+  a_boolean		  reactivate_template_params = FALSE;
+
+  db_enter(3, "push_scope_full");
+  if (depth_scope_stack+1 == (int)size_scope_stack) {
+    /* The stack is full; expand it by reallocating. */
+    sizeof_t new_size = size_scope_stack + SCOPE_STACK_INCREMENTAL_ALLOCATION;
+    scope_stack = (a_scope_stack_entry_ptr)realloc_general(
+                      (char *)scope_stack,
+                      (sizeof_t)(size_scope_stack*sizeof(a_scope_stack_entry)),
+                      (sizeof_t)(new_size*sizeof(a_scope_stack_entry)));
+    size_scope_stack = new_size;
+  }  /* if */
+  /* Push the stack, initialize the new scope entry. */
+  ssep = &scope_stack[++depth_scope_stack];
+  /* Determine the scope number. */
+  if ((scope_number_to_reuse != NO_SCOPE_NUMBER &&
+       (kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_func_prototype)) ||
+      kind == (a_scope_kind)sck_namespace_extension ||
+      kind == (a_scope_kind)sck_namespace_reactivation ||
+      kind == (a_scope_kind)sck_class_reactivation ||
+      kind == (a_scope_kind)sck_template_instantiation) {
+    /* For function scopes, reuse the scope used for the parameters
+       in the function declarator. */
+    /* For class reactivations, re-establish the class scope and for template
+       instantiations re-establish the template declaration scope. */
+    ssep->number       = scope_number_to_reuse;
+  } else {
+    /* Assign a new scope number for other kinds of scopes. */
+    ssep->number       = next_scope_number++;
+  }  /* if */
+  /* Save the current IL memory region for restoration by pop_scope.  That's
+     important if we have temporarily switched into the file scope memory
+     region. */
+  ssep->prev_il_memory_region = curr_il_region_number;
+  /* Allocate the IL scope entry if one is needed. */
+  switch (kind) {
+    case sck_file:
+    case sck_function:
+      /* Start a new memory region for the file scope or a function scope.
+         This ensures that the intermediate language is divided into 
+         manageable pieces.  This call also allocates the top-level
+         scope entry for the region. */
+      sp = new_il_region(kind, ssep->number, assoc_routine);
+      sp->depth_in_scope_stack = depth_scope_stack;
+      ssep->il_memory_region = curr_il_region_number;
+      break;
+    case sck_template_instantiation:
+      /* Template instantiations should always take place in the file scope
+         memory region. */
+    case sck_func_prototype:
+      /* Use the file scope memory region for a function prototype scope,
+         since param types and types declared within it are pointed to from
+         the function type, which is also in file scope memory.  (Parameter
+         variables are not created until the function scope is pushed.)
+         However, the IL scope is not allocated until it is needed -- it
+         usually isn't. */
+      sp = NULL;
+      if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
+        switch_il_region(FILE_SCOPE_REGION_NUMBER);
+      }  /* if */
+      ssep->il_memory_region = FILE_SCOPE_REGION_NUMBER;
+      break;
+    case sck_namespace:
+    case sck_namespace_extension:
+      if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
+        /* In a legal program we should already be in the file-scope memory
+           region -- there must have been an error. */
+        switch_il_region(FILE_SCOPE_REGION_NUMBER);
+      }  /* if */
+      ssep->il_memory_region = FILE_SCOPE_REGION_NUMBER;
+      if (kind == (a_scope_kind)sck_namespace) {
+        sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
+        sp->variant.assoc_namespace = assoc_namespace;
+        assoc_namespace->variant.assoc_scope = sp;
+      } else {
+        sp = assoc_namespace->variant.assoc_scope;
+      }  /* if */
+      ssep->il_memory_region = FILE_SCOPE_REGION_NUMBER;
+      break;
+    case sck_class_struct_union:
+      /* Class/struct/union definitions require the file-scope memory region,
+         since the entities created to represent the members are pointed to
+         from the type entry. */
+      if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
+        switch_il_region(FILE_SCOPE_REGION_NUMBER);
+      }  /* if */
+      ssep->il_memory_region = FILE_SCOPE_REGION_NUMBER;
+      /* Save a copy of the scope number in the class symbol supplement. */
+      symbol_supplement_for_class(assoc_type)->member_decl_scope =
+                                                              ssep->number;
+      /* Only in C++ mode do classes have an associated scope. */
+      if (C_mode()) {
+        sp = NULL;
+      } else {
+        sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
+        sp->depth_in_scope_stack = depth_scope_stack;
+      }  /* if */
+      break;
+    case sck_condition:
+      /* A C++ condition scope is only created when there is a declaration,
+         so we know an IL scope will be required. */
+      check_assertion_str(curr_il_region_number != FILE_SCOPE_REGION_NUMBER,
+                          "push_scope_full: bad region number for condition");
+      sp = alloc_scope((a_scope_kind)sck_condition, ssep->number,
+                       (a_routine_ptr)NULL);
+      ssep->il_memory_region = curr_il_region_number;
+      /* Add it to the scopes list for the enclosing scope. */
+      add_to_scopes_list(sp, ssep-1);
+      break;
+    default:
+      /* For scopes for which a new memory region is not begun, the associated
+         memory region is the same as for the enclosing scope (there must be an
+         enclosing scope, because the scope we're opening here is not the file
+         scope). */
+      ssep->il_memory_region = (ssep-1)->il_memory_region;
+      /* For block scopes the IL scope is not allocated until it is needed,
+         because usually it will not be needed. For class reactivations in
+         C++, no scope is ever allocated. */
+      sp = NULL;
+  }  /* switch */
+  if (sp != NULL && sp->depth_in_scope_stack == NO_SCOPE_DEPTH) {
+    /* Update the depth at which this scope is on the stack.  Only do this
+       if the scope is not already on the stack somewhere else. */
+    sp->depth_in_scope_stack = depth_scope_stack;
+  }  /* if */
+  /* Fill in the fields of the scope entry. */
+  ssep->kind                     = kind;
+  ssep->current_access           = (an_access_specifier)as_public;
+  ssep->inactive_symbols_may_be_visible = FALSE;
+  ssep->inside_local_class       = inside_local_class;
+  ssep->template_param_decl_scope= FALSE;
+  ssep->is_loop_scope            = FALSE;
+  ssep->slow_lookup_required     = FALSE;
+  ssep->return_value_optimization_possible = FALSE;
+  ssep->in_prototype_instantiation = FALSE;
+  ssep->defer_access_checks      = FALSE;
+  ssep->is_try_block             = FALSE;
+  ssep->within_try_block         = FALSE;
+  ssep->within_unnamed_namespace = FALSE;
+  ssep->il_scope                 = sp;
+  ssep->assoc_type               = assoc_type;
+  ssep->assoc_routine            = assoc_routine;
+  ssep->assoc_namespace          = assoc_namespace;
+  ssep->extern_type_fixup_list   = NULL;
+  ssep->shareable_constants_list = NULL;
+  ssep->last_routine_fixup       = NULL;
+  ssep->last_parameter           = NULL;
+  ssep->last_nonstatic_variable  = NULL;
+  ssep->last_label               = NULL;
+  ssep->first_scope              = NULL;
+  ssep->last_scope               = NULL;
+  ssep->last_dynamic_init        = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  ssep->last_source_sequence_entry = NULL;
+  ssep->source_sequence_avail_list = NULL;
+  ssep->last_src_seq_sublist     = NULL;
+  ssep->depth_innermost_ss_list_scope = depth_innermost_ss_list_scope;
+  ssep->source_sequence_entries_disallowed =
+                                       source_sequence_entries_disallowed;
+  ssep->ss_list_instantiation_insert_point
+                                 = NULL;
+  ssep->saved_last_ss_entry      = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  ssep->depth_template_declaration_scope = depth_template_declaration_scope;
+  ssep->depth_innermost_instantiation_scope =
+                                       depth_innermost_instantiation_scope;
+  ssep->instance_sym             = instance_sym;
+  ssep->template_sym             = template_sym;
+  ssep->template_arg_list        = template_arg_list;
+  ssep->nested_instantiation     = nested_instantiation;
+  ssep->source_position          = pos_curr_token;
+  ssep->depth_innermost_function_scope = depth_innermost_function_scope;
+  ssep->template_param_list      = NULL;
+  ssep->last_label_decl_seq      = 0;
+  ssep->pending_pragmas          = NULL;
+  ssep->curr_construct_pragmas	 = NULL;
+  ssep->next_scope_that_affects_access_control =
+                          depth_of_innermost_scope_that_affects_access_control;
+  ssep->deferred_access_checks   = NULL;
+  ssep->last_deferred_access_check
+                                 = NULL;
+  ssep->saved_curr_deferred_access_scope
+				 = curr_deferred_access_scope;
+  ssep->saved_expr_stack         = expr_stack;  /* See also the setting of
+                                                   expr_stack to NULL below. */
+  ssep->curr_scope_object_lifetime = NULL;
+  ssep->object_lifetime_avail_list = NULL;
+  ssep->saved_curr_object_lifetime = curr_object_lifetime;
+  ssep->templ_member_class_sym   = NULL;
+  ssep->depth_innermost_namespace_scope = depth_innermost_namespace_scope;
+  ssep->num_of_extra_times_pushed = 0;;
+  ssep->active_using_directives   = NULL;
+  ssep->previous_scope            = NO_SCOPE_DEPTH;
+  ssep->instantiation_context_scope
+                                   = NO_SCOPE_DEPTH;
+  ssep->instantiation_common_scope = NO_SCOPE_DEPTH;
+  /* Clear the substructure shared with namespace symbol supplements. */
+  ssep->assoc_pointers_block     = NULL;
+  clear_scope_pointers_block(&ssep->pointers_block);
+  if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
+    /* By default, the previous scope is the one that precedes this one
+       on the scope stack.  This may be adjusted for instantiation scopes. */
+    ssep->previous_scope = depth_scope_stack - 1;
+  }  /* if */
+  /* Put the associated type (if any) into the IL scope (if any). */
+  /* Note that the corresponding routine case was handled by the
+     new_il_region call. */
+  if (assoc_type != NULL && sp != NULL) sp->variant.assoc_type = assoc_type;
+  /* Maintain the current declarative level.  It is the same as 
+     depth_scope_stack except when struct/union field scopes are
+     active; when they are, it indicates the first non-struct-or-union
+     scope.  In C++, struct/union/class scopes are real scopes; however,
+     class reactivations are not real scopes. */
+  if (is_scope_kind_that_affects_declarative_level(kind)) {
+    if (decl_scope_level < depth_innermost_instantiation_scope) {
+      if (scope_stack[depth_innermost_instantiation_scope].
+		template_sym->kind != (a_symbol_kind)sk_static_data_member) {
+        /* Template parameters are considered part of the next scope that
+           affects the declarative level -- except for static data member
+           instantiations for which no such scope exists. */
+        reactivate_template_params = TRUE;
+      }  /* if */
+    }  /* if */
+    decl_scope_level = depth_scope_stack;
+  }  /* if */
+  if (C_dialect == C_dialect_cplusplus) {
+    /* Check for class reactivations, classes with base classes,
+       namespace extensions, and template instantiations.  When these
+       are found name lookup is more involved.  If the new scope is neither,
+       we can just use the state from the previous scope. */
+    if (kind == (a_scope_kind)sck_class_reactivation ||
+        kind == (a_scope_kind)sck_template_instantiation ||
+        kind == (a_scope_kind)sck_namespace_extension ||
+        kind == (a_scope_kind)sck_namespace_reactivation ||
+        (kind == (a_scope_kind)sck_class_struct_union &&
+         base_classes_of(assoc_type) != NULL)) {
+      ssep->inactive_symbols_may_be_visible = TRUE;
+    } else if (kind != (a_scope_kind)sck_file) {
+      ssep->inactive_symbols_may_be_visible =
+                                  (ssep-1)->inactive_symbols_may_be_visible;
+    }  /* if */
+    /* Pragma and instantiation scopes require that the slow lookup
+       algorithm be used because they require that certain symbols on the
+       active list not be considered. */
+    if (kind == (a_scope_kind)sck_pragma ||
+        kind == (a_scope_kind)sck_template_instantiation) {
+      ssep->slow_lookup_required = TRUE;
+    } else if (kind != (a_scope_kind)sck_file) {
+      ssep->slow_lookup_required = (ssep-1)->slow_lookup_required;
+    }  /* if */
+    if (kind == (a_scope_kind)sck_class_struct_union ||
+        kind == (a_scope_kind)sck_class_reactivation) {
+      /* Keep track of the number of classes and class reactivations. */
+      num_classes_on_scope_stack++;
+      /* If we're entering a class and we're already inside a function,
+         the class is a local class. */
+      /* Note that this is done before depth_innermost_function_scope is
+         cleared below. */
+      if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+        inside_local_class = ssep->inside_local_class = TRUE;
+      }  /* if */
+    }  /* if */
+    if (kind == (a_scope_kind)sck_template_instantiation) {
+      a_template_symbol_supplement_ptr  tssp;
+
+      tssp = template_supplement_for_symbol(template_sym);
+      check_assertion(tssp != NULL);
+      /* Save the depth of the innermost instantiation scope. */
+      depth_innermost_instantiation_scope = depth_scope_stack;
+      /* Update the symbols of the template parameters to represent the
+         values of the actual arguments by simply changing each to point to
+         the type or constant specified by the corresponding template argument.
+         The old values do not need to be saved because they can be easily
+         recreated by pop_scope. */
+      update_template_param_symbols(tssp->parameters, template_arg_list);
+      ssep->template_param_list = tssp->parameters;
+      /* The current stack state is suspended when an template instantiation
+         is done.  It will be restored in pop_scope. */
+      inside_local_class = ssep->inside_local_class = FALSE;
+      depth_innermost_function_scope =
+              ssep->depth_innermost_function_scope = NO_SCOPE_DEPTH;
+      innermost_function_scope = NULL;
+      if (template_sym->kind == (a_symbol_kind)sk_static_data_member) {
+        /* Static data members don't have their own scope so the
+           template parameters are added at the instantiation scope. */
+        reactivate_template_params = TRUE;
+      } else if (is_class_template_symbol(template_sym)) {
+        if (instance_sym != NULL && is_template_class_symbol(instance_sym)) {
+          ssep->in_prototype_instantiation =
+                    instance_sym->variant.class_struct_union.extra_info->
+                                                is_prototype_instantiation;
+        }  /* if */
+      }  /* if */
+      /* Because a template instantiation introduces a new context for
+         name lookup purposes, we need to clear the active using list
+         flags for any namespaces for which it is currently set. */
+      set_active_using_list_scope_depths(depth_scope_stack-1,
+                                         /*set_value=*/FALSE);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      {
+      /* Instantiations may be triggered almost anywhere, but the source
+         sequence list for an instantiation has to be inserted at file scope.
+         The current insert point is maintained in the scope stack entry
+         for the file scope -- it is where the source sequence entries for
+         the current instantiation should appear.  Make the changes required
+         for this to happen. */
+      a_scope_stack_entry_ptr      fs_ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+      a_source_sequence_entry_ptr  insert_point, new_last_ss_entry;
+
+      /* The insert point, if any, is in the scope stack entry for the file
+         scope. */
+      insert_point = fs_ssep->ss_list_instantiation_insert_point;
+      if (insert_point == NULL) {
+        /* A NULL insert point means the source sequence entries for the
+           instantiation may be added to the end of the file scope's source
+           sequence list. */
+      } else {
+        /* A non-NULL insert point is the point *before which* the source
+           sequence entries for the instantiation should be added.  Simply
+           clip off the segment of source sequence entries, so that
+           point->prev becomes the new end-of-list entry; the segment will
+           be restored in pop_scope. */
+        /* Save the head of the list segment that is to be clipped off. */
+        ssep->ss_list_instantiation_insert_point = insert_point;
+        /* Note the new end-of-list entry. */
+        new_last_ss_entry = insert_point->prev;
+        insert_point->prev = NULL;
+        /* Save the old end-of-list entry (it will be restored in pop_scope)
+           and replace it with the new one. */
+        ssep->saved_last_ss_entry = fs_ssep->last_source_sequence_entry;
+        fs_ssep->last_source_sequence_entry = new_last_ss_entry;
+        if (new_last_ss_entry != NULL) {
+          new_last_ss_entry->next = NULL;
+        } else {
+          fs_ssep->il_scope->source_sequence_list = NULL;
+        }  /* if */
+        /* Clear the old insert point (it will be restored in pop_scope). */
+        fs_ssep->ss_list_instantiation_insert_point = NULL;
+      }  /* if */
+      }
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    } else if (kind != (a_scope_kind)sck_file) {
+      ssep->in_prototype_instantiation = (ssep-1)->in_prototype_instantiation;
+    }  /* if */
+    if (reactivate_template_params) {
+      /* We want to ensure that the first declarative scope following
+         an instantiation scope does not allow the redeclaration of a
+         template parameter name.  This is done by saving a pointer to
+         the template parameter list in the scope stack entry of the
+         template instantiation scope and setting the templ_param_decl_scope
+         flag in the scope for which this test must be done.  For template
+         classes and template functions the scope is the next scope
+         that affects the declarative level.  For static data members
+         there is no such scope, but we set this flag in the instantiation
+         scope for consistency. */
+      ssep->template_param_decl_scope = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Maintain the depth of the innermost function scope. */
+  if (kind == (a_scope_kind)sck_function) {
+    depth_innermost_function_scope =
+            ssep->depth_innermost_function_scope = depth_scope_stack;
+    innermost_function_scope = sp;
+  } else if (kind == (a_scope_kind)sck_file) {
+    /* Note (1) depth_innermost_namespace_scope is set to the file scope's
+       depth to give it the sense of "depth_innermost_global_scope", and (2)
+       it's intentionally set even in C mode. */
+    depth_innermost_namespace_scope =
+            ssep->depth_innermost_namespace_scope = depth_scope_stack;
+  } else if (C_dialect == C_dialect_cplusplus &&
+             kind == (a_scope_kind)sck_class_struct_union) {
+    /* When we enter a class scope, the containing function scope (if any)
+       becomes invisible in some respects.  (In particular, some expression
+       processing routines need to know whether a function scope is the
+       immediate context for processing.)  So clear out the variable and
+       restore it in pop_scope. */
+    depth_innermost_function_scope =
+            ssep->depth_innermost_function_scope = NO_SCOPE_DEPTH;
+    innermost_function_scope = NULL;
+  } else if (kind == (a_scope_kind)sck_namespace ||
+             kind == (a_scope_kind)sck_namespace_extension) {
+    /* The following is required only to handle illegal programs gracefully.
+       Ordinarily these will already be set correctly. */
+    depth_innermost_function_scope =
+            ssep->depth_innermost_function_scope = NO_SCOPE_DEPTH;
+    innermost_function_scope = NULL;
+  }  /* if */
+  if (C_dialect == C_dialect_cplusplus) {
+    /* Maintain the depth of the innermost stack entry that affects access
+       control. */
+    if (is_scope_kind_that_affects_access_control(kind)) {
+      depth_of_innermost_scope_that_affects_access_control = depth_scope_stack;
+    } else if (kind == (a_scope_kind)sck_template_instantiation) {
+      /* A template instantiation makes the things outside it invisible
+         out to the file scope, and the file scope doesn't affect access
+         control. */
+      depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
+    }  /* if */
+    /* Determine whether this scope affects whether access checks can
+       be deferred. */
+    if (kind == (a_scope_kind)sck_file ||
+        kind == (a_scope_kind)sck_namespace ||
+        kind == (a_scope_kind)sck_namespace_extension ||
+        kind == (a_scope_kind)sck_pragma ||
+        kind == (a_scope_kind)sck_template_instantiation ||
+        kind == (a_scope_kind)sck_class_struct_union) {
+      /* A scope that introduces a new level at which deferred access
+         checks may be recorded. */
+      curr_deferred_access_scope = depth_scope_stack;
+    } else if (kind == (a_scope_kind)sck_template_declaration ||
+               kind == (a_scope_kind)sck_func_prototype ||
+               kind == (a_scope_kind)sck_function_access ||
+               kind == (a_scope_kind)sck_class_reactivation) {
+      /* The current deferred access scope is left unchanged. */
+    } else {
+      /* For all other scopes, access checks cannot be deferred. */
+      curr_deferred_access_scope = NO_SCOPE_DEPTH;
+    }  /* if */
+    /* Maintain the depth of a template declaration scope, if any. */
+    if (kind == (a_scope_kind)sck_template_declaration) {
+      ssep->depth_template_declaration_scope =
+        depth_template_declaration_scope = depth_scope_stack;
+    } else if (kind == (a_scope_kind)sck_template_instantiation) {
+      /* A template instantiation.  The things outside the instantiation
+         become invisible. */
+      ssep->depth_template_declaration_scope =
+        depth_template_declaration_scope = NO_SCOPE_DEPTH;
+    }  /* if */
+    if (kind == (a_scope_kind)sck_namespace ||
+        kind == (a_scope_kind)sck_namespace_extension ||
+        kind == (a_scope_kind)sck_namespace_reactivation) {
+      /* Set the scope-pointers-block pointer to refer to the namespace
+         symbol supplement. */
+      a_symbol_ptr  sym =
+                      (a_symbol_ptr)assoc_namespace->source_corresp.assoc_info;
+      ssep->assoc_pointers_block =
+                     &sym->variant.namespace_info.extra_info->pointers_block;
+      if (kind != (a_scope_kind)sck_namespace_reactivation) {
+        /* If this is a namespace scope that affects the declarative level
+           (i.e., not just a reactivation) update the information about
+           the current namespace. */
+        if (assoc_namespace->source_corresp.name == NULL ||
+            scope_stack[depth_innermost_namespace_scope].
+                                              within_unnamed_namespace) {
+          ssep->within_unnamed_namespace = TRUE;
+        }  /* if */
+        /* Maintain the depth of the innermost namespace scope. */
+        depth_innermost_namespace_scope =
+              ssep->depth_innermost_namespace_scope = depth_scope_stack;
+      }  /* if */
+    }  /* if */
+    if (kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_template_instantiation ||
+        kind == (a_scope_kind)sck_pragma) {
+      /* When beginning a nested context, clear the expression stack. */
+      expr_stack = NULL;
+    }  /* if */
+  }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Maintain the depth of the scope of the current source sequence list. */
+  if (kind == (a_scope_kind)sck_function) {
+    ssep->depth_innermost_ss_list_scope =
+      depth_innermost_ss_list_scope = depth_scope_stack;
+  } else if (kind == (a_scope_kind)sck_template_instantiation ||
+             kind == (a_scope_kind)sck_file) {
+    ssep->depth_innermost_ss_list_scope =
+      depth_innermost_ss_list_scope = DEPTH_OF_FILE_SCOPE;
+  }  /* if */
+  /* The creation of source sequence entries is suppressed in certain
+     contexts. */
+  if (kind == (a_scope_kind)sck_template_declaration ||
+      kind == (a_scope_kind)sck_pragma) {
+    ssep->source_sequence_entries_disallowed =
+      source_sequence_entries_disallowed = TRUE;
+  } else if (kind == (a_scope_kind)sck_template_instantiation) {
+    if (ssep->in_prototype_instantiation || instance_sym == NULL) {
+      /* Under no circumstances should source sequence entries be generated
+         during a prototype instantiation.  Also, if instance_sym is NULL we
+         are pushing the scope for the declaration (but not the body) of a
+         template function -- no source sequence entries would be involved. */
+      source_sequence_entries_disallowed = TRUE;
+    } else if (assoc_type != NULL) {
+      /* We are pushing the scope for a class template instantiation. */
+      source_sequence_entries_disallowed =
+                  !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS;
+    } else {
+      /* We are pushing the scope for a function template instantiation
+         or for the definition of a template static data member. */
+      source_sequence_entries_disallowed =
+                  !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS;
+    }  /* if */
+    ssep->source_sequence_entries_disallowed =
+                                     source_sequence_entries_disallowed;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (!C_mode()) {
+    /* Do management related to the object lifetime stack. */
+    if (kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_template_instantiation ||
+        kind == (a_scope_kind)sck_pragma ||
+        kind == (a_scope_kind)sck_func_prototype) {
+      /* These scopes do not nest properly from the point of view of object
+         lifetimes, so break the object lifetime stack and then restore it
+         in pop_scope. */
+      curr_object_lifetime =
+                   scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
+    }  /* if */
+    if (kind == (a_scope_kind)sck_file ||
+        kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_block ||
+        kind == (a_scope_kind)sck_condition) {
+      /* This is the sort of scope for which a new object lifetime is
+         pushed. */
+      push_object_lifetime((an_il_entry_kind)iek_scope, (char *)sp,
+                           (an_object_lifetime_kind)(
+                                (kind == (a_scope_kind)sck_file) ?
+                                   olk_global_static : olk_block));
+      ssep->curr_scope_object_lifetime = curr_object_lifetime;
+    }  /* if */
+  }  /* if */
+  /* Propagate the flag indicating that this scope is inside the compound
+     statement of a try block. */
+  if (kind == (a_scope_kind)sck_block && (ssep-1)->within_try_block) {
+    ssep->within_try_block = TRUE;
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 3) {
+    db_scope_stack();
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return sp;
+}  /* push_scope_full */
+
+a_scope_ptr push_scope(a_scope_kind         kind,
+		       a_scope_number       scope_number_to_reuse,
+		       a_type_ptr           assoc_type,
+		       a_routine_ptr        assoc_routine)
+/*
+Interface to push_scope_full that is used for scopes other than template
+instantiation scopes.
+*/
+{
+  a_scope_ptr scope;
+  scope = push_scope_full(kind, scope_number_to_reuse, assoc_type,
+                          assoc_routine, (a_namespace_ptr)NULL,
+                          (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                          (a_template_arg_ptr)NULL,
+                          /*nested_instantiation=*/FALSE);
+  return scope;
+}  /* push_scope */
+
+
+a_scope_ptr push_namespace_scope(a_scope_kind    kind,
+                                 a_namespace_ptr assoc_namespace)
+/*
+Interface to push_scope_full that is used for sck_namespace scopes
+("original" namespace definitions).  It is also used to reopen an
+sck_namespace IL scope by pushing an sck_namespace_extension scope stack
+entry (for "extension-namespace-definitions").
+*/
+{
+  a_scope_ptr     scope;
+  a_scope_number  scope_number_to_reuse = NO_SCOPE_NUMBER;
+
+  check_assertion_str(assoc_namespace != NULL &&
+                      !assoc_namespace->is_namespace_alias &&
+                      ((assoc_namespace->variant.assoc_scope == NULL) ==
+                                       (kind == (a_scope_kind)sck_namespace)),
+                      "push_namespace_scope: bad assoc_namespace ptr");
+  if (kind == (a_scope_kind)sck_namespace_extension ||
+      kind == (a_scope_kind)sck_namespace_reactivation) {
+    scope_number_to_reuse = assoc_namespace->variant.assoc_scope->number;
+  }  /* if */
+  scope = push_scope_full(kind, scope_number_to_reuse, (a_type_ptr)NULL,
+                          (a_routine_ptr)NULL, assoc_namespace,
+                          (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                          (a_template_arg_ptr)NULL,
+                          /*nested_instantiation=*/FALSE);
+  /* Add active using directives for the namespaces that should be
+     visible because of the transitivity of using directives. */
+  add_active_using_directives_for_namespace(assoc_namespace,
+                                            &scope_stack[depth_scope_stack]);
+  return scope;
+}  /* push_namespace_scope */
+
+
+static a_scope_depth find_depth_of_common_scope(a_namespace_ptr nsp)
+/*
+Find the innermost scope on the scope stack that is also either the
+namespace pointed to by nsp or is a parent of nsp.  Return the
+depth of the scope stack entry associated with the common scope or
+DEPTH_FILE_SCOPE if there is none.
+*/
+{
+  a_scope_stack_entry_ptr	ssep = NULL;
+  a_scope_depth			common_depth;
+
+  for (; nsp != NULL; nsp = nsp->source_corresp.parent.namespace_ptr) {
+    a_scope_ptr	ns_scope = nsp->variant.assoc_scope;
+    if (ns_scope->depth_in_scope_stack == NO_SCOPE_DEPTH) {
+      /* The scope associated with this namespace is not on the scope stack.
+         Keep looking. */
+      continue;
+    }  /* if */
+    /* Even if the scope is on the stack, it could be invisible because of
+       an intervening instantiation scope.  Look for the namespace in the
+       currently visible scopes. */
+    for (ssep = &scope_stack[depth_innermost_namespace_scope];
+         ssep != NULL;
+         ssep = previous_scope_of(ssep)) {
+      if (ssep->il_scope == ns_scope) break;
+    }  /* for */
+    /* If we found a match, exit the loop. */
+    if (ssep != NULL) break;
+  }  /* for */
+  /* Return DEPTH_FILE_SCOPE if there is no common namespace scope. */
+  common_depth = ssep != NULL ? scope_depth_of(ssep) : DEPTH_OF_FILE_SCOPE;
+  return common_depth;
+}  /* find_depth_of_common_scope */
+
+
+
+
+static
+void push_namespace_extension_for_instantiation(a_namespace_ptr nsp,
+                                                a_namespace_ptr common_nsp,
+                                                a_scope_depth   prev_scope)
+/*
+Push namespace extension scopes needed to instantiate an entity defined
+in the namespace pointed to by nsp.  The scopes to be pushed are nsp
+and its parent scopes up to, but not including, the scope pointed to
+by common_nsp.  Link the previous scope entries so that prev_scope is
+the previous scope of the first scope pushed by this routine.
+*/
+{
+  a_namespace_ptr		parent_nsp;
+
+  /* The entry isn't on the stack.  Push any parent namespaces, then push
+     the specified namespace. */
+  parent_nsp = nsp->source_corresp.parent.namespace_ptr;
+  if (parent_nsp != NULL && parent_nsp != common_nsp) {
+    /* A namespace nested in another namespace.  Push the parent
+       namespace. */
+    push_namespace_extension_for_instantiation(parent_nsp, common_nsp,
+                                               prev_scope);
+    prev_scope = NO_SCOPE_DEPTH;
+  }  /* if */
+  /* Push an entry for the scope. */
+  (void)push_namespace_scope((a_scope_kind)sck_namespace_extension, nsp);
+  if (prev_scope != NO_SCOPE_DEPTH) {
+    /* For the first scope pushed by this routine (the one whose parent is
+       common_nsp), set the previous scope to the one passed from the
+       caller.  For subsequent scopes, prev_scope will have been changed to
+       NO_SCOPE_DEPTH above, so this assignment won't be done. */
+    scope_stack[depth_scope_stack].previous_scope = prev_scope;
+  }  /* if */
+}  /* push_namespace_extension_for_instantiation */
+
+
+static
+void pop_namespace_extension_for_instantiation(a_namespace_ptr common_nsp)
+/*
+Pop the namespace extension scopes that were pushed to create the
+context for an instantiation.  Pop the scopes up to and including the
+namespace extension scope whose parent is common_nsp.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_namespace_ptr		parent_nsp;
+
+  ssep = &scope_stack[depth_scope_stack];
+  check_assertion_str2(ssep->kind == (a_scope_kind)sck_namespace_extension,
+                       "pop_namespace_extension_for_instantiation:",
+                       "entry not namespace extension");
+  /* Pop the reactivation scope. */
+  parent_nsp = ssep->assoc_namespace->source_corresp.parent.namespace_ptr;
+  pop_scope();
+  if (parent_nsp != common_nsp) {
+    /* A nested namespace.  Pop the enclosing namespaces too. */
+    pop_namespace_extension_for_instantiation(common_nsp);
+  }  /* if */
+}  /* pop_namespace_extension_for_instantiation */
+
+
+a_scope_ptr push_template_instantiation_scope
+                           (a_scope_number       scope_number_to_reuse,
+                            a_type_ptr           assoc_type,
+                            a_routine_ptr        assoc_routine,
+                            a_symbol_ptr         instance_sym,
+                            a_symbol_ptr         template_sym,
+                            a_template_arg_ptr   template_arg_list,
+                            a_boolean            nested_instantiation)
+/*
+Interface to push_scope_full that is used for template instantiation
+scopes.
+*/
+{
+  a_scope_ptr			scope;
+  a_namespace_ptr		parent_nsp;
+  a_scope_depth			common_depth;
+  a_namespace_ptr		common_nsp;
+  a_scope_depth			instantiation_prev_scope;
+  a_scope_stack_entry_ptr	ssep;
+  a_scope_depth			context_scope =
+                                              depth_innermost_namespace_scope;
+
+  /* A nested instantiation is one that occurs within an other instantiation
+     scope.  For example, a template friend defined inside a template class.
+     Only do the special namespace processing for the outer instantiation
+     scope. */
+  if (!nested_instantiation) {
+    /* If the template was defined in a namespace, reactivate the namespace
+       scope before pushing the instantiation scope. */
+    if (!template_sym->is_class_member &&
+         template_sym->parent.namespace_ptr != NULL) {
+      parent_nsp = template_sym->parent.namespace_ptr;
+      common_depth = find_depth_of_common_scope(parent_nsp);
+      common_nsp = scope_stack[common_depth].assoc_namespace;
+      if (common_nsp == parent_nsp) {
+        if (common_depth != depth_scope_stack) {
+          instantiation_prev_scope = common_depth;
+        } else {
+          instantiation_prev_scope = depth_scope_stack;
+        }  /* if */
+     } else {
+        /* Reactivate the scope from the common namespace scope through the
+           parent namespace of the template. */
+        push_namespace_extension_for_instantiation(parent_nsp, common_nsp,
+                                                   common_depth);
+        instantiation_prev_scope = depth_scope_stack;
+      }  /* if */
+    } else {
+      parent_nsp = NULL;
+      common_depth = DEPTH_OF_FILE_SCOPE;
+      common_nsp = NULL;
+      instantiation_prev_scope = DEPTH_OF_FILE_SCOPE;
+    }  /* if */
+  }  /* if */
+  scope = push_scope_full((a_scope_kind)sck_template_instantiation,
+                          scope_number_to_reuse, assoc_type, assoc_routine,
+                          (a_namespace_ptr)NULL, instance_sym, template_sym,
+                          template_arg_list, nested_instantiation);
+  if (!nested_instantiation) {
+    ssep = &scope_stack[depth_scope_stack];
+    ssep->previous_scope = instantiation_prev_scope;
+    ssep->instantiation_context_scope = context_scope;
+    ssep->instantiation_common_scope = common_depth;
+    /* Update the depth of the innermost instantiation scope so that it points
+       to the namespace that is the parent of the template being
+       instantiated. */
+    depth_innermost_namespace_scope = instantiation_prev_scope;
+    check_assertion(scope_stack[instantiation_prev_scope].assoc_namespace ==
+                                                                   parent_nsp);
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("instantiation_scope")) {
+      fprintf(f_debug, "Pushed instantiation scope for: ");
+      db_symbol(instance_sym, "", 0);
+      fprintf(f_debug, "scope stack after instantiation scope:\n");
+      db_scope_stack();
+      fprintf(f_debug, "context_scope=%0d, common_scope=%0d\n", context_scope,
+              common_depth);
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+  return scope;
+}  /* push_template_instantiation_scope */
+
+
+void pop_template_instantiation_scope(void)
+/*
+Interface to pop_scope that is used for template instantiation scopes.
+*/
+{
+  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+  a_symbol_ptr			template_sym;
+  a_namespace_ptr		common_nsp;
+  a_namespace_ptr		parent_nsp;
+
+  check_assertion_str2(ssep->kind == (a_scope_kind)sck_template_instantiation,
+                       "pop_template_instantiation_scope:",
+                       "current scope is not instantiation scope");
+  template_sym = ssep->template_sym;
+  common_nsp = scope_stack[ssep->instantiation_common_scope].assoc_namespace;
+  /* Pop the actual template instantiation scope. */
+  pop_scope();
+  /* If the template was defined in a namespace, reactivate the namespace
+     scope before pushing the instantiation scope. */
+  if (!template_sym->is_class_member &&
+       template_sym->parent.namespace_ptr != NULL) {
+    parent_nsp = template_sym->parent.namespace_ptr;
+    if (common_nsp != parent_nsp) {
+      pop_namespace_extension_for_instantiation(common_nsp);
+    }  /* if */
+  }  /* if */
+}  /* pop_template_instantiation_scope */
+
+
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+static
+a_boolean check_for_file_scope_type_with_same_name(a_symbol_ptr sym_to_find)
+/*
+This routine is used to implement the "transitional model" for nested types.
+Given a symbol this routine looks for a file scope type (class, struct, union,
+typedef, or enum) with the same name.  Returns TRUE if one is found, FALSE
+otherwise.
+*/
+{
+  a_symbol_ptr   sym;
+  a_boolean      found = FALSE;
+
+  sym = sym_to_find->header->symbol;
+  while (sym != NULL) {
+    if (sym->decl_scope == FILE_SCOPE_NUMBER) {
+      /* Look for class, struct, union, enum, or typedef. */
+      if (is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) {
+        found = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+    sym = sym->next;
+  }  /* while */
+  return found;
+}  /* check_for_file_scope_type_with_same_name */
+
+
+static
+a_symbol_ptr find_cfront_transitional_nested_type_symbol
+                                             (a_symbol_ptr sym_to_find)
+/*
+Given a symbol looks through the inactive list for a type symbol
+of the same name whose type has the transitional name mangling flag set.
+This is used for error generation of the transitional model for nested
+type support.
+*/
+{
+  a_symbol_ptr  sym;
+
+  sym = sym_to_find->header->inactive_symbols;
+  while (sym != NULL) {
+    /* Look for class, struct, union, enum, or typedef. */
+    if (is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) {
+      a_type_ptr  sym_type = type_symbol_type(sym);
+      if (sym_type->use_cfront_transitional_nested_type_name_mangling) {
+        break;
+      }  /* if */
+    }  /* if */
+    sym = sym->next;
+  }  /* while */
+  return sym;
+}  /* find_cfront_transitional_nested_type_symbol */
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+
+
+static void check_referenced_member_functions(a_scope_ptr  scope,
+                                              a_boolean    is_function_local)
+/*
+If scope is a class scope, issue an error for any of its member functions
+that have been referenced but are undefined and lack external linkage (i.e.,
+inline member functions and member functions of local classes); if the class
+has nested classes, check their member functions, too.  If it is not a class
+scope, apply that check to the member functions of each class declared in
+the scope.  is_function_local is TRUE if this scope belongs to a function
+body.  Only called in C++ mode.
+*/
+{
+  a_routine_ptr  rp;
+  a_type_ptr     tp;
+  a_scope_ptr    class_scope;
+  a_symbol_ptr   sym;
+
+  /* Examine each of the class types on the types list of the scope.  If
+     this is a class scope, it picks up the nested classes. */
+  for (tp = scope->types; tp != NULL; tp = tp->next) {
+    if (is_immediate_class_type(tp)) {
+      class_scope = tp->variant.class_struct_union.extra_info->assoc_scope;
+      if (class_scope != NULL) {
+        /* Check the member functions of the nested class. */
+        check_referenced_member_functions(class_scope, is_function_local);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* If this is a file, function, or block scope, do nothing more.  If it's
+     a class scope, check its member functions. */
+  if (scope->kind == (a_scope_kind)sck_class_struct_union) {
+    /* Now go though each routine entry for the current class. */
+    for (rp = scope->routines; rp != NULL; rp = rp->next) {
+      /* If the member function was referenced but not defined and was declared
+         inline or is a local class member, it may need a diagnostic. */
+      if (rp->source_corresp.referenced &&
+          rp->assoc_scope == NULL_region_number &&
+          (is_function_local || rp->is_inline)) {
+        /* Referenced but never defined. */
+        if (rp->compiler_generated || (rp->is_virtual && !rp->pure_virtual)) {
+          /* These cases are handled elsewhere. */
+        } else {
+          sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+          if (sym != NULL) {
+            /* Put out the error. */
+            pos_sy_error(is_function_local ?
+                               ec_local_class_function_def_missing :
+                               ec_never_defined,
+                         &sym->decl_position, sym);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* check_referenced_member_functions */
+
+
+static void report_unreferenced(a_symbol_ptr  	  sym,
+                                an_error_code	  error_code,
+			        an_error_severity normal_severity)
+/*
+Issue a warning for an unreferenced entity.  However, demote the warning to
+a remark if the entity is a file-scope entity declared in an include file.
+*/
+{
+  if (normal_severity == es_remark ||
+      (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+       seq_is_in_include_file(sym->decl_position.seq))) {
+    pos_sy_remark(error_code, &sym->decl_position, sym);
+  } else {
+    pos_sy_warning(error_code, &sym->decl_position, sym);
+  }  /* if */
+}  /* report_unreferenced */
+
+
+/*
+Return TRUE if a type is a completable incomplete type, i.e., it's incomplete
+but it's not void.
+*/
+#define is_completable_type(tp)                                       \
+  (is_incomplete_type(tp) && !is_void_type(tp))
+
+
+/*
+Return TRUE if a type is an array type whose elements have a complete
+type.  This rules out arrays of incomplete struct/union types (an extension).
+*/
+#define is_array_with_complete_element_type(tp)                       \
+  (is_array_type(tp) && !is_incomplete_type(array_element_type(tp)))
+
+
+static void end_of_scope_symbol_check(a_symbol_ptr  sym,
+                                      a_routine_ptr curr_routine)
+/*
+The symbol sym is about to be removed from the symbol table at the end of
+a scope.  Do any checking or processing required (e.g., issue a warning
+message if the symbol is unreferenced).  If the scope that is ending is
+for a function, curr_routine points to the routine entry; otherwise, it is
+NULL.
+*/
+{
+  a_storage_class storage_class;
+  a_type_ptr      var_type, type_ptr;
+  a_variable_ptr  var_ptr;
+  a_routine_ptr   rout_ptr;
+#if CHECKING
+  a_source_correspondence  *scp = NULL;
+#endif /* CHECKING */
+
+  switch (sym->kind) {
+    case sk_variable:
+      /* Variable or parameter. */
+      var_ptr = sym->variant.variable.ptr;
+      storage_class = var_ptr->storage_class;
+      if (storage_class == (a_storage_class)sc_unspecified) {
+        /* Note that if this test succeeds (i.e., the variable has
+           storage class sc_unspecified), we do not do the test for
+           referenced.  That's because an external variable can be assumed
+           to be referenced from another compilation unit.  The referenced
+           flag in the IL entry is set slightly later, in the
+           sk_extern_variable processing. */
+      } else if (storage_class == (a_storage_class)sc_extern) {
+        /* No warning for unused "extern" variables; this is a long-standing
+           C convention. */
+      } else if (C_dialect == C_dialect_cplusplus &&
+                 depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+                 is_const_qualified_type(var_ptr->type) &&
+                 seq_is_in_include_file(sym->decl_position.seq)) {
+        /* Since a const variable defined in a header is the C++ idiom
+           corresponding to #define, issue no diagnostic on not using it. */
+      } else if (var_ptr->is_parameter) {
+        if (!sym->referenced) {
+          /* An unreferenced parameter.  Warn unless a lint-style "argsused"
+             comment appeared.  Also do not warn for parameters of "main". */
+#if CHECKING
+          if (curr_routine == NULL) {
+            internal_error(
+               "end_of_scope_symbol_check: parameter with no assoc routine");
+          }  /* if */
+#endif /* CHECKING */
+          /* In C++ a routine type can have type qualifiers above it. */
+          if (skip_typerefs(curr_routine->type)->variant.routine.
+                                              extra_info->lint_argsused_flag) {
+            /* The "argsused" flag was specified, so no warning is issued. */
+          } else if (curr_routine == il_header.main_routine) {
+            /* No warning for arguments of the main program, since
+               they're dictated by the environment. */
+#if ASM_FUNCTION_ALLOWED
+          } else if (curr_routine->storage_class == (a_storage_class)sc_asm) {
+            /* Parameters of "asm" functions are not referenced in the 
+               usual way, so do not issue warnings. */
+#endif /* ASM_FUNCTION_ALLOWED */
+          } else {
+            /* Unreferenced parameter. */
+            report_unreferenced(sym, ec_declared_but_not_referenced,
+                                es_remark);
+          }  /* if */
+        } else if (var_ptr->param_value_has_been_changed &&
+                   !sym->variant.variable.used) {
+          report_unreferenced(sym, ec_set_but_not_used, es_warning);
+        }  /* if */
+      } else if (var_ptr->is_handler_param) {
+        /* A handler parameter. */
+        if (!sym->referenced) {
+          /* Unreferenced handler parameter. */
+          report_unreferenced(sym, ec_declared_but_not_referenced,
+                              es_remark);
+        } else if (var_ptr->param_value_has_been_changed &&
+                   !sym->variant.variable.used) {
+          report_unreferenced(sym, ec_set_but_not_used, es_warning);
+        }  /* if */
+      } else if (!sym->referenced ||
+                 (sym->variant.variable.value_has_been_set &&
+                  !sym->variant.variable.used)) {
+        /* An unreferenced or unused variable or an unused parameter. */
+        a_boolean           suppress_warning;
+        an_error_code       error_code;
+        an_error_severity   severity;
+        an_init_kind        init_kind;
+        an_initializer_ptr  ip;
+
+        /* Check for a dynamic initialization that has side effects (such as
+           a constructor call).  If such an initialization exists, issue a
+           remark rather than a warning. */
+        get_variable_initializer(var_ptr,
+                                 scope_stack[depth_scope_stack].il_scope,
+                                 &init_kind, &ip);
+        if (init_kind == (an_init_kind)initk_dynamic &&
+            (dynamic_init_has_side_effects(ip->dynamic, &suppress_warning) ||
+             suppress_warning)) {
+          severity = es_remark;
+        } else {
+          severity = es_warning;
+        }  /* if */
+        /* Issue different warnings depending on whether the variable was
+           completely unreferenced or was set but not used. */
+        if (!sym->referenced) {
+          error_code = ec_declared_but_not_referenced;
+        } else {
+          check_assertion(sym->variant.variable.value_has_been_set);
+          error_code = ec_set_but_not_used;
+        }  /* if */
+        report_unreferenced(sym, error_code, severity);
+      }  /* if */
+#if CHECKING
+      scp = &var_ptr->source_corresp;
+#endif /* CHECKING */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Do fixup on the source sequence entry for a tentative definition. */
+      if (C_mode() && depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+          sym->defined) {
+        a_source_sequence_entry_ptr   ssep;
+        a_src_seq_secondary_decl_ptr  sssdp;
+
+        ssep = var_ptr->source_corresp.source_sequence_entry;
+        if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+          /* This source sequence entry must represent a tentative definition
+             of the variable (the first, if there were more than one) -- turn
+             it into a primary declaration. */
+          sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+#if CHECKING
+          check_assertion(sssdp->decl_position.seq == scp->decl_position.seq &&
+                          sssdp->decl_position.column ==
+                                                  scp->decl_position.column);
+#endif /* CHECKING */
+          ssep->entity.kind = (a_byte_il_entry_kind)iek_variable;
+          ssep->entity.ptr = (char *)var_ptr;
+          check_assertion(var_ptr->declared_type == NULL);
+          var_ptr->declared_type = sssdp->declared_type;
+        }  /* if */
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      break;
+    case sk_overloaded_function:
+      /* For each function or function template symbol on the overload list
+         do the check. */
+      for (sym = sym->variant.overloaded_function.symbols;
+           sym != NULL;
+           sym = sym->next) {
+        end_of_scope_symbol_check(sym, curr_routine);
+      }  /* for */
+      break;
+#if CHECKING
+    case sk_member_function:
+      rout_ptr = sym->variant.routine.ptr;
+      scp = &rout_ptr->source_corresp;
+      break;
+#endif /* CHECKING */
+    case sk_routine:
+      /* Function. */
+      rout_ptr = sym->variant.routine.ptr;
+      storage_class = rout_ptr->storage_class;
+      if (storage_class == (a_storage_class)sc_unspecified) {
+        /* Regard functions with "unspecified" storage class to be referenced
+           somewhere, even if not in the current translation unit. */
+        rout_ptr->source_corresp.referenced = TRUE;
+        sym->referenced = TRUE;
+      } else if (rout_ptr->source_corresp.referenced) {
+        /* Referenced function.  We check the IL referenced flag because
+           a reference in, say, a sizeof operation doesn't count. */
+        if (storage_class == (a_storage_class)sc_static &&
+            depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+            rout_ptr->assoc_scope == NULL_region_number) {
+          /* A non-external routine that is referenced was never given
+             a body (3.7, constraints).  This is checked only at the file
+             scope because there can be symbols with linkage defined in
+             inner scopes, but only the file scope declaration can have
+             a body. */
+          if (C_dialect == C_dialect_pcc) {
+            /* In pcc mode, just change the routine to extern. */
+            rout_ptr->storage_class = (a_storage_class)sc_extern;
+            rout_ptr->source_corresp.name_linkage =
+                                         (a_name_linkage_kind)nlk_external;
+          } else {
+            pos_sy_error(ec_never_defined,
+                         &sym->decl_position, sym);
+          }  /* if */
+        }  /* if */
+      } else if (!sym->referenced) {
+        /* Unreferenced function. */
+        if (storage_class == (a_storage_class)sc_extern) {
+          /* No warning on unused "extern" routines; this is a
+             long-standing C tradition. */
+        } else if (rout_ptr->is_inline && sym->defined &&
+                   seq_is_in_include_file(sym->decl_position.seq)) {
+          /* No diagnostic on inline non-member functions defined in a header
+             file. */
+#if ASM_FUNCTION_ALLOWED
+        } else if (storage_class == (a_storage_class)sc_asm) {
+          /* "asm" functions don't generate any code unless referenced,
+             and may appear in header files, so no warning is generated. */
+#endif /* ASM_FUNCTION_ALLOWED */
+        } else {
+          /* An unreferenced routine. */
+          report_unreferenced(sym, ec_declared_but_not_referenced,
+			      es_warning);
+        }  /* if */
+      }  /* if */
+#if CHECKING
+      scp = &rout_ptr->source_corresp;
+#endif /* CHECKING */
+      break;
+    case sk_class_or_struct_tag:
+    case sk_union_tag:
+    case sk_enum_tag:
+      /* Struct, union, or enum tag. */
+      type_ptr = type_symbol_type(sym);
+      if (is_incomplete_type(type_ptr)) {
+        /* A tag that was never completed.  This is not an error. It's not
+           even a warning, because people really do this intentionally.
+           Declaring something of this type would be an error; declaring
+           something a pointer to this type would be allowed. */
+        if (scope_stack[depth_scope_stack].kind ==
+                               (a_scope_kind)sck_template_instantiation) {
+          /* Type was declared in a prototype instantiation.  It should not
+             be added to a types list. */
+        } else if (sym->reentered_from_prototype_scope) {
+          /* Tags reentered from the prototype scope should not be added
+             again -- they will have been added when the prototype scope was
+             popped. */
+        } else if (sym->kind != (a_symbol_kind)sk_enum_tag &&
+                   !is_real_class_symbol(sym)) {
+          /* Non-real template class instantiation. */
+        } else if (type_ptr->source_corresp.is_class_member &&
+                   (scope_stack[depth_scope_stack].kind !=
+                            (a_scope_kind)sck_class_struct_union ||
+                    scope_stack[depth_scope_stack].assoc_type !=
+                            type_ptr->source_corresp.parent.class_type)) {
+          /* This must be the symbol for an anonymous union member type that
+             has been promoted out of the scope of the anonymous union.
+             The type is already on a list. */
+        } else {
+          /* Add it now to the current scope's type list.  It was not added
+             previously because no actual definition appeared. */
+          add_to_types_list(type_ptr, depth_scope_stack);
+        }  /* if */
+      }  /* if */
+#if CHECKING
+      scp = &type_ptr->source_corresp;
+#endif /* CHECKING */
+      break;
+    case sk_label:
+      /* Label. */
+      if (sym->variant.label.ptr->variant.exec_stmt == NULL) {
+        /* A label that was used but never defined. */
+        pos_sy_error(ec_never_defined, &sym->decl_position, sym);
+      } else if (!sym->referenced) {
+        /* An unreferenced label. */
+        report_unreferenced(sym, ec_declared_but_not_referenced,
+			    es_warning);
+      }  /* if */
+      break;
+    case sk_extern_variable:
+      /* Symbol for a variable with linkage. */
+      var_ptr = sym->variant.extern_symbol_descr->variant.variable;
+      storage_class = var_ptr->storage_class;
+      var_type = skip_typerefs(var_ptr->type);
+      /* Look for variables that have retained an incomplete type
+         that isn't just plain "void". */
+      if (is_completable_type(var_type)) {
+        if ((storage_class == (a_storage_class)sc_unspecified ||
+             (C_dialect != C_dialect_cplusplus &&
+              storage_class == (a_storage_class)sc_static)) &&
+            is_array_with_complete_element_type(var_type)) {
+          /* A file-scope incomplete array with no storage class, for example
+             "int a[];" at file scope; or else (in C mode) a file-scope
+             incomplete array with static storage class.  Such an array is
+             defined by the standard (3.7.2 semantics) to be equivalent
+             to "int a[] = {0};"; change the size to 1 here.  However, if
+             the extern_variable entry has more complete type information
+             (i.e., an exact dimension), use that.  Note that no explicit
+             check for scope depth is required since sk_extern_variable
+             symbols are generated for file-scope variables only. */
+          /* The test for complete element type disallows arrays of
+             incomplete struct/unions (which are an extension). */
+          if (!is_incomplete_type(sym->variant.extern_symbol_descr->type)){
+            /* The external symbol entry has a dimension for the array.
+               Use it.  This would happen for
+                 int a[];
+                 main () {extern int a[5];}
+            */
+            var_ptr->type = sym->variant.extern_symbol_descr->type;
+          } else {
+            /* There is no additional information; the array has an
+               unknown size. */
+            if (C_dialect != C_dialect_pcc ||
+                storage_class == (a_storage_class)sc_static) {
+              /* Change the array size to 1. */
+              a_type_ptr array_type = alloc_type((a_type_kind)tk_array);
+              copy_type(var_type, array_type);
+              check_assertion(
+                          !array_type->variant.array.is_variable_size_array);
+              array_type->variant.array.variant.number_of_elements = 1;
+              set_type_size(array_type);
+              var_ptr->type = array_type;
+              /* No need to call check_linked_entity_type here.  We
+                 know elem[] and elem[1] are compatible. */
+            } else {
+              /* pcc mode.  Leave the size as zero but change the
+                 storage class to extern. */
+              var_ptr->storage_class = (a_storage_class)sc_extern;
+            }  /* if */
+          }  /* if */
+        } else if (storage_class != (a_storage_class)sc_extern) {
+          /* A file-scope variable that defines storage and has
+             an incomplete type, as in "struct incomplete v;".  Issue an
+             error.  Note that arrays like this, except for static arrays,
+             were handled above. */
+          pos_st_error(ec_var_retained_incomp_type, &sym->decl_position,
+                       sym->header->identifier);
+        }  /* if */
+      }  /* if */
+      /* If the storage class remains sc_unspecified, set the
+         referenced flag now to indicate possible references from other
+         compilation units. */
+      if (var_ptr->storage_class == (a_storage_class)sc_unspecified) {
+        var_ptr->source_corresp.referenced = TRUE;
+      }  /* if */
+      break;
+#if CHECKING
+    case sk_static_data_member:
+      scp = &sym->variant.static_data_member.variable->source_corresp;
+      break;
+    case sk_constant:
+      scp = &sym->variant.constant->source_corresp;
+      break;
+    case sk_field:
+      if (sym->variant.field.anonymous_parent_object == NULL) {
+        scp = &sym->variant.field.ptr->source_corresp;
+      } else {
+        a_symbol_ptr  apo_sym;
+
+        for (apo_sym = sym->variant.field.anonymous_parent_object;
+             apo_sym->kind == (a_symbol_kind)sk_field;
+             apo_sym = apo_sym->variant.field.anonymous_parent_object) {
+          if (apo_sym->variant.field.anonymous_parent_object == NULL) {
+            scp = &apo_sym->variant.field.ptr->source_corresp;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+      break;
+    case sk_type:
+      scp = &sym->variant.type->source_corresp;
+      break;
+#endif /* CHECKING */
+    case sk_class_template:
+      {
+      a_template_symbol_supplement_ptr  tssp;
+      a_symbol_ptr                      template_class_sym;
+      tssp = sym->variant.template_info;
+      template_class_sym = tssp->variant.class_template.instantiations;
+      for (; template_class_sym != NULL;
+             template_class_sym = template_class_sym->next) {
+
+        if (template_class_sym->
+                    variant.class_struct_union.extra_info->is_nonreal_class) {
+          /* Skip the recursive check for prototype instantiation of a class
+             template. */
+        } else {
+          end_of_scope_symbol_check(template_class_sym, curr_routine);
+        }  /* if */
+      }  /* for */
+      }
+      break;
+    case sk_function_template:
+      {
+      a_template_instance_ptr  tip;
+
+      tip = sym->variant.template_info->variant.function.instantiations;
+      for (; tip != NULL; tip = tip->next) {
+        if (tip->specific_decl) {
+          /* A user declaration was provided, so the associated symbol should
+             be on the overload list -- ignore it here. */
+        } else {
+          end_of_scope_symbol_check(tip->instance_sym, curr_routine);
+        }  /* if */
+      }  /* for */
+      }
+    default:
+      /* No processing for other kinds. */
+      break;
+  }  /* switch */
+#if CHECKING
+  if (scp != NULL) {
+    if (sym->is_class_member == scp->is_class_member &&
+        (!sym->is_class_member ||
+         sym->parent.class_type == scp->parent.class_type)) {
+      /* Okay */
+    } else if (scp->is_class_member &&
+               scp->parent.class_type->variant.class_struct_union.extra_info->
+                 anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
+      /* Okay */
+    } else {
+      unexpected_condition_str2("end_of_scope_symbol_check:",
+                                "sym/il-entry parent-class mismatch");
+    }  /* if */
+  }  /* if */
+#endif /* if */
+}  /* end_of_scope_symbol_check */
+
+
+static void nested_class_anachronism_processing(a_symbol_ptr symbol_list,
+                                                a_boolean    do_tags,
+                                                a_boolean    do_typedefs)
+/*
+This routine is called to process the symbols of a class scope to
+determine whether any nested types should be visible for
+nested class anachronism processing.  It is also used in
+cfront 2.1 object compatibility mode to determine whether any of
+the symbols should receive special treatment when generating
+the mangled named for the nested type.  do_tags is TRUE if tag symbols
+should be processed, otherwise they should be ignored.  do_typedefs
+is TRUE if typedef symbols should be processed.  Both may be TRUE.
+When cfront 2.1 object compatibility and cfront 2.1 mode are being used,
+this routine is called twice.  Tag symbols are processed the first time,
+and typedefs the second time.
+*/
+{
+  a_symbol_ptr	sym;
+
+  for (sym = symbol_list; sym != NULL; sym = sym->next_in_scope) {
+    /* Check for nested class/struct/unions on the inactive list.  If
+       there are any, set the flag in the symbol header.  This is
+       used to support the nonnested class anachronism.  We do not
+       apply the anachronism to template classes. */
+    if ((do_tags && is_tag_symbol(sym)) ||
+        (do_typedefs && sym->kind == (a_symbol_kind)sk_type)) {
+      sym->header->any_nested_types_on_inactive_list = TRUE;
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+      /* Cfront 2.1 implements a special "transitional model" for nested
+         types.  Under this model cfront promotes nested types to the file
+         scope unless a file scope type of the same name is already
+         defined.  Subsequent definition of additional nested types with
+         the same name is an error.  This code, which simulates the
+         cfront behavior, sets a flag for the first nested type with
+         a given name and issues errors on subsequent definitions. */
+      if (cfront_2_1_mode) {
+        /* Only do this if the name is not a type name at file
+           scope. */
+        if (!check_for_file_scope_type_with_same_name(sym)) {
+          if (!sym->header->has_cfront_transitional_nested_type_mangled_name) {
+            a_type_ptr   sym_type;
+            sym_type = type_symbol_type(sym);
+            sym->header->
+                       has_cfront_transitional_nested_type_mangled_name = TRUE;
+            sym_type->use_cfront_transitional_nested_type_name_mangling = TRUE;
+          } else {
+            a_symbol_ptr other_sym;
+            other_sym = find_cfront_transitional_nested_type_symbol(sym);
+            if (other_sym != NULL) {
+              /* other_sym can be NULL in certain cases where the transitional
+                 nested type flag has already been set for another symbol
+                 in the same class.  This can occur for cases like
+                   typedef class {} A;
+                 which results in two symbols being created in cfront mode. */
+              pos_sy2_error(ec_cfront_multiple_nested_types,
+                            &sym->decl_position, sym, other_sym);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+    }  /* if */
+  }  /* for */
+}  /* nested_class_anachronism_processing */
+
+
+static void do_nested_class_anachronism_processing(a_symbol_ptr symbol_list)
+/*
+This is an interface routine to nested_class_anachronism_processing.
+When generating cfront 2.1 compatible object code, and in cfront 2.1 mode,
+the processing is done in two passes: first any tag symbols are processed,
+then any typedef symbols.  This ensures that if both a tag and a typedef
+have the same name, the tag will receive the special transitional
+nested type name mangling.
+
+In other modes, nested_class_anachronism_processing is only called once,
+and all symbols are processed in that one pass.
+*/
+{
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+  a_boolean	separate_typedef_pass = cfront_2_1_mode;
+  nested_class_anachronism_processing(symbol_list,
+                                      /*do_tags=*/TRUE,
+                                      !separate_typedef_pass);
+  if (separate_typedef_pass) {
+    nested_class_anachronism_processing(symbol_list,
+                                        /*do_tags=*/FALSE,
+                                        /*do_typedefs=*/TRUE);
+  }  /* if */
+#else /* !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+  nested_class_anachronism_processing(symbol_list,
+                                      /*do_tags=*/TRUE,
+                                      /*do_typedefs=*/TRUE);
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+}  /* do_nested_class_anachronism_processing */
+
+
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+static
+void file_scope_transitional_nested_type_processing(a_symbol_ptr symbol_list)
+/*
+Look for file scope symbols that have the "cfront transitional" nested
+type flag set.  This indicates that a file scope symbol with the same
+name was defined after the nested class was seen.  This is an error
+in cfront compatibility mode.
+*/
+{
+  a_symbol_ptr	sym;
+  for (sym = symbol_list; sym != NULL; sym = sym->next_in_scope) {
+    if (sym->header->has_cfront_transitional_nested_type_mangled_name) {
+      if (is_type_symbol(sym)) {
+        a_type_ptr	sym_type = type_symbol_type(sym);
+        if (sym_type->use_cfront_transitional_nested_type_name_mangling) {
+          /* The symbol being popped is already designated as the
+             transitional nested type, don't issue an error.  This can
+             occur when the type is promoted out of an anonymous union and
+             reentered on the active list at file scope. */
+        } else {
+          a_symbol_ptr other_sym;
+          other_sym = find_cfront_transitional_nested_type_symbol(sym);
+          pos_sy2_error(ec_cfront_global_defined_after_nested_type,
+                        &sym->decl_position, sym, other_sym);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* file_scope_transitional_nested_type_processing */
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+
+
+static
+void wrapup_scope(a_scope_ptr			scope_ptr,
+                  a_scope_kind			kind,
+                  a_scope_pointers_block_ptr	pointers_block,
+                  a_boolean 	                is_namespace_wrapup)
+/*
+Do the processing required when a scope is closed.  This includes
+doing any necessary end-of-scope processing on the symbols from
+the scope.  This routine does processing that is done for scopes as they
+are popped off of the stack and also for namespace scopes and the end
+of the translation unit.
+
+scope_ptr points to the IL scope entry associated with this scope,
+and may be NULL.  is_namespace_wrapup is TRUE if this call is
+used to do the final namespace processing at the end of the translation
+unit.
+*/
+{
+  a_symbol_ptr			sym;
+
+  db_enter(3, "wrapup_scope");
+  if (kind == (a_scope_kind)sck_namespace_extension ||
+      kind == (a_scope_kind)sck_namespace_reactivation) {
+    /* Symbol processing is not done for namespace extension and
+       reactivation scopes. */
+  } else {
+    a_boolean                is_prototype_instantiation = FALSE;
+    a_routine_ptr            curr_routine = NULL;
+    /* Check for prototype instantiation of a class template. */
+    if (kind == (a_scope_kind)sck_function) {
+      /* If the scope is for a routine, get a pointer to the routine. */
+      curr_routine = scope_ptr->variant.routine.ptr;
+    }  /* if */
+    if (kind == (a_scope_kind)sck_class_struct_union && !C_mode() &&
+        (symbol_supplement_for_class(scope_ptr->variant.assoc_type))->
+                                                            is_nonreal_class) {
+      is_prototype_instantiation = TRUE;
+    }  /* if */
+    /* Remove the symbols declared in this scope from the symbol table.
+       Check for unreferenced symbols, and issue warnings for those. */
+    for (sym = pointers_block->symbols;
+         sym != NULL;
+         sym = sym->next_in_scope) {
+      if (kind == (a_scope_kind)sck_func_prototype && !is_tag_symbol(sym)) {
+        /* Don't check on symbols entered in the scope of a function prototype.
+           They will be reentered in the scope of the function and should be
+           checked when the function scope is popped.  Tag symbols are
+           checked because tags associated with incomplete types need to
+           be put on the types list of the prototype scope. */
+      } else if (is_prototype_instantiation) {
+        /* Don't check on symbols entered in the scope of a class template
+           prototype instantiation -- the information may not be complete. */
+      } else if (kind == (a_scope_kind)sck_namespace && !is_namespace_wrapup) {
+        /* Don't check symbols in namespaces and namespace extensions because
+           we don't have complete information yet.  This will be done at the
+           end of the file scope. */
+      } else {
+        end_of_scope_symbol_check(sym, curr_routine);
+      }  /* if */
+      if (sym->kind == (a_symbol_kind)sk_extern_variable ||
+          sym->kind == (a_symbol_kind)sk_extern_routine) {
+        /* Extern variable and routine symbols were not really entered into
+           the symbol table proper, so don't try to remove them or add them to
+           the inactive list. */
+        continue;
+      }  /* if */
+      if (kind == (a_scope_kind)sck_namespace && is_namespace_wrapup) {
+        /* Namespace symbols were removed from the symbol table when the
+           namespace was first closed.  Don't do it again now. */
+      } else {
+        /* Remove the symbol from the symbol table.  This is not done for
+           namespace extension scopes because symbols from namespace extension
+           scopes are put directly on the inactive list.  The symbol list from
+           the scope entry includes all symbols in the namespace, not only
+           those added as a result of this extension.  (Note that symbols are
+           not removed from the scope list.  This is because they must
+           sometimes remain accessible and the scope list, saved away in some
+           other data structure, is a convenient way to get at them again.) */
+        unlink_symbol_from_symbol_table(sym);
+      }  /* if */
+      /* Put struct/union/class members, namespace members, and template
+         parameters on the inactive list of the proper symbol header.  For
+         namespace members, this only needs to be done for the initial
+         definition.  When a namespace extension is done, the symbols are
+         added directly to the inactive list. */
+      if (kind == (a_scope_kind)sck_class_struct_union ||
+          (kind == (a_scope_kind)sck_namespace && !is_namespace_wrapup) ||
+          kind == (a_scope_kind)sck_template_declaration) {
+        add_symbol_to_inactive_list(sym);
+      }  /* if */
+    }  /* for */
+    if (kind == (a_scope_kind)sck_namespace) {
+    } else {
+      /* Remove any synthesized namespace projection symbols from the
+         others_symbols list of the symbol header. */
+      for (sym = pointers_block->synth_namespace_projection_symbols;
+           sym != NULL;
+           sym = sym->next_in_scope) {
+        a_symbol_ptr	prev_sym = NULL;
+        a_symbol_ptr	other_sym;
+        /* Symbols that are not reusable will not be on the other symbols
+           list. */
+        if (sym->do_not_reuse) continue;
+        for (other_sym = sym->header->other_symbols;
+             other_sym != NULL; other_sym = other_sym->next) {
+          if (other_sym == sym) break;
+          prev_sym = other_sym;
+        }  /* for */
+        check_assertion_str2(other_sym != NULL, "wrapup_scope:",
+                             "synth sym not on other_symbols list");
+        if (prev_sym == NULL) {
+          /* The symbol is the first one on the list.  Remove it by setting
+             the list to its next pointer. */
+          sym->header->other_symbols = sym->next;
+        } else {
+          /* Remove the symbol from the linked list. */
+          prev_sym->next = sym->next;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  db_exit();
+}  /* wrapup_scope */
+
+
+static void wrapup_namespace_scopes(a_scope_ptr scope_ptr)
+/*
+Call wrapup_scope for any namespace scopes defined within the scope
+pointed to by scope_ptr.
+*/
+{
+  a_namespace_ptr	nsp = scope_ptr->namespaces;
+
+  while (nsp != NULL) {
+    if (!nsp->is_namespace_alias) {
+      a_scope_pointers_block_ptr	pointers_block;
+      a_scope_ptr			assoc_scope = nsp->variant.assoc_scope;
+      pointers_block = &namespace_supplement_for_namespace(nsp)->
+                                                                pointers_block;
+      wrapup_scope(assoc_scope, assoc_scope->kind,
+                   pointers_block, /*is_namespace_wrapup=*/TRUE);
+      /* Process any namespaces defined within this one. */
+      wrapup_namespace_scopes(assoc_scope);
+    }  /* if */
+    nsp = nsp->next;
+  }  /* while */
+}  /* wrapup_namespace_scopes */
+
+
+void pop_scope(void)
+/*
+End a name scope by popping an entry off the scope stack.
+*/
+{
+  a_scope_stack_entry_ptr  ssep, parent_ssep;
+  a_scope_pointers_block_ptr pointers_block;
+  a_routine_ptr            curr_routine = NULL;
+  a_memory_region_number   old_memory_region_number, new_memory_region_number;
+  a_scope_kind             kind;
+  an_extern_type_fixup_ptr etfp;
+  a_scope_depth            scope_depth;
+  a_boolean                old_region_still_needed;
+  a_scope_ptr              il_scope;
+
+  db_enter(3, "pop_scope");
+  ssep = &scope_stack[depth_scope_stack];
+  pointers_block = assoc_pointers_block_of(ssep);
+  kind = ssep->kind;
+  if (kind == (a_scope_kind)sck_function) {
+    /* If the scope is for a routine, get a pointer to the routine. */
+    curr_routine = ssep->il_scope->variant.routine.ptr;
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 3) {
+    if (pointers_block->symbols != NULL || debug_level >= 4) {
+      fprintf(f_debug, "pop_scope: number = %d, depth = %d",
+              ssep->number, depth_scope_stack);
+      if (curr_routine != NULL) {
+        (void)fputs(", curr_routine = \"", f_debug);
+        db_name(&curr_routine->source_corresp);
+        (void)fputc('"', f_debug);
+      } else if ((kind == (a_scope_kind)sck_class_struct_union ||
+                  kind == (a_scope_kind)sck_class_reactivation) &&
+                 ssep->assoc_type != NULL) {
+        (void)fputs(", class = \"", f_debug);
+        db_name(&ssep->assoc_type->source_corresp);
+        (void)fputc('"', f_debug);
+      } else if ((kind == (a_scope_kind)sck_namespace ||
+                  kind == (a_scope_kind)sck_namespace_reactivation ||
+                  kind == (a_scope_kind)sck_namespace_extension) &&
+                 ssep->il_scope != NULL &&
+                 ssep->il_scope->variant.assoc_namespace != NULL) {
+        (void)fprintf(f_debug, ", namespace%s = \"",
+                      kind == (a_scope_kind)sck_namespace ? "" : "-ext");
+        db_name(&ssep->il_scope->variant.assoc_namespace->source_corresp);
+        (void)fputc('"', f_debug);
+      } else {
+        fputs(", kind = ", f_debug);
+        (void)db_scope_kind(kind);
+      }  /* if */
+      (void)fputc('\n', f_debug);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+  /* Determine whether types defined in this scope should be handled
+     as semivisible types.  Template classes and classes nested within
+     template classes do not have this processing done. */
+  if (allow_anachronisms &&
+      depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
+    a_boolean do_semivisible_type_processing = TRUE;
+    /* Loop back through the scope stack until we find a scope that is
+       not a class_struct_union scope or until we find a class_struct_union
+       scope that is a template class_struct_union. */
+    a_scope_depth sd = depth_scope_stack;
+    for (; sd > DEPTH_OF_FILE_SCOPE; sd--) {
+      a_scope_kind skind = scope_stack[sd].kind;
+      if (skind != (a_scope_kind)sck_class_struct_union) break;
+      if (is_template_class_type(scope_stack[sd].assoc_type)) {
+        do_semivisible_type_processing = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+    if (kind == (a_scope_kind)sck_class_struct_union &&
+        do_semivisible_type_processing) {
+      /* Determine whether any of the symbols from this class scope should
+         be treated as semivisible types. */
+      do_nested_class_anachronism_processing(pointers_block->symbols);
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+    } else if (kind == (a_scope_kind)sck_file && cfront_2_1_mode) {
+      /* See if any of the file scope symbols conflict with semivisible
+         nested types. */
+      file_scope_transitional_nested_type_processing(pointers_block->symbols);
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+    }  /* if */
+  }  /* if */
+  /* Remove symbols from the symbol table, and reenter them on the
+     inactive list if necessary. */
+  wrapup_scope(ssep->il_scope, kind, pointers_block,
+               /*is_namespace_wrapup=*/FALSE);
+  il_scope = ssep->il_scope;
+  if (C_dialect == C_dialect_cplusplus && il_scope != NULL) {
+    if (kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_block ||
+        kind == (a_scope_kind)sck_file) {
+      if (kind != (a_scope_kind)sck_file) {
+        /* If there are any local classes, check for compiler-generated
+           virtual destructors for which bodies should be put out. */
+        generate_required_virtual_destructor_bodies(il_scope->types);
+      }  /* if */
+      /* Issue a diagnostic on non-extern member functions that have been
+         referenced but not defined. */
+      check_referenced_member_functions(il_scope,
+                                        kind != (a_scope_kind)sck_file);
+    }  /* if */
+  }  /* if */
+  if (ssep->curr_construct_pragmas != NULL && total_errors != 0) {
+    /* There should be no items remaining on the list.  If any errors
+       occurred, the list items may be a result of the errors.  Discard
+       the items on the list.  If no errors have been issued, an internal
+       error will be issued below. */
+    free_pending_pragma_list(ssep->curr_construct_pragmas);
+    ssep->curr_construct_pragmas = NULL;
+  }  /* if */
+  /* There should be no entries left on the curr_construct_pragmas list when
+     the scope stack is popped. */
+  check_assertion_str2(ssep->curr_construct_pragmas == NULL,
+		       "pop_scope:", "curr_construct_pragmas != NULL");
+  if (ssep->pending_pragmas != NULL) {
+    /* Issue diagnostics on any pragmas that are still on the pending list. */
+    end_of_scope_pragma_processing(ssep->pending_pragmas);
+  }  /* if */
+  if (!C_mode()) {
+    /* If this is the file scope, call a routine to do end-of-scope
+       processing for any namespace scopes that may exist. */
+    if (kind == (a_scope_kind)sck_file) {
+      wrapup_namespace_scopes(il_header.primary_scope);
+    }  /* if */
+    /* If the scope specified additional using directives, clear all of the
+       active using list flags, and reset them to the values specified
+       by the previous scope stack entries.  This is also done for
+       template instantiation scopes because they begin a new
+       context. */
+    if (ssep->active_using_directives != NULL ||
+        kind == (a_scope_kind)sck_template_instantiation) {
+      set_active_using_list_scope_depths(depth_scope_stack,
+                                         /*set_value=*/FALSE);
+      if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
+        set_active_using_list_scope_depths(depth_scope_stack-1,
+                                           /*set_value=*/TRUE);
+      }  /* if */
+    }  /* if */
+    /* Free any active using directive entries. */
+    if (ssep->active_using_directives != NULL) {
+      free_active_using_directive_list(ssep->active_using_directives);
+      ssep->active_using_directives = NULL;
+    }  /* if */
+    /* Do management related to the object lifetime stack.  Don't pop the
+       file scope object lifetime yet, though, because we need it in IL
+       lowering; see below */
+    if (kind == (a_scope_kind)sck_block ||
+        kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_condition) {
+      /* For a function, block, or condition scope, pop the current object
+         lifetime, which ought to be the one created when this scope was
+         pushed. */
+      check_assertion_str2(curr_object_lifetime ==
+                                          ssep->curr_scope_object_lifetime,
+                           "pop_scope: unexpected curr_object_lifetime",
+                           "for function or block scope");
+      (void)pop_object_lifetime();
+      if (kind == (a_scope_kind)sck_function) {
+        if (!il_scope->variant.routine.ptr->compiler_generated) {
+          /* Flow control wrapup for statement processing is done here because
+             part of what needs to be done is dependent on popping the object
+             lifetime of the function scope. */
+          wrapup_control_flow_processing(il_scope);
+        }  /* if */
+        /* Functions are always processed in the context of the file scope
+           lifetime; restore the lifetime stack as it was when the function
+           scope was pushed. */
+        curr_object_lifetime = ssep->saved_curr_object_lifetime;
+      }  /* if */
+    } else if (kind == (a_scope_kind)sck_pragma ||
+               kind == (a_scope_kind)sck_func_prototype ||
+               kind == (a_scope_kind)sck_template_instantiation) {
+      check_assertion_str2(curr_object_lifetime ==
+                                   scope_stack[DEPTH_OF_FILE_SCOPE].
+                                                   curr_scope_object_lifetime,
+                           "pop_scope: curr_object_lifetime is not that of",
+                           "file scope");
+      curr_object_lifetime = ssep->saved_curr_object_lifetime;
+    }  /* if */
+  }  /* if */      
+  check_assertion_str2(ssep->defer_access_checks == FALSE &&
+                       ssep->deferred_access_checks == NULL,
+                       "pop_scope:", "deferred access checks still on list");
+  /* If a primary definition of a namespace is being popped (i.e., the
+     initial definition of the namespace is complete), set the flag
+     in the namespace's scope_pointers_block to indicate that any
+     symbols that are subsequently added to the scope should be added
+     directly to the inactive list. */
+  if (kind == (a_scope_kind)sck_namespace) {
+    ssep->assoc_pointers_block->add_symbols_to_inactive_list = TRUE;
+  }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if DEBUG
+  if (db_active) {
+    /* Display source sequence lists for debug purposes. */
+    if (il_scope != NULL && il_scope->source_sequence_list != NULL) {
+      dump_ss(il_scope);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (ssep->first_scope != NULL) {
+    /* Transfer the list of scopes nested within the current scope
+       to the IL scope entry if there is one, or otherwise add it to
+       the local scopes list for the parent scope.  We are doing this
+       to avoid allocating IL scopes for empty block scopes and empty
+       non-top-level function prototype scopes. */
+    if (il_scope == NULL) {
+      parent_ssep = ssep-1;
+      /* Generate the scope entry if ssep is a top-level function prototype
+         scope, i.e., one that is not nested within another function prototype
+         scope. */
+      if (kind == (a_scope_kind)sck_func_prototype &&
+          parent_ssep->kind != (a_scope_kind)sck_func_prototype) {
+        il_scope = ensure_il_scope_exists(ssep);
+      }  /* if */
+    }  /* if */
+    if (il_scope != NULL) {
+      /* There is an allocated IL scope entry. */
+      il_scope->scopes = ssep->first_scope;
+    } else {
+      /* Add the list of scopes to the list for the parent scope. */
+      if (parent_ssep->first_scope == NULL) {
+        parent_ssep->first_scope = ssep->first_scope;
+      } else {
+        parent_ssep->last_scope->next = ssep->first_scope;
+      }  /* if */
+      parent_ssep->last_scope = ssep->last_scope;
+    }  /* if */
+  }  /* if */
+  /* Determine and remember the current (old) memory region, to see
+     if it changes when returning to the outer scope. */
+  old_memory_region_number = ssep->il_memory_region;
+  /* If the old memory region number does not appear anywhere in the
+     remaining stack, the region is no longer needed by the front end. */
+  old_region_still_needed = FALSE;
+  for (scope_depth = depth_scope_stack-1; scope_depth >= 0; scope_depth--) {
+    if (scope_stack[scope_depth].il_memory_region == old_memory_region_number){
+      old_region_still_needed = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (!old_region_still_needed) {
+    /* The old memory region is no longer needed. */
+#if DO_IL_LOWERING
+    /* Do IL lowering (change the C++ IL into C IL). */
+    lower_il_memory_region(old_memory_region_number);
+#endif /* DO_IL_LOWERING */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+    if (kind == (a_scope_kind)sck_function) {
+      /* If a function or block scope has local types or static variables,
+         make a special entry to record those orphan lists on the il_header
+         scope_orphaned_list_headers list so they can be found when processing
+         the file scope memory region.  Note that processing for block scopes
+         is done at the end of the function scope to give IL lowering a chance
+         to add variables and types in block scopes. */
+      add_scope_orphaned_il_lists(il_scope);
+    }  /* if */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+    /* Clear out the shareable constants table for the file scope or a
+       function scope. */
+    if (old_memory_region_number == FILE_SCOPE_REGION_NUMBER) {
+      empty_shareable_constants_table();
+    } else {
+      empty_func_shareable_constants_table();
+    }  /* if */
+  }  /* if */
+  if (!C_mode()) {
+    /* Pop the file scope object lifetime.  This must be done after IL
+       lowering. */
+    if (kind == (a_scope_kind)sck_file) {
+      check_assertion(curr_object_lifetime ==
+                      ssep->curr_scope_object_lifetime);
+      (void)pop_object_lifetime();
+    }  /* if */
+#if DO_IL_LOWERING
+    if (!old_region_still_needed && il_lowering_needed()) {
+      /* If we're not supposed to pass object lifetime information to the back
+         end, unlink all object lifetimes from the IL tree.  This has to
+         be done after the file scope object lifetime has been popped. */
+      clean_up_all_object_lifetimes(il_scope);
+    }  /* if */
+#endif /* DO_IL_LOWERING */
+  }  /* if */
+  /* The IL scope, if any, is no longer on the stack.  This must occur
+     after IL lowering and before done_with_memory_region. */
+  if (il_scope != NULL) {
+    il_scope->depth_in_scope_stack = NO_SCOPE_DEPTH;
+  }  /* if */
+  if (!old_region_still_needed) {
+    done_with_memory_region(old_memory_region_number);
+  }  /* if */
+  /* For any entities on the extern_type_fixup_list, restore the type of the
+     variable or routine to what it was earlier.  This is used for cases like
+       int a[];
+       main () {
+         extern int a[5];
+         ... Type of "a" is now "int [5]".
+       }
+       ... Type of "a" must be restored to "int []" at the end of "main".
+     Note that the entries are just thrown away.  There are expected to be
+     very few of them.
+  */
+  for (etfp = ssep->extern_type_fixup_list; etfp != NULL; etfp = etfp->next) {
+    if (etfp->is_routine) {
+      etfp->variant.routine->type  = etfp->type;
+    } else {
+      etfp->variant.variable->type = etfp->type;
+    }  /* if */
+  }  /* for */
+  /* For template instantiation scopes, restore the template parameters
+     to their previous state.  Normally this just involves setting the
+     parameters to point to the "resting" values assigned when the
+     template declaration is scanned.  In the event of a recursive
+     instantiation, however, this requires restoring the values from the
+     previous instantiation. */
+  if (kind == (a_scope_kind)sck_template_instantiation) {
+    a_scope_depth                     prev_depth;
+    a_template_symbol_supplement_ptr  tssp;
+
+    tssp = template_supplement_for_symbol(ssep->template_sym);
+    check_assertion(tssp != NULL);
+    prev_depth = NO_SCOPE_DEPTH;
+    /* Loop through the scope stack looking for a previous instantiation
+       scope that uses the same template parameter list as the one being
+       popped.  This is necessary because template parameter lists are
+       shared between a class and the member functions defined inside the
+       class. */
+    for (scope_depth = depth_scope_stack - 1;
+         scope_depth >= 0;
+         scope_depth--) {
+      if (scope_stack[scope_depth].kind ==
+          (a_scope_kind)sck_template_instantiation &&
+          scope_stack[scope_depth].template_param_list == tssp->parameters) {
+          prev_depth = scope_depth;
+        break;
+      }  /* if */
+    }  /* for */
+    if (prev_depth == NO_SCOPE_DEPTH) {
+      /* Restore the default values of the parameters. */
+      restore_default_template_params(tssp->parameters);
+    } else {
+      /* Restore the parameter values from the previous instantiation. */
+      update_template_param_symbols(tssp->parameters,
+                                    scope_stack[prev_depth].template_arg_list);
+    }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    {
+    /* Restore the integrity of the file-scope source sequence list -- it was
+       temporarily changed in push_scope to allow the source sequence entries
+       for the template instantiation to "float up" to the right spot in the
+       list. */
+    a_scope_stack_entry_ptr      fs_ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+    a_source_sequence_entry_ptr  saved_insert_point;
+
+    saved_insert_point = ssep->ss_list_instantiation_insert_point;
+    fs_ssep->ss_list_instantiation_insert_point = saved_insert_point;
+    if (saved_insert_point != NULL) {
+      if (fs_ssep->last_source_sequence_entry != NULL) {
+        fs_ssep->last_source_sequence_entry->next = saved_insert_point;
+        saved_insert_point->prev = fs_ssep->last_source_sequence_entry;
+      } else {
+        fs_ssep->il_scope->source_sequence_list = saved_insert_point;
+      }  /* if */
+      fs_ssep->last_source_sequence_entry = ssep->saved_last_ss_entry;
+    }  /* if */
+    }
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
+  /* Determine the memory region to restore for the outer scope. */
+  new_memory_region_number = ssep->prev_il_memory_region;
+  /* Pop the stack. */
+  if (--depth_scope_stack >= 0) {
+    /* The stack is not empty, so do anything necessary to activate the
+       new top entry. */
+    /* If the new memory region is not the same as the old, activate it. */
+    if (new_memory_region_number != old_memory_region_number) {
+      switch_il_region(new_memory_region_number);
+    }  /* if */
+    /* Restore state variables. */
+    inside_local_class = scope_stack[depth_scope_stack].inside_local_class;
+    depth_innermost_function_scope = scope_stack[depth_scope_stack].
+                                            depth_innermost_function_scope;
+    depth_innermost_namespace_scope =
+               scope_stack[depth_scope_stack].depth_innermost_namespace_scope;
+    innermost_function_scope =
+                   (depth_innermost_function_scope != NO_SCOPE_DEPTH) ?
+                         scope_stack[depth_innermost_function_scope].il_scope :
+                         NULL;
+    depth_template_declaration_scope =
+             scope_stack[depth_scope_stack].depth_template_declaration_scope;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    depth_innermost_ss_list_scope =
+             scope_stack[depth_scope_stack].depth_innermost_ss_list_scope;
+    source_sequence_entries_disallowed =
+             scope_stack[depth_scope_stack].source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
+  if (C_dialect == C_dialect_cplusplus) {
+    /* Keep track of the number of current classes and class reactivations.
+       (If either count is non-zero name lookup is more involved.) */
+    if (kind == (a_scope_kind)sck_class_struct_union ||
+        kind == (a_scope_kind)sck_class_reactivation) {
+      num_classes_on_scope_stack--;
+    }  /* if */
+    /* Maintain the depth of the innermost template instantiation scope. */
+    depth_innermost_instantiation_scope =
+                                 ssep->depth_innermost_instantiation_scope;
+    /* Maintain the depth of the innermost stack entry that affects access
+       control. */
+    depth_of_innermost_scope_that_affects_access_control =
+                                  ssep->next_scope_that_affects_access_control;
+    curr_deferred_access_scope = ssep->saved_curr_deferred_access_scope;
+    expr_stack = ssep->saved_expr_stack;
+  }  /* if */
+  /* Maintain the current declarative level.  It is the same as 
+     depth_scope_stack except when struct/union field scopes are
+     active; when they are, it indicates the first non-struct-or-union
+     scope.  Be careful, you can have a prototype scope inside a
+     struct declaration or vice-versa.  In C++, struct/union/class scopes
+     are real scopes, but class reactivation scopes are not "real" scopes. */
+  for (decl_scope_level = depth_scope_stack;
+       decl_scope_level >= DEPTH_OF_FILE_SCOPE;
+       decl_scope_level--) {
+    a_scope_kind skind = scope_stack[decl_scope_level].kind;
+    if (is_scope_kind_that_affects_declarative_level(skind)) break;
+  }  /* for */
+  db_exit();
+}  /* pop_scope */
+
+
+void push_namespace_extension_scope(a_namespace_ptr nsp)
+/*
+Push one or more scopes that will be used to extend the indicated namespace.
+This is used, for example, when scanning functions defined in the namespace.
+A namespace extension scope is pushed in contexts where members can be
+added to a namespace either directly or as a result of a name injection.
+This routine is called only in C++.
+*/
+{
+  a_namespace_ptr		parent_nsp;
+  a_namespace_ptr		curr_nsp = NULL;
+  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+
+  /* If the current scope is a namespace (or namespace extension) scope,
+     see if it matches the one that we are pushing.  If so, don't actually
+     push the scope, just increment the count of the number of excess
+     pushes done on this scope. */
+  if (ssep->kind == (a_scope_kind)sck_namespace ||
+      ssep->kind == (a_scope_kind)sck_namespace_extension) {
+    curr_nsp = ssep->il_scope->variant.assoc_namespace;
+  }  /* if */
+  if (curr_nsp == nsp) {
+    /* The scope is already on the stack. */
+    ssep->num_of_extra_times_pushed++;
+  } else {
+    /* The entry isn't on the stack.  Push any parent namespaces, then push
+       the specified namespace. */
+    parent_nsp = nsp->source_corresp.parent.namespace_ptr;
+    if (parent_nsp != NULL) {
+      /* A namespace nested in another namespace.  Push the parent
+         namespace. */
+      push_namespace_extension_scope(parent_nsp);
+    }  /* if */
+    /* Push an entry for the scope. */
+    (void)push_namespace_scope((a_scope_kind)sck_namespace_extension, nsp);
+  }  /* if */
+}  /* push_namespace_extension_scope */
+
+
+void pop_namespace_extension_scope(void)
+/*
+Pop one or more scopes pushed by push_namespace_extension_scope.
+This routine is called only in C++.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_namespace_ptr		parent_nsp;
+
+  ssep = &scope_stack[depth_scope_stack];
+  check_assertion_str2(ssep->kind == (a_scope_kind)sck_namespace_extension ||
+                       ssep->kind == (a_scope_kind)sck_namespace,
+                       "pop_namespace_extension_scope:",
+                       "entry not namespace extension");
+  if (ssep->num_of_extra_times_pushed > 0) {
+    /* This namespace had already been pushed when the call to
+       push_namespace_extension_scope was done.  So, we don't want to
+       actually pop the scope at this point.  Just decrement the count
+       of excess pushes. */
+    ssep->num_of_extra_times_pushed--;
+  } else {
+    /* Pop the reactivation scope. */
+    parent_nsp = ssep->il_scope->variant.assoc_namespace->
+                                           source_corresp.parent.namespace_ptr;
+    pop_scope();
+    if (parent_nsp != NULL) {
+      /* A nested namespace.  Pop the enclosing namespaces too. */
+      pop_namespace_extension_scope();
+    }  /* if */
+  }  /* if */
+}  /* pop_namespace_extension_scope */
+
+
+void push_namespace_reactivation_scope(a_namespace_ptr nsp)
+/*
+Push one or more scopes that will reactivate the indicated namespace.
+This is used in contexts where the names from a namespace need to be
+visible, but new members cannot be added to the namespace.
+This routine is called only in C++.
+*/
+{
+  a_namespace_ptr		parent_nsp;
+  a_namespace_ptr		curr_nsp = NULL;
+  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+
+  /* If the current scope is a namespace (or namespace extension) scope,
+     see if it matches the one that we are pushing.  If so, don't actually
+     push the scope, just increment the count of the number of excess
+     pushes done on this scope. */
+  if (ssep->kind == (a_scope_kind)sck_namespace ||
+      ssep->kind == (a_scope_kind)sck_namespace_extension) {
+    curr_nsp = ssep->il_scope->variant.assoc_namespace;
+  }  /* if */
+  if (curr_nsp == nsp) {
+    /* The scope is already on the stack. */
+    ssep->num_of_extra_times_pushed++;
+  } else {
+    /* The entry isn't on the stack.  Push any parent namespaces, then push
+       the specified namespace. */
+    parent_nsp = nsp->source_corresp.parent.namespace_ptr;
+    if (parent_nsp != NULL) {
+      /* A namespace nested in another namespace.  Push the parent
+         namespace. */
+      push_namespace_reactivation_scope(parent_nsp);
+    }  /* if */
+    /* Push an entry for the scope. */
+    (void)push_namespace_scope((a_scope_kind)sck_namespace_reactivation, nsp);
+  }  /* if */
+}  /* push_namespace_reactivation_scope */
+
+
+void pop_namespace_reactivation_scope(void)
+/*
+Pop one or more scopes pushed by push_namespace_reactivation_scope.
+This routine is called only in C++.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_namespace_ptr		parent_nsp;
+
+  ssep = &scope_stack[depth_scope_stack];
+  check_assertion_str2(ssep->kind == (a_scope_kind)sck_namespace_extension ||
+                       ssep->kind == (a_scope_kind)sck_namespace ||
+                       ssep->kind == (a_scope_kind)sck_namespace_reactivation,
+                       "pop_namespace_reactiveation_scope:",
+                       "entry not reactivation extension");
+  if (ssep->num_of_extra_times_pushed > 0) {
+    /* This namespace had already been pushed when the call to
+       push_namespace_reactivation_scope was done.  So, we don't want to
+       actually pop the scope at this point.  Just decrement the count
+       of excess pushes. */
+    ssep->num_of_extra_times_pushed--;
+  } else {
+    /* Pop the reactivation scope. */
+    parent_nsp = ssep->assoc_namespace->source_corresp.parent.namespace_ptr;
+    pop_scope();
+    if (parent_nsp != NULL) {
+      /* A nested namespace.  Pop the enclosing namespaces too. */
+      pop_namespace_reactivation_scope();
+    }  /* if */
+  }  /* if */
+}  /* pop_namespace_reactivation_scope */
+
+
+void push_class_reactivation_scope(a_type_ptr class_type)
+/*
+Push one or more scopes that will reactivate the indicated class type.
+This is used, for example, when scanning member functions.  This routine
+is called only in C++.
+*/
+{
+  a_symbol_ptr class_symbol;
+  a_scope_ptr  il_scope;
+
+  /* Get the symbol associated with the class. */
+  class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
+#if CHECKING
+  if (class_symbol == NULL) {
+    internal_error(
+              "push_class_reactivation_scope: class type has NULL assoc_info");
+  }  /* if */
+#endif /* CHECKING */
+  if (class_symbol->is_class_member) {
+    /* Nested class.  Push the containing class(es) first. */
+    push_class_reactivation_scope(class_symbol->parent.class_type);
+  } else if (class_symbol->parent.namespace_ptr != NULL) {
+    /* The class is nested in a namespace -- push enclosing namespace(s). */
+    push_namespace_reactivation_scope(class_symbol->parent.namespace_ptr);
+  }  /* if */
+  /* Find the IL scope to get the scope number. */
+  il_scope = class_type->variant.class_struct_union.extra_info->assoc_scope;
+#if CHECKING
+  if (il_scope == NULL) {
+    internal_error("push_class_reactivation_scope: NULL assoc_scope");
+  }  /* if */
+#endif /* CHECKING */
+  /* Push an entry for the scope. */
+  (void)push_scope((a_scope_kind)sck_class_reactivation, il_scope->number,
+                   class_type, (a_routine_ptr)NULL);
+}  /* push_class_reactivation_scope */
+
+
+void pop_class_reactivation_scope(void)
+/*
+Pop one or more scopes pushed by push_class_reactivation_scope.  This routine
+is called only in C++.
+*/
+{
+  a_scope_stack_entry_ptr ssep;
+  a_symbol_ptr            class_symbol;
+
+  ssep = &scope_stack[depth_scope_stack];
+#if CHECKING
+  if (ssep->kind != (a_scope_kind)sck_class_reactivation) {
+    internal_error(
+                 "pop_class_reactivation_scope: entry not class reactivation");
+  }  /* if */
+#endif /* CHECKING */
+  /* Get the symbol associated with the class. */
+  class_symbol = (a_symbol_ptr)(ssep->assoc_type->source_corresp.assoc_info);
+#if CHECKING
+  if (class_symbol == NULL) {
+    internal_error(
+               "pop_class_reactivation_scope: assoc type has NULL assoc_info");
+  }  /* if */
+#endif /* CHECKING */
+  /* Pop the reactivation scope. */
+  pop_scope();
+  if (class_symbol->is_class_member) {
+    /* Nested class.  Pop the containing class(es) too. */
+    pop_class_reactivation_scope();
+  } else if (class_symbol->parent.namespace_ptr != NULL) {
+    /* The class is nested in a namespace -- pop enclosing namespace(s). */
+    pop_namespace_reactivation_scope();
+  }  /* if */
+}  /* pop_class_reactivation_scope */
+
+
+void scope_stk_one_time_init(void)
+/*
+Do one-time initialization of variables related to scope stack management.
+(Variables that need to be reinitialized with each new translation unit
+are handled in scope_stk_init.)
+*/
+{
+  /* Save variables from scope_stk.h and scope_stk.c that are needed for
+     precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(num_classes_on_scope_stack),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* scope_stk_one_time_init */
+
+
+void scope_stk_init(void)
+/*
+Initialize static variables related to scope stack management.  This is
+done as a subroutine (rather than relying on static initialization) so that it
+can be redone to compile more than one source file in a single invocation
+of the front end.
+*/
+{
+  depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
+  num_classes_on_scope_stack = 0;
+}  /* scope_stk_init */
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
