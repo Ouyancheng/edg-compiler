@@ -36,7 +36,7 @@ This is now fixed.
 
 The access field in the source correspondence entry of non-member class
 prototype instantiations was incorrectly set to as_inaccessible when it
-should have been of as_public.  This has been fixed.
+should have been as_public.  This has been fixed.
 
 12/9/02  GNU compatibility: Line directives output by GNU cpp
 
