@@ -4980,6 +4980,89 @@ builtin type va_list.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+static a_type_ptr underlying_uuidof_type(a_type_ptr uuidof_type,
+                                         a_boolean  *template_case,
+                                         a_boolean  *err)
+/*
+Extract and return the underlying type of uuidof_type, for a __uuidof
+operator.  Levels like "array of" and "pointer to" are removed.
+If the underlying type is not a class with an associated uuid, return
+NULL.  If the underlying type might be a class with an associated
+uuid, but we can't tell for sure because there are template parameters
+involved, set *template_case to TRUE.  If we can't tell because
+of an error type, set *err TRUE.  Overall, returned-type != NULL
+means the type has or could have a uuid (the returned-type might
+be a template parameter type or an error type).  Returned-type == NULL
+means the type had no uuid or more than one uuid.  *err == TRUE means
+there was an error type somewhere in the type.
+*/
+{
+  if (is_array_type(uuidof_type)) {
+    /* Reduce an array type to the underlying element type. */
+    uuidof_type = underlying_array_element_type(uuidof_type);
+  } else if (is_pointer_type(uuidof_type)) {
+    /* Reduce a pointer to the underlying type. */
+    uuidof_type = type_pointed_to(uuidof_type);
+  }  /* if */
+  if (!is_class_struct_union_type(uuidof_type)) {
+    /* uuidof_type is not a class type, which is generally an error. */
+    if (is_template_param_type(uuidof_type)) {
+      /* A template parameter type could be a class type. */
+      *template_case = TRUE;
+    } else if (is_error_type(uuidof_type)) {
+      /* An error type could have been intended to be a class type. */
+      *err = TRUE;
+    } else {
+      uuidof_type = NULL;
+    }  /* if */
+  } else if (is_template_dependent_context() &&
+             is_template_dependent_type(uuidof_type)) {
+    /* A template-dependent class type.  We must be in a prototype
+       instantiation.  Assume the type has a uuid. */
+    *template_case = TRUE;
+  } else {
+    /* uuidof_type is a class type. */
+    uuidof_type = skip_typerefs(uuidof_type);
+    if (uuidof_type->variant.class_struct_union.is_template_class) {
+      /* Templates don't have a uuid themselves -- the uuid of a template
+         argument type is used.  There must be only one argument with a
+         uuid value. */
+      a_class_type_supplement_ptr ctsp =
+                            uuidof_type->variant.class_struct_union.extra_info;
+      a_template_arg_ptr tap = ctsp->template_arg_list;
+      uuidof_type = NULL;
+      for (; tap != NULL; tap = tap->next) {
+        if (tap->kind == (a_templ_arg_kind)tak_type) {
+          a_type_ptr temp_type = underlying_uuidof_type(tap->variant.type,
+                                                        template_case,
+                                                        err);
+          if (temp_type != NULL) {
+            /* This template argument has a uuid.   It's an error if a
+               previous argument also had a uuid. */
+            if (uuidof_type != NULL) {
+              uuidof_type = NULL;
+              break;
+            } else {
+              /* Remember the underlying type for the first template
+                 argument with a uuid. */
+              uuidof_type = temp_type;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    } else {
+      /* Non-template class type. */
+      if (uuidof_type->variant.class_struct_union.extra_info->uuid_string
+                                                                     == NULL) {
+        /* No uuid on this class. */
+        uuidof_type = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return uuidof_type;
+}  /* underlying_uuidof_type */
+ 
+
 static void scan_uuidof_operator(an_operand *result)
 /*
 Scan the C++ __uuidof operator, a Microsoft C++ extension.
@@ -5052,29 +5135,24 @@ The value of the operation is an lvalue of type "const struct _GUID".
     }  /* if */
     pop_expr_stack();
   }  /* if */
-  /* Get down to the underlying type, which must be a class for
-     which __declspec(uuid(...)) was specified. */
   if (uuidof_type != NULL) {
-    if (is_array_type(uuidof_type)) {
-      /* Reduce an array type to the underlying element type. */
-      uuidof_type = underlying_array_element_type(uuidof_type);
-    } else if (is_pointer_type(uuidof_type)) {
-      /* Reduce a pointer to the underlying type. */
-      uuidof_type = type_pointed_to(uuidof_type);
-    }  /* if */
-    uuidof_type = skip_typerefs(uuidof_type);
-    if (is_template_dependent_context() &&
-        is_template_dependent_type(uuidof_type)) {
-      /* A template parameter type.  We must be in a prototype
-         instantiation. */
-      template_case = TRUE;
-    } else if (!is_class_struct_union_type(uuidof_type) ||
-               uuidof_type->variant.class_struct_union.extra_info->uuid_string
-                                                                     == NULL) {
-      if (!is_error_type(uuidof_type)) {
-        error(ec_uuidof_requires_uuid_class_type);
-      }  /* if */
+    /* Get down to the underlying type, which must be a class for
+       which __declspec(uuid(...)) was specified. */
+    /* Drop "array of", "pointer to", etc. to get to the underlying type.
+       The function returns NULL if the underlying type does not have
+       an associated uuid. */
+    a_boolean local_err = FALSE;
+    uuidof_type = underlying_uuidof_type(uuidof_type, &template_case,
+                                         &local_err);
+    if (local_err) {
+      /* There is an error type somewhere in the type, so it might have
+         a uuid.  Issue no error here. */
       err = TRUE;
+      uuidof_type = NULL;
+    } else if (uuidof_type == NULL) {
+      /* The type has no uuid, or more than one. */
+      err = TRUE;
+      error(ec_uuidof_requires_uuid_class_type);
     }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

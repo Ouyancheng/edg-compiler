@@ -1,5 +1,13 @@
 Version 2.45
 
+11/24/00 Microsoft mode: __uuidof and templates
+
+The Microsoft extension operator __uuidof has interesting behavior when
+applied to a template -- it returns the uuid for the template argument
+and ignores the one for the template itself.  That is, for __uuidof(A<B>)
+the uuid of B, not A, is returned.  This is now emulated in Microsoft
+mode.
+
 11/23/00 pcc and Microsoft mode preprocessing: strange parentheses in macro
 
 pcc and Microsoft mode preprocessing does special processing to
