@@ -5755,12 +5755,19 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
            current function, so rewrite it as a reference to the implicit
            parameter through which the return address is passed by the
            caller. */
-        /* There shouldn't be any enk_variable references to the variable. */
-        check_assertion_str(expr->kind != (an_expr_node_kind)enk_variable,
-                           "lower_expr: enk_variable ref to return value var");
-        /* Rewrite address-of-local-variable as value-of-pointer-parameter. */
-        set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-        expr->variant.variable = return_value_pointer_variable;
+        if (expr->kind == (an_expr_node_kind)enk_variable_address) {
+          /* Rewrite address-of-local-variable as value-of-pointer-
+             parameter. */
+          set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+          expr->variant.variable = return_value_pointer_variable;
+        } else {
+          /* Rewrite value-of-local-variable as indirection through
+             return-value-parameter.  This comes up when the class has
+             a copy constructor but no assignment operator function. */
+          operand_node = var_rvalue_expr(return_value_pointer_variable);
+          change_node_to_operation(expr, (an_expr_operator_kind)eok_indirect,
+                                   expr->type, operand_node);
+        }  /* if */
       }  /* if */
       break;
     case enk_operation:
