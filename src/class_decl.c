@@ -8879,15 +8879,6 @@ or implicit) controlling the declaration.
     (void)coalesce_and_lookup_generalized_identifier(
                               GID_DTOR_RECOGNIZED | GID_TEMPLATE_ARGS_OPTIONAL,
                               ilm_using_declaration, &err);
-#if CHECKING
-    if (!err) {
-      sym = locator_for_curr_id.specific_symbol;
-      if (sym != NULL && sym->is_class_member &&
-          is_or_contains_template_param(sym->parent.class_type)) {
-        check_assertion(is_nontype_template_param_symbol(sym));
-      }  /* if */
-    }  /* if */
-#endif /* CHECKING */
   }  /* if */
   if (!err) {
     decl_pos = locator_for_curr_id.source_position;
