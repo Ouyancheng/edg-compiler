@@ -341,7 +341,7 @@ transformations are done if appropriate (yes in C, no in C++).  Other
 transformations are done in all cases.
 */
 {
-  a_boolean                    suppress_warning;
+  a_boolean suppress_warning = FALSE;
 
   /* Do lvalue-to-rvalue transformations, etc. as appropriate. */
   do_void_operand_transformations(operand);
