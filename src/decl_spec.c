@@ -3864,7 +3864,7 @@ typedef long a_decl_specifiers_set;
 
 static void report_bad_type_name()
 /*
-locator_for_curr_id describes a source name that was expecteed to name a valid
+locator_for_curr_id describes a source name that was expected to name a valid
 type, but it does not.  Report different errors depending on whether the name
 can be found at all (in which case it presumably does not name a type).
 */
