@@ -8373,53 +8373,6 @@ of the declaration can be completed for the dependent types, too.
             internal_error("check_dependent_type_fixup_list: bad fixup kind");
 #endif /* CHECKING */
         }  /* switch */
-#if 0
-        if (dtfp->fixup_kind ==
-                     (a_dependent_type_fixup_kind)dtfk_arg_transfer_method) {
-          check_assertion(dtfp->entity.kind ==
-                                  (a_byte_il_entry_kind)iek_param_type);
-          /* A parameter of class type.  Set the flag indicating whether
-             passing it requires a copy constructor call. */
-          set_arg_transfer_method_flag((a_param_type_ptr)dtfp->entity.ptr,
-                                         &dtfp->decl_position);
-        } else {
-          check_assertion(dtfp->entity.kind == (a_byte_il_entry_kind)iek_type);
-          tp = (a_type_ptr)dtfp->entity.ptr;
-          if (!is_error_type(tp)) {
-            if (dtfp->fixup_kind ==
-                     (a_dependent_type_fixup_kind)dtfk_array_type_size) {
-              check_assertion(is_array_type(tp));
-              if (is_incomplete_type(tp->variant.array.element_type)) {
-                /* The array is still incomplete.  This can happen if it is
-                   dependent on another array that is still to be checked (the
-                   case of "array of array of T").  Leave dtfp on the list and
-                   continue. */
-                prev_dtfp = dtfp;
-                goto next_list_entry;
-              } else {
-                /* An array of elements of the (now complete) class type.  The
-                   array's size can be computed. */
-                set_type_size(tp);
-              }  /* if */
-            } else {
-              check_assertion(is_function_type(tp));
-              if (dtfp->fixup_kind ==
-                   (a_dependent_type_fixup_kind)dtfk_routine_calling_method) {
-                /* A function returning a class type.  Set the flag indicating
-                   whether the return involves a copy constructor. */
-                set_routine_calling_method_flag(tp, &dtfp->decl_position);
-              } else {
-                check_assertion(dtfp->fixup_kind ==
-                                    (a_dependent_type_fixup_kind)
-                                            dtfk_check_op_arrow_return_type);
-                check_operator_arrow_return_type(tp, class_type,
-                                                 /*is_expr_use=*/FALSE,
-                                                 &dtfp->decl_position);
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        }  /* if */
-#endif /* if 0 */
         /* If the head of the list is being removed (the common case) reset the
            list pointer. */
         check_assertion((list == dtfp) == (prev_dtfp == NULL));
