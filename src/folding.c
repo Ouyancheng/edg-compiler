@@ -917,7 +917,7 @@ explicit casts, so checking for accessibility of base classes is not necessary.
     /* The base class is ambiguous. */
     pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
     set_error_constant(result);
-  } else if (any_virtual_steps_in_derivation(bcp)) {
+  } else if (any_virtual_steps_in_derivation(bcp) && !any_cfront_mode()) {
     /* The base class is a virtual base of the derived class, or there's a
        virtual step on the derivation path. */
     pos_ty2_error(ec_pm_virtual_base_from_derived_class, err_pos,
