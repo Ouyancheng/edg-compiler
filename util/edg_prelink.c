@@ -1821,10 +1821,11 @@ or defined in that object file.
         type != 'R' &&
         type != 'T' &&
         type != 'U' &&
+        type != 'W' &&
         type != 'C') {
        /* Not a type of symbol that we need to process.  Only global
           symbols are processed. */
-     } else {
+    } else {
       psp = alloc_pl_symbol();
       psp->name = pl_copy_string(symbol_name);
       /* Set symbol flags. */
@@ -1833,6 +1834,7 @@ or defined in that object file.
         case 'D':  /* data symbol */
         case 'R':  /* read-only data symbol */
         case 'T':  /* text symbol */
+        case 'W':  /* Weak definition */
           psp->defined = TRUE;
           break;
         case 'U':  /* undefined symbol */
