@@ -16,19 +16,20 @@ extasm.c -- Scanning and validation of GNU extended asm() statements.
 /* Header files common to all files. */
 #include "fe_common.h"
 
-#include "extasm.h"
-
 #ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
    processing. */
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+#include "extasm.h"
+
 /* Header files used by files involved in declaration processing. */
 #include "decl_hdrs.h"
 
 
-#if GNU_EXTENSIONS_ALLOWED
 
 struct name_to_reg {
   /* Structure to hold a name-to-register mapping entry. */
