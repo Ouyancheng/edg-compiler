@@ -2307,16 +2307,7 @@ in case it's useful.
             /* The destructor for the current class is needed because it is
                referenced from the typeinfo variable, but it has not yet
                been defined.  See if we can create a definition. */
-            if (rp->compiler_generated) {
-              /* Generate a destructor. */
-              define_special_member_function(rp);
-            } else if (rp->is_template_function &&
-                       !rp->is_specialized) {
-              /* Instantiate a template destructor. */
-              a_symbol_ptr sym = (a_symbol_ptr)(rp->source_corresp.assoc_info);
-              set_instance_required(sym, /*value=*/TRUE,
-                                    /*defer_inline=*/FALSE);
-            }  /* if */
+            mark_routine_referenced(rp);
           }  /* if */
         }  /* if */
         /* Do the same check for nested classes, if any. */
