@@ -2087,7 +2087,7 @@ entity, but only if DEBUG code is enabled.
   db_name(&(entity)->source_corresp); \
   (void)fprintf(f_debug, "\n"); \
 }  /* display_entity_if_debug_enabled */
-#else /* /* !DEBUG */
+#else /* !DEBUG */
 #define display_entity_if_debug_enabled(entity) /* Nothing */
 #endif /* DEBUG */
 
