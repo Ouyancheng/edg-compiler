@@ -1,5 +1,13 @@
 Version 2.41
 
+2/18/99   void expression on return statement in void function in C++
+
+In C++, the standard allows a return statement in a void function
+to specify an expression with void type.  This is now implemented.
+
+  void f() {}
+  void g() { return f(); }
+
 2/18/99   Microsoft compatibility: no error on invalid command-line -D
 
 In Microsoft mode, an error is no longer issued for a command-line -D or

@@ -11369,6 +11369,8 @@ required_type; issue the error err_code if it cannot be converted to that
 type.  Return a pointer to the expression.  If the current routine is
 one that returns its value via a copy constructor, set *dip to point to
 the appropriate dynamic initialization entry and return NULL.
+required_type will be void if the expression should have void type
+(e.g., in a C++ function with void return type).
 */
 {
   a_routine_ptr       curr_routine = current_routine_entry();
@@ -11376,7 +11378,7 @@ the appropriate dynamic initialization entry and return NULL.
   an_expr_node_ptr    expression;
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
-  a_boolean           return_by_cctor_case;
+  a_boolean           return_by_cctor_case, void_return_case = FALSE;
 
   db_enter(3, "scan_return_expression");
 
@@ -11407,15 +11409,21 @@ the appropriate dynamic initialization entry and return NULL.
     expression = NULL;
   } else {
     /* Normal case. */
-    if (is_void_type(required_type) &&
-        ((microsoft_mode && C_mode()) ||
-         (cfront_2_1_mode && is_void_type(result.type)))) {
-      /* In cfront 2.1 mode a void function may have a return expression of
-         void type.  In Microsoft C mode it may have a return expression of
-         any type; we treat it as a void expression (in part to get better
-         diagnostics). */
+    if (is_void_type(required_type)) {
+      /* A void expression is expected. */
+      void_return_case = TRUE;
       simplify_void_operand(&result);
       expression = make_node_from_void_expression_operand(&result);
+      if (microsoft_mode && C_mode()) {
+        /* The type is not checked in Microsoft C mode. */
+      } else {
+        /* Check that the expression has void type. */
+        if (!is_void_type(result.type)) {
+          if (!is_error_operand(&result)) {
+            error_in_operand(err_code, &result);
+          }  /* if */
+        }  /* if */
+      }  /* if */
     } else {
       /* Convert to the required type. */
       prep_initializer_operand(&result, required_type,
@@ -11428,6 +11436,7 @@ the appropriate dynamic initialization entry and return NULL.
       expression = make_node_from_operand(&result);
     }  /* if */
     expression = wrap_up_full_expression(expression);
+    if (void_return_case) set_expr_result_not_used(expression);
   }  /* if */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL

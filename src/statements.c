@@ -4318,7 +4318,7 @@ See also 3.6.6.4.
   a_dynamic_init_ptr dip = NULL;
   a_routine_ptr      rout;
   a_type_ptr         return_type, routine_type;
-  a_boolean          return_expr_in_void_function = FALSE, expr_present;
+  a_boolean          microsoft_C_mode_void_return = FALSE, expr_present;
   a_source_position  return_pos;
 
   db_enter(3, "return_statement");
@@ -4342,15 +4342,15 @@ See also 3.6.6.4.
   return_type = routine_type->variant.routine.return_type;
   /* See if there is an expression after "return". */
   expr_present = (curr_token != tok_semicolon);
-  /* In cfront 2.1 mode and Microsoft C mode a return statement in a void
-     function may have the form "return expr;" -- though in the cfront 2.1
-     case the expression also has to have void type.  For these cases the
-     return statement is allocated later so that the expression can be put
-     out first as a freestanding expression statement. */
+  /* In Microsoft C mode a return statement in a void function may have
+     the form "return expr;".  For this case the return statement is
+     allocated later so that the expression can be put out first as a
+     freestanding expression statement.  This feature is standard in C++,
+     and the rewrite in that case is handled by IL lowering. */
   if (expr_present && is_void_type(return_type) &&
-      (cfront_2_1_mode || (microsoft_mode && C_mode()))) {
+      microsoft_mode && C_mode()) {
     warning(ec_value_returned_in_void_function);
-    return_expr_in_void_function = TRUE;
+    microsoft_C_mode_void_return = TRUE;
     sp = add_statement((a_statement_kind)stmk_expr);
   } else {
     /* Allocate the return statement. */
@@ -4372,12 +4372,24 @@ See also 3.6.6.4.
       error(ec_value_returned_in_constructor);
       return_type = error_type();
     } else if (is_void_type(return_type)) {
-      /* A void function may not return a value.  A warning has already been
-         issued for the cfront 2.1 and Microsoft C compatibility case (see
-         above). */
-      if (!return_expr_in_void_function) {
-        error(ec_value_returned_in_void_function);
-        return_type = error_type();
+      /* A void function may return a void expression in C++, but not in C.
+         Microsoft C allows an expression of any type.  cfront 2.1 allows
+         a void expression.  cfront 3.0 does not allow any expression. */
+      if (C_mode()) {
+        if (microsoft_C_mode_void_return) {
+          /* Microsoft C mode.  A warning was already issued above. */
+        } else {
+          /* Other C modes.  An expression is not allowed. */
+          error(ec_value_returned_in_void_function);
+          return_type = error_type();
+        }  /* if */
+      } else {
+        /* C++ modes. */
+        if (cfront_3_0_mode) {
+          /* cfront 3.0 does not allow an expression. */
+          error(ec_value_returned_in_void_function);
+          return_type = error_type();
+        }  /* if */
       }  /* if */
     }  /* if */
     /* Scan the return expression and convert it to the function type. */
@@ -4387,14 +4399,12 @@ See also 3.6.6.4.
   }  /* if */
   /* Put the expression into the statement. */
   sp->expr = return_expr;
-  if (!return_expr_in_void_function) {
+  if (!microsoft_C_mode_void_return) {
     sp->variant.return_dynamic_init = dip;
   } else {
-    /* The cfront 2.1 and Microsoft C compatibility case: "return expr" in
-       a void function.  The statement already put out is an expression
-       statement. Follow it now by a return statement with a null
-       expression. */
-    set_expr_result_not_used(return_expr);
+    /* The Microsoft C compatibility case: "return expr" in a void function.
+       The statement already put out is an expression statement. Follow it
+       now by a return statement with a null expression. */
     sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return, &return_pos);
     stmt_update_source_sequence_list(sp);
   }  /* if */

@@ -9658,11 +9658,12 @@ Lower an stmk_return statement.
   a_dynamic_init_ptr dip;
   a_variable_ptr     temp_var;
   an_insert_location insert_location;
+  a_type_ptr         return_type;
 
   if (return_expr != NULL) {
     /* Lower the returned expression.  It's an lvalue if the routine returns
        a reference type. */
-    a_type_ptr return_type = f_skip_typerefs(innermost_function_scope->
+    return_type = f_skip_typerefs(innermost_function_scope->
                                                    variant.routine.ptr->type)->
                                                    variant.routine.return_type;
     lower_full_expr(return_expr, /*is_lvalue=*/is_reference_type(return_type),
@@ -9705,8 +9706,28 @@ Lower an stmk_return statement.
   }  /* if */
   any_cleanup_on_return =
                        any_cleanup_actions(innermost_function_scope->lifetime);
-  if (any_cleanup_on_return ||
-      (exceptions_enabled && innermost_function_scope->lifetime != NULL)) {
+  if (return_expr != NULL && is_void_type(return_type)) {
+    a_statement_ptr expr_stmt;
+    /* A void function returning a void expression.  Change
+         return expr;
+       into
+         {expr; return;}
+    */
+    /* Change the return statement so that it returns nothing. */
+    statement->expr = NULL;
+    /* Note that if we executed the similar code above we wouldn't
+       be executing the code here, because a return can have either
+       a dynamic init entry or an expression, but not both. */
+    check_assertion(make_block);
+    turn_branch_into_block(statement, &insert_location,
+                           &return_statement);
+    make_block = FALSE;
+    /* Insert the expression statement. */
+    expr_stmt = insert_expr_statement(return_expr, &insert_location);
+    set_stmt_pos_to_code_pos_for_lowering(expr_stmt);
+  } else if (any_cleanup_on_return ||
+            (exceptions_enabled &&
+             innermost_function_scope->lifetime != NULL)) {
     /* Some code will have to be inserted on return, either for
        cleanup or to pop the exception handling stack entry.  It has
        to be inserted after the evaluation of the return expression,
