@@ -4536,7 +4536,7 @@ Do IL lowering of the indicated variable and everything under it.
     /* Lower the initializer if any. */
     lower_initializer(variable->init_kind, &variable->initializer);
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (automatic_instantiation_mode &&
+    if (automatic_instantiation_mode && !suppress_instantiation_flags &&
         variable->source_corresp.is_class_member) {
       /* Static data member. */
       if (variable->instance_required) {
@@ -4624,7 +4624,7 @@ Do IL lowering of the indicated routine and everything under it.
        in the file scope. */
     lower_type(routine->type);
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (automatic_instantiation_mode) {
+    if (automatic_instantiation_mode && !suppress_instantiation_flags) {
       /* For automatic instantiation, generate a variable or variables with
          names that encode instantiation information. */
       if (routine->instance_required) {
