@@ -1,5 +1,11 @@
 Version 2.43
 
+10/8/99  Make use of ppd_ident conditional
+
+The enumeration constant ppd_ident is only declared when the macro name
+IDENT_DIRECTIVE_AND_PRAGMA is TRUE, but the front end used to refer to it
+unconditionally.  This is now fixed.
+
 10/8/99  __ANSIC__ set twice when EDG_WIN32 is TRUE
 
 The basics.h header set __ANSIC__ twice (to the same value) when EDG_WIN32
