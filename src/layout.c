@@ -439,9 +439,9 @@ offset values as though the extra bits actually were being used.
 */
 {
   if (lob->curr_container_type != NULL) {
-    increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
-                            (a_targ_size_t)0, 
-                            lob->curr_container_avail_bits);
+    (void)increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
+                                  (a_targ_size_t)0, 
+                                  lob->curr_container_avail_bits);
     /* Padding to the end of the container means there's no room left
        for additional bit fields. */
     lob->curr_container_type = NULL;
