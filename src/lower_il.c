@@ -7511,7 +7511,10 @@ not include the function scope memory region, if any.
                                   /*define_now=*/TRUE);
       (void)alternate_entry_point(routine, (a_ctor_or_dtor_kind)cdk_subobject,
                                   /*define_now=*/TRUE);
-      if (routine->special_kind == (a_special_function_kind)sfk_destructor) {
+      if (routine->special_kind == (a_special_function_kind)sfk_destructor &&
+          /* The deleting destructor is used only when the destructor is
+             virtual. */
+          routine->is_virtual) {
         (void)alternate_entry_point(routine, 
                                     (a_ctor_or_dtor_kind)cdk_deleting,
                                     /*define_now=*/TRUE);
