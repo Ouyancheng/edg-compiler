@@ -6988,7 +6988,7 @@ later.  If such a progenitor is found, return a pointer to a progenitor entry
 progenitor entries); otherwise, return NULL.
 */
 {
-  a_symbol_ptr      sym, tag_sym;
+  a_symbol_ptr      sym, tag_sym, using_decl_sym = NULL;
   a_scope_ptr       scope;
   a_boolean	    must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
   a_progenitor_ptr  progenitor, pp;
@@ -7055,6 +7055,18 @@ progenitor entries); otherwise, return NULL.
          symbol for it. */
       sym = NULL;
     }  /* if */
+    if (sym != NULL && sym->ambiguous) {
+      /* Don't treat an ambiguous symbol as a progenitor; add each of its
+         own progenitor symbols to the progenitor set that's returned to
+         the caller. */
+      if (is_class_member_using_decl_symbol(sym)) {
+        /* Remember this symbol, however, so that the access recorded in the
+           progenitor entry can be corrected. */
+        using_decl_sym = sym;
+      }  /* if */
+      /* Set sym to NULL to force a call to find_progenitor. */
+      sym = NULL;
+    }  /* if */
   }  /* if */
   if (sym != NULL) {
     /* Found in the base class itself. */
@@ -7086,6 +7098,9 @@ progenitor entries); otherwise, return NULL.
     if (pp->path == NULL || pp->path->next == NULL ||
         !pp->path->base_class->is_virtual) {
       pp->path = make_derivation_step(base_class, pp->path);
+    }  /* if */
+    if (using_decl_sym != NULL) {
+      pp->access = using_decl_sym->variant.projection.access;
     }  /* if */
     pp->access = compute_access(pp->access,
                                 preferred_derivation_of(base_class)->access);
@@ -7380,7 +7395,9 @@ if no such base-class symbol is found).
         if (progenitor_set == NULL) {
           progenitor_set = new_set;
         } else {
-          /* Look for duplications and dominance and then merge the sets. */
+          /* There's at least one item in each set.  Look for equivalence
+             and dominance (which will allow eliminating some items) and
+             then merge the sets. */
           prev_in_new_set = NULL;
           for (new_pp = new_set; new_pp != NULL; new_pp = next_in_new_set) {
             next_in_new_set = new_pp->next;
@@ -7389,7 +7406,11 @@ if no such base-class symbol is found).
             for (pp = progenitor_set; pp != NULL; pp = next) {
               next = pp->next;
               retain_pp = TRUE;
-              if (progenitors_are_equivalent(pp, new_pp)) {
+              if (pp->sym->ambiguous || new_pp->sym->ambiguous) {
+                /* Don't do any of the comparison tests (equivalence,
+                   dominance) -- they depend on the fundamental symbol, but
+                   that's not really reliable with an ambiguous name. */
+              } else if (progenitors_are_equivalent(pp, new_pp)) {
                 /* No ambiguity (presumably because sym and other_sym are the
                    same member of a virtually derived class); choose between
                    the two projections based on access. */
@@ -7414,27 +7435,44 @@ if no such base-class symbol is found).
                 /* An unresolved ambiguity.  Both entries will be retained. */
               }  /* if */
               if (!retain_pp) {
+                /* The current entry in progenitor_set is to be eliminated.
+                   Branch around pp and return it to the available list. */
                 if (prev == NULL) {
                   progenitor_set = next;
                 } else {
                   prev->next = next;
                 }  /* if */
                 free_progenitor(pp);
-                /* Continue the inner loop. */
+                /* Continue the inner loop.  Note that prev is not changed. */
               } else if (!retain_new_pp) {
+                /* The current entry in new_set is to be eliminated.  Branch
+                   around new_pp and return it to the available list. */
                 if (prev_in_new_set == NULL) {
                   new_set = next_in_new_set;
                 } else {
                   prev_in_new_set->next = next_in_new_set;
                 }  /* if */
                 free_progenitor(new_pp);
-                /* Break out of the inner loop and check the next member of
-                   the new progenitor set. */
+                /* Break out of the inner loop and advance to the next
+                   member of the new progenitor set.  prev_new_pp should not
+                   be adjusted before continuing the outer loop. */
                 break;
+              } else {
+                /* Nothing was eliminated from either list.  Reset the
+                   pointer that tracks the previous item on the list, for
+                   use the next time through the inner loop. */
+                prev = pp;
               }  /* if */
             }  /* for */
+            if (retain_new_pp) {
+              /* Reset the pointer that tracks the previous item on the list,
+                 for use the next time through the outer loop.  (This is not
+                 done when new_pp is eliminated -- in that case, the current
+                 pointer is still valid.) */
+              prev_in_new_set = new_pp;
+            }  /* if */
           }  /* for */
-          /* Now merge the two lists. */
+          /* Now merge what's left of the two lists. */
           if (new_set != NULL) {
             if (progenitor_set == NULL) {
               progenitor_set = new_set;
