@@ -2728,9 +2728,6 @@ are tied to a particular source occurrence.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   sc->decl_pos_info     = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if ONE_INSTANTIATION_PER_OBJECT
-  sc->per_instantiation_needed_flags = NULL;
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
 }  /* break_source_corresp */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -2881,6 +2878,9 @@ Copy a constant entry from "from" to "to".
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   to->source_corresp.decl_pos_info = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if ONE_INSTANTIATION_PER_OBJECT
+  to->source_corresp.per_instantiation_needed_flags = NULL;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 }  /* copy_constant */
 
 
