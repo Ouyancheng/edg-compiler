@@ -229,6 +229,9 @@ static a_boolean		limit_recursion = TRUE;
 /* TRUE if we should use the SVR4 format for nm output. */
 static a_boolean		use_SVR4_nm_format = FALSE;
 
+/* TRUE if we should use the SGI format for nm output. */
+static a_boolean		use_SGI_nm_format = FALSE;
+
 /* TRUE if we should simply ignore invalid nm output lines. */
 static a_boolean		ignore_invalid_nm_output = FALSE;
 
@@ -640,9 +643,11 @@ processed further.
       rest_of_line = pos + 1;
     }  /* if */
     pos = rest_of_line;
-    /* The value field may optionally be preceeded by one or more blanks.
-       Skip over any blanks that appear here. */
-    while (*pos == ' ') pos++;
+    if (use_SGI_nm_format) {
+      /* The value field may optionally be preceeded by one or more blanks.
+         Skip over any blanks that appear here. */
+      while (*pos == ' ') pos++;
+    }  /* if */
     /* Skip over the first field which is expected to contain the
        value field.  Skip to a blank. */
     while((ch = *pos), ch != ' ' && ch != '\0') pos++;
@@ -700,6 +705,7 @@ or defined in that object file.
       process_line = pl_scan_SVR4_nm_line(&name1, &name2, &type,
                                           &symbol_name);
     } else {
+      /* SGI uses a variant of the default format. */
       process_line = pl_scan_default_nm_line(&name1, &name2, &type,
                                              &symbol_name);
     }  /* if */
@@ -1558,8 +1564,10 @@ int main(int argc, char *argv[])
         break;
       case 'f':
         /* Specifies the nm line format to be expected. */
-        if (strchr(optarg, "SVR4") == 0) {
+        if (strcmp(optarg, "SVR4") == 0) {
           use_SVR4_nm_format = TRUE;
+        } else if (strcmp(optarg, "SGI") == 0) {
+          use_SGI_nm_format = TRUE;
         } else {
           pl_error("Invalid nm format option");
         }  /* if */
