@@ -505,7 +505,7 @@ unknown_option:
     }  /* if */
     if (suppress_virtual_function_table_definition) {
       command_line_error(
-      "Virtual function tables can only be suppressed (-V) when compiling C++"
+      "virtual function tables can only be suppressed (-V) when compiling C++"
                          );
     }  /* if */
   }  /* if */
