@@ -819,10 +819,11 @@ Specialization of a partial specialization of a member class template:
 1/27/97 C-generating back end: base types of bit fields in generated code
 
 When ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C is TRUE (which it
-is by default), the C-generating back end now puts out the base types of
-bit fields as they were declared, rather than with the standardized base
-types "int", "signed int", and "unsigned int".  For example, a bit field
-declared as "unsigned char i:3;" is now put out that way rather than as
+is by default, except when CFRONT_OBJECT_CODE_COMPATIBILITY is TRUE),
+the C-generating back end now puts out the base types of bit fields as
+they were declared, rather than with the standardized base types "int",
+"signed int", and "unsigned int".  For example, a bit field declared
+as "unsigned char i:3;" is now put out that way rather than as
 "unsigned int i:3;".  The old behavior is available by setting the
 option to FALSE.
 

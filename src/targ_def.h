@@ -499,6 +499,10 @@ match the target machine behavior on integer operations in C.
    size in bytes of one of the integral types.  0 means "use the smallest
    integral type into which the field will fit".  < 0 means "use the
    base type given in the declaration". */
+/* Note that if the C-generating back end is being used, the setting of
+   this switch must match ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C
+   so that the front end's layout code gets the same result that the
+   underlying C compiler will get. */
 #ifndef TARG_BIT_FIELD_CONTAINER_SIZE
 #if TARG_MICROSOFT_BIT_FIELD_ALLOCATION
 #define TARG_BIT_FIELD_CONTAINER_SIZE -1
@@ -1304,10 +1308,18 @@ the generated C for that case.
 /*
 If the C-generating back end is being used, are bit fields in the
 generated C allowed to have base types other than the standard
-"int" and "unsigned int"?
+"int" and "unsigned int"?  Note that the setting of this switch must
+match TARG_BIT_FIELD_CONTAINER_SIZE so that the front end's layout
+code gets the same result that the underlying C compiler will get.
 */
 #ifndef ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C
+#if CFRONT_OBJECT_CODE_COMPATIBILITY || ABI_COMPATIBILITY_VERSION < 235
+/* In the C code it generates, cfront changes the underlying types of all
+   bit-fields to int or unsigned int. */
+#define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C FALSE
+#else /* !(CFRONT_OBJECT_CODE_COMPATIBILITY || ...) */
 #define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C TRUE
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY || ...) */
 #endif /* ifndef ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
 
 /*
