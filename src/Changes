@@ -1,5 +1,11 @@
 Version 3.2
 
+4/3/03   Internal error when using insert_string_into_token_stream
+
+A problem with insert_string_into_token_stream could result in an
+internal error if the macro buffer required reallocation while
+processing the insertion.  This has been fixed.
+
 4/2/03   Zero-valued const integer variable as null pointer constant in cast
 
 The front end did not properly consider a zero-valued const integer

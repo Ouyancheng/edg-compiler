@@ -12704,7 +12704,6 @@ if the tokens should be inserted after the current token; FALSE if they
 should be inserted before the current token.
 */
 {
-  char			*save_curr_char_loc;
   a_boolean		save_treat_newline_as_token;
   a_text_buffer_ptr	buffer;
   a_token_cache		cache;
@@ -12713,7 +12712,17 @@ should be inserted before the current token.
   char			*save_curr_source_line;
   char			*save_after_end_of_curr_source_line;
   a_boolean		save_caching_tokens;
+  /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
+     are dangerous, since those things can be reallocated.  Such pointers
+     must be registered by calling register_pointer_variable so that they
+     can be updated on any reallocation. */
+  char			*save_curr_char_loc = NULL;
+  a_pointer_registration
+			save_curr_char_loc_reg;
+  a_pointer_registration_ptr
+			save_registered_pointers = registered_pointers;
 
+  register_pointer_variable(save_curr_char_loc, save_curr_char_loc_reg);
   if (token_insertion_buffer == NULL) {
     token_insertion_buffer = alloc_text_buffer(1024);
   }  /* if */
@@ -12789,6 +12798,8 @@ should be inserted before the current token.
   }  /* if */
   /* Scan the tokens from the cache. */
   rescan_cached_tokens(&cache);
+  /* Drop any local pointer registrations. */
+  registered_pointers = save_registered_pointers;
 }  /* insert_string_into_token_stream */
 
 

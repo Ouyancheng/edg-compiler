@@ -87,42 +87,6 @@ that involve deep nesting but no recursion, as for example in
 #define MAX_PCC_RECURSIVE_MACRO_DEPTH 300
 
 /*
-Data structure used to build a list of local variables that point into
-the curr_source_line data structure.  Such variables need to be updated if
-one of the primary dynamically-allocated buffers is reallocated.
-*/
-typedef struct a_pointer_registration *a_pointer_registration_ptr;
-typedef struct a_pointer_registration {
-  /* A linked list of these entries identifies the local pointer variables
-     to be updated.   These entries are themselves stack variables. */
-  a_pointer_registration_ptr
-		next;
-			/* Next entry on the list, or NULL if this is the
-			   last entry. */
-  char		**ptr_variable;
-			/* Pointer to the pointer variable (which has type
-			   char *). */
-} a_pointer_registration;
-static a_pointer_registration_ptr
-		registered_pointers;
-			/* List of registered pointers. */
-/*
-Macro to add a local pointer variable to the list of registered pointers.
-ptr_var is the pointer variable, and ptr_registration is a_pointer_registration
-dedicated to the variable.  The pointer variable is set to NULL to ensure
-that it has a value that can be examined henceforth (therefore, it
-shouldn't be initialized in its declaration).
-*/
-#define register_pointer_variable(ptr_var, ptr_registration)          \
-{ ptr_registration.next = registered_pointers;                        \
-  ptr_registration.ptr_variable = &(ptr_var);                         \
-  /*lint --e(789)*/                                                   \
-  registered_pointers = &ptr_registration;                            \
-  (ptr_var) = NULL;                                                   \
-}  /* register_pointer_variable */
-
-
-/*
 Declaration for the data structure used to hold values of
 arguments to macro calls.
 */
