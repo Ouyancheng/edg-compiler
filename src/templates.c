@@ -897,6 +897,9 @@ included in the search.
         }  /* if */
       }  /* if */
       if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
+        /* Local typedef names (legal if they refer to nonlocal types) should
+           not be part of the type signature of the template class itself,
+           which is nonlocal.  Strip them off, if there are any. */
         if (tap->is_type) {
           tap->variant.type = strip_local_typedefs(tap->variant.type);
         }  /* if */
