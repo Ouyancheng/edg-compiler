@@ -1,12 +1,11 @@
 Version 2.34
 
-10/16/96 uncaught_exception() and nested try blocks
+11/25/96 uncaught_exception() returns TRUE when called from terminate()
 
-The uncaught_exception() routine has been modified to return TRUE only
-when an attempt to throw any exception would result in terminate()
-being called.  If a nested try block is encountered that could
-catch an exception thrown at the point where uncaught_exception()
-is called, uncaught_exception() will return FALSE.
+X3J16/WG21 clarified the definition of uncaught_exception() when
+called from within terminate().  The runtime has been modified to
+conform to the updated definition by always returning TRUE when
+called from within terminate().
 
 10/14/96 Recording array allocation information for placement array new
 

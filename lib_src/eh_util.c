@@ -21,6 +21,12 @@ C++ functions to support exception handling.
 #if EXCEPTION_HANDLING
 #include "eh.h"
 
+static a_boolean
+		terminate_called = FALSE;
+			/* Set to TRUE when terminate() is called by the
+			   EH runtime.  This is used by uncaught_exception()
+			   to determine whether terminate() has been called. */
+
 /*
 If the runtime should be defined in the std namespace, open
 the std namespace.
@@ -80,23 +86,18 @@ Return TRUE if an exception is in the process of being thrown.
 */
 {
   an_eh_stack_entry_ptr	ehsep = __curr_eh_stack_entry;
-  _bool			result = FALSE;
+  _bool			result;
 
-  for (; ehsep != NULL; ehsep = ehsep->next) {
+  /* TRUE should be returned if uncaught_exception() is called after
+     terminate() has been called by the implementation. */
+  result = terminate_called;
+  for (; result == FALSE && ehsep != NULL; ehsep = ehsep->next) {
     if (ehsep->kind == ehsek_throw_processing_marker) {
       /* We are processing a throw.  An exception cannot be thrown here
-         without resulting in a call to terminate(). */
+         without resulting in a call to terminate().  Note that this is
+         TRUE even if a try block is nested inside the throw processing
+         marker. */
       result = TRUE;
-      break;
-    } else if (ehsep->kind == ehsek_try_block) {
-      if (ehsep->variant.try_block.catch_entries == NULL) {
-        /* An internal try block.  Ignore this for purposes of looking for
-           a try that is not in a handler. */
-      } else if (ehsep->variant.try_block.catch_info == NULL) {
-        /* We are inside a try block (that is not currently in a handler), so
-         it is okay for a new exception to be thrown here. */
-        break;
-      }  /* if */
     }  /* if */
   }  /* for */
   return result;
@@ -128,6 +129,7 @@ Used by the EH runtime when terminate needs to be called.  Ensures
 that terminate does not return.
 */
 {
+  terminate_called = TRUE;
   STD_NAMESPACE::terminate();
   abort();
 }  /* __call_terminate */
