@@ -29,8 +29,9 @@ lower_name.c -- Do name mangling for IL lowering.
 
 /* Only include this code if it is needed: */
 #if NEED_NAME_MANGLING
-
+#if DO_IL_LOWERING
 #include "templates.h"
+#endif /* DO_IL_LOWERING */
 
 /*
 Control block for mangling.
