@@ -27,9 +27,6 @@ attribute.c -- Processing of attributes, a GCC extension.
 /* Header files used by files involved in declaration processing. */
 #include "decl_hdrs.h"
 #include "layout.h"
-#if MAINTAIN_NEEDED_FLAGS
-#include "il_walk.h"
-#endif /* MAINTAIN_NEEDED_FLAGS */
 
 
 /*
