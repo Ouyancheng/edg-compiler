@@ -1981,7 +1981,8 @@ scope is that of a class definition.
            when the next token is an ellipsis.  If an error is to be put out,
            that's done later. */
         if (curr_token != tok_comma && curr_token != tok_rparen &&
-            !dangling_type_specifier && curr_token != tok_ellipsis) {
+            !dangling_type_specifier && curr_token != tok_ellipsis &&
+            curr_token != tok_assign) {
           a_decl_flag_set  do_flags;
 
           if (curr_token == tok_identifier &&
@@ -5880,10 +5881,22 @@ function_lparen:
      where the reference to (use of) the type appears with the reference
      to the tag name.)  As written, this sets the referenced flag for all
      types, not just tags, which is harmless. */
+#if 0
   if (specifiers_type != NULL &&
-      (*output_flags & DO_REAL_DECLARATOR_SCANNED)) {
+      (is_ptr_or_ref_type(complete_type) ||
+       derived_type != NULL ||
+       (*output_flags & DO_REAL_DECLARATOR_SCANNED))) {
     (skip_typerefs(specifiers_type))->source_corresp.referenced = TRUE;
   }  /* if */
+#else
+  if (specifiers_type != NULL) {
+    check_assertion((*output_flags & DO_REAL_DECLARATOR_SCANNED) ||
+                    is_ptr_or_ref_type(complete_type) ||
+                    derived_type != NULL ||
+                    is_ptr_to_member_type(complete_type));
+    (skip_typerefs(specifiers_type))->source_corresp.referenced = TRUE;
+  }  /* if */
+#endif /* if 0 */
   /* Use the position of the identifier as the position of this declarator
      for error purposes.  If this was an abstract declarator, declarator_pos
      has been set to the beginning of the declarator.  The error position
@@ -7968,6 +7981,9 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
     /* Missing type specifier. */
     warning(ec_missing_type_specifier);
   }  /* if */
+  if (*type_ptr != NULL) {
+    (skip_typerefs(*type_ptr))->source_corresp.referenced = TRUE;
+  }  /* if */
   /* Note -- the check for dangling_type_specifier is not relevant here. */
   if (is_abstract_declarator_start()) {
     declarator(DI_ABSTRACT_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED,
@@ -8024,6 +8040,9 @@ syntax is:
   } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
     warning(ec_missing_type_specifier);
+  }  /* if */
+  if (*type_ptr != NULL) {
+    (skip_typerefs(*type_ptr))->source_corresp.referenced = TRUE;
   }  /* if */
   /* Note -- the check for dangling_type_specifier is not relevant here. */
   bottom_derived_type = NULL;
