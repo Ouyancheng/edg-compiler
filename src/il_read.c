@@ -333,7 +333,7 @@ necessary to make it directly accessible in memory.
 #else /* !ALTERNATE_IL_FILE_FORMAT */
   a_mem_block_header_ptr    old_hdr;
   a_scope_ptr               old_region_scope_entry;
-  unsigned long             total_bytes;
+  sizeof_t                  total_bytes;
   a_block_remap_entry_ptr   remap_entry;
   a_boolean                 first_block;
 #endif /* ALTERNATE_IL_FILE_FORMAT */
@@ -640,17 +640,17 @@ necessary to make it directly accessible in memory.
   if (reading_file_scope_il) fs_block_remap_list = NULL;
   /* Loop for each block of the memory region. */
   first_block = TRUE;
+#if DEBUG
+  if (debug_level >= 3) {
+    fprintf(f_debug, "read_memory_region: at top of block read loop\n");
+    fprintf(f_debug, "total_bytes = %lu\n", (unsigned long)total_bytes);
+  }  /* if */
+#endif /* DEBUG */
   do {
     a_mem_block_header old_block_header;
-    unsigned long      block_size, block_used;
+    sizeof_t           block_size, block_used;
     char               *new_start_of_block;
 
-#if DEBUG
-    if (debug_level >= 3) {
-      fprintf(f_debug, "read_memory_region: at top of block read loop\n");
-      fprintf(f_debug, "total_bytes = %lu\n", (unsigned long)total_bytes);
-    }  /* if */
-#endif /* DEBUG */
     /* Read a block.  Start by reading the header. */
     fread_with_check((char *)&old_block_header, sizeof(old_block_header));
 #if DEBUG
@@ -670,8 +670,9 @@ necessary to make it directly accessible in memory.
                  old_block_header.start_of_block;
 #if DEBUG
     if (debug_level >= 4) {
-      fprintf(f_debug, "block_used = %lu\n", (unsigned long)block_used);
-      fprintf(f_debug, "block_size = %lu\n", (unsigned long)block_size);
+      fprintf(f_debug, "block_used  = %lu\n", (unsigned long)block_used);
+      fprintf(f_debug, "block_size  = %lu\n", (unsigned long)block_size);
+      fprintf(f_debug, "total_bytes = %lu\n", (unsigned long)total_bytes);
     }  /* if */
 #endif /* DEBUG */
 #if CHECKING
