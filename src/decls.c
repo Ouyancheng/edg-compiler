@@ -9604,16 +9604,18 @@ continue_with_declaration:
                        (local_storage_class != (a_storage_class)sc_extern);
         } else {
           /* C mode. */
-          if (linkage == idl_none) {
+          if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
+            if (local_storage_class == (a_storage_class)sc_unspecified ||
+                local_storage_class == (a_storage_class)sc_static) {
+              /* In C a file scope variable declaration with no storage class
+                 or static storage class is called a tentative definition. */
+              is_tentative_definition = TRUE;
+            }  /* if */
+          } else {
             /* In C all local variable declarations are definitions. */
-            is_variable_def = TRUE;
-          } else if (decl_scope_level == DEPTH_OF_FILE_SCOPE &&
-                     (local_storage_class ==
-                                         (a_storage_class)sc_unspecified ||
-                      local_storage_class == (a_storage_class)sc_static)) {
-            /* In C a file scope variable declaration with no storage class
-               or static storage class is called a tentative definition. */
-            is_tentative_definition = TRUE;
+            if (local_storage_class != (a_storage_class)sc_extern) {
+              is_variable_def = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
