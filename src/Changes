@@ -1,5 +1,13 @@
 Version 2.39
 
+5/5/98    Strange problems with default arguments on constructors with
+          exceptions enabled
+
+A problem in default_version_of_routine in lower_init.c caused a
+stack variable to be referenced after the end of its scope, which
+could cause highly strange and machine-dependent behavior.
+Now fixed.
+
 5/5/98    Tweak on workaround for typeinfo destructor pointer problem
           in pre-2.38 ABI
 

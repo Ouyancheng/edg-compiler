@@ -1951,6 +1951,7 @@ routine is returned.
   a_boolean        any_implied_args, insert_as_statement, void_return;
   an_object_lifetime_ptr
                    init_expr_lifetime = NULL;
+  a_context        def_arg_context;
 
   /* Determine if any implicit arguments are required for a constructor or
      destructor. */
@@ -2062,7 +2063,6 @@ routine is returned.
          copied and lowered. */
       /* Create an expression temporary lifetime surrounding the copy of
          the expressions to catch any needed destructions. */
-      a_context              def_arg_context;
       an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
       push_object_lifetime(iek_none, (char *)NULL,
                            (an_object_lifetime_kind)olk_expr_temporary);
