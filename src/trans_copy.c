@@ -41,19 +41,19 @@ Return TRUE if the given entry has the flag set that indicates that
 it needs to be copied.  The il_walk_flag is used for this purpose.
 */
 #define entry_needs_copy_flag_is_set(ptr) \
-  (il_entry_prefix_of(ptr).il_walk_flag != flag_value_meaning_visited)
+  (il_entry_prefix_of(ptr).il_walk_flag)
 
 /*
 Set the flag that indicates that an entry needs to be copied.
 */
 #define set_entry_needs_copy_flag(ptr) \
-  (il_entry_prefix_of(ptr).il_walk_flag = !flag_value_meaning_visited)
+  (il_entry_prefix_of(ptr).il_walk_flag = TRUE)
 
 /*
 Reset the flag that indicates that an entry needs to be copied.
 */
 #define reset_entry_needs_copy_flag(ptr) \
-  (il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited)
+  (il_entry_prefix_of(ptr).il_walk_flag = FALSE)
 
 
 static void copy_address_setup(
@@ -885,9 +885,7 @@ to the secondary translation unit.
        the file scope in the primary translation unit, and gets merged
        into it. */
     a_scope_ptr corresp_scope = translation_units->primary_scope;
-    /* Make sure flag_value_meaning_visited is set so that
-       the entry needs-copy flag can be used (e.g., in mark_to_merge). */
-    flag_value_meaning_visited = il_entry_prefix_of(scope).il_walk_flag;
+    check_assertion(il_entry_prefix_of(scope).il_walk_flag == 0);
     checked_trans_unit_copy_address_of(scope) = (char *)corresp_scope;
     mark_to_merge(scope, iek_scope);
     if (scope->lifetime != NULL && corresp_scope->lifetime != NULL) {
