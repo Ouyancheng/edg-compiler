@@ -21,8 +21,7 @@ distinct cases independently:
     }
   }                          // ec_implicit_return_from_non_void_function
 
-In -A mode both diagnostics are now put out with as discretionary
-errors.
+In -A mode both diagnostics are now put out as discretionary errors.
 
 9/9/98    Microsoft compatibility: improved support for inheritance kinds
 
