@@ -1,5 +1,10 @@
 Version 2.32
 
+4/9/96  Instantiation forced in dynamic_cast
+
+When the operand or destination type of a dynamic_cast is a pointer
+to a template class, the class is now instantiated.
+
 4/9/96  Warning only on too few or too many macro arguments in Microsoft mode
 
 In Microsoft mode, the error of having too few or too many arguments in a
