@@ -694,7 +694,7 @@ assigns the address.
 
 
 /*
-When used mapped memory at a fixed address, the fixed address must be
+When using mapped memory at a fixed address, the fixed address must be
 specified.  FIXED_ADDRESS_FOR_MMAP is used to provide the address.
 */
 #ifndef FIXED_ADDRESS_FOR_MMAP
