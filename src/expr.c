@@ -3912,6 +3912,9 @@ specification allow a variable-sized array as the top type.
   a_targ_size_t     effective_num_of_elements;
   an_arg_match_summary_ptr
                     arg_match_list = NULL;
+  a_routine_ptr     new_routine;
+  a_dynamic_init_ptr
+                    dyn_init_to_free_storage = NULL;
 
   db_enter(4, "scan_new_operator");
 
@@ -4097,10 +4100,6 @@ specification allow a variable-sized array as the top type.
        here for that case because it shouldn't affect the scanning of
        the initial value. */
   }  /* if */
-  /* See if the object has or needs initialization.  Note that we need to
-     scan the initializer (if there is one) even if an error was detected
-     above. */
-  needs_initialization = FALSE;
   if (array_new) {
     /* Array new.  Determine the effective number of elements. */
     if (new_array_dimension != NULL) {
@@ -4131,6 +4130,84 @@ specification allow a variable-sized array as the top type.
   if (is_class_struct_union_type(base_new_type)) {
     ctor_sym = symbol_supplement_for_class(base_new_type)->constructor;
   }  /* if */
+  if (function_symbol != NULL) {
+    a_boolean access_error_reported;
+    /* Work out the "new" routine and its arguments. */
+    new_routine = function_symbol->variant.routine.ptr;
+#if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
+    if (array_new) {
+      /* If a allocating an array and a runtime routine will be used, the
+         "new" routine can be implicit if it is the default global new. */
+      if (new_or_delete_type_requires_array_handling(base_new_type)) {
+        if (function_symbol == 
+                       extract_default_operator_new_sym(operator_new_symbol)) {
+          new_routine = NULL;
+        }  /* if */
+      }  /* if */
+    } else {
+#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+      /* If allocating a class with a constructor, determine the default
+         "new" routine for the class and see whether it is the one that
+         was selected.  If so, the "new" call can be folded into the
+         constructor call. */
+      if (ctor_routine != NULL) {
+        a_type_ptr unqual_base_new_type = skip_typerefs(base_new_type);
+        set_class_assoc_operator_new_routine(unqual_base_new_type);
+        if (unqual_base_new_type->variant.class_struct_union.extra_info->
+                                   assoc_operator_new_routine == new_routine) {
+          new_routine = NULL;
+        }  /* if */
+      }  /* if */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+#if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
+    }  /* if */
+#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+    /* Mark the "new" routine as referenced, check access to it. */
+    overloaded_function_catch_up(function_symbol,
+                                 operator_new_symbol,
+                                 /*is_qualified_name=*/FALSE,
+                                 &placement_position,
+                                 /*elided_reference=*/(new_routine==NULL),
+                                 /*address_taken=*/FALSE,
+                                 (an_operand *)NULL,
+                                 &access_error_reported);
+    /* Adjust the argument types, issue any warnings, and free
+       arg_operand_list and arg_match_list. */
+    adjust_overloaded_function_call_arguments(function_symbol,
+                                              /*have_selector=*/FALSE,
+                                              (an_operand *)NULL,
+                                              arg_operand_list,
+                                              arg_match_list,
+                                              &arg_expr_list);
+    /* Avoid freeing the lists twice. */
+    arg_operand_list = NULL;
+    arg_match_list = NULL;
+    /* If exceptions are enabled, record the deletion to be used to
+       undo the allocation if an exception is thrown.  Do not do this for
+       a "placement" new; the storage in that case is not freed automatically
+       when an exception is thrown. */
+    if (exceptions_enabled && new_routine != NULL && !placement_new) {
+      a_routine_ptr delete_routine = select_delete_routine(base_new_type,
+                                                           use_global_new,
+                                                           array_new,
+                                                          &placement_position);
+      /* Mark the routine referenced. */
+      if_evaluating_mark_routine_referenced(delete_routine);
+      /* The deletion is recorded in a dynamic initialization entry.
+         The delete routine is used as the "destructor". */
+      dyn_init_to_free_storage =
+                        alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
+      dyn_init_to_free_storage->destructor = delete_routine;
+      dyn_init_to_free_storage->is_freeing_of_storage_on_exception=TRUE;
+      record_end_of_lifetime_destruction(dyn_init_to_free_storage,
+                                         /*static_lifetime=*/FALSE);
+    }  /* if */
+  }  /* if */
+  /* See if the object has or needs initialization.  Note that we need to
+     scan the initializer (if there is one) even if an error was detected
+     above. */
+  needs_initialization = FALSE;
   if (ctor_sym != NULL) {
     /* Class with a constructor.  Initialization is required. */
     if (curr_token == tok_lparen) {
@@ -4198,9 +4275,7 @@ specification allow a variable-sized array as the top type.
   } else {
     an_expr_node_ptr            new_node;
     a_new_delete_supplement_ptr ndsp;
-    a_dynamic_init_ptr          dip, dyn_init_to_free_storage;
-    a_routine_ptr               new_routine;
-    a_boolean                   access_error_reported;
+    a_dynamic_init_ptr          dip;
 
     /* Use an enk_new_delete node to represent the "new". */
     new_node = alloc_expr_node((an_expr_node_kind)enk_new_delete);
@@ -4240,78 +4315,6 @@ specification allow a variable-sized array as the top type.
         dip->variant.expression = init_val_node;
       }  /* if */
       ndsp->dynamic_init = dip;
-    }  /* if */
-    /* Work out the "new" routine and its arguments. */
-    new_routine = function_symbol->variant.routine.ptr;
-#if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
-    if (array_new) {
-      /* If a allocating an array and a runtime routine will be used, the
-         "new" routine can be implicit if it is the default global new. */
-      if (new_or_delete_type_requires_array_handling(base_new_type)) {
-        if (function_symbol == 
-                       extract_default_operator_new_sym(operator_new_symbol)) {
-          new_routine = NULL;
-        }  /* if */
-      }  /* if */
-    } else {
-#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
-      /* If allocating a class with a constructor, determine the default
-         "new" routine for the class and see whether it is the one that
-         was selected.  If so, the "new" call can be folded into the
-         constructor call. */
-      if (ctor_routine != NULL) {
-        a_type_ptr unqual_base_new_type = skip_typerefs(base_new_type);
-        set_class_assoc_operator_new_routine(unqual_base_new_type);
-        if (unqual_base_new_type->variant.class_struct_union.extra_info->
-                                   assoc_operator_new_routine == new_routine) {
-          new_routine = NULL;
-        }  /* if */
-      }  /* if */
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
-#if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
-    }  /* if */
-#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
-    /* Mark the "new" routine as referenced, check access to it. */
-    overloaded_function_catch_up(function_symbol,
-                                 operator_new_symbol,
-                                 /*is_qualified_name=*/FALSE,
-                                 &placement_position,
-                                 /*elided_reference=*/(new_routine==NULL),
-                                 /*address_taken=*/FALSE,
-                                 (an_operand *)NULL,
-                                 &access_error_reported);
-    /* Adjust the argument types, issue any warnings, and free
-       arg_operand_list and arg_match_list. */
-    adjust_overloaded_function_call_arguments(function_symbol,
-                                              /*have_selector=*/FALSE,
-                                              (an_operand *)NULL,
-                                              arg_operand_list,
-                                              arg_match_list,
-                                              &arg_expr_list);
-    /* Avoid freeing the lists twice. */
-    arg_operand_list = NULL;
-    arg_match_list = NULL;
-    /* If exceptions are enabled, record the deletion to be used to
-       undo the allocation if an exception is thrown.  Do not do this for
-       a "placement" new; the storage in that case is not freed automatically
-       when an exception is thrown. */
-    dyn_init_to_free_storage = NULL;
-    if (exceptions_enabled && new_routine != NULL && !placement_new) {
-      a_routine_ptr delete_routine = select_delete_routine(base_new_type,
-                                                           use_global_new,
-                                                           array_new,
-                                                          &placement_position);
-      /* Mark the routine referenced. */
-      if_evaluating_mark_routine_referenced(delete_routine);
-      /* The deletion is recorded in a dynamic initialization entry.
-         The delete routine is used as the "destructor". */
-      dyn_init_to_free_storage =
-                        alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
-      dyn_init_to_free_storage->destructor = delete_routine;
-      dyn_init_to_free_storage->is_freeing_of_storage_on_exception=TRUE;
-      record_end_of_lifetime_destruction(dyn_init_to_free_storage,
-                                         /*static_lifetime=*/FALSE);
     }  /* if */
     ndsp->freeing_of_storage_on_exception = dyn_init_to_free_storage;
     /* Put the routine and argument list into the supplement.  Note that
