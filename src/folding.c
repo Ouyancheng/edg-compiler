@@ -752,10 +752,11 @@ type.
       /* Do fold implicit decay from array to pointer. */
       a_type_ptr underlying_old_type = type_pointed_to(old_type);
       a_type_ptr underlying_new_type = type_pointed_to(new_type);
-      if (is_array_type(underlying_old_type) &&
-          identical_types(array_element_type(underlying_old_type),
-                          underlying_new_type)) {
-        *did_not_fold = FALSE;
+      if (is_array_type(underlying_old_type)) {
+        a_type_ptr elem_type = array_element_type(underlying_old_type); 
+        if (identical_types(elem_type, underlying_new_type)) {
+          *did_not_fold = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
   } else if (!is_reinterpret_cast &&
