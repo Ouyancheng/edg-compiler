@@ -1018,6 +1018,7 @@ fi
 if [ $one_instantiation_per_object -ne 0 -a \
      $prelink_copy_if_nonlocal -eq 0 ] ; then
   prelink_local_only=1
+  prelink_options=$prelink_options" -O $instantiation_dir"
 fi
 #
 # The old .ii format cannot be used with the new prelinker nonlocal file
@@ -1039,8 +1040,18 @@ fi
 # Convert --prelink_copy_if_nonlocal to the appropriate prelinker option.
 #
 if [ $prelink_copy_if_nonlocal -ne 0 ] ; then
+  prelink_options=$prelink_options" -N"
+fi
+#
+# One instantiation per object and --prelink_copy_if_nonlocal require that
+# a new object list file name be provided to the prelinker.
+#
+use_new_obj_list_file=0
+if [ $prelink_copy_if_nonlocal -ne 0 -o $one_instantiation_per_object -ne 0 ]
+then
   new_obj_list_file=$TMPDIR/nolf$$
-  prelink_options=$prelink_options" -N $new_obj_list_file"
+  use_new_obj_list_file=1
+  prelink_options=$prelink_options" -o $new_obj_list_file"
 fi
 #
 # Convert --remove_instantiation_flags to the appropriate prelinker option.
@@ -1117,7 +1128,7 @@ do
   # instantiations directory, otherwise they go into a temporary directory.
   # When the "keep" option is used, the instantiations list goes into the
   # current directory, otherwise it goes in the temporary directory.
-  instantiation_list=$instantiation_dir/$basefile.list
+  instantiation_list=$basefile.ti
   if [ $one_instantiation_per_object -ne 0 ] ; then
     if [ $keep_int_file -ne 0 ] ; then
       instantiation_gen_c_dir=$instantiation_dir
@@ -1136,7 +1147,17 @@ do
         exit 1
       fi
     fi
-    instantiation_dir_option="--instantiation_dir=$instantiation_gen_c_dir --instantiation_file_list=$instantiation_list"
+    instantiation_dir_option="--instantiation_dir=$instantiation_gen_c_dir --template_info_file=$instantiation_list"
+    if [ $use_default_instantiation_dir -ne 0 -a \
+         ! -d $instantiation_dir ] ; then
+      mkdir $instantiation_dir
+      if [ $? -ne 0 ] ; then
+        echo "eccp: cannot create instantiation directory $instantiation_dir"
+        exit 1
+      else
+        echo "eccp: created instantiation directory $instantiation_dir"
+      fi
+    fi
   fi
   command=${CPFE}" "$feoptions" "$gen_c_option" "$ii_file_option" "$instantiation_dir_option" "$EDG_CPFE_DEFAULT_OPTIONS" "$cfile
   if [ $driver_debug -ne 0 ] ; then
@@ -1265,7 +1286,7 @@ then
         do
           new_object_files=$new_object_files" "$obj_file
           obj_base=`expr $obj_file : '\(.*\)'.o`
-          instantiation_list=$instantiation_dir/$obj_base.list
+          instantiation_list=$instantiation_dir/$obj_base.ti
           if [ -f $instantiation_list ] ; then
             for inst_base in `cat $instantiation_list`
             do
@@ -1303,11 +1324,12 @@ then
         fi
       fi
 #
-#     When the --prelink_copy_if_nonlocal option is used, the prelinker outputs
+#     When either one instantiation per object mode or the
+#     --prelink_copy_if_nonlocal option is used, the prelinker outputs
 #     an updated list of object files.  Replace the original ofiles list with
 #     the updated one.
 #
-      if [ $prelink_copy_if_nonlocal -ne 0 ] ; then
+      if [ $use_new_obj_list_file -ne 0 ] ; then
         new_list=`cat $new_obj_list_file`
         rm -f $new_obj_list_file
         if [ $driver_debug -ne 0 ] ; then

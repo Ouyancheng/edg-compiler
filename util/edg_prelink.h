@@ -17,8 +17,15 @@ Declarations for EDG template prelink utility.
 /* Type code output by "nm" for externally visible function definitions. */
 #define EXTERN_TYPE 'T'
 
-/* Suffix to be used for the instantiation information file. */
-#define INSTANTIATION_INFO_SUFFIX ".ii"
+/* Suffix to be used for the instantiation request file. */
+#define INSTANTIATION_REQUEST_SUFFIX ".ii"
+
+/* Suffix to be used for the instantiation request file. */
+#define TEMPLATE_INFO_SUFFIX ".ti"
+
+/* Suffix to be used for instantiation object files created in one
+   instantiation per object mode. */
+#define INSTANTIATION_OBJECT_SUFFIX ".int.o"
 
 /* Special mangled name prefixes used by the prelinker. */
 #define PL_CAN_BE_INSTANTIATED_PREFIX		"__CBI__"

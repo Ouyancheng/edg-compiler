@@ -83,8 +83,8 @@ typedef struct a_pl_symbol {
 		next_in_symbol_table;
 			/* The next symbol in the global symbol table list. */
   a_pl_symbol_ptr
-		next_in_info_file;
-			/* The next symbol in an instantiation info file. */
+		next_in_request_file;
+			/* The next symbol in an instantiation request file. */
   a_pl_symbol_ptr
 		next_in_specialization_list;
 			/* The next symbol on a linked list of specialization
@@ -204,6 +204,12 @@ typedef struct a_pl_object_file {
 			   output.  This is always TRUE for .o files but
 			   is only TRUE for objects in an archive if the
 			   object is needed to resolve a reference. */
+  a_byte_boolean
+		is_related_file;
+			/* TRUE for object files that are related to a
+			   primary input file.  This is used in one
+			   instantiation per object mode to designate
+			   an object file containing an instantiation. */
 } a_pl_object_file;
 
 
@@ -219,26 +225,30 @@ typedef struct a_pl_input_file {
 			   line.  This is normally the same as file_name,
 			   but will be different for library names specified
 			   with the -l option (e.g., -lstd). */
-  char		*info_file_name;
-			/* Name of the instantiation information file
+  char		*request_file_name;
+			/* Name of the instantiation request file
 			   associated with this file (if one exists).
 			   NULL otherwise. */
+  char		*template_info_file_name;
+			/* Name of the template information file
+			   associated with this file.  This field is set
+			   whether or not the file exists. */
   a_pl_object_file_ptr
 		objects;
 			/* When is_archive is FALSE this points to a single
 			   object file.  When is_archive is TRUE this points
 			   to a list of object files. */
   a_pl_symbol_ptr
-		info_list;
+		request_list;
 			/* List of symbols to be instantiated in this file. */
   a_byte_boolean
 		is_archive;
 			/* TRUE if the input file is an archive (.a) file. */
   a_byte_boolean
-		info_file_updated;
-			/* TRUE if the instantiation information file needs
+		request_file_updated;
+			/* TRUE if the instantiation request file needs
 			   to be rewritten because changes have been made
-			   to the info list. */
+			   to the request list. */
   a_byte_boolean
 		recompile;
 			/* TRUE if, because of changes in the instantiation
@@ -309,7 +319,7 @@ static a_boolean
 
 static a_boolean
 		suppress_compilation = FALSE;
-			/* TRUE if info files should be updated but
+			/* TRUE if request files should be updated but
 			   compilations not done. */
 
 static a_boolean
@@ -344,6 +354,16 @@ static char	**L_directories;
 static int	num_of_L_directories = 0;
                         /* Number of entries in use in the L_directories
 			   array. */
+
+static a_boolean
+		one_instantiation_per_object = FALSE;
+			/* TRUE if one instantiation per object file mode is
+			   being used. */
+
+static char	*instantiation_dir = ".";
+			/* The name of the directory containing the
+			   instantiation object and instantiation list files
+			   when one instantiation per object mode is used. */
 
 
 typedef enum /* an_nm_format_kind */ {
@@ -390,7 +410,7 @@ static a_boolean
 			   recompiled to generate new instantiations, do
 			   the recompilation in the local directory. */
 
-static FILE	*f_obj_file_list;
+static FILE	*f_obj_file_list = NULL;
 			/* File variable for the list of object file names
 			   to be passed back to the driver. */
 
@@ -400,8 +420,7 @@ static FILE	*f_obj_file_list;
 static char	curr_dir_name[CURR_DIR_NAME_SIZE];
 			/* Name of the current working directory. */
 
-static int	reserved_info_file_lines =
-					 INSTANTIATION_REQUEST_LINES_RESERVED;
+static int	reserved_request_file_lines = INSTANTIATION_REQUEST_LINES_RESERVED;
 			/* The number of lines of the instantiation
 			   information file that are reserved and do
 			   not contain instantiation list entries. */
@@ -500,7 +519,7 @@ typedef enum /*a_pl_error_code*/ {
   pl_ec_error,
   pl_ec_out_of_memory,
   pl_ec_invalid_input,
-  pl_ec_bad_instantiation_information_file,
+  pl_ec_bad_instantiation_request_file,
   pl_ec_invalid_nm_format_option,
   pl_ec_command_line_error,
   pl_ec_instantiation_loop,
@@ -509,13 +528,15 @@ typedef enum /*a_pl_error_code*/ {
   pl_ec_warning,
   pl_ec_invalid_reserved_request_lines_option,
   pl_ec_cannot_open_obj_file_list_file,
-  pl_ec_cannot_open_info_file,
+  pl_ec_cannot_open_request_file,
   pl_ec_cannot_chdir,
   pl_ec_no_nm_info,
   pl_ec_popen_failed,
   pl_ec_specialized_and_instantiated,
   pl_ec_cannot_open_file_for_update,
   pl_ec_nm_returned_error,
+  pl_ec_multiple_assignments,
+  pl_ec_no_object_file_name_specified,
   pl_ec_last 	/* must be last */
 } a_pl_error_code;
 
@@ -552,8 +573,8 @@ string.
   case pl_ec_invalid_input:
     m = "invalid input format";
     break;
-  case pl_ec_bad_instantiation_information_file:
-    m = "bad instantiation information file -- instantiation assigned to more than one file";
+  case pl_ec_bad_instantiation_request_file:
+    m = "bad instantiation request file -- instantiation assigned to more than one file";
     break;
   case pl_ec_invalid_nm_format_option:
     m = "invalid nm format option";
@@ -574,13 +595,13 @@ string.
     m = "%s: warning: ";
     break;
   case pl_ec_invalid_reserved_request_lines_option:
-    m = "invalid reserved information file lines option \"%s\"";
+    m = "invalid reserved request file lines option \"%s\"";
     break;
   case pl_ec_cannot_open_obj_file_list_file:
     m = "cannot open object file name list file \"%s\"";
     break;
-  case pl_ec_cannot_open_info_file:
-    m = "cannot create instantiation information file \"%s\"";
+  case pl_ec_cannot_open_request_file:
+    m = "cannot create instantiation request file \"%s\"";
     break;
   case pl_ec_cannot_chdir:
     m = "cannot change to directory \"%s\"";
@@ -599,6 +620,12 @@ string.
     break;
   case pl_ec_nm_returned_error:
     m = "nm returned a nonzero error status";
+    break;
+  case pl_ec_multiple_assignments:
+    m = "%s assigned to %s and %s\n";
+    break;
+  case pl_ec_no_object_file_name_specified:
+    m = "-O and -N require a new object list file name specified with the -o option";
     break;
   default:
     pl_internal_error("invalid error code");
@@ -668,16 +695,40 @@ allocation and generates a catastrophic error.
 }  /* pl_malloc_with_check */
 
 
+static a_void_ptr pl_realloc_with_check(a_void_ptr	old_ptr,
+                                        sizeof_t	new_size)
+/*
+Interface to realloc: reallocate the block pointed to by "old_ptr" to give
+it the new size "new_size".  If "old_ptr" is NULL, works like 
+malloc_with_check.
+*/
+{
+  a_void_ptr	ptr;
+
+  /* Don't count on realloc allowing a first parameter of NULL to imply
+     malloc-like behavior.  The SVID doesn't define realloc that way. */
+  if (old_ptr == NULL) {
+    ptr = pl_malloc_with_check(new_size);
+  } else {
+    ptr = (a_void_ptr)realloc(old_ptr, new_size);
+    if (ptr == NULL) {
+      pl_error(pl_ec_out_of_memory, (char *)NULL);
+    } /* if */
+  }  /* if */
+  return ptr;
+}  /* pl_realloc_with_check */
+
+
 static void reset_pl_input_file(a_pl_input_file_ptr pifp)
 /*
 Clear the fields of an input file record that need to be
 reset between iterations of the prelinker.
 */
 {
-  pifp->info_list = NULL;
+  pifp->request_list = NULL;
   pifp->objects = NULL;
   pifp->is_archive = FALSE;
-  pifp->info_file_updated = FALSE;
+  pifp->request_file_updated = FALSE;
   pifp->recompile = FALSE;
   pifp->is_local_file = FALSE;
 }  /* reset_pl_input_file */
@@ -693,7 +744,8 @@ Allocate an input file, initialize it, and return a pointer to it.
   pifp = (a_pl_input_file_ptr)pl_malloc_with_check(sizeof(a_pl_input_file));
   pifp->next = NULL;
   pifp->file_name = NULL;
-  pifp->info_file_name = NULL;
+  pifp->request_file_name = NULL;
+  pifp->template_info_file_name = NULL;
   reset_pl_input_file(pifp);
   return pifp;
 }  /* alloc_pl_input_file */
@@ -717,6 +769,7 @@ Allocate an object file, initialize it, and return a pointer to it.
   pofp->file_name = NULL;
   pofp->symbols = NULL;
   pofp->included_in_output = FALSE;
+  pofp->is_related_file = FALSE;
   return pofp;
 }  /* alloc_pl_object_file */
 
@@ -748,7 +801,7 @@ Allocate a symbol, initialize it, and return a pointer to it.
   psp->name_length = 0;
   psp->next = NULL;
   psp->next_in_symbol_table = NULL;
-  psp->next_in_info_file = NULL;
+  psp->next_in_request_file = NULL;
   psp->next_in_specialization_list = NULL;
   psp->global_sym = NULL;
   psp->number_of_references = 0;
@@ -1479,7 +1532,7 @@ or defined in that object file.
   char			*object_file_name = NULL;
   a_boolean		is_archive = FALSE;
   a_pl_object_file_ptr	objects_tail;
-  a_pl_object_file_ptr	pofp;
+  a_pl_object_file_ptr	pofp = NULL;
   a_pl_input_file_ptr	pifp;
   a_boolean		any_lines_read = FALSE;
 
@@ -1531,6 +1584,12 @@ or defined in that object file.
       is_archive = name2 != NULL;
       for (pifp = pl_input_files; pifp != NULL; pifp = pifp->next) {
         if (strcmp(pifp->file_name, name1) == 0) break;
+        /* Look for a match among the instantiation object files associated
+           with this input file. */
+        for (pofp = pifp->objects; pofp != NULL; pofp = pofp->next) {
+          if (strcmp(pofp->file_name, name1) == 0) break;
+        }  /* if */
+        if (pofp != NULL) break;
       }  /* for */
       if (pifp == NULL) {
         pl_internal_error("Input file not in list");
@@ -1541,11 +1600,15 @@ or defined in that object file.
       if (is_archive) {
         object_file_name = NULL;
       } else {
-        /* Allocate an object file structure and link it to the input
-           file. */
-        pofp = alloc_pl_object_file();
-        pifp->objects = pofp;
-        pofp->file_name = pl_copy_string(input_file_name);
+        if (pofp == NULL) {
+          /* If an instantiation object file with a matching name was not
+             found allocate an object file for what should be a primary input
+             file and link it to the input file. */
+          pofp = alloc_pl_object_file();
+          pofp->next = pifp->objects;
+          pifp->objects = pofp;
+          pofp->file_name = pl_copy_string(input_file_name);
+        }  /* if */
       }  /* if */
     }  /* if */
     /* See if this is the start of a new object file within an archive. */
@@ -1916,8 +1979,12 @@ the names to the symbol table.
     if (!pifp->is_archive) {
       if (pofp != NULL) {
         /* This is a .o file.  Add all of its symbols to the symbol table.
-           pofp could be NULL if there was no nm output for this file. */
-        pl_add_symbols_from_object(pofp, pifp);
+           pofp could be NULL if there was no nm output for this file.
+           Note that there can be multiple .o files associated with an
+           input file when one instantiation per object mode is used. */
+        for (; pofp != NULL; pofp = pofp->next) {
+          pl_add_symbols_from_object(pofp, pifp);
+        }  /* for */
       }  /* if */
     } else {
       while (pofp != NULL) {
@@ -1945,33 +2012,99 @@ the names to the symbol table.
 }  /* pl_prelink */
 
 
-static void pl_read_instantiation_info_files(void)
+static char *pl_derived_name(char	*name,
+			     char	*suffix)
+/*
+Construct in pl_file_name_buffer a file name composed of the base name
+of "name" with the suffix specified by "suffix".  The suffix should
+include the ".".  Note that this routine returns a pointer to a
+static buffer, so the contents must be copied before this routine
+is used again.
+*/
+{
+  char			*last_dot;
+
+  /* Copy the original name to the file name buffer. */
+  strcpy(pl_file_name_buffer, name);
+  last_dot = strrchr(pl_file_name_buffer, '.');
+  if (last_dot == NULL) {
+    /* No suffix -- set last_dot as if a suffix had followed the name. */
+    last_dot = pl_file_name_buffer + strlen(pl_file_name_buffer);
+  }  /* if */
+  strcpy(last_dot, suffix);
+  return pl_file_name_buffer;
+}  /* pl_derived_name */
+
+
+static void pl_read_template_info_file(a_pl_input_file_ptr pifp)
+/*
+Read the template information file associated with pifp.
+*/
+{
+  sizeof_t	instantiation_dir_length;
+  sizeof_t	instantiation_suffix_length;
+  sizeof_t	extra_space;
+  FILE		*f_template_info;
+  if (pifp->template_info_file_name == NULL) {
+    pifp->template_info_file_name =
+        pl_copy_string(pl_derived_name(pifp->file_name, TEMPLATE_INFO_SUFFIX));
+  }  /* if */
+  f_template_info = fopen(pifp->template_info_file_name, "r");
+  if (f_template_info != NULL) {
+    /* Read the list of file names from the template information file.
+       Append the ".int.o" suffix, create an object file entry, and add it
+       to the list of object file entries for this input file. */
+    instantiation_dir_length = strlen(instantiation_dir);
+    instantiation_suffix_length = strlen(INSTANTIATION_OBJECT_SUFFIX);
+    /* The file name created is dir/file:suffix.  The extra_space variable
+       accounts for the space needed for the "/" and the trailing null
+       terminator. */
+    extra_space = 2;
+    while (pl_read_input_line(f_template_info)) {
+      a_pl_object_file_ptr	pofp;
+      pofp = alloc_pl_object_file();
+      pofp->file_name = pl_malloc_with_check(strlen(pl_input_line) +
+					     instantiation_dir_length +
+					     instantiation_suffix_length +
+					     extra_space);
+      /* Construct the name of the instantiation object file. */
+      sprintf(pofp->file_name, "%s/%s%s", instantiation_dir,
+              pl_input_line, INSTANTIATION_OBJECT_SUFFIX);
+      pofp->next = pifp->objects;
+      pofp->is_related_file = TRUE;
+      pifp->objects = pofp;
+    }  /* while */
+  }  /* if */
+}  /* pl_read_template_info_file */
+
+
+static void pl_read_instantiation_request_files(void)
 /*
 Read the existing instantiation assignment information from the
 .ii files associated with the object files being processed.
 */
 {
   a_pl_input_file_ptr	pifp;
-  FILE			*f_info;
+  FILE			*f_request;
 
   pifp = pl_input_files;
   while (pifp != NULL) {
-    if (!pifp->is_archive && pifp->info_file_name != NULL) {
-      f_info = fopen(pifp->info_file_name, "r");
+    if (!pifp->is_archive && pifp->request_file_name != NULL) {
+      f_request = fopen(pifp->request_file_name, "r");
 #if DEBUG
       if (pl_debug_level >= 2) {
-        fprintf(stderr, "Opening %s, result=%d\n", pifp->info_file_name,
-                f_info != NULL);
+        fprintf(stderr, "Opening %s, result=%d\n", pifp->request_file_name,
+                f_request != NULL);
       }  /* if */
 #endif /* DEBUG */
-      if (f_info != NULL) {
+      if (f_request != NULL) {
         int	lines_read = 0;
         /* Read the command line. */
-        pl_read_input_line(f_info);
+        pl_read_input_line(f_request);
         lines_read++;
-        if (lines_read < reserved_info_file_lines) {
+        if (lines_read < reserved_request_file_lines) {
           /* Read the directory name. */
-          pl_read_input_line(f_info);
+          pl_read_input_line(f_request);
           lines_read++;
           /* See if the .ii file was built in the current directory. */
           pifp->is_local_file = strcmp(pl_input_line, curr_dir_name) == 0;
@@ -1981,59 +2114,54 @@ Read the existing instantiation assignment information from the
           pifp->is_local_file = TRUE;
         }  /* if */
         /* Skip over any additional reserved lines. */
-        for (; lines_read < reserved_info_file_lines; ++lines_read) {
-          pl_read_input_line(f_info);
+        for (; lines_read < reserved_request_file_lines; ++lines_read) {
+          pl_read_input_line(f_request);
         }  /* for */
         /* Read the instantiation list. */
-        while (pl_read_input_line(f_info)) {
+        while (pl_read_input_line(f_request)) {
           a_pl_symbol_ptr	sym;
           sym = pl_find_symbol(pl_input_line, (a_pl_symbol_ptr)NULL,
 			       /*add=*/TRUE, (a_boolean*)NULL);
           if (sym->instantiation_file != NULL) {
             /* The symbol is in the instantiation list of more than one file.
 	       This should not happen. */
-	    pl_error(pl_ec_bad_instantiation_information_file, (char *)NULL);
+            fprintf(stderr, pl_error_text(pl_ec_error), message_prefix);
+            fprintf(stderr, pl_error_text(pl_ec_multiple_assignments),
+                    pl_decoded_name(sym->name), pifp->file_name,
+                    sym->instantiation_file->file_name);
+	    pl_error(pl_ec_bad_instantiation_request_file, (char *)NULL);
           }  /* if */
           sym->instantiation_file = pifp;
           /* Add this to the front of the list of instantiation entries
              associated with this file. */
-          sym->next_in_info_file = pifp->info_list;
-          pifp->info_list = sym;
+          sym->next_in_request_file = pifp->request_list;
+          pifp->request_list = sym;
         }  /* while */
-        fclose(f_info);
+        fclose(f_request);
       }  /* if */
     }  /* if */
     pifp = pifp->next;
   }  /* while */
-}  /* pl_read_instantiation_info_files */
+}  /* pl_read_instantiation_request_files */
 
 
 static a_boolean pl_check_for_ii_file(a_pl_input_file_ptr pifp)
 /*
-Check for the existence of a .ii file.  Update the info_file_name field
+Check for the existence of a .ii file.  Update the request_file_name field
 of pifp if the file exists.
 */
 {
-  FILE			*f_info;
-  char			*last_dot;
-  char			*file_name = pifp->file_name;
+  FILE			*f_request;
+  char			*request_file_name;
 
-  /* Build the name of the instantiation info file.  The input file_name
-     is expected to be something like xyz.o.  We strip off the suffix
-     and add the suffix for the instantiation information file. */
-  strcpy(pl_file_name_buffer, file_name);
-  last_dot = strrchr(pl_file_name_buffer, '.');
-  if (last_dot == NULL) {
-    /* No suffix -- set last_dot as if a suffix had followed the name. */
-    last_dot = pl_file_name_buffer + strlen(pl_file_name_buffer);
+  request_file_name = pl_derived_name(pifp->file_name,
+                                      INSTANTIATION_REQUEST_SUFFIX);
+  f_request = fopen(request_file_name, "r");
+  if (f_request != NULL) {
+    fclose(f_request);
+    pifp->request_file_name = pl_copy_string(request_file_name);
   }  /* if */
-  strcpy(last_dot, INSTANTIATION_INFO_SUFFIX);
-  f_info = fopen(pl_file_name_buffer, "r");
-  if (f_info != NULL) {
-    fclose(f_info);
-    pifp->info_file_name = pl_copy_string(pl_file_name_buffer);
-  }  /* if */
-  return (f_info != NULL);  
+  return (f_request != NULL);  
 }  /* pl_check_for_ii_file */
 
 
@@ -2084,11 +2212,11 @@ the file is flagged as requiring recompilation.
       a_pl_symbol_ptr	prev_psp;
       /* For each of the entries on the instantiations list, see if the
          symbol is defined in the file. */
-      psp = pifp->info_list;
+      psp = pifp->request_list;
       prev_psp = NULL;
       while (psp != NULL) {
-        a_boolean	remove_from_info_file = FALSE;
-        a_boolean	recompile_file = FALSE;
+        a_boolean		remove_from_request_file = FALSE;
+        a_boolean		recompile_file = FALSE;
         if (psp->multiple_definition || psp->do_not_instantiate) {
           /* An existing instantiation should be removed.  A symbol will
 	     be multiply defined when a new specialization has been
@@ -2096,19 +2224,23 @@ the file is flagged as requiring recompilation.
              The do_not_instantiate flag may now be set (because a pragma
              was added to a file).  Remove the instantiation from
 	     the list and recompile the file. */
-          remove_from_info_file = TRUE;
+          remove_from_request_file = TRUE;
           recompile_file = TRUE;
-        } else if (psp->defined_in == NULL || psp->defined_in != pifp) {
+        } else if (psp->defined_in == NULL ||
+                   psp->defined_in != pifp) {
           /* Either the symbol is undefined or it is now defined in a
-             different file.  In either case it should be removed from the
+             different file.  Note that a definition in a file generated in
+             one instantiation per object mode is considered a definition in
+             the primary file for purposes of this test.  If it is not defined
+             or is defined in another file it should be removed from the
              instantiation list for this file.  This will be the case
              when a file that was assigned a given instantiation no
              longer requires that particular instantiation. */
-          remove_from_info_file = TRUE;
+          remove_from_request_file = TRUE;
         } else if (!psp->is_template) {
           /* The symbol no longer represents a template.  Remove it from the
-             instantiation information file. */
-          remove_from_info_file = TRUE;
+             instantiation request file. */
+          remove_from_request_file = TRUE;
         } else if (!psp->referenced) {
           /* The symbol was referenced by another file and now is not.
              Recompile the file because it may not be needed at all. */
@@ -2116,26 +2248,26 @@ the file is flagged as requiring recompilation.
           /* Should we provide an option that is not quite so pedantic
              about immediately removing unneeded references. */
 #endif /* 0 */
-          remove_from_info_file = TRUE;
+          remove_from_request_file = TRUE;
           recompile_file = TRUE;
         } else {
           /* Mark this symbol has having been instantiated. */
           psp->instantiated = TRUE;
         }  /* if */
-        if (remove_from_info_file) {
+        if (remove_from_request_file) {
           /* Either the symbol is undefined or it is now defined in a
              different file.  In either case it should be removed from the
              instantiation list for this file.  This will be the case
              when a file that was assigned a given instantiation no
              longer requires that particular instantiation.  Remove the
-             symbol from the info list for this input file. */
+             symbol from the request list for this input file. */
           if (prev_psp != NULL) {
-            prev_psp->next_in_info_file = psp->next_in_info_file;
+            prev_psp->next_in_request_file = psp->next_in_request_file;
           } else {
-            pifp->info_list = psp->next_in_info_file;
+            pifp->request_list = psp->next_in_request_file;
           }  /* if */
           psp->instantiation_file = NULL;
-          pifp->info_file_updated = TRUE;
+          pifp->request_file_updated = TRUE;
           pifp->recompile = recompile_file;
           done = FALSE;
           if (verbose) {
@@ -2146,8 +2278,8 @@ the file is flagged as requiring recompilation.
         }  /* if */
         /* Don't update the previous pointer if the current item was
            actually removed from the list. */
-        if (!remove_from_info_file) prev_psp = psp;
-        psp = psp->next_in_info_file;
+        if (!remove_from_request_file) prev_psp = psp;
+        psp = psp->next_in_request_file;
       }  /* while */
       /* Do a very simple assignment of instantiations to files.  Just
          go through the list of possible instantiations and instantiate
@@ -2168,14 +2300,14 @@ the file is flagged as requiring recompilation.
             (sym->referenced || sym->tentative_definition) && !sym->defined &&
             !sym->definition_seen_in_archive &&
             pl_can_instantiate(pifp, sym)) {
-          /* Add this symbol to the list of symbols in the info file list.
-             Set the instantiation flag and indicate that the info file has
-             been updated and the source file associated with the info
+          /* Add this symbol to the list of symbols in the request file list.
+             Set the instantiation flag and indicate that the request file has
+             been updated and the source file associated with the request
              file must be recompiled. */
-          sym->next_in_info_file = pifp->info_list;
-          pifp->info_list = sym;
+          sym->next_in_request_file = pifp->request_list;
+          pifp->request_list = sym;
           sym->instantiated = TRUE;
-          pifp->info_file_updated = TRUE;
+          pifp->request_file_updated = TRUE;
           pifp->recompile = TRUE;
           done = FALSE;
           if (verbose) {
@@ -2322,16 +2454,16 @@ in file_name.  Returns NULL if file_name contains no directory name.
 
 static void move_nonlocal_file(a_pl_input_file_ptr pifp)
 /*
-The instantiation information file for pifp was not built from the
+The instantiation request file for pifp was not built from the
 current directory, make a copy of the file in the current directory
 and update pifp to point to the new file.
 */
 {
   char		*new_file_name;
-  char		*new_info_file_name;
+  char		*new_request_file_name;
   char		*ptr;
-  FILE		*f_old_info;
-  FILE		*f_new_info;
+  FILE		*f_old_request;
+  FILE		*f_new_request;
   char		*orig_dir;
 
   /* Construct new file names with the directory name removed. */
@@ -2342,66 +2474,66 @@ and update pifp to point to the new file.
     pl_internal_error("Directory name missing");
   }  /* if */
   new_file_name = pl_copy_string(ptr+1);
-  ptr = last_dir_separator(pifp->info_file_name);
-  if (ptr == NULL) pl_internal_error("Info file missing directory name");
-  new_info_file_name = pl_copy_string(ptr+1);
+  ptr = last_dir_separator(pifp->request_file_name);
+  if (ptr == NULL) pl_internal_error("Request file missing directory name");
+  new_request_file_name = pl_copy_string(ptr+1);
 #if DEBUG
   if (pl_debug_level >= 2) {
-    fprintf(stderr, "Moving %s to %s\n", pifp->info_file_name,
-            new_info_file_name);
+    fprintf(stderr, "Moving %s to %s\n", pifp->request_file_name,
+            new_request_file_name);
     fprintf(stderr, "Moving %s instead of %s\n", pifp->file_name,
             new_file_name);
   }  /* if */
 #endif /* DEBUG */
-  /* Copy the old information file to the new location.  Replace the
+  /* Copy the old request file to the new location.  Replace the
      directory name line with the current directory name. */
-  f_old_info = fopen(pifp->info_file_name, "r");
-  if (f_old_info == NULL) {
-    fprintf(stderr, "File %s is missing\n", pifp->info_file_name);
-    pl_internal_error("Instantiation information file is missing");
+  f_old_request = fopen(pifp->request_file_name, "r");
+  if (f_old_request == NULL) {
+    fprintf(stderr, "File %s is missing\n", pifp->request_file_name);
+    pl_internal_error("Instantiation request file is missing");
   }  /* if */
-  f_new_info = fopen(new_info_file_name, "w");
-  if (f_new_info == NULL) {
-    pl_error(pl_ec_cannot_open_info_file, new_info_file_name);
+  f_new_request = fopen(new_request_file_name, "w");
+  if (f_new_request == NULL) {
+    pl_error(pl_ec_cannot_open_request_file, new_request_file_name);
   }  /* if */
   /* Copy the command line. */
-  pl_read_input_line(f_old_info);
-  pl_write_output_line(f_new_info, pl_input_line);
+  pl_read_input_line(f_old_request);
+  pl_write_output_line(f_new_request, pl_input_line);
   /* Write the new current directory. */
-  pl_read_input_line(f_old_info);
+  pl_read_input_line(f_old_request);
   orig_dir = pl_copy_string(pl_input_line);
-  pl_write_output_line(f_new_info, curr_dir_name);
+  pl_write_output_line(f_new_request, curr_dir_name);
   /* Write a possibly updated file name.  If the path name is
      absolute, just keep the original name.  Otherwise, add the
      original directory name and write out the updated path name.*/
-  pl_read_input_line(f_old_info);
+  pl_read_input_line(f_old_request);
   if (pl_is_absolute_file_name(pl_input_line)) {
     /* Write the original absolute path name. */
-    pl_write_output_line(f_new_info, pl_input_line);
+    pl_write_output_line(f_new_request, pl_input_line);
   } else {
     /* Write a path name consisting of the original directory and the
        file name. */
-    fprintf(f_new_info, "%s/%s\n", orig_dir, pl_input_line);
+    fprintf(f_new_request, "%s/%s\n", orig_dir, pl_input_line);
   }  /* if */
   (void)free(orig_dir);
   /* Copy any remaining lines. */
-  while (pl_read_input_line(f_old_info)) {
-    pl_write_output_line(f_new_info, pl_input_line);
+  while (pl_read_input_line(f_old_request)) {
+    pl_write_output_line(f_new_request, pl_input_line);
   }  /* while */
-  fclose(f_old_info);
-  fclose(f_new_info);
+  fclose(f_old_request);
+  fclose(f_new_request);
   /* Update the pointers in the input file record to point to the
      new file names.  The original names are not freed because they
      point to command line arguments. */
   pifp->file_name = new_file_name;
-  pifp->info_file_name = new_info_file_name;
+  pifp->request_file_name = new_request_file_name;
   pifp->is_local_file = TRUE;
 }  /* move_nonlocal_file */
 
 
-static int pl_update_info_files(void)
+static int pl_update_request_files(void)
 /*
-If the list of instantiates for a given instantiation information file
+If the list of instantiates for a given instantiation request file
 has changed then write the updated list of instantiations to the file.
 */
 {
@@ -2413,7 +2545,7 @@ has changed then write the updated list of instantiations to the file.
 /* Macro that returns a line from the reserved lines array, if the line
    number is valid, and returns a NULL string otherwise. */
 #define get_reserved_line(number) 					\
-  (((number) > (INSTANTIATION_REQUEST_LINES_RESERVED - 1))		\
+  (((number) > (INSTANTIATION_REQUEST_LINES_RESERVED - 1))			\
                                                 ? ""			\
                                                 : reserved_lines[(number)])
   /* We allocate one additional array element because it is possible
@@ -2422,30 +2554,30 @@ has changed then write the updated list of instantiations to the file.
 
   pifp = pl_input_files;
   while (pifp != NULL) {
-    if (pifp->info_file_updated) {
+    if (pifp->request_file_updated) {
       a_pl_symbol_ptr	psp;
-      FILE		*f_info;
-      /* Open the input file in read mode to read the header information. */
-      if (pifp->info_file_name == NULL) {
+      FILE		*f_request;
+      /* Open the input file in read mode to read the header request. */
+      if (pifp->request_file_name == NULL) {
         fprintf(stderr,
- "Input file %s has instantiations but no instantiation information file.\n",
+ "Input file %s has instantiations but no instantiation request file.\n",
                 pifp->file_name);
-        pl_internal_error("Instantiation information file is missing");
+        pl_internal_error("Instantiation request file is missing");
       }  /* if */
       if (move_nonlocal_objects_to_curr_dir && !pifp->is_local_file) {
-        /* If the instantiation information file is in a different
+        /* If the instantiation request file is in a different
            directory, copy it to the local directory and update the
            copy of the file. */
         move_nonlocal_file(pifp);
       }  /* if */
-      f_info = fopen(pifp->info_file_name, "r");
-      if (f_info == NULL) {
-        fprintf(stderr, "File %s is missing\n", pifp->info_file_name);
-        pl_internal_error("Instantiation information file is missing");
+      f_request = fopen(pifp->request_file_name, "r");
+      if (f_request == NULL) {
+        fprintf(stderr, "File %s is missing\n", pifp->request_file_name);
+        pl_internal_error("Instantiation request file is missing");
       }  /* if */
       /* Read the reserved lines and save them to be rewritten later. */
-      for (i = 0; i < reserved_info_file_lines; ++i) {
-        pl_read_input_line(f_info);
+      for (i = 0; i < reserved_request_file_lines; ++i) {
+        pl_read_input_line(f_request);
         reserved_lines[i] = pl_copy_string(pl_input_line);
       }  /* for */
       /* If the number of effective reserved lines is less than the
@@ -2454,23 +2586,23 @@ has changed then write the updated list of instantiations to the file.
       for (; i < INSTANTIATION_REQUEST_LINES_RESERVED; ++i) {
         reserved_lines[i] = "";
       }  /* for */
-      fclose(f_info);
+      fclose(f_request);
       /* Truncate the original file so that it can be rewritten. */
-      f_info = fopen(pifp->info_file_name, "w");
-      if (f_info == NULL) {
-        pl_error(pl_ec_cannot_open_file_for_update, pifp->info_file_name);
+      f_request = fopen(pifp->request_file_name, "w");
+      if (f_request == NULL) {
+        pl_error(pl_ec_cannot_open_file_for_update, pifp->request_file_name);
       }  /* if */
       /* Rewrite the reserved lines. */
-      for (i = 0; i < reserved_info_file_lines; ++i) {
-        fprintf(f_info, "%s\n", reserved_lines[i]);
+      for (i = 0; i < reserved_request_file_lines; ++i) {
+        fprintf(f_request, "%s\n", reserved_lines[i]);
       }  /* for */
       /* Write the instantiation list to the file. */
-      psp = pifp->info_list;
+      psp = pifp->request_list;
       while (psp != NULL) {
-        fprintf(f_info, "%s\n", psp->name);
-        psp = psp->next_in_info_file;
+        fprintf(f_request, "%s\n", psp->name);
+        psp = psp->next_in_request_file;
       }  /* while */
-      fclose(f_info);
+      fclose(f_request);
       if (!suppress_compilation) {
 	/* This depends on the command line being in the first reserved
 	   line. */
@@ -2488,7 +2620,7 @@ has changed then write the updated list of instantiations to the file.
         if (return_status != 0) break;
       }  /* if */
       /* Free the space occupied by the reserved lines. */
-      for (i = 0; i < reserved_info_file_lines; ++i) {
+      for (i = 0; i < reserved_request_file_lines; ++i) {
         free(reserved_lines[i]);
       }  /* for */
     }  /* if */
@@ -2496,7 +2628,7 @@ has changed then write the updated list of instantiations to the file.
   }  /* while */
   return return_status;
 #undef get_reserved_lines
-}  /* pl_update_info_files */
+}  /* pl_update_request_files */
 
 
 static int pl_remove_instantiation_flags(void)
@@ -2514,7 +2646,7 @@ flags will be removed.
 /* Macro that returns a line from the reserved lines array, if the line
    number is valid, and returns a NULL string otherwise. */
 #define get_reserved_line(number) 					\
-  (((number) > (INSTANTIATION_REQUEST_LINES_RESERVED - 1))		\
+  (((number) > (INSTANTIATION_REQUEST_LINES_RESERVED - 1))			\
                                                 ? ""			\
                                                 : reserved_lines[(number)])
   /* We allocate one additional array element because it is possible
@@ -2524,19 +2656,19 @@ flags will be removed.
   pifp = pl_input_files;
   while (pifp != NULL) {
     /* Only process object files (not archives) that have associated
-       instantiation information files and that are also local. */
-    if (!pifp->is_archive && pifp->info_file_name != NULL &&
+       instantiation request files and that are also local. */
+    if (!pifp->is_archive && pifp->request_file_name != NULL &&
          pifp->is_local_file) {
-      FILE		*f_info;
+      FILE		*f_request;
       /* Open the input file in read mode to read the header information. */
-      f_info = fopen(pifp->info_file_name, "r");
-      if (f_info == NULL) {
-        fprintf(stderr, "File %s is missing\n", pifp->info_file_name);
-        pl_internal_error("Instantiation information file is missing");
+      f_request = fopen(pifp->request_file_name, "r");
+      if (f_request == NULL) {
+        fprintf(stderr, "File %s is missing\n", pifp->request_file_name);
+        pl_internal_error("Instantiation request file is missing");
       }  /* if */
       /* Read the reserved lines. */
-      for (i = 0; i < reserved_info_file_lines; ++i) {
-        pl_read_input_line(f_info);
+      for (i = 0; i < reserved_request_file_lines; ++i) {
+        pl_read_input_line(f_request);
         reserved_lines[i] = pl_copy_string(pl_input_line);
       }  /* for */
       /* If the number of effective reserved lines is less than the
@@ -2545,7 +2677,7 @@ flags will be removed.
       for (; i < INSTANTIATION_REQUEST_LINES_RESERVED; ++i) {
         reserved_lines[i] = "";
       }  /* for */
-      fclose(f_info);
+      fclose(f_request);
       /* This depends on the command line being in the first reserved
          line. */
 #if PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION
@@ -2561,7 +2693,7 @@ flags will be removed.
                                         "--suppress_instantiation_flags");
       if (return_status > max_return_status) max_return_status = return_status;
       /* Free the space occupied by the reserved lines. */
-      for (i = 0; i < reserved_info_file_lines; ++i) {
+      for (i = 0; i < reserved_request_file_lines; ++i) {
         free(reserved_lines[i]);
       }  /* for */
     }  /* if */
@@ -2671,13 +2803,13 @@ Display the internal representation of the "nm" output.
       }  /* while */
       pofp = pofp->next;
     }  /* while */
-    psp = pifp->info_list;
+    psp = pifp->request_list;
     if (psp != NULL) {
       fprintf(stderr, "  Instantiation list:\n");
     }  /* if */
     while (psp != NULL) {
       pl_db_symbol(psp, "    ");
-      psp = psp->next_in_info_file;
+      psp = psp->next_in_request_file;
     }  /* while */
     pifp = pifp->next;
   }  /* while */
@@ -2762,6 +2894,64 @@ Free all dynamically allocated data.
 }  /* pl_free_all */
 
 
+static char	*temp_string;
+			/* Pointer to a temporary string buffer. */
+
+
+static sizeof_t	temp_string_length;
+			/* The allocated size of the string buffer. */
+
+static sizeof_t	pos_in_temp_string;
+			/* The number of characters used in the buffer. */
+
+
+#define TEMP_STRING_BUFFER_INCREMENTAL_ALLOCATION 4000
+			/* Initial and incremental allocation size for
+			   string buffer.  The initial allocation
+			   should be such that almost all cases can be
+			   accepted (so that the realloc is hardly ever
+			   needed). */
+
+static void pl_init_temp_string(void)
+/*
+Initialize the temporary string buffer to begin construction of a new
+string.
+*/
+{
+  pos_in_temp_string = 0;
+}  /* pl_init_temp_string */
+
+
+static void pl_add_to_temp_string(char *addition)
+/*
+Add the string specified by "addition" to the temporary string buffer.
+*/
+{
+  int	addition_length;
+
+  addition_length = strlen(addition);
+  if (pos_in_temp_string + addition_length > temp_string_length) {
+    temp_string_length += TEMP_STRING_BUFFER_INCREMENTAL_ALLOCATION;
+    temp_string = (char *)pl_realloc_with_check((a_void_ptr)temp_string,
+                                                temp_string_length);
+  }  /* if */
+  (void)strcpy(temp_string + pos_in_temp_string, addition);
+  pos_in_temp_string += addition_length;
+}  /* pl_add_to_temp_string */
+
+
+static void pl_add_two_to_temp_string(char *add1,
+				      char *add2)
+/*
+Add two strings to the temporary string buffer.  This is a convenient
+interface to add both a blank separator and a new word.
+*/
+{
+  pl_add_to_temp_string(add1);
+  pl_add_to_temp_string(add2);
+}  /* pl_add_two_to_temp_string */
+
+
 static char *pl_find_library_name(char *lib_name)
 /*
 Look for the library name specified by lib_name in the list of
@@ -2835,10 +3025,7 @@ its fields, and add it to the list.  Either str or pifp will be non-NULL.
 
 int main(int argc, char *argv[])
 {
-  char		         *command = NULL;
   int		         arg;
-  sizeof_t	         cmd_line_size;
-  sizeof_t               prev_cmd_line_size = 0;
   int		         return_status = 0;
   a_boolean	         done = FALSE;
   a_boolean	         any_ii_files = FALSE;
@@ -2873,7 +3060,7 @@ int main(int argc, char *argv[])
   /* Process command-line options. */
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
-#define OPTION_LIST "imnqrs:vuB:c:d:Df:l:L:N:R:SW:"
+#define OPTION_LIST "imnqrs:vuB:c:d:Df:l:L:No:O:R:SW:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
       case 'c':
@@ -2925,6 +3112,27 @@ int main(int argc, char *argv[])
         /* Library directory names (e.g., -L/edg/cpfe/lib). */
         L_directories[num_of_L_directories++] = optarg;
         break;
+      case 'o':
+        /* The name of a new object file list that should be written.
+           This is used in one instantiation per object mode and
+           when copy nonlocal objects that are recompiled. */
+        {
+          char	*obj_file_list_file_name;
+          obj_file_list_file_name = optarg;
+          f_obj_file_list = fopen(obj_file_list_file_name, "w");
+          if (f_obj_file_list == NULL) {
+            pl_error(pl_ec_cannot_open_obj_file_list_file,
+                     obj_file_list_file_name);
+          }  /* if */
+        }
+        break;
+      case 'O':
+        /* "One instantiation per object" mode.  The option argument
+           specifies the name of the directory containing the
+           instantiation files. */
+        one_instantiation_per_object = TRUE;
+        instantiation_dir = optarg;
+        break;
       case 'W':
         /* Alternate form of the library directory name option (e.g.,
            -Wl,-L/edg/cpfe/lib). */
@@ -2948,27 +3156,18 @@ int main(int argc, char *argv[])
            do the compilation in the current directory.  The argument
            specifies the name of the file into which a list of object
            files is to be written. */
-        {
-          char	*obj_file_list_file_name;
-          move_nonlocal_objects_to_curr_dir = TRUE;
-          obj_file_list_file_name = optarg;
-          f_obj_file_list = fopen(obj_file_list_file_name, "w");
-          if (f_obj_file_list == NULL) {
-            pl_error(pl_ec_cannot_open_obj_file_list_file,
-                     obj_file_list_file_name);
-          }  /* if */
-        }
+        move_nonlocal_objects_to_curr_dir = TRUE;
         break;
       case 'r':
         /* Don't stop after a certain number of iterations. */
         limit_recursion = FALSE;
         break;
       case 'R':
-        /* Override the number of reserved instantiation information
+        /* Override the number of reserved instantiation request
            file lines. */
-        reserved_info_file_lines = atoi(optarg);
-        if (reserved_info_file_lines < 0 ||
-            reserved_info_file_lines > INSTANTIATION_REQUEST_LINES_RESERVED) {
+        reserved_request_file_lines = atoi(optarg);
+        if (reserved_request_file_lines < 0 ||
+            reserved_request_file_lines > INSTANTIATION_REQUEST_LINES_RESERVED) {
           pl_error(pl_ec_invalid_reserved_request_lines_option, optarg);
         }  /* if */
         break;
@@ -3011,6 +3210,12 @@ int main(int argc, char *argv[])
     }  /* switch */
   }  /* while */
 end_of_options:
+  if ((one_instantiation_per_object || move_nonlocal_objects_to_curr_dir) &&
+      f_obj_file_list == NULL) {
+    /* One instantiation per object mode and copy nonlocal object mode
+       require that a new object file list be specified. */
+    pl_error(pl_ec_no_object_file_name_specified, (char*)NULL);
+  }  /* if */
   /* Determine the nm command to be used. */
   if (nm_command != NULL) {
     /* A command was specified on the command line. */
@@ -3078,32 +3283,29 @@ end_of_options:
       a_boolean			no_nonlocal_changes;
       int			nm_status;
 
-      /* Determine the length of the command line.  Go through the list of
-         file names in the command line and the list of library file names
-         constructed from the -l options. */
-      cmd_line_size = 0;
+      /* Reset the information in the input files that needs to be cleared
+         between prelinker invocations. */
       for (pifp = pl_input_files; pifp != NULL; pifp = pifp->next) {
-        int	arg_size = strlen(pifp->file_name);
-        cmd_line_size += arg_size + 1;
         reset_pl_input_file(pifp);
       }  /* for */
-      cmd_line_size += strlen(nm_command) + strlen(nm_command_suffix);
-      if (cmd_line_size > prev_cmd_line_size) {
-        /* If the existing command line buffer is too small, allocate
-           a new one. */
-        if (command != NULL) free(command);
-        command = (char *)pl_malloc_with_check(cmd_line_size + 1);
-      }  /* if */
       /* Construct the nm command. */
-      strcpy(command, nm_command);
+      pl_init_temp_string();
+      pl_add_to_temp_string(nm_command);
       /* Append the file names specified on the command line. */
       for (pifp = pl_input_files; pifp != NULL; pifp = pifp->next) {
-        strcat(command, " ");
-        strcat(command, pifp->file_name);
+        a_pl_object_file_ptr	pofp;
+        pl_add_two_to_temp_string(" ", pifp->file_name);
+        pl_read_template_info_file(pifp);
+        if (one_instantiation_per_object) {
+          /* Add each of the template object files to the command line. */
+          for (pofp = pifp->objects; pofp != NULL; pofp = pofp->next) {
+            pl_add_two_to_temp_string(" ", pofp->file_name);
+          }  /* for */
+        }  /* if */
       }  /* for */
-      strcat(command, nm_command_suffix);
+      pl_add_to_temp_string(nm_command_suffix);
 #if DEBUG
-      if (pl_debug_level >= 2) fprintf(stderr, "%s\n", command);
+      if (pl_debug_level >= 2) fprintf(stderr, "%s\n", temp_string);
 #endif /* DEBUG */
 
       pl_symbol_table_head = NULL;
@@ -3111,7 +3313,7 @@ end_of_options:
       memzero((char *)pl_symbol_table, sizeof(pl_symbol_table));
 
       /* Execute the nm command. */
-      f_command_output = popen(command, "r");
+      f_command_output = popen(temp_string, "r");
       if (f_command_output == NULL) pl_error(pl_ec_popen_failed, (char *)NULL);
       /* Read the nm output. */
       pl_read_nm_output();
@@ -3122,7 +3324,7 @@ end_of_options:
       }  /* if */
 
       /* Read the information from any existing .ii files. */
-      pl_read_instantiation_info_files();
+      pl_read_instantiation_request_files();
 
 #if DEBUG
       if (pl_debug_level >= 4) {
@@ -3152,8 +3354,8 @@ end_of_options:
       }  /* if */
       done = no_local_changes && no_nonlocal_changes;
 
-      /* Write the modified info files back to the disk. */
-      return_status = pl_update_info_files();
+      /* Write the modified request files back to the disk. */
+      return_status = pl_update_request_files();
       if (limit_recursion && ++number_of_iterations == PL_MAX_ITERATIONS) {
         pl_error(pl_ec_instantiation_loop, (char *)NULL);
       }  /* if */
@@ -3175,18 +3377,27 @@ end_of_options:
        flags. */
     pl_remove_instantiation_flags();
   }  /* if */
-  if (move_nonlocal_objects_to_curr_dir) {
+  if (f_obj_file_list != NULL) {
     /* Generate a list of file names and associated command line options.
        This may be different from the list of object files passed to the
        driver if one of the files was moved as a consequence of a
-       recompilation. */ 
+       recompilation.  This is also needed in one instantiation per
+       object mode. */
     a_pl_cmd_line_arg_ptr	pclap;
     for (pclap = cmd_line_head; pclap != NULL; pclap = pclap->next) {
       if (pclap->is_string) {
         fprintf(f_obj_file_list, " %s", pclap->variant.arg_string);
       } else {
+        a_pl_object_file_ptr	pofp;
         fprintf(f_obj_file_list, " %s",
                 pclap->variant.input_file_entry->file_name);
+        /* Generate a list of the associated files created in one instantiation
+           per object mode. */
+        for (pofp = pclap->variant.input_file_entry->objects;
+             pofp != NULL; pofp = pofp->next) {
+          if (!pofp->is_related_file) continue;
+          fprintf(f_obj_file_list, " %s", pofp->file_name);
+        }  /* for */
       }  /* if */
       if (pclap == last_arg_to_reemit) break;
     }  /* for */
@@ -3198,7 +3409,6 @@ end_of_options:
   /* When using purify, free memory that would otherwise be reported as
      leaked. */
   pl_free_all();
-  free(command);
   if (L_directories != NULL) free(L_directories);
 #endif /* USING_PURIFY */
 
