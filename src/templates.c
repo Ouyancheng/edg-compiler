@@ -6987,6 +6987,14 @@ a pointer over a reference type or creating an array of references.
                                         type->variant.routine.return_type,
                                         templ_arg_list, templ_param_list,
                                         source_pos, options, copy_error);
+        if (new_return_type != type->variant.routine.return_type) {
+          /* Check for a function returning a function, or function
+             returning an array type. */
+          if (is_array_type(new_return_type) ||
+              is_function_type(new_return_type)) {
+            *copy_error = TRUE;
+          }  /* if */
+        }  /* if */
         this_class = type->variant.routine.extra_info->this_class;
         if (this_class == NULL) {
           new_this_class = NULL;
