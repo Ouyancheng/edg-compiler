@@ -4515,7 +4515,7 @@ void decl_member_function_template(a_symbol_locator     *locator,
 #endif /* if 0 */
     }  /* if */
     if (dso_flags & DSO_CONSTRUCTOR) {
-      rtn->special_kind == (a_special_function_kind)sfk_constructor;
+      rtn->special_kind = (a_special_function_kind)sfk_constructor;
       /* Set the pointer to the constructor symbol in the class symbol
          supplement. */
       if (cssp->constructor == NULL) {
@@ -8278,7 +8278,7 @@ completed (C++ only).
                       is_or_contains_template_param(local_type)) &&
                      member_storage_class == (a_storage_class)sc_unspecified) {
             /* Provide support for the nonstandard declaration of a member
-               constant of integral type -- e.g., "const int I = 2;". */
+               constant of scalar type -- e.g., "const int I = 2;". */
             decl_nonstd_member_constant(&locator, class_type, local_type,
                                         access, declarator_ssep);
             if (access != (an_access_specifier)as_public) {
