@@ -5957,12 +5957,14 @@ non-NULL return *con_value == NULL.
     }  /* if */
   } else if (optimized_case) {
     /* For the optimized cases, set the node type to the type pointed to. */
-    node->type = type_pointed_to(node->type);
-    /* Drop type qualifiers as appropriate for an rvalue.  Note that no
-       cast is needed to drop the qualifiers: an IL shorthand applies in
-       this case. */
-    if (is_qualified_type(node->type)) {
-      node->type = rvalue_type(node->type);
+    if (node->type != type_of_unknown_templ_param_nontype) {
+      node->type = type_pointed_to(node->type);
+      /* Drop type qualifiers as appropriate for an rvalue.  Note that no
+         cast is needed to drop the qualifiers: an IL shorthand applies in
+         this case. */
+      if (is_qualified_type(node->type)) {
+        node->type = rvalue_type(node->type);
+      }  /* if */
     }  /* if */
   } else {
     /* Not an optimized case.  Just add an indirection.  This also drops
