@@ -1,5 +1,27 @@
 Version 2.35
 
+2/4/97  IL CHANGE: extern "C" declarations in namespaces
+
+Support for declarations of the same extern "C" function or variable in
+different namespaces has been added:
+
+  namespace N {
+    extern "C" void f();
+    extern "C" void g();
+  }
+  extern "C" void f();               // Redeclaration of N::f
+  namespace M {
+    extern "C" void g();             // Redeclaration of N::g
+  }
+
+Prior to this change N::f and ::f were treated as separate entities whose
+external names were in conflict; similarly with N::g and M::g.  Now (as
+far as the IL representation is concerned) they are all treated as though
+they were declared at file scope: even when an extern "C" routine or
+variable is declared within a namespace, it appears on the routines or
+variables list of the file scope and its parent.namespace_ptr field is
+NULL.
+
 2/3/97  On macro redefinition diagnostic, position of previous definition
 
 The diagnostic issued when a macro is redefined in an incompatible way
