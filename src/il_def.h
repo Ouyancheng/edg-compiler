@@ -2395,7 +2395,7 @@ typedef struct a_routine {
 			   a link-time automatic instantiation mechanism.
 			   The flag is only set very late in the compilation
 			   process and should not be relied upon for any
-			   other purpose.  Never  */
+			   other purpose. */
   unsigned int	do_not_instantiate:1;
 			/* TRUE if a do_not_instantiate pragma was present
 			   for this template function.
