@@ -1058,8 +1058,7 @@ scope is that of a class definition.
           }  /* if */
           /* Put the parameter type on the type list attached to the function
              type, and the name (if present) on the id list. */
-          ptp = alloc_param_type(/*at_file_scope=*/FALSE);
-          ptp->type = param_type_ptr;
+          ptp = alloc_param_type(param_type_ptr, /*at_file_scope=*/FALSE);
           if (last_param_type == NULL) {
             extra_info->param_type_list = ptp;
           } else {
@@ -1072,11 +1071,11 @@ scope is that of a class definition.
                name is only significant for commenting purposes anyway.
                Note that null-locator names are saved for all unnamed
                parameters.  This is done because named and unnamed parameters
-               can be mixed in one list.  Such a list is really only allowed
-               when there is no body defining the function, and in that case
-               the names are not significant.  However, if the user makes a
-               mistake, having as complete a list as possible minimizes the
-               error recovery problems. */
+               can be mixed in one list.  In C, such a list is really only
+               allowed when there is no body defining the function, and in
+               that case the names are not significant.  However, if the user
+               makes a mistake, having as complete a list as possible
+               minimizes the error recovery problems. */
             add_to_param_id_list(&param_locator, param_type_ptr, 
                                  param_storage_class,
                                  func_info, &last_param_id);
@@ -5373,8 +5372,7 @@ explicitly specified (rather than defaulted to "int").
            routine type and is needed for checking of type compatibility.
            See types_are_compatible. */
         /* The param_type entry must be allocated in the file-scope region. */
-        ptp = alloc_param_type(/*at_file_scope=*/TRUE);
-        ptp->type = param_id->type;
+        ptp = alloc_param_type(param_id->type, /*at_file_scope=*/TRUE);
         if (old_style_param_types == NULL) {
           old_style_param_types = ptp;
         } else {

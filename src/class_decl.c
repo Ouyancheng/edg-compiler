@@ -4063,11 +4063,11 @@ The routine body is not generated until it is known to be needed.
   if (cssp->constructor != NULL && !cssp->has_copy_constructor) {
     default_copy_constructor_check(class_type, &const_okay);
     /* Generate a copy constructor. */
-    ptp = alloc_param_type(/*at_file_scope=*/FALSE);
-    ptp->type = make_reference_type(
-                           make_qualified_type(class_type,
-                                               /*is_const=*/const_okay,
-                                               /*is_volatile=*/FALSE));
+    ptp = alloc_param_type(make_reference_type(
+                             make_qualified_type(class_type,
+                                                 /*is_const=*/const_okay,
+                                                 /*is_volatile=*/FALSE)),
+                           /*at_file_scope=*/FALSE);
     generate_special_function(class_type, ptp,
                               (a_special_function_kind)sfk_constructor);
   }  /* if */
@@ -4081,11 +4081,11 @@ The routine body is not generated until it is known to be needed.
                                            &const_okay)) {
     default_assignment_operator_check(class_type, &const_okay,
                                       &bitwise_copy_okay);
-    ptp = alloc_param_type(/*at_file_scope=*/FALSE);
-    ptp->type = make_reference_type(
-                           make_qualified_type(class_type,
-                                               /*is_const=*/const_okay,
-                                               /*is_volatile=*/FALSE));
+    ptp = alloc_param_type(make_reference_type(
+                             make_qualified_type(class_type,
+                                                 /*is_const=*/const_okay,
+                                                 /*is_volatile=*/FALSE)),
+                           /*at_file_scope=*/FALSE);
     generate_special_function(class_type, ptp,
                               (a_special_function_kind)sfk_operator);
     cssp->assignment_by_bitwise_copy_allowed = bitwise_copy_okay;
