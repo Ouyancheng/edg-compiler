@@ -1359,8 +1359,10 @@ If allow_member is TRUE, the name may be a member name.
         nchars = p2 - p;
         p2 += 3;  /* Points to block number after "__L". */
         nchars2 -= (p2 - p);
-        /* Scan and output the block number and function name. */
+        /* Scan over (but do not output) the block number and function name. */
+        dctl->suppress_id_output++;
         p2 = demangle_function_local_indication(p2, nchars2, dctl);
+        dctl->suppress_id_output--;
         break;
       }  /* if */
     }  /* for */
