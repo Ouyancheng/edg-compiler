@@ -720,34 +720,31 @@ layout block used to track the layout of the current class.
   
   db_enter(4, "set_offsets_for_nonvirtual_base_classes");
   /* Traverse the list of base classes. */
-  bcp = lob->class_type->variant.class_struct_union.extra_info->base_classes;
-  if (bcp != NULL) {
-    for (; bcp != NULL; bcp = bcp->next) {
-      if (!lob->any_overflow && bcp->direct && !bcp->is_virtual) {
+  for (bcp = base_classes_of(lob->class_type); bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct && !bcp->is_virtual) {
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-        /* When cfront compatibility is required, space for a complete
-           subobject (i.e., including space for it virtual base classes)
-           is sometimes reserved, depending on how the complete_subobject
-           flag has been set during prior processing. */
-        if (bcp->complete_subobject) {
-          alignment = bcp->type->alignment;
-          size = bcp->type->size;
-        } else {
+      /* When cfront compatibility is required, space for a complete
+         subobject (i.e., including space for it virtual base classes)
+         is sometimes reserved, depending on how the complete_subobject
+         flag has been set during prior processing. */
+      if (bcp->complete_subobject) {
+        alignment = bcp->type->alignment;
+        size = bcp->type->size;
+      } else {
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
-          /* For a nonvirtual base classes reserve space for all the base
-             class except what is required for its own virtual base classes.
-             The latter will be added at the end of the storage. */
-          alignment = bcp->type->variant.class_struct_union.extra_info->
+        /* For a nonvirtual base classes reserve space for all the base
+           class except what is required for its own virtual base classes.
+           The latter will be added at the end of the storage. */
+        alignment = bcp->type->variant.class_struct_union.extra_info->
                                       alignment_without_virtual_base_classes;
-          size = bcp->type->variant.class_struct_union.extra_info->
+        size = bcp->type->variant.class_struct_union.extra_info->
                                       size_without_virtual_base_classes;
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-        }  /* if */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
-        bcp->offset = set_offset_and_alignment(lob, size, alignment);
       }  /* if */
-    }  /* for */
-  }  /* if */
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+      bcp->offset = set_offset_and_alignment(lob, size, alignment);
+    }  /* if */
+  }  /* for */
   db_exit();
 }  /* set_offsets_for_nonvirtual_base_classes */
 
@@ -989,9 +986,7 @@ successors on the list, if any, are processed before the precessor.
           tp = bcp->type;
           if (tp->variant.class_struct_union.any_virtual_base_classes) {
             set_pointer_offsets_for_corresponding_virtual_base_classes(
-                       lob, 
-                       tp->variant.class_struct_union.extra_info->base_classes,
-                       !use_decl_order, bcp);
+                               lob, base_classes_of(tp), !use_decl_order, bcp);
           }  /* if */
         }  /* if */
       } else {
@@ -1000,9 +995,8 @@ successors on the list, if any, are processed before the precessor.
            use_decl_order as we go down another step in the derivation. */
         tp = base_class->type;
         if (tp->variant.class_struct_union.any_virtual_base_classes) {
-          bcp = tp->variant.class_struct_union.extra_info->base_classes;
           set_pointer_offsets_for_corresponding_virtual_base_classes(
-                                     lob, bcp, !use_decl_order, base_class);
+                        lob, base_classes_of(tp), !use_decl_order, base_class);
         }  /* if */
       }  /* if */
       /* If we've already done the successors, break out of the loop now. */
@@ -1026,10 +1020,7 @@ class_type that we are interesting in examining.)
   a_boolean         has_one = FALSE;
 
   /* Traverse the list of base classes of base_class. */
-  for (bcp = base_class->type->
-                          variant.class_struct_union.extra_info->base_classes;
-       bcp != NULL;
-       bcp = bcp->next) {
+  for (bcp = base_classes_of(base_class->type); bcp != NULL; bcp = bcp->next) {
     /* If bcp is a virtual base class, look for the corresponding base class
        among the base classes of class_type. */
     if (bcp->is_virtual) {
@@ -1122,14 +1113,13 @@ base classes, direct and indirect, and allocate pointers as needed for them.
     if (tp->variant.class_struct_union.any_virtual_base_classes) {
       /* Next go through the base class's own direct virtual base classes,
          looking for any that require special handling. */
-      bcp = tp->variant.class_struct_union.extra_info->base_classes;
+      bcp = base_classes_of(tp);
       check_direct_virtual_base_classes_for_special_case(lob, bcp,
                                                          !use_decl_order,
                                                          base_class);
       /* Finally, make another pass over the base classes list.  All base
          classes for which pointers must be allocated should be taken care
          of now. */
-      bcp = tp->variant.class_struct_union.extra_info->base_classes;
       set_pointer_offsets_for_corresponding_virtual_base_classes(
                                          lob, bcp, use_decl_order, base_class);
     }  /* if */
@@ -1149,7 +1139,7 @@ is not shared (i.e., where the pointer from a base class is not used).
   db_enter(4, "set_offsets_for_virtual_base_class_pointers");
 
   if (lob->class_type->variant.class_struct_union.any_virtual_base_classes) {
-    bcp = lob->class_type->variant.class_struct_union.extra_info->base_classes;
+    bcp = base_classes_of(lob->class_type);
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
     /* In cfront compatibility mode we go through the base classes list
        twice.  First we look at direct virtual base classes with a NULL pointer
@@ -1174,10 +1164,9 @@ is not shared (i.e., where the pointer from a base class is not used).
        reverse order; if it is even, they are put out in the same order as they
        were declared.  Thus we use a recursive loop, and each time we go down
        a level we reverse the value of use_decl_order. */
-    bcp = lob->class_type->variant.class_struct_union.extra_info->base_classes;
     set_pointer_offsets_for_corresponding_virtual_base_classes(
-                                            lob, bcp, /*use_decl_order=*/FALSE,
-                                            (a_base_class_ptr)NULL);
+                          lob, base_classes_of(lob->class_type),
+                          /*use_decl_order=*/FALSE, (a_base_class_ptr)NULL);
 
 #else /* i.e., #if !CFRONT_CLASS_LAYOUT_COMPATIBILITY */
     /* In normal layout mode we traverse the base classes list only once.
@@ -1260,8 +1249,7 @@ base class of class_type, and allocate space for the latter.
 
   db_enter(4, "cfc_set_offsets_for_virtual_base_classes");
   if (base_class == NULL) {
-    base_class_list = lob->class_type->
-                           variant.class_struct_union.extra_info->base_classes;
+    base_class_list = base_classes_of(lob->class_type);
     for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
       if (bcp->direct && bcp->is_virtual &&
           bcp->type->variant.class_struct_union.any_virtual_base_classes) {
@@ -1274,8 +1262,7 @@ base class of class_type, and allocate space for the latter.
       }  /* if */
     }  /* for */
   } else {
-    base_class_list = base_class->type->
-                           variant.class_struct_union.extra_info->base_classes;
+    base_class_list = base_classes_of(base_class->type);
   }  /* if */
   if (use_decl_order) {
     set_offsets_for_corresponding_virtual_base_classes(lob, base_class_list,
@@ -1438,8 +1425,7 @@ setting the offset field in the latter.
      class because it contains an offset relative to the root base class.
      It is the offset value relative to the most derived class that we need
      to determine and record. */
-  ref_bcp = proximate_derivation->type->
-                variant.class_struct_union.extra_info->base_classes;
+  ref_bcp = base_classes_of(proximate_derivation->type);
 #if DEBUG
   if (debug_level >= 4) {
     if (ref_bcp != NULL) {
@@ -1529,7 +1515,7 @@ addressed to indirect base classes.
   a_derivation_step_ptr end_of_path;
 
   db_enter(4, "set_offsets_for_indirect_base_classes");
-  bcp_list = class_type->variant.class_struct_union.extra_info->base_classes;
+  bcp_list = base_classes_of(class_type);
 #if DEBUG
   if (debug_level >= 4) {
     if (bcp_list != NULL) {
@@ -1587,7 +1573,7 @@ classes.
     }  /* if */
   }  /* if */
   /* Apply the check recursively. */
-  bcp = base_class->type->variant.class_struct_union.extra_info->base_classes;
+  bcp = base_classes_of(base_class->type);
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->is_virtual && bcp->direct) {
       set_embedded_virtual_base_class_offset(
@@ -1611,8 +1597,7 @@ virtual base class pointer is shared with some other base class.
 
   /* Make a pass over all the base classes for the current derived class and
      check each virtual base class. */
-  for (virtual_base_class = class_type->variant.
-                                  class_struct_union.extra_info->base_classes;
+  for (virtual_base_class = base_classes_of(class_type);
        virtual_base_class != NULL;
        virtual_base_class = virtual_base_class->next) {
     if (virtual_base_class->is_virtual) {

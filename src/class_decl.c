@@ -497,8 +497,7 @@ Dump the virtual function override lists for a class, by base class.
 {
   a_base_class_ptr  bcp;
 
-  bcp = class_type->variant.class_struct_union.extra_info->base_classes;
-  for (; bcp != NULL; bcp = bcp->next) {
+  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     if (bcp->overriding_virtual_functions != NULL) {
       fputs("virtual function override list for base class \"", f_debug);
       db_name(&bcp->type->source_corresp);
@@ -617,8 +616,7 @@ ambiguity.
   db_enter(4, "report_virtual_function_ambiguities");
   /* Make a pass over all the base classes (direct and indirect both) of
      the class indicated by class_type. */
-  bcp = class_type->variant.class_struct_union.extra_info->base_classes;
-  for (; bcp != NULL; bcp = bcp->next) {
+  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     /* See if there any overriding virtual functions.  If there are,
        scan the list to look for duplicate primary functions. */
     ovfp = bcp->overriding_virtual_functions;
@@ -690,8 +688,7 @@ current class -- see ARM 10.3).  If it is, mark the class accordingly.
     /* The class was not already marked "abstract".  Go through its base
        classes to look for a pure virtual function that is inherited without
        an intervening declaration that overrides it. */
-    bcp = class_type->variant.class_struct_union.extra_info->base_classes;
-    for (; bcp != NULL; bcp = bcp->next) {
+    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
       if (bcp->type->variant.class_struct_union.abstract) {
         /* This base class *is* abstract.  Go through its routines and look
            for pure virtual functions.  At the same time, make a pass over
@@ -787,10 +784,6 @@ for the class to which they belong.
 }  /* insert_in_virtual_function_override_list */
 
 
-#define base_classes_of(tp) \
-  ((tp)->variant.class_struct_union.extra_info->base_classes)
-
-
 a_base_class_ptr corresponding_base_class(a_base_class_ptr base_class,
                                           a_type_ptr       old_class,
                                           a_type_ptr       new_class)
@@ -805,9 +798,7 @@ old_class under new_class.  If old_class is NULL it means we don't know
   a_base_class_ptr new_base_class, bcp;
 
   db_enter(4, "corresponding_base_class");
-  for (bcp = new_class->variant.class_struct_union.extra_info->base_classes;
-       bcp != NULL;
-       bcp = bcp->next) {
+  for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
     if (base_class == NULL) {
 #if CHECKING
       if (old_class == NULL) {
@@ -1102,8 +1093,7 @@ routine entry and return TRUE; otherwise return FALSE.
      base classes symbols. */
   symbol_list = rout_sym->header->inactive_symbols;
   /* Outer loop:  go through the base classes of the current class. */
-  bcp = class_type->variant.class_struct_union.extra_info->base_classes;
-  for (; bcp != NULL; bcp = bcp->next) {
+  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     if (rout->special_kind == (a_special_function_kind)sfk_destructor) {
       /* Special processing is required for destructors, since a virtual
          destructor in a base class is not overridden in the derived class
@@ -1338,7 +1328,7 @@ Dump a linked list of base class entries, for debug purposes.
     fputs("base classes for ", f_debug);
     db_name(&tp->source_corresp);
     fputs(":", f_debug);
-    bcp = tp->variant.class_struct_union.extra_info->base_classes;
+    bcp = base_classes_of(tp);
     if (bcp == NULL) {
       fputs(": <null list>\n", f_debug);
     } else {
@@ -1365,7 +1355,6 @@ path entries are also on the base classes list of class_type.
 */
 {
   a_derivation_step_ptr        dsp;
-  a_class_type_supplement_ptr  ctsp;
   a_base_class_ptr             bcp;
 
 #if DEBUG
@@ -1377,12 +1366,11 @@ path entries are also on the base classes list of class_type.
     (void)fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
-  ctsp = class_type->variant.class_struct_union.extra_info;
   /* Go through each step of the path. */
   for (dsp = base_class->derivation; dsp != NULL; dsp = dsp->next) {
     /* Be sure the base class entry pointed to from the step entry is
        actually on the class type's list of base classes. */
-    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
       if (bcp == dsp->base_class) break;
       if (bcp->next == NULL) {
         internal_error("verify_path_consistency: base class inconsistency");
@@ -1418,12 +1406,10 @@ Verify that the base classes pointed to from overriding virtual function
 entries associated with base_class are on the base_classes list of class_type.
 */
 {
-  a_class_type_supplement_ptr         ctsp;
   a_base_class_ptr                    bcp;
   an_overriding_virtual_function_ptr  ovfp;
 
   db_enter(4, "verify_virt_func_override_list");
-  ctsp = class_type->variant.class_struct_union.extra_info;
   ovfp = base_class->overriding_virtual_functions;
 #if DEBUG
     if (debug_level >= 4) {
@@ -1444,7 +1430,7 @@ entries associated with base_class are on the base_classes list of class_type.
         internal_error("verify_virt_func_override_list: NULL base class");
       }  /* if */
     } else if (ovfp->base_class != base_class) {
-      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+      for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
         if (bcp == ovfp->base_class) break;
       }  /* for */
       if (bcp == NULL) {
@@ -1608,9 +1594,9 @@ qualified reference either to A::i or to C::i will pick up A::i).
      its fundamental symbol. */
   reduce_projection_symbol_to_fundamental_symbol(sym1);
   /* Loop through the base classes of the class of which sym1 is a member. */
-  bcp = sym1->class_of_which_a_member->
-                         variant.class_struct_union.extra_info->base_classes;
-  for (; bcp != NULL; bcp = bcp->next) {
+  for (bcp = base_classes_of(sym1->class_of_which_a_member);
+       bcp != NULL;
+       bcp = bcp->next) {
     /* We are interested only in virtual base classes. */
     if (bcp->is_virtual) {
       /* Examine the virtual base classes on the path to sym2.  In the example
@@ -1879,8 +1865,7 @@ data section in new_bcp.
   a_base_class_ptr  bcp, corresp_bcp;
 
   if (new_bcp->complete_subobject) {
-    bcp = new_bcp->type->variant.class_struct_union.extra_info->base_classes;
-    for (; bcp != NULL; bcp = bcp->next) {
+    for (bcp = base_classes_of(new_bcp->type); bcp != NULL; bcp = bcp->next) {
       if (bcp->is_virtual) {
         if (bcp->data_section_base_class != NULL) {
 #if CHECKING
@@ -1979,8 +1964,7 @@ duplicate paths.  The copy will be a base class of new_class.
        virtual base class referring to the same class type is already on
        the base classes list for the new class.  If so, we don't want to
        add it or its own base classes to the list again. */
-    bcp = new_class->variant.class_struct_union.extra_info->base_classes;
-    for (; bcp != NULL; bcp = bcp->next) {
+    for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
       if (bcp->is_virtual && bcp->type == base_class_to_copy->type) {
         fixup_virtual_base_class(bcp, path, base_class_to_copy->access,
                                  new_class);
@@ -2044,8 +2028,7 @@ duplicate paths.  The copy will be a base class of new_class.
   step = make_derivation_step(new_bcp, (a_derivation_step_ptr)NULL);
   new_bcp->derivation = copy_and_extend_path(path, step, new_bcp);
   /* Check for ambiguity. */
-  bcp = new_class->variant.class_struct_union.extra_info->base_classes;
-  for (; bcp != NULL; bcp = bcp->next) {
+  for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
     if (bcp->type == new_bcp->type) {
       /* Ambiguous base class. */
       bcp->ambiguous = TRUE;
@@ -2054,9 +2037,7 @@ duplicate paths.  The copy will be a base class of new_class.
   }  /* for */
   /* Add the base classes of the current indirect base class
      to the base classes list of the most-derived-class. */
-  bcp = new_bcp->type->
-                  variant.class_struct_union.extra_info->base_classes;
-  for (; bcp != NULL; bcp = bcp->next) {
+  for (bcp = base_classes_of(new_bcp->type); bcp != NULL; bcp = bcp->next) {
     if (bcp->direct) {
       add_indirect_base_class(bcp, new_bcp, p_end_of_add_list, new_class);
     }  /* if */
@@ -2320,8 +2301,7 @@ or struct definition.  The syntax is
       /* Add base classes derived from this base class to the current class's
          base class list.  They are marked as indirect. */
       any_base_class_with_override_list = FALSE;
-      for (bcp = new_direct_bcp->type->
-                      variant.class_struct_union.extra_info->base_classes;
+      for (bcp = base_classes_of(new_direct_bcp->type);
            bcp != NULL;
            bcp = bcp->next) {
         if (bcp->direct) {
@@ -2346,8 +2326,7 @@ or struct definition.  The syntax is
       fixup_data_section_base_class_pointers(new_direct_bcp, type_ptr);
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
       if (any_base_class_with_override_list) {
-        for (bcp = new_direct_bcp->type->
-                        variant.class_struct_union.extra_info->base_classes;
+        for (bcp = base_classes_of(new_direct_bcp->type);
              bcp != NULL;
              bcp = bcp->next) {
           if (bcp->overriding_virtual_functions != NULL) {
@@ -3912,8 +3891,7 @@ Return TRUE if base_class_type is a virtual base class of derived_type.
   a_base_class_ptr  bcp;
 
   /* Loop through the base classes. */
-  bcp = derived_type->variant.class_struct_union.extra_info->base_classes;
-  for (; bcp != NULL; bcp = bcp->next) {
+  for (bcp = base_classes_of(derived_type); bcp != NULL; bcp = bcp->next) {
     if (bcp->type == base_class_type) {
       /* Found it if it's virtual. */
       if (!bcp->is_virtual) bcp = NULL;
@@ -3937,8 +3915,7 @@ from the same class as the one with which vbcp is associated.
   a_base_class_ptr  bcp;
   a_boolean         is_indirect = FALSE;
 
-  bcp = class_type->variant.class_struct_union.extra_info->base_classes;
-  for (; bcp != NULL; bcp = bcp->next) {
+  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     if (is_virtual_base_class_of(vbcp->type, bcp->type)) {
       is_indirect = TRUE;
       break;
@@ -4090,8 +4067,7 @@ operator routine or do bitwise assignment.
        the base class's assignment function), and then do the appropriate
        copy of each member. */
     const_source_var = is_const_qualified_type(source_var->type);
-    bcp = class_type->variant.class_struct_union.extra_info->base_classes;
-    for (; bcp != NULL; bcp = bcp->next) {
+    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
       if (bcp->direct) {
         /* We are only interested in direct base classes. */
         if (bcp->is_virtual &&
@@ -4433,8 +4409,7 @@ defined for base classes and fields of the current class (class_type).
 
   db_enter(4, "default_assignment_of_const_object_okay");
   /* Check for const.  Do the base classes first. */
-  bcp = class_type->variant.class_struct_union.extra_info->base_classes;
-  for (; bcp != NULL; bcp = bcp->next) {
+  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     if (bcp->direct || bcp->is_virtual) {
       cssp = symbol_supplement_for_class(bcp->type);
       (void)assignment_operator_for_copy_exists(cssp->assignment_operator,
@@ -4483,8 +4458,7 @@ constructors that can copy const objects.
   db_enter(4, "default_copy_constructor_check");
   *const_okay = TRUE;
   /* First check the base classes. */
-  bcp = class_type->variant.class_struct_union.extra_info->base_classes;
-  for (; bcp != NULL; bcp = bcp->next) {
+  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     if (bcp->direct || bcp->is_virtual) {
       cssp = symbol_supplement_for_class(bcp->type);
       if (cssp->has_copy_constructor &&
@@ -4580,15 +4554,13 @@ the list for the current class.  Only create a new projection symbol if the
 destination type is not yet on the current class's conversion list.
 */
 {
-  a_base_class_ptr               bcp;
-  a_class_symbol_supplement_ptr  cssp;
-  a_conversion_list_entry_ptr    clep, bcclep;
-  a_symbol_locator               loc;
+  a_base_class_ptr              bcp;
+  a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(class_type);
+  a_conversion_list_entry_ptr   clep, bcclep;
+  a_symbol_locator              loc;
 
-  bcp = class_type->variant.class_struct_union.extra_info->base_classes;
-  cssp = symbol_supplement_for_class(class_type);
   /* Examine each direct base class. */
-  for (; bcp != NULL; bcp = bcp->next) {
+  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     if (bcp->direct) {
       /* Examine each conversion list entry in the base class. */
       bcclep = (symbol_supplement_for_class(bcp->type))->conversion_list;
