@@ -8,9 +8,10 @@ Version 2.07, July 2, 1992
 
 6/30/92  Multiple message diagnostic capability added
 
-Functionality of error.c expanded to generate multiple message diagnostics.
-New interfaces have the format xxx_start_error, pos_xxx_start_error,
-xxx_add_diag_info and end_error().
+The functionality of error.c has been expanded to generate multiple
+message diagnostics.  New interfaces have the format xxx_start_error,
+pos_xxx_start_error, xxx_add_diag_info and end_error().  They permit
+displaying lists of objects -- e.g., to report ambiguities.
 
 6/30/92  Type compatibility
 
@@ -61,6 +62,16 @@ A bug was introduced along with the wide-character changes of version 1.25
 of the C front end.  It disallowed the following perfectly legal program:
 
   unsigned char x[] = "hello";
+
+6/24/92  Name for conversion operator
+
+The name associated with a conversion operator is now "operator T",
+where "T" is a type-name (i.e., comprising type specifier(s), including
+qualifiers, and optional abstract declarator).  Thus the name pointed to
+from the source_corresp.name field of an sfk_conversion routine entry
+will contain at least one blank and possibly other characters that
+usually aren't permitted in identifiers (asterisks, ampersands,
+parentheses, brackets).
 
 6/24/92  Warning on delete of pointer to incomplete class.
 
