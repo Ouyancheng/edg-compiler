@@ -5224,14 +5224,15 @@ static void check_partial_spec_template_param_usage
                          (a_tmpl_decl_state_ptr	decl_state,
                           a_symbol_ptr		sym)
 /*
-Make sure that all of the template parameters are used as part of the
-template argument list of a partial specialization.
+This routine performs various checks to ensure that the template parameter
+list and template argument list of a partial specialization are valid.
 */
 {
   a_template_param_ptr	templ_param_list;
   a_template_param_ptr	tpp;
   a_symbol_ptr		prototype_sym;
   a_type_ptr		prototype_type;
+  a_boolean		any_errors = FALSE;
 
   templ_param_list = decl_state->decl_info->parameters;
   /* Get the primary template argument list from the prototype instantiation
@@ -5239,25 +5240,53 @@ template argument list of a partial specialization.
   prototype_sym = sym->variant.template_info->
                               variant.class_template.prototype_instantiation;
   prototype_type = prototype_sym->variant.class_struct_union.type;
+  /* Make sure that all of the template parameters are used as part of the
+     template argument list of a partial specialization.  This is done
+     by checking whether each of the template parameters is used somewhere
+     by the prototype instantiation associated with the partial
+     specialization. */
   for (tpp = templ_param_list; tpp != NULL; tpp = tpp->next) {
-    a_symbol_ptr param_sym = tpp->param_symbol;
-    a_boolean	 param_used = FALSE;
-    if (template_param_used_in_type(param_sym, prototype_type)) {
-      param_used = TRUE;
-    }  /* for */
-    if (!param_used) {
-      pos_sy2_error(ec_not_used_in_partial_spec_arg_list,
-                    &param_sym->decl_position, param_sym, prototype_sym);
-    } /* if */
+    a_symbol_ptr	param_sym = tpp->param_symbol;
+    a_boolean		param_used = FALSE;
+    a_boolean		error_on_this_param = FALSE;
     if (param_sym->kind != (a_symbol_kind)sk_type) {
       /* The type of a nontype parameter is not allowed to reference another
          template parameter. */
       if (tpp->variant.constant.type_involves_template_param) {
-        pos_sy_error(ec_partial_spec_arg_depends_on_templ_param,
+        pos_sy_error(ec_partial_spec_param_depends_on_templ_param,
                      &param_sym->decl_position, param_sym);
+        any_errors = TRUE;
+        error_on_this_param = TRUE;
       }  /* if */
     }  /* if */
+    if (!error_on_this_param) {
+      if (template_param_used_in_type(param_sym, prototype_type)) {
+       param_used = TRUE;
+      }  /* for */
+      if (!param_used) {
+        pos_sy2_error(ec_not_used_in_partial_spec_arg_list,
+                      &param_sym->decl_position, param_sym, prototype_sym);
+        any_errors = TRUE;
+      } /* if */
+    }  /* if */
   } /* for */
+  if (!any_errors) {
+    /* If no errors were detected above, check each of the template arguments
+       to make sure that its type is not dependent on a template parameter.
+       This can happen when a value is used as a template argument (of the
+       primary template) whose type depends on another template parameter. */
+    a_template_arg_ptr	templ_arg_list;
+    a_template_arg_ptr	tap;
+    templ_arg_list = prototype_type->
+                     variant.class_struct_union.extra_info->template_arg_list;
+    for (tap = templ_arg_list; tap != NULL; tap = tap->next) {
+      if (!tap->is_type) {
+        if (is_or_contains_template_param(tap->variant.constant->type)) {
+          error(ec_partial_spec_arg_depends_on_templ_param);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
 }  /* check_partial_spec_template_param_usage */
 
 
