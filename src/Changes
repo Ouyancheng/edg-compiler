@@ -1,5 +1,13 @@
 Version 2.39
 
+1/19/98   type_of_unknown_templ_param_constant not saved in PCH file
+
+The variable type_of_unknown_templ_param_constant should have been
+saved as part of a precompiled header file, but was not.  This could
+cause problems if the value in the translation unit in which the PCH
+file was used differs from the one in which the PCH file was created.
+This has been fixed.
+
 1/19/98   Microsoft compatibility: unnamed enumerations as template parameters
 
 The Microsoft compiler permits unnamed template parameters to be used

@@ -13349,6 +13349,7 @@ One-time initialization for templates.c static variables.
       pch_saved_var_array_elem(instantiations_required_tail),
       pch_saved_var_array_elem(can_instantiate_list),
       pch_saved_var_array_elem(avail_partial_order_candidates),
+      pch_saved_var_array_elem(type_of_unknown_templ_param_constant),
 #if DEBUG
       pch_saved_var_array_elem(num_partial_order_candidates_allocated),
 #endif /* DEBUG */
