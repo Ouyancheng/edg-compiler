@@ -3411,13 +3411,15 @@ of nonzero size (such classes actually have size zero).
       cssp->has_empty_class_subobject = TRUE;
     } else {
       /* Examine base classes and fields. */
-      for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
-        if (bcp->direct && symbol_supplement_for_class(bcp->type)
+      if (!C_mode()) {
+        for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
+          if (bcp->direct && symbol_supplement_for_class(bcp->type)
                                                 ->has_empty_class_subobject) {
-          cssp->has_empty_class_subobject = TRUE;
-          break;
-        }  /* if */
-      }  /* for */
+            cssp->has_empty_class_subobject = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
       if (!cssp->has_empty_class_subobject) {
         /* No empty class subobject was found among the base classes.
            Look among the fields. */
@@ -3524,7 +3526,9 @@ for handling virtual bases and functions.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   clear_layout_block(&lob, class_type);
-  compute_empty_class_bit(class_type);
+  if (C_dialect == C_dialect_cplusplus || gcc_mode) {
+    compute_empty_class_bit(class_type);
+  }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
 #if IA64_ABI
     a_base_class_ptr            bcp;
