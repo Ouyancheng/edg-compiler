@@ -225,7 +225,8 @@ This macro requires that a_fixed_point_value be an_integer_value.
 static void store_hex_fxp_value(
 				a_mantissa_ptr			mp,
 				a_fixed_point_type_descr	*fxp_descr,
-				a_fixed_point_value		*value)
+				a_fixed_point_value		*value,
+				a_boolean			is_negative)
 /*
 Store the value represented by mp in the fixed-point value "value".
 fxp_descr describes the format of the value being stored.
@@ -235,10 +236,9 @@ fxp_descr describes the format of the value being stored.
   int			source_size;
   int			part_offset;
 
-  /* Zero the memory so that all of the space occupied by "value"
-     is cleared, even if we are not storing all of the bytes of the
-     value. */
-  memzero((char *)value, sizeof(a_fixed_point_value));
+  /* Set the memory so that all of the space occupied by "value"
+     is set to represent a sign-extended value. */
+  memset((char *)value, is_negative ? 0xff : 0, sizeof(a_fixed_point_value));
   source_size = sizeof_fixed_point(fxp_descr);
   parts_to_copy = (source_size + sizeof(an_fp_value_part) - 1) /
                    sizeof(an_fp_value_part);
@@ -481,7 +481,8 @@ the value is already known to be too large.  Set *err on overflow.  Set
     set_mantissa_to_saturated_value(mp, is_negative, fxp_descr);
   }  /* if */
   /* Store the result in the appropriate form. */
-  store_hex_fxp_value(mp, fxp_descr, value);
+  store_hex_fxp_value(mp, fxp_descr, value,
+                      is_negative && !fxp_descr->is_unsigned);
   /* Negate the value, if necessary.  If the source is negative and the
      destination is unsigned, a diagnostic will be issued by the caller.
      On overflow, the saturated value will have already been created with
@@ -573,21 +574,32 @@ to be issued; otherwise set err_code to ec_no_error.
   a_boolean	inexact;
   a_fixed_point_type_descr
 		*fxp_descr;
+  a_boolean	overflow = FALSE;
+  an_internal_float_value
+		*fp_value;
+  a_float_kind	float_kind;
 
   check_assertion(old_constant->kind == (a_constant_repr_kind)ck_float);
   set_constant_kind(new_constant, (a_constant_repr_kind)ck_fixed_point);
   *err_code = ec_no_error;
   fxp_descr = fxp_descr_for_constant(new_constant);
+  fp_value = &old_constant->variant.float_value;
+  float_kind = old_constant->type->variant.float_kind;
   /* Convert the floating-point value into the internal mantissa
-     representation. */
-  load_hex_fp_value(&old_constant->variant.float_value,
-                    old_constant->type->variant.float_kind,
+     representation.  This is done even in the NaN and infinity case
+     to set is_negative flag, etc. */
+  load_hex_fp_value(fp_value, float_kind,
                     &mantissa, &exponent, &is_negative,
                     /*restore_implicit_bit=*/TRUE);
+#if TARG_HAS_IEEE_FLOATING_POINT
+  if (fp_is_nan_or_infinity(fp_value, float_kind)) {
+    /* Not-a-number or infinity.  Treat this as an overflow. */
+    overflow = TRUE;
+  }  /* if */
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
   /* Convert and store the mantissa as a fixed-point value. */
   conv_mantissa_to_fixed_point(&mantissa, exponent, is_negative,
-                               fxp_descr,
-                               /*overflow=*/FALSE,
+                               fxp_descr, overflow,
                                &new_constant->variant.fixed_point_value,
                                &err, &inexact);
   if (err) {

@@ -659,8 +659,25 @@ return TRUE otherwise.
   return !err && !fp_mode_dependent;
 }  /* make_fp_infinity */
 
-#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
+a_boolean fp_is_nan_or_infinity(an_internal_float_value	*value,
+				a_float_kind		kind)
+/*
+Return TRUE if value is not-a-number or infinity.  kind specifies the
+floating-point kind of value.
+*/
+{
+  a_boolean		result = FALSE;
+  a_host_fp_value	temp;
+
+  temp = fetch_host_fp_value(kind, value);
+  if (is_NaN(temp) || !is_finite(temp)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* fp_is_nan_or_infinity */
+
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
 void fp_change_kind(an_internal_float_value *old_value,
                     a_float_kind            old_kind,
