@@ -4015,6 +4015,7 @@ return a pointer to it.
 {
   an_expr_operator_kind op;
   an_expr_node_ptr      field_node;
+  a_type_ptr            selection_type;
 
   /* Make the expression node for the field. */
   field_node = alloc_expr_node((an_expr_node_kind)enk_field);
@@ -4024,10 +4025,13 @@ return a pointer to it.
   /* Use a different operator for bit field references. */
   op = (field->bit_size != 0) ? (an_expr_operator_kind)eok_bit_field :
                                 (an_expr_operator_kind)eok_field;
-  /* Make the field selection node.  Note that no special processing is
-     done for type qualifiers on the node pointer type.  They're probably
-     not needed. */
-  node = make_operator_node(op, make_pointer_type(field->type), node);
+  /* The selected field has all the type qualifiers of both the field
+     and the selecting pointer. */
+  selection_type = type_plus_qualifiers_from_second_type(field->type,
+                                                  type_pointed_to(node->type));
+  selection_type = make_pointer_type(selection_type);
+  /* Make the field selection node. */
+  node = make_operator_node(op, selection_type, node);
   return node;
 }  /* field_lvalue_selection_expr */
 
