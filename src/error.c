@@ -792,7 +792,7 @@ symbol_name:
         form_type_first_part(type,
                              /*under_lhs_declarator=*/FALSE,
                              /*need_trailing_space=*/TRUE,
-                             FTFP_NO_OPTIONS,
+                             FT_NO_OPTIONS,
                              &octl);
       }  /* if */
       /* Put out the name, including the class qualifier if any. */
@@ -810,7 +810,7 @@ symbol_name:
         } else {
           /* Normal case -- put out the complete second part of the type. */
           form_type_second_part(type, /*under_lhs_declarator=*/FALSE,
-                                /*suppress_const=*/FALSE, &octl);
+                                FT_NO_OPTIONS, &octl);
         }  /* if */
       }  /* if */
       break;
@@ -1285,7 +1285,7 @@ error_source_line for later use by diagnostic output functions.
   a_boolean         at_end_of_source;
   a_boolean         src_line_found = FALSE;
   FILE              *f_err_src_file;
-  char              ch;
+  int               ch;
   register char     *loc_in_line;
   char              *after_end_of_error_source_line_minus_2;
 
@@ -1366,7 +1366,7 @@ error_source_line for later use by diagnostic output functions.
                                      after_end_of_error_source_line - 2;
         }  /* if */
         /* Add the character to the buffer. */
-        *loc_in_line++ = ch;
+        *loc_in_line++ = (char)ch;
       }  /* while */
       /* Add a trailing newline and null. */
       *loc_in_line++ = '\n';
