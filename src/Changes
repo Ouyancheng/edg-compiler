@@ -2,6 +2,38 @@ Version 2.36, June 17, 1997
 
 6/17/97   IL version number changed to 2.28
 
+6/17/97   Explicit specification of template arguments in declarations
+
+Explicit specification of function template argument lists is
+supported in declarations, but not yet in expression contexts.  An
+explicit template argument list may be specified in an explicit
+specialization, an explicit instantiation, or in a friend declaration.
+When several templates could potentially generate a given function
+signature, an explicit template argument list can be used to specify
+the template that is desired.
+
+The ability to specify an explicit template argument list in a friend
+declaration is useful when guiding declarations are disabled.  When
+guiding declarations are disabled a declaration, such as the friend
+declaration of "g" in the example below, declares an unrelated
+function.  Note: Guiding declarations have been removed from the
+language.  They are enabled by default for compatibility reasons, but
+are disabled in strict mode.
+
+  template <class T> void f(T);  // #1
+  template <class T> void f(T*); // #2
+
+  template <> void f<int*>(int*);  // specializes #1
+  template <> void f<int>(int*);   // specializes #2
+
+  template <class T> void g(T);
+
+  template <class T> struct A {
+    friend void f<>(T);
+    friend void g(T);  // declares a new function, does not refer to the
+                       // template (when guiding declarations are disabled)
+  };
+
 6/17/97   Default arguments and nested instantiations
 
 Because of the way in which default arguments and inline function bodies
