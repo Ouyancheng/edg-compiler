@@ -27,18 +27,7 @@ for a production version.
 
 #if FIXED_POINT_ALLOWED
 
-#if !STANDALONE_UTILITY_PROGRAM
-
 #include "folding.h"
-
-void fxp_init_value(a_fixed_point_value  *value)
-/*
-Initialize the given fixed-point value to zero.
-*/
-{
-  set_integer_value(value, (a_host_large_integer)0);
-}  /* fxp_init_value */
-
 
 a_boolean fxp_value_is_zero(a_fixed_point_value  *value)
 /*
@@ -53,6 +42,16 @@ Return TRUE if and only if the given fixed-point value is zero.
   return (cmp_integer_values(value, /*op_1_signed=*/FALSE,
                              &zero, /*op_2_signed=*/FALSE) == 0);
 }  /* fxp_value_is_zero */
+
+#if !STANDALONE_UTILITY_PROGRAM
+
+void fxp_init_value(a_fixed_point_value  *value)
+/*
+Initialize the given fixed-point value to zero.
+*/
+{
+  set_integer_value(value, (a_host_large_integer)0);
+}  /* fxp_init_value */
 
 
 static int value_bits_for_fixed_point(a_fixed_point_type_descr	*fxp_descr)
