@@ -10484,7 +10484,7 @@ for space tracking purposes.
   db_space_used("out of class partial spec",
                 num_out_of_class_partial_specs_allocated,
                 an_out_of_class_partial_spec);
-  db_space_used("nodependent call info", num_nondependent_call_info_allocated,
+  db_space_used("nondependent call info", num_nondependent_call_info_allocated,
                 a_nondependent_call_info);
   db_space_used("templ friend def arg", num_templ_friend_info_allocated,
                 a_templ_friend_info);
