@@ -471,6 +471,7 @@ Print an error message when an assertion fails.
 {
   fprintf(stderr, "assertion failed: %s%s (%s, line %0d)\n", string1,
           string2, filename, line_number);
+  pl_internal_error("assertion failed");
 }  /* pl_assertion_failed */
 
 
@@ -479,7 +480,7 @@ Print an error message when an assertion fails.
    the condition is not TRUE.  The macro expands to nothing when checking
    code is not being used. */
 #define check_assertion(test)						\
-  if (!!(test)) {							\
+  if (!(test)) {							\
     pl_assertion_failed(__FILE__, __LINE__, "", "");			\
   }
 #else /* CHECKING */
@@ -2310,7 +2311,6 @@ the file is flagged as requiring recompilation.
             sprintf(pl_file_name_buffer, "%s/%s%s", instantiation_dir,
                     generate_instantiation_output_file_name(psp->name),
                     INSTANTIATION_OBJECT_SUFFIX);
-fprintf(stderr, "removing %s\n", pl_file_name_buffer);
             unlink(pl_file_name_buffer);
           }  /* if */
           if (verbose) {
