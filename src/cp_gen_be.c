@@ -5885,6 +5885,7 @@ TRUE if the declaration following this one is such a continuation.
   a_source_sequence_entry_ptr   saved_curr_source_sequence_entry;
   a_source_sequence_entry_ptr   saved_sublist_parent_source_sequence_entry;
   a_routine_type_supplement_ptr rtsp;
+  a_boolean                     is_specialization;
 
   *another_decl_in_comma_list = FALSE;
   /* Note that compiler-generated routines don't appear on the source sequence
@@ -5897,11 +5898,13 @@ TRUE if the declaration following this one is such a continuation.
        different typedefs, default arguments). */
     rout_type = sec_decl->declared_type;
     friend_decl = sec_decl->friend_decl;
+    is_specialization = sec_decl->is_specialization;
   } else {
     rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
     is_definition = TRUE;
     rout_type = rout->declared_type;
     friend_decl = rout->defined_in_friend_decl;
+    is_specialization = rout->is_specialization;
     if (rout->assoc_scope == NULL_region_number) {
       /* A member function of a template class might not be instantiated. */
       check_assertion_str(rout->is_template_function,
@@ -5945,6 +5948,23 @@ TRUE if the declaration following this one is such a continuation.
     read_memory_region(scope_region_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     scope = il_header.region_scope_entry[scope_region_number];
+  }  /* if */
+  if (is_specialization) {
+    /* For a specialization, put out "template<>" in front of it.  More
+       precisely, put out one "template<>" for each parent class that is
+       a template, and one for the function itself if it is a template. */
+    a_source_correspondence *scp = &rout->source_corresp;
+    while (scp->is_class_member) {
+      a_type_ptr parent_class = scp->parent.class_type;
+      if (parent_class->variant.class_struct_union.extra_info->
+                                                   template_arg_list != NULL) {
+        /* A parent class that is a template. */
+        write_tok_str("template<> ");
+      }  /* if */
+      scp = &parent_class->source_corresp;
+    }  /* while */
+    /* And one for the function itself if it is a template. */
+    if (rout->template_arg_list != NULL) write_tok_str("template<> ");
   }  /* if */
   /* Determine the proper storage class to display. */
   storage_class = rout->storage_class;
