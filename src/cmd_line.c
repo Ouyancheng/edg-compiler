@@ -3507,14 +3507,16 @@ enable_microsoft_mode:
          that dependent name processing is done. */
       command_line_error(ec_cl_export_template_requires_dep_name);
     }  /* if */
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
     if (option_kind_used[(int)optk_implicit_template_inclusion] &&
         implicit_template_inclusion_mode) {
       /* The option --implicit_include was used: it cannot be used with
          export template processing. */
       command_line_error(ec_cl_export_template_requires_no_implicit_include);
     }  /* if */
-    do_dependent_name_processing = TRUE;
     implicit_template_inclusion_mode = FALSE;
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+    do_dependent_name_processing = TRUE;
   }  /* if */
   if (trans_unit_test_mode) {
     /* Exported templates cannot be used in trans_unit_test mode.  Turn
@@ -3704,6 +3706,7 @@ enable_microsoft_mode:
       command_line_error(
                        ec_cl_pp_output_incompatible_with_multiple_trans_units);
     }  /* if */
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
     if (option_kind_used[(int)optk_implicit_template_inclusion] &&
         implicit_template_inclusion_mode) {
       /* The option --implicit_include was used: it cannot be used when
@@ -3713,6 +3716,7 @@ enable_microsoft_mode:
     }  /* if */
     /* Disable implicit inclusion when using multiple translation units. */
     implicit_template_inclusion_mode = FALSE;
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   }  /* if */
 #endif /* COMPILE_MULTIPLE_TRANSLATION_UNITS */
 #else /* !(COMPILE_MULTIPLE_SOURCE_FILES ||
