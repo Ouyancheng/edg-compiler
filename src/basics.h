@@ -416,9 +416,7 @@ following, indicating something special:
 			/* The position is in the command line. */
 
 /* Macro to copy a source position. */
-#define copy_source_position(from, to)                                \
-{ (to).seq = (from).seq; (to).column = (from).column; }
-
+#define copy_source_position(from, to) ((to) = (from))
 
 /******************************************************************************
 *                                                             \  ___  /       *
