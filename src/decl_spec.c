@@ -1935,8 +1935,8 @@ to TRUE.
   if (!(gpp_mode || microsoft_mode) && locator->is_qualified_name &&
       locator->specific_symbol->kind ==
                                      (a_symbol_kind)sk_namespace_projection) {
-    /* Except in GNU C++ mode, a qualified friend declaration that finds a
-       using-declaration is an error. */
+    /* Except in GNU and Microsoft C++ modes, a qualified friend declaration
+       that finds a using-declaration is an error. */
     a_namespace_ptr  nsp = qualifier_namespace_ptr(*locator);
     if (nsp == NULL) {
       /* Must be something like this:
