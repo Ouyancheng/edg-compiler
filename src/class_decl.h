@@ -69,8 +69,7 @@ extern void set_class_assoc_operator_delete_routine(a_type_ptr class_type);
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 
 extern void define_special_member_function(a_routine_ptr      rout_ptr,
-                                           a_type_ptr         class_type,
-                                           a_source_position  *pos);
+                                           a_type_ptr         class_type);
 
 extern void reference_to_implicitly_invoked_function
 					(a_symbol_ptr       sym,
@@ -79,22 +78,7 @@ extern void reference_to_implicitly_invoked_function
                                          a_boolean          honor_virtual,
                                          a_boolean          evaluated);
 
-extern void f_force_definition_of_compiler_generated_routine(
-                                                  a_routine_ptr     routine,
-                                                  a_source_position *position);
-
-/*
-routine points to a routine that is being referenced.  If it is
-a compiler-generated routine whose definition has not yet been generated,
-force the definition now.
-*/
-#define force_definition_of_compiler_generated_routine(rout, pos)     \
-{ if ((rout)->compiler_generated &&                                   \
-      (rout)->assoc_scope == NULL_region_number) {                    \
-    f_force_definition_of_compiler_generated_routine((rout), (pos));  \
-  }  /* if */                                                         \
-}  /* force_definition_of_compiler_generated_routine */
-
+extern void force_definition_of_compiler_generated_routine(a_routine_ptr rp);
 
 extern a_symbol_ptr member_function_redecl_sym(a_symbol_ptr  sym,
                                                a_type_ptr    type);
