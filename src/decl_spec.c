@@ -1886,11 +1886,16 @@ the template.
     a_decl_position_supplement_ptr  dpsp;
 
     ssep = last_matching_source_sequence_entry((char *)class_type);
-    if (ssep != NULL) {
-      check_assertion(ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
+    if (ssep != NULL &&
+        ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
       sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
       dpsp = alloc_decl_position_supplement(in_file_scope(sssdp));
       dpsp->specifiers_range = local_decl_pos_block.specifiers_range;
+      if (is_friend_decl) {
+        /* If this is a friend declaration, adjust the specifiers range to
+           include "friend". */
+        dpsp->specifiers_range.start = decl_pos_block->specifiers_range.start;
+      }  /* if */
       if (tag_id_present) {
         dpsp->identifier_range = local_decl_pos_block.identifier_range;
       }  /* if */
