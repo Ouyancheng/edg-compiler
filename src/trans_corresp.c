@@ -1317,6 +1317,37 @@ always appear in the same order on the types list of a class scope.)
 }  /* skip_generated_type */
 
 
+static a_class_list_entry_ptr skip_generated_friend_class(
+                                                  a_class_list_entry_ptr  cle)
+/*
+Similar to skip_generated_type, except the types are list through
+a_class_list_entry nodes.
+*/
+{
+  a_class_list_entry_ptr  result = cle;
+
+  while (result != NULL && (
+#if NEED_NAME_MANGLING
+         /* Some types are generated as part of prelowering. */
+         result->class_type->source_corresp.name_has_been_mangled ||
+#endif /* NEED_NAME_MANGLING */
+         is_placeholder_type(result->class_type) ||
+          /* Nonprototype instantiations can differ from one translation unit
+             to another.  (The check on template_arg_list ensures that we
+             only skip actual instantiations as opposed to members of
+             instantiations.) */
+         (is_immediate_class_type(result->class_type) &&
+          result->class_type->variant.class_struct_union.is_template_class &&
+          !result->class_type
+                    ->variant.class_struct_union.is_prototype_instantiation &&
+          result->class_type->variant.class_struct_union.extra_info
+                                              ->template_arg_list != NULL))) {
+    result = result->next;
+  }  /* while */
+  return result;
+}  /* a_class_list_entry_ptr */
+
+
 static void add_instantiation(a_template_symbol_supplement_ptr  tssp,
                               a_symbol_ptr                      inst)
 /*
@@ -2468,10 +2499,13 @@ type is in fact valid.
       /* Traverse friend class declarations. */
       {
         /* Similar to member using declarations. */
-        a_class_list_entry_ptr  cle = sup->friend_classes;
-        a_class_list_entry_ptr  corresp_cle = corresp_sup->friend_classes;
+        a_class_list_entry_ptr  cle = skip_generated_friend_class(
+                                                          sup->friend_classes);
+        a_class_list_entry_ptr  corresp_cle = skip_generated_friend_class(
+                                                  corresp_sup->friend_classes);
         for (; cle != NULL && corresp_cle != NULL;
-             cle = cle->next, corresp_cle = corresp_cle->next) {
+             cle = skip_generated_friend_class(cle->next),
+             corresp_cle = skip_generated_friend_class(corresp_cle->next)) {
           if (!corresponding_types(cle->class_type, corresp_cle->class_type)) {
             match = FALSE;
             report_error = TRUE;
