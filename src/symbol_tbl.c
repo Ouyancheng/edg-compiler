@@ -4063,8 +4063,9 @@ symbol), or NULL if it is not found or there is an ambiguity.  If there is an
 ambiguity return *ambiguous set to TRUE.
 */
 {
-  a_boolean        is_overloaded, ambiguous_alternate = FALSE, is_class_member;
-  a_symbol_ptr     fund_sym, default_sym = NULL, alternate_default_sym = NULL;
+  a_boolean      is_overloaded, ambiguous_alternate = FALSE, is_class_member;
+  a_symbol_ptr   fund_sym, default_sym = NULL, alternate_default_sym = NULL;
+  a_routine_ptr  rp;
 
   *ambiguous = FALSE;
   is_class_member = sym->is_class_member;
@@ -4086,11 +4087,11 @@ ambiguity return *ambiguous set to TRUE.
     /* Ignore function templates. */
     if (is_function_symbol(fund_sym)) {
       /* See if this is a default operator delete. */
-      if (is_default_operator_delete(fund_sym->variant.routine.ptr)) {
+      rp = fund_sym->variant.routine.ptr;
+      if (is_default_operator_delete(rp)) {
         /* This is a default operator delete.  See whether it is the single-
            parameter version or the two-parameter version. */
-        a_param_type_ptr ptp =
-                          skip_typerefs(fund_sym->variant.routine.ptr->type)->
+        a_param_type_ptr ptp = skip_typerefs(rp->type)->
                                   variant.routine.extra_info->param_type_list;
         if (ptp->next == NULL) {
           /* "operator delete(void *)" is always the default version. */
@@ -4135,6 +4136,7 @@ ambiguity return *ambiguous set to TRUE.
 
 a_symbol_ptr find_corresponding_operator_delete_sym(a_symbol_ptr op_new_sym,
                                                     a_type_ptr   class_type,
+                                                    a_boolean    template_okay,
                                                     a_boolean    *ambiguous,
                                                     a_symbol_ptr *overload_sym)
 /*
@@ -4144,7 +4146,9 @@ global scope if class_type is NULL, find and return the corresponding
 operator delete function (i.e., the operator delete function with identical
 parameter types as the operator new function, excluding the first parameter
 in each).  Return NULL if no match is found or if there is an ambiguity; in
-the latter case, return *ambiguous set to TRUE.  Also return in *overload_sym
+the latter case, return *ambiguous set to TRUE.  If template_okay is TRUE,
+simply return the symbol for a matching function template, if appropriate;
+otherwise, return the symbol for the instance.  Also return in *overload_sym
 the result of looking up the delete operator; it may be the same as the
 symbol that is returned as the corresponding operator delete symbol, but it
 may an overload symbol instead.
@@ -4154,7 +4158,7 @@ may an overload symbol instead.
   a_routine_ptr     rp;
   an_opname_kind    delete_opname_kind;
   a_param_type_ptr  op_new_param_type_list, op_new_ptp, ptp;
-  a_boolean         is_overloaded;
+  a_boolean         is_overloaded, any_template_seen;
 
   db_enter(4, "find_corresponding_operator_delete_sym");
   check_assertion(op_new_sym->kind == (a_symbol_kind)sk_routine ||
@@ -4196,6 +4200,7 @@ may an overload symbol instead.
       } else {
         is_overloaded = FALSE;
       }  /* if */
+      any_template_seen = FALSE;
       for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
         if (sym->kind == (a_symbol_kind)sk_projection) {
           /* An overload set can contain a projection symbol as the result of
@@ -4210,8 +4215,12 @@ may an overload symbol instead.
         } else {
           fund_sym = sym;
         }  /* if */
-        /* Ignore function templates. */
-        if (is_function_symbol(fund_sym)) {
+        if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
+          /* Look for a matching template only if there's no match among the
+             non-template functions. */
+          any_template_seen = TRUE;
+        } else {
+          check_assertion(is_function_symbol(fund_sym));
           ptp = skip_typerefs(fund_sym->variant.routine.ptr->type)->
                                   variant.routine.extra_info->param_type_list;
           check_assertion(ptp != NULL);
@@ -4241,6 +4250,63 @@ may an overload symbol instead.
         }  /* if */
 next_delete_symbol:;
       }  /* for */
+      if (any_template_seen) {
+        /* The overload set included at least one function template. */
+        if (corresp_op_delete_sym == NULL && !(*ambiguous)) {
+          /* There was no match among the ordinary functions, so see if the
+             template function(s) satisfy the need. */
+          a_type_ptr  tp, saved_return_type, saved_first_param_type;
+
+          tp = skip_typerefs(rp->type);
+          /* Change the return type from void * to void. */
+          saved_return_type = tp->variant.routine.return_type;
+          tp->variant.routine.return_type = void_type();
+          /* Change the first parameter type from size_t to void *. */
+          saved_first_param_type = op_new_param_type_list->type;
+          op_new_param_type_list->type = make_pointer_type(void_type());
+          sym = *overload_sym;
+          if (is_overloaded) {
+            reduce_projection_symbol_to_fundamental_symbol(sym);
+            sym = sym->variant.overloaded_function.symbols;
+          }  /* if */
+          for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
+            fund_sym = fundamental_symbol_of(sym);
+            if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
+              if (template_okay || corresp_op_delete_sym != NULL) {
+                /* If a template can be returned, avoid actually doing the
+                   partial instantiation if there's a match; otherwise, if
+                   an instance has already been generated, there's no need
+                   to create a second one. */
+                if (has_matching_template_function(fund_sym, tp,
+                                                   /*is_decl_context=*/TRUE)) {
+                  /* The type matches the template. */
+                  if (template_okay) {
+                    /* Return the symbol for the function template. */
+                    corresp_op_delete_sym = sym;
+                  } else {
+                    /* Another match had already been found, so return NULL
+                       and set the ambiguous flag. */
+                    corresp_op_delete_sym = NULL;
+                    *ambiguous = TRUE;
+                  }  /* if */
+                  /* In either case there's no need to continue looping. */
+                  break;
+                }  /* if */
+              } else {
+                /* Do a partial instantiation if a match is found so that the
+                   template instance can be returned. */
+                corresp_op_delete_sym =
+                         matching_template_function(fund_sym, tp,
+                                                    /*is_decl_context=*/TRUE);
+                /* Continue looping, since there could be an ambiguity. */
+              }  /* if */
+            }  /* if */
+          }  /* for */
+          /* Restore the function type for the operator new. */
+          tp->variant.routine.return_type = saved_return_type;
+          op_new_param_type_list->type = saved_first_param_type;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
 #if DEBUG
