@@ -1652,8 +1652,14 @@ for class_type.  Then do the same check for its own direct virtual base
 classes.
 */
 {
-  a_base_class_ptr  data_section_bcp, bcp;
+  a_base_class_ptr  data_section_bcp, bcp, curr_class_bcp;
 
+  db_enter(4, "set_embedded_virtual_base_class_offset");
+#if DEBUG
+  if (debug_level >= 4) {
+    db_base_class(base_class, /*show_offset=*/TRUE);
+  }  /* if */
+#endif /* DEBUG */
   if (base_class->offset == 0) {
     /* Offset has not yet been set. */
     data_section_bcp = base_class->data_section_base_class;
@@ -1672,15 +1678,23 @@ classes.
       base_class->offset = bcp->offset + data_section_bcp->offset;
     }  /* if */
   }  /* if */
-  /* Apply the check recursively. */
+  /* Apply the check recursively to see if there are any indirect virtual
+     base classes of class_type that have not been properly assigned an
+     offset yet. */
   bcp = base_classes_of(base_class->type);
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->is_virtual && bcp->direct) {
-      set_embedded_virtual_base_class_offset(
-                  corresponding_base_class(bcp, base_class->type, class_type),
-                  class_type);
+      curr_class_bcp = corresponding_base_class(bcp, base_class->type,
+                                                class_type);
+      if (curr_class_bcp->data_section_base_class == NULL) {
+        /* curr_class_bcp is an indirect virtual base class of class type
+           that is not yet marked as embedded. */
+        curr_class_bcp->data_section_base_class = base_class;
+      }  /* if */
+      set_embedded_virtual_base_class_offset(curr_class_bcp, class_type);
     }  /* if */
   }  /* for */
+  db_exit();
 }  /* set_embedded_virtual_base_class_offset */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
@@ -1695,6 +1709,7 @@ virtual base class pointer is shared with some other base class.
   a_base_class_ptr             pointer_base_class;
   a_base_class_ptr             bcp;
 
+  db_enter(4, "fixup_shared_virtual_base_class_offsets");
   /* Make a pass over all the base classes for the current derived class and
      check each virtual base class. */
   for (virtual_base_class = base_classes_of(class_type);
@@ -1729,6 +1744,7 @@ virtual base class pointer is shared with some other base class.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     }  /* if */
   }  /* for */
+  db_exit();
 }  /* fixup_shared_virtual_base_class_offsets */
 
 
