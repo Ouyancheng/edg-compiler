@@ -462,12 +462,19 @@ as the class type, and use as a base class.
     /* Get the symbol pointer associated with the template parameter. */
     templ_param_sym =
                      (a_symbol_ptr)templ_param_type->source_corresp.assoc_info;
-    /* Create a symbol for the class.  The symbol will have the same name
-       as the template parameter symbol.  mark_declared is not called
-       because this symbol is not visible to the user. */
-    sym = alloc_symbol((a_symbol_kind)sk_class_or_struct_tag,
-                       templ_param_sym->header,
-                       &templ_param_sym->decl_position);
+    if (templ_param_sym == NULL) {
+      /* No template parameter symbol.  This is the case when geting the
+         proxy class for type_of_unknown_templ_param_nontype. */
+      sym = make_unnamed_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
+                                    &null_source_position);
+    } else {
+      /* Create a symbol for the class.  The symbol will have the same name
+         as the template parameter symbol.  mark_declared is not called
+         because this symbol is not visible to the user. */
+      sym = alloc_symbol((a_symbol_kind)sk_class_or_struct_tag,
+                         templ_param_sym->header,
+                         &templ_param_sym->decl_position);
+    }  /* if */
     /* The class will be considered to be at file scope.  If this is changed
        to be some other scope then set_source_corresp_with_scope_depth may
        need to be called because set_source_corresp requires that the
@@ -2017,7 +2024,7 @@ that do normal id lookup processing.
     /* Lookups outside of a template instantiations scope check the declaration
        sequence number of the symbol found.  This check should be suppressed
        for class scopes. */
-    lookup_state->check_decl_seq =
+    lookup_state->check_decl_seq = !lookup_state->is_linkage_lookup &&
                          ssep->kind != (a_scope_kind)sck_class_reactivation &&
                          ssep->kind != (a_scope_kind)sck_class_struct_union;
     if (kind == (a_scope_kind)sck_namespace_extension ||
