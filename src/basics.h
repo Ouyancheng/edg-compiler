@@ -211,6 +211,12 @@ typedef char * a_const_void_ptr;
 #endif /* USING_ISO_C */
 
 #include <stdio.h>
+
+#if USING_ISO_C
+/* Get standard type definitions when using an ANSI/ISO C compiler. */
+#include <stddef.h>
+#endif /* USING_ISO_C */
+
 #if __BSD__
 /* Some stdio.h's do not define sprintf.  This declaration will be included
    if NEED_SPRINTF_DECL is TRUE. */
@@ -269,6 +275,15 @@ EXTERN_C bcopy_bzero_return_type bzero(a_void_ptr dest, int nbytes);
    expected to define memcpy and memcmp.  Define a macro for memzero
    (which is not a standard library routine). */
 #define memzero(dest, nbytes) memset(dest, 0, nbytes)
+#ifdef __GNUC__
+/* When using gcc, the header files are often generated automatically from
+   the system header files using the Gnu fix_includes utility.  This does
+   not automatically provide prototypes for certain functions.  Supply
+   prototypes for the mem... functions. */
+extern void * memchr (const void *, int, size_t);
+extern int memcmp (const void *, const void *, size_t);
+extern void * memcpy (void *, const void *, size_t);
+#endif /* ifdef __GNUC__ */
 #else /* !USING_ISO_C */
 /* When using a pcc-style C compiler on BSD, define memcpy and memcmp in
    terms of the BSD bcopy and bcmp routines. */
