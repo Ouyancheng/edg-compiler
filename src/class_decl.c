@@ -5506,24 +5506,42 @@ back down to find A<T>::B).
          It represents a prototype instantiation of a class template or a
          class nested within a prototype instantiation. One of its own nested
          classes will be the nested class that corresponds to curr_sym: find
-         a symbol with the same header as curr_sym and belonging to the scope
-         that sym established. */
-      decl_scope = sym->variant.class_struct_union.type->
-                    variant.class_struct_union.extra_info->assoc_scope->number;
-      if (is_incomplete_type(sym->variant.class_struct_union.type)) {
-        /* We must still be in the midst of the prototype instantiation, so
-           the symbol is still on the active list. */
-        sym = curr_sym->header->symbol;
+         a symbol for that nested class. */
+      tp = sym->variant.class_struct_union.type;
+      if (is_unnamed_class_symbol(curr_sym)) {
+        /* Unusual case of an unnamed class -- e.g., an anonymouse union.
+           Look through the types list associated with the parent class. */
+        tp = tp->variant.class_struct_union.extra_info->assoc_scope->types;
+        for (; tp != NULL; tp = tp->next) {
+          sym =(a_symbol_ptr)tp->source_corresp.assoc_info;
+          if (sym != NULL && sym->kind == curr_sym->kind) {
+            if (sym->decl_position.column == curr_sym->decl_position.column &&
+                sym->decl_position.seq == curr_sym->decl_position.seq) {
+              corresp_prototype_tag_sym = sym;
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* for */
       } else {
-        /* Look through the symbols on the inactive list. */
-        sym = curr_sym->header->inactive_symbols;
-      }  /* if */
-      for (; sym != NULL; sym = sym->next) {
-        if (sym->decl_scope == decl_scope && sym->kind == curr_sym->kind) {
-          corresp_prototype_tag_sym = sym;
-          break;
+        /* Normal case -- find the symbol with the same header as curr_sym
+           and belonging to the scope that sym established. */
+        decl_scope = 
+               tp->variant.class_struct_union.extra_info->assoc_scope->number;
+        if (is_incomplete_type(sym->variant.class_struct_union.type)) {
+          /* We must still be in the midst of the prototype instantiation, so
+             the symbol is still on the active list. */
+          sym = curr_sym->header->symbol;
+        } else {
+          /* Look through the symbols on the inactive list. */
+          sym = curr_sym->header->inactive_symbols;
         }  /* if */
-      }  /* for */
+        for (; sym != NULL; sym = sym->next) {
+          if (sym->decl_scope == decl_scope && sym->kind == curr_sym->kind) {
+            corresp_prototype_tag_sym = sym;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
 #if CHECKING
       if (corresp_prototype_tag_sym == NULL) {
         internal_error("find_prototype_tag_sym: can't find nested prototype");
@@ -6595,7 +6613,7 @@ next_declaration:
     remove_stop_token(tok_rbrace);
     /* Check for and ignore the closing brace. */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
-    if (C_dialect == C_dialect_cplusplus && !is_prototype_instantiation) {
+    if (C_dialect == C_dialect_cplusplus && !is_nonreal_instantiation) {
       /* Rescan tokens that were cached (inline function definitions, default
          arguments). */
       if (tag_sym->class_of_which_a_member == NULL) {
