@@ -1,5 +1,19 @@
 Version 2.42
 
+7/14/99  Integral promotion in IL on "!= 0" generated to normalize boolean
+         controlling expression
+
+In C mode, and in C++ mode when "bool" is not a keyword, the front end
+generates a "!= 0" operation on top of a boolean controlling expression
+to normalize it.  Now, when the expression is integral, it undergoes
+the integral promotions before it is used as the operand of the "!= 0".
+
+  /* C mode: */
+  int f() {
+    short j = 2;
+    return !j;  /* j is promoted to int before comparison with zero */
+  }
+
 7/14/99  Diagnostic when redeclaring an entity already seen through a
          using declaration
 

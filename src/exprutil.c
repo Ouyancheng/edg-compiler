@@ -2719,6 +2719,28 @@ if the type is not integral).
 }  /* operand_type_after_integral_promotion */
 
 
+static a_type_ptr node_type_after_integral_promotion(an_expr_node_ptr node)
+/*
+Determine the type that would result from applying the integral promotions
+to the indicated expression.  Return the promoted type, which may be the
+same as the original type.  The expression is an rvalue.
+*/
+{
+  a_type_ptr promoted_type;
+
+  /* Check for bit-field accesses, which require special handling.
+     The special processing is not done in pcc mode. */
+  if (C_dialect != C_dialect_pcc &&
+      is_bit_field_extract_node(node)) {
+    promoted_type = type_after_bit_field_integral_promotion(node,
+                                                            node->type);
+  } else {
+    promoted_type = type_after_integral_promotion(node->type);
+  }  /* if */
+  return promoted_type;
+}  /* node_type_after_integral_promotion */
+
+
 void promote_operand(an_operand *operand)
 /*
 Determine the integral promotion and do the promotion on an operand.
@@ -6273,11 +6295,23 @@ it, and return a pointer to the possibly-modified expression.
   if (add_ne_0) {
     /* Add a "!= 0" of the appropriate type on top of the expression
        to standardize it. */
-    make_zero_of_proper_type(expr->type, &con);
+    a_type_ptr type = expr->type;
+    if (is_integral_type(type)) {
+      /* Simulate the usual arithmetic conversions. */
+      type = node_type_after_integral_promotion(expr);
+      if (type != expr->type) {
+        cast_node(&expr, type,
+                  /*check_cast_access=*/FALSE,
+                  /*is_implicit_cast=*/TRUE,
+                  /*is_reinterpret_cast=*/FALSE,
+                  &error_position);
+      }  /* if */
+    }  /* if */
+    make_zero_of_proper_type(type, &con);
     expr->next = alloc_node_for_constant(&con);
     /* Build a "!=" node of the right kind, pointing to the original
        expression and the zero constant node. */
-    expr = make_operator_node(which_binary_operator(tok_ne, expr->type),
+    expr = make_operator_node(which_binary_operator(tok_ne, type),
                               integer_type((an_integer_kind)ik_int),
                               expr);
     expr->variant.operation.compiler_generated = TRUE;
