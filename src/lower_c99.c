@@ -643,9 +643,11 @@ Transform the given cast expression into a function call (compatible with C89).
       cast_call = add_cast_if_necessary(cast_call, dst_type);
       overwrite_node(expr, cast_call);
     } else if (is_imaginary_type(src_type)) {
-/* FIXME */
+      /* Nothing to be done (imaginary->imaginary becomes real->real once the
+         imaginary types have been lowered). */
     } else {
-/* FIXME */
+      /* Nothing to be done (real->imaginary becomes real->real once the
+         imaginary types have been lowered). */
     }  /* if */
   } else {
     if (is_complex_type(src_type)) {
@@ -673,9 +675,10 @@ Transform the given cast expression into a function call (compatible with C89).
       cast_call = add_cast_if_necessary(cast_call, dst_type);
       overwrite_node(expr, cast_call);
     } else if (is_imaginary_type(src_type)) {
-/* FIXME */
+      /* Nothing to be done (imaginary->real becomes real->real once the
+         imaginary types have been lowered). */
     } else {
-/* FIXME */
+      /* Nothing to be done (real->real). */
     }  /* if */
   }  /* if */
 }  /* lower_c99_complex_cast */
@@ -805,8 +808,8 @@ replace them by a representation compatible with C89.
           /* Variables will be visited from the scope. */
           break;
         case abk_constant:
-          /* Constants might not be on the scope constant list, so visit
-             their subtrees. */
+          /* Nothing to be done (appears only for addresses of string
+             constants. */
           break;
         default:
           unexpected_condition_str("Bad c99 address const kind");
@@ -816,9 +819,12 @@ replace them by a representation compatible with C89.
       lower_c99_dynamic_init(constant->variant.dynamic_init);
       break;
     case ck_init_repeat:
+      lower_c99_constant(constant->variant.init_repeat.constant);
       /* FIXME?  Move lowering code here? */
       break;
     case ck_designator:
+      /* This is always encountered while processing a list of constants in
+         an aggregate constant. */
       /* FIXME?  Move lowering code here? */
       break;
     case ck_error:
