@@ -30,7 +30,7 @@ that the problem occurred.)  Here's an example:
   }
 
 9/8/94   Explicit destructor calls using template parameters that
-         refer to typedefs
+         refer to typedefs (used by STL)
 
 It is now possible to do an explicit destructor call using a template
 parameter whose type refers to a typedef, as in the following example:
