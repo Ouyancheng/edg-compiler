@@ -1795,6 +1795,9 @@ error code.
     case ec_nonexternal_entity_in_template_arg:
       m = "a template argument may not reference a non-external entity";
       break;
+    case ec_id_must_be_class_or_type_name:
+      m = "name followed by \"::~\" must be a class name or a type name";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
