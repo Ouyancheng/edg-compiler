@@ -3015,8 +3015,13 @@ Return TRUE if the candidate functions cfp1 and cfp2 are the same function.
   if (sym1 != NULL && sym2 != NULL) {
     sym1 = fundamental_symbol_of(sym1);
     sym2 = fundamental_symbol_of(sym2);
-    /* Compare IL entry pointers to deal with block extern symbols. */
-    if (sym1->variant.routine.ptr == sym2->variant.routine.ptr) {
+    /* Note that sym1 or sym2 can be a function template here. */
+    if (sym1 == sym2 ||
+        ((sym1->kind == (a_symbol_kind)sk_routine ||
+          sym1->kind == (a_symbol_kind)sk_member_function) &&
+         sym1->kind == sym2->kind &&
+         /* Compare IL entry pointers to deal with block extern symbols. */
+         sym1->variant.routine.ptr == sym2->variant.routine.ptr)) {
       same = TRUE;
     }  /* if */
   }  /* if */
