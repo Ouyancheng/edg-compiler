@@ -3310,6 +3310,7 @@ special function kind (e.g., constructor, destructor), if any.
     update_source_sequence_list((char *)rtn, (an_il_entry_kind)iek_routine,
                                 &locator->source_position, declarator_ssep);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    discard_curr_construct_pragmas();
   } else {
     sym->class_of_which_a_member = class_type;
     /* Create the routine entry for the member function. */
@@ -5922,7 +5923,12 @@ Scan the body of a class definition, including the base classes list.
             }  /* if */
           }  /* while */
           /* This next check catches cases like "...public: }". */
-          if (curr_token == tok_rbrace) break;
+          if (curr_token == tok_rbrace) {
+            /* Issue diagnostics on pragmas that are trying to bind to a
+               nonexistent declaration. */
+            cannot_bind_to_curr_construct();
+            break;
+          }  /* if */
         }  /* if */
         /* Scan a member declaration. */
         add_stop_token(tok_semicolon);
