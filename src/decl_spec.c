@@ -3531,8 +3531,8 @@ is a that of a constructor.
                      sym->variant.projection.is_using_decl) {
             /* This can only mean that another member has been
                declared with the class name.  Issue an error. */
-            str_error(ec_id_already_declared,
-                        locator_for_curr_id.symbol_header->identifier);
+            check_assertion(sym->kind == (a_symbol_kind)sk_field);
+            pos_error(ec_field_name_conflicts_with_class, &sym->decl_position);
           }  /* if */
         }  /* if */
         /* Use the class symbol instead of whatever the lookup returned. */
