@@ -28,7 +28,6 @@ Flags to be set for any version that uses the C++ generating back end.
 */
 #define BACK_END_IS_C_GEN_BE 0
 #define BACK_END_IS_CP_GEN_BE 1
-#define DEFAULT_EXCEPTIONS_ENABLED 0
 #define COMPILE_MULTIPLE_TRANSLATION_UNITS 0
 #define DO_IL_LOWERING 0
 #define INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL 0
