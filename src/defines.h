@@ -21,7 +21,6 @@ the release should contain no defines.
 
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
 #define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C 1
-#define EXTRA_SOURCE_POSITIONS_IN_IL 1
 
 #ifdef CP_GEN_BE_VERSION
 /*
@@ -140,6 +139,7 @@ Flags to be set when using the KAI inliner.
 #define TARG_MICROSOFT_BIT_FIELD_ALLOCATION 0
 #define USER_CONTROL_OF_STRUCT_PACKING 1
 #define DEFAULT_MICROSOFT_MODE 0
+#define EXTRA_SOURCE_POSITIONS_IN_IL 1
 /* Use 1 for mmap PCH, 0 for non-mmap PCH. */
 #if 1
 #define USE_FIXED_ADDRESS_FOR_MMAP 1
