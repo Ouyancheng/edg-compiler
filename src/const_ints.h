@@ -105,14 +105,15 @@ extern void shift_left_integer_value(an_integer_value *op_1,
 
 extern void shift_right_integer_value(an_integer_value *op_1,
 				      int	       op_2,
-				      a_boolean	       is_signed);
+				      a_boolean	       is_signed,
+				      a_boolean	       sign_extend);
 
 extern void subtract_integer_values(an_integer_value *op_1,
 			            an_integer_value *op_2,
 			            a_boolean	      is_signed,
 			            a_boolean	      *err);
 
-extern void compliment_integer_value(an_integer_value *op_1);
+extern void complement_integer_value(an_integer_value *op_1);
 
 extern void negate_integer_value(an_integer_value *op_1,
 			         a_boolean	    *err);
