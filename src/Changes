@@ -78,6 +78,8 @@ templates were instantiated and kept in the IL even though they
 were referenced only from code that was later removed.  Now fixed,
 i.e., the constructors are correctly removed from the IL.  This
 was most visible when INSTANTIATE_EXTERN_INLINE is FALSE.
+[8/12/04] A similar issue with thunks for extern inline virtual
+functions has also been resolved.
 
 8/5/04   C++-generating back end: MSVC++ cannot parse call to operator()
 
