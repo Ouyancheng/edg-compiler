@@ -3666,9 +3666,8 @@ typedef unsigned char an_offset_bit_remainder;
 			   will be >= 0 and < targ_char_bit. */
 
 typedef struct a_field {
-  /* Description of a field (member of a class, struct, or union). */
-  /* Note that unnamed bit fields do not appear.  They affect the offsets,
-     but are not needed in the list of fields. */
+  /* Description of a field (member of a class, struct, or union), including
+     unnamed bit fields. */
   /* The source_corresp field must be first. */
   a_source_correspondence
                 source_corresp;
