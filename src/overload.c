@@ -4540,11 +4540,13 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
   an_operand_state      saved_operand_state = operand->state;
   an_expr_operator_kind op;
 
-  if ((any_cfront_mode() || microsoft_mode) && curr_expr_kind_is_const()) {
-    /* Accommodate the cfront and Microsoft extension that allows
+  if (curr_expr_kind_is_const()) {
+    /* In a constant expression, just throw away the left operand.  This
+       comes up in prototype instantiations and with an extension in
+       cfront and Microsoft modes:
          struct A { enum { e1 = 1 }; } a;
          int x[a.e1];
-       by throwing away the left operand. */
+    */
     discard_operand(bound_function_selector);
   } else {
     orig_operand = *operand;
