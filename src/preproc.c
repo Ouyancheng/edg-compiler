@@ -750,6 +750,27 @@ accum_quoted_string).
 }  /* copy_header_name */
 
 
+static void proc_stdarg_include(void)
+/*
+Process an #include of <stdarg.h> by creating definitions for the things
+the header defines instead of reading the header file.  This is used when
+we want to pass references to the <stdarg.h> macros through to the output,
+e.g., in generated C code.
+*/
+{
+  /* Ignore an #include after the first. */
+  if (builtin_va_list_type == NULL) {
+    /* Enter the va_start, va_arg, and va_end macros as keywords so they
+       can be processed as expression operators. */
+    enter_keyword((a_token_kind)tok_va_start, "va_start");
+    enter_keyword((a_token_kind)tok_va_arg,   "va_arg");
+    enter_keyword((a_token_kind)tok_va_end,   "va_end");
+    /* Declare va_list as a type of "void *". */
+    declare_builtin_va_list_type();
+  }  /* if */
+}  /* proc_stdarg_include */
+
+
 static void proc_include(void)
 /*
 Scan and process a #include directive.
@@ -803,11 +824,19 @@ Scan and process a #include directive.
     /* Ignore trailing junk on the line.  Do this before pushing the new file,
        so the error can be produced on the old line. */
     ignore_harmless_trailing_comment();
-    /* Push the name and associated search directory onto the input stack,
-       thus starting input from that file. */
-    open_file_and_push_input_stack(name_start_pos, search_path,
-                                   /*is_include_file=*/TRUE,
-                                   is_system_include);
+    if (pass_stdarg_references_to_generated_code &&
+        (strcmp(name_start_pos, "stdarg.h") == 0 ||
+         (!C_mode() && strcmp(name_start_pos, "cstdarg") == 0))) {
+      /* Instead or reading the <stdarg.h> or <cstdarg> header file, create
+         builtin definitions for the things it's known to define. */
+      proc_stdarg_include();
+    } else {
+      /* Push the name and associated search directory onto the input stack,
+         thus starting input from that file. */
+      open_file_and_push_input_stack(name_start_pos, search_path,
+                                     /*is_include_file=*/TRUE,
+                                     is_system_include);
+    }  /* if */
   }  /* if */
 }  /* proc_include */
 

@@ -1793,13 +1793,21 @@ Print a typedef declaration.
 */
 {
   if (start_unreferenced_bracket(&type->source_corresp)) {
-    /* Dump any pragmas associated with the type. */
-    dump_decl_associated_pragmas(&type->source_corresp);
-    set_output_position(&type->source_corresp.decl_position);
-    write_tok_str("typedef ");
-    dump_declaration_using_type(type->variant.typeref.type,
-                                &type->source_corresp);
-    write_tok_ch(';');
+    if (type->source_corresp.decl_position.seq == 0 &&
+        type->source_corresp.name != NULL &&
+        strcmp(type->source_corresp.name, "va_list") == 0) {
+      /* This is the declaration of the builtin va_list, from <stdarg.h>.
+         Don't put it out -- put out an #include of the header instead. */
+      write_pp_directive("#include <stdarg.h>");
+    } else {
+      /* Dump any pragmas associated with the type. */
+      dump_decl_associated_pragmas(&type->source_corresp);
+      set_output_position(&type->source_corresp.decl_position);
+      write_tok_str("typedef ");
+      dump_declaration_using_type(type->variant.typeref.type,
+                                  &type->source_corresp);
+      write_tok_ch(';');
+    }  /* if */
     end_unreferenced_bracket(&type->source_corresp);
   }  /* if */
 }  /* dump_typedef_decl */
@@ -3531,6 +3539,28 @@ process_assignment:
               write_space();
             }  /* if */
           }  /* for */
+          write_tok_ch(')');
+          goto done_with_operation;
+        case eok_va_start:
+          /* <stdarg.h> va_start macro, treated as a builtin operator. */
+          write_tok_str("va_start(");
+          dump_lvalue(operand_1);
+          write_tok_ch(',');
+          dump_lvalue(operand_2);
+          write_tok_ch(')');
+          goto done_with_operation;
+        case eok_va_arg:
+          /* <stdarg.h> va_arg macro, treated as a builtin operator. */
+          write_tok_str("va_arg(");
+          dump_lvalue(operand_1);
+          write_tok_ch(',');
+          dump_type(expr->type, /*add_pointer_to=*/FALSE);
+          write_tok_ch(')');
+          goto done_with_operation;
+        case eok_va_end:
+          /* <stdarg.h> va_end macro, treated as a builtin operator. */
+          write_tok_str("va_end(");
+          dump_lvalue(operand_1);
           write_tok_ch(')');
           goto done_with_operation;
         default:
