@@ -2622,7 +2622,8 @@ special function kind (e.g., constructor, destructor), if any.
 
 
 static void scan_pure_specifier(a_symbol_ptr  rout_sym,
-                                a_type_ptr    class_type)
+                                a_type_ptr    class_type,
+                                a_boolean     suppress_error)
 /*
 The current token is an "=", encountered just after the scanning of a
 member or friend function declarator.  A pure specifier is defined as "= 0",
@@ -2636,7 +2637,7 @@ and it is legal for virtual member functions only.
      class_of_which_a_member to exclude friend declarations.) */
   pure_specifier_allowed = (rout_sym->class_of_which_a_member == class_type &&
                             rout_sym->variant.routine->is_virtual);
-  if (!pure_specifier_allowed) {
+  if (!pure_specifier_allowed && !suppress_error) {
     pos_error(ec_pure_specifier_on_nonvirtual_function, &pos_curr_token);
   }  /* if */
   /* Advance past the "=". */
@@ -5589,17 +5590,21 @@ class/struct/union is actually defined.
               local_type = error_type();
             } else {
               /* Member function. */
-              if (virtual_specified && is_union_type(class_type)) {
-                /* Unions may not have virtual member functions. */
-                pos_error(ec_virtual_function_in_union, &decl_start_pos);
-                virtual_specified = FALSE;
-              } else if (virtual_specified && (friend_specified ||
+              a_boolean suppress_pure_specifier_error = FALSE;
+
+              if (virtual_specified && (friend_specified ||
                          member_storage_class == (a_storage_class)sc_static)) {
                 /* Only nonstatic member functions may be specified as
                    virtual.  This is a kind of specifiers conflict, so just
                    issue the message once. */
                 pos_error(ec_bad_virtual_decl, &decl_start_pos);
                 virtual_specified = FALSE;
+                suppress_pure_specifier_error = TRUE;
+              } else if (virtual_specified && is_union_type(class_type)) {
+                /* Unions may not have virtual member functions. */
+                pos_error(ec_virtual_function_in_union, &decl_start_pos);
+                virtual_specified = FALSE;
+                suppress_pure_specifier_error = TRUE;
               } else if (friend_specified &&
                          member_storage_class !=
                                           (a_storage_class)sc_unspecified) {
@@ -5647,7 +5652,8 @@ class/struct/union is actually defined.
               if (curr_token == tok_assign) {
                 /* Look for a pure specifier ("= 0"), which may appear on
                    virtual functions. */
-                scan_pure_specifier(rout_sym, class_type);
+                scan_pure_specifier(rout_sym, class_type,
+                                    suppress_pure_specifier_error);
                 /* A comma-list of function definitions is not allowed. */
                 remove_stop_token(tok_comma);
                 /* Break out of the declarator loop. */
