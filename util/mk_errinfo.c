@@ -476,10 +476,10 @@ static a_font_kind curr_font;
 			   to the documentation file. */
 
 
-typedef void (*a_doc_string_output_routine)(char *, int, a_font_kind);
+typedef void a_doc_string_output_routine(char *, int, a_font_kind);
 
 static a_doc_string_output_routine
-		output_doc_string;
+		*output_doc_string;
 			/* Points to the function to be used to output a
 			   documentation string to the documentation file. */
 
@@ -730,10 +730,11 @@ Write the tag lookup table to the error data file.
 }  /* me_write_tag_table */
 
 
-typedef void (*a_write_item_header_routine)(int, char*);
+typedef void a_write_item_header_routine(int dummy, char*);
+                                          /* ^^^^^ needed for c_deproto. */
 
 static a_write_item_header_routine
-		write_item_header;
+		*write_item_header;
 			/* Points to the function used to write the header
 			   for an error message to the documentation file. */
 
