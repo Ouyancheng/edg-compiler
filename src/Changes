@@ -13,7 +13,7 @@ mode as having no name linkage.  This has been restored to "C" name linkage.
 
 In Microsoft C mode (and also pcc and SVR4 modes), a "?" operator
 with the second operand of type void * was treated as having a result
-type of void * rather than the first operand type.  Now fixed.
+type of the first operand type rather than void *.  Now fixed.
 
   struct A {
     int dummy;
@@ -22,7 +22,8 @@ type of void * rather than the first operand type.  Now fixed.
   {
     struct A a;
     void *p=&a;
-    ((struct A *)(x?&a:p))->dummy = 0;
+    (x?&a:p)->dummy = 0; // Should be an error.  Was accepted in Microsoft
+                         // C mode.
   }
 
 7/15/00  Sun compatibility: extern "C" functions with internal linkage
