@@ -1,5 +1,15 @@
 Version 2.20
 
+8/25/93 Type display in diagnostics
+
+A couple of bugs in displaying types in diagnostic messages have been
+fixed.  For example, the types of x and y are now displayed correctly in
+the error message on line 3:
+
+  const int * const *x;
+  typedef int(*F)(int);
+  F y = x;                // Error -- type mismatch on initialization
+
 8/24/93 Ambiguity error on mem-initializer
 
 We now issue an error when the reference of a mem-initializer in a
