@@ -1,5 +1,12 @@
 Version 2.30
 
+9/8/95   Multiple declarations mixing implicit and explicit extern "C++"
+
+We now allow this behavior (originally disallowed in the ARM):
+
+  void f();                     // Implicitly declared with C++ linkage
+  extern "C++" void f();        // Explicit redeclaration is now okay
+
 9/8/95   Inline template function dependencies and the ordering of source
          sequence entries
 
