@@ -1977,10 +1977,10 @@ Output the definition of the indicated enum type.
       /* Stop if at the end of the list of constants. */
       if (enum_con == NULL) break;
       /* Not the end of the list, so output a separator and keep looping. */
-      write_tok_str(", ");
+      write_tok_str(",");
       incr_integer_value(&next_enum_value.variant.integer_value);
     }  /* for */
-    write_tok_str("}");
+    write_tok_str("};");
   }  /* if */
 #if !C_GEN_BE_GENERATES_ANSI_C
   /* Close the #if 0 started above. */
