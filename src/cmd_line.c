@@ -1310,7 +1310,7 @@ static int	argc_file_list;
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
 
 
-static void set_c_mode_flags()
+static void set_c_mode_flags(void)
 /*
 Set the various flags appropriate for the specific C mode we are going to
 process.
@@ -1356,7 +1356,7 @@ process.
 }  /* set_c_mode_flags */
 
 
-static void check_and_set_c_mode_options()
+static void check_and_set_c_mode_options(void)
 /*
 This routine is called in C mode to check that no C++-only command-line
 setting is used, and to set various unmentioned settings as needed.
@@ -1471,7 +1471,7 @@ setting is used, and to set various unmentioned settings as needed.
 }  /* check_and_set_c_mode_options */
 
 
-static void check_and_set_cplusplus_mode_options()
+static void check_and_set_cplusplus_mode_options(void)
 /*
 This routine is called in C++ mode to check that no non-C++ command-line
 setting is used, and to set various unmentioned settings as needed.
@@ -1560,7 +1560,7 @@ otherwise implicitly enabled Microsoft mode.
 }  /* exclude_microsoft_mode */
 
 
-static void check_and_set_ansi_mode_options()
+static void check_and_set_ansi_mode_options(void)
 /*
 Both for strict ANSI C and C++ modes, check that no command-line setting
 conflicts with the ANSI mode and set various unmentioned settings as needed.
@@ -1808,7 +1808,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
 }  /* check_and_set_ansi_mode_options */
 
 
-static void check_and_set_sun_mode_options()
+static void check_and_set_sun_mode_options(void)
 /*
 Set the option needed to emulate the peculiarities of the Sun CC 5.0 compiler,
 and check that no other modes conflict with this one.  (The processing of
