@@ -1095,7 +1095,7 @@ by octl.
            back end, where it is output as its underlying type. */
         if (microsoft_mode && microsoft_version >= 1300) {
           /* In Microsoft mode, when microsoft_version is >= 1300 __wchar_t
-	     can be used as a keyword even when wchar_t is not recognized.
+             can be used as a keyword even when wchar_t is not recognized.
              We don't know how the type was originally specified, so output it
              as __wchar_t or wchar_t based on microsoft_version. */
           octl->output_str("__wchar_t");
