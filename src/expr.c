@@ -9352,11 +9352,19 @@ both C and C++ modes.
     error(ec_expr_not_constant);
     err = TRUE;
   }  /* if */
-  if (depth_stmt_stack < 0) {
+  if (depth_stmt_stack < 0 ||
+      expr_stack->is_default_arg_expression) {
     /* We're not inside a function, so don't try to scan the statement.
        Just flush to the matching closing brace. */
+    /* Statement expressions are not allowed in default argument
+       expressions (we don't have the code to copy them -- see
+       copy_expr_tree). */
     if (!err) {
-      error(ec_statement_expression_in_function_only);
+      if (depth_stmt_stack < 0) {
+        error(ec_statement_expression_in_function_only);
+      } else {
+        error(ec_statement_expr_in_default_arg);
+      }  /* if */
       err = TRUE;
     }  /* if */
     flush_until_matching_token();
