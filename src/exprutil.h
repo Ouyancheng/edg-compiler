@@ -304,12 +304,6 @@ extern a_symbol_ptr select_overloaded_function(
                             a_source_position       *err_pos,
                             an_expr_node_ptr        *arg_expr_list);
 
-extern a_boolean conversion_to_class_possible(
-                                       a_type_ptr    source_type,
-                                       a_type_ptr    class_type,
-                                       a_routine_ptr *conversion_routine,
-                                       a_boolean     *ambiguous);
-
 extern a_constant_ptr var_constant_value(a_variable_ptr var);
 
 extern void using_lvalue(an_operand *operand);
@@ -323,6 +317,9 @@ extern void take_address_of_lvalue(an_operand         *operand,
                                    an_expression_kind expression_kind);
 
 extern void conv_object_pointer_to_lvalue(an_operand *operand);
+
+extern void conv_operand_to_object_pointer(an_operand         *operand,
+                                           an_expression_kind expression_kind);
 
 extern void conv_lvalue_to_rvalue(an_operand         *operand,
                                   an_expression_kind expresion_kind);
@@ -391,6 +388,11 @@ extern a_boolean check_scalar_operand(an_operand *operand);
 
 extern void make_field_operand(a_field_ptr field,
 			       an_operand  *result);
+
+extern void make_function_call(an_expr_node_ptr function_node,
+                               a_type_ptr       return_type,
+                               a_boolean        is_virtual,
+                               an_operand       *result);
 
 extern a_boolean check_pointer_operand(an_operand    *operand,
 				       an_error_code err_code);
@@ -473,18 +475,21 @@ extern void cast_node(an_expr_node_ptr  *node,
 
 extern void integral_promote_node(an_expr_node_ptr *node);
 
-extern void prepare_initializer_operand(an_operand         *source_operand,
-                                        a_type_ptr         dest_type,
-                                        an_expression_kind expression_kind,
-                                        an_error_code      incompatible_err,
-                                        a_source_position  *err_pos);
+extern void prep_elision_initializer_operand(
+                                      an_operand         *source_operand,
+                                      a_type_ptr         class_type,
+                                      a_routine_ptr      *conversion_routine);
 
-extern void prepare_assignment_operand(an_operand         *source_operand,
-                                       a_type_ptr         dest_type,
-                                       an_expression_kind expression_kind,
-                                       an_error_code      incompatible_err,
-                                       a_source_position  *err_pos,
-                                       a_type_ptr         *result_type);
+extern void prep_initializer_operand(an_operand         *source_operand,
+                                     a_type_ptr         dest_type,
+                                     an_expression_kind expression_kind,
+                                     an_error_code      incompatible_err);
+
+extern void prep_assignment_operand(an_operand         *source_operand,
+                                    a_type_ptr         dest_type,
+                                    an_expression_kind expression_kind,
+                                    an_error_code      incompatible_err,
+                                    a_source_position  *err_pos);
 
 extern void expr_init(void);
 
