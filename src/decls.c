@@ -3686,8 +3686,10 @@ associated sk_external_variable or sk_external_routine symbol, if any.
         /* Reset the name linkage in certain cases: when the current
            linkage was explicitly specified whereas the previous one was not,
            or when one of the declarations specified internal linkage and the
-           other didn't (in which case the later declaration is favored). */
-        if ((idlbp->name_linkage_is_explicit &&
+           other didn't (in which case the later declaration is favored,
+           except in Microsoft mode where the later name linkage is
+           ignored). */
+        if ((idlbp->name_linkage_is_explicit && !microsoft_mode &&
              !sym->explicit_linkage_specifier) ||
             scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
             idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {

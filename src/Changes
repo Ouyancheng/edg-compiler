@@ -1,5 +1,18 @@
 Version 3.2
 
+5/5/03   Microsoft mode: Name linkage of variable redeclarations
+
+In nonstrict modes (including Microsoft mode) the front end issues a warning
+when a variable redeclaration conflicts in name linkage with the original
+declaration.  Normally, an explicit name linkage specifier on the 
+redeclaration is retained if the original declaration had no explicit 
+linkage.  Now, however, the name linkage on the redeclaration is always
+ignored in Microsoft mode.  For example:
+
+  extern int v;          // Declaration implies "C++" linkage.
+  extern "C" int v = 1;  // "C++" linkage retained in Microsoft mode;
+                         // "C" linkage applied in other modes.
+
 5/5/03   GNU C++ mode: Abort on use of typeof in namespace scopes
 
 In GNU C++ mode, the IL lowering code (when enabled) used to abort when
