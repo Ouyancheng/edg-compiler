@@ -6019,7 +6019,7 @@ done:
 }  /* access_adjustment_decl */
 
 
-#if DECL_MODIFIERS_IN_USE
+#if MICROSOFT_EXTENSIONS_ALLOWED
 static a_decl_modifier merge_decl_modifiers(
                                      a_decl_modifier    class_decl_modifiers,
                                      a_decl_modifier    decl_modifiers,
@@ -6054,7 +6054,7 @@ definition.  pos is the error position.
   }  /* if */
   return decl_modifiers;
 }  /* if */
-#endif /* DECL_MODIFIERS_IN_USE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 static a_symbol_ptr find_corresp_prototype_tag_sym(a_symbol_ptr  curr_sym)
@@ -6179,7 +6179,6 @@ a_boolean scan_class_definition(a_type_ptr       class_type,
                                 a_boolean        delayed_nested_class_def,
                                 a_decl_modifier  class_decl_modifiers)
 /*
-
 Scan the body of a class definition, including the base classes list.
 class_type points to the type entry of the class, struct, or union whose
 definition is to be scanned.  effective_decl_level indicates the name scope
@@ -6187,12 +6186,9 @@ to which the class declaration belongs.  is_local_class is TRUE if the class
 definition appears inside a function body.  delayed_nested_class_def is TRUE
 if the class is a nested class whose parent class definition has already
 been completed (C++ only).  class_decl_modifiers contains settings of DLL
-attributes that have apply to the class as a whole (only when Microsoft
-extension support is enabled).
-
-
+attributes that apply to the class as a whole (only when Microsoft extension
+support is enabled).
 */
-
 {
   a_boolean                       err = FALSE;
   an_access_specifier             access;
@@ -7002,14 +6998,14 @@ extension support is enabled).
                   func_info.is_inline = TRUE;
                 }  /* if */
               }  /* if */
-#if DECL_MODIFIERS_IN_USE
+#if MICROSOFT_EXTENSIONS_ALLOWED
               /* If decl-modifiers were declared for the class and/or for the
                  member, check for consistency and use the union of the two. */
               decl_modifiers = merge_decl_modifiers(class_decl_modifiers,
                                                     decl_modifiers,
                                                     function_def_present,
                                                     &decl_start_pos);
-#endif /* DECL_MODIFIERS_IN_USE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               /* Create a symbol for the member function. */
               rout_sym = decl_member_function(
                                  &locator, class_type, local_type,
@@ -7240,14 +7236,14 @@ extension support is enabled).
                 /* Unions are not allowed to have static data members. */
                 pos_error(ec_static_not_allowed, &decl_start_pos);
               }  /* if */
-#if DECL_MODIFIERS_IN_USE
+#if MICROSOFT_EXTENSIONS_ALLOWED
               /* If decl-modifiers were declared for the class and/or for the
                  member, check for consistency and use the union of the two. */
               decl_modifiers = merge_decl_modifiers(class_decl_modifiers,
                                                     decl_modifiers,
                                                     /*is_definition=*/FALSE,
                                                     &decl_start_pos);
-#endif /* DECL_MODIFIERS_IN_USE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               decl_static_data_member(&locator, class_type, local_type,
                                       access, is_nonreal_instantiation,
                                       corresp_prototype_tag_sym,
