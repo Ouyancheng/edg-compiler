@@ -2435,7 +2435,9 @@ implementation.
 /*
 Integer kind to use for an offset into a class.  This is used for delta
 fields in pointers to member functions, etc., but not for pointers to
-data members.
+data members.  If you change this, you will need to change
+TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION, and possibly the related alignment
+macro as well.
 */
 #ifndef TARG_DELTA_INT_KIND
 #define TARG_DELTA_INT_KIND ((an_integer_kind)ik_short)
@@ -2443,7 +2445,9 @@ data members.
 
 /*
 Integer kind to use for an index into a virtual function table.  Must be
-no smaller than the size of a_virtual_function_number.
+no smaller than the size of a_virtual_function_number.  If you change
+this, you will need to change TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION, and
+possibly the related alignment macro as well.
 */
 #ifndef TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND
 #define TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND ((an_integer_kind)ik_short)
