@@ -34,10 +34,10 @@ called in the same program as the front end is produced (if needed).
 #endif /* ifdef STANDALONE_CP_GEN_BE */
 
 #include "basic_hdrs.h"
-#if BACK_END_IS_C_GEN_BE
+#if BACK_END_IS_CP_GEN_BE
 /* Header files common to all files. */
 #include "fe_common.h"
-#endif /* BACK_END_IS_C_GEN_BE */
+#endif /* BACK_END_IS_CP_GEN_BE */
 
 #if HDRSTOP_RECOGNIZED
 /* Mark the end of the sequence of headers subject to precompiled header
