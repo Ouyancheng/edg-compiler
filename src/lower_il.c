@@ -6157,9 +6157,11 @@ is updated.
                                     &cap->variant.object.init_pos_descr,
                                     effective_insert_loc);
     } else if (cap->kind == cak_try_block) {
-      /* Exiting a try block -- pop the stack entry. */
-      pop_eh_stack_frame(ehsek_function, cap->variant.try_frame,
-                         insert_location);
+      /* Exiting a try block. */
+      cleanup_on_exit_from_try_block(cap, insert_location);
+    } else if (cap->kind == cak_catch) {
+      /* Exiting a catch clause -- free the caught object. */
+      cleanup_on_exit_from_catch(insert_location);
     }  /* if */
   }  /* if */
 }  /* gen_one_cleanup_action */
@@ -6622,9 +6624,8 @@ Do IL lowering of the indicated statement and everything under it.
           push_context(&context, scope, /*subscope_region=*/FALSE);
           if (scope->variant.assoc_handler != NULL) {
             /* This statement is the dependent statement of a catch handler.
-               Generate code to initialize the catch parameter if there
-               is one. */
-            initialize_catch_parameter(scope->variant.assoc_handler);
+               Generate code to start the catch clause. */
+            begin_catch_clause(scope->variant.assoc_handler);
           }  /* if */
         }  /* if */
         lower_statement_list(statement_list, &last_statement);
