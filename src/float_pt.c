@@ -2008,6 +2008,7 @@ of IEEE floating-point requirements.
   a_host_fp_value tempr, temp1;
 
   *err = FALSE;
+  *depends_on_fp_mode = FALSE;
   temp1 = fetch_host_fp_value(kind, value_1);
   tempr = -temp1;
   store_host_fp_value(tempr, kind, result, err);
