@@ -1099,6 +1099,15 @@ namespaces, or rather, to support two different versions under
 control of the preprocessing option __EDG_RUNTIME_USES_NAMESPACES,
 which is defined by the front end.
 
+When the runtime is configured to be in the "std" namespace, existing
+programs that reference names from the runtime may be affected.  The
+--using_std option has been provided to allow most such programs to
+be compiled without change.  The --using_std option causes the header
+files that declare entities in the "std" namespace to implicitly
+do a "using namespace std".  The default behavior is specified by the
+configuration flag DEFAULT_IMPLICIT_USING_STD.  The --no_using_std
+option may be used to explicitly disable this feature.
+
 10/9/95  near/far memory attributes in Microsoft mode
 
 When MICROSOFT_EXTENSIONS_ALLOWED is TRUE, the front end now supports
