@@ -28,7 +28,6 @@ statements.c -- Scanning of statements.
 #include "cmd_line.h"
 #include "folding.h"
 #include "const_ints.h"
-#include "trans_lims.h"
 #include "symbol_tbl.h"
 #include "mem_manage.h"
 #include "pragma.h"
