@@ -1646,9 +1646,13 @@ Returns TRUE if there is an error in the specifiers.
 #if MICROSOFT_KEYWORDS_ALLOWED
       case tok_microsoft_inline:
       case tok_declspec:
+        /* A Microsoft specific storage class.  Note that Microsoft
+           allows these in some nonstandard places such as n */
         {
           a_decl_flag_set	new_output_flags = DSO_NO_OUTPUT_FLAGS;
-          a_source_position	specifier_start_pos = pos_curr_token;
+          a_source_position	specifier_start_pos;
+
+          specifier_start_pos = pos_curr_token;
           /* A Microsoft storage class modifier.  If this is a __declspec,
              scan the list of declaration modifiers. */
           switch (curr_token) {

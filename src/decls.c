@@ -4528,6 +4528,13 @@ of local variables (and types, etc.) of functions and in blocks.
   /* Within a non-block linkage specification no storage class is allowed
      (inferred from ARM 7.4). */
   if (!extern_implied) dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
+#if MICROSOFT_KEYWORDS_ALLOWED
+  /* Microsoft permits a storage class to be specified in a
+     linkage specification declaration such as
+       extern "C" __declspec(dllimport) f();
+  */
+  if (microsoft_mode) dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
   dsi_flags |= DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
   if (is_old_style_param_decl) {
     dsi_flags |= DSI_IS_PARAMETER;

@@ -2395,7 +2395,9 @@ otherwise it is NULL.  The syntax is:
            declarations. */
         a_type_ptr  tp;
 
-        tp = derived_type != NULL ? derived_type : complete_type;
+        tp = derived_type;
+        if (tp != NULL) tp = skip_typerefs_allow_null_referenced_type(tp);
+        if (tp == NULL) tp = complete_type;
         check_assertion(tp != NULL);
         if ((is_arithmetic_type(tp) || is_ptr_or_ref_type(tp) ||
              is_class_struct_union_type(tp) || is_ptr_to_member_type(tp)) &&
@@ -2571,6 +2573,13 @@ function_lparen:
     add_to_derived_type_list(complete_type,
                              &derived_type, &bottom_derived_type);
     complete_type = derived_type;
+  }  /* if */
+  /* If there were pointer types scanned at the beginning of this routine,
+     the bottom-most derived type is the bottom-most pointer type. */
+  if (bottom_pointer_derived_type != NULL &&
+      skip_typerefs_allow_null_referenced_type(complete_type) != NULL && 
+      !is_error_type(complete_type)) {
+    bottom_derived_type = bottom_pointer_derived_type;
   }  /* if */
   if (specifiers_type != NULL) {
     /* This is a top-level call to declarator. */
