@@ -708,6 +708,8 @@ Write the indicated memory region to the file f_il_output.
        the data in the block, and the next available location are
        already guaranteed to be correctly aligned (see alloc_in_region). */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
+    check_assertion_str(index_for_il_file[region_number] == 0,
+                        "write_memory_region: region already written");
     /* Remember the current file position as the position of the region
        by saving it in the file index. */
     index_for_il_file[region_number] = ftell(f_il_output);
