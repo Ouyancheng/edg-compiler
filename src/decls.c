@@ -3451,73 +3451,77 @@ not be TRUE.
   a_param_type_ptr  rout_type_ptp, comp_type_ptp, next_rout_type_ptp;
 
   db_enter(4, "reconcile_routine_types");
-  /* We only try to reconcile routine types that have already been
-     determined to be compatible. */
-  check_assertion(types_are_compatible(type_ptr, rout_type));
-  /* We cannot be required to preserve the types from both sources. */
-  check_assertion(!preserve_rout_type || !preserve_type_ptr);
-  if (C_dialect == C_dialect_cplusplus) {
-    /* If there are default arguments associated with the parameters, check
-       them at this time.  They will be merged in composite types. */
-    check_default_arg_compatibility(type_ptr, rout_type);
-  }  /* if */
-  /* The type of the routine should be the composite of the two types. */
-  if (!preserve_rout_type && !preserve_type_ptr) {
-    /* Simple case -- no required result type location. */
-    routine_ptr->type = composite_type(type_ptr, rout_type);
-  } else {
-    /* Some requirement on where the result ends up.  Favor the type we'd
-       like by passing it first to composite_type. */
-    if (preserve_rout_type) {
-      /* rout_type must be preserved. */
-      comp_type = composite_type(rout_type, type_ptr);
-    } else {
-      /* type_ptr must be preserved. */
-      comp_type = composite_type(type_ptr, rout_type);
-      routine_ptr->type = rout_type = type_ptr;
+  if (rout_type != type_ptr) {
+    /* We only try to reconcile routine types that have already been
+       determined to be compatible. */
+    check_assertion(types_are_compatible(type_ptr, rout_type));
+    /* We cannot be required to preserve the types from both sources. */
+    check_assertion(!preserve_rout_type || !preserve_type_ptr);
+    if (C_dialect == C_dialect_cplusplus) {
+      /* If there are default arguments associated with the parameters, check
+         them at this time.  They will be merged in composite types. */
+      check_default_arg_compatibility(type_ptr, rout_type);
     }  /* if */
-    /* If rout_type is not what was returned, copy the composite
-       type on top of the existing rout_type (it's guaranteed to be
-       unshared). */
-    if (comp_type != rout_type) {
-      comp_type = skip_typerefs(comp_type);
-      /* Transfer the composite type to rout_type, which is unshared.
-         We want to preserve fields like assoc_routine and arg_pragma in
-         rout_type, so we can't just do a copy_type. */
-      rout_type->variant.routine.return_type =
-                            comp_type->variant.routine.return_type;
-      rout_type->variant.routine.extra_info->prototyped =
-                            comp_type->variant.routine.extra_info->prototyped;
-      if (rout_type->variant.routine.extra_info->param_type_list == NULL) {
-        /* The entire list may just be transferred over. */
-        rout_type->variant.routine.extra_info->param_type_list =
-                  comp_type->variant.routine.extra_info->param_type_list;
+    /* The type of the routine should be the composite of the two types. */
+    if (!preserve_rout_type && !preserve_type_ptr) {
+      /* Simple case -- no required result type location. */
+      routine_ptr->type = composite_type(type_ptr, rout_type);
+    } else {
+      /* Some requirement on where the result ends up.  Favor the type we'd
+         like by passing it first to composite_type. */
+      if (preserve_rout_type) {
+        /* rout_type must be preserved. */
+        comp_type = composite_type(rout_type, type_ptr);
       } else {
-        /* Copy the param type entries from the composite type onto the param
-           type entries for the routine type.  This is done in case new param
-           type entries were created.  The original ones must be preserved,
-           however, since they may be pointed to by the parameter variables
-           with which they are associated. */
-        rout_type_ptp = rout_type->variant.routine.extra_info->param_type_list;
-        comp_type_ptp = comp_type->variant.routine.extra_info->param_type_list;
-        for (; rout_type_ptp != NULL; rout_type_ptp = next_rout_type_ptp,
-                                      comp_type_ptp = comp_type_ptp->next) {
-          if (rout_type_ptp == comp_type_ptp) {
-            /* Whenever the corresponding param type entries on the two lists
-               are the same entry, all subsequent ones will also be the same,
-               so we can bail out at that point. */
-            break;
-          }  /* if */
-          /* Save the original next pointer and restore it after the copy. */
-          next_rout_type_ptp = rout_type_ptp->next;
-          *rout_type_ptp = *comp_type_ptp;
-          rout_type_ptp->next = next_rout_type_ptp;
-        }  /* for */
+        /* type_ptr must be preserved. */
+        comp_type = composite_type(type_ptr, rout_type);
+        routine_ptr->type = rout_type = type_ptr;
       }  /* if */
-      /* has_ellipsis need not be copied -- it will be the same in all of
-         the types, since the original two types are compatible. */
-      /* Likewise, the implicit_this_param_type pointers should be identical
-         -- this will have been verified in types_are_compatible. */
+      /* If rout_type is not what was returned, copy the composite
+         type on top of the existing rout_type (it's guaranteed to be
+         unshared). */
+      if (comp_type != rout_type) {
+        comp_type = skip_typerefs(comp_type);
+        /* Transfer the composite type to rout_type, which is unshared.
+           We want to preserve fields like assoc_routine and arg_pragma in
+           rout_type, so we can't just do a copy_type. */
+        rout_type->variant.routine.return_type =
+                            comp_type->variant.routine.return_type;
+        rout_type->variant.routine.extra_info->prototyped =
+                            comp_type->variant.routine.extra_info->prototyped;
+        if (rout_type->variant.routine.extra_info->param_type_list == NULL) {
+          /* The entire list may just be transferred over. */
+          rout_type->variant.routine.extra_info->param_type_list =
+                    comp_type->variant.routine.extra_info->param_type_list;
+        } else {
+          /* Copy the param type entries from the composite type onto the
+             param type entries for the routine type.  This is done in case
+             new param type entries were created.  The original ones must be
+             preserved, however, since they may be pointed to by the parameter
+             variables with which they are associated. */
+          rout_type_ptp =
+                     rout_type->variant.routine.extra_info->param_type_list;
+          comp_type_ptp =
+                     comp_type->variant.routine.extra_info->param_type_list;
+          for (; rout_type_ptp != NULL; rout_type_ptp = next_rout_type_ptp,
+                                        comp_type_ptp = comp_type_ptp->next) {
+            if (rout_type_ptp == comp_type_ptp) {
+              /* Whenever the corresponding param type entries on the two
+                 lists are the same entry, all subsequent ones will also be
+                 the same, so we can bail out at that point. */
+              break;
+            }  /* if */
+            /* Save the original next pointer and restore it after the copy. */
+            next_rout_type_ptp = rout_type_ptp->next;
+            *rout_type_ptp = *comp_type_ptp;
+            rout_type_ptp->next = next_rout_type_ptp;
+          }  /* for */
+        }  /* if */
+        /* has_ellipsis need not be copied -- it will be the same in all of
+           the types, since the original two types are compatible. */
+        /* Likewise, the implicit_this_param_type pointers should be identical
+           -- this will have been verified in types_are_compatible. */
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
