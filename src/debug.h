@@ -37,9 +37,9 @@ extern a_boolean debug_flag_is_set(char *name);
 /* Macros that display the space used by a given type of structure.
    db_space_used computes the total space used for a given type
    of structure given the number of items allocated and the type of the
-   structure.  db_write_space_lost computes the number of allocated records
+   structure.  db_space_lost computes the number of allocated records
    that were never freed.  This is done by scanning the available list
-   and counting the number of entries.  db_space_used_and_lost calls
+   and counting the number of entries.  db_space_used_lost calls
    both of the other routines. */
 
 #define db_space_used(name, counter, type)                            \
