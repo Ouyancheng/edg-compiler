@@ -4127,8 +4127,8 @@ As an anachronism, allow an expression inside the [ ].
                             opname_function_symbol((an_opname_kind)onk_delete);
       }  /* if */
       /* Mark the routine symbol used, but not the IL entry (yet). */
-      mark_symbol_referenced(srk_use, operator_delete_symbol,
-                             &delete_position);
+      reference_to_symbol(srk_use, operator_delete_symbol, &delete_position,
+                          /*update_il_entry=*/FALSE);
       /* Since delete cannot be overloaded, the symbol should not be
          overloaded or a function template. */
       check_assertion(operator_delete_symbol->kind ==

@@ -5845,7 +5845,7 @@ This routine may only be called in C++ mode.
           class_type = NULL;
         } else {
           /* Record the reference on the symbol. */
-          mark_referenced(class_symbol, &pos_curr_token);
+          mark_used(class_symbol, &pos_curr_token);
           /* Do ambiguity and access control checking on the class symbol.
 	     Ambiguity errors will be issued but access errors will only
 	     be detected.  A pointer to the description of the access error, 
