@@ -1,5 +1,16 @@
 Version 2.34
 
+10/29/96 Improper lowering of stmk_init for local static variables
+
+A change made in 2.33 resulted in stmk_init statements for local static
+variables being left in the IL after lowering, which is not proper C
+IL.  Now fixed.  (See 9/30/96 change and related partial fix on 10/16/96.)
+
+  void f() {
+    static float x = 1.5;    // Dynamic initialization in C++, but can
+                             // be lowered to static initialization
+  }
+
 10/29/96 Setting of cleanup state on destruction, with promoted temporaries
 
 In a case like the following, where the lifetime of a temporary is extended
