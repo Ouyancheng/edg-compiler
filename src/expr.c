@@ -8051,8 +8051,8 @@ be set to the source position of the type.
       }  /* if */
       /* But not a cast to an abstract class. */
       if (is_abstract_class_type(type_cast_to) &&
-          /* Except in Microsoft mode. */
-          !microsoft_bugs) {
+          /* Except in Microsoft mode before version 7.0. */
+          !(microsoft_bugs && microsoft_version < 1300)) {
         report_abstract_class_error(ec_cast_to_abstract_class, type_cast_to,
                                     &error_position);
         err = TRUE;

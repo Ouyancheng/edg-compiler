@@ -1,5 +1,11 @@
 Version 3.6
 
+11/16/04 Microsoft compatibility: cast to abstract class no longer allowed
+
+The Microsoft extension to allow a cast to an abstract class type (see
+Changes entry of 1/17/00) is gone as of MSVC++ 7.0, so that extension
+has now been disabled for microsoft_version >= 1300.
+
 11/15/04 Better diagnostic on casting away const in a static_cast
 
 The processing for static_cast now gives a specific diagnostic for
