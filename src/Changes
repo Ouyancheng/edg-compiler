@@ -1,5 +1,13 @@
 Version 2.30
 
+6/20/95  C++-generating back end: member selections, pointer-to-member
+         selections
+
+The C++-generating back end now puts out ".", "->", ".*", and "->*"
+operations in a way that avoids extra "&" and "*" operators when references
+are involved.  Extra "*" and "&" operations can be a problem if the class
+in question overloads those operators.
+
 6/19/95  C++-generating back end -- multiple variables declared in for-init
 
 The C++-generating back end now correctly handles multiple declarations
