@@ -3440,6 +3440,9 @@ On return, *keep_dynamic_init is TRUE if the dynamic init entry is to
 be kept, FALSE if it should be deleted.  If the caller passes in
 keep_dynamic_init == NULL, no value is returned; the value determined
 in this routine must be FALSE in that case.
+
+When Microsoft extensions are allowed, this routine is called in C mode to
+lower initialization for nonconstant aggregates.
 */
 {
   an_expr_node_ptr   entity_node, source_node;
