@@ -2272,9 +2272,6 @@ which must be either the file scope or a namespace scope.
   a_scope_pointers_block_ptr  pointers_block;
 
   ssep = &scope_stack[depth_scope_stack];
-  check_assertion_str(ssep->kind == (a_scope_kind)sck_file ||
-                      ssep->kind == (a_scope_kind)sck_namespace,
-                      "add_to_namespaces_list: bad scope kind");
   sp = ensure_il_scope_exists(ssep);
   pointers_block = assoc_pointers_block_of(ssep);
   if (sp->namespaces == NULL) {
