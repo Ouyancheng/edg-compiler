@@ -1595,7 +1595,7 @@ typedef struct a_symbol {
 			   an extension in both C and C++ modes), a pointer
 			   to a list of entries identifying arrays that are
 			   dependent on it and require fixup when it is
-			   completed.  Once the emum is defined, the pointer
+			   completed.  Once the enum is defined, the pointer
 			   is cleared. */
     } enumeration;
     /* When kind == sk_class_or_struct_tag or sk_union_tag: */
