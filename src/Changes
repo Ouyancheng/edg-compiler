@@ -8,7 +8,7 @@ higher up the expression tree.  Now fixed.
 
 2/14/97  Exception not considered caught in catch associated with internal try
 
-The internal try block mechanism added in 2.34 did correctly handle
+The internal try block mechanism added in 2.34 did not correctly handle
 cases in which the catch clause associated with the internal try block
 exited via an exception (for example, when a placement delete
 function exits via an exception).  In such cases, the original exception
