@@ -1172,6 +1172,15 @@ and update *insert_location.
 }  /* add_bitwise_copy */
 
 
+/*
+Return TRUE if the indicated constructor routine needs added implied arguments.
+This must match make_ctor_implied_arg_list.
+*/
+#define ctor_needs_implied_arg_list(ctor_routine)                     \
+  ((ctor_routine)->source_corresp.parent.class_type->                 \
+                 variant.class_struct_union.any_virtual_base_classes)
+
+
 void make_ctor_implied_arg_list(a_routine_ptr    ctor_routine,
                                 an_expr_node_ptr *implied_arg_list,
                                 an_expr_node_ptr *end_implied_arg_list)
@@ -1189,12 +1198,11 @@ beginning and end of the list are returned in *implied_arg_list and
   a_base_class_ptr bcp;
   a_constant       null_constant;
 
-  /* If you change this, see also default_version_of_routine. */
   *implied_arg_list = *end_implied_arg_list = NULL;
   /* Get the class type. */
   class_type = ctor_routine->source_corresp.parent.class_type;
   prelower_class_type(class_type);
-  if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+  if (ctor_needs_implied_arg_list(ctor_routine)) {
     /* The class has at least one virtual base class. */
     for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
          bcp != NULL;
@@ -1221,6 +1229,13 @@ beginning and end of the list are returned in *implied_arg_list and
 }  /* make_ctor_implied_arg_list */
 
 
+/*
+Return TRUE if the indicated destructor routine needs added implied arguments.
+This must match make_dtor_implied_arg_list.
+*/
+#define dtor_needs_implied_arg_list(dtor_routine) TRUE
+
+
 void make_dtor_implied_arg_list(a_routine_ptr    dtor_routine,
                                 a_boolean        have_complete_object,
                                 an_expr_node_ptr *implied_arg_node)
@@ -1233,7 +1248,7 @@ we know we are calling the destructor for a complete object.
 {
   a_type_ptr class_type;
 
-  /* If you change this, see also default_version_of_routine. */
+  /* IF you change this, see also dtor_needs_implied_arg_list, above. */
   *implied_arg_node = NULL;
   /* Get the class type. */
   class_type = dtor_routine->source_corresp.parent.class_type;
@@ -1754,19 +1769,14 @@ routine is returned.
                    grcontext;
   a_boolean        any_implied_args, insert_as_statement;
 
-  /* Determine any implicit arguments required for a constructor or
+  /* Determine if any implicit arguments are required for a constructor or
      destructor. */
   any_implied_args = FALSE;
   if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
-    /* The test here must match make_ctor_implied_arg_list. */
-    if (routine->source_corresp.parent.class_type->
-                         variant.class_struct_union.any_virtual_base_classes) {
-      any_implied_args = TRUE;
-    }  /* if */
+    any_implied_args = ctor_needs_implied_arg_list(routine);
   } else if (routine->special_kind ==
                                      (a_special_function_kind)sfk_destructor) {
-    /* This must match make_dtor_implied_arg_list. */
-    any_implied_args = TRUE;
+    any_implied_args = dtor_needs_implied_arg_list(routine);
   }  /* if */
   if (default_arg_list != NULL || any_implied_args) {
     /* There are some implicit or default arguments, so a wrapper routine
