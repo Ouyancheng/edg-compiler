@@ -1,5 +1,22 @@
 Version 2.39
 
+7/10/98   Source sequence entries for instantiations: linkage specifications
+
+The processing that inserts source sequence entries for instantiations
+(disabled by default) did not work correctly in the sequence of declarations
+contained inside a linkage specification block, e.g., extern "C++" {...}.
+As a consequence, the source sequence entry for a specialization could be
+put out preceding the declaration of its associated template.  Now fixed.
+
+  extern "C++" {
+    template <class P> struct traits {
+      static int eq(const P& p1, const P& p2) { return p1 == p2; }
+    };
+    struct traits<char> {
+      static int eq(const char& p1, const char& p2) { return p1 == p2; }
+    };
+  }
+
 7/9/98    Hidden-name problem with friend declarations that refer to
           function template instances
 

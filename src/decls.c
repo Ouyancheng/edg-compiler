@@ -7547,15 +7547,6 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
       /* Scan the namespace body. */
       add_stop_token(tok_rbrace);
       while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        /* For each declaration at namespace scope, reset the
-           source-sequence insert point for instantiations to NULL -- it
-           will be set to point to the first source sequence entry that
-           add_source_sequence_entry_to_list sees, which should be the first
-           entry associated with the current declaration. */
-        scope_stack[DEPTH_OF_FILE_SCOPE].
-                       ss_list_instantiation_insert_point = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         declaration(/*function_definition_allowed=*/TRUE,
                     /*is_old_style_param_decl=*/FALSE,
                     /*is_top_level_declaration=*/FALSE,
@@ -8186,6 +8177,17 @@ of local variables (and types, etc.) of functions and in blocks.
 
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, decl_start_pos);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (decl_scope_level == depth_innermost_namespace_scope) {
+    /* For each declaration at namespace scope, reset the source-sequence
+       insert point for instantiations to NULL -- it will be set to point
+       to the first source sequence entry that
+       add_source_sequence_entry_to_list sees, which should be the first
+       entry associated with the current declaration. */
+    scope_stack[DEPTH_OF_FILE_SCOPE].  /* sic -- no distinct namespace lists.*/
+                       ss_list_instantiation_insert_point = NULL;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (linkage_spec_range_ptr != NULL) {
     /* The caller has already scanned the linkage specifier. */
     is_linkage_spec_decl = TRUE;
@@ -8485,7 +8487,7 @@ continue_with_declaration:
         /* This is a declaration at file scope, and not the first declarator
            in the declarator list.  As for the start of the declaration,
            set the source-sequence insert point for instantiations to NULL. */
-        scope_stack[DEPTH_OF_FILE_SCOPE].
+        scope_stack[DEPTH_OF_FILE_SCOPE]. /* sic -- no namespace lists. */
                                 ss_list_instantiation_insert_point = NULL;
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -9404,22 +9406,12 @@ In C++, however, the declaration list is optional (3.4):
       }  /* if */
     }  /* if */
   } else {
-    for (;;) {
-      if (curr_token == tok_end_of_source) break;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      /* For each declaration at file scope, reset the source-sequence insert
-         point for instantiations to NULL -- it will be set to point to the
-         first source sequence entry that add_source_sequence_entry_to_list
-         sees, which should be the first entry associated with the current
-         declaration. */
-      scope_stack[DEPTH_OF_FILE_SCOPE].
-                       ss_list_instantiation_insert_point = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    while (curr_token != tok_end_of_source) {
       declaration(/*function_definition_allowed=*/TRUE,
                   /*is_old_style_param_decl=*/FALSE,
                   /*is_top_level_declaration=*/TRUE,
                   (a_param_id_ptr)NULL, (a_source_range *)NULL);
-    } /* for */
+    } /* while */
   }  /* if */
   check_assertion_str2(!header_stop_position_pending, "translation_unit:",
                        "header stop position not found");
