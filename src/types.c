@@ -1865,15 +1865,19 @@ Return TRUE if the given constant is the address of a string constant.
 
 
 a_boolean same_type_with_added_qualifiers(a_type_ptr dest_type,
-                                          a_type_ptr source_type)
+                                          a_type_ptr source_type,
+                                          a_boolean  ignore_qualifiers)
 /*
 Return TRUE if source_type and dest_type are compatible types except that
 dest_type may have some additional type qualifiers at some level(s).
+If ignore_qualifiers is TRUE, qualifiers are ignored at all levels,
+which makes this routine something like a types_are_compatible that
+ignores type qualifiers.
 */
 {
   a_boolean same = FALSE;
 
-  if (any_qualifier_missing(dest_type, source_type)) {
+  if (!ignore_qualifiers && any_qualifier_missing(dest_type, source_type)) {
     /* Some qualifier is missing. */
     same = FALSE;
   } else {
@@ -1882,13 +1886,15 @@ dest_type may have some additional type qualifiers at some level(s).
     if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
       /* Continue at the next level for pointers. */
       same = same_type_with_added_qualifiers(type_pointed_to(dest_type),
-                                             type_pointed_to(source_type));
+                                             type_pointed_to(source_type),
+                                             ignore_qualifiers);
     } else if (is_array_type(dest_type) && is_array_type(source_type) &&
                dest_type->variant.array.number_of_elements ==
                source_type->variant.array.number_of_elements) {
       /* Continue at the next level for arrays. */
       same = same_type_with_added_qualifiers(array_element_type(dest_type),
-                                             array_element_type(source_type));
+                                             array_element_type(source_type),
+                                             ignore_qualifiers);
     } else {
       /* For other types, the underlying types must be the same. */
       same = types_are_compatible(dest_type, source_type);
@@ -2073,7 +2079,9 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         *warning_suggested = default_warning_code;
       } else if ((!suppress_extensions || cfront_compatibility_mode) &&
                  same_type_with_added_qualifiers(dest_type_pointed_to,
-                                                 source_type_pointed_to)) {
+                                                 source_type_pointed_to,
+                                                 /*ignore_qualifiers=*/
+                                           check_as_operands_not_conversion)) {
         /* Allow conversion between pointers where type qualifiers are
            being added at levels other than the first, e.g.,
            "int **" -> "const int **".  This is an extension, and a
