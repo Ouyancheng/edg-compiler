@@ -5661,6 +5661,7 @@ in the new param type will be NULL.
   return new_list;
 }  /* copy_param_type_list */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 
 void copy_routine_type_default_args(a_type_ptr  from_type,
                                     a_type_ptr  to_type)
@@ -5694,6 +5695,7 @@ from_type to to_type.  This should be called only in C++ mode.
   db_exit();
 }  /* copy_routine_type_default_args */
 
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 a_type_ptr copy_routine_type_with_param_types(a_type_ptr  from_type,
                                               a_boolean   copy_default_args)
