@@ -2749,8 +2749,10 @@ as specified in the control block.
     case stmk_if:
       traverse_expr(statement->expr, tblock);
       if (tblock->terminate) goto end_of_routine;
-      traverse_statement(statement->variant.if_stmt.then_statement, tblock);
-      if (tblock->terminate) goto end_of_routine;
+      if (statement->variant.if_stmt.then_statement != NULL) {
+        traverse_statement(statement->variant.if_stmt.then_statement, tblock);
+        if (tblock->terminate) goto end_of_routine;
+      }  /* if */
       if (statement->variant.if_stmt.else_statement != NULL) {
         traverse_statement(statement->variant.if_stmt.else_statement, tblock);
       }  /* if */
