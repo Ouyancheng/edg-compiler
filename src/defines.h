@@ -171,6 +171,10 @@ Flags to be set when using the KAI inliner.
 #define TARG_JMP_BUF_NUM_ELEMENTS 16
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
 
+/* The EDG driver on NT does not support the template information file
+   which is needed for one instantiation per object mode, etc. */
+#define DRIVER_COMPATIBILITY_VERSION 236
+
 #if OPTIMIZED_VERSION
 #define IL_SHOULD_BE_WRITTEN_TO_FILE 0
 #else /* !OPTIMIZED_VERSION */
