@@ -2671,6 +2671,10 @@ typedef struct a_type {
                 enum_type:1;
                         /* TRUE if this type is an enumerated type (the type 
                            of the tag, not the constants, in C). */
+      unsigned int
+		wchar_t_type:1;
+			/* TRUE if this type is wchar_t in C++ when wchar_t
+                           is a distinct type. */
       bitfield_to_avoid_codecenter_warnings();
       union {
         /* When enum_type is TRUE: */

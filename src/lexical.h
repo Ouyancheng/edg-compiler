@@ -113,6 +113,7 @@ typedef enum /*a_token_kind*/ {
   tok_public,                       tok_template,
   tok_this,                         tok_throw,
   tok_try,                          tok_virtual,
+  tok_wchar_t,
   /* Recognized in cfront compatibility mode only. */
   tok_overload,
   /* Token used to indicate keywords that are not yet implemented. */
@@ -151,7 +152,7 @@ EXTERN char	*token_names[(int)tok_last+1]
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
    "::", ".*", "->*", "asm", "catch", "class", "delete", "friend",
    "inline", "new", "operator", "private", "protected", "public",
-   "template", "this", "throw", "try", "virtual",
+   "template", "this", "throw", "try", "virtual", "wchar_t",
    "overload", "unimplemented", "error",
    "last" /* used to check that initialization is right. */
   }
@@ -426,6 +427,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_throw */
    (an_opname_kind)onk_none,          /* tok_try */
    (an_opname_kind)onk_none,          /* tok_virtual */
+   (an_opname_kind)onk_none,          /* tok_wchar_t */
    (an_opname_kind)onk_none,          /* tok_overload */
    (an_opname_kind)onk_none,          /* tok_unimplemented */
    (an_opname_kind)onk_none,          /* tok_error */

@@ -378,6 +378,12 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  add_option_description(optk_wchar_t_is_keyword, "wchar_t_keyword",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_wchar_t_is_keyword, "no_wchar_t_keyword",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1187,6 +1193,10 @@ Process the arguments on the command line that invoked the compiler.
         microsoft_mode = opt_value;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case optk_wchar_t_is_keyword:
+        /* wchar_t is or is not a keyword. */
+        wchar_t_is_keyword = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1225,6 +1235,9 @@ Process the arguments on the command line that invoked the compiler.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     if (option_kind_used[(int)optk_exception_handling]) {
       command_line_error(ec_cl_exceptions_option_only_in_cplusplus);
+    }  /* if */
+    if (option_kind_used[(int)optk_wchar_t_is_keyword]) {
+      command_line_error(ec_cl_wchar_t_option_only_in_cplusplus);
     }  /* if */
   }  /* if */
   if (strict_ansi_mode) {

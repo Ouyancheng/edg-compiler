@@ -267,11 +267,14 @@ Install the keywords in the symbol table.
     if (allow_anachronisms) {
       enter_keyword((a_token_kind)tok_overload, "overload");
     }  /* if */
+    if (!C_mode() && wchar_t_is_keyword) {
+      enter_keyword((a_token_kind)tok_wchar_t, "wchar_t");
+    }  /* if */
     /* Enter keywords for things that are not yet implemented.  Note that
-       "wchar_t", "bool", "true", and "false" are not entered because it
-       is anticipated that most current usage will be compatible with the
-       new language feature when it is implemented so a diagnostic would
-       not, in general, be helpful. */
+       "bool", "true", and "false" are not entered because it is anticipated
+       that most current usage will be compatible with the new language
+       feature when it is implemented so a diagnostic would not, in general,
+       be helpful. */
     enter_unimplemented_keyword("and");
     enter_unimplemented_keyword("and_eq");
     enter_unimplemented_keyword("bitand");

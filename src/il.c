@@ -4000,6 +4000,7 @@ to default values.
       pte->variant.integer.int_kind = (an_integer_kind)ik_int;
       pte->variant.integer.explicitly_signed = FALSE;
       pte->variant.integer.enum_type = FALSE;
+      pte->variant.integer.wchar_t_type = FALSE;
 #if CHECKING
       pte->variant.integer.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

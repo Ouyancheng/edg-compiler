@@ -106,6 +106,7 @@ typedef enum /*an_option_kind*/ {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   optk_microsoft_mode,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  optk_wchar_t_is_keyword,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -455,6 +456,14 @@ EXTERN a_calling_convention
 			   convention. */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
+EXTERN a_boolean
+		wchar_t_is_keyword
+#if VAR_INITIALIZERS
+                                   = DEFAULT_WCHAR_T_IS_KEYWORD
+#endif /* VAR_INITIALIZERS */
+                                                               ;
+			/* In C++ mode, indicates whether wchar_t is
+			   to be considered a keyword. */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

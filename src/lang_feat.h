@@ -321,6 +321,14 @@ it in performing optimizations.
 #define RESTRICT_ALLOWED FALSE
 #endif /* ifndef RESTRICT_ALLOWED */
 
+/*
+Flag that is TRUE if, in C++ mode, wchar_t is a keyword by default.  This is
+the default value for the global flag wchar_t_is_keyword.
+*/
+#ifndef DEFAULT_WCHAR_T_IS_KEYWORD
+#define DEFAULT_WCHAR_T_IS_KEYWORD TRUE
+#endif /* ifndef DEFAULT_WCHAR_T_IS_KEYWORD */
+
 #endif /* ifndef LANG_FEAT_H */
 
 /******************************************************************************
