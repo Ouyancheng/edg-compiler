@@ -3339,8 +3339,9 @@ the latter will be NULL for variables.
 */
 {
   a_symbol_header_ptr hdr_ptr;
-  a_symbol_ptr        sym;
-  a_namespace_ptr     nsp;
+  a_symbol_ptr        sym, namespace_mismatch_sym = NULL;
+  a_namespace_ptr     nsp = NULL;
+  a_boolean           namespace_mismatch;
 
   db_enter(4, "find_external_symbol");
   /* Start with the external locator the same as the normal locator.  This
@@ -3417,17 +3418,43 @@ the latter will be NULL for variables.
     }  /* if */
     /* See if there is already an external symbol with this name and belonging
        to the appropriate namespace. */
-    nsp = qualifier_namespace_ptr(*location);
-    if (nsp == NULL &&
-        depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
-      nsp = scope_stack[depth_innermost_namespace_scope].
+    if (!C_mode()) {
+      nsp = qualifier_namespace_ptr(*location);
+      if (nsp == NULL &&
+          depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+        nsp = scope_stack[depth_innermost_namespace_scope].
                                            il_scope->variant.assoc_namespace;
+      }  /* if */
     }  /* if */
     for (sym = hdr_ptr->other_symbols; sym != NULL; sym = sym->next) {
+      namespace_mismatch = FALSE;
       if (sym->parent.namespace_ptr != nsp) {
-        /* Namespace does not match. */
-      } else if (sym->kind == (a_symbol_kind)sk_extern_variable) {
-        break;
+        /* Namespaces do not match. */
+        if (linkage == (a_name_linkage_kind)nlk_external) {
+          /* The mismatch is ignored when both declarations are extern "C"
+             declarations, since such declarations, though in different
+             namespaces, produce a linkage conflict.  Set the flag and check
+             later. */
+          namespace_mismatch = TRUE;
+        } else {
+          /* Can't be a match -- keep looking. */
+          continue;
+        }  /* if */
+      }  /* if */
+      if (sym->kind == (a_symbol_kind)sk_extern_variable) {
+        if (namespace_mismatch) {
+          /* The current declaration is an extern "C" declaration and the
+             there is a namespace mismatch.  See if this extern-variable
+             symbol also represents an extern "C" declaration. */
+          if (sym->variant.extern_symbol_descr->variant.variable->
+                                      source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_external) {
+            /* Remember the symbol for later reference. */
+            namespace_mismatch_sym = sym;
+          }  /* if */
+        } else {
+          break;
+        }  /* if */
       } else if (sym->kind == (a_symbol_kind)sk_extern_routine) {
         /* A type compatibility check may also be required for routines. */
         if (rout_type == NULL || C_dialect != C_dialect_cplusplus) {
@@ -3435,6 +3462,16 @@ the latter will be NULL for variables.
           break;
         } else if (is_error_type(sym->variant.extern_symbol_descr->type)) {
           /* Assume this is not a match.  Keep looking. */
+        } else if (namespace_mismatch) {
+          /* The current declaration is an extern "C" declaration and the
+             there is a namespace mismatch.  See if this extern-routine
+             symbol also represents an extern "C" declaration. */
+          if (sym->variant.extern_symbol_descr->variant.routine.ptr->
+                                      source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_external) {
+            /* Remember the symbol for later reference. */
+            namespace_mismatch_sym = sym;
+          }  /* if */
         } else {
           /* In C++ the function's type signature is effectively part of the
              name.  Therefore we check for parameter type compatibility (the
@@ -3464,6 +3501,9 @@ the latter will be NULL for variables.
       /* No match found yet, so keep looking.  If none if found, a NULL
          sym is returned to the caller. */
     }  /* for */
+    /* If the only match involved extern "C" declarations in different
+       namespaces, use it. */
+    if (sym == NULL) sym = namespace_mismatch_sym;
   }  /* if */
   /* Make the ext_location source position the same as the original source
      position. */

@@ -2226,6 +2226,30 @@ created; the caller must set it.
         err = TRUE;
         /* Force creation of a new external symbol. */
         ext_sym = NULL;
+      } else if (!C_mode() &&
+                 name_linkage == (a_name_linkage_kind)nlk_external) {
+        /* For C++ names with C external linkage find_external_names ignores
+           the namespace qualifier, if any.  But if there is one, be sure
+           now it matches.  Otherwise, it's similar to the name conflict
+           reported above -- e.g.,
+             namespace N { extern "C" int x; }
+             namespace M { extern "C" int x; }
+           Since names with extern "C" linkage are not mangled, there would
+           be a linkage conflict here -- two external variables would have
+           the same name. */
+        a_namespace_ptr  nsp  = qualifier_namespace_ptr(*locator);
+        if (nsp == NULL &&
+            depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+          nsp = scope_stack[depth_innermost_namespace_scope].
+                                           il_scope->variant.assoc_namespace;
+        }  /* if */
+        if (ext_sym->parent.namespace_ptr != nsp) {
+          pos_st_error(ec_external_name_clash, &locator->source_position,
+                       old_name);
+          err = TRUE;
+          /* Force creation of a new external symbol. */
+          ext_sym = NULL;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (!err) {
