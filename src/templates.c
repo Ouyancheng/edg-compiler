@@ -3792,12 +3792,13 @@ that make up the declaration and do a prototype instantiation.
       check_template_param_default_args(templ_params);
       if (sym == NULL) {
 	/* Enter the symbol at the scope indicated by effective_decl_level. */
+        a_scope_stack_entry_ptr	ssep = &scope_stack[effective_decl_level];
 	sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
 			   effective_decl_level, suppress_redecl_error);
-        if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+        if (ssep->kind == (a_scope_kind)sck_namespace ||
+            ssep->kind == (a_scope_kind)sck_namespace_extension) {
           set_namespace_membership(sym, (a_source_correspondence *)NULL,
-                                   scope_stack[effective_decl_level].
-                                            il_scope->variant.assoc_namespace);
+                                   ssep->il_scope->variant.assoc_namespace);
         }  /* if */
 	tssp = sym->variant.template_info;
 	is_redecl = FALSE;

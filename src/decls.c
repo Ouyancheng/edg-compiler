@@ -4033,14 +4033,15 @@ class template.
                                       &overload_symbol);
       } else {
         /* No overloading.  Simply create a new symbol. */
+        a_scope_stack_entry_ptr	ssep = &scope_stack[effective_decl_level];
         sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
                                  effective_decl_level,
                                  /*suppress_redecl_error=*/FALSE);
         
-        if (effective_decl_level != DEPTH_OF_FILE_SCOPE) {
+        if (ssep->kind == (a_scope_kind)sck_namespace ||
+            ssep->kind == (a_scope_kind)sck_namespace_extension) {
           set_namespace_membership(sym, (a_source_correspondence *)NULL,
-                                   scope_stack[effective_decl_level].
-                                            il_scope->variant.assoc_namespace);
+                                   ssep->il_scope->variant.assoc_namespace);
         }  /* if */
       }  /* if */
     } else {
