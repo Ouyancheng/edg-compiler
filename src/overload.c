@@ -953,6 +953,14 @@ already been done, and this routine does the end_error call.
     function_sym = cfp->function_symbol;
     if (function_sym != NULL) {
       /* Normal function case. */
+      a_candidate_function_ptr temp_cfp;
+      /* Ignore a function that has appeared earlier on the list, so as
+         not to put it out twice. */
+      for (temp_cfp = candidate_functions;
+           temp_cfp != cfp;
+           temp_cfp = temp_cfp->next) {
+        if (temp_cfp->function_symbol == function_sym) goto next_function;
+      }  /* for */
       if (is_ambiguous_by_inheritance(function_sym)) {
         /* Function symbol is ambiguous by inheritance.  Use a special
            message.  This happens for conversion functions inherited
@@ -994,6 +1002,7 @@ already been done, and this routine does the end_error call.
       }  /* if */
       str_add_diag_info(ec_builtin_operator_add_on, buf);
     }  /* if */
+next_function:;
   }  /* for */
   if (arg_operand_list != NULL) {
     /* Display the operand types. */
