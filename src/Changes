@@ -1,5 +1,21 @@
 Version 2.43
 
+9/30/99  Abort when declaring namespace scope function inside a member
+         function
+
+When declaring a namespace scope function in a member function block scope,
+the front end would abort (with an internal error) if a member function with
+the same name was inherited.  This defect was introduced in 2.42.
+
+  struct B { void f(int); };
+  struct D: B {
+    void g() {
+      void f(); // Used to trigger an internal error.
+    }
+  };
+
+This is now fixed.
+
 9/30/99  Virtual function hiding and using-declarations
 
 The front no longer warns about virtual function declarations in base classes

@@ -1465,6 +1465,9 @@ internal linkage).
            declaration. */
         prior_decl = idlbp->prior_decl_in_enclosing_scope;
       }  /* if */
+      if (prior_decl != NULL) {
+        reduce_projection_symbol_to_fundamental_symbol(prior_decl);
+      }  /* if */
       if (prior_decl != NULL &&
           (idlbp->func_info == NULL) ==
                      (prior_decl->kind == (a_symbol_kind)sk_variable)) {
