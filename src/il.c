@@ -5305,7 +5305,7 @@ node is returned for that case.
   /* The return type may not be incomplete (but void is okay). */
   check_for_uninstantiated_template_class(return_type);
   if (is_incomplete_type(return_type) && !is_void_type(return_type)) {
-    pos_error(ec_incomplete_return_type_not_allowed, err_pos);
+    pos_error(ec_calling_function_with_incomplete_return_type, err_pos);
     call_node = error_node();
   } else {
     if (function_node->kind == (an_expr_node_kind)enk_routine_address) {
