@@ -32,6 +32,7 @@ types.h -- Declarations related to types.c (having to do with types).
    as well. */
 #define skip_typerefs(tp)                                             \
   ((tp)->kind != (a_type_kind)tk_typeref ? (tp) : f_skip_typerefs(tp))
+
 #define m_is_error_type(tp)                                           \
   (skip_typerefs(tp)->kind == (a_type_kind)tk_error)
 
@@ -79,6 +80,12 @@ top of a class type).
   ((type)->kind == (a_type_kind)tk_class  ||                          \
    (type)->kind == (a_type_kind)tk_struct ||                          \
    (type)->kind == (a_type_kind)tk_union)
+
+/*
+Return TRUE if a type is a direct error type (i.e., not a typeref on
+top of such a type).
+*/
+#define is_immediate_error_type(type) ((type)->kind == (a_type_kind)tk_error)
 
 #define is_const_qualified_type(tp)                                   \
   ((tp)->kind == (a_type_kind)tk_typeref && f_is_const_qualified_type(tp))
