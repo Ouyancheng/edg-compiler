@@ -95,9 +95,11 @@ Flags to be set when using the KAI inliner.
 #define __ANSIC__ 1
 #ifndef C_GEN_BE_GENERATES_ANSI_C
 #define C_GEN_BE_GENERATES_ANSI_C 1
-#ifndef __SUNPRO_C
+#ifdef __SUNPRO_C
+#define GUARD_MACRO2_FOR_VA_LIST "_SYS_VA_LIST_H"
+#else /* ifndef __SUNPRO_C */
 #define GCC_IS_C_GEN_BE_TARGET 1
-#endif /* ifndef __SUNPRO_C */
+#endif /* ifdef __SUNPRO_C */
 #endif /* ifndef C_GEN_BE_GENERATES_ANSI_C */
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
