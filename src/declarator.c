@@ -3526,22 +3526,33 @@ to FALSE if the entity being declared is not initializable.
           /* This is a template declaration. */
           is_template_decl = TRUE;
           ssep--;
+        } else if (gpp_mode && (input_flags & DI_IS_FRIEND_DECL)) {
+          /* An unqualified friend declarator would declare a member of the
+             nearest enclosing namespace scope.  GNU C++ compilers therefore
+             ignore qualifiers that refer to that scope. */
+          ssep = &scope_stack[depth_innermost_namespace_scope];
         }  /* if */
-        if ((ssep->kind == (a_scope_kind)sck_namespace ||
-             ssep->kind == (a_scope_kind)sck_namespace_extension) &&
-            ssep->il_scope->variant.assoc_namespace ==
-                        qualifier_namespace_ptr(locator_for_curr_id)) {
+        if (((ssep->kind == (a_scope_kind)sck_namespace ||
+              ssep->kind == (a_scope_kind)sck_namespace_extension) &&
+             ssep->il_scope->variant.assoc_namespace ==
+                              qualifier_namespace_ptr(locator_for_curr_id)) ||
+            (ssep->kind == (a_scope_kind)sck_file &&
+             qualifier_namespace_ptr(locator_for_curr_id) == NULL)) {
           an_error_severity  severity = es_discretionary_error;
           an_error_code      err_code = ec_qualifier_in_namespace_member_decl;
           /* The declarator name is qualified by the current namespace. */
           if (is_template_decl && !do_dependent_name_processing) {
             severity = es_error;
-          }  /* if */
-          if ((gpp_mode || microsoft_mode) && severity != es_error) {
-            /* GNU and Microsoft compilers accept the superfluous qualifier.
-               We cannot emulate this behavior for templates because of
-               reasons explained above (unless dependent name processing has
-               been enabled, which is the default for gnu_version >= 30400). */
+          } else if (gpp_mode || 
+                     (microsoft_mode &&
+                      curr_scope_id_lookup(&locator_for_curr_id,
+                                           IDL_NO_OPTIONS) != NULL)) {
+            /* GNU and Microsoft compilers accept the superfluous qualifier
+               (but only if the identifier already exists in the current
+               scope in the case of Microsoft compilers).  We cannot emulate
+               this behavior for templates because of reasons explained above
+               (unless dependent name processing has been enabled, which is
+               the default for gnu_version >= 30400). */
             severity = es_warning;
             err_code = ec_nonstd_qualifier_in_namespace_member_decl;
           }  /* if */
