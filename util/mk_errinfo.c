@@ -23,7 +23,7 @@ the error text.
 #include "host_envir.h"
 
 #if __ANSIC__
-/* Get bsearch and qsort definitions. */
+/* Get bsearch, qsort, and exit prototypes. */
 #include <stdlib.h>
 #else /* __ANSIC__ */
 EXTERN_C a_void_ptr bsearch(a_const_void_ptr key,
@@ -38,6 +38,8 @@ EXTERN_C a_void_ptr qsort(a_void_ptr       base,
                           sizeof_t         size,
                           int(*compar)(a_const_void_ptr,
                                        a_const_void_ptr));
+
+EXTERN_C void exit(int);
 #endif /* __ANSIC__ */
 
 
@@ -143,7 +145,7 @@ to the copy.
 */
 {
   char	*dest;
-  dest = (char *)me_malloc_with_check(strlen(source) + 1);
+  dest = (char *)me_malloc_with_check((sizeof_t)(strlen(source) + 1));
   strcpy(dest, source);
   return dest;
 }  /* me_copy_string */
