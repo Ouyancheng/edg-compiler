@@ -1555,6 +1555,28 @@ attributes are added to the appropriate IL list.
 }  /* verify_standalone_attributes */
 
 
+void dispose_of_unapplied_attributes(an_ms_attribute_ptr	*attributes)
+/*
+"attributes" is a list of attributes that could not be applied to an entity.
+Issue an error and do any cleanup needed to dispose of the attributes.
+*/
+{
+  check_assertion(*attributes != NULL);
+  pos_error(ec_ms_attr_not_allowed, &(*attributes)->position);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Remove the empty source sequence entries previously created for these
+     attributes. */
+  { an_ms_attribute_ptr	msap;
+    for (msap = *attributes; msap != NULL; msap = msap->next) {
+      finalize_ms_attribute_source_sequence_entry(msap, /*is_error=*/TRUE);
+    }  /* for */
+  }
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Clear the attribute list pointer passed by the caller. */
+  *attributes = NULL;
+}  /* dispose_of_unapplied_attributes */
+
+
 static an_ms_attribute_arg_ptr duplicate_ms_attribute_args(
                                                 an_ms_attribute_arg_ptr  orig)
 /*
