@@ -59,13 +59,6 @@ typedef struct an_error_tag_entry {
 			/* The error code that this tag refers to. */
 } an_error_tag_entry;
 
-
-extern an_error_tag_entry error_tags[NUMBER_OF_ERROR_TAGS];
-			/* Array that maps error tags into error codes.
-			   The number of elements in the array is defined
-			   by the error_msgs.h include file. */
-
-
 /*
 Current error position, used as default in error reporting.  Set
 implicitly to the start of a construct whenever one is scanned (e.g.,
