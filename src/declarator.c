@@ -2224,8 +2224,11 @@ expression can be a multiple of the special UPC THREADS constant.
       /* Only C99 mode allows cv-qualifiers.  restrict is allowed in
          any mode where the keyword is enabled.  Named-address space
          qualifiers are not allowed in any mode. */
-      if ((!c99_mode && ((qualifiers & TQ_RESTRICT) != qualifiers)) ||
-          named_address_space_from_qualifier_set(qualifiers) != 0) {
+      if ((!c99_mode && ((qualifiers & TQ_RESTRICT) != qualifiers))
+#if NAMED_ADDRESS_SPACES_ALLOWED
+          || named_address_space_from_qualifier_set(qualifiers) != 0
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+                                                                    ) {
         pos_error(ec_type_qualifier_not_allowed, &qualifier_pos);
         qualifiers &= c99_mode ? TQ_RESTRICT | TQ_CONST | TQ_VOLATILE
                                : TQ_RESTRICT;
