@@ -1095,6 +1095,7 @@ ec_complex_type_not_allowed;;"complex type is not allowed"
 ec_invalid_designator_kind;;"invalid designator kind"
 ec_inexact_fp_conversion;;"floating-point value cannot be represented exactly"
 ec_bad_complex_operation_result;;"complex floating-point operation result is out of range"
+ec_real_imaginary_conversion;;"conversion between real and imaginary yields zero"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

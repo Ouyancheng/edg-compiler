@@ -4370,6 +4370,18 @@ See conversion_possible.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
       }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+      if (c99_mode) {
+        /* Conversions between imaginary and real/integral drop information,
+           so warn about those.  Don't warn if the source is a zero
+           constant, because that may be intentional. */
+        if ((is_imaginary(source_type) && !is_nonreal_floating(dest_type)) ||
+            (is_imaginary(dest_type)   && !is_nonreal_floating(source_type) &&
+             (!source_is_constant || !is_zero_constant(source_constant)))) {
+          std_conv->warning_suggested = ec_real_imaginary_conversion;
+        }  /* if */
+      }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode ||
                 (C_mode() && microsoft_mode)) &&
                is_pointer(source_type) &&
