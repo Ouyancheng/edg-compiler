@@ -4810,7 +4810,7 @@ specification allow a variable-sized array as the top type.
         check_assertion_str(err,
        "scan_new_operator: non-POD class has neither actual not assumed ctor");
       }  /* if */
-      if (do_const_test && !any_cfront_mode()) {
+      if (do_const_test && (!any_cfront_mode() && !microsoft_mode)) {
         /* When the initializer is omitted on a "new" of a const class
            object, the default constructor is required to be explicitly
            declared; it can't be implicit. */
