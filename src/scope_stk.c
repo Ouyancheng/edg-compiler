@@ -2332,6 +2332,7 @@ unit.
   } else {
     a_boolean                is_prototype_instantiation = FALSE;
     a_routine_ptr            curr_routine = NULL;
+
     /* Check for prototype instantiation of a class template. */
     if (kind == (a_scope_kind)sck_function) {
       /* If the scope is for a routine, get a pointer to the routine. */
@@ -2347,6 +2348,25 @@ unit.
     for (sym = pointers_block->symbols;
          sym != NULL;
          sym = sym->next_in_scope) {
+#if DEBUG
+      if (db_active && 
+          (debug_level >= 3 ||
+           db_flag_is_set("dump_symbols"))) {
+        if (kind != (a_scope_kind)sck_namespace || is_namespace_wrapup) {
+          if (sym == pointers_block->symbols) {
+            fputs("Wrapping up ", f_debug);
+            if (scope_ptr != NULL) {
+              db_scope(scope_ptr);
+            } else {
+              (void)db_scope_kind(kind);
+              (void)fprintf(f_debug, " scope");
+            }  /* if */
+            fputs(":\n", f_debug);
+          }  /* if */
+          db_symbol(sym, "", 2);
+        }  /* if */
+      }  /* if */
+#endif /* CHECKING */
       if (kind == (a_scope_kind)sck_func_prototype && !is_tag_symbol(sym)) {
         /* Don't check on symbols entered in the scope of a function prototype.
            They will be reentered in the scope of the function and should be
