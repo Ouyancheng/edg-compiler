@@ -255,7 +255,9 @@ static void gen_type(a_type_ptr type);
 static void gen_enum_definition(a_type_ptr type);
 static void gen_class_definition(a_type_ptr type);
 static void gen_pragma(void);
+#if RECORD_MACROS_IN_IL
 static void gen_macro(void);
+#endif /* RECORD_MACROS_IN_IL */
 static void gen_lvalue(an_expr_node_ptr node);
 static void gen_initializer_expr(an_expr_node_ptr expr,
                                  a_type_ptr       type,
@@ -542,7 +544,9 @@ Return TRUE if the current source sequence entry is for a declaration.
       case iek_src_seq_secondary_decl:
       case iek_pragma:
       case iek_template:
+#if RECORD_MACROS_IN_IL
       case iek_macro:
+#endif /* RECORD_MACROS_IN_IL */
         /* This is a declaration. */
         is_decl = TRUE;
         break;
@@ -2210,9 +2214,11 @@ is the one associated with the definition of the class.
       case iek_pragma:
         gen_pragma();
         break;
+#if RECORD_MACROS_IN_IL
       case iek_macro:
         gen_macro();
         break;
+#endif /* RECORD_MACROS_IN_IL */
       case iek_src_seq_secondary_decl:
         /* A secondary declaration, i.e., a declaration of something that
            is also defined/declared elsewhere. */
@@ -3873,6 +3879,7 @@ is the one associated with the template.
   write_str(p);
 }  /* gen_template */
 
+#if RECORD_MACROS_IN_IL
 
 static void gen_macro(void)
 /*
@@ -3894,6 +3901,7 @@ for #undef.
   end_output_line();
 }  /* gen_macro */
 
+#endif /* RECORD_MACROS_IN_IL */
 
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       top_statement_of_switch,
@@ -3958,9 +3966,11 @@ on the list, or NULL if the list is empty.
       } else if (ss_entry_kind(curr_source_sequence_entry) == iek_pragma) {
         /* A pragma in executable code. */
         gen_pragma();
+#if RECORD_MACROS_IN_IL
       } else if (ss_entry_kind(curr_source_sequence_entry) == iek_macro) {
         /* A macro in executable code. */
         gen_macro();
+#endif /* RECORD_MACROS_IN_IL */
       } else {
         /* We don't know what this next thing is.  Leave it alone and
            go on. */
@@ -5076,9 +5086,11 @@ sequence entry.
     case iek_pragma:
       gen_pragma();
       break;
+#if RECORD_MACROS_IN_IL
     case iek_macro:
       gen_macro();
       break;
+#endif /* RECORD_MACROS_IN_IL */
     case iek_template:
       gen_template();
       break;
