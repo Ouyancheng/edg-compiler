@@ -3206,10 +3206,12 @@ class, struct, or union.
     /* All fields in a union have offset zero. */
     local_byte_offset = 0;
     local_bit_offset = 0;
-    /* An object of a class with a constructor, a destructor, or a user-
-       defined assignment operator cannot be a member of a union. */
-    if (!is_valid_union_field(member_type, &locator->source_position)) {
-      member_type = error_type();
+    if (C_dialect == C_dialect_cplusplus) {
+      /* An object of a class with a constructor, a destructor, or a user-
+         defined assignment operator cannot be a member of a union. */
+      if (!is_valid_union_field(member_type, &locator->source_position)) {
+        member_type = error_type();
+      }  /* if */
     }  /* if */
   } else {
     local_byte_offset = *p_byte_offset;
