@@ -5134,7 +5134,7 @@ instantiated.
     delayed_scan_of_default_arg_expr(daefp->param_type,
                                      /*check_for_errors=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* Copy the default argument expression into to corresponding param
+    /* Copy the default argument expression into the corresponding param
        type entry of the declared type, if any. */
     if (tip->declared_type_for_default_arg_fixup != NULL) {
       ptp = tip->declared_type_for_default_arg_fixup->
