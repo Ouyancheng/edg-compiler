@@ -2086,7 +2086,7 @@ pointer to the first character of the suffix.
 {
   char	*last_dot;
 
-  last_dot = strrchr(pl_file_name_buffer, '.');
+  last_dot = strrchr(name, '.');
   return last_dot;
 }  /* pl_file_suffix */
 
