@@ -536,11 +536,11 @@ definition of the routine is needed, and not just the declaration.
   if (one_instantiation_per_object && !in_secondary_trans_unit(rout)) {
     if (!treat_as_static_inline(rout)) {
       if (needed_flag_bit_number != 0) {
-      /* If we reach this spot while doing a walk for a particular
-         instantiation bit number, and that's not the bit number associated
-         with this function (i.e., the function definition doesn't go
-         in that slice), just return.  Inline functions are included in every
-         instantiation file that uses them. */
+        /* If we reach this spot while doing a walk for a particular
+           instantiation bit number, and that's not the bit number associated
+           with this function (i.e., the function definition doesn't go
+           in that slice), just return.  Inline functions are included in every
+           instantiation file that uses them. */
         unsigned long eff_bit_number = rout->instantiation_needed_bit_number;
         if (eff_bit_number == 0) eff_bit_number = 1;
         if (needed_flag_bit_number != eff_bit_number) goto end_of_routine;
