@@ -922,11 +922,21 @@ targ_microsoft_bit_field_allocation is FALSE.)
       container_alignment = (a_targ_alignment)1;
     } else {
       /* targ_zero_width_bit_field_alignment < 0 */
-      /* Use the base type alignment.  Note that GNU compilers do not consider
-         the alternative field alignment in this case.  We therefore do not
-         use "field_alignment_for" here, and instead we access the type's
-         intrinsic alignment directly. */
-      container_alignment = base_type->alignment;
+      /* Use the base type alignment. */
+#if IA64_ABI
+      if (emulate_gnu_abi_bugs && !is_union_type(lob->class_type)) {
+        /* Note that GNU compilers do not consider the alternative field
+           alignment for zero-width bit fields in structs and classes (but
+           they do in unions).  We therefore do not use "field_alignment_for"
+           here, and instead we access the type's intrinsic alignment
+           directly. */
+        container_alignment = base_type->alignment;
+      } else
+#endif /* IA64_ABI */
+      /* Do not insert code here. */
+      {
+        container_alignment = field_alignment_for(base_type);
+      }  /* if */
     }  /* if */
     if (targ_microsoft_bit_field_allocation) {
       /* Special handling of zero-width bit fields in Microsoft mode,
