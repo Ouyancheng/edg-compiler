@@ -2086,6 +2086,12 @@ typedef struct a_constant {
 			/* This constant was generated from a reference to
 			   an undefined preprocessing identifier (i.e.,
 			   it's zero). */
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+  a_bit_field	flexible_array_initializer:1;
+			/* For a ck_aggregate constant in an initializer,
+			   TRUE if the initializer is for a flexible array
+			   member. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   a_constant_repr_kind
                 kind;
@@ -6249,6 +6255,13 @@ typedef struct a_variable {
 			   parenthesized initializer; FALSE indicates an
 			   "="-form initializer, an implicit initializer,
 			   or no initializer at all. */
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+  a_bit_field	has_flexible_array_initializer:1;
+			/* TRUE if the variable has a type with a flexible
+			   array member and the variable is initialized with
+			   an aggregate initializer that includes values for
+			   the flexible array member. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any. */

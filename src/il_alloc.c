@@ -779,6 +779,9 @@ associated variant fields to default values.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   cp->explicit_braces_on_aggregate = FALSE;
   cp->from_undefined_preproc_id = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+  cp->flexible_array_initializer = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 #if CENTERLINE_CHECKING
   cp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -1874,6 +1877,9 @@ to it.
 #endif /* DO_IL_LOWERING */
   vp->is_compound_literal         = FALSE;
   vp->has_parenthesized_initializer = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+  vp->has_flexible_array_initializer = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   vp->declared_type               = NULL;

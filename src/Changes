@@ -1,5 +1,40 @@
 Version 3.5
 
+9/1/04  GNU/Microsoft compatibility: Flexible array member initializers
+
+In Microsoft modes and in GNU C mode, the front end now accepts aggregate
+initializers for flexible array members.  An variable entry with such an
+initializer has its (new) flag has_flexible_array_initializer set to TRUE,
+and the aggregate constant representing the portion of the initializer for
+the flexible array member also has a flag flexible_array_initializer set
+to TRUE.  For example:
+
+  struct S {
+    int n;
+    int a[];  // Flexible array member.
+  } s = { 1, { 2, 3, 4 } };  // Now accepted in GNU C and Microsoft modes.
+
+In GNU C mode, the flexible array member must appear as a proper member of
+the type being initialized.  In Microsoft C and C++ modes the flexible array
+member may be an indirect member, but its elements cannot have a nontrivial
+destructor.  For example (with struct S as above):
+
+  struct X {
+    struct S s;
+  } x = { { 1, { 2, 3, 4 } } };  // Accepted in Microsoft modes, but not in
+                                 // GNU C mode.
+
+  struct D { D(int); ~D(); };
+  struct E {
+    int n;
+    D d[];
+  } e = { 1, { 2, 3, 4 } };  // Not accepted in any mode.
+
+Note that initializers for flexible array members were sometimes already
+accepted in Microsoft modes (see Changes entry of 4/11/95).  This support has
+been extended to include indirect flexible array members and to mark the
+variable and aggregate constant entries as explained above.
+
 9/1/04  Incorrect IL for lowered lvalue "?" involving bit fields
 
 The lowered code for a compound assignment to bool involving

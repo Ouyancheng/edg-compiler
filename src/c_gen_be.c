@@ -2678,9 +2678,13 @@ final semicolon if output_final_semi is TRUE.
       if (!field->is_bit_field) {
         a_type_ptr field_type = field->type;
         /* Not a bit field. */
-        /* If we are generating code for the GNU compiler, check for a flexible
-           array member and put out its bound as [0] instead of []. */
+        /* If we are generating code for an early GNU compiler, check for a
+           flexible array member and put out its bound as [0] instead of [].
+           Starting with GNU C/C++ 3.0, the [] syntax is accepted (and only
+           that syntax allows for the initialization of flexible array members
+           using aggregate initializer syntax). */
         if (gcc_is_generated_code_target &&
+            gnu_target_version_number < 30000 &&
             type->variant.class_struct_union.contains_flexible_array_member &&
             is_array_type(field_type) &&
             is_incomplete_type(field_type)) {

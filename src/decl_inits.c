@@ -78,6 +78,9 @@ typedef struct an_aggregate_init_info {
   a_boolean	compound_literal;
 			/* Set to TRUE when get_initializer is called to parse
 			   a compound literal. */
+  a_boolean	has_flexible_array_initializer;
+			/* Set to TRUE when get_initializer encounters values
+			   that initialize a flexible array member. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
 		init_end_position;
@@ -101,6 +104,7 @@ Initialize an entry of type an_aggregrate_init_info.
   init_info->any_uninitialized_const_or_ref_member = FALSE;
   init_info->comma_seen = FALSE;
   init_info->compound_literal = FALSE;
+  init_info->has_flexible_array_initializer = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   init_info->init_end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -1999,15 +2003,34 @@ this function points to a tree that includes a dynamic-init entry.
             fputc('\n', f_debug);
           }  /* if */
 #endif /* DEBUG */
-          if (is_incomplete_type(member_type)) {
-            /* Members of unions or aggregates cannot be incomplete. */
+          if (skip_typerefs(member_type)->size == 0) {
+            /* Members of unions or aggregates cannot have size zero (which
+               either indicates an incomplete type or a zero-length array in
+               some modes). */
             if (is_array_type(member_type) && curr_field->next == NULL) {
               /* ... except that in several modes it's okay to declare a field
-                 of incomplete array type when it's the last field in the
+                 of zero-sized array type when it's the last field in the
                  struct (but only when the struct is the top-level object
-                 type).  (See also: check_field_type.)  Only in Microsoft
-                 mode can such a field be initialized. */
-              if (!top_level || !microsoft_mode) {
+                 type).  (See also: check_field_type.)  Only in Microsoft and
+                 GNU modes can such a field be initialized. */
+              if (microsoft_mode || gcc_mode) {
+                a_type_ptr  element_type =
+                                   underlying_array_element_type(member_type);
+                if (!C_mode() && is_class_struct_union_type(element_type)) {
+                  element_type = skip_typerefs(element_type);
+                  cssp = symbol_supplement_for_class(element_type);
+                  if (cssp->destructor != NULL) {
+                    /* Microsoft C++ allows the aggregate initialization of
+                       flexible array members only if they do not have
+                       nontrivial destructors. */
+                    error(ec_cannot_initialize_destructible_flexible_array);
+                  }  /* if */
+                } else if (gcc_mode && !top_level) {
+                  error(ec_cannot_initialize_indirect_flexible_array);
+                }  /* if */
+                init_info->has_flexible_array_initializer = TRUE;
+                any_more_members = FALSE;
+              } else {
                 error(ec_cannot_initialize_flexible_array_member);
               }  /* if */
             } else {
@@ -2125,12 +2148,10 @@ this function points to a tree that includes a dynamic-init entry.
           /* Check for no fields remaining. */
           if (curr_field == NULL) {
             /* Nothing to do. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          } else if (microsoft_mode && top_level) {
-            /* In Microsoft C mode, the check for a field of incomplete array
-               type is not made -- such initializations are allowed for a
-               top-level struct member. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          } else if (microsoft_mode || gcc_mode) {
+            /* In GNU C and Microsoft modes, the check for a field of
+               incomplete array type is not made -- such initializations are
+               allowed (but only for top-level fields in GNU C mode). */
           } else if (curr_field->next == NULL &&
                      is_incomplete_type(curr_field->type)) {
             /* Also exit on an incomplete array as the final field of a
@@ -2248,6 +2269,10 @@ this function points to a tree that includes a dynamic-init entry.
         init_con->variant.aggregate.first_constant = context.constant_list;
         init_con->variant.aggregate.last_constant =
                                           context.end_of_constant_list;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+        init_con->flexible_array_initializer = is_flexible_array;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
         if (any_more_members) init_info->any_uninitialized_member = TRUE;
         if (brace_flag) {
           /* Remember the explicit braces.  This affects the meaning of
@@ -2461,6 +2486,11 @@ detection of uninitialized fields).
       if (init_info.any_uninitialized_member) {
         vp->is_partially_initialized = TRUE;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+      /* Record whether an initializer for a flexible array member was seen. */
+      vp->has_flexible_array_initializer =
+                                     init_info.has_flexible_array_initializer;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

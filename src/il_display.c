@@ -869,6 +869,11 @@ Display the indicated constant entry.
   if (ptr->from_undefined_preproc_id) {
     disp_boolean("from_undefined_preproc_id", TRUE);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+  if (ptr->flexible_array_initializer) {
+    disp_boolean("flexible_array_initializer", TRUE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:
@@ -2172,6 +2177,11 @@ Display the indicated variable.
   if (ptr->has_parenthesized_initializer) {
     disp_boolean("has_parenthesized_initializer", TRUE);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+  if (ptr->has_flexible_array_initializer) {
+    disp_boolean("has_flexible_array_initializer", TRUE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
