@@ -766,12 +766,14 @@ extern a_type_ptr determine_arithmetic_conversions(an_operand *operand_1,
 extern a_type_ptr usual_arithmetic_conversions(a_type_ptr operand_1_type,
                                                a_type_ptr operand_2_type);
 
-#if C99_IL_EXTENSIONS_SUPPORTED
-extern void make_imaginary_unit_operand(an_operand  *result);
-
+#if TARG_HAS_IEEE_FLOATING_POINT
 extern void make_nan_operand(an_operand  *result);
 
 extern void make_infinity_operand(an_operand  *result);
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+
+#if C99_IL_EXTENSIONS_SUPPORTED
+extern void make_imaginary_unit_operand(an_operand  *result);
 
 extern a_boolean determine_imaginary_operation_type
                                         (a_token_kind          op_token,

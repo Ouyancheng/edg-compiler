@@ -151,9 +151,9 @@ typedef enum /*a_token_kind*/ {
   tok_c99_imaginary,
   /* Token for __I__, for the C99 imaginary number "i" (i*i == -1). */
   tok_imaginary_unit,
-  /* Token for __NAN__, for a C99 Not-a_Number constant. */
+  /* Token for __NAN__, for a Not-a-Number constant (C99 and other modes). */
   tok_nan,
-  /* Token for __INFINITY__, for a C99 Infinity constant. */
+  /* Token for __INFINITY__, for an Infinity constant (C99 and other modes). */
   tok_infinity,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_cdecl,

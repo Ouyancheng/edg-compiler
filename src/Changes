@@ -1,5 +1,12 @@
 Version 3.0
 
+4/8/02   __INFINITY__ and __NAN__ available in all modes
+
+The EDG extensions __INFINITY__ and __NAN__, which represent the
+corresponding IEEE floating-point constant values, are now supported
+in all modes, not just in C99 mode.  They are defined only when
+TARG_HAS_IEEE_FLOATING_POINT is TRUE.
+
 4/8/02   Bad expr pointer, inlining + RECORD_CONSTANT_EXPRESSIONS_IN_IL
 
 When the RECORD_CONSTANT_EXPRESSIONS_IN_IL option is on at the same

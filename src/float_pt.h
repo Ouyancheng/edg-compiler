@@ -26,9 +26,11 @@ extern a_host_fp_value fetch_host_fp_value(
 				a_float_kind            kind,
 				an_internal_float_value *float_value);
 
+#if TARG_HAS_IEEE_FLOATING_POINT
 extern void make_fp_nan(an_internal_float_value *value);
 
 extern void make_fp_infinity(an_internal_float_value *value);
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
 extern void fp_change_kind(an_internal_float_value *old_value,
                            a_float_kind            old_kind,

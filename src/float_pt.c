@@ -589,14 +589,12 @@ static float float_zero = 0.0;
 			   by zero without giving a warning. */
 
 #endif /* ifndef __CENTERLINE__ */
-#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
 void make_fp_nan(an_internal_float_value *value)
 /*
 Make a float quiet Not-a-Number value in *value.
 */
 {
-#if TARG_HAS_IEEE_FLOATING_POINT
   float nan;
 
 #ifdef __CENTERLINE__
@@ -613,9 +611,6 @@ Make a float quiet Not-a-Number value in *value.
 #endif /* ifdef __CENTERLINE__ */
   memzero((char *)value, sizeof(an_internal_float_value));
   (void)memcpy((char *)value, (char *)&nan, sizeof(float));
-#else /* !TARG_HAS_IEEE_FLOATING_POINT */
-  unexpected_condition_str("make_fp_nan called");
-#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 }  /* make_fp_nan */
 
 
@@ -624,7 +619,6 @@ void make_fp_infinity(an_internal_float_value *value)
 Make a float positive Infinity value in *value.
 */
 {
-#if TARG_HAS_IEEE_FLOATING_POINT
   float infinity;
 
 #ifdef __CENTERLINE__
@@ -641,11 +635,9 @@ Make a float positive Infinity value in *value.
 #endif /* ifdef __CENTERLINE__ */
   memzero((char *)value, sizeof(an_internal_float_value));
   (void)memcpy((char *)value, (char *)&infinity, sizeof(float));
-#else /* !TARG_HAS_IEEE_FLOATING_POINT */
-  unexpected_condition_str("make_fp_infinity called");
-#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 }  /* make_fp_infinity */
 
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
 void fp_change_kind(an_internal_float_value *old_value,
                     a_float_kind            old_kind,

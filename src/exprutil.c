@@ -3507,31 +3507,7 @@ case; see the header comment of that routine for details.
   return result_type;
 }  /* usual_arithmetic_conversions */
 
-#if C99_IL_EXTENSIONS_SUPPORTED
-
-static a_constant_ptr  imaginary_unit = (a_constant_ptr)NULL;
-
-void make_imaginary_unit_operand(an_operand  *result)
-/*
-Create an operand for the constant __I__ such that __I__*__I__ == -1.
-The identifier __I__ is EDG-specific (i.e., not specified by the C99
-standard).  The standard specifies macros I and _Imaginary_I that expand
-to this value.
-*/
-{
-  if (imaginary_unit == (a_constant_ptr)NULL) {
-    a_boolean  err = FALSE;
-    imaginary_unit = fs_constant((a_constant_repr_kind)ck_imaginary);
-    imaginary_unit->type = imaginary_type((a_float_kind)fk_float);
-    fp_host_large_integer_to_float((a_float_kind)fk_float,
-                                   (a_host_large_integer)1,
-                                   &imaginary_unit->variant.float_value,
-                                   &err);
-    check_assertion(!err);
-  }  /* if */
-  make_constant_operand(imaginary_unit, result);
-}  /* make_imaginary_unit_operand */
-
+#if TARG_HAS_IEEE_FLOATING_POINT
 
 static a_constant_ptr nan_constant = (a_constant_ptr)NULL;
 
@@ -3569,6 +3545,32 @@ macro INFINITY that expands to this value.
   }  /* if */
   make_constant_operand(infinity_constant, result);
 }  /* make_infinity_operand */
+
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+#if C99_IL_EXTENSIONS_SUPPORTED
+
+static a_constant_ptr  imaginary_unit = (a_constant_ptr)NULL;
+
+void make_imaginary_unit_operand(an_operand  *result)
+/*
+Create an operand for the constant __I__ such that __I__*__I__ == -1.
+The identifier __I__ is EDG-specific (i.e., not specified by the C99
+standard).  The standard specifies macros I and _Imaginary_I that expand
+to this value.
+*/
+{
+  if (imaginary_unit == (a_constant_ptr)NULL) {
+    a_boolean  err = FALSE;
+    imaginary_unit = fs_constant((a_constant_repr_kind)ck_imaginary);
+    imaginary_unit->type = imaginary_type((a_float_kind)fk_float);
+    fp_host_large_integer_to_float((a_float_kind)fk_float,
+                                   (a_host_large_integer)1,
+                                   &imaginary_unit->variant.float_value,
+                                   &err);
+    check_assertion(!err);
+  }  /* if */
+  make_constant_operand(imaginary_unit, result);
+}  /* make_imaginary_unit_operand */
 
 
 static void promote_operand_for_imaginary_operation(an_operand   *operand,
@@ -9118,10 +9120,12 @@ Do one-time initialization of variables related to expression processing.
       pch_saved_var_array_elem(avail_dynamic_init_dtor_fixups),
       pch_saved_var_array_elem(avail_arg_match_summaries),
       pch_saved_var_array_elem(avail_candidate_functions),
-#if C99_IL_EXTENSIONS_SUPPORTED
-      pch_saved_var_array_elem(imaginary_unit),
+#if TARG_HAS_IEEE_FLOATING_POINT
       pch_saved_var_array_elem(nan_constant),
       pch_saved_var_array_elem(infinity_constant),
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+#if C99_IL_EXTENSIONS_SUPPORTED
+      pch_saved_var_array_elem(imaginary_unit),
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if DEBUG
       pch_saved_var_array_elem(num_arg_operands_allocated),
@@ -9138,10 +9142,12 @@ Do one-time initialization of variables related to expression processing.
      between translation units. */
   register_trans_unit_variable(expr_stack);
   register_trans_unit_variable(curr_expr_ref_entries);
-#if C99_IL_EXTENSIONS_SUPPORTED
-  register_trans_unit_variable(imaginary_unit);
+#if TARG_HAS_IEEE_FLOATING_POINT
   register_trans_unit_variable(nan_constant);
   register_trans_unit_variable(infinity_constant);
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  register_trans_unit_variable(imaginary_unit);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 }  /* expr_one_time_init */
 
@@ -9154,10 +9160,12 @@ re-initialized for each translation unit.
 {
   expr_stack = NULL;
   curr_expr_ref_entries = NULL;
-#if C99_IL_EXTENSIONS_SUPPORTED
-  imaginary_unit = NULL;
+#if TARG_HAS_IEEE_FLOATING_POINT
   nan_constant = NULL;
   infinity_constant = NULL;
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  imaginary_unit = NULL;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 }  /* expr_trans_unit_init */
 
