@@ -1024,12 +1024,7 @@ type is legal.
         (*bottom_derived_type)->variant.ptr_to_member.type = new_type_ptr;
       } else {
         /* Function type. */
-#if CHECKING
-        if (tkind != (a_type_kind)tk_routine) {
-          internal_error(
-            "add_to_derived_type_list: not array/function/pointer/reference");
-        }  /* if */
-#endif /* CHECKING */
+        check_assertion(tkind == (a_type_kind)tk_routine);
         /* 3.5.4.3, constraints: A function declarator shall not specify
            a return type that is a function type or an array type.
            Footnote to 3.5.2.3 also says it is legal to have an incomplete
@@ -1226,11 +1221,7 @@ new fields are set properly.
   if (is_error_locator(*locator)) {
     /* Nothing to do. */
   } else if (locator->is_conversion_name) {
-#if CHECKING
-    if (class_type == NULL) {
-      internal_error("check_operator_function_params: nonmeber conversion op");
-    }  /* if */
-#endif /* CHECKING */
+    check_assertion(class_type != NULL);
     /* Any parameter is too many for a conversion function. */
     if (rout_type->variant.routine.extra_info->param_type_list != NULL) {
       pos_error(ec_too_many_args_for_conversion, &locator->source_position);
@@ -1239,18 +1230,13 @@ new fields are set properly.
   } else if (locator->is_operator_name) {
     /* It's an operator. */
     opname = locator->variant.opname;
+    check_assertion(opname != (an_opname_kind)onk_none);
     is_nonstatic_member_function =
                 routine_type_is_nonstatic_member_function(rout_type);
-#if CHECKING
-    if (opname == (an_opname_kind)onk_none) {
-      internal_error("check_operator_function_params: bad opname kind");
-    } else if (is_nonstatic_member_function &&
-               (opname == (an_opname_kind)onk_new ||
-                opname == (an_opname_kind)onk_delete)) {
-      internal_error(
-               "check_operator_function_params: new or delete is nonstatic");
-    }  /* if */
-#endif /* CHECKING */
+    /* Operator new/delete cannot be a nonstatic member function. */
+    check_assertion(!(is_nonstatic_member_function &&
+                      (opname == (an_opname_kind)onk_new ||
+                       opname == (an_opname_kind)onk_delete)));
     /* Make a pass over the param types list to count the number of
        arguments to see if there are any parameters that are of class type
        or reference-to-class type.  Note that param_count is initialized to
@@ -1666,13 +1652,9 @@ scope is that of a class definition.
           } else if (is_void_type(param_type_ptr) &&
                      !is_qualified_type(param_type_ptr) &&
                      param_storage_class == (a_storage_class)sc_unspecified) {
-#if CHECKING
-            if (param_type_ptr->kind != (a_type_kind)tk_typeref) {
-              internal_error("function_declarator: not tk_typeref");
-            }  /* if */
-#endif /* CHECKING */
             /* A type name is bound to void type -- this construct is treated
                as a nonstandard way of signifying an empty param list. */
+            check_assertion(param_type_ptr->kind == (a_type_kind)tk_typeref)
             if (strict_ansi_mode) {
               pos_warning(ec_nonstd_void_param_list, &param_type_pos);
             }  /* if */
@@ -2119,11 +2101,8 @@ token.
     if (is_error_constant(&constant)) {
       err = TRUE;
     } else {
-#if CHECKING
-      if (constant.kind != (a_constant_repr_kind)ck_integer) {
-        internal_error("array_declarator: array size not int");
-      }  /* if */
-#endif /* CHECKING */
+      /* Integral constant should have been returned. */
+      check_assertion(constant.kind == (a_constant_repr_kind)ck_integer);
       /* Array size must be greater than zero. */
       if (sign_of_integer_constant(&constant) <= 0) {
         error(ec_array_size_must_be_positive);
@@ -2182,13 +2161,9 @@ is set to NULL and the constant value is used for the size.
       if (is_error_constant(&constant)) {
         err = TRUE;
       } else {
-#if CHECKING
-        if (constant.kind != (a_constant_repr_kind)ck_integer) {
-          internal_error("nonconstant_array_declarator: array size not int");
-        } else if (sign_of_integer_constant(&constant) <= 0) {
-          internal_error("nonconstant_array_declarator: element count < 1");
-        }  /* if */
-#endif /* CHECKING */
+        /* Integral constant > 0 should have been returned. */
+        check_assertion(constant.kind == (a_constant_repr_kind)ck_integer);
+        check_assertion(sign_of_integer_constant(&constant) > 0);
         num_of_elements = unsigned_value_of_integer_constant(&constant, &err);
         if (err) error(ec_array_size_too_large);
       }  /* if */
@@ -2375,18 +2350,12 @@ param type entry.
 
   if (param_list != NULL) {
     for (; vp != NULL; vp = vp->next, ptp = ptp->next) {
-#if CHECKING
-      if (ptp == NULL) {
-        internal_error("fixup_parameters: too few param type entries");
-      }  /* if */
-#endif /* CHECKING */
+      /* Be sure there are not too few param type entries. */
+      check_assertion(ptp != NULL);
       vp->assoc_param_type = ptp;
     }  /* for */
-#if CHECKING
-    if (ptp != NULL) {
-      internal_error("fixup_parameters: too many param type entries");
-    }  /* if */
-#endif /* CHECKING */
+    /* Be sure there are not too many param type entries. */
+    check_assertion(ptp == NULL);
   }  /* if */
 }  /* fixup_parameters */
 
@@ -2415,15 +2384,11 @@ declaration of this symbol.
     } else {
       /* Any other declaration expected in a prototype scope is that of a
          type or an enumeration constant. */
-#if CHECKING
-      if (kind != (a_symbol_kind)sk_class_or_struct_tag &&
-          kind != (a_symbol_kind)sk_union_tag &&
-          kind != (a_symbol_kind)sk_enum_tag &&
-          kind != (a_symbol_kind)sk_type &&
-          kind != (a_symbol_kind)sk_constant) {
-        internal_error("enter_local_symbol: bad sym kind for func prototype");
-      }  /* if */
-#endif /* CHECKING */
+      check_assertion(kind == (a_symbol_kind)sk_class_or_struct_tag ||
+                      kind == (a_symbol_kind)sk_union_tag ||
+                      kind == (a_symbol_kind)sk_enum_tag ||
+                      kind == (a_symbol_kind)sk_type ||
+                      kind == (a_symbol_kind)sk_constant);
       if (C_dialect == C_dialect_cplusplus) {
         /* We can't get here in C++ in a legal program.  If there was some
            sort of error, just go ahead and enter the symbol in the current
@@ -2468,11 +2433,7 @@ which elsewhere is confirmed to have type size_t).
 
   if (locator->is_operator_name &&
       locator->variant.opname == (an_opname_kind)onk_new) {
-#if CHECKING
-    if (!is_function_type(type)) {
-      internal_error("is_default_operator_new: bad type");
-    }  /* if */
-#endif /* CHECKING */
+    check_assertion(is_function_type(type));
     ptp = (skip_typerefs(type))->variant.routine.extra_info->param_type_list;
     if (ptp != NULL && ptp->next == NULL) {
       match = TRUE;
@@ -2514,6 +2475,7 @@ will be involved in overloading.
   a_boolean          is_function_template_decl = FALSE;
   a_boolean          function_template_seen = FALSE;
 
+  db_enter(3, "id_linkage");
   *linked_symbol = NULL;
   *overload_symbol = NULL;
   if (local_storage_class == (a_storage_class)sc_typedef) {
@@ -2521,11 +2483,8 @@ will be involved in overloading.
     linkage = idl_none;
   } else if ((sym = locator->specific_symbol) != NULL &&
              sym->class_of_which_a_member != NULL) {
-#if CHECKING
-    if (sym->kind != (a_symbol_kind)sk_static_data_member) {
-      internal_error("id_linkage: bad symbol kind for class member");
-    }  /* if */
-#endif /* CHECKING */
+    /* Static data member. */
+    check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
     *linked_symbol = sym;
     linkage = idl_external;
   } else {
@@ -2716,14 +2675,10 @@ determine_linkage:
          linkage.  In C++ a non-file-scope function may be declared --
          a friend function defined inline within a local class; it too
          is given no linkage. */
+      check_assertion(!is_function ||
+                      (is_friend_decl &&
+                       local_storage_class == (a_storage_class)sc_static));
       linkage = idl_none;
-#if CHECKING
-      if (is_function &&
-          (!is_friend_decl ||
-           local_storage_class != (a_storage_class)sc_static)) {
-        internal_error("id_linkage: expected friend and static storage class");
-      }  /* if */
-#endif /* CHECKING */
     } else if (file_scope &&
                local_storage_class == (a_storage_class)sc_static) {
       /* An object or function at file scope with static storage class
@@ -2812,6 +2767,8 @@ determine_linkage:
   }  /* if */
 #endif /* DEBUG */
   if (linkage == idl_none) *linked_symbol = NULL;
+
+  db_exit();
   return(linkage);
 }  /* id_linkage */
 
@@ -2927,11 +2884,7 @@ created; the caller must set it.
       } else {
         old_name = esdp->variant.routine->source_corresp.name;
       }  /* if */
-#if CHECKING
-      if (old_name == NULL) {
-        internal_error("create_external_symbol_for_linked_entity: NULL name");
-      }  /* if */
-#endif /* CHECKING */
+      check_assertion(old_name != NULL);
       new_name = locator->symbol_header->identifier;
       if (old_name != new_name && strcmp(old_name, new_name) != 0) {
         /* Two different names ended up mapping to the same external name.
@@ -3190,13 +3143,12 @@ not be TRUE.
   a_type_ptr        comp_type;
   a_param_type_ptr  rout_type_ptp, comp_type_ptp, next_rout_type_ptp;
 
-#if CHECKING
-  if (!types_are_compatible(type_ptr, rout_type)) {
-    internal_error("reconcile_routine_types: types not compatible");
-  } else if (preserve_rout_type && preserve_type_ptr) {
-    internal_error("reconcile_routine_types: both preserve flags TRUE");
-  }  /* if */
-#endif /* CHECKING */
+  db_enter(4, "reconcile_routine_types");
+  /* We only try to reconcile routine types that have already been
+     determined to be compatible. */
+  check_assertion(types_are_compatible(type_ptr, rout_type));
+  /* We cannot be required to preserve the types from both sources. */
+  check_assertion(!preserve_rout_type || !preserve_type_ptr);
   if (C_dialect == C_dialect_cplusplus) {
     /* If there are default arguments associated with the parameters, check
        them at this time.  They will be merged in composite types. */
@@ -3261,6 +3213,7 @@ not be TRUE.
          -- this will have been verified in types_are_compatible. */
     }  /* if */
   }  /* if */
+  db_exit();
 }  /* reconcile_routine_types */
 
 
@@ -3316,20 +3269,12 @@ otherwise, set *ext_sym to NULL.
   a_boolean         suppress_ext_sym_lookup = FALSE;
 
   db_enter(3, "decl_var_or_routine");
-#if CHECKING
-  if (storage_class == (a_storage_class)sc_typedef) {
-    internal_error("decl_var_or_routine: called with typedef");
-  }  /* if */
-#endif /* CHECKING */
   *old_type = NULL;
   is_function = is_function_type(type_ptr);
+  check_assertion(storage_class != (a_storage_class)sc_typedef);
   if (inline_specified) {
-#if CHECKING
-    if (storage_class != (a_storage_class)sc_unspecified &&
-        storage_class != (a_storage_class)sc_static) {
-      internal_error("decl_var_or_routine: bad storage class with inline");
-    }  /* if */
-#endif /* CHECKING */
+    check_assertion(storage_class == (a_storage_class)sc_unspecified ||
+                    storage_class == (a_storage_class)sc_static);
     storage_class = (a_storage_class)sc_static;
   }  /* if */
   if (is_function) {
@@ -3413,12 +3358,7 @@ otherwise, set *ext_sym to NULL.
            are compatible. */
         sym = linked_symbol;
         variable_ptr = linked_symbol->variant.variable.ptr;
-#if CHECKING
-        if (variable_ptr == NULL) {
-          internal_error(
-              "decl_var_or_routine: linked variable symbol has NULL variable");
-        }  /* if */
-#endif /* CHECKING */
+        check_assertion(variable_ptr != NULL);
         *old_type = variable_ptr->type;
         if (!types_are_compatible(type_ptr, *old_type)) {
           pos_sy_error(ec_not_compatible_with_previous_decl,
@@ -3437,12 +3377,7 @@ otherwise, set *ext_sym to NULL.
          must be compatible with the old. */
       sym = linked_symbol;
       routine_ptr = linked_symbol->variant.routine.ptr;
-#if CHECKING
-      if (routine_ptr == NULL) {
-        internal_error(
-                "decl_var_or_routine: linked routine symbol has NULL routine");
-      }  /* if */
-#endif /* CHECKING */
+      check_assertion(routine_ptr != NULL);
       old_decl_has_body = (routine_ptr->assoc_scope != NULL_region_number
 #if ASM_FUNCTION_ALLOWED
                      || routine_ptr->storage_class == (a_storage_class)sc_asm
@@ -3666,18 +3601,14 @@ skip_overloading:;
   } else {
     /* The entity being declared is a routine. */
     if (template_function_specific_decl && sym != linked_symbol) {
-#if CHECKING
-      if (linked_symbol == NULL ||
-          effective_decl_level == DEPTH_OF_FILE_SCOPE ||
-          (routine_ptr != NULL &&
-           routine_ptr != linked_symbol->variant.routine.ptr)) {
-        internal_error("decl_var_or_routine: bad template function rout");
-      }  /* if */
-#endif /* CHECKING */
       /* This is a declaration of a template function at the local scope.
          A function instantiation entry with an associated symbol and routine
          entry already exist.  Be sure this local symbol is properly bound
          to the file-scope entities to which it corresponds. */
+      check_assertion(linked_symbol != NULL &&
+                      effective_decl_level != DEPTH_OF_FILE_SCOPE &&
+                      (routine_ptr == NULL ||
+                       routine_ptr == linked_symbol->variant.routine.ptr));
       sym->variant.routine.instance_ptr =
                                   linked_symbol->variant.routine.instance_ptr;
       routine_ptr = linked_symbol->variant.routine.ptr;
@@ -3738,18 +3669,15 @@ skip_overloading:;
            flag is reset by the set_source_corresp call). */
         routine_ptr->source_corresp.referenced = saved_referenced_flag;
         if (routine_ptr->compiler_generated) {
-#if CHECKING
-          if (routine_ptr->special_kind !=
-                                (a_special_function_kind)sfk_operator ||
-              (routine_ptr->opname_kind != (an_opname_kind)onk_new &&
-               routine_ptr->opname_kind != (an_opname_kind)onk_delete)) {
-            internal_error(
-                       "decl_var_or_routine: compiler_generated unexpected");
-          }  /* if */
-#endif /* CHECKING */
           /* This is an entry for a compiler generated ::operator new or
              ::operator delete.  It was created during initialization, but
              is overridden by the present declaration. */
+          check_assertion(routine_ptr->special_kind ==
+                                (a_special_function_kind)sfk_operator &&
+                          (routine_ptr->opname_kind ==
+                                                 (an_opname_kind)onk_new ||
+                           routine_ptr->opname_kind ==
+                                                 (an_opname_kind)onk_delete));
           routine_ptr->compiler_generated = FALSE;
         }  /* if */
       }  /* if */
@@ -3856,11 +3784,8 @@ skip_overloading:;
     source_corresp_ptr->name_linkage = (a_name_linkage_kind)nlk_internal;
   } else {
     /* No linkage -- e.g., an automatic variable. */
-#if CHECKING
-    if (source_corresp_ptr->name_linkage != (a_name_linkage_kind)nlk_none) {
-      internal_error("decl_var_or_routine:  linkage/nolinkage conflict");
-    }  /* if */
-#endif /* CHECKING */
+    check_assertion(source_corresp_ptr->name_linkage ==
+                                               (a_name_linkage_kind)nlk_none);
   }  /* if */
   *symbol_ptr = sym;
   *linkage_ptr = linkage;
@@ -3997,11 +3922,7 @@ class template.
                                  /*suppress_redecl_error=*/FALSE);
       }  /* if */
     } else {
-#if CHECKING
-      if (sym->kind != (a_symbol_kind)sk_function_template) {
-        internal_error("decl_function_template:  unexpected linked symbol");
-      }  /* if */
-#endif /* CHECKING */
+      check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
       /* Merge type information from the two declarations. */
       reconcile_routine_types(sym->variant.template_info->
 						variant.function.routine,
@@ -4104,11 +4025,7 @@ the symbol and its linkage (which is always "none").
   }  /* if */
   if (sym->kind == (a_symbol_kind)sk_static_data_member) {
     var = sym->variant.variable.ptr;
-#if CHECKING
-    if (var->storage_class != (a_storage_class)sc_static) {
-      internal_error("define_static_data_member:  not sc_static");
-    }  /* if */
-#endif /* CHECKING */
+    check_assertion(var->storage_class == (a_storage_class)sc_static);
     if (sym->defined) {
       pos_sy_error(ec_already_defined, &locator->source_position, sym);
       err = TRUE;
@@ -4988,12 +4905,10 @@ otherwise it is NULL.  The syntax is:
                      curr_token == tok_compl);
     if (!real_declarator_allowed ||
         (abstract_declarator_allowed && !is_name_start)) {
-      /* Identifier is omitted in an abstract declarator. */
-#if CHECKING
-      if (specifiers_type != NULL && is_unknown_type(specifiers_type)) {
-        internal_error("declarator: did not expect tk_unknown");
-      }  /* if */
-#endif /* CHECKING */
+      /* Identifier is omitted in an abstract declarator.  Be sure it not a
+         tk_unknown type. */
+      check_assertion(specifiers_type == NULL ||
+                      !is_unknown_type(specifiers_type));
     } else {
       /* Real (non-abstract) declarator. */
       declarator_pos = pos_curr_token;
@@ -5040,11 +4955,7 @@ otherwise it is NULL.  The syntax is:
                type of const-ptr-to-A.  Note that this syntax and
                interpretation are not supported in the ARM.  We allow it
                under cfront compatibility mode only. */
-#if CHECKING
-            if (locator_for_curr_id.specific_symbol != NULL) {
-              internal_error("declarator: unexpected locator state");
-            }  /* if */
-#endif /* CHECKING */
+            check_assertion(locator_for_curr_id.specific_symbol == NULL);
             /* Force function_declarator to add an implicit-this-param pointer
                to the routine type. */
             member_parent_type = locator_for_curr_id.qualifier_class_type;
@@ -5240,18 +5151,15 @@ otherwise it is NULL.  The syntax is:
           locator->is_conversion_name = TRUE;
         }  /* if */
       } else if (is_constructor) {
-#if CHECKING
-        if (!is_unknown_type(complete_type)) {
-          internal_error("declarator:  expected tk_unknown");
-        }  /* if */
-#endif /* CHECKING */
+        /* Return type should be "unknown" at this point.  Change it to
+           the constructed type (a front end convention that deviates from
+           what is explicitly in the source for a constructor declaration. */
+        check_assertion(is_unknown_type(complete_type));
         complete_type = make_reference_type(member_parent_type);
       } else if (is_destructor) {
-#if CHECKING
-        if (!is_unknown_type(complete_type)) {
-          internal_error("declarator:  expected tk_unknown");
-        }  /* if */
-#endif /* CHECKING */
+        /* Return type should be "unknown" at this point.  Change it to void
+           (again, a front end convention). */
+        check_assertion(is_unknown_type(complete_type));
         complete_type = void_type();
       }  /* if */
     }  /* if */
@@ -5766,12 +5674,10 @@ to indicate whether an enumeration is actually defined.
     access = (an_access_specifier)as_public;
   }  /* if */
   /* Skip over "enum". */
-#if CHECKING
-  if (curr_token != tok_enum) internal_error("enum_specifier: expected enum");
-#endif /* CHECKING */
+  check_assertion(curr_token == tok_enum);
+  (void)get_token();
   /* If there is an identifier next, it is a tag.  It can be the declaration
      of a new tag or a reference to an existing tag. */
-  (void)get_token();
   tag_id_present = is_qualified_name_start();
   if (tag_id_present) {
     a_boolean  tag_resolution;
@@ -5917,11 +5823,7 @@ to indicate whether an enumeration is actually defined.
           if (is_error_constant(&constant)) {
             err = TRUE;
           } else {
-#if CHECKING
-            if (constant.kind != (a_constant_repr_kind)ck_integer) {
-              internal_error("enum_specifier: enum value not int");
-            }  /* if */
-#endif /* CHECKING */
+            check_assertion(constant.kind == (a_constant_repr_kind)ck_integer);
             /* Check the value to see if it is out of range.  (3.5.2.2,
                constraints) */
             if (!in_range_for_integer_kind(&constant, &constant,
@@ -6697,12 +6599,8 @@ process_class_specifier:
                   str_error(ec_id_already_declared,
                             locator_for_curr_id.symbol_header->identifier);
                 } else if (curr_token_type_symbol != NULL) {
-#if CHECKING
-                  if (!is_template_class_symbol(curr_token_type_symbol)) {
-                    internal_error(
-                              "decl_specifiers: expected template class");
-                  }  /* if */
-#endif /* CHECKING */
+                  check_assertion(
+                          is_template_class_symbol(curr_token_type_symbol));
                   pos_sy2_error(ec_bad_constructor_name,
                                 &locator_for_curr_id.source_position,
                                 curr_token_type_symbol, tag_sym);
@@ -7019,19 +6917,6 @@ destructor_name:
           if (num_specifiers == 0) {
             *output_flags |= DSO_NO_DECL_SPECIFIERS;
           }  /* if */
-#if 0
-          /* The only specifiers that are allowed with a destructor are
-             virtual (ARM 12.4) and inline.  Additional checking is done
-             in declarator. */
-          if (num_specifiers == 0 ||
-              (num_specifiers == 1 &&
-               (*output_flags & (DSO_VIRTUAL | DSO_INLINE))) ||
-              (num_specifiers == 2 &&
-               (*output_flags & (DSO_VIRTUAL & DSO_INLINE)))) {
-            *output_flags |= DSO_DESTRUCTOR;
-            basic_type = bt_no_type;
-          }  /* if */
-#else
           *output_flags |= DSO_DESTRUCTOR;
           if (basic_type == bt_none && sign == sign_none &&
               size == size_none) {
@@ -7040,7 +6925,6 @@ destructor_name:
             /* It is an error to specify the type on a destructor, but it
                will be reported later. */
           }  /* if */
-#endif /* if 0 */
           goto exit_loop;
         }  /* if */
         /* If destructors aren't expected, fall through into the default
@@ -7675,6 +7559,7 @@ and for the instantiation of template functions.
   a_ptrdiff                      saved_container_pos;
   a_reachability_summary         saved_curr_reachability;
   a_boolean                      is_instantiation;
+  a_param_type_ptr               ptp;
 
   db_enter(3, "scan_function_body");
   class_type = rout_ptr->source_corresp.class_of_which_a_member;
@@ -7727,51 +7612,31 @@ and for the instantiation of template functions.
         for (param_id = func_info->param_id_list;
              param_id != NULL;
              param_id = param_id->next) {
-#if CHECKING
-          if (param_id->symbol == NULL) {
-            internal_error("function_definition: NULL old-style param_id sym");
-          }  /* if */
-#endif /* CHECKING */
+          check_assertion(param_id->symbol != NULL);
           reenter_symbol(param_id->symbol, decl_scope_level,
                          /*suppress_error=*/FALSE);
         }  /* for */
       }  /* if */
     }  /* if */
-#if 0
-    if (!rtsp->old_style_params_scanned
-        && !top_declarator_type_is_function
-                                       ) {
-      /* New-style (function prototype) for which there will be no parameter
-         names to worry about -- skip over the declarations. */
-    } else
-#endif /* if 0 */
-           {
-      a_param_type_ptr  ptp = rtsp->param_type_list;
-      if (rtsp->prototyped && func_info->any_prototype_names_omitted) {
-        /* New-style (function prototype) for which at least one of the param
-           names was omitted in the prototype.  In C this is not valid on a
-           function definition; in C++ it's okay (see ARM 8.2.5, 8.3). */
-        if (C_dialect != C_dialect_cplusplus) {
-          error(ec_all_proto_params_must_be_named);
-        }  /* if */
+    if (rtsp->prototyped && func_info->any_prototype_names_omitted) {
+      /* New-style (function prototype) for which at least one of the param
+         names was omitted in the prototype.  In C this is not valid on a
+         function definition; in C++ it's okay (see ARM 8.2.5, 8.3). */
+      if (C_dialect != C_dialect_cplusplus) {
+        error(ec_all_proto_params_must_be_named);
       }  /* if */
-      param_id = func_info->param_id_list;
-#if CHECKING
-      if ((param_id == NULL) != (ptp == NULL)) {
-        internal_error("function_definition: param_id and ptp out of sync");
-      }  /* if */
-#endif /* CHECKING */
-      for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
-        /* Declare each parameter identifier to have the associated type
-           from the parameter type list. */
-        decl_parameter(param_id, ptp, is_instantiation);
-#if CHECKING
-        if ((param_id->next == NULL) != (ptp->next == NULL)) {
-          internal_error("function_definition: param_id and ptp out of sync");
-        }  /* if */
-#endif /* CHECKING */
-      }  /* for */
     }  /* if */
+    param_id = func_info->param_id_list;
+    ptp = rtsp->param_type_list;
+    /* Be sure param-id and param-type lists are in sync. */
+    check_assertion((param_id == NULL) == (ptp == NULL));
+    for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
+      /* Declare each parameter identifier to have the associated type
+         from the parameter type list. */
+      decl_parameter(param_id, ptp, is_instantiation);
+      /* Be sure param-id and param-type lists are in sync. */
+      check_assertion((param_id->next == NULL) == (ptp->next == NULL));
+    }  /* for */
     if (!is_instantiation) {
       /* Free the list of parameter ids, now that it is no longer needed. */
       free_param_id_list(&(func_info->param_id_list));
@@ -7908,22 +7773,13 @@ explicitly specified (rather than defaulted to "int").
        routine type entry that we can modify. */
     /* The type was probably from a typedef, so skip past that. */
     rout_type = skip_typerefs(rout_type);
-#if CHECKING
-    if (rout_type->kind != (a_type_kind)tk_routine) {
-      internal_error("function_definition: rout_type is not a routine");
-    }  /* if */
-#endif /* CHECKING */
+    check_assertion(rout_type->kind == (a_type_kind)tk_routine);
     unqualified_rout_type = alloc_type((a_type_kind)tk_routine);
     copy_routine_type_with_param_types(rout_type, unqualified_rout_type);
     rout_type = unqualified_rout_type;
   } else {
     unqualified_rout_type = make_unqualified_type(rout_type);
-#if CHECKING
-    if (unqualified_rout_type->kind != (a_type_kind)tk_routine) {
-      internal_error(
-           "function_definition: unqualified_rout_type is not a routine");
-    }  /* if */
-#endif /* CHECKING */
+    check_assertion(unqualified_rout_type->kind == (a_type_kind)tk_routine);
   }  /* if */
   extra_info = unqualified_rout_type->variant.routine.extra_info;
   prototyped = extra_info->prototyped;
@@ -7941,11 +7797,7 @@ explicitly specified (rather than defaulted to "int").
   if (locator->specific_symbol != NULL &&
       locator->specific_symbol->class_of_which_a_member != NULL) {
     /* This is the definition of a member function. */
-#if CHECKING
-    if (!prototyped) {
-      internal_error("function_definition: member function not prototyped");
-    }  /* if */
-#endif /* CHECKING */
+    check_assertion(prototyped);
     is_member_function_def = TRUE;
     define_member_function(locator, rout_type, inline_specified,
                            &symbol_ptr, &linkage, &old_type, &ext_sym);
@@ -8026,11 +7878,8 @@ explicitly specified (rather than defaulted to "int").
   }  /* if */
   symbol_ptr->defined = TRUE;
   routine_ptr = symbol_ptr->variant.routine.ptr;
-#if CHECKING
-  if (make_unqualified_type(routine_ptr->type) != unqualified_rout_type) {
-    internal_error("function_definition: routine type not preserved");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion(make_unqualified_type(routine_ptr->type) ==
+                                                      unqualified_rout_type);
   if (!is_member_function_def &&
       storage_class == (a_storage_class)sc_unspecified &&
       routine_ptr->source_corresp.name != NULL &&
@@ -8265,12 +8114,7 @@ an asm "declaration" is actually treated as an executable statement.
   a_source_position asm_pos;
 
   db_enter(3, "asm_declaration");
-
-#if CHECKING
-  if (curr_token != tok_asm) {
-    internal_error("asm_declaration: expected asm");
-  }  /* if */
-#endif  /* CHECKING */
+  check_assertion(curr_token == tok_asm);
   if (!asm_decl_allowed) {
     /* An asm declaration is not allowed in the current scope. */
     error(ec_asm_not_allowed);
@@ -8541,12 +8385,8 @@ continue_with_declaration:
          required error checking and special processing, including creation
          of a variable which will represent the anonymous union and with
          which its fields will be aliased. */
-#if CHECKING
-      if (!is_unnamed_class_symbol(
-                       (a_symbol_ptr)(type_ptr->source_corresp.assoc_info))) {
-        internal_error("declaration: nameless symbol expected");	
-      }  /* if */
-#endif /* CHECKING */
+      check_assertion(is_unnamed_class_symbol(
+                        (a_symbol_ptr)(type_ptr->source_corresp.assoc_info)));
       make_anonymous_union_variable(type_ptr, storage_class);
       /* The anonymous union variable is marked as referenced, as are all
          unnamed entities.  So its type is also marked referenced. */
