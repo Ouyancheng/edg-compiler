@@ -1565,6 +1565,7 @@ subaggregate. The function returns a pointer to IL a_constant entity.
 {
   a_constant_ptr      constant; /* Result of this function */
   a_boolean           nonconst_allowed, brace_flag;
+  a_boolean           microsoft_enum_case = FALSE;
   a_dynamic_init_ptr dip = 0;
 
   check_for_opening_brace(&brace_flag);
@@ -1601,6 +1602,7 @@ subaggregate. The function returns a pointer to IL a_constant entity.
          initialized by integer values. */
       required_type = integer_type(skip_typerefs(context->type)
                                                   ->variant.integer.int_kind);
+      microsoft_enum_case = TRUE;
     }  /* if */
     constant = scan_initializer_of_simple_object(
                                      nonconst_allowed,
@@ -1618,11 +1620,16 @@ subaggregate. The function returns a pointer to IL a_constant entity.
       constant = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       constant->variant.dynamic_init = dip;
       constant->type = context->type;
-      /* Add a cast to the expression under the dynamic initialization. */
-      check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression);
-      dip->variant.expression = add_cast(dip->variant.expression,
-                                         context->type);
-    } else if (context->type != required_type) {
+      if (microsoft_enum_case) {
+        /* The initialization of an enum bit field in Microsoft mode.
+           Add a cast to the expression under the dynamic initialization
+           to adjust the expression from integral to the desired
+           enum destination type. */
+        check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression);
+        dip->variant.expression = add_cast(dip->variant.expression,
+                                           context->type);
+      }  /* if */
+    } else if (microsoft_enum_case) {
       /* The initialization of an enum bit field in Microsoft mode.  We
          scanned as if an integer bit field was being initialized, but the
          destination type is an enumeration. */
