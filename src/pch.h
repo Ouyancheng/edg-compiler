@@ -100,6 +100,22 @@ typedef struct a_pch_event {
 } a_pch_event;
 
 
+/*
+Structure used to record statically allocated compiler variables that need
+to be saved when precompiled headers are written out and restored when they
+are read back in.
+*/
+typedef struct a_pch_saved_variable *a_pch_saved_variable_ptr;
+typedef struct a_pch_saved_variable {
+  a_void_ptr	var_address;
+			/* The address of a variable that is to be saved
+			   and/or restored. */
+  sizeof_t	var_size;
+			/* The size of the variable (that is, the number of
+			   bytes that comprise its value). */
+} a_pch_saved_variable;
+
+
 EXTERN a_boolean
 		building_pch_prefix;
 			/* TRUE when doing the initial scan of the
