@@ -2632,7 +2632,9 @@ Instantiate the body of the template function associated with tip.
     /* The function was declared using a typedef.  Now that it is being
        defined (given a body by the instantiation), create an unshared type
        with the typedef stripped off. */
-    rout_ptr->type = copy_routine_type_with_param_types(rout_ptr->type);
+    rout_ptr->type =
+            copy_routine_type_with_param_types(skip_typerefs(rout_ptr->type),
+                                               /*copy_default_args=*/TRUE);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   set_routine_declared_type(rout_ptr,
@@ -9829,7 +9831,8 @@ declaration (following any template clauses).
              a function template is being defined. */
           error(ec_function_type_must_come_from_declarator);
           /* Copy the type entry, since the typedef type may not be shared. */
-          type = copy_routine_type_with_param_types(skip_typerefs(type));
+          type = copy_routine_type_with_param_types(skip_typerefs(type),
+                                                   /*copy_default_args=*/TRUE);
         }  /* if */
       }  /* if */
       /* Check for a previous definition of this template. */

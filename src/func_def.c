@@ -1441,6 +1441,13 @@ on a prior declaration.
     check_exception_specification(rout_type, rp,
                                   &func_info->throw_position,
                                   /*is_redecl=*/TRUE);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Record the default arguments of the current declaration before
+       reconcile_routine_types is called. */
+    if (func_info->declared_type != NULL) {
+      copy_routine_type_default_args(type_ptr, func_info->declared_type);
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Note that type_ptr is passed to reconcile_routine_types instead of
        rout_type.  This is intended.  type_ptr should differ from rout_type
        only by the presence of a top-level type qualifiers.  These will only
@@ -1635,7 +1642,8 @@ associated with the function is returned.
     /* Build a copy of the routine type that can be used below, to avoid
        further error recovery problems, and because we need a non-shared
        routine type entry that we can modify. */
-    rout_type = copy_routine_type_with_param_types(rout_type);
+    rout_type = copy_routine_type_with_param_types(rout_type,
+                                                   /*copy_default_args=*/TRUE);
     unqualified_rout_type = skip_typerefs(rout_type);
   } else {
     unqualified_rout_type = skip_typerefs(rout_type);

@@ -4988,7 +4988,8 @@ type if necessary.
     if (rtsp->implicit_this_param_type == NULL) {
       /* Before updating the implicit param type pointer, copy the routine
          type, since it might be shared. */
-      member_type = copy_routine_type_with_param_types(tp);
+      member_type =
+          copy_routine_type_with_param_types(tp, /*copy_default_args=*/TRUE);
       rtsp = member_type->variant.routine.extra_info;
       rtsp->implicit_this_param_type = make_pointer_type(class_type);
     }  /* if */
@@ -5661,12 +5662,46 @@ in the new param type will be NULL.
 }  /* copy_param_type_list */
 
 
-a_type_ptr copy_routine_type_with_param_types(a_type_ptr from_type)
+void copy_routine_type_default_args(a_type_ptr  from_type,
+                                    a_type_ptr  to_type)
+/*
+from_type and to_type are routine types with identical param-type lists --
+except that the param-type entries of from_type may have default arguments
+that are missing from to_type.  Copy the default argument expressions from
+from_type to to_type.
+*/
+{
+  a_param_type_ptr  from_ptp, to_ptp;
+
+  db_enter(5, "copy_routine_type_default_args");
+  from_ptp = skip_typerefs(from_type)->
+                    variant.routine.extra_info->param_type_list;
+  to_ptp = skip_typerefs(to_type)->
+                    variant.routine.extra_info->param_type_list;
+  for (;; from_ptp = from_ptp->next, to_ptp = to_ptp->next) {
+    check_assertion((from_ptp == NULL) == (to_ptp == NULL));
+    if (from_ptp == NULL) break;
+    if (from_ptp->has_default_arg) {
+      check_assertion(from_ptp->default_arg_expr != NULL);
+      to_ptp->has_default_arg = TRUE;
+      to_ptp->default_arg_expr =
+                        duplicate_default_arg_expr(from_ptp->default_arg_expr);
+    }  /* if */
+  }  /* if */
+  db_exit();
+}  /* copy_routine_type_default_args */
+
+
+a_type_ptr copy_routine_type_with_param_types(a_type_ptr  from_type,
+                                              a_boolean   copy_default_args)
 /*
 Make a copy of a routine type and its param types list.  This routine is
 called in cases where a routine type and its copy may not share the same
 param-types list (for example, when as the result of a user error a routine
-type in a function definition is based on a typedef).
+type in a function definition is based on a typedef).  If copy_default_args
+is TRUE, the copies of the default argument expressions are made; otherwise,
+they are not made and the has_default_arg flag is set to FALSE in the
+param-type entry of the new type.
 */
 {
   a_type_qualifier_set	qualifiers;
@@ -5681,7 +5716,7 @@ type in a function definition is based on a typedef).
   to_type->variant.routine.extra_info->param_type_list =
             copy_param_type_list(from_type->variant.routine.extra_info->
                                                             param_type_list,
-                                 /*copy_default_args=*/TRUE);
+                                 copy_default_args);
   if (qualifiers != TQ_NONE) {
     /* If the original type had qualifiers above the routine type, add
        them to the newly created type now. */
@@ -11527,35 +11562,35 @@ list of its parent.
 }  /* unlink_from_child_lifetime_list */
 
 
-static void eliminate_default_arg_object_lifetimes(a_routine_ptr  rp)
+static void eliminate_default_arg_object_lifetimes(a_type_ptr  rout_type)
 /*
-A function is being eliminated from the IL.  Be sure that any object lifetimes
-created for its default arguments have been removed, too.
+A routine type is being eliminated from the IL.  Be sure that any object
+lifetimes created for its default arguments have been removed, too.
 */
 {
   a_param_type_ptr        ptp;
   an_expr_node_ptr        def_arg_expr;
   an_object_lifetime_ptr  olp;
-  a_type_ptr              tp = skip_typerefs(rp->type);
 
-  for (ptp = tp->variant.routine.extra_info->param_type_list;
-       ptp != NULL;
-       ptp = ptp->next) {
-    def_arg_expr = ptp->default_arg_expr;
-    if (def_arg_expr != NULL &&
-        def_arg_expr->kind == (an_expr_node_kind)enk_object_lifetime) {
-      olp = def_arg_expr->variant.object_lifetime.ptr;
-      check_assertion(olp != NULL);
-      unlink_from_child_lifetime_list(olp);
+  if (rout_type != NULL) {
+    rout_type = skip_typerefs(rout_type);
+    for (ptp = rout_type->variant.routine.extra_info->param_type_list;
+         ptp != NULL;
+         ptp = ptp->next) {
+      def_arg_expr = ptp->default_arg_expr;
+      if (def_arg_expr != NULL &&
+          def_arg_expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+        olp = def_arg_expr->variant.object_lifetime.ptr;
+        check_assertion(olp != NULL);
+        unlink_from_child_lifetime_list(olp);
 #if DEBUG
-      if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
-        fputs("Unlinking default arg object lifetime for ", f_debug);
-        db_name(&rp->source_corresp);
-        fputc('\n', f_debug);
-      }  /* if */
+        if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
+          fputs("Unlinking default arg object lifetime\n", f_debug);
+        }  /* if */
 #endif /* DEBUG */
-    }  /* if */
-  }  /* for */
+      }  /* if */
+    }  /* for */
+  }  /* if */
 }  /* eliminate_default_arg_object_lifetimes */
 
 
@@ -11575,7 +11610,12 @@ functions have been removed from the IL.
   if (sp != NULL) {
     /* Traverse its member function list. */
     for (rp = sp->routines; rp != NULL; rp = rp->next) {
-      eliminate_default_arg_object_lifetimes(rp);
+      eliminate_default_arg_object_lifetimes(rp->type);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (rp->declared_type != rp->type) {
+        eliminate_default_arg_object_lifetimes(rp->declared_type);
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* for */
   }  /* if */
 }  /* eliminate_member_function_default_arg_object_lifetimes */
@@ -12459,7 +12499,12 @@ eliminated, if appropriate.
       if (!C_mode()) {
         /* Remove any object lifetimes that may be associated with its default
            arguments. */
-        eliminate_default_arg_object_lifetimes(rp);
+        eliminate_default_arg_object_lifetimes(rp->type);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        if (rp->declared_type != rp->type) {
+          eliminate_default_arg_object_lifetimes(rp->declared_type);
+        }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
       /* Remove it from the routines list by linking around it. */
       if (prev_rp == NULL) {
@@ -12577,6 +12622,10 @@ eliminated, if appropriate.
           sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
           kind = sssdp->entity.kind;
           check_assertion(!il_entry_prefix_of(sssdp->entity.ptr).keep_in_il);
+          if (sssdp->declared_type != NULL &&
+              is_function_type(sssdp->declared_type)) {
+            eliminate_default_arg_object_lifetimes(sssdp->declared_type);
+          }  /* if */
         } else {
           sssdp = NULL;
         }  /* if */

@@ -376,7 +376,12 @@ extern void set_routine_calling_method_flag(a_type_ptr         routine_type,
 extern void copy_type(a_type_ptr from,
                       a_type_ptr to);
 
-extern a_type_ptr copy_routine_type_with_param_types(a_type_ptr from_type);
+extern a_type_ptr copy_routine_type_with_param_types(
+                                               a_type_ptr  from_type,
+                                               a_boolean   copy_default_args);
+
+extern void copy_routine_type_default_args(a_type_ptr  from_type,
+                                           a_type_ptr  to_type);
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 extern a_type_ptr routine_type_without_default_args(a_type_ptr orig_type);

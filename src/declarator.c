@@ -273,7 +273,9 @@ array-to-pointer decay).
   } else {
     /* Make a copy of the type.  Note that default arg expressions, if any,
        will be copied, too. */
-    declared_type = copy_routine_type_with_param_types(type_ptr);
+    declared_type =
+               copy_routine_type_with_param_types(type_ptr,
+                                                  /*copy_default_args=*/FALSE);
     fixup_needed = FALSE;
     param_id = func_info->param_id_list;
     ptp = skip_typerefs(declared_type)->
@@ -2151,7 +2153,8 @@ information should be ignored or if an error should be issued.
             /* Copy the routine type, since it's about to be modified and we
                don't want to change the meaning of the typedef.  But that
                means *type has to be adjusted. */
-            tp = copy_routine_type_with_param_types(tp);
+            tp = copy_routine_type_with_param_types(tp,
+                                                   /*copy_default_args=*/TRUE);
             *type = tp;
             rtsp = tp->variant.routine.extra_info;
           }  /* if */

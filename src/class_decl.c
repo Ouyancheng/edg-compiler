@@ -939,28 +939,9 @@ Process the default argument expressions for the indicated class.
         /* The default arguments on the routine type have been fixed up.
            If the declared type refers to a different type entry, copy the
            default argument expressions to the declared type. */
-        if (do_declared_type_fixup) {
-          a_type_ptr        rout_type = routine_symbol_type(sym);
-          a_param_type_ptr  ptp1, ptp2;
-
-          check_assertion(rfp->func_info.declared_type != NULL);
-          if (rout_type != rfp->func_info.declared_type) {
-            ptp1 = skip_typerefs(rout_type)->
-                              variant.routine.extra_info->param_type_list;
-            ptp2 = skip_typerefs(rfp->func_info.declared_type)->
-                              variant.routine.extra_info->param_type_list;
-            for (;;) {
-              check_assertion((ptp1 == NULL) == (ptp2 == NULL));
-              if (ptp1 == NULL) break;
-              if (ptp2->has_default_arg) {
-                check_assertion(ptp1->default_arg_expr != NULL);
-                ptp2->default_arg_expr =
-                       duplicate_default_arg_expr(ptp1->default_arg_expr);
-              }  /* if */
-              ptp1 = ptp1->next;
-              ptp2 = ptp2->next;
-            }  /* for */
-          }  /* if */
+        if (do_declared_type_fixup && rfp->func_info.declared_type != NULL) {
+          copy_routine_type_default_args(routine_symbol_type(sym),
+                                         rfp->func_info.declared_type);
         }  /* if */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
         if (ss_list_insert_point_adjusted) pop_ss_insert_stack();
@@ -5680,7 +5661,8 @@ declared member functions.
           if (tp->kind == (a_type_kind)tk_typeref) {
             /* The typedef is potentially shared, so don't modify the
                type it points to without copying it first. */
-            tp = copy_routine_type_with_param_types(skip_typerefs(tp));
+            tp = copy_routine_type_with_param_types(skip_typerefs(tp),
+                                                   /*copy_default_args=*/TRUE);
             rtsp2 = tp->variant.routine.extra_info;
             /* For default arg processing later on, save the type that will
                be used as the declared type in the secondary declaration
@@ -5696,7 +5678,12 @@ declared member functions.
                                               /*is_specialization=*/FALSE);
       /* A member function declaration within a class definition is always
          the initial declaration. */
-      if (sssdp != NULL) {
+      if (sssdp == NULL) {
+        /* If sssdp is NULL it means the declared type will not be needed.
+           Clear the pointer to suppress copying the default arg expression
+           to it later on. */
+        func_info->declared_type = NULL;
+      } else {
         sssdp->first_declaration = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         /* Update source range information in the secondary-decl entry. */
@@ -9196,7 +9183,6 @@ static void check_typedef_function_type(a_type_ptr         *member_type,
                                         a_type_ptr         class_type,
                                         a_boolean          is_nonstatic_member)
 /*
-
 *member_type points to a typedef type with which a member or friend function
 has been declared.  Since typedef types are shared, update *member_type with
 a copy of the underlying routine type if this is a definition or if the
@@ -9205,7 +9191,6 @@ position at which to issue a diagnostic, if required.  is_definition is TRUE
 if this declaration is a definition; class_type indicates the class in which
 the member or friend function appears, and is_nonstatic_member is TRUE when
 the function is a nonstatic member of class_type.
-
 */
 {
   a_type_ptr                     rout_type, tp;
@@ -9222,7 +9207,8 @@ the function is a nonstatic member of class_type.
                       (a_name_linkage_kind)nlk_cplusplus_external) {
     /* Build a copy of the routine type so as to have a
        non-shared routine type entry. */
-    rout_type = copy_routine_type_with_param_types(rout_type);
+    rout_type = copy_routine_type_with_param_types(rout_type,
+                                                   /*copy_default_args=*/TRUE);
     if (is_nonstatic_member) {
       /* This is a nonstatic member function declared through a typedef.
          Be sure the implicit this-param type is filled in, since that's

@@ -2863,7 +2863,8 @@ not be TRUE.
              points to a type entry that is going to be modified, so change
              it to point to a copy. */
           routine_ptr->declared_type =
-                               copy_routine_type_with_param_types(rout_type);
+                copy_routine_type_with_param_types(rout_type,
+                                                   /*copy_default_args=*/TRUE);
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       } else {
@@ -3821,7 +3822,8 @@ type entry if appropriate, otherwise using the indicated declared_type.
       rtsp1->routine_name_linkage != rtsp2->routine_name_linkage) {
     if (declared_type->kind == (a_type_kind)tk_typeref) {
       declared_type =
-           copy_routine_type_with_param_types(skip_typerefs(declared_type));
+           copy_routine_type_with_param_types(skip_typerefs(declared_type),
+                                              /*copy_default_args=*/TRUE);
       rtsp2 = declared_type->variant.routine.extra_info;
     }  /* if */
     rtsp2->implicit_this_param_type = rtsp1->implicit_this_param_type;
@@ -3938,6 +3940,13 @@ on for use in generating cross-reference output describing this declaration.
     check_assertion_str(srk_flags & SRK_DEFINITION,
                         "decl_routine: missing SRK_DEFINITION");
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (is_function_def || !source_sequence_entries_disallowed) {
+    if (func_info->declared_type != NULL) {
+      copy_routine_type_default_args(type_ptr, func_info->declared_type);
+    }  /* if */
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   effective_decl_level = compute_effective_decl_level(/*is_function=*/TRUE,
                                                       storage_class,
                                                       is_friend_decl);
@@ -4855,7 +4864,8 @@ is not a template declaration scope.
          a function template is being defined. */
       error(ec_function_type_must_come_from_declarator);
       /* Copy the type entry, since the typedef type may not be shared. */
-      type_ptr = copy_routine_type_with_param_types(skip_typerefs(type_ptr));
+      type_ptr = copy_routine_type_with_param_types(skip_typerefs(type_ptr),
+                                                   /*copy_default_args=*/TRUE);
     }  /* if */
   }  /* if */
   if (sym != NULL) {
