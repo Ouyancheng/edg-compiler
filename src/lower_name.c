@@ -5499,22 +5499,19 @@ returned.
 
 #if IA64_ABI
 /*ARGSUSED*/  /* <-- scope is not used in that case. */
-#else /* !IA64_ABI */
-/*ARGSUSED*/ /* <-- entry_kind is not used in that case. */
 #endif /* IA64_ABI */
 void mangle_promoted_entity_name(a_source_correspondence *scp,
-                                 an_il_entry_kind        entry_kind,
                                  a_boolean               final,
                                  a_routine_ptr           routine,
                                  a_scope_ptr             scope)
 /*
-scp points to the source correspondence field of an entity (of kind
-entry_kind) that is being promoted out of the routine "routine" (or
-one of its block scopes) to the file scope.  scope indicates the scope
-out of which the entity is being promoted (a function or block scope).
-Give the entity a mangled name if necessary.  If final is TRUE, do the
-final name mangling, which may produce a name that can no longer be
-embedded in other mangled names.
+scp points to the source correspondence field of an entity that is
+being promoted out of the routine "routine" (or one of its block
+scopes) to the file scope.  scope indicates the scope out of which the
+entity is being promoted (a function or block scope).  Give the entity
+a mangled name if necessary.  If final is TRUE, do the final name
+mangling, which may produce a name that can no longer be embedded in
+other mangled names.
 */
 {
   a_mangling_control_block mctl;

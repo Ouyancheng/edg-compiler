@@ -13779,7 +13779,7 @@ with the outermost enclosing class, for later promotion out of the class
 #endif /* DEBUG */
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
-      mangle_promoted_entity_name(&type->source_corresp, iek_type,
+      mangle_promoted_entity_name(&type->source_corresp,
                                   /*final=*/FALSE, routine, scope);
       /* The is_local_to_function flag in the type is not cleared yet.  That
          happens at the end of lowering. */
@@ -13810,7 +13810,7 @@ with the outermost enclosing class, for later promotion out of the class
         for (enum_con = type->variant.integer.enum_info.constant_list;
              enum_con != NULL;
              enum_con = enum_con->next) {
-          mangle_promoted_entity_name(&enum_con->source_corresp, iek_constant,
+          mangle_promoted_entity_name(&enum_con->source_corresp,
                                       /*final=*/TRUE, routine, scope);
           enum_con->source_corresp.is_local_to_function = FALSE;
         }  /* for */
@@ -13874,7 +13874,7 @@ block -- scopes for "for" init blocks do not have one.
       scope->variables = variable->next;
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
-      mangle_promoted_entity_name(&variable->source_corresp, iek_variable,
+      mangle_promoted_entity_name(&variable->source_corresp,
                                   /*final=*/FALSE, routine, scope);
       variable->source_corresp.is_local_to_function = FALSE;
 #if LOWER_EXTERN_INLINE
