@@ -1563,7 +1563,8 @@ confusion.  Do the output in the way described by octl.
   }  /* if */
   switch (kind) {
     case ck_error:
-      check_assertion(!octl->gen_compilable_code);
+      check_assertion_str(!octl->gen_compilable_code,
+                          "form_constant: error constant");
       octl->output_str("<error-constant>");
       break;
     case ck_integer:
