@@ -35,7 +35,8 @@ Define system-specific predefined macros and builtin #assert predicates
   /* System-specific macros: */
 #if 0
   /* For example: */
-  (void)enter_predef_macro("1", "unix", /*cannot_be_redefined=*/TRUE);
+  (void)enter_predef_macro("1", "unix", /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
 #endif /* 0 */
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
   /* Define predefined #assert predicates: */

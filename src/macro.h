@@ -72,7 +72,8 @@ extern a_boolean scan_assert_predicate_reference(void);
 
 extern a_symbol_ptr enter_predef_macro(char      *repl_text,
 			               char      *macro_name,
-				       a_boolean cannot_be_redefined);
+                                       a_boolean cannot_be_redefined,
+                                       a_boolean ref_suppresses_pch_file);
 
 extern void init_predefined_macros(char  curr_date_time[26]);
 

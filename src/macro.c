@@ -479,6 +479,7 @@ Clear a macro definition entry to default values.
   mdp->try_to_scan_and_save_constant_value = FALSE;
   mdp->is_manifest_constant                = FALSE;
   mdp->cannot_be_redefined                 = FALSE;
+  mdp->ref_suppresses_pch_file             = FALSE;
   mdp->param_list                          = NULL;
   mdp->repl_text                           = NULL;
   mdp->constant_token_kind                 = tok_error;
@@ -2101,6 +2102,11 @@ return_point:
        This is not done for cases where the identifier turned out not to be
        a macro. */
     mark_referenced(macro_symbol, &start_pos);
+    if (mdp->ref_suppresses_pch_file) {
+      /* Referencing this macro within a header file is not compatible with
+         generating a precompiled header. */
+      suppress_creation_of_pch();
+    }  /* if */
   }  /* if */
   /* Free any allocated macro buffers.  Note that this includes
      special_macro_arg as well as any normal arguments.  Also note that
@@ -3440,7 +3446,8 @@ repl_text_length is not NULL.
 
 a_symbol_ptr enter_predef_macro(char      *repl_text,
                                 char      *macro_name,
-                                a_boolean cannot_be_redefined)
+                                a_boolean cannot_be_redefined,
+                                a_boolean ref_suppresses_pch_file)
 /*
 Enter a predefined macro.  macro_name is the name, repl_text the replacement
 text string (or NULL for a special macro).  cannot_be_redefined is TRUE
@@ -3456,6 +3463,7 @@ symbol entry is returned.
   sym_ptr->variant.macro_def = mdp = alloc_macro_def();
   mdp->object_like = TRUE;
   mdp->cannot_be_redefined = cannot_be_redefined;
+  mdp->ref_suppresses_pch_file = ref_suppresses_pch_file;
   mdp->param_list  = NULL;
   mdp->repl_text   = (repl_text != NULL) ?
                           make_repl_text(repl_text, (sizeof_t*)NULL) : NULL;
@@ -3530,7 +3538,8 @@ command line -D options.
     /* Enter macro __SIGNED_CHARS__, which is used to modify the definition
        of CHAR_MIN and CHAR_MAX in the included limits.h. */
     (void)enter_predef_macro("1", "__SIGNED_CHARS__",
-                             /*cannot_be_redefined=*/FALSE);
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
   /* Enter predefined macros __DATE__ and __TIME__, based on the string
      curr_date_time passed in by the caller. */
@@ -3546,9 +3555,11 @@ command line -D options.
   time_of_translation[10] = '\0';
 
   (void)enter_predef_macro(date_of_translation, "__DATE__",
-                           /*cannot_be_redefined=*/TRUE);
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/TRUE);
   (void)enter_predef_macro(time_of_translation, "__TIME__",
-                           /*cannot_be_redefined=*/TRUE);
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/TRUE);
 
   /* __STDC__ is defined as 1 if we are compiling the ANSI C dialect
      or if we are compiling C++ (ARM 16.10: "Whether __STDC__ is defined
@@ -3562,15 +3573,18 @@ command line -D options.
       && !any_cfront_mode()
 #endif /* OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
                                                                       ) {
-    (void)enter_predef_macro("1", "__STDC__", C_dialect == C_dialect_ANSI);
+    (void)enter_predef_macro("1", "__STDC__", C_dialect == C_dialect_ANSI,
+                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
   /* __cplusplus is defined as 1 if we are compiling C++, left undefined
      otherwise.  For compatibility, c_plusplus is also defined. */
   if (C_dialect == C_dialect_cplusplus) {
-    (void)enter_predef_macro("1", "__cplusplus", /*cannot_be_redefined=*/TRUE);
+    (void)enter_predef_macro("1", "__cplusplus", /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
     if (!strict_ansi_mode) {
       (void)enter_predef_macro("1", "c_plusplus",
-                               /*cannot_be_redefined=*/TRUE);
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
   }  /* if */
 
@@ -3579,11 +3593,14 @@ command line -D options.
      with a NULL replacement text, and code on the expansion end handles
      them. */
   line_macro_symbol    = enter_predef_macro((char *)NULL, "__LINE__",
-                                            /*cannot_be_redefined=*/TRUE);
+                                            /*cannot_be_redefined=*/TRUE,
+                                            /*ref_suppresses_pch_file=*/FALSE);
   file_macro_symbol    = enter_predef_macro((char *)NULL, "__FILE__",
-                                            /*cannot_be_redefined=*/TRUE);
+                                            /*cannot_be_redefined=*/TRUE,
+                                            /*ref_suppresses_pch_file=*/FALSE);
   defined_macro_symbol = enter_predef_macro((char *)NULL, "defined",
-                                            /*cannot_be_redefined=*/TRUE);
+                                            /*cannot_be_redefined=*/TRUE,
+                                            /*ref_suppresses_pch_file=*/FALSE);
   /* Enter system specific macros and assertions. */
   enter_system_specific_predefined_macros_and_assertions();
   /* Now process command-line defines of symbols (-D). */  
