@@ -1610,8 +1610,10 @@ there's no overflow TRUE is returned.
       } else {
 #if IA64_ABI
         /* Find an offset at which this field can be placed without creating a
-           conflict between empty subobjects. */
-        if (!C_mode()) {
+           conflict between empty subobjects.  In unions, only one field
+           exists at any time (and unions have no base classes); so there are
+           never conflicts in those cases. */
+        if (!C_mode() && class_type->kind != (a_type_kind)tk_union) {
           while (subobject_conflict(lob->class_type, field_type,
                                     save_byte_offset,
                                     /*consider_bases=*/TRUE,
