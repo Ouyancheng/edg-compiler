@@ -53,6 +53,10 @@ extern a_constructor_init_ptr dtor_initializer(a_routine_ptr  dtor_rout);
 extern void check_for_missing_initializer(a_symbol_ptr       sym,
                                           a_type_ptr         type);
 
+extern void scan_compound_literal_initializer(a_type_ptr         *type,
+                                              a_boolean          is_static,
+                                              a_dynamic_init_ptr *dip);
+
 #endif /* ifndef DECL_INITS_H */
 
 /******************************************************************************

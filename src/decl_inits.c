@@ -1965,6 +1965,58 @@ this function points to a tree that includes a dynamic-init entry.
 }  /* get_initializer */
 
 
+void scan_compound_literal_initializer(a_type_ptr         *type,
+                                       a_boolean          is_static,
+                                       a_dynamic_init_ptr *dip)
+/*
+Scan the brace-enclosed part of a C9X compound literal.  Such literals are of
+the form (type){initializer} or (type){initializer,}.  The type provided in
+parentheses is passed to this function through parameter *type; if this type
+is incomplete, the complete type should be deduced from the initializer and
+*type will be updated with that complete type.  is_static indicates whether
+the literal appears outside a function body (in which case it has static
+storage duration) or inside a function body (in which case it is automatic and
+hence is_static is passed as FALSE).  A dynamic init entry is created by this
+function and a pointer to it is returned through dip.
+The caller is responsible to ensure that the current token is a brace, and the
+function get_initializer does all the hard work.
+*/
+{
+  a_constant_ptr         initializer;
+  an_aggregate_init_info info;
+  a_boolean              no_token_consumed, any_dynamic_init;
+
+  check_assertion(C_mode() && (curr_token == tok_lbrace));
+  initialize_init_info(&info, is_static);
+  initializer = get_initializer(type, &info,
+                                (an_aggregate_init_context_ptr)NULL,
+                                &no_token_consumed,
+                                &any_dynamic_init);
+  if (!any_dynamic_init) {
+    /* A truly constant value (scalar or aggregate). */
+    *dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+    (*dip)->variant.constant = initializer;
+  } else {
+    /* There is a dynamic component to this literal, so create a dynamic init
+       entry of kind dik_expression (for nonaggregates) or
+       dik_nonconstant_aggregate depending on the type of the literal. */
+    if (is_aggregate_or_union_type(*type)) {
+      check_assertion(initializer->kind == (a_constant_repr_kind)ck_aggregate);
+      *dip =
+          alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
+      (*dip)->variant.constant = initializer;
+    } else {
+      /* get_initializer (through get_single_value_for_aggregate_initializer
+         and its helpers) created a constant on top of a dynamic init entry.
+         Extract it back out of the constant. */
+      check_assertion(initializer->kind ==
+                                        (a_constant_repr_kind)ck_dynamic_init);
+      *dip = initializer->variant.dynamic_init;
+    }  /* if */
+  }  /* if */
+}  /* scan_compound_literal_initializer */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
