@@ -1,5 +1,10 @@
 Version 2.33
 
+9/6/96  C++-generating back end: nonmember using-declarations
+
+The C++-generating back end now puts out code for nonmember
+using-declarations.
+
 9/6/96  IL CHANGE: Representation for using-declarations and using-directives
 
 Data structures a_using_directive and a_class_member_using_declaration have
