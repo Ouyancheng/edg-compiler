@@ -6831,9 +6831,15 @@ Generate C for a statement.
       dump_expression(statement->expr, /*need_parens=*/FALSE);
       fputs(") {", f_C_output);
       body_statement = statement->variant.switch_stmt.body_statement;
-      if (body_statement == NULL ||
-          body_statement->kind != (a_statement_kind)stmk_block) {
-        /* No body statement, or unusual body statement. */
+      if (body_statement == NULL) {
+        /* No body statement. */
+      } else if (body_statement->kind != (a_statement_kind)stmk_block) {
+        /* Unusual body statement. */
+        indent += 4;
+        dump_statement(body_statement);
+        startline((a_seq_number)0);
+        fputs("break;", f_C_output);
+        indent -= 4;
       } else {
         /* Dump the block body statement (usually empty), without the closing
            brace. */
