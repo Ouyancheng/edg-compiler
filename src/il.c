@@ -5388,11 +5388,15 @@ put it on a list of constants).
 #if DEBUG
   num_searches_for_shareable_constants++;
 #endif /* DEBUG */
-  /* For constants with a source correspondence indicated, find the
-     "master" copy by going up the source correspondence link and back
-     down again. */
-  assoc_symbol = ((a_symbol_ptr)cp->source_corresp.assoc_info);
-  if (assoc_symbol != NULL) {
+  if (!in_front_end) {
+    /* If we're not in the front end, the shareable constants table is
+       not available, nor is the assoc_info pointer. */
+    scp = alloc_unshared_constant(cp);
+  } else if ((assoc_symbol = ((a_symbol_ptr)cp->source_corresp.assoc_info)) !=
+                                                                        NULL) {
+    /* For constants with a source correspondence indicated, find the
+       "master" copy by going up the source correspondence link and back
+       down again. */
     /* Constant (enumeration). */
     check_assertion(assoc_symbol->kind == (a_symbol_kind)sk_constant);
     scp = assoc_symbol->variant.constant;
