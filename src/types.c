@@ -1780,6 +1780,92 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 }  /* impl_pointer_conversion */
 
 
+static a_boolean impl_reference_conversion(a_type_ptr source_type,
+                                           a_type_ptr dest_type)
+/*
+Return TRUE if the type source_type can be converted to dest_type, a
+reference type.  See ARM 4.7.
+*/
+{
+  a_boolean  okay = FALSE;
+  a_type_ptr dest_type_pointed_to, source_type_pointed_to;
+  a_type_ptr unqual_dest_type_pointed_to, unqual_source_type_pointed_to;
+
+  db_enter(4, "impl_reference_conversion");
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "impl_reference_conversion: source_type = ");
+    db_type(source_type);
+    fprintf(f_debug, ", dest_type = ");
+    db_type(dest_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+#if CHECKING
+  if (!is_reference_type(dest_type)) {
+    internal_error("impl_reference_conversion: dest_type is not reference");
+  }  /* if */
+#endif /* CHECKING */
+  /* Get the type pointed to and drop type qualifiers and typedefs. */
+  dest_type_pointed_to = type_pointed_to(dest_type);
+  unqual_dest_type_pointed_to = skip_typerefs(dest_type_pointed_to);
+  if (is_reference_ptr(source_type)) {
+    /* Reference --> reference. */
+    /* Get the type pointed to and drop type qualifiers and typedefs. */
+    source_type_pointed_to = type_pointed_to(source_type);
+    unqual_source_type_pointed_to = skip_typerefs(source_type_pointed_to);
+    if (types_are_compatible(unqual_source_type_pointed_to,
+                             unqual_dest_type_pointed_to)) {
+      /* The types pointed to are compatible, ignoring the type qualifiers. */
+      okay = TRUE;
+    } else if (is_error(unqual_dest_type_pointed_to) ||
+               is_error(unqual_source_type_pointed_to)) {
+      /* Reference --> reference-to-error and reference-to-error -->
+         reference are always allowed. */
+      okay = TRUE;
+    } else {
+      /* The types pointed to are not compatible. */
+      if (is_class_or_struct(unqual_source_type_pointed_to) &&
+          is_class_or_struct(unqual_dest_type_pointed_to) &&
+          find_base_class_of(unqual_source_type_pointed_to,
+                             unqual_dest_type_pointed_to) != NULL) {
+        /* In C++, a reference to a class may be implicitly converted to a
+           reference to an accessible base class of that class provided the
+           conversion is unambiguous (ARM 4.7).  We leave the ambiguity
+           and accessibility check to be done when the cast is done.
+           That's not quite what the ARM says, but it's what cfront does,
+           and it makes sense. */
+        okay = TRUE;
+      }  /* if */
+    }  /* if */
+    if (okay) {
+      /* The types pointed to must be such that the type pointed to by the
+         left has all the qualifiers of the type pointed to by the right.
+         This is not said by the ARM, but it makes sense by analogy with the
+         pointer case. */
+      if ((is_const_qualified_type(source_type_pointed_to) &&
+           !is_const_qualified_type(dest_type_pointed_to)) ||
+          (is_volatile_qualified_type(source_type_pointed_to) &&
+           !is_volatile_qualified_type(dest_type_pointed_to))) {
+        okay = FALSE;
+      }  /* if */
+    }  /* if */
+  } else if (is_error(source_type)) {
+    /* Error --> reference is always allowed. */
+    okay = TRUE;
+  }  /* if */
+
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "impl_reference_conversion: %s\n",
+                     okay ? "okay" : "not okay");
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return okay;
+}  /* impl_reference_conversion */
+
+
 a_boolean impl_conversion_possible(a_type_ptr    source_type,
                                    a_boolean     source_is_constant,
                                    a_constant    *source_constant,
@@ -1887,6 +1973,10 @@ See also 3.3.16.1 in the ANSI C standard (simple assignment).
                                    suppress_extensions,
                                    default_warning_code,
                                    warning_suggested);
+  } else if (is_reference_ptr(dest_type)) {
+    /* Destination type is reference.  See if the types are compatible.
+       This is a C++-only case. */
+    okay = impl_reference_conversion(source_type, dest_type);
   } else if (is_class_struct_union(dest_type)) {
     /* A complete class, struct, or union can be converted to a compatible
        class, struct, or union type. */
