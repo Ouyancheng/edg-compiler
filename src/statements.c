@@ -1404,6 +1404,7 @@ See also 3.6.6.4.
     sp = add_statement((a_statement_kind)stmk_expr);
     sp->expr = return_expr;
     sp->seq_number = expr_seq;
+    set_expr_result_not_used(return_expr);
     return_expr = NULL;
   }  /* if */
   /* Allocate the return statement. */
