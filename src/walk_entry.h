@@ -242,8 +242,7 @@ Process the source correspondence field pointed to by ptr.
   remap_parent(ptr)
 #else /* !NEEDED_FLAG_WALK */
 #define walk_source_corresp(ptr) \
-{ (ptr).assoc_info = NULL; \
-  walk_string_ptr((ptr).name, iek_id_name, 0); \
+{ walk_string_ptr((ptr).name, iek_id_name, 0); \
   remap_parent(ptr); \
   remap_source_sequence_entry(ptr); \
 }  /* walk_source_corresp */
