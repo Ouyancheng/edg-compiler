@@ -3041,11 +3041,15 @@ NULL.
            rout_ptr->source_corresp.name_linkage ==
                                          (a_name_linkage_kind)nlk_external)) {
         /* Regard functions with "unspecified" storage class to be referenced
-           somewhere, even if not in the current translation unit; extern
+           somewhere, even if not in the current translation unit. extern
            inline functions are an exception, since their callability is
-           "as if" they had static storage. */
-        rout_ptr->source_corresp.referenced = TRUE;
-        sym->referenced = TRUE;
+           "as if" they had static storage, but no warning is issued if they
+           are unreferenced.  Note also that unnamed namespace members with
+           extern "C" linkage can be referenced in other translation units. */
+        if (!rout_ptr->is_inline) {
+          rout_ptr->source_corresp.referenced = TRUE;
+          sym->referenced = TRUE;
+        }  /* if */
       } else if (rout_ptr->source_corresp.referenced) {
         /* Referenced function.  We check the IL referenced flag because
            a reference in, say, a sizeof operation doesn't count. */
