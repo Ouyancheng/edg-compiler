@@ -3663,7 +3663,9 @@ make_new_comp_type:
       /* Pass a NULL source position to make_param_type to avoid inappropriate
          diagnostics on a type that doesn't correspond directly to a source
          construct. */
-      new_ptp = make_param_type(composite_type(ptp1->type, ptp2->type),
+      new_ptp = make_param_type(ptp2 == NULL ?
+                                  ptp1->type :
+                                  composite_type(ptp1->type, ptp2->type),
                                 &null_source_position);
       if (!C_mode()) {
         /* Form the composite of the C++ default argument expressions; it's
