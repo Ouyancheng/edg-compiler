@@ -606,8 +606,8 @@ do_variable:
         } else {
           if (sym->variant.variable.value_has_been_set) put_string("set");
           if (sym->variant.variable.used) put_string("used");
-          if (var->is_parameter) {
-            put_string("is param");
+          if (var->is_parameter || var->is_handler_param) {
+            put_string(var->is_parameter ? "is param" : "is handler param");
             if (var->param_value_has_been_changed) put_string("changed");
             if (var->param_used_more_than_once) put_string("multiply used");
           }  /* if */
@@ -6377,6 +6377,16 @@ NULL.
                    !sym->variant.variable.used) {
           report_unreferenced(sym, ec_set_but_not_used, es_warning);
         }  /* if */
+      } else if (var_ptr->is_handler_param) {
+        /* A handler parameter. */
+        if (!sym->referenced) {
+          /* Unreferenced handler parameter. */
+          report_unreferenced(sym, ec_declared_but_not_referenced,
+                              es_remark);
+        } else if (var_ptr->param_value_has_been_changed &&
+                   !sym->variant.variable.used) {
+          report_unreferenced(sym, ec_set_but_not_used, es_warning);
+        }  /* if */
       } else if (!sym->referenced ||
                  (sym->variant.variable.value_has_been_set &&
                   !sym->variant.variable.used)) {
@@ -7146,11 +7156,12 @@ Set the "value_has_been_set" flag of the variable symbol pointed to by sym.
   check_assertion(sym->kind == (a_symbol_kind)sk_variable);
   if (sym->variant.variable.value_has_been_set) {
     /* Variable has already been set. */
-    if (sym->variant.variable.ptr->is_parameter) {
+    a_variable_ptr  vp = sym->variant.variable.ptr;
+    if (vp->is_parameter || vp->is_handler_param) {
       /* Since parameters are by definition initialized (by the actual
          argument), any subsequent modification is a change to the initial
          value.  Knowning this can be useful for inlining. */
-      sym->variant.variable.ptr->param_value_has_been_changed = TRUE;
+      vp->param_value_has_been_changed = TRUE;
     }  /* if */
   } else {
     sym->variant.variable.value_has_been_set = TRUE;
@@ -7374,10 +7385,11 @@ symbol "used" or "set", if appropriate.
         kind == srk_address_taken || kind == srk_error) {
       if (sym_ptr->variant.variable.used) {
         /* This is not the first use. */
-        if (sym_ptr->variant.variable.ptr->is_parameter) {
+        a_variable_ptr  vp = sym_ptr->variant.variable.ptr;
+        if (vp->is_parameter || vp->is_handler_param) {
           /* Mark the parameter as multiply used (information that may be
              useful for inlining). */
-          sym_ptr->variant.variable.ptr->param_used_more_than_once = TRUE;
+          vp->param_used_more_than_once = TRUE;
         }  /* if */
       } else {
         /* This is the first use of the variable. */
