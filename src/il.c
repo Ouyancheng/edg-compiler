@@ -11844,6 +11844,9 @@ eliminate_unneeded_scope_orphaned_list_entries).
   rp->inlinable = FALSE;
   rp->need_out_of_line_copy = FALSE;
 #endif /* DO_IL_LOWERING && MINIMAL_INLINING */
+  /* Note that defined_outside_of_parent is not reset.  The main reason
+     for this is the fact that the flag is needed for prototype instantiations
+     whose bodies are discarded. */
   /* Free the memory region. */
   free_memory_region(n);
 }  /* clear_function_body */

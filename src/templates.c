@@ -3488,6 +3488,7 @@ supplement already associated with ft_symbol.
       rp->is_inline = orig_rp->is_inline;
       rp->storage_class = orig_rp->storage_class;
       rp->source_corresp.name_linkage = orig_rp->source_corresp.name_linkage;
+      rp->defined_outside_of_parent = orig_rp->defined_outside_of_parent;
     }
   }  /* if */
 error_exit:
@@ -3714,6 +3715,10 @@ Instantiate the body of the template function associated with tip.
        declarations. */
     check_for_definition_in_friend_declaration(tssp, rout_ptr);
   }  /* if */
+  /* Set the defined_outside_of_parent flag based on the setting of the
+     template itself. */
+  rout_sym->variant.routine.ptr->defined_outside_of_parent =
+                     tssp->variant.function.routine->defined_outside_of_parent;
   /* Notify the correspondence routines that a definition of this function
      is now present. */
   establish_function_instantiation_corresp(rout_ptr);

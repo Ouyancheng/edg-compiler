@@ -6105,6 +6105,22 @@ is a template specialization declaration.
   if (sym != NULL) {
     tssp = template_supplement_for_symbol(sym);
     rout_ptr = tssp->variant.function.routine;
+    if (func_info->is_definition) {
+      /* Set the defined_outside_of_parent flag, if appropriate. */
+      if (sym->is_class_member) {
+        /* If this is the definition of a class member specified with a
+           qualified name, it must be outside of the parent. */
+        if (locator->parent.class_type != NULL) {
+          tssp->variant.function.routine->defined_outside_of_parent = TRUE;
+        }  /* if */
+      } else if (sym->parent.namespace_ptr != NULL) {
+        /* Likewise, if this is the definition of a namespace member using
+           a qualified name, it must be outside of the parent. */
+        if (qualifier_namespace_ptr(*locator) != NULL) {
+          tssp->variant.function.routine->defined_outside_of_parent = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
   } else {
     if (scope_stack[idlb.effective_decl_level].in_prototype_instantiation) {
       /* Suppress lookup of friend template declarations during prototype
