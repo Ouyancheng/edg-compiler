@@ -139,6 +139,14 @@ written if there are errors.
 #endif /* ifndef WRITE_SIGNOFF_MESSAGE */
 
 /*
+Flag that is TRUE if the string "error" should be included in error
+messages.  If this flag is false only warnings and remarks have their
+severity explicitly included in the message.
+*/
+#ifndef ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES
+#define ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES TRUE
+#endif /* ifndef ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES */
+/*
 The flag STANDALONE_IL_DISPLAY is set to TRUE when compiling the standalone
 IL display utility.  It should be set on the command line if needed;
 the code here should not be changed.

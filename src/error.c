@@ -3368,7 +3368,11 @@ the output.
       total_warnings++;
       break;
     case es_error:
+#if ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES
+      severity_string = "error: ";
+#else /* ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES */
       severity_string = "";
+#endif /* ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES */
       total_errors++;
       break;
     case es_catastrophe:
