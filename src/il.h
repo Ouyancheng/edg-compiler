@@ -512,6 +512,11 @@ extern a_derivation_step_ptr cast_virtual_derivation_path_of(
   ((bcp)->is_virtual ? cast_virtual_derivation_path_of(bcp) :         \
                        (bcp)->derivation->path)
 
+/* Return TRUE if the given base class is virtual or if there is a virtual
+   step in its derivation. */
+#define any_virtual_steps_in_derivation(bcp)                          \
+  ((bcp)->is_virtual || (bcp)->derivation->path->base_class->is_virtual)
+
 
 #if DEBUG
 extern void db_type_name(a_type_ptr  tp);
