@@ -1,5 +1,14 @@
 Version 2.20
 
+10/3/93  Checking of unreferenced/unused symbols at end of scope
+
+The diagnostic on an unreferenced parameter is now a remark instead of a
+warning; and a warning is now issued on a (non-reference) parameter that
+is set in the body of the function but never used.  In addition, several
+messages have been modified a little -- e.g.,
+  old:  variable "xxx" declared and never referenced
+  new:  variable "xxx" was declared but never referenced
+
 10/1/93  Spurious or redundant error on calls to operator new and delete
 
 Spurious and/or redundant errors (complaining about ambiguity or
