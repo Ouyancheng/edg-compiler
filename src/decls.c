@@ -5654,14 +5654,20 @@ caution when modifying this routine.
               (*effective_decl_level)--;
             }  /* while */
           }  /* if */
-          if (strict_ansi_mode && tag_kind == (a_symbol_kind)sk_enum_tag) {
-            /* Incomplete enum declarations are nonstandard in C and C++. */
-            pos_diagnostic(strict_ansi_error_severity,
-                           ec_nonstd_forward_def_enum,
-                           &locator->source_position);
-          }  /* if */
         }  /* if */
       }  /* if */
+      if (tag_sym == NULL && tag_kind == (a_symbol_kind)sk_enum_tag) {
+        /* Since tag_sym was not found, this is either a vaucuous declaration
+           or a reference to an incomplete (because not yet declared) type.
+           In either case this is non-standard for enums.  It is allowed as
+           an extension by analogy with classes. */
+        if (strict_ansi_mode) {
+          /* Incomplete enum declarations are nonstandard in C and C++. */
+          pos_diagnostic(strict_ansi_error_severity,
+                         ec_nonstd_forward_def_enum,
+                         &locator->source_position);
+        }  /* if */
+      }  
     }  /* if */
   }  /* if */
   if (tag_err) {
@@ -6573,7 +6579,8 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            enum_specifier(/*vacuous_decl_allowed=*/FALSE, type_ptr,
+            if (num_specifiers > 0) vacuous_decl_allowed = FALSE;
+            enum_specifier(vacuous_decl_allowed, type_ptr,
                            &declares_something, &defines_something);
             basic_type = bt_enum;
             is_elaborated_type_specifier = TRUE;
