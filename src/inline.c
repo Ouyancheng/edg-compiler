@@ -616,6 +616,7 @@ variables.
 */
 {
   an_expr_node_kind                     kind = expr->kind;
+  a_type_ptr                            expr_type = expr->type;
   a_variable_remapping_for_inlining_ptr vrip;
   a_constant_ptr                        con;
   an_expr_node_ptr                      constant_expr;
@@ -647,6 +648,9 @@ variables.
           } else {
             /* Other, more complicated, cases.  Just copy the expression. */
             overwrite_node(expr, copy_expr_tree_for_inlining(constant_expr));
+            /* Restore the original type, which might be slightly different
+               for pointer-to-member cases. */
+            expr->type = expr_type;
           }  /* if */
           break;
         default:
@@ -720,7 +724,7 @@ variables.
             /* Setting evaluated_context to FALSE suppresses warnings on
                errors like division by zero.  Instead, did_not_fold is
                returned TRUE. */
-            binary_operation(op, con, con2, expr->type, &constant,
+            binary_operation(op, con, con2, expr_type, &constant,
                              /*constant_context=*/FALSE,
                              /*evaluated_context=*/FALSE,
                              &did_not_fold,
@@ -740,7 +744,7 @@ variables.
             /* Setting evaluated_context to FALSE suppresses warnings on
                errors like division by zero.  Instead, did_not_fold is
                returned TRUE. */
-            unary_operation(op, con, expr->type, &constant,
+            unary_operation(op, con, expr_type, &constant,
                             /*constant_context=*/FALSE,
                             /*evaluated_context=*/FALSE,
                             &did_not_fold,
@@ -781,7 +785,7 @@ variables.
     }  /* if */
     if (has_constant_value) {
       /* Replace the expression by a constant value. */
-      constant.type = expr->type;
+      constant.type = expr_type;
       set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
       expr->variant.constant = alloc_shareable_constant(&constant);
     }  /* if */
