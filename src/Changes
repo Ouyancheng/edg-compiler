@@ -65,6 +65,12 @@ type), the expression node at that point was no longer an operation
 node, so that flag was in effect undefined.  An internal error
 was sometimes issued.
 
+1/5/93 Wording changes on some diagnostic messages
+
+Several messages were modified slightly in the interests of consistent
+wording -- e.g., "XXX not allowed" was changed to "XXX is not
+allowed".
+
 1/5/93 Uninitialized const and ref members of class object
 
 We now do a better job of detecting cases where an aggregate class
