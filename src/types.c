@@ -1995,10 +1995,12 @@ and a diagnostic is issued (unless suppress_error is TRUE).
       report_abstract_class_error(ec_array_of_abstract_class, elem_type,
                                   &error_position);
     }  /* if */
-    if (!is_incomplete(elem_type) &&
-        (temp != 0 || array_type->variant.array.bound_is_zero)) {
-      array_type->incomplete = FALSE;
-    }  /* if */
+    /* Determine whether the array is now complete.  (Note that, in somewhat
+       unusual cases, this may turn a previously complete array type back
+       into an incomplete type.) */
+    array_type->incomplete =
+                    (is_incomplete(elem_type) ||
+                     (temp == 0 && !array_type->variant.array.bound_is_zero));
     temp2 = elem_type->size;
     /* Normally, element types cannot have size zero.  In GNU modes, however,
        there are zero-length arrays, zero-sized classes, and x[][] parameters.
