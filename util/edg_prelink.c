@@ -2284,7 +2284,7 @@ the names to the symbol table.
 }  /* pl_prelink */
 
 
-static pl_corrupted_template_info_file(void)
+static void pl_corrupted_template_info_file(void)
 /*
 This routine is called when the information about the compilation command
 to be used is invalid.
