@@ -3653,7 +3653,7 @@ be inappropriate, because the feature is probably used to implement
 
 static void scan_typeid_operator(an_operand *result)
 /*
-Scan the C++ typeid operator.
+Scan the C++ typeid operator.  See [expr.typeid].
 
 Syntax:
 	typeid ( expression )
@@ -3745,6 +3745,197 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
   result->position = start_position;
   db_exit();
 }  /* scan_typeid_operator */
+
+
+static void scan_new_style_cast(a_type_ptr        *cast_type,
+                                a_source_position *type_position,
+                                an_operand        *operand)
+/*
+Scan the sequence "< type-id > ( expression )" as part of a new-style cast.
+Return the type in *cast_type (and its position in *type_position) and
+the expression in *operand.  An error is issued if the type defines something.
+*/
+{
+  /* Check for and pass over the "<". */
+  (void)required_token(tok_lt, ec_exp_lt);
+  add_stop_token(tok_gt);
+  /* Scan the type.  Note that type_name does not allow definition of types
+     in the type-id. */
+  *type_position = pos_curr_token;
+  type_name(cast_type);
+  /* Check for and pass over the ">". */
+  (void)required_token(tok_gt, ec_exp_gt);
+  remove_stop_token(tok_gt);
+  /* Check for and pass over the "(". */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_matching_stop_token(tok_rparen);
+  /* Scan the expression. */
+  scan_expr(operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+  /* Check for and pass over the ")". */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_matching_stop_token(tok_rparen);
+}  /* scan_new_style_cast */
+
+
+static void scan_dynamic_cast_operator(an_operand *result)
+/*
+Scan the C++ dynamic_cast operator.  See [expr.dynamic.cast].
+
+Syntax:
+	dynamic_cast < type-id > ( expression )
+
+*/
+{
+  a_source_position start_position, type_position;
+  an_operand        operand;
+  a_type_ptr        cast_type, underlying_cast_type, operand_type;
+  a_type_ptr        operation_type, underlying_operand_type;
+  a_boolean         cast_type_okay, operand_type_okay;
+  a_boolean         reference_case = FALSE, err = FALSE, baseward_cast;
+  a_base_class_ptr  bcp;
+  an_expr_node_ptr  expr;
+
+  db_enter(4, "scan_dynamic_cast_operator");
+#if CHECKING
+  if (curr_expr_kind_is(ek_pp)) {
+    /* dynamic_cast not possible for preprocessing expressions. */
+    internal_error("scan_dynamic_cast_operator: in preprocessing expr");
+  }  /* if */
+#endif /* CHECKING */
+  /* Save the position of the dynamic_cast keyword. */
+  start_position = pos_curr_token;
+  /* Advance past dynamic_cast. */
+  (void)get_token();
+  /* Scan "< type-id > ( expression )". */
+  scan_new_style_cast(&cast_type, &type_position, &operand);
+  /* The cast cannot cast away constness. */
+  if (cast_removes_qualifiers(operand.type, cast_type,
+                              /*is_const_cast=*/FALSE)) {
+    pos_st_error(ec_cannot_cast_away_const, &start_position, "dynamic_cast");
+  }  /* if */
+  /* The type cast to must be a pointer or reference to a complete class type,
+     or void*. */
+  cast_type_okay = FALSE;
+  if (is_ptr_or_ref_type(cast_type)) {
+    reference_case = is_reference_type(cast_type);
+    underlying_cast_type = type_pointed_to(cast_type);
+    if (is_complete_class_struct_union_type(underlying_cast_type)) {
+      /* Casting to a pointer to a complete class type is okay. */
+      cast_type_okay = TRUE;
+    } else if (!reference_case && is_void_type(underlying_cast_type)) {
+      /* Casting to void * is okay. */
+      cast_type_okay = TRUE;
+    }  /* if */
+  } else {
+    /* cast_type is not a pointer or reference type; error. */
+    cast_type_okay = FALSE;
+  }  /* if */
+  if (!cast_type_okay) {
+    /* Bad dynamic cast type. */
+    err = TRUE;
+    if (!is_error_type(cast_type)) {
+      pos_error(ec_bad_dynamic_cast_type, &type_position);
+    }  /* if */
+  } else {
+    /* The type cast to is okay. */
+    /* Check the type of the operand. */
+    operand_type = operand.type;
+    operand_type_okay = FALSE;
+    if (!reference_case) {
+      /* When casting to a pointer type, the operand is treated as an
+         rvalue. */
+      do_operand_transformations(&operand, TOPT_NO_OPTIONS);
+      operand_type = operand.type;
+      operation_type = cast_type;
+      /* The source operand must be a pointer to a complete class type. */
+      underlying_operand_type = NULL;
+      if (is_pointer_type(operand_type)) {
+        underlying_operand_type = type_pointed_to(operand_type);
+        if (is_complete_class_struct_union_type(underlying_operand_type)) {
+          operand_type_okay = TRUE;
+        }  /* if */
+      }  /* if */
+      if (!operand_type_okay) {
+        /* Bad operand type for a pointer dynamic_cast. */
+        err = TRUE;
+        if (!is_error_type(operand_type) &&
+            (underlying_operand_type == NULL ||
+             !is_error_type(underlying_operand_type))) {
+          pos_error(ec_bad_ptr_dynamic_cast_operand, &operand.position);
+        }  /* if */
+      }  /* if */
+    } else {
+      /* Reference case. */
+      operation_type = make_pointer_type(underlying_cast_type);
+      /* The source operand must be an lvalue of a complete class type. */
+      if (is_an_lvalue(&operand) &&
+          is_complete_class_struct_union_type(operand_type)) {
+        operand_type_okay = TRUE;
+        /* Turn the lvalue into an address so we can deal with it as a
+           pointer. */
+        take_address_of_lvalue(&operand);
+        operand_type = operand.type;
+      } else {
+        /* Bad operand type for a reference dynamic_cast. */
+        err = TRUE;
+        if (!is_error_type(operand_type)) {
+          pos_error(ec_bad_ref_dynamic_cast_operand, &operand.position);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* The source and destination types have been checked separately.  Now see
+     if they go together. */
+  if (err) {
+    /* Some error, previously issued. */
+  } else if (same_type_with_added_qualifiers(operation_type, operand_type,
+                                             /*ignore_qualifiers=*/TRUE,
+                                             (a_boolean *)NULL)) {
+    /* The types are already the same except for qualifiers (and we've issued
+       an error previously on casting away const).  The result is just
+       the source cast to the destination type. */
+    cast_operand(operation_type, &operand, /*is_implicit_cast=*/FALSE);
+    copy_operand(&operand, result);
+  } else if (related_class_pointers(operand_type, operation_type,
+                                    &baseward_cast, &bcp) &&
+             baseward_cast) {
+    /* This is a known cast from derived to base.  Again, the cases that
+       drop qualifiers have already drawn an error. */
+    cast_operand(operation_type, &operand, /*is_implicit_cast=*/FALSE);
+    copy_operand(&operand, result);
+  } else {
+    /* For all other cases, the dynamic cast is done at runtime.  The operand
+       must have a polymorphic class type. */
+    underlying_operand_type = type_pointed_to(operand_type);
+    if (!is_polymorphic_class_type(underlying_operand_type)) {
+      err = TRUE;
+      if (!is_error_type(underlying_operand_type)) {
+        pos_error(ec_dynamic_cast_operand_must_be_polymorphic,
+                  &operand.position);
+      }  /* if */
+    } else {
+      /* Generate an eok_dynamic_cast operation. */
+      expr = make_operator_node((an_expr_operator_kind)eok_dynamic_cast,
+                                cast_type, /* sic: want reference type. */
+                                make_node_from_operand(&operand));
+      expr->implicit_reference_indirection = TRUE;
+      make_expression_operand(expr, expr->type, result);
+    }  /* if */
+  }  /* if */
+  if (err) {
+    /* Some error, previously issued. */
+    make_error_operand(result);
+  } else {
+    /* For a dynamic cast to a reference type, the result is an lvalue. */
+    if (reference_case) {
+      conv_object_pointer_to_lvalue(result);
+    }  /* if */
+  }  /* if */
+  /* Set the error position to the starting position. */
+  error_position = start_position;
+  result->position = start_position;
+  db_exit();
+}  /* scan_dynamic_cast_operator */
 
 
 static void scan_extended_integral_constant_expression(a_boolean  allow_comma,
@@ -6652,7 +6843,8 @@ static void reference_cast(an_operand       *operand,
                            a_base_class_ptr bcp)
 /*
 Convert operand (an lvalue that came from a reference) to the type
-of the base class indicated by bcp.  It remains an lvalue.
+of the base class indicated by bcp.  It remains an lvalue.  This is an
+implicit conversion.
 */
 {
   /* Convert to a pointer to the object. */
@@ -8464,6 +8656,11 @@ see expr.h).
     case tok_typeid:
       /* typeid operation. */
       scan_typeid_operator(&local_result);
+      break;
+
+    case tok_dynamic_cast:
+      /* dynamic_cast operation. */
+      scan_dynamic_cast_operator(&local_result);
       break;
 
     case tok_intaddr:
