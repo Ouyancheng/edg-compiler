@@ -35,10 +35,10 @@ with a typedef specifying unknown size and initialized with a string:
 1/27/97 Checking the return type of operator->()
 
 The return type of operator->() is no longer checked at the point at which
-the function is declared but only at the point of use in a field-selection
-expression.  (In other words, deferred checking of operator->() return
-types, originally implemented only for class template members, has now
-been generalized for all such functions.)
+the function is declared but only at the point of use in a class-member
+access expression.  (The check of operator->() return types used to
+deferred only for class template members, but now it's deferred for all
+operator-> functions.)
 
   class A {
     int i;
