@@ -5187,15 +5187,6 @@ the old list.  Only callable in C++ mode.  See ARM 13.
       distinguishable = TRUE;
       goto distinguishable_determined;
     }  /* if */
-    /* If linkage specifications on the routine types are not compatible,
-       the types are distinguishable. */
-    if (!routine_linkages_are_compatible(
-                     (a_name_linkage_kind)old_extra_info->routine_name_linkage,
-                     (a_name_linkage_kind)new_extra_info->routine_name_linkage,
-                     /*is_impl_conv=*/FALSE)) {
-      distinguishable = TRUE;
-      goto distinguishable_determined;
-    }  /* if */
     /* If one type has an ellipsis and the other does not, the types are
        distinguishable. */
     if (old_extra_info->has_ellipsis != new_extra_info->has_ellipsis) {
