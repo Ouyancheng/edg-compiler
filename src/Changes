@@ -1,5 +1,19 @@
 Version 2.28
 
+1/23/95  Compile-time comparison of pointers to data members in unions
+
+The compile-time folding in the following is now done correctly:
+
+  union U {
+      int i1;
+      int i2;
+  };
+  main()
+  {
+      int result = &U::i1==&U::i2;  // Should be 1
+      return result;
+  }
+
 1/23/95  Template instance flag and automatic instantiation mode
 
 Version 2.27 was setting the instance_required flag for variables

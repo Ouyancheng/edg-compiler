@@ -2548,8 +2548,13 @@ and *result is set to an integer 0 or 1 for the result.
       result_value = (constant_1->variant.ptr_to_member.variant.routine ==
                       constant_2->variant.ptr_to_member.variant.routine);
     } else {
-      result_value = (constant_1->variant.ptr_to_member.variant.field ==
-                      constant_2->variant.ptr_to_member.variant.field);
+      /* For fields, test offsets instead of just field because of
+         union fields. */
+      a_field_ptr field1 = constant_1->variant.ptr_to_member.variant.field;
+      a_field_ptr field2 = constant_2->variant.ptr_to_member.variant.field;
+      result_value = (field1->offset == field2->offset &&
+                      field1->offset_bit_remainder ==
+                                                 field2->offset_bit_remainder);
     }  /* if */
   }  /* if */
   /* result_value is now set for the "==" case.  Complement it for the "!="
