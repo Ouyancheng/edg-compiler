@@ -3313,7 +3313,7 @@ functions symbols or namespace projection symbols in the list).
       sym = normal_id_lookup(&locator, IDL_SKIP_CLASS_SCOPES);
       if (sym != NULL) {
         add_routine_to_symbol_list(&symbol_list, sym);
-        /* It shoujld not be possible for the lookup to return an ambiguity.
+        /* It should not be possible for the lookup to return an ambiguity.
            Functions are always combined into overload sets by using-directive
            lookups, and anything with an operator name must be a function. */
         check_assertion(!locator.specific_symbol->ambiguous);
