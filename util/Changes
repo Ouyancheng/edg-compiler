@@ -1,5 +1,10 @@
 Version 2.22
 
+2/9/94   Purify option
+
+The "-purify" option has been added to eccp.  This allows you to link
+programs with purify.
+
 1/17/94  Portability issues
 
 edg_munch incorrectly used a char as the return value of getc.  edg_munch
