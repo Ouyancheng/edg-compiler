@@ -41,6 +41,12 @@ Flag that is TRUE if we are in the setup phase for trans_copy.c.
 */
 static a_boolean in_trans_copy_setup;
 
+/*
+Flag that is TRUE if we are in the phase that rewrites primary IL
+references to secondary IL addresses.
+*/
+static a_boolean in_primary_il_reference_rewrite;
+
 
 /*
 Return TRUE if the given entry has the flag set that indicates that
@@ -331,7 +337,13 @@ top_of_routine:
     }  /* if */
     /* If the pointer wasn't encountered previously, make sure its
        copy address pointer is set.  This happens for "next" pointers. */
-    copy_address_setup(ptr, kind, is_list_pointer);
+    /* In the phase that rewrites secondary IL references in the primary IL,
+       we can't be sure we didn't enter in the middle of a list, or the
+       start of a list where the parent wasn't processed, so turn
+       off the list-pointer optimization to force "next" pointers to be
+       followed immediately. */
+    copy_address_setup(ptr, kind,
+                       is_list_pointer && !in_primary_il_reference_rewrite);
     /* Fetch the copy address assigned by copy_address_setup. */
     corresp = transitive_copy_address_of(ptr);
   }  /* if */
@@ -2622,6 +2634,7 @@ therefore will not be copied.
   }
   check_assertion(initial_value_for_il_lowering_flag == FALSE);/*lint !e527*/
   in_trans_copy_setup = TRUE;
+  in_primary_il_reference_rewrite = FALSE;
   /* Loop over each translation unit, preparing for the copy.  This
      decides which entities should be copied, which should be merged,
      and which are duplicates that can be dropped. */
@@ -2696,7 +2709,9 @@ therefore will not be copied.
   /* Sweep the primary translation unit IL tree and look for any
      pointers to entities in secondary translation units that it uses,
      and rewrite the pointers as the corresponding primary IL entities. */
+  in_primary_il_reference_rewrite = TRUE;
   rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary();
+  in_primary_il_reference_rewrite = FALSE;
   /* Finish processing on function bodies moved to the primary IL,
      including IL lowering if appropriate.  Do this also on any
      function bodies in the primary IL whose lowering was delayed.
