@@ -2497,15 +2497,12 @@ encountered when generating the parameter types.
 }  /* bypass_prototyped_param_src_seq_entries */
 
 
-static void gen_function_declarator(a_type_ptr                  type,
-                                    a_scope_ptr                 scope,
-                                    a_source_sequence_entry_ptr func_sse)
+static void gen_function_declarator(a_type_ptr  type,
+                                    a_scope_ptr scope)
 /*
 Output a function declarator for the indicated routine type.
 This is the top-level type of a function definition only if scope
-is non-NULL, in which case that is the function scope.  func_sse points
-to the source sequence entry if this is a function declaration or
-definition, or is NULL otherwise.
+is non-NULL, in which case that is the function scope.
 */
 {
   a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
@@ -2575,13 +2572,8 @@ definition, or is NULL otherwise.
           gen_declaration_using_type(param->type, NO_NAME, iek_none,
                                      (a_src_seq_secondary_decl_ptr)NULL);
         }  /* if */
-        /* Put out a default argument expression if there is one, but for
-           function declarations/definitions put it out only on the
-           declaration that included this default argument expression. */
-        if (param->default_arg_expr != NULL &&
-            (func_sse == NULL ||
-             param->rout_src_seq_entry_for_default_arg_decl == NULL ||
-             func_sse == param->rout_src_seq_entry_for_default_arg_decl)) {
+        /* Put out a default argument expression if there is one. */
+        if (param->default_arg_expr != NULL) {
           write_tok_str(" = ");
           gen_initializer_expr(param->default_arg_expr, param->type,
                                /*need_parens=*/TRUE);
@@ -2657,8 +2649,7 @@ directly under a type that uses a left-side declarator, e.g., a pointer type.
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
     if (under_lhs_declarator) write_tok_ch(')');
-    gen_function_declarator(type, (a_scope_ptr)NULL,
-                            (a_source_sequence_entry_ptr)NULL);
+    gen_function_declarator(type, (a_scope_ptr)NULL);
     gen_type_second_part(type->variant.routine.return_type,
                          /*under_lhs_declarator=*/FALSE);
   } else if (kind == (a_type_kind)tk_array) {
@@ -3133,15 +3124,15 @@ of the typedef.  If it is a secondary declaration (C++ only), sec_decl
 is non-NULL and points to the secondary declaration entry.
 */
 {
-  a_type_ptr typedef_type, under_type, this_param_type;
+  a_type_ptr under_type, this_param_type;
 
   if (sec_decl != NULL) {
     /* Use the type from the secondary declaration entry instead of the one
        from the IL entry, since it might differ in small ways (e.g., using
        different typedefs, default arguments). */
-    typedef_type = sec_decl->declared_type;
+    under_type = sec_decl->declared_type;
   } else {
-    typedef_type = type;
+    under_type = type->variant.typeref.type;
   }  /* if */
   /* Advance past the source sequence entry for the typedef itself. */
   /* This does not use check_for_and_take_source_seq_entry on purpose,
@@ -3150,7 +3141,6 @@ is non-NULL and points to the secondary declaration entry.
   adv_curr_source_sequence_entry();
   /* The caller has called set_decl_position already. */
   write_tok_str("typedef ");
-  under_type = typedef_type->variant.typeref.type;
   if (is_function_type(under_type) &&
       (this_param_type = implicit_this_param_type_of(under_type)) != NULL) {
     /* A cfront member function typedef, e.g.,
@@ -5373,7 +5363,7 @@ sequence entry.
   } else {
     var = ss_entry_ptr(curr_source_sequence_entry, a_variable_ptr);
     is_definition = TRUE;
-    var_type = var->type;
+    var_type = var->declared_type;
   }  /* if */
   /* Advance past the source sequence entry for the variable. */
   adv_curr_source_sequence_entry();
@@ -5589,7 +5579,6 @@ declaration or definition.
   a_storage_class               storage_class;
   a_scope_ptr                   scope = NULL;
   a_memory_region_number        scope_region_number;
-  a_source_sequence_entry_ptr   func_source_sequence_entry;
   a_source_sequence_entry_ptr   saved_curr_source_sequence_entry;
   a_source_sequence_entry_ptr   saved_sublist_parent_source_sequence_entry;
   a_routine_type_supplement_ptr rtsp;
@@ -5608,12 +5597,11 @@ declaration or definition.
     is_definition = TRUE;
     check_assertion_str(rout->assoc_scope != NULL_region_number,
                         "gen_routine_decl: missing definition");
-    rout_type = rout->type;
+    rout_type = rout->declared_type;
   }  /* if */
   unqual_rout_type = skip_typerefs(rout_type);
   rtsp = unqual_rout_type->variant.routine.extra_info;
   /* Advance past the source sequence entry for the routine. */
-  func_source_sequence_entry = curr_source_sequence_entry;
   adv_curr_source_sequence_entry();
   /* Position the output file to the declaration position. */
   set_decl_position(&rout->source_corresp, sec_decl);
@@ -5755,7 +5743,7 @@ declaration or definition.
       adv_to_signif_source_sequence_entry();
     }  /* if */
     /* Write the second part of the declarator. */
-    gen_function_declarator(rout_type, scope, func_source_sequence_entry);
+    gen_function_declarator(rout_type, scope);
     /* If the function has a throw specification, put it out here after the
        function declarator. */
     if (rtsp->throw_specification != NULL) {
