@@ -817,10 +817,8 @@ Return a printable string describing a type code.
   switch (type_code) {
     case INTEGRAL_TYPE_CODE:
     case PROMOTED_INTEGRAL_TYPE_CODE:
-      str = "integer";
-      break;
     case PTRDIFF_T_TYPE_CODE:
-      str = "ptrdiff_t";
+      str = "integer";
       break;
     case ARITH_TYPE_CODE:
     case PROMOTED_ARITH_TYPE_CODE:
@@ -4805,7 +4803,7 @@ match, promotion, etc.) for the operand and record it in arg_match.
     match_level = aml_std_conversion;
   } else if (special_subscript_cost &&
              kind == (an_opname_kind)onk_subscript &&
-             type_code == PROMOTED_INTEGRAL_TYPE_CODE) {
+             type_code == PTRDIFF_T_TYPE_CODE) {
     /* The subscript operator's integral operand is treated as a
        standard conversion always in cfront 3.0.2.  Who knows why,
        but this is used in jcool and tools.h++. */
@@ -4843,7 +4841,8 @@ match, promotion, etc.) for the operand and record it in arg_match.
         if (type_code == PTRDIFF_T_TYPE_CODE) {
           /* An operand of type ptrdiff_t is wanted. */
           if (skip_typerefs(operand_type)->variant.integer.int_kind ==
-                                                     targ_ptrdiff_t_int_kind) {
+                                                     targ_ptrdiff_t_int_kind &&
+              !is_enum_type(operand_type)) {
             /* We have ptrdiff_t. */
             match_level = aml_exact;
           } else {
