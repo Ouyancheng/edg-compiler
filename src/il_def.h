@@ -1340,7 +1340,7 @@ enum a_pragma_kind_tag {
 			   processed similarly; front-end only. */
   pk_lint_varargs_count,/* Lint "varargs" comment; not strictly a pragma but
 			   processed similarly; front-end only. */
-  pk_lint_not_reached,	/* Lint "not reached" comment; not strictly a pragma
+  pk_lint_notreached,	/* Lint "not reached" comment; not strictly a pragma
 			   but processed similarly; front-end only. */
   pk_instantiate,	/* Instantiation of the specified template entity
 			   is required; front-end only. */

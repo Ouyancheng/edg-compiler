@@ -138,7 +138,7 @@ suppress warnings that might otherwise be issued later.
      statement.  (Note that we don't need to pass a statement pointer to
      extract_specific_pragmas since no IL entry is generated for lint
      notreached comments.) */
-  ppp = extract_specific_pragmas((a_pragma_kind)pk_lint_not_reached,
+  ppp = extract_specific_pragmas((a_pragma_kind)pk_lint_notreached,
                                  (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
   if (ppp != NULL) {
     /* There is a currenly active notreached comment. */

@@ -6712,6 +6712,11 @@ pointer to it.
       pp->variant.dummy = 0;
 #endif /* if 0 */
       break;
+#if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
+    case pk_unrecognized:
+      /* No special initialization is required. */
+      break;
+#endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
     /* The following identify pragmas that have immediate effect in the
        front end and do not get passed to the back end; therefore, no IL
        pragma entries are created for them.  The exception is when
@@ -6721,7 +6726,7 @@ pointer to it.
     case pk_scanf_args:
     case pk_lint_argsused:
     case pk_lint_varargs_count:
-    case pk_lint_not_reached:
+    case pk_lint_notreached:
     case pk_instantiate:
     case pk_do_not_instantiate:
     case pk_can_instantiate:

@@ -880,7 +880,7 @@ Initialize the pragma description table.
 		 /*ignore_in_back_end=*/FALSE,
                  es_warning);
   (void)add_next_construct_pragma_kind_description
-		((a_pragma_kind)pk_lint_not_reached,
+		((a_pragma_kind)pk_lint_notreached,
 		 (a_next_construct_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/TRUE,
 		 /*may_bind_to_decl=*/FALSE,

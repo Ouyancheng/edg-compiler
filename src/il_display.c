@@ -1129,6 +1129,9 @@ Print the name of a pragma kind.
     case pk_test_immediate:       s = "pk_test_immediate";      break;
     case pk_test_other:           s = "pk_test_other";          break;
 #endif /* if 0 */
+#if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
+    case pk_unrecognized:         s = "pk_unrecognized";	break;
+#endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
     default:                      s = "**BAD PRAGMA KIND**";    break;
   }  /* switch */
 
