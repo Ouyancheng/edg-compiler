@@ -5320,7 +5320,8 @@ the declaration.
 }  /* prescan_template_declaration */
 
 
-static void cache_template_declaration(a_tmpl_decl_state_ptr decl_state)
+static void cache_template_declaration(a_tmpl_decl_state_ptr decl_state,
+				       a_boolean	     skip_params)
 /*
 Scan one or more template parameter clauses and the declaration that
 follows, and cache the tokens so that they can be rescanned for the
@@ -5335,13 +5336,24 @@ An initial pass is made through the cache to determine if the declaration
 is a full specialization, and whether the declaration is a friend
 declaration.  A full specialization is one in which all of the template
 clauses contain empty template parameter lists.
+
+skip_params is TRUE if this routine is being called a second time to
+recache the template declaration, but not the template parameter list.
+This is done in certain error cases when the initial caching did not
+cache the expected tokens.
 */
 {
   a_token_set_array  stop_tokens;
+  a_token_cache_ptr  p_cache;
 
   db_enter(3, "cache_template_declaration");
+  if (skip_params) {
+    p_cache = &decl_state->decl_token_cache;
+  } else {
+    p_cache = &decl_state->param_list_cache;
+  }  /* if */
   /* Cache the current token and advance past it. */
-  cache_curr_token(&decl_state->param_list_cache);
+  cache_curr_token(p_cache);
   (void)get_token();
   /* Initialize a local stop token set. */
   clear_token_set_array(stop_tokens);
@@ -5355,21 +5367,23 @@ clauses contain empty template parameter lists.
   incr_token_set_array_element(stop_tokens, tok_lbrace);
   incr_token_set_array_element(stop_tokens, tok_colon);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
-  cache_token_stream(&decl_state->param_list_cache, stop_tokens);
+  cache_token_stream(p_cache, stop_tokens);
   /* Add an end-of-source token to the end of the token cache to
      assure that we don't scan past the end of the cache in the actual
      scan. */
-  terminate_token_cache(&decl_state->param_list_cache);
-  /* Do an initial scan of the template declaration to determine whether
-     it is a full specialization and/or a friend declaration. */
-  prescan_template_declaration(decl_state);
+  terminate_token_cache(p_cache);
+  if (!skip_params) {
+    /* Do an initial scan of the template declaration to determine whether
+       it is a full specialization and/or a friend declaration. */
+    prescan_template_declaration(decl_state);
+  }  /* if */
   /* Rescan a copy of the cached tokens from this cache.  This is done so that
      when the original template declaration is scanned the last token of
      the cache is followed by the token that followed it in the original
      source program with no intervening tok_end_of_source.  This also
      allows the reusable token cache to be discarded if it turns out that
      this is not a function declaration. */
-  rescan_copy_of_cache(&decl_state->param_list_cache);
+  rescan_copy_of_cache(p_cache);
   db_exit();
 }  /* cache_template_declaration */
 
@@ -6837,6 +6851,15 @@ lists must by non-empty.
                     curr_token_sequence_number,
                     /*include_prev_token=*/FALSE,
                     /*okay_if_not_found=*/TRUE);
+  if (decl_state->decl_token_cache.first_token == NULL ||
+      decl_state->decl_token_cache.first_token->token_sequence_number !=
+                                                  curr_token_sequence_number) {
+    /* We are not where we expected to be after scanning the template parameter
+       lists.  Recache the template declaration now for better error
+       recovery.  This should only happen in error cases. */
+    check_assertion(total_errors != 0);
+    cache_template_declaration(decl_state, /*skip_params=*/TRUE);
+  }  /* if */
   if (decl_state->is_member_decl && !decl_state->is_template_friend &&
       decl_state->number_of_template_param_clauses > 1) {
     /* A declaration with more than one template parameter clause is only
@@ -7735,7 +7758,7 @@ are either the specialization of a template or a template declaration.
      tok_end_of_source).  The cache is also needed for several different
      kinds of prescans that are done to determine the kind of declaration
      being processed. */
-  cache_template_declaration(&decl_state);
+  cache_template_declaration(&decl_state, /*skip_params=*/FALSE);
   decl_level_of_template(&decl_state);
   /* Make sure that this template declaration is permitted in the current
      scope. */

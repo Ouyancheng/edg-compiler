@@ -608,12 +608,21 @@ references.
 /*
 Get a token and, if it is a tok_identifier, call
 is_generalized_identifier_start to coalesce it in case it is the
-beginning of something like a qualified name. 
+beginning of something like a qualified name.  When coalescing identifiers,
+make sure that we are not fetching tokens beyond the end of the cache
+that contains the entire statement.  If an attempt is made to do so,
+return tok_end_of_source.
 */
-#define get_token_and_coalesce_if_needed(coalesce_ids)		\
-  (void)get_token();						\
+#define get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache) \
   if (coalesce_ids) {						\
-    (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL); \
+    if (curr_token_sequence_number >= last_tsn_in_cache) {		\
+      curr_token = tok_end_of_source;					\
+    } else {								\
+      (void)get_token();						\
+      (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL); \
+    }  /* if */								\
+  } else {								\
+    (void)get_token();							\
   }
 
 
@@ -701,8 +710,10 @@ is actually the first token to not be included in the cache.
 
 
 static
-a_boolean cache_token_stream_until_matching_token(a_token_cache *cache,
-                                                  a_boolean     coalesce_ids)
+a_boolean cache_token_stream_until_matching_token(
+				a_token_cache		*cache,
+                                a_boolean		coalesce_ids,
+				a_token_sequence_number last_tsn_in_cache)
 /*
 Given curr_token of '(', '[', or '{', copy tokens into the token cache
 specified by cache up to but not including the corresponding closing token,
@@ -738,7 +749,7 @@ a template argument list or is just a less-than sign.
   }  /* switch */
   /* Cache the current token, and advance to its successor. */
   if (!coalesce_ids) cache_curr_token(cache);
-  get_token_and_coalesce_if_needed(coalesce_ids)
+  get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache)
   /* Keep looping through successive tokens until the corresponding closing
      token is found at level zero (i.e., not within a nesting of parens,
      brackets, or braces). */
@@ -777,7 +788,7 @@ a template argument list or is just a less-than sign.
     if (curr_token == tok_end_of_source) break;
     /* None of the conditions was satisfied, so keep going. */
     if (!coalesce_ids) cache_curr_token(cache);
-    get_token_and_coalesce_if_needed(coalesce_ids);
+    get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
   }  /* while */
   db_exit();
   return error;
@@ -809,9 +820,16 @@ be copies to the new cache.
 {
   a_token_sequence_number	first_tsn = curr_token_sequence_number;
   a_token_sequence_number	last_tsn;
+  a_token_sequence_number	last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
 
   db_enter(4, "cache_token_stream_with_coalesce_flag");
   if (coalesce_ids) {
+    a_cached_token_ptr	ctp = src_cache->first_token;
+    for (; ctp != NULL; ctp = ctp->next) {
+      if (ctp->token_sequence_number > last_tsn_in_cache) {
+        last_tsn_in_cache = ctp->token_sequence_number;
+      }  /* if */
+    }  /* for */
     /* Attempt to coalesce this token in case it begins an identifier. */
     (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL);
   }  /* if */
@@ -823,24 +841,24 @@ be copies to the new cache.
     a_boolean	error;
     if (curr_token == tok_lparen || curr_token == tok_lbracket ||
         curr_token == tok_lbrace) {
-      error = cache_token_stream_until_matching_token(cache, coalesce_ids);
+      error = cache_token_stream_until_matching_token(cache, coalesce_ids,
+                                                      last_tsn_in_cache);
       if (error) break;
     }  /* if */
     /* Stop immediately when end of source is reached. */
     if (curr_token == tok_end_of_source) break;
     /* Add the current token to the cache and advance to its successor. */
     if (!coalesce_ids) cache_curr_token(cache);
-    get_token_and_coalesce_if_needed(coalesce_ids);
+    get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
   }  /* while */
   /* Leave error_position associated with what is now curr_token. */
   set_err_pos_to_curr_token();
   if (coalesce_ids) {
-    if (curr_token != tok_end_of_source) {
-      /* Make a copy of the specified range of tokens from the source cache. */
-      last_tsn = curr_token_sequence_number;
-      copy_tokens_from_cache(src_cache, first_tsn, last_tsn, cache);
-    } else {
-      /* An error case -- we ran into the end of the source file. */
+    /* Make a copy of the specified range of tokens from the source cache. */
+    last_tsn = curr_token_sequence_number;
+    copy_tokens_from_cache(src_cache, first_tsn, last_tsn, cache);
+    if (curr_token == tok_end_of_source && last_tsn >= last_tsn_in_cache) {
+      (void)get_token();
     }  /* if */
   }  /* if */
   db_exit();
