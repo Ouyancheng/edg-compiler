@@ -89,7 +89,7 @@ static unsigned long
 		num_il_entry_prefixes_allocated,
 		string_literal_text_space_allocated,
                 num_trans_unit_corresps_allocated,
-                num_trans_unit_corresp_pointers_allocated;
+                num_trans_unit_copy_address_pointers_allocated;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 static unsigned long
 		num_source_sequence_entries_allocated,
@@ -188,14 +188,14 @@ DEBUG is TRUE.  Used in do_fs_alloc.
 #endif /* ORPHAN_PROCESSING_NEEDED && ... */
 
 /*
-Macro to increment the count of translation unit correspondence pointers
+Macro to increment the count of translation unit copy address pointers
 allocated.  When not generating debugging code, this expands to nothing.
 */
 #if DEBUG && !STANDALONE_UTILITY_PROGRAM
-#define incr_num_trans_unit_corresp_pointers_allocated()              \
-  num_trans_unit_corresp_pointers_allocated++
+#define incr_num_trans_unit_copy_address_pointers_allocated()              \
+  num_trans_unit_copy_address_pointers_allocated++
 #else /* !(DEBUG && !STANDALONE_UTILITY_PROGRAM) */
-#define incr_num_trans_unit_corresp_pointers_allocated() /* Nothing */
+#define incr_num_trans_unit_copy_address_pointers_allocated() /* Nothing */
 #endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
 
 /*
@@ -214,13 +214,13 @@ expands to nothing.
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
 /*
-Macro that clears the translation unit correspondence pointer when compiling
+Macro that clears the translation unit copy address pointer when compiling
 multiple translation units.
 */
-#define clear_and_incr_past_trans_unit_corresp_pointer(ptr)		      \
-  incr_num_trans_unit_corresp_pointers_allocated();                         \
+#define clear_and_incr_past_trans_unit_copy_address_pointer(ptr)	      \
+  incr_num_trans_unit_copy_address_pointers_allocated();                      \
   *(char **)ptr = NULL;                                               \
-  ptr += SPACE_FOR_TRANS_UNIT_CORRESP_POINTER;
+  ptr += SPACE_FOR_TRANS_UNIT_COPY_ADDRESS_POINTER;
 
 /*
 Allocate a file-scope IL entry of size "size" preceded by an_il_entry_prefix
@@ -235,7 +235,7 @@ units are involved).
           fs_region_number,                                           \
           (sizeof_t)((size) + file_scope_entry_prefix_size));         \
   if (!is_primary_translation_unit) {				      \
-    clear_and_incr_past_trans_unit_corresp_pointer(ptr);		      \
+    clear_and_incr_past_trans_unit_copy_address_pointer(ptr);		      \
   }  /* if */							      \
   clear_and_incr_past_orphan_pointer(ptr);			      \
   incr_num_il_entry_prefixes_allocated();                             \
@@ -3285,9 +3285,9 @@ Display and return the amount of space used for various IL tables.
   db_space_used_nontype("fs orphan pointers", num_fs_orphan_pointers_allocated,
                         SPACE_FOR_FS_ORPHAN_POINTER);
 #endif /* ORPHAN_PROCESSING_NEEDED */
-  db_space_used_nontype("trans. unit corresp. ptr.",
-                        num_trans_unit_corresp_pointers_allocated,
-                        SPACE_FOR_TRANS_UNIT_CORRESP_POINTER);
+  db_space_used_nontype("trans. unit copy addr.",
+                        num_trans_unit_copy_address_pointers_allocated,
+                        SPACE_FOR_TRANS_UNIT_COPY_ADDRESS_POINTER);
   db_space_used("IL entry prefix", num_il_entry_prefixes_allocated,
                 an_il_entry_prefix);
 #if ASM_SUPPORT_NEEDED
@@ -3449,7 +3449,7 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_instantiation_directives_allocated),
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       pch_saved_var_array_elem(num_trans_unit_corresps_allocated),
-      pch_saved_var_array_elem(num_trans_unit_corresp_pointers_allocated),
+      pch_saved_var_array_elem(num_trans_unit_copy_address_pointers_allocated),
 #if ORPHAN_PROCESSING_NEEDED
       pch_saved_var_array_elem(num_fs_orphan_pointers_allocated),
 #endif /* ORPHAN_PROCESSING_NEEDED */
@@ -3494,10 +3494,10 @@ translation unit.
   /* All entries allocated in the file scope have a prefix.  If we are
      doing orphan processing, they also have an orphan pointer.  In
      secondary translation units they also have a translation unit
-     correspondence pointer. */
+     copy address pointer. */
   file_scope_entry_prefix_size =
             (is_primary_translation_unit ? 0
-                                     : SPACE_FOR_TRANS_UNIT_CORRESP_POINTER) +
+                                : SPACE_FOR_TRANS_UNIT_COPY_ADDRESS_POINTER) +
 #if ORPHAN_PROCESSING_NEEDED
             SPACE_FOR_FS_ORPHAN_POINTER +
 #endif /* ORPHAN_PROCESSING_NEEDED */
@@ -3591,7 +3591,7 @@ initializations that are done for each compilation.
   num_instantiation_directives_allocated = 0;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   num_trans_unit_corresps_allocated      = 0;
-  num_trans_unit_corresp_pointers_allocated = 0;
+  num_trans_unit_copy_address_pointers_allocated = 0;
 #if ORPHAN_PROCESSING_NEEDED
   num_fs_orphan_pointers_allocated       = 0;
 #endif /* ORPHAN_PROCESSING_NEEDED */

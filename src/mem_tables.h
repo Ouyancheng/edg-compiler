@@ -119,7 +119,7 @@ typedef struct an_il_entry_prefix {
 			   copies may be written. */
 			/* This is not conditional because it is also used
 			   by trans_copy.c as a flag that means "the
-			   trans-unit correspondence pointer for the entry
+			   trans-unit copy address pointer for the entry
 			   has been set to point to allocated space into
 			   which this entry has been or will be copied". */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
@@ -243,44 +243,43 @@ the file-scope IL entry at ptr.
 #define SPACE_FOR_FS_ORPHAN_POINTER 0
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
-/* Amount of space to allocate for the translation unit correspondence
+/* Amount of space to allocate for the translation unit copy address
    pointer that is used when compiling multiple translation units.
-   (Such a pointer links to the IL for the same entity in a previous
-   translation unit.  By following the links the "canonical" entry for a
-   certain entity can be found.)  This is allocated for file scope memory
-   regions of secondary translation units.  The size is the smallest
-   multiple of HOST_ALIGNMENT_REQUIRED that is at least as large as the
-   size of a "char *".  This preserves the necessary alignment for the
-   entry itself. */
-#define SPACE_FOR_TRANS_UNIT_CORRESP_POINTER                          \
+   (Such a pointer is used during the process that copies IL from
+   secondary translation units to the primary IL).  This is allocated
+   for file scope memory regions of secondary translation units.  The
+   size is the smallest multiple of HOST_ALIGNMENT_REQUIRED that is at
+   least as large as the size of a "char *".  This preserves the
+   necessary alignment for the entry itself. */
+#define SPACE_FOR_TRANS_UNIT_COPY_ADDRESS_POINTER                          \
  ((((sizeof(char *)-1)/HOST_ALIGNMENT_REQUIRED)+1)*                   \
   HOST_ALIGNMENT_REQUIRED)
 
 /*
-Macro to allow reference to the translation unit correspondence pointer
+Macro to allow reference to the translation unit copy address pointer
 that precedes the file-scope IL entry at ptr.
 */
-#define trans_unit_corresp_pointer_of(ptr)                            \
+#define trans_unit_copy_address_of(ptr)                            \
   (*(char **)((char *)(ptr) -                                         \
               SPACE_FOR_IL_ENTRY_PREFIX -                             \
               SPACE_FOR_FS_ORPHAN_POINTER -                           \
-              SPACE_FOR_TRANS_UNIT_CORRESP_POINTER))
+              SPACE_FOR_TRANS_UNIT_COPY_ADDRESS_POINTER))
 
 /*
-Checked version of trans_unit_corresp_pointer_of -- when checking
-code is on, checks that the pointer is to an entry that does have
-a correspondence pointer.  Note that this may involve evaluating
-the argument more than once.
+Checked version of trans_unit_copy_address_of -- when checking code is
+on, checks that the pointer is to an entry that does have a copy
+address pointer.  Note that this may involve evaluating the argument
+more than once.
 */
 #if CHECKING
-#define checked_trans_unit_corresp_pointer_of(ptr)                    \
-  (trans_unit_corresp_pointer_of(                                     \
+#define checked_trans_unit_copy_address_of(ptr)                    \
+  (trans_unit_copy_address_of(                                     \
     ((in_file_scope(ptr) && in_secondary_trans_unit(ptr)) ? (void)0 :   \
        assertion_failed(__FILE__, __LINE__, (char *)NULL, (char *)NULL), \
      ptr)))
 #else /* !CHECKING */
-#define checked_trans_unit_corresp_pointer_of(ptr)                    \
-   trans_unit_corresp_pointer_of(ptr)
+#define checked_trans_unit_copy_address_of(ptr)                    \
+   trans_unit_copy_address_of(ptr)
 #endif /* CHECKING */
 
 /*
@@ -312,6 +311,13 @@ EXTERN a_memory_region_number
 		highest_used_region_number;
 			/* The highest memory region number used so far. */
 
+#if 0
+#else
+/* Temporary macros until old references are removed. */
+#define trans_unit_corresp_pointer_of(ptr) trans_unit_copy_address_of(ptr)
+#define checked_trans_unit_corresp_pointer_of(ptr) \
+  checked_trans_unit_copy_address_of(ptr)
+#endif
 
 #endif /* ifndef MEM_TABLES_H */
 
