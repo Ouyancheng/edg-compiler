@@ -3578,6 +3578,10 @@ routine assumes the class type is as complete as it will ever get.
     if (ctsp->type_as_subobject == NULL) {
       saved_error_position = error_position;
       error_position = class_type->source_corresp.decl_position;
+      /* If the class has a definition, the processing of the definition
+         should be complete. */
+      check_assertion_str(ctsp->assoc_scope == NULL || class_type->size != 0,
+                        "prelower_class_type: class definition not completed");
       /* Make the virtual function table variables if they have not been made
          already. */
       make_vars_for_virtual_function_tables(class_type);
