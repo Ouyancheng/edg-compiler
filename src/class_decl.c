@@ -11567,20 +11567,6 @@ the IL, the template header is passed via template_decl.
                  friend_specified ? (a_type_ptr)NULL : class_type,
                  &locator, &local_type, &decl_info.declarator_ssep, &func_info,
                  &decl_info.decl_pos_block, &declarator_attributes);
-      is_function = (decl_info.storage_class != (a_storage_class)sc_typedef &&
-                     is_function_type(local_type));
-#if GNU_EXTENSIONS_ALLOWED
-      has_postfix_attributes =
-                            (decl_info.do_flags & DO_POSTFIX_ATTRIBUTES) != 0;
-      scan_gnu_declarator_attributes(&asm_name, &asm_name_pos,
-                                     &declarator_attributes,
-                                     &has_postfix_attributes,
-                                     decl_info.storage_class, is_function);
-      /* Combine the specifier and declarator attributes (they are separated
-         again at the end of the loop). */
-      *last_specifier_attribute = declarator_attributes;
-      attributes = specifier_attributes;
-#endif /* GNU_EXTENSIONS_ALLOWED */
       if (!C_mode()) {
         remove_stop_token(tok_lbrace);
         check_completed_member_type(&local_type, &locator, class_state,
@@ -11599,6 +11585,20 @@ the IL, the template header is passed via template_decl.
         decl_info.is_destructor = locator.is_destructor_name ||
                                   (decl_info.do_flags & DO_IS_DESTRUCTOR) != 0;
       }  /* if */
+      is_function = (decl_info.storage_class != (a_storage_class)sc_typedef &&
+                     is_function_type(local_type));
+#if GNU_EXTENSIONS_ALLOWED
+      has_postfix_attributes =
+                            (decl_info.do_flags & DO_POSTFIX_ATTRIBUTES) != 0;
+      scan_gnu_declarator_attributes(&asm_name, &asm_name_pos,
+                                     &declarator_attributes,
+                                     &has_postfix_attributes,
+                                     decl_info.storage_class, is_function);
+      /* Combine the specifier and declarator attributes (they are separated
+         again at the end of the loop). */
+      *last_specifier_attribute = declarator_attributes;
+      attributes = specifier_attributes;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     remove_stop_token(tok_colon);
     remove_stop_token(tok_try);
