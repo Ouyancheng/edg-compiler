@@ -3394,13 +3394,16 @@ unit.
         end_of_scope_symbol_check(sym, curr_routine);
 #if RECORD_HIDDEN_NAMES_IN_IL
 #if CHECKING
-        if (!sym->is_error && sym->kind != (a_symbol_kind)sk_undefined) {
-          if (is_tag_symbol(sym)) {
-            check_assertion(sym->header->any_tag_decl);
-          }  /* if */
-          if (kind == (a_scope_kind)sck_file ||
-              kind == (a_scope_kind)sck_namespace) {
-            check_assertion(sym->header->any_decl_in_file_or_namespace_scope);
+        if (!C_mode() && total_errors == 0) {
+          if (!sym->is_error && sym->kind != (a_symbol_kind)sk_undefined) {
+            if (is_tag_symbol(sym)) {
+              check_assertion(sym->header->any_tag_decl);
+            }  /* if */
+            if (kind == (a_scope_kind)sck_file ||
+                kind == (a_scope_kind)sck_namespace) {
+              check_assertion(sym->header->
+                                    any_decl_in_file_or_namespace_scope);
+            }  /* if */
           }  /* if */
         }  /* if */
 #endif /* CHECKING */
