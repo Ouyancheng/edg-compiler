@@ -5815,6 +5815,25 @@ rather than determined directly.
 }  /* add_to_routines_list */
 
 
+void clear_function_body(a_routine_ptr  rp)
+/*
+rp points to a routine whose definition is being eliminated.  Reset the entry
+to an undefined state and free the associated memory region.
+*/
+{
+  a_memory_region_number  n = rp->assoc_scope;
+
+  /* Reset the routine entry to undefined state. */
+  rp->defined = FALSE;
+  rp->defined_in_friend_decl = FALSE;
+  rp->assoc_scope = NULL_region_number;
+  rp->type->variant.routine.extra_info->assoc_routine = NULL;
+  il_header.region_scope_entry[n] = NULL;
+  /* Free the memory region. */
+  free_memory_region(n);
+}  /* clear_function_body */
+
+
 void add_to_asm_entries_list(an_asm_entry_ptr  asm_entry_ptr)
 /*
 Add the given routine to the asm entries list for the current scope.
@@ -10148,13 +10167,7 @@ done_with_func_prototype_decls:;
         }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         /* Reset the routine entry to undefined state. */
-        rp->defined = FALSE;
-        rp->defined_in_friend_decl = FALSE;
-        rp->assoc_scope = NULL_region_number;
-        rp->type->variant.routine.extra_info->assoc_routine = NULL;
-        il_header.region_scope_entry[n] = NULL;
-        /* Free the memory region. */
-        free_memory_region(n);
+        clear_function_body(rp);
       }  /* if */
     }  /* if */
   }  /* for */
