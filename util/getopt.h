@@ -16,7 +16,7 @@ getopt.h -- command line option processing.
 #if __SYSV__ && !__VMS__
 
 /* External declarations for getopt. */
-int getopt(int argc, char * const argv[], const char *optstring);
+int getopt(int argc, char * argv[], char *optstring);
 extern char *optarg;
 extern int optind, opterr;
 
@@ -34,7 +34,7 @@ int		opterr = 1;
 			/* If non-zero, produce an error message on
 			   a bad option. */
 
-int getopt(int argc, char * const argv[], const char *optstring)
+int getopt(int argc, char *argv[], char *optstring)
 /*
 Fetch a command-line option.  This routine is a functional analogue of
 the System V getopt routine (see the SVID, getopt(BA_LIB)).  argc and
