@@ -1650,8 +1650,7 @@ rescan_statement:
 expr_statement:
       /* Look for things that can't be expression statements, and produce
          a specific "Expected a statement" message for those cases. */
-      if (curr_token == tok_rbrace || curr_token == tok_else ||
-          is_decl_start()) {
+      if (curr_token == tok_rbrace || curr_token == tok_else) {
         /* When a label definition precedes a "}", let it by as an extension,
            with a warning in all modes. */
         if (prev_was_label && curr_token == tok_rbrace) {
@@ -1704,6 +1703,7 @@ come out on the closing "}".
 {
   a_statement_ptr block;
   a_scope_ptr     scope_ptr;
+  a_boolean       any_statements = FALSE;
 
   db_enter (3, "compound_statement");
 
@@ -1739,22 +1739,25 @@ come out on the closing "}".
                      (a_type_ptr)NULL, (a_routine_ptr)NULL);
   }  /* if */
 
-  /* Scan the optional declarations. */
-  opt_declaration_list();
-
   while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
-    /* Scan an enclosed statement. */
-    statement();
-    /* Special error-recovery trick: this tries to deal with mismatched
-       braces, in the case where a "}" is missing and thus there appears to
-       be an extra "{".  If we are at function level, and the next thing
-       appears to be a declaration rather than a statement, and it's not
-       indented, assume a "}" and exit the compound statement.  This trick
-       can only be used in C, because in C++ declarations can occur in
-       the middle of sequences of statements. */
-    if (C_dialect != C_dialect_cplusplus &&
-        at_function_level && pos_curr_token.column == 1 &&
-        is_decl_start()) break;
+    if (is_decl_start()) {
+      /* Scan any declarations.  In C, these must all be at the beginning
+         of the block.  In C++, they may appear anywhere in the block. */
+      if (C_dialect != C_dialect_cplusplus && any_statements) {
+        error(ec_declaration_after_statements);
+        /* Special error-recovery trick: this tries to deal with mismatched
+           braces, in the case where a "}" is missing and thus there appears to
+           be an extra "{".  If we are at function level, and the next thing
+           appears to be a declaration rather than a statement, and it's not
+           indented, assume a "}" and exit the compound statement. */
+        if (at_function_level && pos_curr_token.column == 1) break;
+      }  /* if */
+      local_declaration();
+    } else {
+      /* Scan a statement. */
+      any_statements = TRUE;
+      statement();
+    }  /* if */
   }  /* while */
   /* If a lint-style "notreached" comment was detected, suppress the
      warning on unreachable code. */
