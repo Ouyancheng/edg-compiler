@@ -1,5 +1,13 @@
 Version 2.38
 
+12/3/97   Code for generated bitwise operator=
+
+Generally, if a class allows bitwise assignment, no operator= function
+is generated.  However, if the address of the operator= function is
+taken, a definition is needed.  The code generated for such a definition
+was missing an indirection on the source operand, and therefore it
+did not work correctly.  Now fixed.
+
 12/3/97   Turning off Microsoft mode
 
 When Microsoft mode is enabled, either by default or by a command-line

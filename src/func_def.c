@@ -1818,7 +1818,7 @@ operator routine or do bitwise assignment.
        actual creation of the routine.) */
     /* Get the source and destination expressions to use as operands for an
        assignment statement. */
-    source_expr = var_rvalue_expr(source_var);
+    source_expr = add_indirection_to_node(var_rvalue_expr(source_var));
     dest_expr = this_param_value_expr();
     sp = sp->next = make_assignment_statement(dest_expr, source_expr);
   } else {
