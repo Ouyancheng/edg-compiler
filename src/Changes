@@ -146,7 +146,9 @@ diagnosed in strict ANSI mode.  Now it is warned about in all other modes,
 except K&R/pcc mode.  For example:
 
   #define A 7
-  #undef A+1  // Warning (or error) except in K&R/pcc mode
+  #if A
+  #endif A    // Warning (or error) except in K&R/pcc mode: extra "A"
+  #undef A+1  // Warning (or error) except in K&R/pcc mode: extra "+1"
   int i = A;  // Error: A is undefined (behavior unchanged)
 
 9/21/00  Microsoft compatibility: specialization allowed after use
