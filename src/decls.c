@@ -213,7 +213,8 @@ specifier if the name has been declared.  Called only in C++.
   char         *id_name;
   a_boolean    is_overload = FALSE;
 
-  if (curr_token == tok_identifier && !is_error_locator(locator_for_curr_id)) {
+  if (allow_anachronisms && curr_token == tok_identifier &&
+      !is_error_locator(locator_for_curr_id)) {
     id_name = locator_for_curr_id.symbol_header->identifier;
     if (*id_name == 'o' && strcmp(id_name, "overload") == 0) {
       /* Identifier is "overload" -- check for definition. */
@@ -6599,94 +6600,93 @@ process_class_specifier:
                advance to the next token. */
             diagnostic(anachronism_error_severity, ec_overload_anachronism);
             break;
-          } else {
-            /* Check for a constructor declaration.  The following conditions
-               must be satisfied:  (1) we are inside a class definition;
-               (2) the current token is the name of the class being defined
-               (note that typedef names are not allowed); (3) the declaration
-               has no other specifiers besides "inline" (which is legal) and
-               "virtual" or "static" (which are not); (4) the next token is a
-               left parenthesis; (5) the token following the left paren is a
-               right paren or the start of a formal parameter declaration. */
-            if (is_member_decl &&
-                num_specifiers == (((*output_flags & DSO_VIRTUAL) ? 1 : 0) +
-                                   ((*storage_class ==
-                                       (a_storage_class)sc_static) ? 1 : 0) +
-                                   (is_inline ? 1 : 0)) &&
-                is_name_of_curr_class()) {
-              /* The name is the same as that of a class being defined.  This
-                 is treated as a constructor declaration if the next two
-                 tokens are a left paren and declaration start token.  Use
-                 token caching in the look-ahead, since the tokens will have
-                 to be rescanned no matter what. */
-              a_token_cache    cache;
-              a_boolean        is_constructor = FALSE;
+          }  /* if */
+          /* Check for a constructor declaration.  The following conditions
+             must be satisfied:  (1) we are inside a class definition;
+             (2) the current token is the name of the class being defined
+             (note that typedef names are not allowed); (3) the declaration
+             has no other specifiers besides "inline" (which is legal) and
+             "virtual" or "static" (which are not); (4) the next token is a
+             left parenthesis; (5) the token following the left paren is a
+             right paren or the start of a formal parameter declaration. */
+          if (is_member_decl &&
+              num_specifiers == (((*output_flags & DSO_VIRTUAL) ? 1 : 0) +
+                                 ((*storage_class ==
+                                     (a_storage_class)sc_static) ? 1 : 0) +
+                                 (is_inline ? 1 : 0)) &&
+              is_name_of_curr_class()) {
+            /* The name is the same as that of a class being defined.  This
+               is treated as a constructor declaration if the next two
+               tokens are a left paren and declaration start token.  Use
+               token caching in the look-ahead, since the tokens will have
+               to be rescanned no matter what. */
+            a_token_cache    cache;
+            a_boolean        is_constructor = FALSE;
 
-	      /* Change "A::A" into "A" if we are processing inside the
-		 definition of class "A".  This is necessary for
-		 determine_curr_type_symbol to handle this case
-		 correctly. */
-	      (void)simplify_curr_class_qualified_name();
-              clear_token_cache(&cache, /*reusable=*/FALSE);
-              /* Put the current token in the cache. */
+            /* Change "A::A" into "A" if we are processing inside the
+               definition of class "A".  This is necessary for
+               determine_curr_type_symbol to handle this case
+               correctly. */
+            (void)simplify_curr_class_qualified_name();
+            clear_token_cache(&cache, /*reusable=*/FALSE);
+            /* Put the current token in the cache. */
+            cache_curr_token(&cache);
+            /* Advance to what may be the left paren. */
+            if (get_token() == tok_lparen) {
+              /* Cache the left parenthesis. */
               cache_curr_token(&cache);
-              /* Advance to what may be the left paren. */
-              if (get_token() == tok_lparen) {
-                /* Cache the left parenthesis. */
-                cache_curr_token(&cache);
-                /* Advance past it.  If the next token is a right paren or
-                   the start of a parameter declaration, this must be a
-                   constructor. */
-                (void)get_token();
-                if (curr_token == tok_rparen || curr_token == tok_ellipsis ||
-                    is_decl_start(/*expr_context=*/FALSE,
-                                  /*real_declarator_allowed=*/TRUE)) {
-                  /* Constructor. */
-                  is_constructor = TRUE;
-                }  /* if */
+              /* Advance past it.  If the next token is a right paren or
+                 the start of a parameter declaration, this must be a
+                 constructor. */
+              (void)get_token();
+              if (curr_token == tok_rparen || curr_token == tok_ellipsis ||
+                  is_decl_start(/*expr_context=*/FALSE,
+                                /*real_declarator_allowed=*/TRUE)) {
+                /* Constructor. */
+                is_constructor = TRUE;
               }  /* if */
-              /* Note that rescan_cached_tokens caches the current token as
-                 well as resetting the current token state to what it was
-                 before token caching was started.  So the current token
-                 should again be the name of the class being defined. */
-              rescan_cached_tokens(&cache);
-              if (is_constructor) {
-                a_type_ptr    tp = scope_stack[decl_scope_level].assoc_type;
-                a_symbol_ptr  tag_sym =
-                                   (a_symbol_ptr)tp->source_corresp.assoc_info;
-                basic_type = bt_no_type;
-                *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
-                /* Turn the current locator from a "specific symbol" locator
-                   into a constructor locator. */
-                determine_curr_token_type_symbol();
-                if (curr_token_type_symbol != tag_sym) {
-                  if (locator_for_curr_id.specific_symbol->
-                               class_of_which_a_member == tp) {
-                    /* This can only mean that another member has been declared
-                       with the class name.  Issue an error. */
-                    str_error(ec_id_already_declared,
-                              locator_for_curr_id.symbol_header->identifier);
-                  } else if (curr_token_type_symbol != NULL) {
+            }  /* if */
+            /* Note that rescan_cached_tokens caches the current token as
+               well as resetting the current token state to what it was
+               before token caching was started.  So the current token
+               should again be the name of the class being defined. */
+            rescan_cached_tokens(&cache);
+            if (is_constructor) {
+              a_type_ptr    tp = scope_stack[decl_scope_level].assoc_type;
+              a_symbol_ptr  tag_sym =
+                                 (a_symbol_ptr)tp->source_corresp.assoc_info;
+              basic_type = bt_no_type;
+              *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
+              /* Turn the current locator from a "specific symbol" locator
+                 into a constructor locator. */
+              determine_curr_token_type_symbol();
+              if (curr_token_type_symbol != tag_sym) {
+                if (locator_for_curr_id.specific_symbol->
+                                         class_of_which_a_member == tp) {
+                  /* This can only mean that another member has been declared
+                     with the class name.  Issue an error. */
+                  str_error(ec_id_already_declared,
+                            locator_for_curr_id.symbol_header->identifier);
+                } else if (curr_token_type_symbol != NULL) {
 #if CHECKING
-                    if (!is_template_class_symbol(curr_token_type_symbol)) {
-                      internal_error(
-                                "decl_specifiers: expected template class");
-                    }  /* if */
-#endif /* CHECKING */
-                    pos_sy2_error(ec_bad_constructor_name,
-                                  &locator_for_curr_id.source_position,
-                                  curr_token_type_symbol, tag_sym);
+                  if (!is_template_class_symbol(curr_token_type_symbol)) {
+                    internal_error(
+                              "decl_specifiers: expected template class");
                   }  /* if */
-                  locator_for_curr_id.specific_symbol = tag_sym;
+#endif /* CHECKING */
+                  pos_sy2_error(ec_bad_constructor_name,
+                                &locator_for_curr_id.source_position,
+                                curr_token_type_symbol, tag_sym);
                 }  /* if */
-                change_class_locator_into_constructor_locator(
-                                                     &locator_for_curr_id);
-                /* Note that with a branch to exit_loop the get_token call
-                   is bypassed.  This means curr_token will still represent
-                   the constructor name (= class name) upon return to the
-                   caller. */
-                goto exit_loop;
+                locator_for_curr_id.specific_symbol = tag_sym;
               }  /* if */
+              change_class_locator_into_constructor_locator(
+                                                     &locator_for_curr_id);
+              /* Note that with a branch to exit_loop the get_token call
+                 is bypassed.  This means curr_token will still represent
+                 the constructor name (= class name) upon return to the
+                 caller. */
+              goto exit_loop;
             }  /* if */
           }  /* if */
         }  /* if */
