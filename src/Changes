@@ -1,5 +1,15 @@
 Version 2.46
 
+2/20/01  Sequence to physical line number translation can produce incorrect
+         results
+
+The routine conv_seq_to_physical_file_and_line can produce incorrect
+results when making used of a previously cached conversion result.
+This has not been observed in an unmodified front end because of the
+way in which that routine is used, but could occur in a modified front
+end that does additional calls to conv_seq_to_physical_file_and_line.
+This has been fixed.
+
 2/19/01  Command-line option to enable/disable special <stdarg.h> processing
 
 The front end can be configured to pass references to the macros defined

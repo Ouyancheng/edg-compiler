@@ -2325,6 +2325,7 @@ physical line position for the sequence number.
 */
 {
   a_source_file_ptr curr_file, child_file, grandchild_file, phys_curr_file;
+  a_source_file_ptr orig_curr_file;
   unsigned long     lines_in_children;
   a_seq_number	    first_seq_for_cache;
   long		    line_offset;
@@ -2432,6 +2433,9 @@ examine_children:
       first_seq_for_cache = child_file->last_seq_number + 1;
       child_file = child_file->next;
     }  /* while */
+    /* Save the current file entry before potentially changing it to
+       point to the physical file. */
+    orig_curr_file = curr_file;
     if (physical_line) {
       /* If we want to ignore #line directives, go back to the last entry
          for a real file that we saw. */
@@ -2450,7 +2454,7 @@ examine_children:
       seq_cache.last_seq_number = child_file->first_seq_number - 1;
     } else {
       /* This cached entry is valid through the end of the current file. */
-      seq_cache.last_seq_number = curr_file->last_seq_number;
+      seq_cache.last_seq_number = orig_curr_file->last_seq_number;
     }  /* if */
     seq_cache.line_offset = line_offset;
     seq_cache.source_file = curr_file;
