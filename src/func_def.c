@@ -404,9 +404,8 @@ param type entry.
 static a_variable_ptr make_param_variable(a_type_ptr       type_ptr,
                                           a_storage_class  storage_class)
 /*
-Allocate a variable entry with type type_ptr.  If type_ptr is NULL (as it
-will be in trying to creating an implicit this parameter for static member
-functions) simply return NULL.
+Allocate a variable entry with type type_ptr, set some of its fields, and
+return a pointer to it.
 */
 {
   a_variable_ptr vp;
