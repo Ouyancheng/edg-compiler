@@ -39,9 +39,8 @@ typedef enum /*a_variable_remapping_kind*/ {
   vrk_none,		/* No remapping; used in entries that exist only to
 			   record the arg_expr and arg_expr_next fields. */
   vrk_temporary,	/* Variable is remapped to a temporary variable. */
-  vrk_constant,		/* Variable is remapped to a constant. */
-  vrk_addr_variable	/* Variable is remapped to the address of a
-			   variable. */
+  vrk_constant_expr,	/* Variable is remapped to a constant-valued
+			   expression. */
 } a_variable_remapping_kind;
 typedef struct a_variable_remapping_for_inlining
                                         *a_variable_remapping_for_inlining_ptr;
@@ -57,12 +56,12 @@ typedef struct a_variable_remapping_for_inlining {
 			/* Kind of remapping. */
   union {
     /* When kind == vrk_none, no variant fields. */
-    /* When kind == vrk_temporary or vrk_addr_variable: */
+    /* When kind == vrk_temporary: */
     a_variable_ptr
 		variable;
-    /* When kind == vrk_constant: */
-    a_constant_ptr
-		constant;
+    /* When kind == vrk_constant_expr: */
+    an_expr_node_ptr
+		expr;
   } variant;
   /* Information used if this remapping came from an argument.  It is needed
      to restore the "next" pointer between argument expressions if the

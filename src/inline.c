@@ -110,6 +110,38 @@ the available list.
   variable_remappings_for_inlining = NULL;
 }  /* free_variable_remappings_for_inlining */
 
+#if DEBUG
+
+static void db_variable_remapping(a_variable_remapping_for_inlining_ptr vrip)
+/*
+Display the indicated variable remapping for debugging urposes.
+*/
+{
+  db_variable(vrip->orig_variable);
+  if (vrip->kind == vrk_none) {
+    fprintf(f_debug, " (no remapping)");
+  } else {
+    fprintf(f_debug, " --> ");
+    if (vrip->kind == vrk_temporary) {
+      db_name(&vrip->variant.variable->source_corresp);
+    } else if (vrip->kind == vrk_constant_expr) {
+      an_expr_node_ptr expr = vrip->variant.expr;
+      if (is_constant_node(expr)) {
+        db_constant(vrip->variant.expr->variant.constant);
+      } else if (is_variable_address_node(expr)) {
+        fprintf("&");
+        db_name(&expr->variant.variable->source_corresp);
+      } else {
+        db_expression(expr);
+      }  /* if */
+    } else {
+      fprintf(f_debug, " <bad remapping>");
+    }  /* if */
+  }  /* if */
+  fprintf(f_debug, "\n");
+}  /* db_variable_remapping */
+
+#endif /* DEBUG */
 
 static void transfer_variable_attributes_to_temporary(a_variable_ptr var,
                                                       a_variable_ptr temp_var)
@@ -150,6 +182,33 @@ variable) does not have a null value.
   }  /* if */
   return is_non_null;
 }  /* expr_is_non_null */
+
+
+static a_boolean is_constant_valued_expression(an_expr_node_ptr expr)
+/*
+Return TRUE if the indicated expression has a constant value over the
+duration of an inlined call.  That includes things like addresses of
+automatic variables.
+*/
+{
+  a_boolean is_constant_valued = FALSE;
+
+  if (is_constant_node(expr)) {
+    is_constant_valued = TRUE;
+  } else if (is_variable_address_node(expr)) {
+    is_constant_valued = TRUE;
+  } else if (is_operation_node(expr)) {
+    an_expr_operator_kind op = expr->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_field) {
+      /* A field selection address is constant-valued if the address upon
+         which it is based is constant-valued.  This is important for
+         base-class field selections. */
+      is_constant_valued =
+               is_constant_valued_expression(expr->variant.operation.operands);
+    }  /* if */
+  }  /* if */
+  return is_constant_valued;
+}  /* is_constant_valued_expression */
 
 
 static void set_up_variable_remapping_for_inlining(
@@ -202,8 +261,7 @@ The code is inserted at *insert_location, and *insert_location is updated.
       /* See if the argument value is constant.  The address of a variable
          counts as a constant: even the address of an automatic variable is
          constant for the duration of a call. */
-      a_boolean arg_is_constant = is_constant_node(arg);
-      if ((arg_is_constant || is_variable_address_node(arg)) &&
+      if (is_constant_valued_expression(arg) &&
           ((!param_var->param_value_has_been_changed &&
             !param_var->address_taken) ||
           (param_var->is_this_parameter &&
@@ -221,15 +279,9 @@ The code is inserted at *insert_location, and *insert_location is updated.
            an assignment to "this" in that code when it does the allocation.
            We can only do that if the value being assigned to "this" is
            non-null. */
-        if (arg_is_constant) {
-          /* The parameter gets remapped to a constant. */
-          vrip->kind = vrk_constant;
-          vrip->variant.constant = arg->variant.constant;
-        } else {
-          /* The parameter gets remapped to the address of a variable. */
-          vrip->kind = vrk_addr_variable;
-          vrip->variant.variable = arg->variant.variable;
-        }  /* if */
+        /* The parameter gets remapped to a constant-valued expression. */
+        vrip->kind = vrk_constant_expr;
+        vrip->variant.expr = arg;
       } else {
         /* A temporary is needed for the parameter.  It is not put into a
            scope yet because we might fail sometime later on the inlining. */
@@ -246,23 +298,11 @@ The code is inserted at *insert_location, and *insert_location is updated.
       }  /* if */
 #if DEBUG
       if (debug_level >= 4) {
-        /* Don't print entries that exist only to preserve the "next"
-           pointer restoration information. */
-        if (vrip->kind != vrk_none) {
-          if (first) {
-            fprintf(f_debug, "Parameter remappings established:\n");
-            first = FALSE;
-          }  /* if */
-          db_variable(vrip->orig_variable);
-          fprintf(f_debug, " --> ");
-          if (vrip->kind == vrk_constant) {
-            db_constant(vrip->variant.constant);
-          } else {
-            if (vrip->kind == vrk_addr_variable) fprintf(f_debug, "&");
-            db_name(&vrip->variant.variable->source_corresp);
-          }  /* if */
-          fprintf(f_debug, "\n");
+        if (first) {
+          fprintf(f_debug, "Parameter remappings established:\n");
+          first = FALSE;
         }  /* if */
+        db_variable_remapping(vrip);
       }  /* if */
 #endif /* DEBUG */
     }  /* if */
@@ -276,10 +316,10 @@ The code is inserted at *insert_location, and *insert_location is updated.
        var = var->next) {
     /* We don't need the variable if it's not referenced. */
     if (var->source_corresp.referenced) {
-      vrip = alloc_variable_remapping_for_inlining(var);
       temp_var = make_temporary_in_scope(var->type,
                                          (a_scope_ptr)NULL,
                                          /*force_static=*/FALSE);
+      vrip = alloc_variable_remapping_for_inlining(var);
       vrip->kind = vrk_temporary;
       vrip->variant.variable = temp_var;
       transfer_variable_attributes_to_temporary(var, temp_var);
@@ -289,10 +329,7 @@ The code is inserted at *insert_location, and *insert_location is updated.
           fprintf(f_debug, "Variable remappings established:\n");
           first = FALSE;
         }  /* if */
-        db_variable(vrip->orig_variable);
-        fprintf(f_debug, " --> ");
-        db_name(&vrip->variant.variable->source_corresp);
-        fprintf(f_debug, "\n");
+        db_variable_remapping(vrip);
       }  /* if */
 #endif /* DEBUG */
     }  /* if */        
@@ -398,6 +435,7 @@ variables.
   an_expr_node_kind                     kind = expr->kind;
   a_variable_remapping_for_inlining_ptr vrip;
   a_constant_ptr                        con;
+  an_expr_node_ptr                      constant_expr;
 
   if (kind == (an_expr_node_kind)enk_variable) {
     /* Value of a variable.  See if the variable is remapped. */
@@ -409,16 +447,23 @@ variables.
           /* The variable is remapped to a temporary variable. */
           expr->variant.variable = vrip->variant.variable;
           break;
-        case vrk_constant:
-          /* The variable is remapped to a constant.  Use an enk_constant
-             instead. */
-          set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
-          expr->variant.constant = vrip->variant.constant;
-          break;
-        case vrk_addr_variable:
-          /* The variable is remapped to the address of a variable. */
-          set_expr_node_kind(expr, (an_expr_node_kind)enk_variable_address);
-          expr->variant.variable = vrip->variant.variable;
+        case vrk_constant_expr:
+          /* The variable is remapped to a constant-valued expression.
+             Look for some special cases. */
+          constant_expr = vrip->variant.expr;
+          if (is_constant_node(constant_expr)) {
+            /* The variable is remapped to a constant.  Use an enk_constant
+               instead. */
+            set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
+            expr->variant.constant = constant_expr->variant.constant;
+          } else if (is_variable_address_node(constant_expr)) {
+            /* The variable is remapped to the address of a variable. */
+            set_expr_node_kind(expr, (an_expr_node_kind)enk_variable_address);
+            expr->variant.variable = constant_expr->variant.variable;
+          } else {
+            /* Other, more complicated, cases.  Just copy the expression. */
+            overwrite_node(expr, copy_expr_tree(constant_expr));
+          }  /* if */
           break;
         default:
           unexpected_condition_str(
