@@ -612,10 +612,11 @@ after the command-line processing has been done.
 
 void fe_init_part_1(void)
 /*
-Do the first phase of front end initialization.  This part initializes
-everything except the IL data structures.  This is the initialization
-that occurs before determining whether a precompiled header can be used
-to replace the initial portion of this compilation.
+Do the first phase of front end initialization to be done for each source
+file compiled.  This part does everything except opening the source file.
+This is the initialization that occurs before determining whether a
+precompiled header can be used to replace the initial portion of this
+source file's compilation.
 */
 {
   time_t  timer;
@@ -624,10 +625,10 @@ to replace the initial portion of this compilation.
 
   /* Drop the debug level to 0 during initialization.  If debug output
      is desired in initialization, it can be explicitly requested by
-     name (of this routine, "fe_init"). */
+     name (of this routine, "fe_init_part_1"). */
   debug_level = 0;
 #endif /* DEBUG */
-  db_enter(5, "fe_init");
+  db_enter(5, "fe_init_part_1");
 
   /* Get current date and time in proper form for __DATE__ and __TIME__. */
   /* curr_date_time will be like "Sun Sep 16 01:03:52 1973\n". */
@@ -833,9 +834,12 @@ file prefix done by the precompiled header processing routines.
 
 void fe_init_part_2(void)
 /*
-Do the second phase of front end initialization.  This part initializes
-the IL data structures and opens the primary source file to do the actual
-compilation.
+Do the second phase of front end initialization to be done for each source
+file compiled.  This part opens the primary source file to do the actual
+compilation.  This is the initialization that occurs after determining whether
+a precompiled header can be used to replace the initial portion of this
+source file's compilation (whether or not a precompiled header ends up
+being used).
 */
 {
   /* The following (source file initialization) is done last so that any
