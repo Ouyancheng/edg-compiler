@@ -402,6 +402,7 @@ set to TRUE if the body of a routine is eliminated.
   a_routine_ptr      routine, prev_routine;
   a_template_ptr     templ, prev_templ;
   a_namespace_ptr    nsp;
+  a_pragma_ptr       pragma, prev_pragma;
   a_boolean          keep_on_list;
 
   /* Set the correspondence for this scope, if any. */
@@ -655,6 +656,28 @@ set to TRUE if the body of a routine is eliminated.
     if (!nsp->is_namespace_alias) {
       prepare_for_trans_unit_copy(nsp->variant.assoc_scope,
                                   any_removed_function_bodies);
+    }  /* if */
+  }  /* for */
+  /* Visit all pragmas. */
+  prev_pragma = NULL;
+  for (pragma = scope->pragmas;
+       pragma != NULL;
+       pragma = pragma->next) {
+    /* Keep the pragma if it has an associated entity that will be kept. */
+    keep_on_list = FALSE;
+    if (pragma->entity.ptr != NULL &&
+        entry_to_be_copied(pragma->entity.ptr)) {
+      keep_on_list = TRUE;
+    }  /* if */
+    if (keep_on_list) {
+      prev_pragma = pragma;
+    } else {
+      /* Remove this entry from the list. */
+      if (prev_pragma == NULL) {
+        scope->pragmas = pragma->next;
+      } else {
+        prev_pragma->next = pragma->next;
+      }  /* if */
     }  /* if */
   }  /* for */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
@@ -985,6 +1008,24 @@ secondary scope to the primary file IL.
         if (!nsp->is_namespace_alias) {
           finish_trans_unit_copy(nsp->variant.assoc_scope);
         }  /* if */
+      }  /* for */
+    }  /* if */
+    if (scope->pragmas != NULL) {
+      a_pragma_ptr pragma, last_pragma;
+      /* Merge the pragmas in the scope into the primary IL scope. */
+      last_pragma = pointers_block->last_pragma;
+      for (pragma = scope->pragmas; pragma != NULL; pragma = pragma->next) {
+        a_pragma_ptr corresp_pragma =
+                   (a_pragma_ptr)checked_trans_unit_corresp_pointer_of(pragma);
+        /* Add the pragma to the end of the list. */
+        if (last_pragma == NULL) {
+          primary_scope->pragmas = corresp_pragma;
+        } else {
+          last_pragma->next = corresp_pragma;
+        }  /* if */
+        corresp_pragma->next = NULL;
+        last_pragma = corresp_pragma;
+        pointers_block->last_pragma = last_pragma;
       }  /* for */
     }  /* if */
     /* Merge the object lifetime from "scope" into that from
