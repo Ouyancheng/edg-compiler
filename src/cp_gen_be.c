@@ -8564,6 +8564,49 @@ static void gen_routine_specifiers_and_declaration(
                           a_source_sequence_scan_state *saved_state,
                           a_name_reference_ptr         name_ref);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED && \
+    !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+
+static void suppress_microsoft_decl_modifiers_put_out_on_class(
+                                       a_decl_modifier         *decl_modifiers,
+                                       a_source_correspondence *scp)
+/*
+If scp is the source correspondence entry for a class member, and
+some Microsoft decl modifiers were put out on the class, remove those
+qualifiers from the set *decl_modifiers so they will not be put out
+again on a member declaration.
+*/
+{
+  if (il_header.source_language == sl_Cplusplus && scp->is_class_member) {
+    a_type_ptr class_type = scp->parent.class_type;
+    a_class_type_supplement_ptr
+               ctsp = class_type->variant.class_struct_union.extra_info;
+    *decl_modifiers &= ~ctsp->decl_modifiers;
+  }  /* if */
+}  /* suppress_microsoft_decl_modifiers_put_out_on_class */
+
+
+static void gen_microsoft_routine_decl_modifiers(a_routine_ptr  rout,
+                                                 a_boolean      is_definition)
+/*
+Generate Microsoft-specific declaration specifiers that modify a declaration
+for the given routine (e.g., __declspec(...)).  If the declaration is a
+definition, is_definition is TRUE.
+*/
+{
+  a_decl_modifier decl_modifiers = rout->decl_modifiers;
+
+  /* __declspec(naked) applies only to definitions. */
+  if (!is_definition) decl_modifiers &= ~DM_NAKED;
+  suppress_microsoft_decl_modifiers_put_out_on_class(&decl_modifiers,
+                                                     &rout->source_corresp);
+  gen_microsoft_decl_modifiers(decl_modifiers);
+  gen_microsoft_deprecated_spec(&rout->source_corresp);
+}  /* gen_microsoft_routine_decl_modifiers */
+
+#else /* !(MICROSOFT_EXTENSIONS_ALLOWED && !SUPPRESS_MICROSOFT_KEYWORDS_...) */
+#define gen_microsoft_routine_decl_modifiers(rout, is_definition) /* Nothing */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !SUPPRESS_MICROSOFT_KEYWORDS_... */
 
 static void gen_instantiation_directive(void)
 /*
@@ -8610,6 +8653,7 @@ Generate code for an instantiation directive.
       case iek_routine:
         { a_routine_ptr rout = (a_routine_ptr)idp->entity.ptr;
           a_boolean     context_pop_needed;
+          gen_microsoft_routine_decl_modifiers(rout, /*is_definition=*/FALSE);
           gen_routine_specifiers_and_declaration(
                                          rout, rout->type,
                                          /*is_definition=*/FALSE,
@@ -9683,29 +9727,6 @@ initialization is in a condition declaration if is_condition is TRUE.
   }  /* if */
 }  /* gen_initializer */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-
-static void suppress_microsoft_decl_modifiers_put_out_on_class(
-                                       a_decl_modifier         *decl_modifiers,
-                                       a_source_correspondence *scp)
-/*
-If scp is the source correspondence entry for a class member, and
-some Microsoft decl modifiers were put out on the class, remove those
-qualifiers from the set *decl_modifiers so they will not be put out
-again on a member declaration.
-*/
-{
-  if (il_header.source_language == sl_Cplusplus && scp->is_class_member) {
-    a_type_ptr class_type = scp->parent.class_type;
-    a_class_type_supplement_ptr
-               ctsp = class_type->variant.class_struct_union.extra_info;
-    *decl_modifiers &= ~ctsp->decl_modifiers;
-  }  /* if */
-}  /* suppress_microsoft_decl_modifiers_put_out_on_class */
-
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_variable_decl(a_boolean is_condition,
                               a_boolean for_init,
@@ -10629,18 +10650,7 @@ TRUE if the declaration following this one is such a continuation.
     if (rout->is_explicit_constructor && decl_within_class) {
       write_tok_str("explicit ");
     }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-    { a_decl_modifier decl_modifiers = rout->decl_modifiers;
-      /* __declspec(naked) applies only to definitions. */
-      if (!is_definition) decl_modifiers &= ~DM_NAKED;
-      suppress_microsoft_decl_modifiers_put_out_on_class(&decl_modifiers,
-                                                        &rout->source_corresp);
-      gen_microsoft_decl_modifiers(decl_modifiers);
-      gen_microsoft_deprecated_spec(&rout->source_corresp);
-    }
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    gen_microsoft_routine_decl_modifiers(rout, /*is_definition=*/FALSE);
   }  /* if */
   /* An unqualified name is used in the declarator if this is a declaration
      rather than a definition.  Specializations are an exception, and

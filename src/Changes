@@ -1,5 +1,19 @@
 Version 3.4
 
+1/7/04   C++-generating back end: Microsoft-specific declaration modifiers in
+         explicit instantiation directives
+
+In Microsoft mode, the C++-generating back end failed to render certain
+declaration modifiers (like __declspec(...)) appearing on explicit
+instantiation directives.  For example:
+
+  template <class T> inline __declspec(dllimport) void f(T) {}
+  template __declspec(dllimport) void f(int); // C++-generating back end
+                                              // previously dropped the
+                                              // "__declspec(dllimport)".
+
+This is now fixed.
+
 1/7/04   Microsoft and GNU C++ compatibility: enclosing template class 
          treated as complete type within nested class
 	 
@@ -12,7 +26,7 @@ used as the type of a nonstatic data member within a nested class.
     };
   };
 
-1/6/04   GNU C++ mode: Class types with size zero
+1/7/04   GNU C++ mode: Class types with size zero
 
 In GNU C++ mode, struct containing only data members of zero-length array
 types now have size zero.  (Note that empty class types still have size 1.)
