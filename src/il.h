@@ -191,7 +191,7 @@ extern void add_to_dynamic_inits_list(a_dynamic_init_ptr dip);
 extern a_variable_ptr alloc_variable(void);
 
 extern void add_to_variables_list(a_variable_ptr var_ptr,
-                                  a_boolean      at_file_scope);
+                                  a_scope_depth  scope_depth);
 
 extern void add_to_parameters_list(a_variable_ptr param_ptr);
 

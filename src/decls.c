@@ -1679,16 +1679,24 @@ file scope if at_file_scope is TRUE (in that case, type_ptr must be
 in the file scope).
 */
 {
-  a_variable_ptr vp;
-  a_memory_region_number region_to_switch_back_to;
+  a_variable_ptr          vp;
+  a_memory_region_number  region_to_switch_back_to;
+  a_scope_depth           scope_depth;
 
   /* Allocate the variable at the file scope if requested. */
-  if (at_file_scope) switch_to_file_scope_region(&region_to_switch_back_to);
+  if (at_file_scope) {
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    scope_depth = DEPTH_OF_FILE_SCOPE;
+  } else {
+    scope_depth = decl_scope_level;
+  }  /* if */
   vp = alloc_variable();
   vp->type = type_ptr;
   vp->storage_class = storage_class;
-  add_to_variables_list(vp, at_file_scope);
-  if (at_file_scope) switch_back_to_original_region(region_to_switch_back_to);
+  add_to_variables_list(vp, scope_depth);
+  if (at_file_scope) {
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
   return vp;
 }  /* make_variable */
 
@@ -1702,13 +1710,12 @@ current scope.
 */
 {
   a_variable_ptr vp;
-  a_boolean      at_file_scope = (decl_scope_level == DEPTH_OF_FILE_SCOPE);
 
   /* Allocate a variable to represent the anonymous union. */
   vp = alloc_variable();
   vp->type = anon_union_type;
   /* Check the storage class.  At file scope, only static is allowed. */
-  if (at_file_scope) {
+  if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
     switch (storage_class) {
       case sc_static:
         /* Okay. */
@@ -1746,7 +1753,7 @@ current scope.
   }  /* if */
   vp->storage_class = storage_class;
   /* Add the variable to the variables list for the current scope. */
-  add_to_variables_list(vp, at_file_scope);
+  add_to_variables_list(vp, decl_scope_level);
   /* Promote the fields of the anonymous union to the current scope, and do
      some error checking on the anonymous union's members. */
   check_anonymous_union_symbols((a_type_ptr)NULL, (a_field_ptr)NULL, vp);

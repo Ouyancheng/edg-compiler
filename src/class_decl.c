@@ -2845,7 +2845,7 @@ table.
   var->source_corresp.access = access;
   /* Link the variable entry onto the static data members list of the
      class, which is the variables list of the class's scope entry. */
-  add_to_variables_list(var, /*at_file_scope=*/FALSE);
+  add_to_variables_list(var, decl_scope_level);
 #if DEBUG
   if (debug_level >= 3) db_symbol(sym, "", 4);
 #endif /* DEBUG */
