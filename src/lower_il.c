@@ -8311,6 +8311,7 @@ original expressions have not been lowered yet.
   a_routine_ptr      ctor_routine;
   an_expr_node_ptr   num_elem_node, entity_node, size_node, call_node;
   an_expr_node_ptr   new_alloc_node, assign_node, alloc_temp_node;
+  an_expr_node_ptr   constant_node, nonconstant_node;
   a_type_ptr         elem_type;
   a_targ_size_t      elem_size;
   a_dynamic_init_ptr elem_dip;
@@ -8396,60 +8397,92 @@ original expressions have not been lowered yet.
       num_elem_node = size_node;
     }  /* if */
   } else {
-    /* If the size is a constant, do the division at compile time. */
+    /* A division by the element size is required.  Look for a constant
+       that can be altered at compile time.  There should always be one. */
+    nonconstant_node = NULL;
     if (is_constant_node(size_node)) {
-      size_constant = *size_node->variant.constant;
-#if CHECKING
-      if (size_constant.kind != (a_constant_repr_kind)ck_integer) {
-        internal_error("lower_array_new: size_constant not integral");
-      }  /* if */
-#endif /* CHECKING */
-      /* Note that we know the type is not incomplete, so the element size
-         is not zero. */
-      size_constant.variant.integer_value /= elem_size;
-      if (preserve_size_node) {
-        /* We need to preserve size_node, so make a new node for the element
-           count. */
-        num_elem_node = alloc_node_for_constant(&size_constant);
-      } else {
-        /* We do not need to preserve size_node, so reuse it for the
-           element count. */
-        num_elem_node = size_node;
-        num_elem_node->variant.constant =
-                                      alloc_shareable_constant(&size_constant);
-      }  /* if */
+      /* The size expression is constant. */
+      constant_node = size_node;
     } else {
       /* Size is not constant.  It should look like "expr*n" where "n"
          is the element size, i.e., a multiplication added while scanning
-         the "new" to convert number of elements to total size. */
+         the "new" to convert number of elements to total size.  Note however
+         that for a multi-dimensional array case "n" is the product of the
+         element size and the dimension bounds after the first. */
 #if CHECKING
-      if (is_operation_node(size_node) &&
-          size_node->variant.operation.kind ==
+      if (!is_operation_node(size_node) ||
+          size_node->variant.operation.kind !=
                                         (an_expr_operator_kind)eok_imultiply) {
-        an_expr_node_ptr multiplier =
-                                   size_node->variant.operation.operands->next;
-        if (is_constant_node(multiplier)) {
-          a_constant_ptr multiplier_con = multiplier->variant.constant;
-          if (multiplier_con->kind == (a_constant_repr_kind)ck_integer &&
-              multiplier_con->variant.integer_value == elem_size) {
-            /* Okay. */
-            goto check_okay;
-          }  /* if */
-        }  /* if */
+        internal_error("lower_array_new: bad size expr (1)");
       }  /* if */
-      internal_error("lower_array_new: bad size expr");
-check_okay:;
 #endif /* CHECKING */
-      /* Remove the multiplication, leaving the original first operand
-         which was the number of elements. */
-      num_elem_node = size_node->variant.operation.operands;
+      nonconstant_node = size_node->variant.operation.operands;
+      constant_node = nonconstant_node->next;
+#if CHECKING
+      if (!is_constant_node(constant_node)) {
+        internal_error("lower_array_new: bad size expr (2)");
+      }  /* if */
+#endif /* CHECKING */
       if (preserve_size_node) {
-        /* We need to preserve size_node, so make a copy of the operand. */
-        num_elem_node = make_reusable_copy(num_elem_node);
-      } else {
+        /* We need to preserve size_node, and therefore we need a copy of the
+           nonconstant node. */
+        nonconstant_node = make_reusable_copy(nonconstant_node);
+      }  /* if */
+    }  /* if */
+    /* Divide the constant by the element size. */
+    size_constant = *constant_node->variant.constant;
+#if CHECKING
+    if (size_constant.kind != (a_constant_repr_kind)ck_integer) {
+      internal_error("lower_array_new: size_constant not integral");
+    }  /* if */
+#endif /* CHECKING */
+    /* Note that we know the type is not incomplete, so the element size
+       is not zero. */
+    size_constant.variant.integer_value /= elem_size;
+    if (nonconstant_node != NULL &&
+        size_constant.variant.integer_value == 1) {
+      /* The constant can be eliminated altogether, i.e., there was a
+         multiplication by the base element size which is now not needed. */
+      /* Remove the multiplication, leaving the original first operand
+         which is the number of elements. */
+      num_elem_node = nonconstant_node;
+      if (!preserve_size_node) {
         /* Break the connection between the first operand and second operand
            of the "*" operation. */
         num_elem_node->next = NULL;
+      }  /* if */
+    } else {
+      /* The altered constant still figures in the number-of-elements
+         expression. */
+      if (preserve_size_node) {
+        /* We need to preserve size_node, so make a new node for the
+           constant. */
+        constant_node = alloc_node_for_constant(&size_constant);
+      } else {
+        /* We do not need to preserve size_node, so reuse the constant node
+           for the altered constant. */
+        constant_node->variant.constant =
+                                      alloc_shareable_constant(&size_constant);
+      }  /* if */
+      if (nonconstant_node == NULL) {
+        /* The size expression is constant, i.e., the constant node is the
+           whole expression. */
+        num_elem_node = constant_node;
+      } else {
+        /* The multiplication is still needed.  This must be a multi-
+           dimensional array case. */
+        if (preserve_size_node) {
+          /* We need to preserve size_node, so build a new multiplication. */
+          nonconstant_node->next = constant_node;
+          num_elem_node = make_operator_node(
+                                          (an_expr_operator_kind)eok_imultiply,
+                                          size_node->type,
+                                          nonconstant_node);
+        } else {
+          /* We can reuse the existing multiplication.  The constant has
+             already been changed. */
+          num_elem_node = size_node;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
