@@ -1706,8 +1706,10 @@ typedef struct a_generated_routine_context {
 		processing_file_scope_init_routine;
   a_return_memo_ptr
 		return_memo_list;
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
   a_local_static_variable_init_ptr
                 promoted_local_static_variable_inits;
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
   an_eh_lowering_context
 		ehcontext;
 } a_generated_routine_context;
@@ -1738,9 +1740,11 @@ grcontext is a local variable used to save state for later restoration.
   processing_file_scope_init_routine = FALSE;
   grcontext->return_memo_list = return_memo_list;
   return_memo_list = NULL;
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
   grcontext->promoted_local_static_variable_inits = 
                                           promoted_local_static_variable_inits;
   promoted_local_static_variable_inits = NULL;
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
   save_eh_lowering_context(&grcontext->ehcontext);
   add_object_lifetime_to_function_scope(scope);
   push_context(&grcontext->context, scope, (an_object_lifetime_ptr)NULL);
@@ -1790,8 +1794,10 @@ Pop function corresponding to push_generated_routine_context.
   }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
   restore_eh_lowering_context(&grcontext->ehcontext);
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
   promoted_local_static_variable_inits =
                                grcontext->promoted_local_static_variable_inits;
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
   free_return_memo_list(return_memo_list);
   return_memo_list = grcontext->return_memo_list;
   processing_file_scope_init_routine =

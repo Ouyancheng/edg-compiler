@@ -1,5 +1,10 @@
 Version 2.33
 
+7/15/96 Missing #ifs for when PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE is FALSE
+
+lower_init.c was missing some #ifs, with the consequence that the file did
+not compile when PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE is FALSE.
+
 7/15/96 Default ANSI/ISO C output when front end compiled by ANSI/ISO C
         compiler
 
