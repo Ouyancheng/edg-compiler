@@ -6470,6 +6470,46 @@ type itself.
 }  /* if */
 
 
+static void set_linkage_for_class_members(a_type_ptr  tp)
+/*
+The given type should be a class type.  If it acquired linkage through a
+typedef, we must make sure to propagate that to its members.
+*/
+{
+  a_scope_ptr          scope;
+  a_routine_ptr        routine;
+  a_variable_ptr       var;
+  a_type_ptr           type;
+  a_name_linkage_kind  name_linkage = tp->source_corresp.name_linkage;
+
+  check_assertion(!C_mode() && is_immediate_class_type(tp));
+  scope = tp->variant.class_struct_union.extra_info->assoc_scope;
+  for (routine = scope->routines; routine != NULL; routine = routine->next) {
+    routine->source_corresp.name_linkage = name_linkage;
+    if (name_linkage == (a_name_linkage_kind)nlk_cplusplus_external ||
+        name_linkage == (a_name_linkage_kind)nlk_external) {
+      routine->storage_class = (a_storage_class)sc_extern;
+    }  /* if */
+  }  /* for */
+  for (var = scope->variables; var != NULL; var = var->next) {
+    var->source_corresp.name_linkage = name_linkage;
+    if (name_linkage == (a_name_linkage_kind)nlk_cplusplus_external ||
+        name_linkage == (a_name_linkage_kind)nlk_external) {
+      var->storage_class = (a_storage_class)sc_extern;
+    }  /* if */
+  }  /* for */
+  for (type = scope->types; type != NULL; type = type->next) {
+    if (is_immediate_class_type(type)) {
+      set_name_linkage_for_type(type);
+      set_linkage_for_class_members(type);
+    } else if (is_immediate_enum_type(type)) {
+      set_name_linkage_for_type(type);
+      set_name_linkage_for_enumerators(tp);
+    }  /* if */
+  }  /* for */
+}  /* set_linkage_for_class_members */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
@@ -6702,7 +6742,9 @@ return a pointer to it in *symbol_ptr.
       /* Recompute the name linkage. */
       if (is_class_or_enum) {
         set_name_linkage_for_type(tp);
-        if (is_immediate_enum_type(tp)) {
+        if (is_immediate_class_type(tp)) {
+          set_linkage_for_class_members(tp);
+        } else {
           set_name_linkage_for_enumerators(tp);
         }  /* if */
       }  /* if */
