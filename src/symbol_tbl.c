@@ -4022,6 +4022,15 @@ cleared.
     /* One parameter -- void *. */
     tp = make_pointer_type(void_type());
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    /* The predeclared new and delete should use __cdecl calling convention.
+       If that's not the default for the compilation, set it now. */
+    if (default_calling_convention != (a_calling_convention)cc_cdecl) {
+      extra_info->calling_convention = (a_calling_convention)cc_cdecl;
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   extra_info->param_type_list = alloc_param_type(tp);
   extra_info->prototyped = TRUE;
   set_routine_calling_method_flag(rout_type, &null_source_position);
