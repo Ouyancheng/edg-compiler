@@ -379,6 +379,10 @@ typedef struct a_tmpl_decl_state {
 			   template declaration, or NULL if no entry has been
 			   created. */
 #endif /* RECORD_TEMPLATES_IN_IL */
+  a_decl_pos_block
+		decl_pos_block;
+			/* Source range information for the template
+			   declaration. */
 } a_tmpl_decl_state;
 
 
@@ -410,6 +414,7 @@ Initialize a template declaration state block.
 #if RECORD_TEMPLATES_IN_IL
   tdsp->il_template_entry = NULL;
 #endif /* RECORD_TEMPLATES_IN_IL */
+  clear_decl_pos_block(&tdsp->decl_pos_block);
 }  /* init_templ_decl_state */
 
 
@@ -5265,7 +5270,8 @@ static void scan_template_declaration(
                                 a_storage_class		   *storage_class,
                                 a_decl_modifiers_block_ptr decl_modifiers,
                                 a_routine_ptr		   templ_rout,
-				a_template_instance_ptr	   tip)
+				a_template_instance_ptr	   tip,
+                                a_decl_pos_block_ptr       decl_pos_block)
 /*
 Calls decl_specifiers and declarator to scan a template declaration of
 a function or static data member.  is_initial_decl is TRUE if this
@@ -5275,6 +5281,8 @@ of a function template.  templ_rout points to the routine associated
 with the original declaration of a template and is only present
 (non-NULL) when is_initial_decl is FALSE.  tip points to the template
 instance and is also only present when is_initial_decl is FALSE.
+decl_pos_block points to entry used to record detailed source position
+information.
 */
 {
   a_decl_flag_set              dsi_flags;
@@ -5283,7 +5291,6 @@ instance and is also only present when is_initial_decl is FALSE.
   a_type_qualifier_set         qualifiers;
   a_source_position            decl_start_pos;
   a_boolean		       type_is_function = FALSE;
-  a_decl_pos_block             decl_pos_block;
 
   dsi_flags = DSI_INLINE_ALLOWED |
               DSI_TYPE_SPECIFIER_ALLOWED |
@@ -5314,10 +5321,9 @@ instance and is also only present when is_initial_decl is FALSE.
     /* This is a declaration inside a class definition. */
     dsi_flags |= DSI_IS_MEMBER_DECLARATION;
   }  /* if */
-  clear_decl_pos_block(&decl_pos_block);
   decl_start_pos = pos_curr_token;
   (void)decl_specifiers(dsi_flags, dso_flags, storage_class, type,
-                        &qualifiers, decl_modifiers, &decl_pos_block);
+                        &qualifiers, decl_modifiers, decl_pos_block);
   if (is_error_type(*type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(*locator);
@@ -5347,7 +5353,7 @@ instance and is also only present when is_initial_decl is FALSE.
     declarator(di_flags, do_flags, *type,
                !friend_specified ? parent_class : (a_type_ptr)NULL,
                locator, type,
-               &declarator_ssep, func_info, &decl_pos_block);
+               &declarator_ssep, func_info, decl_pos_block);
     if (decl_scope_err) {
       /* Just to be sure a template symbol doesn't get added to a scope that
          is not equipped to handle it, create an error locator based on the
@@ -5570,15 +5576,18 @@ type based on the template argument list and the template parameter list
       a_storage_class         storage_class;
       a_symbol_locator	      locator;
       a_decl_modifiers_block  decl_modifiers;
+      a_decl_pos_block        decl_pos_block;
 
       clear_func_info(&func_info);
+      clear_decl_pos_block(&decl_pos_block);
       scan_template_declaration(/*is_initial_decl=*/FALSE,
                                 is_member_decl, parent_class,
   			        /*decl_scope_err=*/FALSE,
 				/*is_specialization=*/FALSE,
                                 &dso_flags, &do_flags, &locator,
                                 &rout_type, &func_info, &storage_class,
-                                &decl_modifiers, templ_rout, tip);
+                                &decl_modifiers, templ_rout, tip,
+                                &decl_pos_block);
       /* Save the prototype scope symbols in the instance pointer. */
       tip->prototype_scope_symbols = func_info.prototype_scope_symbols;
       done_with_func_info(func_info);
@@ -7626,6 +7635,9 @@ instantiation.
     error(ec_bad_storage_class_on_template_decl);
     (void)get_token();
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_state->decl_pos_block.specifiers_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (curr_token == tok_friend) {
     /* The is_template_friend flag should already be set.  The exception
        is an error case in which "friend" appears outside of a class. */
@@ -7644,6 +7656,11 @@ instantiation.
     case tok_union:  type_kind = (a_type_kind)tk_union;  break;
     default:	     unexpected_condition();
   }  /* switch */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* Set the specifiers end position here; it will be overwritten later unless
+     there is an error in scanning the identifier. */
+  decl_state->decl_pos_block.specifiers_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Bypass "class", "struct", or "union". */
   (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -7683,6 +7700,9 @@ instantiation.
     /* Look up the identifier.  If it's a qualified name there will be an
        error down the line.  The options used when coalescing the 
        identifier are specified above. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    decl_state->decl_pos_block.identifier_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* For friend declarations, or declarations in which the template name
        is a qualified name, and for cases where the template name is a
        template ID (i.e., for partial specializations) do a normal lookup.
@@ -7708,6 +7728,10 @@ instantiation.
       sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
       decl_scope_level = saved_decl_scope_level;
     }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    decl_state->decl_pos_block.identifier_range.end = end_pos_curr_token;
+    decl_state->decl_pos_block.specifiers_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     locator = locator_for_curr_id;
     next_tok = next_token();
   }  /* if */
@@ -8463,7 +8487,7 @@ whether the nontype parameter is unnamed.
   a_source_position            param_pos;
   a_source_sequence_entry_ptr  declarator_ssep;
   a_type_ptr                   tp;
-  a_decl_pos_block              decl_pos_block;
+  a_decl_pos_block             decl_pos_block;
 
   /* Scan the declaration specifiers. */
   param_pos = pos_curr_token;
@@ -9014,11 +9038,12 @@ the size of arr can be computed.
 
 #if RECORD_TEMPLATES_IN_IL
 static
-void complete_il_template_entry(a_template_ptr il_template_entry,
-                                a_symbol_ptr   sym,
-                                a_token_cache  *decl_token_cache,
-                                a_token_cache  *template_param_list_cache,
-                                a_token_cache  *p_template_body_cache)
+void complete_il_template_entry(a_template_ptr   il_template_entry,
+                                a_symbol_ptr     sym,
+                                a_token_cache    *decl_token_cache,
+                                a_token_cache    *template_param_list_cache,
+                                a_token_cache    *p_template_body_cache,
+                                a_decl_pos_block *decl_pos_block)
 /*
 Finish up establishing the IL template entry.  (It has already been
 added to the templates list, its decl_position has been set, and
@@ -9101,6 +9126,11 @@ its source correspondence entry, if any, has been put out.)
 	/* Create the string that represents the template declaration. */
 	make_template_string(il_template_entry, template_param_list_cache,
 			     decl_token_cache, p_template_body_cache);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        il_template_entry->source_corresp.decl_pos_info =
+                              make_decl_pos_supplement(/*at_file_scope=*/TRUE,
+                                                       decl_pos_block);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -9199,8 +9229,12 @@ returned to the caller.
     a_token_sequence_number	split_location;
     a_token_set_array		stop_tokens;
     p_token_cache = &local_token_cache;
+
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    decl_state->decl_pos_block.var_init_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     clear_token_cache(p_token_cache, /*reusable=*/TRUE);
-    /* Then declaration token cache contains the declaration and the
+    /* The declaration token cache contains the declaration and the
        initializer.  Split the cache so that the initialization is
        removed from the declaration cache and placed in the initializer
        cache. */
@@ -9230,6 +9264,24 @@ returned to the caller.
       cache_token_stream(p_token_cache, stop_tokens);
       terminate_token_cache(p_token_cache);
     }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    /* To find the end position, scan the cache to find the token preceding
+       the semicolon (or the end-of-source, if a semicolon was omitted). */
+    { a_cached_token_ptr  ctp = p_token_cache->first_token;
+      a_token_kind        next_tok;
+
+      for (;;) {
+        check_assertion(ctp->next != NULL);
+        next_tok = ctp->next->token;
+        if (next_tok == tok_semicolon || next_tok == tok_end_of_source) {
+          decl_state->decl_pos_block.var_init_range.end =
+                                                ctp->end_source_position;
+          break;
+        }  /* if */
+        ctp = ctp->next;
+      }  /* for */
+    }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (err) {
       discard_token_cache(p_token_cache);
       p_token_cache = NULL;
@@ -10057,7 +10109,8 @@ any non-empty template parameter lists that were scanned.
                                 &dso_flags, &do_flags, &locator, &type,
                                 &func_info, &storage_class, &decl_modifiers,
                                 (a_routine_ptr)NULL,
-			        (a_template_instance_ptr)NULL);
+			        (a_template_instance_ptr)NULL,
+                                &decl_state->decl_pos_block);
       /* If an error occurred scanning the declarator, set the flag to
          suppress subsequent errors. */
       if (is_error_locator(locator)) decl_state->decl_scope_err = TRUE;
@@ -10172,7 +10225,8 @@ any non-empty template parameter lists that were scanned.
       complete_il_template_entry(decl_state->il_template_entry, sym,
                                  &decl_state->decl_token_cache,
                                  &decl_state->param_list_cache,
-                                 p_template_body_cache);
+                                 p_template_body_cache,
+                                 &decl_state->decl_pos_block);
       /* If this is a template definition or the initial declaration, update
          the template symbol supplement to point to the IL entry . */
       if (tssp != NULL &&
