@@ -5380,9 +5380,7 @@ class_type that is a ck_template_param.
   /* Create the type or constant. */
   if (is_type) {
     a_type_ptr	type = alloc_type(tk_template_param);
-#if 0
     type->variant.template_param.kind = tptk_member;
-#endif
     sym->variant.type = type;
     set_source_corresp_with_scope_depth(&type->source_corresp, sym, depth);
     type->source_corresp.class_of_which_a_member = class_type;
@@ -5392,9 +5390,7 @@ class_type that is a ck_template_param.
     a_constant_ptr  constant = fs_constant(ck_template_param);
     sym->variant.constant = constant;
     constant->type = alloc_type(tk_template_param);
-#if 0
-    constant->type->variant.template_param.kind = tptk_type_of_member;
-#endif
+    constant->type->variant.template_param.kind = tptk_type_of_member_constant;
     set_source_corresp_with_scope_depth(&constant->source_corresp, sym, depth);
     constant->source_corresp.class_of_which_a_member = class_type;
   }  /* if */
