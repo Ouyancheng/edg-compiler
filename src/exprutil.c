@@ -5446,18 +5446,9 @@ should leave its result still an lvalue.
        SVR4 C mode, and in both C and C++ in Microsoft mode. */
     is_still_an_lvalue = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode) {
-    /* Microsoft mode -- C++ mode allows nothing more, but C mode has a
-       special case for integral types. */
-    if (C_mode() &&
-        is_integral_type(type_before_cast) &&
-        is_integral_type(type_cast_to)) {
-      /* In Microsoft C mode lvalue casts involving integral types of different
-         sizes are allowed -- e.g.,
-           long l; ++(char)l;   // affects only the low-order 8 bits
-      */
-      is_still_an_lvalue = TRUE;
-    }  /* if */
+  } else if (microsoft_mode && !C_mode()) {
+    /* The remaining cases are not allowed in Microsoft C++ mode. */
+    /* is_still_an_lvalue = FALSE; -- already set. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (is_floating_type(type_before_cast) ||
              is_floating_type(type_cast_to)) {
@@ -5469,6 +5460,16 @@ should leave its result still an lvalue.
     /* The types are not floating types, and they have the same size
        and alignment. */
     is_still_an_lvalue = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode && C_mode() &&
+             is_integral_type(type_before_cast) &&
+             is_integral_type(type_cast_to)) {
+    /* In Microsoft C mode lvalue casts involving integral types of different
+       sizes are allowed -- e.g.,
+         long l; ++(char)l;   // affects only the low-order 8 bits
+    */
+    is_still_an_lvalue = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 
   return is_still_an_lvalue;
