@@ -4738,8 +4738,6 @@ this routine to do a relatively simple copy of the all the fields.
   a_field_ptr                 old_field, last_field;
   a_type_ptr                  subobject_type;
   a_class_type_supplement_ptr ctsp, subobject_ctsp;
-  sizeof_t                    alloc_length;
-  char                        *temp_name, *name_ptr, *new_name_ptr;
   a_scope_depth               scope_depth;
 
   ctsp = class_type->variant.class_struct_union.extra_info;
@@ -4757,29 +4755,16 @@ this routine to do a relatively simple copy of the all the fields.
     subobject_ctsp = subobject_type->variant.class_struct_union.extra_info;
     /* Give the struct a name that is a prefix followed by the original name.
        Also give it the same declaration position as the original type. */
-    name_ptr = class_type->source_corresp.name;
-    if (name_ptr != NULL) {
-#define SUB_PREFIX "__SO__"
-      temp_name = mangled_class_name(class_type);
-      alloc_length = sizeof(SUB_PREFIX) + strlen(temp_name);
-      new_name_ptr = alloc_lowered_name_string(alloc_length);
-      (void)strcpy(new_name_ptr, SUB_PREFIX);
-      (void)strcpy(new_name_ptr+sizeof(SUB_PREFIX)-1, temp_name);
-      subobject_type->source_corresp.name = new_name_ptr;
-      subobject_type->source_corresp.name_has_been_mangled = TRUE;
-#undef SUB_PREFIX
-    }  /* if */
+    mangle_subobject_class_name(class_type, subobject_type);
     subobject_type->source_corresp.decl_position = 
                                       class_type->source_corresp.decl_position;
     subobject_type->source_corresp.parent =
                                       class_type->source_corresp.parent;
     subobject_type->source_corresp.is_class_member =
                                     class_type->source_corresp.is_class_member;
-#if 0
     /* Ideally, the referenced flag would not be set if the class type is
        not referenced.  However, the class type might not be referenced now
        (part-way through the compilation) and then be referenced later. */
-#endif /* 0 */
     subobject_type->source_corresp.referenced = TRUE;
 #if USER_CONTROL_OF_STRUCT_PACKING
     /* The type-as-subobject gets the same alignment restriction as the

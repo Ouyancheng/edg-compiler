@@ -74,6 +74,9 @@ extern char *mangled_vtbl_name(a_type_ptr       class_type,
 
 extern char *mangled_class_name(a_type_ptr type);
 
+extern void mangle_subobject_class_name(a_type_ptr class_type,
+                                        a_type_ptr subobject_type);
+
 extern char *mangled_typeinfo_name(a_type_ptr type);
 
 extern char *mangled_id_object_name(a_type_ptr type);
