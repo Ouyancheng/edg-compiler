@@ -2556,13 +2556,10 @@ Display the indicated class type supplement entry.
       break;
     case auk_variable:
       (void)printf("auk_variable\n");
-      disp_ptr("variable", (char *)ptr->anonymous_union.variable,
-               iek_variable);
       break;
     case auk_field:
       (void)printf("auk_field\n");
-      disp_ptr("field", (char *)ptr->anonymous_union.field,
-               iek_field);
+      disp_ptr("field", (char *)ptr->anonymous_union_field, iek_field);
       break;
     default:
       (void)printf("**BAD ANONYMOUS UNION KIND**\n");
