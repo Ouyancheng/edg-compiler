@@ -9449,6 +9449,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean                    restore_name_linkage = FALSE;
   a_decl_pos_block             decl_pos_block;
   a_boolean                    microsoft_out_of_class_redecl = FALSE;
+
   db_enter(3, "declaration");
 
   set_err_pos_to_curr_token();
