@@ -8335,8 +8335,10 @@ operand is an array rvalue.  Convert it to an lvalue for the array.
 */
 {
   an_expr_node_ptr expr;
+  an_operand       orig_operand;
 
   check_assertion(is_an_rvalue(operand) && is_array_type(operand->type));
+  orig_operand = *operand;
   if (!is_expression_operand(operand)) {
     /* In GNU C mode, compound literals can really be constants. */
     a_constant_ptr  constant;
@@ -8349,6 +8351,7 @@ operand is an array rvalue.  Convert it to an lvalue for the array.
     make_expression_operand(expr, expr->type, operand);
     conv_object_pointer_to_lvalue(operand);
   }  /* if */
+  restore_operand_details_incl_ref(operand, &orig_operand);
 }  /* conv_array_rvalue_to_lvalue */
 
 

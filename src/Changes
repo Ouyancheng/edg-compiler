@@ -2,6 +2,20 @@ Version 3.0
 
 5/6/02   IL version number changed to 2.38
 
+5/6/02   Source position on rvalue array in C99 or GNU C mode
+
+The source position on an array rvalue operand that was converted to
+a pointer was not maintained correctly in C99 and GNU C mode, with
+the consequence that positions in error messages could be slightly
+wrong.
+
+  char *a;
+  struct s { char b[5]; };
+  struct s f();
+  char *test() {
+    return a += f().b;  /* Position on error was on semicolon. */
+  }
+
 5/3/02   Macro to determine whether long long is enabled
 
 The front end can now be configured to define a macro when long long is not
