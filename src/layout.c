@@ -1170,7 +1170,6 @@ layout block used to track the layout of the current class.
   for (bcp = base_classes_of(lob->class_type); bcp != NULL; bcp = bcp->next) {
     if (bcp->direct && !bcp->is_virtual) {
       if (targ_optimize_empty_base_class_layout &&
-          bcp->type->variant.class_struct_union.field_list == NULL &&
           is_empty_class_type(bcp->type)) {
         /* Empty bases will be allocated later. */
         continue;
@@ -1217,7 +1216,6 @@ nonvirtual direct base or NULL if there is none such.
 {
   for (; ebcp != NULL; ebcp = ebcp->next) {
     if (ebcp->direct && !ebcp->is_virtual &&
-        ebcp->type->variant.class_struct_union.field_list == NULL &&
         is_empty_class_type(ebcp->type)) {
       break;
     }  /* if */
@@ -1235,8 +1233,7 @@ nonvirtual direct base or NULL if there is none such.
 {
   for (; nbcp != NULL; nbcp = nbcp->next) {
     if (nbcp->direct && !nbcp->is_virtual &&
-        !(nbcp->type->variant.class_struct_union.field_list == NULL &&
-          is_empty_class_type(nbcp->type))) {
+        !is_empty_class_type(nbcp->type)) {
       break;
     }  /* if */
   }  /* for */
@@ -1351,7 +1348,7 @@ static void set_offsets_for_empty_nonvirtual_base_classes(
                                                       a_layout_block_ptr  lob)
 /*
 This routine is called if the empty base optimization is enabled.  If so, the
-empty base subobject were not yet allocated in the class layout and this
+empty base subobjects were not yet allocated in the class layout and this
 runs an extra pass to allocate them at the same location as other bases or
 (when that is not possible) just after the last already allocated base.
 Most of the work consists in avoiding situations where two empty subobjects
@@ -2650,6 +2647,11 @@ for handling virtual bases and functions.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "do_class_layout");
+#if DEBUG
+  if (db_trace("dump_layout", class_type, iek_type)) {
+    fprintf(f_debug, "Computing layout for...\n");
+  }  /* if */
+#endif /* DEBUG */
 #if GNU_EXTENSIONS_ALLOWED
   if (class_type->alignment_set_explicitly) {
     /* Save the desired alignment and compute the alignment normally.

@@ -569,7 +569,8 @@ Dump a direct base class entry, for debug purposes.
     fputs("virtual ", f_debug);
   }  /* if */
   db_access_control(direct_derivation_of(bcp)->access);
-  fprintf(f_debug, " base class %s", tp->source_corresp.name);
+  fprintf(f_debug, " base class %s%s", tp->source_corresp.name,
+          bcp->is_optimized_empty_base ? " (opt)" : "");
   if (bcp->is_virtual) {
     fprintf(f_debug, " (pointer offset = %lu",
             (unsigned long)bcp->pointer_offset);

@@ -1,5 +1,12 @@
 Version 2.46
 
+11/8/01  Inconsistent optimization of empty base classes
+
+The empty base class layout optimization (Changes entry of 8/9/99) was
+sometimes inhibited by the IL lowering of certain functions.  This could
+result in the layout of a class being inconsistent across translation units.
+This is now fixed.
+
 11/7/01  Use of _AIX to detect use of AIX
 
 The front end uses the __AIX__ macro as an indication that the front end
