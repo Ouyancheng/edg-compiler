@@ -3233,12 +3233,11 @@ of the function, and again overloading is a possibility.
       sym = NULL;
       set_to_error_locator(*locator);
     } else if (sym == NULL || !is_member_function_symbol(sym)) {
-      /* Not a member function.  Get the symbol -- the rest of what's
-         returned from decl_var_or_routine is not relevant for processing
-         in this context. */
+      /* Not a member function.  Get the symbol -- the rest of what's returned
+         from decl_routine is not relevant for processing in this context. */
       /* If the friend function is defined in this declaration or if it was
          specified as inline, that information should be passed on to
-         decl_var_or_routine. */
+         decl_routine. */
       if (strcmp(locator->symbol_header->identifier, "main") == 0) {
         /* Friendship is being given to the main() function. */
         func_info->is_main_function = TRUE;
@@ -3258,9 +3257,9 @@ of the function, and again overloading is a possibility.
       } else {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
-      decl_var_or_routine(locator, storage_class, function_type, func_info,
-                          declarator_ssep, srk_flags, decl_modifiers, &sym,
-                          &linkage, &old_type, &ext_sym);
+      decl_routine(locator, storage_class, function_type, func_info,
+                   declarator_ssep, srk_flags, decl_modifiers, &sym,
+                   &linkage, &old_type, &ext_sym);
       /* WP 11.4 para 5 prohibits defining a nonmember function in a local
          class friend declaration. */
       if (func_info->is_definition &&

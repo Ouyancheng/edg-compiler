@@ -815,7 +815,7 @@ static void define_member_function(a_symbol_locator   *locator,
 				   a_symbol_ptr	      *ext_sym)
 /*
 This routine is called in the case of a member function definition.  Its
-function is similar to that of decl_var_or_routine, which is called for
+function is similar to that of decl_routine, which is called for
 the definitions of ordinary functions.  After doing some error checking,
 it calls reconcile_routine_types to merge the current type with the type
 on a prior declaration.
@@ -1098,7 +1098,7 @@ associated with the function is returned.
                            &linkage, decl_modifiers, &old_type, &ext_sym);
   } else {
     if (!prototyped) {
-      /* Old-style id list.  Before calling decl_var_or_routine scan the
+      /* Old-style id list.  Before calling decl_routine scan the
          parameter declarations.  It is important for the routine type to
          include all the parameter information in order to do overloading
          involving both prototyped and old-style functions. */
@@ -1212,10 +1212,9 @@ associated with the function is returned.
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
     declarator_ssep = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    decl_var_or_routine(locator, storage_class, rout_type, func_info,
-                        declarator_ssep, (SRK_DECLARATION | SRK_DEFINITION),
-                        decl_modifiers, &symbol_ptr, &linkage,
-                        &old_type, &ext_sym);
+    decl_routine(locator, storage_class, rout_type, func_info,
+                 declarator_ssep, (SRK_DECLARATION | SRK_DEFINITION),
+                 decl_modifiers, &symbol_ptr, &linkage, &old_type, &ext_sym);
   }  /* if */
   routine_ptr = symbol_ptr->variant.routine.ptr;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -1225,13 +1224,6 @@ associated with the function is returned.
   check_assertion(make_unqualified_type(routine_ptr->type) ==
                                                       unqualified_rout_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (!is_member_function_def &&
-      storage_class == (a_storage_class)sc_unspecified &&
-      routine_ptr->source_corresp.name != NULL &&
-      strcmp(routine_ptr->source_corresp.name, "main") == 0) {
-    /* This is "main", so remember the location of its routine entry. */
-    il_header.main_routine = routine_ptr;
-  }  /* if */
   /* Scan the function body. */
   flags = SFB_NO_FLAGS;
   if (!has_explicit_type_specifier) {
