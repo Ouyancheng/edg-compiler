@@ -2778,20 +2778,22 @@ as the position for any diagnostics issued.
 
 
 void fold_field_selection(a_constant            *constant_1,
-                          a_field_ptr           field,
+                          a_symbol_ptr          field_sym,
                           a_type_ptr            result_type,
                           a_constant            *result)
 /*
 Fold a constant field selection operation.  constant_1 is the pointer to the
-struct/union, field points to the field.  The result type (pointer to the
+struct/union; field_sym points to the field.  The result type (pointer to the
 field type) is given by result_type.  The result is put in *result.
 This folding operation is not done through the usual interface because a
 field cannot be passed as a constant.
 */
 {
+  a_field_ptr      field;
   a_constant       offset;
   an_integer_value field_offset;
   a_boolean        err;
+  a_symbol_ptr     anon_parent_sym;
 
   copy_constant(constant_1, result);
   if (is_error_constant(constant_1)) {
@@ -2799,7 +2801,28 @@ field cannot be passed as a constant.
   } else {
     /* Take the pointer offset, ... */
     get_pointer_offset(constant_1, &offset);
-    /* ... add the offset of the field (converting from bits to bytes), ... */
+    check_assertion(field_sym->kind == (a_symbol_kind)sk_field);
+    /* If the field is a member of an anonymous union, add in the offset
+       of the anonymous union.  There may be multiple levels of anonymous
+       unions, so loop to do this. */
+    /* This works for the nonstandard anonymous unions too.  In fact, it's
+       only really needed for those, since it's only for anonymous structs
+       that the offset can be non-zero.  Still, for the sake of completeness
+       do it in all cases. */
+    anon_parent_sym = field_sym;
+    while ((anon_parent_sym =
+            anon_parent_sym->variant.field.anonymous_parent_object) != NULL) {
+      check_assertion(anon_parent_sym->kind == (a_symbol_kind)sk_field);
+      /* ... add the offset of the anonymous union, ... */
+      set_unsigned_integer_value(&field_offset,
+                                 anon_parent_sym->variant.field.ptr->offset);
+      add_mixed_signed_integer_values(&offset.variant.integer_value,
+                                      int_constant_is_signed(&offset),
+                                      &field_offset,
+                                      /*is_signed=*/FALSE, &err);
+    }  /* while */
+    field = field_sym->variant.field.ptr;
+    /* ... add the offset of the field, ... */
     set_unsigned_integer_value(&field_offset, field->offset);
     add_mixed_signed_integer_values(&offset.variant.integer_value,
                                     int_constant_is_signed(&offset),

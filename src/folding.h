@@ -61,7 +61,7 @@ extern a_boolean is_false_constant(a_constant *constant);
 extern a_boolean is_null_pointer_constant(a_constant *constant);
 
 extern void fold_field_selection(a_constant            *constant_1,
-                                 a_field_ptr           field,
+                                 a_symbol_ptr          field_sym,
                                  a_type_ptr            result_type,
                                  a_constant            *result);
 
