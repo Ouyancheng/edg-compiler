@@ -2107,6 +2107,7 @@ their operands.
      by the destination node; no copy is needed. */
   *node = *source_node;
   node->next = node_next;
+  node->result_is_not_used = result_is_not_used;
   if (result_is_not_used) set_expr_result_not_used(node);
 }  /* overwrite_node */
 

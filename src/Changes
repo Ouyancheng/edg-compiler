@@ -1,5 +1,12 @@
 Version 2.24
 
+6/29/94 result_is_not_used flag maintenance in IL lowering
+
+A bug in IL lowering has been fixed.  The problem was that some
+constructor calls used in field selections were marked with
+result_is_not_used TRUE even though the result of the call was used
+by the field selection.
+
 6/29/94 cfront compatibility: ptr-to-member-function cast to ptr-to-function
 
 In cfront compatibility mode, it is now legal to cast a constant pointer-
