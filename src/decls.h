@@ -297,7 +297,7 @@ extern a_boolean reconcile_external_symbol_types(
                             a_symbol_ptr          ext_sym,
                             a_source_position_ptr position,
                             a_type_ptr            type_ptr,
-                            an_error_severity     suppress_incompatible_error);
+                            an_error_severity     incompatible_severity);
 
 extern a_routine_ptr make_routine(a_type_ptr      type_ptr,
                                   a_storage_class storage_class,

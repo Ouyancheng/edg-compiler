@@ -2497,7 +2497,7 @@ linkage (external or internal) as a place to keep the pointer to the
 unique IL entry (needed because the normal symbol entries will not
 necessarily stay in scope for the entire compilation).  *position
 gives the source position to be used in case of error.
-An error about a type incompatibility  should not be more severe than
+An error about a type incompatibility should not be more severe than
 incompatible_severity.  Return FALSE if there is some error.
 */
 {
