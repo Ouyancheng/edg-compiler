@@ -721,8 +721,9 @@ static char *demangle_type_name(char      *ptr,
 /*
 Demangle the type name at ptr and output the demangled form.  Return a pointer
 to the character position following what was demangled.  The name can be
-a simple type name or a nested type name.  If base_name_only is TRUE,
-do not put out any nested type qualifiers, e.g., put out "A::x" as simply "x".
+a simple type name or a nested type name, or the name of a namespace.
+If base_name_only is TRUE, do not put out any nested type qualifiers,
+e.g., put out "A::x" as simply "x".
 */
 {
   char          *p = ptr;
@@ -733,7 +734,8 @@ do not put out any nested type qualifiers, e.g., put out "A::x" as simply "x".
          Q2_5outer5inner   (outer::inner)
             ^-----^--------Names from outermost to innermost
           ^----------------Number of levels of qualification.
-    */
+       Note that the levels in the qualifier can be class names or namespace
+       names. */
     p = get_number(p+1, &nquals);
     p = advance_past_underscore(p);
     /* Handle each level of qualification. */
@@ -1138,10 +1140,11 @@ a pointer to the character position following what was demangled.
               parameter types for a member function.
          (c)  "F" followed by the encoding for the parameter types for a
               nonmember function.
+       Members of namespaces are encoded similarly.
     */
     end_ptr = mname;
     if (mname[0] != 'F') {
-      /* A class name must be next. */
+      /* A class (or namespace) name must be next. */
       end_ptr = demangle_type_name(end_ptr, /*base_name_only=*/FALSE);
       write_id_str("::");
       /* If the name ends here, this is a simple member (e.g., a static
