@@ -70,7 +70,7 @@ When ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C is TRUE (which it
 is by default), the C-generating back end now puts out the base types of
 bit fields as they were declared, rather than with the standardized base
 types "int", "signed int", and "unsigned int".  For example, a bit field
-declared as "char i:3;" is now put out that way rather than as
+declared as "unsigned char i:3;" is now put out that way rather than as
 "unsigned int i:3;".  The old behavior is available by setting the
 option to FALSE.
 
