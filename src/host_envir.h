@@ -746,8 +746,12 @@ fit in the IL definition for C89.  This may result in calls to a C99 runtime
 support library.
 */
 #ifndef DO_C99_IL_LOWERING
-#define DO_C99_IL_LOWERING (DO_IL_LOWERING && C99_IL_EXTENSIONS_SUPPORTED)
-#endif /* DO_C99_IL_LOWERING */
+#if DO_IL_LOWERING
+#define DO_C99_IL_LOWERING TRUE
+#else /* !DO_IL_LOWERING */
+#define DO_C99_IL_LOWERING FALSE
+#endif /* DO_IL_LOWERING */
+#endif /* ifndef DO_C99_IL_LOWERING */
 #if DO_C99_IL_LOWERING && !DO_IL_LOWERING
  #error -- C99 IL lowering cannot be done if DO_IL_LOWERING is FALSE
 #endif /* DO_C99_IL_LOWERING && !DO_IL_LOWERING */
