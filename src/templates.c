@@ -4012,6 +4012,7 @@ on the ck_template_param constant pointed to by the expression.
 
 static a_symbol_ptr copy_parent_type_with_substitution(
 				a_symbol_ptr			sym,
+				a_type_ptr			parent_type,
 				a_template_arg_ptr		templ_arg_list,
 				a_template_nesting_depth	depth,
 				a_source_position		*source_pos,
@@ -4019,24 +4020,23 @@ static a_symbol_ptr copy_parent_type_with_substitution(
 				a_ctws_options_set		options,
 				a_boolean			*copy_error)
 /*
-sym points to a member symbol.  The parent type is copied using
-copy_type_with_substitution, and the corresponding member is looked
-up in the updated parent type.  The symbol associated with the
-corresponding member is returned.  A NULL symbol is returned if the
-updated parent type does not contain the specified member.
-If it involves no template-parameter type, simply return "type".
-options is a set of big flags used to control how names are looked up,
-if needed.  is_type is TRUE if the child entity is known to be a type.
+sym points to a member symbol.  parent_type points to the parent type
+of sym.  The parent type is copied using copy_type_with_substitution,
+and the corresponding member is looked up in the updated parent type.
+The symbol associated with the corresponding member is returned.  A
+NULL symbol is returned if the updated parent type does not contain
+the specified member.  If it involves no template-parameter type,
+simply return "type".  options is a set of big flags used to control
+how names are looked up, if needed.  is_type is TRUE if the child
+entity is known to be a type.
 */
 {
   a_type_ptr			orig_parent_type;
-  a_type_ptr			parent_type;
   a_symbol_ptr			new_sym = NULL;
   a_class_symbol_supplement_ptr	parent_cssp;
   an_id_lookup_options_set	lookup_options;
 
-  parent_type = sym->parent.class_type;
-  check_assertion(sym->is_class_member && parent_type != NULL);
+  check_assertion(parent_type != NULL);
   /* Nested type case -- e.g., A<T>::B, where B names a nested class or
      enumeration.  The substitution is performed on the class-of-which-member
      rather than on the nested type itself.  Note that the algorithm deals
@@ -4139,9 +4139,12 @@ a pointer over a reference type or creating an array of references.
 #endif /* DEBUG */
   if (type->source_corresp.is_class_member) {
     a_symbol_ptr	sym;
+    a_type_ptr		parent_type;
     sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+    parent_type = type->source_corresp.parent.class_type;
     check_assertion(sym != NULL);
-    sym = copy_parent_type_with_substitution(sym, templ_arg_list, depth,
+    sym = copy_parent_type_with_substitution(sym, parent_type,
+                                             templ_arg_list, depth,
                                              source_pos,
                                              /*is_type=*/TRUE,
                                              options,
