@@ -735,10 +735,16 @@ place in file_name where the suffix begins.
   new_file_name_base_size = curr_file_name_size - curr_suffix_length;
   /* The total size of the new file name is the base size plus the new
      suffix plus 1 for the delimiter, if required. */
-  new_file_name_size = new_file_name_base_size + sizeof(new_suffix) +
+  new_file_name_size = new_file_name_base_size + strlen(new_suffix) +
                        (sizeof_t)(suffix_delim_required ? 1 : 0);
   if ((file_name == buffer && new_file_name_size > buffer_size) ||
-      new_file_name_size > curr_file_name_size) {
+      (file_name != buffer && new_file_name_size > curr_file_name_size)) {
+#if DEBUG
+    if (debug_level >= 5) {
+      fprintf(f_debug, "allocating new storage, size = %d\n",
+                       (int)(new_file_name_size+1));
+    }  /* if */
+#endif /* DEBUG */
     /* We need to allocate new storage for the file name. */
     new_file_name = (char *)alloc_il(new_file_name_size+1);
     /* Copy the file name, minus the current suffix. */
