@@ -891,9 +891,15 @@ included in the search.
        a size and alignment to permit it to pass through subsequent processing
        without causing spurious errors. */
     for (tap = *new_list; tap != NULL; tap = tap->next) {
-      if (template_arg_involves_template_param(tap)) {
-        sym->variant.class_struct_union.extra_info->is_nonreal_class = TRUE;
-        break;
+      if (!sym->variant.class_struct_union.extra_info->is_nonreal_class) {
+        if (template_arg_involves_template_param(tap)) {
+          sym->variant.class_struct_union.extra_info->is_nonreal_class = TRUE;
+        }  /* if */
+      }  /* if */
+      if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
+        if (tap->is_type) {
+          tap->variant.type = strip_local_typedefs(tap->variant.type);
+        }  /* if */
       }  /* if */
     }  /* for */
     /* Record the argument list in the type.  It should be available in the
