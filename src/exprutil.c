@@ -3112,18 +3112,24 @@ an lvalue, it is converted to an rvalue before doing the promotions.
     error_in_operand(ec_incomplete_type_not_allowed, argument_operand);
   } else if (is_class_struct_union_type(arg_type)) {
     /* Class.  No promotion needed. */
-#if USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS
-    /* If configured that way, call the copy constructor for a class object,
-       and pass the address of the temporary into which the copy was placed.
-       This falls under undefined behavior.  The Sun CC compiler uses the
-       copy constructor in this case. */
     if (!C_mode()) {
+      if (!symbol_supplement_for_class(arg_type)->is_POD) {
+        /* Warn on passing a non-POD class to an ellipsis. */
+        pos_warning(ec_non_pod_passed_to_ellipsis,
+                    &argument_operand->position);
+      }  /* if */
+#if USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS
+      /* If configured that way, call the copy constructor for a class object,
+         and pass the address of the temporary into which the copy was placed.
+         This falls under undefined behavior.  The Sun CC compiler uses the
+         copy constructor in this case.  Note that if the class does
+         not have a copy constructor this does the right thing anyway. */
       prep_arg_passed_via_copy_constructor(argument_operand, arg_type,
                                            /*processed_arg=*/FALSE,
                                            (a_conv_descr *)NULL,
                                            ec_no_suitable_copy_constructor);
-    }  /* if */
 #endif /* USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS */
+    }  /* if */
   } else {
     cast_operand(default_argument_promotion(arg_type),
                  argument_operand, /*check_cast_access=*/TRUE,
