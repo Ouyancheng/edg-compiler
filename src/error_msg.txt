@@ -439,7 +439,7 @@ ec_bad_return_type_for_op_arrow;;"%t is an invalid return type for %no"
 ec_cast_to_abstract_class;;"a cast to an abstract class is not allowed"
 ec_bad_use_of_main;;"function \"main\" may not be called or have its address taken"
 ec_initializer_not_allowed_on_array_new;;"a new-initializer may not be specified for an array"
-ec_member_function_redecl_outside_class;;"a member function may not be redeclared outside its class"
+ec_member_function_redecl_outside_class;;"member function %no may not be redeclared outside its class"
 ec_ptr_to_incomplete_class_type_not_allowed;;"pointer to incomplete class type is not allowed"
 ec_ref_to_nested_function_var;;"reference to local variable of enclosing function is not allowed"
 ec_single_arg_postfix_incr_decr_anachronism;;"single-argument function used for postfix %sq (anachronism)"
@@ -802,7 +802,7 @@ ec_static_nonstatic_with_same_param_types;;"static and nonstatic member function
 ec_no_prior_declaration;;"no prior declaration of %np"
 ec_template_id_not_allowed;;"a template-id is not allowed"
 ec_class_qualified_name_not_allowed;;"a class-qualified name is not allowed"
-ec_bad_scope_for_redeclaration;;"%n cannot be redeclared in the current scope"
+ec_bad_scope_for_redeclaration;;"%n may not be redeclared in the current scope"
 ec_qualifier_in_namespace_member_decl;;"qualified name is not allowed in namespace member declaration"
 ###############################################################################
 #                                                             \  ___  /       #
