@@ -2856,6 +2856,13 @@ members), and does not enter those.
     switch (entry_kind) {
       case iek_constant:
         do_source_corresp_check = TRUE;
+        { a_constant_ptr con = (a_constant_ptr)entry_ptr;
+          if (con->kind == (a_constant_repr_kind)ck_template_param) {
+            /* Template parameter constants can be orphans even if they
+               are named. */
+            do_source_corresp_check = FALSE;
+          }  /* if */
+        }
         break;
       case iek_type:
         do_source_corresp_check = TRUE;
@@ -2864,6 +2871,10 @@ members), and does not enter those.
               is_immediate_enum_type(type)) {
             /* Classes and enums cannot be orphans. */
             could_be_orphan = FALSE;
+          } else if (type->kind == (a_type_kind)tk_template_param) {
+            /* Template parameter types can be orphans even if they are
+               named. */
+            do_source_corresp_check = FALSE;
           }  /* if */
         }
         break;
@@ -2887,17 +2898,10 @@ members), and does not enter those.
     }  /* switch */
     if (do_source_corresp_check && could_be_orphan) {
       a_source_correspondence *scp = (a_source_correspondence *)entry_ptr;
-      if (entry_kind == (an_il_entry_kind)iek_constant &&
-          constant_name_is_part_of_value((a_constant_ptr)entry_ptr)) {
-        /* ck_template_param constants in some cases are named
-           only because the name provides part of the value, and they
-           can be orphans. */
-        /* could_be_orphan = TRUE; -- already set. */
-      } else if (scp->name != NULL) {
+      if (scp->name != NULL ||
+          scp->is_class_member ||
+          scp->parent.namespace_ptr != NULL) {
         /* Named entities cannot be orphans. */
-        could_be_orphan = FALSE;
-      } else if (scp->is_class_member ||
-                 scp->parent.namespace_ptr != NULL) {
         /* Class and namespace members cannot be orphans. */
         could_be_orphan = FALSE;
       }  /* if */
@@ -3470,7 +3474,13 @@ value.  Several fields are cleared or adjusted.
      constant isn't the one directly associated with the source entity,
      if any. */
   break_source_corresp(&ucp->source_corresp);
-  if (constant_name_is_part_of_value(cp)) {
+  if (cp->kind == (a_constant_repr_kind)ck_template_param &&
+      (cp->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_param ||
+       cp->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_member) ||
+       cp->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function) {
     /* For some template parameter constants, the name in the source
        correspondence is part of the value.  It was cleared by
        break_source_correspondence, so restore it. */
