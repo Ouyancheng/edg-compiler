@@ -57,6 +57,11 @@ extern a_base_class_ptr alloc_base_class(void);
 
 extern a_virtual_base_class_ptr alloc_virtual_base_class(void);
 
+extern an_access_adjustment_ptr alloc_access_adjustment(
+                                              an_access_adjustment_kind  kind);
+
+extern a_class_list_entry_ptr alloc_list_entry_for_class(void);
+
 extern a_type_ptr alloc_type(a_type_kind kind);
 
 extern a_type_ptr fs_type(a_type_kind kind);
