@@ -517,6 +517,26 @@ type is legal.
               /* Issue just a remark for "volatile void" -- gcc uses that to
                  indicate a function (like exit()) that does not return. */
               severity = es_remark;
+            } if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+                  !scope_stack[decl_scope_level].in_prototype_instantiation) {
+              /* Inside a template instantiation it is sometimes the case
+                 that the type qualifier is "useless" for some instantiations
+                 but not in general -- e.g.,
+                   template <class T> struct A {
+                     const T f();
+                   };
+                   struct X { };
+                   A<int> aint;     // A<int>::f returns const int (useless)
+                   A<X> ax;         // A<X>::f returns const X (okay)
+                 Reduce the severity to a remark to eliminate annoying
+                 warnings the user can't do anything about. */
+              /* Note that this solution fails to warn on cases that are
+                 *always* useless, too.  If A<T>::f returned "T * const" a
+                 warning would always be appropriate, whatever T was replaced
+                 by in the instantiation.  But the representation of types
+                 based on template arguments will have to be improved to
+                 make this distinction. */
+              severity = es_remark;
             }  /* if */
             diagnostic(severity, ec_useless_type_qualifier_on_return_type);
           }  /* if */
