@@ -503,14 +503,14 @@ a new symbol is created and entered in the symbol table.
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
-#if ABI_COMPATIBILITY_VERSION > 227
-  if (!C_mode() && !any_cfront_mode()) {
+#if ABI_COMPATIBILITY_VERSION > 228
+  if (!C_mode()) {
     /* A top-level type qualifier may have been stripped off.  Record the
        type qualification in the param type entry, based on the parameter
        variable's type qualifier. */
     ptp->qualifiers = get_type_qualifiers(param_id->type);
   }  /* if */
-#endif /* ABI_COMPATIBILITY_VERSION > 227 */
+#endif /* ABI_COMPATIBILITY_VERSION > 228 */
   db_exit();
 }  /* decl_parameter */
 

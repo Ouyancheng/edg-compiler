@@ -4066,20 +4066,18 @@ make_new_comp_type:
           check_assertion(ptp2 == NULL || ptp2->passed_via_copy_constructor);
           new_ptp->passed_via_copy_constructor = TRUE;
         }  /* if */
-#if ABI_COMPATIBILITY_VERSION > 227
-        if (!any_cfront_mode()) {
-          if (ptp1->qualifiers != TQ_NONE) {
-            /* If the "qualifiers" carried around by the two param-type
-               entries are not identical, then one or the other should be
-               empty. */
-            check_assertion(ptp2 == NULL || ptp2->qualifiers == TQ_NONE ||
-                            ptp2->qualifiers == ptp1->qualifiers);
-            new_ptp->qualifiers = ptp1->qualifiers;
-          } else if (ptp2 != NULL) {
-            new_ptp->qualifiers = ptp2->qualifiers;
-          }  /* if */
+#if ABI_COMPATIBILITY_VERSION > 228
+        if (ptp1->qualifiers != TQ_NONE) {
+          /* If the "qualifiers" carried around by the two param-type
+             entries are not identical, then one or the other should be
+             empty. */
+          check_assertion(ptp2 == NULL || ptp2->qualifiers == TQ_NONE ||
+                          ptp2->qualifiers == ptp1->qualifiers);
+          new_ptp->qualifiers = ptp1->qualifiers;
+        } else if (ptp2 != NULL) {
+          new_ptp->qualifiers = ptp2->qualifiers;
         }  /* if */
-#endif /* ABI_COMPATIBILITY_VERSION > 227 */
+#endif /* ABI_COMPATIBILITY_VERSION > 228 */
       }  /* if */
       /* Add the parameter type entry to the end of the list. */
       if (rtsp->param_type_list == NULL) {
