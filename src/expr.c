@@ -1834,9 +1834,9 @@ The result is placed in *result.
         expr_stack->fold_constant_addr_exprs
 #if UPC_EXTENSIONS_ALLOWED
         /* Do not fold field operations for shared structs. */
-        && !is_shared_qualified_type(class_struct_union_type)
+        && !(upc_mode && is_shared_qualified_type(class_struct_union_type))
 #endif /* UPC_EXTENSIONS_ALLOWED */
-                                             ) {
+                                                                           ) {
       /* Don't try to fold bit fields except when their addresses
          can be taken (as an extension). */
       if (!field->is_bit_field ||
@@ -4295,25 +4295,28 @@ Syntax:
 
   orig_sizeof_type = sizeof_type;
 #if UPC_EXTENSIONS_ALLOWED
-  /* Determine if the multiplication by THREADS is needed before the
-     typerefs are stripped off. */
-  multiply_by_threads_needed =
+  if (upc_mode) {
+    /* Determine if the multiplication by THREADS is needed before the
+       typerefs are stripped off. */
+    multiply_by_threads_needed =
                    (kind == tok_sizeof &&
                     is_underlying_threads_dimensioned_array_type(sizeof_type));
-  if (upc_blocksizeof_scan) {
-    /* Save the block size before stripping the typerefs. */
-    block_size = get_underlying_upc_block_size(sizeof_type);
-    special_upc_size = (unsigned long)block_size;
-    if (block_size == UPC_BLOCK_SIZE_NONE) {
-      /* For non-shared data we return a value greater than the maximum legal
-         block size. */
-      if (is_pointer_type(sizeof_type) &&
-          is_underlying_shared_qualified_type(type_pointed_to(sizeof_type))) {
-        pos_warning(ec_nonshared_blocksizeof, &type_position);
+    if (upc_blocksizeof_scan) {
+      /* Save the block size before stripping the typerefs. */
+      block_size = get_underlying_upc_block_size(sizeof_type);
+      special_upc_size = (unsigned long)block_size;
+      if (block_size == UPC_BLOCK_SIZE_NONE) {
+        /* For non-shared data we return a value greater than the maximum legal
+           block size. */
+        if (is_pointer_type(sizeof_type) &&
+            is_underlying_shared_qualified_type(
+                                               type_pointed_to(sizeof_type))) {
+          pos_warning(ec_nonshared_blocksizeof, &type_position);
+        }  /* if */
+        special_upc_size = max_upc_block_size + 1;
       }  /* if */
-      special_upc_size = max_upc_block_size + 1;
+      use_special_upc_size = TRUE;
     }  /* if */
-    use_special_upc_size = TRUE;
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
   sizeof_type = skip_typerefs(sizeof_type);
@@ -4348,31 +4351,36 @@ Syntax:
   }  /* if */
 
 #if UPC_EXTENSIONS_ALLOWED
-  /* Special handling for VLAs.  Not all operations are defined for them. */
-  if (vla_enabled && is_vla_type(sizeof_type)) {
-    switch ((int)kind) {
-    case tok_upc_localsizeof:
-      /* Turn this into a sizeof. */
-      kind = tok_sizeof;
-      break;
-    case tok_upc_blocksizeof:
-      /* Return as if it were indefinite block size. */
-      special_upc_size = UPC_BLOCK_SIZE_INDEFINITE;
+  if (upc_mode) {
+    /* Special handling for VLAs.  Not all operations are defined for them. */
+    if (vla_enabled && is_vla_type(sizeof_type)) {
+      switch ((int)kind) {
+        case tok_upc_localsizeof:
+          /* Turn this into a sizeof. */
+          kind = tok_sizeof;
+          break;
+        case tok_upc_blocksizeof:
+          /* Return as if it were indefinite block size. */
+          special_upc_size = UPC_BLOCK_SIZE_INDEFINITE;
+          use_special_upc_size = TRUE;
+          kind = tok_sizeof;
+          break;
+        default:
+          /* Do nothing. */
+          break;
+      }  /* switch */
+    }  /* if */
+    if (multiply_by_threads_needed && in_constant_expression) {
+      /* Not allowed in a constant expression. */
+      pos_error(ec_expr_not_constant, &start_position);
+      make_error_operand(result);
+      err = TRUE;
+    } else if (kind == tok_upc_localsizeof) {
+      special_upc_size = upc_local_type_size(sizeof_type);
       use_special_upc_size = TRUE;
-      kind = tok_sizeof;
-      break;
-    }  /* switch */
-  }  /* if */
-  if (multiply_by_threads_needed && in_constant_expression) {
-    /* Not allowed in a constant expression. */
-    pos_error(ec_expr_not_constant, &start_position);
-    make_error_operand(result);
-    err = TRUE;
-  } else if (kind == tok_upc_localsizeof) {
-    special_upc_size = upc_local_type_size(sizeof_type);
-    use_special_upc_size = TRUE;
-  } else if (kind == tok_upc_elemsizeof && is_array_type(sizeof_type)) {
-    sizeof_type = skip_typerefs(underlying_array_element_type(sizeof_type));
+    } else if (kind == tok_upc_elemsizeof && is_array_type(sizeof_type)) {
+      sizeof_type = skip_typerefs(underlying_array_element_type(sizeof_type));
+    }  /* if */
   }  /* if */
   if (err) {
     /* Already handled */
@@ -10246,7 +10254,7 @@ standard.
                            /*mixed_object_and_incomplete_standard_in_C=*/FALSE,
                            &operation_type);
 #if UPC_EXTENSIONS_ALLOWED
-        if (is_shared_void_star_type(operation_type)) {
+        if (upc_mode && is_shared_void_star_type(operation_type)) {
           /* Cannot do lt/gt/le/ge comparisons involving shared void* pointers,
              since they have no absolute ordering. */
           pos_error(ec_upc_shared_void_comparison, &operator_position);
@@ -12738,7 +12746,8 @@ variable:
 #if UPC_EXTENSIONS_ALLOWED
                 /* Disallow static initializations using addresses of shared
                    data. */
-                !is_underlying_shared_qualified_type(var_ptr->type) &&
+                !(upc_mode &&
+                  is_underlying_shared_qualified_type(var_ptr->type)) &&
 #endif /* UPC_EXTENSIONS_ALLOWED */
                 /* Disallow C++ reference variables in constant
                    expressions, because of the extra indirection. */
@@ -15778,8 +15787,8 @@ class type that can be converted to those types.
   return expr;
 }  /* scan_boolean_controlling_expression */
 
-
 #if UPC_EXTENSIONS_ALLOWED
+
 an_expr_node_ptr scan_upc_forall_affinity(void)
 /*
 Scan the affinity expression for a upc_forall statement.  Return an
@@ -15825,8 +15834,8 @@ an integer expression for the thread number.
   pop_expr_stack();
   return node;
 } /* scan_upc_forall_affinity */
-#endif /* UPC_EXTENSIONS_ALLOWED */
 
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 an_expr_node_ptr make_condition_value_expression(a_variable_ptr var,
                                                  a_boolean      is_switch_expr)

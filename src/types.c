@@ -1182,6 +1182,7 @@ dimensioned array type.
   if (tp != NULL && upc_dynamic_threads()) {
     for (; tp != NULL && is_array_type(tp);
            tp = tp->variant.array.element_type) {
+      tp = skip_typerefs(tp);
       if (tp->variant.array.is_threads_dimension) {
         result = TRUE;
         break;
@@ -1201,6 +1202,7 @@ THREADS multiple.
   a_boolean result = FALSE;
 
   if (tp != NULL && upc_dynamic_threads()) {
+    tp = skip_typerefs(tp);
     /* With a dynamic number of threads, check that the array dimension
        is marked as being a THREADS multiple. */
     result = (tp->kind == (a_type_kind)tk_array &&
@@ -5676,7 +5678,7 @@ could be returned as the composite type, preference is given to the first.
     /* We're done. */
   } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Do no insert code here. */
+  /* Do not insert code here. */
   if (C_mode() && !type_qualifiers_match(type1, type2)) {
     /* One tricky case that comes up is
           int f(int);
