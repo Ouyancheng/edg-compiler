@@ -573,8 +573,9 @@ Scan and process an #ifdef or #ifndef directive (is_ifdef == TRUE and
 FALSE, respectively).
 */
 {
-  a_symbol_ptr assoc_symbol;
-  a_boolean    condition = FALSE;
+  a_symbol_ptr		assoc_symbol;
+  a_boolean		condition = FALSE;
+  a_symbol_header_ptr	sym_hdr;
 
   if (get_token() != tok_identifier) {
     /* Expected an identifier.  If the token is an integer, give a warning
@@ -614,9 +615,9 @@ FALSE, respectively).
        accepted. */
     check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
     /* Look to see if there is a macro with this name. */
-    assoc_symbol = find_symbol(start_of_curr_token, len_of_curr_token,
-                               &locator_for_curr_id);
-    assoc_symbol = find_defined_macro(assoc_symbol);
+    sym_hdr = find_symbol_header(start_of_curr_token, len_of_curr_token,
+                                 &locator_for_curr_id);
+    assoc_symbol = find_defined_macro(sym_hdr);
     if (assoc_symbol != NULL) {
       condition = TRUE;
       mark_referenced(assoc_symbol, &pos_curr_token);
@@ -681,13 +682,11 @@ Scan and process an #undef directive.
        accepted. */
     check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
     /* Look to see if there is a macro with this name. */
-    assoc_symbol = find_symbol(start_of_curr_token, len_of_curr_token,
-                               &locator_for_curr_id);
     /* find_defined_macro cannot be used because if we have "#undef defined"
        we want to give an error, not ignore it. */
-    if (assoc_symbol != NULL) {
-      assoc_symbol = find_macro_symbol(assoc_symbol->header);
-    }  /*  if */
+    assoc_symbol = find_macro_symbol_by_name(start_of_curr_token,
+                                             len_of_curr_token,
+	                                     &locator_for_curr_id);
     if (assoc_symbol == NULL) {
       /* No such macro, so #undef is ignored. */
     } else if (assoc_symbol->variant.macro_def->cannot_be_redefined &&

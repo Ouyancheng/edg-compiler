@@ -788,16 +788,16 @@ print the replacement text and expansions of macros.
 #endif /* DEBUG */
   
 
-a_symbol_ptr find_defined_macro(a_symbol_ptr assoc_symbol)
+a_symbol_ptr find_defined_macro(a_symbol_header_ptr sym_hdr)
 /*
-See if there is a macro on the list of symbols pointed to by assoc_symbol.
+See if there is a macro on the list of symbols pointed to by sym_hdr.
 If so, return a pointer to it.  If not, return NULL.  This routine exists
 so that "defined" will not be found as a defined macro.
 */
 {
-  if (assoc_symbol != NULL) {
-    assoc_symbol = find_macro_symbol(assoc_symbol->header);
-  }  /* if */
+  a_symbol_ptr	assoc_symbol;
+
+  assoc_symbol = find_macro_symbol(sym_hdr);
   /* If the macro found is the pseudo-macro "defined" (which is used as
      an operator in #if statements), or "_Pragma" (which is used for the
      C99 _Pragma operator) pretend it was not found. */
@@ -950,6 +950,8 @@ beyond the operator has not yet been fetched.
 */
 {
   a_symbol_ptr  assoc_symbol = NULL;
+  a_symbol_header_ptr
+		sym_hdr = NULL;
   a_source_position
 		start_position;
   a_token_kind	ctoken;
@@ -980,8 +982,8 @@ beyond the operator has not yet been fetched.
         /* The identifier __VA_ARGS__ is not allowed if variadic macros are
            accepted. */
         check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
-        assoc_symbol = find_symbol(start_of_curr_token, len_of_curr_token,
-                                   &locator_for_curr_id);
+        sym_hdr = find_symbol_header(start_of_curr_token, len_of_curr_token,
+                                     &locator_for_curr_id);
       } else {
         /* Second form -- "defined ( identifier )". */
 #if CHECKING
@@ -997,8 +999,8 @@ beyond the operator has not yet been fetched.
           /* The identifier __VA_ARGS__ is not allowed if variadic macros are
              accepted. */
           check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
-          assoc_symbol = find_symbol(start_of_curr_token, len_of_curr_token,
-                                     &locator_for_curr_id);
+          sym_hdr = find_symbol_header(start_of_curr_token, len_of_curr_token,
+                                       &locator_for_curr_id);
           if (get_token() != tok_rparen) {
             /* Error -- Expected a right parenthesis. */
             if (microsoft_mode && curr_token == tok_newline) {
@@ -1014,10 +1016,10 @@ beyond the operator has not yet been fetched.
         }  /* if */
       }  /* if */
       /* Make a 0 or 1 constant depending or whether the symbol is undefined
-         or defined.  Note that for error cases assoc_symbol is NULL and
+         or defined.  Note that for error cases sym_hdr is NULL and
          that will produce a value of 0. */
-      if (assoc_symbol != NULL) {
-        assoc_symbol = find_defined_macro(assoc_symbol);
+      if (sym_hdr != NULL) {
+        assoc_symbol = find_defined_macro(sym_hdr);
         if (assoc_symbol != NULL) {
           mark_referenced(assoc_symbol, &locator_for_curr_id.source_position);
         }  /* if */
@@ -3174,13 +3176,11 @@ Scan and process a #define directive.
        accepted. */
     check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
     /* Look to see if there is a macro with this name. */
-    assoc_symbol = find_symbol(start_of_curr_token, len_of_curr_token,
-                               &locator_for_curr_id);
     /* find_defined_macro cannot be used because if we have "#define defined"
        we want to give an error, not ignore it. */
-    if (assoc_symbol != NULL) {
-      assoc_symbol = find_macro_symbol(assoc_symbol->header);
-    }  /* if */
+    assoc_symbol = find_macro_symbol_by_name(start_of_curr_token,
+                                             len_of_curr_token,
+	                                     &locator_for_curr_id);
     if (assoc_symbol == NULL) {
       /* No such macro, so #define can be done. */
     } else if (assoc_symbol->variant.macro_def->cannot_be_redefined &&
@@ -4207,7 +4207,7 @@ a symbol locator in *locator.
       if (!is_id_char[id_start[i]-CHAR_MIN]) goto return_point;
     }  /* for */
     /* The identifier is syntactically valid.  Look it up. */
-    *assoc_symbol = find_macro_symbol(locator->symbol_header);
+    *assoc_symbol = find_macro_symbol_by_name(id_start, id_len, locator);
     return_value = TRUE;
   }  /* if */
 return_point:

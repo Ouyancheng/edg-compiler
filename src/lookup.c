@@ -1623,7 +1623,9 @@ Macro that initializes a lookup state variable.
 /* symbol_may_precede_qualifier checks for a symbol that is a class,
    class template, namespace, or template type parameter. */
 #define is_acceptable_symbol(sym, fund_sym, lookup_state)               \
-  (((!(fund_sym->is_invisible) && (!sym->is_invisible)) ||		\
+  ((name_space_for_symbol_kind[(int)sym->kind] ==			     \
+                                  (lookup_state).required_name_space_kind) && \
+   ((!(fund_sym->is_invisible) && (!sym->is_invisible)) ||		\
     (lookup_state).is_linkage_lookup ||					\
     (lookup_state).is_friend_lookup) &&					\
    (!(lookup_state).must_be_class_or_namespace ||			\
@@ -2605,13 +2607,6 @@ C and C++.
   a_scope_stack_entry_ptr ssep;
   a_boolean		  use_slow_lookup = FALSE;
 
-/* Local macro that tests whether or not a symbol on the active list
-   is acceptable.  See if the symbol is in the proper name space. */
-#define is_acceptable_active_symbol(sym, fund_sym)                           \
-  (name_space_for_symbol_kind[(int)sym->kind] ==			     \
-                                    lookup_state.required_name_space_kind && \
-   is_acceptable_symbol(sym, fund_sym, lookup_state))
-
   db_enter(4, "normal_id_lookup");
 
   sym = locator->specific_symbol;
@@ -2704,7 +2699,7 @@ C and C++.
         /* See if the symbol is acceptable (e.g., it's a class if it
            must be one). */
         a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-        if (is_acceptable_active_symbol(sym, fund_sym)) break;
+        if (is_acceptable_symbol(sym, fund_sym, lookup_state)) break;
       }  /* for */
     } else {
       /* There are inactive symbols and they may be visible, so the more
@@ -2835,7 +2830,6 @@ C and C++.
 #endif /* DEBUG */
   db_exit();
   return sym;
-#undef is_acceptable_active_symbol
 }  /* normal_id_lookup */
 
 /* Undefine the macro used by normal_id_lookup and do_using_directive_lookup

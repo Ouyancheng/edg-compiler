@@ -3007,12 +3007,13 @@ code that makes it possible to suppress subsequent re-inclusions.
     /* No need to check further. */
   } else if (ifhp->ifdef_guard || ifhp->ifndef_guard) {  
     /* See whether the controlling macro is currently defined. */
+    a_symbol_header_ptr	sym_hdr;
     locator = cleared_locator;
-    assoc_symbol =
-                  find_symbol(ifhp->controlling_macro_name,
+    sym_hdr = find_symbol_header(
+                              ifhp->controlling_macro_name,
 			      (sizeof_t)(strlen(ifhp->controlling_macro_name)),
                               &locator);
-    assoc_symbol = find_defined_macro(assoc_symbol);
+    assoc_symbol = find_defined_macro(sym_hdr);
     /* If the macro is undefined, then an #ifdef NAME guard would cause the
        included file to be ignored, so we should return TRUE (meaning it is
        OK to suppress the inclusion). */
@@ -7160,14 +7161,16 @@ id_scan:
       } else {
         /* If variadic macros are allowed, '__VA_ARGS__' should appear only in
            the replacement list of such macros. */
+        a_symbol_header_ptr	sym_hdr;
         check_use_of_VA_ARGS(
                     (sizeof_t)(end_of_curr_token - start_of_curr_token + 1),
                     start_of_curr_token);
         /* Look up the identifier in the symbol table. */
-        assoc_symbol = find_symbol(start_of_curr_token,
-                                   (sizeof_t)((end_of_curr_token -
+        sym_hdr = find_symbol_header(start_of_curr_token,
+                                     (sizeof_t)((end_of_curr_token -
                                                      start_of_curr_token + 1)),
-                              &locator_for_curr_id);
+                                     &locator_for_curr_id);
+        assoc_symbol = symbol_list_for_file_scope_symbols(sym_hdr);
         /* See if the identifier is a macro or keyword.  "Macro" should
            take precedence over "keyword", but it will naturally, since
            keywords are entered first and therefore appear at the end of the

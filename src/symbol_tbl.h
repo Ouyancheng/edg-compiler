@@ -281,9 +281,8 @@ Clear a symbol locator.
    located.  This is usually the active list, but after the file scope
    has been popped, it is the inactive list. */
 #define symbol_list_for_file_scope_symbols(symhdr)			\
-  ((depth_scope_stack < DEPTH_OF_FILE_SCOPE ||				\
-    scope_stack[DEPTH_OF_FILE_SCOPE].inactive_symbols_may_be_visible) ?	\
-                          (symhdr)->inactive_symbols : (symhdr)->symbol)
+  (file_scope_symbols_are_on_inactive_list ?				\
+                       (symhdr)->inactive_symbols : (symhdr)->symbol)
 
 /* Clear the specific symbol field of the locator unless instructed not
    to by the do_not_clear_specific_symbol field of the locator. */
@@ -2810,6 +2809,21 @@ EXTERN a_type_ptr
 			   this points to the va_list type once it has been
 			   defined.  NULL until then. */
 
+EXTERN a_symbol_ptr
+		symbols_with_no_scope;
+			/* A list of symbols that were entered into the
+			   symbol table, but are not associated with any
+			   scope (and so, are not on a scope list).  This
+			   includes things such as predefined macros and
+			   keywords.  The next_in_scope field is used to
+			   link these symbols together. */
+
+EXTERN a_boolean
+		file_scope_symbols_are_on_inactive_list;
+			/* TRUE once the file scope has been popped for the
+			   first time, any any file scope symbols have been
+			   moved to the inactive list. */
+
 void declare_builtin_va_list_type(void);
 
 extern void set_symbol_kind(a_symbol_ptr  sym_ptr,
@@ -3262,6 +3276,14 @@ extern a_symbol_ptr find_label_symbol(a_symbol_header_ptr	sym_hdr,
 				      a_scope_number		scope_number);
 
 extern a_symbol_ptr find_macro_symbol(a_symbol_header_ptr	sym_hdr);
+
+extern a_symbol_ptr find_macro_symbol_by_name(char             *identifier,
+					      sizeof_t         length,
+					      a_symbol_locator	*locator);
+
+extern a_symbol_header_ptr find_symbol_header(char             *identifier,
+					      sizeof_t         length,
+					      a_symbol_locator	*locator);
 
 /* Return TRUE if a symbol is a class symbol.   A class symbol is
    one defined as a class, struct, or union, or a typedef of one of

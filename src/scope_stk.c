@@ -1395,22 +1395,23 @@ the scope being pushed.
        list. */
     ssep->inactive_symbols_may_be_visible = TRUE;
   }  /* if */
-  if (C_dialect == C_dialect_cplusplus) {
-    /* Check for class reactivations, classes with base classes,
-       namespace extensions, and template instantiations.  When these
-       are found name lookup is more involved.  If the new scope is neither,
-       we can just use the state from the previous scope. */
-    if (kind == (a_scope_kind)sck_class_reactivation ||
-        kind == (a_scope_kind)sck_template_instantiation ||
-        kind == (a_scope_kind)sck_namespace_extension ||
-        kind == (a_scope_kind)sck_namespace_reactivation ||
-        (kind == (a_scope_kind)sck_class_struct_union &&
-         base_classes_of(assoc_type) != NULL)) {
-      ssep->inactive_symbols_may_be_visible = TRUE;
-    } else if (kind != (a_scope_kind)sck_file) {
-      ssep->inactive_symbols_may_be_visible =
-                                  (ssep-1)->inactive_symbols_may_be_visible;
-    }  /* if */
+  /* Check for class reactivations, classes with base classes,
+     namespace extensions, and template instantiations.  When these
+     are found name lookup is more involved.  If the new scope is neither,
+     we can just use the state from the previous scope. */
+  if (!C_mode() &&
+      (kind == (a_scope_kind)sck_class_reactivation ||
+       kind == (a_scope_kind)sck_template_instantiation ||
+       kind == (a_scope_kind)sck_namespace_extension ||
+       kind == (a_scope_kind)sck_namespace_reactivation ||
+       (kind == (a_scope_kind)sck_class_struct_union &&
+        base_classes_of(assoc_type) != NULL))) {
+    ssep->inactive_symbols_may_be_visible = TRUE;
+  } else if (kind != (a_scope_kind)sck_file) {
+    ssep->inactive_symbols_may_be_visible =
+                                   (ssep-1)->inactive_symbols_may_be_visible;
+  }  /* if */
+  if (!C_mode()) {
     if (kind == (a_scope_kind)sck_class_reactivation) {
       /* Determine whether the class being reactivated is still in the process
          of being defined.  This can occur when a class nested within a
@@ -4499,6 +4500,25 @@ thrown away by the caller.
 }  /* finish_function_body_processing */
 
 
+static void wrap_up_symbols_with_no_scope(void)
+/*
+Certain symbols (such as keywords and predefined macros) are not entered
+on the scope list of any scope.  When the file scope is popped for the
+first time, such symbols must be moved to the inactive list.
+*/
+{
+  a_symbol_ptr	sym;
+
+  for (sym = symbols_with_no_scope; sym != NULL; sym = sym->next_in_scope) {
+    unlink_symbol_from_symbol_table(sym);
+    add_symbol_to_inactive_list(sym);
+  }  /* for */
+  /* Indicate that the file scope symbols have been moved to the inactive
+     list. */
+  file_scope_symbols_are_on_inactive_list = TRUE;
+}  /* wrap_up_symbols_with_no_scope */
+
+
 void pop_scope(void)
 /*
 End a name scope by popping an entry off the scope stack.
@@ -4566,6 +4586,12 @@ End a name scope by popping an entry off the scope stack.
        the first time that it is popped. */
     wrapup_scope(ssep->il_scope, kind, pointers_block,
                  /*is_namespace_wrapup=*/FALSE);
+    if (ssep->kind == (a_scope_kind)sck_file) {
+      /* When the file scope is popped the first time, transfer any symbols
+         that are not associated with a scope list from the active list to
+         the inactive list. */
+      wrap_up_symbols_with_no_scope();
+    }  /* if */
   }  /* if */
   il_scope = ssep->il_scope;
   if (C_dialect == C_dialect_cplusplus && il_scope != NULL) {

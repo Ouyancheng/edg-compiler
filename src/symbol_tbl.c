@@ -49,6 +49,10 @@ static a_symbol_header_ptr
 		unnamed_field_symbol_header,
 		unnamed_namespace_symbol_header;
 
+static a_symbol_ptr
+		symbols_with_no_scope_tail;
+			/* End of the symbols_with_no_scope list. */
+
 /*
 An empty symbol used to initialize newly allocated symbols.
 */
@@ -2582,6 +2586,34 @@ Remove a symbol from the symbol table, i.e., unlink it from either the main
 }  /* unlink_symbol_from_symbol_table */
 
 
+static void remove_symbol_from_no_scope_list(a_symbol_ptr sym_ptr)
+/*
+Remove a symbol from the symbols_with_no_scope list.
+*/
+{
+  a_symbol_ptr       ptr;
+  a_symbol_ptr       prev_ptr;
+
+  if (sym_ptr == symbols_with_no_scope) {
+    symbols_with_no_scope = sym_ptr->next_in_scope;
+    prev_ptr = NULL;
+  } else {
+    for (prev_ptr = symbols_with_no_scope;
+         (ptr = prev_ptr->next_in_scope) != sym_ptr;
+         prev_ptr = ptr) {
+      check_assertion_str2(ptr != NULL, "remove_symbol_from_no_scope_list:",
+                           "could not find symbol");
+    }  /* for */
+    prev_ptr->next_in_scope = sym_ptr->next_in_scope;
+  }  /* if */
+  /* If the removed entry is the last entry on the list, update the
+     last-pointer. */
+  if (sym_ptr == symbols_with_no_scope_tail) {
+    symbols_with_no_scope_tail = prev_ptr;
+  }  /* if */
+}  /* remove_symbol_from_no_scope_list */
+
+
 static void remove_symbol_from_scope_list(a_symbol_ptr sym_ptr)
 /*
 Remove the given symbol from the list of symbols for its scope.
@@ -2596,6 +2628,7 @@ Remove the given symbol from the list of symbols for its scope.
   } else if (sym_ptr->decl_scope == NO_SCOPE_NUMBER) {
     /* Symbols removed by a command-line -U option can be outside of any
        scope. */
+    remove_symbol_from_no_scope_list(sym_ptr);
   } else {
     /* Find the proper entry in the scope stack (it will almost always be
        the topmost entry). */
@@ -3087,6 +3120,7 @@ symbol must be added to the inactive list.
       /* The symbol is being entered outside of any scope; this happens
          for keywords and command-line -D options, for example.  No error
          check is done. */
+      add_sym_to_inactive_list = file_scope_symbols_are_on_inactive_list;
     } else {
       check_assertion_str2(scope_stack[scope_depth].kind !=
                                                    (a_scope_kind)sck_pragma,
@@ -3397,8 +3431,18 @@ changed if there is no error.
       }  /* if */
     }  /* if */
   }  /* if */
+  sym_ptr->next_in_scope = NULL;
   if (sym_ptr->is_error) {
     /* Error symbols are not added to the scope list. */
+  } else if (pointers_block == NULL) {
+    /* A symbol that is not associated with a scope (e.g., a keyword
+       or predefined macro).  Keep a special list of such symbols. */
+    if (symbols_with_no_scope == NULL) {
+      symbols_with_no_scope = sym_ptr;
+    } else {
+      symbols_with_no_scope_tail->next_in_scope = sym_ptr;
+    }  /* if */
+    symbols_with_no_scope_tail = sym_ptr;
   } else if (pointers_block != NULL) {
     /* Add the symbol to the end of the symbols list for the scope. */
     if (pointers_block->symbols == NULL) {
@@ -3408,7 +3452,6 @@ changed if there is no error.
     }  /* if */
     pointers_block->last_symbol = sym_ptr;
   }  /* if */
-  sym_ptr->next_in_scope = NULL;
 }  /* add_symbol_to_scope_list */
 
 
@@ -4848,9 +4891,9 @@ it and return FALSE.  If it is defined already, do nothing and return TRUE.
   a_symbol_locator locator;
   a_symbol_ptr     macro_sym;
 
-  macro_sym = find_symbol(macro_name, (sizeof_t)(strlen(macro_name)),
-                          &locator);
-  macro_sym = find_defined_macro(macro_sym);
+  macro_sym = find_macro_symbol_by_name(macro_name,
+                                        (sizeof_t)(strlen(macro_name)),
+                                        &locator);
   if (macro_sym != NULL) {
     /* The macro is defined already. */
     already_defined = TRUE;
@@ -5185,6 +5228,21 @@ the latter will be NULL for variables.
 }  /* find_external_symbol */
 
 
+a_symbol_header_ptr find_symbol_header(char             *identifier,
+				       sizeof_t         length,
+				       a_symbol_locator	*locator)
+/*
+Return the symbol header for the specified identifier.
+*/
+{
+  a_symbol_header_ptr	sym_hdr;
+
+  (void)find_symbol(identifier, length, locator);
+  sym_hdr = locator->symbol_header;
+  return sym_hdr;
+}  /* find_symbol_header */
+
+
 a_symbol_ptr find_label_symbol(a_symbol_header_ptr	sym_hdr,
 			       a_scope_number		scope_number)
 /*
@@ -5204,8 +5262,8 @@ scope_number.
 
 a_symbol_ptr find_macro_symbol(a_symbol_header_ptr	sym_hdr)
 /*
-Look for a macro symbol on the symbol list of sym_hdr.  Macros are already
-entered as file scope symbols.
+Look for a macro symbol on the symbol list of sym_hdr.  Return the macro
+symbol or NULL if none is found.
 */
 {
   a_symbol_ptr	sym;
@@ -5216,6 +5274,21 @@ entered as file scope symbols.
   }  /* for */
   return sym;
 }  /* find_macro_symbol */
+
+
+a_symbol_ptr find_macro_symbol_by_name(char             *identifier,
+				       sizeof_t         length,
+				       a_symbol_locator	*locator)
+/*
+Look for a macro symbol with the specified name.  Return the macro symbol
+if found, or NULL.
+*/
+{
+  a_symbol_ptr	sym;
+
+  sym = find_macro_symbol(find_symbol_header(identifier, length, locator));
+  return sym;
+}  /* find_macro_symbol_by_name */
 
 
 void tildize_locator(a_symbol_locator *locator)
@@ -10332,6 +10405,9 @@ are handled in symbol_tbl_init.)
   register_trans_unit_variable(global_namespace_list_entry);
   register_trans_unit_variable(symbol_for_namespace_std);
   register_trans_unit_variable(builtin_va_list_type);
+  register_trans_unit_variable(symbols_with_no_scope);
+  register_trans_unit_variable(symbols_with_no_scope_tail);
+  register_trans_unit_variable(file_scope_symbols_are_on_inactive_list);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   register_trans_unit_variable(predeclared_size_t_symbol);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -10355,6 +10431,9 @@ given translation unit.
   /* Initialize the predeclared symbol for namespace "std". */
   symbol_for_namespace_std = NULL;
   builtin_va_list_type = NULL;
+  symbols_with_no_scope = NULL;
+  symbols_with_no_scope_tail = NULL;
+  file_scope_symbols_are_on_inactive_list = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   predeclared_size_t_symbol = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

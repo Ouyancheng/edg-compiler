@@ -37,7 +37,7 @@ EXTERN a_symbol_ptr
 
 
 /* Find a macro symbol on a list of symbols. */
-extern a_symbol_ptr find_defined_macro(a_symbol_ptr assoc_symbol);
+extern a_symbol_ptr find_defined_macro(a_symbol_header_ptr sym_hdr);
 
 /* Adjust addresses in the curr_source_line structure after something
    has been realloc'd. */
