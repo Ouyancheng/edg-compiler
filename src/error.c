@@ -1622,6 +1622,9 @@ error code.
     case ec_qualifier_in_member_declaration:
       m = "qualified name is not allowed in member declaration";
       break;
+    case ec_mixed_enum_type_anachronism:
+      m = "enumerated type mixed with another type (anachronism)";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

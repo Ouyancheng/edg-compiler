@@ -467,7 +467,8 @@ typedef enum /*an_error_code*/ {
   ec_addr_of_constructor_or_destructor,
   ec_dollar_used_in_identifier,
   ec_nonconst_ref_init_anachronism,
-  ec_qualifier_in_member_declaration
+  ec_qualifier_in_member_declaration,
+  ec_mixed_enum_type_anachronism
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -1050,7 +1050,7 @@ do_signed_char:;
 #if TARG_SIZEOF_INT > TARG_SIZEOF_SHORT
 	  /* "int" can contain all values of "short"; use "int". */
 	  promoted_type = integer_type((an_integer_kind)ik_int);
-#else
+#else /* TARG_SIZEOF_INT > TARG_SIZEOF_SHORT */
 	  /* All values of "unsigned short" cannot be represented by "int"; use
 	     "unsigned int". */
 	  promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
@@ -2139,6 +2139,7 @@ See conversion_possible.
 {
   a_boolean      okay = FALSE;
   a_boolean      pointer_normalization_needed;
+  a_boolean      source_is_integral;
   a_constant_ptr dest_enum_list, source_enum_list;
 
   db_enter(5, "impl_conversion_possible");
@@ -2175,16 +2176,35 @@ See conversion_possible.
       if (dest_enum_list != NULL) {
         /* Conversion is to an enum type. */
         source_enum_list = NULL;
-        if (is_integral(source_type)) {
+        source_is_integral = is_integral(source_type);
+        if (source_is_integral) {
           source_enum_list = source_type->variant.integer.enum_constant_list;
         }  /* if */
         if (source_enum_list != dest_enum_list) {
           /* Conversion of one enum type to another, or conversion of an
              arithmetic non-enum type to an enum. */
-          /* In C++, the conversion is not allowed, but we allow it as
-             an extension, with a warning.  In C, it's valid, but we
-             issue a warning anyway. */
-          *warning_suggested = ec_mixed_enum_type;
+          /* Allowing conversion of arithmetic types to an enum is an
+             anachronism.  Only allow this if anachronisms are being
+             allowed.  Cfront also allows floats to be assigned to enums.
+             But this is not really part of the anachronism and is not
+             supported even in cfront mode.  In C, it's valid but we issue
+             a warning anyway. */
+          if (source_is_integral) {
+            if (C_dialect != C_dialect_cplusplus) {
+              /* Mixed integral types allowed in C with a warning. */
+              *warning_suggested = ec_mixed_enum_type;
+            } else if (anachronism_error_severity == (int)es_warning) {
+              /* Anachronism warning in C++ mode with anachronisms allowed. */
+              *warning_suggested = ec_mixed_enum_type_anachronism;
+            } else {
+              /* C++ mode and anachronisms not allowed. */
+              okay = FALSE;
+            }  /* if */
+          } else {  /* !source_is_integral */
+            /* Conversion from non-integral (i.e., float) to enum is
+               not allowed. */
+            okay = FALSE;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else if (C_dialect == C_dialect_pcc &&
