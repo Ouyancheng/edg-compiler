@@ -11132,6 +11132,10 @@ instantiation.
        this is done in class fixup processing. */
     if (nonclass_prototype_instantiations &&
         decl_state->class_declared_in == NULL) {
+      /* Record the declaration sequence number for the default argument.
+         This is done here because the value for the containing declaration
+         has not been set yet. */
+      decl_state->decl_info->decl_seq = ++decl_seq_counter;
       default_arg_prototype_instantiation(template_sym,
                                           curr_default_args,
 					  decl_state->prototype_scope_symbols);
@@ -11841,7 +11845,7 @@ any non-empty template parameter lists that were scanned.
   if (decl_state->decl_info != NULL) {
     /* Record the current declaration sequence number.  This is used
        to restrict name visibility during template instantiation. */
-    decl_state->decl_info->decl_seq = decl_seq_counter;
+    decl_state->decl_info->decl_seq = ++decl_seq_counter;
   }  /* if */
   /* Any pbk_next_construct pragmas will be considered to bind to each of
      the instances generated from the template.  Save the current construct
