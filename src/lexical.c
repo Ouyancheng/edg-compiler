@@ -464,7 +464,7 @@ away it adds them to the specified token cache.)
         curr_token == tok_lbrace) {
       cache_token_stream_until_matching_token(cache);
     }  /* if */
-    /* Stop immediatelty when end of source is reached. */
+    /* Stop immediately when end of source is reached. */
     if (curr_token == tok_end_of_source) break;
     /* Add the current token to the cache and advance to its successor. */
     cache_curr_token(cache);
