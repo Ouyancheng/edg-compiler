@@ -10,11 +10,11 @@ g++ modes.
 3/15/05  Microsoft mode abort on in-class specialization appearing in multiple
          translation units
 
-When simultaneously processing multiple translation units in Microsoft mode,
-the front end sometimes abort with an internal error in update_canonical_entry
-(defined in trans_corresp.c).  This occurred with fairly complicated code
-involving in-class explicit specializations of member function templates.
-The problem is now fixed.
+When simultaneously processing multiple translation units in Microsoft
+mode, the front end sometimes aborted with an internal error in
+update_canonical_entry (defined in trans_corresp.c).  This occurred with
+fairly complicated code involving in-class explicit specializations of
+member function templates.  The problem is now fixed.
 
 3/14/05  Position of goto-statement generated for switch case fall-through
 
