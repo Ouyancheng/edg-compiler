@@ -8447,6 +8447,9 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->suppress_instantiation      = FALSE;
   tip->can_be_instantiated	   = FALSE;
   tip->explicit_instantiation_pos  = null_source_position;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  tip->declared_type               = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
   return tip;
 }  /* alloc_template_instance */

@@ -2656,8 +2656,8 @@ Instantiate the body of the template function associated with tip.
                                                /*copy_default_args=*/TRUE);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  set_routine_declared_type(rout_ptr,
-                            form_declared_type(rout_ptr->type, func_info_ptr));
+  check_assertion(tip->declared_type != NULL);
+  set_routine_declared_type(rout_ptr, tip->declared_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Set the linkage and storage class. */
   if (instantiation_mode == tim_local) {
@@ -5594,9 +5594,6 @@ type based on the template argument list and the template parameter list
   a_decl_flag_set		    dso_flags;
   a_boolean			    is_member_decl;
   a_type_ptr	      		    parent_class;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_type_ptr                        declared_type = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(4, "make_template_function");
 #if CHECKING
@@ -5664,12 +5661,19 @@ type based on the template argument list and the template parameter list
                                                   max_pending_instantiations) {
       sym_error(ec_runaway_recursive_instantiation, templ_sym);
       rout_type = create_error_routine_type(templ_rout, parent_class);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      tip->declared_type = rout_type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Flush to the end of the declaration cache. */
       while (curr_token != tok_end_of_source) (void)get_token();
       /* Skip past the tok_end_of_source. */
       (void)get_token();
     } else if (parent_class != NULL) {
       rout_type = scan_member_declaration(parent_class, templ_rout, tip);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      tip->declared_type =
+            form_declared_type(rout_type, &tssp->variant.function.func_info);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if 0
       /* We should get the locator position returned. */
 #endif /* 0 */
@@ -5696,7 +5700,7 @@ type based on the template argument list and the template parameter list
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* Set the declared type immediately, before the func_info block is
          discarded. */
-      declared_type = form_declared_type(rout_type, &func_info);
+      tip->declared_type = form_declared_type(rout_type, &func_info);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       done_with_func_info(func_info);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5731,13 +5735,6 @@ type based on the template argument list and the template parameter list
     rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
     rp->source_corresp.access = templ_rout->source_corresp.access;
     rp->template_arg_list = templ_arg_list;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (declared_type == NULL) {
-      declared_type = form_declared_type(rout_type,
-                                         func_info_for_template(tssp));
-    }  /* if */
-    set_routine_declared_type(rp, declared_type);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DECL_MODIFIERS_IN_USE
     {
     a_decl_modifiers_block  decl_modifiers;
@@ -5813,7 +5810,7 @@ type based on the template argument list and the template parameter list
     }  /* if */
     /* Add a secondary source sequence entry to represent the partial
        instantiation -- it will take the form of an explicit specialization. */
-    { a_type_ptr  declared_type = rp->declared_type;
+    { a_type_ptr  declared_type = tip->declared_type;
 
       check_assertion(declared_type != NULL);
       if (declared_type == rp->type &&
@@ -6218,6 +6215,10 @@ the function instantiation entry and set all the pointers.
       rout_sym->variant.routine.instance_ptr = tip;
       rout_sym->variant.routine.ptr->is_template_function = TRUE;
       rout_sym->variant.routine.ptr->template_arg_list = templ_arg_list;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      tip->declared_type =
+                form_declared_type(tp, &tssp->variant.function.func_info);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   }  /* if */
   if (tssp != NULL) {
@@ -10929,10 +10930,9 @@ that follows.
 
           declared_type = form_declared_type(type, &func_info);
           if (is_definition) {
-            /* The defining declaration of the routine.  Record the type.
-               Clear the declared-type pointer in case it was already set by
-               find_template_function. */
-            rp->declared_type = NULL;
+            /* The defining declaration of the routine.  Record the declared
+               type. */
+            check_assertion(rp->declared_type == NULL);
             set_routine_declared_type(rp, declared_type);
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
             if (rp->source_corresp.source_sequence_entry != NULL &&

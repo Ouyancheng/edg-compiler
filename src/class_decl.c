@@ -9763,6 +9763,13 @@ to be returned to the caller.
                can't handle this sort of thing. */
           } else if (!is_error_locator(locator)) {
             find_member_function_template(rout_sym, prototype_sym);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+            /* Set the declared_type in the instance entry. */
+            if (rout_sym->variant.routine.instance_ptr != NULL) {
+              rout_sym->variant.routine.instance_ptr->declared_type =
+                                form_declared_type(local_type, &func_info);
+            }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           }  /* if */
         }  /* if */
         if (decl_info.is_constructor && (dso_flags & DSO_EXPLICIT)) {

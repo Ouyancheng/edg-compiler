@@ -1236,6 +1236,13 @@ typedef struct a_template_instance {
 		explicit_instantiation_pos;
 			/* The position of the instantiation request pragma
 			   when explicit_instantiation is TRUE. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_type_ptr	declared_type;
+			/* When instance_sym points to an sk_routine or
+			   sk_member_function, pointer to the routine's type
+			   as it actually appears in the source program (i.e.,
+			   before parameter type adjustments). */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_template_instance;
 
 
