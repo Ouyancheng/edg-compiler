@@ -1050,6 +1050,7 @@ there.
   a_boolean	save_fetch_pp_tokens;
   char		*il_string;
 
+  db_enter(4, "convert_pragma_to_string");
   /* Save the current value of the lexical scanning mode flags. */
   save_expand_macros = expand_macros;
   save_processing_C_code_in_pragma = processing_C_code_in_pragma;
