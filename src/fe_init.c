@@ -662,6 +662,12 @@ Initialize everything that has to do with the front end.
   /* Push the primary source input file onto the input stack.  Make
      a copy of the file name in IL storage. */
   il_header.primary_source_file = NULL;
+  /* Set the default name linkage kind for externally linked objects and
+     functions.  In C++ this can be overridden by a linkage specification
+     (ARM 7.4). */
+  def_external_linkage_kind = (C_dialect == C_dialect_cplusplus) ?
+                                (a_name_linkage_kind)nlk_cplusplus_external :
+                                (a_name_linkage_kind)nlk_external;
   push_input_stack(strcpy(alloc_il(
                                (sizeof_t)(strlen(primary_source_file_name)+1)),
                           primary_source_file_name),
