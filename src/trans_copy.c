@@ -1076,6 +1076,38 @@ is called.
 }  /* f_mark_to_merge */
 
 
+static void transfer_routine_flags(a_routine_ptr routine,
+                                   a_routine_ptr corresp_routine)
+/*
+The routine identified by "routine" is about to be eliminated.
+If there is any useful information in flags in that routine, e.g.,
+about inline attributes, merge it into corresp_routine, which is
+not being eliminated.
+*/
+{
+  check_assertion(routine->is_inline == corresp_routine->is_inline ||
+                  /* The is_inline flag in templates is not set until
+                     the function is fully instantiated. */
+                  (routine->is_template_function &&
+                   routine->assoc_scope == NULL_region_number) ||
+                  (corresp_routine->is_template_function &&
+                   corresp_routine->assoc_scope == NULL_region_number));
+#if INSTANTIATE_EXTERN_INLINE
+  if (instantiate_extern_inline) {
+    corresp_routine->inline_instance_required |=
+                                             routine->inline_instance_required;
+  }  /* if */
+#endif /* INSTANTIATE_EXTERN_INLINE */
+  /* Note that suppress_inline_body is meaningful only when the routine
+     has a body, and the interesting value -- the one that sticks --
+     is FALSE. */
+  if (routine->assoc_scope != NULL_region_number &&
+      corresp_routine->assoc_scope != NULL_region_number) {
+    corresp_routine->suppress_inline_body &= routine->suppress_inline_body;
+  }  /* if */
+}  /* transfer_routine_flags */
+
+
 static a_boolean prepare_for_trans_unit_copy(
                                       a_scope_ptr scope,
                                       a_boolean   *any_removed_function_bodies)
@@ -1387,48 +1419,18 @@ to the secondary translation unit.
       /* The routine doesn't exist in the primary IL, and just gets copied
          over. */
       keep_on_list = TRUE;
+    } else if (entry_should_overwrite_primary_entry(routine)) {
+      /* The routine overwrites the corresponding routine in the primary IL.
+         This happens, for example, when the routine has a definition
+         in the secondary translation unit but only a declaration in the
+         primary IL. */
+      check_assertion(check_member_merges);
+      keep_on_list = TRUE;
+      mark_to_merge(routine, iek_routine);
     } else {
-      a_routine_ptr corresp_routine =
-                                 (a_routine_ptr)canonical_il_entry_of(routine);
-      if (entry_should_overwrite_primary_entry(routine)) {
-        /* The routine overwrites the corresponding routine in the primary IL.
-           This happens, for example, when the routine has a definition
-           in the secondary translation unit but only a declaration in the
-           primary IL. */
-        check_assertion(check_member_merges);
-        keep_on_list = TRUE;
-        mark_to_merge(routine, iek_routine);
-        /* The inline flag merging below gets done against the primary IL
-           routine. */
-        corresp_routine = (a_routine_ptr)transitive_copy_address_of(routine);
-      } else {
-        /* The routine is a duplicate of one elsewhere and should be
-           discarded. */
-        keep_on_list = FALSE;
-      }  /* if */
-      /* Preserve some information regarding inline functions.  Note that
-         this is done for routines that are merged and routines that are
-         discarded, but not for routines that are just copied. */
-      check_assertion(routine->is_inline == corresp_routine->is_inline ||
-                      /* The is_inline flag in templates is not set until
-                         the function is fully instantiated. */
-                      (routine->is_template_function &&
-                       routine->assoc_scope == NULL_region_number) ||
-                      (corresp_routine->is_template_function &&
-                       corresp_routine->assoc_scope == NULL_region_number));
-#if INSTANTIATE_EXTERN_INLINE
-      if (instantiate_extern_inline) {
-        corresp_routine->inline_instance_required |=
-                                             routine->inline_instance_required;
-      }  /* if */
-#endif /* INSTANTIATE_EXTERN_INLINE */
-      /* Note that suppress_inline_body is meaningful only when the routine
-         has a body, and the interesting value -- the one that sticks --
-         is FALSE. */
-      if (routine->assoc_scope != NULL_region_number &&
-          corresp_routine->assoc_scope != NULL_region_number) {
-        corresp_routine->suppress_inline_body &= routine->suppress_inline_body;
-      }  /* if */
+      /* The routine is a duplicate of one elsewhere and should be
+         discarded. */
+      keep_on_list = FALSE;
     }  /* if */
 #if DEBUG
     if (db_trace("trans_copy", routine, iek_routine)) {
@@ -1452,6 +1454,11 @@ to the secondary translation unit.
       } else {
         prev_routine->next = routine->next;
       }  /* if */
+      /* Preserve some information regarding inline functions. */
+      { a_routine_ptr corresp_routine =
+                                 (a_routine_ptr)canonical_il_entry_of(routine);
+        transfer_routine_flags(routine, corresp_routine);
+      }
       if (routine->assoc_scope != NULL_region_number) {
         /* Delete the body of this routine. */
         clear_body_for_routine(routine);
@@ -1834,21 +1841,10 @@ Overwrite the routine primary_rout (in the primary IL) with rout (in
 the secondary translation unit IL).
 */
 {
-#if INSTANTIATE_EXTERN_INLINE
-  a_boolean saved_inline_instance_required =
-                                        primary_rout->inline_instance_required;
-#endif /* INSTANTIATE_EXTERN_INLINE */
 #if ONE_INSTANTIATION_PER_OBJECT
   unsigned long saved_instantiation_needed_bit_number =
                                  primary_rout->instantiation_needed_bit_number;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-  /* suppress_inline_body is only valid on routines with bodies.  Save the
-     destination value only if the destination routine already has a
-     body. */
-  a_boolean saved_suppress_inline_body =
-                            (primary_rout->assoc_scope != NULL_region_number) ?
-                                           primary_rout->suppress_inline_body :
-                                           rout->suppress_inline_body;
   a_class_list_entry_ptr saved_befriending_classes =
                                              primary_rout->befriending_classes;
   a_boolean saved_on_inline_function_list =
@@ -1858,18 +1854,13 @@ the secondary translation unit IL).
 #endif /* MAINTAIN_NEEDED_FLAGS */
   a_symbol_ptr sym = (a_symbol_ptr)(rout->source_corresp.assoc_info);
   do_saves_for_overwrite(primary_rout, a_routine_ptr);
+  transfer_routine_flags(primary_rout, rout);
   *primary_rout = *rout;
   do_restores_for_overwrite(primary_rout, rout);
 #if ONE_INSTANTIATION_PER_OBJECT
   primary_rout->instantiation_needed_bit_number =
                                          saved_instantiation_needed_bit_number;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-  /* Note that inline_instance_required etc. were previously updated in
-     the primary routine, so we just save the value determined. */
-#if INSTANTIATE_EXTERN_INLINE
-  primary_rout->inline_instance_required = saved_inline_instance_required;
-#endif /* INSTANTIATE_EXTERN_INLINE */
-  primary_rout->suppress_inline_body = saved_suppress_inline_body;
   primary_rout->befriending_classes = saved_befriending_classes;
   primary_rout->on_inline_function_list = saved_on_inline_function_list;
 #if MAINTAIN_NEEDED_FLAGS
