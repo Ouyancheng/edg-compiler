@@ -1346,9 +1346,10 @@ a_symbol_ptr find_template_function(a_symbol_ptr        templ_sym,
 
 
 
-static a_boolean class_template_declaration(a_template_param_ptr  templ_params,
-                                            a_symbol_ptr          *p_sym_ptr,
-                                            a_boolean             *resolution)
+static a_boolean class_template_declaration(a_template_param_ptr templ_params,
+                                            a_symbol_ptr         *p_sym_ptr,
+                                            a_boolean            *resolution,
+                                            a_type_ptr           *new_type)
 /*
 If this turns out to be a class template declaration, scan it and return
 TRUE, setting *p_sym_ptr to the class template symbol.  If it is not a class
@@ -1366,7 +1367,7 @@ that make up the declaration and do a prototype instantiation.
   a_template_symbol_supplement_ptr  tssp;
   a_token_cache                     local_token_cache;
   a_type_kind                       type_kind;
-  a_type_ptr                        prototype_type;
+  a_type_ptr                        prototype_type = NULL;
   a_template_arg_ptr                tap, *append_addr;
   a_template_param_ptr              tpp;
   a_boolean			    err;
@@ -1527,10 +1528,6 @@ that make up the declaration and do a prototype instantiation.
       /* Add an end-of-source token to the end of the token cache to assure
          that we don't scan past the end of the cache in the actual scan. */
       terminate_token_cache(&tssp->body_token_cache);
-      /* Do a "prototype instantiation" of the class template -- i.e.,
-         parse the declarative information looking for gross syntax
-         errors. */
-      instantiate_class_template(sym, prototype_type);
     } else {
       /* This is not a class template definition, so we have no need to
          cache the tokens. */
@@ -1541,6 +1538,7 @@ that make up the declaration and do a prototype instantiation.
 done:;
   db_exit();
   *p_sym_ptr = sym;
+  *new_type = prototype_type;
   return is_class_template_decl;
 }  /* class_template_declaration */
 
@@ -1889,7 +1887,7 @@ entry is pushed on the scope stack.
   a_symbol_ptr                      sym, param_sym;
   a_template_symbol_supplement_ptr  tssp;
   a_boolean                         tag_resolution = FALSE;
-  a_type_ptr                        rout_type;
+  a_type_ptr                        rout_type, prototype_type = NULL;
 
   db_enter(3, "template_declaration");
 #if CHECKING
@@ -1920,7 +1918,8 @@ entry is pushed on the scope stack.
   (void)required_token(tok_gt, ec_exp_gt);
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
-  if (class_template_declaration(template_param_list, &sym, &tag_resolution)) {
+  if (class_template_declaration(template_param_list, &sym, &tag_resolution,
+                                 &prototype_type)) {
     /* The declaration was successfully scanned as a class template
        declaration. */
   } else if (function_template_declaration(&sym)) {
@@ -1947,7 +1946,23 @@ entry is pushed on the scope stack.
   } else {
     /* Error. */
   }  /* if */
+  /* Note that the template declaration scope must be popped before doing the
+     prototype instantiation. */
   pop_scope();
+  if (prototype_type != NULL) {
+#if CHECKING
+    if (sym == NULL || sym->kind != (a_symbol_kind)sk_class_template ||
+        !sym->defined || (tssp = sym->variant.template.extra_info) == NULL ||
+        tssp->variant.class.instantiations == NULL ||
+        tssp->variant.class.instantiations->
+                         variant.class_struct_union.type != prototype_type) {
+      internal_error("template_declaration: sym & prototype_type out of sync");
+    }  /* if */
+#endif /* CHECKING */
+    /* Do a "prototype instantiation" of the class template -- i.e., parse
+       the declarative information looking for gross syntax errors. */
+    instantiate_class_template(sym, prototype_type);
+  }  /* if */
   if (tag_resolution) {
     /* This is the resolution of a previously incomplete template declaration;
        if there are array types to be resolved, look to see if any of them are
