@@ -948,7 +948,18 @@ The syntax is:
        the initializer. */
     if (paren_flag) {
       remove_stop_token(tok_rparen);
-      (void)required_token(tok_rparen, ec_exp_rparen);
+      if (curr_token == tok_rparen) {
+        (void)get_token();
+      } else {
+        /* Flush to and past the right paren, but first remove tok_comma
+           from the stop token set.  This allows us to handle errors like
+           "int i(1,2);" more gracefully. */
+        int  saved_value = stop_token_array[(int)tok_comma];
+
+        stop_token_array[(int)tok_comma] = 0;
+        (void)required_token(tok_rparen, ec_exp_rparen);
+        stop_token_array[(int)tok_comma] = saved_value;
+      }  /* if */
     } else {
       /* If an extra opening brace was ignored earlier, ignore the matching
          closing brace now. */
