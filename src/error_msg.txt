@@ -799,6 +799,7 @@ ec_dupl_calling_convention;;"calling convention specified more than once"
 ec_type_qualifier_not_allowed;;"a type qualifier is not allowed"
 ec_template_instance_already_used;;"%npd1 was used before its template was declared"
 ec_static_nonstatic_with_same_param_types;;"static and nonstatic member functions with same parameter types cannot be overloaded"
+ec_no_prior_declaration;;"no prior declaration of %np"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
