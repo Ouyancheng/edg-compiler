@@ -156,18 +156,17 @@ it needs to be executed after all templates have been instantiated.
 }  /* file_scope_il_wrapup_part_1 */
 
 
-static void file_scope_il_wrapup_needed_flag_processing(a_scope_ptr scope)
+static void file_scope_il_wrapup_needed_flag_processing(void)
 /*
 Do needed-flag processing as part of file-scope IL wrapup processing.
 The current translation unit is swept to mark external entities and
-the things they reference as "needed".  scope is the file scope for
-the translation unit.
+the things they reference as "needed".
 */
 {
 #if MAINTAIN_NEEDED_FLAGS
   /* Set the "needed" flag in defined variables with external linkage --
      both in the file scope and in each of the namespace scopes. */
-  set_needed_flags_at_end_of_file_scope(scope);
+  set_needed_flags_at_end_of_file_scope(curr_translation_unit->primary_scope);
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if DO_IL_LOWERING
   /* Any statics referenced from instantiation slices in
@@ -196,8 +195,6 @@ code is removed from any of them, because there can be cross-translation-
 unit references).
 */
 {
-  a_scope_ptr il_scope = curr_translation_unit->primary_scope;
-
   if (is_primary_translation_unit) {
     /* Sweep the primary translation unit IL tree and look for any
        pointers to entities in secondary translation units that it uses,
@@ -206,7 +203,7 @@ unit references).
   } else {
     /* Sweep a secondary translation unit IL tree and mark things as
        needed. */
-    file_scope_il_wrapup_needed_flag_processing(il_scope);
+    file_scope_il_wrapup_needed_flag_processing();
   }  /* if */
 }  /* file_scope_il_wrapup_part_2 */
 
@@ -260,7 +257,7 @@ already been copied over.
     /* Do needed-flag processing for the primary translation unit.
        The needed-flag processing for secondary translation units
        was done in part 2. */
-    file_scope_il_wrapup_needed_flag_processing(il_scope);
+    file_scope_il_wrapup_needed_flag_processing();
   }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   /* Remove unneeded IL entries if appropriate. */
