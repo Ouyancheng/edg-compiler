@@ -8892,6 +8892,7 @@ instantiation.
   a_type_kind                       type_kind;
   a_token_set_array                 stop_tokens;
   a_source_position                 friend_pos;
+  a_boolean			    friend_token_seen = FALSE;
   a_boolean			    is_nested_class_definition = FALSE;
   a_template_param_ptr		    templ_params =
                                              decl_state->decl_info->parameters;
@@ -8926,6 +8927,7 @@ instantiation.
        of a class.  This permits the error to be diagnosed below. */
     decl_state->is_template_friend = TRUE;
     friend_pos = pos_curr_token;
+    friend_token_seen = TRUE;
     (void)get_token();
   }  /* if */
   skip_illegal_class_template_decl_specifiers(/*diagnose=*/TRUE);
@@ -9063,8 +9065,11 @@ instantiation.
       /* Adjust the effective declaration level.  Friend declarations
          are added to the nearest enclosing namespace scope. */
       decl_state->effective_decl_level = depth_innermost_namespace_scope;
-    } else {
-      /* A friend declaration in a nonclass scope. */
+    } else if (friend_token_seen) {
+      /* A friend declaration in a nonclass scope.  Only issue the error
+         if we actually scanned the friend token in this routine.  If
+         the is_template_friend flag was set elsewhere, this must be
+         a badly formed declarations -- assume an error has been issued. */
       pos_error(ec_bad_specifier_outside_class_decl, &friend_pos);
       decl_state->decl_scope_err = TRUE;
     }  /* if */
