@@ -797,19 +797,19 @@ Free a token cache stack entry, i.e., put it on the avail list to be reused.
 }  /* free_reusable_cache_entry */
 
 
-static void free_cached_token(a_cached_token_ptr ctp)
 /*
-Free a cached token entry, i.e., put it on the avail list to be reused.
+Macro to free a cached token entry, i.e., to put it on the avail list to be
+reused.  If the entry points to a cached constant entry, free it, too.
 */
-{
-  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
-    /* The entry points to a constant entry; free it. */
-    a_constant_ptr con = ctp->variant.constant;
-    con->next = avail_cached_constants;
-    avail_cached_constants = con;
-  }  /* if */
-  ctp->next = avail_cached_tokens;
-  avail_cached_tokens = ctp;
+#define free_cached_token(ctp)                                          \
+{ if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) { \
+    /* The entry points to a constant entry; free it. */                \
+    a_constant_ptr con = ctp->variant.constant;                         \
+    con->next = avail_cached_constants;                                 \
+    avail_cached_constants = con;                                       \
+  }  /* if */                                                           \
+  ctp->next = avail_cached_tokens;                                      \
+  avail_cached_tokens = ctp;                                            \
 }  /* free_cached_token */
 
 
