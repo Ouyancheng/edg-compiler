@@ -1188,10 +1188,15 @@ If not, *failed is set.
           } else {
             /* Statement insert location.  A return without an expression
                is just thrown away.  A return with an expression is just
-               the expression (for side effects). */
+               the expression (for side effects).  In GNU C statement
+               expressions, the expression for the final statement is
+               the value of the statement expression, and is used. */
             if (stmt_expr != NULL &&
-                node_has_side_effects(stmt_expr, (a_boolean *)NULL)) {
-              stmt_expr = add_cast(stmt_expr, void_type());
+                (!stmt_expr->result_is_not_used ||
+                 node_has_side_effects(stmt_expr, (a_boolean *)NULL))) {
+              if (stmt_expr->result_is_not_used) {
+                stmt_expr = add_cast(stmt_expr, void_type());
+              }  /* if */
               stmt = insert_expr_statement(stmt_expr, insert_location);
               set_stmt_pos_to_code_pos_for_lowering(stmt);
             }  /* if */
