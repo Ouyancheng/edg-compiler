@@ -1244,6 +1244,9 @@ error code.
     case ec_delete_already_declared:
       m = "operator delete() may not be overloaded";
       break;
+    case ec_no_match_for_addr_of_overloaded_function:
+      m = "no instance of this overloaded function matches the required type";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

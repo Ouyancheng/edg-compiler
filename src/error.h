@@ -433,7 +433,8 @@ typedef enum /*an_error_code*/ {
   ec_nonstd_const_member,
   ec_delete_of_const_pointer,
   ec_no_matching_new_function,
-  ec_delete_already_declared
+  ec_delete_already_declared,
+  ec_no_match_for_addr_of_overloaded_function
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
