@@ -2645,7 +2645,9 @@ NULL.
       var_ptr = sym->variant.variable.ptr;
       storage_class = var_ptr->storage_class;
       if (storage_class == (a_storage_class)sc_unspecified &&
-          !is_member_of_unnamed_namespace(&var_ptr->source_corresp)) {
+          (!is_member_of_unnamed_namespace(&var_ptr->source_corresp) ||
+           var_ptr->source_corresp.name_linkage ==
+                                         (a_name_linkage_kind)nlk_external)) {
         /* Note that if this test succeeds (i.e., the variable has
            storage class sc_unspecified), we do not do the test for
            referenced.  That's because an external variable can be assumed
@@ -2803,7 +2805,9 @@ NULL.
       rout_ptr = sym->variant.routine.ptr;
       storage_class = rout_ptr->storage_class;
       if (storage_class == (a_storage_class)sc_unspecified &&
-          !is_member_of_unnamed_namespace(&rout_ptr->source_corresp) &&
+          (!is_member_of_unnamed_namespace(&rout_ptr->source_corresp) ||
+           rout_ptr->source_corresp.name_linkage ==
+                                         (a_name_linkage_kind)nlk_external) &&
           !rout_ptr->is_inline) {
         /* Regard functions with "unspecified" storage class to be referenced
            somewhere, even if not in the current translation unit; extern
