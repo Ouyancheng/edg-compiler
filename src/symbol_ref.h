@@ -161,7 +161,11 @@ extern void reference_to_implicitly_invoked_function
                                      a_boolean          suppress_access_check);
 
 #if RECORD_HIDDEN_NAMES_IN_IL
+
 extern void check_for_defeatable_name_hiding(a_symbol_ptr  sym_ptr);
+
+extern void check_hidden_name_fixup_list(a_symbol_list_entry_ptr  *list);
+
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
 /* This macro is just a stub.  It can be replaced in implementations that
