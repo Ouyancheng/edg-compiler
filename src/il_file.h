@@ -114,7 +114,10 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sizeof(a_source_sequence_entry),
-  0 /* iek_comment */,
+  sizeof(a_src_seq_secondary_decl),
+#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+  sizeof(a_comment),
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   sizeof(an_orphaned_il_list),
   IEK_LAST_CHECK_SIZE /* iek_last */
