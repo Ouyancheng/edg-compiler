@@ -5404,6 +5404,15 @@ characters should be put out separately (to initialize a substring, probably).
         initializer_close_brace();
       }  /* if */
 #else /* !defined(FFE) */
+#if INCLUDE_ANNOTATIONS
+      if (annotate && !*gen_assignments &&
+          type->kind == (a_type_kind)tk_array) {
+        startline((a_seq_number)0);
+        start_comment();
+        (void)fprintf(f_C_output, " [%lu]: ", (unsigned long)ipdp->curr_elem);
+        end_comment();
+      }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
       dump_initializer_part(variable, elem_type, elem_con, gen_assignments,
                             separate_chars, ipdp);
 #endif /* ifdef FFE */
