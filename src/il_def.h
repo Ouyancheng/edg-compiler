@@ -752,16 +752,15 @@ typedef struct a_routine_type_supplement {
   a_param_type_ptr
                 param_type_list;
 #ifdef CIL
-                        /* List of parameter types.  If prototyped is TRUE,
-                           this is a list of the prototyped parameter types,
-                           and if has_ellipsis is TRUE, there is an ellipsis
-                           at the end of the list.  If prototyped is FALSE,
-                           the function has an old-style parameter list:
-                           if assoc_routine is non-NULL (meaning that the
-                           function definition has been scanned), this points
-                           to the unpromoted old-style parameter types;
-                           otherwise, it is NULL (i.e., there is no
-                           information on parameter types). */
+			/* List of parameter types.  If prototyped is TRUE,
+			   this is a list of the prototyped parameter types.
+			   If prototyped is FALSE, the function has an
+			   old-style parameter list: if assoc_routine is
+			   non-NULL (meaning that the function definition
+			   has been scanned), this points to the unpromoted
+			   old-style parameter types; otherwise, it is NULL
+			   (i.e., there is no information on parameter
+			   types). */
 #endif /* ifdef CIL */
 #ifdef FIL
                         /* List of parameter types on a function or subroutine
