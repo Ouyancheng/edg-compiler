@@ -1,5 +1,11 @@
 Version 3.6
 
+2/10/05  Performance improvement in using-directive lookups
+
+The performance of using-directive lookups has been improved, particularly
+for cases where a namespace contains a very large number of functions
+with a given name (as if often the case for names such as operator>>).
+
 2/10/05  Better code for compound literal initializers in C++ mode
 
 The code generated for file-scope variables initialized by
