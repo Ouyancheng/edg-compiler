@@ -8416,6 +8416,33 @@ or namespace scope) into the file scope.
 }  /* promote_routines */
 
 
+static void prepare_to_remove_class_along_with_type_as_subobject(
+                                                         a_type_ptr type,
+                                                         a_type_ptr *next_type)
+/*
+type points to a class type, and *next_type has been set to type->next.
+type is going to be removed from its type list, and if it is followed
+by its type-as-subobject, we want that to be removed as well but stay
+linked to type.  That is, we are removing a list containing one or
+two types.  Update *next_type to point to the first type after this list,
+and set the next pointer in the last entry on the list to NULL.
+*/
+{
+  a_class_type_supplement_ptr ctsp=type->variant.class_struct_union.extra_info;
+
+  if (type->next != NULL && ctsp->type_as_subobject == type->next) {
+    /* Yes, the next type is the corresponding type-as-subobject, so
+       remove it along with the primary type. */
+    a_type_ptr type_as_subobject = type->next;
+    *next_type = type_as_subobject->next;
+    type_as_subobject->next = NULL;
+  } else {
+    /* The type-as-subobject is not there, so remove just the primary type. */
+    type->next = NULL;
+  }  /* if */
+}  /* prepare_to_remove_class_along_with_type_as_subobject */
+
+
 static void promote_type_list(a_type_ptr  type,
                               a_scope_ptr promotion_scope,
                               a_type_ptr  *insert_pointer)
@@ -8429,86 +8456,105 @@ the insertion.
 
   for (; type != NULL; type = next_type) {
     next_type = type->next;
-    if (type->kind == (a_type_kind)tk_typeref &&
-        type->variant.typeref.is_placeholder_for_class_instantiation) {
-      /* This type is a placeholder typeref that indicates the point at
-         which a class instantiation appeared in the class.  For example:
-           template<class T> struct TMPL {};
-           struct A {
-             typedef int I;
-             TMPL<I> a;
-           };
-         The type for TMPL<I> was placed immediately into the file scope,
-         preceding A.  When I is promoted out of A, it must end up in
-         front of TMPL<I>.  That's accomplished by placing a placeholder
-         type on the types list of A to indicate the spot where TMPL<I>
-         appeared.  TMPL<I> is removed from the file-scope list when
-         encountered there in the promotion process, and then put back
-         at the right spot when the placeholder appears. */
-      type = type->variant.typeref.type;
+    if (is_immediate_class_type(type) &&
+        type->variant.class_struct_union.
+                         referenced_by_nested_class_def_placeholder_typeref) {
+      /* This is a nested class that is defined outside of its parent class.
+         It will be moved to the file-scope types list at the point of its
+         definition, later.  Here, just take it (and its type-as-subobject)
+         off the list. */
 #if DEBUG
       if (debug_level >= 4) {
-        (void)fprintf(f_debug, "Promoting placeholder type ");
+        (void)fprintf(f_debug, "Taking nested class out of list: ");
         db_type_name(type);
         (void)fprintf(f_debug, "\n");
       }  /* if */
 #endif /* DEBUG */
-      /* If the type-as-subobject for the type followed it on the file scope
-         list, it was also removed from the list, and left attached to
-         the primary type by the "next" pointer. */
-      if (type->next != NULL) {
-        /* The type-as-subobject is present, so arrange to have it be the
-           type processed the next time around the loop.  That will get
-           it placed back on the file-scope types list and get its
-           members promoted out. */
-        a_type_ptr type_as_subobject = type->next;
-        type_as_subobject->next = next_type;
-        next_type = type_as_subobject;
-      }  /* if */
-      /* Go on to promote the class' members and put the file-scope type
-         on the file-scope list. */
-    }  /* if */
-    /* If the type is a class, promote its members. */
-    if (is_immediate_class_type(type)) {
-      promote_class_members(type, promotion_scope, insert_pointer);
-    }  /* if */
-#if DEBUG
-    if (debug_level >= 4) {
-      (void)fprintf(f_debug, "Promoting type out of class: ");
-      db_type_name(type);
-      (void)fprintf(f_debug, "; promotion_scope = ");
-      db_scope(promotion_scope);
-      (void)fprintf(f_debug, "; *insert_pointer = ");
-      if (*insert_pointer == NULL) {
-        (void)fprintf(f_debug, "<null>");
-      } else {
-        db_type_name(*insert_pointer);
-      }  /* if */
-      (void)fprintf(f_debug, "\n");
-    }  /* if */
-#endif /* DEBUG */
-    if (*insert_pointer == NULL) {
-      type->next = promotion_scope->types;
-      promotion_scope->types = type;
+      prepare_to_remove_class_along_with_type_as_subobject(type, &next_type);
     } else {
-      type->next = (*insert_pointer)->next;
-      (*insert_pointer)->next = type;
-    }  /* if */
-    *insert_pointer = type;
+      if (type->kind == (a_type_kind)tk_typeref &&
+          type->variant.typeref.is_placeholder_for_class_instantiation) {
+        /* This type is a placeholder typeref that indicates the point at
+           which a class instantiation appeared in the class.  For example:
+             template<class T> struct TMPL {};
+             struct A {
+               typedef int I;
+               TMPL<I> a;
+             };
+           The type for TMPL<I> was placed immediately into the file scope,
+           preceding A.  When I is promoted out of A, it must end up in
+           front of TMPL<I>.  That's accomplished by placing a placeholder
+           type on the types list of A to indicate the spot where TMPL<I>
+           appeared.  TMPL<I> is removed from the file-scope list when
+           encountered there in the promotion process, and then put back
+           at the right spot when the placeholder appears. */
+        type = type->variant.typeref.type;
+#if DEBUG
+        if (debug_level >= 4) {
+          (void)fprintf(f_debug, "Promoting class instantiation ");
+          db_type_name(type);
+          (void)fprintf(f_debug, "\n");
+        }  /* if */
+#endif /* DEBUG */
+        /* If the type-as-subobject for the type followed it on the file scope
+           list, it was also removed from the list, and left attached to
+           the primary type by the "next" pointer. */
+        if (type->next != NULL) {
+          /* The type-as-subobject is present, so arrange to have it be the
+             type processed the next time around the loop.  That will get
+             it placed back on the file-scope types list and get its
+             members promoted out. */
+          a_type_ptr type_as_subobject = type->next;
+          type_as_subobject->next = next_type;
+          next_type = type_as_subobject;
+        }  /* if */
+        /* Go on to promote the class's members and put the file-scope type
+           on the file-scope list. */
+      }  /* if */
+      /* If the type is a class, promote its members. */
+      if (is_immediate_class_type(type)) {
+        promote_class_members(type, promotion_scope, insert_pointer);
+      }  /* if */
+#if DEBUG
+      if (debug_level >= 4) {
+        (void)fprintf(f_debug, "Promoting type out of class: ");
+        db_type_name(type);
+        (void)fprintf(f_debug, "; promotion_scope = ");
+        db_scope(promotion_scope);
+        (void)fprintf(f_debug, "; *insert_pointer = ");
+        if (*insert_pointer == NULL) {
+          (void)fprintf(f_debug, "<null>");
+        } else {
+          db_type_name(*insert_pointer);
+        }  /* if */
+        (void)fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
+      if (*insert_pointer == NULL) {
+        type->next = promotion_scope->types;
+        promotion_scope->types = type;
+      } else {
+        type->next = (*insert_pointer)->next;
+        (*insert_pointer)->next = type;
+      }  /* if */
+      *insert_pointer = type;
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-    if (is_immediate_class_type(type)) {
-      a_class_type_supplement_ptr ctsp =
+      if (is_immediate_class_type(type)) {
+        a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
-      /* If some local types of member functions were promoted into the
-         class on their way to the file scope, promote them now too.
-         They go out after the class itself.  There will only be
-         types on this list for non-nested classes (because the promoted
-         types go to the outermost enclosing class). */
-      promote_type_list(ctsp->promoted_local_types, promotion_scope,
-                        insert_pointer);
-      ctsp->promoted_local_types = NULL;
-    }  /* if */
+        /* If some local types of member functions were promoted into the
+           class on their way to the file scope, promote them now too.
+           They go out after the class itself.  There will only be
+           types on this list for non-nested classes (because the promoted
+           types go to the outermost enclosing class).  However, the list
+           can be non-NULL for nested classes that are defined outside of
+           their parent classes. */
+        promote_type_list(ctsp->promoted_local_types, promotion_scope,
+                          insert_pointer);
+        ctsp->promoted_local_types = NULL;
+      }  /* if */
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+    }  /* if */
   }  /* for */
 }  /* promote_type_list */
 
@@ -8646,20 +8692,8 @@ and all subscopes.
             (void)fprintf(f_debug, " ignored for the moment\n");
           }  /* if */
 #endif /* DEBUG */
-          /* If the next type on the list is the type-as-subobject version
-             of this type, remove it as well, keeping it linked to the
-             primary type. */
-          if (next_type != NULL && ctsp->type_as_subobject == next_type) {
-            /* Yes, the next type is the corresponding type-as-subobject, so
-               remove it along with the primary type. */
-            a_type_ptr type_as_subobject = next_type;
-            next_type = next_type->next;
-            type_as_subobject->next = NULL;
-          } else {
-            /* The type-as-subobject is not there, so remove just the
-               primary type. */
-            type->next = NULL;
-          }  /* if */
+          prepare_to_remove_class_along_with_type_as_subobject(type,
+                                                               &next_type);
           /* Link around the removed type(s). */
           if (insert_pointer == NULL) {
             scope->types = next_type;
@@ -8676,12 +8710,39 @@ and all subscopes.
              class on their way to the file scope, promote them now too.
              They go out after the class itself.  There will only be
              types on this list for non-nested classes (because the promoted
-             types go to the outermost enclosing class). */
+             types go to the outermost enclosing class).  However, the list
+             can be non-NULL for nested classes that are defined outside of
+             their parent classes. */
           promote_type_list(ctsp->promoted_local_types, scope,
                             &insert_pointer);
           ctsp->promoted_local_types = NULL;
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
         }  /* if */
+      } else if (type->kind == (a_type_kind)tk_typeref &&
+                 type->variant.typeref.is_placeholder_for_nested_class_def) {
+        /* This type is a typeref on a file-scope or namespace-scope types
+           list, and indicates the point of definition of a nested class
+           that is defined outside of its class.  Move the class onto the
+           current types list (it was removed from its class types list
+           during promotion of members out of that class).  If the class
+           has a type-as-subobject, it is attached as the next type. */
+        a_type_ptr nested_type = type->variant.typeref.type;
+#if DEBUG
+        if (debug_level >= 4) {
+          (void)fprintf(f_debug, "Nested class ");
+          db_type_name(nested_type);
+          (void)fprintf(f_debug, " being moved to namespace scope\n");
+        }  /* if */
+#endif /* DEBUG */
+        /* Clear the nested class flag to avoid double processing. */
+        nested_type->variant.class_struct_union.
+                    referenced_by_nested_class_def_placeholder_typeref = FALSE;
+        /* Promote the class, and its type-as-subobject if that is present. */
+        promote_type_list(nested_type, scope, &insert_pointer);
+        /* Put the flag back on in case a back end cares about it for some
+           reason. */
+        nested_type->variant.class_struct_union.
+                    referenced_by_nested_class_def_placeholder_typeref = TRUE;
       } else {
         /* Not a class type.  Set the insert location after it. */
         insert_pointer = type;
@@ -8877,7 +8938,12 @@ scope) along with the class members.
          enclosing class.  This is important for ordering reasons, because
          we want all these promoted local types to have access to all of
          the types in all of the surrounding classes. */
-      while (routine_class->source_corresp.is_class_member) {
+      while (routine_class->source_corresp.is_class_member &&
+             /* Stop at a nested class that's defined outside of its parent
+                class, because local types of that should be put out at the
+                point of the definition. */
+             !routine_class->variant.class_struct_union.
+                          referenced_by_nested_class_def_placeholder_typeref) {
         routine_class = routine_class->source_corresp.parent.class_type;
       }  /* while */
       last_class_type = routine_class->variant.class_struct_union.extra_info->
