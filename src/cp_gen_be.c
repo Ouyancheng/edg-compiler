@@ -2908,14 +2908,15 @@ this one is such a continuation.
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
     type = ss_entry_ptr(sec_decl, a_type_ptr);
     friend_decl = sec_decl->friend_decl;
-    is_specialization = sec_decl->is_specialization;
+    is_specialization = sec_decl->specialized_with_new_syntax;
   } else {
     type = ss_entry_ptr(curr_source_sequence_entry, a_type_ptr);
     is_definition = TRUE;
     /* A definition of a class is never a friend declaration. */
     friend_decl = FALSE;
     if (is_immediate_class_type(type)) {
-      is_specialization = type->variant.class_struct_union.is_specialization;
+      is_specialization = (type->variant.class_struct_union.is_specialized &&
+                !type->variant.class_struct_union.specialized_with_old_syntax);
     } else {
       is_specialization = FALSE;
     }  /* if */
@@ -5718,12 +5719,13 @@ declaration following this one is such a continuation.
        from the IL entry, since it might differ in small ways (e.g., using
        different typedefs, default arguments). */
     var_type = sec_decl->declared_type;
-    is_specialization = sec_decl->is_specialization;
+    is_specialization = sec_decl->specialized_with_new_syntax;
   } else {
     var = ss_entry_ptr(curr_source_sequence_entry, a_variable_ptr);
     is_definition = TRUE;
     var_type = var->declared_type;
-    is_specialization = var->is_specialization;
+    is_specialization = (var->is_specialized &&
+                         !var->specialized_with_old_syntax);
   }  /* if */
   check_assertion_str(var_type != NULL,
                       "gen_variable_decl: declared_type is NULL");
@@ -6017,13 +6019,14 @@ TRUE if the declaration following this one is such a continuation.
        different typedefs, default arguments). */
     rout_type = sec_decl->declared_type;
     friend_decl = sec_decl->friend_decl;
-    is_specialization = sec_decl->is_specialization;
+    is_specialization = sec_decl->specialized_with_new_syntax;
   } else {
     rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
     is_definition = TRUE;
     rout_type = rout->declared_type;
     friend_decl = rout->defined_in_friend_decl;
-    is_specialization = rout->is_specialization;
+    is_specialization = (rout->is_specialized &&
+                         !rout->specialized_with_old_syntax);
     if (rout->assoc_scope == NULL_region_number) {
       /* A member function of a template class might not be instantiated. */
       check_assertion_str(rout->is_template_function,
