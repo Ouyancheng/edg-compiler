@@ -1,5 +1,25 @@
 Version 3.4
 
+12/9/03  Argument-dependent lookup and block extern declarations
+
+Core issue 239 says that if the name found in a call is a
+block-extern declaration, argument-dependent lookup is suppressed.
+The front end has done that for a long time in default mode,
+but not in strict mode.  Now, strict mode suppresses the
+argument-dependent lookup as well.  However, in the past
+default mode has done the same on finding a local using-declaration,
+and the resolution to core issue 239 explicitly excludes that
+case.  Therefore, we no longer suppress argument-dependent
+lookup in default mode on a name that is a local using-declaration.
+
+  struct B {};
+  void f(B, int) { printf("f(B, int)\n"); }
+  void f(B, double) { printf("f(B, double)\n"); }
+  int main() {
+     void f(B, double);
+     f(B(), 1);  // Now calls f(B, double) in strict mode
+  }
+
 12/9/03  Qualified class type in explicit destructor call
 
 A spurious error was issued if a cv-qualified type was used when naming the
