@@ -568,6 +568,7 @@ might not be able to if the template itself has not yet been defined.
   a_token_cache                     *p_token_cache;
   a_class_symbol_supplement_ptr     cssp;
   a_template_arg_ptr                template_arg_list;
+  an_extern_linkage                 saved_linkage;
 
   db_enter(3, "f_instantiate_template_class");
 #if CHECKING
@@ -651,6 +652,11 @@ might not be able to if the template itself has not yet been defined.
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
       reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
+      /* Set the dafault name linkage to that of the template.  It will be
+         active while the function body is scanned and then restored. */
+      saved_linkage = def_external_linkage;
+      def_external_linkage.kind = class_type->source_corresp.name_linkage;
+      def_external_linkage.is_explicit = FALSE;
       /* The tokens of the template definition have been cached away.
          Activate the cache so that they can be rescanned in light of
          the new values associated with the template parameters. */
@@ -673,6 +679,8 @@ might not be able to if the template itself has not yet been defined.
          in the declaration of another entity. */
       set_autonomous_tag_decl_flag(class_type, /*is_definition=*/TRUE);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      /* Restore the default name linkage. */
+      def_external_linkage = saved_linkage;
       /* Process any pragmas that are to be bound to this instance. */
       process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
       pop_template_instantiation_scope();
@@ -930,6 +938,7 @@ Instantiate the body of the template function associated with tip.
   a_type_ptr                        class_declared_in;
   a_boolean                         is_nested_instantiation = FALSE;
   a_boolean                         instantiation_scope_pushed;
+  an_extern_linkage                 saved_linkage;
 
   db_enter(3, "instantiate_template_function");
   rout_sym = tip->instance_sym;
@@ -1071,6 +1080,11 @@ Instantiate the body of the template function associated with tip.
     pos_error(ec_no_exception_support,
               &tssp->variant.function.func_info.throw_position);
   }  /* if */
+  /* Set the dafault name linkage to that of the template.  It will be
+     active while the function body is scanned and then restored. */
+  saved_linkage = def_external_linkage;
+  def_external_linkage.kind = rout_ptr->source_corresp.name_linkage;
+  def_external_linkage.is_explicit = FALSE;
   /* Reactivate the tokens comprising the function body and scan them. */
   rescan_reusable_cache(&tssp->token_cache);
   scan_function_body(rout_ptr, &tssp->variant.function.func_info,
@@ -1078,6 +1092,8 @@ Instantiate the body of the template function associated with tip.
                       SFB_IS_INSTANTIATION));
   /* scan_function_body does not scan past the right brace. */
   if (curr_token == tok_rbrace) (void)get_token();
+  /* Restore the default name linkage. */
+  def_external_linkage = saved_linkage;
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(rout_sym, (a_statement_ptr)NULL);
   /* Pop the template instantiation scope. */
