@@ -1825,38 +1825,64 @@ table, since it is accessed from the associated function instantiation entry.
 }  /* make_template_function_symbol */
 
 
-a_boolean current_instantiation_symbol_if_class_template(a_symbol_ptr *sym)
+a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym)
 /*
 If the symbol is a class template that is currently being instantiated,
-the symbol of the instantiation is returned in *sym, otherwise the original
-symbol is left unchanged.  If the symbol returned is not a class
-template symbol (either because the symbol passed by the caller was not
-a class template or because we succeeded in finding an instantiation) we
-return TRUE.  If the symbol is a class template with no current
-instantiation, we return FALSE.
+or if a specific definition of the class is being defined, the symbol of
+the instantiation (or the specific definition) is returned in *sym,
+otherwise the original symbol is left unchanged.  If the symbol returned
+is not a class template symbol (either because the symbol passed by the
+caller was not a class template or because we succeeded in finding an
+instantiation or definition) we return TRUE.  If the symbol is a class
+template with no current instantiation or definition, we return FALSE.
 */
 {
-  a_scope_depth  depth = depth_of_innermost_instantiation_scope;
+  a_scope_depth  depth;
   a_boolean      found = TRUE;
+  a_boolean      is_instantiation_scope;
+  a_symbol_ptr   instance_sym;
 
   if ((*sym)->kind == (a_symbol_kind)sk_class_template) {
     found = FALSE;
-    if (depth != NO_SCOPE_DEPTH) {
-      /* Compare the template symbol of the innermost instantiation scope
-         with the symbol of the class template passed by the caller.  If
-         they match get the symbol of the template class instance associated
-         with the current instantiation. */
-      if (scope_stack[depth].template_sym == *sym) {
-        /* Get the instance symbol pointed to by the type from the scope
-           stack entry. */
-        *sym = (a_symbol_ptr)(scope_stack[depth].assoc_type->
-                                                    source_corresp.assoc_info);
-        found = TRUE;
+    /* We can skip the lookup if there are no class scopes (including
+       reactivation scopes) or instantiation scopes on the stack. */
+    if ((num_classes_on_scope_stack > 0) ||
+        (depth_of_innermost_instantiation_scope != NO_SCOPE_DEPTH)) {
+      /* Loop through the scope stack looking at the instantiation scopes
+         and the class declaration and reactivation scopes.  Stop after
+         finding the first instantiation scope.  Check each of these
+         scopes to see if the associated type is a template class associated
+         with the class template symbol. */
+      for (depth = depth_scope_stack; depth >= 0; --depth) {
+        a_scope_stack_entry_ptr ssep = &scope_stack[depth];
+        is_instantiation_scope =
+                        ssep->kind == (a_scope_kind)sck_template_instantiation;
+        if (is_instantiation_scope ||
+            ssep->kind == (a_scope_kind)sck_class_struct_union ||
+            ssep->kind == (a_scope_kind)sck_class_reactivation) {
+          /* Get the instance symbol pointed to by the type from the scope
+             stack entry. */
+          instance_sym = (a_symbol_ptr)(ssep->assoc_type->
+                                                   source_corresp.assoc_info);
+          if (is_instantiation_scope) {
+            if (ssep->template_sym == *sym) found = TRUE;
+            /* Don't look beyond the innermost instantiation scope. */
+            break;
+          } else {
+            /* A class/struct/union scope or reactivation scope. */
+            if (instance_sym->variant.class_struct_union.
+                            extra_info->class_template == *sym) {
+              found = TRUE;
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* if */
       }  /* if */
+      if (found) *sym = instance_sym;
     }  /* if */
   }  /* if */
   return found;
-}  /* current_instantiation_symbol_if_class_template */
+}  /* current_class_symbol_if_class_template */
 
 
 a_symbol_ptr make_unnamed_class_symbol(a_symbol_kind      sym_kind,
@@ -5225,7 +5251,7 @@ End a name scope by popping an entry off the scope stack.
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
-    if (ssep->symbols != NULL) {
+    if (ssep->symbols != NULL || debug_level >= 4) {
       fprintf(f_debug, "pop_scope: number = %d, depth = %d",
               ssep->number, depth_scope_stack);
       if (curr_routine != NULL) {

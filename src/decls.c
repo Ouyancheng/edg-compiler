@@ -4830,6 +4830,13 @@ Scan a tag identifier for a class, struct, union, or enum declaration.
 If a tag symbol already exists for the identifier, return a pointer to
 that symbol; otherwise return NULL.  If there is no identifier or if there
 is an error, return NULL.
+
+This routine may look more complicated than is necessary -- it isn't.
+This routine can either be matching up a definition with a previous
+declaration or may be entering a definition in a new scope.  The lookups
+have to be done very carefully to create new entries only when required
+and to find existing entries only when appropriate.  Exercise great
+caution when modifying this routine.
 */
 {
   a_symbol_ptr      tag_sym = NULL;
@@ -4840,17 +4847,40 @@ is an error, return NULL.
   /* Find a declaration of this tag in the current scope.  (We only look
      in the current scope for now, but we may have to do a complete lookup
      later.) */
-  if (C_dialect == C_dialect_cplusplus &&
-      curr_token == tok_identifier && next_token() == tok_lt) {
+  if (C_dialect == C_dialect_cplusplus && curr_token == tok_identifier &&
+      decl_scope_level == DEPTH_OF_FILE_SCOPE) {
+    /* Check for an identifier that is a class template name.  A class
+       template name at file scope must have an argument list.  A use
+       of a class template name in another scope is actually a
+       declaration of a new class that has nothing to do with the template. */
     a_symbol_ptr  templ_sym;
     a_boolean     err;
     templ_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
-    if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
-      tag_sym = coalesce_template_class_reference(templ_sym, GID_NO_OPTIONS,
-                                                  &err);
-    } else {
-      /* Don't prejudice subsequent lookups. */
-      locator_for_curr_id.specific_symbol = NULL;
+    /* There are two situations that need to be handled: this could be the
+       first time we are scanning this template reference -- in which case
+       we need to scan the arguments (using coalesce_template_class_reference).
+       Alternately, the arguments may have already been coalesced.  If the
+       symbol is a class template then we need to scan the arguments.  If
+       the symbol is a template class symbol then the arguments have already
+       been scanned and we should simply use the symbol returned by
+       normal_id_lookup. */
+    if (templ_sym != NULL) {
+      if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
+        tag_sym = coalesce_template_class_reference(templ_sym, GID_NO_OPTIONS,
+                                                    &err);
+        /* If an error occured while scanning the template arguments, set
+           tag_sym to NULL.  The caller is not prepared for it to point to
+           an error symbol. */
+        if (err) tag_sym = NULL;
+      } else if (is_template_class_symbol(templ_sym)) {
+        /* Use the symbol pointer from the locator (returned by
+           normal_id_lookup earlier).  The template class reference has
+           already been coalesced. */
+        tag_sym = templ_sym;
+      } else {
+        /* Don't prejudice subsequent lookups. */
+        locator_for_curr_id.specific_symbol = NULL;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (curr_token == tok_colon_colon || 

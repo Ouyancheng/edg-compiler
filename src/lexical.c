@@ -4806,7 +4806,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
         instantiation of this class, otherwise just return the class
         template symbol. */
     new_sym = template_symbol;
-    if (current_instantiation_symbol_if_class_template(&new_sym)) {
+    if (current_class_symbol_if_class_template(&new_sym)) {
       /* We have the symbol for the current instantiation of the
          class template. */
       goto normal_exit;

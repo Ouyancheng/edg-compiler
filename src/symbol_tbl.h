@@ -1567,6 +1567,12 @@ extern a_param_id_ptr param_id_on_list(a_symbol_locator *locator,
    ((sym)->kind == (a_symbol_kind)sk_type &&                        \
     (sym)->variant.type->kind == (a_type_kind)tk_template_param))
 
+/* Return TRUE if the symbol is a template class symbol. */
+#define is_template_class_symbol(sym)				 	\
+  (((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||		\
+    (sym)->kind == (a_symbol_kind)sk_union_tag) &&			\
+   ((sym)->variant.class_struct_union.extra_info->class_template != NULL))
+
 /* Return TRUE if the symbol is a class symbol for either a normal
    (non-template) or a "real" instantiation of a template class.  */
 #define is_real_class_symbol(sym)				   \
