@@ -362,8 +362,7 @@ might not be able to if the template itself has not yet been defined.
       mark_defined(instance_sym, &instance_sym->decl_position);
       /* Scan the base specifiers list, if any, and the body of the class. */
       (void)scan_class_definition(class_type, DEPTH_OF_FILE_SCOPE,
-                                  /*is_local_class=*/FALSE,
-                                  /*is_prototype_instantiation=*/FALSE);
+                                  /*is_local_class=*/FALSE);
       set_instantiation_required_for_template_class_members(class_type);
       pop_scope();
       /* In the normal case the current token should be end_of_source,
@@ -444,6 +443,8 @@ encountered.
   }  /* if */
 #endif /* DEBUG */
   instance_sym = (a_symbol_ptr)prototype_type->source_corresp.assoc_info;
+  instance_sym->variant.class_struct_union.extra_info->
+                                          is_prototype_instantiation = TRUE;
   /* Save a pointer to the prototype instantiation. */
   tssp->variant.class_template.prototype_instantiation = instance_sym;
   template_arg_list = prototype_type->variant.class_struct_union.extra_info->
@@ -460,8 +461,7 @@ encountered.
 #endif /* CHECKING */
   /* Scan the base specifiers list, if any, and the body of the class. */
   (void)scan_class_definition(prototype_type, DEPTH_OF_FILE_SCOPE,
-                              /*is_local_class=*/FALSE,
-                              /*is_prototype_instantiation=*/TRUE);
+                              /*is_local_class=*/FALSE);
   pop_scope();
   /* In the normal case the current token should be end_of_source,
      which was inserted to mark the end of the cached token stream.
@@ -519,7 +519,7 @@ Instantiate the body of the template function associated with tip.
        functions.  Runaway instantiations of out-of-line functions can
        not be detected this way because they are instantiated serially
        not recursively.
-    */                
+    */
     sym_error(ec_runaway_recursive_instantiation, rout_sym);
     goto done;
   }  /* if */
@@ -531,7 +531,11 @@ Instantiate the body of the template function associated with tip.
   }  /* if */
 #endif /* DEBUG */
   rout_ptr->is_inline = tssp->variant.function.routine->is_inline;
+#if 0
   rout_sym->defined = TRUE;
+#else
+  mark_defined(rout_sym, &rout_sym->decl_position);
+#endif /* if 0 */
   if (rout_ptr->type->kind == (a_type_kind)tk_typeref) {
     /* The function was declared using a typedef.  Now that it is being
        defined (given a body by the instantiation), create an unshared type
@@ -2979,7 +2983,7 @@ Scan the declaration of a single template nontype parameter.
   if (is_void_type(tp)) {
     /* A parameter type of void is not allowed. */
     error(ec_void_template_parameter);
-  } else if (tp->kind == tk_float) {
+  } else if (tp->kind == (a_type_kind)tk_float) {
 #if ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
     /* Though no longer permitted by the working paper (as of 3/94) floating 
        point template parameters are allowed for backward compatibility.
@@ -3068,6 +3072,7 @@ to represent the template parameters.
          template-param type -- "for now", since it will be replaced with
          an actual type during instantiation of the class or function. */
       sym->variant.type = template_param_type;
+      mark_defined(sym, &sym->decl_position);
       /* Bypass the identifier. */
       (void)get_token();
       if (curr_token == tok_assign) {
@@ -3102,7 +3107,7 @@ to represent the template parameters.
       set_source_corresp(&sym->variant.constant->source_corresp, sym);
       const_type_involves_template_param = 
 				is_or_contains_template_param(param_type_ptr);
-
+      mark_defined(sym, &sym->decl_position);
       if (curr_token == tok_assign) {
         /* Scan the default value. */
 	has_default_arg = TRUE;
@@ -3374,7 +3379,19 @@ entry is pushed on the scope stack.
           internal_error("template_declaration: bad instance for static mem");
         }  /* if */
 #endif /* CHECKING */
+#if 0
+#else
+        /* Temporary fix until algorithm in find_static_data_member_template,
+           which currently depends on matching decl_positions, is improved.
+           The problem is that the match algorithm expects the decl_position
+           of the member function in the prototype instantiation to be
+           the position of its declaration within the template declaration
+           rather than the position at which it is later defined.  Setting
+           the defined flag here means the source position in the symbol is
+           not overwritten. */
         sym->defined = TRUE;
+#endif
+        mark_defined(sym, &locator.source_position);
         tssp = sym->variant.static_data_member.instance_ptr->template_info;
         /* Update the param list ptr, which should be non-null when the
            symbol is defined. */
@@ -3418,8 +3435,21 @@ entry is pushed on the scope stack.
           pos_sy_error(ec_already_defined, &locator.source_position, sym);
           err = TRUE;
         }  /* if */
+#if 0
+#else
+        /* Temporary fix until algorithm in find_member_function_template,
+           which currently depends on matching decl_positions, is improved.
+           The problem is that the match algorithm expects the decl_position
+           of the member function in the prototype instantiation to be
+           the position of its declaration within the template declaration
+           rather than the position at which it is later defined.  Setting
+           the defined flag here means the source position in the symbol is
+           not overwritten. */
         sym->defined = TRUE;
+#endif
+        mark_defined(sym, &locator.source_position);
       } else {
+        mark_declared(sym, &locator.source_position);
         if (sym->kind == (a_symbol_kind)sk_member_function) {
           /* A non-defining declaration of a member function is not
              allowed. */
