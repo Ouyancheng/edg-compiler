@@ -6187,8 +6187,7 @@ so it will last as long as the reference.  This is needed for cases like
            is not static, so it must be removed and put into a static
            lifetime. */
         remove_from_destruction_list(dip);
-        record_end_of_lifetime_destruction(dip, /*static_lifetime=*/TRUE,
-                                           /*scope_lifetime=*/TRUE);
+        record_end_of_lifetime_destruction(dip, /*static_lifetime=*/TRUE);
       }  /* if */
     }  /* if */
   }  /* if */

@@ -5005,8 +5005,7 @@ expression node.
        put on a destruction list in the current context. */
     new_dip->lifetime = NULL;
     new_dip->next_in_destruction_list = NULL;
-    record_end_of_lifetime_destruction(new_dip, /*static_lifetime=*/FALSE,
-                                       /*scope_lifetime=*/FALSE);
+    record_end_of_lifetime_destruction(new_dip, /*static_lifetime=*/FALSE);
   }  /* if */
   return new_dip;
 }  /* copy_dynamic_init */
@@ -7165,16 +7164,13 @@ indicated object lifetime entry.
 
 
 void record_end_of_lifetime_destruction(a_dynamic_init_ptr  dip,
-                                        a_boolean           static_lifetime,
-                                        a_boolean           scope_lifetime)
+                                        a_boolean           static_lifetime)
 /*
 If the dynamic init entry pointed to by dip has a destructor associated with
 it, add the entry to the destructors list for the appropriate object
 lifetime.  If static_lifetime is TRUE, the object in question has static
 storage duration -- it persists till the end of program execution (i.e., till
-final object clean up).  If scope_lifetime is TRUE it is an object whose
-lifetime is tied to a scope.  If both flags are FALSE, the current object
-lifetime (the top of the object lifetime stack) is used.
+final object clean up).
 */
 {
   an_object_lifetime_ptr  olp;
@@ -7199,11 +7195,6 @@ lifetime (the top of the object lifetime stack) is used.
            belongs to the lifetime of the file scope itself. */
         olp = scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
       }  /* if */
-    } else if (scope_lifetime) {
-      /* A non-static entity, probably a variable, that is associated with
-         a scope lifetime.  If the current object lifetime is not that of
-         a scope, find the innermost object lifetime that is. */
-      olp = innermost_block_object_lifetime(curr_object_lifetime);
     } else {
       /* The default case is to use whatever is on top of the object lifetime
          stack. */

@@ -491,8 +491,7 @@ extern void add_to_destructions_list(a_dynamic_init_ptr      dip,
 
 extern void record_end_of_lifetime_destruction(
                                         a_dynamic_init_ptr  dip,
-                                        a_boolean           static_lifetime,
-                                        a_boolean           scope_lifetime);
+                                        a_boolean           static_lifetime);
 
 extern void bind_object_lifetime(an_object_lifetime_ptr  olp,
                                  an_il_entry_kind        entity_kind,
