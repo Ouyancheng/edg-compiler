@@ -46,6 +46,11 @@ typedef a_string_entry_process_function *a_string_entry_process_function_ptr;
    pointer. */
 typedef char *a_remap_function(char *, an_il_entry_kind);
 typedef a_remap_function *a_remap_function_ptr;
+/* Type of function called to test for termination in the IL walk.
+   First parameter is the pointer to the entry and second is the kind
+   of entry.  Returned value of TRUE means prune the walk at this entry. */
+typedef a_boolean a_walk_termination_test_function(char *, an_il_entry_kind);
+typedef a_walk_termination_test_function *a_walk_termination_test_function_ptr;
 
 /*
 If this flag is TRUE, the IL walk routines that allow remapping of the
@@ -82,9 +87,10 @@ EXTERN a_remap_function_ptr
 
 /* Walk the intermediate language tree for the file scope. */
 extern void walk_file_scope_il(
-             an_entry_process_function_ptr       entry_process_function,
-             a_string_entry_process_function_ptr string_entry_process_function,
-             a_remap_function_ptr                remap_function);
+            an_entry_process_function_ptr        entry_process_function,
+            a_string_entry_process_function_ptr  string_entry_process_function,
+            a_remap_function_ptr                 remap_function,
+            a_walk_termination_test_function_ptr termination_test_function);
 
 /* Walk the intermediate language tree for a routine scope. */
 extern void walk_routine_scope_il(

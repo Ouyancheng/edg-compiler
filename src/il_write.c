@@ -761,7 +761,8 @@ Write the indicated memory region to the file f_il_output.
       if (writing_file_scope_il) {
         /* The memory region is the file scope region. */
         walk_file_scope_il(write_nonstring_entry, write_entry,
-                           (a_remap_function_ptr)NULL);
+                           (a_remap_function_ptr)NULL,
+                           (a_walk_termination_test_function_ptr)NULL);
       } else {
         /* The memory region is a function scope. */
         walk_routine_scope_il(region_number,

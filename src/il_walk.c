@@ -35,12 +35,6 @@ il_walk.c -- Routines to walk the intermediate language tree.
  #error -- ORPHAN_PROCESSING_NEEDED must be set if IL walking is needed.
 #endif /* !ORPHAN_PROCESSING_NEEDED */
 
-/* Type of function called to test for termination in the IL walk.
-   First parameter is the pointer to the entry and second is the kind
-   of entry.  Returned value of TRUE means prune the walk at this entry. */
-typedef a_boolean a_walk_termination_test_function(char *, an_il_entry_kind);
-typedef a_walk_termination_test_function *a_walk_termination_test_function_ptr;
-
 static an_entry_process_function_ptr
 		entry_process_func;
 			/* The function to be called for each non-string entry.
@@ -173,18 +167,21 @@ they are referenced for purposes of tree walking.
 
 
 void walk_file_scope_il(
-             an_entry_process_function_ptr       entry_process_function,
-             a_string_entry_process_function_ptr string_entry_process_function,
-             a_remap_function_ptr                remap_function)
+            an_entry_process_function_ptr        entry_process_function,
+            a_string_entry_process_function_ptr  string_entry_process_function,
+            a_remap_function_ptr                 remap_function,
+            a_walk_termination_test_function_ptr termination_test_function)
 /*
 Walk the intermediate language tree for the file scope.  Begin with il_header
 and visit the whole file-scope tree, but do not go down into the information
 about each function.  Process each non-string entry by calling
 entry_process_function on that entry, and each string entry by calling
 string_entry_process_function on that entry.  Remap each pointer to a new
-value by calling remap_function.  entry_process_function,
-string_entry_process_function, or remap_function can be NULL to indicate
-that the corresponding function is unnecessary.
+value by calling remap_function.  Test for termination (not processing
+an entry and not continuing deeper into the tree) by calling
+termination_test_function.  entry_process_function,
+string_entry_process_function, remap_function, or termination_test_function
+can be NULL to indicate that the corresponding function is unnecessary.
 
 The remapping function is used when reading in an IL file.  The IL tree
 was in memory in some way, and was written out exactly the way it
@@ -202,7 +199,7 @@ That is what the remap function does.
   /* Save the function pointers so they don't have to be passed around. */
   entry_process_func = entry_process_function;
   string_entry_process_func = string_entry_process_function;
-  walk_termination_test_func = NULL;
+  walk_termination_test_func = termination_test_function;
   walk_remap_func = remap_function;
   walking_file_scope = TRUE;
 #ifdef FFE

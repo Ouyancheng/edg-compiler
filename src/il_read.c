@@ -789,7 +789,8 @@ necessary to make it directly accessible in memory.
       /* Walk the file scope IL tree. */
       walk_file_scope_il((an_entry_process_function_ptr)NULL,
                          (a_string_entry_process_function_ptr)NULL,
-                         ptr_remap_function);
+                         ptr_remap_function,
+                         (a_walk_termination_test_function_ptr)NULL);
     } else {
       /* The memory region is a function scope. */
       walk_routine_scope_il(region_number,

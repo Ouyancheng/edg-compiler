@@ -4689,7 +4689,8 @@ Display the IL for the file scope in human-readable form.
            (char *)il_header.nontag_types_used_in_exception_or_rtti,
            iek_type);
   walk_file_scope_il(disp_entry, (a_string_entry_process_function_ptr)NULL,
-                     (a_remap_function_ptr)NULL);
+                     (a_remap_function_ptr)NULL,
+                     (a_walk_termination_test_function_ptr)NULL);
 }  /* disp_file_scope_il */
 
 
