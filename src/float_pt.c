@@ -43,7 +43,7 @@ EXTERN_C double strtod(char *, char **);
 #include <errno.h>
 #if __BSD__
 /* BSD errno.h doesn't define "errno". */
-int errno;
+EXTERN_C int errno;
 #endif /* __BSD__ */
 #include "target.h"
 #include "float_pt.h"
