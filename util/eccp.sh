@@ -587,6 +587,8 @@ do
          --old_style_preprocessing | \
          --old_for_init | \
          --new_for_init | \
+         --old_specializations | \
+         --no_old_specializations | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Options that require additional processing
