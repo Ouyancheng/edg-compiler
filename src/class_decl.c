@@ -4944,24 +4944,25 @@ also set *is_nonstd to TRUE.
   *is_nonstd = FALSE;
   if (!C_mode() &&
       member_type->kind == (a_type_kind)tk_union) {
-    if ((dso_flags & DSO_DECLARES_SOMETHING) ||
-        (dso_flags & DSO_FRIEND)) {
+    if (dso_flags & (DSO_DECLARES_SOMETHING | DSO_FRIEND)) {
       /* This cannot be a standard or a nonstandard anonymous union in C++. */
     } else {
       is_anonymous_union = TRUE;
     }  /* if */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  } else if (!allow_nonstandard_anonymous_unions) {
+    /* This compilation is not configured to support this extension -- e.g.,
+       this is not microsoft mode. */
   } else if (!is_class_struct_union_type(member_type)) {
     /* Not a pseudo-anonymous-union -- it's not a class, struct,
        or union type. */
   } else if (!C_mode() &&
-             ((dso_flags & DSO_DECLARES_SOMETHING) ||
-              (dso_flags & DSO_FRIEND) ||
+             ((dso_flags & (DSO_DECLARES_SOMETHING | DSO_FRIEND)) ||
               !(skip_typerefs(member_type))->
-                             variant.class_struct_union.originally_unnamed)) {
+                            variant.class_struct_union.originally_unnamed)) {
     /* Not a pseudo-anonymous-union -- either a tag appeared on the current
        declaration, or it's a typedef name and a tag was declared originally,
-       or else it's a friend declaration. */
+       or else it's a C++ friend declaration. */
   } else {
     /* This may in fact be an anonymous-union-like construct. */
     /* Skip the typedefs but not cv qualifiers. */
