@@ -316,12 +316,17 @@ extern void check_main_function(a_func_info_block_ptr  func_info,
                                 a_boolean              *is_inline,
                                 a_source_position_ptr  pos);
 
+#if GNU_EXTENSIONS_ALLOWED
 extern void scan_gnu_declarator_attributes(char*              *asm_name,
                                            a_source_position  *asm_name_pos,
                                            an_attribute_ptr   *attributes,
                                            a_boolean          *new_attributes,
                                            a_storage_class    declared_storage,
                                            a_boolean          is_function);
+
+extern void gnu_attributes_after_parenthesized_initializer(
+                                                         a_variable_ptr  var);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern void declaration(a_boolean       function_definition_allowed,
                         a_boolean       is_old_style_param_decl,

@@ -7839,13 +7839,14 @@ and it is legal for virtual member functions only.
   (void)get_token();
   if ((curr_token == tok_int_constant &&
        (const_for_curr_token.is_simple_zero ||
-        ((microsoft_mode || gpp_mode) &&
+        ((microsoft_mode || (gpp_mode && gnu_version < 30400)) &&
          is_zero_constant(&const_for_curr_token)))) ||
-      (gpp_mode && curr_token == tok_null)) {
+      (gpp_mode && gnu_version < 30400 && curr_token == tok_null)) {
     /* Token following "=" should be "0".  Note that we normally don't test
        for an integer value of zero but rather for the literal "0", since
-       "= 00" should elicit an error.  In Microsoft and GNU modes, however,
-       other forms of "zero" are accepted (including "__null" in GNU mode). */
+       "= 00" should elicit an error.  In Microsoft and early GNU modes,
+       however, other forms of "zero" are accepted (including "__null" in GNU
+       mode). */
     if (pure_specifier_allowed) {
       /* Update the routine and class type entities. */
       make_virtual_function_pure(rout_sym->variant.routine.ptr, class_type);
@@ -9194,12 +9195,12 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
     /* Note that one reason for err to be TRUE is if the constant is
        less than zero. */
     if (err || bit_field_size > max_size_allowed) {
-      if (err || (C_mode() && !gcc_mode)) {
+      if (err || (C_mode() && !(gcc_mode && gnu_version < 30400))) {
         /* Force the declared size to something reasonable. */
         error(ec_bad_bit_field_size);
         declared_bit_field_size = max_size_allowed;
       } else if (bit_field_size > max_size_allowed) {
-        /* A warning in C++ and GNU C modes. */
+        /* A warning in C++ and GNU C modes (prior to GNU version 3.4). */
         char  buffer[8];
         sprintf(buffer, "%ld", max_size_allowed);
         pos_st_warning(ec_extra_bits_ignored, &error_position, buffer);
@@ -13075,17 +13076,18 @@ bits of information that were acquired while parsing.
 
   if (class_state->last_field_is_incomplete_array) {
     /* The last field that was recorded was an incomplete array.  This is
-       permitted in C mode (as an extension), in C99 mode, and in GNU and
-       Microsoft mode (both C and C++).  If this is strict-ANSI-C89 mode,
-       issue a diagnostic.  Otherwise, mark class_type as containing an
-       incomplete array member, since there are constraints on how it can be
-       used.  (E.g., it can't be the element type of an array, and in
-       Microsoft and GNU C++ modes it can't be used as a base class.) */
+       permitted in C mode (as an extension), in C99 mode, and in GNU (most
+       versions) and Microsoft mode (both C and C++).  If this is an early
+       GNU mode or a strict-ANSI-C89 mode, issue a diagnostic.  Otherwise,
+       mark class_type as containing an incomplete array member, since there
+       are constraints on how it can be used.  (E.g., it can't be the element
+       type of an array, and in Microsoft and GNU C++ modes it can't be used
+       as a base class.) */
     check_assertion((C_mode() || microsoft_mode || gpp_mode) &&
                     !is_union_type(class_state->class_type));
     class_type->variant.class_struct_union.
                                     contains_flexible_array_member = TRUE;
-    if (strict_ansi_mode && !c99_mode) {
+    if ((strict_ansi_mode || (gnu_mode && gnu_version < 30000)) && !c99_mode) {
       a_field_ptr  fp = class_state->end_of_field_list;
       pos_diagnostic(strict_ansi_error_severity,
                      ec_incomplete_type_not_allowed,

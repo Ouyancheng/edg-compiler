@@ -786,12 +786,17 @@ done:
 static void clear_disabled_attributes(an_attribute_kind  *kind)
 /*
 Some attributes are only applicable in either GNU C or GNU C++ mode, but
-not both.  Others are only recognized in some configurations.  If we are
-in a mode or configuration for which *kind is not a recognized kind of
-attribute, set *kind to ak_last.
+not both.  Others are only recognized in some configurations or for certain
+values of gnu_version.  If we are in a mode or configuration for which *kind
+is not a recognized kind of attribute, set *kind to ak_last.
 */
 {
+  long  min_gnu_version = MIN_GNU_VERSION, max_gnu_version = 999999;
+
   switch (*kind) {
+    case ak_deprecated:
+      min_gnu_version = 30100;
+      break;
     case ak_nocommon:
     case ak_transparent_union:
       if (gpp_mode) {
@@ -814,6 +819,9 @@ attribute, set *kind to ak_last.
     default:
       break;
   }  /* switch */
+  if (gnu_version < min_gnu_version || gnu_version > max_gnu_version) {
+    *kind = (an_attribute_kind)ak_last;
+  }  /* if */
 }  /* clear_disabled_attributes */
 
 

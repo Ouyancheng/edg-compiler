@@ -15931,14 +15931,9 @@ that follows.
                       &incomplete_type_error_reported,
                       &decl_pos_block);
 #if GNU_EXTENSIONS_ALLOWED
-          if (gpp_mode && has_parenthesized_initializer) {
-            /* Scan any trailing attributes. */
-            an_attribute_ptr  trailing_attributes = scan_attributes();
-            /* Apply the attributes to the variable declaration. */
-            apply_attributes_to_variable(trailing_attributes, vp,
-                                         /*is_definition=*/TRUE);
-            /* Free up the list of attributes. */
-            free_attribute_list(trailing_attributes);
+          if (gpp_mode && has_parenthesized_initializer &&
+              curr_token == tok_attribute) {
+            gnu_attributes_after_parenthesized_initializer(vp);
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         }  /* if */

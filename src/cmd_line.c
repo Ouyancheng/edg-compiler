@@ -2600,9 +2600,6 @@ exclude the GNU modes already.  Hence those are not checked again here.)
   /* Hexadecimal floating point constants are permitted. */
   hex_floating_point_constants_allowed = TRUE;
   null_chars_allowed_in_source = TRUE;
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-  allow_nonstandard_anonymous_unions = TRUE;
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 }  /* check_and_set_gnu_mode_options */
 
 
@@ -2622,6 +2619,9 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
 #endif /* VLA_ALLOWED */
   /* The underlying type for an enum could be long long. */
   enum_types_can_be_larger_than_int = TRUE;
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  allow_nonstandard_anonymous_unions = (gnu_version < 30300);
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 }  /* check_and_set_gcc_mode_options */
 
 

@@ -4519,12 +4519,13 @@ modifier _Sat was specified.
   a_float_kind     fkind;
   a_boolean        bad_combination = FALSE;
 
-  if ((C_dialect == C_dialect_pcc || gnu_mode) &&
+  if ((C_dialect == C_dialect_pcc || gpp_mode ||
+       (gcc_mode && gnu_version < 30400)) &&
       basic_type == bt_typedef && (sign != sign_none || size != size_none)) {
-    /* GNU C/C++ and pcc allow unsigned, long, and short as adjectives
-       modifying a typedef type.  Turn the typedef into a matching basic type,
-       for the cases for which it makes sense.  For the others, an error
-       will be detected below. */
+    /* GNU C/C++ (except GNU C 3.4 and later) and pcc allow unsigned, long,
+       and short as adjectives modifying a typedef type.  Turn the typedef
+       into a matching basic type, for the cases for which it makes sense.
+       For the others, an error will be detected below. */
     basic_type = basic_type_from_typedef(type_ptr, &sign, &size);
   }  /* if */
   /* Now check for the various legal combinations of specifiers.  See 3.5.2
@@ -6648,8 +6649,11 @@ Returns TRUE if there is an error in the specifiers.
           /* Sign has already been specified in some way. */
           if ((sign == sign_signed) == (curr_token == tok_signed)) {
             /* Either "signed signed" or "unsigned unsigned".  Issue an error,
-               except in cfront and GNU C modes (GNU C++ issues an error). */
-            diagnostic((any_cfront_mode() || gcc_mode) ? es_warning : es_error,
+               except in cfront and early GNU C modes (GNU C++ issues an
+               error). */
+            diagnostic((any_cfront_mode() ||
+                       (gcc_mode && gnu_version < 30300)) ? es_warning
+                                                          : es_error,
                        ec_dupl_decl_specifier);
           } else {
             /* Mixing signs. */

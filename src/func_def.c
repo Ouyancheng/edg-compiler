@@ -1710,7 +1710,8 @@ member declaration (allowed in Microsoft mode only).
   /* Now scan the function body, except if we're dealing with the special
      Microsoft and GNU extension case that allows a nondefining out-of-class
      member declaration. */
-  if (curr_token == tok_semicolon && (microsoft_mode || gpp_mode) &&
+  if (curr_token == tok_semicolon &&
+      (microsoft_mode || (gpp_mode && gnu_version < 30400)) &&
       locator->is_class_member) {
     /* There is no definition. */
     check_assertion(!gpp_mode ||

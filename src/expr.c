@@ -540,9 +540,9 @@ Syntax:
       }  /* if */
 
       /* The first operand must be a pointer to object. */
-      if (gnu_mode && is_pointer_type(operand_1->type) &&
+      if (gcc_mode && is_pointer_type(operand_1->type) &&
                       is_void_type(type_pointed_to(operand_1->type))) {
-        /* In some versions of GNU C a pointer to "void" can be subscripted. */
+        /* GNU C allows a pointer to "void" to be subscripted. */
         pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
         result_type = type_pointed_to(operand_1->type);
       } else if (
@@ -3308,7 +3308,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
         err = TRUE;
       } else {
         if (is_pointer_type(operand->type)) {
-          if (gnu_mode && (is_void_type(type_pointed_to(operand->type)) ||
+          if (gcc_mode && (is_void_type(type_pointed_to(operand->type)) ||
                            is_function_type(type_pointed_to(operand->type)))) {
             /* In some versions of GNU C void and function pointers can be
                incremented and decremented. */
@@ -3562,10 +3562,10 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
         err = TRUE;
       } else {
         if (is_pointer_type(operand.type)) {
-          if (gnu_mode && (is_void_type(type_pointed_to(operand.type)) ||
+          if (gcc_mode && (is_void_type(type_pointed_to(operand.type)) ||
                            is_function_type(type_pointed_to(operand.type)))) {
-            /* In some versions of GNU C void and function pointers can be
-               incremented and decremented. */
+            /* GNU C allows void and function pointers to be incremented and
+               decremented. */
             pos_warning(ec_nonobject_pointer_arithmetic, &start_position);
           } else if (!check_object_pointer_operand(
                                     &operand, ec_expr_not_pointer_to_object)) {
@@ -4120,7 +4120,7 @@ See section 3.3.3.2 of the standard.
                leave out cv-qualified void *; those apparently still convert
                to an lvalue.  (In GNU modes, the result is always an
                lvalue). */
-            if (!is_qualified_type(operand.type) && !gnu_mode) {
+            if (!is_qualified_type(operand.type) && !gcc_mode) {
               an_expr_node_ptr node = make_node_from_operand(&operand);
               an_operand       orig_operand;
               orig_operand = operand;

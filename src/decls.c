@@ -5201,7 +5201,7 @@ is_function_def is TRUE if the redeclaration is a definition.
   a_type_ptr     old_return_type = return_type_of(rp->type);
   a_type_ptr     new_return_type = return_type_of(new_type);
 
-  if (gcc_mode &&
+  if (gcc_mode && gnu_version < 30400 &&
       !skip_typerefs(new_type)->variant.routine.extra_info->prototyped &&
       skip_typerefs(rp->type)->variant.routine.extra_info->prototyped &&
       f_types_are_compatible(rp->type, new_type,
@@ -8116,14 +8116,16 @@ NULL.
 
 static a_boolean implicitly_predeclared_gcc_function(a_symbol_ptr  sym)
 /*
-GNU C predeclares the "exit" function implicitly; i.e., the declaration is
-not visible by default, but if "exit" is called, then it becomes visible in
-the file scope.  This function returns TRUE if sym represents "exit".
+Early versions of GNU C predeclare the "exit" function implicitly; i.e., the
+declaration is not visible by default, but if "exit" is called, then it becomes
+visible in the file scope.  This function returns TRUE if sym represents
+"exit".
 */
 {
   a_boolean result = FALSE;
 
-  if (sym->kind == (a_symbol_kind)sk_routine) {
+  if (gcc_mode && gnu_version < 30400 &&
+      sym->kind == (a_symbol_kind)sk_routine) {
     char  *name = sym->header->identifier;
     if (name != NULL && strcmp(name, "exit") == 0) {
       result = TRUE;
@@ -8507,9 +8509,11 @@ In C++ mode an error is issued if a type definition appears in a type-name
                         (a_decl_pos_block_ptr)NULL, (a_upc_block_size*)NULL);
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING) &&
-      !gpp_mode) {
+      (!gpp_mode ||
+       (gnu_version > 30400 && !is_immediate_class_type(*type_ptr)))) {
     /* Definition of a class, struct, union, or enum type is not allowed
-       in non-GNU C++ mode. */
+       in non-GNU C++ mode.  In GNU C++ mode, a definition is allowed if
+       it is not followed by a declarator. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
   } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
@@ -8547,6 +8551,12 @@ In C++ mode an error is issued if a type definition appears in a type-name
            one of its dimensions. */
         pos_error(ec_vla_with_unspecified_bound_not_allowed, &start_pos);
       }  /* if */
+    }  /* if */
+    if (gpp_mode && gnu_version >= 30400 &&
+        (dso_flags & DSO_DEFINES_SOMETHING)) {
+      /* A class type definition was followed by a declarator component.
+         Recent versions of GNU C++ no longer accept this. */
+      pos_error(ec_type_definition_not_allowed, &start_pos);
     }  /* if */
   }  /* if */
   if ((any_cfront_mode() &&
@@ -11156,19 +11166,19 @@ is non-NULL *new_attributes is set to TRUE if there are any).
       a_source_position asm_start_pos;
       asm_start_pos = pos_curr_token;
       asm_sym_name = scan_asm_name(asm_name_pos);
-      if (asm_sym_name != NULL &&
-          declared_storage == (a_storage_class)sc_typedef) {
-        pos_warning(ec_asm_name_in_typedef, &asm_start_pos);
-        asm_sym_name = NULL;
-      }  /* if */
-      if (asm_sym_name != NULL && !is_function &&
-          depth_innermost_function_scope != NO_SCOPE_DEPTH &&
-          (declared_storage == (a_storage_class)sc_auto ||
-           declared_storage == (a_storage_class)sc_unspecified)) {
-        /* Automatic variables can only have an asm() name if they are
-           also declared with the "register" keyword. */
-        pos_warning(ec_asm_name_on_auto_variable, &asm_start_pos);
-        asm_sym_name = NULL;
+      if (asm_sym_name) {
+        if (declared_storage == (a_storage_class)sc_typedef) {
+          pos_warning(ec_asm_name_in_typedef, &asm_start_pos);
+          asm_sym_name = NULL;
+        } else if (!is_function &&
+                   depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+                   (declared_storage == (a_storage_class)sc_auto ||
+                    declared_storage == (a_storage_class)sc_unspecified)) {
+          /* Automatic variables can only have an asm() name if they are
+             also declared with the "register" keyword. */
+          pos_warning(ec_asm_name_on_auto_variable, &asm_start_pos);
+          asm_sym_name = NULL;
+        }  /* if */
       }  /* if */
     }  /* if */
     /* Look for optional (declarator) attributes. */
@@ -11185,6 +11195,33 @@ is non-NULL *new_attributes is set to TRUE if there are any).
     *asm_name = asm_sym_name;
   }  /* if */
 }  /* scan_gnu_declarator_attributes */
+
+
+void gnu_attributes_after_parenthesized_initializer(a_variable_ptr  var)
+/*
+Some versions of GNU C++ accept attributes appearing after a parenthesized
+initializer.  Other versions ignore such attributes with a warning.  var is
+a variable with such an initializer (which was just scanned).
+*/
+{
+  if (gpp_mode && curr_token == tok_attribute) {
+    an_attribute_ptr  trailing_attributes;
+    a_source_position  warn_pos;
+    warn_pos = pos_curr_token;
+    /* Scan any trailing attributes. */
+    trailing_attributes = scan_attributes();
+    if (gnu_version >= 30100 && gnu_version < 30400) {
+      /* Apply the attributes to the variable declaration. */
+      apply_attributes_to_variable(trailing_attributes, var,
+                                   /*is_definition=*/TRUE);
+    } else {
+      /* Ignore the attributes with a warning. */
+      pos_warning(ec_attribute_after_parenthesized_initializer, &warn_pos);
+    }  /* if */
+    /* Free up the list of attributes. */
+    free_attribute_list(trailing_attributes);
+  }  /* if */
+}  /* gnu_attributes_after_parenthesized_initializer */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -11940,12 +11977,12 @@ continue_with_declaration:
          like it could be part of a function-definition, go scan that.
          A very special case are Microsoft out-of-class member redeclarations
          (that are not definitions); they are handled by the code for out-of-
-         class definitions.  GNU C++ has a similar construct for
-         specializations. */
+         class definitions.  Early GNU C++ versions have a similar construct
+         for specializations. */
       if (locator.is_class_member && curr_token == tok_semicolon) {
         if (microsoft_mode) {
           out_of_class_redecl = TRUE;
-        } else if (gpp_mode) {
+        } else if (gpp_mode && gnu_version < 30400) {
           a_type_ptr  pt = locator.parent.class_type;
           if (pt->variant.class_struct_union.is_template_class &&
               !pt->variant.class_struct_union.is_nonreal_class &&
@@ -12414,8 +12451,8 @@ continue_with_declaration:
         /* If the variable had already been declared previously, old_type
            would be set. */
         a_boolean  decl_invisible_to_initializer =
-                        ((microsoft_bugs || gpp_mode) &&
-                         has_parenthesized_initializer && old_type == NULL);
+                      ((microsoft_bugs || (gpp_mode && gnu_version < 30400)) &&
+                       has_parenthesized_initializer && old_type == NULL);
         /* Advance past the "=". */
         if (curr_token == tok_assign) (void)get_token();
         /* Now scan the initializer. */
@@ -12431,10 +12468,10 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
         if (decl_invisible_to_initializer && !symbol_ptr->is_error) {
-          /* For parenthesized initializers in Microsoft bugs mode, the
-             declared variable is not visible until after the initializer
-             has been parsed.  To emulate this, we temporarily mark the
-             symbol as invisible. */
+          /* For parenthesized initializers in Microsoft bugs mode and early
+             GNU C++ modes, the declared variable is not visible until after
+             the initializer has been parsed.  To emulate this, we temporarily
+             mark the symbol as invisible. */
           symbol_ptr->is_invisible = TRUE;
         }  /* if */
         /* If the symbol is a parameter, the subroutine will generate the
@@ -12468,14 +12505,9 @@ continue_with_declaration:
           symbol_ptr->is_invisible = FALSE;
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-        if (gpp_mode && has_parenthesized_initializer) {
-          /* Scan any trailing attributes. */
-          an_attribute_ptr  trailing_attributes = scan_attributes();
-          /* Apply the attributes to the variable declaration. */
-          apply_attributes_to_variable(trailing_attributes, var_ptr,
-                                       /*is_definition=*/TRUE);
-          /* Free up the list of attributes. */
-          free_attribute_list(trailing_attributes);
+        if (gpp_mode && has_parenthesized_initializer &&
+            curr_token == tok_attribute) {
+          gnu_attributes_after_parenthesized_initializer(var_ptr);
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
