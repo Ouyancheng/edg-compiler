@@ -4962,6 +4962,7 @@ The parentheses are required, unlike for sizeof.
   } else {
     /* Scan an expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+    error_if_indefinite_function(&operand);
     force_complete_type_if_a_variable(&operand);
     result = operand.type;
     if (gcc_mode) {

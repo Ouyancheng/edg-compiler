@@ -1,5 +1,16 @@
 Version 3.5
 
+9/27/04  g++ mode: error on typeof of overloaded function name
+
+An error is now issued on a use of typeof applied to an overloaded
+function name in g++ mode.  Formerly, the failure to detect the
+error resulted in an assertion failure in mangled_encoding_for_type
+in lower_name.c.
+
+  double f(double);
+  float f(float);
+  void h(typeof(f) g) {}
+
 9/25/04 C++-generating back end: unneeded qualification of base class names
         and invisibility of typedef names
 
