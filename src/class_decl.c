@@ -1118,6 +1118,8 @@ routine entry and return TRUE; otherwise return FALSE.
           is_virtual = TRUE;
           record_virtual_function_override(bcp, rp, rout);
           if (bcp == ctsp->virtual_function_info_base_class) {
+            /* The virtual function table is being shared, so we must use the
+               identical number. */
             virtual_function_number = rp->virtual_function_number;
           }  /* if */
         }  /* if */
@@ -1173,6 +1175,8 @@ routine entry and return TRUE; otherwise return FALSE.
                    function table. */
                 record_virtual_function_override(bcp, rp, rout);
                 if (bcp == ctsp->virtual_function_info_base_class) {
+                  /* The virtual function table is being shared, so we must
+                     use the identical number. */
                   virtual_function_number = rp->virtual_function_number;
                 }  /* if */
               } else {
@@ -1194,7 +1198,11 @@ next_base_class:;
     /* Mark the routine entry. */
     rout_sym->variant.routine->is_virtual = TRUE;
     class_type->variant.class_struct_union.any_virtual_functions = TRUE;
-    if (virtual_function_number == 0) {
+    if (virtual_function_number != 0) {
+      /* The virtual base class is being shared between the current class
+         and one of its base classes.  We reuse the existing number instead
+         of reserving a new slot in the table. */
+    } else {
       /* The number of virtual functions declared so far in this routine has
          is recorded in the class type supplement.  Increment that number and
          enter it in the routine entry.  It is used by the front end in
@@ -1788,7 +1796,7 @@ is a base class.
          derivation one would expect for a base class marked "direct". */
 #if 0
       type_warning(ec_direct_derivation_less_accessible, base_class->type);
-#else
+#else /* if !0 */
       type_remark(ec_direct_derivation_less_accessible, base_class->type);
 #endif /* if 0 */
     } else {
@@ -1810,7 +1818,7 @@ is a base class.
            path. */
 #if 0
         type_warning(ec_direct_derivation_less_accessible, base_class->type);
-#else
+#else /* if !0 */
         type_remark(ec_direct_derivation_less_accessible, base_class->type);
 #endif /* if 0 */
       }  /* if */
@@ -2458,7 +2466,7 @@ or struct definition.  The syntax is
       }  /* if */
 #if CHECKING
       if (ctsp == NULL) internal_error("scan_base_specifier_list: NULL ctsp");
-#endif
+#endif /* CHECKING */
       /* Before creating the base class entry and adding it to the list of
          base classes, go through the list looking for conflicts. */
       ambiguous = FALSE;
@@ -2493,7 +2501,7 @@ or struct definition.  The syntax is
       if (!access_already_specified) {
 #if 0
         str_warning(ec_missing_access_specifier, default_access_str);
-#else
+#else /* if !0 */
         str_remark(ec_missing_access_specifier, default_access_str);
 #endif /* if 0 */
       }  /* if */
@@ -2619,18 +2627,42 @@ or struct definition.  The syntax is
         }  /* for */
       }  /* if */
       if (first_direct_nonvirtual_base_class && !is_virtual) {
+#if 0
+        /* For the first direct nonvirtual base class it is possible to
+           share virtual function info (e.g., virtual function tables and
+           their associated pointers) between the base class and the
+           derived class. */
         a_class_type_supplement_ptr  base_ctsp;
         base_ctsp = base_class_type->variant.class_struct_union.extra_info;
+        /* Check virtual_function_count instead of the any_virtual_functions
+           flag, since the latter will be TRUE only if the base class actually
+           declared its own virtual functions, but the count is "inherited"
+           when it itself was eligible to share with a base class of its own.
+           For example:
+                  class A { virtual void f() };  // flag is TRUE, count is 1
+                  class B : public A {};         // flag is FALSE, count is 1
+                  class C : public B { ...
+           The virtual function table for C and the one for A-in-C can be
+           shared, even though B doesn't have a virtual function table.  B's
+           virtual_function_info_base_class will, however, still refer to A. */
         if (base_ctsp->virtual_function_count > 0) {
           bcp = base_ctsp->virtual_function_info_base_class;
           if (bcp == NULL) {
             ctsp->virtual_function_info_base_class = new_direct_bcp;
           } else {
+            /* Refer to the same virtual_function_info_base_class as the
+               direct base class does.  (In the above example, set the field
+               to point to A.) */
             ctsp->virtual_function_info_base_class =
                      corresponding_base_class(bcp, (a_type_ptr)NULL, type_ptr);
           }  /* if */
+          /* Advance the virtual function count so that any new virtual
+             functions will be tacked on at the end of the shared virtual
+             function info block.  (Redeclarations will use the slot
+             already reserved for the function.) */
           ctsp->virtual_function_count = base_ctsp->virtual_function_count;
         }  /* if */
+#endif /* if 0 */
         first_direct_nonvirtual_base_class = FALSE;
       }  /* if */
 skip_base_class:
@@ -3790,7 +3822,7 @@ class, struct, or union.
 #if TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
   /* Fields are allocated in the class object in exactly the same order as
      their declaration. */
-#else
+#else /* if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
   /* Fields are allocated in groups based on access.  Only public fields are
      allocated at this time.  The rest are handled after all the fields have
      been seen. */
@@ -6060,7 +6092,7 @@ next_declaration:
                       ec_class_with_op_new_but_no_op_delete :
                       ec_class_with_op_delete_but_no_op_new,
                     tag_sym);
-#else
+#else /* if !0 */
         sym_remark(cssp->has_operator_new ?
                      ec_class_with_op_new_but_no_op_delete :
                      ec_class_with_op_delete_but_no_op_new,
@@ -6076,7 +6108,7 @@ next_declaration:
              isn't virtual. */
 #if 0
           sym_warning(ec_class_with_virtual_func_but_nonvirtual_dtor, tag_sym);
-#else
+#else /* if !0 */
           sym_remark(ec_class_with_virtual_func_but_nonvirtual_dtor, tag_sym);
 #endif /* if 0 */
         }  /* if */
@@ -6106,7 +6138,7 @@ next_declaration:
             /* All constructors are private. */
 #if 0
             sym_warning(ec_no_access_to_constructors, tag_sym);
-#else
+#else /* if !0 */
             sym_remark(ec_no_access_to_constructors, tag_sym);
 #endif /* if 0 */
           }  /* if */
@@ -6151,7 +6183,7 @@ next_declaration:
   if (debug_level >= 3) {
     db_symbol(tag_sym, "tag_sym: ", 4);
   }  /* if */
-#endif
+#endif /* DEBUG */
   db_exit();
   return !err;
 }  /* class_specifier */
