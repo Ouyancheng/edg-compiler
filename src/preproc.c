@@ -863,26 +863,26 @@ symbol, set either the instantiation required flag (if instantiate is TRUE)
 or the specific definition flag (if instantiate is FALSE).
 */
 {
+  a_template_instance_ptr	tip = NULL;
   db_enter(3, "update_instantiation_flags");
   if (is_function_symbol(sym)) {
     if (can_be_instantiated(sym, /*issue_errors=*/TRUE)) {
-      a_template_instance_ptr	tip;
       tip = sym->variant.routine.instance_ptr;
-      if (instantiate) {
-	tip->explicit_instantiation = TRUE;
-        update_instantiation_required_flag(tip, TRUE);
-      } else {
-        tip->specific_def = TRUE;
-        tip->instantiation_required = FALSE;
-	tip->explicit_instantiation = FALSE;
-      }  /* if */
     }  /* if */
   } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-#if 0
-    /* Still need to do something here. */
-#endif
+    tip = sym->variant.variable.instance_ptr;
   } else {
     unexpected_condition();
+  }  /* if */
+  if (tip != NULL) {
+    if (instantiate) {
+      tip->explicit_instantiation = TRUE;
+      update_instantiation_required_flag(tip, TRUE);
+    } else {
+      tip->specific_def = TRUE;
+      tip->instantiation_required = FALSE;
+      tip->explicit_instantiation = FALSE;
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
@@ -931,9 +931,7 @@ data members within a given template class.
        	}  /* if */
       }  /* for */
     } else if (mem_sym->kind == (a_symbol_kind)sk_static_data_member) {
-#if 0
-      /* Still need to do something here. */
-#endif
+      update_instantiation_flags(mem_sym, instantiate);
     }  /* if */
   }  /* for */
 }  /* update_instantiation_flags_for_class */
@@ -1058,10 +1056,8 @@ assumed if the return type is omitted.
 	update_instantiation_flags(sym, instantiate);
       } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
                  sym->variant.variable.instance_ptr != NULL) {
-	/* A static data member -- set the instantiation required flag. */
-#if 0
-	/* Stil need the code that goes here. */
-#endif
+	/* A static data member -- set the instantiation flags. */
+	update_instantiation_flags(sym, instantiate);
       } else if (sym->kind == (a_symbol_kind)sk_overloaded_function ||
 		 sym->kind == (a_symbol_kind)sk_function_template) {
         /* An overloaded function name or a plain function template name.
