@@ -1492,12 +1492,14 @@ by id_linkage.
         }  /* if */
       }  /* for */
       if (other_decl == NULL && function_template_seen &&
-          guiding_decls_allowed) {
+          (guiding_decls_allowed || locator->is_template_id)) {
         a_partial_order_candidate_ptr	candidates_list = NULL;
         /* We didn't find a match, but there was at least one function
            template.  See if it either provides a match with an
            existing instance of the template or if a new instance can
-           be created based on the current type. */
+           be created based on the current type.  This is only done if
+           guiding declarations are recognized, or if the function name
+           was specified using the explicit template argument list syntax. */
         a_symbol_ptr sym, match = NULL;
 
         for (other_decl = other_decl_saved;
@@ -3603,6 +3605,7 @@ on for use in generating cross-reference output describing this declaration.
   a_source_correspondence  *source_corresp_ptr;
   a_scope_depth            effective_decl_level;
   a_boolean                template_function_specific_decl = FALSE;
+  a_boolean		   explicit_template_reference = FALSE;
   a_boolean                suppress_ext_sym_lookup = FALSE;
   a_boolean                is_function_def = FALSE;
   a_boolean                changed_to_inline = FALSE;
@@ -3681,9 +3684,16 @@ on for use in generating cross-reference output describing this declaration.
        to which this declaration is linked. */
     if (linked_symbol->kind == (a_symbol_kind)sk_routine &&
         linked_symbol->variant.routine.instance_ptr != NULL) {
-      /* This is not actually a redeclaration -- linked_symbol refers to a
-         function template instantiation. */
-      template_function_specific_decl = TRUE;
+      if (locator->is_template_id) {
+        /* This is a reference to an instance of a function template that was
+           made using the explicit template argument syntax. */
+        explicit_template_reference = TRUE;
+      } else {
+        /* This is not actually a redeclaration -- linked_symbol refers to a
+           function template instantiation. */
+        check_assertion(guiding_decls_allowed);
+        template_function_specific_decl = TRUE;
+      }  /* if */
     } else {
       /* The new declaration must be compatible with the old. */
       redeclaration = TRUE;
@@ -3945,6 +3955,32 @@ on for use in generating cross-reference output describing this declaration.
                                 /*preserve_rout_type=*/old_decl_has_body,
                                 /*preserve_type_ptr=*/is_function_def);
       }  /* if */
+    } else if (explicit_template_reference) {
+      /* A reference to a template instance in a friend declaration.
+         Such a declaration cannot be a definition. */
+      sym = linked_symbol;
+      routine_ptr = sym->variant.routine.ptr;
+      if (is_function_def) {
+        pos_sy_error(ec_old_specialization_not_allowed,
+                     &locator->source_position, sym);
+        /* Set a flag to suppress reuse of the existing external-routine
+           symbol and of the routine already in use.  Also, to suppress a
+           possible declared-but-not-used message, set the referenced flag
+           in the linked symbol. */
+        suppress_ext_sym_lookup = TRUE;
+        mark_symbol_to_suppress_warnings(linked_symbol);
+        set_to_named_error_locator(*locator);
+      }  /* if */
+      if (func_info->is_inline) {
+        /* A declaration that is an explicit reference of a template cannot
+           include the inline specifier. */
+        pos_diagnostic(strict_ansi_discretionary_severity,
+                       ec_inline_not_allowed, &locator->source_position);
+      }  /* if */
+      /* Do compatibility checking on the throw specification. */
+      check_exception_specification(type_ptr, routine_ptr,
+                                    &func_info->throw_position,
+                                    /*is_redecl=*/TRUE);
     } else if (homonym_symbol != NULL) {
       /* Overloaded function.  Create the new symbol, which will be on the
          list of functions connected to an sk_overloaded symbol. */

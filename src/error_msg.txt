@@ -911,7 +911,7 @@ ec_decl_modifiers_ignored;;"__declspec attributes ignored"
 ec_invalid_char;;"invalid character in input line"
 ec_incomplete_return_type;;"function returns incomplete type %t"
 ec_local_pragma_pack;;"effect of this \"#pragma pack\" directive is local to %n"
-ec_str_not_a_class_template;;"%s is not a class template"
+ec_not_a_template;;"%s is not a template"
 ec_friend_partial_specialization;;"a friend declaration may not declare a partial specialization"
 ec_exception_specification_ignored;;"exception specification ignored"
 ec_unexpected_type_for_size_t;;"declaration of \"size_t\" does not match the expected type %t"
@@ -941,6 +941,7 @@ ec_vla_with_unspecified_bound_not_allowed;;"variable length array with unspecifi
 ec_explicit_template_args_not_allowed;;"an explicit template argument list is not allowed on this declaration"
 ec_variably_modified_type_not_allowed;;"an entity with linkage cannot have a variably modified type"
 ec_vla_is_not_auto;;"a variable length array cannot have static storage duration"
+ec_sym_not_a_template;;"%n is not a template"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

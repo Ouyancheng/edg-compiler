@@ -7619,7 +7619,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
                !lt_permitted_context && !is_expr_context) {
       /* A nontype symbol followed by a template argument list in a
          nonexpression context. */
-      pos_sy_error(ec_sym_not_a_class_template, &start_position,
+      pos_sy_error(ec_sym_not_a_template, &start_position,
                    template_sym);
       template_sym = NULL;
     } else if (is_error_symbol &&
@@ -7637,7 +7637,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
         } else if ((options & GID_IS_TEMPLATE_PRESCAN) != 0) {
           /* Suppress the diagnostic in this case. */
         } else {
-          pos_st_error(ec_str_not_a_class_template, &start_position,
+          pos_st_error(ec_not_a_template, &start_position,
                        locator_for_curr_id.symbol_header->identifier);
         }  /* if */
       }  /* if */

@@ -1068,8 +1068,12 @@ issue an error if a default argument expression is encountered.
          is implied by ARM 13.4, which excludes those operators from the
          restrictions that are listed for overloaded operators in general.
          We don't set the flag till after the first parameter has been seen,
-         however; see below. */
+         however; see below.  The test for template-ids is used to disallow
+         default arguments on friend declarations that refer to an explicit
+         template instance through the use of an explicit template argument
+         list. */
       if (locator != NULL && !locator->is_conversion_name &&
+          !locator->is_template_id &&
           (!locator->is_operator_name ||
            locator->variant.opname == (an_opname_kind)onk_function_call)) {
         default_arg_expr_allowed = TRUE;
