@@ -1,5 +1,23 @@
 Version 2.43
 
+9/30/99  Virtual function hiding and using-declarations
+
+The front no longer warns about virtual function declarations in base classes
+being hidden (or only partially overridden) when that declaration is in fact
+visible through a using-declaration.
+
+  struct X { 
+    virtual void f(); 
+    virtual void f(int);  
+  }; 
+ 
+  struct Y: public X { 
+    using X::f; 
+    virtual void f(int); 
+  };
+
+This no longer warns that X::f is only partial overridden in Y.
+
 9/28/99  Matching of exception specifications on variables
 
 The front end now correctly diagnoses mismatches in exception specifications

@@ -2448,6 +2448,38 @@ This filtering is used to avoid issueing many diagnostics on a single name.
 }  /* remove_name_from_override_registry */
 
 
+static a_boolean base_function_unhidden_by_projection(
+                                         a_symbol_ptr                    tsym,
+                                         an_override_registry_entry_ptr  orep)
+/*
+Look through the using declarations in the type associated with the given
+symbol tsym for one that might unhide functions hidden by the incomplete
+overriding of which orep is a part.
+*/
+{
+  a_boolean            result = FALSE;
+  a_type_ptr           type = tsym->variant.class_struct_union.type;
+  a_class_type_supplement_ptr
+                       ctsp = type->variant.class_struct_union.extra_info;
+  a_using_decl_ptr     udecl = ctsp->assoc_scope->using_decls;
+  a_symbol_header_ptr  header = orep->overridden_sym->header;
+
+  for (; udecl != NULL; udecl = udecl->next) {
+    if (udecl->entity.kind == (an_il_entry_kind)iek_routine) {
+      a_routine_ptr  routine = (a_routine_ptr)udecl->entity.ptr;
+
+      if (((a_symbol_ptr)routine->source_corresp.assoc_info)->header ==
+                                                                     header &&
+          orep->base_class->type == udecl->qualifier.class_type) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* base_function_unhidden_by_projection */
+
+
 static void check_override_registry(an_override_registry_entry_ptr  first_orep,
                                     a_symbol_ptr                    tag_sym)
 /*
@@ -2464,7 +2496,6 @@ a mistake.  Both these warnings should perhaps be remarks.
 */
 {
   an_override_registry_entry_ptr  orep = first_orep, next_orep;
-  a_symbol_list_entry_ptr         slep;
 
   /* Loop through the registry of overrides. */
   for (; orep != NULL; orep = next_orep) {
@@ -2472,20 +2503,34 @@ a mistake.  Both these warnings should perhaps be remarks.
       if (orep->virtual_function_count > 1 && orep->override_count > 0) {
         /* Issue a diagnostic on partial override of an overloaded
            virtual function. */
-        pos_sy2_warning(ec_partial_override, &tag_sym->decl_position,
-                        orep->overridden_sym, tag_sym);
-        /* No need to issue any more diagnostics on this name. */
-        remove_name_from_override_registry(orep);
-      } else {
-        /* Report on hidden virtual functions. */
-        for (slep = orep->override_failures; slep != NULL; slep = slep->next) {
-          pos_sy2_warning(ec_virtual_function_decl_hidden,
-                          &slep->symbol->decl_position,
-                          slep->symbol, orep->overridden_sym);
-        }  /* for */
-        if (orep->override_failures) {
+        if (base_function_unhidden_by_projection(tag_sym, orep)) {
+          /* The partial overriding is mitigated by having the nonoverridden
+             declarations projected through a using-declaration. */
+          goto next;
+        } else {
+          pos_sy2_warning(ec_partial_override, &tag_sym->decl_position,
+                          orep->overridden_sym, tag_sym);
           /* No need to issue any more diagnostics on this name. */
           remove_name_from_override_registry(orep);
+        }  /* if */
+      } else {
+        /* Report on hidden virtual functions. */
+        if (base_function_unhidden_by_projection(tag_sym, orep)) {
+          /* The partial overriding is mitigated by having the nonoverridden
+             declarations projected through a using-declaration. */
+          goto next;
+        } else {
+          a_symbol_list_entry_ptr  slep = orep->override_failures;
+
+          for (; slep != NULL; slep = slep->next) {
+            pos_sy2_warning(ec_virtual_function_decl_hidden,
+                            &slep->symbol->decl_position,
+                            slep->symbol, orep->overridden_sym);
+          }  /* for */
+          if (orep->override_failures) {
+            /* No need to issue any more diagnostics on this name. */
+            remove_name_from_override_registry(orep);
+          }  /* if */
         }  /* if */
       }  /* if */
     } else {
@@ -2495,6 +2540,7 @@ a mistake.  Both these warnings should perhaps be remarks.
          declarations of the same name. */
     }  /* if */
     /* Return the entry to the available list and advance. */
+next:;
     next_orep = orep->next;
     free_override_registry_entry(orep);
   }  /* for */
