@@ -1856,7 +1856,7 @@ The result is placed in *result.
   a_boolean             operand_1_is_pointer;
   a_type_ptr            selection_type;
   an_expr_operator_kind op;
-  a_boolean             did_not_fold;
+  a_boolean             did_not_fold, template_constant;
   an_operand            field_operand;
   a_type_qualifier_set  qualifiers;
     
@@ -1908,6 +1908,7 @@ The result is placed in *result.
                                  (an_expr_operator_kind)eok_field;
     }  /* if */
     did_not_fold = TRUE;
+    template_constant = FALSE;
     if (is_constant_operand(operand_1) && curr_expr_is_evaluated() &&
         expr_stack->fold_constant_addr_exprs) {
       /* Don't try to fold bit fields except when their addresses
@@ -1926,12 +1927,14 @@ The result is placed in *result.
            an offset, and loses the field name). */
         clear_operand((an_operand_kind)ok_constant, result);
         fold_field_selection(&operand_1->variant.constant, field_sym,
-                             selection_type, &result->variant.constant);
-        did_not_fold = FALSE;
+                             selection_type, &result->variant.constant,
+                             &template_constant);
+        did_not_fold = template_constant;
       }  /* if */
     }  /* if */
     if (did_not_fold) {
-      if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
+      if (curr_expr_kind_is_const() && curr_expr_is_evaluated() &&
+          !template_constant) {
         /* The operation must fold to a constant in a constant expression. */
         if (field->is_bit_field) {
           /* A bit-field selection cannot be folded.  There will be a
@@ -1955,6 +1958,15 @@ The result is placed in *result.
                                                                field_sym);
         }  /* if */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+        if (template_constant) {
+          /* A field selection where the first operand is a template parameter
+             constant.  The expression tree for the selection is placed under
+             a template parameter constant. */
+          make_template_param_expr_constant_operand(result,
+                                                    (an_operand *)NULL,
+                                                    eok_error, result->type,
+                                                    result);
+        }  /* if */
       }  /* if */
     }  /* if */
     /* Set the operand type.  This is needed in particular if the result

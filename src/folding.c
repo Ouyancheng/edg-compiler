@@ -2875,13 +2875,15 @@ as the position for any diagnostics issued.
 void fold_field_selection(a_constant            *constant_1,
                           a_symbol_ptr          field_sym,
                           a_type_ptr            result_type,
-                          a_constant            *result)
+                          a_constant            *result,
+                          a_boolean             *template_constant)
 /*
 Fold a constant field selection operation.  constant_1 is the pointer to the
 struct/union; field_sym points to the field.  The result type (pointer to the
 field type) is given by result_type.  The result is put in *result.
-This folding operation is not done through the usual interface because a
-field cannot be passed as a constant.
+If constant_1 is a template parameter constant, return *template_constant
+TRUE and do not fold the operation.  This folding operation is not done
+through the usual interface because a field cannot be passed as a constant.
 */
 {
   a_field_ptr      field;
@@ -2890,9 +2892,15 @@ field cannot be passed as a constant.
   a_boolean        err;
   a_symbol_ptr     anon_parent_sym;
 
+  *template_constant = FALSE;
   copy_constant(constant_1, result);
   if (is_error_constant(constant_1)) {
     /* An error constant stays the same. */
+  } else if (constant_1->kind == (a_constant_repr_kind)ck_template_param) {
+    /* A template parameter constant.  This shows up in cases like
+         ((T *)0)->x
+       which can come up as part of the expansion of offsetof. */
+    *template_constant = TRUE;
   } else {
     /* Take the pointer offset, ... */
     get_pointer_offset(constant_1, &offset);
