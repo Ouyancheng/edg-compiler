@@ -2259,14 +2259,6 @@ scan_paren:
     end_of_virtual_list->next = cip_list;
     cip_list = virtual_list;
   }  /* if */
-  /* Make a pass over the new list, adding default constructors where
-     appropriate. */
-  if (exceptions_enabled) {
-    /* Push an object lifetime on which to record destructions required if
-       an exception is thrown during construction. */
-    push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
-                         (an_object_lifetime_kind)olk_constructor_init);
-  }  /* if */
   prev_cip = NULL;
   for (cip = cip_list; cip != NULL; cip = next_cip) {
     a_boolean          is_const_qualified;
@@ -2456,8 +2448,6 @@ scan_paren:
         }  /* if */
         /* Now, in case a destructor was found, record the need for a
            destruction in the context of the current lifetime. */
-        check_assertion(curr_object_lifetime->kind ==
-                              (an_object_lifetime_kind)olk_constructor_init);
         record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE);
       }  /* if */
       if (array_type != NULL &&
@@ -2481,11 +2471,6 @@ scan_paren:
     }  /* if */
     prev_cip = cip;
   }  /* for */
-  if (exceptions_enabled) {
-    /* Pop the object lifetime.  Note that the binding will be done as part
-       of this processing if the lifetime is not "useless". */
-    pop_object_lifetime();
-  }  /* if */
   if (uninit_list != NULL) {
     /* Issue an error for uninitialized const and ref members. */
     if (ctor_rout->compiler_generated) {
@@ -2583,12 +2568,6 @@ though neither constructors nor initialization is involved here.)
                                                    class_of_which_a_member;
   check_assertion(class_type != NULL);
   ctsp = class_type->variant.class_struct_union.extra_info;
-  if (exceptions_enabled) {
-    /* Push an object lifetime on which to record remaining cleanup
-       required if an exception is thrown during destruction. */
-    push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
-                         (an_object_lifetime_kind)olk_constructor_init);
-  }  /* if */
   /* The order of destructor calls is exactly the reverse of the order of
      constructor calls.  In other words, destructors for virtual base classes
      are last, preceded by destructors for nonvirtual direct base classes,
@@ -2703,11 +2682,6 @@ though neither constructors nor initialization is involved here.)
       }  /* if */
     }  /* if */
   }  /* for */
-  if (exceptions_enabled) {
-    /* Pop the object lifetime.  Note that the binding will be done as part
-       of this processing if the lifetime is not "useless". */
-    pop_object_lifetime();
-  }  /* if */
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
   { a_routine_ptr delete_routine;
     /* Determine and remember the default operator delete() routine for the
