@@ -2258,6 +2258,11 @@ will be involved in overloading.
            classes by popping out till we find a non-class scope. */
         (*effective_decl_level)--;
         is_friend_decl = TRUE;
+        if (scope_stack[*effective_decl_level].kind ==
+                                 (a_scope_kind)sck_template_instantiation) {
+          *effective_decl_level = DEPTH_OF_FILE_SCOPE;
+          break;
+        }  /* if */
       }  /* while */
     }  /* if */
     file_scope = (*effective_decl_level == DEPTH_OF_FILE_SCOPE);
