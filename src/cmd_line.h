@@ -1167,9 +1167,9 @@ EXTERN sizeof_t
 EXTERN char
 		*include_file_suffixes
 #if VAR_INITIALIZERS
-                                        = DEFAULT_INCLUDE_FILE_SUFFIX_LIST;
+                                        = DEFAULT_INCLUDE_FILE_SUFFIX_LIST
 #endif /* VAR_INITIALIZERS */
-                                                                       ;
+                                                                          ;
 			/* The file suffixes to be used when searching for an
 			   include file name specified with no suffix.  This
 			   is a colon-separated list of suffixes (but without
