@@ -3304,10 +3304,10 @@ is done, is that all the classes have to have been marked first.
     if (tp->kind == (a_type_kind)tk_typeref) {
       /* If a typeref type points to a class that is needed, has a name, and
          was originally unnamed, the typeref type is needed, too. */
-      if (!tp->source_corresp.needed &&
+      if (!needed_flag_is_set(&tp->source_corresp) &&
           is_immediate_class_type(class_type = tp->variant.typeref.type)) {
         if (class_type->variant.class_struct_union.originally_unnamed &&
-            class_type->source_corresp.needed) {
+            needed_flag_is_set(&class_type->source_corresp)) {
           mark_as_needed((char *)tp, (an_il_entry_kind)iek_type);
         }  /* if */
       }  /* if */
@@ -3356,7 +3356,7 @@ been completed.
       /* If the class has been marked to indicate that a definition is needed,
          then we need to walk the subtree of the class; if not, we can ignore
          it. */
-      if (tp->source_corresp.needed) {
+      if (needed_flag_is_set(&tp->source_corresp)) {
         /* Walk the class subtree, if appropriate.  Clear the needed flag
            first, else the subtree walk will not be done. */
         remark_as_needed((char *)tp, (an_il_entry_kind)iek_type);
@@ -3373,7 +3373,7 @@ been completed.
      members). */
   for (vp = scope->variables; vp != NULL; vp = vp->next) {
     if (vp->storage_class == (a_storage_class)sc_unspecified ||
-        vp->source_corresp.needed ||
+        needed_flag_is_set(&vp->source_corresp) ||
         vp->init_kind == (an_init_kind)initk_dynamic) {
       /* This is an externally linked variable that has been defined or
          (whatever its linkage) has been marked as "needed" (typically
@@ -3389,7 +3389,7 @@ been completed.
     }  /* if */
   }  /* for */
   for (rp = scope->routines; rp != NULL; rp = rp->next) {
-    if (rp->source_corresp.needed) {
+    if (needed_flag_is_set(&rp->source_corresp)) {
       /* Marking the routine type as needed was suppressed before (since it
          can be redeclared even after it's called), so do that now. */
       /* If the "defined" flag is TRUE, the body will already have been
