@@ -2514,18 +2514,12 @@ of the chosen copy.
 */
 #ifndef LOWER_EXTERN_INLINE
 #if INSTANTIATE_EXTERN_INLINE
-#define LOWER_EXTERN_INLINE FALSE /* Do not change this. */
+#define LOWER_EXTERN_INLINE FALSE
 #else /* !INSTANTIATE_EXTERN_INLINE */
-#if IA64_ABI
-#define LOWER_EXTERN_INLINE TRUE /* Do not change this. */
-#else /* !IA64_ABI */
-#define LOWER_EXTERN_INLINE TRUE /* You can change this. */
+#define LOWER_EXTERN_INLINE TRUE
 #endif /* !IA64_ABI */
 #endif /* INSTANTIATE_EXTERN_INLINE */
 #endif /* ifndef LOWER_EXTERN_INLINE */
-#if IA64_ABI && !LOWER_EXTERN_INLINE
- #error -- LOWER_EXTERN_INLINE FALSE is incompatible with IA64_ABI
-#endif /* IA64_ABI && !LOWER_EXTERN_INLINE */
 
 #if LOWER_EXTERN_INLINE && INSTANTIATE_EXTERN_INLINE
  #error -- extern inline functions cannot be instantiated when they are lowered
