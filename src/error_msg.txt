@@ -1276,6 +1276,7 @@ ec_size_affected_by_tail_padding;;"size of class is affected by tail padding"
 ec_nonlocal_label_reference;;"labels can be referenced only in function definitions"
 ec_branch_into_statement_expr;;"transfer of control into a statement expression is not allowed"
 ec_branch_out_of_statement_expr;;"transfer of control out of a statement expression is not allowed"
+ec_bad_statement_in_statement_expr;;"this statement is not allowed inside of a statement expression"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

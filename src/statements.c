@@ -253,6 +253,33 @@ Merge the reachability information from "reachability" into
                                     reachability->suppress_unreachable_warning;
 }  /* merge_reachability */
 
+
+a_boolean inside_statement_expression(void)
+/*
+Return TRUE if we are currently inside a GNU statement expression,
+i.e., ({ ... }).
+*/
+{
+  a_boolean inside_se = (depth_stmt_stack != NO_SCOPE_DEPTH &&
+                         struct_stmt_stack[depth_stmt_stack].
+                                                        inside_statement_expr);
+  return inside_se;
+}  /* inside_statement_expression */
+
+
+static void statement_not_allowed_inside_statement_expression(
+                                                    a_source_position *err_pos)
+/*
+We're scanning a statement that is not allowed inside a GNU statement
+expression (i.e., ({ ... }) ).  If we are indeed inside a statement
+expression, issue an error at the indicated source position.
+*/
+{
+  if (inside_statement_expression()) {
+    pos_error(ec_bad_statement_in_statement_expr, err_pos);
+  }  /* if */
+}  /* statement_not_allowed_inside_statement_expression */
+
 #if DEBUG
 
 static void db_cfd(a_control_flow_descr_ptr cfdp)
@@ -3780,6 +3807,7 @@ current token should be "try", which is consumed.
     feature_is_not_part_of_embedded_cplusplus_subset(
                                         &pos_curr_token,
                                         ec_exceptions_in_embedded_cplusplus);
+    statement_not_allowed_inside_statement_expression(&pos_curr_token);
   }  /* if */
   /* Bypass "try". */
   (void)get_token();
@@ -3880,6 +3908,7 @@ statement.  Its form is
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_microsoft_try, sp, (an_object_lifetime_ptr)NULL);
+  statement_not_allowed_inside_statement_expression(&pos_curr_token);
 #if CHECKING
   if (curr_token != tok_microsoft_try) {
     internal_error("microsoft_try_statement: expected __try");

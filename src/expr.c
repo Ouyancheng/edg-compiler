@@ -9331,11 +9331,12 @@ was called.
 
 static void scan_gnu_statement_expression(an_operand *result)
 /*
-Scan the GNU C statement expression:
+Scan the GNU statement expression:
 
   ({ statement; statement; })
 
-Return an operand for the expression in *result.
+Return an operand for the expression in *result.  This is allowed in
+both C and C++ modes.
 */
 {
   a_boolean         err = FALSE;
@@ -9362,16 +9363,20 @@ Return an operand for the expression in *result.
   } else {
     /* Save, clear, and later restore the expression stack, since the
        statements are not part of any expression we may currently be
-       inside of. */
+       inside of.  Likewise the object lifetime stack. */
     an_expr_stack_entry_ptr saved_expr_stack;
+    an_object_lifetime_ptr saved_curr_object_lifetime;
     save_expr_stack(&saved_expr_stack);
+    saved_curr_object_lifetime = curr_object_lifetime;
     check_assertion(innermost_function_scope != NULL);
+    curr_object_lifetime = innermost_function_scope->lifetime;
     /* Scan the compound statement. */
     sp = compound_statement(/*at_function_level=*/FALSE,
                             /*explicit_return_type=*/FALSE,
                             /*is_catch_clause=*/FALSE,
                             /*is_statement_expr=*/TRUE);
     restore_expr_stack(saved_expr_stack);
+    curr_object_lifetime = saved_curr_object_lifetime;
   }  /* if */
   if (err) {
     make_error_operand(result);
@@ -9546,8 +9551,8 @@ Also scans GNU C statement expressions:
   if (!(local_options & EOPT_TRAPPED_LEFT_PAREN)) (void)get_token();
 
 #if GNU_EXTENSIONS_ALLOWED
-  if (gcc_mode && curr_token == tok_lbrace) {
-    /* GNU C statement expression, ({...}). */
+  if (gnu_mode && curr_token == tok_lbrace) {
+    /* GNU statement expression, ({...}). */
     scan_gnu_statement_expression(result);
   } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
