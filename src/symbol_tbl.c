@@ -3229,7 +3229,7 @@ cleared.
   } else {
     /* Return type for operator delete and delete[] is void. */
     rout_type->variant.routine.return_type = void_type();
-    /* One paramter -- void *. */
+    /* One parameter -- void *. */
     tp = make_pointer_type(void_type());
   }  /* if */
   extra_info->param_type_list = alloc_param_type(tp);

@@ -2433,7 +2433,7 @@ Returns TRUE if there is an error in the specifiers.
       case tok_int64:
         /* The Microsoft keywords __int32 and __int64 represent a basic type
            and a size in combination.  In other words, an explicit size
-           may not be specified in conjuction with either. */
+           may not be specified in conjunction with either. */
         if (!type_specifier_allowed) {
           error(ec_type_specifier_not_allowed);
           err = TRUE;
