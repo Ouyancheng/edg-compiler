@@ -104,10 +104,10 @@ static sizeof_t size_ident_buffer = 0;
 			/* Incremental allocation for ident_buffer.  Should
 			   be bigger than most identifiers. */
 
-#define DEBUG_LINE_LENGTH 79
 
 #if DEBUG
-/* Two macros used within db_symbol, referencing local variables defined
+#define DEBUG_LINE_LENGTH 79
+/* Mmacros used within db_symbol, referencing local variables defined
    in that routine. */
 /* put_separator appends the separator to the current line, along with a
    blank if the line still has room for sting_len additional characters;
@@ -131,6 +131,9 @@ static sizeof_t size_ident_buffer = 0;
   fputs((str), f_debug);					\
   col += strlen((str));						\
 }  /* put_string */
+
+/* Determines whether the current line has a certain amount of rrom left. */
+#define space_left(size)  (DEBUG_LINE_LENGTH - (size) + 1 >= col)
 
 
 static char *str_access(char                *buffer,
@@ -456,14 +459,14 @@ and indentation is the indentation desired.
         put_string("template parameters =\n");
         for (tplep = tssp->parameters; tplep != NULL; tplep = tplep->next) {
           fprintf(f_debug, "%*s", indentation + 2, "");
-          db_symbol(tplep->param_symbol, "", indentation + 2);
+          db_symbol(tplep->param_symbol, "", indentation + 4);
           col = 0;
         }  /* for */
         inst_sym = tssp->variant.class.instantiations;
         while (inst_sym != NULL) {
           fprintf(f_debug, "%*sInstantiation:\n", indentation, "");
           fprintf(f_debug, "%*s", indentation + 2, "");
-          db_symbol(inst_sym, "", indentation + 2);
+          db_symbol(inst_sym, "", indentation + 4);
           inst_sym = inst_sym->next;
         }  /* while */
         col = 0;
@@ -476,12 +479,12 @@ and indentation is the indentation desired.
 #endif /* CHECKING */
   }  /* switch */
   if (type != NULL) {
-    if (col > 60 ||
-        (col > 50 && is_array_type(type)) || is_function_type(type) ||
+    if (!space_left(20) ||
+        (!space_left(30) && is_array_type(type)) || is_function_type(type) ||
         ((is_pointer_type(type) || is_reference_type(type)) &&
-	 ((is_array_type(type->variant.pointer.type) && col > 45) ||
+	 ((is_array_type(type->variant.pointer.type) && !space_left(35)) ||
 	  is_function_type(type->variant.pointer.type))) ||
-        (col > 35 && is_template_class_type(type))) {
+        (!space_left(55) && is_template_class_type(type))) {
       fprintf(f_debug, ",\n%*stype = ", indentation, "");
     } else {
       fputs(", type = ", f_debug);
@@ -5393,7 +5396,6 @@ an instance of the class template.
     param_ptr = param_ptr->next;
   } while (param_ptr != NULL && loop_token(tok_comma));
 
-
   /* All arguments should have been processed and the current token should
      be the closing angle bracket. */
   if (param_ptr != NULL) {
@@ -5421,9 +5423,9 @@ an instance of the class template.
        Create a new instance if needed. */
     new_sym = find_template_class(template_symbol, arg_list, &start_pos);
   }  /* if */
-
-  /* The current identifier should now be an identifier whose symbol points
-     to the template class that we have just looked up. */
+  /* When we return to the caller the current identifier should be an 
+     identifier and the locator should point to the template class that we
+     have just looked up. */
   curr_token = tok_identifier;
   /* Restore the original locator but update it to reflect the new symbol
      that is being returned by this routine. */
