@@ -4581,6 +4581,35 @@ See section 3.1.2.5 of the standard.
 }  /* check_integral_or_enum_operand */
 
 
+a_boolean check_integral_or_enum_or_fixed_point_operand(an_operand *operand)
+/*
+Return FALSE and issue an error message if the operand is not of integral,
+enumeration, or fixed-point type.  If there is an error change "operand"
+to an error operand.
+*/
+{
+  register a_boolean okay = TRUE;
+
+  if (is_error_operand(operand)) {
+    /* If the operand has a type of error, an error message has already been
+       issued. */
+    okay = FALSE;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  } else if (is_fixed_point_type(operand->type)) {
+    /* Fixed-point types are acceptable. */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+  } else if (!is_integral_or_enum_type(operand->type)) {
+    error_in_operand(fixed_point_allowed ?
+                                   ec_expr_not_integral_or_enum_or_fixed_point
+                                 : ec_expr_not_integral_or_enum,
+                     operand);
+    okay = FALSE;
+  }  /* if */
+
+  return okay;
+}  /* check_integral_or_enum_operand */
+
+
 a_boolean check_arithmetic_or_enum_operand(an_operand *operand)
 /*
 Return FALSE if the operand is not of arithmetic type.  If there is an error,
@@ -5590,6 +5619,12 @@ operand.
     case eok_fpre_incr:
     case eok_ppost_incr:
     case eok_ppre_incr:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxpost_decr:
+    case eok_fxpre_decr:
+    case eok_fxpost_incr:
+    case eok_fxpre_incr:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_va_start:
     case eok_va_arg:
     case eok_va_end:

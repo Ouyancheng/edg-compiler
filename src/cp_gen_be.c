@@ -6753,6 +6753,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_operation;
         case eok_negate:
         case eok_inegate:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxnegate:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fnegate:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xnegate:
@@ -6848,6 +6851,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           break;
         case eok_post_incr:
         case eok_fpost_incr:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxpost_incr:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_ipost_incr:
         case eok_ppost_incr:
           /* Post-increment operators. */
@@ -6856,6 +6862,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_operation;
         case eok_pre_incr:
         case eok_ipre_incr:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxpre_incr:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fpre_incr:
         case eok_ppre_incr:
           /* Pre-increment operators. */
@@ -6864,6 +6873,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           break;
         case eok_post_decr:
         case eok_fpost_decr:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxpost_decr:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_ipost_decr:
         case eok_ppost_decr:
           /* Post-decrement operators. */
@@ -6872,6 +6884,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_operation;
         case eok_pre_decr:
         case eok_ipre_decr:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxpre_decr:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fpre_decr:
         case eok_ppre_decr:
           /* Pre-decrement operators. */

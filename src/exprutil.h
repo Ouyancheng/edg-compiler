@@ -1151,6 +1151,9 @@ extern void build_binary_result_operand(an_operand            *operand_1,
 
 extern a_boolean check_integral_or_enum_operand(an_operand *operand);
 
+extern a_boolean check_integral_or_enum_or_fixed_point_operand(
+                                                        an_operand  *operand);
+
 extern a_type_ptr type_after_array_to_pointer_transformation(a_type_ptr type);
 
 extern void conv_array_operand_to_pointer_operand(an_operand *operand);

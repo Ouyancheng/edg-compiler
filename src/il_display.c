@@ -2971,6 +2971,9 @@ Display the name of an expression operator.
   switch (okind) {
     case eok_indirect:          s = "eok_indirect";               break;
     case eok_inegate:           s = "eok_inegate";                break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxnegate:          s = "eok_fxnegate";               break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_fnegate:           s = "eok_fnegate";                break;
     case eok_unary_plus:        s = "eok_unary_plus";             break;
     case eok_not:               s = "eok_not";                    break;

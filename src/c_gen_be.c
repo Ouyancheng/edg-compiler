@@ -4228,6 +4228,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           dump_adding_indirection(operand_1);
           goto done_with_unary_operation;
         case eok_inegate:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxnegate:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fnegate:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xnegate:
@@ -4296,6 +4299,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           is_unary = TRUE;
           opstr = "~";
           break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxpost_incr:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fpost_incr:
         case eok_ipost_incr:
         case eok_ppost_incr:
@@ -4311,6 +4317,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           goto done_with_unary_operation;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxpre_incr:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_ipre_incr:
         case eok_fpre_incr:
         case eok_ppre_incr:
@@ -4326,6 +4335,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           goto done_with_unary_operation;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxpost_decr:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fpost_decr:
         case eok_ipost_decr:
         case eok_ppost_decr:
@@ -4341,6 +4353,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           goto done_with_unary_operation;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxpre_decr:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_ipre_decr:
         case eok_fpre_decr:
         case eok_ppre_decr:

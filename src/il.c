@@ -11700,6 +11700,12 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
     case eok_ipre_decr:
     case eok_fpre_decr:
     case eok_ppre_decr:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxpost_incr:
+    case eok_fxpost_decr:
+    case eok_fxpre_incr:
+    case eok_fxpre_decr:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_iassign:
     case eok_fassign:
     case eok_passign:

@@ -7638,6 +7638,9 @@ enum an_expr_operator_kind_tag {
   /* The following have 1 operand: */
   eok_indirect,         /* Pointer de-reference ("*" operator). */
   eok_inegate,          /* Integer negation. */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  eok_fxnegate,         /* Fixed-point negation. */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   eok_fnegate,          /* Floating negation. */
   eok_unary_plus,	/* Unary "+" (integer, floating, or pointer).  See
 			   UNARY_PLUS_IN_IL. */
@@ -10799,7 +10802,11 @@ EXTERN an_il_header il_header;
 /* Table of debug names for expression operators. */
 EXTERN char     *db_operator_names[(int)eok_last+1]
 #if VAR_INITIALIZERS
-= {"*", "i-", "f-", "+", "!", "cast",
+= {"*", "i-", "f-",
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+   "fx-",
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+   "+", "!", "cast",
 #ifdef CIL
    "base class cast", "derived class cast",
    "pm base class cast", "pm derived class cast",

@@ -1482,6 +1482,15 @@ to the constant is maintained, by adding a cast if necessary.
     new_constant.type = new_type_with_typedefs;
     goto exit;
   }  /* if */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  if (fixed_point_allowed && (is_fixed_point_type(constant_type) ||
+                              is_fixed_point_type(new_type))) {
+    /* For now we do not fold fixed-point type operations.  However, we
+       probably do want to do so at some point. FIXME */
+    *did_not_fold = TRUE;
+    goto exit;
+  }  /* if */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   if (!C_mode() &&
       (constant->kind == (a_constant_repr_kind)ck_template_param ||
        (in_front_end && is_template_dependent_type(new_type)))) {
@@ -2451,7 +2460,11 @@ if not, return *err_code set to the proper error code.
   /* Determine the size of the operand being shifted. */
   operand_type = skip_typerefs(operand_type);
 #if CHECKING
-  if (operand_type->kind != (a_type_kind)tk_integer) {
+  if (operand_type->kind != (a_type_kind)tk_integer
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      && operand_type->kind != (a_type_kind)tk_fixed_point
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+                                                          ) {
     internal_error("check_shift_count: operand_type not integer");
   } else if (operand_type->size == 0) {
     internal_error("check_shift_count: integer type has size 0");

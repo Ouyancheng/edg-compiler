@@ -4721,6 +4721,11 @@ modifier _Sat was specified.
       internal_error("combine_type_specifiers: bad basic type");
 #endif /* CHECKING */
   }  /* switch */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  if (saturating_fp && (basic_type != bt_fract && basic_type != bt_accum)) {
+    bad_combination = TRUE;
+  }  /* if */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   if (bad_combination) {
     /* Bad combination of type specifiers.  Issue a diagnostic and set the
        type to an error type. */

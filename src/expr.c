@@ -3295,6 +3295,16 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
             case tk_integer:
               op = (an_expr_operator_kind)eok_ipost_incr;
               break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+            case tk_fixed_point:
+              op = (an_expr_operator_kind)eok_fxpost_incr;
+              if (skip_typerefs(result_type)
+                                        ->variant.fixed_point.is_fract_type) {
+                pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
+                            &operator_position);
+              }  /* if */
+              break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
             case tk_float:
               op = (an_expr_operator_kind)eok_fpost_incr;
               break;
@@ -3311,6 +3321,16 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
             case tk_integer:
               op = (an_expr_operator_kind)eok_ipost_decr;
               break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+            case tk_fixed_point:
+              op = (an_expr_operator_kind)eok_fxpost_decr;
+              if (skip_typerefs(result_type)
+                                        ->variant.fixed_point.is_fract_type) {
+                pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
+                            &operator_position);
+              }  /* if */
+              break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
             case tk_float:
               op = (an_expr_operator_kind)eok_fpost_decr;
               break;
@@ -3525,6 +3545,16 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
             case tk_integer:
               op = (an_expr_operator_kind)eok_ipre_incr;
               break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+            case tk_fixed_point:
+              op = (an_expr_operator_kind)eok_fxpre_incr;
+              if (skip_typerefs(result_type)
+                                        ->variant.fixed_point.is_fract_type) {
+                pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
+                            &start_position);
+              }  /* if */
+              break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
             case tk_float:
               op = (an_expr_operator_kind)eok_fpre_incr;
               break;
@@ -3541,6 +3571,16 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
             case tk_integer:
               op = (an_expr_operator_kind)eok_ipre_decr;
               break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+            case tk_fixed_point:
+              op = (an_expr_operator_kind)eok_fxpre_decr;
+              if (skip_typerefs(result_type)
+                                        ->variant.fixed_point.is_fract_type) {
+                pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
+                            &start_position);
+              }  /* if */
+              break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
             case tk_float:
               op = (an_expr_operator_kind)eok_fpre_decr;
               break;
@@ -4128,6 +4168,11 @@ arithmetic type.  The operand of "~" must have integral type.  See section
           op = (an_expr_operator_kind)eok_xnegate;
         } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        if (is_fixed_point_type(operand.type)) {
+          op = (an_expr_operator_kind)eok_fxnegate;
+        } else
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         if (is_floating_type(operand.type)) {
           op = (an_expr_operator_kind)eok_fnegate;
         } else {
@@ -10452,9 +10497,11 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
-    /* Both operands must be integral or enum. */
+    /* The first operand can have an integral or enum type, or, in
+       configurations that support it, a fixed-point type. */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
-    (void)check_integral_or_enum_operand(operand_1);
+    (void)check_integral_or_enum_or_fixed_point_operand(operand_1);
+    /* The second operand must have an integral or enum type. */
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
     (void)check_integral_or_enum_operand(&operand_2);
 
@@ -12499,9 +12546,12 @@ See section 3.3.16 of the standard.
             }  /* if */
           }  /* if */
           break;
-        case tok_remainder_assign:
         case tok_shift_left_assign:
         case tok_shift_right_assign:
+          (void)check_integral_or_enum_or_fixed_point_operand(operand_1);
+          (void)check_integral_or_enum_operand(&operand_2);
+          break;
+        case tok_remainder_assign:
         case tok_and_assign:
         case tok_excl_or_assign:
         case tok_or_assign:
