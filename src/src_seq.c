@@ -2298,7 +2298,12 @@ entries.
           continue;
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode && (rp->decl_modifiers & DM_DLLIMPORT)) {
+        if (microsoft_mode && (rp->decl_modifiers & DM_DLLIMPORT) &&
+            !rp->is_inline) {
+          /* A noninline dllimport routine should not have a definition; if it
+             does, the definition is discarded.  (Inline dllimport routines
+             can have a definition, but it is only used for inline expansion.
+             No out-of-line copy is spilled.) */
           promote = TRUE;
         }  /* if */
 #endif /* if MICROSOFT_EXTENSIONS_ALLOWED */
