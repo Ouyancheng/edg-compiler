@@ -10,6 +10,20 @@ on other template parameters.  Now fixed.
   template <int A, int B> struct X<int, A, int, B> { };
   X<int, 1, int, 2> x;
 
+2/20/04  GNU mode: Prefix declarator attributes
+
+A "prefix declarator attribute" is an attribute that appears before a
+declarator, but after a comma delimiting a previous declarator.  For example:
+
+  void f1(), __attribute__((noreturn)) f2(), f3();
+
+GNU C/C++ versions prior to 3.1 applied such attributes to all subsequent
+declarators and the EDG front end previously emulated that behavior.
+Newer versions of the GNU compilers limit the effect of prefix declarator
+attributes to the immediately succeeding declarator and the EDG front end
+now emulates that same behavior (e.g., in the example above, only f2 is
+marked with "noreturn").
+
 2/19/04  C++-generating back end: GNU attributes on function definitions
 
 The C++-generating back end failed to render GNU attributes for function
