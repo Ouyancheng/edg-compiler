@@ -2623,6 +2623,17 @@ partially_process_line_splice:
 }  /* gen_raw_listing_output_for_curr_line */
 
 
+void finish_raw_listing_file(void)
+/*
+Called on abnormal termination of the compilation to do cleanup
+on the raw listing file, e.g., force out the last source line.
+*/
+{
+  if (f_raw_listing != NULL) {
+    gen_raw_listing_output_for_curr_line();
+  }  /* if */
+}  /* finish_raw_listing_file */
+
 
 /*
 The routines that follow are used to detect idioms used to guard against

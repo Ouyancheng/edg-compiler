@@ -1504,6 +1504,7 @@ extern void gen_rlisting_line_info(char kind);
    line. */
 extern void gen_expanded_raw_listing_output_for_curr_line(
                                                    a_boolean do_inserted_text);
+extern void finish_raw_listing_file(void);
 /* Add an entry recording a logical modification to the source line. */
 extern a_source_line_modif_ptr add_source_line_modif(
                           char                      *line_loc,

@@ -2527,6 +2527,8 @@ additional messages in a multiple message diagnostic.
     /* Terminate the compilation for the more serious severities. */
     if (severity == es_catastrophe || severity == es_command_line_error ||
         severity == es_internal_error) {
+      /* Force out the last line of the raw listing file. */
+      finish_raw_listing_file();
       term_compilation(severity);
     }  /* if */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE && !STANDALONE_UTILITY_PROGRAM
@@ -2545,6 +2547,8 @@ additional messages in a multiple message diagnostic.
         fprintf(f_raw_listing, "C \"\" 0 0 error limit reached\n");
       }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+      /* Force out the last line of the raw listing file. */
+      finish_raw_listing_file();
       term_compilation(es_catastrophe);
     }  /* if */
   }  /* if */

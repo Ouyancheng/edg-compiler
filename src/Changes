@@ -1,5 +1,10 @@
 Version 2.42
 
+4/21/99  Last line of raw listing file written on catastrophic error
+
+On a catastrophic error, the last source line is now written out
+to the raw listing file.
+
 4/21/99  C++-generating back end: parentheses around "new" if needed
          to avoid ambiguity
 
