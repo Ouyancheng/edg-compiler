@@ -1412,6 +1412,8 @@ called by id_linkage.
   if (other_decl != NULL) {
     a_symbol_kind  kind = other_decl->kind;
 
+    decls_at_same_scope = (other_decl->decl_scope ==
+                            scope_stack[idlbp->effective_decl_level].number);
     if (kind == (a_symbol_kind)sk_variable ||
         kind == (a_symbol_kind)sk_routine ||
         kind == (a_symbol_kind)sk_function_template ||
@@ -1427,7 +1429,9 @@ called by id_linkage.
                using N::f;
                void f();
              we'll need to form an overload set with N::f and ::f. */
-          idlbp->overload_symbol = other_decl;
+          if (decls_at_same_scope) {
+            idlbp->homonym_symbol = other_decl;
+          }  /* if */
         } else if (kind == (a_symbol_kind)sk_variable &&
                    depth_innermost_function_scope == NO_SCOPE_DEPTH) {
           /* This is a variable declaration at file/namespace scope.  We need
@@ -1462,8 +1466,6 @@ called by id_linkage.
        was an sk_overloaded_function symbol, we need to look for a type
        match amongst the instances of the name.  Even if it was an
        sk_routine symbol, we may want to overload the two functions. */
-    decls_at_same_scope = (other_decl->decl_scope ==
-                             scope_stack[idlbp->effective_decl_level].number);
     if (C_dialect == C_dialect_cplusplus && is_function &&
         other_decl->kind != (a_symbol_kind)sk_variable &&
         !idlbp->func_info->is_main_function) {
@@ -3247,6 +3249,7 @@ namespace-extension scope.
           if (!linked_symbol->variant.routine.instance_ptr->is_guiding_decl) {
             pos_sy_error(ec_no_prior_declaration, &locator->source_position,
                          linked_symbol);
+            err = TRUE;
           }  /* if */
         } else {
           /* When guiding declarations are not allowed, an out-of-scope
@@ -3307,15 +3310,15 @@ namespace-extension scope.
                      &locator->source_position, sym);
       }  /* if */
       err = TRUE;
-      if (nsp != NULL) {
-        if (idlbp->is_friend_decl) {
-          pop_namespace_reactivation_scope();
-        } else {
-          pop_namespace_extension_scope();
-          idlbp->effective_decl_level = orig_effective_decl_level;
-        }  /* if */
-        idlbp->namespace_reactivated = FALSE;
+    }  /* if */
+    if (err && nsp != NULL) {
+      if (idlbp->is_friend_decl) {
+        pop_namespace_reactivation_scope();
+      } else {
+        pop_namespace_extension_scope();
+        idlbp->effective_decl_level = orig_effective_decl_level;
       }  /* if */
+      idlbp->namespace_reactivated = FALSE;
     }  /* if */
   }  /* if */
   if (err) {
