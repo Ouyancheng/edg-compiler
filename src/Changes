@@ -1,5 +1,19 @@
 Version 2.12
 
+11/10/92 C_ANACHRONISMS_ALLOWED
+
+The C anachronisms of appendix A, section 17 of K&R I, i.e.,
+
+  (1)  Reversed-form compound assignment operators:
+         i =- 1;
+  (2)  Omitted "=" in initialization:
+         int i 1;
+
+have been put under control of the flag C_ANACHRONISMS_ALLOWED in
+lang_feat.h.  The option is *off* by default, which means the
+default language dialect is changed.  We did this because these features
+are no longer supported in the Sun bundled cc.
+
 11/10/92 Pointers to incomplete arrays allowed in pointer operations
 
 When the configuration flag PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED is

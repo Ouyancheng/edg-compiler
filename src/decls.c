@@ -7396,6 +7396,7 @@ processing of function definition.
   return;
 }  /* inline_function_definition */
 
+#if C_ANACHRONISMS_ALLOWED
 
 static a_boolean is_initializer_start(void)
 /*
@@ -7435,6 +7436,7 @@ is present when a "=" is not there.
   return is_init_start;
 }  /* is_initializer_start */
 
+#endif /* C_ANACHRONISMS_ALLOWED */
 
 static void linkage_specification(a_boolean      function_definition_allowed,
                                   a_param_id_ptr param_id_list)
@@ -8285,11 +8287,13 @@ continue_with_declaration:
       } else if (curr_token == tok_assign) {
         (void)get_token();
         has_initializer = TRUE;
+#if C_ANACHRONISMS_ALLOWED
       } else if (C_dialect == C_dialect_pcc && is_initializer_start()) {
         /* In pcc mode, the "=" may be omitted (K&R first edition, Appendix A,
            section 17 (Anachronisms)). */
         has_initializer = TRUE;
         warning(ec_old_fashioned_initializer);
+#endif /* C_ANACHRONISMS_ALLOWED */
       }  /* if */
       is_definition = FALSE;
       if (symbol_ptr->kind == (a_symbol_kind)sk_variable && !is_parameter) {

@@ -10,6 +10,7 @@
 /*
 
 lang_feat.h -- Definition of source language features to be accepted.
+
 */
 
 /* Avoid including these declarations more than once: */
@@ -89,6 +90,17 @@ If this is turned on, the back end must be able to deal with the
 resultant operations on pointers to zero-length types.
 */
 #define PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED FALSE
+
+/*
+Flag that is TRUE if C anachronisms should be allowed.  The anachronisms
+are those of Appendix A, section 17 of K&R I:
+
+  (1)  Reversed-form compound assignment operators:
+         i =- 1;
+  (2)  Omitted "=" in initialization:
+         int i 1;
+*/
+#define C_ANACHRONISMS_ALLOWED FALSE
 
 #endif /* ifndef LANG_FEAT_H */
 

@@ -6651,14 +6651,17 @@ nonstandard ways:
        No warning is issued.
   (2)  The "=" can appear first, as in "=-".  No whitespace is
        allowed.  This is described in Appendix A, section 17
-       (Anachronisms) of K&R I.  A warning is issued.
+       (Anachronisms) of K&R I.  A warning is issued.  This form
+       is accepted only if C_ANACHRONISMS_ALLOWED is TRUE.
 
 These cases are handled here by coalescing two tokens.
 */
 {
-  a_boolean         equals_first = FALSE;
   a_token_kind      token = curr_token, compound_token;
   a_source_position start_position;
+
+#if C_ANACHRONISMS_ALLOWED
+  a_boolean         equals_first = FALSE;
   char              ch;
 
   if (token == tok_assign) {
@@ -6674,6 +6677,7 @@ These cases are handled here by coalescing two tokens.
       token = next_token();
     }  /* if */
   }  /* if */
+#endif /* C_ANACHRONISMS_ALLOWED */
   compound_token = token;
   switch (token) {
     case tok_plus:
@@ -6710,6 +6714,7 @@ These cases are handled here by coalescing two tokens.
       /* No action. */
   }  /* switch */
   if (compound_token != token) {
+#if C_ANACHRONISMS_ALLOWED
     if (equals_first) {
       /* "=-" form. */
       start_position = pos_curr_token;
@@ -6718,6 +6723,7 @@ These cases are handled here by coalescing two tokens.
       pos_curr_token = start_position;
       curr_token = compound_token;
     } else {
+#endif /* C_ANACHRONISMS_ALLOWED */
       /* Check for "- =" form. */
       if (next_token() == tok_assign) {
         /* This is the "- =" form. */
@@ -6726,7 +6732,9 @@ These cases are handled here by coalescing two tokens.
         pos_curr_token = start_position;
         curr_token = compound_token;
       }  /* if */
+#if C_ANACHRONISMS_ALLOWED
     }  /* if */
+#endif /* C_ANACHRONISMS_ALLOWED */
   }  /* if */        
 }  /* check_for_pcc_compound_assignment_operator */
 
