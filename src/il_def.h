@@ -1869,7 +1869,7 @@ typedef struct an_asm_entry {
                            to this entity. */
   an_asm_entry_ptr
 		next;
-                        /* Pointer to the asm entry declared in the same
+                        /* Pointer to the next asm entry declared in the same
                            scope, NULL if this asm entry is the last in the
                            scope. */
   a_constant_ptr
