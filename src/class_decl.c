@@ -8529,11 +8529,14 @@ promotion is for a nonstandard anonymous union.
   if (is_nonstd && class_type->kind == (a_type_kind)tk_union &&
       !is_valid_union_field(field->type,
                             &field->source_corresp.decl_position)) {
-    /* Diagnostic already issued by is_valid_union_field.  This test was
-       already done for standard anonymous (and named unions), but for
+    /* There is nothing to do because is_valid_union_field already issued the
+       diagnostic.  We can continue with the recorded type in error recovery
+       mode even though it is not a valid type for a union field (it doesn't
+       matter to the front end, and the back end won't be called).  This test
+       was already done for standard anonymous (and named unions), but for
        nonstandard unions it had to wait until the lack of a declarator
-       determined that this is in fact a nonstandard anonymous union and
-       even then only when the promotion is to a union type. */
+       determined that this is in fact a nonstandard anonymous union and even
+       then only when the promotion is to a union type. */
   }  /* if */
   if (reuse_symbol) {
     /* Unlink the symbol from the inactive list and link it back into
