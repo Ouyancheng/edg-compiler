@@ -3920,6 +3920,8 @@ Do IL lowering of the indicated type and everything under it.
              assoc_routine == NULL, and param_type_list != NULL, which is
              not otherwise possible. */
           rtsp->prototyped = FALSE;
+          /* We do not clear has_ellipsis on purpose.  The C-generating
+             back end depends on it in this case. */
 #endif /* MAKE_ALL_FUNCTIONS_UNPROTOTYPED */
           if (rtsp->value_returned_by_cctor) {
             /* Add an extra parameter in which the return address will be
