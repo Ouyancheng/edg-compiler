@@ -1058,8 +1058,11 @@ assumed if the return type is omitted.
        identifier case. */
     sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
 						     ilm_normal, &err);
-    if (sym != NULL && !err) {
-      if (is_template_class_symbol(sym)) {
+    if (!err) {
+      if (sym == NULL) {
+        /* Not a currently defined symbol. */
+        pos_error(ec_invalid_instantiation_pragma_argument, &start_pos);
+      } else if (is_template_class_symbol(sym)) {
          /* Process all member functions and static data members. */
 	update_instantiation_flags_for_class(sym, instantiate, &start_pos);
       } else if ((new_sym = sym_if_template_class_member_function(sym))
@@ -1081,7 +1084,7 @@ assumed if the return type is omitted.
         sym_error(ec_not_instantiatable_entity, sym);
 	err = TRUE;
       }  /* if */
-    }  /* if */
+      }  /* if */
     /* Get the token after the identifier -- it should be a newline. */
     (void)get_token();
   } else if (is_decl_start(/*expr_context=*/FALSE,
