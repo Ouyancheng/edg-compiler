@@ -80,20 +80,6 @@ extern a_boolean is_type_start(void);
 extern a_boolean is_decl_start(a_boolean  expr_context,
                                a_boolean  real_declarator_allowed);
 
-/*
-Macro called in various contexts to distinguish expressions from declarations. 
-In C this is straightforward -- is_decl_start() provides all the information
-needed.  But the added complexity of disambiguation in C++ requires calling a
-routine to do lookahead, etc.
-*/
-#define is_decl_not_expr(abstract_decl_allowed, real_decl_allowed, single_type_required) \
-  ((C_dialect == C_dialect_cplusplus) ?                               \
-    (is_decl_start(/*expr_context=*/TRUE, real_decl_allowed) ?        \
-      f_is_decl_not_expr(abstract_decl_allowed, real_decl_allowed,    \
-                         single_type_required) :                      \
-      curr_token == tok_overload) :                                   \
-    is_decl_start(/*expr_context=*/TRUE, real_decl_allowed))
-
 extern a_boolean f_check_for_overload_anachronism(void);
 
 /*
