@@ -5034,11 +5034,16 @@ skip_overloading:;
   } else if (routine_ptr == NULL) {
     /* There is no IL entry, so create one now, and add it to the routines
        list of the innermost namespace scope (or, if this is an extern "C"
-       context, add it to routines list of the file scope). */
+       context, add it to routines list of the file scope).  If we're in a
+       prototype instantiation scope, do not add it to the routines list
+       unless prototype instantiations are stored in the IL. */
     a_scope_depth  scope_depth = depth_innermost_namespace_scope;
 
-    if (linkage == idl_external &&
-        scope_stack[depth_scope_stack].default_name_linkage ==
+    if (scope_stack[depth_scope_stack].in_prototype_instantiation &&
+        !prototype_instantiations_in_il) {
+      scope_depth = NO_SCOPE_DEPTH;
+    } else if (linkage == idl_external &&
+               scope_stack[depth_scope_stack].default_name_linkage ==
                                           (a_name_linkage_kind)nlk_external) {
       scope_depth = DEPTH_OF_FILE_SCOPE;
     }  /* if */
