@@ -5449,43 +5449,41 @@ p is a pointer to the start of a null-terminated string.
 }  /* dump_asm_function_body */
 
 #endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+
 /*
 A macro to carry the given statement pointer past explicitly represented
-empty statements.  Expands to nothing if empty statements are not explicitly
-represented in the IL.
-*/
-#define advance_past_stmk_empty_statements(stmt)                         \
-{ while ((stmt) != NULL && (stmt)->kind == (a_statement_kind)stmk_empty) \
-    (stmt) = (stmt)->next;                                               \
-}  /* advance_past_stmk_decl_statements */
-
-#else /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
-#define advance_past_stmk_empty_statements(stmt) /* nothing */
-
-#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-
-/*
-stmt points to a list of statements.  Advance the pointer past any statements
-that are stmk_decl statements.  If empty statements are explicitly represented
-those are skipped too.
+empty statements and declaration statements (if source sequence entry lists
+are generated).  Expands to nothing if the front end is configured to not
+generate any of these.
 */
 #if REPRESENT_EMPTY_STATEMENTS_IN_IL
-#define advance_past_stmk_decl_statements(stmt)                            \
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#define advance_past_neutral_statements(stmt)                              \
 { while ((stmt) != NULL && ((stmt)->kind == (a_statement_kind)stmk_decl || \
                             (stmt)->kind == (a_statement_kind)stmk_empty)) \
     (stmt) = (stmt)->next;                                                 \
 }  /* advance_past_stmk_decl_statements */
 
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+#define advance_past_neutral_statements(stmt)                            \
+{ while ((stmt) != NULL && (stmt)->kind == (a_statement_kind)stmk_empty) \
+    (stmt) = (stmt)->next;                                               \
+}  /* advance_past_stmk_decl_statements */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #else /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
-#define advance_past_stmk_decl_statements(stmt)                         \
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#define advance_past_neutral_statements(stmt)                           \
 { while ((stmt) != NULL && (stmt)->kind == (a_statement_kind)stmk_decl) \
     (stmt) = (stmt)->next;                                              \
 }  /* advance_past_stmk_decl_statements */
 
-#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+#define advance_past_neutral_statements(stmt) /* nothing */
+
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
+
 
 static void dump_switch_statement(a_statement_ptr statement)
 /*
@@ -5535,11 +5533,7 @@ Generate the code for a switch statement.
     }  /* if */
     /* If there are statements in the body statement, dump them. */
     statement_list = body_statement->variant.block.statements;
-    advance_past_stmk_empty_statements(statement_list);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    advance_past_stmk_decl_statements(statement_list);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    advance_past_stmk_empty_statements(statement_list);
+    advance_past_neutral_statements(statement_list);
     if (statement_list != NULL) {
       dump_statement_list(statement_list);
       write_tok_str("break;");
@@ -5572,9 +5566,7 @@ Generate the code for a switch statement.
       write_tok_str("break;");
     } else {
       statement_list = switch_clause->statements;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      advance_past_stmk_decl_statements(statement_list);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      advance_past_neutral_statements(statement_list);
       if (statement_list == NULL) {
         /* No break and no statements, so put out an empty statement. */
         write_tok_ch(';');
