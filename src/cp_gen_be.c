@@ -8183,7 +8183,7 @@ static a_boolean template_should_be_generated_from_prototype_instantiation(
 Determine whether the given template should be generated from the IL of its
 prototype instantiation (if not, it is generated from its recorded textual
 representation).  If all prototype instantiations are available, the result
-is always TRUE.  In version that generated explicit specializations for
+is always TRUE.  In versions that generate explicit specializations for
 implicit instantiations, it may also be necessary to generate a template
 from its prototype instantiation.  For example, the input
     template<typename T> struct S {
@@ -8196,7 +8196,7 @@ from text:
       template<typename U> T f();
     };
 To avoid that problem, members of real class templates are generated from
-prototype instantiation in such configurations (when the prototype
+prototype instantiations in such configurations (when the prototype
 instantiation is available; see gen_template_from_prototype_instantiation).
 */
 {
