@@ -1796,7 +1796,7 @@ char *get_file_name_from_dir(a_boolean	first,
        files are to be returned.  "handle" is saved in a static variable
        that is used on subsequent calls to get the remaining directory
        entries. */
-    handle = _tfindfirst(pattern, _A_RDONLY, &fileinfo);
+    handle = _tfindfirst(pattern, &fileinfo);
     if (handle < 0) {
       /* Directory could not be opened, or is empty. */
       result = NULL;
@@ -1806,7 +1806,7 @@ char *get_file_name_from_dir(a_boolean	first,
   } else {
     /* On subsequent calls, use _findnext to find the next file that
        matches the pattern. */
-    if (_tfindnext( &fileinfo) < 0) {
+    if (_tfindnext(handle, &fileinfo) < 0) {
       /* Returns -1 when there are no more files. */
       result = NULL;
     } else {
