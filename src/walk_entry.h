@@ -2244,6 +2244,8 @@ after_entry_from_class:
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         walk_list(ptr->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
+        walk_list(ptr->partial_spec_template_arg_list, a_template_arg_ptr,
+                  iek_template_arg);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_string_ptr(ptr->uuid_string, iek_other_text, 0);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
