@@ -492,6 +492,7 @@ check_abbreviation()
 --compile_as_secondary_trans_unit
 --compound_literals
 --const_string_literals
+--context_limit
 --cpfe_only
 --create_pch
 --db
@@ -1211,6 +1212,7 @@ process_option()
          --time_limit | \
          --incl_suffixes | \
          --db_name | \
+         --context_limit | \
          --pack_alignment)
       feoptions=$feoptions" $curr_arg $curr_param"
       used_two_params=1
@@ -1276,6 +1278,7 @@ process_option()
           --time_limit=* | \
           --incl_suffixes=* | \
           --db_name=* | \
+          --context_limit=* | \
           --definition_list_file=* | \
           --pack_alignment=*)
       feoptions=$feoptions" $curr_arg"
