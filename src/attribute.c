@@ -319,7 +319,8 @@ that do take arguments.
         (void)get_token();
         /* Look up the format name. */
         for (i = (int)fak_first; i < (int)fak_last; i++) {
-          if (strcmp(format_attribute_kind_names[i], name) == 0) {
+          if (same_string_ignoring_underscores(format_attribute_kind_names[i],
+                                               name)) {
             break;
           }  /* if */
         }  /* for */
@@ -992,11 +993,14 @@ messages about any invalid attributes.
             /* For an unprototyped function, no checks are
                required. */
           } else if (!rtsp->has_ellipsis) {
-            /* A function without an ellipsis cannot have the "format"
-               attribute. */
-            pos_sy_error(ec_format_rout_not_varargs, &ap->position,
-                         (a_symbol_ptr)rp->source_corresp.assoc_info);
-            error_occurred = TRUE;
+            if (ap->variant.format.first_subst_arg != 0) {
+              /* A function without an ellipsis cannot have the "format"
+                 attribute (unless the substitution argument was specified
+                 as zero). */
+              pos_sy_error(ec_format_rout_not_varargs, &ap->position,
+                           (a_symbol_ptr)rp->source_corresp.assoc_info);
+              error_occurred = TRUE;
+            }  /* if */
           } else {
             /* Check to see that the format argument has string type
                and that the substitution argument is the first
