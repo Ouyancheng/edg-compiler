@@ -1307,17 +1307,18 @@ Reserve space at the end of the class object for virtual base classes.
       }  /* if */
     }  /* if */
     lob->bit_offset = 0;
-  }  /* if */
+  } else if (lob->byte_offset == 0) {
 #if CHECKING
-  if (lob->byte_offset == 0) {
     /* The size should never be zero if there are any virtual base classes,
        since at the very least a virtual base class pointer will have been
        allocated. */
     if (lob->class_type->variant.class_struct_union.any_virtual_base_classes) {
       internal_error("set_offsets_for_virtual_base_classes: offset is zero");
     }  /* if */
-  }  /* if */
 #endif /* CHECKING */
+    /* An empty class must occupy at lease one byte of memory. */
+    lob->byte_offset = 1;
+  }  /* if */
   ctsp->size_without_virtual_base_classes = lob->byte_offset;
   ctsp->alignment_without_virtual_base_classes = lob->alignment;
   /* Note that the current size may not be consistent (according to the rules
