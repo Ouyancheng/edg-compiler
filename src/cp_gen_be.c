@@ -505,9 +505,12 @@ hidden names in C, so there's no point in maintaining this information).
        entry with qualification_needed set to FALSE can turn off that
        flag.  (This happens, e.g., for an injected class name.) */
     if (!hnp->qualification_needed &&
-        !hnp->elaborated_type_specifier_needed) {
+        !hnp->elaborated_type_specifier_needed &&
+        !(type != NULL && type->kind == (a_type_kind)tk_typeref)) {
       /* This entry turns all flags off, so it must represent a name
-         injection. */
+         injection.  (Same-named typedefs of class types happen also to
+         have these flags both turned off, but they are not injected class
+         names.) */
       injection_entry = TRUE;
     }  /* if */
     if (msvc_is_generated_code_target &&
