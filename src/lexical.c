@@ -2411,10 +2411,6 @@ when speed is critical.
   position_var->seq    = seq_number;
   position_var->column = adj_loc_in_line - start_of_curr_phys_line +
                          trigraph_adjustment + 1;
-  /* If the character location is the null at the end of curr_source_line,
-     back up the column so that it indicates the newline (or is zero, for
-     the end of file line case). */
-  if (*adj_loc_in_line == '\0') position_var->column--;
 have_position:
   /* Save the position determined in the innermost source line modification
      that covers this location.  That will make succeeding calls of
@@ -2435,9 +2431,7 @@ If the position is within curr_source_line (i.e., it's not in a macro
 expansion), and there is no modification information of any kind,
 curr_source_line is all one line with no trigraphs to perturb the
 column numbers.  The position can be determined directly.  This is the
-most common case.  If the character location is the null at the end of
-curr_source_line, the column is backed up so that it indicates the
-newline (or is zero, for the end of file line case).
+most common case.
 */
 #define macro_line_loc_to_source_pos(loc_in_line, position_var) \
 { if (no_modifs_to_curr_source_line || \
@@ -2445,7 +2439,6 @@ newline (or is zero, for the end of file line case).
        orig_line_modif_list == NULL)) { \
     (position_var).seq    = curr_seq_number; \
     (position_var).column = (loc_in_line) - curr_source_line + 1; \
-    if (*(loc_in_line) == '\0') (position_var).column--; \
   } else { \
     conv_line_loc_to_source_pos((loc_in_line), &(position_var)); \
   }  /* if */ \
@@ -3884,8 +3877,7 @@ and also put that into error_position.
 #define remember_token_start()                                        \
 { any_tokens_gotten_from_curr_source_line = TRUE;                     \
   macro_line_loc_to_source_pos(start_of_curr_token, pos_curr_token);  \
-  error_position.seq    = pos_curr_token.seq;                         \
-  error_position.column = pos_curr_token.column;                      \
+  error_position = pos_curr_token;                                    \
 }  /* remember_token_start */
 
 
@@ -4008,7 +4000,19 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       ctoken = tok_end_of_source;
       /* Go exit with zero-length token. */
       start_of_curr_token = curr_char_loc;
-      goto save_end_position;
+      /* Remember the character position of the end of the token. */
+#if 0
+      /* At the end of file, this is the position preceding the beginning
+         of the input buffer, which is nonstandard (though probably harmless)
+         unless that position is really allocated space. */
+#endif /* 0 */
+      end_of_curr_token = curr_char_loc - 1;
+      /* Determine the source position of the end of file token.  Back up the
+         column by 1 so it points at whatever precedes the null character. */
+      remember_token_start();
+      pos_curr_token.column--;
+      error_position.column = pos_curr_token.column;
+      goto end_of_token_scan_b;
     case '\n':
       /* Newline.  Is white space ordinarily, but a token within
          preprocessing directives. */
@@ -4274,8 +4278,8 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       goto end_of_token_scan;
     case '$':
       /* The dollar sign can optionally be accepted as an ID character.
-         If it is to be accepted then we goto the code responsible for
-         scanning identifiers, otherwise it is an unrecognized token. */
+         If it is to be accepted then we go to the code responsible for
+         scanning identifiers; otherwise it is an unrecognized token. */
       if (allow_dollar_in_id_chars) {
         goto id_scan;
       } else {
@@ -4311,25 +4315,24 @@ id_scan:
          characters, underscores, and digits after the first character. */
       remember_token_start();
       ctoken = tok_identifier;
-
-      {
-        /* While looking for the end of the identifier, check to see if
-           it contains a dollar sign.  This is an extension and should
-           be flagged the first time it is seen if we are in strict
-           ANSI mode. */ 
-        register a_boolean   dollar_used = FALSE;
+      if (allow_dollar_in_id_chars && strict_ansi_mode &&
+          !dollar_in_id_diagnostic_issued) {
+        /* Use a special scanning loop when we must check for dollar signs
+           (which are nonstandard) while accumulating the characters of the
+           identifier.  The diagnostic is issued only once. */
+        register a_boolean dollar_used = (ch == '$');
         while (is_id_char[(ch = *(++curr_char_loc))-CHAR_MIN]) {
           if (ch == '$') dollar_used = TRUE;
         }  /* while */
-        if (dollar_used && allow_dollar_in_id_chars) {
-          if (strict_ansi_mode && !dollar_in_id_diagnostic_issued) {
-            diagnostic(strict_ansi_error_severity,
-                       ec_dollar_used_in_identifier);
-            dollar_in_id_diagnostic_issued = TRUE;
-          }  /* if */
+        if (dollar_used) {
+          diagnostic(strict_ansi_error_severity, ec_dollar_used_in_identifier);
+          dollar_in_id_diagnostic_issued = TRUE;
         }  /* if */
-      }
-        
+      } else {
+        /* Dollar signs are not allowed, so use the normal (faster) loop. */
+        /* Accumulate characters of the identifier after the first. */
+        while (is_id_char[(ch = *(++curr_char_loc))-CHAR_MIN]) {}
+      }  /* if */
       end_of_curr_token = curr_char_loc - 1;
       /* Clear the symbol locator for the current identifier.  This is done 
          even if the identifier is not looked up in the symbol table. */
@@ -4503,7 +4506,7 @@ save_end_position:
   /* Remember character position of end of token.  It's one before the
      current position.  In cases where that is not right (as when it is
      necessary to scan white space following the token to check something),
-     set end_of_curr_token explicitly and goto end_of_token_scan. */
+     one should set end_of_curr_token explicitly and goto end_of_token_scan. */
   end_of_curr_token = curr_char_loc - 1;
 
 end_of_token_scan:
