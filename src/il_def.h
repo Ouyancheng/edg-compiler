@@ -269,6 +269,9 @@ entries are pointed to directly from variables being initialized, from
 ck_dynamic_init constant entries (when a component of a variable requires
 non-constant initialization), and from stmk_init statements (which mark the
 point in an execution stream at which the initialization takes place).
+A dynamic init entry of kind dik_none is created for an object that does not
+actually require initialization but does have a destructor that must be
+called when its lifetime terminates.
 */
 enum a_dynamic_init_kind_tag {
   dik_none,		/* No dynamic initialization. */
@@ -319,6 +322,7 @@ typedef struct a_dynamic_init {
 		expression;
 			/* The expression that gives the initial value. */
     /* When kind == dik_constructor: */
+    /* Used only in C++. */
     struct {
       a_routine_ptr
 		routine;
@@ -332,6 +336,7 @@ typedef struct a_dynamic_init {
 			   called. */
     } constructor;
     /* When kind == dik_aggregate: */
+    /* Used only in C++. */
     struct {
       a_constant_ptr
 		aggr_const;
@@ -466,6 +471,11 @@ typedef struct a_constant {
                            Both pointers are NULL if the list is empty. */
     } aggregate;
     /* When kind == ck_init_repeat: */
+#ifdef CIL
+    /* Only used in C++.  Used to initialize an array of class objects with
+       constructor initialization; the constant entry is a ck_dynamic_init
+       constant that identifies the default constructor. */
+#endif /* ifdef CIL */
     struct {
       a_constant_ptr
                 constant;
@@ -2657,12 +2667,12 @@ typedef struct a_scope {
 		dynamic_inits;
 			/* List of dynamic initializations to be done in the
 			   scope, in the order they should be done.  May
-			   appear in a file, function, or block scope.
-			   Note that in a function or block scope, these
-			   initializations should not be done at the start of
-			   the scope; stmk_init statements will appear to
-			   indicate the points within the code where each
-			   initialization should be done. */
+			   appear in a file (C++ only), function, or block
+			   scope. Note that since in C++ function or block
+			   scope initializations are not necessarily done at
+			   the start of the scope, stmk_init statements will
+			   appear to indicate the points within the code where
+			   each initialization should be done. */
 #endif /* ifdef CIL */
 #ifdef FIL
   an_entry_description_ptr
