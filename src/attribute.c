@@ -1167,7 +1167,7 @@ messages about any invalid attributes.
 }  /* apply_attributes_to_field */
 
 
-static void ensure_routine_has_modifiable_type(a_routine_ptr  rp)
+static void ensure_routine_type_is_modifiable(a_type_ptr  *tp)
 /*
 Before applying an attribute to the type field of a routine, we must make
 sure that that type is not a typedef (which could be shared with other
@@ -1175,16 +1175,15 @@ routines).  This makes a private copy of the underlying type is that is
 the case.
 */
 {
-  if (rp->type->kind == (a_type_kind)tk_typeref &&
-      typeref_is_typedef(rp->type)) {
+  if ((*tp)->kind == (a_type_kind)tk_typeref && typeref_is_typedef(*tp)) {
     /* We cannot apply the attribute to the type underlying the
        typedef.  So make a copy of that type and apply the attribute
        to that. */
-    rp->type = copy_type_and_apply_attributes((an_attribute_ptr)NULL,
-                                              rp->type->variant.typeref.type,
-                                              /*is_typedef=*/FALSE);
+    *tp = copy_type_and_apply_attributes((an_attribute_ptr)NULL,
+                                         (*tp)->variant.typeref.type,
+                                         /*is_typedef=*/FALSE);
   }  /* if */
-}  /* ensure_routine_has_modifiable_type */
+}  /* ensure_routine_type_is_modifiable */
 
 
 void apply_attributes_to_routine(an_attribute_ptr  attributes,
@@ -1220,7 +1219,7 @@ messages about any invalid attributes.
       case ak_noreturn:
       case ak_const:
         { a_routine_type_supplement_ptr  rtsp;
-          ensure_routine_has_modifiable_type(rp);
+          ensure_routine_type_is_modifiable(&rp->type);
           rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
           if (ap->kind == (an_attribute_kind)ak_const) {
             rtsp->is_const = TRUE;
@@ -1263,7 +1262,7 @@ messages about any invalid attributes.
           a_param_type_ptr              ptp;
           a_boolean                     error_occurred = FALSE;
           int                           count;
-          ensure_routine_has_modifiable_type(rp);
+          ensure_routine_type_is_modifiable(&rp->type);
           rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
           if (!rtsp->prototyped) {
             /* For an unprototyped function, no checks are
@@ -1328,7 +1327,7 @@ messages about any invalid attributes.
           a_param_type_ptr              ptp;
           int                           count;
           a_boolean                     error_occurred = FALSE;
-          ensure_routine_has_modifiable_type(rp);
+          ensure_routine_type_is_modifiable(&rp->type);
           rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
           if (!rtsp->prototyped) {
             /* For an unprototyped function, no checks are
@@ -1372,7 +1371,7 @@ messages about any invalid attributes.
 #if GNU_X86_ATTRIBUTES_ALLOWED
       case ak_cdecl:
         { a_routine_type_supplement_ptr rtsp;
-          ensure_routine_has_modifiable_type(rp);
+          ensure_routine_type_is_modifiable(&rp->type);
           rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
           if (rtsp->calling_convention == (a_calling_convention)cc_default) {
             /* The GNU C compiler appears to ignore the cdecl attribute if
@@ -1383,7 +1382,7 @@ messages about any invalid attributes.
         break;
       case ak_stdcall:
         { a_routine_type_supplement_ptr rtsp;
-          ensure_routine_has_modifiable_type(rp);
+          ensure_routine_type_is_modifiable(&rp->type);
           rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
           rtsp->calling_convention = (a_calling_convention)cc_stdcall;
         }
@@ -1484,8 +1483,7 @@ must make a copy if tp may already be shared.
            this context, even though it is conceptually similar. */
         /* Recall that tp is not a typeref here. */
         if (!is_pointer_type(tp) || !is_function_type(type_pointed_to(tp))) {
-          pos_ty_warning(ec_attr_requires_func_type,
-                         &ap->position, tp);
+          pos_ty_warning(ec_attr_requires_func_type, &ap->position, tp);
         } else {
           a_type_ptr rout_type = tp->variant.pointer.type;
           rout_type = copy_type_and_apply_attributes((an_attribute_ptr)NULL,
@@ -1518,6 +1516,44 @@ must make a copy if tp may already be shared.
           tp->variant.class_struct_union.is_transparent = TRUE;
         }  /* if */
         break;
+#if GNU_X86_ATTRIBUTES_ALLOWED
+      case ak_cdecl:
+        { a_routine_type_supplement_ptr rtsp;
+          if (is_pointer_type(tp)) {
+            /* This attribute can be applied to both function types and
+               pointer-to-function types. */
+            tp = type_pointed_to(tp);
+          }  /* if */
+          if (!is_function_type(tp)) {
+            pos_ty_warning(ec_attr_requires_func_type, &ap->position, tp);
+          } else {
+            ensure_routine_type_is_modifiable(&tp);
+            rtsp = skip_typerefs(tp)->variant.routine.extra_info;
+            if (rtsp->calling_convention == (a_calling_convention)cc_default) {
+              /* The GNU C compiler appears to ignore the cdecl attribute if
+                 another calling convention is already specified. */
+              rtsp->calling_convention = (a_calling_convention)cc_cdecl;
+            }  /* if */
+          }  /* if */
+        }
+        break;
+      case ak_stdcall:
+        { a_routine_type_supplement_ptr rtsp;
+          if (is_pointer_type(tp)) {
+            /* This attribute can be applied to both function types and
+               pointer-to-function types. */
+            tp = type_pointed_to(tp);
+          }  /* if */
+          if (!is_function_type(tp)) {
+            pos_ty_warning(ec_attr_requires_func_type, &ap->position, tp);
+          } else {
+            ensure_routine_type_is_modifiable(&tp);
+            rtsp = skip_typerefs(tp)->variant.routine.extra_info;
+            rtsp->calling_convention = (a_calling_convention)cc_stdcall;
+          }  /* if */
+        }
+        break;
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
       default:
         /* An invalid attribute. */
         pos_ty_error(ec_attribute_does_not_apply_to_type,

@@ -1,5 +1,14 @@
 Version 3.1
 
+8/16/02   GNU compatibility: x86 calling convention attributes on typedefs
+
+When GNU_X86_ATTRIBUTES_ALLOWED is TRUE, the front end now allows the
+__stdcall__ and __cdecl__ attributes on typedefs in GNU C and C++ modes.
+The underlying type must be a function or pointer-to-function type.
+for example:
+
+  typedef int __attribute__((__stdcall__)) (*proc)( void );
+
 8/16/02   GNU compatibility: x86 register names can be prefixed with %
 
 The GNU compiler accepts a "%" on register names in asm constructs.
