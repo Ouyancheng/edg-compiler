@@ -5855,7 +5855,7 @@ in the location pointed to by seq.
   a_token_kind 		ntoken;
   a_cached_token_ptr	ctp = NULL;
 
-  db_enter(5, "next_token");
+  db_enter(5, "next_token_with_seq_number");
   if (in_preprocessing_directive && curr_token == tok_newline) {
     /* If we have reached the end of a preprocessing directive, don't attempt
        to scan tokens past the end.  Return a tok_newline without actually
