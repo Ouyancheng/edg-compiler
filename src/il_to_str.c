@@ -24,6 +24,17 @@ il_to_str.c -- Produce an external string-form representation for various
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 
+/* Macro that returns TRUE if the Microsoft form of output should
+   be used for certain features. */
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+#define use_microsoft_form() (octl->gen_compilable_code ? \
+                                      msvc_is_generated_code_target : \
+                                      microsoft_mode)
+#else /* !(BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) */
+#define use_microsoft_form() microsoft_mode
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+
+
 void clear_il_to_str_output_control_block(
                                     an_il_to_str_output_control_block_ptr octl)
 /*
@@ -756,8 +767,10 @@ Do the output in the way described by octl.
       qualifiers &= ~(TQ_NEAR | TQ_FAR);
     }  /* if */
 #endif /* SUPPRESS_NEAR_AND_FAR_IN_GENERATED_CODE */
-    output_qualifier(TQ_NEAR, (char *)(microsoft_mode ? "__near" : "near"));
-    output_qualifier(TQ_FAR, (char *)(microsoft_mode ? "__far" : "far"));
+    output_qualifier(TQ_NEAR,
+                     (char *)(use_microsoft_form() ? "__near" : "near"));
+    output_qualifier(TQ_FAR,
+                     (char *)(use_microsoft_form() ? "__far" : "far"));
 #endif /* NEAR_AND_FAR_ALLOWED */
     /* Put out a trailing space if required. */
     if (need_trailing_space && qualifier_put_out) octl->output_str(" ");
@@ -1834,7 +1847,7 @@ precedence confusion.  Do the output in the way described by octl.
 #if LONG_LONG_ALLOWED
     } else if (ikind == (an_integer_kind)ik_long_long ||
                ikind == (an_integer_kind)ik_unsigned_long_long) {
-      if (microsoft_mode) {
+      if (use_microsoft_form()) {
         output_partial_token_str("i64", octl);
       } else {
         output_partial_token_str("LL", octl);

@@ -1,5 +1,12 @@
 Version 2.45
 
+12/19/00 MSVC++ compatibility: Output of long long constants in non-Microsoft
+         mode
+
+"long long" constants are now put out with i64 suffixes when MSVC++ is
+the target for the C- or C++-generating back end even when the
+front end is not running in Microsoft mode.
+
 12/19/00 Missing typeinfo variable for local class of member function
 
 A change made in 2.44 (see Changes entry of 3/5/00) caused IL lowering
