@@ -1,5 +1,18 @@
 Version 3.2
 
+2/10/03  Microsoft compatibility: Ambiguous virtual function overriders
+
+In Microsoft bugs mode, no diagnostic is issued for classes defined in such
+a way that a virtual function is ambiguously overridden in some base classes.
+For example:
+
+  struct B { virtual void f(); };
+  struct D1: B { virtual void f(); };
+  struct D2: B { virtual void f(); };
+  struct X: D1, D2 {};  // Normally an error, but not in Microsoft bugs mode
+
+In such cases, the overrider selected by the front end is arbitrary.
+
 2/10/03  Unspecified array size computed from extended designator
 
 The front end sometimes incorrectly computed the size of an array with an

@@ -1847,7 +1847,7 @@ ambiguity.
         /* The virtual functions (member functions of the base class to which
            bcp refers) are the same -- i.e., both ovfp and ovfp->next
            represent an override of the same function. */
-        if (!is_nonreal_instantiation) {
+        if (!is_nonreal_instantiation && !microsoft_bugs) {
           a_symbol_ptr sym = (a_symbol_ptr)vfp->source_corresp.assoc_info;
           sym_diagnostic(es_discretionary_error,
                          ec_ambiguous_virtual_function_override, sym);
