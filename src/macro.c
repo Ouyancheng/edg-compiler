@@ -2727,7 +2727,12 @@ Scan and process a #define directive.
       }  /* if */
 redef_error:
       /* Bad redefinition.  Keep the new definition, give a warning. */
-      pos_warning(ec_bad_macro_redef, &start_pos);
+      if (strict_ansi_mode) {
+        pos_diagnostic(strict_ansi_error_severity, ec_bad_macro_redef,
+                       &start_pos);
+      } else {
+        pos_warning(ec_bad_macro_redef, &start_pos);
+      }  /* if */
     }  /* if */
     /* Allocate space for the text, and copy it. */
     repl_text_len = next_avail_in_macro_buffer - macro_buffer;
