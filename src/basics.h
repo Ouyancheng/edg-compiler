@@ -134,7 +134,7 @@ By default, configure for ANSI C if __STDC__ is set, and for BSD4.n otherwise.
 #endif /* ifdef __SYSV__ */
 
 #if __ANSIC__ + __BSD__ + __SYSV__ != 1
-error -- Exactly one of "__ANSIC__", "__BSD__", and "__SYSV__" must be set.
+??=error -- Exactly one of "__ANSIC__", "__BSD__", and "__SYSV__" must be set.
 #endif /* __ANSIC__ + ... */
 
 #include <stdio.h>
@@ -194,6 +194,9 @@ extern int bzero(char *, int);
 /* Use sizeof_t for size_t because size_t appears in <sys/types.h> on
    some UNIX systems. */
 typedef size_t	sizeof_t;
+/* Macro used to pass standard library arguments that used to be
+   int and are now (in ANSI C) size_t, e.g., the length on fwrite. */
+#define size_t_arg(arg) ((size_t)(arg))
 #ifdef __TURBOC__
 /* Turbo C does not define CHAR_MIN correctly for signed characters.
    It defines it as 0x80, which is not a negative number in int context.
@@ -216,6 +219,9 @@ typedef size_t	sizeof_t;
    sizeof_t instead. */
 typedef unsigned int
 		sizeof_t;
+/* Macro used to pass standard library arguments that used to be
+   int and are now (in ANSI C) size_t, e.g., the length on fwrite. */
+#define size_t_arg(arg) ((int)(arg))
 #endif /* __ANSIC__ */
 
 /*
