@@ -252,7 +252,7 @@ void instantiate_template_function(a_function_instantiation_entry_ptr  fiep)
 #if CHECKING
     if ((pip->next == NULL) != (ptp->next == NULL)) {
       internal_error(
-                   "inline_function_definition: param_id and ptp out of sync");
+              "instantiate_template_function: param_id and ptp out of sync");
     }  /* if */
 #endif /* CHECKING */
   }  /* for */
