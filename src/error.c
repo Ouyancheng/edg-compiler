@@ -1508,8 +1508,8 @@ error code.
     case ec_initializer_not_allowed_on_array_new:
       m = "a new-initializer may not be specified for an array";
       break;
-    case ec_member_function_redeclaration:
-      m = "member function may not be redeclared outside its class";
+    case ec_member_function_redecl_outside_class:
+      m = "a member function may not be redeclared outside its class";
       break;
     case ec_ptr_to_incomplete_class_type_not_allowed:
       m = "pointer to incomplete class type is not allowed";
@@ -1541,8 +1541,8 @@ error code.
     case ec_no_access_to_constructors:
       m = "%n has no accessible constructors";
       break;
-    case ec_nonstd_member_function_redeclaration:
-      m = "redeclaring a member function is nonstandard";
+    case ec_member_function_redeclaration:
+      m = "%n has already been declared";
       break;
     case ec_inline_main:
       m = "function \"main\" may not be declared inline";
