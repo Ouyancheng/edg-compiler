@@ -3277,6 +3277,7 @@ push_template_instantiation_scope.
   orig_depth = scope_stack[depth_scope_stack].orig_depth;
   saved_innermost_scope_that_affects_access =
       scope_stack[depth_scope_stack].saved_innermost_scope_that_affects_access;
+  check_assertion(saved_innermost_scope_that_affects_access <= orig_depth);
   check_assertion_str2(orig_depth != NO_SCOPE_DEPTH,
                        "pop_template_instantiation_scope:",
                        "invalid orig_depth");
@@ -6162,6 +6163,9 @@ the class symbol supplement points to the partial specialization).
        mode). */
     a_scope_depth		orig_depth = depth_scope_stack;
     a_scope_stack_entry_ptr	ssep;
+    a_scope_depth		saved_innermost_scope_that_affects_access;
+    saved_innermost_scope_that_affects_access =
+                         depth_of_innermost_scope_that_affects_access_control;
     if (class_type->source_corresp.is_class_member) {
       /* Reactivate the parent class. */
       a_type_ptr	parent_class;
@@ -6182,6 +6186,8 @@ the class symbol supplement points to the partial specialization).
     ssep = scope_stack_entry_for(depth_scope_stack);
     ssep->nested_instantiation = TRUE;
     ssep->orig_depth = orig_depth;
+    ssep->saved_innermost_scope_that_affects_access =
+                                     saved_innermost_scope_that_affects_access;
   } else {
     a_push_scope_options_set		options;
     options = PS_NO_OPTIONS;

@@ -1,5 +1,11 @@
 Version 3.4
 
+9/2/03   Loop in access checking in Microsoft and Sun modes
+
+A change in version 3.3 exposed a bug in the setting of the scope stack
+links used for access checking.  This could result in an infinite loop
+in the front end in Microsoft and Sun modes.  Now fixed.
+
 8/29/03  Incorrect space used output for an_overriding_virtual_function
 
 The front end now correctly outputs the space used for
