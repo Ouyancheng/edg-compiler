@@ -370,14 +370,19 @@ function returns the address of the last attribute.
   /* Keep going until there are no more attributes. */
   do {
     /* The next token should be the name of an attribute. */
-    if (curr_token != tok_identifier) {
+    if (curr_token != tok_identifier && curr_token != tok_const) {
       error(ec_exp_attribute_name);
     } else {
       /* Remember the location of the attribute name.  This is the
          source position that we associate with the attribute. */
       copy_source_position(error_position, pos);
-      /* Get the name of the attribute. */
-      attribute_name = locator_for_curr_id.symbol_header->identifier;
+      if (curr_token == tok_const) {
+        /* The const attribute is spelled the same as a keyword. */
+        attribute_name = "const";
+      } else {
+        /* Get the name of the attribute. */
+        attribute_name = locator_for_curr_id.symbol_header->identifier;
+      }  /* if */
       /* Bypass the identifier. */
       (void)get_token();
       /* Look up the attribute name. */
