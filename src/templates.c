@@ -3029,6 +3029,14 @@ matches a class type from the parameter list of a template function.
                                   templ_param_list)) {
       match = TRUE;
     }  /* if */
+  } else if (identical_types(type, templ_type)) {
+    /* If the two classes are not instances of the same template, check to
+       see if they are the same types.  This may seem backward, but it
+       is important that if type and templ_type are both A<T>, that the
+       template argument lists are processed by the code above.  This is
+       needed for binding template parameter values when doing partial
+       ordering comparisions. */
+    match = TRUE;
   }  /* if */
   return match;
 }  /* matches_template_type_for_class_type */
@@ -3182,10 +3190,7 @@ template parameter list.
     if (type_kind == (a_type_kind)tk_struct) {
       type_kind = (a_type_kind)tk_class;
     }  /* if */
-    if (templ_type == type) {
-      /* Identical type entries, so it's a match. */
-      match = TRUE;
-    } else if (templ_type_kind != type_kind) {
+    if (templ_type_kind != type_kind) {
       /* No match. */
     } else {
       if (type->source_corresp.is_class_member) {

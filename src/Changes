@@ -1,5 +1,19 @@
 Version 2.36
 
+3/7/97   Function templates incorrectly considered to be ordered
+
+The call of "f(ac, 'c')" in the example below should be ambiguous but
+was accepted as a result of a bug in the partial ordering in 2.35.
+This has been fixed.
+
+  template <class T> struct A {};
+  template <class T> void f(A<T>, T);
+  template <class T> void f(A<T>, char);
+  int main() {
+    A<char> ac;
+    f(ac, 'c');
+  }
+
 3/5/97   Spurious error when using-declaration refers to extern "C" variable
 
 Spurious errors (complaining that the name has already been declared in
