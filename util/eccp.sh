@@ -1270,6 +1270,7 @@ process_option()
           --preinclude* | \
           --preinclude_macros=* | \
           --sys_include=* | \
+          --template_directory=* | \
           --time_limit=* | \
           --incl_suffixes=* | \
           --db_name=* | \
