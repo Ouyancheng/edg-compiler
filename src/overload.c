@@ -4978,11 +4978,13 @@ gives the source position of the member name reference.
     check_assertion(is_immediate_class_type(class_struct_union_type) ||
                     class_struct_union_type->kind ==
                                                (a_type_kind)tk_template_param);
-    if (is_template_param_type(class_struct_union_type) ||
-        class_struct_union_type->variant.class_struct_union.is_nonreal_class ||
-        desired_class->variant.class_struct_union.is_nonreal_class) {
+    if ((is_template_param_type(class_struct_union_type) ||
+         class_struct_union_type->variant.class_struct_union.is_nonreal_class||
+         desired_class->variant.class_struct_union.is_nonreal_class) &&
+        class_struct_union_type != desired_class &&
+        find_base_class_of(class_struct_union_type, desired_class) == NULL) {
       /* Don't do any checking on nonreal classes in prototype
-         instantiations. */
+         instantiations, unless it does happen that there is a relationship. */
     } else {
       /* If the member is protected, it can only be accessed through an object
          or pointer of a type to which we have member access (ARM 11.5). */
