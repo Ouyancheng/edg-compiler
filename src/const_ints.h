@@ -95,6 +95,10 @@ const_ints.h -- Declarations related to manipulation of target integer
 #define complement_integer_value(op_1)					\
   *(op_1) = ~*(op_1);
 
+/* Increment the integer value *intval.  No overflow checking is done. */
+#define incr_integer_value(intval)					\
+ (*(intval))++;
+
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
 extern void set_integer_value(an_integer_value *intval,
@@ -119,6 +123,8 @@ extern void sign_extend_integer_value(an_integer_value *value,
 				      int	        bits);
 
 extern void complement_integer_value(an_integer_value *op_1);
+
+extern void incr_integer_value(an_integer_value *intval);
 
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
@@ -164,8 +170,6 @@ extern a_boolean le_max_integer_value_of_kind(an_integer_value *value,
 
 extern a_boolean is_max_value_for_integer_kind(a_constant      *con,
                                                an_integer_kind ikind);
-
-extern void incr_integer_value(an_integer_value *intval);
 
 extern int bits_required_to_represent_integer_constant(a_constant *cp);
 
