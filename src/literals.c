@@ -468,7 +468,7 @@ This function is modeled after conv_float_literal (see below).
   a_fixed_point_value
              value;
   char       *actual_end = end_of_curr_token;
-  char       old_next_char, old_next2_char;
+  char       old_next_char;
   a_boolean  err;
   a_boolean  inexact = FALSE;
 
