@@ -1,5 +1,10 @@
 Version 2.28
 
+3/1/95   C generating back end and  variable argument lists on HP/UX and SGI
+
+When generating old style parameter lists, the C generating back end now
+emits the special va_alist parameter required by HP/UX and SGI.
+
 2/28/95  Cfront 2.1 compatibility: Derived::operator Base()
 
 Ordinarily a conversion operator that converts from a derived class to a

@@ -1313,6 +1313,17 @@ is non-NULL, in which case that is the function scope.
         write_tok_str("__builtin_va_alist");
       }  /* if */
 #endif /* SUNCC */
+#if defined(__hpux) || defined(__sgi)
+      if (rtsp->has_ellipsis) {
+	/* The HP/UX and SGI C compilers require that va_alist appear in
+	   the argument list at the start of the variable portion of the
+	   argument list.  As with the Sun case above, this code will also
+	   be used for C++ functions that have been turned into old-style
+	   functions by IL lowering. */
+        if (param_var != NULL) write_tok_str(", ");
+        write_tok_str("va_alist");
+      }  /* if */
+#endif /* defined(__hpux) || define(__sgi) */
     }  /* if */
   } else {
     /* Prototyped list. */
@@ -4973,10 +4984,13 @@ its subtree.
 }  /* dump_prescan_temps */
 
 
-static void dump_old_style_parameter_decls(a_scope_ptr scope)
+/*ARGSUSED*/ /* <-- type is used only in certain configurations. */
+static void dump_old_style_parameter_decls(a_scope_ptr scope,
+					   a_type_ptr  type)
 /*
 Generate parameter declarations for the definition of an unprototyped
-function.  scope is the associated scope.
+function.  scope is the associated scope, type is the type of the
+routine whose parameters are being processed.
 */
 {
   a_variable_ptr param_var;
@@ -4992,6 +5006,22 @@ function.  scope is the associated scope.
                                         /*suppress_const=*/FALSE);
     write_tok_ch(';');
   }  /* for */
+  {
+#ifdef __hpux
+    /* On HP/UX, when generating a function with a variable argument list,
+       a declaration must be supplied for the special "va_alist" parameter. */
+    a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
+    if ( rtsp->has_ellipsis )
+        write_tok_str(" long va_alist;");
+#endif /* ifdef __hpux */
+#ifdef __sgi
+    /* On SGI, when generating a function with a variable argument list,
+       a declaration must be supplied for the special "va_alist" parameter. */
+    a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
+    if ( rtsp->has_ellipsis )
+        write_tok_str(" int va_alist;");
+#endif /* ifdef __sgi */
+  }
 }  /* dump_old_style_parameter_decls */
 
 
@@ -5028,7 +5058,7 @@ for the definition of the indicated routine.  scope is the associated scope.
 #if ASM_FUNCTION_ALLOWED
     if (!within_asm_function_definition)
 #endif /* ASM_FUNCTION_ALLOWED */
-      dump_old_style_parameter_decls(scope);
+      dump_old_style_parameter_decls(scope, type);
 #if C_GEN_BE_GENERATES_ANSI_C
   }  /* if */
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
