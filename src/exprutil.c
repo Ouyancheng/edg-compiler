@@ -1175,6 +1175,22 @@ values.
   set_operand_kind(operand, kind);
 }  /* clear_operand */
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+
+static void set_operand_expr_position_if_expr(an_operand *operand)
+/*
+If operand is an expression operand, set the source positions in the
+underlying expression.
+*/
+{
+  if (is_expression_operand(operand)) {
+    an_expr_node_ptr expr = operand->variant.expression;
+    expr->expr_range.start = operand->position;
+    expr->expr_range.end   = operand->end_position;
+  }  /* if */
+}  /* set_operand_expr_position_if_expr */
+
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 static void set_operand_position_to_pos_curr_token(an_operand *operand)
 /*
@@ -1186,11 +1202,7 @@ Set the position in the given operand to the current token position.
   operand->end_position = end_pos_curr_token;
   /* If the operand has kind ok_expression, set the position in the
      expression too. */
-  if (is_expression_operand(operand)) {
-    an_expr_node_ptr expr = operand->variant.expression;
-    expr->expr_range.start = operand->position;
-    expr->expr_range.end   = operand->end_position;
-  }  /* if */
+  set_operand_expr_position_if_expr(operand);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* set_operand_position_to_pos_curr_token */
 
@@ -1424,6 +1436,9 @@ destroyed its source position, etc.  Restore such things from
   operand->position = orig_operand->position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   operand->end_position = orig_operand->end_position;
+  /* If the operand has kind ok_expression, set the position in the
+     expression too. */
+  set_operand_expr_position_if_expr(operand);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   operand->bound_function = orig_operand->bound_function;
   operand->is_qualified_name = orig_operand->is_qualified_name;
