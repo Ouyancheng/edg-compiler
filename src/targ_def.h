@@ -409,15 +409,14 @@ match the target machine behavior on integer operations in C.
 /* Container size to be used for bit-fields.  If > 0, indicates the
    size in bytes of one of the integral types.  0 means "use the smallest
    integral type into which the field will fit".  < 0 means "use the
-   base type given in the declaration"; this should be the setting when
-   TARG_MICROSOFT_BIT_FIELD_ALLOCATION is TRUE. */
+   base type given in the declaration". */
 #ifndef TARG_BIT_FIELD_CONTAINER_SIZE
 #if TARG_MICROSOFT_BIT_FIELD_ALLOCATION
 #define TARG_BIT_FIELD_CONTAINER_SIZE -1
 #else /* !TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY && ABI_COMPATIBILITY_VERSION >= 232
 /* In the C code it generates, cfront changes the underlying types of all
-   bit-fields to int. */
+   bit-fields to int or unsigned int. */
 #define TARG_BIT_FIELD_CONTAINER_SIZE TARG_SIZEOF_INT
 #else /* !CFRONT_OBJECT_CODE_COMPATIBILITY... */
 #define TARG_BIT_FIELD_CONTAINER_SIZE 0
@@ -459,6 +458,8 @@ match the target machine behavior on integer operations in C.
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT -1
 #else /* !TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
+/* cfront changes all bit fields to int or unsigned int in the generated
+   C code. */
 /* This feature CAN be changed when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
    but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT TARG_ALIGNOF_INT
