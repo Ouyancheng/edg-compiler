@@ -1080,8 +1080,10 @@ extern a_symbol_ptr class_qualified_id_lookup(
 extern a_symbol_ptr file_scope_id_lookup(a_symbol_locator         *locator,
                                          an_id_lookup_options_set options);
 
-extern a_symbol_ptr operator_member_function_symbol(an_opname_kind kind,
-                                                    a_type_ptr     class_type);
+extern a_symbol_ptr opname_member_function_symbol(an_opname_kind kind,
+                                                  a_type_ptr     class_type);
+
+extern a_symbol_ptr opname_function_symbol(an_opname_kind kind);
 
 /* Begin a name scope. */
 extern a_scope_ptr push_scope(a_scope_kind   kind,
