@@ -956,7 +956,7 @@ child files encountered.
 #if DEBUG
       if (debug_level >= 5) {
         fprintf(f_debug, "Writing file timestamp for %s, time is %ld\n",
-                sfp->full_name, mod_time);
+                sfp->full_name, (long)mod_time);
       }  /* if */
 #endif /* DEBUG */
     }  /* if */

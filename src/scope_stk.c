@@ -114,7 +114,7 @@ Display one scope stack entry.
 
   fprintf(f_debug, "%s%3ld %3d ",
           (ssep == &scope_stack[decl_scope_level]) ? "**" : "  ",
-          (long)ssep->number, scope_depth_of(ssep));
+          (long)ssep->number, (int)scope_depth_of(ssep));
   len = db_scope_kind(ssep->kind);
   fprintf(f_debug, "%-*s", 25-len, "");
   fprintf(f_debug, "prev=%3d ", ssep->previous_scope);
