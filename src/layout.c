@@ -1010,12 +1010,11 @@ static a_boolean is_best_derivation(a_base_class_ptr  bcp,
 #endif /* CHECKING */
     is_best_path = TRUE;
   } else {
-    bcp = corresponding_base_class(bcp, (a_type_ptr)NULL, class_type);
+    bcp = corresponding_base_class(bcp, class_type);
     if (bcp->direct) {
       is_best_path = FALSE;
     } else {
-      derived_bcp = corresponding_base_class(derived_bcp, (a_type_ptr)NULL,
-                                             class_type);
+      derived_bcp = corresponding_base_class(derived_bcp, class_type);
 #if 0
       /* Checking based on the derivation path is not really right.  If the
          need arises we'll have to beef this up. */
@@ -1073,9 +1072,7 @@ successors on the list, if any, are processed before the predecessor.
         /* If the virtual base class needs and does not yet have a pointer
            to its data section, allocate it now and then allocate a pointer
            for any of its own virtual base classes that may need it. */
-        bcp = corresponding_base_class(base_class,
-                                       /*old_type=*/(a_type_ptr)NULL,
-                                       lob->class_type);
+        bcp = corresponding_base_class(base_class, lob->class_type);
         if (bcp->pointer_base_class == NULL && !bcp->pointer_offset_is_set &&
             is_best_derivation(bcp, derived_bcp, lob->class_type)) {
           /* Allocate the pointer. */
@@ -1123,8 +1120,7 @@ class_type that we are interesting in examining.)
     /* If bcp is a virtual base class, look for the corresponding base class
        among the base classes of class_type. */
     if (bcp->is_virtual) {
-      corresp_bcp = corresponding_base_class(bcp, (a_type_ptr)NULL,
-                                             class_type);
+      corresp_bcp = corresponding_base_class(bcp, class_type);
       /* If it has a NULL pointer base class (meaning its pointer is not
          embedded within the body of some other base class) return TRUE.
          Otherwise keep looking. */
@@ -1202,8 +1198,7 @@ base classes, direct and indirect, and allocate pointers as needed for them.
 
   /* Find the base class entry on the base classes list of the current class
      that corresponds to base_class. */
-  bcp = corresponding_base_class(base_class, (a_type_ptr)NULL,
-                                 lob->class_type);
+  bcp = corresponding_base_class(base_class, lob->class_type);
   if (!bcp->pointer_offset_is_set) {
     /* Allocate a pointer to its data section.  The offset of the pointer will
        be recored in *bcp. */
@@ -1308,8 +1303,7 @@ static void set_offsets_for_corresponding_virtual_base_classes(
         set_offsets_for_corresponding_virtual_base_classes(
                                         lob, base_class->next, use_decl_order);
       }  /* if */
-      bcp = corresponding_base_class(base_class, /*old_type=*/(a_type_ptr)NULL,
-                                     lob->class_type);
+      bcp = corresponding_base_class(base_class, lob->class_type);
       if (bcp->data_section_base_class == NULL && bcp->offset == 0 &&
           !lob->any_overflow) {
 #if CHECKING
@@ -1541,7 +1535,7 @@ setting the offset field in the latter.
         db_base_class(ref_bcp, /*show_offset=*/TRUE);
       }  /* if */
 #endif /* DEBUG */
-      bcp = corresponding_base_class(ref_bcp, (a_type_ptr)NULL,
+      bcp = corresponding_base_class(ref_bcp,
                                      proximate_derivation->derived_class);
       if (!bcp->is_virtual) {
         bcp->offset = proximate_derivation->offset + ref_bcp->offset;
@@ -1629,8 +1623,7 @@ classes.
         set_embedded_virtual_base_class_offset(data_section_bcp, class_type);
       }  /* if */
       /* Look for the corresponding virtual base class. */
-      bcp = corresponding_base_class(base_class, class_type,
-                                     data_section_bcp->type);
+      bcp = corresponding_base_class(base_class, data_section_bcp->type);
       /* The pointer_offset value in the context of the derived class
          is the offset of the pointer base class plus the offset of the
          virtual base class pointer within the latter. */
@@ -1643,8 +1636,7 @@ classes.
   bcp = base_classes_of(base_class->type);
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->is_virtual && bcp->direct) {
-      curr_class_bcp = corresponding_base_class(bcp, base_class->type,
-                                                class_type);
+      curr_class_bcp = corresponding_base_class(bcp, class_type);
       if (curr_class_bcp->data_section_base_class == NULL) {
         /* curr_class_bcp is an indirect virtual base class of class type
            that is not yet marked as embedded. */
@@ -1690,7 +1682,7 @@ virtual base class pointer is shared with some other base class.
       pointer_base_class = virtual_base_class->pointer_base_class;
       if (pointer_base_class != NULL) {
         /* Look for the corresponding virtual base class. */
-        bcp = corresponding_base_class(virtual_base_class, class_type,
+        bcp = corresponding_base_class(virtual_base_class,
                                        pointer_base_class->type);
         /* The pointer_offset value in the context of the derived class
            is the offset of the pointer base class plus the offset of the

@@ -780,18 +780,35 @@ for the class to which they belong.
 }  /* insert_in_virtual_function_override_list */
 
 
+a_base_class_ptr find_direct_base_class_of(a_type_ptr  base_class_type,
+                                           a_type_ptr  derived_class)
+/*
+Find the direct base class of derived_class with a type identical to
+base_class_type.
+*/
+{
+  a_base_class_ptr  bcp;
+
+  db_enter(4, "find_direct_base_class_of");
+  bcp = base_classes_of(derived_class);
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct && bcp->type == base_class_type) break;
+  }  /* for */
+  db_exit();
+  return bcp;
+}  /* find_direct_base_class_of */
+
+
 a_base_class_ptr corresponding_base_class(a_base_class_ptr base_class,
-                                          a_type_ptr       old_class,
                                           a_type_ptr       new_class)
 /*
 Find the base class under new_class that is the same as the base class
-indicated by base_class under old_class, and return a pointer to it.  The
-base class must be found.  If base_class is NULL, find the base class for
-old_class under new_class.  If old_class is NULL it means we don't know
-(or don't case) what it is; in such a case, base_class may not be NULL.
+indicated by base_class, and return a pointer to it.  The base class must
+be found.
 */
 {
-  a_base_class_ptr new_base_class, bcp;
+  a_base_class_ptr       new_base_class, bcp;
+  a_derivation_step_ptr  step;
 
   db_enter(4, "corresponding_base_class");
 #if DEBUG
@@ -799,47 +816,25 @@ old_class under new_class.  If old_class is NULL it means we don't know
     fputs("looking in \"", f_debug);
     db_type_name(new_class);
     fputs("\" for a base class corresponding to:\n  ", f_debug);
-    if (base_class != NULL) {
-      db_base_class(base_class, FALSE);
-    } else {
-      db_abbreviated_type(old_class);
-      fputc("\n", f_debug);
-    }  /* if */
+    db_base_class(base_class, FALSE);
   }  /* if */
 #endif /* DEBUG */
-#if CHECKING
-  if (old_class != NULL && base_class != NULL &&
-      old_class != base_class->derived_class) {
-    internal_error("corresponding_base_class: bad old_class");
-  }  /* if */
-#endif /* if CHECKING */
-  if (old_class == NULL) old_class = base_class->derived_class;
-  if (old_class == new_class) {
+  if (base_class->derived_class == new_class) {
+    /* base_class is aleady a base class of new_class.  Just return it. */
     new_base_class = base_class;
     goto done;
   }  /* if */
+  /* Look for a match among the base classes of new_class. */
   for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
-    if (base_class == NULL) {
-#if CHECKING
-      if (old_class == NULL) {
-        internal_error("corresponding_base_class: base_class=old_class=NULL");
-      }  /* if */
-#endif /* CHECKING */
-      if (bcp->type == old_class && bcp->direct) {
-        /* Found old_class as a direct base class of new_class. */
-        new_base_class = bcp;
-        goto done;
-      }  /* if */
-    } else if (bcp->type == base_class->type) {
+    if (bcp->type == base_class->type) {
       /* The types match. */
-      a_derivation_step_ptr  step = bcp->derivation;
-
       if (base_class->is_virtual && bcp->is_virtual) {
+        /* Both are virtual, so they match. */
         new_base_class = bcp;
         goto done;
       } else if (base_class->direct) {
-        for (; step != NULL; step = step->next) {
-          if (step->base_class->type == old_class) {
+        for (step = bcp->derivation; step != NULL; step = step->next) {
+          if (step->base_class->type == base_class->derived_class) {
             new_base_class = bcp;
             goto done;
           }  /* if */
@@ -851,11 +846,12 @@ old_class under new_class.  If old_class is NULL it means we don't know
         /* One or both of the base classes is ambiguous.  That means there
            is more than one instance of the base class in the base classes
            list.  Check the derivations to resolve the ambiguity. */
-        if (equivalent_paths(step, base_class->derivation)) {
+        if (equivalent_paths(bcp->derivation, base_class->derivation)) {
           new_base_class = bcp;
           goto done;
         } else {
-          for (; step != NULL; step = step->next) {
+#if 0
+          for (step = bcp->derivation; step != NULL; step = step->next) {
             if (step->base_class->type ==
                                base_class->derivation->base_class->type &&
                 congruent_paths(step, base_class->derivation)) {
@@ -863,6 +859,7 @@ old_class under new_class.  If old_class is NULL it means we don't know
               goto done;
             }  /* if */
           }  /* for */
+#endif /* if 0 */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -874,14 +871,8 @@ old_class under new_class.  If old_class is NULL it means we don't know
       fputs("cannot find base class", f_debug);
       db_base_class(base_class, FALSE);
     }  /* if */
-    fputs("old_class = ", f_debug);
-    if (old_class == NULL) {
-      fputs("NULL", f_debug);
-    } else {
-      db_name(&old_class->source_corresp);
-    }  /* if */
-    fputs("; new_class = ", f_debug);
-    db_name(&new_class->source_corresp);
+    fputs("new_class = ", f_debug);
+    db_type_name(new_class);
     fputs(" with base classes:\n", f_debug);
     for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
       fputs("  ", f_debug);
@@ -990,9 +981,13 @@ new_bcp is the base class being created in new_class.
         new_ovfp->overriding_function = ovfp->overriding_function;
         /* The base class of the overriding function must be translated into
            the new class. */
-        new_ovfp->base_class = corresponding_base_class(ovfp->base_class,
-                                                        old_class,
-                                                        new_class);
+        if (ovfp->base_class == NULL) {
+          new_ovfp->base_class = find_direct_base_class_of(old_class,
+                                                           new_class);
+        } else {
+          new_ovfp->base_class = corresponding_base_class(ovfp->base_class,
+                                                          new_class);
+        }  /* if */
 #if DEBUG
         if (debug_level >= 4) {
           fputs("copy for base class ", f_debug);
@@ -1178,7 +1173,7 @@ with which bcp shares its virtual function info, return TRUE.
     bcp = bcp->type->variant.class_struct_union.extra_info->
                                               virtual_function_info_base_class;
     if (bcp != NULL) {
-      bcp = corresponding_base_class(bcp, (a_type_ptr)NULL, class_type);
+      bcp = corresponding_base_class(bcp, class_type);
       if (virtual_function_info_base_class == bcp) {
         shares = TRUE;
       }  /* if */
@@ -1464,7 +1459,7 @@ Dump a base class entry, for debug purposes.
 */
 {
   (void)fputc('"', f_debug);
-  db_name(&bcp->type->source_corresp);
+  db_type_name(bcp->type);
   if (bcp->derived_class != NULL) {
     fputs("\", base class of \"", f_debug);
     db_type_name(bcp->derived_class);
@@ -1989,7 +1984,7 @@ is a base class.
     for (other_bcp = base_classes_of(base_class->type);
          other_bcp != NULL;
          other_bcp = other_bcp->next) {
-      bcp = corresponding_base_class(other_bcp, base_class->type, new_class);
+      bcp = corresponding_base_class(other_bcp, new_class);
 #if DEBUG
       if (debug_level >= 3) {
         fputs("may need fixup: ", f_debug);
@@ -2058,8 +2053,7 @@ the pointer_base_class for both V1 and V2 is C.
            if its pointer is embedded in some other base class, we don't want
            it after all.  In such a case we'll encounter that base class
            later in processing and use it then. */
-        bcp = corresponding_base_class(base_class, (a_type_ptr)NULL,
-                                       dsp->base_class->type);
+        bcp = corresponding_base_class(base_class, dsp->base_class->type);
         if (bcp->pointer_base_class == NULL) {
           base_class->pointer_base_class = dsp->base_class;
         }  /* if */
@@ -2253,8 +2247,7 @@ subobject (e.g., C).
              base_class) or is an incomplete subobject (meaning it cannot
              have data sections for virtual base classes embedded within it),
              then this is where base_class may be embedded. */
-          bcp = corresponding_base_class(base_class, (a_type_ptr)NULL,
-                                         dsp->base_class->type);
+          bcp = corresponding_base_class(base_class, dsp->base_class->type);
           if (bcp->data_section_base_class == NULL) {
             base_class->data_section_base_class = dsp->base_class;
             updated = TRUE;
@@ -2293,8 +2286,7 @@ algorithm.
         /* bcp is one of the virtual base class of base_class.  Find the
            base class entry that corresponds to it in the base classes list
            for class_type. */
-        embedded_base_class = corresponding_base_class(bcp, (a_type_ptr)NULL,
-                                                       class_type);
+        embedded_base_class = corresponding_base_class(bcp, class_type);
         if (embedded_base_class->data_section_base_class != NULL) {
           /* The data section for this virtual base class has already been
              assigned a location. */
@@ -2315,7 +2307,7 @@ algorithm.
                location in the layout of class_type. */
             embedded_base_class->data_section_base_class =
                   corresponding_base_class(bcp->data_section_base_class,
-                                           (a_type_ptr)NULL, class_type);
+                                           class_type);
           }  /* if */
           /* Apply the algorithm recursively. */
           fixup_embedded_virtual_base_classes(embedded_base_class, class_type);
@@ -2746,8 +2738,7 @@ or struct definition.  The syntax is
               db_virtual_function_override_list(bcp);
             }  /* if */
 #endif /* DEBUG */
-            new_bcp = corresponding_base_class(bcp, new_direct_bcp->type,
-                                               type_ptr);
+            new_bcp = corresponding_base_class(bcp, type_ptr);
             /* Copy the virtual function override entries from bcp (which is
                on the base classes list for base_class_type) to the
                corresponding copied base class new_bcp (which is on the base
@@ -2794,7 +2785,7 @@ or struct definition.  The syntax is
                direct base class does.  (In the above example, set the field
                to point to A.) */
             ctsp->virtual_function_info_base_class =
-                     corresponding_base_class(bcp, (a_type_ptr)NULL, type_ptr);
+                                      corresponding_base_class(bcp, type_ptr);
           }  /* if */
           /* Advance the virtual function count so that any new virtual
              functions will be tacked on at the end of the shared virtual

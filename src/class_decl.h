@@ -34,7 +34,6 @@ extern void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp);
 extern a_boolean simplify_curr_class_qualified_name(void);
 
 extern a_base_class_ptr corresponding_base_class(a_base_class_ptr base_class,
-                                                 a_type_ptr       old_class,
                                                  a_type_ptr       new_class);
 
 #if CFRONT_OBJECT_CODE_COMPATIBILITY

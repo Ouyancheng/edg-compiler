@@ -5293,9 +5293,7 @@ number after the last one filled.
       /* When doing this processing for a base class, we have to find the
          corresponding base class under class_type.  The base class we
          have was extracted from class_whose_vtbl_is_being_made. */
-      imm_bcp = corresponding_base_class(imm_bcp,
-                                         class_whose_vtbl_is_being_made,
-                                         class_type);
+      imm_bcp = corresponding_base_class(imm_bcp, class_type);
     }  /* if */
     fill_virtual_function_table(aggr_con, class_type, imm_bcp, &entry_number);
     /* Now continue to fill the rest of the table, the unshared part, which
