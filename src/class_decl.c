@@ -1399,9 +1399,10 @@ Compare the exception specifications associated with function types type1
 and type2.  Return TRUE if the exception specification on the former is less
 restrictive than that on the latter.  The exception specification for one
 function is considered "less restrictive" than that of another if at least
-one type may be thrown from the former that cannot be caught by the minimal
-set of handlers that will catch the types thrown by the latter.  For example,
-the following are in order from most restrictive to least restrictive:
+one type may be thrown from the former that would violate the exception
+specification of the latter (i.e., that would not be caught by handlers for
+the types specified for the latter).  For example, the following are in
+order from most restrictive to least restrictive:
 
   void f1() throw();              // Nothing will be thrown
   void f2() throw(T);
@@ -1411,8 +1412,8 @@ the following are in order from most restrictive to least restrictive:
 Moreover:
 
   struct T : public U { ... };
-  void g1() throw(T);
-  void g2() throw(U);
+  void g1() throw(T);             // Does not violate exception spec of g2
+  void g2() throw(U);             // Violates exception spec of g1
 
 If U is a public and unambiguous base class of T, g2 is less restrictive than
 g1, because a handler for T can also catch a U, but a handler for U cannot
