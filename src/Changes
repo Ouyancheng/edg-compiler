@@ -1,5 +1,20 @@
 Version 3.6
 
+4/4/05   Abort on use of type from unnamed namespace as template argument
+
+The front end aborted in IL lowering in lower_name.c while processing
+a function with an argument that uses a template instantiated on
+a type from an unnamed namespace, if the function is the first
+function with an external definition in the translation unit (it
+was selected as the basis for the module id name).  Now fixed.
+
+  template <class T> class CArray { };
+  namespace {
+    struct X {int a;};
+    typedef CArray<X> XArr;
+  }
+  void fn (XArr *px) {}
+
 4/1/05   Abort while processing nested class of a class template
 
 In somewhat unusual situations (usually involving strict mode), the front end

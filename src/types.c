@@ -7783,6 +7783,7 @@ union or enum type or is a type tree containing such a type.
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_THIS_PARAM_TYPE |
                                                TTT_PARAM_TYPES |
+                                               TTT_TEMPLATE_ARGS |
                                                TTT_SKIP_TYPEREFS |
                                                TTT_EXCEPTION_SPECS);
 
@@ -7801,6 +7802,7 @@ an unnamed namespace, or is a type tree containing such a type.
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_THIS_PARAM_TYPE |
                                                TTT_PARAM_TYPES |
+                                               TTT_TEMPLATE_ARGS |
                                                TTT_SKIP_TYPEREFS |
                                                TTT_EXCEPTION_SPECS);
 
@@ -7825,6 +7827,7 @@ which of the conditions is true.
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_THIS_PARAM_TYPE |
                                                TTT_PARAM_TYPES |
+                                               TTT_TEMPLATE_ARGS |
                                                TTT_SKIP_TYPEREFS |
                                                TTT_EXCEPTION_SPECS);
 
