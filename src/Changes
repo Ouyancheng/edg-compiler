@@ -48,8 +48,8 @@ following example, compiled in C mode, illustrates the issue:
   volatile struct X {          int x:1; } a;
            struct Y { volatile int x:1; } b;
   void f(void) {
-    a.x;  // Has side effect
-    b.x;  // Has side effect
+    a.x;  /* Has side effect */
+    b.x;  /* Has side effect */
   }
 
 8/19/99  Abort in copy_default_arg_expr
