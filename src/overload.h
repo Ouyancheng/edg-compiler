@@ -318,6 +318,10 @@ extern a_boolean make_this_pointer_operand(a_symbol_ptr      member_sym,
                                            a_boolean         check_cast_access,
                                            an_operand        *result);
 
+extern void change_refs_on_selector_if_const_function(
+                                          a_type_ptr routine_type,
+                                          an_operand *bound_function_selector);
+
 extern void adjust_overloaded_function_call_arguments(
                              a_symbol_ptr             function_symbol,
                              a_boolean                have_selector,

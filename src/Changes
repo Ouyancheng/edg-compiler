@@ -1,5 +1,10 @@
 Version 2.29
 
+3/13/95  Const-address-taken references for conversion functions
+
+Const-address-taken references in the cross-reference output (added in
+2.28) now come out also for conversion function calls.
+
 3/13/95  Reachability of code after "if (1) ..."
 
 The code after an "if" without an "else" is no longer considered reachable

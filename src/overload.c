@@ -3425,6 +3425,28 @@ be processed under an ellipsis).
 }  /* node_for_arg_of_overloaded_function_call */
 
 
+void change_refs_on_selector_if_const_function(
+                                           a_type_ptr routine_type,
+                                           an_operand *bound_function_selector)
+/*
+A function with the indicated routine type is being called with the indicated
+operand as its selector object.  If the function is const, change the type
+of references to the object to be const-address-taken.
+*/
+{
+  a_type_ptr this_param_type = implicit_this_param_type_of(routine_type);
+
+  this_param_type = type_pointed_to(this_param_type);
+  if (is_const_qualified_type(this_param_type)) {
+    /* The function is a const function, so indicate that the selector's
+       address is taken only in a way that does not allow modification. */
+    change_some_ref_kinds(bound_function_selector->ref_entries_list,
+                          SRK_ADDRESS_TAKEN,
+                          SRK_ADDRESS_TAKEN | SRK_CONST_ADDRESS_TAKEN);
+  }  /* if */
+}  /* change_refs_on_selector_if_const_function */
+
+
 void adjust_overloaded_function_call_arguments(
                              a_symbol_ptr             function_symbol,
                              a_boolean                have_selector,
@@ -3475,17 +3497,10 @@ overloaded operator cases.
       /* Note that no cast is done here.  It was done when the "." or "->"
          operator was processed (that still may leave a difference here
          involving type qualifiers, but it's not meaningful). */
-      { a_type_ptr this_param_type = implicit_this_param_type_of(routine_type);
-        this_param_type = type_pointed_to(this_param_type);
-        if (is_const_qualified_type(this_param_type)) {
-          /* The function is a const function, so indicate that the selector's
-             address is taken only in a way that does not allow
-             modification. */
-          change_some_ref_kinds(bound_function_selector->ref_entries_list,
-                                SRK_ADDRESS_TAKEN,
-                                SRK_ADDRESS_TAKEN | SRK_CONST_ADDRESS_TAKEN);
-        }  /* if */
-      }
+      /* If the function is const, change the reference kinds on the
+         selector. */
+      change_refs_on_selector_if_const_function(routine_type,
+                                                bound_function_selector);
     }  /* if */
     if (arg_match != NULL && arg_match->is_match_for_this_param) {
       /* Move past the match entry for the selector.  Note that this entry
@@ -4564,6 +4579,8 @@ gives the type of the routine being called.
   a_base_class_ptr bcp;
 
   conv_class_operand_to_object_pointer(operand);
+  /* If the function is const, change the reference kinds on the selector. */
+  change_refs_on_selector_if_const_function(routine_type, operand);
   this_param_type = implicit_this_param_type_of(routine_type);
   this_class_type = f_skip_typerefs(type_pointed_to(this_param_type));
   if (is_pointer_type(operand->type)) {
