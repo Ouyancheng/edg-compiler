@@ -1,5 +1,17 @@
 Version 2.43
 
+11/10/99 Recursive instantiation of template default arguments
+
+The front end failed to detect the recursive instantiation of a template
+default argument.  This resulted in problems such as incorrect generated
+C code.  A diagnostic is now issued.
+
+  int i;
+  template <class T> int f(T, T = f(i));
+  int main() {
+    f(1);
+  }
+
 11/9/99  Sun compatibility option
 
 The front end now supports command-line switches --sun and --no_sun that
