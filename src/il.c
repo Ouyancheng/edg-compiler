@@ -1587,7 +1587,11 @@ not need a type supplement or scope entries.
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (ctsp == NULL) {
     /* No, so allocate one. */
-    ctsp = alloc_class_type_supplement(class_type, ssep->number);
+#if 0
+    /* We really need to know the scope number even when the class type
+       is not represented on the scope stack. */
+#endif
+    ctsp = alloc_class_type_supplement(class_type, NO_SCOPE_NUMBER);
     class_type->variant.class_struct_union.extra_info = ctsp;
     /* See if the class type is associated with an entry on the scope stack.
        If so, the IL scope pointer should be stored in it. */
@@ -1598,6 +1602,11 @@ not need a type supplement or scope entries.
           ssep->assoc_type == class_type) {
         /* This scope stack entry is for the class we just modified. */
         ssep->il_scope = ctsp->assoc_scope;
+#if 0
+        /* Following should be removed when correct scope number is known
+           when the scope is created. */
+#endif
+        ctsp->assoc_scope->number = ssep->number;
         break;
       }  /* if */
     }  /* for */
