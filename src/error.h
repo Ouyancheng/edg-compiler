@@ -289,6 +289,7 @@ typedef enum /*an_error_code*/ {
   ec_base_class_not_allowed_for_union,
   ec_access_already_specified,
   ec_missing_class_definition,
+  ec_name_not_member_of_class_or_base_classes,
   ec_member_ref_requires_object,
   ec_nonstatic_member_def_not_allowed,
   ec_redefinition_not_allowed,
