@@ -7603,8 +7603,6 @@ are handled in lexical_init.)
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(curr_seq_number),
       pch_saved_var_array_elem(seq_number_last_read),
-      pch_saved_var_array_elem(input_stack),
-      pch_saved_var_array_elem(size_input_stack),
       pch_saved_var_array_elem(avail_orig_line_modifs),
       pch_saved_var_array_elem(avail_source_line_modifs),
       pch_saved_var_array_elem(sequence_id_for_source_line_modifs),
