@@ -1435,6 +1435,24 @@ process_option()
 
 
 #
+# Function to invoke the front end and possibly redirect the error output
+# to a particular place.  This is used instead of "eval" because the "eval"
+# command can cause problem with certain quoted/escaped arguments.
+#
+invoke_front_end()
+{
+  discard_output=$1
+  if [ $discard_output -ne 0 ] ; then
+    $command >/dev/null 2>&1
+  elif [ "$EDG_CPFE_OUTPUT_FILTER" != "" ] ; then
+    $command 2>$output_tmp_file
+  else
+    $command
+  fi
+}  # invoke_front_end
+
+
+#
 # Go through every argument, identify it, and add it to a list if appropriate.
 #
 while [ -n "$1" ]
@@ -1812,13 +1830,13 @@ do
     # The first compilation should generate a PCH file, the second should
     # use the generated file.  The output of the first compilation is
     # discarded.
-    $command >/dev/null 2>&1
-    $command $command_output
+    invoke_front_end 1  # Run front end and discard output
+    invoke_front_end 0  # Run front end and keep output
     status=$?
     rm -f *.pch
   else
     # Normal mode, just run the front end.
-    $command $command_output
+    invoke_front_end 0  # Run front end and keep output
     status=$?
   fi
   if [ "$EDG_CPFE_OUTPUT_FILTER" != "" ] ; then
