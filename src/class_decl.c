@@ -5815,293 +5815,281 @@ Scan the body of a class definition, including the base classes list.
             }  /* if */
           }  /* if */
           remove_stop_token(tok_colon);
-          if (is_function_type(local_type) &&
-               member_storage_class != (a_storage_class)sc_typedef) {
-            if (C_dialect != C_dialect_cplusplus) {
-              error(ec_function_type_not_allowed);
-              local_type = error_type();
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-              if (declarator_ssep != NULL) {
-                a_src_seq_sublist_ptr  sublist = NULL;
-                remove_from_source_sequence_list(declarator_ssep, &sublist);
-              }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-              discard_curr_construct_pragmas();
-            } else {
-              /* Member or friend function. */
-              a_boolean      suppress_pure_specifier_error = FALSE;
-              a_boolean      function_def_present;
-              a_special_function_kind
-                             spec_kind = (a_special_function_kind)sfk_none;
+          if (!C_mode() && is_function_type(local_type) &&
+              member_storage_class != (a_storage_class)sc_typedef) {
+            /* Member or friend function. */
+            a_boolean      suppress_pure_specifier_error = FALSE;
+            a_boolean      function_def_present;
+            a_special_function_kind
+                           spec_kind = (a_special_function_kind)sfk_none;
 
-              if (friend_specified) {
-                if (virtual_specified ||
-                    member_storage_class != (a_storage_class)sc_unspecified) {
-                  /* A storage class declaration along with "friend" is not
-                     allowed.  The ARM doesn't disallow it, but that's how
-                     Cfront 2.1 works.  "inline", by the way, is allowed. */
-                  pos_error(ec_bad_friend_decl, &decl_start_pos);
-                  set_to_error_locator(locator);
-                  if (virtual_specified) {
-                    virtual_specified = FALSE;
-                    suppress_pure_specifier_error = TRUE;
-                  }  /* if */
-                  member_storage_class = (a_storage_class)sc_unspecified;
-                }  /* if */
-              } else {
-                if ((is_constructor || is_destructor) &&
-                    member_storage_class == (a_storage_class)sc_static) {
-                  /* Constructors and destructors may not be declared
-                     "static" (ARM 12.1, 12.4). */
-                  pos_error(ec_static_not_allowed, &decl_start_pos);
-                  member_storage_class = (a_storage_class)sc_unspecified;
-                }  /* if */
+            if (friend_specified) {
+              if (virtual_specified ||
+                  member_storage_class != (a_storage_class)sc_unspecified) {
+                /* A storage class declaration along with "friend" is not
+                   allowed.  The ARM doesn't disallow it, but that's how
+                   Cfront 2.1 works.  "inline", by the way, is allowed. */
+                pos_error(ec_bad_friend_decl, &decl_start_pos);
+                set_to_error_locator(locator);
                 if (virtual_specified) {
-                  if (is_constructor || is_union_type(class_type)) {
-                    /* Constructors may not be virtual functions (ARM 12.1)
-                       and unions may not have them (ARM 9.5). */
-                    pos_error(ec_virtual_not_allowed, &decl_start_pos);
-                    virtual_specified = FALSE;
-                    suppress_pure_specifier_error = TRUE;
-                  } else if (member_storage_class ==
-                                           (a_storage_class)sc_static ||
-                             (locator.is_operator_name &&
-                              (locator.variant.opname ==
-                                               (an_opname_kind)onk_new ||
-                               locator.variant.opname ==
-                                               (an_opname_kind)onk_delete))) {
-                    /* Only nonstatic member functions may be specified as
-                       virtual.  This applies to operators new and delete
-                       since they are always static (ARM 12.5). */
-                    pos_error(ec_virtual_static_not_allowed, &decl_start_pos);
-                    virtual_specified = FALSE;
-                    suppress_pure_specifier_error = TRUE;
-                  }  /* if */
+                  virtual_specified = FALSE;
+                  suppress_pure_specifier_error = TRUE;
+                }  /* if */
+                member_storage_class = (a_storage_class)sc_unspecified;
+              }  /* if */
+            } else {
+              if ((is_constructor || is_destructor) &&
+                  member_storage_class == (a_storage_class)sc_static) {
+                /* Constructors and destructors may not be declared
+                   "static" (ARM 12.1, 12.4). */
+                pos_error(ec_static_not_allowed, &decl_start_pos);
+                member_storage_class = (a_storage_class)sc_unspecified;
+              }  /* if */
+              if (virtual_specified) {
+                if (is_constructor || is_union_type(class_type)) {
+                  /* Constructors may not be virtual functions (ARM 12.1)
+                     and unions may not have them (ARM 9.5). */
+                  pos_error(ec_virtual_not_allowed, &decl_start_pos);
+                  virtual_specified = FALSE;
+                  suppress_pure_specifier_error = TRUE;
+                } else if (member_storage_class ==
+                                         (a_storage_class)sc_static ||
+                           (locator.is_operator_name &&
+                            (locator.variant.opname ==
+                                             (an_opname_kind)onk_new ||
+                             locator.variant.opname ==
+                                             (an_opname_kind)onk_delete))) {
+                  /* Only nonstatic member functions may be specified as
+                     virtual.  This applies to operators new and delete
+                     since they are always static (ARM 12.5). */
+                  pos_error(ec_virtual_static_not_allowed, &decl_start_pos);
+                  virtual_specified = FALSE;
+                  suppress_pure_specifier_error = TRUE;
                 }  /* if */
               }  /* if */
-              if (!type_explicitly_specified) {
-                /* No type specifier. */
-                if (is_constructor || is_destructor ||
-                    locator.is_conversion_name) {
-                  /* Type specifier is not expected (nor permitted) on
-                     constructors, destructors, and conversion functions. */
-                } else {
-                  /* Type specifier is missing.  The type defaults to int,
-                     but issue a diagnostic. */
-                  if (first_declarator_diagnostics) {
-                    pos_remark(ec_missing_type_specifier, &decl_start_pos);
-                  }  /* if */
-                }  /* if */
-              }  /* if */
-              spec_kind = (a_special_function_kind)sfk_none;
-              function_def_present = (curr_token == tok_lbrace);
-              if (local_type == member_type) {
-                /* When scanning the declarator does not change the type,
-                   we know this member is a function based on the specifier
-                   type alone.  This is only possible with a typedef name that
-                   represents a function type.  Such typedef types do not
-                   (usually) have implicit this-param types.  Moreover, since
-                   they are shared, they are unsuited to be the type of
-                   a defined function. */
-                a_type_ptr  rout_type = skip_typerefs(local_type);
-                a_boolean   copy_needed = TRUE;
-
-                func_info.function_type_from_typedef = TRUE;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-                func_info.declarator_ssep = declarator_ssep;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-                if (any_cfront_mode() &&
-                    rout_type->variant.routine.extra_info->
-                                            implicit_this_param_type != NULL) {
-                  /* We have a situation in which a typedef has been declared
-                     like this:
-                            typedef void A::t(int);  // Nonstandard
-                     meaning "t" names a routine type taking an int argument
-                     and returning void and having an implicit this-param type
-                     of const-ptr-to-A.  (This "member function typedef" is
-                     not part of the language of the ARM  and is allowed for
-                     cfront compatibility only.)  The only supported use is
-                     to declare a pointer-to-member type, e.g.,
-                            t *pm;                   // Okay
-                     Whereas it is apparently being used here to declare a
-                     function, e.g.,
-                            t f;                     // Error
-                     Issue the error. */
-                  pos_sy_error(ec_bad_use_of_ptr_to_member_typedef,
-                               &decl_start_pos,
-                               (a_symbol_ptr)local_type->
-                                        source_corresp.assoc_info);
-                } else if (function_def_present) {
-                  /* Not legal to define a function with a typedef type. */
-                  pos_error(ec_function_type_must_come_from_declarator,
-                            &locator.source_position);
-                } else if (friend_specified ||
-                           member_storage_class ==
-                                           (a_storage_class)sc_static) {
-                  /* No copy is needed. */
-                  copy_needed = FALSE;
-                }  /* if */
-                if (copy_needed) {
-                  /* Build a copy of the routine type so as to have a
-                     non-shared routine type entry. */
-                  local_type = alloc_type((a_type_kind)tk_routine);
-                  copy_routine_type_with_param_types(rout_type, local_type);
-                  if (!friend_specified &&
-                      member_storage_class != (a_storage_class)sc_static) {
-                    /* This is a nonstatic member function declared through
-                       a typedef.  Be sure the implicit this-param type is
-                       filled in, since that's the only way a nonstatic
-                       member function is distinguished from a static member
-                       function. */
-                    a_type_ptr tp;
-
-                    tp = make_pointer_type(class_type);
-                    tp = make_qualified_type(tp, /*is_const=*/TRUE,
-                                             /*is_volatile=*/FALSE);
-                    local_type->variant.routine.extra_info->
-                                      implicit_this_param_type = tp;
-                  } else if (any_cfront_mode()) {
-                    /* Just in case this is a copy of the weird
-                       cfront-compatibility typedef, clear out the implicit
-                       this-param pointer in the copied type entry. */
-                    local_type->variant.routine.extra_info->
-                                            implicit_this_param_type = NULL;
-                  }  /* if */
-                }  /* if */
-              }  /* if */
-              if (function_def_present && !first_declarator) {
-                pos_error(ec_exp_semicolon, &pos_curr_token);
-              }  /* if */
-              func_info.is_definition = function_def_present;
-              func_info.is_inline = inline_specified || function_def_present;
-              if (friend_specified) {
-                rout_sym = decl_friend_function(&locator, class_type,
-                                                local_type, &func_info);
+            }  /* if */
+            if (!type_explicitly_specified) {
+              /* No type specifier. */
+              if (is_constructor || is_destructor ||
+                  locator.is_conversion_name) {
+                /* Type specifier is not expected (nor permitted) on
+                   constructors, destructors, and conversion functions. */
               } else {
-                /* A class with a user-defined constructor or a virtual
-                   function cannot be an "aggregate" (8.5.1). */
-                if (is_constructor || virtual_specified) {
-                  class_aggregate_ruled_out = TRUE;
-                }  /* if */
-                if (is_destructor) {
-                  spec_kind = (a_special_function_kind)sfk_destructor;
-                } else if (is_constructor) {
-                  spec_kind = (a_special_function_kind)sfk_constructor;
-                  if (curr_token == tok_colon) {
-                    func_info.is_definition = function_def_present = TRUE;
-                    func_info.is_inline = TRUE;
-                  }  /* if */
-                }  /* if */
-                /* Create a symbol for the member function. */
-                rout_sym = decl_member_function(
-                                   &locator, class_type, local_type,
-                                   &func_info, access, virtual_specified,
-                                   /*compiler_generated=*/FALSE, spec_kind,
-                                   &override_registry);
-                if (cssp->is_prototype_instantiation) {
-                  /* During the prototype instantiation, save the token
-                     sequence number associated with this declaration so that
-                     it can be used for matching purposes during real
-                     instantiations. */
-                  a_template_symbol_supplement_ptr  tssp;
-                  tssp = rout_sym->variant.routine.instance_ptr->template_info;
-                  check_assertion(tssp != NULL);
-                  tssp->token_sequence_number = curr_token_sequence_number;
-                } else if (corresp_prototype_tag_sym != NULL) {
-                  /* The class must be the instantiation of a class template
-                     (or a class nested within such an instantiation). Bind
-                     the current member function symbol to the function
-                     template symbol established during prototype
-                     instantiation. */
-                  if (!is_error_locator(locator)) {
-                    find_member_function_template(rout_sym,
-                                                  corresp_prototype_tag_sym);
-                  }  /* if */
+                /* Type specifier is missing.  The type defaults to int,
+                   but issue a diagnostic. */
+                if (first_declarator_diagnostics) {
+                  pos_remark(ec_missing_type_specifier, &decl_start_pos);
                 }  /* if */
               }  /* if */
-              if (!function_def_present) {
-                if (func_info.param_id_list != NULL) {
-                  /* After updating xref information on each symbol, free the
-                     list of parameter identifiers -- they're not needed if
-                     there's no definition. */
-                  a_param_id_ptr  pid = func_info.param_id_list;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-                  a_src_seq_sublist_ptr  sublist = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-                  for (; pid != NULL; pid = pid->next) {
-                    if (pid->symbol != NULL) {
-                      mark_declared(pid->symbol, &pid->symbol->decl_position);
-                    }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-                    if (pid->source_sequence_entry != NULL) {
-                      check_assertion(
-                               ss_entry_kind(pid->source_sequence_entry) ==
-                                              (an_il_entry_kind)iek_none);
-                      remove_from_source_sequence_list(
-                                       pid->source_sequence_entry, &sublist);
-                      pid->source_sequence_entry = NULL;
-                    }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-                  }  /* for */
-                }  /* if */
-              }  /* if */
-              if (curr_routine_fixup != NULL) {
-                curr_routine_fixup->routine = rout_sym->variant.routine.ptr;
-                curr_routine_fixup->func_info = func_info;
-              } else {
-                done_with_func_info(func_info);
-              }  /* if */
-              if (function_def_present) {
-                if (!friend_specified) {
-                  /* The inline flag is set for friend functions in
-                     decl_friend_function, which also handles cases in which
-                     it should be left unset despite the presence of a
-                     function body. */
-                  check_assertion(rout_sym->variant.routine.ptr->is_inline);
-                }  /* if */
-                remove_stop_token(tok_comma);
-                /* Cache the tokens comprising the function definition
-                   so that they can be rescanned once the entire class
-                   definition has been processed. */
-                if (prescan_function_definition()) {
-                  /* Advance past the terminating right brace. */
-                  (void)get_token();
-                }  /* if */
-                if (curr_token == tok_semicolon) {
-                  /* Advance past the optional semicolon. */
-                  (void)get_token();
-                }  /* if */
-                if (!friend_specified && is_nonreal_instantiation) {
-                  /* A member function of a nonreal class serves as a
-                     template, and since this is the definition the
-                     template-info associated with this member function must
-                     be updated, based on the template-info of the prototype
-                     instantiation.  Note that the current class may be
-                     nested within the prototype instantiation. */
-                  a_template_symbol_supplement_ptr  tssp, class_tssp;
+            }  /* if */
+            spec_kind = (a_special_function_kind)sfk_none;
+            function_def_present = (curr_token == tok_lbrace);
+            if (local_type == member_type) {
+              /* When scanning the declarator does not change the type,
+                 we know this member is a function based on the specifier
+                 type alone.  This is only possible with a typedef name that
+                 represents a function type.  Such typedef types do not
+                 (usually) have implicit this-param types.  Moreover, since
+                 they are shared, they are unsuited to be the type of
+                 a defined function. */
+              a_type_ptr  rout_type = skip_typerefs(local_type);
+              a_boolean   copy_needed = TRUE;
 
-                  tssp = rout_sym->variant.routine.instance_ptr->template_info;
-                  class_tssp =
-                       scope_stack[depth_innermost_instantiation_scope].
-                                           template_sym->variant.template_info;
-                  tssp->parameters = class_tssp->parameters;
-                  tssp->declaration_scope = class_tssp->declaration_scope;
+              func_info.function_type_from_typedef = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+              func_info.declarator_ssep = declarator_ssep;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+              if (any_cfront_mode() &&
+                  rout_type->variant.routine.extra_info->
+                                          implicit_this_param_type != NULL) {
+                /* We have a situation in which a typedef has been declared
+                   like this:
+                          typedef void A::t(int);  // Nonstandard
+                   meaning "t" names a routine type taking an int argument
+                   and returning void and having an implicit this-param type
+                   of const-ptr-to-A.  (This "member function typedef" is
+                   not part of the language of the ARM  and is allowed for
+                   cfront compatibility only.)  The only supported use is
+                   to declare a pointer-to-member type, e.g.,
+                          t *pm;                   // Okay
+                   Whereas it is apparently being used here to declare a
+                   function, e.g.,
+                          t f;                     // Error
+                   Issue the error. */
+                pos_sy_error(ec_bad_use_of_ptr_to_member_typedef,
+                             &decl_start_pos,
+                             (a_symbol_ptr)local_type->
+                                      source_corresp.assoc_info);
+              } else if (function_def_present) {
+                /* Not legal to define a function with a typedef type. */
+                pos_error(ec_function_type_must_come_from_declarator,
+                          &locator.source_position);
+              } else if (friend_specified ||
+                         member_storage_class ==
+                                         (a_storage_class)sc_static) {
+                /* No copy is needed. */
+                copy_needed = FALSE;
+              }  /* if */
+              if (copy_needed) {
+                /* Build a copy of the routine type so as to have a
+                   non-shared routine type entry. */
+                local_type = alloc_type((a_type_kind)tk_routine);
+                copy_routine_type_with_param_types(rout_type, local_type);
+                if (!friend_specified &&
+                    member_storage_class != (a_storage_class)sc_static) {
+                  /* This is a nonstatic member function declared through
+                     a typedef.  Be sure the implicit this-param type is
+                     filled in, since that's the only way a nonstatic
+                     member function is distinguished from a static member
+                     function. */
+                  a_type_ptr tp;
+
+                  tp = make_pointer_type(class_type);
+                  tp = make_qualified_type(tp, /*is_const=*/TRUE,
+                                           /*is_volatile=*/FALSE);
+                  local_type->variant.routine.extra_info->
+                                    implicit_this_param_type = tp;
+                } else if (any_cfront_mode()) {
+                  /* Just in case this is a copy of the weird
+                     cfront-compatibility typedef, clear out the implicit
+                     this-param pointer in the copied type entry. */
+                  local_type->variant.routine.extra_info->
+                                          implicit_this_param_type = NULL;
                 }  /* if */
-                /* A comma-list of function definitions is not allowed. */
-                goto next_declaration;
-              } else {
-                /* Not a function definition. */
-                if (curr_token == tok_assign) {
-                  /* Look for a pure specifier ("= 0"), which may appear on
-                     virtual functions. */
-                  scan_pure_specifier(rout_sym, class_type,
-                                      suppress_pure_specifier_error);
-                } else if (!friend_specified && is_local_class) {
-                  /* A member function declared in a local class definition
-                     (which is the current case) must be defined within the
-                     class definition (ARM 9.8). */
-                  error(ec_local_class_function_def_missing);
+              }  /* if */
+            }  /* if */
+            if (function_def_present && !first_declarator) {
+              pos_error(ec_exp_semicolon, &pos_curr_token);
+            }  /* if */
+            func_info.is_definition = function_def_present;
+            func_info.is_inline = inline_specified || function_def_present;
+            if (friend_specified) {
+              rout_sym = decl_friend_function(&locator, class_type,
+                                              local_type, &func_info);
+            } else {
+              /* A class with a user-defined constructor or a virtual
+                 function cannot be an "aggregate" (8.5.1). */
+              if (is_constructor || virtual_specified) {
+                class_aggregate_ruled_out = TRUE;
+              }  /* if */
+              if (is_destructor) {
+                spec_kind = (a_special_function_kind)sfk_destructor;
+              } else if (is_constructor) {
+                spec_kind = (a_special_function_kind)sfk_constructor;
+                if (curr_token == tok_colon) {
+                  func_info.is_definition = function_def_present = TRUE;
+                  func_info.is_inline = TRUE;
                 }  /* if */
+              }  /* if */
+              /* Create a symbol for the member function. */
+              rout_sym = decl_member_function(
+                                 &locator, class_type, local_type,
+                                 &func_info, access, virtual_specified,
+                                 /*compiler_generated=*/FALSE, spec_kind,
+                                 &override_registry);
+              if (cssp->is_prototype_instantiation) {
+                /* During the prototype instantiation, save the token
+                   sequence number associated with this declaration so that
+                   it can be used for matching purposes during real
+                   instantiations. */
+                a_template_symbol_supplement_ptr  tssp;
+                tssp = rout_sym->variant.routine.instance_ptr->template_info;
+                check_assertion(tssp != NULL);
+                tssp->token_sequence_number = curr_token_sequence_number;
+              } else if (corresp_prototype_tag_sym != NULL) {
+                /* The class must be the instantiation of a class template
+                   (or a class nested within such an instantiation). Bind
+                   the current member function symbol to the function
+                   template symbol established during prototype
+                   instantiation. */
+                if (!is_error_locator(locator)) {
+                  find_member_function_template(rout_sym,
+                                                corresp_prototype_tag_sym);
+                }  /* if */
+              }  /* if */
+            }  /* if */
+            if (!function_def_present) {
+              if (func_info.param_id_list != NULL) {
+                /* After updating xref information on each symbol, free the
+                   list of parameter identifiers -- they're not needed if
+                   there's no definition. */
+                a_param_id_ptr  pid = func_info.param_id_list;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+                a_src_seq_sublist_ptr  sublist = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+                for (; pid != NULL; pid = pid->next) {
+                  if (pid->symbol != NULL) {
+                    mark_declared(pid->symbol, &pid->symbol->decl_position);
+                  }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+                  if (pid->source_sequence_entry != NULL) {
+                    check_assertion(
+                             ss_entry_kind(pid->source_sequence_entry) ==
+                                            (an_il_entry_kind)iek_none);
+                    remove_from_source_sequence_list(
+                                     pid->source_sequence_entry, &sublist);
+                    pid->source_sequence_entry = NULL;
+                  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+                }  /* for */
+              }  /* if */
+            }  /* if */
+            if (curr_routine_fixup != NULL) {
+              curr_routine_fixup->routine = rout_sym->variant.routine.ptr;
+              curr_routine_fixup->func_info = func_info;
+            } else {
+              done_with_func_info(func_info);
+            }  /* if */
+            if (function_def_present) {
+              if (!friend_specified) {
+                /* The inline flag is set for friend functions in
+                   decl_friend_function, which also handles cases in which
+                   it should be left unset despite the presence of a
+                   function body. */
+                check_assertion(rout_sym->variant.routine.ptr->is_inline);
+              }  /* if */
+              remove_stop_token(tok_comma);
+              /* Cache the tokens comprising the function definition
+                 so that they can be rescanned once the entire class
+                 definition has been processed. */
+              if (prescan_function_definition()) {
+                /* Advance past the terminating right brace. */
+                (void)get_token();
+              }  /* if */
+              if (curr_token == tok_semicolon) {
+                /* Advance past the optional semicolon. */
+                (void)get_token();
+              }  /* if */
+              if (!friend_specified && is_nonreal_instantiation) {
+                /* A member function of a nonreal class serves as a
+                   template, and since this is the definition the
+                   template-info associated with this member function must
+                   be updated, based on the template-info of the prototype
+                   instantiation.  Note that the current class may be
+                   nested within the prototype instantiation. */
+                a_template_symbol_supplement_ptr  tssp, class_tssp;
+
+                tssp = rout_sym->variant.routine.instance_ptr->template_info;
+                class_tssp =
+                     scope_stack[depth_innermost_instantiation_scope].
+                                         template_sym->variant.template_info;
+                tssp->parameters = class_tssp->parameters;
+                tssp->declaration_scope = class_tssp->declaration_scope;
+              }  /* if */
+              /* A comma-list of function definitions is not allowed. */
+              goto next_declaration;
+            } else {
+              /* Not a function definition. */
+              if (curr_token == tok_assign) {
+                /* Look for a pure specifier ("= 0"), which may appear on
+                   virtual functions. */
+                scan_pure_specifier(rout_sym, class_type,
+                                    suppress_pure_specifier_error);
+              } else if (!friend_specified && is_local_class) {
+                /* A member function declared in a local class definition
+                   (which is the current case) must be defined within the
+                   class definition (ARM 9.8). */
+                error(ec_local_class_function_def_missing);
               }  /* if */
             }  /* if */
           } else if (friend_specified) {
@@ -6211,7 +6199,12 @@ Scan the body of a class definition, including the base classes list.
               /* Non-static data member (= field). */
               /* The type specified must be complete. */
               check_for_uninstantiated_template_class(local_type);
-              if (is_incomplete_type(local_type)) {
+
+              if (C_mode() && is_function_type(local_type) &&
+                  member_storage_class != (a_storage_class)sc_typedef) {
+                error(ec_function_type_not_allowed);
+                local_type = error_type();
+              } else if (is_incomplete_type(local_type)) {
                 /* As a C extension (but not C++), allow an array of unknown
                    size as the last member of a struct.  It can't be the first
                    member, though. */
