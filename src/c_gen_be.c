@@ -4544,7 +4544,7 @@ do not put out the closing brace either.
     fputc('}', f_C_output);
   }  /* if */
 }  /* initializer_close_brace */
-    
+
 
 #define INITS_PER_LINE 10
 
