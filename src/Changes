@@ -1,5 +1,11 @@
 Version 2.08
 
+8/4/92  const anachronism restricted to cfront compatibility mode
+
+The anachronism that allows a non-const function to be called with a
+const object is now accepted only in cfront compatibility mode.  As before,
+a warning is issued.
+
 8/4/92  Special handling of void * in cfront compatibility mode
 
 In cfront compatibility mode, a qualified version of "void *", e.g.,

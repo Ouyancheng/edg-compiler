@@ -3276,9 +3276,10 @@ is used only in C++ mode.
     internal_error("set_up_for_conversion_function_call: no this parameter");
   }  /* if */
 #endif  /* CHECKING */
-  /* Check for the anachronism that allows a non-const function to be
+  /* Check for the cfront anachronism that allows a non-const function to be
      called for a const selector (see selector_match_with_this_param). */
-  if (is_const_qualified_type(operand->type) &&
+  if (cfront_compatibility_mode &&
+      is_const_qualified_type(operand->type) &&
       !is_const_qualified_type(type_pointed_to(this_param_type))) {
     pos_warning(ec_unqual_function_with_qual_object, &operand->position);
     /* prep_special_selector_operand (call below) will drop the const. */
@@ -4147,7 +4148,6 @@ Print an argument match summary for debug purposes.
     case aml_std_conversion:    str = "std conversion";      break;
     case aml_user_conversion:   str = "user conversion";     break;
     case aml_ellipsis:          str = "ellipsis";            break;
-    case aml_const_anachronism: str = "const anachronism";   break;
     case aml_error:             str = "error";               break;
     case aml_none:              str = "none";                break;
     default:                    str = "**BAD MATCH LEVEL**";
@@ -4734,7 +4734,7 @@ class or a derived class thereof (except for error cases).
 {
   a_type_ptr selector_type, this_param_type, this_param_base_type;
   a_type_ptr this_param_class_type, const_this_param_base_type;
-  a_type_ptr ptr_selector_type;
+  a_type_ptr ptr_selector_type, const_this_param_type;
 
   db_enter(4, "selector_match_with_this_param");
   if (routine_type->variant.routine.extra_info->constructor_or_destructor) {
@@ -4781,24 +4781,28 @@ class or a derived class thereof (except for error cases).
                               this_param_type,
                               /*try_user_conversions=*/FALSE,
                               this_match_summary);
-    if (this_match_summary->match_level == aml_none && !strict_ansi_mode) {
-      /* No match.  Try the anachronism of calling a function that does not
-         require a const "this" with a const selector.  See also
+    if (cfront_compatibility_mode &&
+        this_match_summary->match_level == aml_none) {
+      /* No match.  Try the cfront anachronism of calling a function that
+         does not require a const "this" with a const selector.  See also
          set_up_for_conversion_function_call. */
-      /* Check that the types match once the "const" difference is
-         ignored. */
+      /* Make the type that the "this" parameter would have if the routine
+         were const, and try again. */
       const_this_param_base_type = make_qualified_type(this_param_base_type,
                                                        /*is_const=*/TRUE,
                                                        /*is_volatile=*/FALSE);
-      if (type_qualifiers_match(const_this_param_base_type,
-                                selector_type)) {
-        selector_type = skip_typerefs(selector_type);
-        if (types_are_compatible(selector_type, this_param_class_type)) {
-          /* Anachronism -- calling non-const function with const object. */
-          this_match_summary->match_level = aml_const_anachronism;
-          this_match_summary->warning_suggested =
+      const_this_param_type = make_pointer_type(const_this_param_base_type);
+      const_this_param_type = make_qualified_type(const_this_param_type,
+                                                  /*is_const=*/TRUE,
+                                                  /*is_volatile=*/FALSE);
+      determine_arg_match_level((an_operand *)NULL, ptr_selector_type,
+                                const_this_param_type,
+                                /*try_user_conversions=*/FALSE,
+                                this_match_summary);
+      if (this_match_summary->match_level != aml_none) {
+        /* Anachronism -- calling non-const function with const object. */
+        this_match_summary->warning_suggested =
                                            ec_unqual_function_with_qual_object;
-        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -6016,8 +6020,8 @@ This routine is only used in C++ mode.
       if (std_conversion_needed) {
         if ((int)this_match.match_level >= (int)aml_std_conversion) {
           /* If the existing match level is the same as or worse than a
-             standard conversion (e.g., aml_const_anachronism), leave it
-             alone.  Usually, it will be an exact match. */
+             standard conversion, leave it alone.  Usually, it will be
+             an exact match. */
         } else {
           this_match.match_level = aml_std_conversion;
         }  /* if */
