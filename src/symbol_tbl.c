@@ -1192,7 +1192,9 @@ the proper insert location.
              name in the same scope (see ARM 3.2, 3.1c, and 7.1.3). */
           if (C_dialect == C_dialect_cplusplus &&
               ((is_tag_symbol(sym_ptr) && !is_type_symbol(old_sym_ptr)) ||
-               (is_tag_symbol(old_sym_ptr) && !is_type_symbol(sym_ptr)))) {
+               (is_tag_symbol(old_sym_ptr) && !is_type_symbol(sym_ptr))) &&
+               !is_access_adjustment_symbol(sym_ptr) &&
+               !is_access_adjustment_symbol(old_sym_ptr)) {
             /* One symbol is a tag name (class, struct, union, or enum)
                and the other is a non-type name, so they can coexist in
                the same scope.  If the new symbol is a tag, put it
