@@ -2073,6 +2073,7 @@ the function.
          sym will now be amongst its linked list of function symbols. */
     } else {
       /* Do the lookup again to get the overloaded function symbol. */
+      locator.specific_symbol = NULL;
       file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
       return_sym = locator.specific_symbol;
     }  /* if */
