@@ -36,7 +36,7 @@ EXTERN a_decl_sequence_number
 /*
 Set the declaration sequence number of the symbol pointed to by sym.
 */
-#define set_decl_sequence_number(sym) (sym)->decl_seq = ++decl_seq_counter
+#define set_decl_sequence_number(sym) ((sym)->decl_seq = ++decl_seq_counter)
 
 /*
 A symbol-reference-set is a bit vector designed to describe the declarations
