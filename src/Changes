@@ -3,8 +3,8 @@ Version 2.46
 11/14/01 Microsoft compatibility: template name used in base class specifier
 
 Within the scope of class template the template name may be used
-either with our without a template argument list.  The Microsoft
-compilers also accepts the template name without a template argument list
+either with or without a template argument list.  The Microsoft
+compiler also accepts the template name without a template argument list
 in the base-specifier list of the class.  We now emulate this behavior
 in Microsoft bugs mode.
 
