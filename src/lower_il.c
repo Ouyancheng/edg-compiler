@@ -8614,11 +8614,18 @@ the insertion.
              removed from the types list. */
           { a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
-            check_assertion_str2(type_as_subobject->next == NULL &&
-                                 ctsp != NULL &&
-                                 ctsp->type_as_subobject == type_as_subobject,
-                                 "promote_type_list: placeholder for class",
+            if (type_as_subobject->next != NULL ||
+                ctsp == NULL ||
+                ctsp->type_as_subobject != type_as_subobject) {
+#if DEBUG
+              (void)fprintf(f_debug, "Class type: ");
+              db_abbreviated_type(type);
+              (void)fprintf(f_debug, "\n");
+#endif /* DEBUG */
+              unexpected_condition_str2(
+                              "promote_type_list: placeholder for class",
                               "instantiation encountered before class itself");
+            }  /* if */
           }
 #endif /* CHECKING */
           type_as_subobject->next = next_type;
