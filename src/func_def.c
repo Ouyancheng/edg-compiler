@@ -1531,6 +1531,14 @@ member declaration (allowed in Microsoft mode only).
                     /*marked_as_gnu_extension=*/FALSE, 
                     func_info->param_id_list, (a_source_range *)NULL);
       }  /* while */
+#if GNU_EXTENSIONS_ALLOWED
+      if (gcc_mode && curr_token == tok_ellipsis) {
+        /* GNU C allows an old-style parameter list to be followed by
+           an ellipsis ("...") to indicate varargs parameters. */
+        extra_info->has_ellipsis = TRUE;
+        (void)get_token();
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* Transfer the source sequence list in the function prototype scope
          over to the func_info block. */

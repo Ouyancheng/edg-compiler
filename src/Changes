@@ -1,5 +1,15 @@
 Version 3.2
 
+2/3/03   GNU C mode: Old-style vararg parameter declarations
+
+GNU C allows old-style parameter lists to be followed by an ellipsis to
+indicate that the function accepts variable length argument lists.  For
+example:
+
+  void f(x) int x; ... {}
+
+This GNU extension is now emulated in our front end.
+
 2/3/03   GNU C++ mode: disambiguation problem with __null
 
 As a result of a disambiguation problem, a spurious error was issued
