@@ -67,6 +67,17 @@ declarations:
        int i;                // In C mode: now reported as an invalid
      { /* ... */ }           //      param declrather than a syntax error
 
+12/11/92 Bug in overflow checking in constant folding
+
+The overflow checking in subtract_mixed_signed_integer_values in
+const_ints.c has been corrected.  Formerly, it gave an overflow on
+a case like
+
+   char *p = (char *)5 - 1;
+
+This routine is only used for pointer subtraction, so this bug only
+came up in unusual cases like the above.
+
 12/9/92  enum types in cfront compatibility mode
 
 In cfront compatibility mode, enum types are now treated just like
