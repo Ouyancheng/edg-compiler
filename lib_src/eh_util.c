@@ -16,6 +16,7 @@ C++ functions to support exception handling.
 #include <stdlib.h>
 #include "basics.h"
 #include "config.h"
+#include "runtime.h"
 
 #if EXCEPTION_HANDLING
 #include "eh.h"
@@ -25,6 +26,7 @@ void terminate()
 The default terminate routine.
 */
 {
+  __default_terminate_routine();
   abort();
 }  /* terminate */
 
@@ -35,7 +37,7 @@ Used by the EH runtime when terminate needs to be called.  Ensures
 that terminate does not return.
 */
 {
-  __default_terminate_routine();
+  terminate();
   abort();
 }  /* __call_terminate */
 
@@ -57,6 +59,7 @@ void unexpected()
 The default unexpected routine.  This routine calls terminate.
 */
 {
+  __default_unexpected_routine();
   __default_terminate_routine();
 }  /* unexpected */
 
@@ -68,7 +71,7 @@ Used by the EH runtime when unexpected needs to be called.  Ensures
 that unexpected does not return.
 */
 {
-  __default_unexpected_routine();
+  unexpected();
   abort();
 }  /* __call_unexpected */
 
