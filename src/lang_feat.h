@@ -847,15 +847,6 @@ designated initializers can be enabled.
 #define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE FALSE
 #endif /* ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
 
-
-/*
-Flag that is TRUE if variadic macros and extended variadic macros can be
-enabled.
-*/
-#ifndef VARIADIC_MACROS_ENABLING_POSSIBLE
-#define VARIADIC_MACROS_ENABLING_POSSIBLE FALSE
-#endif /* VARIADIC_MACROS_ENABLING_POSSIBLE */
-
 /*
 Flag that is TRUE to enable a special nonstandard weighting of the
 conversion for the integral operand of the [] operator in overload resolution.

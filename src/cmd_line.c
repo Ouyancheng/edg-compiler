@@ -796,7 +796,6 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
-#if VARIADIC_MACROS_ENABLING_POSSIBLE
   add_option_description(optk_variadic_macros,
                          "variadic_macros",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -813,7 +812,6 @@ Initialize the option information table.
                          "no_extended_variadic_macros",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#endif /* VARIADIC_MACROS_ENABLING_POSSIBLE */
   add_option_description(optk_system_include_dir, "sys_include", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);

@@ -546,12 +546,7 @@ EXTERN a_boolean
 EXTERN a_boolean
 		variadic_macros_allowed
 #if VAR_INITIALIZERS
-                                             =
-#if VARIADIC_MACROS_ENABLING_POSSIBLE
-                                               DEFAULT_VARIADIC_MACROS_ALLOWED
-#else /* !VARIADIC_MACROS_ENABLING_POSSIBLE */
-                                               FALSE
-#endif /* VARIADIC_MACROS_ENABLING_POSSIBLE */
+                                             = DEFAULT_VARIADIC_MACROS_ALLOWED
 #endif /* VAR_INITIALIZERS */
                                                                               ;
              /* TRUE if '#define VM(x, ...) __VA_ARGS__' should be accepted. */
@@ -559,12 +554,7 @@ EXTERN a_boolean
 EXTERN a_boolean
 		extended_variadic_macros_allowed
 #if VAR_INITIALIZERS
-                                    =
-#if VARIADIC_MACROS_ENABLING_POSSIBLE
-                                      DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED
-#else /* !VARIADIC_MACROS_ENABLING_POSSIBLE */
-                                      FALSE
-#endif /* VARIADIC_MACROS_ENABLING_POSSIBLE */
+                                    = DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED
 #endif /* VAR_INITIALIZERS */
                                                                               ;
                  /* TRUE if '#define EVM(args ...) args' should be accepted. */

@@ -166,10 +166,8 @@ carriage-return/line-feed.
 
 Two variants of macro definitions that can be invoked with a variable number
 of arguments are now supported.  These extensions can be enabled with the
-options --variadic_macros and --extended_variadic_macros (unless the
-configuration flag VARIADIC_MACROS_ENABLING_ALLOWED is FALSE).  Both
-extensions also allow trailing macro arguments to be omitted as in this
-example:
+options --variadic_macros and --extended_variadic_macros.  Both extensions
+also allow trailing macro arguments to be omitted as in this example:
 
   #define M(a, b) a(b)
   void M(f); /* expands to "void f();", no warning or error */
