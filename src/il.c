@@ -3965,14 +3965,94 @@ bucket of the shareable_constants_table to use for the constant.
 
 static a_boolean compare_template_param_constant_expressions(
                                                      an_expr_node_ptr  node1,
-                                                     an_expr_node_ptr  node2)
+                                                     an_expr_node_ptr  node2);
+
+static a_boolean compare_template_param_constant_expression_lists(
+                                                     an_expr_node_ptr  list1,
+                                                     an_expr_node_ptr  list2)
 /*
-Return TRUE if node1 and node2 are equivalent expression trees.
+Return TRUE if list1 and list2 are equivalent expression lists.
 */
 {
-  a_boolean         eq = FALSE;
+  an_expr_node_ptr expr1 = list1, expr2 = list2;
+  a_boolean        eq;
 
-  if (node1->kind == node2->kind) {
+  for (;; expr1 = expr1->next, expr2 = expr2->next) {
+    if (expr1 == NULL && expr2 == NULL) {
+      eq = TRUE;
+      break;
+    } else if (expr1 == NULL || expr2 == NULL) {
+      eq = FALSE;
+      break;
+    } else if (!compare_template_param_constant_expressions(expr1, expr2)) {
+      eq = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+  return eq;
+}  /* compare_template_param_constant_expression_lists */
+
+
+static a_boolean compare_template_param_dynamic_inits(a_dynamic_init_ptr dip1,
+                                                      a_dynamic_init_ptr dip2)
+/*
+Return TRUE if dip1 and dip2 are equivalent dynamic initializations.
+*/
+{
+  a_boolean eq = FALSE;
+
+  if (dip1 == NULL && dip2 == NULL) {
+    eq = TRUE;
+  } else if (dip1->kind == dip2->kind &&
+             same_entities(dip1->variable, dip2->variable) &&
+             same_entities(dip1->destructor, dip2->destructor)) {
+    switch (dip1->kind) {
+      case dik_none:
+      case dik_zero:
+        eq = TRUE;
+        break;
+      case dik_constant:
+        eq = eq_constants(dip1->variant.constant, dip2->variant.constant);
+        break;
+      case dik_expression:
+      case dik_call_returning_class_via_cctor:
+        eq = compare_template_param_constant_expressions(
+                                                     dip1->variant.expression,
+                                                     dip2->variant.expression);
+        break;
+      case dik_constructor:
+        eq = (same_entities(dip1->variant.constructor.ptr,
+                            dip2->variant.constructor.ptr) &&
+              dip1->variant.constructor.value_initialization ==
+              dip2->variant.constructor.value_initialization &&
+              compare_template_param_constant_expression_lists(
+                                              dip1->variant.constructor.args,
+                                              dip2->variant.constructor.args));
+        break;
+      default:
+        unexpected_condition_str(
+                            "compare_template_param_dynamic_inits: bad kind"); 
+    }  /* switch */
+  }  /* if */
+  return eq;
+}  /* compare_template_param_dynamic_inits */
+
+
+static a_boolean compare_template_param_constant_expressions(
+                                                     an_expr_node_ptr  node1,
+                                                     an_expr_node_ptr  node2)
+/*
+Return TRUE if node1 and node2 are equivalent expression trees.  Note
+that while this is used to compare expressions in template arguments,
+node1 and node2 can be non-constant expressions because such expressions
+are allowed under a sizeof (etc.) in a template argument expression.
+*/
+{
+  a_boolean eq = FALSE;
+
+  if (node1 == NULL && node2 == NULL) {
+    eq = TRUE;
+  } else if (node1->kind == node2->kind) {
     switch (node1->kind) {
       case enk_operation:
         if (node1->variant.operation.kind == node2->variant.operation.kind) {
@@ -4001,20 +4081,87 @@ Return TRUE if node1 and node2 are equivalent expression trees.
       case enk_constant:
         eq = eq_constants(node1->variant.constant, node2->variant.constant);
         break;
+      case enk_variable:
       case enk_variable_address:
-        eq = (node1->variant.variable == node2->variant.variable);
+        eq = same_entities(node1->variant.variable, node2->variant.variable);
         break;
       case enk_routine_address:
-        eq = (node1->variant.routine == node2->variant.routine);
+        eq = same_entities(node1->variant.routine, node2->variant.routine);
+        break;
+      case enk_field:
+        eq = same_entities(node1->variant.field, node2->variant.field);
         break;
       case enk_temp_init:
+        eq = (node1->variant.init.result_is_addr ==
+              node2->variant.init.result_is_addr &&
+              node1->variant.init.static_temp ==
+              node2->variant.init.static_temp &&
+              compare_template_param_dynamic_inits(
+                                            node1->variant.init.dynamic_init,
+                                            node2->variant.init.dynamic_init));
+        break;
+      case enk_new_delete:
+        { a_new_delete_supplement_ptr ndsp1 = node1->variant.new_delete;
+          a_new_delete_supplement_ptr ndsp2 = node2->variant.new_delete;
+          eq = (ndsp1->is_new == ndsp2->is_new &&
+                ndsp1->placement_new == ndsp2->placement_new &&
+                ndsp1->array_delete == ndsp2->array_delete &&
+                identical_types(ndsp1->type, ndsp2->type) &&
+                same_entities(ndsp1->routine, ndsp2->routine) &&
+                compare_template_param_constant_expression_lists(ndsp1->arg,
+                                                                 ndsp2->arg) &&
+                compare_template_param_dynamic_inits(ndsp1->dynamic_init,
+                                                     ndsp2->dynamic_init));
+        }
+        break;
+      case enk_throw:
+        { a_throw_supplement_ptr tsp1 = node1->variant.throw_info;
+          a_throw_supplement_ptr tsp2 = node2->variant.throw_info;
+          if (tsp1 == NULL && tsp2 == NULL) {
+            eq = TRUE;
+          } else if (tsp1 != NULL || tsp2 != NULL) {
+            eq = FALSE;
+          } else {
+            eq = (identical_types(tsp1->type, tsp2->type) &&
+                  compare_template_param_dynamic_inits(tsp1->dynamic_init,
+                                                       tsp2->dynamic_init));
+          }  /* if */
+        }
+        break;       
+      case enk_object_lifetime:
+        eq = compare_template_param_constant_expressions(
+                                          node1->variant.object_lifetime.expr,
+                                          node2->variant.object_lifetime.expr);
+        break;
+      case enk_typeid:
+        eq = (identical_types(node1->variant.typeid_info.type,
+                              node2->variant.typeid_info.type) &&
+              compare_template_param_constant_expressions(
+                                             node1->variant.typeid_info.expr,
+                                             node2->variant.typeid_info.expr));
+        break;
+      case enk_runtime_sizeof:
+        eq = (node1->variant.runtime_sizeof.is_type ==
+              node2->variant.runtime_sizeof.is_type &&
+              node1->variant.runtime_sizeof.is_lvalue ==
+              node2->variant.runtime_sizeof.is_lvalue &&
+              (node1->variant.runtime_sizeof.is_type ?
+                 identical_types(node1->variant.runtime_sizeof.variant.type,
+                                 node2->variant.runtime_sizeof.variant.type) :
+                 compare_template_param_constant_expressions(
+                                 node1->variant.runtime_sizeof.variant.expr,
+                                 node2->variant.runtime_sizeof.variant.expr)));
+        break;
+      case enk_address_of_ellipsis:
+        eq = TRUE;
+        break;
       case enk_error:
         /* Nonequivalence is assumed. */
         break;
-#if CHECKING
+      case enk_condition:
       default:
-        internal_error("compare_template_param_constant_expr: bad expr kind");
-#endif /* CHECKING */
+        unexpected_condition_str(
+                        "compare_template_param_constant_expr: bad expr kind");
     }  /* switch */
   }  /* if */
   return eq;
