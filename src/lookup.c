@@ -1619,6 +1619,12 @@ that do normal id lookup processing.
         lookup_state->add_to_active_list = FALSE;
         lookup_state->insert_sym = NULL;
       }  /* if */
+      /* The Microsoft compiler ignores inherited injected class names
+         in most cases.  The principal case in which it is found is at
+         the start of a qualified name. */
+      if (sym != NULL && sym->kind == (a_symbol_kind)sk_projection &&
+          !lookup_state->must_be_class_or_namespace && microsoft_bugs &&
+          is_injected_class_symbol(fundamental_symbol_of(sym))) sym = NULL;
     }  /* if */
   }  /* if */
   return sym;
@@ -1668,7 +1674,15 @@ that do normal id lookup processing.
          returned, in the case of a hidden name lookup).  It must still
          satisfy the constraints for this lookup. */
       a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-      if (!is_acceptable_symbol(sym, fund_sym, *lookup_state)) sym = NULL;
+      if (!is_acceptable_symbol(sym, fund_sym, *lookup_state)) {
+        sym = NULL;
+      } else if (microsoft_bugs) {
+        /* The Microsoft compiler ignores inherited injected class names
+           in most cases.  The principal case in which it is found is at
+           the start of a qualified name. */
+        if (!lookup_state->must_be_class_or_namespace &&
+            is_injected_class_symbol(fund_sym)) sym = NULL;
+      }  /* if */
     }  /* if */
   } else {
     if (lookup_state->check_for_nonreal_bases &&

@@ -1,5 +1,25 @@
 Version 2.42
 
+7/29/99  Microsoft compatibility: injected class name not found in most
+         contexts
+
+The Microsoft compiler does not find injected class names in many contexts.
+In Microsoft bugs mode, an injected class name is only found as a component
+of a qualified name (including the first component).
+
+  struct A {
+    struct C { static void f(){} };
+  };
+  struct C { int i[10]; };
+  struct B : public A::C {
+    static void f() {
+      // The following uses A::C
+      C::f();
+      // But the following uses ::C
+      printf("Sizeof C = %d\n", sizeof(C));
+    }
+  };
+
 7/28/99  Microsoft compatibility: nonclass typedef does not begin qualifier
 
 The Microsoft compiler does not consider a nonclass typedef as the start
