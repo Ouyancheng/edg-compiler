@@ -3017,6 +3017,7 @@ Report the indicated warning at the indicated position.
 }  /* pos_warning */
 
 
+#if !USE_MMAP_FOR_MEMORY_REGIONS
 void str_warning(an_error_code error_code,
                char          *error_string)
 /*
@@ -3026,6 +3027,7 @@ position indicated by error_position.
 {
   pos_st_warning(error_code, &error_position, error_string);
 }  /* str_warning */
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
 
 void warning(an_error_code error_code)

@@ -255,8 +255,10 @@ extern void pos_st_warning(an_error_code     error_code,
                            char              *error_string);
 extern void pos_warning(an_error_code     error_code,
                         a_source_position *error_pos);
+#if !USE_MMAP_FOR_MEMORY_REGIONS
 extern void str_warning(an_error_code error_code,
                         char          *error_string);
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
 extern void warning(an_error_code error_code);
 extern void pos_ty_warning(an_error_code     error_code,
                            a_source_position *error_pos,
