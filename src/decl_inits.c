@@ -1261,15 +1261,25 @@ issuing an error on an incomplete type.
        sure the initializers are also at file scope. */
     switch_to_file_scope_region(&region_to_switch_back_to);
   }  /* if */
-  if (C_dialect == C_dialect_cplusplus &&
-      is_class_struct_union_type(vp_type)) {
-    cssp = symbol_supplement_for_class(vp_type);
-  }  /* if */
   /* If the initialization is invalid in some way, init_err will be set to
      TRUE.  It will be used to assure that the initialization bound to the
      variable will be an error constant (or a dynamic initializer pointing
      to an error constant. */
   init_err = FALSE;
+  if (C_dialect == C_dialect_cplusplus &&
+      is_class_struct_union_type(vp_type)) {
+    cssp = symbol_supplement_for_class(vp_type);
+    if (!cssp->is_class_aggregate && curr_token == tok_lbrace) {
+      /* This is an attempt to do C-style aggregate initialization on a class
+         object for which there is a constructor, nonpublic members, base
+         classes, or virtual functions.  In such cases a constructor must be
+         used. */
+      type_error(ec_brace_initialization_not_allowed, vp_type);
+      init_err = TRUE;
+      vp_type = error_type();
+      cssp = NULL;
+    }  /* if */
+  }  /* if */
   /* Now process the initializer.  There are three cases:  parenthesized
      initializer (C++ only), brace-enclosed initializer list, and simple
      initializer.  These are handled in turn. */
@@ -1303,19 +1313,8 @@ issuing an error on an incomplete type.
   } else if (curr_token == tok_lbrace || is_aggregate_or_union_type(vp_type)) {
     /* Either a brace enclosed list of initializers or other aggregate
        initialization. */
-    if (cssp != NULL && !cssp->is_class_aggregate &&
-        curr_token == tok_lbrace) {
-      /* This is an attempt to do C-style aggregate initialization on a class
-         object for which there is a constructor, nonpublic members, base
-         classes, or virtual functions.  In such cases a constructor must be
-         used. */
-      /* We can't call syntax_error because the type is being displayed. */
-      type_error(ec_brace_initialization_not_allowed, vp_type);
-      /* Flush tokens until something in the stop token set turns up. */
-      flush_tokens();
-      init_err = TRUE;
-    } else if (is_class_struct_union_type(vp_type) &&
-               (C_dialect == C_dialect_cplusplus || !static_lifetime)) {
+    if (is_class_struct_union_type(vp_type) &&
+        (C_dialect == C_dialect_cplusplus || !static_lifetime)) {
       /* Special C++ case:  a class aggregate may be initialized with an
          object of its class or a class derived from it.  E.g., if S is the
          name of a struct and x is an S, then S y = x is permitted.  In
