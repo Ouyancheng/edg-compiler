@@ -1,5 +1,17 @@
 Version 2.20
 
+8/26/93 Local const variables treated as constants
+
+Local constant variables are now properly treated as constants when
+used in constant operations:
+
+const int MaxChunk = 8;
+main(){
+   const int MaxStep = 8;
+   const int MaxCount = MaxChunk/MaxStep;
+   float addr[MaxCount]; // No error anymore
+}
+
 8/25/93 Type display in diagnostics
 
 A couple of bugs in displaying types in diagnostic messages have been
