@@ -2882,7 +2882,12 @@ has changed then write the updated list of instantiations to the file.
 #endif /* PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION */
         if (use_definition_list) {
           definition_list_option = pl_create_definition_list_file(); 
-          def_list_display_option = "--definition_list_file=<temp-file>";
+          def_list_display_option = "";
+#if DEBUG
+          /* When generating debug information, include the definition
+             list option in the output. */
+          if (pl_debug_level != 0) def_list_display_option = NULL;
+#endif /* DEBUG */
         }  /* if */
         return_status = pl_recompile_file(
                        pifp, definition_list_option, def_list_display_option);
