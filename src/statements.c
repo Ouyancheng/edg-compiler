@@ -62,6 +62,15 @@ static a_reachability_summary
 			   reachable by flowing into it from the previous
 			   statement. */
 
+static a_control_flow_descr_ptr
+		control_flow_descr_list;
+
+static a_control_flow_descr_ptr
+		end_of_control_flow_descr_list;
+
+static a_control_flow_descr_ptr
+		avail_control_flow_descrs;
+
 /*
 Set var to indicate that the associated code is reachable.
 */
@@ -114,6 +123,372 @@ Merge the reachability information from "reachability" into
   merged_reachability->suppress_unreachable_warning |=
                                     reachability->suppress_unreachable_warning;
 }  /* merge_reachability */
+
+
+#if DEBUG
+static void db_cfd(a_control_flow_descr_ptr cfdp)
+/*
+*/
+{
+  a_variable_ptr  vp;
+
+  switch (cfdp->kind) {
+    case cfdk_block:
+      fprintf(f_debug, "block #%d, %slabels, %d goto%s, %sEOB",
+              cfdp->id_number,
+              cfdp->variant.block.any_labels ? "" : "no ",
+              cfdp->variant.block.goto_count,
+              cfdp->variant.block.goto_count == 1 ? "" : "s",
+              cfdp->variant.block.end_of_block == NULL ? "no " : "");
+      break;
+    case cfdk_goto:
+      fprintf(f_debug, "goto %s (line %d)",
+              cfdp->variant.goto_statement.ptr->
+                           variant.label->source_corresp.name,
+              cfdp->variant.goto_statement.source_pos.seq);
+      break;
+    case cfdk_label:
+      fprintf(f_debug, "%s:",
+              cfdp->variant.label_statement->
+                           variant.label->source_corresp.name);
+      break;
+    case cfdk_init:
+      fprintf(f_debug, "initializing ");
+      vp = NULL;
+      if (cfdp->variant.init_statement->variant.dynamic_init != NULL) {
+        vp = cfdp->variant.init_statement->variant.dynamic_init->variable;
+      }  /* if */
+      if (vp == NULL) {
+        fputs("???", f_debug);
+      } else {
+        db_name(&vp->source_corresp);
+      }  /* if */
+      break;
+    case cfdk_end_of_block:
+      fprintf(f_debug, "EOB");
+      if (cfdp->variant.start_of_block != NULL) {
+        fprintf(f_debug, " for block #%d",
+                cfdp->variant.start_of_block->id_number);
+      }  /* if */
+      break;
+    default:
+      fprintf(f_debug, "***UNKNOWN KIND***");
+  }  /* switch */
+  fprintf(f_debug, "\t[#%d]\n", cfdp->id_number);
+}  /* db_cfd */
+
+
+static void db_cfd_list(a_control_flow_descr_ptr cfdp,
+                        int                      back,
+                        int                      forward)
+/*
+*/
+{
+  int   count;
+
+  if (cfdp != NULL) {  
+    for (count = 0; count < back; ++count) {
+      if (cfdp->prev == NULL) break;
+      cfdp = cfdp->prev;
+    }  /* if */
+    count = count + forward;
+    for (; count >= 0; --count) {
+      fputs("  ", f_debug);
+      db_cfd(cfdp);
+      cfdp = cfdp->next;
+      if (cfdp == NULL) break;
+    }  /* for */
+  }  /* if */
+}  /* db_cfd_list */
+
+
+
+static void db_cfd_and_parents(a_control_flow_descr_ptr cdfp)
+/*
+*/
+{
+  if (cdfp != NULL) {
+    db_cfd(cdfp);
+    while ((cdfp = cdfp->parent) != NULL) {
+      fprintf(f_debug, "  with parent: ");
+      db_cfd(cdfp);
+    }  /* while */
+  }  /* if */
+}  /* db_cfd_and_parents */
+#endif /* DEBUG */
+
+
+static a_control_flow_descr_ptr alloc_control_flow_descr(
+                                               a_control_flow_descr_kind kind)
+/*
+Allocate a control-flow descriptor of the specified kind (or reuse one from
+the available list), set its fields to default values, and return a pointer
+to it.
+*/
+{
+  register a_control_flow_descr_ptr  cfdp;
+  static   unsigned long             id_number = 0;
+
+  db_enter(5, "alloc_control_flow_descr");
+  if (avail_control_flow_descrs != NULL) {
+    /* Reuse a previously freed entry. */
+    cfdp = avail_control_flow_descrs;
+    avail_control_flow_descrs = avail_control_flow_descrs->next;
+  } else {
+    /* Allocate a new entry. */
+    cfdp = (a_control_flow_descr_ptr)alloc_fe(sizeof(a_control_flow_descr));
+#if 0
+#if DEBUG
+    num_control_flow_descrs_allocated++;
+#endif /* DEBUG */
+#endif /* if 0 */
+  }  /* if */
+  /* Set the entry's fields to default values. */
+  cfdp->next = NULL;
+  cfdp->prev = NULL;
+  cfdp->parent = NULL;
+  cfdp->kind = kind;
+#if DEBUG
+  cfdp->id_number = ++id_number;
+#endif /* DEBUG */
+  switch (kind) {
+    case cfdk_block:
+      cfdp->variant.block.end_of_block = NULL;
+      cfdp->variant.block.any_labels = FALSE;
+      cfdp->variant.block.goto_count = 0;
+      break;
+    case cfdk_init:
+      cfdp->variant.init_statement = NULL;
+      break;
+    case cfdk_goto:
+      cfdp->variant.goto_statement.ptr = NULL;
+      cfdp->variant.goto_statement.prev_goto = NULL;
+      cfdp->variant.goto_statement.source_pos.seq = 0;
+      cfdp->variant.goto_statement.source_pos.seq = SP_COL_UNKNOWN;
+      break;
+    case cfdk_label:
+      cfdp->variant.label_statement = NULL;
+      break;
+    case cfdk_end_of_block:
+      cfdp->variant.start_of_block = NULL;
+      break;
+  }  /* switch */
+  db_exit();
+  return cfdp;
+}  /* alloc_control_flow_descr */
+
+
+static void free_control_flow_descr(a_control_flow_descr_ptr cfdp)
+/*
+*/
+{
+  cfdp->next = avail_control_flow_descrs;
+  avail_control_flow_descrs = cfdp;
+}  /* free_control_flow_descr */
+
+
+static void remove_list_of_flow_control_descrs(a_control_flow_descr_ptr  head,
+                                               a_control_flow_descr_ptr  tail)
+/*
+Remove the list of control flow descriptors headed by head and terminated by
+tail from control_flow_descr_list and add it onto the available list.  It
+may be a sublist of the larger list, so link around it (both next and prev
+pointers) and move the list as a whole to the available list.
+*/
+{
+  db_enter(5, "remove_list_of_flow_control_descrs");
+  if (head != NULL) {
+#if DEBUG
+    if (debug_level >= 5) {
+      a_control_flow_descr_ptr cfdp = head;
+      fprintf(f_debug, "Removing entire list:\n");
+      for (;;) {
+        fprintf(f_debug, "  ");
+        db_cfd(cfdp);
+        if (cfdp == tail) break;
+        cfdp = cfdp->next;
+        if (cfdp == NULL) {
+          if (tail != NULL) {
+            fprintf(f_debug, "  ***TAIL NOT FOUND*** tail = ");
+            db_cfd(tail);
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+#endif /* DEBUG */
+    /* Reset the next pointer of the entry on the list that precedes head, or
+       if there is no preceding entry reset the list head pointer. */
+    if (head->prev == NULL) {
+      check_assertion(head == control_flow_descr_list);
+      control_flow_descr_list = tail->next;
+    } else {
+      head->prev->next = tail->next;
+    }  /* if */
+    /* Reset the prev pointer of tail's successor on the list, or if there is
+       no successor entry reset the list tail pointer. */
+    if (tail->next == NULL) {
+      check_assertion(tail = end_of_control_flow_descr_list);
+      end_of_control_flow_descr_list = head->prev;
+    } else {
+      tail->next->prev = head->prev;
+    }  /* if */
+    tail->next = avail_control_flow_descrs;
+    avail_control_flow_descrs = head;
+  }  /* if */
+  db_exit();
+}  /* remove_list_of_flow_control_descrs */
+
+
+static void remove_control_flow_descr(a_control_flow_descr_ptr  cfdp)
+/*
+Remove cfdp from the control_flow_descr_list and put it on the available list.
+*/
+{
+  a_control_flow_descr_ptr  parent_cfdp = NULL, grandparent_cfdp;
+
+  db_enter(5, "remove_control_flow_descr");
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "Removing: ");
+    db_cfd(cfdp);
+  }  /* if */
+#endif /* DEBUG */
+  if (cfdp->kind == (a_control_flow_descr_kind)cfdk_goto) {
+    parent_cfdp = cfdp->parent;
+  }  /* if */
+  /* Reset the next pointer of the entry on the list that precedes cfdp, or
+     if there is no preceding entry reset the list head pointer. */
+  if (cfdp->prev == NULL) {
+    check_assertion(cfdp == control_flow_descr_list);
+    control_flow_descr_list = cfdp->next;
+  } else {
+    cfdp->prev->next = cfdp->next;
+  }  /* if */
+  /* Reset the prev pointer of cfdp's successor on the list, or if there is no
+     successor entry reset the list tail pointer. */
+  if (cfdp->next == NULL) {
+    check_assertion(cfdp = end_of_control_flow_descr_list);
+    end_of_control_flow_descr_list = cfdp->prev;
+  } else {
+    cfdp->next->prev = cfdp->prev;
+  }  /* if */
+  free_control_flow_descr(cfdp);
+  if (parent_cfdp != NULL) {
+    /* Must have been a goto -- decrement the counters. */
+    do {
+      grandparent_cfdp = parent_cfdp->parent;
+      if (--(parent_cfdp->variant.block.goto_count) == 0 &&
+          !parent_cfdp->variant.block.any_labels &&
+          parent_cfdp->variant.block.end_of_block != NULL) {
+        remove_list_of_flow_control_descrs(
+                        parent_cfdp, parent_cfdp->variant.block.end_of_block);
+      }  /* if */
+    } while ((parent_cfdp = grandparent_cfdp) != NULL);
+  }  /* if */
+  db_exit();
+}  /* remove_control_flow_descr */
+
+
+static void add_to_control_flow_descr_list(a_control_flow_descr_ptr  new_cfdp)
+/*
+*/
+{
+  a_control_flow_descr_ptr  cfdp, prev_cfdp, prev_parent_cfdp, parent_cfdp;
+
+  db_enter(5, "add_to_control_flow_descr_list");
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "Candidate to add to list: ");
+    db_cfd(new_cfdp);
+  }  /* if */
+#endif /* DEBUG */
+  if (control_flow_descr_list == NULL) {
+    check_assertion(new_cfdp->kind == (a_control_flow_descr_kind)cfdk_block);
+    control_flow_descr_list = new_cfdp;
+  } else {
+    prev_parent_cfdp = end_of_control_flow_descr_list->parent;
+    if (new_cfdp->kind == (a_control_flow_descr_kind)cfdk_end_of_block) {
+      if (end_of_control_flow_descr_list->kind ==
+                                   (a_control_flow_descr_kind)cfdk_block) {
+        /* No need to create an empty block. */
+        remove_control_flow_descr(end_of_control_flow_descr_list);
+        free_control_flow_descr(new_cfdp);
+        goto done;
+      } else if (!prev_parent_cfdp->variant.block.any_labels &&
+                 prev_parent_cfdp->variant.block.goto_count == 0) {
+        /* Remove the block. */
+        remove_list_of_flow_control_descrs(prev_parent_cfdp,
+                                           end_of_control_flow_descr_list);
+        free_control_flow_descr(new_cfdp);
+        goto done;
+      }  /* if */
+      new_cfdp->variant.start_of_block = prev_parent_cfdp;
+      new_cfdp->parent = prev_parent_cfdp->parent;
+      prev_parent_cfdp->variant.block.end_of_block = new_cfdp;
+      /* Remove all init entries in the block that trail the last label
+         statement in the block; if there is no label statement remove *all*
+         the init entries. */
+      for (cfdp = end_of_control_flow_descr_list;
+           cfdp != new_cfdp->variant.start_of_block;
+           cfdp = prev_cfdp) {
+        if (cfdp->kind == (a_control_flow_descr_kind)cfdk_label ||
+            (cfdp->kind == (a_control_flow_descr_kind)cfdk_block &&
+             cfdp->variant.block.any_labels)) {
+          break;
+        } else {
+          prev_cfdp = cfdp->prev;
+          if (cfdp->kind == (a_control_flow_descr_kind)cfdk_init) {
+            remove_control_flow_descr(cfdp);
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    } else {
+      if (end_of_control_flow_descr_list->kind ==
+                                   (a_control_flow_descr_kind)cfdk_block) {
+        parent_cfdp = end_of_control_flow_descr_list;
+      } else {
+        parent_cfdp = prev_parent_cfdp;
+      }  /* if */
+      new_cfdp->parent = parent_cfdp;
+      if (new_cfdp->kind == (a_control_flow_descr_kind)cfdk_init) {
+        if (parent_cfdp->parent == NULL &&
+            !parent_cfdp->variant.block.any_labels &&
+            parent_cfdp->variant.block.goto_count == 0) {
+          free_control_flow_descr(new_cfdp);
+          goto done;
+        }  /* if */
+      } else if (new_cfdp->kind == (a_control_flow_descr_kind)cfdk_label) {
+        do {
+          parent_cfdp->variant.block.any_labels = TRUE;
+          parent_cfdp = parent_cfdp->parent;
+        } while (parent_cfdp != NULL);
+      } else if (new_cfdp->kind == (a_control_flow_descr_kind)cfdk_goto) {
+        do {
+          ++(parent_cfdp->variant.block.goto_count);
+          parent_cfdp = parent_cfdp->parent;
+        } while (parent_cfdp != NULL);
+      }  /* if */
+    }  /* if */
+#if DEBUG
+    if (debug_level >= 5) {
+      fprintf(f_debug, "Adding:  ");
+      db_cfd_and_parents(new_cfdp);
+    }  /* if */
+#endif /* DEBUG */
+    end_of_control_flow_descr_list->next = new_cfdp;
+    new_cfdp->prev = end_of_control_flow_descr_list;
+  }  /* if */
+  end_of_control_flow_descr_list = new_cfdp;
+done:;
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "Tail of control_flow_descr_list:\n");
+    db_cfd_list(end_of_control_flow_descr_list,10,0);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+}  /* add_to_control_flow_descr_list */
 
 
 static a_struct_stmt_stack_entry_ptr find_enclosing_block_struct_stmt(void)
@@ -303,9 +678,11 @@ the current statement sequence.
   if (kind != (a_statement_kind)stmk_init) {
     struct_stmt_stack[depth_stmt_stack].any_exec_statement_seen = TRUE;
   } else {
-    ++(find_enclosing_block_struct_stmt()->init_count);
+    a_control_flow_descr_ptr cfdp;
+    cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_init);
+    cfdp->variant.init_statement = sp;
+    add_to_control_flow_descr_list(cfdp);
   }  /* if */
-
   db_exit();
   return(sp);
 }  /* add_statement */
@@ -523,6 +900,8 @@ the associated il statement.
     /* The body of a switch is not reachable until a case or default label
        appears. */
     set_unreachable(curr_reachability);
+  } else if (kind == ssk_compound) {
+    add_to_control_flow_descr_list(alloc_control_flow_descr(cfdk_block));
   }  /* if */
   db_exit();
 }  /* push_stmt_stack */
@@ -645,6 +1024,10 @@ a structured statement has ended.
      any_exec_statement_seen flag upwards. */
   if (kind != ssk_compound || sp->dependent_statement) {
     sssep[-1].any_exec_statement_seen = sssep->any_exec_statement_seen;
+  }  /* if */
+  if (kind == ssk_compound) {
+    add_to_control_flow_descr_list(
+                          alloc_control_flow_descr(cfdk_end_of_block));
   }  /* if */
   /* Pop the stack. */
   depth_stmt_stack--;
@@ -1196,205 +1579,98 @@ either an expression statement or a declaration statement.
 }  /* for_statement */
 
 
-static a_statement_ptr find_parent_statement_for_block(a_statement_ptr  block)
+static void check_for_init(a_control_flow_descr_ptr  start_cfdp,
+                           a_control_flow_descr_ptr  end_cfdp,
+                           a_source_position         *error_pos,
+                           a_boolean                 *stmk_init_seen)
 /*
 */
 {
-  a_statement_ptr  sp, parent_stmt = NULL;
+  a_control_flow_descr_ptr  cfdp;
+  a_variable_ptr            vp;
 
-  for (sp = block->variant.block.extra_info->
-                            parent_block->variant.block.statements;
-       parent_stmt == NULL ;
-       sp = sp->next) {
-    check_assertion (sp != NULL);
-    switch (sp->kind) {
-      case stmk_block:
-        if (sp == block) parent_stmt = sp;
-        break;
-      case stmk_if: 
-        if (sp->variant.if_stmt.then_statement == block ||
-            sp->variant.if_stmt.else_statement == block) parent_stmt = sp;
-        break;
-      case stmk_while:
-      case stmk_end_test_while:
-        if (sp->variant.loop_statement == block) parent_stmt = sp;
-        break;
-      case stmk_for:
-        if (sp->variant.for_loop.statement == block) parent_stmt = sp;
-        break;
-      case stmk_switch:
-        if (sp->variant.switch_stmt.body_statement == block) {
-          parent_stmt = sp;
-        } else {
-          a_switch_clause_ptr  scp = sp->variant.switch_stmt.clause_list;
-          a_statement_ptr      clause_sp;
-
-          for (; parent_stmt == NULL && scp != NULL; scp = scp->next) {
-            clause_sp = scp->statements;
-            for (; clause_sp != NULL; clause_sp = clause_sp->next) {
-              if (clause_sp == block) {
-#if 0
-/* When should the parent statement be the switch statement itself and when
-   should it be the statement within the clause?  Does other info have to be
-   returned to the caller if the stmt in the clause is returned? */
-#else
-                parent_stmt = sp;
-#endif /* if 0 */
-                break;
-              }  /* if */
-            }  /* for */
-          }  /* for */
-        }  /* if */
-        break;
-      case stmk_try_block:
-        if (sp->variant.try_block.statement == block) {
-          parent_stmt = sp;
-        } else {
-          a_handler_ptr  hp = sp->variant.try_block.handlers;
-          for (; hp != NULL; hp = hp->next) {
-            if (hp->statement == block) {
-              parent_stmt = sp;
-              break;
-            }  /* if */
-          }  /* for */
-        }  /* if */
-        break;
-      default:;
-    }  /* switch */
-  }  /* for */
-  return parent_stmt;
-}  /* find_parent_statement_for_block */
-
-
-static void check_for_stmk_init_in_statement_list(
-                                        a_statement_ptr    start_stmt,
-                                        a_statement_ptr    start_block,
-                                        a_statement_ptr    curr_block,
-                                        a_statement_ptr    curr_block_end_stmt,
-                                        a_source_position  *error_pos,
-                                        a_boolean          *stmk_init_seen)
-/*
-Starting from start_stmt, which appears on the statement list of
-start_block, and proceding to curr_block_end_stmt, look for stmk_init
-statements and issue a jump-over-initialization error on any that are
-found.  curr_block is the current block, which may be contained within
-start_block.  start_stmt may be NULL, which means start at the top of
-start_block.  curr_block_end_stmt is the last statement in the current
-block that needs to be checked.
-
-This routine is recursive, calling itself if curr_block is contained
-within start_block: it keeps popping out to the parent block until
-start_block is reached.  Only then does it start issuing diagnostics.  It
-stops checking the statements of an outer block when the statement
-establishing the immediate inner block is reached, at which it returns
-from the recursive call.  start_stmt and start_block remain unchanged, but
-curr_block and curr_block_end_stmt are modified in stepping out to a
-parent block: with each recursion curr_block_end_stmt is set to the parent
-statement for curr_block and curr_block is set to the parent block.
-
-*error_pos is the error position at which the error should be issued -- it
-is typically the position of a goto statement.  *stmk_init_seen is FALSE
-until the first stmk_init statement is found, at which point the main part
-of the diagnostic is put out.  Then the supplementary information on each
-initializing declaration is put out, one at a time, with each stmk_init
-statement encountered.
-*/
-{
-  a_statement_ptr  sp, curr_block_start_stmt, for_init;
-  a_statement_ptr  curr_block_parent_block, curr_block_parent_stmt;
-  a_variable_ptr   vp;
-
-  db_enter(4, "check_for_stmk_init_in_statement_list");
-  if (start_block != curr_block) {
-    /* The current block must be contained within start_block.  Issue
-       diagnostics in the parent block(s) before this one, so that the
-       declarations jumped over will be put out in source order. */
-    /* For the next call the parent block becomes "current" and the statement
-       in the parent block that establishes the current block becomes
-       "curr_block_end_stmt", the last statement in that block to check. */
-    curr_block_parent_block = curr_block->
-                                       variant.block.extra_info->parent_block;
-    curr_block_parent_stmt = find_parent_statement_for_block(curr_block);
-    check_for_stmk_init_in_statement_list(start_stmt, start_block,
-                                          curr_block_parent_block,
-                                          curr_block_parent_stmt,
-                                          error_pos, stmk_init_seen);
-    /* Now that the parent blocks have been checked for stmk_init statements,
-       the current block can be checked.  Start at the top of the block. */
-    curr_block_start_stmt = curr_block->variant.block.statements;
-  } else {
-    /* We are in start_block -- no need to pop out to its parent. */
-    if (start_stmt == NULL) {
-      /* start_stmt is NULL, which means start at the start of the block. */
-      curr_block_start_stmt = curr_block->variant.block.statements;
-    } else {
-      /* start_stmt is non-NULL, which means start with its successor. */
-      curr_block_start_stmt = start_stmt->next;
-    }  /* if */
+  db_enter(4, "check_for_init");
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "start_cfdp = ");
+    db_cfd(start_cfdp);
+    fprintf(f_debug, "end_cfdp = ");
+    db_cfd(end_cfdp);
   }  /* if */
-  /* Now go through all the statements in the current block, from
-     curr_block_start_stmt to curr_block_end_stmt.  Issue a diagnostic on
-     any initializing declaration. */
-  for (sp = curr_block_start_stmt; ; sp = sp->next) {
-    check_assertion(sp != NULL);
-    vp = NULL;
-    if (sp->kind == (a_statement_kind)stmk_init) {
-      /* This statement represents an initializing declaration.  We want to
-         display the name of the variable. */
-      vp = sp->variant.dynamic_init->variable;
-      check_assertion(vp != NULL);
-    } else if (sp->kind == (a_statement_kind)stmk_for) {
-      /* Check for an initializing declaration in the for_init statement. */
-      for_init = sp->variant.for_loop.extra_info->initialization;
-      if (for_init != NULL && for_init->kind == (a_statement_kind)stmk_init) {
-        /* The for_init statement is an initializing declaration. */
-        vp = for_init->variant.dynamic_init->variable;
-        check_assertion(vp != NULL);
+#endif /* DEBUG */
+  if (end_cfdp->parent != start_cfdp->parent) {
+    check_for_init(start_cfdp, end_cfdp->parent->prev, error_pos,
+                   stmk_init_seen);
+    start_cfdp = end_cfdp->parent->next;
+  }  /* if */
+  cfdp = start_cfdp;
+  for (cfdp = start_cfdp; ; cfdp = cfdp->next) {
+#if DEBUG
+#if CHECKING
+    if (cfdp->parent != end_cfdp->parent ||
+        cfdp->id_number > end_cfdp->id_number) {
+      if (debug_level > 0) {
+        fprintf(f_debug, "cfdp = ");
+        db_cfd_and_parents(cfdp);
+        fprintf(f_debug, "end_cfdp = ");
+        db_cfd_and_parents(end_cfdp);
       }  /* if */
+      internal_error("check_for_init: start > end or parent mismatch");
     }  /* if */
-    if (vp != NULL) {
+#endif /* CHECKING */
+#endif /* DEBUG */
+    if (cfdp->kind == (a_control_flow_descr_kind)cfdk_init) {
+      vp = cfdp->variant.init_statement->variant.dynamic_init->variable;
       if (!*stmk_init_seen) {
         /* This is the first initializing declaration seen.  Issue the
            header diagnostic. */
         *stmk_init_seen = TRUE;
-        pos_start_error(ec_jumping_over_init, error_pos);
+        pos_start_diagnostic(C_dialect == C_dialect_cplusplus ?
+                                            es_error : es_warning,
+                             ec_jumping_over_init, error_pos);
       }  /* if */
       /* Issue the diagnostic addendum that identifies this particular
          variable. */
       sym_add_diag_info(ec_name_at_decl_position,
                         (a_symbol_ptr)vp->source_corresp.assoc_info);
     }  /* if */
-    /* Don't go past curr_block_end_stmt in check for initializing
-       declarations in the current block. */
-    if (sp == curr_block_end_stmt) break;
+    if (cfdp == end_cfdp) break;
+    if (cfdp->kind == (a_control_flow_descr_kind)cfdk_block) {
+      cfdp = cfdp->variant.block.end_of_block;
+#if DEBUG
+      if (debug_level >= 4) {
+        fprintf(f_debug, "jumped over block -- cfdp = ");
+        db_cfd(cfdp);
+      }  /* if */
+#endif /* DEBUG */
+      if (cfdp == end_cfdp) break;
+    }  /* if */
   }  /* for */
   db_exit();
-}  /* check_for_stmk_init_in_statement_list */
+}  /* check_for_init */
 
-
-static a_boolean block_is_on_parent_list(a_statement_ptr block,
-                                         a_statement_ptr block2)
+static a_boolean is_on_parent_list(a_control_flow_descr_ptr cfdp,
+                                   a_control_flow_descr_ptr cfdp2)
 /*
 Return TRUE if the block statement "block" is on the list of parent blocks
 of block2. */
 {
-  a_statement_ptr  parent;
-  a_boolean        on_list = FALSE;
+  a_control_flow_descr_ptr  parent;
+  a_boolean                 on_list = FALSE;
 
-  for (parent = block2->variant.block.extra_info->parent_block;
-       parent != NULL;
-       parent = parent->variant.block.extra_info->parent_block) {
-    if (block == parent) {
+  for (parent = cfdp2->parent; parent != NULL; parent = parent->parent) {
+    if (cfdp == parent) {
       on_list = TRUE;
       break;
     }  /* if */
   }  /* for */
   return on_list;
-}  /* block_is_on_parent_list */
+}  /* is_on_parent_list */
 
 
-static void check_forwards_goto(a_statement_ptr   label_statement,
-                                a_goto_entry_ptr  gep)
+static void check_goto(a_control_flow_descr_ptr  label_cfdp,
+                       a_control_flow_descr_ptr  goto_cfdp,
+                       a_boolean                 is_forwards)
 /*
 A forward goto was recorded in the goto-entry pointed to gep, and now
 that the label it referenced has been encountered (in label_statement)
@@ -1403,159 +1679,95 @@ initializing declaration.  This routine does that check, issuing an error
 if appropriate.
 */
 {
-  a_label_ptr      label;
-  a_statement_ptr  goto_block, label_block, sp;
-  a_statement_ptr  start_statement, start_block;
-  unsigned long    goto_block_init_count, label_block_init_count;
-  a_boolean        stmk_init_seen = FALSE;
-  a_boolean        do_check = TRUE;
+  a_control_flow_descr_ptr  cfdp, start_cfdp, common_parent;
+  a_boolean                 stmk_init_seen = FALSE;
 
-  db_enter(4, "check_forwards_goto");
-  goto_block = gep->assoc_block;
-  goto_block_init_count = gep->block_init_count;
-  label = label_statement->variant.label;
-  label_block = label->parent_block;
-  check_assertion(label->parent_block ==
-                     find_enclosing_block_struct_stmt()->statement);
-  label_block_init_count = find_enclosing_block_struct_stmt()->init_count;
-  if (label_block == goto_block) {
-    /* A goto forwards within same block. */
-    if (label_block_init_count > goto_block_init_count) {
-      /* Error. */
-      start_statement = gep->goto_statement;
-      start_block = goto_block;
-    } else {
-      do_check = FALSE;
-    }  /* if */
-  } else if (block_is_on_parent_list(goto_block, label_block)) {
-    /* A forward goto from an outer block to a label in an inner block, the
-       latter enclosed within the former. */
-    start_statement = gep->goto_statement;
-    start_block = goto_block;
-  } else if (block_is_on_parent_list(label_block, goto_block)) {
-    /* A forward goto from an inner block to a label in an enclosing block. */
-    sp = goto_block;
-    while (sp->variant.block.extra_info->parent_block != label_block) {
-      sp = sp->variant.block.extra_info->parent_block;
-      check_assertion(sp != NULL);
-    }  /* while */
-    start_statement = find_parent_statement_for_block(sp);
-    start_block = label_block;
-  } else {
-    /* A forward goto from a block to another block, neither block contained
-       within the other. */
-    a_statement_ptr  common_parent;
-
-    common_parent = label_block->variant.block.extra_info->parent_block;
-    while (!block_is_on_parent_list(common_parent, goto_block)) {
-      common_parent = common_parent->variant.block.extra_info->parent_block;
-      check_assertion(common_parent != NULL);
-    }  /* while */
-    sp = goto_block;
-    while (sp->variant.block.extra_info->parent_block != common_parent) {
-      sp = sp->variant.block.extra_info->parent_block;
-      check_assertion(sp != NULL);
-    }  /* while */
-    start_statement = find_parent_statement_for_block(sp);
-    start_block = common_parent;
+  db_enter(4, "check_goto");
+  if (is_forwards && goto_cfdp->variant.goto_statement.prev_goto != NULL) {
+    check_goto(label_cfdp, goto_cfdp->variant.goto_statement.prev_goto,
+               /*is_forwards=*/TRUE);
   }  /* if */
-  if (do_check) {
-    /* The "current block" is always initialialized as that of the label
-       statement, and the end-statement is the label statement itself. */
-    check_for_stmk_init_in_statement_list(start_statement, start_block,
-                                          label_block,
-                                          label->variant.exec_stmt,
-                                          &gep->source_position,
-                                          &stmk_init_seen);
+  start_cfdp = NULL;
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "checking %s jump from:  ",
+            is_forwards ? "forwards" : "backwards");
+    db_cfd_and_parents(goto_cfdp);
+    fprintf(f_debug, "...and jumping to:  ");
+    db_cfd_and_parents(label_cfdp);
+  }  /* if */
+#endif /* DEBUG */
+  if (label_cfdp->parent == goto_cfdp->parent) {
+    if (is_forwards) {
+      /* A forwards goto within the same block.  Look for initializations
+         between the goto and the label. */
+      start_cfdp = goto_cfdp->next;
+    } else {
+      /* Backwards within the same block should is always okay. */
+    }  /* if */
+  } else if (is_on_parent_list(goto_cfdp->parent, label_cfdp)) {
+    /* A goto from an outer block to a label in a nested block. */
+    if (is_forwards) {
+      start_cfdp = goto_cfdp->next;
+    } else {
+      cfdp = label_cfdp->parent;
+      while (cfdp->parent != goto_cfdp->parent) {
+        cfdp = cfdp->parent;
+      }  /* while */
+      start_cfdp = cfdp->next;
+    }  /* if */
+  } else if (is_on_parent_list(label_cfdp->parent, goto_cfdp)) {
+    if (is_forwards) {
+      /* A forwards goto from an inner block to a label in an enclosing
+         block. */
+      cfdp = goto_cfdp->parent;
+      while (cfdp->parent != label_cfdp->parent) {
+        cfdp = cfdp->parent;
+      }  /* while */
+      start_cfdp = cfdp->variant.block.end_of_block->next;
+    } else {
+      /* Backwards from an inner block to an outer block is always okay. */
+    }  /* if */
+  } else {
+    /* goto from an inner block to a label in an inner block. */
+    common_parent = label_cfdp->parent;
+    while (!is_on_parent_list(common_parent, goto_cfdp->parent)) {
+      common_parent = common_parent->parent;
+    }  /* while */
+#if DEBUG
+    if (debug_level >= 4) {
+      fprintf(f_debug, " common parent = ");
+      db_cfd(common_parent);
+    }  /* if */
+#endif /* DEBUG */
+    cfdp = is_forwards ? goto_cfdp->parent : label_cfdp->parent;
+    check_assertion(cfdp != common_parent);
+    while (cfdp->parent != common_parent) {
+      cfdp = cfdp->parent;
+    }  /* while */
+    start_cfdp = is_forwards ?
+                   cfdp->variant.block.end_of_block->next : cfdp->next;
+  }  /* if */
+  if (start_cfdp == NULL) {
+    /* No checking is required. */
+  } else {
+    while (start_cfdp->kind == (a_control_flow_descr_kind)cfdk_block &&
+           is_on_parent_list(start_cfdp, label_cfdp)) {
+      start_cfdp = start_cfdp->next;
+    }  /* if */
+    check_for_init(start_cfdp, label_cfdp,
+                   &goto_cfdp->variant.goto_statement.source_pos,
+                   &stmk_init_seen);
     if (stmk_init_seen) end_error();
   }  /* if */
-  db_exit();
-}  /* check_forwards_goto */
-
-
-static void check_backwards_goto(a_statement_ptr   goto_statement)
-/*
-goto_statement identifies a backwards goto, one that references a label
-that has already been defined.  Issue an error if the goto entails jumping
-over an intializing declaration.
-*/
-{
-  a_label_ptr                    label;
-  a_statement_ptr                goto_block, label_block, sp;
-  a_statement_ptr                start_statement, start_block;
-#if 0
-  a_symbol_ptr                   label_sym;
-  unsigned long                  goto_block_init_count, label_block_init_count;
-#endif /* if 0 */
-  a_struct_stmt_stack_entry_ptr  sssep;
-  a_boolean                      stmk_init_seen = FALSE;
-  a_boolean                      do_check = TRUE;
-
-  db_enter(4, "check_backwards_goto");
-  sssep = find_enclosing_block_struct_stmt();
-  goto_block = sssep->statement;
-  label = goto_statement->variant.label;
-  label_block = label->parent_block;
-#if 0
-  goto_block_init_count = sssep->init_count;
-  label_sym = (a_symbol_ptr)label->source_corresp.assoc_info;
-  label_block_init_count =
-               label_sym->variant.label.variant.curr_block_init_count;
-#endif /* if 0 */
-  if (label_block == goto_block) {
-    /* goto backwards within same block -- no error if this a the function
-       scope. */
-    if (label_block->variant.block.extra_info->parent_block == NULL) {
-      /* No error */
-      do_check = FALSE;
-    } else {
-      start_statement = NULL;
-      start_block = goto_block;
-    }  /* if */
-  } else if (block_is_on_parent_list(label_block, goto_block)) {
-    /* goto backwards to a containing block -- no error. */
-    do_check = FALSE;
-  } else if (block_is_on_parent_list(goto_block, label_block)) {
-    /* goto backward from an outer block to an inner block. */
-    sp = label_block;
-    while (sp->variant.block.extra_info->parent_block != goto_block) {
-      sp = sp->variant.block.extra_info->parent_block;
-      check_assertion(sp != NULL);
-    }  /* while */
-    start_statement = NULL;
-    start_block = sp;
-  } else {
-    /* goto backward from one block to another, with common parent. */
-    a_statement_ptr  common_parent;
-
-    common_parent = label_block->variant.block.extra_info->parent_block;
-    while (!block_is_on_parent_list(common_parent, goto_block)) {
-      common_parent = common_parent->variant.block.extra_info->parent_block;
-      check_assertion(common_parent != NULL);
-    }  /* while */
-    sp = label_block;
-    while (sp->variant.block.extra_info->parent_block != common_parent) {
-      sp = sp->variant.block.extra_info->parent_block;
-      check_assertion(sp != NULL);
-    }  /* while */
-    start_statement = NULL;
-    start_block = sp;
-  }  /* if */
-  if (do_check) {
-    /* The "current block" is always initialialized as that of the label
-       statement, and the end-statement is the label statement itself. */
-    check_for_stmk_init_in_statement_list(start_statement, start_block,
-                                          label_block,
-                                          label->variant.exec_stmt,
-                                          &error_position,
-                                          &stmk_init_seen);
-    if (stmk_init_seen) end_error();
+  if (is_forwards) {
+    remove_control_flow_descr(goto_cfdp);
   }  /* if */
   db_exit();
-}  /* check_backwards_goto */
+}  /* check_goto */
 
 
-static void check_for_jump_over_initialization_error(a_statement_ptr  sp)
+static void check_for_jump_over_initialization(a_statement_ptr  sp)
 /*
 sp is either a label statement or a goto statement.  If this is a goto
 statement and the label it references has not yet been seen (i.e., if it
@@ -1564,69 +1776,57 @@ for later use in detecting illegal jumps over initializing declarations.
 If this is a "backward goto" statement, issue an error if it jumps over
 any initializing declarations.  If this is a label statement, check the
 associated goto-entries to see if any of the forward gotos jumped over any
-initializing declarations.  Errors are put out at the point of the goto
-statement, even for forward gotos, where the error condition is not
-recognized till the label statement is reached.
+initializing declarations.  Diagnostics are put out at the point of the goto
+statement, even for forward gotos, where the condition is not recognized
+till the label statement is reached.
 */
 {
-  a_label_ptr                    label;
-  a_symbol_ptr                   label_sym;
-  a_goto_entry_ptr               gep, end_of_list;
-  a_struct_stmt_stack_entry_ptr  sssep;
+  a_symbol_ptr              label_sym;
+  a_control_flow_descr_ptr  label_cfdp, goto_cfdp;
 
-
-  db_enter(3, "check_for_jump_over_initialization_error");
+  db_enter(3, "check_for_jump_over_initialization");
   check_assertion (sp->kind == (a_statement_kind)stmk_label ||
                    sp->kind == (a_statement_kind)stmk_goto);
-  label = sp->variant.label;
-  label_sym = (a_symbol_ptr)label->source_corresp.assoc_info;
+  label_sym = (a_symbol_ptr)sp->variant.label->source_corresp.assoc_info;
   if (sp->kind == (a_statement_kind)stmk_label) {
     /* This is the definition of the label. */
-    gep = label_sym->variant.label.variant.goto_list;
-    if (gep != NULL) {
+    goto_cfdp = label_sym->variant.label.assoc_control_flow_descr;
+    label_cfdp =
+            alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_label);
+    label_cfdp->variant.label_statement = sp;
+    add_to_control_flow_descr_list(label_cfdp);
+    label_sym->variant.label.assoc_control_flow_descr = label_cfdp;
+    if (goto_cfdp != NULL) {
       /* There was at least one forward goto referencing this label.  For
          each check whether it jumped over any initializing declarations. */
-      do {
-        check_forwards_goto(sp, gep);
-        gep = gep->next;
-      } while (gep != NULL);
-      /* Free the list of goto entries for reuse. */
-      free_goto_entry_list(&label_sym->variant.label.variant.goto_list);
+      check_goto(label_cfdp, goto_cfdp, /*is_forwards=*/TRUE);
     }  /* if */
-    /* Record the number initializing declarations seen so far in the current
-       block. */
-    label_sym->variant.label.variant.curr_block_init_count =
-                       find_enclosing_block_struct_stmt()->init_count;
   } else {
+    /* Allocate and fill in a goto entry. */
+    goto_cfdp = alloc_control_flow_descr(
+                                     (a_control_flow_descr_kind)cfdk_goto);
+    goto_cfdp->variant.goto_statement.ptr = sp;
+    goto_cfdp->variant.goto_statement.source_pos = error_position;
+    add_to_control_flow_descr_list(goto_cfdp);
     if (label_sym->defined) {
       /* This is a backwards goto -- i.e., it references a label that has
          already been defined.  Check whether it jumps over any initializing
          declarations. */
-      check_backwards_goto(sp);
+      label_cfdp = label_sym->variant.label.assoc_control_flow_descr;
+      check_goto(label_cfdp, goto_cfdp, /*is_forwards=*/FALSE);
+      remove_control_flow_descr(goto_cfdp);
     } else {
       /* This is a forwards goto -- i.e., it references a label that has not
          yet been defined.  Record information about it so that, when the
          label definition is reached, a check can made whether it involves
          jumping over any initializing declarations. */
-      /* Allocate and fill in a goto entry. */
-      gep = alloc_goto_entry();
-      gep->goto_statement = sp;
-      sssep = find_enclosing_block_struct_stmt();
-      gep->assoc_block = sssep->statement;
-      gep->source_position = error_position;
-      gep->block_init_count = sssep->init_count;
-      /* Add it to the end of the goto-entry list of the label symbol. */
-      if (label_sym->variant.label.variant.goto_list == NULL) {
-        label_sym->variant.label.variant.goto_list = gep;
-      } else {
-        end_of_list = label_sym->variant.label.variant.goto_list;
-        while (end_of_list->next != NULL) end_of_list = end_of_list->next;
-        end_of_list->next = gep;
-      }  /* if */
+      goto_cfdp->variant.goto_statement.prev_goto =
+                        label_sym->variant.label.assoc_control_flow_descr;
+      label_sym->variant.label.assoc_control_flow_descr = goto_cfdp;
     }  /* if */
   }  /* if */
   db_exit();
-}  /* check_for_jump_over_initialization_error */
+}  /* check_for_jump_over_initialization */
 
 
 static void goto_statement(void)
@@ -1654,12 +1854,10 @@ See also 3.6.6.1.
   add_stop_token(tok_semicolon);
   /* Scan the label identifier. */
   sp->variant.label = scan_label(/*is_definition=*/FALSE);
-  if (C_dialect == C_dialect_cplusplus) {
-    /* If this is a forward reference to a label, record information about
-       the goto to allow diagnosis of jump-over-initialization errors.  If
-       it is backward reference, do the checking immediately. */
-    check_for_jump_over_initialization_error(sp);
-  }  /* if */
+  /* If this is a forward reference to a label, record information about
+     the goto to allow diagnosis of jump-over-initialization errors.  If
+     it is backward reference, do the checking immediately. */
+  check_for_jump_over_initialization(sp);
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
@@ -2372,11 +2570,9 @@ rescan_statement:
           /* The label has not previously been declared, so put out the
              definition. */
           define_label(label);
-          if (C_dialect == C_dialect_cplusplus) {
-            /* If there have been forward gotos referencing this label, check
-               whether any have jumped over initializing declarations. */
-            check_for_jump_over_initialization_error(label->variant.exec_stmt);
-          }  /* if */
+          /* If there have been forward gotos referencing this label, check
+             whether any have jumped over initializing declarations. */
+          check_for_jump_over_initialization(label->variant.exec_stmt);
         }  /* if */
 #if CHECKING
         if (curr_token != tok_colon) {
@@ -2465,6 +2661,7 @@ come out on the closing "}".
     /* Block for a function. */
     set_reachable(curr_reachability);
     lint_notreached_flag = FALSE;
+    control_flow_descr_list = end_of_control_flow_descr_list = NULL;
     block = alloc_statement((a_statement_kind)stmk_block);
     set_stmt_source_position(block->position, pos_curr_token);
     /* Clear statement stack just to be careful. */
@@ -2562,6 +2759,8 @@ come out on the closing "}".
     pop_stmt_stack();
     /* Clear statement stack just to be careful. */
     depth_stmt_stack = -1;
+    remove_list_of_flow_control_descrs(control_flow_descr_list,
+                                       end_of_control_flow_descr_list);
   } else if (is_catch_clause) {
     pop_stmt_stack();
   } else {
