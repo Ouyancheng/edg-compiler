@@ -1760,6 +1760,7 @@ confusion.  Do the output in the way described by octl.
         char          *str = constant->variant.string.value;
         a_targ_size_t len = constant->variant.string.length;
 
+#if BACK_END_IS_C_GEN_BE
         if (octl->c_generating_back_end && constant->assoc_var_assigned) {
           /* The C-generating back end transforms wide string literals: it
              creates a variable initialized with the string value and then
@@ -1768,7 +1769,10 @@ confusion.  Do the output in the way described by octl.
              derived from the address of the constant; there is no actual
              variable entry. */
           output_temp_name((char *)constant, octl);
-        } else if (is_wide_string_constant(constant)) {
+        } else
+#endif /* BACK_END_IS_C_GEN_BE */
+        /* Do not insert code here.  This is the "else" of an "if". */
+        if (is_wide_string_constant(constant)) {
           /* Wide string literal, e.g., L"abc". */
           /* The processing here must invert the processing done in
              conv_single_wide_char.  Do something that's right for the default
