@@ -1,5 +1,11 @@
 Version 3.6
 
+1/26/05  C++-generating back end and GCC_BUILTIN_VARARGS
+
+If a C++-generating back end version was configured with GCC_BUILTIN_VARARGS
+as TRUE, the back end entered an infinite loop processing the builtin
+va_list typeref.  Now fixed.
+
 1/26/05  Less fragile code for local entity promotion in generated routines
 
 The code in IL lowering that promotes local entities out of functions

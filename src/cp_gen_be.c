@@ -5071,6 +5071,8 @@ this one is such a continuation.
         gen_type_name(type);
       } else if (type->is_builtin_va_list) {
         /* This is the declaration of the builtin va_list, from <stdarg.h>. */
+        suppress_closing_punct = TRUE;
+        adv_curr_source_sequence_entry();
         if (gcc_builtin_varargs_in_generated_code) {
           /* This is the intrinsic GNU C/C++ type __builtin_va_list.  No
              declaration should be generated for it. */
@@ -5079,8 +5081,6 @@ this one is such a continuation.
              "#include <stdarg.h>" was seen (without parsing the header file).
              Put out the #include directive at this point. */
           type->typedef_definition_has_been_put_out = TRUE;
-          suppress_closing_punct = TRUE;
-          adv_curr_source_sequence_entry();
           /* If the guard macros were defined already, put out #defines so that
              the expansion of <stdarg.h> does not define va_list again. */
 #ifdef GUARD_MACRO_FOR_VA_LIST
