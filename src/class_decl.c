@@ -3038,9 +3038,8 @@ without it.
         new_rts->implicit_this_param_type = NULL;
         orig_rts->implicit_this_param_type = NULL;
       }  /* if */
-      match = (orig_type == new_type) ||
-              /* Note that error types are not considered equal here. */
-              f_types_are_compatible(orig_type, new_type,
+      /* Note that error types are not considered equal here. */
+      match = f_types_are_compatible(orig_type, new_type,
 #if MICROSOFT_KEYWORDS_ALLOWED
                                      TCF_IGNORE_CALLING_CONVENTIONS
 #else /* !MICROSOFT_KEYWORDS_ALLOWED */
