@@ -3158,7 +3158,7 @@ and doing any required expansions, the diagnostic is written.
      /* Suppress the diagnostic if it has already been issued during the
         prototype instantiation. */
      diag_should_be_issued =
-                 diagnostic_already_issued_for_prototype(error_code, severity,
+                !diagnostic_already_issued_for_prototype(error_code, severity,
                                                          error_pos, diag_kind);
   }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
