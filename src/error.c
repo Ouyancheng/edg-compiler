@@ -897,6 +897,9 @@ error code.
     case ec_id_must_be_class_name:
       m = "name followed by \"::\" must be a class name";
       break;
+    case ec_bad_friend_decl:
+      m = "invalid friend declaration";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
