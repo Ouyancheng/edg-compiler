@@ -1,5 +1,17 @@
 Version 3.6
 
+2/8/05   Spurious error on template static data member with dependent
+         parenthesised initializer
+
+A spurious error was issued if a template static data member was initialized
+with a parenthesized initializer of the form "T::<name>".  The error would
+only occur when the "implicit typename" feature is being used.  Now fixed.
+
+  template <class T> struct A {
+    static int I;
+  };
+  template <class T> int A<T>::I(T::x());
+
 2/8/05   GNU C++ compatibility: unusable partial specialization accepted
 
 In g++ mode, partial specializations that are unusable because of

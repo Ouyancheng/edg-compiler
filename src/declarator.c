@@ -3397,6 +3397,7 @@ static void scan_real_declarator_id(
                           a_boolean         *is_constructor,
                           a_boolean         *is_destructor,
                           a_boolean         *parenthesized_initializer_allowed,
+			  a_boolean	    *not_a_function_declarator,
                           a_type_ptr        *p_member_parent_type,
                           a_decl_pos_block  *decl_pos_block)
 /*
@@ -3407,8 +3408,10 @@ declarator, and *output_flags is the set of flags that will be returned to
 declarator's caller.  *locator is returned with the locator for the name,
 *p_member_parent_type is the class type when this is a qualified name,
 *is_constructor or *is_destructor is returned TRUE when the name is a
-constructor or destructor name, and *parenthesized_initializer_allowed is set
-to FALSE if the entity being declared is not initializable.
+constructor or destructor name, *parenthesized_initializer_allowed is set
+to FALSE if the entity being declared is not initializable, and
+*not_a_function_declarator is set if the declared entity is known to not
+be a function.
 */
 {
   a_source_position         declarator_pos;
@@ -3658,6 +3661,7 @@ to FALSE if the entity being declared is not initializable.
             /* The dimensions of static data members (if any) are scanned
                with the original class reactivated. */
             reactivate_scope = TRUE;
+            *not_a_function_declarator = TRUE;
             if (is_nonspecialized_instantiation_context()) {
               /* When instantiating a template static data member, we need
                  to update scopes pushed for instantiation purposes so that
@@ -3999,6 +4003,7 @@ The syntax is:
   a_boolean             vla_allowed;
   a_boolean             vla_asterisk_allowed;
   a_boolean             parenthesized_initializer_allowed;
+  a_boolean		not_a_function_declarator = FALSE;
   a_call_conv_descr     left_call_conv, inner_left_call_conv;
   a_call_conv_descr     unbound_call_conv;
   a_type_qualifier_set  left_qualifiers, inner_left_qualifiers;
@@ -4214,6 +4219,7 @@ The syntax is:
       scan_real_declarator_id(input_flags, output_flags, locator,
                               is_constructor, is_destructor,
                               &parenthesized_initializer_allowed,
+                              &not_a_function_declarator,
                               &member_parent_type, decl_pos_block);
     }  /* if */
   }  /* if */
@@ -4252,7 +4258,8 @@ The syntax is:
            follows the left paren.  If the construct inside the parentheses
            could be interpreted as a declaration, then do so.  Otherwise,
            treat this as a parenthesized initializer. */
-        if (!is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+        if (not_a_function_declarator ||
+            !is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                               DFS_REAL_DECLARATOR_ALLOWED)) {
           a_boolean  is_function_decl = FALSE;
           /* This appears to be a parenthesized initializer.  However, it
