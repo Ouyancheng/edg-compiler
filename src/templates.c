@@ -17458,7 +17458,7 @@ be processed.
       routine->instance_required = instance_required;
     }  /* if */
 #if DEBUG
-    if (db_sym_trace("uaif", instance_sym)) {
+    if (db_sym_trace("instantiations", instance_sym)) {
       fprintf(f_debug, "update_auto_instantiation_flags:\n");
       if (is_static_data_member) {
         db_entity_info((char*)variable, iek_variable);
@@ -17475,6 +17475,10 @@ be processed.
       fprintf(f_debug, " is_exported=%d\n", is_exported);
       fprintf(f_debug, " instance_required_count=%d\n",
               (int)mip->instance_required_count);
+      fprintf(f_debug, " mangled_name=%s\n",
+              mip->name == NULL ? "NULL" : mip->name);
+      db_symbol_name(mip->instance->instance_sym);
+      fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
     if (instantiation_flags_needed() &&
