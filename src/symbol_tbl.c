@@ -5856,9 +5856,7 @@ C and C++.
             look_for_projected_symbol = FALSE;
           }  /* if */
 	} else if (ssep->kind == (a_scope_kind)sck_pragma) {
-	  /* We have found a pragma scope.  This will cause us to
-	     ignore template declaration scope found lower in the scope
-	     stack. */
+	  /* We have found a pragma scope -- ignore symbols in this scope. */
           skip_symbols_from_this_scope();
 	  goto next_scope;
         } else {
@@ -5948,10 +5946,8 @@ next_scope:
            scope we are at the right point in the active list.  Within
            an instantiation scope only file scope symbols, template
            parameters, and symbols defined within the instantiation
-           should be visible.  Within a  pragma scope only
-           global scope symbols should be visible. */
-        if (ssep->kind == (a_scope_kind)sck_template_instantiation ||
-            ssep->kind == (a_scope_kind)sck_pragma) {
+           should be visible. */
+        if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
           a_scope_number  file_scope_number;
           ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
           file_scope_number = ssep->number;
