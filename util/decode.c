@@ -3615,7 +3615,7 @@ it is set to "" if not needed.
 
 static char *demangle_source_name(
                                  char                       *ptr,
-                                 a_boolean                  stop_on_underscore,
+                                 a_boolean                  is_module_id,
                                  a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <source-name> and output the demangled form.
@@ -3626,19 +3626,42 @@ characters of the name. The syntax is:
     <source-name> ::= <positive length number> <identifier>
     <identifier> ::= <unqualified source code identifier>
 
-If stop_on_underscore is TRUE, stop outputting characters of the
-name on encountering an underscore (continue scanning, but do not
-output the characters).  This is used for module ids (an EDG extension).
+If is_module_id is TRUE, the identifier is a module id string, which
+begins with a (second) count that gives the length of the file name
+part.  Just put out the file name part (continue scanning, but do not
+output the rest of the string).  This is used for an EDG extension.
 */
 {
-  long      num;
+  long      num, num_chars_to_output;
   a_boolean output_chars = TRUE;
 
   ptr = get_number(ptr, &num, dctl);
   if (num <= 0) {
     bad_mangled_name(dctl);
   } else {
-    if (num >= 11 && start_of_id_is("_GLOBAL__N_", ptr)) {
+    if (is_module_id) {
+      /* A module id name (an EDG extension), which has the form
+           <length> _ <file-name-length> _ <file-name> <rest-of-module-id>
+         Only the file name part is put out.  The rest is passed over
+         but not output. */
+      if (*ptr != '_' || !isdigit((unsigned char)ptr[1])) {
+        bad_mangled_name(dctl);
+      } else {
+        char *end_num = get_number(ptr+1, &num_chars_to_output, dctl);
+        if (!dctl->err_in_id) {
+          long prefix_len = (end_num-ptr)+1;
+          if (*end_num != '_' ||
+              num_chars_to_output <= 0 ||
+              num < (num_chars_to_output + prefix_len)) {
+            bad_mangled_name(dctl);
+          } else {
+            num -= prefix_len;
+            ptr += prefix_len;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (dctl->err_in_id) is_module_id = FALSE;
+    } else if (num >= 11 && start_of_id_is("_GLOBAL__N_", ptr)) {
       /* g++ uses names beginning with "_GLOBAL__N_" to identify unnamed
          namespaces, and the EDG C++ Front End does also to be compatible
          with that. */
@@ -3659,11 +3682,12 @@ output the characters).  This is used for module ids (an EDG extension).
           bad_mangled_name(dctl);
           break;
         }  /* if */
-      } if (stop_on_underscore && *ptr == '_') {
-        /* Stop outputting characters on the first underscore. */
-        output_chars = FALSE;
       } else if (output_chars) {
         write_id_ch(*ptr, dctl);
+        if (is_module_id) {
+          num_chars_to_output--;
+          if (num_chars_to_output == 0) output_chars = FALSE;
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
@@ -3696,7 +3720,7 @@ caller does not need the value.
   if (isdigit((unsigned char)*ptr)) {
     /* A <source-name>, which has a length followed by the characters
        of the identifier, as in "3abc". */
-    ptr = demangle_source_name(ptr, /*stop_on_underscore=*/FALSE, dctl);
+    ptr = demangle_source_name(ptr, /*is_module_id=*/FALSE, dctl);
   } else {
     /* <operator-name> */
     write_id_str("operator ", dctl);
@@ -4259,7 +4283,7 @@ as a prefix to specify a module id for an externalized name.
   if (*ptr == 'B') {
     /* Module-id prefix for externalized name. */
     write_id_str("[static from ", dctl);
-    ptr = demangle_source_name(ptr+1, /*stop_on_underscore=*/TRUE, dctl);
+    ptr = demangle_source_name(ptr+1, /*is_module_id=*/TRUE, dctl);
     write_id_str("] ", dctl);
   }  /* if */
   if (*ptr == 'N') {
