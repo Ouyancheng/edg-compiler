@@ -7508,10 +7508,8 @@ Display the current stop token array.
   stop_tokens = curr_stop_token_stack_entry->stop_tokens;
   for (token = 0; token != (int)tok_last; token++) {
     if (stop_tokens[token] != 0) {
-      if (debug_level != 0) {
-        fprintf(f_debug, "stop_tokens[\"%s\"] = %d\n", 
-                token_names[token], stop_tokens[token]);
-      }  /* if */
+      fprintf(f_debug, "stop_tokens[\"%s\"] = %d\n", 
+              token_names[token], stop_tokens[token]);
     }  /* if */
   }  /* for */
 }  /* db_stop_tokens */
