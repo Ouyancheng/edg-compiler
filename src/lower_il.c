@@ -6002,33 +6002,64 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
 }  /* lower_expr */
 
 
+/*
+Return TRUE if the indicated statement is a do-nothing statement
+created by IL lowering (presumably, it was some other kind of statement
+and it was replaced by something else; see turn_statement_into_noop).
+*/
+#define is_noop_statement(statement)                                  \
+  ((statement)->kind == stmk_block &&                                 \
+   (statement)->variant.block.statements == NULL &&                   \
+   (statement)->variant.block.extra_info->parent_block == NULL)
+
+
 void lower_statement_list(a_statement_ptr statement_list,
-                          a_statement_ptr *last_statement)
+                          a_statement_ptr *p_last_statement)
 /*
 Do IL lowering of the indicated list of statements and everything under it.
-Return a pointer to the last statement in *last_statement, or NULL if
+Return a pointer to the last statement in *p_last_statement, or NULL if
 there are no statements on the list.
 */
 {
-  a_statement_ptr statement, statement_next;
+  a_statement_ptr statement, statement_next, last_statement = NULL;
 
-  for (*last_statement = NULL, statement = statement_list;
-       statement != NULL;) {
+  for (statement = statement_list;
+       statement != NULL;
+       statement = statement_next) {
     /* Save the "next" pointer now, so that any statements inserted by lowering
        will not be lowered (in particular, lowering of stmk_init statements
        inserts statements, and the expressions therein should not be lowered
        again). */
     statement_next = statement->next;
+    /* Lower a statement. */
     lower_statement(statement);
-    *last_statement = statement;
-    statement = statement_next;
+    /* Remove extra no-op statements (empty blocks) left in the statement
+       sequence by lowering of some statements (e.g., stmk_init).
+       Note that this is done in a way that doesn't change the address
+       of the first statement on the list.  In particular, that means
+       a block containing just a no-op statement cannot be changed. */
+    if (is_noop_statement(statement) && statement->next != statement_next) {
+      /* This is a no-op statement followed by a statement generated
+         by IL lowering, so we can copy the generated statement on top
+         of the no-op statement.  Note that in general we cannot move a
+         statement to a different address, since back ends may depend on
+         the address to establish identity, but in this case we can because
+         the generated statement is presumably part of the expansion of
+         the statement that's now a no-op. */
+      *statement = *(statement->next);
+    }  /* if */
+    /* Keep track of the last statement (so far) in the statement list. */
+    last_statement = statement;
+    /* If there were statements inserted after the current statement, find
+       the last of those statements.  Those inserted statements have already
+       been lowered. */
+    while (last_statement->next != statement_next) {
+      last_statement = last_statement->next;
+      check_assertion_str(last_statement != NULL,
+                          "lower_statement_list: did not find statement_next");
+    }  /* while */
   }  /* for */
-  /* If there were statements inserted at the end of a sequence, find the
-     real last statement even though the inserted statements weren't (and
-     shouldn't be) lowered. */
-  while (*last_statement != NULL && (*last_statement)->next != NULL) {
-    *last_statement = (*last_statement)->next;
-  }  /* while */
+  *p_last_statement = last_statement;
 }  /* lower_statement_list */
 
 
