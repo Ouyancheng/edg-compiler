@@ -8,7 +8,7 @@ internal representation is now that of a prototyped parameter list.  That
 is, C++ back ends will never see the "prototyped" flag in the routine type
 supplement set to FALSE, nor will they see "old_style_params_scanned" set
 to TRUE.  This simplifies some code (e.g., in types.c) and also fixes some
-bugs:
+incompatibilities with cfront:
 
   void f(d) double d { }
   main() {
