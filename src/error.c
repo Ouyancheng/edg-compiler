@@ -1828,6 +1828,15 @@ error code.
     case ec_not_instantiatable_entity:
       m = "%nf is not a template function, class, member function or static data member";
       break;
+    case ec_compiler_generated_function_cannot_be_instantiated:
+      m = "compiler generated function %n cannot be instantiated";
+      break;
+    case ec_inline_function_cannot_be_instantiated:
+      m = "inline function %n cannot be instantiated";
+      break;
+    case ec_pure_virtual_function_cannot_be_instantiated:
+      m = "pure virtual function %n cannot be instantiated";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

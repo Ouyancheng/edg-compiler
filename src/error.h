@@ -527,7 +527,10 @@ typedef enum /*an_error_code*/ {
   ec_no_access_to_type_cfront_mode,
   ec_return_type_not_allowed,
   ec_invalid_instantiation_pragma_argument,
-  ec_not_instantiatable_entity
+  ec_not_instantiatable_entity,
+  ec_compiler_generated_function_cannot_be_instantiated,
+  ec_inline_function_cannot_be_instantiated,
+  ec_pure_virtual_function_cannot_be_instantiated
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
