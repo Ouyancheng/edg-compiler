@@ -29,6 +29,17 @@ lower_eh.h -- Declarations related to lower_eh.c (having to do with IL
 #endif /* ifndef LOWER_IL_H */
 
 
+/*
+Values for the "kind" field of eh_stack_entry.  This must match the runtime's
+definition of these values.
+*/
+typedef enum {
+  ehsek_try_block,
+  ehsek_function,
+  ehsek_throw_spec
+} an_eh_stack_entry_kind;
+
+
 extern void define_scope_class_typeinfo_vars(a_scope_ptr scope);
 
 extern void type_is_used_in_exception(a_type_ptr type);
@@ -42,6 +53,10 @@ extern void make_region_table_entry(a_cleanup_action_ptr cap,
 
 extern void set_eh_curr_region(a_context_ptr      context,
                                an_insert_location *insert_location);
+
+extern void pop_eh_stack_frame(an_eh_stack_entry_kind kind,
+                               a_variable_ptr         stack_frame_var,
+                               an_insert_location     *insert_location);
 
 extern void add_eh_function_prologue(a_scope_ptr scope);
 
