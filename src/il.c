@@ -3650,9 +3650,8 @@ to default values.
       rtsp->old_style_params_scanned = FALSE;
       rtsp->lint_argsused_flag       = FALSE;
       rtsp->value_returned_by_cctor  = FALSE;
-#if CHECKING
-      rtsp->avoid_codecenter_warnings = 0;
-#endif /* CHECKING */
+      rtsp->assoc_routine_is_ctor    = FALSE;
+      rtsp->assoc_routine_is_dtor    = FALSE;
       rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
       rtsp->arg_pragma               = (an_arg_pragma_kind)apk_none;
       rtsp->implicit_this_param_type = NULL;

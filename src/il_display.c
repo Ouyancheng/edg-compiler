@@ -1127,9 +1127,17 @@ Display a_routine_type_supplement.
   disp_boolean("has_ellipsis", (a_boolean)ptr->has_ellipsis);
 #ifdef CFE
   disp_boolean("prototyped", (a_boolean)ptr->prototyped);
-  disp_boolean("lint_argsused_flag", (a_boolean)ptr->lint_argsused_flag);
+  if (ptr->lint_argsused_flag) {
+    disp_boolean("lint_argsused_flag", TRUE);
+  }  /* if */
   disp_boolean("value_returned_by_cctor",
                (a_boolean)ptr->value_returned_by_cctor);
+  if (ptr->assoc_routine_is_ctor) {
+    disp_boolean("assoc_routine_is_ctor", TRUE);
+  }  /* if */
+  if (ptr->assoc_routine_is_dtor) {
+    disp_boolean("assoc_routine_is_dtor", TRUE);
+  }  /* if */
   disp_long("lint_varargs_count", (long)ptr->lint_varargs_count);
   disp_name("arg_pragma");
   disp_arg_pragma_kind_name(ptr->arg_pragma);
@@ -1219,10 +1227,13 @@ Display the indicated type entry.
   disp_based_type_list(ptr->based_types);
   disp_unsigned_long("size", (unsigned long)ptr->size);
   disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
-  disp_boolean("used_in_exception", (a_boolean)ptr->used_in_exception);
+  if (ptr->used_in_exception) {
+    disp_boolean("used_in_exception", TRUE);
+  }  /* if */
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-  disp_boolean("use_cfront_transitional_nested_type_name_mangling",
-            (a_boolean)ptr->use_cfront_transitional_nested_type_name_mangling);
+  if (ptr->use_cfront_transitional_nested_type_name_mangling) {
+    disp_boolean("use_cfront_transitional_nested_type_name_mangling", TRUE);
+  }  /* if */
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 #if DO_IL_LOWERING
   /* Do not print out ptr->typeinfo_var, which is used only during IL

@@ -1341,14 +1341,19 @@ typedef struct a_routine_type_supplement {
                            to a lint-style "argsused" flag, indicating that
                            warnings on unreferenced parameters should not
                            be issued. */
-  unsigned int value_returned_by_cctor:1;
+  unsigned int  value_returned_by_cctor:1;
 			/* If TRUE, the caller provides a place for the return
 			   value (by passing its address as a parameter), and
 			   the called routine must place its result in that
 			   location.  This is used only for functions that
 			   return C++ class types, for cases where the
 			   class type returned requires a copy constructor. */
-  bitfield_to_avoid_codecenter_warnings();
+  unsigned int  assoc_routine_is_ctor:1;
+			/* TRUE if associated with a constructor, even if the
+			   assoc_routine pointer has not yet been supplied. */
+  unsigned int  assoc_routine_is_dtor:1;
+			/* TRUE if associated with a destructor, even if the
+			   assoc_routine pointer has not yet been supplied. */
   a_lint_varargs_count
 	         lint_varargs_count;
                         /* If not equal to NOT_LINT_VARARGS (-1), this
