@@ -40,9 +40,6 @@ Return the string associated with the specified error code.
       s =
          "internal error: static object marked for destruction more than once";
       break;
-    case ec_main_called_more_than_once:
-      s = "main() called more than once";
-      break;
     case ec_pure_virtual_called:
       s = "a pure virtual function was called";
       break;
@@ -64,6 +61,7 @@ Return the string associated with the specified error code.
     case ec_vla_allocation_failed:
       s = "VLA allocation failed";
       break;
+    case ec_main_called_more_than_once:
     default:
       unexpected_condition();
       break;

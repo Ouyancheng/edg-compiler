@@ -21,17 +21,6 @@ and destructors.
 #include "static_init.h"
 
 
-EXTERN_C void __main_called_more_than_once()
-/*
-This routine is called when _main is called more than once.  It
-simply calls abort.  The name is intended to describe the nature
-of the problem to the user.
-*/
-{
-  __abort_execution(ec_main_called_more_than_once);
-}
-
-
 EXTERN_C void _main ()
 /*
 Perform any static initializations that are needed and perform any
@@ -43,12 +32,14 @@ version 3.0 of the NIH libraries.
 */
 {
   static a_boolean	main_called = FALSE;
-  /* Make sure that the _main routine is not called more than once. 
-     Doing so can result in an infinite loop during static destruction
-     because entries on the needed destruction list are improperly linked. */
-  if (main_called) __main_called_more_than_once();
-  main_called = TRUE;
-  __call_ctors();
+  /* If main is called more than once, only invoke the static contructors
+     the first time.  Doing otherwise can result in an infinite loop during
+     static destruction because entries on the needed destruction list are
+     improperly linked. */
+  if (!main_called) {
+    main_called = TRUE;
+    __call_ctors();
+  }  /* if */
 }  /* _main */
 
 

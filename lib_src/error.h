@@ -22,7 +22,7 @@ typedef enum /* an_error_code */ {
   ec_terminate_called,
   ec_terminate_returned,
   ec_already_marked_for_destruction,
-  ec_main_called_more_than_once,
+  ec_main_called_more_than_once,  /* No longer used. */
   ec_pure_virtual_called,
   ec_bad_cast,
   ec_bad_typeid,

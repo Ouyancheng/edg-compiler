@@ -1,3 +1,16 @@
+Version 3.6
+
+3/14/05  Handling of recursive calls of main
+
+Formerly, if main were to call itself recursively, the runtime would print an
+error message and abort.  Because some people intentionally call main (which
+the front end now permits in some modes), the runtime has been changed to
+permit main to be called recursively.  In versions that use the "patch" or
+"munch" mechanisms for static initialization, static constructors are only
+invoked the first time that main is called.
+
+-------------------------------------------------------------------------------
+
 Version 3.5, November 8, 2004
 
 6/7/04  ARM EABI Features
