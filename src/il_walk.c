@@ -1065,11 +1065,14 @@ flag.
 #if GNU_EXTENSIONS_ALLOWED
     } else if (rout->is_initialization_routine ||
                rout->is_finalization_routine ||
+               rout->has_gnu_used_attribute ||
                rout->has_gnu_unused_attribute) {
       /* The routine definition for an initialization or finalization
          function is always needed since the function will be called
-         at program start up.  Also, a routine marked as "unused" is
-         assumed to be needed (perhaps from a debugger). */
+         at program start up.  Routines marked using the GNU "used"
+         attribute are always considered to be needed.  Also, a routine
+         marked as "unused" is assumed to be needed (perhaps from a
+         debugger). */
       set_routine_definition_needed(rout);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
