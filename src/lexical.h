@@ -1093,7 +1093,7 @@ extern void do_not_issue_qualifier_access_errors
 extern a_boolean f_check_for_generalized_identifier_errors
 			(an_identifier_options_set options,
                          a_source_position         *pos);
-extern a_boolean is_generalized_identifier_start
+extern a_boolean f_is_generalized_identifier_start
                      (an_identifier_options_set options);
 extern a_boolean coalesce_and_lookup_qualified_name
                      (an_identifier_options_set        options,
@@ -1103,6 +1103,21 @@ extern a_symbol_ptr coalesce_and_lookup_generalized_identifier
                         (an_identifier_options_set        options,
                          an_identifier_lookup_mode        ilm,
                          a_boolean                        *err);
+
+/* Macro that tests whether the f_is_generlized_identifier_start needs
+   to be called.  We don't need to call it if we have an identifier that
+   has already been coalesced.  There are other cases that could be
+   eliminated such as tok_ptr_to_member (which returns FALSE) and current
+   tokens that are not things that could start an identifier.  These have
+   smaller payoffs so are not currently included. */
+#define is_generalized_identifier_start(options)			\
+  /* if */ ((curr_token == tok_identifier &&				\
+            locator_for_curr_id.has_been_coalesced) /* { */ ?		\
+    TRUE								\
+  /* } else { */ :							\
+    f_is_generalized_identifier_start(options))				\
+  /* } */								\
+
 
 /* Return TRUE if the current token might be the start of a C++ qualified
    name (including a simple identifier). */

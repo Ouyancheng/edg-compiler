@@ -5118,7 +5118,7 @@ by the options.  Returns TRUE if any errors were diagnosed.
 
 
 
-a_boolean is_generalized_identifier_start(an_identifier_options_set options)
+a_boolean f_is_generalized_identifier_start(an_identifier_options_set options)
 /*
 Determine whether the current token is the start of a "generalized
 identifier" -- a qualified name, identifier, operator name, conversion
@@ -5231,7 +5231,7 @@ This routine may only be called in C++ mode.
   a_type_ptr		dtor_type = NULL;
   a_source_position	tilde_position;
 
-  db_enter(4, "is_generalized_identifier_start");
+  db_enter(4, "f_is_generalized_identifier_start");
   /* If the current token is an identifier, then check the flag in the
      locator to see if it has already been coalesced.  If so, simply
      return TRUE with no further processing.  If the current token is a
@@ -5717,7 +5717,7 @@ wrapup:
 exit:
   db_exit();
   return result;
-}  /* is_generalized_identifier_start */
+}  /* f_is_generalized_identifier_start */
 
 
 a_boolean coalesce_and_lookup_qualified_name
