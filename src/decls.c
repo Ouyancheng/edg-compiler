@@ -3674,7 +3674,10 @@ the identifier.  Return in *old_type any previously-known type for this
 identifier from a linked identifier in the same scope, or NULL if there
 was no previously-known type.  If the identifier has linkage, return in
 *ext_sym a pointer to the external symbol entry; otherwise, set *ext_sym
-to NULL.
+to NULL.  declarator_ssep (non-NULL only if source sequence entries are
+being generated) is a pointer to the empty source sequence entry already
+created for the declarator and added to the appropriate list; its kind
+and entity pointer are updated.
 */
 {
   a_symbol_ptr      sym = NULL;
@@ -4161,20 +4164,6 @@ skip_overloading:;
                    &locator->source_position, sym);
     }  /* if */
   }  /* if */
-  if (is_variable_def || is_function_def) {
-    f_mark_defined(sym, &locator->source_position, declarator_ssep);
-  } else {
-    f_mark_declared(sym, &locator->source_position, declarator_ssep);
-  }  /* if */
-  if (!is_function && is_volatile_qualified_type(type_ptr)) {
-    /* A variable with a volatile type is considered to be used and modified
-       from "elsewhere".  Note that this must be done after set_source_corresp
-       because the latter clears the IL referenced flag. */
-    source_corresp_ptr->referenced = TRUE;
-    sym->referenced = TRUE;
-    sym->variant.variable.used = TRUE;
-    sym->variant.variable.value_has_been_set = TRUE;
-  }  /* if */
   if (linkage == idl_external) {
     /* Indicate in the IL entry that the name is externally visible by
        assigning the external linkage kind that is the default for the current
@@ -4262,6 +4251,26 @@ skip_overloading:;
       }  /* if */
     }  /* if */
   }  /* if */
+  /* If cross-reference information is being issued, update the output.  If
+     source sequence entries are being generated, update the declarator_ssep
+     entry. */
+  if (is_variable_def || is_function_def) {
+    /* Also set the the defined flag in the symbol and update the source
+       position in the IL entity. */
+    f_mark_defined(sym, &locator->source_position, declarator_ssep);
+  } else {
+    f_mark_declared(sym, &locator->source_position, declarator_ssep);
+  }  /* if */
+  if (!is_function && is_volatile_qualified_type(type_ptr)) {
+    /* A variable with a volatile type is considered to be used and modified
+       from "elsewhere".  Note that this must be done after set_source_corresp
+       because the latter clears the IL referenced flag. */
+    source_corresp_ptr->referenced = TRUE;
+    sym->referenced = TRUE;
+    sym->variant.variable.used = TRUE;
+    sym->variant.variable.value_has_been_set = TRUE;
+  }  /* if */
+  /* Return symbol and linkage pointers. */
   *symbol_ptr = sym;
   *linkage_ptr = linkage;
 
