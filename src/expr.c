@@ -9522,7 +9522,15 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                                                  operand_3.ref_entries_list);
     }  /* if */
   }  /* if */
-
+  if (string_literals_are_const && !strict_ansi_mode) {
+    /* As an extension, allow a "?" operator where the second and third
+       operands are string literals to to eligible for the deprecated
+       conversion to "char *".  This allows things like
+         char *p = x ? "abc" : "def";
+    */
+    result->is_simple_string_literal = (operand_2.is_simple_string_literal ||
+                                        operand_3.is_simple_string_literal);
+  }  /* if */
 error_exit:
 
   set_operand_position(result, &operand_1->position, &operand_3.end_position,

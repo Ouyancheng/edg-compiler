@@ -3353,20 +3353,21 @@ Return TRUE if it's okay to implicitly convert something of type source_type
 (any type) to something of type dest_type (a pointer type).
 If source_is_constant is TRUE, the source is a constant, and source_constant
 points to the constant value.  (That's needed to check for conversions of a
-null pointer constant to a pointer type.)  If source_is_constant is
-TRUE, then if source_is_string_literal is TRUE, the source is a simple
-string literal (that's needed for the deprecated conversion from string
-literal to "char *").  If check_as_operands_not_conversion is TRUE, the
-two types are the types of the operands of an operation; only do the
-checks required in that case, which are fewer than the checks required
-for a conversion.  suppress_extensions is TRUE if conversions that are
-extensions should not be allowed (what constitutes an extension depends
-on C_dialect, of course).  If the conversion is possible, *std_conv is
-filled out to describe the conversion.  In particular, if the conversion
-is suspect and should be flagged with a warning, the warning_suggested
-field is set to an appropriate error code; normally, it is set to
-ec_no_error.  default_warning_code will be copied into warning_suggested
-when no specific message applies.
+null pointer constant to a pointer type.)  If source_is_string_literal
+is TRUE, the source is a simple string literal (that's needed for the
+deprecated conversion from string literal to "char *"); the flag can
+be TRUE even when source_is_constant is FALSE, for an extension.  If
+check_as_operands_not_conversion is TRUE, the two types are the types
+of the operands of an operation; only do the checks required in that
+case, which are fewer than the checks required for a conversion.
+suppress_extensions is TRUE if conversions that are extensions should
+not be allowed (what constitutes an extension depends on C_dialect, of
+course).  If the conversion is possible, *std_conv is filled out to
+describe the conversion.  In particular, if the conversion is suspect
+and should be flagged with a warning, the warning_suggested field is
+set to an appropriate error code; normally, it is set to ec_no_error.
+default_warning_code will be copied into warning_suggested when no
+specific message applies.
 
 Note that any type qualifiers on the types themselves (rather than the
 types pointed to) are ignored.
@@ -3613,7 +3614,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       } else if (any_qualifier_in_set_missing(dest_type_qualifiers,
                                               source_type_qualifiers)) {
         /* Qualifiers are being dropped. */
-        if (string_literals_are_const && source_is_constant &&
+        if (string_literals_are_const &&
             source_is_string_literal &&
             source_type_qualifiers == (dest_type_qualifiers | TQ_CONST)) {
           /* A deprecated conversion in standard C++ allows conversion of
@@ -3940,15 +3941,16 @@ Return TRUE if it is okay to implicitly convert something of type source_type
 to something of type dest_type.  If source_is_constant is TRUE, the source
 is a constant, and source_constant points to the constant value.  (That's
 needed to check for conversions of a null pointer constant to a pointer
-type.)  If source_is_constant is TRUE, then if source_is_string_literal
-is TRUE, the source is a simple string literal (that's needed for the
-deprecated conversion from string literal to "char *").
-suppress_extensions is TRUE if conversions that are extensions should
-not be allowed (what constitutes an extension depends on C_dialect, of
-course).  If the conversion is possible, *std_conv is filled out to
-describe the conversion.  In particular, if the conversion is suspect
-and should be flagged with a warning, the warning_suggested field is set
-to an appropriate error code; normally, it is set to ec_no_error.
+type.)  If source_is_string_literal is TRUE, the source is a simple
+string literal (that's needed for the deprecated conversion from
+string literal to "char *"); the flag can be TRUE even when
+source_is_constant is FALSE, for an extension.  suppress_extensions is
+TRUE if conversions that are extensions should not be allowed (what
+constitutes an extension depends on C_dialect, of course).  If the
+conversion is possible, *std_conv is filled out to describe the
+conversion.  In particular, if the conversion is suspect and should be
+flagged with a warning, the warning_suggested field is set to an
+appropriate error code; normally, it is set to ec_no_error.
 default_warning_code will be copied into warning_suggested when no
 specific message applies.
 
@@ -4241,17 +4243,18 @@ Return TRUE if it is okay to explicitly convert something of type source_type
 to something of type dest_type in a static_cast.  If source_is_constant is
 TRUE, the source is a constant, and source_constant points to the constant
 value.  (That's needed to check for conversions of a null pointer constant
-to a pointer type.)  If source_is_constant is TRUE, then if
-source_is_string_literal is TRUE, the source is a simple string literal
-(that's needed for the deprecated conversion from string literal to
-"char *").  If the conversion is suspect and should be flagged with a
-warning, *warning_suggested is set to an appropriate error code;
-normally, it is set to ec_no_error.  default_warning_code will be copied
-into *warning_suggested when no specific message applies.  Any type
-qualifiers on the types themselves are ignored.  Note that this routine
-does not handle casts to reference types, it doesn't reject conversions
-that cast away constness, and it doesn't handle user-defined
-conversions.  This routine is called in C mode as well as C++ mode.  See
+to a pointer type.)  If source_is_string_literal is TRUE, source is a
+simple string literal (that's needed for the deprecated conversion
+from string literal to "char *"); the flag can be TRUE even when
+source_is_constant is FALSE, for an extension.  If the conversion is
+suspect and should be flagged with a warning, *warning_suggested is
+set to an appropriate error code; normally, it is set to ec_no_error.
+default_warning_code will be copied into *warning_suggested when no
+specific message applies.  Any type qualifiers on the types themselves
+are ignored.  Note that this routine does not handle casts to
+reference types, it doesn't reject conversions that cast away
+constness, and it doesn't handle user-defined conversions.  This
+routine is called in C mode as well as C++ mode.  See
 [expr.static.cast].
 */
 {
@@ -4489,14 +4492,15 @@ source_type to something of type dest_type in a C-style cast or a
 functional-notation cast.  If source_is_constant is TRUE, the source is
 a constant, and source_constant points to the constant value.
 (That's needed to check for conversions of a null pointer constant to
-a pointer type.)  If source_is_constant is TRUE, then if
-source_is_string_literal is TRUE, the source is a simple string literal
-(that's needed for the deprecated conversion from string literal to
-"char *").  Any type qualifiers on the types themselves are ignored.  If
-the conversion is suspect and should be flagged with a warning,
-*warning_suggested is set to an appropriate error code; normally, it is
-set to ec_no_error.  default_warning_code will be copied into
-*warning_suggested when no specific message applies.
+a pointer type.)  If source_is_string_literal is TRUE, the source is a
+simple string literal (that's needed for the deprecated conversion
+from string literal to "char *"); the flag can be TRUE even when
+source_is_constant is FALSE, for an extension.  Any type qualifiers on
+the types themselves are ignored.  If the conversion is suspect and
+should be flagged with a warning, *warning_suggested is set to an
+appropriate error code; normally, it is set to ec_no_error.
+default_warning_code will be copied into *warning_suggested when no
+specific message applies.
 
 Any implicit conversion is allowed (see impl_conversion_possible).  Also, the
 explicit conversions allowed in casts (ARM 5.2.3 and 5.4; ANSI C 3.3.4)

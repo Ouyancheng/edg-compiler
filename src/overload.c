@@ -1339,12 +1339,12 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
   arg_operand_is_simple_string_literal = FALSE;
   arg_operand_constant = NULL;
   if (arg_operand != NULL && is_an_rvalue(arg_operand)) {
+    arg_operand_is_simple_string_literal =
+                                         arg_operand->is_simple_string_literal;
     /* For a constant argument, get the constant value. */
     arg_operand_is_constant = is_constant_operand(arg_operand);
     if (arg_operand_is_constant) {
       arg_operand_constant = &arg_operand->variant.constant;
-      arg_operand_is_simple_string_literal =
-                                         arg_operand->is_simple_string_literal;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (microsoft_mode) {
       /* Microsoft mode allows some expressions as null pointer constants. */
