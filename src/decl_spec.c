@@ -1397,6 +1397,379 @@ keyword.
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
 
+/* Enumerations used by decl_specifiers for its internal processing and
+   for calls to its subroutines. */
+/* The basic type (without qualifiers or other specifiers). */
+typedef enum {
+  bt_none,
+  bt_void,
+  bt_char,
+  bt_int,
+  bt_float,
+  bt_double,
+  bt_typedef,
+  bt_struct_union,
+  bt_enum,
+  bt_no_type,
+  bt_error
+} a_basic_type;
+/* The sign specifier. */
+typedef enum {
+  sign_none,
+  sign_signed,
+  sign_unsigned
+} a_type_sign;
+/* The size specifier. */
+typedef enum {
+  size_none,
+  size_short,
+  size_long
+#if LONG_LONG_ALLOWED
+  , size_long_long
+#endif /* LONG_LONG_ALLOWED */
+} a_type_size;
+
+
+static a_boolean combine_type_specifiers(a_type_ptr    *type_ptr,
+                                         a_basic_type  basic_type,
+                                         a_type_sign   sign,
+                                         a_type_size   size)
+/*
+Given a basic type, a sign specifier, and a size specifier, return a pointer
+to a type entry in *type_ptr.  This routine is only called from from
+decl_specifiers.
+*/
+{
+  an_integer_kind  ikind;
+  a_float_kind     fkind;
+  a_boolean        bad_combination = FALSE;
+
+  if (C_dialect == C_dialect_pcc && basic_type == bt_typedef &&
+      (sign != sign_none || size != size_none)) {
+    /* pcc allows use of unsigned, long, and short as adjectives modifying
+       a typedef type.  Turn the typedef into a matching basic type,
+       for the cases for which it makes sense.  For the others, an error
+       will be detected below. */
+    a_type_ptr  temp_type = skip_typerefs(*type_ptr);
+    if (temp_type->kind == (a_type_kind)tk_integer) {
+      if (temp_type->variant.integer.enum_type) {
+        /* Don't allow adjectives on enum integers. */
+      } else {
+        /* Adjectives (size and sign) are only allowed where they
+           fill in empty holes -- unspecified attributes -- in the
+           following table:
+
+                                      sign      size      base type
+             ik_signed_char                    -fixed-     char
+             ik_unsigned_char       see note   -fixed-     char
+             ik_short                          short       int
+             ik_unsigned_short      unsigned   short       int
+             ik_int                                        int
+             ik_unsigned_int        unsigned               int
+             ik_long                           long        int
+             ik_unsigned_long       unsigned   long        int
+             ik_long_long                      long long   int
+             ik_unsigned_long_long  unsigned   long long   int
+
+           In pcc mode, the "signed" keyword does not exist, so something
+           that is signed really has unspecified sign.  Note that ik_char
+           is not used in pcc mode, so ik_unsigned_char has to be viewed
+           as not specifying a sign if it is plain_char_int_kind.
+           ik_signed_char always implies an unspecified sign.  A size may
+           not be specified for those ("short char" and "long char" don't
+           make sense). */
+        ikind = temp_type->variant.integer.int_kind;
+        switch (ikind) {
+          case ik_unsigned_char:
+            if (plain_char_int_kind != ikind && sign != sign_none) break;
+            /* Fall into signed char case. */
+          case ik_signed_char:
+            if (size != size_none) break;
+            basic_type = bt_char;
+            break;
+          case ik_short:
+            if (size != size_none) break;
+            basic_type = bt_int;
+            size = size_short;
+            break;
+          case ik_unsigned_short:
+            /* No holes to fill in. */
+            break;
+          case ik_unsigned_int:
+            if (sign != sign_none) break;
+            sign = sign_unsigned;
+            /* Fall into signed int case. */
+          case ik_int:
+            basic_type = bt_int;
+            break;
+          case ik_long:
+            if (size != size_none) break;
+            basic_type = bt_int;
+            size = size_long;
+            break;
+          case ik_unsigned_long:
+            /* No holes to fill in. */
+            break;
+#if LONG_LONG_ALLOWED
+          case ik_long_long:
+            if (size == size_none) {
+              basic_type = bt_int;
+              size = size_long_long;
+            }  /* if */
+            break;
+          case ik_unsigned_long_long:
+            /* No holes to fill in. */
+            break;
+#endif /* LONG_LONG_ALLOWED */
+#if CHECKING
+          default:
+            internal_error("combine_type_specifiers: bad typedef int kind");
+#endif /* CHECKING */
+        }  /* switch */
+      }  /* if */
+    } else if (temp_type->kind == (a_type_kind)tk_float) {
+      fkind = temp_type->variant.float_kind;
+      if (fkind == (a_float_kind)fk_float) {
+        basic_type = bt_float;
+      } else if (fkind == (a_float_kind)fk_double) {
+        basic_type = bt_double;
+      }  /* if */
+    }  /* if */
+    if (basic_type != bt_typedef) *type_ptr = NULL;
+  }  /* if */
+  /* Now check for the various legal combinations of specifiers.  See 3.5.2
+     for list. */
+  switch (basic_type) {
+    case bt_void:
+      if (sign == sign_none && size == size_none) {
+        /* void type. */
+        *type_ptr = void_type();
+      } else {
+        bad_combination = TRUE;
+      }  /* if */
+      break;
+    case bt_char:
+      if (size != size_none) {
+        bad_combination = TRUE;
+      } else {
+        switch (sign) {
+          case sign_none:
+            /* "plain" char. */
+            ikind = plain_char_int_kind;
+            break;
+          case sign_signed:
+            /* signed char. */
+            ikind = (an_integer_kind)ik_signed_char;
+            break;
+          case sign_unsigned:
+            /* unsigned char. */
+            ikind = (an_integer_kind)ik_unsigned_char;
+            break;
+#if CHECKING
+          default:
+            internal_error(
+                      "combine_type_specifiers: bad value for a_type_sign");
+#endif /* CHECKING */
+        }
+        *type_ptr = integer_type((an_integer_kind)ikind);
+      }  /* if */
+      break;
+    case bt_none:
+      /* If there was no explicit basic type, assume an integer type. */
+    case bt_int:
+      switch (size) {
+        case size_short:
+          if (sign != sign_unsigned) {
+            /* short, signed short, short int, signed short int. */
+            ikind = (an_integer_kind)ik_short;
+          } else {
+            /* unsigned short, unsigned short int. */
+            ikind = (an_integer_kind)ik_unsigned_short;
+          }  /* if */
+          break;
+        case size_none:
+          if (sign != sign_unsigned) {
+            /* int, signed, signed int, or no type specifiers. */
+            ikind = (an_integer_kind)ik_int;
+          } else {
+            /* unsigned, unsigned int. */
+            ikind = (an_integer_kind)ik_unsigned_int;
+          }  /* if */
+          break;
+        case size_long:
+          if (sign != sign_unsigned) {
+            /* long, signed long, long int, signed long int. */
+            ikind = (an_integer_kind)ik_long;
+          } else {
+            /* unsigned long, unsigned long int. */
+            ikind = (an_integer_kind)ik_unsigned_long;
+          }  /* if */
+          break;
+#if LONG_LONG_ALLOWED
+        case size_long_long:
+          if (sign != sign_unsigned) {
+            /* long long, signed long long, long long int,
+               signed long long int. */
+            ikind = (an_integer_kind)ik_long_long;
+          } else {
+            /* unsigned long long, unsigned long long int. */
+            ikind = (an_integer_kind)ik_unsigned_long_long;
+          }  /* if */
+          break;
+#endif /* LONG_LONG_ALLOWED */
+#if CHECKING
+        default:
+          internal_error("combine_type_specifiers: bad size for int");
+#endif /* CHECKING */
+      }  /* switch */
+      if (sign == sign_signed) {
+        /* For an explicitly "signed" int, use a different type entry.
+           Plain "int" and "signed int" have to be kept separate because
+           they may mean different things as bit-field types.  The same
+           applies to explicitly signed short, long, and long long. */
+        *type_ptr = signed_integer_type((an_integer_kind)ikind);
+      } else {
+        *type_ptr = integer_type((an_integer_kind)ikind);
+      }  /* if */
+      break;
+    case bt_float:
+    case bt_double:
+      if (sign != sign_none || (size != size_none && size != size_long)) {
+        bad_combination = TRUE;
+      } else {
+        if (size == size_none) {
+          if (basic_type == bt_float) {
+            /* float. */
+            fkind = (a_float_kind)fk_float;
+          } else {
+            fkind = (a_float_kind)fk_double;
+          }  /* if */
+        } else {
+          if (basic_type == bt_float) {
+            /* long float, which is double in pcc.  Allowed as an extension
+               in ANSI mode. */
+            fkind = (a_float_kind)fk_double;
+            if (strict_ansi_mode) {
+              diagnostic(strict_ansi_error_severity,
+                         ec_bad_combination_of_type_specifiers);
+            }  /* if */
+          } else {
+            /* long double. */
+            fkind = (a_float_kind)fk_long_double;
+          }  /* if */
+        }  /* if */
+        *type_ptr = float_type((a_float_kind)fkind);
+      }  /* if */
+      break;
+    case bt_struct_union:
+    case bt_enum:
+    case bt_typedef:
+      if (sign != sign_none || size != size_none) bad_combination = TRUE;
+      check_assertion_str2(*type_ptr != NULL,
+                           "combine_type_specifiers: null type ptr for",
+                           "class, struct, union, enum, or typedef");
+      break;
+    case bt_no_type:
+      /* No specifiers type declared (constructor, destructor, or conversion
+         operator). */
+      *type_ptr = unknown_type();
+      break;
+    case bt_error:
+      /* Error, already diagnosed. */
+      *type_ptr = error_type();
+      break;
+#if CHECKING
+    default:
+      internal_error("combine_type_specifiers: bad basic type");
+#endif /* CHECKING */
+  }  /* switch */
+  if (bad_combination) {
+    /* Bad combination of type specifiers.  Issue a diagnostic and set the
+       type to an error type. */
+    error(ec_bad_combination_of_type_specifiers);
+    *type_ptr = error_type();
+  }  /* if */
+  /* Return TRUE if no problems were encountered in combining type
+     specifiers. */
+  return !bad_combination;
+}  /* combine_type_specifiers */
+
+
+static a_boolean add_type_qualifiers(a_type_ptr            *type_ptr,
+                                     a_type_qualifier_set  *qualifiers,
+                                     a_source_position     *qualifier_pos)
+/*
+Add the type qualifiers specified
+*/
+{
+  a_boolean  err = FALSE;
+
+  if (*qualifiers != TQ_NONE) {
+    if ((*type_ptr)->kind == (a_type_kind)tk_typeref) {
+      if (C_dialect == C_dialect_cplusplus) {
+        /* In C++ adding a qualifier to a typedef name that is already
+           identically qualified is okay, so don't even bother checking for
+           an error.  Note that make_qualified_type will not actually add
+           superfluous qualifiers. */
+        /* However, adding a qualifier to a typedef for a reference type
+           is not allowed.  More precisely, the qualifier is ignored.
+           Issue a diagnostic. */
+        if (is_reference_type(*type_ptr)) {
+#if RESTRICT_ALLOWED
+          /* "restrict" may be applied to reference types, but the other
+              qualifiers may not. */
+          if ((*qualifiers & ~TQ_RESTRICT) != TQ_NONE) {
+            *qualifiers &= TQ_RESTRICT;
+            pos_warning(ec_useless_type_qualifiers, qualifier_pos);
+          }  /* if */
+#else /* !RESTRICT_ALLOWED */
+          *qualifiers = TQ_NONE;
+          pos_warning(ec_useless_type_qualifiers, qualifier_pos);
+#endif /* RESTRICT_ALLOWED */
+        }  /* if */        
+      } else {
+        /* In C we check for duplicate qualifiers on a declaration, even
+           if, in the case of an array type, one is a top-level qualifier
+           and the other qualifies an element type.  That's why top_level
+           is set to FALSE here -- that's normally not the case in C mode. */
+        /* According to 3.5.3: "If the specification of an array type
+           includes any type qualifiers, the element type is so-qualified,
+           not the array type.", and this is interpreted recursively
+           for arrays of arrays.  The type qualifiers therefore apply
+           to the ultimate element type.  This can only happen with typedefs,
+           as in "typedef int A[2][3]; const A a;", which makes "a" an
+           array of array of const int. */
+        if ((*qualifiers &
+             f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE)) != 0) {
+          /* Duplication of type qualifier (probably because of a typedef
+             that is already qualified). */
+          error(ec_dupl_type_qualifier);
+          err = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#if RESTRICT_ALLOWED
+    /* The restrict qualifier may only be applied to pointer and reference
+       types (but not pointer-to-function-type), pointer-to-member types,
+       and (in parameter declarations only) array types. */
+    if ((*qualifiers & TQ_RESTRICT) &&
+        !restrict_qualifier_is_allowed(*type_ptr, &error_position)) {
+      /* Diagnostic has already been issued.  Just remove TQ_RESTRICT
+         from the qualifier set. */
+      *qualifiers &= ~TQ_RESTRICT;
+      err = TRUE;
+    }  /* if */
+#endif /* RESTRICT_ALLOWED */
+    if (*qualifiers != TQ_NONE) {
+      /* Add the qualifiers if necessary.  make_qualified_type understands
+         the strange array case too. */
+      *type_ptr = make_qualified_type(*type_ptr, *qualifiers);
+    }  /* if */
+  }  /* if */
+  return !err;
+}  /* add_type_qualifiers */
+
+
 a_boolean decl_specifiers(a_decl_flag_set       input_flags,
                           a_decl_flag_set       *output_flags,
                           a_storage_class       *storage_class,
@@ -1518,11 +1891,6 @@ Returns TRUE if there is an error in the specifiers.
   a_boolean                  bad_combination_of_type_specifiers = FALSE;
   a_source_position          start_pos;
   a_source_position          non_restrict_qualifier_pos;
-  a_type_kind                kind;
-  an_integer_kind            ikind;
-  a_float_kind               fkind;
-  a_type_ptr                 temp_type;
-  a_boolean                  explicitly_signed;
   a_boolean                  is_parameter = (input_flags & DSI_IS_PARAMETER);
   a_boolean                  is_member_decl =
                                     (input_flags & DSI_IS_MEMBER_DECLARATION);
@@ -1537,19 +1905,11 @@ Returns TRUE if there is an error in the specifiers.
   a_boolean                  is_inline = FALSE;
   an_error_severity          es;
   an_identifier_options_set  options;
-
-  enum {bt_none, bt_void, bt_char, bt_int,
-        bt_float, bt_double, bt_typedef,
-        bt_struct_union, bt_enum, bt_no_type, bt_error} basic_type = bt_none;
-  enum {sign_none, sign_signed, sign_unsigned} sign       = sign_none;
-  enum {size_none, size_short, size_long
-#if LONG_LONG_ALLOWED
-        , size_long_long
-#endif /* LONG_LONG_ALLOWED */
-                                        }      size       = size_none;
+  a_basic_type               basic_type = bt_none;
+  a_type_sign                sign = sign_none;
+  a_type_size                size = size_none;
 
   db_enter(3, "decl_specifiers");
-  explicitly_signed = FALSE;
   *output_flags = DSO_NO_OUTPUT_FLAGS;
   *storage_class = (a_storage_class)sc_unspecified;
   *type_ptr = NULL;
@@ -1806,7 +2166,7 @@ Returns TRUE if there is an error in the specifiers.
                      an error. */
                   error(ec_bad_friend_decl);
                   err = TRUE;
-                  *type_ptr = error_type();
+                  basic_type = bt_error;
                 } else {
                   /* This declaration is of the form "friend T;" and T is
                      a previously declared class name.  Issue a diagnostic
@@ -1985,12 +2345,7 @@ Returns TRUE if there is an error in the specifiers.
           }  /* if */
         } else {
           /* First specification of sign. */
-          if (curr_token == tok_signed) {
-            sign = sign_signed;
-            explicitly_signed = TRUE;
-          } else {
-            sign = sign_unsigned;
-          }  /* if */
+          sign = (curr_token == tok_signed) ? sign_signed : sign_unsigned;
         }  /* if */
         break;
       case tok_class:
@@ -2545,303 +2900,22 @@ exit_loop:
          such cases. */
       *output_flags |= DSO_DANGLING_TYPE_SPECIFIER;
     }  /* if */
-    /* Combine the type specifiers into a type. */
-    /* If there was no basic type, use int or (for constructors and
-       destructors) tk_unknown. */
-    if (basic_type == bt_none) {
-      basic_type = bt_int;
-    } else if (basic_type == bt_no_type) {
-      *type_ptr = unknown_type();
-    }  /* if */
-    if (C_dialect == C_dialect_pcc && basic_type == bt_typedef &&
-        (sign != sign_none || size != size_none)) {
-      /* pcc allows use of unsigned, long, and short as adjectives modifying
-         a typedef type.  Turn the typedef into a matching basic type,
-         for the cases for which it makes sense.  For the others, an error
-         will be detected below. */
-      temp_type = skip_typerefs(*type_ptr);
-      if (temp_type->kind == (a_type_kind)tk_integer) {
-        if (temp_type->variant.integer.enum_type) {
-          /* Don't allow adjectives on enum integers. */
-        } else {
-          /* Adjectives (size and sign) are only allowed where they
-             fill in empty holes -- unspecified attributes -- in the
-             following table:
-
-                                     sign      size      base type
-               ik_signed_char                  -fixed-   char
-               ik_unsigned_char      see note  -fixed-   char
-               ik_short                        short     int
-               ik_unsigned_short     unsigned  short     int
-               ik_int                                    int
-               ik_unsigned_int       unsigned            int
-               ik_long                         long      int
-               ik_unsigned_long      unsigned  long      int
-               ik_long_long                    long long int
-               ik_unsigned_long_long unsigned  long long int
-
-             In pcc mode, the "signed" keyword does not exist, so something
-             that is signed really has unspecified sign.  Note that ik_char
-             is not used in pcc mode, so ik_unsigned_char has to be viewed
-             as not specifying a sign if it is plain_char_int_kind.
-             ik_signed_char always implies an unspecified sign.  A size may
-             not be specified for those ("short char" and "long char" don't
-             make sense). */
-          ikind = temp_type->variant.integer.int_kind;
-          switch (ikind) {
-            case ik_unsigned_char:
-              if (plain_char_int_kind != ikind && sign != sign_none) break;
-              /* Fall into signed char case. */
-            case ik_signed_char:
-              if (size != size_none) break;
-              basic_type = bt_char;
-              break;
-            case ik_short:
-              if (size != size_none) break;
-              basic_type = bt_int;
-              size = size_short;
-              break;
-            case ik_unsigned_short:
-              /* No holes to fill in. */
-              break;
-            case ik_unsigned_int:
-              if (sign != sign_none) break;
-              sign = sign_unsigned;
-              /* Fall into signed int case. */
-            case ik_int:
-              basic_type = bt_int;
-              break;
-            case ik_long:
-              if (size != size_none) break;
-              basic_type = bt_int;
-              size = size_long;
-              break;
-            case ik_unsigned_long:
-              /* No holes to fill in. */
-              break;
-#if LONG_LONG_ALLOWED
-            case ik_long_long:
-              if (size != size_none) break;
-              basic_type = bt_int;
-              size = size_long_long;
-              break;
-            case ik_unsigned_long_long:
-              /* No holes to fill in. */
-              break;
-#endif /* LONG_LONG_ALLOWED */
-#if CHECKING
-            default:
-              internal_error("decl_specifiers: bad typedef int kind");
-#endif /* CHECKING */
-          }  /* switch */
-        }  /* if */
-      } else if (temp_type->kind == (a_type_kind)tk_float) {
-        fkind = temp_type->variant.float_kind;
-        if (fkind == (a_float_kind)fk_float) {
-          basic_type = bt_float;
-        } else if (fkind == (a_float_kind)fk_double) {
-          basic_type = bt_double;
-        }  /* if */
-      }  /* if */
-      if (basic_type != bt_typedef) *type_ptr = NULL;
-    }  /* if */
-    /* Now check for the various legal combinations of specifiers.
-       See 3.5.2 for list. */
     if (bad_combination_of_type_specifiers) {
-      /* Don't look at basic_type etc. if there was an error. */
-    } if (basic_type == bt_void && sign == sign_none && size == size_none) {
-      /* void. */
-      kind = (a_type_kind)tk_void;
-    } else if (basic_type == bt_char && size == size_none) {
-      kind = (a_type_kind)tk_integer;
-      if (sign == sign_none) {
-        /* "plain" char. */
-        ikind = plain_char_int_kind;
-      } else if (sign == sign_signed) {
-        /* signed char. */
-        ikind = (an_integer_kind)ik_signed_char;
-      } else {
-        /* unsigned char. */
-        ikind = (an_integer_kind)ik_unsigned_char;
-      }  /* if */
-    } else if (basic_type == bt_int && size == size_short) {
-      kind = (a_type_kind)tk_integer;
-      if (sign != sign_unsigned) {
-        /* short, signed short, short int, signed short int. */
-        ikind = (an_integer_kind)ik_short;
-      } else {
-        /* unsigned short, unsigned short int. */
-        ikind = (an_integer_kind)ik_unsigned_short;
-      }  /* if */
-    } else if (basic_type == bt_int && size == size_none) {
-      kind = (a_type_kind)tk_integer;
-      if (sign != sign_unsigned) {
-        /* int, signed, signed int, or no type specifiers. */
-        ikind = (an_integer_kind)ik_int;
-      } else {
-        /* unsigned, unsigned int. */
-        ikind = (an_integer_kind)ik_unsigned_int;
-      }  /* if */
-    } else if (basic_type == bt_int && size == size_long) {
-      kind = (a_type_kind)tk_integer;
-      if (sign != sign_unsigned) {
-        /* long, signed long, long int, signed long int. */
-        ikind = (an_integer_kind)ik_long;
-      } else {
-        /* unsigned long, unsigned long int. */
-        ikind = (an_integer_kind)ik_unsigned_long;
-      }  /* if */
-#if LONG_LONG_ALLOWED
-    } else if (basic_type == bt_int && size == size_long_long) {
-      kind = (a_type_kind)tk_integer;
-      if (sign != sign_unsigned) {
-        /* long long, signed long long, long long int, signed long long int. */
-        ikind = (an_integer_kind)ik_long_long;
-      } else {
-        /* unsigned long long, unsigned long long int. */
-        ikind = (an_integer_kind)ik_unsigned_long_long;
-      }  /* if */
-#endif /* LONG_LONG_ALLOWED */
-    } else if (basic_type == bt_float && sign == sign_none &&
-               size == size_none) {
-      /* float. */
-      kind = (a_type_kind)tk_float;
-      fkind = (a_float_kind)fk_float;
-    } else if (basic_type == bt_double && sign == sign_none &&
-               size == size_none) {
-      /* double. */
-      kind = (a_type_kind)tk_float;
-      fkind = (a_float_kind)fk_double;
-    } else if (basic_type == bt_float && sign == sign_none &&
-               size == size_long) {
-      /* long float, which is double in pcc.  Allowed as an extension
-         in ANSI mode. */
-      kind = (a_type_kind)tk_float;
-      fkind = (a_float_kind)fk_double;
-      if (strict_ansi_mode) {
-        pos_diagnostic(strict_ansi_error_severity,
-                       ec_bad_combination_of_type_specifiers, &start_pos);
-      }  /* if */
-    } else if (basic_type == bt_double && sign == sign_none &&
-               size == size_long) {
-      /* long double. */
-      kind = (a_type_kind)tk_float;
-      fkind = (a_float_kind)fk_long_double;
-    } else if ((basic_type == bt_struct_union || basic_type == bt_enum) &&
-               sign == sign_none && size == size_none) {
-      /* struct, union, or enum. */
-    } else if (basic_type == bt_typedef && sign == sign_none &&
-               size == size_none) {
-      /* typedef. */
-    } else if (basic_type == bt_no_type) {
-      /* No specifiers type declared (constructor, destructor, or conversion
-         operator). */
-    } else if (basic_type == bt_error) {
-      /* Error, already diagnosed. */
-      kind = (a_type_kind)tk_error;
+      /* Error has aleady been diagnosed. */
+      *type_ptr = error_type();
       err = TRUE;
-      *type_ptr = NULL;
     } else {
-      /* Error, not an acceptable combination. */
-      bad_combination_of_type_specifiers = TRUE;
-      pos_error(ec_bad_combination_of_type_specifiers, &start_pos);
-    }  /* if */
-    if (bad_combination_of_type_specifiers) {
-      /* Bad combination of type specifiers.  Use an error type. */
-      err = TRUE;
-      *type_ptr = NULL;
-      kind = (a_type_kind)tk_error;
-    }  /* if */
-    /* Find a type entry if one is wanted.  It should be possible to use
-       a standard one, since non-standard cases should already have been
-       allocated. */
-    if (*type_ptr == NULL) {
-      if (kind == (a_type_kind)tk_void) {
-        *type_ptr = void_type();
-      } else if (kind == (a_type_kind)tk_error) {
-        *type_ptr = error_type();
-      } else if (kind == (a_type_kind)tk_integer) {
-	if (explicitly_signed && ikind != (an_integer_kind)ik_signed_char) {
-          /* For an explicitly "signed" int, use a different type entry.
-             Plain "int" and "signed int" have to be kept separate because
-             they may mean different things as bit-field types.  The same
-             applies to explicitly signed short, long, and long long. */
-	  *type_ptr = signed_integer_type((an_integer_kind)ikind);
-	} else {
-          *type_ptr = integer_type((an_integer_kind)ikind);
-	}  /* if */
-      } else if (kind == (a_type_kind)tk_float) {
-        *type_ptr = float_type((a_float_kind)fkind);
-#if CHECKING
-      } else {
-        internal_error(
-               "decl_specifiers: need to allocate a non-standard type");
-#endif /* CHECKING */
-      }  /* if */
-    }  /* if */
-    /* Add any type qualifiers (const or volatile) to the type. */
-    if (*qualifiers != TQ_NONE) {
-      if ((*type_ptr)->kind == (a_type_kind)tk_typeref) {
-        if (C_dialect == C_dialect_cplusplus) {
-          /* In C++ adding a qualifier to a typedef name that is already
-             identically qualified is okay, so don't even bother checking for
-             an error.  Note that make_qualified_type will not actually add
-             superfluous qualifiers. */
-          /* However, adding a qualifier to a typedef for a reference type
-             is not allowed.  More precisely, the qualifier is ignored.
-             Issue a diagnostic. */
-          if (is_reference_type(*type_ptr)) {
-#if RESTRICT_ALLOWED
-            /* "restrict" may be applied to reference types, but the other
-                qualifiers may not. */
-            if ((*qualifiers & ~TQ_RESTRICT) != TQ_NONE) {
-              *qualifiers &= TQ_RESTRICT;
-              pos_warning(ec_useless_type_qualifiers,
-                          &non_restrict_qualifier_pos);
-            }  /* if */
-#else /* !RESTRICT_ALLOWED */
-            *qualifiers = TQ_NONE;
-            pos_warning(ec_useless_type_qualifiers,
-                        &non_restrict_qualifier_pos);
-#endif /* RESTRICT_ALLOWED */
-          }  /* if */        
-        } else {
-          /* In C we check for duplicate qualifiers on a declaration, even
-             if, in the case of an array type, one is a top-level qualifier
-             and the other qualifies an element type.  That's why top_level
-             is set to FALSE here -- that's normally not the case in C mode. */
-          /* According to 3.5.3: "If the specification of an array type
-             includes any type qualifiers, the element type is so-qualified,
-             not the array type.", and this is interpreted recursively
-             for arrays of arrays.  The type qualifiers therefore apply
-             to the ultimate element type.  This can only happen with typedefs,
-             as in "typedef int A[2][3]; const A a;", which makes "a" an
-             array of array of const int. */
-          if ((*qualifiers &
-               f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE)) != 0) {
-            /* Duplication of type qualifier (probably because of a typedef
-               that is already qualified). */
-            error(ec_dupl_type_qualifier);
-            err = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-#if RESTRICT_ALLOWED
-      /* The restrict qualifier may only be applied to pointer and reference
-         types (but not pointer-to-function-type), pointer-to-member types,
-         and (in parameter declarations only) array types. */
-      if ((*qualifiers & TQ_RESTRICT) &&
-          !restrict_qualifier_is_allowed(*type_ptr, &start_pos)) {
-        /* Diagnostic has already been issued.  Just remove TQ_RESTRICT
-           from the qualifier set. */
-        *qualifiers &= ~TQ_RESTRICT;
+      /* Combine the type specifiers (except for the type qualifiers) into a
+         type.  *type_ptr is updated, based on the basic type, sign, and size
+         specified. */
+      if (!combine_type_specifiers(type_ptr, basic_type, sign, size)) {
         err = TRUE;
-      }  /* if */
-#endif /* RESTRICT_ALLOWED */
-      if (*qualifiers != TQ_NONE) {
-        /* Add the qualifiers if necessary.  make_qualified_type understands
-           the strange array case too. */
-        *type_ptr = make_qualified_type(*type_ptr, *qualifiers);
+      } else {
+        /* Add any type qualifiers (const or volatile) to the type. */
+        if (!add_type_qualifiers(type_ptr, qualifiers,
+                                 &non_restrict_qualifier_pos)) {
+          err = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
