@@ -482,7 +482,6 @@ static void function_template_declaration(a_symbol_ptr   *sym)
   a_func_info_block                 func_info;
   a_type_ptr                        bottom_derived_type = NULL;
   an_expr_node_ptr                  dim_expr_ptr;
-  a_token_cache                     local_token_cache;
   a_token_cache                     decl_token_cache;
   a_template_symbol_supplement_ptr  tssp;
 
@@ -494,12 +493,15 @@ static void function_template_declaration(a_symbol_ptr   *sym)
   cache_token_stream(&decl_token_cache);
   if (curr_token == tok_end_of_source) {
     cache_curr_token(&decl_token_cache);
+#if CHECKING
+  } else if (curr_token != tok_semicolon && curr_token != tok_lbrace) {
+    internal_error("function_template_declaration: unexpected token kind");
+#endif /* CHECKING */
   } else {
-    clear_token_cache(&local_token_cache);
-    cache_curr_token(&local_token_cache);
+    a_token_kind  saved_token = curr_token;
     curr_token = tok_end_of_source;
     cache_curr_token(&decl_token_cache);
-    rescan_cached_tokens(&local_token_cache);
+    curr_token = saved_token;
   }  /* if */
   rescan_reusable_cache(&decl_token_cache);
   (void)decl_specifiers((DSI_IS_TEMPLATE_DECLARATION |
