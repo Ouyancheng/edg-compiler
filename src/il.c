@@ -7030,6 +7030,22 @@ debugging purposes.
   }  /* if */
 }  /* db_ss_list_for_scope */
 
+void dump_ss(a_scope_ptr  sp)
+/*
+Interface to db_ss_list_for_scope, to allow source sequence lists to be
+displayed independently of other debug output (e.g., if "-d dump_ss=3"
+appears on the command-line).  This is also called from pop_scope.
+*/
+{
+  db_enter(3, "dump_ss");
+  if (debug_level >= 3) {
+    /* Display source sequence lists for debug purposes. */
+    if (sp != NULL && sp->source_sequence_list != NULL) {
+      db_ss_list_for_scope(sp);
+    }  /* if */
+  }  /* if */
+  db_exit();
+}  /* dump_ss */
 #endif /* DEBUG */
 
 

@@ -610,6 +610,7 @@ pointer to the sublist header.
 extern void db_source_sequence_entry(a_source_sequence_entry_ptr  ssep);
 extern void db_source_sequence_list(a_source_sequence_entry_ptr  ssep);
 extern void db_ss_list_for_scope(a_scope_ptr  sp);
+extern void dump_ss(a_scope_ptr  sp);
 #endif /* DEBUG */
 
 extern a_source_sequence_entry_ptr alloc_source_sequence_entry(void);

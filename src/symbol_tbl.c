@@ -7548,10 +7548,10 @@ End a name scope by popping an entry off the scope stack.
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
-  if (debug_level >= 3) {
+  if (db_active) {
     /* Display source sequence lists for debug purposes. */
     if (il_scope != NULL && il_scope->source_sequence_list != NULL) {
-      db_ss_list_for_scope(il_scope);
+      dump_ss(il_scope);
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
