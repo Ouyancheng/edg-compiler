@@ -6091,15 +6091,9 @@ typedef struct a_routine {
   a_bit_field	is_finalization_routine:1;
 			/* TRUE if this routine was declared with the
 			   destructor attribute. */
-  a_bit_field	does_not_return:1;
-			/* TRUE if this routine was declared with the
-			   noreturn attribute. */
   a_bit_field	is_pure:1;
 			/* TRUE if this routine was declared with the
 			   pure attribute. */
-  a_bit_field	is_const:1;
-			/* TRUE if this routine was declared with the
-			   const attribute. */
   a_bit_field	is_weak:1;
 			/* TRUE if this routine was declared with the 
 			   weak attribute. */

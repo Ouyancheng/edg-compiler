@@ -1112,14 +1112,20 @@ messages about any invalid attributes.
       case ak_unused:
         referenced = TRUE;
         break;
-      case ak_noreturn:
-        rp->does_not_return = TRUE;
-        break;
       case ak_pure:
         rp->is_pure = TRUE;
         break;
+      case ak_noreturn:
+        { a_routine_type_supplement_ptr rtsp =
+                                          rp->type->variant.routine.extra_info;
+          rtsp->does_not_return = TRUE;
+        }
+        break;
       case ak_const:
-        rp->is_const = TRUE;
+        { a_routine_type_supplement_ptr rtsp =
+                                          rp->type->variant.routine.extra_info;
+          rtsp->is_const = TRUE;
+        }
         break;
       case ak_weak:
         rp->is_weak = TRUE;
@@ -1594,6 +1600,8 @@ Copy any GNU type attributes in type dst to type src.
                                            (a_calling_convention)cc_stdcall) {
             dst_rtsp->calling_convention = src_rtsp->calling_convention;
           }  /* if */
+          dst_rtsp->does_not_return = src_rtsp->does_not_return;
+          dst_rtsp->is_const = src_rtsp->is_const;
         }
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
         break;

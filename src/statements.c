@@ -198,7 +198,9 @@ unreachable.
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-        routine_does_not_return |= node->variant.routine->does_not_return;
+        routine_does_not_return |= node->variant.routine->type
+                                       ->variant.routine.extra_info
+                                       ->does_not_return;
 #endif /* GNU_EXTENSIONS_ALLOWED */
         if (routine_does_not_return) {
           /* The statement is a call of a routine that is marked as not

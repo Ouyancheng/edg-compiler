@@ -3059,14 +3059,8 @@ Write out attributes that apply to the indicated routine.
   if (rout->is_finalization_routine) {
     write_tok_str(" __attribute__((__destructor__))");
   }  /* if */
-  if (rout->does_not_return) {
-    write_tok_str(" __attribute__((__noreturn__))");
-  }  /* if */
   if (rout->is_pure) {
     write_tok_str(" __attribute__((__pure__))");
-  }  /* if */
-  if (rout->is_const) {
-    write_tok_str(" __attribute__((__const__))");
   }  /* if */
   if (rout->is_weak) {
     write_tok_str(" __attribute__((__weak__))");
@@ -3098,6 +3092,7 @@ Write out attributes that apply to the indicated routine.
     write_string_argument_attribute(
                       "__alias__", rout->aliased_routine->source_corresp.name);
   }  /* if */
+  write_routine_type_attributes(rout->type);
 }  /* write_routine_attributes */
 
 

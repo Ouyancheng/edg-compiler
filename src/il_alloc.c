@@ -1821,9 +1821,7 @@ to it.  The entry is allocated in the file scope memory region.
 #if GNU_EXTENSIONS_ALLOWED
   rp->is_initialization_routine   = FALSE;
   rp->is_finalization_routine     = FALSE;
-  rp->does_not_return             = FALSE;
   rp->is_pure                     = FALSE;
-  rp->is_const                    = FALSE;
   rp->is_weak                     = FALSE;
   rp->allocates_memory            = FALSE;
 #if GNU_NAKED_ATTRIBUTE_ALLOWED

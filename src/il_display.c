@@ -2414,14 +2414,8 @@ Display the indicated routine.
   if (ptr->is_finalization_routine) {
     disp_boolean("is_finalization_routine", TRUE);
   }  /* if */
-  if (ptr->does_not_return) {
-    disp_boolean("does_not_return", TRUE);
-  }  /* if */
   if (ptr->is_pure) {
     disp_boolean("is_pure", TRUE);
-  }  /* if */
-  if (ptr->is_const) {
-    disp_boolean("is_const", TRUE);
   }  /* if */
   if (ptr->is_weak) {
     disp_boolean("is_weak", TRUE);
