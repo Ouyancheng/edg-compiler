@@ -976,7 +976,7 @@ Push an entry onto the throw stack and initialize its fields.
 
 EXTERN_C void __rethrow(void)
 /*
-Rethrow the current thrown obejct.
+Rethrow the current thrown object.
 */
 {
   if (curr_throw_stack_entry == NULL || !curr_throw_stack_entry->in_handler) {
