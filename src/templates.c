@@ -11305,7 +11305,6 @@ update_instantiation_required_flag to do the appropriate processing.
 }  /* process_deferred_instantiation_requests */
 
 
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
 static a_boolean f_can_be_instantiated(a_template_instance_ptr tip)
 /*
 Determines whether this compilation is capable of generating an
@@ -11369,7 +11368,7 @@ previously computed value is returned.
   ((tip)->can_be_instantiated ? (tip)->can_be_instantiated	\
                                          : f_can_be_instantiated(tip))
 
-
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
 void update_auto_instantiation_flags(void)
 /*
 Go through the instantiations_required list and set the fields in the
