@@ -656,6 +656,9 @@ extern void remove_sublist_header_and_parent(
                                       a_src_seq_sublist_ptr        sublist,
                                       a_source_sequence_entry_ptr  parent);
 
+extern void set_autonomous_tag_decl_flag(a_type_ptr  type,
+                                         a_boolean   is_definition);
+
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if ORPHAN_PROCESSING_NEEDED
