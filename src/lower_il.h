@@ -129,9 +129,8 @@ typedef struct a_required_destructor_call {
 			/* The dynamic initialization entry that describes the
 			   required destructor call.  Note that this is a copy
 			   of the entire entry, not a pointer to it, because
-			   in the case of destructor calls for local static
-			   variables the original entry may be long gone
-			   when the destructor call is being generated. */
+			   the original entry may have been modified into
+			   an entry that is valid in C. */
   a_variable_ptr
 		first_time_test_var;
 			/* If non-NULL, points to a first-time-test variable

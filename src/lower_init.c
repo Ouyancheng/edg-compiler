@@ -2323,10 +2323,8 @@ do_assignment:;
   if (dip->destructor != NULL) {
     a_required_destructor_call_ptr rdcp;
     rdcp = alloc_required_destructor_call();
-    /* Copy the entire dynamic init entry because in the case of a local
-       static variable the dynamic init entry will be gone by the time the
-       destructor call is put out (it's in the function scope memory
-       region). */
+    /* Copy the entire dynamic init entry because it may be modified below
+       to make it a valid C dynamic initialization. */
     rdcp->dynamic_init = *dip;
     /* Clear the destructor field in the dynamic init entry to make it legal
        C IL. */
