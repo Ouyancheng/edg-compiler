@@ -3836,7 +3836,7 @@ on for use in generating cross-reference output describing this declaration.
           /* Okay. */
           if (strict_ansi_mode) {
             /* Old-style template specialization is nonstandard. */
-            pos_sy_diagnostic(strict_ansi_error_severity,
+            pos_sy_diagnostic(strict_ansi_discretionary_severity,
                               ec_nonstd_old_specialization,
                               &locator->source_position, sym);
           }  /* if */
@@ -4734,7 +4734,7 @@ the symbol and its linkage (which is always "none").
       if (sym->variant.static_data_member.instance_ptr != NULL) {
         if (strict_ansi_mode) {
           /* Old-style template specialization is nonstandard. */
-          pos_sy_diagnostic(strict_ansi_error_severity,
+          pos_sy_diagnostic(strict_ansi_discretionary_severity,
                             ec_nonstd_old_specialization,
                             &locator->source_position, sym);
         }  /* if */

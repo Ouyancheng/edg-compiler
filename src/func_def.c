@@ -1026,7 +1026,7 @@ on a prior declaration.
     if (sym->variant.routine.instance_ptr != NULL) {
       if (strict_ansi_mode) {
         /* Old-style template specialization is nonstandard. */
-        pos_sy_diagnostic(strict_ansi_error_severity,
+        pos_sy_diagnostic(strict_ansi_discretionary_severity,
                           ec_nonstd_old_specialization,
                           &locator->source_position, sym);
       }  /* if */

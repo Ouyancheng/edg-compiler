@@ -1022,7 +1022,7 @@ the template.
           } else {
             if (strict_ansi_mode) {
               /* Old-style template specialization is nonstandard. */
-              pos_sy_diagnostic(strict_ansi_error_severity,
+              pos_sy_diagnostic(strict_ansi_discretionary_severity,
                                 ec_nonstd_old_specialization, &tag_position,
                                 tag_sym);
             }  /* if */
