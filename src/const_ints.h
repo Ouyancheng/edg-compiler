@@ -150,7 +150,8 @@ extern void divide_integer_values(an_integer_value *op_1,
 
 extern void remainder_integer_values(an_integer_value *op_1,
 				     an_integer_value *op_2,
-				     a_boolean	      is_signed);
+				     a_boolean	      is_signed,
+				     a_boolean	      *err);
 
 extern void get_integer_size_and_alignment(an_integer_kind  ikind,
                                            a_targ_size_t    *p_size,
