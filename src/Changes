@@ -1,5 +1,17 @@
 Version 2.41
 
+1/26/99   Union improperly marked as an anonymous union
+
+Recent changes exposed a long-standing bug whereby a union referenced in
+a useless class member declaration could end up incorrectly marked as an
+anonymous union; moreover, no diagnostic was issued on the invalid
+member declaration.  Now fixed.  Here's an example:
+
+  union U { int i, j; };
+  class A {
+    U;          // error: declaration does not declare anything
+  };
+
 1/26/99   Abort on incomplete explicit template argument list
 
 An abort on processing a function call that includes an explicit template
