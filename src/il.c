@@ -203,10 +203,10 @@ void db_name(a_source_correspondence *sc)
 Dump the name from a source correspondence (if any).
 */
 {
-  a_type_ptr  tp = assoc_class_type(sc->scope_of_which_a_member);
+  a_type_ptr  tp;
 
-  if (tp != NULL) {
-    db_type_name(tp);
+  if (sc->is_class_member) {
+    db_type_name(sc->parent.class_type);
     fputs("::", f_debug);
   }  /* if */
   if (sc->name != NULL) {
@@ -5943,8 +5943,8 @@ of compiler-generated function (e.g., a constructor).
      (which references the class at least in its "this" parameter) is
      marked referenced. */
   if (routine_type_is_nonstatic_member_function(routine->type)) {
-    assoc_class_type(routine->source_corresp.scope_of_which_a_member)->
-                                              source_corresp.referenced = TRUE;
+    routine->source_corresp.parent.class_type->
+                                   source_corresp.referenced = TRUE;
   }  /* if */
   /* If the routine is compiler-generated and its definition has not
      yet been put out, force the definition now. */
@@ -6866,10 +6866,10 @@ with it.  Entries associated with scopes must also have no child entries.
                      sp->kind == (a_scope_kind)sck_function &&
                      sp->variant.routine.ptr->special_kind ==
                                     (a_special_function_kind)sfk_constructor &&
-                     assoc_class_type(sp->variant.routine.ptr->source_corresp.
-                                           scope_of_which_a_member)->
-                                       variant.class_struct_union.extra_info->
-                                          assoc_operator_new_routine != NULL) {
+                     sp->variant.routine.ptr->
+                              source_corresp.parent.class_type->
+                                variant.class_struct_union.extra_info->
+                                  assoc_operator_new_routine != NULL) {
             /* When exceptions are enabled, a constructor with the allocation
                folded in needs an object lifetime so an entry for the
                deletion of the storage can be added. */
