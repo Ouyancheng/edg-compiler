@@ -7387,11 +7387,15 @@ Do IL lowering of the indicated scope and everything under it.
   a_variable_ptr   param_var, var;
   a_routine_type_supplement_ptr
                    rtsp;
+  a_scope_kind     scope_kind = scope->kind;
 
   db_enter(2, "lower_scope");
-  /* Add a context entry for the scope. */
-  push_context(&context, scope, /*subscope_region=*/FALSE);
-  if (scope->kind == (a_scope_kind)sck_function) {
+  /* Add a context entry for the scope, but not for the file scope (the caller
+     has done that already). */
+  if (scope_kind != (a_scope_kind)sck_file) {
+    push_context(&context, scope, /*subscope_region=*/FALSE);
+  }  /* if */
+  if (scope_kind == (a_scope_kind)sck_function) {
     /* The scope is for a function.  Rewrite the parameters if necessary. */
     routine = scope->variant.routine.ptr;
 #if DEBUG
@@ -7464,7 +7468,7 @@ Do IL lowering of the indicated scope and everything under it.
     /* Lower the file-scope lists or the lists for a class scope. */
     lower_type_list(scope->types);
     lower_variable_list(scope->variables);
-    if (scope->kind == (a_scope_kind)sck_class_struct_union &&
+    if (scope_kind == (a_scope_kind)sck_class_struct_union &&
         allow_anachronisms) {
       /* Change the storage class of static data members that have external
          linkage to sc_unspecified to accommodate the anachronism that
@@ -7499,7 +7503,7 @@ Do IL lowering of the indicated scope and everything under it.
     /* If there is reason to promote the local types and static variables
        to the file scope, do that now and clear the lists.  That makes the
        promoted entities part of the file scope and no longer orphans. */
-    if (scope->kind == (a_scope_kind)sck_function) {
+    if (scope_kind == (a_scope_kind)sck_function) {
       if (local_entities_should_be_promoted(scope)) {
         promote_local_entities_to_file_scope(scope,
                                              scope->variant.routine.ptr);
@@ -7511,12 +7515,7 @@ Do IL lowering of the indicated scope and everything under it.
   lower_label_list(scope->labels);
   lower_routine_list(scope->routines);
   lower_asm_entry_list(scope->asm_entries);
-  if (scope->kind == (a_scope_kind)sck_file) {
-    /* Generate code to handle file-scope dynamic initializations and
-       the corresponding destructions. */
-    lower_file_scope_dynamic_inits();
-    make_code_to_invoke_file_scope_init_and_term_routines();
-  } else if (scope->kind == (a_scope_kind)sck_function) {
+  if (scope_kind == (a_scope_kind)sck_function) {
     /* A function scope. */
     /* Lower any block scopes within it.  Note that statements are not
        lowered during this processing; they are handled in the lowering
@@ -7577,7 +7576,7 @@ Do IL lowering of the indicated scope and everything under it.
     return_memo_list = NULL;
     return_value_pointer_variable = NULL;
   }  /* if */
-  pop_context();
+  if (scope_kind != (a_scope_kind)sck_file) pop_context();
   db_exit();
 }  /* lower_scope */
 
@@ -7671,11 +7670,12 @@ C++ to C, so that a C back end can handle it without change.
       /* A function scope. */
       lowering_file_scope = FALSE;
       scope = il_header.region_scope_entry[region_number];
-      /* Put the file-scope context on the context stack so it's above
-         the function context. */
-      push_context(&context, il_header.primary_scope,
-                   /*subscope_region=*/FALSE);
     }  /* if */
+    /* Put the file-scope context on the context stack.  This is also done
+       for function scope memory regions so there will be a file-scope
+       context above the function context. */
+    push_context(&context, il_header.primary_scope,
+                 /*subscope_region=*/FALSE);
     /* Create definitions for virtual function tables.  This must be done
        early when virtual function information is still available. */
     define_scope_virtual_function_tables(scope);
@@ -7687,17 +7687,23 @@ C++ to C, so that a C back end can handle it without change.
          are not linked into the file scope memory region IL tree, so they have
          to be found through a separate list. */
       lower_orphaned_entries();
-    } else {
-      /* Pop the file-scope context that was put around the function scope
-         context. */
-      pop_context();
     }  /* if */
     /* Promote class members out of the classes. */
     do_scope_class_member_promotion(scope);
+    if (lowering_file_scope) {
+      /* Generate code to handle file-scope dynamic initializations and
+         the corresponding destructions.  This is done after scope class
+         member promotions so that the initialization/termination routines
+         are last. */
+      lower_file_scope_dynamic_inits();
+      make_code_to_invoke_file_scope_init_and_term_routines();
+    }  /* if */
     /* Add definitions for any typeinfo variables generated for classes.
        This must be done late so that all the required typeinfo variables
        will have been created already. */
     define_scope_class_typeinfo_vars(scope);
+    /* Pop the file-scope context. */
+    pop_context();
     initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
   }  /* if */
   db_exit();
