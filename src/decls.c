@@ -10806,9 +10806,9 @@ continue_with_declaration:
       scan_gnu_declarator_attributes(&asm_name, &declarator_attributes,
                                      declared_storage_class, is_function);
       /* Combine the specifier and declarator attributes (they are separated
-         again at the end of the loop. */
-      attributes = specifier_attributes;
+         again at the end of the loop). */
       *last_specifier_attribute = declarator_attributes;
+      attributes = specifier_attributes;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* If a parenthesized constructor declarator is scanned, di_flags would
          not have DI_IS_CONSTRUCTOR set, but do_flags would have
