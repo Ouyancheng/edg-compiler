@@ -90,7 +90,8 @@ able to if the template itself has not yet been defined.
         }  /* if */
 #endif /* CHECKING */
         (void)push_scope(sck_template_instantiation, tssp->declaration_scope,
-                         tp, (a_routine_ptr)NULL);
+                         tp, (a_routine_ptr)NULL,
+                         (a_function_instantiation_entry_ptr)NULL);
         /* Scan the base specifiers list, if any, and the body of the class. */
         (void)scan_class_definition(tp, DEPTH_OF_FILE_SCOPE,
                                     /*is_local_class=*/FALSE);
@@ -118,7 +119,8 @@ void instantiate_template_function(a_routine_ptr   rout,
 #if 0
   rescan_reusable_cache(p_token_cache);
   void(push_scope(sck_template_instantiation, scope_number,
-                  (a_type_ptr)NULL, rout);
+                  (a_type_ptr)NULL, rout,
+                  (a_function_instantiation_entry_ptr)NULL);
   template_function_definition(...);
   pop_scope();
   /* In the normal case the current token should be end_of_source, which was
@@ -724,7 +726,8 @@ entry is pushed on the scope stack.
     error(ec_nonglobal_template_declaration);
   }  /* if */
   (void)push_scope((a_scope_kind)sck_template_declaration, NO_SCOPE_NUMBER,
-                   (a_type_ptr)NULL, (a_routine_ptr)NULL);
+                   (a_type_ptr)NULL, (a_routine_ptr)NULL,
+                   (a_function_instantiation_entry_ptr)NULL);
   add_stop_token(tok_semicolon);
   add_stop_token(tok_lbrace);
   /* Bypass "template".  The next token should be "<". */
