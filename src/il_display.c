@@ -3012,7 +3012,7 @@ do_label:
       break;
     case stmk_vla_dealloc:
       (void)printf("stmk_vla_dealloc\n");
-      disp_ptr("vla_variable", (char *)ptr->variant.vla_variable.
+      disp_ptr("vla_variable", (char *)ptr->variant.vla_variable,
                iek_variable);
       break;
 #endif /* ifdef CFE */
