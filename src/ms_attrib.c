@@ -1311,9 +1311,6 @@ declaration.
        for parameter attributes as they appear within a declaration. */
     if (!is_parameter) {
       attr->source_sequence_entry = add_empty_source_sequence_entry();
-      update_source_sequence_list((char *)attr,
-                                  (an_il_entry_kind)iek_ms_attribute,
-                                  attr->source_sequence_entry);
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Look for an argument list.  We do this even for attributes without
@@ -1423,6 +1420,31 @@ parameter declaration.
   return attr_list;
 }  /* scan_microsoft_attributes */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+static void finalize_ms_attribute_source_sequence_entry(
+						an_ms_attribute_ptr	msap,
+						a_boolean		err)
+/*
+Complete the processing of the source sequence entry associated with the
+Microsoft attribute "msap".  If "err" is TRUE, remove the empty source
+sequence entry from the list.  Otherwise, complete the source sequence
+entry.
+*/
+{
+  if (err) {
+    /* This attribute is not being added to the IL, so we must remove the
+       empty source sequence entry created for it. */
+    remove_from_src_seq_list(msap->source_sequence_entry);
+    msap->source_sequence_entry = NULL;
+  } else {
+    update_source_sequence_list((char *)msap,
+                                (an_il_entry_kind)iek_ms_attribute,
+                                msap->source_sequence_entry);
+  }  /* if */
+}  /* finalize_ms_attribute_source_sequence_entry */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 void apply_microsoft_attributes(an_ms_attribute_ptr	*attributes,
 				char			*entity,
@@ -1446,9 +1468,11 @@ in the param_type entry).
   scp = source_corresp_for_il_entry(entity, kind);
   /* Check whether the attributes have the appropriate target. */
   for (msap = *attributes; msap != NULL; msap = next_msap) {
+    a_boolean	is_error = FALSE;
     next_msap = msap->next;
     if ((msap->kind_descr->target & target) == 0 &&
         msap->kind_descr->target != MSAT_ANY) {
+       is_error = TRUE;
        if (msap->kind_descr->target == MSAT_STANDALONE) {
          pos_st_error(ec_invalid_use_of_standalone_ms_attr, &msap->position,
                       msap->name);
@@ -1477,6 +1501,12 @@ in the param_type entry).
         add_to_ms_attributes_list(msap, decl_scope_level);
       }  /* if */
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (kind != (an_il_entry_kind)iek_param_type) {
+      /* Either complete the source sequence entry or discard it. */
+      finalize_ms_attribute_source_sequence_entry(msap, is_error);
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* for */
   /* All entities except for param_type entries are expected to have
      source correspondences. */
@@ -1505,14 +1535,20 @@ attributes are added to the appropriate IL list.
   an_ms_attribute_ptr	next_msap;
 
   for (msap = *attributes; msap != NULL; msap = next_msap) {
+    a_boolean	is_error = FALSE;
     next_msap = msap->next;
     if (msap->kind_descr->target != MSAT_STANDALONE &&
         msap->kind_descr->target != MSAT_ANY) {
+       is_error = TRUE;
        pos_st_error(ec_invalid_use_of_ms_attr, &msap->position, msap->name);
     } else {
       /* Add the attribute to the IL. */
       add_to_ms_attributes_list(msap, decl_scope_level);
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Either complete the source sequence entry or discard it. */
+    finalize_ms_attribute_source_sequence_entry(msap, is_error);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* for */
   /* Clear the attribute list pointer passed by the caller. */
   *attributes = NULL;
