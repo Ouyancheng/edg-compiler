@@ -4434,6 +4434,26 @@ if possible.  operator_position indicates the operator position.
 }  /* do_binary_operation */
 
 
+static void do_generic_operand_transformations(an_operand *operand)
+/*
+Do transformations that are appropriate on a generic operand, i.e.,
+an operand in a template-dependent operation, where we can't tell
+what will be done with the operand.
+*/
+{
+  if (is_indefinite_function_operand(operand)) {
+    /* Replace an indefinite function by the address of an unknown
+       function in the set. */
+    an_operand_state saved_state = operand->state;
+    make_unknown_dependent_function_operand(operand->variant.symbol, operand);
+    operand->state = saved_state;
+  } else if (is_sym_for_member_operand(operand)) {
+    /* Replace a symbol-for-member operand by a pointer-to-member. */
+    conv_sym_for_member_operand_to_ptr_to_member(operand);
+  }  /* if */
+}  /* do_generic_operand_transformations */
+
+
 void prep_generic_operand(an_operand *operand,
                           a_boolean  lvalue_expected)
 /*
@@ -4449,15 +4469,7 @@ is inserted only for the unexpected case.
   an_operand       orig_operand;
 
   orig_operand = *operand;
-  if (is_indefinite_function_operand(operand)) {
-    /* Replace an indefinite function by the address of an unknown
-       function in the set. */
-    make_unknown_dependent_function_operand(operand->variant.symbol, operand);
-    operand->state = orig_operand.state;
-  } else if (is_sym_for_member_operand(operand)) {
-    /* Replace a symbol-for-member operand by a pointer-to-member. */
-    conv_sym_for_member_operand_to_ptr_to_member(operand);
-  }  /* if */
+  do_generic_operand_transformations(operand);
   if (is_an_lvalue(operand) || is_a_function_designator(operand)) {
     if (!lvalue_expected) {
       expr = make_node_from_operand(operand);
@@ -4505,6 +4517,7 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
        an expression tree.  Note that we don't use cast_operand or
        type_change_constant, because this conversion might be highly
        invalid. */
+    do_generic_operand_transformations(operand);
     check_assertion_str(is_constant_operand(operand) ||
                         is_error_operand(operand),
                         "generic_cast_operand: non-const operand");
@@ -4555,6 +4568,8 @@ be used (e.g., eok_add, not eok_iadd).
 */
 {
   if (curr_expr_kind_is_const()) {
+    do_generic_operand_transformations(operand_1);
+    do_generic_operand_transformations(operand_2);
     check_assertion_str((is_constant_operand(operand_1) ||
                          is_error_operand(operand_1)) &&
                         (is_constant_operand(operand_2) ||
@@ -4709,6 +4724,7 @@ be used (e.g., eok_negate, not eok_inegate).
 */
 {
   if (curr_expr_kind_is_const()) {
+    do_generic_operand_transformations(operand);
     check_assertion_str(is_constant_operand(operand) ||
                         is_error_operand(operand),
                         "template_unary_operation: non-const operand");
@@ -4854,6 +4870,9 @@ it happens in prototype instantiations.
 */
 {
   if (curr_expr_kind_is_const()) {
+    do_generic_operand_transformations(operand_1);
+    do_generic_operand_transformations(operand_2);
+    do_generic_operand_transformations(operand_3);
     check_assertion_str(is_constant_operand(operand_1) &&
                         is_constant_operand(operand_2) &&
                         is_constant_operand(operand_3),
