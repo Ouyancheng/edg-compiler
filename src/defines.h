@@ -199,7 +199,10 @@ Flags to be set when using the KAI inliner.
 #ifndef RUNTIME_USES_NAMESPACES
 #define RUNTIME_USES_NAMESPACES 0
 #endif /* ifndef RUNTIME_USES_NAMESPACES */
+
+#ifndef OPTIMIZED_VERSION
 #define EXPENSIVE_CHECKING 1
+#endif /* ifndef OPTIMIZED_VERSION */
 
 #endif /* ifdef __linux__ */
 #endif /* defined(_WIN32) */
