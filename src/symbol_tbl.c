@@ -4832,8 +4832,11 @@ is returned TRUE if the parameter is not a reference parameter.
         a_type_qualifier_set  qualifiers = TQ_NONE;
         a_boolean             is_base_class_match = FALSE;
 
-        if (sym->kind == (a_symbol_kind)sk_function_template) {
-          /* Function templates are not considered. */
+        if (sym->kind != (a_symbol_kind)sk_member_function) {
+          /* Function templates are not considered, and projection symbols
+             can also be ignored, since using-declarations cannot introduce
+             a copy assignment operator from a base class into a derived
+             class (see member_using_declaration in class_decl.c). */
         } else if (is_assignment_operator_for_copy(sym, &is_ref_arg,
                                                    &qualifiers,
                                                    &is_base_class_match)) {
