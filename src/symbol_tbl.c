@@ -3014,8 +3014,16 @@ this is not allowed, an error will be issued by the caller.
        ordering is ignored).  Therefore, we set the is_invisible flag on the
        new symbol. */
     if (suppress_error) {
+      if (!new_sym->is_invisible) {
+        pos_sy_warning(ec_hidden_anonymous_union_field,
+                       &new_sym->decl_position,
+                       old_sym);
+      }  /* if */
       err = FALSE;
       new_sym->is_invisible = TRUE;
+      /* Keeping the first field at the head of the list results in nicer
+         diagnostics if there are multiple conflicts. */
+      if (insert_sym != NULL) *insert_sym = old_sym;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (!C_mode()) {

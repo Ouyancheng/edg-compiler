@@ -8232,7 +8232,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
           a_symbol_locator loc;
 
           make_locator_for_symbol(sym, &loc);
-          loc.source_position = assoc_object_sym->decl_position;
+          loc.source_position = fp->source_corresp.decl_position;
           sym = enter_local_symbol(sym->kind, &loc, depth_scope_stack,
                                    /*suppress_error=*/gcc_mode);
           sym->variant.field.ptr = fp;
