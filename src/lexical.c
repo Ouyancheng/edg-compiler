@@ -9847,6 +9847,7 @@ of the front end.
   avail_cached_tokens = NULL;
   avail_cached_constants = NULL;
   avail_reusable_cache_entries = NULL;
+  avail_stop_token_stack_entries = NULL;
   avail_pending_pragmas = NULL;
   dollar_in_id_diagnostic_issued = FALSE;
   include_file_history_list = NULL;
