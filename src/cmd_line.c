@@ -578,10 +578,10 @@ processing routine to update the severity.
   }
   /* Convert the option kind into an error severity. */
   switch (kind) {
-    case optk_diag_suppress: severity = es_none;    break;
-    case optk_diag_remark:   severity = es_remark;  break;
-    case optk_diag_warning:  severity = es_warning; break;
-    case optk_diag_error:    severity = es_error;   break;
+    case optk_diag_suppress: severity = es_none;                break;
+    case optk_diag_remark:   severity = es_remark;              break;
+    case optk_diag_warning:  severity = es_warning;             break;
+    case optk_diag_error:    severity = es_discretionary_error; break;
     default: unexpected_condition();
   }  /* switch */
   /* Loop through the arguments and call a routine to update the
@@ -711,7 +711,7 @@ Process the arguments on the command line that invoked the compiler.
         generate_pp_output = FALSE;
         list_included_files = FALSE;
         list_makefile_dependencies = TRUE;
-        error_threshold = es_error;
+        error_threshold = es_discretionary_error;
         break;
       case optk_list_include_files:
         /* Generate on stdout a list of the names of the #include files
@@ -721,7 +721,7 @@ Process the arguments on the command line that invoked the compiler.
         generate_pp_output = FALSE;
         list_included_files = TRUE;
         list_makefile_dependencies = FALSE;
-        error_threshold = es_error;
+        error_threshold = es_discretionary_error;
         break;
 #if DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE
       case optk_write_unlowered_il:
@@ -834,7 +834,7 @@ Process the arguments on the command line that invoked the compiler.
       case optk_suppress_warnings:
         /* Suppress warnings. */
         check_assertion(opt_value == TRUE);
-        error_threshold = es_error;
+        error_threshold = es_discretionary_error;
         break;
       case optk_enable_remarks:
         /* Enable remarks. */

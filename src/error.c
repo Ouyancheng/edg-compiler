@@ -2603,6 +2603,7 @@ the output.
       severity_string = "warning";
       total_warnings++;
       break;
+    case es_discretionary_error:
     case es_error:
       if (local_display_error_number ||
           ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES) {
@@ -2641,7 +2642,12 @@ the output.
   /* The error number may optionally be displayed based on a command
      line option. */
   if (local_display_error_number) {
-    *line_len += fprintf(stderr, " #%0d: ", (int)error_code);
+    /* Display the error message number.  Append a -D suffix if the
+       severity may be changed. */
+    a_boolean	is_discretionary;
+    is_discretionary = ((int)severity <= (int)es_discretionary_error);
+    *line_len += fprintf(stderr, " #%0d%s: ", (int)error_code,
+                         is_discretionary ? "-D" : "");
   } else {
     *line_len += fprintf(stderr, ": ");
   }  /* if */
@@ -3019,9 +3025,6 @@ may not have their severity altered.
     an_error_severity	new_severity;
     new_severity = severity_for_error_code[(int)error_code];
     if (new_severity != es_default) *severity = new_severity;
-    /* Convert a discretionary error into a regular error for all
-       subsequent processing. */
-    if (*severity == es_discretionary_error) *severity = es_error;
   }  /* if */
 }  /* check_for_overridden_severity */
 
