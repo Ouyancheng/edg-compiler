@@ -4515,7 +4515,6 @@ at the end of the assignments.
 }  /* end_initializer_assignments */
 
 #endif /* ifdef CFE */
-#ifdef CFE
 
 static void initializer_open_brace(void)
 /*
@@ -4531,8 +4530,6 @@ prove to be needed.
   }  /* if */
 }  /* initializer_open_brace */
     
-#endif /* ifdef CFE */
-#ifdef CFE
 
 static void initializer_close_brace(void)
 /*
@@ -4548,7 +4545,6 @@ do not put out the closing brace either.
   }  /* if */
 }  /* initializer_close_brace */
     
-#endif /* ifdef CFE */
 
 #define INITS_PER_LINE 10
 
@@ -6404,9 +6400,7 @@ This is used for stmk_init statements.
     init_already_done = TRUE;
   }  /* if */
   if (!init_already_done) {
-    /* Initialization needs to be done.  It wasn't done by dump_variable
-       and it's not a constant case that can be handled by calling
-       dump_initializer. */
+    /* Initialization needs to be done.  It wasn't done by dump_variable. */
     clear_initialization_flags();
     start_initializer_assignments(whole_variable);
     dump_dynamic_init(dip);
