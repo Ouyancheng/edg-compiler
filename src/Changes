@@ -1,4 +1,6 @@
-Version 2.40
+Version 2.40, December 8, 1998
+
+12/8/98   IL version changed to 2.32
 
 12/5/98   Microsoft compatibility: improved __declspec(dllimport) support
 
