@@ -329,10 +329,18 @@ corresponding encoded entry number, and return that number cast to "char *".
 #endif /* ifdef FFE */
       }  /* if */
 #endif /* CHECKING */
-      /* Assign an entry number. */
-      (void)assign_entry_number(entry_ptr, entry_kind,
-                                /*is_string_entry=*/FALSE,(sizeof_t)0,
-                                &encoded_number);
+      if (entry_kind == iek_type &&
+          ((a_type_ptr)entry_ptr)->kind == (a_type_kind)tk_template_param) {
+        /* Template parameter types can leak out of the front end on based
+           types lists.  Just write a null pointer and don't assign an
+           entry number. */
+        encoded_number = 0;
+      } else {
+        /* Assign an entry number. */
+        (void)assign_entry_number(entry_ptr, entry_kind,
+                                  /*is_string_entry=*/FALSE,(sizeof_t)0,
+                                  &encoded_number);
+      }  /* if */
     } else {
       /* The entry already has an entry number. */
       /* Construct the encoded form of the entry number. */
