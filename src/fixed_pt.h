@@ -36,6 +36,18 @@ extern void fxp_hex_string_to_fixed_point(a_fixed_point_type_descr  *fxp_descr,
                                           a_boolean                 *err,
                                           a_boolean                 *inexact);
 
+extern
+void conv_integer_to_fixed_point(a_constant_ptr		old_constant,
+			         a_constant_ptr		new_constant,
+			         an_error_code		*err_code,
+			         an_error_severity	*err_severity);
+
+extern
+void conv_float_to_fixed_point(a_constant_ptr		old_constant,
+			       a_constant_ptr		new_constant,
+			       an_error_code		*err_code,
+			       an_error_severity	*err_severity);
+
 extern char* fxp_to_string(a_fixed_point_type_descr  *fxp_descr,
                            a_fixed_point_value       *value);
 

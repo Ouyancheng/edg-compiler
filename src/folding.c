@@ -127,10 +127,10 @@ pointer type to another and casting integer constants to pointer types.
 }  /* implicit_cast */
 
 
-static void get_integer_attributes(a_constant      *cp,
-                                   an_integer_kind *ikind,
-                                   a_boolean       *is_signed,
-                                   int             *bit_size)
+void get_integer_attributes(a_constant      *cp,
+                            an_integer_kind *ikind,
+                            a_boolean       *is_signed,
+                            int             *bit_size)
 /*
 For the integer type given by cp->type, return in *ikind the integer kind,
 in *is_signed whether or not the type is signed, and in *bit_size the
@@ -1555,14 +1555,6 @@ to the constant is maintained, by adding a cast if necessary.
     goto exit;
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
-  if (fixed_point_allowed && (is_fixed_point_type(constant_type) ||
-                              is_fixed_point_type(new_type))) {
-    convert_to_or_from_fixed_point_constant(constant, &new_constant,
-                                            did_not_fold);
-    goto exit;
-  }  /* if */
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   if (constant->kind == (a_constant_repr_kind)ck_address) {
     /* Any case where the constant is represented as an address should be
        converted by setting the implicit_cast flag.  This test has to be
@@ -1595,6 +1587,12 @@ to the constant is maintained, by adding a cast if necessary.
           conv_integer_to_float(constant, &new_constant,
                                 &err_code, &err_severity);
           break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case tk_fixed_point:
+          conv_integer_to_fixed_point(constant, &new_constant,
+                                      &err_code, &err_severity);
+          break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case tk_pointer:
           /* Converting integer to pointer. */
           conv_integer_to_pointer(constant, &new_constant, is_implicit_cast,
@@ -1632,6 +1630,12 @@ to the constant is maintained, by adding a cast if necessary.
                               &err_code, &err_severity,
                               &depends_on_fp_mode);
           break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case tk_fixed_point:
+          conv_float_to_fixed_point(constant, &new_constant,
+                                    &err_code, &err_severity);
+          break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         default:
           unexpected_condition_str("type_change_constant: float to bad type");
       }  /* switch */
@@ -1656,6 +1660,12 @@ to the constant is maintained, by adding a cast if necessary.
                               &err_code, &err_severity,
                               &depends_on_fp_mode);
           break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case tk_fixed_point:
+          convert_to_or_from_fixed_point_constant(constant, &new_constant,
+                                                  did_not_fold);
+          break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         default:
           unexpected_condition_str(
                                 "type_change_constant: imaginary to bad type");
@@ -1680,12 +1690,25 @@ to the constant is maintained, by adding a cast if necessary.
                               &err_code, &err_severity,
                               &depends_on_fp_mode);
           break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case tk_fixed_point:
+          convert_to_or_from_fixed_point_constant(constant, &new_constant,
+                                                  did_not_fold);
+          break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         default:
           unexpected_condition_str(
                                   "type_change_constant: complex to bad type");
       }  /* switch */
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case tk_fixed_point:
+      convert_to_or_from_fixed_point_constant(constant, &new_constant,
+                                              did_not_fold);
+      break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 
     case tk_pointer:
       /* Converting from pointer. */

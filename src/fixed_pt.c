@@ -27,6 +27,8 @@ for a production version.
 
 #if FIXED_POINT_EXTENSIONS_ALLOWED
 
+#include "folding.h"
+
 void fxp_init_value(a_fixed_point_value  *value)
 /*
 Initialize the given fixed-point value to zero.
@@ -230,6 +232,19 @@ value.  This is all bits set to 1, except for the sign bit.
 }  /* set_mantissa_to_saturated_value */
 
 
+void negate_fixed_point_value(an_integer_value	*op_1,
+			      a_boolean		*err)
+/*
+Negate a fixed point value.  The result is returned in the first operand
+(op_1 = -op_1).  err is TRUE if an overflow occurred.
+
+This routine requires that a_fixed_point_value be an_integer_value.
+*/
+{
+  negate_integer_value(op_1, err);
+}  /* negate_fixed_point_value */
+
+
 static void store_hex_fxp_value(
 				a_mantissa_ptr			mp,
 				a_fixed_point_type_descr	*fxp_descr,
@@ -241,25 +256,49 @@ fxp_descr describes the format of the value being stored.
 {
   int			parts_to_copy;
   int			source_size;
+  int			part_offset;
 
   /* Zero the memory so that all of the space occupied by "value"
      is cleared, even if we are not storing all of the bytes of the
      value. */
   memzero((char *)value, sizeof(a_fixed_point_value));
   source_size = sizeof_fixed_point(fxp_descr);
-  parts_to_copy = source_size / sizeof(an_fp_value_part);
+  parts_to_copy = (source_size + sizeof(an_fp_value_part) - 1) /
+                   sizeof(an_fp_value_part);
+  /* In most cases, an entire fp_value_part is copied.  If the target is just
+     a 1 or 2 byte value, however, only the high-order bytes of the source
+     fp_value_part are copied. */
+  part_offset = source_size < sizeof(an_fp_value_part)
+                                     ? source_size  : sizeof(an_fp_value_part);
+  part_offset = sizeof(an_fp_value_part) - part_offset;
   /* The source value is in the upper source_size bytes of the mantissa.
      This needs to be copied to the low order bytes of the fixed point
      value. */
   if (host_little_endian) {
+    /* For a typical system where an_fp_value_part is 4 bytes and an
+       integer value is 8 bytes, a short value is copied:
+         from 2 to 0
+         from 3 to 1
+       A 64 bit value is copied:
+         from 4 to 0
+         from 5 to 1
+         from 6 to 2
+         from 7 to 3
+         from 0 to 4
+         from 1 to 5
+         from 2 to 6
+         from 3 to 7
+    */
     int i;
     for (i = 0; i < source_size; ++i) {
       char	*source;
       char	*dest;
+      int	source_part;
+      int	source_byte;
       dest = &((char*)value)[i];
-      source = (char*)&(mp->parts[(parts_to_copy - 1) -
-                                  (i / sizeof(an_fp_value_part))]) +
-                       (i % sizeof(an_fp_value_part));
+      source_part = (parts_to_copy - 1) - (i / sizeof(an_fp_value_part));
+      source_byte = (i % sizeof(an_fp_value_part)) + part_offset;
+      source = (char*)&(mp->parts[source_part]) + source_byte;
       *dest = *source;
     }  /* for */
   } else {
@@ -271,9 +310,73 @@ fxp_descr describes the format of the value being stored.
 }  /* store_hex_fxp_value */
 
 
+static void make_mantissa_from_integer_value(
+				an_integer_value		*value,
+				a_boolean			is_negative,
+				a_mantissa_ptr			mp,
+				long				*exponent)
+/*
+Create a mantissa (mp) and exponent from an_integer_value (value).  If
+value is negative, is_negative will be TRUE.
+*/
+{
+  int			parts_to_copy;
+  an_integer_value	local_value;
+  int			bits;
+
+  /* Make sure an_integer_value can be copied into a_mantissa. */
+  check_assertion(sizeof(an_integer_value) <= sizeof(mp->parts));
+  /* Clear the mantissa. */
+  init_mantissa(mp);
+  *exponent = 0;
+  if (is_negative) {
+    /* If the source value is negative, get the positive version for the
+       conversion. */
+    a_boolean	err;
+    local_value = *value;
+    negate_integer_value(&local_value, &err);
+    /* An error should only occur on negating the smallest integer.  In
+       that case, just use the original value. */
+    if (!err) value = &local_value;
+  }  /* if */
+  parts_to_copy = (sizeof(an_integer_value) + sizeof(an_fp_value_part) - 1) /
+                   sizeof(an_fp_value_part);
+  /* The source value is in the low order bytes of the integer value.
+     This needs to be copied to the high order bytes of the mantissa. */
+  if (host_little_endian) {
+    int i;
+    for (i = 0; i < sizeof(an_integer_value); ++i) {
+      char	*source;
+      char	*dest;
+      source = &((char*)value)[i];
+      dest = (char*)&(mp->parts[(parts_to_copy - 1) -
+                                  (i / sizeof(an_fp_value_part))]) +
+                       (i % sizeof(an_fp_value_part));
+       *dest = *source;
+    }  /* for */
+  } else {
+    /* Copy the value from the mantissa to the low order bytes of the
+       fixed point value. */
+    memcpy((char*)&mp->parts[0], (char*)value, sizeof(an_integer_value));
+  }  /* if */
+  if (!mantissa_is_zero(mp)) {
+    /* Adjust the mantissa so that it is normalized in the high-order bits
+       of the mantissa. */
+    bits = sizeof(an_integer_value) * CHAR_BIT;
+    while ((mp->parts[0] & 0x80000000) == 0) {
+      shift_left_mantissa(mp, 1);
+      bits--;
+    }  /* while */
+    /* The number of bits shifted represents the associated exponent. */
+    *exponent = bits;
+  }  /* if */
+}  /* make_mantissa_from_integer_value */
+
+
 static void conv_mantissa_to_fixed_point(
 				a_mantissa_ptr			mp,
 				long				exponent,
+				a_boolean			is_negative,
 				a_fixed_point_type_descr	*fxp_descr,
 				a_boolean			overflow,
 				a_fixed_point_value		*value,
@@ -283,7 +386,8 @@ static void conv_mantissa_to_fixed_point(
 Given a mantissa (mp) and exponent that represent a fixed point value, check
 that the value is representable in the destination type specified by
 fxp_descr and shift the value as needed so that it contains the correct
-number of value bits for the destination type.  overflow is TRUE if
+number of value bits for the destination type.  is_negative is TRUE if the
+value to be stored must be created as a negative value.  overflow is TRUE if
 the value is already known to be too large.  Set *err on overflow.  Set
 *inexact if any bits are lost because of scaling or rounding.
 */
@@ -328,10 +432,127 @@ the value is already known to be too large.  Set *err on overflow.  Set
   }  /* if */
   /* Store the result in the appropriate form. */
   store_hex_fxp_value(mp, fxp_descr, value);
+  /* Negate the value, if necessary.  If the source is negative and the
+     destination is unsigned, a diagnostic will be issued by the caller. */
+  if (is_negative && !fxp_descr->is_unsigned) {
+    a_boolean	negate_err;
+    negate_fixed_point_value(value, &negate_err);
+    if (negate_err) *err = TRUE;
+  }  /* if */
   /* If an underflow occurred, set the flag that indicates that the resulting
      value is not an exact representation of the specified value. */
   if (mp->underflow) *inexact = TRUE;
 }  /* conv_mantissa_to_fixed_point */
+
+
+void conv_integer_to_fixed_point(a_constant_ptr		old_constant,
+			         a_constant_ptr		new_constant,
+			         an_error_code		*err_code,
+			         an_error_severity	*err_severity)
+/*
+Convert the integer constant "old_constant" to a fixed-point constant
+in "new_constant.  If, as a result of the conversion, a diagnostic should
+be issued, set err_code and err_severity to the values for the message
+to be issued; otherwise set err_code to ec_no_error.
+*/
+{
+  a_mantissa		mantissa;
+  long			exponent;
+  a_boolean		is_negative;
+  a_boolean		err;
+  a_boolean		inexact;
+  an_integer_kind	ikind;
+  a_boolean		is_signed;
+  int			bit_size;
+  a_fixed_point_type_descr
+			*fxp_descr;
+
+  check_assertion(old_constant->kind == (a_constant_repr_kind)ck_integer);
+  set_constant_kind(new_constant, (a_constant_repr_kind)ck_fixed_point);
+  *err_code = ec_no_error;
+  /* Determine attributes (size, signedness) of the integer kind. */
+  get_integer_attributes(old_constant, &ikind, &is_signed, &bit_size);
+  /* Determine if the value is negative. */
+  is_negative = is_signed && sign_of_integer_constant(old_constant) < 0;
+  /* Convert the integer into the internal mantissa representation. */
+  make_mantissa_from_integer_value(&old_constant->variant.integer_value,
+                                   is_negative, &mantissa, &exponent);
+  fxp_descr = &new_constant->type->variant.fixed_point;
+  /* Convert and store the mantissa as a fixed-point value. */
+  conv_mantissa_to_fixed_point(&mantissa, exponent, is_negative,
+                               fxp_descr,
+                               /*overflow=*/FALSE,
+                               &new_constant->variant.fixed_point_value,
+                               &err, &inexact);
+  if (err) {
+    /* The conversion to fixed-point does not fit in the result type. */
+    *err_code = ec_integer_to_fixed_conversion;
+    *err_severity = es_error;
+  } else if (inexact) {
+    /* The conversion looses precision.  This doesn't seem like it should be
+       possible for an integer to fixed conversion, but is provided for
+       in case there is some fixed format where this would be possible. */
+    *err_code = ec_inexact_fixed_conversion;
+    *err_severity = es_warning;
+  } else if (is_negative && fxp_descr->is_unsigned) {
+    /* The conversion results in a negative value being converted to
+       unsigned. */
+    *err_code = ec_fixed_sign_change;
+    *err_severity = es_warning;
+  }  /* if */
+}  /* conv_integer_to_fixed_point */
+
+
+void conv_float_to_fixed_point(a_constant_ptr		old_constant,
+			       a_constant_ptr		new_constant,
+			       an_error_code		*err_code,
+			       an_error_severity	*err_severity)
+/*
+Convert the floating-point constant "old_constant" to a fixed-point constant
+in "new_constant.  If, as a result of the conversion, a diagnostic should
+be issued, set err_code and err_severity to the values for the message
+to be issued; otherwise set err_code to ec_no_error.
+*/
+{
+  a_mantissa	mantissa;
+  long		exponent;
+  a_boolean	is_negative;
+  a_boolean	err;
+  a_boolean	inexact;
+  a_fixed_point_type_descr
+		*fxp_descr;
+
+  check_assertion(old_constant->kind == (a_constant_repr_kind)ck_float);
+  set_constant_kind(new_constant, (a_constant_repr_kind)ck_fixed_point);
+  *err_code = ec_no_error;
+  fxp_descr = &new_constant->type->variant.fixed_point;
+  /* Convert the floating-point value into the internal mantissa
+     representation. */
+  load_hex_fp_value(&old_constant->variant.float_value,
+                    old_constant->type->variant.float_kind,
+                    &mantissa, &exponent, &is_negative,
+                    /*restore_implicit_bit=*/TRUE);
+  /* Convert and store the mantissa as a fixed-point value. */
+  conv_mantissa_to_fixed_point(&mantissa, exponent, is_negative,
+                               fxp_descr,
+                               /*overflow=*/FALSE,
+                               &new_constant->variant.fixed_point_value,
+                               &err, &inexact);
+  if (err) {
+    /* The conversion to fixed-point does not fit in the result type. */
+    *err_code = ec_float_to_fixed_conversion;
+    *err_severity = es_error;
+  } else if (inexact) {
+    /* The conversion looses precision. */
+    *err_code = ec_inexact_fixed_conversion;
+    *err_severity = es_warning;
+  } else if (is_negative && fxp_descr->is_unsigned) {
+    /* The conversion results in a negative value being converted to
+       unsigned. */
+    *err_code = ec_fixed_sign_change;
+    *err_severity = es_warning;
+  }  /* if */
+}  /* conv_float_to_fixed_point */
 
 
 void fxp_hex_string_to_fixed_point(a_fixed_point_type_descr  *fxp_descr,
@@ -356,8 +577,8 @@ indicated by the given string.  Otherwise, it is set to FALSE.
 
   conv_hex_string_to_mantissa_and_exponent(str, &mantissa, &exponent,
                                            &any_digits, &overflow);
-  conv_mantissa_to_fixed_point(&mantissa, exponent, fxp_descr,
-                               overflow, value, err, inexact);
+  conv_mantissa_to_fixed_point(&mantissa, exponent, /*is_negative=*/FALSE,
+                               fxp_descr, overflow, value, err, inexact);
 }  /* fxp_hex_string_to_fixed_point */
 
 

@@ -99,6 +99,10 @@ extern void fold_base_class_cast(a_constant        *constant_1,
 extern a_boolean valid_address_constant(a_constant *constant,
                                         a_boolean  *just_past_end);
 
+extern void get_integer_attributes(a_constant      *cp,
+                                   an_integer_kind *ikind,
+                                   a_boolean       *is_signed,
+                                   int             *bit_size);
 
 #endif /* ifndef FOLDING_H */
 

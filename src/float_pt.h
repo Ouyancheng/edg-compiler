@@ -42,8 +42,15 @@ typedef struct a_mantissa {
 			   mantissa. */
 } a_mantissa;
 
+extern void init_mantissa(a_mantissa_ptr	mp);
+
+extern void shift_left_mantissa(a_mantissa_ptr	mp,
+				int		bits);
+
 extern void shift_right_mantissa(a_mantissa_ptr	mp,
 				 int			bits);
+
+extern a_boolean mantissa_is_zero(a_mantissa_ptr	mp);
 
 extern int number_of_bits_in_mantissa(a_mantissa_ptr	mp);
 
@@ -62,6 +69,17 @@ extern void conv_hex_string_to_mantissa_and_exponent(
 				long			*p_exponent,
 				a_boolean		*p_any_digits,
 				a_boolean		*exponent_overflow);
+
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+
+extern void load_hex_fp_value(an_internal_float_value	*float_value,
+			      a_float_kind		kind,
+			      a_mantissa_ptr		mp,
+			      long			*exponent,
+			      a_boolean			*is_negative,
+			      a_boolean			restore_implicit_bit);
+
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 
 extern a_host_fp_value fetch_host_fp_value(
 				a_float_kind            kind,

@@ -755,7 +755,7 @@ point targets, the maximum value is positive infinity.
 }  /* make_huge_fp_val */
 
 
-static void init_mantissa(a_mantissa_ptr	mp)
+void init_mantissa(a_mantissa_ptr	mp)
 /*
 Clear the fields of a mantissa entry.
 */
@@ -781,8 +781,8 @@ Display a mantissa value, for debugging purposes.
 
 #endif /* DEBUG */
 
-static void shift_left_mantissa(a_mantissa_ptr	mp,
-				int		bits)
+void shift_left_mantissa(a_mantissa_ptr	mp,
+			 int		bits)
 /*
 Shift the mantissa in "mp" left by "bits".  "bits" must be less than 32.
 */
@@ -975,6 +975,24 @@ value.
 }  /* number_of_bits_in_mantissa */
 
 
+a_boolean mantissa_is_zero(a_mantissa_ptr	mp)
+/*
+Return TRUE if the mantissa is zero.
+*/
+{
+  a_boolean	result = TRUE;
+  int		part;
+
+  for (part = 0; part < MANTISSA_PARTS; part++) {
+    if (mp->parts[part] != 0) {
+      result = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* mantissa_is_zero */
+
+
 static void check_and_denormalize_hex_fp_value(
 			  a_mantissa_ptr		mp,
 			  long				*exponent,
@@ -1081,6 +1099,126 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
   }  /* if */
 }  /* check_and_denormalize_hex_fp_value */
 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+
+void load_hex_fp_value(an_internal_float_value	*float_value,
+		       a_float_kind		kind,
+		       a_mantissa_ptr		mp,
+		       long			*exponent,
+		       a_boolean		*is_negative,
+		       a_boolean		restore_implicit_bit)
+/*
+float_value contains an internal floating-point value.  Convert that value
+into a mantissa and exponent.  kind specifies the type of floating point
+value being used.  If restore_implicit_bit is TRUE and the representation
+makes use of an implicit mantissa bit, the mantissa and exponent are
+adjusted to make the implicit bit explicit.
+*/
+{
+  int			offset;
+  an_fp_value_part	*fp_ptr;
+  an_fp_value_part	val;
+  an_fp_value_part	fp_temp[4];
+
+  /* Clear the mantissa value. */
+  init_mantissa(mp);
+#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+  /* When long double is mapped onto double, load this value as a double. */
+  if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+  fp_ptr = &fp_temp[0];
+  if (host_little_endian) {
+    /* On little endian systems, we start storing with the last 32-bit value
+       and work backward. */
+    offset = -1;
+  } else {
+    /* On big endian systems, we start storing with the first 32-bit value
+       and work forward. */
+    offset = 1;
+  }  /* if */
+  if (kind == (a_float_kind)fk_float) {
+    memcpy((char*)&val, (char*)float_value, sizeof(val));
+    mp->parts[0] = (val & 0x07ffffff) << 9;
+    *exponent = (long)((val & 0xff800000) >> 23) - 127;
+    *is_negative = (val & 0x80000000) != 0;
+  } else if (kind == (a_float_kind)fk_double ||
+             (kind == (a_float_kind)fk_long_double &&
+              targ_ldbl_mant_dig == 53)) {
+    /* A double value or a long double that is being represented by a
+       double value. */
+    /* The code below extracts the value from fp_temp.  Copy the source to
+       fp_temp. */
+    memcpy((char*)fp_temp, (char*)float_value, sizeof(val) * 2);
+    /* On little endian systems, the most significant part of the
+       number is fetched in the second four bytes.  Note that when the
+       long value is stored in memory, its byte order will be right for
+       either kind of system. */
+    /* Update the pointer to refer to the last 32-bit word of the value. */
+    if (host_little_endian) fp_ptr += 1;
+    val = *fp_ptr;
+    mp->parts[0] = val << 12;
+    *exponent = ((long)((val & 0x7fffffff) >> 20)) - 1023;
+    *is_negative = (val & 0x80000000) != 0;
+    fp_ptr += offset;
+    val = *fp_ptr;
+    mp->parts[0] |= (val >> 20);
+    mp->parts[1] = val << 12;
+  } else {
+    check_assertion(kind == (a_float_kind)fk_long_double);
+    if (targ_ldbl_mant_dig == 64) {
+      /* The code below constructs the value from fp_temp.  Copy the source to
+         fp_temp. */
+      memcpy((char*)fp_temp, (char*)float_value, sizeof(val) * 3);
+      /* Update the pointer to refer to the last 32-bit word of the value. */
+      if (host_little_endian) fp_ptr += 2;
+      val = *fp_ptr;
+      *exponent = (long)((val & 0x7fff)) - 16383;
+      *is_negative = (val & 0x8000) != 0;
+      fp_ptr += offset;
+      mp->parts[0] = *fp_ptr;
+      fp_ptr += offset;
+      mp->parts[1] = *fp_ptr;
+    } else if (targ_ldbl_mant_dig == 113) {
+      /* The code below constructs the value from fp_temp.  Copy the source to
+         fp_temp. */
+      memcpy((char*)fp_temp, (char*)float_value, sizeof(val) * 4);
+      /* Update the pointer to refer to the last 32-bit word of the value. */
+      if (host_little_endian) fp_ptr += 3;
+      val = *fp_ptr;
+      *exponent = (long)(((val & 0x7fffffff) >> 16)) - 16383;
+      *is_negative = (val & 0x80000000) != 0;
+      mp->parts[0] = val << 16;
+      fp_ptr += offset;
+      val = *fp_ptr;
+      mp->parts[0] |= val >> 16;
+      mp->parts[1] = val << 16;
+      fp_ptr += offset;
+      val = *fp_ptr;
+      mp->parts[1] |= val >> 16;
+      mp->parts[2] = val << 16;
+      val = *fp_ptr;
+      fp_ptr += offset;
+      val = *fp_ptr;
+      mp->parts[2] |= val >> 16;
+      mp->parts[3] = val << 16;
+      val = *fp_ptr;
+    } else {
+      unexpected_condition_str("load_hex_fp_value: bad long double size");
+    }  /* if */
+  }  /* if */
+  if (restore_implicit_bit &&
+      (kind != (a_float_kind)fk_long_double ||
+       !long_double_has_no_implicit_bit)) {
+    /* Make explicit the implicit bit of the mantissa. */
+    shift_right_mantissa(mp, 1);
+    mp->parts[0] |= 0x80000000;
+  }  /* if */
+  /* The exponent as indicated needs to be adjusted for the implicit bit.
+     Oddly, this must even be done when long double has no implicit bit. */
+  (*exponent)++;
+}  /* load_hex_fp_value */
+
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 
 static void store_hex_fp_value(a_mantissa_ptr		mp,
 			       long			exponent,
