@@ -5113,9 +5113,10 @@ instantiations are recorded in the IL.
                     prototype_instantiations_in_il ?
                             depth_innermost_namespace_scope : NO_SCOPE_DEPTH);
   /* Treat this as a prototype instantiation so that it doesn't end up in
-     the IL if prototype_instantiations_in_il is FALSE. */
+     the IL if prototype_instantiations_in_il is FALSE.  (Note that even
+     though is_prototype_instantiation is TRUE, is_template_function is FALSE
+     unless an explicit template argument list is specified. */
   rp->is_prototype_instantiation = TRUE;
-  rp->is_template_function = TRUE;
   sym->variant.routine.ptr = rp;
   set_source_corresp(&rp->source_corresp, sym);
   if (locator->is_class_member) {
@@ -5133,6 +5134,7 @@ instantiations are recorded in the IL.
     process_unattached_template_argument_list(locator->template_arg_list);
     rp->template_arg_list = locator->template_arg_list;
     rp->expl_template_arg_list_used = TRUE;
+    rp->is_template_function = TRUE;
   }  /* if */
   if (func_info->is_definition) {
     rp->defined = sym->defined = TRUE;
