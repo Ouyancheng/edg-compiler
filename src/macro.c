@@ -230,8 +230,8 @@ Walk a list of source line modifications and fix up each one.
 
   db_enter(4, "adjust_curr_source_line_structure_after_realloc");
   /* If the area didn't move, it's not necessary to walk the structure. */
-  /* Suppress the warning on use of the expired pointer value in Saber-C.
-     Version 3.0 warning number. */
+  /* Suppress the warning on use of the expired pointer value in CodeCenter.
+     Version 3.1.1 warning number. */
   /*SUPPRESS 29*/
   if (old_ptr != new_ptr) {
     /* Walk the original line modif list (which represents trigraphs and
