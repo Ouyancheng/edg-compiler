@@ -449,6 +449,10 @@ typedef struct a_symbol {
   unsigned int	defined:1;
 			/* TRUE if the symbol is actually defined, not just
 			   declared. */
+  unsigned int  explicit_linkage_specifier:1;
+			/* TRUE for variables and routines for which an
+			   explicit external linkage was specified (e.g.,
+			   ``extern "C"'' -- C++ only). */
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
