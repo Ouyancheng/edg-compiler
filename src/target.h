@@ -397,8 +397,9 @@ EXTERN a_targ_size_t
 #endif /* VAR_INITIALIZERS */
                                                                  ;
 			/* Size of a far pointer.  Initialized to the default
-			   value but reconfigurable.  Used only in 16-bit
-			   Microsoft mode. */
+			   value but reconfigurable.  Used only when support
+			   for near and far is enabled (e.g., in 16-bit
+			   Microsoft mode). */
 
 EXTERN a_targ_alignment
 		targ_alignof_far_pointer
@@ -407,8 +408,9 @@ EXTERN a_targ_alignment
 #endif /* VAR_INITIALIZERS */
                                                                    ;
 			/* Alignment of a far pointer.  Initialized to the
-			   default value but reconfigurable.  Used only in
-			   16-bit Microsoft mode. */
+			   default value but reconfigurable.  Used only when
+			   support for near and far is enabled (e.g., in
+			   16-bit Microsoft mode). */
 EXTERN a_targ_size_t
 		targ_sizeof_near_pointer
 #if VAR_INITIALIZERS
@@ -416,8 +418,9 @@ EXTERN a_targ_size_t
 #endif /* VAR_INITIALIZERS */
                                                                    ;
 			/* Size of a near pointer.  Initialized to the default
-			   value but reconfigurable.  Used only in 16-bit
-			   Microsoft mode. */
+			   value but reconfigurable.  Used only when support
+			   for near and far is enabled (e.g., in 16-bit
+			   Microsoft mode). */
 
 EXTERN a_targ_alignment
 		targ_alignof_near_pointer
@@ -426,8 +429,9 @@ EXTERN a_targ_alignment
 #endif /* VAR_INITIALIZERS */
                                                                      ;
 			/* Alignment of a near pointer.  Initialized to the
-			   default value but reconfigurable.  Used only in
-			   16-bit Microsoft mode. */
+			   default value but reconfigurable.  Used only when
+			   support for near and far is enabled (e.g., in
+			   16-bit Microsoft mode). */
 #endif /* NEAR_AND_FAR_ALLOWED */
 
 EXTERN a_targ_ptrdiff_t

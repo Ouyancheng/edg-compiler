@@ -831,8 +831,9 @@ in *unqual_array_type and return TRUE.
 
 a_boolean is_far_type(a_type_ptr tp)
 /*
-Used only in 16-bit Microsoft mode: return TRUE if and only if the indicated
-type is a "far" type (explicitly or implicitly).
+Return TRUE if and only if the indicated type is a "far" type (explicitly or
+implicitly).  Used only when support for "near" and "far" is enabled (e.g.,
+in 16-bit Microsoft mode).
 */
 {
   a_boolean            is_far;

@@ -333,12 +333,19 @@ by a command line option.
 
 /*
 Flag that is TRUE to permit "near" and "far" memory attributes.  This should
-always be TRUE when Microsoft 16-bit mode is supported.
+always be TRUE if Microsoft 16-bit mode is supported, but may be set to
+FALSE even if Microsoft extensions are supported to disallow Microsoft
+16-bit mode altogether.  There is also the option of supporting "near" and
+"far" memory attributes without supporting other Microsoft extensions.
 */
 #ifndef NEAR_AND_FAR_ALLOWED
 #if MICROSOFT_EXTENSIONS_ALLOWED
+/* Set this to TRUE to permit Microsoft 16-bit mode and to FALSE if only
+   Microsoft 32-bit mode is supported. */
 #define NEAR_AND_FAR_ALLOWED TRUE
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+/* Set this to TRUE to provide near/far support without general Microsoft
+   compatibility. */
 #define NEAR_AND_FAR_ALLOWED FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifndef NEAR_AND_FAR_ALLOWED */
@@ -351,7 +358,7 @@ default mode.
 #if NEAR_AND_FAR_ALLOWED
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* If Microsoft extensions are supported, near/far support is turned on
-   in Microsoft 16-bit mode. */
+   in Microsoft 16-bit mode, but that is not the default. */
 #define DEFAULT_NEAR_AND_FAR_ENABLED FALSE
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 /* If NEAR_AND_ALLOWED is set without support for other Microsoft extensions,
