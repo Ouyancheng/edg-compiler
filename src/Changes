@@ -1,5 +1,35 @@
 Version 3.4
 
+11/3/03  Superfluous namespace qualifiers in declarations
+
+Standard C++ does not permit a namespace member to be declared in that
+namespace with a qualifier that is the namespace itself.  For example:
+
+  namespace N {
+    int N::i;  // Not standard C++: Accepted with a warning in GNU and
+  }            // Microsoft C++ modes; discretionary error otherwise.
+
+The example above used to trigger a discretionary error in all modes,
+but it is now accepted with a warning in GNU and Microsoft C++ modes.
+Declarations of templates used to trigger a nondiscretionary error because
+of example like the following:
+
+  namespace N {
+    template<typename> void N::f() {}  // Not standard C++: Nondiscretionary
+                                       // error unless dependent name
+                                       // processing is done.
+    struct N { template<typename> void f(); };
+    template void f<int>();  // N::f changes meaning when rescanned.
+  }
+
+During the instantiation of f<int>, the declarator token sequence "N::f"
+is resolved to the struct member in default mode: To avoid surprises we
+therefore do not make the error discretionary.  However, when doing
+dependent name processing there is no such issue and in such modes we
+now treat template declarations with extraneous qualifiers like other
+such declarations (i.e., we issue a warning in GNU and Microsoft C++ modes
+and a discretionary error otherwise).
+
 10/23/03 GNU mode: Parameter attribute "unused" outside function definitions
 
 In GNU modes the front end issues an error if the attribute "unused" appeared
@@ -217,36 +247,6 @@ a global array with a dimension equal to THREADS.  Now the error diagnostic
 more correctly reports that the dimension is nonconstant.  For example:
 
   int a[3][THREADS];  // Still an error in UPC mode, but better diagnostic.
-
-10/9/03  Superfluous namespace qualifiers in declarations
-
-Standard C++ does not permit a namespace member to be declared in that
-namespace with a qualifier that is the namespace itself.  For example:
-
-  namespace N {
-    int N::i;  // Not standard C++: Accepted with a warning in GNU C++ mode;
-  }            // discretionary error otherwise.
-
-The example above used to trigger a discretionary error in all modes,
-but it is now accepted with a warning in GNU C++ mode.  Declarations of
-templates used to trigger a nondiscretionary error because of example like
-the following:
-
-  namespace N {
-    template<typename> void N::f() {}  // Not standard C++: Nondiscretionary
-                                       // error unless dependent name
-                                       // processing is done.
-    struct N { template<typename> void f(); };
-    template void f<int>();  // N::f changes meaning when rescanned.
-  }
-
-During the instantiation of f<int>, the declarator token sequence "N::f"
-is resolved to the struct member in default mode: To avoid surprises we
-therefore do not make the error discretionary.  However, when doing
-dependent name processing there is no such issue and in such modes we
-now treat template declarations with extraneous qualifiers like other
-such declarations (i.e., we issue a warning in GNU C++ mode and a
-discretionary error otherwise).
 
 10/9/03  C99: internal error on invalid hexadecimal floating-point constant
 

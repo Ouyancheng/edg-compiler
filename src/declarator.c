@@ -3489,11 +3489,11 @@ to FALSE if the entity being declared is not initializable.
           if (is_template_decl && !do_dependent_name_processing) {
             severity = es_error;
           }  /* if */
-          if (gpp_mode && severity != es_error) {
-            /* GNU C++ compilers accept the superfluous qualifier.  We cannot
-               emulate this behavior for templates because of reasons explained
-               above (unless dependent name processing has been enabled, but
-               that is not the default in GNU C++ mode). */
+          if ((gpp_mode || microsoft_mode) && severity != es_error) {
+            /* GNU and Microsoft compilers accept the superfluous qualifier.
+               We cannot emulate this behavior for templates because of
+               reasons explained above (unless dependent name processing has
+               been enabled, but that is not the default in GNU C++ mode). */
             severity = es_warning;
             err_code = ec_nonstd_qualifier_in_namespace_member_decl;
           }  /* if */
