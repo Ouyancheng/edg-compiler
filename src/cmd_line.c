@@ -387,9 +387,8 @@ The following option formats are supported:
       goto end_of_routine;
     } else {
       optchar = argv[optind];
-      /* Save the initial character of the option specification. */
       if (*optchar != '-') {
-        /* The argument string does not begin with a "-" or "+". */
+        /* The argument string does not begin with a "-". */
         goto end_of_routine;
       } else if (*(optchar+1) == '-') {
         /* Either the beginning of a keyword option, or "--", which marks the
