@@ -2253,8 +2253,13 @@ _Bool type, and VLA types.
     case eok_fmultiply_assign:
     case eok_fdivide_assign:
       /* Compound assignments to bool don't exist in C89, and
-         must be lowered to get the value reduced to 0/1. */
-      if (is_bool_type(expr->type)) {
+         must be lowered to get the value reduced to 0/1.
+         Also operations that involve a fixed-point operand but aren't
+         a fixed-point operation (e.g., fixed_point += double). */
+      if (is_bool_type(expr->type) ||
+          (fixed_point_enabled &&
+           is_fixed_point_type(type_pointed_to(
+                                    expr->variant.operation.operands->type)))){
         rewrite_compound_assignment(expr, /*is_lvalue=*/FALSE);
       }  /* if */
       break;
