@@ -921,6 +921,8 @@ extern void push_template_instantiation_scope(
 
 extern void pop_template_instantiation_scope(void);
 
+extern void finish_function_body_processing(a_scope_ptr scope,
+                                            a_boolean   discard_function_body);
 /* End a name scope. */
 extern void pop_scope(void);
 extern void push_namespace_extension_scope(a_namespace_ptr nsp);
@@ -970,10 +972,6 @@ extern void push_name_linkage(a_name_linkage_kind  kind);
 extern void pop_name_linkage(void);
 
 extern void set_needed_flags_at_end_of_file_scope(a_scope_ptr scope);
-
-#if MAINTAIN_NEEDED_FLAGS
-extern a_boolean routine_needed_even_if_unreferenced(a_routine_ptr rout);
-#endif /* MAINTAIN_NEEDED_FLAGS */
 
 a_boolean keep_function_body_for_possible_inlining(a_routine_ptr routine);
 

@@ -30,9 +30,6 @@ trans_copy.c -- Copy IL from secondary translation units to the
 #include "trans_corresp.h"
 #include "il_walk.h"
 #include "scope_stk.h"
-#if DO_IL_LOWERING
-#include "lower_il.h"
-#endif /* DO_IL_LOWERING */
 
 
 static a_boolean f_has_corresp(char *ptr)
@@ -1018,21 +1015,12 @@ translation unit to the primary translation unit IL.  Do final processing,
 which includes IL lowering if appropriate.
 */
 {
-  check_assertion(!in_secondary_trans_unit(rout));
-#if MAINTAIN_NEEDED_FLAGS
-  if (routine_needed_even_if_unreferenced(rout)) {
-    /* Mark an externally-defined routine as "needed". */
-    mark_as_needed((char *)rout, (an_il_entry_kind)iek_routine);
-  }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS */
-#if DO_IL_LOWERING
-  lower_il_memory_region(rout->assoc_scope);
-#endif /* DO_IL_LOWERING */
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  { a_scope_ptr rout_scope = il_header.region_scope_entry[rout->assoc_scope];
-    add_scope_orphaned_il_lists(rout_scope);
-  }
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+  a_scope_ptr scope;
+
+  check_assertion(!in_secondary_trans_unit(rout) &&
+                  rout->assoc_scope != NULL_region_number);
+  scope = il_header.region_scope_entry[rout->assoc_scope];
+  finish_function_body_processing(scope, /*discard_function_body=*/FALSE);
 }  /* wrap_up_moved_function */
 
 
