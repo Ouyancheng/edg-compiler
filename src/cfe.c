@@ -114,8 +114,12 @@ int EDG_MAIN(int argc, char *argv[])
     }  /* if */
 
 #if BACK_END_SHOULD_BE_CALLED
-    /* Run the back end if required, if there are no errors. */
-    if (total_errors == 0 && !suppress_back_end) {
+    /* Run the back end if required. */
+#ifndef CALL_BACK_END_EVEN_WITH_ERRORS
+    /* Do not run the back end if there were errors. */
+    if (total_errors != 0) suppress_back_end = TRUE;
+#endif /* ifndef CALL_BACK_END_EVEN_WITH_ERRORS */
+    if (!suppress_back_end) {
 #if USING_KAI_INLINER
       /* Call the Kuck & Associates inliner (if being used).  It is
          not part of the source code provided by EDG. */

@@ -1,5 +1,12 @@
 Version 2.40
 
+10/24/98  CALL_BACK_END_EVEN_WITH_ERRORS
+
+A (user-provided) back end can be called even when there are errors
+by defining the configuration flag CALL_BACK_END_EVEN_WITH_ERRORS.
+Note that the EDG-supplied back ends will not work correctly
+if they are called after errors are detected.
+
 10/23/98  Hidden name tables, macros, and the C++-generating back end
 
 If a macro and a class template have the same name, and the
