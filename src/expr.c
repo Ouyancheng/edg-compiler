@@ -1777,6 +1777,7 @@ in *result.
         clear_operand((an_operand_kind)ok_constant, result);
         fold_field_selection(&operand_1->variant.constant, field,
                              selection_type, &result->variant.constant);
+        did_not_fold = FALSE;
       }  /* if */
     }  /* if */
     if (did_not_fold) {
