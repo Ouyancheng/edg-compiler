@@ -8121,11 +8121,15 @@ is the type kind associated with this declaration.
 
   ssep = &scope_stack[depth_innermost_instantiation_scope];
   if (sym->is_class_member) {
-    if (ssep->in_prototype_instantiation) {
+    /* This processing is only done for prototype instantiations.  The
+       template instance test below excludes local classes. */
+    if (ssep->in_prototype_instantiation &&
+        is_any_template_instance_class_symbol(sym)) {
       /* Set the pointer that points back to the original class template
          symbol. */
       a_template_symbol_supplement_ptr	tssp;
       tssp = template_supplement_for_symbol(sym);
+      check_assertion(tssp != NULL);
       tssp->variant.class_template.type_kind = type_kind;
     }  /* if */
   }  /* if */
