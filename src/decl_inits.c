@@ -261,7 +261,8 @@ member remains uninitialized.  This routine is called in C++ mode only.
         dip->destructor = select_destructor(element_type, element_type,
                                             &pos_curr_token,
                                             /*honor_virtual=*/FALSE,
-                                            /*evaluated=*/TRUE);
+                                            /*evaluated=*/TRUE,
+                                            /*suppress_access_check=*/FALSE);
         /* Now create the constant entry that will point to the new dynamic
            init entry. */
         cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
@@ -1360,7 +1361,8 @@ issuing an error on an incomplete type.
       if (cssp != NULL) {
         a_routine_ptr rp = select_destructor(vp_type, vp_type, source_pos,
                                              /*honor_virtual=*/FALSE,
-                                             /*evaluated=*/TRUE);
+                                             /*evaluated=*/TRUE,
+                                             /*suppress_access_check=*/FALSE);
         if (rp != NULL) {
           local_di.destructor = rp;
           initialization_is_dynamic = TRUE;
@@ -1482,8 +1484,9 @@ the default constructor (if one exists) is called.
            prevent a redundant diagnostic from being issued. */
         def_init_performed = TRUE;
       }  /* if */
-      dtor = select_destructor(tp, tp, err_pos, /*honor_virtual=*/FALSE,
-                               /*evaluated=*/TRUE);
+      dtor = select_destructor(tp, tp, err_pos,
+                               /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
+                               /*suppress_access_check=*/FALSE);
       if (ctor == NULL && dtor == NULL) {
         /* No constructor for default initialization; no destructor either. */
       } else {
@@ -2137,7 +2140,8 @@ scan_paren:
           rp = select_copy_constructor(tp,
                                        const_object_okay, volatile_object_okay,
                                        &err_pos, object_class_type,
-                                       &bitwise_copy, /*evaluated=*/TRUE);
+                                       &bitwise_copy, /*evaluated=*/TRUE,
+                                       /*suppress_access_check=*/FALSE);
         }  /* if */
         if (bitwise_copy) {
           /* Construction by bitwise copy is allowed. */
@@ -2234,7 +2238,8 @@ scan_paren:
            called for a partially constructed object. */
         dip->destructor = select_destructor(tp, object_class_type, &err_pos,
                                             /*honor_virtual=*/FALSE,
-                                            /*evaluated=*/TRUE);
+                                            /*evaluated=*/TRUE,
+                                            /*suppress_access_check=*/FALSE);
       }  /* if */
       if (array_type != NULL &&
           dip->kind == (a_dynamic_init_kind)dik_constructor) {
@@ -2359,7 +2364,8 @@ though neither constructors nor initialization is involved here.)
          dynamic init entry will be required.  Create the constructor init
          entry now; the dynamic init will be added later. */
       rp = select_destructor(bcp->type, class_type, &source_pos,
-                             /*honor_virtual=*/FALSE, /*evaluated=*/TRUE);
+                             /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
+                             /*suppress_access_check=*/FALSE);
       if (rp != NULL) {
         cip = alloc_ctor_init((a_constructor_init_kind)
                                                     (bcp->is_virtual ?
@@ -2414,8 +2420,8 @@ though neither constructors nor initialization is involved here.)
       }  /* if */
       if (is_class_struct_union_type(tp)) {
         rp = select_destructor(tp, tp, &source_pos,
-                               /*honor_virtual=*/FALSE,
-                               /*evaluated=*/TRUE);
+                               /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
+                               /*suppress_access_check=*/FALSE);
         if (rp != NULL) {
           /* Create the constructor init entry for a field. */
           cip = alloc_ctor_init((a_constructor_init_kind)cik_field);

@@ -5635,7 +5635,8 @@ calling a copy constructor.
        the dynamic initialization. */
     if (!in_return_by_cctor_expression) {
       dip->destructor = select_destructor(type, type, position,
-                                          /*honor_virtual=*/FALSE, evaluated);
+                                          /*honor_virtual=*/FALSE, evaluated,
+                                          /*suppress_access_check=*/FALSE);
     } else {
       /* In a cctor return expression.  Put the destructor in the entry,
          but do not do the access checking etc. at this time.  Build a fixup

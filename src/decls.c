@@ -8847,11 +8847,12 @@ clause is to be attached.  catch_pos is the source position of "catch".
                                           /*const_object_required=*/FALSE,
                                           /*volatile_object_okay=*/FALSE,
                                           &decl_pos, type_ptr, &bitwise_copy,
-                                          /*evaluated=*/TRUE);
+                                          /*evaluated=*/TRUE,
+                                          /*suppress_access_check=*/TRUE);
           check_assertion((cctor == NULL) == bitwise_copy); 
           dtor = select_destructor(type_ptr, type_ptr, &decl_pos,
-                                   /*honor_virtual=*/FALSE,
-                                   /*evaluated=*/TRUE);
+                                   /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
+                                   /*suppress_access_check=*/TRUE);
         } else {
           /* Non classes require only bitwise copying. */
           cctor = dtor = NULL;
