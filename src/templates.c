@@ -3179,6 +3179,44 @@ matches a class type from the parameter list of a template function.
        needed for binding template parameter values when doing partial
        ordering comparisons. */
     match = TRUE;
+  } else if (type->source_corresp.is_class_member) {
+    /* The argument type is a class member -- a nested class or enum.  Be
+       sure the parent classes match and that the members correspond
+       (i.e., have the same name).  This occurs when the parameter has
+       a type like "T::X<int>", and the actual argument is something
+       like "Z::X<int>". */
+    if (!templ_type->source_corresp.is_class_member) {
+      /* No match. */
+    } else {
+      a_symbol_ptr	sym;
+      a_symbol_ptr	templ_sym;
+      sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+      templ_sym = (a_symbol_ptr)templ_type->source_corresp.assoc_info;
+      if (sym->header != templ_sym->header) {
+        /* Members have different names -- no match. */
+      } else {
+        a_class_symbol_supplement_ptr	ttp_cssp;
+        a_type_ptr			tp;
+        a_type_ptr			ttp;
+        tp = type->source_corresp.parent.class_type;
+        ttp = templ_type->source_corresp.parent.class_type;
+        ttp_cssp = symbol_supplement_for_class(ttp);
+        if (ttp_cssp->template_param_for_proxy_class != NULL) {
+          /* The type being matches is a member of a proxy class.
+             Substitute the original template parameter for the proxy
+             class in the matching process. */
+          ttp = ttp_cssp->template_param_for_proxy_class;
+        }  /* if */
+        if (matches_template_type(tp, ttp, templ_arg_list,
+                                  templ_param_list,
+                                  MTT_NO_FLAGS,
+                                  (a_base_class_ptr*)NULL)) {
+          /* Members have the same names and the parent classes
+             "match". */
+          match = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
   return match;
 }  /* matches_template_type_for_class_type */
@@ -3348,38 +3386,6 @@ template parameter list.
     if (templ_type_kind != type_kind) {
       /* No match. */
     } else {
-      if (type->source_corresp.is_class_member) {
-        /* The argument type is a class member -- a nested class or enum.  Be
-           sure the parent classes match and that the members correspond (i.e.,
-           have the same name). */
-        if (!templ_type->source_corresp.is_class_member) {
-          /* No match. */
-        } else {
-          sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-          templ_sym = (a_symbol_ptr)templ_type->source_corresp.assoc_info;
-          if (sym->header != templ_sym->header) {
-            /* Members have different names -- no match. */
-          } else {
-            a_class_symbol_supplement_ptr ttp_cssp;
-            tp = type->source_corresp.parent.class_type;
-            ttp = templ_type->source_corresp.parent.class_type;
-            ttp_cssp = symbol_supplement_for_class(ttp);
-            if (ttp_cssp->template_param_for_proxy_class != NULL) {
-              /* The type being matches is a member of a proxy class.
-                 Substitute the original template parameter for the proxy
-                 class in the matching process. */
-              ttp = ttp_cssp->template_param_for_proxy_class;
-            }  /* if */
-            if (matches_template_type(tp, ttp, templ_arg_list,
-                                      templ_param_list,
-                                      new_flags,
-                                      (a_base_class_ptr*)NULL)) {
-              /* Members have the same names and the parent classes "match". */
-              match = TRUE;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* if */
       if (match) {
         /* No need to check further. */
       } else {

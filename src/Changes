@@ -1,5 +1,22 @@
 Version 2.37
 
+7/3/97    Type deduction does not handle member class templates correctly
+
+The type deduction routines were not correctly handling member class templates.
+This could result in type deduction failing for a given call, as illustrated
+by the following example.  It could also cause a call to incorrectly match
+a given template, which would then result in an internal error.  This
+has been fixed.
+
+  struct A {
+    template<class T> struct B {};
+  };
+  template<class T> void f(A::B<T>);
+  int main() {
+    A::B<int> ab;
+    f(ab);
+  }
+
 7/2/97    cv-qualifier missing in lowered IL for anonymous union reference
 
 A cv-qualifier was missing on an intermediate field selection generated
