@@ -397,17 +397,20 @@ static void insert_if_statement(an_expr_node_ptr       test_expr,
                                 a_boolean              is_initialization_guard,
                                 an_insert_location_ptr insert_location,
                                 a_statement_ptr        *p_block_stmt,
-                                an_insert_location_ptr insert_location2)
+                                an_insert_location_ptr then_insert_location,
+                                an_insert_location_ptr else_insert_location)
 /*
 Create an "if" statement that tests test_expr, and insert it at
-insert_location.  Set insert_location2 to allow insertion of the
+insert_location.  Set *then_insert_location to allow insertion of the
 dependent statements of the "if".  Set *p_block_stmt to point to the
 block statement added, unless p_block_stmt is NULL.  This routine also
 handles the case of inserting an if-equivalent into the middle of an
 expression.  If this test is the guard code around an initialization,
 is_initialization_guard is TRUE; that's used to indicate to a back
 end that the test-and-set of the guard flag should be done as an
-atomic operation.
+atomic operation.  If else_insert_location is non-NULL, add an "else"
+to the "if", and set *else_insert_location to allow insertion in the
+"else".
 */
 {
   a_statement_ptr  if_stmt, block_stmt = NULL;
@@ -426,17 +429,27 @@ atomic operation.
     question_node->is_initialization_guard = is_initialization_guard;
     insert_expr(question_node, insert_location);
     /* The insert location is before the "(void)0" of the second operand. */
-    set_expr_insert_location(op2_node, insert_location2);
+    set_expr_insert_location(op2_node, then_insert_location);
+    if (else_insert_location != NULL) {
+      /* The "else" insert location is before the "(void)0" of the third
+         operand. */
+      set_expr_insert_location(op3_node, else_insert_location);
+    }  /* if */
   } else {
     /* Insert within a statement sequence.  Allocate an "if" statement with
        a block statement under it. */
     if_stmt = alloc_statement((a_statement_kind)stmk_if);
     if_stmt->expr = test_expr;
-    if_stmt->variant.if_stmt.then_statement = block_stmt =
-                                 alloc_statement((a_statement_kind)stmk_block);
     if_stmt->is_initialization_guard = is_initialization_guard;
     insert_statement(if_stmt, insert_location);
-    set_block_start_insert_location(block_stmt, insert_location2);
+    if_stmt->variant.if_stmt.then_statement = block_stmt =
+                                 alloc_statement((a_statement_kind)stmk_block);
+    set_block_start_insert_location(block_stmt, then_insert_location);
+    if (else_insert_location != NULL) {
+      if_stmt->variant.if_stmt.else_statement = block_stmt =
+                                 alloc_statement((a_statement_kind)stmk_block);
+      set_block_start_insert_location(block_stmt, else_insert_location);
+    }  /* if */
   }  /* if */
   if (p_block_stmt != NULL) *p_block_stmt = block_stmt;
 }  /* insert_if_statement */
@@ -2296,7 +2309,7 @@ insertion within the "if".
   /* Make an "if" statement and insert it into the program. */
   insert_if_statement(compare_node, /*is_initialization_guard=*/FALSE,
                       insert_location, (a_statement_ptr *)NULL,
-                      insert_location2);
+                      insert_location2, (an_insert_location *)NULL);
 }  /* add_conditional_flag_test */
 
 
@@ -3238,7 +3251,8 @@ A pointer to the conditional variable is returned in *test_var.
                                     int_type, test_var_node);
   /* Make an "if" statement and insert it into the program. */
   insert_if_statement(compare_node, /*is_initialization_guard=*/TRUE,
-                      insert_location, block_stmt, &insert_location2);
+                      insert_location, block_stmt, &insert_location2,
+                      (an_insert_location *)NULL);
   /* Further inserts are done at the start of the block. */
   *insert_location = insert_location2;
   /* Make "test_var = 1" and insert it inside the "if" statement. */
@@ -5022,7 +5036,7 @@ This routine returns TRUE if guard code was emitted.
     /* Make an "if" statement and insert it into the program. */
     insert_if_statement(compare_node, /*is_initialization_guard=*/TRUE,
                         insert_location, (a_statement_ptr *)NULL,
-                        insert_location2);
+                        insert_location2, (an_insert_location *)NULL);
     /* Make "test_var = 1" and insert it inside the "if" statement. */
     (void)insert_var_assignment_statement(test_var,
                                           (an_expr_operator_kind)eok_iassign,
@@ -5319,9 +5333,10 @@ constructor, but may instead be after an assignment to "this".
                          ctsp;
   a_constructor_init_ptr ctor_init;
   a_constant             null_constant;
-  an_insert_location     insert_location2;
+  an_insert_location     insert_location2, else_insert_location;
   an_expr_node_ptr       null_constant_node, vbase_param_node, compare_node;
   an_expr_node_ptr       vaddr_node, vbptr_node, vtbl_addr_node, vptr_node;
+  an_expr_node_ptr       assign_node;
   a_variable_ptr         primary_vtbl_var, vtbl_var;
   a_source_position      saved_error_position, saved_code_pos;
 
@@ -5335,19 +5350,27 @@ constructor, but may instead be after an assignment to "this".
            being initialized and virtual base classes must be constructed):
          [For each virtual base class of the current class:]
            Set the parameter to the address of the virtual base class.
+           [If the virtual base class pointer for the base class is allocated
+               in the current class (the pointers allocated in base classes
+               are set by the constructor calls for those base classes):]
+             Initialize the virtual base class pointer to point to the base
+                 class, using the address just computed.
+           [endif]
          [endfor]
          [For each virtual base class on the ctor-initializer list:]
            Call the constructor for the base class (arguments as indicated by
                the ctor-initializer list, plus any virtual base class pointer
                arguments, using the added parameters for those).
          [endfor]
+       else (not initializing a complete object)
+         [For each virtual base class of the current class:]
+           [If the virtual base class pointer for the base class is allocated
+               in the current class:]
+             Initialize the virtual base class pointer to point to the base
+                 class, using the address from the corresponding parameter.
+           [endif]
+         [endfor]
        endif
-       [For each virtual base class of the current class:]
-         If the virtual base class pointer for the base class is allocated
-             in the current class, initialize it to point to the base class.
-             (The pointers allocated in base classes are set by the constructor
-             calls for those base classes.)
-       [endfor]
      [endif]
      [For each initialized direct nonvirtual base class (entries for these
          appear as the middle of the ctor-initializer list):]
@@ -5414,7 +5437,7 @@ constructor, but may instead be after an assignment to "this".
     */
     insert_if_statement(compare_node, /*is_initialization_guard=*/FALSE,
                         insert_location, (a_statement_ptr *)NULL,
-                        &insert_location2);
+                        &insert_location2, &else_insert_location);
     /* Set the added parameters to the addresses of the virtual base
        classes. */
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
@@ -5429,10 +5452,29 @@ constructor, but may instead be after an assignment to "this".
            class type. */
         vaddr_node = add_cast_if_necessary(vaddr_node, vbase_param_var->type);
         /* Make an assignment to set the virtual base class parameter. */
-        (void)insert_var_assignment_statement(vbase_param_var,
+        assign_node = make_var_assignment_expr(vbase_param_var,
                                             (an_expr_operator_kind)eok_passign,
-                                              vaddr_node,
-                                              &insert_location2);
+                                               vaddr_node);
+        /* Set the base class pointer if it is allocated in this class.
+           If it is shared with a base class, the base class constructor
+           will set it. */
+        if (bcp->pointer_base_class == NULL) {
+          /* Make an expression node for the address of the virtual base
+             class pointer. */
+          vbptr_node = make_vbptr_field_lvalue_from_var(this_param_var, bcp);
+          /* Add a cast if necessary to convert from a pointer to the
+             type-as-subobject for the base class type to a pointer to the
+             base class type. */
+          assign_node = add_cast_if_necessary(assign_node,
+                                            type_pointed_to(vbptr_node->type));
+          /* Assign the base class address to the virtual base class
+             pointer. */
+          vbptr_node->next = assign_node;
+          assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
+                                           assign_node->type, vbptr_node);
+        }  /* if */
+        /* Insert the assignment statement. */
+        (void)insert_expr_statement(assign_node, &insert_location2);
         /* Move on to the next added parameter for the next iteration of
            the loop. */
         vbase_param_var = vbase_param_var->next;
@@ -5445,8 +5487,7 @@ constructor, but may instead be after an assignment to "this".
       lower_ctor_init(ctor_init, this_param_var, /*use_implicit_param=*/TRUE,
                       class_type, &insert_location2);
     }  /* for */
-    /* Note that the "if" created above effectively ends here.  The code
-       created below is executed even when we do not have a complete object. */
+    /* Inserting in the "else" of the "if": */
     /* For each virtual base class of the current class, set the
        virtual base class pointer in the current class to point to the value
        of the associated virtual base class parameter, i.e., the address
@@ -5455,8 +5496,7 @@ constructor, but may instead be after an assignment to "this".
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
       if (bcp->is_virtual) {
         vbase_param_var = vbase_param_var->next;
-        /* Do not set the pointer if it is shared with a base class --
-           the base class constructor has already or will set it. */
+        /* Do not set the pointer if it is shared with a base class. */
         if (bcp->pointer_base_class == NULL) {
           /* Make an expression for the value of the implicit parameter. */
           vbase_param_node = var_rvalue_expr(vbase_param_var);
@@ -5469,12 +5509,11 @@ constructor, but may instead be after an assignment to "this".
           vbase_param_node = add_cast_if_necessary(vbase_param_node,
                                             type_pointed_to(vbptr_node->type));
           /* Make an assignment statement that copies the implicit parameter
-             value (set earlier in the constructor code) into the virtual
-             base class pointer. */
+             value into the virtual base class pointer. */
           (void)insert_assignment_statement(vbptr_node,
                                             (an_expr_operator_kind)eok_passign,
                                             vbase_param_node,
-                                            insert_location);
+                                            &else_insert_location);
         }  /* if */
       }  /* if */
     }  /* for */
@@ -6135,7 +6174,7 @@ destructor scope, and also lower the user code.
       */
       insert_if_statement(compare_node, /*is_initialization_guard=*/FALSE,
                           &insert_location, (a_statement_ptr *)NULL,
-                          &insert_location2);
+                          &insert_location2, (an_insert_location *)NULL);
       /* Destroy any virtual base classes on the ctor_init list. */
       for (; ctor_init != NULL; ctor_init = ctor_init->next) {
         lower_dtor_init(ctor_init, this_param_var,
@@ -6270,7 +6309,7 @@ destructor scope, and also lower the user code.
     /* Make "if ((param & 0x1) != 0)". */
     insert_if_statement(if_node, /*is_initialization_guard=*/FALSE,
                         &insert_location, (a_statement_ptr *)NULL,
-                        &insert_location2);
+                        &insert_location2, (an_insert_location *)NULL);
     /* Make "delete-routine((void *)this);" under the "if". */
     this_param_node = var_rvalue_expr(this_param_var);
     this_param_node = add_cast_if_necessary(this_param_node, void_star_type());

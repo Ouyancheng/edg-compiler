@@ -1,5 +1,16 @@
 Version 2.36
 
+5/30/97   In constructor wrapper code, virtual base class pointers set earlier
+
+In the wrapper code generated around constructors in IL lowering, the code
+that sets the virtual base class pointers for an object has been moved
+to before the calls of the constructors for the virtual base classes.
+(Actually, a copy of the code is done before the calls of the virtual
+base class constructors, and another copy is done when the constructor
+is called for a subobject, in which case the virtual base class constructors
+are not called.)  This is required by the Working Paper, [class.cdtor]
+paragraph 2.
+
 5/28/97   In generated #line file names, "\" no longer escaped
 
 When the C- or C++-generating back end generates #line directives,
