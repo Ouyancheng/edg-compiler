@@ -294,7 +294,7 @@ address taken, and if not issue an error.
         var->storage_class == (a_storage_class)sc_register) {
       /* Cannot take the address of a register variable in C. 
          This is allowed in C++, and is allowed (with a warning) in
-	 C (execpt in strict error mode). */
+	 C (except in strict error mode). */
       if (SVR4_C_mode || strict_ansi_error_severity != es_error) {
 	pos_warning(ec_address_of_register_variable, &rep->position);
       } else {

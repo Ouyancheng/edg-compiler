@@ -1429,7 +1429,7 @@ common_cfront_mode_settings:
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       case optk_alternative_tokens:
         /* Digraphs should or should not be allowed.  This also controls
-           recognition of operator keywors (e.g., "not", "and") in C++. */
+           recognition of operator keywords (e.g., "not", "and") in C++. */
         alternative_tokens_allowed = opt_value;
         break;
 #if MINIMAL_INLINING
