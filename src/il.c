@@ -4406,7 +4406,7 @@ return the original member type.
       new_member_type->variant.routine.extra_info->implicit_this_param_type =
                                                                  new_this_type;
       if (old_qualifiers != TQ_NONE) {
-        make_qualified_type(new_member_type, old_qualifiers);
+        new_member_type = make_qualified_type(new_member_type, old_qualifiers);
       }  /* if */
       member_type = new_member_type;
     }  /* if */
