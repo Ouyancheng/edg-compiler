@@ -478,6 +478,25 @@ Return TRUE if a constant is an error constant.
    (storage_class) == (a_storage_class)sc_extern ||                   \
    (storage_class) == (a_storage_class)sc_unspecified)
 
+/*
+Macro that returns TRUE if a constant entry is the exact address of
+a variable.
+*/
+#define con_is_exact_addr_of_variable(con)                            \
+  ((con)->kind == (a_constant_repr_kind)ck_address &&                 \
+   (con)->variant.address.kind == (an_address_base_kind)abk_variable &&\
+   (con)->variant.address.offset == 0 && !(con)->implicit_cast)
+
+/*
+Macro that returns TRUE if a constant entry is the exact address of
+a routine.
+*/
+#define con_is_exact_addr_of_routine(con)                            \
+  ((con)->kind == (a_constant_repr_kind)ck_address &&                 \
+   (con)->variant.address.kind == (an_address_base_kind)abk_routine &&\
+   (con)->variant.address.offset == 0 && !(con)->implicit_cast)
+
+
 #if DEBUG
 extern void db_type_name(a_type_ptr  tp);
 
