@@ -1,5 +1,18 @@
 Version 3.5
 
+7/21/04  Embedded C: Internal error on incomplete field in named address space
+
+The front end issues an error if a field is qualified with a named address
+space.  However, if that field also had an incomplete type, an aggregate
+initializer attempting to initialize the field triggered an internal error.
+For example:
+
+  struct S {
+    void _EDG_NAS_A a;   // Normal error.
+  } x = { 0 };           // Initializer triggered an internal error.
+
+This is now fixed.
+
 7/21/04  Embedded C: Parameters in named address spaces
 
 The front end now issues an error when attempting to declare a parameter in
