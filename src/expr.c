@@ -5135,7 +5135,9 @@ When single_operand is TRUE, the <varargs.h> form is expected:
   /* Check for and pass over the left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_matching_stop_token(tok_rparen);
-  add_stop_token(tok_comma);
+  if (!single_operand) {
+    add_stop_token(tok_comma);
+  }  /* if */
   /* Scan the first expression. */
   node1 = scan_va_list_lvalue_expr(/*value_used=*/FALSE,
                                    ec_bad_va_start, &err);
