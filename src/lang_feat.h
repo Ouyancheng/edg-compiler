@@ -462,15 +462,16 @@ recorded in the IL).
 #endif /* ifndef GNU_NAKED_ATTRIBUTE_ALLOWED */
 
 /*
-Flag that is TRUE is the "visibility" attribute should be recognized (and
-recorded in the IL).
+Flag that is TRUE if the GNU C "visibility" attribute should be 
+recognized (and recorded in the IL).
 */
 #ifndef GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 #define GNU_VISIBILITY_ATTRIBUTE_ALLOWED FALSE
 #endif /* ifndef GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
 #ifndef DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ENABLED
-#define DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ENABLED FALSE
+#define DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ENABLED \
+	  GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 #endif /* ifndef DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ENABLED */
 
 /*
