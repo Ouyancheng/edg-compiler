@@ -370,7 +370,7 @@ given symbols are identical.
     a_type_ptr  parent1 = sym1->parent.class_type;
     a_type_ptr  parent2 = sym2->parent.class_type;
     check_assertion(parent1 != NULL && parent2 != NULL);
-    result = same_type_entities(parent1, parent2);
+    result = same_types(parent1, parent2);
   } else {
     a_namespace_ptr              parent1 = sym1->parent.namespace_ptr;
     a_namespace_ptr              parent2 = sym2->parent.namespace_ptr;
@@ -397,7 +397,7 @@ given symbols are identical.
            namespaces.  (But not in Microsoft bugs mode.) */
         result = TRUE;
       } else {
-        result = same_namespace_entities(parent1, parent2);
+        result = same_namespaces(parent1, parent2);
       }  /* if */
     } else {
       result = TRUE;
@@ -1738,8 +1738,8 @@ type is in fact valid.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           !same_str(sup->uuid_string, corresp_sup->uuid_string) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          !same_field_entities(sup->anonymous_union_field,
-                                       corresp_sup->anonymous_union_field)))) {
+          !same_fields(sup->anonymous_union_field,
+                       corresp_sup->anonymous_union_field)))) {
       match = FALSE;
       report_error = TRUE;
     }  /* if */
@@ -3152,7 +3152,7 @@ when looking up a correspondence: if none is found, return NULL.
                            template_supplement_for_symbol(prim_templ_sym)
                                                           ->il_template_entry;
     a_template_ptr  corresp_prim_templ = corresp_tssp->il_template_entry;
-    if (same_template_entities(prim_templ, corresp_prim_templ)) {
+    if (same_templates(prim_templ, corresp_prim_templ)) {
       for (sym = corresp_tssp->variant.class_template.partial_specializations;
            sym != NULL;
            sym = sym->next) {

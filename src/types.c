@@ -1135,7 +1135,7 @@ class will be instantiated if necessary so that its base classes are known.
                                                                   base_classes;
            bcp != NULL;
            bcp = bcp->next) {
-        if (bcp->type == base_class) break;
+        if (same_types(bcp->type, base_class)) break;
       }  /* for */
     }  /* if */
   }  /* if */

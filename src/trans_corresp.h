@@ -74,56 +74,52 @@ units (resulting in distinct IL entries).
 
 extern a_namespace_ptr canonical_namespace_entry_of(a_namespace_ptr  nsp);
 
-#define same_namespace_entities(ptr1, ptr2)                               \
+/*
+Return TRUE if we need to compare the canonical entries in order to determine
+if two pointers refer to the same entity.
+*/
+#define canonical_test_needed(ptr1, ptr2)				\
+  (secondary_translation_unit_seen() &&					\
+    (ptr1) != NULL && (ptr2) != NULL)
+
+#define same_namespaces(ptr1, ptr2)                               \
   ((ptr1) == (ptr2) ||                                                    \
-   ((ptr1) != NULL && (ptr2) != NULL &&                                   \
-    (il_entry_prefix_of(ptr1).secondary_trans_unit ||                     \
-     il_entry_prefix_of(ptr2).secondary_trans_unit) &&                    \
+   (canonical_test_needed(ptr1, ptr2) &&				  \
     canonical_namespace_entry_of(ptr1) == canonical_namespace_entry_of(ptr2)))
 
 extern a_field_ptr canonical_field_entry_of(a_field_ptr  field);
 
-#define same_field_entities(ptr1, ptr2)                                   \
+#define same_fields(ptr1, ptr2)                                   \
   ((ptr1) == (ptr2) ||                                                    \
-   ((ptr1) != NULL && (ptr2) != NULL &&                                   \
-    (il_entry_prefix_of(ptr1).secondary_trans_unit ||                     \
-     il_entry_prefix_of(ptr2).secondary_trans_unit) &&                    \
+   (canonical_test_needed(ptr1, ptr2) &&				  \
     canonical_field_entry_of(ptr1) == canonical_field_entry_of(ptr2)))
 
 extern a_routine_ptr canonical_routine_entry_of(a_routine_ptr  routine);
 
-#define same_routine_entities(ptr1, ptr2)                                 \
+#define same_routines(ptr1, ptr2)                                 \
   ((ptr1) == (ptr2) ||                                                    \
-   ((ptr1) != NULL && (ptr2) != NULL &&                                   \
-    (il_entry_prefix_of(ptr1).secondary_trans_unit ||                     \
-     il_entry_prefix_of(ptr2).secondary_trans_unit) &&                    \
+   (canonical_test_needed(ptr1, ptr2) &&				  \
     canonical_routine_entry_of(ptr1) == canonical_routine_entry_of(ptr2)))
 
 extern a_variable_ptr canonical_variable_entry_of(a_variable_ptr  var);
 
-#define same_variable_entities(ptr1, ptr2)                                \
+#define same_variables(ptr1, ptr2)                                \
   ((ptr1) == (ptr2) ||                                                    \
-   ((ptr1) != NULL && (ptr2) != NULL &&                                   \
-    (il_entry_prefix_of(ptr1).secondary_trans_unit ||                     \
-     il_entry_prefix_of(ptr2).secondary_trans_unit) &&                    \
+   (canonical_test_needed(ptr1, ptr2) &&				  \
     canonical_variable_entry_of(ptr1) == canonical_variable_entry_of(ptr2)))
 
 extern a_type_ptr canonical_type_entry_of(a_type_ptr type);
 
-#define same_type_entities(ptr1, ptr2)                                    \
+#define same_types(ptr1, ptr2)                                    \
   ((ptr1) == (ptr2) ||                                                    \
-   ((ptr1) != NULL && (ptr2) != NULL &&                                   \
-    (il_entry_prefix_of(ptr1).secondary_trans_unit ||                     \
-     il_entry_prefix_of(ptr2).secondary_trans_unit) &&                    \
+   (canonical_test_needed(ptr1, ptr2) &&				  \
     canonical_type_entry_of(ptr1) == canonical_type_entry_of(ptr2)))
 
 extern a_template_ptr canonical_template_entry_of(a_template_ptr templ);
 
-#define same_template_entities(ptr1, ptr2)                                \
+#define same_templates(ptr1, ptr2)                                \
   ((ptr1) == (ptr2) ||                                                    \
-   ((ptr1) != NULL && (ptr2) != NULL &&                                   \
-    (il_entry_prefix_of(ptr1).secondary_trans_unit ||                     \
-     il_entry_prefix_of(ptr2).secondary_trans_unit) &&                    \
+   (canonical_test_needed(ptr1, ptr2) &&				  \
     canonical_template_entry_of(ptr1) == canonical_template_entry_of(ptr2)))
 
 extern a_boolean seek_type_corresp(a_type_ptr  type_1,
