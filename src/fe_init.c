@@ -329,7 +329,8 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_restrict, "restrict");
     }  /* if */
   }  /* if */
-  /* These gcc/g++ features are accepted in all modes. */
+  /* These gcc/g++ features are accepted in all modes.  __FUNCTION__
+     is also a Microsoft feature. */
   enter_keyword((a_token_kind)tok_function_name, "__FUNCTION__");
   enter_keyword((a_token_kind)tok_decorated_function_name,
                 "__PRETTY_FUNCTION__");
@@ -368,7 +369,6 @@ Install the keywords in the symbol table.
       enter_underscore_keywords((a_token_kind)tok_int64, "__int64");
     }  /* if */
     enter_underscore_keywords((a_token_kind)tok_based, "__based");
-    enter_keyword((a_token_kind)tok_function_name, "__FUNCTION__");
     enter_keyword((a_token_kind)tok_decorated_function_name, "__FUNCDNAME__");
     if (C_dialect == C_dialect_cplusplus) {
       enter_underscore_keywords((a_token_kind)tok_uuidof, "__uuidof");
