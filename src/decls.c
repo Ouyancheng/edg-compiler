@@ -4001,8 +4001,7 @@ namespace-extension scope.
   a_scope_depth    orig_effective_decl_level;
 
   db_enter(3, "qualified_name_redecl_sym");
-  if (!idlbp->is_definition && !idlbp->is_friend_decl &&
-      !microsoft_mode && !gpp_mode) {
+  if (!idlbp->is_definition && !idlbp->is_friend_decl && strict_ansi_mode) {
     /* Improper use of a qualified name in a declarator (WP 8.3).  This
        is permitted in Microsoft and g++ modes. */
     sym_error(ec_bad_scope_for_redeclaration, locator->specific_symbol);

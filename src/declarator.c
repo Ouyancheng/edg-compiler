@@ -3547,26 +3547,36 @@ to FALSE if the entity being declared is not initializable.
              qualifier_namespace_ptr(locator_for_curr_id) == NULL)) {
           an_error_severity  severity = es_discretionary_error;
           an_error_code      err_code;
+          a_boolean          keep_qualifier = FALSE;
           /* The declarator name is qualified by the current namespace. */
           if (is_template_decl && !do_dependent_name_processing) {
             severity = es_error;
           } else if (is_specialization_or_instantiation && !strict_ansi_mode) {
             severity = es_remark;
-          } else if (gpp_mode || 
-                     (!strict_ansi_mode &&
-                      curr_scope_id_lookup(&locator_for_curr_id,
-                                           IDL_NO_OPTIONS) != NULL)) {
-            /* GNU compilers accept the superfluous qualifier.  (We also accept
-               it in nonstrict modes if the identifier already exists in the
-               current scope.)  We cannot emulate this behavior for templates
-               because of reasons explained above (unless dependent name
-               processing has been enabled, which is the default for
-               gnu_version >= 30400). */
-            severity = es_warning;
+          } else if (!strict_ansi_mode) {
+            /* In nonstrict modes, the extraneous qualifier is accepted
+               provided it is for a redeclaration.  In general, we cannot
+               verify that this is a redeclaration at this point; so it has to
+               be checked later (e.g., in decl_variable or decl_routine). */
+             a_symbol_ptr  sym = curr_scope_id_lookup(&locator_for_curr_id,
+                                                      IDL_NO_OPTIONS);
+            if (sym != NULL && !is_tag_symbol(sym) &&
+                ssep == &scope_stack[depth_scope_stack]) {
+              severity = strict_ansi_mode ? es_discretionary_error : es_remark;
+              keep_qualifier = TRUE;
+            } else if (gpp_mode) {
+              /* GNU compilers accept the superfluous qualifier and ignore it.
+                 As explained above, we cannot emulate this behavior for
+                 templates (unless dependent name processing has been enabled,
+                 which is the default for gnu_version >= 30400). */
+              severity = es_warning;
+            }  /* if */
           }  /* if */
-          /* Reset the fields in the locator to make it appear as if the
-             qualifier were not present. */
-          clear_qualifier_from_locator(&locator_for_curr_id);
+          if (!keep_qualifier) {
+            /* Reset the fields in the locator to make it appear as if the
+               qualifier were not present. */
+            clear_qualifier_from_locator(&locator_for_curr_id);
+          }  /* if */
           if (severity == es_error) {
             /* This is not a benign error in a template declaration, so
                make this an error locator.  Otherwise, there are name-binding
