@@ -8684,7 +8684,9 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
        less than zero. */
     if (err || bit_field_size > max_size_allowed) {
       if (err || (C_mode() && !gcc_mode)) {
+        /* Force the declared size to something reasonable. */
         error(ec_bad_bit_field_size);
+        declared_bit_field_size = max_size_allowed;
       } else if (bit_field_size > max_size_allowed) {
         /* A warning in C++ and GNU C modes. */
         char  buffer[8];
