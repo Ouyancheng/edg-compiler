@@ -2659,7 +2659,8 @@ Emit a comment describing the layout of the given field.
     write_tok_str((char *)((temp == 1) ? " bit" : " bits"));
   }  /* if */
   write_tok_str(", type alignment = ");
-  write_unsigned_num((unsigned long)skip_typerefs(field->type)->alignment);
+  write_unsigned_num(
+                 (a_host_large_unsigned)skip_typerefs(field->type)->alignment);
   write_space();
   end_comment();
   write_space();
@@ -2706,7 +2707,7 @@ final semicolon if output_final_semi is TRUE.
       write_space();
       start_comment();
       write_tok_str(" alignment = ");
-      write_unsigned_num((unsigned long)type->alignment);
+      write_unsigned_num((a_host_large_unsigned)type->alignment);
       write_space();
       end_comment();
       write_space();
