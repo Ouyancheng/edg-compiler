@@ -3098,18 +3098,18 @@ extern a_boolean overload_set_contains_template(a_symbol_ptr sym);
 
 /* Return TRUE if a symbol is a tag symbol.   A tag symbol is
    one defined as a class, struct, union, or enum (but not as a typedef
-   of one of those). */
+   of one of those).  An injected class name, although represented as
+   an sk_type symbol, is considered a tag for lookup purposes. */
 #define is_tag_symbol(sym)                                            \
   ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||            \
    (sym)->kind == (a_symbol_kind)sk_union_tag ||                      \
-   (sym)->kind == (a_symbol_kind)sk_enum_tag)
+   (sym)->kind == (a_symbol_kind)sk_enum_tag ||			      \
+   is_injected_class_symbol(sym))
 
 /* Return TRUE if a symbol is a tag symbol, a class template symbol,
    or a type template parameter. */
 #define is_tag_or_tag_proxy_symbol(sym)                               \
-  ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||            \
-   (sym)->kind == (a_symbol_kind)sk_union_tag ||                      \
-   (sym)->kind == (a_symbol_kind)sk_enum_tag ||			      \
+  (is_tag_symbol(sym) ||					      \
    (sym)->kind == (a_symbol_kind)sk_class_template ||		      \
    ((sym)->kind == (a_symbol_kind)sk_type && (sym)->is_template_param))
 
