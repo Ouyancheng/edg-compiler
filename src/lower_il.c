@@ -5424,12 +5424,7 @@ original statement under it.
   /* Turn the statement into a block statement. */
   set_statement_kind(statement, (a_statement_kind)stmk_block);
   statement->variant.block.statements = copy_statement;
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-  statement->position.seq    = 0;
-  statement->position.column = SP_COL_UNKNOWN;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-  statement->seq_number = 0;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+  clear_stmt_source_position(statement->position);
 }  /* turn_statement_into_block */
 
 
@@ -5724,12 +5719,8 @@ Do IL lowering of the indicated statement and everything under it.
 
   if (statement != NULL) {
     /* Track the source position for internal errors. */
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-    error_position = statement->position;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-    error_position.seq = statement->seq_number;
-    error_position.column = SP_COL_UNKNOWN;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+    set_position_from_stmt_source_position(error_position,
+                                           statement->position);
     if (statement->dependent_statement) {
       /* In cfront compatibility mode, it is possible for a dependent statement
          to not have an associated scope.  However, it is still required that

@@ -115,9 +115,39 @@ typedef struct a_source_file {
                            of this file, or NULL if there is no next file. */
 } a_source_file;
 
+/*
+A source position as stored in an IL statement.  Depending on conditional
+compilation, it is either just a sequence number or a full source position.
+seq_number_from_stmt_source_position is a macro that extracts the
+sequence number part of a statement source position.
+set_stmt_source_position sets a statement source position from a
+(full) source position.
+set_position_from_stmt_source_position sets a (full) source position
+from a statement source position.
+clear_stmt_source_position clears a statement source position to a
+value indicating an unknown position.
+*/
+#if FULL_SOURCE_POS_IN_IL_STATEMENT
+typedef a_source_position a_stmt_source_position;
+#define seq_number_from_stmt_source_position(stmt_pos) ((stmt_pos).seq)
+#define set_stmt_source_position(stmt_pos, pos) ((stmt_pos) = (pos))
+#define set_position_from_stmt_source_position(pos, stmt_pos) \
+  ((pos) = (stmt_pos))
+#define clear_stmt_source_position(stmt_pos) \
+{ (stmt_pos).seq = 0; (stmt_pos).column = SP_COL_UNKNOWN; }
+#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
+typedef a_seq_number a_stmt_source_position;
+#define seq_number_from_stmt_source_position(stmt_pos) (stmt_pos)
+#define set_stmt_source_position(stmt_pos, pos) ((stmt_pos) = (pos).seq)
+#define set_position_from_stmt_source_position(pos, stmt_pos) \
+{ (pos).seq = (stmt_pos); (pos).column = SP_COL_UNKNOWN; }
+#define clear_stmt_source_position(stmt_pos) ((stmt_pos) = 0)
+#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+
+
 #ifdef CIL
 enum an_access_specifier_tag {
-  /* C++ Access control:  "public", "private", or "protected" for class
+  /* C++ access control:  "public", "private", or "protected" for class
      members or "public" (meaning no access control) for other entities. */
   as_public,            /* No access restrictions. */
   as_protected,         /* Class member name can be referenced by functions
@@ -3010,12 +3040,8 @@ typedef struct a_switch_clause {
                            a "break").  Any other action (including
                            fall-through to the next clause) is indicated by
                            an explicit goto as the last statement. */
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-  a_source_position
+  a_stmt_source_position
 		break_position;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-  a_seq_number	break_seq_number;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 			/* If the clause ends with a break statement, this
 			   gives the break statement's source position.
 			   Otherwise, zero. */
@@ -3025,12 +3051,8 @@ typedef struct a_switch_clause {
 /* Extra information about a statement of kind stmk_block (block statement). */
 typedef struct a_block *a_block_ptr;
 typedef struct a_block {
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-  a_source_position
+  a_stmt_source_position
 		final_position;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-  a_seq_number  final_seq_number;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
                         /* Source position of the end of the block, for
 			   symbolic debug purposes. */
 #ifdef CIL
@@ -3344,12 +3366,8 @@ typedef struct an_input_output_description {
 #endif /* ifdef FIL */
 typedef struct a_statement {
   /* Definition of an executable statement. */
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-  a_source_position
+  a_stmt_source_position
 		position;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-  a_seq_number  seq_number;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
                         /* Source position from which this statement
                            came.  0 if no direct correspondence. */
   a_statement_ptr

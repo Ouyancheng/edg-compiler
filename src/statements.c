@@ -197,11 +197,7 @@ the current statement sequence.
   /* Allocate the statement entry. */
   sp = alloc_statement(kind);
   /* Set the position from pos_curr_token. */
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-  sp->position = pos_curr_token;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-  sp->seq_number = pos_curr_token.seq;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+  set_stmt_source_position(sp->position, pos_curr_token);
 
   /* See if the statement can be attached under the existing statement. */
   if (*head_ptr != NULL && !statement_list_allowed) {
@@ -1066,23 +1062,15 @@ Scan an expression statement.
 {
   a_statement_ptr   sp;
   an_expr_node_ptr  expr;
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
   a_source_position start_position;
 
   start_position = pos_curr_token;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-  a_seq_number      seq = pos_curr_token.seq;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
   expr = scan_void_expression();
   /* Add the expression if is is not void. */
   if (expr != NULL) {
     sp = add_statement((a_statement_kind)stmk_expr);
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-    sp->position = start_position;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-    sp->seq_number = seq;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+    set_stmt_source_position(sp->position, start_position);
     sp->expr = expr;
   }  /* if */
 }  /* expression_statement */
@@ -1125,11 +1113,7 @@ either an expression statement or a declaration statement.
   a_statement_ptr   temp_stmt;
   a_constant        constant;
   an_expr_node_ptr  incr_expr;
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
   a_source_position start_position, temp_position;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-  a_seq_number      start_seq_number, temp_seq_number;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
   db_enter(3, "for_statement");
 
@@ -1150,11 +1134,7 @@ either an expression statement or a declaration statement.
      a declaration.  If expr2 is omitted, "1" is used instead. */
 
   /* Save the source sequence number of the "for" for use later. */
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
   start_position = pos_curr_token;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-  start_seq_number = pos_curr_token.seq;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
   /* Ignore the initial "for". */
 #if CHECKING
   if (curr_token != tok_for) internal_error("for_statement: expected for");
@@ -1172,11 +1152,7 @@ either an expression statement or a declaration statement.
   /* Allocate the for statement.  This is done late so that the initializing
      expression can be evaluated outside the loop. */
   sp = add_statement((a_statement_kind)stmk_while);
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-  sp->position = start_position;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-  sp->seq_number = start_seq_number;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+  set_stmt_source_position(sp->position, start_position);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_for, sp);
 
@@ -1195,11 +1171,7 @@ either an expression statement or a declaration statement.
   /* Scan the incrementing expression if it is present.  Save the expression
      for later use as a statement within the loop. */
   if (curr_token != tok_rparen) {
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
     temp_position = pos_curr_token;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-    temp_seq_number = pos_curr_token.seq;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
     incr_expr = scan_void_expression();
   } else {
     /* Incrementing expression is omitted. */
@@ -1220,11 +1192,7 @@ either an expression statement or a declaration statement.
      loop. */
   if (incr_expr != NULL) {
     temp_stmt = add_statement((a_statement_kind)stmk_expr);
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-    temp_stmt->position = temp_position;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-    temp_stmt->seq_number = temp_seq_number;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+    set_stmt_source_position(temp_stmt->position, temp_position);
     temp_stmt->expr = incr_expr;
   }  /* if */
 
@@ -1353,11 +1321,8 @@ See also 3.6.6.3.
            the clause.  No goto is required.  However, the current switch
            clause must be ended.  Note that this special trick can be done
            only when the break is at the top level in the case clause. */
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-        sssep->curr_switch_clause->break_position = pos_curr_token;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-        sssep->curr_switch_clause->break_seq_number = pos_curr_token.seq;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+        set_stmt_source_position(sssep->curr_switch_clause->break_position,
+                                 pos_curr_token);
         sssep->curr_switch_clause = NULL;
         term_stmt_clause(sssep);
         set_unreachable(curr_reachability);
@@ -1482,11 +1447,7 @@ See also 3.6.6.4.
   a_routine_ptr      rout;
   a_type_ptr         return_type, routine_type;
   a_boolean          void_return_used = FALSE;
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
   a_source_position  return_pos, expr_pos;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-  a_seq_number       return_seq, expr_seq;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
   db_enter(3, "return_statement");
   check_for_unreachable_code();
@@ -1497,11 +1458,7 @@ See also 3.6.6.4.
   }  /* if */
 #endif /* CHECKING */
   /* Save the position of the beginning of the return statement. */
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
   return_pos = pos_curr_token;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-  return_seq = pos_curr_token.seq;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
   (void)get_token();
   add_stop_token(tok_semicolon);
   /* Get a pointer to the current routine entry. */
@@ -1539,11 +1496,7 @@ See also 3.6.6.4.
     /* Save the position of the start of the expression.  This is used
        if we need to create a new statement for the expression on
        a return in a void function in cfront mode. */
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
     expr_pos = pos_curr_token;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-    expr_seq = pos_curr_token.seq;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
     /* Scan the return expression and convert it to the function type. */
     return_expr = scan_return_expression(return_type,
                                          ec_bad_return_value_type,
@@ -1557,11 +1510,7 @@ See also 3.6.6.4.
   if (void_return_used && return_expr != NULL) {
     sp = add_statement((a_statement_kind)stmk_expr);
     sp->expr = return_expr;
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-    sp->position = expr_pos;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-    sp->seq_number = expr_seq;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+    set_stmt_source_position(sp->position, expr_pos);
     set_expr_result_not_used(return_expr);
     return_expr = NULL;
   }  /* if */
@@ -1569,11 +1518,7 @@ See also 3.6.6.4.
   sp = add_statement((a_statement_kind)stmk_return);
   sp->expr = return_expr;
   sp->variant.dynamic_init = dip;
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-  sp->position = return_pos;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-  sp->seq_number = return_seq;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+  set_stmt_source_position(sp->position, return_pos);
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
@@ -2084,11 +2029,7 @@ come out on the closing "}".
     set_reachable(curr_reachability);
     lint_notreached_flag = FALSE;
     block = alloc_statement((a_statement_kind)stmk_block);
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-    block->position = pos_curr_token;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-    block->seq_number = pos_curr_token.seq;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+    set_stmt_source_position(block->position, pos_curr_token);
     /* Clear statement stack just to be careful. */
     depth_stmt_stack = -1;
     /* Push an entry on the structured statement stack. */
@@ -2196,11 +2137,8 @@ come out on the closing "}".
 
   /* Remember the sequence number of the current token, which is expected
      to be the closing brace. */
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-  block->variant.block.extra_info->final_position = pos_curr_token;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-  block->variant.block.extra_info->final_seq_number = pos_curr_token.seq;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+  set_stmt_source_position(block->variant.block.extra_info->final_position,
+                           pos_curr_token);
   /* Check for the closing "}".  Note that for a function, the "}" is left
      for the caller (function_definition) to handle. */
   if (!at_function_level) (void)required_token(tok_rbrace, ec_exp_rbrace);

@@ -145,6 +145,11 @@ to host_envir.h.  When it is TRUE, each IL statement contains a full
 source position (sequence number and column number) instead of just
 a sequence number.  The default is FALSE.
 
+IL CHANGE: the fields seq_number, break_seq_number, and final_seq_number
+(in a_statement, a_switch_clause, and a_block, respectively) have
+been renamed position, break_position, and final_position.  This
+renaming applies even if the default of FALSE is used.
+
 6/18/93  Modified IL for exception handling support
 
 The following have been added to the intermediate language:

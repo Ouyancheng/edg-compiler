@@ -7209,11 +7209,7 @@ Generate C for a statement.
       && statement->kind != (a_statement_kind)stmk_asm
 #endif /* ifdef CFE */
                                                        ) {
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-    startline(statement->position.seq);
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-    startline(statement->seq_number);
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+    startline(seq_number_from_stmt_source_position(statement->position));
   }  /* if */
   switch (statement->kind) {
     case stmk_expr:
@@ -7254,11 +7250,7 @@ Generate C for a statement.
     case stmk_label:
       if (start_unreferenced_bracket(
                                   &statement->variant.label->source_corresp)) {
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-        startline(statement->position.seq);
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-        startline(statement->seq_number);
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+        startline(seq_number_from_stmt_source_position(statement->position));
         /* Note that K&R/pcc compilers do not provide a separate name space
            for labels. */
         (void)fprintf(f_C_output, "_L_%s:;",
@@ -7293,11 +7285,8 @@ Generate C for a statement.
       indent += 2;
       dump_block(statement);
       indent -= 2;
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-      startline(statement->variant.block.extra_info->final_position.seq);
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-      startline(statement->variant.block.extra_info->final_seq_number);
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+      startline(seq_number_from_stmt_source_position(
+                         statement->variant.block.extra_info->final_position));
       fputc('}', f_C_output);
       break;
 #ifdef CFE
@@ -7389,11 +7378,8 @@ Generate C for a statement.
 	  }  /* while */
 	}  /* if */
         if (need_break) {
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-          startline(switch_clause->break_position.seq);
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-          startline(switch_clause->break_seq_number);
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+          startline(seq_number_from_stmt_source_position(
+                                               switch_clause->break_position));
 	  fputs("break;", f_C_output);
         }  /* if */
 	/* Outdent for the dependent statements and the case label. */
@@ -7489,11 +7475,7 @@ Generate C for a statement.
         indent += 2;
         dump_statement(statement->variant.do_stmt.loop_statement);
         /* variable += _incr; */
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-        startline(statement->position.seq);
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-        startline(statement->seq_number);
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+        startline(seq_number_from_stmt_source_position(statement->position));
         dump_var_ref(var);
         (void)fprintf(f_C_output, " += _incr;");
         /* } while (--_iter > 0); */
@@ -8622,11 +8604,7 @@ routine has a body (dump nothing if it has no body).
     /* Now dump out the local declarations and the body. */
     block = scope->assoc_block;
     if (block != NULL) {
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-      startline(block->position.seq);
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-      startline(block->seq_number);
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+      startline(seq_number_from_stmt_source_position(block->position));
     }  /* if */
     fputc('{', f_C_output);
     indent += 2;
@@ -8709,11 +8687,8 @@ routine has a body (dump nothing if it has no body).
     }  /* if */
     indent -= 2;
     if (block != NULL) {
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-      startline(block->variant.block.extra_info->final_position.seq);
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-      startline(block->variant.block.extra_info->final_seq_number);
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+      startline(seq_number_from_stmt_source_position(
+                             block->variant.block.extra_info->final_position));
     }  /* if */
     fputc('}', f_C_output);
 #ifdef FFE

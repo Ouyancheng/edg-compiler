@@ -57,21 +57,14 @@ static a_required_destructor_call_ptr
 
 
 /*
-If variable != NULL, transfer the sequence number from it into stmt.
+If variable != NULL, transfer the position from it into stmt.
 */
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
 #define transfer_pos_from_var_to_statement(variable, stmt)            \
 { if ((variable) != NULL && (stmt) != NULL) {                         \
-    (stmt)->position = (variable)->source_corresp.decl_position;      \
+    set_stmt_source_position((stmt)->position,                        \
+                             (variable)->source_corresp.decl_position); \
   }  /* if */                                                         \
 }  /* transfer_pos_from_var_to_statement */
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-#define transfer_pos_from_var_to_statement(variable, stmt)            \
-{ if ((variable) != NULL && (stmt) != NULL) {                         \
-    (stmt)->seq_number = (variable)->source_corresp.decl_position.seq;\
-  }  /* if */                                                         \
-}  /* transfer_pos_from_var_to_statement */
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
 
 static a_type_ptr void_star_type(void)

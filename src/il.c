@@ -5809,12 +5809,7 @@ to it.
   scp->next             = NULL;
   scp->constant_list    = NULL;
   scp->statements       = NULL;
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-  scp->break_position.seq    = 0;
-  scp->break_position.column = SP_COL_UNKNOWN;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-  scp->break_seq_number = 0;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+  clear_stmt_source_position(scp->break_position);
   return scp;
 }  /* alloc_switch_clause */
 
@@ -5878,12 +5873,7 @@ fields to default values.
 #if DEBUG
       num_blocks_allocated++;
 #endif /* DEBUG */
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-      bp->final_position.seq    = 0;
-      bp->final_position.column = SP_COL_UNKNOWN;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-      bp->final_seq_number = 0;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+      clear_stmt_source_position(bp->final_position);
       bp->assoc_scope      = NULL;
       bp->parent_block     = NULL;
       bp->end_of_block_reachable = TRUE;
@@ -5920,12 +5910,7 @@ to it.  The statement kind is set as indicated.
 #if DEBUG
   num_statements_allocated++;
 #endif /* DEBUG */
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-  sp->position.seq        = 0;
-  sp->position.column     = SP_COL_UNKNOWN;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-  sp->seq_number          = 0;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+  clear_stmt_source_position(sp->position);
   sp->next                = NULL;
   sp->dependent_statement = FALSE;
   set_statement_kind(sp, stmt_kind);
