@@ -2401,7 +2401,7 @@ template-dependent call.
         } else {
           /* Normal case (not surrogate function).  This is a match that
              can't be compared to other matches (it's neither better nor
-             warse) so leave it as "none". */
+             worse) so leave it as "none". */
           this_match->match_level = aml_none;
         }  /* if */
         this_match->is_match_for_this_param = TRUE;
