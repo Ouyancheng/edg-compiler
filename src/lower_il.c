@@ -1684,24 +1684,6 @@ calls this routine after it has discarded the troublesome lvalue cases).
          make_reusable_copy. */
       need_temp = FALSE;
     }  /* if */
-#if 0
-#else
-    { a_boolean     old_need_temp = TRUE, at_end_of_source;
-      char          *file_name, *full_name;
-      a_line_number line_number;
-      if (!node_has_side_effects(expr, &suppress_warning)) {
-        old_need_temp = FALSE;
-      }  /* if */
-      if (need_temp != old_need_temp) {
-        printf("need_temp = %s, old_need_temp = %s\n",
-               need_temp ? "TRUE" : "FALSE",
-               old_need_temp ? "TRUE" : "FALSE");
-        conv_seq_to_file_and_line(error_position.seq, &file_name, &full_name,
-                                  &line_number, &at_end_of_source);
-        printf("File %s, line %lu\n", file_name, (unsigned long)line_number);
-      }  /* if */
-    }
-#endif /* 0 */
   } else {
     /* Variables cannot change.  See if the expression has side effects. */
     if (!node_has_side_effects(expr, &suppress_warning)) need_temp = FALSE;
