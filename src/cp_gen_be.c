@@ -292,8 +292,17 @@ function source sequence entry list.  Check that it is, and advance the
 function list.
 */
 {
-  check_assertion_str(func_scope_source_sequence_entry == ssep,
-                      "check_for_and_take_func_source_seq_entry: wrong entry");
+#if CHECKING
+  if (func_scope_source_sequence_entry != ssep || ssep == NULL) {
+#if DEBUG
+    if (func_scope_source_sequence_entry) {
+      db_source_sequence_entry(func_scope_source_sequence_entry);
+    }  /* if */
+    if (ssep != NULL) db_source_sequence_entry(ssep);
+#endif /* DEBUG */
+    internal_error("check_for_and_take_func_source_seq_entry: wrong entry");
+  }  /* if */
+#endif /* CHECKING */
   (void)next_func_scope_source_sequence_entry();
 }  /* check_for_and_take_func_source_seq_entry */
 
@@ -329,7 +338,12 @@ static void end_output_line(void)
 End the current line of output.
 */
 {
-  fputc('\n', f_C_output);
+  if (fputc('\n', f_C_output) == EOF) {
+    /* Error in writing the output file.  This check supplements the check
+       done when the file is closed.  The check here helps catch a disk full
+       error quickly. */
+    str_catastrophe(ec_file_write_error, "generated C output");
+  }  /* if */
   curr_output_seq_number++;
   curr_output_column++;
   curr_output_column = 0;
@@ -343,25 +357,27 @@ position.  This may mean beginning a new line, putting out a #line directive,
 etc.
 */
 {
-  a_seq_number seq = pos->seq;
-  a_boolean    line_directive_needed = FALSE;
+  a_seq_number      seq = pos->seq;
+  a_boolean         line_directive_needed = FALSE;
+  a_source_file_ptr new_output_file;
 
   /* Do nothing for unknown positions. */
   if (seq != 0) {
-    /* Find out where the source position falls. */
-    if (curr_output_file == NULL ||
-        curr_output_file->first_seq_number > seq ||
-        seq > curr_output_file->last_seq_number) {
-      /* The current file no longer applies, so find the right one. */
-      a_line_number line_number;
-      a_boolean     at_end_of_source;
-      unsigned long nesting_depth;
-      /* physical_line == FALSE means consider information from #line
-         directives as well as true file information. */
-      curr_output_file = source_file_for_seq(seq, &line_number,
-                                             &at_end_of_source,
-                                             &nesting_depth,
-                                             /*physical_line=*/FALSE);
+    /* Find the file in which this sequence number lies. */
+#if 0
+    /* This should be optimized. */
+#endif /* 0 */
+    a_line_number line_number;
+    a_boolean     at_end_of_source;
+    unsigned long nesting_depth;
+    /* physical_line == FALSE means consider information from #line
+       directives as well as true file information. */
+    new_output_file = source_file_for_seq(seq, &line_number,
+                                          &at_end_of_source,
+                                          &nesting_depth,
+                                          /*physical_line=*/FALSE);
+    if (new_output_file != curr_output_file) {
+      /* We've gone into a new file, so we need a #line directive. */
       line_directive_needed = TRUE;
     } else {
       /* We're still in the same file as last time.  See if we're close enough
@@ -383,14 +399,20 @@ etc.
       /* Write a #line directive for the new line position. */
       /* End the previous line if there is one. */
       if (curr_output_column != 0) end_output_line();
-      /* Compute the new line number from the sequence number. */
-      curr_output_line = seq - curr_output_file->first_seq_number +
-                         curr_output_file->first_line_number;
 #if 0
       /* Option to output old-style directive? */
 #endif /* 0 */
-      fprintf(f_C_output, "#line \"%s\" %lu\n", curr_output_file->file_name,
-              curr_output_line);
+      (void)fputs("#line ", f_C_output);
+      if (new_output_file != curr_output_file) {
+        /* The file name is put out only if it changed. */
+        curr_output_file = new_output_file;
+#if 0
+        /* Need to escape special characters? */
+#endif /* 0 */
+        (void)fprintf(f_C_output, "\"%s\" ", curr_output_file->file_name);
+      }  /* if */
+      curr_output_line = line_number;
+      (void)fprintf(f_C_output, "%lu\n", curr_output_line);
       curr_output_seq_number = seq;
       /* There must be a line following a #line directive, and the line's
          number is already set, so consider the line started already. */
@@ -566,19 +588,23 @@ Output the indicated constant.
 {
   an_integer_kind  ikind;
   a_float_kind     fkind;
-  a_type_ptr       con_type, orig_type;
+  a_type_ptr       con_type = NULL, orig_type;
   a_boolean        need_cast_close_paren = FALSE, need_close_paren;
   a_boolean        ptr_implicit_cast_case, scaled_offset_cast;
   a_targ_ptrdiff_t offset;
+  a_constant_ptr   sub_con;
 
   orig_type = constant->type;
-  con_type = skip_typerefs(orig_type);
-  if (constant->implicit_cast) {
-    /* If the constant is implicitly cast to another type, put out the
-       requisite cast. */
-    write_str("(");
-    gen_cast(orig_type);
-    need_cast_close_paren = TRUE;
+  /* Watch out for constants (like aggregates) that have no type. */
+  if (orig_type != NULL) {
+    con_type = skip_typerefs(orig_type);
+    if (constant->implicit_cast) {
+      /* If the constant is implicitly cast to another type, put out the
+         requisite cast. */
+      write_str("(");
+      gen_cast(orig_type);
+      need_cast_close_paren = TRUE;
+    }  /* if */
   }  /* if */
   switch (constant->kind) {
     case ck_integer:
@@ -711,6 +737,20 @@ Output the indicated constant.
       /* Pointer-to-member constant. */
       unimplemented();
       break;
+    case ck_aggregate:
+      /* Aggregate constant (used in initializers). */
+      write_str("{");
+      for (sub_con = constant->variant.aggregate.first_constant;
+           sub_con != NULL;
+           sub_con = sub_con->next) {
+        gen_constant(sub_con);
+        if (sub_con->next != NULL) write_str(", ");
+      }  /* for */
+      write_str("}");
+      break;
+#if 0
+    /* Need ck_dynamic_init. */
+#endif /* 0 */
     default:
       unexpected_condition_str("gen_constant: bad constant kind");
   }  /* switch */
@@ -948,6 +988,10 @@ static gen_class_definition(a_type_ptr type)
 Output the definition of the indicated class type.
 */
 {
+  a_field_ptr                 field;
+  a_class_type_supplement_ptr ctsp;
+  a_boolean                   has_definition;
+
   /* set_output_position has already been called for the class type itself
      it that's appropriate. */
   write_str(tag_kind(type->kind));
@@ -955,7 +999,15 @@ Output the definition of the indicated class type.
     write_str(" ");
     gen_type_name(type);
   }  /* if */
-  unimplemented();
+  /* See if this class is defined. */
+  field = type->variant.class_struct_union.field_list;
+  ctsp = type->variant.class_struct_union.extra_info;
+  has_definition = (field != NULL ||
+                    (ctsp != NULL && ctsp->assoc_scope != NULL));
+  if (has_definition) {
+    write_str(" { ");
+    write_str(" }");
+  }  /* if */
 }  /* gen_class_definition */
 
 
@@ -2117,8 +2169,10 @@ Generate code for the indicated statement.
     /* An stmk_init will have a source sequence entry for the declaration and
        no source sequence entry for the stmk_init itself. */
   } else {
-    if (func_scope_source_sequence_entry != statement->source_sequence_entry) {
-      /* The source sequence entry isn't the expected one. */
+    if (statement->source_sequence_entry == NULL) {
+      /* The statement has no associated source sequence entry.  This happens
+         for implicitly-generated returns and some compiler-generated
+         labels. */
       if (kind == (a_statement_kind)stmk_label &&
           !has_name(statement->variant.label)) {
         /* The current statement is a compiler-generated label. */
@@ -2134,21 +2188,12 @@ Generate code for the indicated statement.
         }  /* if */
         /* The compiler-generated label is probably for a break or continue
            label.  Let it go. */
-#if CHECKING
-      } else {
-        /* The source sequence entry is just plain unexplainable. */
-#if DEBUG
-        db_source_sequence_entry(func_scope_source_sequence_entry);
-        if (statement->source_sequence_entry != NULL) {
-          db_source_sequence_entry(statement->source_sequence_entry);
-        }  /* if */
-#endif /* DEBUG */
-        internal_error("gen_statement: source seq entry not as expected");
-#endif /* CHECKING */
       }  /* if */
     } else {
-      /* The expected entry is there.  Advance past it. */
-      (void)next_func_scope_source_sequence_entry();
+      /* Check for the presence of the proper source sequence entry and
+         advance past it. */
+      check_for_and_take_func_source_seq_entry(
+                                             statement->source_sequence_entry);
     }  /* if */
     /* Adjust the output position to match the statement position. */
     set_output_position_for_stmt(&statement->position);
@@ -2304,7 +2349,18 @@ static void gen_dynamic_init(a_dynamic_init_ptr dip)
 Output the indicated dynamic initialization.
 */
 {
-  unimplemented();
+  switch (dip->kind) {
+    case dik_constant:
+      write_str(" = ");
+      gen_constant(dip->variant.constant);
+      break;
+    case dik_expression:
+      write_str(" = ");
+      gen_expression(dip->variant.expression);
+      break;
+    default:
+      unexpected_condition_str("gen_dynamic_init: bad kind");
+  }  /* switch */
 }  /* gen_dynamic_init */
 
 
