@@ -556,6 +556,7 @@ Flags to be set when using the KAI inliner.
 #define MAX_INTEGER_VALUE 9223372036854775807LL
 #define MIN_INTEGER_VALUE (-MAX_INTEGER_VALUE-1)
 #define MAX_UNSIGNED_INTEGER_VALUE 18446744073709551615ULL
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 1
 
 /* Configuration definitions determined by dettarg.c: */
 #define TARG_LITTLE_ENDIAN TRUE
