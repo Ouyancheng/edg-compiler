@@ -1783,7 +1783,7 @@ code.  The number is the major release number of a Microsoft C/C++
 compiler release.
 */
 #ifndef MSVC_TARGET_VERSION
-#define MSVC_TARGET_VERSION 7
+#define MSVC_TARGET_VERSION 1300
 #endif /* MSVC_TARGET_VERSION */
 
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
