@@ -1,5 +1,22 @@
 Version 2.37
 
+7/2/97    cv-qualifier missing in lowered IL for anonymous union reference
+
+A cv-qualifier was missing on an intermediate field selection generated
+by IL lowering for an anonymous union reference.  This is probably of
+no significance except to those that do scrupulous type checking on
+the IL tree.
+
+  struct A {};
+  struct B {
+    A *f() const;
+    union {
+      A * ua;
+    };
+  };
+  A *B::f() const { return ua; }  // Field selection for anon union on ua
+                                  // was missing cv-qualifier
+
 7/2/97    Bug when template friend declarations refer to nested classes
 
 A template friend declaration that refers to a nested class of a class

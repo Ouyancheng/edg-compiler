@@ -6998,7 +6998,7 @@ rest.
        eok_bit_field         lvalue   lvalue
        eok_value_bit_field   rvalue   rvalue
        eok_extract_bit_field lvalue   rvalue
-     Note that eok_field and eok_value_field produce as output that is
+     Note that eok_field and eok_value_field produce an output that is
      the same as their input, which is why they are used for the added
      field selection -- whatever the first operand of the original field
      was, it's preserved by adding the right one of those two selections. */
@@ -7009,10 +7009,18 @@ rest.
     /* These operators take an rvalue as their input, so use an
        eok_value_field for the added field selection. */
     new_op = (an_expr_operator_kind)eok_value_field;
+    /* The following is not needed at present, because rvalues in C do not
+       have cv-qualifiers, and this routine is called only in C mode or
+       for C++ code that is being lowered to C.  But for completeness ... */
+    new_selection_type = type_plus_qualifiers_from_second_type(
+                                               new_selection_type, node->type);
   } else {
     /* These operators take an lvalue as their input, so use an
        eok_field for the added field selection. */
     new_op = (an_expr_operator_kind)eok_field;
+    /* Carry through any cv-qualifiers on the left operand. */
+    new_selection_type = type_plus_qualifiers_from_second_type(
+                              new_selection_type, type_pointed_to(node->type));
     new_selection_type = make_pointer_type(new_selection_type);
   }  /* if */
   au_field_node = alloc_expr_node((an_expr_node_kind)enk_field);
