@@ -1652,8 +1652,8 @@ typedef struct a_dynamic_init {
 		args;   /* The actual arguments with which the constructor
 			   should be called, not including the
 			   argument for the destination, and, when
-			   is_copy_constructor_for_subobject is TRUE, also
-			   not including the argument for the source.
+			   is_copy_constructor_with_implied_source is TRUE,
+			   also not including the argument for the source.
 			   NULL if there are no arguments other than the
 			   implicit one(s). */
       a_bit_field
