@@ -1338,14 +1338,14 @@ except for casts to ambiguous or inaccessible base classes.
                                                 &orig_operand.position,
                                                 operand);
             /* Protected members of a base class can only be accessed
-	       through an object of a derived class.  It is not very clear
-	       how this should affect pointer to member processing.  We
-	       allow the address of a protected member to be taken as a
-               member of the derived class but not as a member of the base
-	       class.  Cfront does not do this checking, so we omit it
-	       in cfront mode (for more information see the example
-	       in scan_ampersand_operator). */
-            if (!cfront_compatibility_mode) {
+               through an object of a derived class (ARM 11.5).  It is
+               not very clear how this should affect address of member
+               processing.  We allow the address of a protected member to
+               be taken as a member of the derived class but not as a
+               member of the base class.  Cfront does not do this checking,
+               so we omit it in cfront mode (for more information see the
+               example in scan_ampersand_operator). */
+            if (!cfront_compatibility_mode && !access_error_reported) {
               check_protected_member_access(function_symbol, &error_position,
 					    overloaded_function_symbol->
 						      class_of_which_a_member);
