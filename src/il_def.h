@@ -2582,13 +2582,13 @@ typedef struct an_expr_node {
                 kind;
                         /* What kind of operation it is. */
       unsigned int
-		assignment_returns_lvalue:1;
+		returns_lvalue_instead_of_usual_rvalue:1;
 			/* TRUE if the operation is an assignment (simple or
-			   compound) that returns an lvalue (the address of
-			   the thing assigned to) instead of an rvalue (the
-			   value of the thing assigned to).  FALSE otherwise,
-			   including for operations that are not
-			   assignments.  Only TRUE in C++. */
+			   compound) or prefix ++/-- that returns an lvalue
+			   (the address of the thing assigned to) instead of
+			   an rvalue (the value of the thing assigned to).
+			   FALSE otherwise, including for other operations.
+			   Only TRUE in C++. */
       unsigned int
 		compiler_generated:1;
 			/* TRUE if the operation is compiler-generated rather

@@ -2759,6 +2759,24 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
 }  /* scan_postfix_incr_decr */
 
 
+static void change_assignment_result_to_lvalue(an_operand *result)
+/*
+In C++ mode, assignment operators and prefix ++/-- return lvalues.
+Change the operation in *result from an rvalue-returning operation to
+an lvalue-returning operation.  This routine is called only in C++ mode.
+*/
+{
+  an_expr_node_ptr node;
+
+  if (!is_error_operand(result)) {
+    node = result->variant.expression;
+    node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+    node->type = make_pointer_type(node->type);
+  }  /* if */
+  result->state = (an_operand_state)os_lvalue;
+}  /* change_assignment_result_to_lvalue */
+
+
 static void scan_prefix_incr_decr(an_operand *result)
 /*
 Scan the prefix increment ("++") and decrement ("--") operators.  See section
@@ -2870,6 +2888,10 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
         make_error_operand(result);
       } else {
         build_unary_result_operand(&operand, op, result_type, result);
+        /* In C++, the prefix ++ and -- operators return lvalues. */
+        if (C_dialect == C_dialect_cplusplus) {
+          change_assignment_result_to_lvalue(result);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -6127,24 +6149,6 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
 }  /* check_assignment_to_this_pointer */
 
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-
-static void change_assignment_result_to_lvalue(an_operand *result)
-/*
-In C++ mode, assignment operators return lvalues.  Change the assignment
-operation in *result from an rvalue-returning assignment to an lvalue-returning
-assignment.  This routine is called only in C++ mode.
-*/
-{
-  an_expr_node_ptr node;
-
-  if (!is_error_operand(result)) {
-    node = result->variant.expression;
-    node->variant.operation.assignment_returns_lvalue = TRUE;
-    node->type = make_pointer_type(node->type);
-  }  /* if */
-  result->state = (an_operand_state)os_lvalue;
-}  /* change_assignment_result_to_lvalue */
-
 
 static void scan_simple_assignment_operator(an_operand *operand_1,
                                             an_operand *result)

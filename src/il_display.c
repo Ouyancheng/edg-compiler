@@ -1898,9 +1898,10 @@ Display the indicated expression node.
       disp_name("kind");
       disp_expr_operator_name(ptr->variant.operation.kind);
       (void)printf("\n");
-      if (ptr->variant.operation.assignment_returns_lvalue) {
-        disp_boolean("assignment_returns_lvalue",
-                 (a_boolean)ptr->variant.operation.assignment_returns_lvalue);
+      if (ptr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+        disp_boolean("returns_lvalue_instead_of_usual_rvalue",
+                     (a_boolean)ptr->variant.operation.
+                                       returns_lvalue_instead_of_usual_rvalue);
       }  /* if */
       if (ptr->variant.operation.compiler_generated) {
         disp_boolean("compiler_generated",

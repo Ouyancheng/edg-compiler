@@ -4768,7 +4768,7 @@ fields to default values.
       break;
     case enk_operation:
       node->variant.operation.kind = (an_expr_operator_kind)eok_last;
-      node->variant.operation.assignment_returns_lvalue = FALSE;
+      node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
       node->variant.operation.compiler_generated = FALSE;
       node->variant.operation.operands = NULL;
       break;
@@ -4854,7 +4854,7 @@ Set the operator, type, and operand list in an operator expression node.
 {
   node->type = type;
   node->variant.operation.kind = kind;
-  node->variant.operation.assignment_returns_lvalue = FALSE;
+  node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
   node->variant.operation.operands = operands;
 }  /* set_node_operator */
 

@@ -9602,16 +9602,18 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           lower_expr_list(operand_node, is_lvalue_mask,
                           is_conditional_operator);
         }  /* if */
-        if (expr->variant.operation.assignment_returns_lvalue) {
-          /* lvalue-returning assignment operator.  Rewrite
+        if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+          /* lvalue-returning assignment operator or prefix ++/--.  Rewrite
                x = y          really: &x = y
              using an rvalue-returning operator as
                ((x = y), x)   really: ((&x = y), &x)
-             If necessary, make a reusable copy of x. */
+             If necessary, make a reusable copy of x.  The same kind of
+             rewrite is done for the prefix ++/-- case. */
           an_expr_node_ptr new_assign_node;
-          expr->variant.operation.assignment_returns_lvalue = FALSE;
+          expr->variant.operation.returns_lvalue_instead_of_usual_rvalue=FALSE;
           /* Make a copy of the assignment node that is an rvalue
-             assignment. */
+             assignment.  The same process works for the prefix ++/-- case
+             because the second operand is not touched. */
           new_assign_node = copy_node(expr);
           new_assign_node->type = type_pointed_to(expr->type);
           /* Attach a copy of the lvalue address to it, for the second
@@ -9721,7 +9723,8 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                   an_expr_node_ptr   new_expr;
                   an_insert_location insert_location;
 
-                  if (expr->variant.operation.assignment_returns_lvalue) {
+                  if (expr->variant.operation.
+                                      returns_lvalue_instead_of_usual_rvalue) {
                     /* The assignment returns an lvalue, i.e., the address
                        of the "this" parameter. */
                     new_expr = var_lvalue_expr(this_param_var);

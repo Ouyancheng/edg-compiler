@@ -3260,12 +3260,7 @@ address_taken flag on the variable(s) in the lvalue.  Issue an error at
     /* An operation node. */
     op = node->variant.operation.kind;
     op1 = node->variant.operation.operands;
-    if (op == (an_expr_operator_kind)eok_field ||
-        node->variant.operation.assignment_returns_lvalue) {
-      /* Field selection, or assignment that returns an lvalue.  The first
-         operand gives the lvalue. */
-      set_address_taken_on_variables_in_expr(op1, err_pos);
-    } else if (op == (an_expr_operator_kind)eok_comma) {
+    if (op == (an_expr_operator_kind)eok_comma) {
       /* Comma operator.  The second operand gives the lvalue. */
       set_address_taken_on_variables_in_expr(op1->next, err_pos);
     } else if (op == (an_expr_operator_kind)eok_question) {
@@ -3275,6 +3270,11 @@ address_taken flag on the variable(s) in the lvalue.  Issue an error at
          (valid only in C++) takes the address of both j and k. */
       set_address_taken_on_variables_in_expr(op1->next, err_pos);
       set_address_taken_on_variables_in_expr(op1->next->next, err_pos);
+    } else if (op == (an_expr_operator_kind)eok_field ||
+               node->variant.operation.returns_lvalue_instead_of_usual_rvalue){
+      /* Field selection, or assignment that returns an lvalue.  The first
+         operand gives the lvalue. */
+      set_address_taken_on_variables_in_expr(op1, err_pos);
     }  /* if */
   }  /* if */
 }  /* set_address_taken_on_variables_in_expr */
@@ -3772,14 +3772,14 @@ the expression.
   } else if (is_operation &&
              node->variant.operation.kind ==
                                           (an_expr_operator_kind)eok_sassign &&
-             !node->variant.operation.assignment_returns_lvalue) {
+             !node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
     /* An assignment operation that returns an rvalue.  It can be optimized
        by changing it to the lvalue case. */
     /* This case is here for the sake of completeness.  It's probably not
        needed. */
     *converted = TRUE;
     if (!see_if_possible) {
-      node->variant.operation.assignment_returns_lvalue = TRUE;
+      node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
       node->type = make_pointer_type(node->type);
     }  /* if */
   } else {
@@ -3949,11 +3949,11 @@ replaced by its value, return *constant_case TRUE.
       op2 = op1->next;
       op1->next = conv_lvalue_expr_to_rvalue(op2, &constant_case2);
       *constant_case = constant_case2;
-    } else if (node->variant.operation.assignment_returns_lvalue) {
+    } else if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue){
       /* The operation is an assignment that returns an lvalue.
          Change it to one that returns an rvalue. */
       optimized_case = TRUE;
-      node->variant.operation.assignment_returns_lvalue = FALSE;
+      node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
     }  /* if */
     if (optimized_case) {
       /* For the optimized cases, set the node type to the type pointed to. */
@@ -9478,7 +9478,7 @@ the value from a function.
           node = make_operator_node((an_expr_operator_kind)eok_sassign,
                                     result_value_pointer_node->type,
                                     result_value_pointer_node);
-          node->variant.operation.assignment_returns_lvalue = TRUE;
+          node->variant.operation.returns_lvalue_instead_of_usual_rvalue= TRUE;
           make_expression_operand(node, node->type, source_operand);
         } else if (conversion_routine == NULL) {
           /* No appropriate copy constructor (error already issued). */
