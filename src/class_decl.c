@@ -6048,9 +6048,9 @@ by recursive calls.
          should be handled recursively when the class type is processed.  The
          the member type is handled independently to allow for the case where
          no member of that type exists. */
-      tp = type->variant.ptr_to_member.class_of_which_a_member;
+      tp = pm_class_type(type);
       make_class_externally_linked(tp, count);
-      make_class_externally_linked(type->variant.ptr_to_member.type, count);
+      make_class_externally_linked(pm_member_type(type), count);
     default:
       /* Cannot have a class subtype. */
       break;

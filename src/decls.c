@@ -541,8 +541,8 @@ type is legal.
             (temp_type->kind == (a_type_kind)tk_array &&
              temp_type->variant.array.number_of_elements != 0)) {
           /* Okay. */
-        } else if (temp_type->kind == (a_type_kind)tk_ptr_to_member &&
-                   temp_type->variant.ptr_to_member.type == NULL) {
+        } else if (is_ptr_to_member_type(temp_type) &&
+                   pm_member_type(temp_type) == NULL) {
           /* This is an incomplete ptr-to-member type, presumably a
              pointer to member function.  Okay. */
         } else if (is_class_struct_union_type(temp_type)) {
@@ -698,7 +698,7 @@ type is legal.
                   pt = prev_temp_type->variant.typeref.type;
                   break;
                 case tk_ptr_to_member:
-                  pt = prev_temp_type->variant.ptr_to_member.type;
+                  pt = pm_member_type(prev_temp_type);
                   break;
 #if CHECKING
                 default:
@@ -3982,8 +3982,7 @@ function_lparen:
         }  /* if */
         if (tp != NULL && (is_ptr_to_member_type(tp))) {
           /* Declaration of a pointer to member function. */
-          member_parent_type = 
-                          tp->variant.ptr_to_member.class_of_which_a_member;
+          member_parent_type = pm_class_type(tp);
           is_nonstatic_member_function = TRUE;
         } else {
           member_parent_type = NULL;
