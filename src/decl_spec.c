@@ -1939,7 +1939,7 @@ is a that of a constructor.
       /* Turn the current locator from a "specific symbol" locator into a
          constructor locator. */
       (void)class_qualified_id_lookup(&locator_for_curr_id, class_type,
-                                      IDL_MEMBER_FUNCTION_LOOKUP);
+                                      IDL_DIRECT_CLASS_MEMBERS_ONLY);
       sym = locator_for_curr_id.specific_symbol;
       if (sym != tag_sym) {
         /* The symbol one gets by looking up the class name is not the same as
