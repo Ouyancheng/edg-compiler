@@ -705,9 +705,13 @@ with "**BAD" for a bad float kind.
 }  /* float_kind_name */
 
 
+#if BACK_END_IS_C_GEN_BE
+#if LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C
 #if ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE
 static a_boolean double_for_long_double_warning_issued;
 #endif /* ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE */
+#endif /* LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C */
+#endif /* BACK_END_IS_C_GEN_BE */
 
 
 static void form_float_kind_name(a_float_kind                          kind,
