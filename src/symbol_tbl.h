@@ -1696,6 +1696,7 @@ extern a_conversion_list_entry_ptr alloc_conversion_list_entry(void);
 extern a_template_param_ptr alloc_template_param(a_symbol_ptr sym);
 extern a_function_instantiation_entry_ptr
                                      alloc_function_instantiation_entry(void);
+extern a_static_data_member_def_ptr alloc_static_data_member_def(void);
 extern a_param_id_ptr alloc_param_id(void);
 extern void free_param_id(a_param_id_ptr *ppip);
 extern void free_param_id_list(a_param_id_ptr *pidlist);

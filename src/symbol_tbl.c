@@ -57,6 +57,7 @@ static unsigned long
                 num_template_params_allocated,
                 num_param_ids_allocated,
                 num_function_instantiation_entries_allocated,
+                num_static_data_member_defs_allocated,
                 num_template_definitions_allocated,
                 num_conversion_list_entries_allocated,
 		num_extern_symbol_descrs_allocated,
@@ -6494,7 +6495,6 @@ and return a pointer to it.
 }  /* alloc_template_param */
 
 
-
 a_function_instantiation_entry_ptr alloc_function_instantiation_entry(void)
 /*
 Allocate a new function instantiation entry and return a pointer to it.
@@ -6521,14 +6521,41 @@ Allocate a new function instantiation entry and return a pointer to it.
 }  /* alloc_function_instantiation_entry */
 
 
+a_static_data_member_def_ptr alloc_static_data_member_def(void)
+/*
+Allocate a new static data member definition entry and return a pointer to it.
+*/
+{
+  a_static_data_member_def_ptr  ptr;
+
+  db_enter(5, "alloc_static_data_member_def");
+  ptr = (a_static_data_member_def_ptr)
+                                alloc_fe(sizeof(a_static_data_member_def));
+#if DEBUG
+  num_static_data_member_defs_allocated++;
+#endif /* DEBUG */
+  ptr->next = NULL;
+  ptr->static_data_member_sym = NULL;
+  ptr->template_sym = NULL;
+  ptr->arg_list = NULL;
+
+  db_exit();
+  return ptr;
+}  /* alloc_static_data_member_def */
+
+
 static void add_to_instantiations_required_list(
                                     a_function_instantiation_entry_ptr fiep,
                                     a_static_data_member_def_ptr       sdmdp)
 /*
+Allocate a template-definition entry, intializing it with the pointer passed
+in (a pointer either to a function instantiation entry or to a static data
+member defintion entry), and add it to the instantiatiations_required list.
 */
 {
   a_template_definition_ptr  tdp;
 
+  db_enter(5, "add_to_instantiations_required_list");
   tdp = (a_template_definition_ptr)alloc_fe(sizeof(a_template_definition));
 #if DEBUG
   num_template_definitions_allocated++;
@@ -6545,6 +6572,9 @@ static void add_to_instantiations_required_list(
     tdp->is_function_instantiation = FALSE;
     tdp->variant.static_data_member_def = sdmdp;
   }  /* if */
+  /* The entry must be added to the end of the list.  This is because new
+     entries may be placed on the list even after processing on the list
+     begins (see instantiation_wrapup). */
   if (instantiations_required == NULL) {
     instantiations_required = tdp;
   } else {
@@ -6552,6 +6582,7 @@ static void add_to_instantiations_required_list(
   }  /* if */
   instantiations_required_tail = tdp;
   tdp->next = NULL;
+  db_exit();
 }  /* add_to_instantiations_required_list */
 
 
@@ -6690,6 +6721,8 @@ for space tracking purposes.
   write_one("func instantiation entry",
             num_function_instantiation_entries_allocated,
             a_function_instantiation_entry);
+  write_one("static data member defs", num_static_data_member_defs_allocated,
+            a_static_data_member_def);
   write_one("template definition", num_template_definitions_allocated,
             a_template_definition);
   write_one("conversion list entry", num_conversion_list_entries_allocated,
@@ -6830,6 +6863,7 @@ to avoid an 8-character external name clash with symbol_table.)
   num_template_params_allocated                = 0;
   num_param_ids_allocated                      = 0;
   num_function_instantiation_entries_allocated = 0;
+  num_static_data_member_defs_allocated        = 0;
   num_template_definitions_allocated           = 0;
   num_conversion_list_entries_allocated        = 0;
   num_extern_symbol_descrs_allocated           = 0;
