@@ -8203,9 +8203,11 @@ NULL.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && !is_error_type(type_ptr)) {
     if (decl_modifiers != NULL) {
-      if (decl_modifiers->is_deprecated) {
+      if (is_redecl) {
+        /* __declspec(deprecated) is ignored on redeclarations. */
+      } else if (decl_modifiers->is_deprecated) {
         tp->source_corresp.is_deprecated = TRUE;
-      } else if (!is_redecl) {
+      } else {
         /* Check if a deprecated type was involved in this declaration. */
         warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
       }  /* if */
