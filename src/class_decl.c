@@ -924,7 +924,7 @@ Process the default argument expressions for the indicated class.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     for (; rfp != NULL; rfp = rfp->next) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      a_boolean  do_declared_type_fixup;
+      a_boolean  do_declared_type_fixup = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       daefp = rfp->def_arg_expr_fixup_list;
       if (rfp->is_template) {
@@ -5080,6 +5080,8 @@ Create a routine and associated symbol for a template dependent friend
 declaration of type function_type.  The locator for the friend declarator
 and some extra declaration info are passed through locator and func_info.
 The routine symbol is returned (but not linked into the symbol table).
+The routine entry itself is linked into the IL only if prototype
+instantiations are recorded in the IL.
 */
 {
   a_symbol_ptr  sym = NULL;
@@ -5100,7 +5102,8 @@ The routine symbol is returned (but not linked into the symbol table).
                      &locator->source_position);
   /* Make a routine entry for this member: */
   rp = make_routine(function_type, (a_storage_class)sc_extern,
-                    depth_innermost_namespace_scope);
+                    prototype_instantiations_in_il ?
+                            depth_innermost_namespace_scope : NO_SCOPE_DEPTH);
   sym->variant.routine.ptr = rp;
   set_source_corresp(&rp->source_corresp, sym);
   if (locator->is_class_member) {
@@ -5120,14 +5123,14 @@ The routine symbol is returned (but not linked into the symbol table).
     rp->is_inline = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     rp->declared_type = func_info->declared_type;
-    if (ssep != NULL) {
+    if (ssep != NULL && prototype_instantiations_in_il) {
       ssep->entity.kind = (a_byte_il_entry_kind)iek_routine;
       ssep->entity.ptr  = (char *)rp;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (ssep != NULL) {
+    if (ssep != NULL && prototype_instantiations_in_il) {
       /* Point to it from a secondary source sequence_entry: */
       sssdp = make_source_sequence_secondary_decl((char*)rp, iek_routine,
                                                   func_info->declared_type);
