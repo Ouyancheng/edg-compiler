@@ -3790,6 +3790,8 @@ Display the IL for the file scope in human-readable form.
 #ifdef CFE
   disp_boolean("pcc_compatibility_mode",
                (a_boolean)il_header.pcc_compatibility_mode);
+  disp_boolean("enum_type_is_integral",
+               (a_boolean)il_header.enum_type_is_integral);
 #endif /* ifdef CFE */
 #if USER_CONTROL_OF_STRUCT_PACKING
   if (il_header.default_max_member_alignment != 0) {
