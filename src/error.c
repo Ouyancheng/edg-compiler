@@ -2830,7 +2830,9 @@ message appears by itself on a separate line.
        need additional context information. */
     sym = ssep->instance_sym;
     /* If the instance symbol is NULL use the template symbol instead. */
-    if (sym == NULL) {
+    if (ssep->in_prototype_instantiation) {
+      /* Prototype instantiations are excluded from the context output. */
+    } else if (sym == NULL) {
       sym = ssep->template_sym;
       if (sym->kind == (a_symbol_kind)sk_function_template) {
         error_code = add_detected_prefix ? 
@@ -2853,11 +2855,7 @@ message appears by itself on a separate line.
       error_code = add_detected_prefix ?
                                ec_det_during_template_instantiation_context :
                                ec_template_instantiation_context;
-      if (is_class_symbol(sym)) {
-        result = !sym->variant.class_struct_union.extra_info->is_nonreal_class;
-      } else {
-        result = TRUE;
-      }  /* if */
+      result = TRUE;
     }  /* if */
   } else if (ssep->kind == (a_scope_kind)sck_function) {
     /* Compiler generated functions need additional information. */

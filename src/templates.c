@@ -405,6 +405,10 @@ typedef struct a_tmpl_decl_state {
 		decl_pos_block;
 			/* Source range information for the template
 			   declaration. */
+  a_symbol_ptr	prototype_scope_symbols;
+			/* For a function template declaration, points to the
+			   list of prototype scope symbols from the
+			   func_info_block. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range
 		definition_range;
@@ -446,6 +450,7 @@ Initialize a template declaration state block.
   tdsp->decl_token_cache_used = FALSE;
   tdsp->il_template_entry = NULL;
   clear_decl_pos_block(&tdsp->decl_pos_block);
+  tdsp->prototype_scope_symbols = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   tdsp->definition_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -2567,6 +2572,73 @@ user later during real instantiations.
   flush_past_token_cache_terminator();
   db_exit();
 }  /* function_prototype_instantiation */
+
+
+void default_arg_prototype_instantiation(
+	a_symbol_ptr				template_sym,
+	a_template_symbol_supplement_ptr	tssp,
+	a_def_arg_expr_fixup_ptr		def_arg_list,
+	a_symbol_ptr				prototype_scope_symbols)
+/*
+This routine is called to do a "prototype instantiation" of a default
+argument expression of a function template or a member function
+of a class template.
+
+This is done to detect those errors that can be diagnosed at template
+definition time and to record information about nondependent calls for
+user later during real instantiations.
+*/
+{
+  a_symbol_ptr				rout_sym;
+  a_routine_ptr				rout_ptr;
+  a_def_arg_expr_fixup_ptr		daefp;
+
+  db_enter(3, "default_arg_prototype_instantiation");
+#if DEBUG
+  if (db_flag_is_set("def_arg_proto")) {
+    for (daefp = def_arg_list; daefp != NULL; daefp = daefp->next) {
+      fprintf(f_debug, "prototype instantiation of default arg:\n");
+      db_token_cache(&daefp->cache.tokens, "default arg");
+    }  /* for */
+  }  /* if */
+#endif /* DEBUG */
+  rout_ptr = tssp->variant.function.routine;
+  rout_sym = (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
+  check_assertion(rout_sym != NULL);
+  for (daefp = def_arg_list; daefp != NULL; daefp = daefp->next) {
+    /* Push the template instantiation scope. */
+    /* For member functions that are not member templates the argument
+       list comes from the enclosing class that is reactivated by
+       push_template_instantiation_scope and the value from the routine
+       entry (which should be NULL) is not used. */
+    push_template_instantiation_scope(daefp->cache.decl_info,
+				      (a_type_ptr)NULL, rout_ptr,
+				      rout_sym, template_sym,
+				      rout_ptr->template_arg_list,
+                                      /*push_stop_tokens=*/TRUE,
+                                      PS_NO_OPTIONS);
+    /* The function prototype scope should be reactivated and its symbols
+       reentered because parameter names hide names from enclosing scopes
+       and, moreover, may not be used in default argument expressions. */
+    (void)push_scope((a_scope_kind)sck_func_prototype,
+                     daefp->cache.decl_info->declaration_scope,
+                     rout_ptr->type, (a_routine_ptr)NULL);
+    if (prototype_scope_symbols != NULL) {
+      reactivate_prototype_scope_symbols(prototype_scope_symbols);
+    }  /* if */
+    /* Reactivate the tokens comprising the function body and scan them. */
+    rescan_reusable_cache(&daefp->cache.tokens);
+    delayed_scan_of_default_arg_expr(daefp->param_type,
+                                     /*check_for_errors=*/FALSE);
+    /* Pop the reactivated function prototype scope off the stack. */
+    pop_scope();
+    /* Pop the template instantiation scope. */
+    pop_template_instantiation_scope();
+    /* The routine that rescans the default argument ensures that we have
+       reached the end of the token cache. */
+  }  /* for */
+  db_exit();
+}  /* default_arg_prototype_instantiation */
 
 
 static void check_for_definition_in_friend_declaration(
@@ -9445,7 +9517,7 @@ the tokens should be scanned and discarded.
     /* The current scope stack entry is expected to be a function prototype
        scope.  The enclosing scope is expected to be either the template
        declaration scope for the current function template or the instantiation
-      scope for the partial instantiation of a template function declaration.
+       scope for the partial instantiation of a template function declaration.
        In the latter case, the tokens that are cached are simply discarded. */
     ssep = scope_stack_entry_for(depth_scope_stack-1);
     if (ssep->kind == (a_scope_kind)sck_template_declaration) {
@@ -10921,6 +10993,7 @@ a real instantiation.
 
 static void update_function_template_default_args(
 			a_tmpl_decl_state_ptr			decl_state,
+			a_symbol_ptr				template_sym,
 			a_template_symbol_supplement_ptr	tssp)
 /*
 sym is a function template that is currently being declared.  Update
@@ -10948,6 +11021,14 @@ instantiation.
     /* Free the existing original set of default arguments. */
     free_def_arg_expr_fixup(curr_default_args);
     curr_default_args = proto_tssp->variant.function.def_arg_expr_list;
+  } else {
+    /* We are using the newly specified default arguments.  Do a prototype
+       instantiation of the new defaults. */
+    if (nonclass_prototype_instantiations) {
+      default_arg_prototype_instantiation(template_sym, tssp,
+                                          curr_default_args,
+					  decl_state->prototype_scope_symbols);
+    }  /* if */
   }  /* if */
   /* Link the default argument list from the template supplement
      onto the end of the list of current default arguments.  The
@@ -11102,7 +11183,7 @@ caller.
     /* Update the default argument information for this template from
        either curr_default_args or from the corresponding declaration
        from the prototype instantiation of the enclosing class. */
-    update_function_template_default_args(decl_state, tssp);
+    update_function_template_default_args(decl_state, sym, tssp);
     if (decl_state->is_template_friend &&
        !decl_state->in_prototype_instantiation) {
       /* This is a template friend declaration, add the current class to
@@ -11170,6 +11251,7 @@ information returned from decl_specifiers and declarator.
        processed by this routine are friend declarations. */
     func_info->is_inline = TRUE;
   }  /* if */
+  decl_state->prototype_scope_symbols = func_info->prototype_scope_symbols;
   /* Process a function template declaration. */
   decl_function_template(locator, type, func_info, &sym, storage_class,
                          decl_modifiers, decl_state->decl_info,

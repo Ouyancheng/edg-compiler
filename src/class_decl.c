@@ -920,6 +920,13 @@ Process the default argument expressions for the indicated class.
               daefp_tmp->cache.decl_info = tssp->cache.decl_info;
               daefp_tmp = daefp_tmp->next;
             }  /* while */
+            if (nonclass_prototype_instantiations) {
+              /* Do the prototype instantiations of the default arguments. */
+              a_template_symbol_supplement_ptr	rout_tssp;
+              rout_tssp = template_supplement_for_symbol(sym);
+              default_arg_prototype_instantiation(sym, rout_tssp, daefp,
+                                       rfp->func_info.prototype_scope_symbols);
+            }  /* if */
             /* Link the default argument list from the template supplement
                onto the end of the list of current default arguments.  The
                list in the supplement must be for arguments that follow the

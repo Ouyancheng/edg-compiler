@@ -304,6 +304,12 @@ extern void check_for_function_template_default_args(
 extern void instantiate_default_argument(a_symbol_ptr		rout_sym,
 					 a_param_type_ptr	param);
 
+extern void default_arg_prototype_instantiation(
+	a_symbol_ptr				template_sym,
+	a_template_symbol_supplement_ptr	tssp,
+	a_def_arg_expr_fixup_ptr		def_arg_list,
+	a_symbol_ptr				prototype_scope_symbols);
+
 extern a_template_arg_ptr create_prototype_arg_list(
 			a_template_param_ptr	templ_param_list);
 
