@@ -218,6 +218,7 @@ static void gen_enum_definition(a_type_ptr type);
 static void gen_class_definition(a_type_ptr type);
 static void gen_lvalue(an_expr_node_ptr node);
 static void gen_dynamic_init(a_dynamic_init_ptr dip,
+                             a_type_ptr         init_entity_type,
                              a_boolean          parenthesized_init,
                              a_boolean          force_parens);
 static void gen_statement(a_statement_ptr statement);
@@ -677,6 +678,14 @@ expression, e.g.,
     }  /* if */
   }  /* for */
 }  /* skip_embedded_declarations */
+
+
+/*
+Processing to be done at the end of a full expression.  Specifically,
+ignore any type declarations or implicit function declarations in the
+expression.
+*/
+#define end_of_full_expression() skip_embedded_declarations()
 
 
 static void end_output_line(void)
@@ -1376,7 +1385,6 @@ Output the indicated constant.
   a_float_kind         fkind;
   a_type_ptr           con_type = NULL, orig_type;
   a_boolean            need_cast_close_paren = FALSE, need_close_paren;
-  a_constant_ptr       sub_con;
 
   orig_type = constant->type;
   /* Watch out for constants (like aggregates) that have no type. */
@@ -1535,30 +1543,90 @@ Output the indicated constant.
         }  /* if */
       }
       break;
-    case ck_aggregate:
-      /* Aggregate constant (used in initializers). */
-      write_tok_ch('{');
-      for (sub_con = constant->variant.aggregate.first_constant;
-           sub_con != NULL;
-           sub_con = sub_con->next) {
-        gen_constant(sub_con);
-        if (sub_con->next != NULL) write_tok_str(", ");
-      }  /* for */
-      write_tok_ch('}');
-      break;
-    case ck_dynamic_init:
-      /* Dynamic initialization for an element of an aggregate. */
-      gen_dynamic_init(constant->variant.dynamic_init,
-                       /*parenthesized_init=*/FALSE,
-                       /*force_parens=*/FALSE);
-      break;
-    case ck_init_repeat:
-      /* This should not come up in things that must be output. */
+    case ck_aggregate:     /* Should only appear in initializer constants. */
+    case ck_dynamic_init:  /* Should only appear in initializer constants. */
+    case ck_init_repeat:   /* Should only appear in places that need not be
+                              put out. */
     default:
       unexpected_condition_str("gen_constant: bad constant kind");
   }  /* switch */
   if (need_cast_close_paren) write_tok_ch(')');
 }  /* gen_constant */
+
+
+static void gen_initializer_constant(a_constant_ptr constant,
+                                     a_type_ptr     type)
+/*
+Generate an initializer constant, which differs from a normal constant in
+that it can contain aggregates and dynamic initializations.  type is
+the type of the entity being initialized; it can be NULL if the constant
+is not an aggregate or dynamic initialization, and if the entity being
+initialized is not a reference.
+*/
+{
+  a_constant_ptr sub_con;
+  a_type_ptr     sub_type;
+  a_field_ptr    field;
+  a_boolean      array_case;
+
+  if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
+    /* Aggregate constant (e.g., "{1, 2, 3}"). */
+    write_tok_ch('{');
+    /* Figure out the kind of aggregate so we can track the type as we
+       work through constants. */
+    type = skip_typerefs(type);
+    array_case = (type->kind == (a_type_kind)tk_array);
+    if (array_case) {
+      /* Array -- each constant will fill an element of the array. */
+      sub_type = type->variant.array.element_type;
+    } else {
+      check_assertion_str(is_class_type_kind(type->kind),
+                          "gen_initializer_constant: bad aggregate type");
+      /* A class, struct, or union.  The constants will fill nonstatic data
+         members of the class. */
+      field = next_initializable_field(
+                                  type->variant.class_struct_union.field_list);
+    }  /* if */
+    /* Loop through the list of initializer constants. */
+    for (sub_con = constant->variant.aggregate.first_constant;
+         sub_con != NULL;) {
+      /* Determine the type of the entity initialized by the next constant. */
+      if (!array_case) {
+        check_assertion_str(field != NULL,
+                            "gen_initializer_constant: ran out of fields");
+        sub_type = field->type;
+        field = next_initializable_field(field);
+      }  /* if */
+      gen_initializer_constant(sub_con, sub_type);
+      sub_con = sub_con->next;
+      /* Stop after the last constant. */
+      if (sub_con == NULL) break;
+      write_tok_str(", ");
+    }  /* for */
+    write_tok_ch('}');
+  } else if (constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
+    /* Dynamic initialization for an element of an aggregate. */
+    gen_dynamic_init(constant->variant.dynamic_init, type,
+                     /*parenthesized_init=*/FALSE,
+                     /*force_parens=*/FALSE);
+  } else if (type != NULL && is_reference_type(type)) {
+    /* Initializing a reference. */
+    if (constant->kind == (a_constant_repr_kind)ck_address) {
+      /* An address constant (the usual case).  Drop one level of "&". */
+      gen_address_constant(constant, /*do_indirection=*/TRUE);
+    } else {
+      /* For other cases, e.g.,
+           int &r = *(int *)5;
+         do an indirection in the code. */
+      write_tok_str("(*");
+      gen_constant(constant);
+      write_tok_str(")");
+   }  /* if */
+  } else {
+    /* Normal constant. */
+    gen_constant(constant);
+  }  /* if */
+}  /* gen_initializer_constant */
 
 
 static void gen_storage_class(a_storage_class storage_class)
@@ -2801,10 +2869,45 @@ Generate "operand_1 . operand_2".
 }  /* gen_simple_field_selection */
 
 
+static void gen_temp_init(an_expr_node_ptr expr,
+                          a_boolean        need_parens)
+/*
+Generate code for an enk_temp_init node, which does creation/initialization
+of a temporary in an expression.  Put parentheses around the code if
+there's some possibility of precedence confusion and need_parens is TRUE.
+The caller should check whether the result_is_addr flag is set correctly;
+this routine cannot deal with that.
+*/
+{
+  a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+
+  if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+    if (need_parens) write_tok_ch('(');
+    /* For a class temporary requiring a constructor, use the form
+       A(arg1, arg2, ...). */
+    gen_type_name(dip->variant.constructor.ptr->
+                                       source_corresp.class_of_which_a_member);
+    gen_dynamic_init(dip,
+                     (a_type_ptr)NULL, /* Not a reference, not needed. */
+                     /*parenthesized_init=*/TRUE,
+                     /*force_parens=*/FALSE);
+    if (need_parens) write_tok_ch(')');
+  } else {
+    /* Other cases -- just put out the value. */
+    gen_dynamic_init(dip,
+                     (a_type_ptr)NULL, /* Not a reference, not needed. */
+                     /*parenthesized_init=*/FALSE,
+                     /*force_parens=*/FALSE);
+  }  /* if */
+}  /* gen_temp_init */
+
+
 static void gen_lvalue(an_expr_node_ptr node)
 /*
 Generate an expression that the IL sees as an lvalue address, and C sees as
-an expression.  In effect, add an indirection to the expression.
+an expression.  In effect, add an indirection to the expression.  The
+expression is surrounded by parentheses if there's some possibility of
+precedence confusion.
 */
 {
   an_expr_node_kind kind = node->kind;
@@ -2857,6 +2960,35 @@ an expression.  In effect, add an indirection to the expression.
 }  /* gen_lvalue */
 
 
+static void gen_initializer_expr(an_expr_node_ptr expr,
+                                 a_type_ptr       type,
+                                 a_boolean        need_parens)
+/*
+Generate an expression that is used to initialize something of type "type".
+This does special processing when the type is a reference type.
+type may be NULL if it isn't a reference type.  Put parentheses around
+the code if there's some possibility of precedence confusion and
+need_parens is TRUE.
+*/
+{
+  /* When initializing a reference, remove one level of indirection. */
+  if (type != NULL && is_reference_type(type)) {
+    if (expr->kind == (an_expr_node_kind)enk_temp_init &&
+        expr->variant.init.result_is_addr) {
+      /* A temporary initialization with the address of the temporary used as
+         the initial value. */
+      gen_temp_init(expr, need_parens);
+    } else {
+      /* Some other expression; put out as an lvalue to remove a level of
+         indirection. */
+      gen_lvalue(expr);
+    }  /* if */
+  } else {
+    gen_expr(expr, need_parens);
+  }  /* if */
+}  /* gen_initializer_expr */
+
+
 static void gen_cast(a_type_ptr type)
 /*
 Generate a cast to the indicated type.
@@ -2896,12 +3028,18 @@ put out for them).
          the copy constructor reference. */
       check_assertion_str(arg->kind == (an_expr_node_kind)enk_temp_init,
                           "gen_argument_list: cctor arg not enk_temp_init");
-      gen_dynamic_init(arg->variant.init.dynamic_init,
+      gen_dynamic_init(arg->variant.init.dynamic_init, param->type,
                        /*parenthesized_init=*/FALSE,
                        /*force_parens=*/FALSE);
     } else {
       /* Normal case. */
-      gen_expr_with_parens(arg);
+      if (param != NULL) {
+        /* Parameter type known. */
+        gen_initializer_expr(arg, param->type, /*need_parens=*/TRUE);
+      } else {
+        /* Parameter type not known. */
+        gen_expr_with_parens(arg);
+      }  /* if */
     }  /* if */
     arg = arg->next;
     if (arg != NULL) {
@@ -3051,7 +3189,7 @@ Generate code for a new or delete operation.
     if (need_type_parens) write_tok_ch(')');
     if (ndsp->dynamic_init != NULL) {
       /* The allocated entity gets initialized. */
-      gen_dynamic_init(ndsp->dynamic_init, /*parenthesized_init=*/TRUE,
+      gen_dynamic_init(ndsp->dynamic_init, type, /*parenthesized_init=*/TRUE,
                        /*force_parens=*/FALSE);
     }  /* if */
   } else {
@@ -3077,8 +3215,17 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
 
   check_assertion(func_expr->kind == (an_expr_node_kind)enk_routine_address);
   rout = func_expr->variant.routine;
-  gen_expr_with_parens(object_expr);
-  write_tok_str("->");
+  if (object_expr->kind == (an_expr_node_kind)enk_temp_init &&
+      object_expr->variant.init.result_is_addr) {
+    /* The object is a temporary, so use the "." operator, because there's
+       no way to take the address of a temporary explicitly. */
+    gen_temp_init(object_expr, /*need_parens=*/FALSE);
+    write_tok_str(".");
+  } else {
+    /* Normal case.  Use a pointer and "->". */
+    gen_expr_with_parens(object_expr);
+    write_tok_str("->");
+  }  /* if */
   if (suppress_virtual && rout->is_virtual) {
     /* The routine being called is a virtual function, and we're supposed
        to suppress its virtual-ness in this call, so use a qualified name. */
@@ -3490,8 +3637,9 @@ done_with_operation:
       write_tok_str("throw");
       /* A NULL pointer means a rethrow, e.g., "throw;". */
       if (expr->variant.throw_info != NULL) {
+        a_throw_supplement_ptr tsp = expr->variant.throw_info;
         write_space();
-        gen_dynamic_init(expr->variant.throw_info->dynamic_init,
+        gen_dynamic_init(tsp->dynamic_init, tsp->type,
                          /*parenthesized_init=*/FALSE,
                          /*force_parens=*/FALSE);
       }  /* if */
@@ -3499,22 +3647,11 @@ done_with_operation:
       break;
     case enk_temp_init:
       /* Temporary creation/initialization. */
-      { a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-        if (need_parens) write_tok_ch('(');
-        if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
-          /* For a class temporary requiring a constructor, use the form
-             A(arg1, arg2, ...). */
-          gen_type_name(dip->variant.constructor.ptr->
-                                       source_corresp.class_of_which_a_member);
-          gen_dynamic_init(dip, /*parenthesized_init=*/TRUE,
-                           /*force_parens=*/FALSE);
-        } else {
-          /* Other cases -- just put out the value. */
-          gen_dynamic_init(dip, /*parenthesized_init=*/FALSE,
-                           /*force_parens=*/FALSE);
-        }  /* if */
-        if (need_parens) write_tok_ch(')');
-      }
+      /* The temporary is being used as an rvalue here, so the result of
+         the node should be the value of the temporary. */
+      check_assertion_str(!expr->variant.init.result_is_addr,
+                          "gen_expr: enk_temp_init returning addr as rvalue");
+      gen_temp_init(expr, need_parens);
       break;
     case enk_new_delete:
       /* new or delete operation. */
@@ -3536,9 +3673,7 @@ Generate code for the indicated expression, which is a full expression
 */
 {
   gen_expression(expr);
-  /* Ignore any type declarations or implicit function declarations in the
-     expression. */
-  skip_embedded_declarations();
+  end_of_full_expression();
 }  /* gen_full_expression */
 
 
@@ -3564,9 +3699,7 @@ by parentheses.
 */
 {
   gen_boolean_controlling_expression(expr);
-  /* Ignore any type declarations or implicit function declarations in the
-     expression. */
-  skip_embedded_declarations();
+  end_of_full_expression();
 }  /* gen_full_boolean_controlling_expression */
 
 
@@ -4117,12 +4250,17 @@ Generate code for the indicated statement.
         a_routine_ptr curr_routine = curr_function_scope->variant.routine.ptr;
         if (curr_routine->special_kind !=
                                     (a_special_function_kind)sfk_constructor) {
+          a_type_ptr return_type =
+                               curr_routine->type->variant.routine.return_type;
           write_space();
-          gen_full_expression(statement->expr);
+          gen_initializer_expr(statement->expr, return_type,
+                               /*need_parens=*/FALSE);
+          end_of_full_expression();
         }  /* if */
       } else if (statement->variant.return_dynamic_init != NULL) {
         /* The return value is passed via a copy constructor call. */
         gen_dynamic_init(statement->variant.return_dynamic_init,
+                         (a_type_ptr)NULL, /* Not a reference, not needed. */
                          /*parenthesized_init=*/FALSE,
                          /*force_parens=*/FALSE);
       }  /* if */
@@ -4212,12 +4350,16 @@ Return TRUE if the indicated routine (a constructor) is a copy constructor.
 
 
 static void gen_dynamic_init(a_dynamic_init_ptr dip,
+                             a_type_ptr         init_entity_type,
                              a_boolean          parenthesized_init,
                              a_boolean          force_parens)
 /*
-Output the indicated dynamic initialization.  If parenthesized_init is
-TRUE, put parentheses around the initializer; this is the parenthesized
-form of initialization, e.g.,
+Output the dynamic initialization described by dip.  init_entity_type
+indicates the type of entity being initialized, or if NULL if the type
+is fully implied by the dynamic initialization entry (it is needed only
+when the thing being initialized is a reference).  If parenthesized_init
+is TRUE, put parentheses around the initializer; this is the
+parenthesized form of initialization, e.g.,
 
   A x(y);
 
@@ -4226,12 +4368,17 @@ semantics (but the "=" is put out by the caller, if at all); put nothing
 around the initializer, and do copy constructor elision if possible
 (e.g., put out "j" instead of "A(j)"; the current context must be one
 where the type of thing being initialized is clear).  If no initialization
-is indicated, or it the initialization is with a default constructor,
+is indicated, or if the initialization is with a default constructor,
 nothing is put out (in either mode), except that if force_parens is
 TRUE, "()" is put out.
 */
 {
   /* Note that the destructor, if any, is implicit and need not be put out. */
+  /* If the variable is known, and the type is not, fetch the type from
+     the variable. */
+  if (init_entity_type == NULL && dip->variable != NULL) {
+    init_entity_type = dip->variable->type;
+  }  /* if */
   switch (dip->kind) {
     case dik_none:
       /* No initialization. */
@@ -4247,7 +4394,7 @@ TRUE, "()" is put out.
                                             (a_constant_repr_kind)ck_aggregate,
                           "gen_dynamic_init: aggregate in parens");
       if (parenthesized_init) write_tok_ch('(');
-      gen_constant(dip->variant.constant);
+      gen_initializer_constant(dip->variant.constant, init_entity_type);
       if (parenthesized_init) write_tok_ch(')');
       break;
     case dik_expression:
@@ -4255,13 +4402,10 @@ TRUE, "()" is put out.
       /* Parentheses are required (a) if parenthesized_init is TRUE, and
          (b) if parenthesized_init is FALSE, because of the possibility that
          the top-level operator is a ",". */
-      if (parenthesized_init) {
-        write_tok_ch('(');
-        gen_expression(dip->variant.expression);
-        write_tok_ch(')');
-      } else {
-        gen_expr_with_parens(dip->variant.expression);
-      }  /* if */
+      if (parenthesized_init) write_tok_ch('(');
+      gen_initializer_expr(dip->variant.expression, init_entity_type,
+                           /*need_parens=*/!parenthesized_init);
+      if (parenthesized_init) write_tok_ch(')');
       break;
     case dik_constructor:
       { a_routine_ptr    ctor;
@@ -4319,7 +4463,7 @@ Output the initializer, if any, for the indicated variable.
       break;
     case initk_static:
       write_tok_str(" = ");
-      gen_constant(var->initializer.constant);
+      gen_initializer_constant(var->initializer.constant, var->type);
       break;
     case initk_dynamic:
       /* Dynamic initialization. */
@@ -4340,7 +4484,8 @@ Output the initializer, if any, for the indicated variable.
         write_tok_str(" = ");
         parenthesized_init = FALSE;
       }  /* if */
-      gen_dynamic_init(dip, parenthesized_init, /*force_parens=*/FALSE);
+      gen_dynamic_init(dip, var->type, parenthesized_init,
+                       /*force_parens=*/FALSE);
       break;
     case initk_zero:
       /* initk_zero is only produced by IL lowering. */
@@ -4493,7 +4638,9 @@ a constructor.
                   \_This is what's generated.
 */
 {
-  a_boolean first_time = TRUE;
+  a_boolean   first_time = TRUE;
+  a_type_ptr  type;
+  a_field_ptr field;
 
   for (; ctor_init != NULL; ctor_init = ctor_init->next) {
     if (!ctor_init->compiler_generated) {
@@ -4503,21 +4650,25 @@ a constructor.
       } else {
         write_tok_str(", ");
       }  /* if */
-      switch(ctor_init->kind) {
+      switch (ctor_init->kind) {
         case cik_virtual_base_class:
         case cik_direct_base_class:
           /* Initializing a base class. */
-          gen_type_name(ctor_init->variant.base_class->type);
+          type = ctor_init->variant.base_class->type;
+          gen_type_name(type);
           break;
         case cik_field:
           /* Initializing a nonstatic data member. */
-          gen_field_name(ctor_init->variant.field);
+          field = ctor_init->variant.field;
+          gen_field_name(field);
+          type = field->type;
           break;
         default:
           unexpected_condition();
       }  /* switch */
       /* Generate the initialization. */
-      gen_dynamic_init(ctor_init->initializer, /*parenthesized_init=*/TRUE,
+      gen_dynamic_init(ctor_init->initializer, type,
+                       /*parenthesized_init=*/TRUE,
                        /*force_parens=*/TRUE);
     }  /* if */
   }  /* for */
