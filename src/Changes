@@ -1,5 +1,14 @@
 Version 2.15
 
+3/16/93 Spurious error on specific definition of template function
+
+A spurious "referenced-but-not-defined" error was sometimes being issued
+because the "referenced" flag was being set incorrectly in symbols for
+specific definitions of template functions.  Here's an example:
+
+  template <class T> void f(T) { }
+  void f(int);                      // Spurious error no longer issued
+
 3/15/93 Fix in access checking for protected members
 
 The access checking for protected members mandated by ARM 11.5 had
