@@ -8258,10 +8258,9 @@ following the member declaration.
 #if CHECKING
     /* Should be a nested class, struct, union, or enum definition.  Be
        sure the parent class was marked correctly. */
-    a_symbol_ptr  sym;
-    check_assertion(is_immediate_class_type(member_type) ||
-                    is_immediate_enum_type(member_type));
-    sym = (a_symbol_ptr)(member_type->source_corresp.assoc_info);
+    a_type_ptr    tp = skip_typerefs(member_type);
+    a_symbol_ptr  sym = (a_symbol_ptr)(tp->source_corresp.assoc_info);
+
     if (!sym->is_error) {
       check_assertion_str2(sym->is_class_member &&
                            sym->parent.class_type == class_type,
