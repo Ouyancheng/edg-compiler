@@ -3495,7 +3495,8 @@ Returns TRUE if there is an error in the specifiers.
       case tok_mutable:
         /* A storage class specifier (3.5.1). */
         if (!(input_flags & DSI_STORAGE_CLASS_SPECIFIER_ALLOWED)) {
-          error(ec_storage_class_not_allowed);
+          error((!C_mode() && curr_token == tok_typedef) ?
+                    ec_typedef_not_allowed : ec_storage_class_not_allowed);
           err = TRUE;
 #if ASM_FUNCTION_ALLOWED
         } else if (*storage_class == (a_storage_class)sc_asm) {
@@ -3549,7 +3550,8 @@ Returns TRUE if there is an error in the specifiers.
           }  /* if */
         } else if ((input_flags & DSI_IS_SPECIALIZATION) &&
                    curr_token != tok_static) {
-          error(ec_storage_class_not_allowed);
+          error(curr_token == tok_typedef ?
+                    ec_typedef_not_allowed : ec_storage_class_not_allowed);
           err = TRUE;
         } else if (is_member_decl && !(decl_specifiers_seen & DS_FRIEND) &&
                    curr_token != tok_static && curr_token != tok_typedef) {
@@ -3567,7 +3569,9 @@ Returns TRUE if there is an error in the specifiers.
           err = TRUE;
         } else if (input_flags & DSI_IS_TEMPLATE_DECLARATION &&
                    curr_token != tok_extern && curr_token != tok_static) {
-          error(ec_bad_storage_class_on_template_decl);
+          error(curr_token == tok_typedef ?
+                   ec_typedef_not_allowed :
+                   ec_bad_storage_class_on_template_decl);
           err = TRUE;
         } else if (C_mode() && depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
                    (curr_token == tok_auto || curr_token == tok_register)) {
@@ -3585,7 +3589,8 @@ Returns TRUE if there is an error in the specifiers.
           }  /* if */
           /* Put out the diagnostic. */
           if ((int)es != (int)es_none) {
-            diagnostic(es, ec_storage_class_not_allowed);
+            diagnostic(es, curr_token == tok_typedef ? ec_typedef_not_allowed :
+                                                 ec_storage_class_not_allowed);
           }  /* if */
           /* If an error was issued, set the flag; otherwise, set the bit in
              decl_specifiers_seen, so that the multiple-storage-class

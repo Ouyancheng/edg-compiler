@@ -7647,7 +7647,8 @@ instantiation.
   db_enter(3, "class_template_declaration");
   if (curr_token == tok_typedef || curr_token == tok_auto ||
       curr_token == tok_register) {
-    error(ec_bad_storage_class_on_template_decl);
+    error(curr_token == tok_typedef ?
+            ec_typedef_not_allowed : ec_bad_storage_class_on_template_decl);
     (void)get_token();
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
