@@ -3320,13 +3320,21 @@ of assoc_field_object and assoc_var_object is defined.
   a_boolean                      access_error_already_issued = FALSE;
   a_boolean                      member_function_error_already_issued = FALSE;
   a_boolean                      is_overloaded;
+  a_type_ptr                     object_type;
 
   db_enter(4, "check_anonymous_union_symbols");
+  object_type = (class_type == NULL) ? assoc_var_object->type :
+                                       assoc_field_object->type;
+  ctsp = object_type->variant.class_struct_union.extra_info;
+  if (class_type == NULL) {
+    ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_variable;
+  } else {
+    ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_field;
+    ctsp->anonymous_union_field = assoc_field_object;
+  }  /* if */
   /* The symbols list for the anonymous union will be eliminated.  Its
      field symbols are promoted to the scope of the containing class. */
-  cssp = symbol_supplement_for_class(class_type == NULL ?
-                                         assoc_var_object->type :
-                                         assoc_field_object->type);
+  cssp = symbol_supplement_for_class(object_type);
   sym = cssp->symbols;
   cssp->symbols = NULL;
   /* Go through each of the symbols on the list. */
@@ -3346,17 +3354,12 @@ of assoc_field_object and assoc_var_object is defined.
     if (sym->kind == (a_symbol_kind)sk_field) {
       /* Unlink the symbol from the inactive list and link it back into the
          symbol table in the current scope. */
+      sym->class_of_which_a_member = class_type;
       remove_from_inactive_symbols_list(sym);
       reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
       /* Update the IL. */
-      ctsp = sym->variant.field.ptr->source_corresp.class_of_which_a_member->
-                                        variant.class_struct_union.extra_info;
       if (class_type == NULL) {
-        ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_variable;
         sym->variant.field.anonymous_union_variable = assoc_var_object;
-      } else {
-        ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_field;
-        ctsp->anonymous_union_field = assoc_field_object;
       }  /* if */
     } else if (is_member_function_symbol(sym)) {
       /* This may be a compiler generated default assignment operator, which
