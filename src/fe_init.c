@@ -802,7 +802,6 @@ source file's compilation.
   /* microsoft_16_mode, far_data_pointers, and far_code_pointers are
      initialized in fe_early_init and changed if necessary in cmd_line.c. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  il_header.number_of_external_nonclass_template_entities = 0;
   if (pp_output_file_needed) {
     /* Open the preprocessing output file. */
     open_pp_output_file();
@@ -920,6 +919,7 @@ being used).
   il_header.time_of_compilation = strcpy(
                                 alloc_il((sizeof_t)(strlen(curr_date_time)+1)),
                                 curr_date_time);
+  il_header.number_of_external_nonclass_template_entities = 0;
 #if ONE_INSTANTIATION_PER_OBJECT
   il_header.instantiation_dir_name = instantiation_dir_name == NULL ? NULL :
           strcpy(alloc_il((sizeof_t)(strlen(instantiation_dir_name)+1)),
