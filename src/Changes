@@ -3,11 +3,11 @@ Version 3.4
 12/8/03  C/C++-generating back end: asm constructs for GNU C compilers
 
 Previously the C- and C++-generating back ends always put out asm constructs
-using the "asm" keyword, GNU C compilers do not treat "asm" as a keyword in
-all modes.  For example, in C99 mode, the GNU compiler accepts "__asm__" as a
-keyword, but not "asm".  When gcc_is_generated_code_target is TRUE, the C-
-and C++-generating back ends therefore now generate the "__asm__" keyword for
-asm statements.
+using the "asm" keyword, but GNU C compilers do not treat "asm" as a keyword
+in all modes.  For example, in C99 mode, the GNU compiler accepts "__asm__"
+as a keyword, but not "asm".  When gcc_is_generated_code_target is TRUE, the
+C- and C++-generating back ends therefore now generate the "__asm__" keyword
+for asm statements.
 
 12/2/03  Abort in num_array_elements on variable-length array new
 
