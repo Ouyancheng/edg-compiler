@@ -109,6 +109,11 @@ EXTERN_C void exit(int status);
 #endif /* ifndef STDLIB_H_INCLUDED */
 
 /*
+Incuded to define ctime, etc.
+*/
+#include <time.h>
+
+/*
 Header files needed to use the system routines to get the elapsed clock
 time and CPU time.  The ANSI routines are used when possible; otherwise
 the UNIX routines are assumed to be available.
@@ -117,7 +122,6 @@ Note: If you are not using an ANSI C library make sure that
 CLOCK_FREQUENCY is defined properly below.
 */
 #if __ANSIC__
-#include <time.h>
 #ifndef CLOCKS_PER_SEC
  #error -- Compiling in __ANSIC__ mode but CLOCKS_PER_SEC is not
 	    defined in time.h.
