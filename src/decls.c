@@ -3325,7 +3325,8 @@ merging of the default arguments occurs in composite_type.
   if (redecl_error) {
     an_error_severity	severity = es_error;
     if (gpp_mode &&
-        scope_stack[depth_scope_stack].kind == sck_template_declaration) {
+        scope_stack[depth_scope_stack].kind ==
+				      (a_scope_kind)sck_template_declaration) {
       /* g++ ignores redeclared default arguments in function template
          declarations. */
       severity = es_warning;
