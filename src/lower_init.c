@@ -3458,8 +3458,6 @@ in this routine must be FALSE in that case.
       break;
     case dik_zero:
       /* Initialize to zero. */
-      check_assertion_str(!ipdp->array_element_sequence,
-                          "lower_dynamic_init: repeated zero init");
       if (variable != NULL) {
         /* Entire variable initialized to zero.  Do nothing here.
            Processing is below (setting init_kind to initk_zero). */
@@ -3467,7 +3465,8 @@ in this routine must be FALSE in that case.
         /* Not entire variable. */
         a_type_ptr entity_type = type_from_init_pos_descr(ipdp);
         if (is_aggregate_or_union_type(entity_type) ||
-            is_or_was_ptr_to_member_function_type(entity_type)) {
+            is_or_was_ptr_to_member_function_type(entity_type) ||
+            ipdp->array_element_sequence) {
           /* Aggregate.  Use a call __memzero(entity_node, size). */
           an_expr_node_ptr memzero_call;
           a_targ_size_t    entity_size;
@@ -3475,6 +3474,13 @@ in this routine must be FALSE in that case.
                                               /*using_as_dest=*/TRUE);
           entity_size =
                      f_skip_typerefs(type_pointed_to(entity_node->type))->size;
+          if (ipdp->array_element_sequence) {
+            /* For a sequence of array elements, multiply by the number of
+               elements. */
+            check_assertion_str(ipdp->array_element_count > 0,
+                      "lower_dynamic_init: dik_zero array_element_count <= 0");
+            entity_size *= ipdp->array_element_count;
+          }  /* if */
           entity_node = add_cast_if_necessary(entity_node, void_star_type());
           entity_node->next = node_for_integer_constant((long)entity_size,
                                                         targ_size_t_int_kind);
