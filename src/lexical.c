@@ -1836,6 +1836,10 @@ search path.  file_name must be allocated in IL storage.
 }  /* open_file_and_push_input_stack */
 
 
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+/*ARGSUSED*/ /* <-- replace_suffix is used only if instantiation may use
+                    implicit inclusion. */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 FILE *open_file_for_input(char                       *file_name,
                           a_directory_name_entry_ptr search_path,
                           a_boolean                  replace_suffix,
@@ -1877,6 +1881,7 @@ returned.
     /* Special code for stdin; no open needed. */
     temp_file_name = file_name;
     new_input_file = stdin;
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
   } else if (replace_suffix) {
     /* We need to try a set of suffixes till we find a file we can open. */
     check_assertion(depth_input_stack == 0);
@@ -1937,6 +1942,7 @@ returned.
         break;
       }  /* if */
     }  /* for */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   } else {
     if (curr_ise == NULL || is_absolute_file_name(file_name)) {
       /* File name is absolute, so search path is not used. */
