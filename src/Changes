@@ -1,5 +1,30 @@
 Version 2.27
 
+11/14/94 Fixed name lookup bug in friend processing
+
+In the following case, the lookup on the friend declaration used to be
+confused by the presence of "f" in the scope of A; now it works correctly:
+
+  class A {
+    void f(void);            // Declares A::f()
+    friend void f(int);      // Declares ::f(int)
+  };
+
+11/14/94 Computing virtual function overrides when base class is ambiguous
+
+A bug has been fixed in managing virtual function override lists in the
+presence of ambiguous base classes.  For example:
+
+  class A { virtual void f() = 0; };
+  class B : public A { void f(); };         // B::f overrides A::f
+  class C1 : public B { };
+  class C2 : public B { };
+  class D : public C1, public C2 { };
+
+In the context of D, the virtual function override list for the derivation
+C2==>B==>A is now handled correctly -- previously only the one for
+C1==>B==>A was.
+
 10/31/94 Qualifiers on type of lvalue-returning assignments
 
 The IL for lvalue-returning assignments and prefix ++/-- now includes
