@@ -1,5 +1,10 @@
 Version 2.19
 
+8/11/93 IL lowering: destructor calls for temps in constructor wrappers
+
+Proper destructor calls are now generated to destroy temporaries
+created within constructor wrapper code.
+
 8/10/93 Name mangling for float nontype arguments
 
 In name mangling for float nontype arguments, the names generated are
