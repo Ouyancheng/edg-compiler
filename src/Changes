@@ -602,6 +602,8 @@ has been fixed.
 The routines used to prescan declarations did not handle __declspec
 properly.  This could result in disambiguation problems and/or spurious
 errors on declarations of members of template classes.  Now fixed.
+Note that this test case correctly results in an error about the invalid
+use of dllimport.
 
   template <class T> struct X{ __declspec(dllimport) X(); };
   template <class T> __declspec(dllimport) X<T>::X() { }
