@@ -1966,7 +1966,7 @@ the routine; otherwise it is NULL.
            entries for types declared or defined in the function declarator. */
         bypass_prototype_scope_type_src_seq_entries();
         /* For a non-definition, also step through the parameter type list from
-           the definition it it's available (it gives the cv-qualifiers for
+           the definition if it's available (it gives the cv-qualifiers for
            the parameters). */
         if (rout != NULL && rout->defined) {
           a_type_ptr rout_type = rout->type;
