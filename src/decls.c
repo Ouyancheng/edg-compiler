@@ -5825,6 +5825,7 @@ within this routine if is_parenthesized comes in FALSE.
   a_source_position           start_pos;
   a_storage_class             storage_class;
   a_source_sequence_entry_ptr declarator_ssep = NULL;
+  a_decl_pos_block            decl_pos_block;
 
   db_enter(3, "new_type_name");
   /* Check for the parenthesized form. */
@@ -5834,10 +5835,11 @@ within this routine if is_parenthesized comes in FALSE.
   }  /* if */
   if (is_parenthesized) add_stop_token(tok_rparen);
   set_err_pos_to_curr_token();
+  clear_decl_pos_block(&decl_pos_block);
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_NEW_TYPE_NAME,
                         &dso_flags, &storage_class, type_ptr, &qualifiers,
-                        &decl_modifiers, (a_decl_pos_block_ptr)NULL);
+                        &decl_modifiers, &decl_pos_block);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
@@ -5859,7 +5861,7 @@ within this routine if is_parenthesized comes in FALSE.
                  /*member_parent_type=*/(a_type_ptr)NULL,
                  (a_symbol_locator *)NULL, type_ptr,
                  &declarator_ssep, (a_func_info_block_ptr)NULL,
-                 (a_decl_pos_block_ptr)NULL);
+                 &decl_pos_block);
     }  /* if */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
@@ -5873,7 +5875,7 @@ within this routine if is_parenthesized comes in FALSE.
 				       (a_call_conv_descr_ptr)NULL,
                                        (a_type_qualifier_set *)NULL,
                                        (a_type_qualifier_set *)NULL,
-                                       (a_decl_pos_block_ptr)NULL);
+                                       &decl_pos_block);
     derived_type = NULL;
     bottom_derived_type = NULL;
     add_stop_token(tok_lbracket);
@@ -5886,7 +5888,7 @@ within this routine if is_parenthesized comes in FALSE.
                        /*vla_asterisk_allowed=*/FALSE,
                        /*top_level_field_decl=*/FALSE,
                        /*restrict_allowed=*/FALSE, &restrict_seen,
-                       (a_decl_pos_block_ptr)NULL);
+                       &decl_pos_block);
       add_to_derived_type_list(new_type_ptr,
                                &derived_type, &bottom_derived_type);
       while (curr_token == tok_lbracket) {
@@ -5895,7 +5897,7 @@ within this routine if is_parenthesized comes in FALSE.
                          /*vla_asterisk_allowed=*/FALSE,
                          /*top_level_field_decl=*/FALSE,
                          /*restrict_allowed=*/FALSE, &restrict_seen,
-                         (a_decl_pos_block_ptr)NULL);
+                         &decl_pos_block);
         /* Add the new type to the bottom of the existing derived type list.
            Note that this involves error checking. */
         add_to_derived_type_list(new_type_ptr,
@@ -5915,6 +5917,13 @@ within this routine if is_parenthesized comes in FALSE.
     remove_stop_token(tok_lbracket);
     *type_ptr = complete_type;
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (decl_pos_block.declarator_range.end.seq != 0) {
+    curr_construct_end_position = decl_pos_block.declarator_range.end;
+  } else {
+    curr_construct_end_position = decl_pos_block.specifiers_range.end;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (any_cfront_mode() &&
       check_member_function_typedef(*type_ptr, &start_pos)) {
     /* The type is a cfront-style member function typedef -- it is an error
@@ -5949,7 +5958,9 @@ where the type involves more than one token -- e.g., "unsigned int(x)".
                         &decl_modifiers, &decl_pos_block);
   /* Set error_position to the start of the type-specifier sequence. */
   error_position = pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = decl_pos_block.specifiers_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   return type_ptr;
 }  /* simple_type_specifier_sequence */
 
