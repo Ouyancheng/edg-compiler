@@ -5140,6 +5140,7 @@ This routine may only be called in C++ mode.
   a_boolean		is_nonclass_dtor = FALSE;
   a_type_ptr		dtor_class_type = NULL;
   a_type_ptr		dtor_type = NULL;
+  a_source_position	tilde_position;
 
   db_enter(4, "is_generalized_identifier_start");
   /* If the current token is an identifier, then check the flag in the
@@ -5393,6 +5394,7 @@ This routine may only be called in C++ mode.
           mode. */
        is_vacuous_dtor = is_nonclass_dtor = TRUE;
      }  /* if */
+     tilde_position = pos_curr_token;
     } else if (is_qualified_name) {
       /* A class qualifier followed by something invalid.  Proceed as if
          it is an identifier and let an error be diagnosed later when we
@@ -5480,6 +5482,11 @@ This routine may only be called in C++ mode.
       /* The name can be a destructor name like "~A". */
       (void)get_destructor_name();
     }  /* if */
+    if (locator_for_curr_id.is_destructor_name) {
+      /* The position of the current identifier should be the tilde that
+         begins the destructor name. */
+      locator_for_curr_id.source_position = tilde_position;
+    }  /* if */
     if (is_vacuous_dtor && is_qualified_name) {
       /* Make sure a vacuous destructor reference is correctly formed. 
          These tests only apply if the vacuous destructor is part of
@@ -5492,7 +5499,8 @@ This routine may only be called in C++ mode.
           a_symbol_ptr	class_sym;
           class_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
           if (!destructor_name_matches_class_name(class_sym)) {
-            type_error(ec_destructor_name_mismatch, class_type);
+            pos_ty_error(ec_destructor_name_mismatch, &tilde_position,
+			 class_type);
   	    err = TRUE;
             /* Set the class type to NULL as an indicator to the
 	       coalesce routine that an error has occurred. */
@@ -5507,10 +5515,12 @@ This routine may only be called in C++ mode.
 	   scanning the part before the "::~", so don't issue another
            error here.  If the type of the thing after the "::~" is NULL,
            or doesn't match dtor_class_type, issue an error. */
-        if (dtor_class_type != NULL &&
-            (dtor_type == NULL ||
-			     (skip_typerefs(dtor_class_type) != dtor_type))) {
-          type_error(ec_destructor_type_mismatch, dtor_class_type);
+        if (dtor_class_type == NULL) {
+	  class_type = NULL;
+        } else if (dtor_type == NULL ||
+			(skip_typerefs(dtor_class_type) != dtor_type)) {
+          pos_ty_error(ec_destructor_type_mismatch, &tilde_position,
+		       dtor_class_type);
           err = TRUE;
           /* Set the class type to NULL as an indicator to the
 	     coalesce routine that an error has occurred. */
@@ -5638,9 +5648,11 @@ is looked up.  Returns TRUE if identifier is a qualified name.
         } else {
 	  a_boolean	is_vacuous_dtor =
 			 locator_for_curr_id.is_vacuous_destructor_reference;
+	  a_boolean	is_nonclass_dtor =
+			 locator_for_curr_id.is_nonclass_destructor;
           if (class_type == NULL) {
 	    okay = FALSE;
-          } else if (!is_vacuous_dtor && is_incomplete_type(class_type) &&
+          } else if (!is_nonclass_dtor && is_incomplete_type(class_type) &&
                      class_type->variant.class_struct_union.
                                          extra_info->assoc_scope == NULL) {
             /* An error must have occurred while scanning the class
@@ -5717,6 +5729,8 @@ is looked up.  Returns TRUE if identifier is a qualified name.
       issue_qualifier_access_errors(&locator_for_curr_id.access_errors);
     }  /* if */
   }  /* if */
+  /* Set error position to the beginning of the coalesced pseudo-token. */
+  error_position = pos_curr_token;
 
 #if DEBUG
   if (debug_level >= 4) {
