@@ -1,5 +1,10 @@
 Version 2.28
 
+1/9/95  Bug in make_temporary_in_scope
+
+A stupid bug introduced in version 2.27 caused some problems in linkage
+on variable lists when IL lowering adds temporaries.  Now fixed.
+
 1/6/94  Use of cfront member function typedefs
 
 When (in cfront mode only) a "member function typedef" is declared -- e.g.,
