@@ -4601,7 +4601,7 @@ skip_overloading:;
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (is_function) {
+  if (is_function && !C_mode()) {
     set_rout_src_seq_entry_for_default_arg_decl(routine_ptr, func_info);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
