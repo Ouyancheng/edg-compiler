@@ -67,13 +67,9 @@ not be exact.  This routine is used for processing the representation of
 fixed-point values as implicitly scaled integer values.)
 */
 {
-  a_constant  integer;
-  char        *str;
+  char	*str;
 
-  clear_constant(&integer, (a_constant_repr_kind)ck_integer);
-  integer.type= integer_type(is_signed ? targ_intmax_kind : targ_uintmax_kind);
-  integer.variant.integer_value = *ival;
-  str = str_for_integer_constant(&integer);
+  str = str_for_integer_value(ival, is_signed);
   fp_string_to_float((a_float_kind)fk_long_double, str, fval, err);
 }  /* conv_integer_value_to_long_double_value */
 
@@ -1199,15 +1195,10 @@ in building the hash table for shareable constants.  (This implementation
 assumes a_fixed_point_value is a synonym for an_integer_value.)
 */
 {
-  a_constant  int_constant;
   a_boolean   ovflo;
 
-  clear_constant(&int_constant, (a_constant_repr_kind)ck_integer);
-  int_constant.type = integer_type(targ_intmax_kind);
-  int_constant.variant.integer_value = *value;
-  
-  return (a_constant_hash_value)value_of_integer_constant(&int_constant,
-                                                          &ovflo);
+  return (a_constant_hash_value)
+         value_of_integer_value(value, /*is_signed=*/TRUE, &ovflo);
 }  /* fxp_hash */
 
 #endif /* FIXED_POINT_ALLOWED */

@@ -130,6 +130,11 @@ extern void make_integer_value_mask(an_integer_value *mask,
 
 extern a_boolean int_constant_is_signed(a_constant_ptr constant);
 
+extern a_host_large_integer value_of_integer_value(
+					an_integer_value	*int_value,
+					a_boolean		is_signed,
+					a_boolean		*ovflo);
+
 extern a_host_large_integer value_of_integer_constant(a_constant *cp,
                                                       a_boolean  *ovflo);
 
@@ -168,6 +173,9 @@ extern a_boolean is_max_value_for_integer_kind(a_constant      *con,
                                                an_integer_kind ikind);
 
 extern int bits_required_to_represent_integer_constant(a_constant *cp);
+
+extern char *str_for_integer_value(an_integer_value	*p_value,
+				   a_boolean		is_signed);
 
 extern char *str_for_integer_constant(a_constant *cp);
 

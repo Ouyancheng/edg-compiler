@@ -147,6 +147,29 @@ Return TRUE if the given integer constant's type is signed.
 }  /* int_constant_is_signed */
 
 
+a_host_large_integer value_of_integer_value(an_integer_value	*int_value,
+					    a_boolean		is_signed,
+					    a_boolean		*ovflo)
+/*
+Retrieve the value of the int_value and return it as a host large
+integer.  is_signed indicates whether int_value should be treated as signed.
+If the value is not representable as a host large integer, return *ovflo TRUE.
+*/
+{
+  a_host_large_integer	value;
+  a_boolean		err;
+
+  *ovflo = FALSE;
+  conv_integer_value_to_host_large_integer(int_value, is_signed, &value, &err);
+  if ((value < 0 && !is_signed) || err) {
+    /* Unsigned constant with value too large to represent or an
+       integer value that can't be represented as a host large integer. */
+    *ovflo = TRUE;
+  }  /* if */
+  return value;
+}  /* value_of_integer_value */
+
+
 a_host_large_integer value_of_integer_constant(a_constant *cp,
                                                a_boolean  *ovflo)
 /*
@@ -156,17 +179,9 @@ return *ovflo TRUE.
 */
 {
   a_host_large_integer	value;
-  a_boolean		is_signed = int_constant_is_signed(cp);
-  a_boolean		err;
 
-  *ovflo = FALSE;
-  conv_integer_value_to_host_large_integer(&cp->variant.integer_value,
-                                           is_signed, &value, &err);
-  if ((value < 0 && !is_signed) || err) {
-    /* Unsigned constant with value too large to represent or an
-       integer value that can't be represented as a host large integer. */
-    *ovflo = TRUE;
-  }  /* if */
+  value = value_of_integer_value(&cp->variant.integer_value,
+                                 int_constant_is_signed(cp), ovflo);
   return value;
 }  /* value_of_integer_constant */
 
@@ -1505,19 +1520,21 @@ The result is returned in the first operand (op_1 = op_1 % op_2).
 }  /* remainder_integer_values */
 
 
-char *str_for_integer_constant(a_constant *cp)
+char *str_for_integer_value(an_integer_value	*p_value,
+			    a_boolean		is_signed)
 /*
-Return a pointer to the literal form of the integer constant cp.  The
+Return a pointer to the literal form of the integer value *p_value.
+is_signed indicates whether the value should be treated as signed.  The
 pointer is to an internal static buffer.  If the value is negative, it is
 preceded by a "-".
 */
 {
   static char buffer[50];
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-  (void)sprintf(buffer, int_constant_is_signed(cp) ? 
+  (void)sprintf(buffer, is_signed ?
                             PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE :
                             PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE,
-                        cp->variant.integer_value);
+                        *p_value);
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   static a_boolean	initialized = FALSE;
   static long		max_power_of_10;
@@ -1541,10 +1558,10 @@ preceded by a "-".
       digits_in_max_power_of_10++;
     }  /* while */
   }  /* if */
-  value = cp->variant.integer_value;
+  value = *p_value;
   /* If the number is negative, save the sign and convert the number
      to be positive. */
-  if (sign_of(value) && int_constant_is_signed(cp)) {
+  if (sign_of(value) && is_signed) {
     sign_string = "-";
     negate_integer_value(&value, &err);
   }  /* if */
@@ -1584,6 +1601,21 @@ preceded by a "-".
   }  /* for */
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   return buffer;
+}  /* str_for_integer_value */
+
+
+char *str_for_integer_constant(a_constant *cp)
+/*
+Interface to str_for_integer_value that extracts the value and signedness
+from the constant pointed to by cp.  The pointer returned is to an internal
+static buffer.
+*/
+{
+  char	*result;
+
+  result = str_for_integer_value(&cp->variant.integer_value,
+                                 int_constant_is_signed(cp));
+  return result;
 }  /* str_for_integer_constant */
 
 #if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER || FIXED_POINT_ALLOWED
