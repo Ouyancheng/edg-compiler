@@ -1062,12 +1062,34 @@ but it always gets the right answer.
 
 /* Determine length of multibyte character sequence. */
 extern int mbc_length(char *ptr);
+
 #if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
 /* Use custom processing for SJIS instead of the C library routines. */
+
+/* A character in the range [0x81,0x9f] or [0xe0,0xfc] is the first of a
+   two-character SJIS sequence.  Other characters are single characters. */
+/* Note that there is variation among implementations of SJIS, and the
+   limits of those ranges can be slightly different in some cases.
+   The macro here should be replaced as necessary. */
+#ifndef is_first_char_of_sjis_two_char_sequence
+#define is_first_char_of_sjis_two_char_sequence(ch) \
+  ((0x81 <= (ch) && (ch) <= 0x9f) || (0xe0 <= (ch) && (ch) <= 0xfc))
+#endif /* ifndef is_first_char_of_sjis_two_char_sequence */
+
+/* The second character of a two-character SJIS sequence is required
+   to be in the range [0x40,0xfc].  Again, there is some variation between
+   implementations, and the macro here should be replaced as necessary. */
+#ifndef is_valid_sjis_second_char
+#define is_valid_sjis_second_char(ch) \
+  (0x40 <= (ch) && (ch) <= 0xfc)
+#endif /* ifndef is_valid_sjis_second_char */
+
 /* Initialize for using mbc_length within one string of source characters. */
 #define mbc_scan_init() /* Nothing. */
+
 #else /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
 /* Use the standard C library routines. */
+
 /*
 Locale to set when multibyte characters are enabled in source code.
 */
@@ -1087,6 +1109,7 @@ Locale to set when multibyte characters are enabled in source code.
 #include <locale.h>
 /* Initialize for using mbc_length within one string of source characters. */
 #define mbc_scan_init() ((void)mblen(NULL, MB_CUR_MAX))
+
 #endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 

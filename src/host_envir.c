@@ -2541,16 +2541,13 @@ Return 1 if the sequence there is invalid.
 #if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
   /* Use custom code for SJIS instead of the C library routines. */
   unsigned char ch = (unsigned char)*ptr;
-  /* A character in the range [0x81,0x9f] or [0xe0,0xfc] is the first of a
-     two-character sequence.  Other characters are single characters. */
-  /* Note that there is variation among implementations of SJIS, and the
-     limits of those ranges can be slightly different in some cases.
-     The code here should be adjusted as necessary. */
-  if ((0x81 <= ch && ch <= 0x9f) || (0xe0 <= ch && ch <= 0xfc)) {
-    /* Two-character sequence.  Check validity of second character, which
-       must be in the range [0x40,0xfc]. */
+  /* Check for codes that indicate the first character of a two-character
+     sequence.  Note that the test functions are macros that can be
+     replaced as necessary. */
+  if (is_first_char_of_sjis_two_char_sequence(ch)) {
+    /* Two-character sequence.  Check validity of second character. */
     ch = (unsigned char)(ptr[1]);
-    if (0x40 <= ch && ch <= 0xfc) {
+    if (is_valid_sjis_second_char(ch)) {
       len = 2;
     } else {
       /* Invalid sequence.  Advance bytewise. */
