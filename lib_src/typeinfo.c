@@ -95,6 +95,16 @@ Destructor for type_info.  This should never actually be called.
 }  /* type_info::~type_info */
 
 
+type_info::type_info(void* type_info_impl)
+/*
+Constructor called by IL lowering to initialize a type_info.  type_info_impl
+points to a_type_info_impl.
+*/
+{
+  _type_info = type_info_impl;
+}  /* type_info::type_info */
+
+
 bad_cast::bad_cast() throw()
 /*
 Constructor for bad_cast.
