@@ -3549,11 +3549,16 @@ The region table variable is created if necessary.
                                      (an_insert_location_ptr)NULL,
                                      &vtt_addr_node);
 #else /* !IA64_ABI */
-    vtt_addr_node = vtbl_addr_from_construction_vtbls_array(
+    { a_construction_vtbl_array_index index =
+                        (dedp->construction_vtbls_var_is_array ?
+                          (a_construction_vtbl_array_index)1 :
+                          dedp->subobject_construction_base_class->
+                               base_subarray_index_in_construction_vtbl_array);
+      vtt_addr_node = vtbl_addr_from_construction_vtbls_array(
                              dedp->construction_vtbls_var,
                              (a_boolean)dedp->construction_vtbls_var_is_array,
-                             dedp->subobject_construction_base_class->
-                               base_subarray_index_in_construction_vtbl_array);
+                             index);
+    }
 #endif /* IA64_ABI */
     /* Assign the VTT pointer to a temporary. */
     temp_var = make_lowered_temporary(make_virtual_table_table_pointer_type());
