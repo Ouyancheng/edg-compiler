@@ -876,24 +876,27 @@ Visit all the class types of the indicated scope and look for typeinfo
 variables (generated earlier).  For each typeinfo variable, generate
 the appropriate definition if one is needed.  This routine is called
 twice, with preparation_pass == FALSE and then TRUE; the definition
-is generated on the second pass.
+is generated on the second pass.  Note that all the typeinfo variables
+are in the file scope, but the classes that refer to them can be in
+a function or block scope.
 */
 {
-  a_type_ptr      type;
-  a_scope_ptr     class_scope, block_scope;
-  a_namespace_ptr nsp;
-  a_boolean       definition_needed, force_static;
+  a_type_ptr  type;
+  a_scope_ptr block_scope;
+  a_boolean   definition_needed, force_static;
 
-  /* Visit all types to find all class types. */
-  /* Note that when processing a function or block scope we will be crossing
-     into the file scope here, but these class types are truly local types
-     and are not used in the file scope, so it's okay to define their
-     typeinfo variables now. */
   /* Once all of the typeinfo variables have been found, quit.  In the second
      pass, this happens once all of the typeinfo variables have been processed.
      In the first pass, the count of pending entries doesn't get decremented
      (because the entries remain pending), but the test is still useful for
      the case where there are no typeinfo variables at all. */
+  /* Visit all types to find all class types.  Note that this routine is
+     called at the end of lowering a memory region, so the IL is flattened
+     here; there are no nested classes and no namespaces. */
+  /* Note that when processing a function or block scope we will be crossing
+     into the file scope here, but these class types are truly local types
+     and are not used in the file scope, so it's okay to define their
+     typeinfo variables now. */
   for (type = scope->types;
        type != NULL && num_of_pending_class_typeinfo_vars != 0;
        type = type->next) {
@@ -937,21 +940,6 @@ is generated on the second pass.
           num_of_pending_class_typeinfo_vars--;
         }  /* if */
       }  /* if */
-      /* If the class has a definition, visit the class members. */
-      class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
-      if (class_scope != NULL) {
-        r_define_scope_class_typeinfo_vars(class_scope, preparation_pass);
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  /* Visit all namespaces. */
-  /* Once all of the typeinfo variables have been found, quit. */
-  for (nsp = scope->namespaces;
-       nsp != NULL && num_of_pending_class_typeinfo_vars != 0;
-       nsp = nsp->next) {
-    if (!nsp->is_namespace_alias) {
-      r_define_scope_class_typeinfo_vars(nsp->variant.assoc_scope,
-                                         preparation_pass);
     }  /* if */
   }  /* for */
   /* Visit all block scopes. */
