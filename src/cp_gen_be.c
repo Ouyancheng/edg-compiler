@@ -3495,11 +3495,13 @@ is the one associated with the definition of the enum.
   /* Generate "enum <name>". */
   write_tok_str("enum");
 #if MICROSOFT_EXTENSIONS_ALLOWED
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
   if (type->variant.integer.uuid_string != NULL) {
     /* enum types may carry uuid specifications. */
     write_space();
     gen_microsoft_uuid_declspec(type->variant.integer.uuid_string);
   }  /* if */
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Put out the name if the enum is named.  In C mode, invent a name for
      an unnamed enum because it may be needed for casts to enum types defined
