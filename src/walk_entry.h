@@ -724,13 +724,11 @@ the file scope, do not process it (but record an orphan in the latter case).
         } else {
           /* The local "types" and static "variables" at function scope or
              block scope within a function are in the file scope memory region.
-             Both are potentially a list of like IL entries chained together
-             by their "next" pointer. */
+             They will be processed during the file scope memory region
+             walk because an_orphaned_il_list entry for these lists would
+             have been created. */
           remap_ptr(ptr->types, a_type_ptr, iek_type);
           remap_ptr(ptr->variables, a_variable_ptr, iek_variable);
-#if DO_SUBTREE_WALK
-          add_orphaned_file_scope_il_list(ptr->types, ptr->variables);
-#endif /* DO_SUBTREE_WALK */
         }  /* if */
         walk_list(ptr->nonstatic_variables, a_variable_ptr, iek_variable);
 #else /* ifndef CFE */

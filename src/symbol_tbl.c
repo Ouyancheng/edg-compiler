@@ -6201,13 +6201,15 @@ End a name scope by popping an entry off the scope stack.
   a_boolean                old_region_still_needed;
   a_boolean		   do_semivisible_type_processing = TRUE;
   a_boolean                is_prototype_instantiation = FALSE;
+  a_scope_ptr              il_scope;
 
   db_enter(3, "pop_scope");
   ssep = &scope_stack[depth_scope_stack];
   kind = ssep->kind;
+  il_scope = ssep->il_scope;
   if (kind == (a_scope_kind)sck_function) {
     /* If the scope is for a routine, get a pointer to the routine. */
-    curr_routine = ssep->il_scope->variant.routine.ptr;
+    curr_routine = il_scope->variant.routine.ptr;
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
@@ -6344,9 +6346,9 @@ End a name scope by popping an entry off the scope stack.
        to the IL scope entry if there is one, or otherwise add it to
        the local scopes list for the parent scope.  We are doing this
        to avoid allocating IL scopes for empty block scopes. */
-    if (ssep->il_scope != NULL) {
+    if (il_scope != NULL) {
       /* There is an allocated IL scope entry. */
-      ssep->il_scope->scopes = ssep->first_scope;
+      il_scope->scopes = ssep->first_scope;
     } else {
       /* Add the list of scopes to the list for the parent scope. */
       parent_ssep = ssep-1;
@@ -6358,6 +6360,19 @@ End a name scope by popping an entry off the scope stack.
       parent_ssep->last_scope = ssep->last_scope;
     }  /* if */
   }  /* if */
+#if ORPHAN_PROCESSING_NEEDED
+  if (kind == (a_scope_kind)sck_function ||
+      kind == (a_scope_kind)sck_block) {
+    /* If a function or block scope has local types or static variables,
+       make a special entry to record those orphan lists on the il_header
+       orphaned_il_list so they can be found when processing the file
+       scope memory region. */
+    if (il_scope != NULL &&
+        (il_scope->types != NULL || il_scope->variables != NULL)) {
+      add_orphaned_file_scope_il_list(il_scope->types, il_scope->variables);
+    }  /* if */
+  }  /* if */
+#endif /* ORPHAN_PROCESSING_NEEDED */
   /* For any entities on the extern_type_fixup_list, restore the type of the
      variable or routine to what it was earlier.  This is used for cases like
        int a[];

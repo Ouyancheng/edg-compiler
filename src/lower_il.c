@@ -67,32 +67,10 @@ static a_type_ptr
 Count of entries allocated, for debugging purposes.
 */
 static unsigned long
-		num_required_destructor_calls_allocated,
-		num_orphaned_types_lists_allocated;
+		num_required_destructor_calls_allocated;
 #endif /* DEBUG */
 
 
-
-/*
-Lists of "orphaned" local type entries.  These are entries allocated in
-the file-scope memory region but pointed to from the types pointer in a
-function or block scope.  They cannot be found during the lowering of the
-file scope memory region without a separate data structure.  The list
-here is built up as function memory regions are lowered, and the entries
-on the list are processed at the end of the file-scope lowering.  Note
-that the list here is in addition to the comprehensive list built
-in orphaned_file_scope_il_entries, which is also used in IL lowering.
-*/
-typedef struct an_orphaned_types_list *an_orphaned_types_list_ptr;
-typedef struct an_orphaned_types_list {
-  an_orphaned_types_list_ptr
-		next;	/* Pointer to the next entry (i.e., next scope)
-			   on the list. */
-  a_type_ptr	types;	/* The types list from that scope. */
-} an_orphaned_types_list;
-static an_orphaned_types_list_ptr
-		orphaned_types_list,
-		end_orphaned_types_list;
 
 /*
 Macro used to test for crossing over into the file scope, i.e., a
@@ -5978,34 +5956,6 @@ indirectly) part of the indicated routine.
 
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 
-
-static void add_types_list_to_orphaned_types_list(a_type_ptr types_list)
-/*
-Add the types on the indicated list to the end of the orphaned types list.
-*/
-{
-  an_orphaned_types_list_ptr otlp;
-
-  if (types_list != NULL) {
-    /* There are types on this list, so allocate an entry to remember the
-       types list pointer. */
-    otlp = (an_orphaned_types_list_ptr)
-                                      alloc_fe(sizeof(an_orphaned_types_list));
-#if DEBUG
-    num_orphaned_types_lists_allocated++;
-#endif /* DEBUG */
-    otlp->next = NULL;
-    otlp->types = types_list;
-    if (orphaned_types_list == NULL) {
-      orphaned_types_list = otlp;
-    } else {
-      end_orphaned_types_list->next = otlp;
-    }  /* if */
-    end_orphaned_types_list = otlp;
-  }  /* if */
-}  /* add_types_list_to_orphaned_types_list */
-
-
 static void lower_scope_list(a_scope_ptr scope_list)
 /*
 Do IL lowering of the indicated list of scopes and everything under it.
@@ -6190,13 +6140,8 @@ Do IL lowering of the indicated scope and everything under it.
     /* In function and block scopes, the types and variables lists point into
        the file scope memory region, and are not lowered at this time.
        They are lowered as part of lowering the file scope memory region. */
-    /* Remember the orphaned type list so those types can be processed in
-       the proper order at the end of lowering the file scope memory region. */
-    add_types_list_to_orphaned_types_list(scope->types);
-    /* Also remember the orphaned static variables. */
-    if (scope->variables != NULL) {
-      record_orphaned_il_entry(scope->variables, iek_variable);
-    }  /* if */
+    /* Note that an entry for this scope will have already been placed on
+       the il_header.orphaned_il_list. */
   }  /* if */
   lower_variable_list(scope->nonstatic_variables);
   lower_label_list(scope->labels);
@@ -6259,15 +6204,16 @@ to only from a function scope, and are therefore in the file scope but
 not reachable from the normal file-scope IL tree.
 */
 {
-  an_orphaned_types_list_ptr otlp;
-  an_il_entry_kind           kind;
-  char                       *entry_ptr;
+  an_orphaned_il_list_ptr oilp;
+  an_il_entry_kind        kind;
+  char                    *entry_ptr;
 
-  /* First lower the list of types saved by IL lowering itself.  This is
-     done as a separate step so that the class types can be processed in
-     the original source order. */
-  for (otlp = orphaned_types_list; otlp != NULL; otlp = otlp->next) {
-    lower_type_list(otlp->types);
+  /* First lower the list of orphaned types and variables from function
+     and block scopes.  This is done as a separate step so that the class
+     types can be processed in the original source order. */
+  for (oilp = il_header.orphaned_il_list; oilp != NULL; oilp = oilp->next) {
+    lower_type_list(oilp->orphaned_types);
+    lower_variable_list(oilp->orphaned_variables);
   }  /* if */
   /* Now visit all the orphaned entries recorded by the more general scheme. */
   /* Look at each IL entry kind (e.g., types, constants). */
@@ -6389,8 +6335,6 @@ Display and return the amount of space used for various IL lowering tables.
   db_space_used_lost("required dtor call", avail_required_destructor_calls,
                      num_required_destructor_calls_allocated,
                      a_required_destructor_call);
-  db_space_used("orphaned type list", num_orphaned_types_lists_allocated,
-                an_orphaned_types_list);
 
   db_space_used_total();
 
@@ -6419,12 +6363,9 @@ of the front end.
   pure_virtual_called_routine = NULL;
   vptp_type = NULL;
   mptr_type = NULL;
-  orphaned_types_list = NULL;
-  end_orphaned_types_list = NULL;
   type_promotion_insert_location = NULL;
 #if DEBUG
   num_required_destructor_calls_allocated = 0;
-  num_orphaned_types_lists_allocated      = 0;
 #endif /* DEBUG */
   /* Do lower_name.c initialization. */
   name_lower_init();
