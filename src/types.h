@@ -157,6 +157,10 @@ extern a_boolean impl_pointer_conversion(
                                 a_boolean     suppress_extensions,
                                 an_error_code default_warning_code,
                                 an_error_code *warning_suggested);
+extern a_boolean impl_ptr_to_member_conversion(a_type_ptr    source_type,
+                                               a_boolean    source_is_constant,
+                                               a_constant    *source_constant,
+                                               a_type_ptr    dest_type);
 extern a_boolean impl_conversion_possible(a_type_ptr    source_type,
                                           a_boolean     source_is_constant,
                                           a_constant    *source_constant,

@@ -1928,6 +1928,75 @@ be ignored.
 }  /* member_types_correspond */
 
 
+a_boolean impl_ptr_to_member_conversion(a_type_ptr    source_type,
+                                        a_boolean     source_is_constant,
+                                        a_constant    *source_constant,
+                                        a_type_ptr    dest_type)
+/*
+Return TRUE if it's okay to implicitly convert something of type source_type
+(any type) to something of type dest_type (a pointer to member type).
+If source_is_constant is TRUE, the source is a constant, and source_constant
+points to the constant value.  (That's needed to check for conversions of a
+null pointer constant to a pointer to member type.)
+
+Note that any type qualifiers on the types themselves (rather than the
+types pointed to) are ignored.
+
+See ARM 5.17 (assignment operators) and 4.8 (standard conversions for
+pointers to members).
+*/
+{
+  a_boolean  okay = FALSE;
+  a_type_ptr source_class, dest_class;
+  a_type_ptr source_member_type, dest_member_type;
+
+  db_enter(5, "impl_ptr_to_member_conversion");
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "impl_ptr_to_member_conversion: source_type = ");
+    db_abbreviated_type(source_type);
+    fprintf(f_debug, ", dest_type = ");
+    db_abbreviated_type(dest_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  source_type = skip_typerefs(source_type);
+  dest_type = skip_typerefs(dest_type);
+  if (is_ptr_to_member_type(source_type)) {
+    /* Pointer-to-member --> pointer-to-member.  Allowed if the types pointed
+       to are the same (ignoring the difference in "this" parameter types)
+       and the classes involved are the same or the destination class is an
+       unambiguous derived (sic) class of the source class.  See ARM 4.8. */
+    source_class = source_type->variant.ptr_to_member.class_of_which_a_member;
+    dest_class = dest_type->variant.ptr_to_member.class_of_which_a_member;
+    source_member_type = source_type->variant.ptr_to_member.type;
+    dest_member_type = dest_type->variant.ptr_to_member.type;
+    if (is_same_class_or_base_class_thereof(dest_class, source_class) &&
+        member_types_correspond(dest_member_type, source_member_type)) {
+      /* We leave the ambiguity and accessibility check to be done when
+         the cast is done. */
+      okay = TRUE;
+    }  /* if */
+  } else if (source_is_constant &&
+             is_null_pointer_constant(source_constant)) {
+    /* 0 --> pointer-to-member.  See ARM 4.8. */
+    okay = TRUE;
+  } else if (is_error(source_type)) {
+    /* Error --> pointer to member is always allowed. */
+    okay = TRUE;
+  }  /* if */
+
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "impl_ptr_to_member_conversion: %s\n",
+                     okay ? "okay" : "not okay");
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return okay;
+}  /* impl_ptr_to_member_conversion */
+
+
 a_boolean impl_conversion_possible(a_type_ptr    source_type,
                                    a_boolean     source_is_constant,
                                    a_constant    *source_constant,
@@ -2049,28 +2118,9 @@ See conversion_possible.
                                    warning_suggested);
   } else if (is_ptr_to_member_type(dest_type)) {
     /* Conversion to a C++ pointer-to-member type. */
-    if (is_ptr_to_member_type(source_type)) {
-      /* Pointer-to-member --> pointer-to-member.  Allowed if the types pointed
-         to are the same (ignoring the difference in "this" parameter types)
-         and the classes involved are the same or the destination class is an
-         unambiguous derived (sic) class of the source class.  See ARM 4.8. */
-      a_type_ptr source_class, dest_class;
-      a_type_ptr source_member_type, dest_member_type;
-      source_class =source_type->variant.ptr_to_member.class_of_which_a_member;
-      dest_class = dest_type->variant.ptr_to_member.class_of_which_a_member;
-      source_member_type = source_type->variant.ptr_to_member.type;
-      dest_member_type = dest_type->variant.ptr_to_member.type;
-      if (is_same_class_or_base_class_thereof(dest_class, source_class) &&
-          member_types_correspond(dest_member_type, source_member_type)) {
-        /* We leave the ambiguity and accessibility check to be done when
-           the cast is done. */
-        okay = TRUE;
-      }  /* if */
-    } else if (source_is_constant &&
-               is_null_pointer_constant(source_constant)) {
-      /* 0 --> pointer-to-member.  See ARM 4.8. */
-      okay = TRUE;
-    }  /* if */
+    okay = impl_ptr_to_member_conversion(source_type,
+                                         source_is_constant, source_constant,
+                                         dest_type);
   } else if (is_error(dest_type)) {
     /* Anything can be converted to an error type. */
     okay = TRUE;
