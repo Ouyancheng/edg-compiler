@@ -344,6 +344,10 @@ driver_debug=0
 #
 pch_test_mode=0
 #
+# Special option for testing multiple translation unit processing
+#
+trans_unit_test_mode=0
+#
 # Debug option that causes nm to be run on object files
 #
 nm_on_objects=0
@@ -637,6 +641,7 @@ check_abbreviation()
 --time_limit
 --timing
 --trace_includes
+--trans_unit_test_mode
 --typename
 --undefine_macro
 --unsigned_chars
@@ -882,6 +887,10 @@ process_option()
     --pch_test_mode)
 #     Special option for testing precompiled headers
       pch_test_mode=1
+      ;;
+    --trans_unit_test_mode)
+#     Special option for testing multiple translation unit processing
+      trans_unit_test_mode=1
       ;;
     --old_ii_format)
 #     Use the old .ii file format that does not include the current directory
@@ -1580,6 +1589,11 @@ do
     fi
   fi
   command=${CPFE}" "$feoptions" "$gen_c_option" "$ii_file_option" "$ti_file_option" "$instantiation_dir_option" "$EDG_CPFE_DEFAULT_OPTIONS" "$cfile
+  if [ $trans_unit_test_mode -eq 1 ] ; then
+    # In translation unit test mode, specify the source file to be compiled
+    # twice on the front end invocation command.
+    command=$command" "$cfile
+  fi
   if [ $driver_debug -ne 0 ] ; then
     echo $command
   fi
