@@ -148,9 +148,9 @@ Clear the block used to contain information while working out class layout.
 }  /* clear_layout_block */
 
 
-static void check_enum_type_for_bit_field(a_type_ptr bit_field_type,
-                                          long       bit_field_size,
-                                          a_boolean *need_signed_type)
+static void check_enum_type_for_bit_field(a_type_ptr    bit_field_type,
+                                          unsigned long bit_field_size,
+                                          a_boolean     *need_signed_type)
 /*
 Check to see that the values of the enumerated type bit_field_type will all
 fit in a bit field of size bit_field_size.  If not, give a warning.  Return
@@ -258,11 +258,11 @@ of the declaration (unsigned int in the above example); it may be updated
 on return.  *p_bit_field_size is set to the bit field size in bits.
 */
 {
-  long       bit_field_size, max_size_allowed;
-  a_type_ptr base_type = *p_base_type;
-  a_boolean  err;
-  a_constant constant;
-  a_type_ptr bit_field_type;
+  unsigned long bit_field_size, max_size_allowed;
+  a_type_ptr    base_type = *p_base_type;
+  a_boolean     err;
+  a_constant    constant;
+  a_type_ptr    bit_field_type;
 
   /* Bit field.  ANSI says the type of a bit-field must be int, unsigned int,
      or signed int, but we also allow enums and integral types (see A.6.5.8
