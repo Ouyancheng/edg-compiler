@@ -237,14 +237,14 @@ typedef struct a_destructible_entity_descr {
 			   pointed to by region_table_entry.  For one thing,
 			   this does not leave a lifetime, whereas the
 			   previous entry in the region table might be from
-			   a previous lifetime. */
-#if DO_UNORDERED_EH_PROCESSING
-			/* In the presence of unordered initializations in the
+			   a previous lifetime.  Another way of describing
+			   this field: it links an initialization to the one
+			   processed most recently before it.  In the
+			   presence of unordered initializations in the
 			   IL, lowering traversal order (reflected by this
 			   pointer) might be slightly different than the
 			   front end order (reflected by the dynamic init
 			   next_in_destruction_list pointer). */
-#endif /* DO_UNORDERED_EH_PROCESSING */
 #endif /* GENERATE_EH_TABLES */
 } a_destructible_entity_descr;
 
