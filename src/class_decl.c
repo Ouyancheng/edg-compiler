@@ -4884,8 +4884,7 @@ The routine body is not generated until it is known to be needed.
     ptp = alloc_param_type(make_reference_type(
                              make_qualified_type(class_type,
                                                  /*is_const=*/const_okay,
-                                                 /*is_volatile=*/FALSE)),
-                           /*at_file_scope=*/FALSE);
+                                                 /*is_volatile=*/FALSE)));
     generate_special_function(class_type, ptp,
                               (a_special_function_kind)sfk_constructor);
   }  /* if */
@@ -4902,8 +4901,7 @@ The routine body is not generated until it is known to be needed.
     ptp = alloc_param_type(make_reference_type(
                              make_qualified_type(class_type,
                                                  /*is_const=*/const_okay,
-                                                 /*is_volatile=*/FALSE)),
-                           /*at_file_scope=*/FALSE);
+                                                 /*is_volatile=*/FALSE)));
     generate_special_function(class_type, ptp,
                               (a_special_function_kind)sfk_operator);
     cssp->assignment_by_bitwise_copy_allowed = bitwise_copy_okay;
@@ -5382,13 +5380,11 @@ class/struct/union is actually defined.
        type which has visibility outside the function scope.  So switch
        to the file scope memory region before allocating the type entry,
        and switch back after the allocation is complete. */
-#if 0
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    class_type = alloc_type(type_kind);
-    switch_back_to_original_region(region_to_switch_back_to);
-#else
-    class_type = alloc_type(type_kind);
-#endif /* if 0 */
+    if (tag_id_present) {
+      class_type = alloc_named_type(type_kind);
+    } else {
+      class_type = alloc_unlinked_type(type_kind);
+    }  /* if */
     /* Wait to add the type to the types list; it should not be added
        until the closing brace of the full definition appears, to get the
        IL list in the right order. */
@@ -6007,7 +6003,6 @@ next_declaration:
     /* Adding the type to the current scope's types list is done after
        reaching the closing brace to get the IL types list in the right
        order. */
-#if 0
     if (prototype_tag_resolution) {
       /* Tags that were declared in a prototype scope were added to the types
          list at the end of the prototype scope, so do not add them again. */
@@ -6019,7 +6014,6 @@ next_declaration:
       add_to_types_list(class_type, DEPTH_OF_FILE_SCOPE,
                         /*in_old_style_param_decl_list=*/FALSE);
     }  /* if */
-#endif /* if 0 */
     /* Save a pointer to the list of member symbols in the tag symbol.  Note
        that there may be symbols even if there there were no declarations,
        since symbols may be inherited. */
