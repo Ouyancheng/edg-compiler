@@ -7882,16 +7882,7 @@ within this routine if is_parenthesized comes in FALSE.
   }  /* if */
   /* Note -- the check for dangling_type_specifier is not relevant here. */
   if (is_parenthesized) {
-    a_boolean  closing_paren_already_seen = FALSE;
     /* In the parenthesized form, the full declarator syntax is allowed. */
-    if (gpp_mode && curr_token == tok_rparen) {
-      /* GNU C++ will allow the full declarator syntax even when only the
-         specifier is parenthesized.  For example, in "new (int)[3]" the
-         new expression is normally restricted to "new (int)", but GNU C++
-         also picks up the "[3]". */
-      (void)get_token();
-      closing_paren_already_seen = TRUE;
-    }  /* if */
     if (is_abstract_declarator_start()) {
       declarator(DI_ABSTRACT_DECLARATOR_ALLOWED |
                     DI_QUALIFIED_NAME_ALLOWED |
@@ -7902,10 +7893,22 @@ within this routine if is_parenthesized comes in FALSE.
                  &declarator_ssep, (a_func_info_block_ptr)NULL,
                  &decl_pos_block, (an_attribute_ptr *)NULL);
     }  /* if */
-    if (!closing_paren_already_seen) {
-      (void)required_token(tok_rparen, ec_exp_rparen);
-    }  /* if */
+    (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
+    if (gpp_mode && curr_token == tok_lbracket) {
+      /* GNU C++ treats a left bracket after a parenthesized type name as
+         an array declarator that is part of the type name.  For example,
+         in "new (int)[3]" the new expression is normally restricted to
+         "new (int)", but GNU C++ also picks up the "[3]". */
+      declarator(DI_ABSTRACT_DECLARATOR_ALLOWED |
+                    DI_QUALIFIED_NAME_ALLOWED |
+                    DI_DIMENSION_EXPRESSION_ALLOWED,
+                 &do_flags, *type_ptr,
+                 /*member_parent_type=*/(a_type_ptr)NULL,
+                 (a_symbol_locator *)NULL, type_ptr,
+                 &declarator_ssep, (a_func_info_block_ptr)NULL,
+                 &decl_pos_block, (an_attribute_ptr *)NULL);
+    }  /* if */
   } else {
     /* In the non-parenthesized form, a limited declarator syntax is
        allowed. */
