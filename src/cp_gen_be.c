@@ -5361,9 +5361,19 @@ precedence confusion and need_parens is TRUE.
           if (need_parens) write_tok_ch('(');
           gen_boolean_controlling_expression(operand_1);
           write_tok_str(" ? ");
-          gen_lvalue(operand_2);
+          if (operand_2->kind == (an_expr_node_kind)enk_throw) {
+            /* An lvalue created out of a class rvalue can have a throw
+               in one of the arms.  Treat it as an rvalue. */
+            gen_expr_with_parens(operand_2);
+          } else {
+            gen_lvalue(operand_2);
+          }  /* if */
           write_tok_str(" : ");
-          gen_lvalue(operand_2->next);
+          if (operand_2->next->kind == (an_expr_node_kind)enk_throw) {
+            gen_expr_with_parens(operand_2->next);
+          } else {
+            gen_lvalue(operand_2->next);
+          }  /* if */
           if (need_parens) write_tok_ch(')');
           processed = TRUE;
           break;
