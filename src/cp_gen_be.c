@@ -170,6 +170,7 @@ typedef struct a_hidden_name_fixup {
   a_bit_field	qualification_needed:1;
   a_bit_field	elaborated_type_specifier_needed:1;
   a_bit_field	partially_hidden_by_microsoft_injected_class_name:1;
+  a_bit_field	visible_as_unqualified_name:1;
 			/* Flag values to restore. */
   a_tagged_pointer
 		entity;	/* Pointer to the entity to be fixed up. */
@@ -352,6 +353,7 @@ entry are saved for restoration at the end of the current name context.
 */
 {
   a_hidden_name_fixup_ptr hnfp;
+  a_source_correspondence *scp = (a_source_correspondence *)entity.ptr;
 
   if (avail_hidden_name_fixups != NULL) {
     /* Reuse a freed entry. */
@@ -363,11 +365,10 @@ entry are saved for restoration at the end of the current name context.
   }  /* if */
   hnfp->entity = entity;
   /* Save the flag values from the entity, for later restoration. */
-  hnfp->qualification_needed =
-                 ((a_source_correspondence *)entity.ptr)->qualification_needed;
+  hnfp->qualification_needed = scp->qualification_needed;
   hnfp->partially_hidden_by_microsoft_injected_class_name =
-                 ((a_source_correspondence *)entity.ptr)->
-                             partially_hidden_by_microsoft_injected_class_name;
+                        scp->partially_hidden_by_microsoft_injected_class_name;
+  hnfp->visible_as_unqualified_name = scp->visible_as_unqualified_name;
   if ((an_il_entry_kind)entity.kind == iek_type) {
     hnfp->elaborated_type_specifier_needed =
                     ((a_type_ptr)entity.ptr)->elaborated_type_specifier_needed;
@@ -399,51 +400,58 @@ hidden names in C, so there's no point in maintaining this information).
   a_hidden_name_ptr hnp;
 
   for (hnp = scope->hidden_names; hnp != NULL; hnp = hnp->next) {
-    a_boolean               fixup_created = FALSE;
+    a_boolean               injection_entry = FALSE;
     a_source_correspondence *scp= (a_source_correspondence *)(hnp->entity.ptr);
+    a_type_ptr              type = NULL;
+    if ((an_il_entry_kind)hnp->entity.kind == iek_type) {
+      type = (a_type_ptr)(hnp->entity.ptr);
+    }  /* if */
     /* See if the new values of the flags are the same as the present ones.
-       If not, change them and create a fixup entry that will cause the
-       flags to be reset to their former values at the end of the current
-       name context. */
+       If not, change them. */
+    /* The qualification_needed flag indicates that the entity must
+       be referred to with a qualified name (e.g., "A::x" or "::y")
+       in the current scope. */
+    /* The partially_hidden... flag indicates that the entity is
+       partially hidden in Microsoft mode.  It can be referred to
+       without qualification as a qualifier on another name,
+       but otherwise it must be referred to with qualification. */
+    /* The elaborated_type_specifier_needed flag indicates that the
+       entity must be referred to with an elaborated type specifier
+       (e.g., "class X" rather than just "X") in the current scope. */
     /* Note that a hidden name entry can cause a flag to be turned off.
        For example, if an inner scope can use an unqualified name and an
        outer scope needed to use a qualified name, a hidden name table
        entry with qualification_needed set to FALSE can turn off that
        flag.  (This happens, e.g., for an injected class name.) */
-    if (hnp->qualification_needed != scp->qualification_needed) {
-      /* The qualification_needed flag indicates that the entity must
-         be referred to with a qualified name (e.g., "A::x" or "::y").
-         in the current scope. */
-      alloc_hidden_name_fixup(hnp->entity);
-      fixup_created = TRUE;
-      scp->qualification_needed = hnp->qualification_needed;
+    if (!hnp->qualification_needed &&
+        !hnp->elaborated_type_specifier_needed) {
+      /* This entry turns all flags off, so it must represent a name
+         injection. */
+      injection_entry = TRUE;
     }  /* if */
-    if (hnp->partially_hidden_by_microsoft_injected_class_name !=
-        scp->partially_hidden_by_microsoft_injected_class_name) {
-      /* The partially_hidden... flag indicates that the entity is
-         partially hidden in Microsoft mode.  It can be referred to
-         without qualification as a qualifier on another name,
-         but otherwise it must be referred to with qualification. */
-      if (!fixup_created) {
-        alloc_hidden_name_fixup(hnp->entity);
-        fixup_created = TRUE;
-      }  /* if */
+    if (hnp->qualification_needed !=
+        scp->qualification_needed ||
+        hnp->partially_hidden_by_microsoft_injected_class_name !=
+        scp->partially_hidden_by_microsoft_injected_class_name ||
+        (type != NULL &&
+         hnp->elaborated_type_specifier_needed !=
+         type->elaborated_type_specifier_needed) ||
+        injection_entry) {
+      /* Create a fixup entry that will cause the flags to be reset to
+         their former values at the end of the current name context. */
+      alloc_hidden_name_fixup(hnp->entity);
+      /* Set the flags to the new values. */
+      scp->qualification_needed = hnp->qualification_needed;
       scp->partially_hidden_by_microsoft_injected_class_name =
                         hnp->partially_hidden_by_microsoft_injected_class_name;
-    }  /* if */
-    if ((an_il_entry_kind)hnp->entity.kind == iek_type) {
-      a_type_ptr type = (a_type_ptr)(hnp->entity.ptr);
-      if (hnp->elaborated_type_specifier_needed !=
-          type->elaborated_type_specifier_needed) {
-        /* The elaborated_type_specifier_needed flag indicates that the
-           entity must be referred to with an elaborated type specifier
-           (e.g., "class X" rather than just "X") in the current scope. */
-        if (!fixup_created) {
-          alloc_hidden_name_fixup(hnp->entity);
-          fixup_created = TRUE;
-        }  /* if */
+      if (type != NULL) {
         type->elaborated_type_specifier_needed =
                                          hnp->elaborated_type_specifier_needed;
+      }  /* if */
+      if (injection_entry) {
+        /* This entry is for an injected name.  Mark the entity as visible
+           even if its parent is not in the name context stack. */
+        scp->visible_as_unqualified_name = TRUE;
       }  /* if */
     }  /* if */
   }  /* for */
@@ -506,6 +514,7 @@ Pop the top entry off the name context stack.
     scp->qualification_needed = hnfp->qualification_needed;
     scp->partially_hidden_by_microsoft_injected_class_name =
                       hnfp->partially_hidden_by_microsoft_injected_class_name;
+    scp->visible_as_unqualified_name = hnfp->visible_as_unqualified_name;
     if ((an_il_entry_kind)(hnfp->entity.kind) == iek_type) {
       ((a_type_ptr)(hnfp->entity.ptr))->elaborated_type_specifier_needed =
                                         hnfp->elaborated_type_specifier_needed;
@@ -1686,8 +1695,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           (!scp->qualification_needed ||
            (scp->partially_hidden_by_microsoft_injected_class_name &&
             !(options & GN_QUALIFIER))) &&
-          scope_is_in_name_context_stack(class_type->variant.
-                                 class_struct_union.extra_info->assoc_scope)) {
+          (scp->visible_as_unqualified_name ||
+           scope_is_in_name_context_stack(class_type->variant.
+                                class_struct_union.extra_info->assoc_scope))) {
         /* A qualified name is not needed, because we're inside a name context
            for the class and the name is not hidden.  Note a subtle case in
            Microsoft mode: if the hiding symbol was an injected class, the
@@ -1702,7 +1712,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       /* The entity is a member of a namespace. */
       a_namespace_ptr nsp = scp->parent.namespace_ptr;
       if (!force_qualified_name && !scp->qualification_needed &&
-          scope_is_in_name_context_stack(nsp->variant.assoc_scope)) {
+          (scp->visible_as_unqualified_name ||
+           scope_is_in_name_context_stack(nsp->variant.assoc_scope))) {
         /* A qualified name is not needed, because we're inside a name context
            for the namespace and the name is not hidden. */
       } else {
