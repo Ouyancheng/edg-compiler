@@ -5695,7 +5695,9 @@ Returns TRUE if there is an error in the specifiers.
                  qualified name or even a template class. */
               a_boolean          lookup_err;
               a_symbol_ptr       tag_sym;
+              a_source_position  ident_pos;
 
+              ident_pos = pos_curr_token;
               tag_sym = coalesce_and_lookup_generalized_identifier(
                                       GID_NO_OPTIONS, ilm_normal, &lookup_err);
               /* Even if the lookup was successful, if the next token is not
@@ -5709,8 +5711,7 @@ Returns TRUE if there is an error in the specifiers.
                    okay in cfront compatibility mode.  Still, issue a remark
                    on use of a nonstandard feature. */
                 vacuous_decl_allowed = FALSE;
-                pos_st_remark(ec_nonstd_friend_decl,
-                              &locator_for_curr_id.source_position, "class");
+                pos_st_remark(ec_nonstd_friend_decl, &ident_pos, "class");
                 goto process_class_specifier;
               } else {
                 if (tag_sym == NULL || !is_class_symbol(tag_sym)) {
@@ -5725,7 +5726,7 @@ Returns TRUE if there is an error in the specifiers.
                      diagnostic in strict ANSI mode) to report the use of a
                      nonstandard feature. */
                   an_error_severity  severity;
-                  char               *s;
+                  char               *class_key_string;
 
                   if (strict_ansi_mode) {
                     /* Strict ANSI diagnostic in strict ANSI mode. */
@@ -5736,15 +5737,15 @@ Returns TRUE if there is an error in the specifiers.
                   }  /* if */
                   *type_ptr = type_symbol_type(tag_sym);
                   switch ((*type_ptr)->kind) {
-                    case tk_class:    s = "class";   break;
-                    case tk_struct:   s = "struct";  break;
-                    case tk_union:    s = "union";   break;
+                    case tk_class:   class_key_string = "class";   break;
+                    case tk_struct:  class_key_string = "struct";  break;
+                    case tk_union:   class_key_string = "union";   break;
 #if CHECKING
                     default: internal_error("decl_specifiers: bad type kind");
 #endif /* CHECKING */
                   }  /* switch */
                   pos_st_diagnostic(severity, ec_nonstd_friend_decl,
-                                    &locator_for_curr_id.source_position, s);
+                                    &ident_pos, class_key_string);
                 }  /* if */
                 basic_type = bt_struct_union;
                 is_elaborated_type_specifier = TRUE;
