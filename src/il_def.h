@@ -3788,6 +3788,10 @@ typedef struct an_expr_node {
 			/* TRUE if the operation is compiler-generated rather
 			   than explicitly present in the source program.
 			   Used in particular for casts. */
+      unsigned int
+		implicit_in_member_naming:1;
+			/* TRUE for a base class cast that is implicit in
+			   the name used in referring to a class member. */
       bitfield_to_avoid_codecenter_warnings();
       an_expr_node_ptr  
                 operands;

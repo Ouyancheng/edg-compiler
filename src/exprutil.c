@@ -1070,6 +1070,7 @@ static void add_base_class_casts(a_base_class_ptr  bcp,
                                  a_type_ptr        qualifiers_model,
                                  a_boolean         check_cast_access,
                                  a_boolean         is_implicit_cast,
+                                 a_boolean         implicit_in_naming,
                                  an_expr_node_ptr  *p_node,
                                  a_source_position *err_pos)
 /*
@@ -1077,8 +1078,12 @@ Add casts to *p_node to change its type from a pointer to a class type to
 a pointer to a base class of that class; bcp indicates the base class
 and qualifiers_model indicates the qualifiers to be placed on that class
 type.  Access control is done on the cast if check_cast_access is TRUE.
-is_implicit_cast is TRUE if the cast is implicit.  *err_pos indicates a
-source position to be used for errors.  This routine is only used in C++ mode.
+is_implicit_cast is TRUE if the cast is implicit.  implicit_in_naming
+is TRUE for casts that are generated implicitly in referencing a member
+of a class (roughly, in getting from the name used in the source --
+the projection symbol -- to the member actually used in the IL).
+*err_pos indicates a source position to be used for errors.  This
+routine is only used in C++ mode.
 */
 {
   a_boolean             access_okay;
@@ -1121,6 +1126,8 @@ source position to be used for errors.  This routine is only used in C++ mode.
       *p_node = make_operator_node((an_expr_operator_kind)eok_base_class_cast,
                                    make_pointer_type(qual_curr_type), *p_node);
       (*p_node)->variant.operation.compiler_generated = is_implicit_cast;
+      (*p_node)->variant.operation.implicit_in_member_naming =
+                                                            implicit_in_naming;
     }  /* for */
   }  /* if */
 }  /* add_base_class_casts */
@@ -1341,7 +1348,8 @@ invalid casts of that kind (e.g., ambiguous).
          the base class is inaccessible. */
       add_base_class_casts(bcp, new_type_pointed_to,
                            /*check_cast_access=*/is_implicit_cast,
-                           is_implicit_cast, p_node, err_pos);
+                           is_implicit_cast, /*implicit_in_naming=*/FALSE,
+                           p_node, err_pos);
     } else {
       /* Base --> derived.  Valid unless the cast is ambiguous or the base
          class is a virtual base of the derived class. */
@@ -1615,15 +1623,19 @@ convert operand to an address and set *is_arrow_operator to TRUE.
 void base_class_cast_operand(an_operand       *operand,
                              a_base_class_ptr bcp,
                              a_boolean        *is_arrow_operator,
-                             a_boolean        check_cast_access)
+                             a_boolean        check_cast_access,
+                             a_boolean        implicit_in_naming)
 /*
 Cast operand (of class or pointer-to-class type) to its base class
 identified by bcp.  If *is_arrow_operator is TRUE, operand is being
 used as a pointer ("->"); otherwise, it is being used as an object (".").
 *is_arrow_operator will be set to TRUE on return to indicate that the
-operation was normalized into "->" form.  Do access control checking
-on the cast if check_cast_access is TRUE.  This routine is only used
-in C++ mode.
+operation was normalized into "->" form.  The cast is assumed to be
+implicit.  Do access control checking on the cast if check_cast_access
+is TRUE.  implicit_in_naming is TRUE for casts that are generated
+implicitly in referencing a member of a class (roughly, in getting
+from the name used in the source -- the projection symbol -- to the
+member actually used in the IL). This routine is only used in C++ mode.
 */
 {
   a_boolean        did_not_fold;
@@ -1660,6 +1672,7 @@ in C++ mode.
         node = make_node_from_operand(operand);
         add_base_class_casts(bcp, type_pointed_to(operand->type),
                              check_cast_access, /*is_implicit_cast=*/TRUE,
+                             implicit_in_naming,
                              &node, &orig_operand.position);
         make_expression_operand(node, node->type, operand);
       }  /* if */

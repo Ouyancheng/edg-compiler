@@ -3019,7 +3019,8 @@ C++ mode.
       if (bcp != NULL) {
         /* Cast the pointer to the base class of the member. */
         base_class_cast_operand(result, bcp, &is_arrow_operator,
-                                check_cast_access);
+                                check_cast_access,
+                                /*implicit_in_naming=*/FALSE);
       }  /* if */
       /* If the member symbol is a projection symbol (i.e., it's inherited
          into the class where it is being referenced), cast the left operand
@@ -3030,7 +3031,8 @@ C++ mode.
       if (member_sym->kind == (a_symbol_kind)sk_projection) {
         bcp= member_sym->variant.projection.extra_info->fundamental_base_class;
         base_class_cast_operand(result, bcp, &is_arrow_operator,
-                                /*check_cast_access=*/FALSE);
+                                /*check_cast_access=*/FALSE,
+                                /*implicit_in_naming=*/TRUE);
       }  /* if */
       /* Check for errors on the casts. */
       if (is_error_operand(result)) okay = FALSE;
@@ -4236,7 +4238,8 @@ gives the type of the routine being called.
          is inherited from a base class.  This is not clear from the ARM,
          but cfront and Borland do it this way. */
       base_class_cast_operand(operand, bcp, &is_arrow_operator,
-                              /*check_cast_access=*/FALSE);
+                              /*check_cast_access=*/FALSE,
+                              /*implicit_in_naming=*/FALSE);
     }  /* if */
   }  /* if */
   /* The cast here handles const/volatile differences and error cases. */
@@ -5191,7 +5194,8 @@ where the class type is already correct and nothing should be done to it.
     }  /* if */
 #endif /* CHECKING */
     base_class_cast_operand(source_operand, bcp, &is_arrow_operator,
-                            /*check_cast_access=*/TRUE);
+                            /*check_cast_access=*/TRUE,
+                            /*implicit_in_naming=*/FALSE);
     /* Make an address (an lvalue) for the base class object. */
     conv_object_pointer_to_lvalue(source_operand);
   }  /* if */

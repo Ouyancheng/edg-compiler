@@ -2204,6 +2204,9 @@ Display the indicated expression node.
       if (ptr->variant.operation.compiler_generated) {
         disp_boolean("compiler_generated", TRUE);
       }  /* if */
+      if (ptr->variant.operation.implicit_in_member_naming) {
+        disp_boolean("implicit_in_member_naming", TRUE);
+      }  /* if */
       disp_ptr("operands", (char *)ptr->variant.operation.operands,
                iek_expr_node);
       break;

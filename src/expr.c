@@ -1462,7 +1462,8 @@ symbol (possibly a projection symbol).
     /* Cast the left operand to the proper type. */
     base_class_cast_operand(operand_1, bcp, is_arrow_operator,
                             /*check_cast_access=*/
-                               !member_locator->access_control_error_reported);
+                               !member_locator->access_control_error_reported,
+                            /*implicit_in_naming=*/FALSE);
   }  /* if */
   /* If the member symbol is a projection symbol (i.e., it's inherited
      into the class where it is being referenced), cast the left operand
@@ -1473,7 +1474,8 @@ symbol (possibly a projection symbol).
   if (member_sym->kind == (a_symbol_kind)sk_projection) {
     bcp = member_sym->variant.projection.extra_info->fundamental_base_class;
     base_class_cast_operand(operand_1, bcp, is_arrow_operator,
-                            /*check_cast_access=*/FALSE);
+                            /*check_cast_access=*/FALSE,
+                            /*implicit_in_naming=*/TRUE);
   }  /* if */
 }  /* cast_pointer_for_field_selection */
 
@@ -1571,7 +1573,8 @@ Syntax:
         a_boolean        is_arrow_operator = TRUE;
         base_class_cast_operand(bound_function_selector, bcp,
                                 &is_arrow_operator,
-                                /*check_cast_access=*/FALSE);
+                                /*check_cast_access=*/FALSE,
+                                /*implicit_in_naming=*/TRUE);
       }  /* if */
       /* We can use an indefinite function operand whether the operator()
          function is overloaded or not. */
@@ -2306,7 +2309,8 @@ bound with the function in *bound_function_selector.
                         find_base_class_of(class_struct_union_type, dtor_type);
       check_assertion(bcp != NULL);
       base_class_cast_operand(operand_1, bcp, &is_arrow_operator,
-                              /*check_cast_access=*/TRUE);
+                              /*check_cast_access=*/TRUE,
+                              /*implicit_in_naming=*/FALSE);
     }  /* if */
     /* Make an eok_vacuous_destructor_call node and an operand for it.
        This is a pretty weird representation for this case, but it's a pretty
@@ -2609,7 +2613,8 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
            ambiguity and accessibility checking. */
         if (bcp != NULL) {
           base_class_cast_operand(operand_1, bcp, &is_arrow_operator,
-                                  /*check_cast_access=*/TRUE);
+                                  /*check_cast_access=*/TRUE,
+                                  /*implicit_in_naming=*/FALSE);
         }  /* if */
         /* The result type is the member type pointed to by the second
            operand. */
@@ -6276,7 +6281,8 @@ of the base class indicated by bcp.  It remains an lvalue.
   take_address_of_lvalue(operand);
   /* Cast the pointer to a pointer to the new type. */
   base_class_cast_operand(operand, bcp, &is_arrow_operator,
-                          /*check_cast_access=*/TRUE);
+                          /*check_cast_access=*/TRUE,
+                          /*implicit_in_naming=*/FALSE);
   /* Make an address (an lvalue) for the base class object. */
   conv_object_pointer_to_lvalue(operand);
 }  /* reference_cast */
