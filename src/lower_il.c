@@ -8211,13 +8211,13 @@ to the statement; otherwise, it is NULL.
        appears (it could be done, but it's more complicated because of
        statement versus expression insert locations). */
     lower_call(expr_to_lower, (an_init_pos_descr_ptr)NULL, statement);
-  } else {
-    /* Normal case, not call. */
+  } else
+  /* Normal case, not call. */
 #endif /* MINIMAL_INLINING */
+  /* Do not insert code here; this is the "else" of an "if". */
+  {
     lower_expr(expr_to_lower, is_lvalue);
-#if MINIMAL_INLINING
   }  /* if */
-#endif /* MINIMAL_INLINING */
 
   if (lifetime != NULL) {
     /* More processing for the enk_object_lifetime case. */
