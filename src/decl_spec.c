@@ -168,8 +168,9 @@ keyword (or a memory attribute keyword).
                   } else {
                     char *str = const_for_curr_token.variant.string.value;
                     /* Do error checking on the string. */
-                    decl_modifiers->uuid_string = alloc_il(sizeof(str));
-                    strcpy(decl_modifiers->uuid_string, str);
+                    decl_modifiers->uuid_string = alloc_il((sizeof_t)
+                                   const_for_curr_token.variant.string.length);
+                    (void)strcpy(decl_modifiers->uuid_string, str);
                     (void)get_token();
                   }  /* if */
                   (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
