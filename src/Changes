@@ -1,5 +1,12 @@
 Version 3.5
 
+10/25/04 Embedded C: Incorrect conversion of negative float to fixed-point
+
+The compile-time conversion of float (but not double or long double) to
+fixed-point resulted in an incorrect value.  Now fixed.
+
+  _Accum f = -20.0F;
+
 10/25/04 Buffer overrun in call of strchr on Windows
 
 When __MICROSOFT_OS__ is TRUE (on Windows or MS-DOS), strchr is called
