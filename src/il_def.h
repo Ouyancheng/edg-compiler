@@ -1578,6 +1578,39 @@ EXTERN char     *db_special_function_kinds[(int)sfk_last + 1]
 ;
 #endif /* ifdef CFE */
 #endif /* DEBUG */
+
+/*
+An enumeration of C++ operator kinds to identify user-defined overloaded
+operators; they apply only to functions with a special function kind of
+sfk_operator.  This enumeration corresponds to the list of operators in
+ARM 13.4.
+*/
+enum an_opname_kind_tag {
+  onk_none,
+  onk_new,               /* "new" */    onk_delete,            /* "delete" */
+  onk_plus,              /* "+" */      onk_minus,             /* "-" */
+  onk_star,              /* "*" */      onk_divide,            /* "/" */
+  onk_remainder,         /* "%" */      onk_excl_or,           /* "^" */
+  onk_ampersand,         /* "&" */      onk_or,                /* "|" */
+  onk_compl,             /* "~" */      onk_not,               /* "!" */
+  onk_assign,            /* "=" */      onk_lt,                /* "<" */
+  onk_gt,                /* ">" */      onk_plus_assign,       /* "+=" */
+  onk_minus_assign,      /* "-=" */     onk_times_assign,      /* "*=" */
+  onk_divide_assign,     /* "/=" */     onk_remainder_assign,  /* "%=" */
+  onk_excl_or_assign,    /* "^=" */     onk_and_assign,        /* "&=" */
+  onk_or_assign,         /* "|=" */     onk_shift_left,        /* "<<" */
+  onk_shift_right,       /* ">>" */     onk_shift_right_assign,/* ">>=" */
+  onk_shift_left_assign, /* "<<=" */    onk_eq,                /* "==" */
+  onk_ne,                /* "!=" */     onk_le,                /* "<=" */
+  onk_ge,                /* ">=" */     onk_and_and,           /* "&&" */
+  onk_or_or,             /* "||" */     onk_plus_plus,         /* "++" */
+  onk_minus_minus,       /* "--" */     onk_comma,             /* "," */
+  onk_arrow_star,        /* "->*" */    onk_arrow,             /* "->" */
+  onk_function_call,     /* "()" */     onk_subscript,         /* "[]" */
+  onk_last
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte an_opname_kind;
 #endif /* ifdef CIL */
 
 /*
@@ -1631,6 +1664,11 @@ typedef struct a_routine {
 			   constructor, destructor); sfk_none when it is an
 			   ordinary member function or not a member function
 			   at all. */
+  an_opname_kind
+		opname_kind;
+			/* An enumerator indication the kind of operator when
+			   the special function kind is sfk_operator; onk_none
+			   otherwise. */
   unsigned int	is_virtual:1;
 			/* TRUE for class member functions declared with a
 			   "virtual" specifier (C++ only). */

@@ -3116,6 +3116,7 @@ to it.
   rp->assoc_scope             = NULL_region_number;
   rp->storage_class           = (a_storage_class)sc_unspecified;
   rp->special_kind            = (a_special_function_kind)sfk_none;
+  rp->opname_kind             = (an_opname_kind)onk_none;
   rp->is_virtual              = FALSE;
   rp->pure_virtual            = FALSE;
   rp->is_inline               = FALSE;
