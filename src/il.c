@@ -206,6 +206,9 @@ Dump the name from a source correspondence (if any).
   if (sc->is_class_member) {
     db_type_name(sc->parent.class_type);
     fputs("::", f_debug);
+  } else if (sc->parent.namespace_ptr != NULL) {
+    db_name(&sc->parent.namespace_ptr->source_corresp);
+    fputs("::", f_debug);
   }  /* if */
   if (sc->name != NULL) {
     fputs(sc->name, f_debug);
