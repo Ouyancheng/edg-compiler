@@ -762,6 +762,14 @@ Initialize the option information table.
                          "no_arg_dep_lookup",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_friend_injection,
+                         "friend_injection",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_friend_injection,
+                         "no_friend_injection",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1186,6 +1194,9 @@ by a command line option.
     if (!option_kind_used[(int)optk_arg_dependent_lookup]) {
       arg_dependent_lookup_enabled = FALSE;
     }  /* if */
+    if (!option_kind_used[(int)optk_friend_injection]) {
+      friend_injection_enabled = TRUE;
+    }  /* if */
     if (!option_kind_used[(int)optk_late_tiebreaker]) {
       do_late_ovl_res_tiebreaker = microsoft_bugs;
     }  /* if */
@@ -1417,6 +1428,7 @@ common_cfront_mode_settings:
         string_literals_are_const = FALSE;
         ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
         do_late_ovl_res_tiebreaker = TRUE;
+        friend_injection_enabled = TRUE;
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
@@ -1976,6 +1988,11 @@ enable_microsoft_mode:
         /* Argument dependent lookup should or should not be performed. */
         arg_dependent_lookup_enabled = opt_value;
         break;
+      case optk_friend_injection:
+        /* Class and function names declared only in friend declarations
+           should or should not be visible to normal lookups. */
+        friend_injection_enabled = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -2083,6 +2100,9 @@ enable_microsoft_mode:
     }  /* if */
     if (option_kind_used[(int)optk_arg_dependent_lookup]) {
       command_line_error(ec_cl_arg_dependent_lookup_option_only_in_cplusplus);
+    }  /* if */
+    if (option_kind_used[(int)optk_friend_injection]) {
+      command_line_error(ec_cl_friend_injection_option_only_in_cplusplus);
     }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
     if (option_kind_used[(int)optk_one_instantiation_per_object]) {
@@ -2353,6 +2373,11 @@ enable_microsoft_mode:
         /* If argument dependent lookup not explicitly set by a command
            line option, set it now. */
         arg_dependent_lookup_enabled = TRUE;
+      }  /* if */
+      if (!(option_kind_used[(int)optk_friend_injection])) {
+        /* If friend injection was not explicitly set by a command line
+           option, set it now. */
+        friend_injection_enabled = FALSE;
       }  /* if */
       if (!(option_kind_used[(int)optk_nonstandard_qualifier_deduction])) {
         /* If nonstandard_qualifier_deduction was not set on the command line,

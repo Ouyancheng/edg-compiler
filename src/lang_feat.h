@@ -332,6 +332,17 @@ The variable can also be controlled from the command line by
 #endif /* DEFAULT_ARG_DEPENDENT_LOOKUP */
 
 /*
+Flag that is used as the default setting for global variable
+friend_injection_enabled.  This controls whether a class or function
+first declared only in friend declarations is visible to normal lookups.
+The variable can also be controlled from the command line by
+--[no_]friend_injection.
+*/
+#ifndef DEFAULT_FRIEND_INJECTION
+#define DEFAULT_FRIEND_INJECTION FALSE
+#endif /* DEFAULT_FRIEND_INJECTION */
+
+/*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
 should be allowed.  This flag in turn changes the default value of
 a set of configuration flags.
