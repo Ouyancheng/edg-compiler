@@ -208,12 +208,6 @@ length of the name.
   return (result);
 
 invalid_input:
-#if 1
-  pos = &input_line_buffer[0];
-  while (ch = *pos++) {
-    fprintf(stderr, "%c %d %x\n", ch, ch, ch);
-  }  /* while */
-#endif /* 0 */
   error("invalid input format");
   /*NOTREACHED*/
 }  /* check_type_and_get_name */
