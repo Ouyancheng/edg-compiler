@@ -66,31 +66,6 @@ Argument strings for fopen.
 #endif /* __TURBOC__ */
 #endif /* __MSDOS__ */
 
-#if __VMS__
-#include <stat.h>
-#else /* !__VMS__ */
-#include <sys/types.h>
-#include <sys/stat.h>
-#endif /* __VMS__ */
-/* "stat" isn't in ANSI C, but we assume it is available.  If not, this
-   file must be changed.  By default, the first argument is assumed to
-   be const.  If this is not the case, the preprocessor macro
-   STAT_FIRST_PARAM_IS_CONST must be set to the value 0 (FALSE).
-   This function must be declared in a header file when compiling
-   using C++. */
-#ifndef __cplusplus
-#ifndef STAT_FIRST_PARAM_IS_CONST
-/* If not set otherwise, the first parameter of stat is assumed to be
-   const. */
-#define STAT_FIRST_PARAM_IS_CONST TRUE
-#endif /* !defined(STAT_FIRST_PARAM_IS_CONST) */
-#if STAT_FIRST_PARAM_IS_CONST
-EXTERN_C int stat(const char *path, struct stat *buf);
-#else /* !defined(STAT_FIRST_PARAM_IS_CONST) */
-EXTERN_C int stat(char *path, struct stat *buf);
-#endif /* defined(STAT_FIRST_PARAM_IS_CONST) */
-#endif /* !__cplusplus */
-
 /* ANSI signal handlers return void. Older UNIX signal handlers in general,
 and SVID compliant signal handlers in particular, return int. */
 #ifdef __ANSIC__
