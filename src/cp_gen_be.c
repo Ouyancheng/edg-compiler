@@ -304,6 +304,15 @@ static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_boolean          force_parens);
 static void gen_statement(a_statement_ptr statement);
 static void gen_declaration(a_boolean for_init);
+/*
+Options for gen_general_declaration_using_type.
+*/
+typedef int a_gen_decl_options_set;
+#define GDO_NO_OPTIONS 0
+#define GDO_SUPPRESS_POSITION 0x1
+			/* Suppress setting the source position. */
+#define GDO_FUNCTION_FRIEND_DECL 0x2
+			/* This is a function friend declaration. */
 static void gen_general_declaration_using_type(
                              a_type_ptr                   type,
                              a_source_correspondence      *scp,
@@ -311,7 +320,7 @@ static void gen_general_declaration_using_type(
                              a_src_seq_secondary_decl_ptr sec_decl,
                              a_type_qualifier_set         added_qualifiers,
                              a_boolean                    suppress_specifiers,
-                             a_boolean                    suppress_position);
+                             a_gen_decl_options_set       options);
 static void gen_declaration_using_type(a_type_ptr              type,
                                        a_source_correspondence *scp,
                                        an_il_entry_kind        entry_kind);
@@ -1481,23 +1490,9 @@ constants, which must have the form of a qualified name).
 }  /* gen_name */
 
 
-/*
-Output the name of the entity whose source correspondence information
-is given by scp.  This name is being declared in this use.  entry_kind
-indicates the IL entry kind.  If the entity is unnamed, generate a name.
-*/
-#define gen_decl_name(scp, entry_kind)                                \
-  gen_name((scp), (entry_kind), /*force_qualified_name=*/FALSE);
-
-
 /* Interface routines to gen_name. */
-#define gen_qualified_name(scp, entry_kind)                           \
-  gen_name((scp), (entry_kind), /*force_qualified_name=*/TRUE)
 #define gen_routine_name(routine)                                     \
   gen_name(&(routine)->source_corresp, iek_routine,                   \
-           /*force_qualified_name=*/FALSE)
-#define gen_constant_name(constant)                                   \
-  gen_name(&(constant)->source_corresp, iek_constant,                 \
            /*force_qualified_name=*/FALSE)
 #define gen_type_name(type)                                           \
   gen_name(&(type)->source_corresp, iek_type,                         \
@@ -1519,6 +1514,46 @@ Output the name of the indicated variable, qualified if necessary.
              /*force_qualified_name=*/FALSE);
   }  /* if */
 }  /* gen_variable_name */
+
+
+/*
+Output the name of the entity whose source correspondence information
+is given by scp.  This name is being declared in this use, and the
+name is the name in a declarator (i.e., it's not the name in an
+elaborated type specifier).  entry_kind indicates the IL entry kind.
+If the entity is unnamed, generate a name.
+*/
+#define gen_decl_name(scp, entry_kind)                                \
+  gen_name((scp), (entry_kind), /*force_qualified_name=*/FALSE);
+
+
+static void gen_function_friend_decl_name(a_source_correspondence *scp)
+/*
+Output a routine name that is the declarator name in a friend declaration.
+*/
+{
+  a_boolean restore_global_qualification_needed = FALSE;
+
+  if (scp->global_qualification_needed) {
+    /* This is a friend declaration that looks like it might need a
+       leading "::", but be sure to use that only in the rare cases where
+       it's needed (they involve namespaces), because older compilers don't
+       accept it, and even in newer compilers it's only allowed when
+       referring to a previously-declared function.  See what the
+       innermost nonclass name context is.  If it's not the file scope,
+       the leading "::" really is needed. */
+    if (innermost_nonclass_name_context_is_file_scope()) {
+      /* Suppress the leading "::". */
+      scp->global_qualification_needed = FALSE;
+      restore_global_qualification_needed = TRUE;
+    }  /* if */
+  }  /* if */
+  gen_name(scp, iek_routine, /*force_qualified_name=*/FALSE);
+  if (restore_global_qualification_needed) {
+    /* Restore global_qualification_needed for the friend case. */
+    scp->global_qualification_needed = FALSE;
+  }  /* if */
+}  /* gen_function_friend_decl_name */
 
 
 static void gen_constant(a_constant_ptr constant,
@@ -1798,14 +1833,13 @@ or enum.
     write_space();
     if (type->declaration_put_out) {
       /* References after the declaration can use a global qualifier. */
-      gen_name(&type->source_corresp, iek_type,
-               /*force_qualified_name=*/FALSE);
+      gen_type_name(type);
     } else {
       /* Declarations cannot use a global qualifier. */
       a_boolean save_global_qualification_needed =
                               type->source_corresp.global_qualification_needed;
       type->source_corresp.global_qualification_needed = FALSE;
-      gen_decl_name(&type->source_corresp, iek_type);
+      gen_type_name(type);
       type->source_corresp.global_qualification_needed =
                                               save_global_qualification_needed;
       type->declaration_put_out = TRUE;
@@ -2111,7 +2145,7 @@ the routine; otherwise it is NULL.
                                             (a_src_seq_secondary_decl_ptr)NULL,
                                              qualifiers,
                                              /*suppress_specifiers=*/FALSE,
-                                             /*suppress_position=*/FALSE);
+                                             GDO_NO_OPTIONS);
         }  /* if */
         /* Put out a default argument expression if there is one. */
         gen_default_arg_expr(param);
@@ -2191,7 +2225,7 @@ static void gen_general_declaration_using_type(
                               a_src_seq_secondary_decl_ptr sec_decl,
                               a_type_qualifier_set         added_qualifiers,
                               a_boolean                    suppress_specifiers,
-                              a_boolean                    suppress_position)
+                              a_gen_decl_options_set       options)
 /*
 Output a declaration built around a type.  The argument scp is the source
 correspondence entry for the entity being declared, or NULL if there is
@@ -2202,10 +2236,14 @@ secondary declaration.  If added_qualifiers is not zero, the indicated
 qualifiers are added on top of the type.  If suppress_specifiers is TRUE,
 the type specifiers of the declaration are suppressed; this is used for
 comma-separated declarations (e.g., in a for-init statement).  If
-suppress_position is TRUE, the output position is not set to the source
-position indicated in *scp.
+options & GDO_SUPPRESS_POSITION is TRUE, the output position is not
+set to the source position indicated in *scp.  If options &
+GDO_FUNCTION_FRIEND_DECL is TRUE, this is a friend declaration for
+a function.
 */
 {
+  a_boolean suppress_position = (options & GDO_SUPPRESS_POSITION) != 0;
+
   /* Write the specifiers and the first part of the declarator. */
   form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/(scp != NULL),
@@ -2218,7 +2256,13 @@ position indicated in *scp.
     /* Set the source position for the name. */
     if (!suppress_position) set_decl_position(scp, sec_decl);
     /* Write the name. */
-    gen_decl_name(scp, entry_kind);
+    if (options & GDO_FUNCTION_FRIEND_DECL) {
+      /* Friend declaration.  The rules for using qualified names are
+         different than for ordinary declarations. */
+      gen_function_friend_decl_name(scp);
+    } else {
+      gen_decl_name(scp, entry_kind);
+    }  /* if */
     /* Push the name context for a class/namespace member. */
     push_name_context_if_member(scp);
   }  /* if */
@@ -2243,7 +2287,7 @@ scp is NULL).
                                      (a_src_seq_secondary_decl_ptr)NULL,
                                      TQ_NONE,
                                      /*suppress_specifiers=*/FALSE,
-                                     /*suppress_position=*/FALSE);
+                                     GDO_NO_OPTIONS);
 }  /* gen_declaration_using_type */
 
 
@@ -2302,7 +2346,7 @@ is the one associated with the definition of the enum.
      in prototype scopes. */
   if (has_name(type) || il_header.source_language == sl_C) {
     write_space();
-    gen_decl_name(&type->source_corresp, iek_type);
+    gen_type_name(type);
   }  /* if */
   write_tok_str(" { ");
   enum_con = type->variant.integer.enum_info.constant_list;
@@ -2319,7 +2363,7 @@ is the one associated with the definition of the enum.
                                enum_con->source_corresp.source_sequence_entry);
       set_output_position(&enum_con->source_corresp.decl_position);
       /* Output the constant's name. */
-      gen_decl_name(&enum_con->source_corresp, iek_constant);
+      gen_unqualified_name(&enum_con->source_corresp, iek_constant);
       /* Output the value if it's not the next value in sequence. */
       if (cmp_integer_constants(enum_con, &next_enum_value) != 0) {
         write_tok_str(" = ");
@@ -2586,7 +2630,7 @@ declaration following this one is such a continuation.
                                      (a_src_seq_secondary_decl_ptr)NULL,
                                      TQ_NONE,
                                      suppress_specifiers,
-                                     /*suppress_position=*/FALSE);
+                                     GDO_NO_OPTIONS);
   if (field->is_bit_field) {
     /* A bit field.  Put out the size. */
     write_tok_ch(':');
@@ -2700,7 +2744,7 @@ is the one associated with the definition of the class.
   } else {
     /* Put out the name.  Note that a name will be generated for an
        unnamed class, which can be useful for casts. */
-    gen_decl_name(&type->source_corresp, iek_type);
+    gen_type_name(type);
     write_space();
   }  /* if */
   /* Put out the class definition. */
@@ -2855,7 +2899,7 @@ declaration following this one is such a continuation.
       gen_general_declaration_using_type(under_type, &type->source_corresp,
                                          iek_type, sec_decl, TQ_NONE,
                                          suppress_specifiers,
-                                         /*suppress_position=*/FALSE);
+                                         GDO_NO_OPTIONS);
     }  /* if */
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list =
@@ -4852,7 +4896,7 @@ Generate code for a namespace definition or namespace alias declaration.
   if (has_name(nsp)) {
     write_space();
     /* Put out the name of the namespace. */
-    gen_decl_name(&nsp->source_corresp, iek_namespace);
+    gen_unqualified_name(&nsp->source_corresp, iek_namespace);
   }  /* if */
   if (nsp->is_namespace_alias) {
     /* A namespace alias declaration, e.g.,
@@ -5021,7 +5065,7 @@ Generate code for an instantiation directive.
                                        (a_src_seq_secondary_decl_ptr)NULL,
                                        TQ_NONE,
                                        /*suppress_specifiers=*/FALSE,
-                                       /*suppress_position=*/TRUE);
+                                       GDO_SUPPRESS_POSITION);
   }  /* if */
   write_tok_ch(';');
 }  /* gen_instantiation_directive */
@@ -5926,7 +5970,7 @@ declaration following this one is such a continuation.
                                      sec_decl,
                                      TQ_NONE,
                                      suppress_specifiers,
-                                     /*suppress_position=*/FALSE);
+                                     GDO_NO_OPTIONS);
   /* Output the initializer, if any, but only if this is a definition.
      For member constants (static data members initialized within the
      class), the initializer gets put out on the declaration rather than
@@ -6093,7 +6137,6 @@ TRUE if the declaration following this one is such a continuation.
   a_boolean                     is_definition = FALSE, friend_decl;
   a_boolean                     decl_within_class = FALSE;
   a_boolean                     context_pop_needed = FALSE;
-  a_boolean                     restore_global_qualification_needed = FALSE;
   a_storage_class               storage_class;
   a_scope_ptr                   scope = NULL;
   a_memory_region_number        scope_region_number;
@@ -6295,7 +6338,8 @@ TRUE if the declaration following this one is such a continuation.
     gen_general_declaration_using_type(qual_rout_type, &rout->source_corresp,
                                        iek_routine, sec_decl, TQ_NONE,
                                        suppress_specifiers,
-                                       /*suppress_position=*/FALSE);
+                                       friend_decl ? GDO_FUNCTION_FRIEND_DECL :
+                                                     GDO_NO_OPTIONS);
   } else {
     /* Normal routine case.  Do the declaration in a special way because
        (a) function definitions use information from the function parameter
@@ -6321,26 +6365,13 @@ TRUE if the declaration following this one is such a continuation.
     }  /* if */
     /* Position the output file to the declaration position (again). */
     set_decl_position(&rout->source_corresp, sec_decl);
-    if (friend_decl &&
-        rout->source_corresp.global_qualification_needed) {
-      /* This is a friend declaration that looks like it might need a
-         leading "::", but be sure to use that only in the rare cases where
-         it's needed (they involve namespaces), because older compilers don't
-         accept it, and even in newer compilers it's only allowed when
-         referring to a previously-declared function.  See what the
-         innermost nonclass name context is.  If it's not the file scope,
-         the leading "::" really is needed. */
-      if (innermost_nonclass_name_context_is_file_scope()) {
-        /* Suppress the leading "::". */
-        rout->source_corresp.global_qualification_needed = FALSE;
-        restore_global_qualification_needed = TRUE;
-      }  /* if */
-    }  /* if */
     /* Write the routine name. */
-    gen_decl_name(&rout->source_corresp, iek_routine);
-    if (restore_global_qualification_needed) {
-      /* Restore global_qualification_needed for the friend case. */
-      rout->source_corresp.global_qualification_needed = FALSE;
+    if (friend_decl) {
+      /* Friend declaration.  The rules for using qualified names are
+         different than for ordinary declarations. */
+      gen_function_friend_decl_name(&rout->source_corresp);
+    } else {
+      gen_decl_name(&rout->source_corresp, iek_routine);
     }  /* if */
     /* Push the name context for a class/namespace member. */
     push_name_context_if_member(&rout->source_corresp);
