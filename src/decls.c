@@ -5056,6 +5056,16 @@ skip_overloading:;
          routine entry. */
       sym->decl_position = locator->source_position;
       routine_ptr->source_corresp.decl_position = sym->decl_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if (routine_ptr->source_corresp.decl_pos_info == NULL &&
+          decl_pos_block != NULL) {
+        /* Update source range information now that we have seen an actual
+           declaration. */
+        routine_ptr->source_corresp.decl_pos_info =
+                         make_decl_pos_supplement(in_file_scope(routine_ptr),
+                                                  decl_pos_block);
+      }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if CHECKING
       if (routine_ptr->special_kind ==
                              (a_special_function_kind)sfk_operator) {

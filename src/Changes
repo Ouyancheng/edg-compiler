@@ -1,5 +1,17 @@
 Version 2.44
 
+1/26/00  Extra position info for explicitly declared intrinsic functions
+
+Extra position information was not attached to routine entries for predeclared
+functions (like operator new or, in Microsoft mode, _alloca) even when the
+function was explicitly declared in the source.  This is now fixed.
+
+  void* __cdecl _alloca(size_t);  // If EXTRA_SOURCE_POSITIONS_IN_IL is TRUE
+                                  // (and assuming "--microsoft --c") then
+                                  // extra position information is now
+                                  // recorded in the predefined IL entry for
+                                  // _alloca.
+
 1/25/00   C-generating back end: startup code using the Sun C compiler
 
 The Sun C compiler has a pragma that can be used to indicate initialization
