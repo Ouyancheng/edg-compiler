@@ -912,7 +912,7 @@ portion of a qualified name should be performed.  It is the initial
 value of the global variable nonstandard_qualifier_deduction.
 Nonstandard qualifier deduction permits T to be deduced in contexts
 such as A<T>::B or T::B.  The standard deduction mechanism treats
-these as nondeduced contexts that use the values of template paremters
+these as nondeduced contexts that use the values of template parameters
 that were either explicitly specified or deduced elsewhere.
 */
 #ifndef DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION
