@@ -42,7 +42,7 @@ in non-strict C99 mode.
     int b;
   }
 
-3/15/01  Internal error on invalid C99 _Pramga operator
+3/15/01  Internal error on invalid C99 _Pragma operator
 
 An internal error would occur if an ill-formed _Pragma operator
 followed by an end-of-file was encountered while flushing tokens
