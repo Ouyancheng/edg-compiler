@@ -3959,6 +3959,12 @@ specifier is restored.
                   is_old_style_param_decl, /*is_top_level_declaration=*/FALSE,
                   param_id_list);
     }  /* while */
+    /* Restore the default linkage to the value it had before the declaration
+       (or declaration list) was processed.  Note that this must be done
+       before advancing past the closing brace -- there is a dependency in
+       precompiled header processing on the state maintained in
+       def_external_linage. */
+    def_external_linkage = saved_linkage;
     /* Check for the final right brace of the the linkage specification block,
        but don't advance past it -- that is handled in translation_unit. */
     remove_stop_token(tok_rbrace);
@@ -3982,10 +3988,10 @@ specifier is restored.
     declaration(function_definition_allowed, /*extern_implied=*/TRUE,
                 is_old_style_param_decl, /*is_top_level_declaration=*/FALSE,
                 param_id_list);
+    /* Restore the default linkage to the value it had before the declaration
+       (or declaration list) was processed. */
+    def_external_linkage = saved_linkage;
   }  /* if */
-  /* Restore the default linkage to the value it had before the declaration
-     (or declaration list) was processed. */
-  def_external_linkage = saved_linkage;
 
   db_exit();
 }  /* linkage_specification */
