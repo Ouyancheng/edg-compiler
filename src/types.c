@@ -3530,8 +3530,8 @@ is allocated, it is allocated in the file scope.
               rtsp1->param_type_list == comp_param_list &&
               list1_prototyped == comp_prototyped) {
             comp_type = base_type_1;
-            if (rtsp1->throw_specification == NULL) {
-              rtsp1->throw_specification = rtsp2->throw_specification;
+            if (rtsp1->exception_specification == NULL) {
+              rtsp1->exception_specification = rtsp2->exception_specification;
             }  /* if */
           } else if (base_type_2->variant.routine.return_type == comp_elem &&
               base_type_2->variant.routine.extra_info->param_type_list ==
@@ -3539,8 +3539,8 @@ is allocated, it is allocated in the file scope.
               (a_boolean)base_type_2->variant.routine.extra_info->prototyped ==
                                                              comp_prototyped) {
             comp_type = base_type_2;
-            if (rtsp2->throw_specification == NULL) {
-              rtsp2->throw_specification = rtsp1->throw_specification;
+            if (rtsp2->exception_specification == NULL) {
+              rtsp2->exception_specification = rtsp1->exception_specification;
             }  /* if */
           } else {
             /* Build a new function type. */
@@ -3552,10 +3552,10 @@ is allocated, it is allocated in the file scope.
             rtsp->prototyped = comp_prototyped;
             rtsp->has_ellipsis = rtsp1->has_ellipsis;
             rtsp->implicit_this_param_type = rtsp1->implicit_this_param_type;
-            if (rtsp1->throw_specification != NULL) {
-              rtsp->throw_specification = rtsp1->throw_specification;
+            if (rtsp1->exception_specification != NULL) {
+              rtsp->exception_specification = rtsp1->exception_specification;
             } else {
-              rtsp->throw_specification = rtsp2->throw_specification;
+              rtsp->exception_specification = rtsp2->exception_specification;
             }  /* if */
           }  /* if */
           break;

@@ -1199,9 +1199,9 @@ Display a_routine_type_supplement.
   if (ptr->prototype_scope != NULL) {
     disp_ptr("prototype_scope", (char *)ptr->prototype_scope, iek_scope);
   }  /* if */
-  if (ptr->throw_specification != NULL) {
-    disp_ptr("throw_specification", (char *)ptr->throw_specification,
-             iek_throw_specification);
+  if (ptr->exception_specification != NULL) {
+    disp_ptr("exception_specification", (char *)ptr->exception_specification,
+             iek_exception_specification);
   }  /* if */
 #endif /* ifdef CFE */
 }  /* disp_routine_type_supplement */
@@ -2322,31 +2322,33 @@ Display the indicated switch clause.
 }  /* disp_switch_clause */
 
 
-static void disp_throw_spec_type(a_throw_spec_type_ptr ptr)
+static void disp_exception_specification_type(
+                                  an_exception_specification_type_ptr ptr)
 /*
-Display the indicated throw-specification entry.
+Display the indicated exception-specification-type entry.
 */
 {
-  disp_ptr("next", (char *)ptr->next, iek_throw_spec_type);
+  disp_ptr("next", (char *)ptr->next, iek_exception_specification_type);
   disp_ptr("type", (char *)ptr->type, iek_type);  
   disp_boolean("redundant", (a_boolean)ptr->redundant);
-}  /* disp_throw_spec_type */
+}  /* disp_exception_specification_type */
 
 
-static void disp_throw_specification(a_throw_specification_ptr ptr)
+static void disp_exception_specification(an_exception_specification_ptr ptr)
 /*
-Display the indicated throw-specification entry.
+Display the indicated exception-specification entry.
 */
 {
-  disp_ptr("throw_spec_type_list", (char *)ptr->throw_spec_type_list,
-           iek_throw_spec_type);
+  disp_ptr("exception_specification_type_list",
+           (char *)ptr->exception_specification_type_list,
+           iek_exception_specification_type);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_unsigned_long("throw_position.seq",
                      (unsigned long)ptr->throw_position.seq);
   disp_unsigned_long("throw_position.column",
                      (unsigned long)ptr->throw_position.column);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-}  /* disp_throw_specification */
+}  /* disp_exception_specification */
 
 
 static void disp_handler(a_handler_ptr ptr)
@@ -3383,11 +3385,13 @@ This routine is called during IL walking.
         case iek_field:
           disp_field((a_field_ptr)entry_ptr);
           break;
-        case iek_throw_specification:
-          disp_throw_specification((a_throw_specification_ptr)entry_ptr);
+        case iek_exception_specification:
+          disp_exception_specification(
+                             (an_exception_specification_ptr)entry_ptr);
           break;
-        case iek_throw_spec_type:
-          disp_throw_spec_type((a_throw_spec_type_ptr)entry_ptr);
+        case iek_exception_specification_type:
+          disp_exception_specification_type(
+                             (an_exception_specification_type_ptr)entry_ptr);
           break;
         case iek_switch_clause:
           disp_switch_clause((a_switch_clause_ptr)entry_ptr);

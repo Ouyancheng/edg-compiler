@@ -240,9 +240,10 @@ typedef enum /*an_il_entry_kind*/ {
   iek_variable,		/* a_variable */
 #ifdef CIL
   iek_field,		/* a_field */
-  iek_throw_specification,
-			/* a_throw_specification */
-  iek_throw_spec_type,	/* a_throw_spec_type */
+  iek_exception_specification,
+			/* an_exception_specification */
+  iek_exception_specification_type,
+			/* an_exception_specification_type */
 #endif /* ifdef CIL */
   iek_routine,		/* a_routine */
   iek_label,		/* a_label */
@@ -345,8 +346,8 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_variable */			"variable",
 #ifdef CIL
 /* iek_field */				"field",
-/* iek_throw_specification */		"throw-specification",
-/* iek_throw_spec_type */		"throw-spec-type",
+/* iek_exception_specification */	"exception-specification",
+/* iek_exception_specification_type */	"exception-specification-type",
 #endif /* ifdef CIL */
 /* iek_routine */			"routine",
 /* iek_label */				"label",
@@ -1498,36 +1499,40 @@ typedef short a_lint_varargs_count;
 #define NOT_LINT_VARARGS (-1)
 
 
-/* Types a_throw_specification and a_throw_spec_type are used in C++ only. */
-/* a_throw_spec_type is an entry that represents a type that appears on a
-   list of types specified in an exception specification.  For instance,
+/* Types an_exception_specification and an_exception_specification_type are
+   used in C++ only. */
+/* an_exception_specification_type is an entry that represents a type that
+   appears on a list of types specified in an exception specification.  For
+   instance,
      void f() throw (int,float);
-   yields a throw-spec-type entry for int and another for float. */
-typedef struct a_throw_spec_type *a_throw_spec_type_ptr;
-typedef struct a_throw_spec_type {
-  a_throw_spec_type_ptr
+   yields an exception-specification-type entry for int and another for
+   float. */
+typedef struct an_exception_specification_type
+                                        *an_exception_specification_type_ptr;
+typedef struct an_exception_specification_type {
+  an_exception_specification_type_ptr
 		next;
-			/* Pointer to the next in the linked list of throw
-			   specification type entries, or NULL for the last
-			   entry on the list. */
+			/* Pointer to the next in the linked list of
+			   exception specification type entries, or NULL for
+			   the last entry on the list. */
   a_type_ptr	type;
 			/* A pointer to the type of the exception. */
   a_byte_boolean
 		redundant;
 			/* TRUE when a previous entry on the list has the same
 			   type. */
-} a_throw_spec_type;
+} an_exception_specification_type;
 
 
-/* a_throw_specification is an entry that describes an exception specification
-   on a function declaration. */
-typedef struct a_throw_specification *a_throw_specification_ptr;
-typedef struct a_throw_specification {
-  a_throw_spec_type_ptr
-		throw_spec_type_list;
-			/* Pointer to the linked list of throw specification
-			   type entries giving the types of exceptions a
-			   given function will throw, e.g.,
+/* an_exception_specification is an entry that describes an exception
+   specification on a function declaration. */
+typedef struct an_exception_specification *an_exception_specification_ptr;
+typedef struct an_exception_specification {
+  an_exception_specification_type_ptr
+		exception_specification_type_list;
+			/* Pointer to the linked list of exception
+			   specification type entries giving the types of
+			   exceptions a given function will throw, e.g.,
 			     void f() throw (int,char);
                            or NULL if no exceptions will be thrown, e.g.,
 			     void f() throw ();              */
@@ -1538,7 +1543,7 @@ typedef struct a_throw_specification {
 			   exception specification -- the source position of
 			   "throw". */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-} a_throw_specification;
+} an_exception_specification;
 #endif /* ifdef CIL */
 
 
@@ -1665,12 +1670,12 @@ typedef struct a_routine_type_supplement {
                            old-style parameter list, because those types
                            are likewise needed outside the routine in order
                            to check type compatibility. */
-  a_throw_specification_ptr
-		throw_specification;
+  an_exception_specification_ptr
+		exception_specification;
 			/* In C++ only, pointer to an entry describing the
 			   exception specification declared for this routine.
 			   NULL when any exception may be thrown, e.g.,
-			     void f();     // No throw specification declared
+			     void f();   // No exception specification declared
 			   Also NULL in C mode or if exceptions are disabled
 			   for this compilation; also NULL if the type is not
 			   bound to a particular routine. */

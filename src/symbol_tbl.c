@@ -677,23 +677,23 @@ do_variable:
         if (rp->is_template_function) put_string("is instance");
         type = rp->type;
         if (C_dialect == C_dialect_cplusplus) {
-          a_throw_specification_ptr  tsp;
+          an_exception_specification_ptr       esp;
+          an_exception_specification_type_ptr  estp;
 
-          tsp = (skip_typerefs(type))->variant.routine.extra_info->
-                                                         throw_specification;
-          if (tsp == NULL) {
+          esp = (skip_typerefs(type))->variant.routine.extra_info->
+                                                      exception_specification;
+          if (esp == NULL) {
             if (exceptions_enabled) put_string("throws any");
-          } else if (tsp->throw_spec_type_list == NULL) {
+          } else if (esp->exception_specification_type_list == NULL) {
             put_string("throws none");
           } else {
-            a_throw_spec_type_ptr  tstp = tsp->throw_spec_type_list;
-
+            estp = esp->exception_specification_type_list;
             (void)sprintf(buffer, "throws (");
-            (void)str_type(&buffer[strlen(buffer)], tstp->type);
-            for (tstp = tstp->next; tstp != NULL; tstp = tstp->next) {
+            (void)str_type(&buffer[strlen(buffer)], estp->type);
+            for (estp = estp->next; estp != NULL; estp = estp->next) {
               put_string(buffer);
               buffer[0] = 0;
-              (void)str_type(buffer, tstp->type);
+              (void)str_type(buffer, estp->type);
             }  /* for */
             (void)sprintf(&buffer[strlen(buffer)], ")");
             put_string(buffer);
@@ -8800,7 +8800,7 @@ Clear the fields of a function information block to default values.
 {
   func_info->prototype_scope_symbols     = NULL;
   func_info->param_id_list               = NULL;
-  func_info->throw_specification         = NULL;
+  func_info->exception_specification     = NULL;
   func_info->throw_position              = null_source_position;
   func_info->scope_number                = NO_SCOPE_NUMBER;
   func_info->any_prototype_names_omitted = FALSE;

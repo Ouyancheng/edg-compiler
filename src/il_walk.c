@@ -162,10 +162,10 @@ of each kind.
   walk_orphan_entry_list_for_entry_kind(a_variable_ptr, iek_variable);
 #ifdef CFE
   walk_orphan_entry_list_for_entry_kind(a_field_ptr, iek_field);
-  walk_orphan_entry_list_for_entry_kind(a_throw_specification_ptr,
-                                        iek_throw_specification);
-  walk_orphan_entry_list_for_entry_kind(a_throw_spec_type_ptr,
-                                        iek_throw_spec_type);
+  walk_orphan_entry_list_for_entry_kind(an_exception_specification_ptr,
+                                        iek_exception_specification);
+  walk_orphan_entry_list_for_entry_kind(an_exception_specification_type_ptr,
+                                        iek_exception_specification_type);
 #endif /* ifdef CFE */
   walk_orphan_entry_list_for_entry_kind(a_routine_ptr, iek_routine);
   walk_orphan_entry_list_for_entry_kind(a_label_ptr, iek_label);
@@ -385,8 +385,8 @@ running them through walk_remap_func.
   remap_orphan_entry_first(iek_variable);
 #ifdef CFE
   remap_orphan_entry_first(iek_field);
-  remap_orphan_entry_first(iek_throw_specification);
-  remap_orphan_entry_first(iek_throw_spec_type);
+  remap_orphan_entry_first(iek_exception_specification);
+  remap_orphan_entry_first(iek_exception_specification_type);
 #endif /* ifdef CFE */
   remap_orphan_entry_first(iek_routine);
   remap_orphan_entry_first(iek_label);
@@ -462,8 +462,8 @@ running them through walk_remap_func.
   remap_orphan_entry_last(iek_variable);
 #ifdef CFE
   remap_orphan_entry_last(iek_field);
-  remap_orphan_entry_last(iek_throw_specification);
-  remap_orphan_entry_last(iek_throw_spec_type);
+  remap_orphan_entry_last(iek_exception_specification);
+  remap_orphan_entry_last(iek_exception_specification_type);
 #endif /* ifdef CFE */
   remap_orphan_entry_last(iek_routine);
   remap_orphan_entry_last(iek_label);

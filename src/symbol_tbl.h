@@ -734,13 +734,13 @@ typedef struct a_func_info_block {
 			/* List of entries giving parameter names, NULL if
 			   there were none.  Used for both old-style and
 			   new-style parameter names. */
-  a_throw_specification_ptr
-		throw_specification;
-			/* An entry (or list of entries) representing a throw
-			   specification (C++ only). */
+  an_exception_specification_ptr
+		exception_specification;
+			/* An entry (or list of entries) representing an
+			   exception specification (C++ only). */
   a_source_position
 		throw_position;
-			/* Source position of the throw specification (C++
+			/* Source position of the exception specification (C++
 			   only). */
   a_scope_number
 		scope_number;

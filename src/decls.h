@@ -194,12 +194,12 @@ extern void reconcile_routine_types(a_routine_ptr  routine_ptr,
                                     a_boolean      preserve_rout_type,
                                     a_boolean      preserve_type_ptr);
 
-extern void add_throw_specification(a_func_info_block_ptr  func_info,
-                                    a_routine_ptr          rp);
+extern void add_exception_specification(a_func_info_block_ptr  func_info,
+                                        a_routine_ptr          rp);
 
 
-extern void check_throw_specification(a_func_info_block_ptr  func_info,
-                                      a_routine_ptr          rp);
+extern void check_exception_specification(a_func_info_block_ptr  func_info,
+                                          a_routine_ptr          rp);
 
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS

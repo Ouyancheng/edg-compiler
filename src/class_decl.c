@@ -3116,8 +3116,8 @@ of the function, and again overloading is a possibility.
           }  /* if */
           record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                     declarator_ssep);
-          /* Do throw specification compatibility checking. */
-          check_throw_specification(func_info, rp);
+          /* Do exception specification compatibility checking. */
+          check_exception_specification(func_info, rp);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           if (!func_info->is_definition) {
             /* Since this is a non-defining entry, it is represented by a
@@ -3561,7 +3561,7 @@ special function kind (e.g., constructor, destructor), if any.
          declaration. */
       process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
     }  /* if */
-    add_throw_specification(func_info, rtn);
+    add_exception_specification(func_info, rtn);
     if (cssp->is_nonreal_class) {
       /* This symbol represents a member function of a prototype instantiation
          of a class template.  As such it is a quasi function template itself.

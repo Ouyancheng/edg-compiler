@@ -2284,20 +2284,20 @@ inserted at *insert_location.
 
 
 static a_variable_ptr exception_type_spec_array_from_throw_spec(
-                                          a_throw_specification_ptr throw_spec)
+                                          an_exception_specification_ptr throw_spec)
 /*
 Make an array that describes the throw specification indicated by throw_spec,
 and return a pointer to the variable for the array.  Return NULL if the
 throw specification indicates that no types may be thrown.
 */
 {
-  a_variable_ptr         var;
-  a_memory_region_number region_to_switch_back_to;
-  a_throw_spec_type_ptr  throw_spec_type;
+  a_variable_ptr                       var;
+  a_memory_region_number               region_to_switch_back_to;
+  an_exception_specification_type_ptr  espt;
 
-  throw_spec_type = throw_spec->throw_spec_type_list;
+  espt = throw_spec->exception_specification_type_list;
   /* If the routine can throw nothing, return NULL. */
-  if (throw_spec_type == NULL) {
+  if (espt == NULL) {
     var = NULL;
   } else {
     /* There are some types on the throw list, so an array of those will
@@ -2309,9 +2309,9 @@ throw specification indicates that no types may be thrown.
     var = make_exception_type_spec_array_var();
     /* Fill the array with entries for the types that can be thrown. */
     for (;
-         throw_spec_type != NULL;
-         throw_spec_type = throw_spec_type->next) {
-      add_exception_type_spec_array_entry(throw_spec_type->type, var);
+         espt != NULL;
+         espt = espt->next) {
+      add_exception_type_spec_array_entry(espt->type, var);
     }  /* for */
     /* Finish off the array. */
     finish_exception_type_spec_array(var);
@@ -2331,7 +2331,8 @@ is given by "scope".  Called only if exceptions are enabled.
 {
   a_routine_ptr             routine;
   a_type_ptr                routine_type, spec_array_ptr;
-  a_throw_specification_ptr throw_spec;
+  an_exception_specification_ptr
+                            tsp;
   a_variable_ptr            throw_frame, func_frame, spec_array_var;
   an_expr_node_ptr          spec_array_node, throw_frame_throw_spec;
   an_expr_node_ptr          func_frame_function_regions;
@@ -2353,15 +2354,15 @@ is given by "scope".  Called only if exceptions are enabled.
   routine = scope->variant.routine.ptr;
   routine_type = routine->type;
   routine_type = skip_typerefs(routine_type);
-  throw_spec = routine_type->variant.routine.extra_info->throw_specification;
-  if (throw_spec != NULL) {
+  tsp = routine_type->variant.routine.extra_info->exception_specification;
+  if (tsp != NULL) {
     /* The routine has a throw specification.  (A null pointer means
        the function can throw anything.) */
     /* Generate code to push an entry on the EH stack. */
     push_eh_stack_frame(ehsek_throw_spec, &throw_frame, &insert_location);
     need_throw_epilogue = TRUE;
     /* Build an array of the throw types. */
-    spec_array_var = exception_type_spec_array_from_throw_spec(throw_spec);
+    spec_array_var = exception_type_spec_array_from_throw_spec(tsp);
     /* Generate code to set the throw_spec field of the stack entry to
        point to the array (or NULL if no types can be thrown). */
     spec_array_ptr = make_pointer_type(make_exception_type_spec_type());

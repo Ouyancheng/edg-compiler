@@ -5492,23 +5492,23 @@ scope, starting with the opening brace of the top-level block.
 }  /* gen_function_definition */
 
 
-static void gen_throw_specification(a_throw_specification_ptr throw_spec)
+static void gen_exception_specification(an_exception_specification_ptr esp)
 /*
 Generate an exception throw specification, which indicates the exceptions
 that a function might throw.
 */
 {
-  a_throw_spec_type_ptr spec_type;
+  an_exception_specification_type_ptr estp;
 
   write_tok_str(" throw(");
-  for (spec_type = throw_spec->throw_spec_type_list;
-       spec_type != NULL;
-       spec_type = spec_type->next) {
-    gen_type(spec_type->type);
-    if (spec_type->next != NULL) write_tok_str(", ");
+  for (estp = esp->exception_specification_type_list;
+       estp != NULL;
+       estp = estp->next) {
+    gen_type(estp->type);
+    if (estp->next != NULL) write_tok_str(", ");
   }  /* for */
   write_tok_ch(')');
-}  /* gen_throw_specification */
+}  /* gen_exception_specification */
 
 
 static void gen_ctor_initializers(a_constructor_init_ptr ctor_init)
@@ -5744,8 +5744,8 @@ declaration or definition.
     gen_function_declarator(rout_type, scope);
     /* If the function has a throw specification, put it out here after the
        function declarator. */
-    if (rtsp->throw_specification != NULL) {
-      gen_throw_specification(rtsp->throw_specification);
+    if (rtsp->exception_specification != NULL) {
+      gen_exception_specification(rtsp->exception_specification);
     }  /* if */
     if (return_type_needed) {
       gen_type_second_part(rout_type->variant.routine.return_type,

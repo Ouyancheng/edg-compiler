@@ -81,8 +81,8 @@ static unsigned long
 		num_variables_allocated,
 		num_fields_allocated,
 		num_routines_allocated,
-		num_throw_specifications_allocated,
-		num_throw_spec_types_allocated,
+		num_exception_specifications_allocated,
+		num_exception_specification_types_allocated,
 		num_asm_entries_allocated,
 		num_labels_allocated,
 		num_expr_nodes_allocated,
@@ -3817,7 +3817,7 @@ to default values.
       rtsp->arg_pragma               = (a_pragma_kind)pk_none;
       rtsp->implicit_this_param_type = NULL;
       rtsp->prototype_scope          = NULL;
-      rtsp->throw_specification      = NULL;
+      rtsp->exception_specification  = NULL;
       break;
     case tk_typeref:
       pte->variant.typeref.type        = NULL;
@@ -5259,47 +5259,49 @@ processing.  If there is no next such field, return NULL.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-a_throw_specification_ptr alloc_throw_specification(void)
+an_exception_specification_ptr alloc_exception_specification(void)
 /*
-Allocate a throw specification entry, clear it to default values, and
+Allocate an exception specification entry, clear it to default values, and
 return a pointer to it.  The entry is allocated in the file scope memory
 region.
 */
 {
-  a_throw_specification_ptr  tsp;
+  an_exception_specification_ptr  esp;
 
-  tsp = (a_throw_specification_ptr)alloc_il(sizeof(a_throw_specification));
+  esp = (an_exception_specification_ptr)alloc_il(
+                                          sizeof(an_exception_specification));
 #if DEBUG
-  num_throw_specifications_allocated++;
+  num_exception_specifications_allocated++;
 #endif /* DEBUG */
-  tsp->throw_spec_type_list = NULL;
+  esp->exception_specification_type_list = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  tsp->throw_position = null_source_position;
+  esp->throw_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
-  return tsp;
-}  /* alloc_throw_specification */
+  return esp;
+}  /* alloc_exception_specification */
 
 
-a_throw_spec_type_ptr alloc_throw_spec_type(void)
+an_exception_specification_type_ptr alloc_exception_specification_type(void)
 /*
-Allocate a throw spec type entry, clear it to default values, and
-return a pointer to it.  The entry is allocated in the file scope memory
+Allocate an exception specification type entry, clear it to default values,
+and return a pointer to it.  The entry is allocated in the file scope memory
 region.
 */
 {
-  a_throw_spec_type_ptr  tstp;
+  an_exception_specification_type_ptr  estp;
 
-  tstp = (a_throw_spec_type_ptr)alloc_il(sizeof(a_throw_spec_type));
+  estp = (an_exception_specification_type_ptr)alloc_il(
+                                   sizeof(an_exception_specification_type));
 #if DEBUG
-  num_throw_spec_types_allocated++;
+  num_exception_specification_types_allocated++;
 #endif /* DEBUG */
-  tstp->next = NULL;
-  tstp->type = NULL;
-  tstp->redundant = FALSE;
+  estp->next = NULL;
+  estp->type = NULL;
+  estp->redundant = FALSE;
 
-  return tstp;
-}  /* alloc_throw_spec_type */
+  return estp;
+}  /* alloc_exception_specification_type */
 
 
 a_routine_ptr alloc_routine(void)
@@ -8205,10 +8207,12 @@ Display and return the amount of space used for various IL tables.
   db_space_used("variable", num_variables_allocated, a_variable);
   db_space_used("field", num_fields_allocated, a_field);
   db_space_used("routine", num_routines_allocated, a_routine);
-  db_space_used("throw specification", num_throw_specifications_allocated,
-                a_throw_specification);
-  db_space_used("throw spec type", num_throw_spec_types_allocated,
-                a_throw_spec_type);
+  db_space_used("exception specification",
+                num_exception_specifications_allocated,
+                an_exception_specification);
+  db_space_used("exception spec type",
+                num_exception_specification_types_allocated,
+                an_exception_specification_type);
   db_space_used("asm entry", num_asm_entries_allocated, an_asm_entry);
   db_space_used("label", num_labels_allocated, a_label);
   db_space_used("expr node", num_expr_nodes_allocated, an_expr_node);
@@ -8413,8 +8417,9 @@ of the front end.
   num_variables_allocated                = 0;
   num_fields_allocated                   = 0;
   num_routines_allocated                 = 0;
-  num_throw_specifications_allocated     = 0;
-  num_throw_spec_types_allocated         = 0;
+  num_exception_specifications_allocated = 0;
+  num_exception_specification_types_allocated
+                                         = 0;
   num_asm_entries_allocated              = 0;
   num_labels_allocated                   = 0;
   num_expr_nodes_allocated               = 0;
