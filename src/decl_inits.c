@@ -648,14 +648,14 @@ vp had an incomplete array type that has been completed by an initializer.
 void initializer(a_symbol_ptr       symbol_ptr,
                  a_source_position  *source_pos,
                  an_id_linkage_kind linkage,
-                 a_boolean          paren_flag,
+                 a_boolean          parenthesized_initializer,
                  a_boolean          is_parameter)
 /*
 Scan an initializer (3.5.7) for the symbol pointed to by symbol_ptr
 (with linkage as given by linkage; a parameter if is_parameter is TRUE).
 The source position of the symbol (which may differ from the decl_position
 in symbol_ptr if this is a second declaration) is given by *source_pos.
-The syntax is:
+The C-mode syntax is:
 
 3.5.7  initializer:
 		assignment-expression
@@ -666,6 +666,11 @@ The syntax is:
 		initializer-list
 		initializer-list , initializer
 
+In C mode parenthesized_initializer is always FALSE, but in C++ mode it can
+be TRUE to indicate an alternate syntax (ARM 8.4):
+
+       initializer:
+                ( expression-list )
 */
 {
   a_boolean                      err = FALSE;
@@ -746,7 +751,7 @@ The syntax is:
       is_class_struct_union_type(vp_type)) {
     cssp = symbol_supplement_for_class(vp_type);
   }  /* if */
-  if (cssp != NULL && paren_flag) {
+  if (cssp != NULL && parenthesized_initializer) {
     /* This is an initialization of the form S x (arg [, ...]), where S is a
        class type name.  Depending on the arguments present, a constructor,
        possibly the copy constructor, will be selected and returned.  The
@@ -877,7 +882,7 @@ The syntax is:
     /* A non-aggregate object is being initialized.  Braces or parens are
        permitted (but not both, of course).  A constant or non-constant
        expression may be permitted as the initializer. */
-    if (paren_flag) {
+    if (parenthesized_initializer) {
       add_stop_token(tok_rparen);
     } else {
       check_for_opening_brace(&brace_flag);
@@ -891,7 +896,7 @@ The syntax is:
     }  /* if */
     /* Check for matching delimiter if lparen or lbrace appeared in front of
        the initializer. */
-    if (paren_flag) {
+    if (parenthesized_initializer) {
       remove_stop_token(tok_rparen);
       if (curr_token == tok_rparen) {
         (void)get_token();
