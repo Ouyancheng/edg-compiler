@@ -464,6 +464,9 @@ functions require definitions in this translation unit.
   }  /* for */
   /* Pop the primary translation unit off of the stack. */
   pop_translation_unit_stack();
+  /* Do processing that is required after instantiation wrapup has been
+     performed for all translation units. */
+  finalize_instantiation_wrapup();
 }  /* template_and_inline_function_wrapup */
 
 

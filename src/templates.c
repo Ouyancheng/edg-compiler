@@ -15100,14 +15100,10 @@ caller.
 }  /* find_corresponding_instance */
 
 
-static void check_if_already_specialized(a_template_instance_ptr	tip)
+static a_boolean entity_is_specialized(a_template_instance_ptr	tip)
 /*
-A translation unit was loaded to define the exported template instance
-specified by "tip" (it is the instance created in the translation unit
-that actually defines the exported template).  Make sure that the
-entity has not already been specialized in the translation unit containing
-the exported definition (because we cannot generate an instantiation in
-such cases).
+Return TRUE if the template instance "tip" refers to an entity that
+has been specialized.
 */
 {
   a_boolean	specialized;
@@ -15121,7 +15117,21 @@ such cases).
     rp = tip->instance_sym->variant.routine.ptr;
     specialized = rp->is_specialized;
   }  /* if */
-  if (specialized) {
+  return specialized;
+}  /* entity_is_specialized */
+
+
+static void check_if_already_specialized(a_template_instance_ptr	tip)
+/*
+A translation unit was loaded to define the exported template instance
+specified by "tip" (it is the instance created in the translation unit
+that actually defines the exported template).  Make sure that the
+entity has not already been specialized in the translation unit containing
+the exported definition (because we cannot generate an instantiation in
+such cases).
+*/
+{
+  if (entity_is_specialized(tip)) {
     /* A specialization was found.  Issue an error. */
     pos_sy_error(ec_exported_instantiation_and_specialized,
                  &tip->instance_sym->decl_position, tip->instance_sym);
@@ -16789,7 +16799,9 @@ be processed.
           generate_template_files()) {
         /* The flags are to be placed in the template information file. */
         char	*name;
-        name = get_mangled_name_of_instance(mip);
+        /* Note that get_mangled_name_of_instance is not used here.  The
+           name must have been generated earlier. */
+        name = mip->name;
         check_assertion(name != NULL);
         write_instantiation_flags_to_template_info_file(
              name, instance_required, do_not_instantiate, can_be_instantiated,
@@ -16830,7 +16842,9 @@ be processed.
 #endif /* MAINTAIN_NEEDED_FLAGS */
       if (instantiation_file_generated) {
         char	*name;
-        name = get_mangled_name_of_instance(mip);
+        /* Note that get_mangled_name_of_instance is not used here.  The
+           name must have been generated earlier. */
+        name = mip->name;
         check_assertion(name != NULL);
         write_instantiation_file_name_to_template_info_file(name);
       }  /* if */
@@ -17079,6 +17093,28 @@ before the per-translation unit processing can be done.
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 }  /* instantiation_wrapup_setup */
+
+
+void finalize_instantiation_wrapup(void)
+/*
+Do the per-compilation (not per-translation unit) processing required
+after instantiation_wrapup has been done for all of the translation units.
+*/
+{
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  a_master_instance_ptr		mip;
+
+  /* Make sure that names have been created for all master instances
+     for non-specialized entities.  This is done now because the point
+     at which update_auto_instantiation_flags is called is too late to
+     generate certain mangled names. */
+  for (mip = master_instantiations_list; mip != NULL; mip = mip->next) {
+    if (!entity_is_specialized(mip->instance)) {
+      (void)get_mangled_name_of_instance(mip);
+    }  /* if */
+  }  /* for */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+}  /* finalize_instantiation_wrapup */
 
 
 void instantiation_wrapup(void)

@@ -375,6 +375,8 @@ extern void set_master_instance_information(void);
 
 extern void instantiation_wrapup_setup(void);
 
+extern void finalize_instantiation_wrapup(void);
+
 extern void instantiation_wrapup(void);
 
 extern void inline_function_wrapup(void);
