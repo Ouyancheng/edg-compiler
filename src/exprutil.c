@@ -2304,6 +2304,7 @@ lvalue.  If there is an error, change the operand to an error operand.
       !is_incomplete_type(type)) {
     okay = TRUE;
     if (is_class_struct_union_type(type)) {
+      type = skip_typerefs(type);
       if (type->variant.class_struct_union.any_const_member) okay = FALSE;
     }  /* if */
   }  /* if */
