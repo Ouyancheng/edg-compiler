@@ -4180,6 +4180,7 @@ lvalue.  If there is an error, change the operand to an error operand.
 {
   a_boolean  okay = FALSE;
   a_type_ptr type;
+  a_boolean  is_lvalue_with_complete_type;
 
   if (gcc_mode && is_an_rvalue(operand)) {
     /* gcc allows some strange casts that look like lvalue casts but are
@@ -4239,9 +4240,10 @@ lvalue.  If there is an error, change the operand to an error operand.
   */
   type = operand->type;
   complete_type_is_needed(type);
-  if (is_an_lvalue(operand) &&
-      !is_const_qualified_type(type) &&
-      !is_incomplete_type(type)) {
+  is_lvalue_with_complete_type = (is_an_lvalue(operand) &&
+                                  !is_incomplete_type(type));
+  if (is_lvalue_with_complete_type &&
+      !is_const_qualified_type(type)) {
     /* In SVR4 C compatibility mode, this routine can be called for an
        lvalue cast that would normally be illegal.  Issue a warning. */
     if (SVR4_C_mode &&
@@ -4260,7 +4262,7 @@ lvalue.  If there is an error, change the operand to an error operand.
   if (!okay) {
     if (is_error_operand(operand)) {
       /* An error message has already been issued for this operand. */
-    } else if (gcc_mode) {
+    } else if (gcc_mode && is_lvalue_with_complete_type) {
       /* This is a discretionary error in gcc mode. */
       pos_diagnostic(es_discretionary_error, ec_expr_not_a_modifiable_lvalue,
                      &operand->position);
