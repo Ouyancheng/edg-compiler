@@ -1555,7 +1555,7 @@ fi
 #
 if [ $compile_as_secondary -ne 0 ] ; then
   dummy_primary_file_name=$TMPDIR/dp$$
-  echo "int dummy_primary_filexxx=1;" >$dummy_primary_file_name
+  echo "extern int dummy_primary_filexxx;" >$dummy_primary_file_name
   if [ $? -ne 0 ] ; then
     echo $driver_name: could not create dummy primary file $dummy_primary_file_name.
     exit 1
