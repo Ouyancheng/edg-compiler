@@ -12658,6 +12658,41 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       } else {
         operand_2_is_ptr_to_member = operand_3_is_ptr_to_member = FALSE;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_bugs &&
+          ((is_bool_type(operand_2.type) &&
+            (operand_3_is_pointer || operand_3_is_ptr_to_member)) ||
+           (is_bool_type(operand_3.type) &&
+            (operand_2_is_pointer || operand_2_is_ptr_to_member)))) {
+        a_boolean         ptr_case;
+        a_source_position pos;
+        /* MSVC++ (6.0, 7.0, 7.1, and 8.0, at least) allow a mix of
+           a pointer or pointer-to-member operand and bool.  The result
+           type is bool. */
+        result_type = bool_type();
+        if (is_bool_type(operand_2.type)) {
+          /* Convert operand_3, the pointer operand, to bool. */
+          cast_operand(result_type, &operand_3, /*check_cast_access=*/TRUE,
+                       /*is_implicit_cast=*/TRUE,
+                       /*is_reinterpret_cast=*/FALSE,
+                       /*reinterpret_semantics=*/FALSE);
+          ptr_case = operand_3_is_pointer;
+          pos = operand_3.position;
+        } else {
+          /* Convert operand_2, the pointer operand, to bool. */
+          cast_operand(result_type, &operand_2, /*check_cast_access=*/TRUE,
+                       /*is_implicit_cast=*/TRUE,
+                       /*is_reinterpret_cast=*/FALSE,
+                       /*reinterpret_semantics=*/FALSE);
+          ptr_case = operand_2_is_pointer;
+          pos = operand_2.position;
+        }  /* if */
+        pos_warning(ptr_case ? ec_ptr_conv_to_bool :
+                               ec_ptr_to_member_conv_to_bool,
+                    &pos);
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
       if (operand_2_is_pointer || operand_3_is_pointer) {
         /* At least one of the operands is a pointer.  See if the operands are
            compatible.  In C, the operands must be pointers to qualified or

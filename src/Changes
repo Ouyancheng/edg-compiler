@@ -1,5 +1,18 @@
 Version 3.6
 
+2/6/05   Microsoft compatibility: bool and pointer as operands of "?"
+
+Microsoft bugs mode now allows the combination of a bool operand
+and a pointer (or pointer-to-member) operand as the second and third
+operands of a "?" operator.  The pointer(-to-member) operand is converted
+to bool, and the result type is bool.  A warning is issued.
+
+  int main() {
+    int *p = 0;
+    bool b = false;
+    b = b ? b : p;
+  }
+
 2/4/04   Partial ordering and explicitly specified template arguments
 
 The original specification of partial ordering of function templates did

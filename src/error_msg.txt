@@ -1431,6 +1431,8 @@ ec_virtual_function_never_defined;;"virtual %n was not defined (and cannot be de
 ec_stray_carriage_return;;"carriage return character in source line outside of comment or character/string literal"
 ec_expr_not_fixed_point;;"expression must have fixed-point type"
 ec_invalid_access_specifier;;"invalid use of access specifier is ignored"
+ec_ptr_conv_to_bool;;"pointer converted to bool"
+ec_ptr_to_member_conv_to_bool;;"pointer-to-member converted to bool"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
