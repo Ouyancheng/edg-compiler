@@ -2390,12 +2390,9 @@ not be TRUE.
                      comp_type->variant.routine.extra_info->param_type_list;
           for (; rout_type_ptp != NULL; rout_type_ptp = next_rout_type_ptp,
                                         comp_type_ptp = comp_type_ptp->next) {
-            if (rout_type_ptp == comp_type_ptp) {
-              /* Whenever the corresponding param type entries on the two
-                 lists are the same entry, all subsequent ones will also be
-                 the same, so we can bail out at that point. */
-              break;
-            }  /* if */
+            check_assertion_str2(rout_type_ptp != comp_type_ptp,
+                                 "reconcile_routine_types:",
+                                 "param type appears on two lists");
             /* Save the original next pointer and restore it after the copy. */
             next_rout_type_ptp = rout_type_ptp->next;
             *rout_type_ptp = *comp_type_ptp;
