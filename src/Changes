@@ -1,5 +1,23 @@
 Version 3.4
 
+3/9/04   Core issue 54, again
+
+There's been some confusion about whether static_casts that
+involve a private base class are allowed.  We made the pointer
+to member case an error previously (see Changes entry of 7/28/03).
+Now that the standards committee has revisited the issue again,
+we have also made the pointer case an error.
+
+  struct B { int b; };
+  struct D : private B { };
+  int main() {
+    int D::*dpm = 0;
+    int B::*bpm = static_cast<int B::*>(dpm); // Was an error, still an error
+    B *pb = 0;
+    D *pd = static_cast<D*>(pb);  // Now an error, except in g++ and
+                                  // Microsoft C++ 7.1 modes
+  }
+
 3/8/04   GNU compatibility: _Pragma accepted in GNU modes
 
 The C99 _Pragma operator is now accepted in gcc and g++ modes.

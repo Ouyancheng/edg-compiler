@@ -9165,17 +9165,29 @@ Syntax:
                 !is_accessible_base_class(bcp)) {
               /* A conversion from pointer-to-member of derived to
                  pointer-to-member of a private base should not be
-                 allowed.  This was discussed in core issue 54 and is
-                 tested by a Suite++ test.  Core issue 54 also makes
-                 the similar pointer case, pointer-to-private-base to
-                 pointer-to-derived, an error, but we think that doesn't
-                 make sense.  MSVC++ 7.1 and g++ 3.2 allow the pointer
-                 case and give an error on the pointer-to-member case,
-                 so there seems to be some consensus. */
+                 allowed.  See core issue 54. */
               pos_ty_diagnostic(es_discretionary_error,
                                 ec_inaccessible_base_class,
                                 &start_position,
                                 bcp->type);
+            } else if (related_class_pointers(source_type, type_cast_to,
+                                              &baseward_cast, &bcp) &&
+                       !baseward_cast &&
+                       !bcp->ambiguous &&
+                       !is_accessible_base_class(bcp)) {
+              /* A conversion from a pointer to a private base to
+                 a pointer to a derived should not be allowed.
+                 See core issue 54.  However, MSVC++ 7.1 and g++
+                 3.2/3.3 (but not 3.4) allow it. */
+              if ((microsoft_mode && microsoft_version == 1310) ||
+                  gpp_mode) {
+                /* Okay. */
+              } else {
+                pos_ty_diagnostic(es_discretionary_error,
+                                  ec_conv_from_inaccessible_base_class,
+                                  &start_position,
+                                  bcp->type);
+              }  /* if */
             }  /* if */
             /* Do the actual cast. */
             cast_operand(type_cast_to, result, /*check_cast_access=*/TRUE,
