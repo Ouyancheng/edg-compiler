@@ -1,5 +1,14 @@
 Version 3.0
 
+2/28/02  Storage class incorrect for specialization of static template
+
+An explicit specialization should have the same linkage as an implicit
+specialization.  When a static template was explicitly specialized, the
+specialization was incorrectly given external linkage.  This has been fixed.
+
+  template<typename T> static void f(T);
+  template<> void f<int>(int){}
+
 2/27/02  Incorrect keep_in_il flags, IL write/read error
 
 The maintenance of needed flags, in particular the keep_definition_in_il

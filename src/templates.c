@@ -14234,6 +14234,8 @@ that follows.
                         &dso_flags, &storage_class, &type, &qualifiers,
 			(an_attribute_ptr *)NULL, &decl_modifiers,
 			&decl_pos_block);
+  /* A storage class is not permitted on an explicit specialization. */
+  check_assertion(storage_class == (a_storage_class)sc_unspecified);
   if (is_error_type(type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(locator);
@@ -14246,10 +14248,6 @@ that follows.
        of the remaining processing is done in class_specifier. */
     sym = (a_symbol_ptr)type->source_corresp.assoc_info;
     check_assertion(sym != NULL);
-    if (storage_class != (a_storage_class)sc_unspecified) {
-      /* Storage class is not allowed. */
-      pos_error(ec_storage_class_not_allowed, &decl_start_pos);
-    }  /* if */
     if (!is_any_template_instance_class_symbol(sym)) {
       /* Not a template instance. */
       sym_error(ec_entity_cannot_be_specialized, sym);
@@ -14486,12 +14484,7 @@ that follows.
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         vp->is_specialized = TRUE;
-        if (storage_class != (a_storage_class)sc_unspecified) {
-          /* Storage class may not be specified on a member template
-             specialization. */
-          pos_error(ec_storage_class_not_allowed, &decl_start_pos);
-          storage_class = (a_storage_class)sc_unspecified;
-        } else if (dso_flags & DSO_INLINE) {
+        if (dso_flags & DSO_INLINE) {
           /* Inline may not be specified. */
           pos_error(ec_inline_and_nonfunction, &decl_start_pos);
         }  /* if */
@@ -14557,15 +14550,8 @@ that follows.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         rp->is_specialized = TRUE;
         rp->is_inline = func_info.is_inline;
-        if (rp->source_corresp.is_class_member &&
-            storage_class != (a_storage_class)sc_unspecified) {
-          /* Storage class may not be specified on a member template
-             specialization. */
-          pos_error(ec_storage_class_not_allowed, &decl_start_pos);
-          storage_class = (a_storage_class)sc_unspecified;
-        }  /* if */
         if ((func_info.is_inline && !extern_inline_allowed) ||
-            storage_class == (a_storage_class)sc_static) {
+            rp->storage_class == (a_storage_class)sc_static) {
           /* Function was declared "static" or it was declared "inline" and
              inline functions have internal linkage by default. */
           rp->storage_class = (a_storage_class)sc_static;
