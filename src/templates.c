@@ -72,6 +72,10 @@ able to if the template itself has not yet been defined.
     } else if (!cssp->is_real_instantiation) {
       /* Don't try to instantiate a template class without real template
          arguments. */
+#if CHECKING
+    } else if (cssp->is_specific_template_def) {
+      internal_error("instantiate_template_class: is specific template def");
+#endif /* CHECKING */
     } else {
       /* There is a class template from which to generate this class and its
          a real instantiation. */
