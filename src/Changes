@@ -1,5 +1,15 @@
 Version 2.44
 
+1/16/00  Microsoft compatibility: inline functions instantiated later
+
+Normally, inline functions are instantiated when first referenced.
+The Microsoft compiler, however, instantiates such functions at the
+end of the translation unit.  The difference in instantiation point can
+result in errors or differences in behavior because types may be
+incomplete at the earlier point, or the set of visible functions
+may be different.  In Microsoft mode, inline functions are now
+instantiated at the end of the translation unit.
+
 1/14/00  Preserve bool-correctness in IL lowering of bool increment
 
 IL lowering now uses a constant "1" of bool type in the code generated
