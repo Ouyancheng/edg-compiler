@@ -1,5 +1,35 @@
 Version 3.6
 
+11/18/04 C++-generating back end: Microsoft compatibility
+
+As noted in the Changes entry of 11/9/04, the C++-generating back end has
+been changed to use functional-style casts instead of C-style casts where
+possible.  However, all versions of Microsoft C++ compilers through at least
+7.1 have parser bugs that result in at least some well-formed functional-style
+casts being diagnosed as syntax errors.  The C++-generating back end will now
+produce C-style casts as it formerly did when msvc_is_generated_code_target
+is TRUE, to avoid these parser bugs.  For example,
+
+  struct X {
+    X(const char*);
+  };
+
+  struct Y {
+    operator int();
+    Y(const X&);
+  };
+
+  int f() {
+    const char *s = "abc";
+    throw X(s);              // #1
+    return (int)(Y(X(s)));   // #2
+  }
+
+If statement #1 is generated as "throw (X(s))", MSVC 6.0 reports a syntax
+error; generating #2 as "return ((int)(Foo((Bar(hello)))));" causes a syntax
+error in MSVC 7.1.  Using C-style casts in both cases ("((X)(s))" and
+"((int)((Y)(((X)(s)))))", respectively) avoids the syntax errors.
+
 11/18/04 GNU compatibility: line directives in preprocessed output
 
 The GNU preprocessor emits "old-style" line directives (e.g., '# 1 t.c"'

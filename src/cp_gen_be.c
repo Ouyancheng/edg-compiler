@@ -9853,8 +9853,7 @@ Note that the destructor, if any, is implicit and need not be put out.
     if (might_use_old_style_cast) {
       write_tok_ch('(');
       if (has_name_before_mangling(init_entity_type) &&
-          !(msvc_is_generated_code_target &&
-            msvc_target_version_number < 1310)) {
+          !msvc_is_generated_code_target) {
         /* Generate a functional-notation cast.  We always put out an extra
            set of parentheses around the generated code, regardless of whether
            we use a functional cast or an old-style cast, so we don't have
@@ -9864,9 +9863,10 @@ Note that the destructor, if any, is implicit and need not be put out.
            Using the functional notation also avoids a Sun quirk where
            functional casts are lvalues but old-style casts are not  (i.e.,
            we don't want to turn "X(y)" into "(X)(y)"). */
-        /* MSVC versions before 7.1 have a parser bug such that "(X(y))" is
-           sometimes treated as a syntax error, so we always generate
-           old-style casts when one of those compilers is the target. */
+        /* MSVC versions through at least 7.1 have parser bugs such that
+           "(X(y))" is sometimes treated as a syntax error, so we always
+           generate old-style casts when one of those compilers is the
+           target. */
         gen_type_name(init_entity_type);
       } else {
         /* Put out an old-style cast, e.g., (X)y. */
