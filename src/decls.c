@@ -3242,8 +3242,9 @@ on for use in generating cross-reference output describing this declaration.
     homonym_symbol = NULL;
     sym = *symbol_ptr;
   } else if (locator->is_qualified_name && locator->specific_symbol != NULL) {
-    if ((is_function_def) &&
-        !namespace_is_enclosed_by_curr_scope(locator->specific_symbol)) {
+    if (is_function_def &&
+        !namespace_is_enclosed_by_scope(locator->specific_symbol,
+                                        &scope_stack[effective_decl_level])) {
       /* This declaration appears within a namespace scope in which the name
          cannot be defined -- it is a member (directly or indirectly) of a
          namespace that is not enclosed by the current namespace scope
