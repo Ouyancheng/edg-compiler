@@ -282,8 +282,8 @@ extern void pch_init(void);
 
 /*
 Macro that returns TRUE if the line number indicated by the current input
-stack entry, and the column number from the supplied source position
-match the header stop positing.
+stack entry and the column number from the supplied source position
+match the header stop position.
 */
 #define is_header_stop_position(pos)					\
   (header_stop_position_pending &&					\
