@@ -2661,8 +2661,8 @@ at the next level down.
   if (--depth_input_stack < 0) {
     curr_ise = NULL;
     curr_input_stream = NULL;
-    if (!is_end_of_primary_source_file) {
-#if STACK_REFERENCED_INCLUDE_DIRECTORIES
+    if (!is_end_of_primary_source_file &&
+        stack_referenced_include_directories) {
       /* When the include list contains a stack of directory names of
          active include files, we need to remove the entries added for
          implicitly included files.  Don't do this for the primary source
@@ -2671,7 +2671,6 @@ at the next level down.
       check_assertion(incl_search_path != NULL &&
                       incl_search_path->next != NULL);
       pop_primary_include_search_dir(incl_search_path->next->dir_name);
-#endif /* STACK_REFERENCED_INCLUDE_DIRECTORIES */
     }  /* if */
   } else {
     an_input_stack_entry_ptr  prev_ise = curr_ise;

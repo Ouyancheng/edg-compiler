@@ -332,7 +332,6 @@ static a_directory_name_entry_ptr
 			/* Available list of directory name entries. */
 
 
-#if STACK_REFERENCED_INCLUDE_DIRECTORIES
 static void free_directory_name_entry(a_directory_name_entry_ptr dnep)
 /*
 Add dnep to the available list of directory name entries.
@@ -341,7 +340,6 @@ Add dnep to the available list of directory name entries.
   dnep->next = avail_directory_name_entries;
   avail_directory_name_entries = dnep;
 }  /* free_directory_name_entry */
-#endif /* STACK_REFERENCED_INCLUDE_DIRECTORIES */
 
 
 static a_directory_name_entry_ptr alloc_directory_name_entry(void)
@@ -426,7 +424,6 @@ include files to the end of the search path lists.
 #endif /* __VMS__ */
 }  /* add_default_include_search_path */
 
-#if NEED_CHANGE_PRIMARY_INCLUDE_SEARCH_DIR
 
 void change_primary_include_search_dir(char *dir_name)
 /*
@@ -438,7 +435,6 @@ general memory.
   incl_search_path->dir_name = dir_name;
 }  /* change_primary_include_search_dir */
 
-#endif /* NEED_CHANGE_PRIMARY_INCLUDE_SEARCH_DIR */
 
 void push_primary_include_search_dir(char *dir_name)
 /*
@@ -453,20 +449,20 @@ nested includes begins in the source directory of the current input file
 (not the source directory of the primary input file).  This is the approach
 generally taken by C compilers on UNIX systems.  A "stack-model" variation of
 this approach (as employed by Microsoft C compilers) follows from setting
-STACK_REFERENCED_INCLUDE_DIRECTORIES to TRUE.
+stack_referenced_include_directories to TRUE.
 */
 {
   /* The "-I-" option disables these changes. */
   if (put_dir_of_each_opened_source_file_on_incl_search_path) {
-#if !STACK_REFERENCED_INCLUDE_DIRECTORIES
-    /* The name in the current primary include search directory (the head of
-       list of directory name entries) is simply replaced by dir_name. */
-    change_primary_include_search_dir(dir_name);
-#else /* STACK_REFERENCED_INCLUDE_DIRECTORIES */
-    /* The new directory becomes the primary include search directory, but the
-       current one remains in the search path. */
-    add_to_front_of_include_search_path(dir_name);
-#endif /* STACK_REFERENCED_INCLUDE_DIRECTORIES */
+    if (stack_referenced_include_directories) {
+      /* The new directory becomes the primary include search directory, but
+         the current one remains in the search path. */
+      add_to_front_of_include_search_path(dir_name);
+    } else {
+      /* The name in the current primary include search directory (the head of
+         list of directory name entries) is simply replaced by dir_name. */
+      change_primary_include_search_dir(dir_name);
+    }  /* if */
   }  /* if */
 }  /* push_primary_include_search_dir */
 
@@ -480,22 +476,22 @@ input stack.
 {
   /* The "-I-" option disables these changes. */
   if (put_dir_of_each_opened_source_file_on_incl_search_path) {
-#if !STACK_REFERENCED_INCLUDE_DIRECTORIES
-    /* The name in the current primary include search directory (the head of
-       list of directory name entries) is simply replaced by dir_name. */
-    change_primary_include_search_dir(dir_name);
-#else /* STACK_REFERENCED_INCLUDE_DIRECTORIES */
-    /* The entry of the current primary include search directory is removed
-       from the search path, and the resulting primary include search directory
-       will correspond to dir_name. */
-    a_directory_name_entry_ptr  dnep;
+    if (stack_referenced_include_directories) {
+      /* The entry of the current primary include search directory is removed
+         from the search path, and the resulting primary include search
+         directory will correspond to dir_name. */
+      a_directory_name_entry_ptr  dnep;
 
-    dnep = incl_search_path;
-    incl_search_path = incl_search_path->next;
-    check_assertion(incl_search_path != NULL &&
-                    (strcmp(incl_search_path->dir_name,dir_name) == 0));
-    free_directory_name_entry(dnep);
-#endif /* STACK_REFERENCED_INCLUDE_DIRECTORIES */
+      dnep = incl_search_path;
+      incl_search_path = incl_search_path->next;
+      check_assertion(incl_search_path != NULL &&
+                      (strcmp(incl_search_path->dir_name,dir_name) == 0));
+      free_directory_name_entry(dnep);
+    } else {
+      /* The name in the current primary include search directory (the head of
+         list of directory name entries) is simply replaced by dir_name. */
+      change_primary_include_search_dir(dir_name);
+    }  /* if */
   }  /* if */
 }  /* pop_primary_include_search_dir */
 
