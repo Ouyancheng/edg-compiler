@@ -1415,7 +1415,7 @@ Dump a statement, for debug purposes.
         break;
       default:;
     }  /* switch */
-    fprintf(f_debug, ", at %d\n",
+    fprintf(f_debug, ", at %lu\n",
             seq_number_from_stmt_source_position(sp->position));
   }  /* if */
 }  /* db_statement */
@@ -1498,7 +1498,7 @@ the dump (this one counts as the first).
                    hp != NULL;
                    hp = hp->next) {
                 for (a = 0; a < indent+2; a++) fputs(" ", f_debug);
-                fprintf(f_debug, "catch%s, at %d:",
+                fprintf(f_debug, "catch%s, at %lu:",
                         hp->parameter == NULL ? " (...)" : "",
                         seq_number_from_stmt_source_position(
                                                         hp->catch_position));
@@ -6338,7 +6338,7 @@ Make a copy of an expression tree and return a pointer to it.
       expr_copy->variant.object_lifetime.ptr = NULL;
       bind_object_lifetime(curr_object_lifetime, iek_expr_node,
                            (char *)expr_copy);
-      pop_object_lifetime();
+      (void)pop_object_lifetime();
       break;
     default:
       unexpected_condition_str("copy_expr_tree: bad expr kind");
@@ -8099,15 +8099,17 @@ list.
 }  /* mark_object_lifetime_as_useless */
 
 
-void pop_object_lifetime(void)
+a_boolean pop_object_lifetime(void)
 /*
 Pop an object lifetime off the object lifetimes stack.  Check whether it
 needs to be kept in the IL tree.  If not, unlink it from the IL and
-return it to the appropriate available list.
+return it to the appropriate available list.  Return TRUE if the object
+lifetime is retained in the IL tree.
 */
 {
   a_boolean               is_implicit_child = FALSE;
   an_object_lifetime_ptr  olp, parent, child, end_of_child_list;
+  a_boolean               is_retained_in_il;
 
   db_enter(3, "pop_object_lifetime");
 #if DEBUG
@@ -8188,6 +8190,7 @@ return it to the appropriate available list.
       /* Unbind from the IL entry with which it is associated. */
       unbind_object_lifetime(olp);
     }  /* if */
+    is_retained_in_il = FALSE;
     /* Return the entry to its available list. */
     (void)free_object_lifetime(olp);
   } else {
@@ -8197,6 +8200,7 @@ return it to the appropriate available list.
                         olp->kind ==
                               (an_object_lifetime_kind)olk_block_after_label,
                         "pop_object_lifetime: useful lifetime is unbound");
+    is_retained_in_il = TRUE;
     if (is_implicit_child) {
       /* This is an object lifetime for a function scope that will remain
          in the IL.  Set the global variable to assure that the file scope
@@ -8213,19 +8217,8 @@ return it to the appropriate available list.
   if (debug_level >= 3) db_object_lifetime_stack();
 #endif /* DEBUG */
   db_exit()
+  return is_retained_in_il;
 }  /* pop_object_lifetime */
-
-
-void pop_object_lifetimes_until(an_object_lifetime_ptr  stop_at)
-/*
-Pop all entries from the object lifetimes stack up to (but not including)
-the object lifetime entry pointed to by stop_at.
-*/
-{
-  while (curr_object_lifetime != stop_at) {
-    pop_object_lifetime();
-  }  /* while */
-}  /* pop_object_lifetimes_until */
 
 
 an_object_lifetime_ptr innermost_block_object_lifetime(
