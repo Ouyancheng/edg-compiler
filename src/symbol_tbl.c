@@ -4363,6 +4363,21 @@ called.
 }  /* check_referenced_member_functions */
 
 
+static void report_unreferenced(a_symbol_ptr  sym)
+/*
+Issue a warning for an unreferenced entity.  However, demote the warning to
+a remark if the entity is a file-scope entity declared in an include file.
+*/
+{
+  if (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+      seq_is_in_include_file(sym->decl_position.seq)) {
+    pos_sy_remark(ec_declared_but_not_referenced, &sym->decl_position, sym);
+  } else {
+    pos_sy_warning(ec_declared_but_not_referenced, &sym->decl_position, sym);
+  }  /* if */
+}  /* report_unreferenced */
+
+
 /*
 Return TRUE if a type is a completable incomplete type, i.e., it's incomplete
 but it's not void.
@@ -4393,14 +4408,12 @@ NULL.
   a_type_ptr      var_type, type_ptr;
   a_variable_ptr  var_ptr;
   a_routine_ptr   rout_ptr;
-  an_error_code   warning_code;
   a_symbol_ptr    rout_sym;
   a_boolean       is_overloaded;
 #if CHECKING
   a_source_correspondence  *scp = NULL;
 #endif /* CHECKING */
 
-  warning_code = ec_no_error;
   switch (sym->kind) {
     case sk_variable:
       /* Variable or parameter. */
@@ -4438,7 +4451,7 @@ NULL.
 #endif /* ASM_FUNCTION_ALLOWED */
           } else {
             /* Unreferenced parameter. */
-            warning_code = ec_declared_but_not_referenced;
+            report_unreferenced(sym);
           }  /* if */
         } else {
           /* A normal variable (not a parameter). */
@@ -4447,7 +4460,7 @@ NULL.
                long-standing C tradition. */
           } else {
             /* An unreferenced variable. */
-            warning_code = ec_declared_but_not_referenced;
+            report_unreferenced(sym);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -4508,8 +4521,7 @@ check_routine:
 #endif /* ASM_FUNCTION_ALLOWED */
             } else {
               /* An unreferenced routine. */
-              pos_sy_warning(ec_declared_but_not_referenced,
-                             &rout_sym->decl_position, rout_sym);
+              report_unreferenced(rout_sym);
             }  /* if */
           }  /* if */
         }  /* if */
@@ -4552,7 +4564,7 @@ check_routine:
         pos_sy_error(ec_never_defined, &sym->decl_position, sym);
       } else if (!sym->referenced) {
         /* An unreferenced label. */
-        warning_code = ec_declared_but_not_referenced;
+        report_unreferenced(sym);
       }  /* if */
       break;
     case sk_extern_variable:
@@ -4645,17 +4657,6 @@ check_routine:
       /* No processing for other kinds. */
       break;
   }  /* switch */
-  if (warning_code != ec_no_error) {
-    /* Issue a warning for an unreferenced entity.  However, demote the
-       warning to a remark if the entity is a file-scope entity declared
-       in an include file. */
-    if (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
-        seq_is_in_include_file(sym->decl_position.seq)) {
-      pos_sy_remark(warning_code, &sym->decl_position, sym);
-    } else {
-      pos_sy_warning(warning_code, &sym->decl_position, sym);
-    }  /* if */
-  }  /* if */
 #if CHECKING
   if (scp != NULL &&
       (sym->class_of_which_a_member != scp->class_of_which_a_member)) {
