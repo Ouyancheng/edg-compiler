@@ -2022,10 +2022,8 @@ do_argument_again:
               (curr_token != tok_end_of_source && curr_token != tok_newline)) {
             if (strict_ansi_mode) warning(ec_empty_macro_argument);
             /* Strangely, the Microsoft compiler ignores empty macro arguments.
-               This has been verified with MSVC++ 4.2, 5.0 and 6.0 (apparently
-               fixed in 7.0). */
-            if (microsoft_bugs && microsoft_version <= 1200 &&
-                curr_token == tok_comma) {
+               This has been verified with MSVC++ 4.2 and 5.0. */
+            if (microsoft_bugs && curr_token == tok_comma) {
               (void)arg_get_token(&any_white_space_skipped);
               goto do_argument_again;
             }  /* if */

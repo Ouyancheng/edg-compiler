@@ -196,13 +196,6 @@ If the path name of file x.h is /a/b/this_dir/x.h and /a/b/this_dir is
 the current directory, these includes would have been considered to
 include different files.  They are now known to include the same file.
 
-9/29/00  Microsoft compatibility: empty macro arguments not always ignored
-
-A Changes entry of 4/3/97 reports that MSVC++ versions 4.2 and 5.0 ignore
-empty macro arguments.  This bug (also present in MSVC++ 6.0) is reportedly
-fixed in MSVC++ version 7.0 and we therefore no longer emulate it when the
-Microsoft version number is larger than 1200 (e.g., --microsoft_version=1300).
-
 9/29/00  Carriage returns now ignored by default
 
 The IGNORE_CARRIAGE_RETURN_IN_SOURCE configuration flag is now set
