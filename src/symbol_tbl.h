@@ -533,9 +533,10 @@ typedef struct a_template_symbol_supplement {
                         /* Pointer to a list of symbols describing template
                            classes that have been instantiated from this
                            class template. */
-      a_boolean is_union;
-                        /* TRUE if this class template is actually a
-                           union. */
+      a_type_kind
+		type_kind;
+			/* The kind (tk_class, tk_struct, or tk_union) which
+			   is instatiated types will have. */
     } class;
     /* When kind = sk_function_template. */
     a_function_instantiation_entry_ptr

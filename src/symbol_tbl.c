@@ -458,7 +458,13 @@ and indentation is the indentation desired.
           put_string("template body cached");
         }  /* if */
         if (sym->kind == (a_symbol_kind)sk_class_template) {
-          if (tssp->variant.class.is_union) put_string("is_union");
+          switch (tssp->variant.class.type_kind) {
+            case tk_class:  put_string("class");           break;
+            case tk_struct: put_string("struct");          break;
+            case tk_union:  put_string("union");           break;
+            case tk_error:  put_string("no type kind");    break;
+            default:        put_string("<BAD TYPE KIND>"); break;
+          }  /* switch */
         }  /* if */
         /* Output information from the template symbol supplement. */
         put_string("template parameters =\n");
@@ -872,7 +878,7 @@ state.
         tssp->declaration_scope = NO_SCOPE_NUMBER;
         if (sym_kind == sk_class_template) {
           tssp->variant.class.instantiations = NULL;
-          tssp->variant.class.is_union       = FALSE;
+          tssp->variant.class.type_kind      = (a_type_kind)tk_error;
         } else {
           tssp->variant.function_instantiations = NULL;
         }  /* if */
@@ -1681,8 +1687,15 @@ ct_symbol is the symbol of the class template.
   /* Determine kind of symbol to be entered.  It can be either a
      class_or_struct or a union depending on the type of the class
      template. */
-  kind = (ct_symbol->variant.template.extra_info->variant.class.is_union)
-         ? (a_symbol_kind)sk_union_tag : (a_symbol_kind)sk_class_or_struct_tag;
+  switch (ct_symbol->variant.template.extra_info->variant.class.type_kind) {
+    case tk_class:
+    case tk_struct:  kind = (a_symbol_kind)sk_class_or_struct_tag;  break;
+    case tk_union:   kind = (a_symbol_kind)sk_union_tag;            break;
+#if CHECKING
+    default:
+      internal_error("make_template_class_symbol: bad type kind");
+#endif /* CHECKING */
+  }  /* switch */
   /* Create the symbol.  Use the current source position as the declaration
      position. */
   sym = alloc_symbol(kind, ct_symbol->header, pos);
