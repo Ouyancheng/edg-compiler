@@ -1216,7 +1216,7 @@ type is legal.
              are discarded. */
           promote_float_to_double(new_type_ptr);
         }  /* if */
-        if (is_top_level_qualified_type(new_type_ptr) &&
+        if (is_qualified_type(new_type_ptr) &&
             !is_reference_type(new_type_ptr)) {
           /* Type qualifiers on a function return type are meaningless. */
           /* Issue just a remark for "volatile void" -- gcc uses that to
@@ -2304,7 +2304,7 @@ scope is that of a class definition.
             break;
           } else if (is_void_type(param_type_ptr) &&
                      param_type_ptr->kind == (a_type_kind)tk_typeref &&
-                     !is_top_level_qualified_type(param_type_ptr) &&
+                     !is_qualified_type(param_type_ptr) &&
                      param_storage_class == (a_storage_class)sc_unspecified) {
             /* A type name is bound to void type -- this construct is treated
                as a nonstandard way of signifying an empty param list. */
@@ -7421,7 +7421,7 @@ Returns TRUE if there is an error in the specifiers.
                 if (tag_sym != NULL && is_class_symbol(tag_sym)) {
                   tp = type_symbol_type(tag_sym);
                   if (tp->kind == (a_type_kind)tk_typeref) {
-                    if (is_top_level_qualified_type(tp)) {
+                    if (is_qualified_type(tp)) {
                       /* This should be an error:
                            typedef const struct A TA;
                            class B { friend TA; };
@@ -9997,7 +9997,7 @@ continue_with_declaration:
       } else if (!declares_something) {
         if (defines_something &&
             (storage_class != (a_storage_class)sc_unspecified ||
-             is_top_level_qualified_type(type_ptr))) {
+             is_qualified_type(type_ptr))) {
           /* If defines_something is TRUE and declares something is FALSE we
              have a class, struct, union, or enum declaration without a tag
              name and also without the name of an object but with a storage
@@ -10029,7 +10029,7 @@ continue_with_declaration:
                        strict_ansi_error_severity : es_warning,
                      ec_storage_class_not_allowed);
         }  /* if */
-        if (is_top_level_qualified_type(type_ptr)) {
+        if (is_qualified_type(type_ptr)) {
           diagnostic(C_dialect == C_dialect_cplusplus ? es_error : es_warning,
                      ec_const_volatile_not_allowed);
         }  /* if */

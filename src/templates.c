@@ -1096,14 +1096,14 @@ be NULL if the caller does not need to know whether a conversion was performed.
   db_enter(5, "matches_template_type");
   if (base_class_conv_needed != NULL) *base_class_conv_needed = NULL;
   if (is_template_param_type(templ_type)) {
-    if (is_top_level_qualified_type(templ_type)) {
+    if (is_qualified_type(templ_type)) {
       /* If the template parameter has any type qualifiers, the argument type
          will have to have a set of type qualifiers that includes any on the
          template parameter.  Remove any that are shared in common and then
          do a check. */
       skip_common_type_qualifiers(&type, &templ_type);
     }  /* if */
-    if (is_top_level_qualified_type(templ_type)) {
+    if (is_qualified_type(templ_type)) {
       /* The qualifier on templ_type did not also appear on type, so there is
          no match. */
     } else {

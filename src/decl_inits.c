@@ -1934,7 +1934,7 @@ initialized.  These are addressed in the course of the processing.
                            locator_for_curr_id.specific_symbol);
           }  /* if */
           init_type = type_symbol_type(member_or_base_sym);
-          if (is_top_level_qualified_type(init_type)) {
+          if (is_qualified_type(init_type)) {
             bcp = NULL;
           } else {
             a_base_class_ptr  found_bcp = NULL;
