@@ -299,7 +299,9 @@ caution when modifying this routine.
             /* This is a template parameter during a prototype instantiation.
                Don't issue an error.  This will be checked during real
                instantiations. */
-          } else if (is_template_class_symbol(tag_sym)) {
+          } else if (is_template_class_symbol(tag_sym) &&
+                     tag_kind != (a_symbol_kind)sk_enum_tag &&
+                     tag_sym->kind != (a_symbol_kind)sk_enum_tag) {
             /* Caller will issue the diagnostic. */
           } else {
             pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
@@ -1412,6 +1414,11 @@ to indicate whether an enumeration is actually defined.
           set_to_error_locator(locator);
         }  /* if */
       }  /* if */ 
+    } else if (is_error_locator(locator) && curr_token != tok_lbrace) {
+      /* There was an error is looking up the tag, and this is not a
+         definition.  For error recovery, return an error type. */
+      *type_ptr = error_type();
+      goto done;
     }  /* if */
   } else {
     /* No tag identifier present. */
@@ -1813,6 +1820,7 @@ to indicate whether an enumeration is actually defined.
   /* If necessary, pop the namespace extension scope. */
   if (namespace_extension_pushed) pop_namespace_extension_scope();
   *type_ptr = enum_type;
+done:;
   db_exit();
 }  /* enum_specifier */
 
@@ -3193,8 +3201,15 @@ process_class_specifier:
             }  /* if */
             enum_specifier(vacuous_decl_allowed, type_ptr,
                            &declares_something, &defines_something);
-            basic_type = bt_enum;
-            is_elaborated_type_specifier = TRUE;
+            if (is_error_type(*type_ptr)) {
+              /* An error was detected in enum_specifier -- typically, an
+                 ill-formed tag name. */
+              err = TRUE;
+              basic_type = bt_error;
+            } else {
+              basic_type = bt_enum;
+              is_elaborated_type_specifier = TRUE;
+            }  /* if */
           } else {
             a_boolean  dummy_flag;
             a_type_ptr dummy_type;
