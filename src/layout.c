@@ -2200,8 +2200,8 @@ for handling virtual bases and functions.
        fixup on their pointer offsets and (in cfront compatibility mode)
        their data section offsets. */
     fixup_shared_virtual_base_class_offsets(class_type);
-    /* Issue a diagnostic any the offset assignment to any base class
-       is too large. */
+    /* Issue a diagnostic if the offset assigned to any base class is too
+       large. */
     check_base_class_offsets(&lob);
   }  /* if */
   /* Record the overall size and alignment in the class's type entry. */
