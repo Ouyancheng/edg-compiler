@@ -388,12 +388,29 @@ errors are still generated for type mismatches.
  #error -- TARG_MAX_BIT_FIELD_SIZE is too big.
 #endif /* BYTE_MAX < TARG_MAX_BIT_FIELD_SIZE */
 
+/* If this flag is TRUE, bit-field allocation follows the conventions of
+   Microsoft C/C++.  The setting of TARG_BIT_FIELD_CONTAINER_SIZE is required
+   to be -1 and there is a two-stage allocation: first, a bit-field container
+   based on the bit-field type is allocated (as though it were a field in its
+   own right), and then bit fields are allocated within it. When the bit-field
+   type changes or the container fills up, a new container is allocated. */
+#ifndef TARG_MICROSOFT_BIT_FIELD_ALLOCATION
+#define TARG_MICROSOFT_BIT_FIELD_ALLOCATION MICROSOFT_EXTENSIONS_ALLOWED
+			/* Default value, used to initialize global variable
+			   targ_microsoft_bit_field_allocation. */
+#endif /* ifndef TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
+
 /* Container size to be used for bit-fields.  If > 0, indicates the
    size in bytes of one of the integral types.  0 means "use the smallest
    integral type into which the field will fit".  < 0 means "use the
-   base type given in the declaration". */
+   base type given in the declaration"; this should be the setting when
+   TARG_MICROSOFT_BIT_FIELD_ALLOCATION is TRUE. */
 #ifndef TARG_BIT_FIELD_CONTAINER_SIZE
+#if TARG_MICROSOFT_BIT_FIELD_ALLOCATION
+#define TARG_BIT_FIELD_CONTAINER_SIZE -1
+#else /* !TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
 #define TARG_BIT_FIELD_CONTAINER_SIZE 0
+#endif /* TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
 			/* Default value, used to initialize global variable
 			   targ_bit_field_container_size. */
 #endif /* ifndef TARG_BIT_FIELD_CONTAINER_SIZE */
