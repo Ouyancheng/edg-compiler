@@ -1063,12 +1063,14 @@ Dump the contents of the indicated expression node for debug purposes.
                                 ndsp->routine->source_corresp.name : "(null)");
       db_type(ndsp->type);
       fputs("\n", f_debug);
-      if (ndsp->dynamic_init != NULL) {
-        db_dynamic_initializer(ndsp->dynamic_init, level);
-      }  /* if */
       for (operand = ndsp->arg; operand != NULL; operand = operand->next) {
         db_expr_node(operand, level + 2);
       }  /* for */
+      if (ndsp->dynamic_init != NULL) {
+        for (a = 0; a < level; a++) fputs(" ", f_debug);
+        fprintf(f_debug, "dynamic_init: ");
+        db_dynamic_initializer(ndsp->dynamic_init, level + 2);
+      }  /* if */
       break;
     case enk_error:
       fputs("error node\n", f_debug);
