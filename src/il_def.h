@@ -563,19 +563,22 @@ typedef struct a_src_seq_secondary_decl {
 
 /*
 A source sequence end of construct entry is pointed to from a source sequence
-entry to mark the end of a class or enum definition or the end of a block.
- The kind of construct is determined by examining the tagged pointer.
+entry to mark the end of a class or enum definition, the end of a block,
+or the end of a for-init declaration.  The kind of construct is determined
+by examining the tagged pointer.
 */
 typedef struct a_src_seq_end_of_construct *a_src_seq_end_of_construct_ptr;
 typedef struct a_src_seq_end_of_construct {
   a_source_position
 		source_position;
-			/* Source position of the tok_rbrace or tok_rparen
-			   that marks the end of the construct. */
+			/* Normally, the source position of the tok_rbrace
+			   or tok_rparen that marks the end of the construct;
+			   for for-init declarations, the source position of
+			   the token following the for-init statement. */
   a_tagged_pointer
 		entity;
 			/* Entry identifying the entity (a class or enum type
-			   or a block statement) for which
+			   or a block or decl statement) for which
 			   this is the terminating token. */
 } a_src_seq_end_of_construct;
 
