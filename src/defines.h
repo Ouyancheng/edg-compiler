@@ -227,7 +227,7 @@ Flags to be set when using the KAI inliner.
 #define TARG_ALIGNOF_DOUBLE 4
 #define TARG_ALIGNOF_LONG_DOUBLE 4
 #define TARG_SIZEOF_LONG_DOUBLE 12
-#define TARG_JMP_BUF_NUM_ELEMENTS 6
+#define TARG_JMP_BUF_NUM_ELEMENTS 39
 #define C_GEN_BE_GENERATES_ANSI_C 1
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
