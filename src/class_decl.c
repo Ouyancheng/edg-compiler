@@ -9395,6 +9395,12 @@ respectively.
       check_assertion(skip_typerefs(field_type)->variant.template_param.kind ==
                                    (a_template_param_type_kind)tptk_member);
       /* Okay. */
+    } else if ((microsoft_mode || gpp_mode) &&
+               is_immediate_class_type(field_type) &&
+               field_type->variant.class_struct_union.
+                                                  is_prototype_instantiation) {
+      /* In Microsoft and g++ mode, a nested class may refer to the enclosing
+         prototype instantiation. */
     } else {
       if (!C_mode() && is_error_locator(*locator) &&
           !decl_info->is_unnamed_field) {

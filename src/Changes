@@ -1,5 +1,17 @@
 Version 3.4
 
+1/7/04   Microsoft and GNU C++ compatibility: enclosing template class 
+         treated as complete type within nested class
+	 
+In Microsoft and g++ modes, the type of an enclosing template class can be
+used as the type of a nonstatic data member within a nested class.
+	 
+  template  <class T> struct A {
+    struct B {
+      A<T> a;  // Allowed in Microsoft and g++ modes
+    };
+  };
+
 1/6/04   GNU C++ mode: Class types with size zero
 
 In GNU C++ mode, struct containing only data members of zero-length array
