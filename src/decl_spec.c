@@ -2652,7 +2652,7 @@ Returns TRUE if there is an error in the specifiers.
                Just return a flag to the caller. */
             *output_flags |= DSO_MUTABLE;
           }  /* if */
-        } else if ((input_flags & DSI_IS_TEMPLATE_SPECIALIZATION) &&
+        } else if ((input_flags & DSI_IS_SPECIALIZATION) &&
                    curr_token != tok_static) {
           error(ec_storage_class_not_allowed);
           err = TRUE;
@@ -3212,7 +3212,7 @@ process_class_specifier:
                           vacuous_decl_allowed, is_friend_decl,
                           (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                           (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
-                          (input_flags & DSI_IS_TEMPLATE_SPECIALIZATION) != 0,
+                          (input_flags & DSI_IS_SPECIALIZATION) != 0,
                           type_ptr, &declares_something,
                           &defines_something)) {
               err = TRUE;
@@ -3231,7 +3231,7 @@ process_class_specifier:
                           /*is_friend_decl=*/FALSE,
                           (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
                           (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
-                          (input_flags & DSI_IS_TEMPLATE_SPECIALIZATION) != 0,
+                          (input_flags & DSI_IS_SPECIALIZATION) != 0,
                           &dummy_type, &dummy_flag, &dummy_flag);
           }  /* if */
           goto no_get_token;

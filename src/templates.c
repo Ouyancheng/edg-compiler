@@ -6997,7 +6997,7 @@ that follows.
   db_enter(3, "full_instantiation");
   decl_start_pos = pos_curr_token;
   /* First scan the decl-specifiers. */
-  (void)decl_specifiers((DSI_IS_TEMPLATE_SPECIALIZATION |
+  (void)decl_specifiers((DSI_IS_SPECIALIZATION |
                          DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
                          DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
                          DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER |
