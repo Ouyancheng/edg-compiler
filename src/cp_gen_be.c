@@ -3518,7 +3518,7 @@ is the one associated with the definition of the class.
       ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
     /* The type is an anonymous union, so suppress the name. */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-  } else if (type->variant.class_struct_union.is_nonstd_anonymous_union) {
+  } else if (type->variant.class_struct_union.is_nonstd_anonymous_union_type) {
     /* The type is a nonstandard anonymous union or struct, so suppress
        the name. */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
@@ -3582,7 +3582,7 @@ is the one associated with the definition of the class.
        when necessary. */
     if (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-        || type->variant.class_struct_union.is_nonstd_anonymous_union
+        || type->variant.class_struct_union.is_nonstd_anonymous_union_type
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
                                                                      ) {
       /* An anonymous union starts with the same access as the enclosing
