@@ -4499,7 +4499,7 @@ routine entry of the function that was declared.
   check_assertion(curr_deferred_access_scope != NO_SCOPE_DEPTH);
   ssep = &scope_stack[curr_deferred_access_scope];
   /* This routine is always called last, so we can reset this flag now. */
-  ssep->defer_access_checks = TRUE;
+  ssep->defer_access_checks = FALSE;
   if (ssep->deferred_access_checks != NULL) {
     if (ssep->deferred_access_checks != NULL) {
       (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
@@ -7047,7 +7047,10 @@ specific version of the template.
     }  /* if */
     /* Determine whether this scope affects whether access checks can
        be deferred. */
-    if (kind == (a_scope_kind)sck_file) {
+    if (kind == (a_scope_kind)sck_file ||
+        kind == (a_scope_kind)sck_pragma) {
+      /* A scope that introduces a new level at which deferred access
+         checks may be recorded. */
       curr_deferred_access_scope = depth_scope_stack;
     } else if (kind == (a_scope_kind)sck_template_declaration ||
                kind == (a_scope_kind)sck_func_prototype ||

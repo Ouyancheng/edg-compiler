@@ -2164,6 +2164,14 @@ Return TRUE if access1 represents greater accessibility than access2.
     ((int)(access1) < (int)(access2))
 
 /*
+Macro that returns TRUE if there are any deferred access checks to be
+processed.
+*/
+#define any_deferred_access_checks()					\
+  (curr_deferred_access_scope != NO_SCOPE_DEPTH &&			\
+   scope_stack[curr_deferred_access_scope].deferred_access_checks != NULL)
+
+/*
 Set the flag that specifies that access errors should be deferred and
 rechecked later.
 */

@@ -2622,7 +2622,7 @@ skip_overloading:;
       /* Link the external symbol to the IL routine entry. */
       (*ext_sym)->variant.extern_symbol_descr->variant.routine = routine_ptr;
     }  /* if */
-    if (curr_deferred_access_scope != NO_SCOPE_DEPTH) {
+    if (any_deferred_access_checks()) {
       /* Now that we know which function has been declared, recheck any
          access errors that occurred while scanning the declaration. */
       perform_deferred_access_checks_for_function(routine_ptr);
