@@ -846,10 +846,11 @@ typedef struct a_base_class {
 			   in the current class (unless it is a direct base
 			   class). */
   an_access_specifier
-                access; /* If direct is TRUE, the kind of derivation (public,
-			   protected, or private) indicated by the access
-			   specifier on the base class for the current derived
-			   class; if direct is FALSE, field is undefined. */
+                access; /* The kind of derivation (public, protected, or
+                           private) from this base class to the class directly
+                           derived from it.  Indirect base classes (when
+                           direct is FALSE) retain the direct base class
+                           value. */
   a_targ_size_t	offset;
 			/* The byte offset from the start of the current
 			   derived class to the data section of this base
