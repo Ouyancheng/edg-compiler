@@ -139,13 +139,16 @@ class is the same as the name that locator_for_curr_id represents.
 }  /* is_name_of_curr_class */
 
 
-static a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name)
+static a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
+                                     a_boolean in_prescan)
 /*
 The current token is an identifier or, in C++, the "::" at the start of a
 global qualified name.  If it is the name of a type (a typedef name or,
 in C++, the name of a class, struct, union, or enum), return a pointer to
 the symbol.  Otherwise, return NULL.  Ambiguity and access control checking
-is not done.
+is not done.  in_prescan is TRUE when we are called from the prescanning
+routines used for disambiguation.  This flag suppresses errors that
+might result from class template names that are missing argument lists.
 */
 {
   a_symbol_ptr			assoc_symbol;
@@ -163,6 +166,7 @@ is not done.
        template args (since it may actually be a different use of the name). */
     options = GID_DEFER_ACCESS_ERRORS;
     if (is_new_type_name) options |= GID_IS_NEW_TYPE_NAME;
+    if (in_prescan) options |= GID_TEMPLATE_ARGS_OPTIONAL;
     if (is_generalized_identifier_start(options)) {
       /* Look up the current token identifier, which may be a qualified name.
          Since curr_type_symbol is often called as part of a test of the
@@ -174,8 +178,7 @@ is not done.
          because we may actually be scanning something that is not a type
          (e.g., a declarator). */
       assoc_symbol = coalesce_and_lookup_generalized_identifier
-                         (GID_DTOR_RECOGNIZED |
-                          GID_TEMPLATE_ARGS_OPTIONAL | options,
+                         (GID_DTOR_RECOGNIZED | options,
                           ilm_tentative_type, &err);
       if (assoc_symbol != NULL && !is_type_symbol(assoc_symbol)) {
         /* Symbol was found, but it is not a type name symbol.  Return NULL. */
@@ -197,7 +200,14 @@ Macro that is TRUE if the current token (which must be an identifier or
 the "::" at the start of a qualified name) is a type name.
 */
 #define curr_id_is_type_name()						\
-  (curr_type_symbol(/*is_new_type_name=*/FALSE) != NULL)
+  (curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/FALSE) != NULL)
+
+/*
+Macro that is TRUE if the current token (which must be an identifier or
+the "::" at the start of a qualified name) is a type name.
+*/
+#define prescan_curr_id_is_type_name()						\
+  (curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/TRUE) != NULL)
 
 /*
 Macro that is TRUE if the current token is an identifier that represents
@@ -319,32 +329,6 @@ array.  Cache tokens until the specified token is found.
 }  /* cache_tokens_until */
 
 
-static void prescan_default_argument(a_token_cache	*token_cache_ptr)
-/*
-Cache the tokens that comprise a default argument expression.
-*/
-{
-  a_stop_token_array        save_stop_token_array;
-
-  /* Save the current stop token state, and reinitialize it. */
-  copy_stop_tokens(stop_token_array, save_stop_token_array);
-  clear_stop_tokens();
-  /* In the normal case we will scan an expression and encounter a comma
-     or right parenthesis.  If both of these are omitted, terminate the token
-     stream when some likely delimiter is reached. */
-  add_stop_token(tok_comma);
-  add_stop_token(tok_rparen);
-  add_stop_token(tok_semicolon);
-  add_stop_token(tok_lbrace);
-  add_stop_token(tok_rbrace);
-  cache_token_stream(token_cache_ptr);
-  /* Note that the terminating token (comma, rparen, etc.) is not added to
-     the cache. */
-  /* Restore the original stop token state. */
-  copy_stop_tokens(save_stop_token_array, stop_token_array);
-}  /* prescan_default_argument */
-
-
 static void prescan_initializer(a_token_cache	*token_cache_ptr)
 /*
 Cache the tokens that comprise an initializer of the form
@@ -393,6 +377,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
   a_boolean	is_decl_specifier_token = TRUE;
   a_boolean	any_decl_specifiers = FALSE;
   a_boolean	type_specifier_seen = FALSE;
+  a_symbol_ptr	sym;
   for (;;) {
     switch (curr_token) {
       /* Storage class specifiers. */
@@ -417,15 +402,26 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
          probably the start of the declarator, so we stop scanning
          decl-specifiers. */
       case tok_identifier:
-        if (!type_specifier_seen && curr_id_is_type_name()) {
+        sym = locator_for_curr_id.specific_symbol;
+        if (!type_specifier_seen && 
+            (prescan_curr_id_is_type_name() ||
+             sym != NULL && sym->kind == (a_symbol_kind)sk_class_template)) {
+          /* A class template will probably result in a "missing template
+             argument list" error later.  Consider it as a type name for now
+             though. */
           type_specifier_seen = TRUE;
         } else {
           is_decl_specifier_token = FALSE;
         }  /* if */
-        /* Clear the locator field so that the lookup done by
-	   curr_id_is_type_name will not be used when the statement
-           is actually parsed later. */
-        locator_for_curr_id.specific_symbol = NULL;
+        if (sym != NULL && !is_template_class_symbol(sym)) {
+          /* Clear the locator field so that the lookup done by
+             curr_id_is_type_name will not be used when the statement
+             is actually parsed later.  The symbol pointer is not cleared
+             if it points to a template class, because the symbol pointer
+             represents information from the template argument list that
+             is no longer available because it has been coalesced. */
+          locator_for_curr_id.specific_symbol = NULL;
+        }  /* if */
         break;
       /* Type specifier - other simple type name tokens. */
       case tok_char:
@@ -7053,7 +7049,8 @@ been determined, determine it now.
 */
 #define determine_curr_token_type_symbol(is_new_type_name)            \
 { if (!determined_curr_token_type_symbol) {                           \
-    curr_token_type_symbol = curr_type_symbol(is_new_type_name);      \
+    curr_token_type_symbol = curr_type_symbol(is_new_type_name,	      \
+                                              /*in_prescan=*/FALSE);  \
     determined_curr_token_type_symbol = TRUE;                         \
   }  /* if */                                                         \
 }  /* determine_curr_token_type_symbol */
