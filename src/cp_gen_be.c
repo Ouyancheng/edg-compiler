@@ -3563,6 +3563,9 @@ entry if sec_decl is non-NULL.
 }  /* set_decl_position */
 
 
+#if !RECORD_FORM_OF_NAME_REFERENCE
+/*ARGSUSED*/ /* <-- name_ref is not used in that case. */
+#endif /* !RECORD_FORM_OF_NAME_REFERENCE */
 #if !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- mode is not used in that case. */
 #endif /* !GNU_EXTENSIONS_ALLOWED */
@@ -4453,6 +4456,9 @@ the current state have in common.
 }  /* adjust_current_namespace */
 
 
+#if !RECORD_FORM_OF_NAME_REFERENCE
+/*ARGSUSED*/ /* <-- name_ref is not used in that case. */
+#endif /* !RECORD_FORM_OF_NAME_REFERENCE */
 static void adjust_namespace_state_for_specialization(
                                          a_source_correspondence *scp,
                                          a_scope_ptr             *common_scope,
