@@ -4790,6 +4790,13 @@ command line -D options.
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
 #endif /* DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD */
+    if (microsoft_mode && wchar_t_is_keyword) {
+      /* In Microsoft mode, always define _WCHAR_T_DEFINED when bool is
+         a keyword. */
+      (void)enter_predef_macro("1", "_WCHAR_T_DEFINED",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
 #if DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD
     if (bool_is_keyword) {
       /* Enter a predefined macro that can be used to determine that
