@@ -1,5 +1,24 @@
 Version 2.30
 
+5/31/95  Template function matching bug involving pointer to member functions
+
+A bug in the template matching routines resulted in the two calls of
+f being diagnosed as ambiguous.  This has been fixed.
+
+  template <class Ret, class Cls> void f(Ret (Cls::* const &f)());
+  template <class Ret, class Cls> void f(Ret (Cls::* const &f)() const);
+ 
+  struct A {
+    int f();
+    int g() const;
+  };
+
+  int main()
+  {
+    f(&A::f);
+    f(&A::g);
+  }
+
 5/31/95  Type of template static data members not instantiated when needed
 
 The front end failed to instantiate a template class that was referenced

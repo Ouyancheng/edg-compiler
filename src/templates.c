@@ -2087,6 +2087,26 @@ performed.  templ_param_list points to the template parameter list.
                 ptp = ptp->next;
                 tptp = tptp->next;
               }  /* for */
+              if (match) {
+                /* The routine types match so far.  Make sure the implicit
+                   this parameters, if present, match. */
+                tp =  type->variant.routine.extra_info->
+                                                     implicit_this_param_type;
+                ttp =  templ_type->variant.routine.extra_info->
+                                                     implicit_this_param_type;
+                if (tp == NULL || ttp == NULL) {
+                  /* One or both of the types does not have an implicit
+                     this parameter.  This is okay if they are both NULL. */
+                  match = tp == ttp;
+                } else {
+                  /* They both have implicit this parameters, make sure the
+                     types match. */
+                  match = matches_template_type(tp, ttp, templ_arg_list,
+                                                templ_param_list,
+                                                /*allow_conversion=*/FALSE,
+                                                (a_base_class_ptr*)NULL);
+                }  /* if */
+              }  /* if */
             }  /* if */
             break;
           default:
