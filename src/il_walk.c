@@ -396,6 +396,8 @@ definition of the routine is needed, and not just the declaration.
 {
   /* Set the flag if it is not set already. */
   if (!rout->definition_needed) {
+    check_assertion_str(!rout->is_trivial_default_constructor,
+                        "set_routine_definition_needed: trivial default ctor");
     rout->definition_needed = TRUE;
 #if DEBUG
     if (db_flag_is_set("needed_flags")) {
@@ -589,6 +591,9 @@ references.
   /* walking_file_scope need not be set. */
   if (entry_kind == (an_il_entry_kind)iek_routine) {
     a_routine_ptr rout = (a_routine_ptr)entry_ptr;
+
+    check_assertion_str(!rout->is_trivial_default_constructor,
+                        "mark_as_needed: trivial default ctor");
     /* For an externally-linked function, mark the body as needed too, on
        the presumption that it will be referenced from other translation
        units.  The caller could reasonably be expected to do this, but
