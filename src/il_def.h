@@ -3379,9 +3379,9 @@ typedef struct a_type {
 			   an expression, either at compile time (in the case
 			   of an array bound defined in terms of a template
 			   parameter constant) or at run time (for a new with
-			   a nonconstant first bound).  This field will never
-			   be TRUE in the IL passed to the back end.  C++ mode
-			   only. */
+			   a nonconstant first bound or for a variable length
+			   array).  Except for VLAs, this field will never
+  			   be TRUE in the IL passed to the back end. */
       a_bit_field
 		is_vla:1;
 			/* TRUE if this array is a "variable length array",
@@ -3394,7 +3394,7 @@ typedef struct a_type {
 			   vla_dimension entry.  FALSE for cases like [*].
 			   (C mode only, and only when is_vla is TRUE.)  */
       union {
-        /* When both is_variable_size_array and is_vla are FALSE: */
+        /* When is_variable_size_array is FALSE: */
         a_targ_size_t
                 number_of_elements;
                         /* Number of elements in the array.  0 indicates
@@ -3404,7 +3404,8 @@ typedef struct a_type {
 		element_count_expr;
 			/* An expression representing the number of elements
 			   in the array.  Used only in front-end processing,
-			   and only in C++ mode. */
+			   and only in C++ mode.  Always NULL if is_vla is
+			   TRUE. */
       } variant;
     } array;
     /* When kind == tk_class, tk_struct, or tk_union: */
