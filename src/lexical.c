@@ -6704,7 +6704,8 @@ in a declarator of a template declaration.
            a template class that is based on a member template from
            the class template).  If so, use the prototype template to check
            for a prototype instantiation. */
-        if (tssp->prototype_template != NULL) {
+        if (tssp->prototype_template != NULL &&
+            !tssp->is_specific_definition) {
           template_sym = tssp->prototype_template;
         }  /* if */
         if (template_sym->variant.template_info->
