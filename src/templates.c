@@ -559,7 +559,7 @@ and the class instantiation will detect the runaway case.
   a_variable_ptr		    var_ptr;
 
   db_enter(3, "define_template_static_data_member");
-  var_ptr = tip->template_sym->variant.variable.ptr;
+  var_ptr = tip->instance_sym->variant.variable.ptr;
   tssp = tip->template_sym->variant.variable.instance_ptr->template_info;
   static_data_member_sym = tip->instance_sym;
 #if CHECKING
