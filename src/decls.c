@@ -8406,6 +8406,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean         need_lbrace_remove_stop_token    = FALSE;
   an_expr_node_ptr  dim_expr_ptr;
   a_boolean         is_definition, incomplete_type_error_reported;
+  a_boolean         is_tentative_definition;
 #if ASM_FUNCTION_ALLOWED
   a_boolean         is_asm_function = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -9063,6 +9064,7 @@ continue_with_declaration:
 #endif /* C_ANACHRONISMS_ALLOWED */
       }  /* if */
       is_definition = FALSE;
+      is_tentative_definition =  FALSE;
       if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
           !is_old_style_param_decl) {
         /* Set a flag marking this as a defining declaration, if that's
@@ -9078,6 +9080,12 @@ continue_with_declaration:
         } else if (linkage == idl_none) {
           /* In C all local variable declarations are definitions. */
           is_definition = TRUE;
+        } else if (decl_scope_level == DEPTH_OF_FILE_SCOPE &&
+                   (local_storage_class == (a_storage_class)sc_unspecified ||
+                    local_storage_class == (a_storage_class)sc_static)) {
+          /* In C a file scope variable declaration with no storage class or
+             static storage class is called a tentative definition. */
+          is_tentative_definition = TRUE;
         }  /* if */
       } else if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
         /* All static data member declarations that that pass though this
@@ -9225,22 +9233,16 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
       }  /* if */
-      copy_source_position(locator.source_position, error_position);
-      /* If a variable has no linkage, the type must be complete here.
-         A case like "void i;" at file scope is also an error, since it
-         can never be completed.  Since static data members have only one
-         defining declaration (namely, this one), they must always have
-         a complete type. */
       if (is_incomplete_type(local_type_ptr)) {
+        /* Report an error on a variable for which this is the defining
+           declaration but whose type incomplete.  Also, in C mode, a variable
+           with a tentative declaration but uncompletable type (a case like
+           "void i;" at file scope) also warrants an error. */
         if (is_definition ||
-            (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
-             is_void_type(local_type_ptr) &&
-             (symbol_ptr->variant.variable.ptr->storage_class ==
-                                       (a_storage_class)sc_unspecified ||
-              symbol_ptr->variant.variable.ptr->storage_class ==
-                                       (a_storage_class)sc_static))) {
+            (is_tentative_definition && is_void_type(local_type_ptr))) {
           if (!incomplete_type_error_reported) {
-            error(ec_incomplete_type_not_allowed);
+            pos_error(ec_incomplete_type_not_allowed,
+                      &locator.source_position);
           }  /* if */
           symbol_ptr->variant.variable.ptr->type = error_type();
         }  /* if */
