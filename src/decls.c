@@ -1379,9 +1379,9 @@ an entity initially declared with external linkage is redeclared to have
 internal linkage).
 */
 {
-  a_scope_stack_entry_ptr   ssep = &scope_stack[depth_scope_stack];
-  a_symbol_ptr              prior_decl;
-  a_source_correspondence   *scp;
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+  a_symbol_ptr             prior_decl;
+  a_source_correspondence  *scp;
 
   idlbp->name_linkage_is_explicit = FALSE;
   if (idlbp->linkage == idl_external) {
@@ -1416,6 +1416,13 @@ internal linkage).
         /* Use the default. */
         idlbp->name_linkage = ssep->default_name_linkage;
       }  /* if */
+    }  /* if */
+    if (idlbp->type->kind == (a_type_kind)tk_routine) {
+      /* In case there's a change, reset the routine-name-linkage (i.e.,
+         calling convention) in the routine type.  Note this is not done
+         when the type is based on a typedef. */
+      idlbp->type->variant.routine.extra_info->
+                            routine_name_linkage = idlbp->name_linkage;
     }  /* if */
   } else if (idlbp->linkage == idl_internal) {
     /* Internal linkage is easy -- ignore the default linkage specifier and
