@@ -5187,12 +5187,15 @@ are not already present.
   }  /* if */
   /* Applying qualifiers to a function type is not allowed in C++.  The
      check, if needed, should have been done by the caller. */
-  check_assertion(!is_function_type(base_type) || qualifiers == TQ_NONE ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  check_assertion(!is_function_type(base_type) || qualifiers == TQ_NONE ||
                   (il_header.microsoft_16_mode &&
                    (qualifiers & ~(TQ_NEAR | TQ_FAR)) == TQ_NONE) ||
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                   C_mode());
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+  check_assertion(!is_function_type(base_type) || qualifiers == TQ_NONE ||
+                  C_mode());
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   base_type_qualifiers = get_type_qualifiers(base_type);
   qualifiers_to_add = qualifiers & ~base_type_qualifiers;
   if (qualifiers_to_add != TQ_NONE) {
