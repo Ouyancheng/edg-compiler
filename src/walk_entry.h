@@ -456,6 +456,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         switch (ptr->init_kind) {
           case initk_none:
           case initk_zero:
+          case initk_function_local:
             /* No pointers. */
             break;
           case initk_static:
