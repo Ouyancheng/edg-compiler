@@ -304,7 +304,7 @@ Dump the name from a source correspondence (if any).
   if (sc->name != NULL) {
     fputs(sc->name, f_debug);
   } else {
-    fputs("<NULL>", f_debug);
+    fprintf(f_debug, "<NULL>@%lx", (unsigned long)sc);
   }  /* if */
 }  /* db_name */
 
@@ -992,6 +992,7 @@ Dump the contents of the indicated variable for debug purposes.
 {
   fputs("name = ", f_debug);
   db_name(&var_ptr->source_corresp);
+  if (var_ptr->is_this_parameter) fputs(" (this)", f_debug);
   fputs(", type = ", f_debug);
   db_abbreviated_type(var_ptr->type);
 }  /* db_variable */
