@@ -12493,6 +12493,11 @@ the needed-flag walk for the file scope.
              just ignore the flag. */
           rout->source_corresp.static_used_by_instantiation = FALSE;
         } else {
+          if (!rout->source_corresp.name_has_been_mangled) {
+            /* When this function is called out of trans_copy.c, the
+               name has not been mangled yet. */
+            mangle_function_name(rout);
+          }  /* if */
           externalize_source_correspondence(&rout->source_corresp,
                                             /*is_variable=*/FALSE);
           rout->storage_class = (a_storage_class)sc_unspecified;
