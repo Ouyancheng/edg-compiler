@@ -7254,7 +7254,7 @@ lowering of the file scope memory region.
       next_type = type->next;
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
-      mangle_promoted_entity_name(&type->source_corresp, routine);
+      mangle_promoted_entity_name(&type->source_corresp, routine, scope);
       /* Clear the is_local_function flag in the type and any subtypes. */
       clear_is_local_to_function_flag_in_type(type);
       add_to_types_list(type, DEPTH_OF_FILE_SCOPE);
@@ -7264,7 +7264,8 @@ lowering of the file scope memory region.
         for (enum_con = type->variant.integer.enum_info.constant_list;
              enum_con != NULL;
              enum_con = enum_con->next) {
-          mangle_promoted_entity_name(&enum_con->source_corresp, routine);
+          mangle_promoted_entity_name(&enum_con->source_corresp, routine,
+                                      scope);
         }  /* for */
       }  /* if */
     }  /* for */
@@ -7276,7 +7277,7 @@ lowering of the file scope memory region.
       next_variable = variable->next;
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
-      mangle_promoted_entity_name(&variable->source_corresp, routine);
+      mangle_promoted_entity_name(&variable->source_corresp, routine, scope);
       variable->source_corresp.is_local_to_function = FALSE;
       add_to_variables_list(variable, /*at_file_scope=*/TRUE);
     }  /* for */
