@@ -472,9 +472,9 @@ type is legal.
         } else if (!check_pm_member_type(new_type_ptr)) {
           err = TRUE;
         } else if (is_function_type(new_type_ptr)) {
-            /* This is a pointer-to-member-function type.  Be sure the
-               implicit this parameter is set.  If not, create it based on
-               the class type. */
+          /* This is a pointer-to-member-function type.  Be sure the
+             implicit this parameter is set.  If not, create it based on
+             the class type. */
           a_type_ptr  class_type = (*bottom_derived_type)->variant.
                                       ptr_to_member.class_of_which_a_member;
           new_type_ptr = check_ptr_to_member_function_type(new_type_ptr,
