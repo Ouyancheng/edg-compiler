@@ -964,12 +964,12 @@ consistent with that of the previous declaration.
          Check for a mismatch between the previous list and the current one. */
       any_difference_seen = FALSE;
       /* Check extraneous types: */
-		any_difference_seen = compare_exception_specification_type_list(
+      any_difference_seen = compare_exception_specification_type_list(
                               new_tsp, old_tsp, throw_pos,
                               ec_omitted_in_previous_exception_specification,
                               error_code, prev_decl, any_difference_seen);
       /* Check missing types: */
-		any_difference_seen = compare_exception_specification_type_list(
+      any_difference_seen = compare_exception_specification_type_list(
                               old_tsp, new_tsp, throw_pos,
                               ec_included_in_previous_exception_specification,
                               error_code, prev_decl, any_difference_seen);
