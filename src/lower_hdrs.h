@@ -15,7 +15,6 @@ lower_hdrs.h -- Inclusion of header files used by files involved in IL
 */
 
 #include "folding.h"
-#include "lexical.h"
 #include "lower_eh.h"
 #include "lower_il.h"
 #include "lower_init.h"

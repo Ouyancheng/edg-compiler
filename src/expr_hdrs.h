@@ -19,12 +19,9 @@ expr_hdrs.h -- Inclusion of header files used by files involved in expression
 #include "expr.h"
 #include "exprutil.h"
 #include "folding.h"
-#include "lexical.h"
 #include "overload.h"
 #include "symbol_ref.h"
-#include "symbol_tbl.h"
 #include "templates.h"
-#include "types.h"
 
 /******************************************************************************
 *                                                             \  ___  /       *
