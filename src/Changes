@@ -1,5 +1,11 @@
 Version 2.43
 
+10/29/99 IL file reading problem with pragma in certain instantiation contexts
+
+An IL read/write internal error could occur when processing a pragma in
+a template declaration (but not in the body of a class or function).
+This has been fixed.
+
 10/29/99 Internal error when not using INSTANTIATION_BY_IMPLICIT_INCLUSION
 
 In Microsoft mode, an internal error could occur when the end of the
