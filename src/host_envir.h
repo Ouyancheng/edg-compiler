@@ -599,7 +599,7 @@ extern void close_temp_file(FILE *temp_file);
 #endif /* NEED_TEMP_FILES */
 
 #if STANDALONE_UTILITY_PROGRAM
-extern void normal_termination(void);
+extern DOES_NOT_RETURN normal_termination(void);
 #endif /* STANDALONE_UTILITY_PROGRAM */
 
 #if COMPILE_MULTIPLE_SOURCE_FILES
@@ -607,11 +607,11 @@ extern void normal_termination(void);
 extern void identify_source_file(void);
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
 /* Terminate the compilation. */
-extern void term_compilation(an_error_severity severity);
+extern DOES_NOT_RETURN term_compilation(an_error_severity severity);
 /* Write a compilation signoff message if appropriate. */
 extern void write_signoff(void);
 /* Terminate the compilation without a signoff message. */
-extern void exit_compilation(an_error_severity severity);
+extern DOES_NOT_RETURN exit_compilation(an_error_severity severity);
 
 /* Set up signal handlers. */
 extern void set_signal_handlers(void);

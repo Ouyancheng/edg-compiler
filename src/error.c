@@ -4194,7 +4194,7 @@ additional messages in a multiple message diagnostic.
 
 
 #if CHECKING
-void internal_error(char *error_message)
+DOES_NOT_RETURN internal_error(char *error_message)
 /*
 An internal error has occurred.  Write the given message and abort.
 */
@@ -4216,9 +4216,11 @@ An internal error has occurred.  Write the given message and abort.
 }  /* internal_error */
 
 
-
-void assertion_failed(char	*filename,
-		      int	 line_number)
+DOES_NOT_RETURN assertion_failed(char	*filename,
+		                 int	 line_number)
+/*
+An assertion has failed.  Abort the compilation.
+*/
 {
 #define BUFFER_SIZE 512
   char	buffer[BUFFER_SIZE];
@@ -4244,8 +4246,8 @@ void assertion_failed(char	*filename,
 #endif /* CHECKING */
 
 
-void str_command_line_error(char *error_message,
-                            char *concat_string)
+DOES_NOT_RETURN str_command_line_error(char *error_message,
+                                       char *concat_string)
 /*
 Write a command-line error message concatenated with concat_string, and
 terminate the compilation.
@@ -4262,7 +4264,7 @@ terminate the compilation.
 }  /* str_command_line_error */
 
 
-void command_line_error(char *error_message)
+DOES_NOT_RETURN command_line_error(char *error_message)
 /*
 Write a command-line error message, and terminate the compilation.
 */
@@ -5100,9 +5102,9 @@ errors.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
-void pos_st_catastrophe(an_error_code     error_code,
-                        a_source_position *error_pos,
-                        char              *error_string)
+DOES_NOT_RETURN pos_st_catastrophe(an_error_code     error_code,
+                                   a_source_position *error_pos,
+                                   char              *error_string)
 /*
 Report the indicated catastrophic error (with the indicated fill-in string)
 at the indicated position, and then terminate the compilation.
@@ -5114,8 +5116,8 @@ at the indicated position, and then terminate the compilation.
 }  /* pos_st_catastrophe */
 
 
-void str_catastrophe(an_error_code error_code,
-                     char          *error_string)
+DOES_NOT_RETURN str_catastrophe(an_error_code error_code,
+                                char          *error_string)
 /*
 Report the indicated catastrophe (with the indicated fill-in string) at the
 position indicated by error_position, and then terminate the compilation.
@@ -5125,7 +5127,7 @@ position indicated by error_position, and then terminate the compilation.
 }  /* str_catastrophe */
 
 
-void catastrophe(an_error_code error_code)
+DOES_NOT_RETURN catastrophe(an_error_code error_code)
 /*
 Report the indicated catastrophe at the position indicated by error_position,
 and then terminate the compilation.

@@ -625,9 +625,9 @@ EXTERN an_error_severity
 Error routines.
 */
 #if CHECKING
-extern void internal_error(char *error_message);
-extern void assertion_failed(char *filename,
-			     int  line_number);
+extern DOES_NOT_RETURN internal_error(char *error_message);
+extern DOES_NOT_RETURN assertion_failed(char *filename,
+			                int  line_number);
 
 /* Macro to test an assertion and generate an internal error if
    the condition is not TRUE.  The macro expands to nothing when checking
@@ -660,9 +660,9 @@ extern a_line_number update_file_index(struct a_source_file *src_file,
                                        a_line_number        physical_line,
                                        long                 file_pos);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-extern void command_line_error(char *error_message);
-extern void str_command_line_error(char *error_message,
-                                   char *fill_in_string);
+extern DOES_NOT_RETURN command_line_error(char *error_message);
+extern DOES_NOT_RETURN str_command_line_error(char *error_message,
+                                              char *fill_in_string);
 extern void pos_st_diagnostic(an_error_severity error_severity,
                               an_error_code     error_code,
                               a_source_position *error_pos,
@@ -771,12 +771,12 @@ extern void pos_syty_error(an_error_code     error_code,
 extern void sym_error(an_error_code   error_code,
                       struct a_symbol *symbol);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-extern void pos_st_catastrophe(an_error_code     error_code,
-                               a_source_position *error_pos,
-                               char              *error_string);
-extern void str_catastrophe(an_error_code error_code,
-                            char          *error_string);
-extern void catastrophe(an_error_code error_code);
+extern DOES_NOT_RETURN pos_st_catastrophe(an_error_code     error_code,
+                                          a_source_position *error_pos,
+                                          char              *error_string);
+extern DOES_NOT_RETURN str_catastrophe(an_error_code error_code,
+                                       char          *error_string);
+extern DOES_NOT_RETURN catastrophe(an_error_code error_code);
 
 /* Interfaces for producing multiple message diagnostics. */
 #if 0
