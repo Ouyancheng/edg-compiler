@@ -9919,6 +9919,7 @@ any non-empty template parameter lists that were scanned.
   a_template_cache_segment_ptr	    cache_segments;
   a_boolean			    prototype_okay = FALSE;
   a_boolean			    is_class_template = FALSE;
+  a_cached_token_ptr		    ctp;
 
   db_enter(3, "template_declaration");
   /* Now that we know where the template declaration begins (and the template
@@ -9928,9 +9929,14 @@ any non-empty template parameter lists that were scanned.
                     curr_token_sequence_number,
                     /*include_prev_token=*/FALSE,
                     /*okay_if_not_found=*/TRUE);
-  if (decl_state->decl_token_cache.first_token == NULL ||
-      decl_state->decl_token_cache.first_token->token_sequence_number !=
-                                                  curr_token_sequence_number) {
+  /* Skip over any pragma entries for purposes of the following test. */
+  ctp = decl_state->decl_token_cache.first_token;
+  while (ctp != NULL &&
+         ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
+    ctp = ctp->next;
+  }  /* while */
+  if (ctp == NULL ||
+      ctp->token_sequence_number != curr_token_sequence_number) {
     /* We are not where we expected to be after scanning the template parameter
        lists.  Recache the template declaration now for better error
        recovery.  This should only happen in error cases. */
