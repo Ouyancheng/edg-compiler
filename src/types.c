@@ -4383,7 +4383,7 @@ in that case), as may any of the types on the old list.  Only callable
 in C++ mode.  See ARM 13.
 */
 {
-  a_boolean        distinguishable, params_all_compatible;
+  a_boolean        distinguishable = TRUE, params_all_compatible;
   a_boolean        old_is_list, old_is_template;
   a_type_ptr       old_type;
   a_param_type_ptr old_param, new_param;
@@ -4408,6 +4408,8 @@ in C++ mode.  See ARM 13.
                         is_qualified_type(
                                    type_pointed_to(new_this_param_type)));
   do {
+    /* Namespace projection symbols are ignored. */
+    if (old_sym_ptr->kind == (a_symbol_kind)sk_namespace_projection) continue;
     /* See if old_sym_ptr and new_type are distinguishable. */
     old_is_template = (old_sym_ptr->kind ==
                                           (a_symbol_kind)sk_function_template);
