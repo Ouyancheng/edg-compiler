@@ -1041,8 +1041,8 @@ is enabled.
                               MICROSOFT_DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE;
   /* Exception specifications should be ignored in Microsoft bugs mode. */
   ignore_exception_specifications = microsoft_bugs;
-  /* Enum overloading is supported by Microsoft Visual C++ 5.0. */
-  operator_overloading_on_enums_enabled = microsoft_version >= 1100;
+  /* Enum overloading is supported by Microsoft Visual C++ 4.x. */
+  operator_overloading_on_enums_enabled = microsoft_version >= 1000;
 }  /* set_microsoft_mode_flags */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
