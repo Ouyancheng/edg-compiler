@@ -1604,9 +1604,13 @@ enum an_expr_operator_kind_tag {
   eok_base_class_cast,	/* C++ cast of a pointer to a class to a pointer to
 			   a direct base class.  The type of the expression
  			   indicates the type to cast to. */
-  eok_lvalue_cast,      /* Like eok_cast, but used to cast an lvalue in
-                           pcc mode.  An lvalue cast to a like-sized type
-                           can remain an lvalue. */
+  eok_derived_class_cast,
+			/* C++ cast of a pointer to a class to a pointer to
+			   a direct derived class.  The type of the expression
+ 			   indicates the type to cast to. */
+  eok_lvalue_cast,	/* Like eok_cast, but used to cast an lvalue in
+			   pcc mode.  An lvalue cast to a like-sized type
+			   can remain an lvalue. */
   eok_complement,       /* Integer bitwise complement ("~" operator). */
   eok_ipost_incr,       /* Integer post increment. */
   eok_ipost_decr,       /* Integer post decrement. */
@@ -2724,7 +2728,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #if VAR_INITIALIZERS
 = {"*", "i-", "f-", "!", "cast",
 #ifdef CIL
-   "base class cast", "lvalue cast", "~",
+   "base class cast", "derived class cast", "lvalue cast", "~",
    "i++", "i--", "++i", "--i",
    "f++", "f--", "++f", "--f",
    "p++", "p--", "++p", "--p",
