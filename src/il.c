@@ -4395,7 +4395,9 @@ with the class or namespace of which the entry is a member.
   if (class_type != NULL) {
     sp = scp->parent.class_type->
                  variant.class_struct_union.extra_info->assoc_scope;
-    scope_level = sp->depth_in_scope_stack;
+    if (sp != NULL) {
+      scope_level = sp->depth_in_scope_stack;
+    }  /* if */
     if (scope_level == NO_SCOPE_DEPTH) {
       /* The class has already been popped off the scope stack. */
       *pointers_block = NULL;
