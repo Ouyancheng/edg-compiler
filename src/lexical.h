@@ -815,16 +815,18 @@ These must not conflict with any characters that can be read from input.
 #define END_OF_TOKEN_MARKER '`'
 #define ATTENTION_MARKER    '@'
 #else /* !defined(lint) */
+#ifndef UNUSED_CHAR_POS
 /* 0x81 is a good choice because it works okay with ISO 8859 (Latin-1, ...)
    and EUC.  However, for full internationalization there should really
    be no special characters. */
 #if CHAR_MIN < 0
 /* Host has signed characters. */
 #define UNUSED_CHAR_POS (-127)  /* ffffff81 in integer form */
-#else /* CHAR_MIN < 0 */
+#else /* CHAR_MIN >= 0 */
 /* Host has unsigned characters. */
 #define UNUSED_CHAR_POS 0x81
 #endif /* CHAR_MIN < 0 */
+#endif /* ifndef UNUSED_CHAR_POS */
 #define END_OF_TOKEN_MARKER ((char)UNUSED_CHAR_POS)
 #if !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
 #define ATTENTION_MARKER    ((char)(UNUSED_CHAR_POS+1))
