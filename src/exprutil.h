@@ -407,8 +407,7 @@ extern a_dynamic_init_dtor_fixup_ptr alloc_dynamic_init_dtor_fixup(
 
 extern void free_dynamic_init_dtor_fixup(a_dynamic_init_dtor_fixup_ptr didfp);
 
-extern void if_evaluating_mark_routine_referenced(a_routine_ptr     routine,
-                                                  a_source_position *position);
+extern void if_evaluating_mark_routine_referenced(a_routine_ptr  routine);
 
 extern void push_expr_stack(an_expression_kind      expression_kind,
                             an_expr_stack_entry_ptr new_entry);

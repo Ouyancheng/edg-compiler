@@ -5359,8 +5359,7 @@ node is returned for that case.
 }  /* func_call_expr */
 
 
-void mark_routine_referenced(a_routine_ptr     routine,
-                             a_source_position *position)
+void mark_routine_referenced(a_routine_ptr  routine)
 /*
 Mark the indicated routine as actually referenced.  "Actually" means
 as opposed to referenced in a virtual function call that may call some
@@ -5390,7 +5389,7 @@ of compiler-generated function (e.g., a constructor).
   }  /* if */
   /* If the routine is compiler-generated and its definition has not
      yet been put out, force the definition now. */
-  force_definition_of_compiler_generated_routine(routine, position);
+  force_definition_of_compiler_generated_routine(routine);
   /* If the function is an instance of a function template, mark it
      as requiring an instantiation. */
   assoc_sym = (a_symbol_ptr)routine->source_corresp.assoc_info;

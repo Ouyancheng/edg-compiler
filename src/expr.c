@@ -4062,8 +4062,7 @@ As an anachronism, allow an expression inside the [ ].
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
         /* The delete routine is actually being called. */
         /* Mark the routine referenced. */
-        if_evaluating_mark_routine_referenced(delete_routine,
-                                              &delete_position);
+        if_evaluating_mark_routine_referenced(delete_routine);
         /* Mark the routine as called. */
         delete_routine->called = TRUE;
         /* If the delete routine is one with two arguments, pass the size

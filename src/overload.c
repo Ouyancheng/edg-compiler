@@ -2582,8 +2582,7 @@ Bind the operand for a function to an associated selector object.
          operand identifying the function is always just a simple address
          of a function. */
       function = function_from_virtual_function_operand(function_operand);
-      if_evaluating_mark_routine_referenced(function,
-                                            &function_operand->position);
+      if_evaluating_mark_routine_referenced(function);
     }  /* if */
   }  /* if */
 }  /* bind_member_function_operand_to_selector */
@@ -2678,9 +2677,8 @@ if an access control checking error was detected.
            operand.  Mark the function as referenced.  Note that we are
            ignoring whether or not the function is virtual; we are assuming
            that the reference is to exactly that function. */
-        if_evaluating_mark_routine_referenced(
-                                          function_symbol->variant.routine.ptr,
-                                          call_position);
+        if_evaluating_mark_routine_referenced(function_symbol->
+                                                         variant.routine.ptr);
       } else {
         /* Normal case: build an operand for the function. */
         /* Record that the function was referenced, for cross-reference (etc.)

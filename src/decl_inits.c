@@ -1591,7 +1591,7 @@ initialized.  These are addressed in the course of the processing.
   a_routine_ptr                 conversion_routine, rp;
   a_dynamic_init_ptr            dip, ctor_dip;
   int                           direct_base_class_count = 0;
-  a_source_position             lparen_pos, ctor_init_pos;
+  a_source_position             lparen_pos;
   a_constructor_init_ptr        uninit_list = NULL, end_of_uninit_list = NULL;
 
   db_enter(3, "ctor_initializer");
@@ -1603,9 +1603,6 @@ initialized.  These are addressed in the course of the processing.
                        is_copy_constructor(ctor_rout, class_type,
                                            &const_object_okay,
                                            &volatile_object_okay);
-  /* Use the position from the routine entry as the default error position
-     in this routine. */
-  ctor_init_pos = ctor_rout->source_corresp.decl_position;
   /* The first step is to construct three lists of constructor initializer
      entries, one for virtual base classes that have constructors, one for
      nonvirtual direct base classes that have constructors, and one for
@@ -1710,7 +1707,6 @@ initialized.  These are addressed in the course of the processing.
      to integrate them into the lists. */
   if (user_defined && curr_token == tok_colon) {
     /* User-specified initializers are present.  Bypass the colon. */
-    ctor_init_pos = pos_curr_token;
     (void)get_token();
     add_stop_token(tok_lbrace);
     /* Loop through the comma-separated list of initializers. */
@@ -2233,7 +2229,7 @@ scan_paren:
     set_class_assoc_operator_new_routine(class_type);
     new_routine = ctsp->assoc_operator_new_routine;
     if (new_routine != NULL) {
-      mark_routine_referenced(new_routine, &ctor_init_pos);
+      mark_routine_referenced(new_routine);
       new_routine->called = TRUE;
     }  /* if */
   }
@@ -2403,7 +2399,7 @@ though neither constructors nor initialization is involved here.)
     set_class_assoc_operator_delete_routine(class_type);
     delete_routine = ctsp->assoc_operator_delete_routine;
     if (delete_routine != NULL) {
-      mark_routine_referenced(delete_routine, &source_pos);
+      mark_routine_referenced(delete_routine);
       delete_routine->called = TRUE;
     }  /* if */
   }

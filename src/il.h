@@ -478,8 +478,7 @@ extern an_expr_node_ptr func_call_expr(
                                a_boolean         in_return_by_cctor_expression,
                                a_source_position *err_pos);
 
-extern void mark_routine_referenced(a_routine_ptr     routine,
-                                    a_source_position *position);
+extern void mark_routine_referenced(a_routine_ptr  routine);
 
 extern a_statement_ptr make_assignment_statement(an_expr_node_ptr dest,
                                                  an_expr_node_ptr source);

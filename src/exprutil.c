@@ -274,16 +274,15 @@ Free the dynamic init dtor fixup entry pointed to by didfp.
 }  /* free_dynamic_init_dtor_fixup */
 
 
-void if_evaluating_mark_routine_referenced(a_routine_ptr     routine,
-                                           a_source_position *position)
+void if_evaluating_mark_routine_referenced(a_routine_ptr     routine)
 /*
 Mark the indicated routine as actually referenced, but only if the current
-expression is being evaluated.  The position of the reference is position.
-This routine is an interface to mark_routine_referenced.
+expression is being evaluated.  This routine is an interface to
+mark_routine_referenced.
 */
 {
   if (curr_expr_is_evaluated()) {
-    mark_routine_referenced(routine, position);
+    mark_routine_referenced(routine);
   }  /* if */
 }  /* if_evaluating_mark_routine_referenced */
 
@@ -2859,7 +2858,7 @@ of a "&" operator if is_operand_of_address_of is TRUE.
     member_type = rout->type;
     if (!rout->is_virtual) {
       /* Force the routine to be instantiated or generated. */
-      if_evaluating_mark_routine_referenced(rout, position);
+      if_evaluating_mark_routine_referenced(rout);
     }  /* if */
   }  /* if */
   /* Note that the class of the pointer is always the class in which
@@ -2922,7 +2921,7 @@ information is not being maintained.
   /* If this is a non-virtual call, mark the routine entry as actually
      referenced. */
   if (!result->virtual_function) {
-    if_evaluating_mark_routine_referenced(routine, position);
+    if_evaluating_mark_routine_referenced(routine);
   }  /* if */
 }  /* make_function_designator_operand */
 
