@@ -42,7 +42,7 @@ struct __linkl	*__head = NULL;	/* Pointer to the head of the linked list
 #define TRUE 1
 #define FALSE 0
 
-typedef unsigned int a_boolean;
+typedef int a_boolean;
 
 
 void __dtors()
