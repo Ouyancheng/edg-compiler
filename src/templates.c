@@ -1576,7 +1576,10 @@ of a function template.
                &bottom_derived_type, func_info);
   }  /* if */
   remove_stop_token(tok_end_of_source);
-  check_assertion(curr_token == tok_end_of_source);
+  /* In the normal case the current token should be end_of_source,
+     which was inserted to mark the end of the cached token stream.
+     If necessary, keep flushing until end-of-source is found. */
+  while (curr_token != tok_end_of_source) (void)get_token();
   /* Get the token that follows the declarator. */
   (void)get_token();
 }  /* scan_template_declaration */
