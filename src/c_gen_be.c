@@ -577,6 +577,11 @@ static void continue_on_new_line(void)
 Continue the current line of output on the next line.
 */
 {
+  if (in_comment) {
+    /* End the current comment so we don't put out a #line inside
+       a comment.  We'll restart the comment afterwards. */
+    (void)fputs("*/", f_C_output);
+  }  /* if */
   if (curr_output_pos_known) {
     /* Continue by emitting a #line directive to repeat the current line
        number. */
@@ -588,6 +593,9 @@ Continue the current line of output on the next line.
        don't exist in the source program file. */
     write_line_directive(last_known_good_line,
                          last_known_good_file);
+  }  /* if */
+  if (in_comment) {
+    (void)fputs("/* ", f_C_output);
   }  /* if */
 }  /* continue_on_new_line */
 

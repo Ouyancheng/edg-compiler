@@ -1484,7 +1484,15 @@ it is too long).  If line wrapping is disabled, do nothing.
     if (curr_output_pos_known) {
       /* Continue by emitting a #line directive to repeat the current line
          number. */
+      if (in_comment) {
+        /* End the current comment so we don't put out a #line inside
+           a comment.  We'll restart the comment afterwards. */
+        (void)fputs("*/", f_C_output);
+      }  /* if */
       write_line_directive(curr_output_line, curr_output_file);
+      if (in_comment) {
+        (void)fputs("/* ", f_C_output);
+      }  /* if */
     } else {
       /* The current line number is unknown, so do not use a #line
          directive.  Just start a new line. */
