@@ -474,14 +474,17 @@ necessary to make it directly accessible in memory.
       if (count_of_entries_read[byte_entry_kind] !=
           entry_count_array_ptr[byte_entry_kind]) {
 #if DEBUG
+        char *s;
+
         if (!errors) {
           (void)fprintf(f_debug,
                         "IL entry write-read difference: region number %3ld\n",
                         (long)region_number);
         }  /* if */
+        s = retrieve_il_entry_kind_name((an_il_entry_kind)byte_entry_kind);
         (void)fprintf(f_debug,
-                      "     entry kind =%3ld,   written =%4ld,   read =%4ld\n",
-                      (long)byte_entry_kind,
+                 "     entry kind =%3ld (%s),   written =%4ld,   read =%4ld\n",
+                      (long)byte_entry_kind, s,
                       (long)entry_count_array_ptr[byte_entry_kind],
                       (long)count_of_entries_read[byte_entry_kind]);
         entry_count = entry_count_array_ptr[byte_entry_kind];
