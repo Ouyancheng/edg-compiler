@@ -2614,8 +2614,8 @@ The return value from this function is at_end_of_source_file ||
 after_end_of_all_source -- i.e., TRUE if no current source line was read.
 */
 {
-  register int    ch;
-  register char   *loc_in_line;
+  int             ch;
+  char            *loc_in_line;
   a_boolean       return_value;
   int		  curr_column;
   int             next_ch;
@@ -2724,37 +2724,50 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
        by simple goto, to keep even non-executed code out of the inner
        loop, to improve pipelining. */
     if (ch != '\n') {
+      /* Use local variables in the inner loop, because some compilers
+         have trouble optimizing this otherwise. */
+      register char *local_loc_in_line = loc_in_line;
+      register int local_ch = ch;
       do {
         /* Check for question marks.  Presence of 2 in a row suggests there
            may be a trigraph in the line. */
-        if (ch == '?') {
+        if (local_ch == '?') {
           /* One "?", check previous character to see if it is also a "?". */
-          if (loc_in_line != curr_source_line &&
-              *(loc_in_line-1) == '?') {
+          if (local_loc_in_line != curr_source_line &&
+              *(local_loc_in_line-1) == '?') {
             /* On reasonable suspicion of a trigraph, exit to more expensive
                processing code.  Note that this is done before the second
                "? is stored, so that we do not ever store more characters
                than ultimately required, and therefore avoid spurious
                buffer overflows on trigraphs at the ends of very long lines. */
+            ch = local_ch;
+            loc_in_line = local_loc_in_line;
             goto possible_trigraph;
           }  /* if */
         }  /* if */
         /* Check that there is still room in the line buffer.  We have to
            leave room for both the final newline and null. */
-        if (loc_in_line == after_curr_source_line_minus_2) {
+        if (local_loc_in_line == after_curr_source_line_minus_2) {
           /* The line is too long; the buffer must be expanded.  Note that
              after the buffer is expanded we do not return to this loop for
              the current line; the rest of the line is processed in the
              more expensive loop. */
+          ch = local_ch;
+          loc_in_line = local_loc_in_line;
           goto expand_buffer;
         }  /* if */
         /* Put the character into curr_source_line. */
-        *loc_in_line++ = ch;
+        *local_loc_in_line++ = local_ch;
         /* Get next character, check for end of file without newline. */
-        if (ch = getc(curr_input_stream), is_eof_char(ch))
-                                                       goto partial_final_line;
+        if (local_ch = getc(curr_input_stream), is_eof_char(local_ch)) {
+          ch = local_ch;
+          loc_in_line = local_loc_in_line;
+          goto partial_final_line;
+        }  /* if */
         /* Check for newline, which ends loop. */
-      } while (ch != '\n');
+      } while (local_ch != '\n');
+      ch = local_ch;
+      loc_in_line = local_loc_in_line;
 #if READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
       /* Ignore carriage return right before newline. */
       if (*(loc_in_line-1) == '\r') {
