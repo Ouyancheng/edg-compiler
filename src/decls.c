@@ -1012,7 +1012,7 @@ this:
         typedef void A::T(int);  // Nonstandard typedef
 
 (meaning "T" names a routine type for a member function of A that takes an
-int argument and returning void.  It's tie to class A is indicated by having
+int argument and returning void.  Its tie to class A is indicated by having
 an implicit this-param type of const-ptr-to-A).  Cfront treats "T*" as though
 it had been a ptr-to-member declaration -- e.g.,
 
@@ -1023,7 +1023,7 @@ and
         void (A::*pm)(int) = &A::f(int);
 
 have the very same meaning for cfront.  Although this is not part of the
-language defined in the ARM, it is support for cfront compatibility.
+language defined in the ARM, it is supported for cfront compatibility.
 */
 {
   a_type_ptr  tp;
