@@ -644,6 +644,12 @@ Create or truncate the precompiled header file.
   a_boolean	bad_name;
 
   pch_file_name = derived_name(primary_source_file_name, PCH_FILE_SUFFIX);
+  if (is_regular_file(pch_file_name)) {
+    /* Delete the file before writing it.  This way, if someone already
+       has the file open for reading, we won't be overwriting the
+       same file that they are reading. */
+    delete_file(pch_file_name);
+  }  /* if */
   f_pch_output = open_output_file(pch_file_name, /*binary_file=*/TRUE,
                                   /*update_mode=*/FALSE,
                                   &cannot_open, &bad_name);
@@ -1249,6 +1255,8 @@ Create a precompiled header file for the compilation up to the
 current point.
 */
 {
+  a_boolean	is_complete = FALSE;
+  long		flag_position;
   open_pch_output_file();
   pch_message(ec_creating_pch, pch_file_name);
 #if DEBUG
@@ -1263,6 +1271,11 @@ current point.
   /* Write the string that identifies this file as a precompiled header
      file. */
   fwrite_with_check(pch_id_string, pch_id_string_length, f_pch_output);
+  /* Write a FALSE to the file, this will later be changed to TRUE after
+     the file has been completely written.  This is done to prevent a
+     partially written PCH file from being used. */
+  flag_position = ftell(f_pch_output);
+  pch_write_value(is_complete);
   /* Current directory name. */
   pch_write_string(curr_dir_name);
   /* Write the event list that will be used for PCH file matching. */
@@ -1283,6 +1296,13 @@ current point.
   /* Write the memory region information. */
   write_file_section_id(pfs_memory_regions);
   write_memory_regions();
+  /* Write the flag that indicates that the PCH file is now complete. */
+  if (fseek(f_pch_output, flag_position, SEEK_SET) != 0) {
+    unexpected_condition_str2("write_precompiled_header_file:",
+                              "fseek error");
+  }  /* if */
+  is_complete = TRUE;
+  pch_write_value(is_complete);
   (void)fclose(f_pch_output);
 }  /* write_precompiled_header_file */
 
@@ -1362,10 +1382,14 @@ and the memory freed (if appropriate).
 static a_boolean id_string_matches(void)
 /*
 Make sure that the ID string in the candidate PCH file matches the current
-version.
+version.  This routine also makes sure that the is_complete flag in the
+header has been set indicating that the PCH file was successfully
+written.
 */
 {
   a_boolean	match = FALSE;
+  a_boolean	is_complete;
+
   /* We don't use fread_with_check here because we want to handle
      read errors more gracefully.  After all, we don't yet know
      that is is actually a PCH written by this compiler. */
@@ -1381,7 +1405,12 @@ version.
   if (!match) {
     mismatch_reason = ec_invalid_pch_file;
   }  /* if */
-  return match;
+  if (fread((a_void_ptr)&is_complete, sizeof(is_complete),
+            1, f_pch_input) != 1) {
+    /* The read failed - the file must not be complete. */
+    is_complete = FALSE;
+  }  /* if */
+  return match && is_complete;
 }  /* id_string_matches */
 
 
@@ -1668,7 +1697,7 @@ directory.  Return TRUE if an applicable PCH was found.
     is_applicable = last_matching_event != NULL;
     if (is_applicable) result = TRUE;
 #if DEBUG
-    if (debug_level >= 3) {
+    if (debug_level >= 1) {
       fprintf(f_debug, "PCH file %s, applicable: %s",
               file_name, is_applicable ? "TRUE" : "FALSE");
       if (is_applicable) {
