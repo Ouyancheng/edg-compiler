@@ -10311,6 +10311,7 @@ describes the name specified by "locator".  If "nrp" is NULL, a new entry
 is allocated.
 */
 {
+  check_assertion(!C_mode());
   if (nrp == NULL) {
     nrp = alloc_name_reference();
   } else {
@@ -10335,6 +10336,7 @@ a previously created entry that can be reused.
 {
   a_name_reference_ptr		nrp = NULL;
 
+  check_assertion(!C_mode());
   if (!prototype_instantiations_in_il &&
       is_prototype_instantiation_context()) {
     /* Don't build name reference information for prototype instantiations
