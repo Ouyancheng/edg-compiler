@@ -1266,65 +1266,112 @@ static a_statement_ptr find_parent_statement_for_block(a_statement_ptr  block)
     }  /* switch */
   }  /* for */
   return parent_stmt;
-}  /* find_parent_statement */
+}  /* find_parent_statement_for_block */
 
 
-void check_for_stmk_init_in_statement_list(a_statement_ptr    start_stmt,
-                                           a_statement_ptr    start_block,
-                                           a_statement_ptr    curr_block,
-                                           a_label_ptr        label,
-                                           a_statement_ptr    end_block,
-                                           a_source_position  *error_pos,
-                                           a_boolean          *stmk_init_seen)
+static void check_for_stmk_init_in_statement_list(
+                                        a_statement_ptr    start_stmt,
+                                        a_statement_ptr    start_block,
+                                        a_statement_ptr    curr_block,
+                                        a_statement_ptr    curr_block_end_stmt,
+                                        a_source_position  *error_pos,
+                                        a_boolean          *stmk_init_seen)
 /*
+Starting from start_stmt, which appears on the statement list of
+start_block, and proceding to curr_block_end_stmt, look for stmk_init
+statements and issue a jump-over-initialization error on any that are
+found.  curr_block is the current block, which may be contained within
+start_block.  start_stmt may be NULL, which means start at the top of
+start_block.  curr_block_end_stmt is the last statement in the current
+block that needs to be checked.
+
+This routine is recursive, calling itself if curr_block is contained
+within start_block: it keeps popping out to the parent block until
+start_block is reached.  Only then does it start issuing diagnostics.  It
+stops checking the statements of an outer block when the statement
+establishing the immediate inner block is reached, at which it returns
+from the recursive call.  start_stmt and start_block remain unchanged, but
+curr_block and curr_block_end_stmt are modified in stepping out to a
+parent block: with each recursion curr_block_end_stmt is set to the parent
+statement for curr_block and curr_block is set to the parent block.
+
+*error_pos is the error position at which the error should be issued -- it
+is typically the position of a goto statement.  *stmk_init_seen is FALSE
+until the first stmk_init statement is found, at which point the main part
+of the diagnostic is put out.  Then the supplementary information on each
+initializing declaration is put out, one at a time, with each stmk_init
+statement encountered.
 */
 {
-  a_statement_ptr  sp, last_stmt_to_check_in_curr_block = NULL;
-  a_statement_ptr  first_stmt_to_check_in_curr_block, curr_block_parent;
+  a_statement_ptr  sp, curr_block_start_stmt, for_init;
+  a_statement_ptr  curr_block_parent_block, curr_block_parent_stmt;
   a_variable_ptr   vp;
 
+  db_enter(4, "check_for_stmk_init_in_statement_list");
   if (start_block != curr_block) {
-    curr_block_parent = curr_block->variant.block.extra_info->parent_block;
+    /* The current block must be contained within start_block.  Issue
+       diagnostics in the parent block(s) before this one, so that the
+       declarations jumped over will be put out in source order. */
+    /* For the next call the parent block becomes "current" and the statement
+       in the parent block that establishes the current block becomes
+       "curr_block_end_stmt", the last statement in that block to check. */
+    curr_block_parent_block = curr_block->
+                                       variant.block.extra_info->parent_block;
+    curr_block_parent_stmt = find_parent_statement_for_block(curr_block);
     check_for_stmk_init_in_statement_list(start_stmt, start_block,
-                                          curr_block_parent, (a_label_ptr)NULL,
-                                          curr_block, error_pos,
-                                          stmk_init_seen);
-    first_stmt_to_check_in_curr_block = curr_block->variant.block.statements;
-  } else if (start_stmt == NULL) {
-    first_stmt_to_check_in_curr_block = curr_block->variant.block.statements;
+                                          curr_block_parent_block,
+                                          curr_block_parent_stmt,
+                                          error_pos, stmk_init_seen);
+    /* Now that the parent blocks have been checked for stmk_init statements,
+       the current block can be checked.  Start at the top of the block. */
+    curr_block_start_stmt = curr_block->variant.block.statements;
   } else {
-    first_stmt_to_check_in_curr_block = start_stmt->next;
-  }  /* if */
-  if (label == NULL) {
-    last_stmt_to_check_in_curr_block =
-                            find_parent_statement_for_block(end_block);
-  }  /* if */
-  for (sp = first_stmt_to_check_in_curr_block; sp != NULL; sp = sp->next) {
-    if (sp->kind == (a_statement_kind)stmk_label &&
-        sp->variant.label == label) {
-      break;
+    /* We are in start_block -- no need to pop out to its parent. */
+    if (start_stmt == NULL) {
+      /* start_stmt is NULL, which means start at the start of the block. */
+      curr_block_start_stmt = curr_block->variant.block.statements;
+    } else {
+      /* start_stmt is non-NULL, which means start with its successor. */
+      curr_block_start_stmt = start_stmt->next;
     }  /* if */
+  }  /* if */
+  /* Now go through all the statements in the current block, from
+     curr_block_start_stmt to curr_block_end_stmt.  Issue a diagnostic on
+     any initializing declaration. */
+  for (sp = curr_block_start_stmt; ; sp = sp->next) {
+    check_assertion(sp != NULL);
     vp = NULL;
     if (sp->kind == (a_statement_kind)stmk_init) {
+      /* This statement represents an initializing declaration.  We want to
+         display the name of the variable. */
       vp = sp->variant.dynamic_init->variable;
       check_assertion(vp != NULL);
     } else if (sp->kind == (a_statement_kind)stmk_for) {
-      a_statement_ptr  init = sp->variant.for_loop.extra_info->initialization;
-      if (init != NULL && init->kind == (a_statement_kind)stmk_init) {
-        vp = init->variant.dynamic_init->variable;
+      /* Check for an initializing declaration in the for_init statement. */
+      for_init = sp->variant.for_loop.extra_info->initialization;
+      if (for_init != NULL && for_init->kind == (a_statement_kind)stmk_init) {
+        /* The for_init statement is an initializing declaration. */
+        vp = for_init->variant.dynamic_init->variable;
         check_assertion(vp != NULL);
       }  /* if */
     }  /* if */
     if (vp != NULL) {
       if (!*stmk_init_seen) {
+        /* This is the first initializing declaration seen.  Issue the
+           header diagnostic. */
         *stmk_init_seen = TRUE;
         pos_start_error(ec_jumping_over_init, error_pos);
       }  /* if */
+      /* Issue the diagnostic addendum that identifies this particular
+         variable. */
       sym_add_diag_info(ec_name_at_decl_position,
                         (a_symbol_ptr)vp->source_corresp.assoc_info);
     }  /* if */
-    if (sp == last_stmt_to_check_in_curr_block) break;
+    /* Don't go past curr_block_end_stmt in check for initializing
+       declarations in the current block. */
+    if (sp == curr_block_end_stmt) break;
   }  /* for */
+  db_exit();
 }  /* check_for_stmk_init_in_statement_list */
 
 
@@ -1352,6 +1399,11 @@ of block2. */
 static void check_forwards_goto(a_statement_ptr   label_statement,
                                 a_goto_entry_ptr  gep)
 /*
+A forward goto was recorded in the goto-entry pointed to gep, and now
+that the label it referenced has been encountered (in label_statement)
+it can be determined whether the goto entailed jumping over an
+initializing declaration.  This routine does that check, issuing an error
+if appropriate.
 */
 {
   a_label_ptr      label;
@@ -1370,7 +1422,7 @@ static void check_forwards_goto(a_statement_ptr   label_statement,
                      find_enclosing_block_struct_stmt()->statement);
   label_block_init_count = find_enclosing_block_struct_stmt()->init_count;
   if (label_block == goto_block) {
-    /* goto forwards within same block. */
+    /* A goto forwards within same block. */
     if (label_block_init_count > goto_block_init_count) {
       /* Error. */
       start_statement = gep->goto_statement;
@@ -1411,9 +1463,12 @@ static void check_forwards_goto(a_statement_ptr   label_statement,
     start_block = common_parent;
   }  /* if */
   if (do_check) {
+    /* The "current block" is always initialialized as that of the label
+       statement, and the end-statement is the label statement itself. */
     check_for_stmk_init_in_statement_list(start_statement, start_block,
-                                          label_block, label,
-                                          label_block, &gep->source_position,
+                                          label_block,
+                                          label->variant.exec_stmt,
+                                          &gep->source_position,
                                           &stmk_init_seen);
     if (stmk_init_seen) end_error();
   }  /* if */
@@ -1423,6 +1478,9 @@ static void check_forwards_goto(a_statement_ptr   label_statement,
 
 static void check_backwards_goto(a_statement_ptr   goto_statement)
 /*
+goto_statement identifies a backwards goto, one that references a label
+that has already been defined.  Issue an error if the goto entails jumping
+over an intializing declaration.
 */
 {
   a_label_ptr                    label;
@@ -1487,9 +1545,12 @@ static void check_backwards_goto(a_statement_ptr   goto_statement)
     start_block = sp;
   }  /* if */
   if (do_check) {
+    /* The "current block" is always initialialized as that of the label
+       statement, and the end-statement is the label statement itself. */
     check_for_stmk_init_in_statement_list(start_statement, start_block,
-                                          label_block, label,
-                                          label_block, &error_position,
+                                          label_block,
+                                          label->variant.exec_stmt,
+                                          &error_position,
                                           &stmk_init_seen);
     if (stmk_init_seen) end_error();
   }  /* if */
@@ -1497,8 +1558,18 @@ static void check_backwards_goto(a_statement_ptr   goto_statement)
 }  /* check_backwards_goto */
 
 
-static void check_jump_over_initialization(a_statement_ptr  sp)
+static void check_for_jump_over_initialization_error(a_statement_ptr  sp)
 /*
+sp is either a label statement or a goto statement.  If this is a goto
+statement and the label it references has not yet been seen (i.e., if it
+is a "forward goto"), record some information about it on a goto-entry,
+for later use in detecting illegal jumps over initializing declarations.
+If this is a "backward goto" statement, issue an error if it jumps over
+any initializing declarations.  If this is a label statement, check the
+associated goto-entries to see if any of the forward gotos jumped over any
+initializing declarations.  Errors are put out at the point of the goto
+statement, even for forward gotos, where the error condition is not
+recognized till the label statement is reached.
 */
 {
   a_label_ptr                    label;
@@ -1507,6 +1578,7 @@ static void check_jump_over_initialization(a_statement_ptr  sp)
   a_struct_stmt_stack_entry_ptr  sssep;
 
 
+  db_enter(3, "check_for_jump_over_initialization_error");
   check_assertion (sp->kind == (a_statement_kind)stmk_label ||
                    sp->kind == (a_statement_kind)stmk_goto);
   label = sp->variant.label;
@@ -1556,7 +1628,8 @@ static void check_jump_over_initialization(a_statement_ptr  sp)
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* check_jump_over_initialization */
+  db_exit();
+}  /* check_for_jump_over_initialization_error */
 
 
 static void goto_statement(void)
@@ -1588,7 +1661,7 @@ See also 3.6.6.1.
     /* If this is a forward reference to a label, record information about
        the goto to allow diagnosis of jump-over-initialization errors.  If
        it is backward reference, do the checking immediately. */
-    check_jump_over_initialization(sp);
+    check_for_jump_over_initialization_error(sp);
   }  /* if */
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
@@ -2305,7 +2378,7 @@ rescan_statement:
           if (C_dialect == C_dialect_cplusplus) {
             /* If there have been forward gotos referencing this label, check
                whether any have jumped over initializing declarations. */
-            check_jump_over_initialization(label->variant.exec_stmt);
+            check_for_jump_over_initialization_error(label->variant.exec_stmt);
           }  /* if */
         }  /* if */
 #if CHECKING
