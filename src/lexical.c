@@ -5502,7 +5502,7 @@ or +1 if the character follows the range.
 {
   unsigned long		uchar = *(unsigned long*)char_ptr;
   a_UCN_range_ptr	range = (a_UCN_range_ptr)table_entry_ptr;
-  return (uchar < range->start ? -1 : uchar <= range->end ? 0 : +1);
+  return (uchar < range->start ? -1 : uchar <= range->end ? 0 : 1);
 }  /* UCN_char_is_in_range */
 
 
