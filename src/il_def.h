@@ -5619,7 +5619,7 @@ enum a_statement_kind_tag {
 			   variably modified type.  If the variable is a VLA,
 			   allocate storage for it.  (Note: there is no
 			   corresponding deallocation statement.  See the
-			   vla_requires_deallocation field in a_variable.) */
+			   is_vla field in a_variable.) */
 #endif /* ifdef CIL */
 #ifdef FIL
   stmk_fentry,		/* Code label for an ENTRY. */
