@@ -1113,17 +1113,17 @@ the source position for an error (dynamic initialization is in
 unreachable code).
 */
 {
-  a_statement_ptr                   init_stmt;
-  a_boolean                         static_lifetime = FALSE;
-  a_boolean                         at_file_scope;
+  a_statement_ptr          init_stmt;
+  a_boolean                static_lifetime = FALSE;
+  a_boolean                at_file_scope;
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
 
   db_enter(4, "gen_dynamic_initialization");
   at_file_scope = (depth_innermost_function_scope == NO_SCOPE_DEPTH);
   if (!at_file_scope) {
-    check_assertion(scope_stack[depth_scope_stack].kind ==
-                                              (a_scope_kind)sck_function ||
-                    scope_stack[depth_scope_stack].kind ==
-                                              (a_scope_kind)sck_block);
+    check_assertion(ssep->kind == (a_scope_kind)sck_function ||
+                    ssep->kind == (a_scope_kind)sck_block ||
+                    ssep->kind == (a_scope_kind)sck_condition);
     check_assertion(vp->source_corresp.class_of_which_a_member == NULL);
     /* We are in executable code (i.e., inside a function or block rather
        than at file scope). */
@@ -1139,7 +1139,8 @@ unreachable code).
        init entry (it identifies the initialization as a C++ case). */
     check_assertion_str(depth_stmt_stack >= 0,
                         "gen_dynamic_initialization: bad stmt stack depth");
-    if (struct_stmt_stack[depth_stmt_stack].any_exec_statement_seen) {
+    if (ssep->kind == (a_scope_kind)sck_condition ||
+        struct_stmt_stack[depth_stmt_stack].any_exec_statement_seen) {
       dip->follows_an_exec_statement = TRUE;
     }  /* if */
     /* Must be the initialization of a local variable. */
@@ -1179,7 +1180,7 @@ unreachable code).
      appropriate object-lifetime entry. */
   record_end_of_lifetime_destruction(dip, static_lifetime,
                                      /*block_lifetime=*/TRUE);
-  if (!at_file_scope) {
+  if (!at_file_scope && ssep->kind != (a_scope_kind)sck_condition) {
     /* Build the initialization statement and add it to the statement block.
        This must be done after record_end_of_lifetime_destruction is called. */
     init_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_init,
