@@ -1458,7 +1458,8 @@ them up one level.
 
 a_boolean symbols_may_coexist_in_curr_scope(a_symbol_ptr  old_sym,
                                             a_symbol_ptr  new_sym,
-                                            a_symbol_ptr  *insert_sym)
+                                            a_symbol_ptr  *insert_sym,
+					    a_boolean	  suppress_error)
 /*
 A tag symbol and a nontype symbol may coexist on the symbol list for a
 scope.  old_sym is a symbol that is already on the list.  new_sym is
@@ -1466,11 +1467,17 @@ a newly created symbol that is about to be added or a symbol for which
 a projection symbol will be created and added.  The tag symbol should
 follow the other in the list, so if the new symbol is a tag symbol, it
 must be inserted after the old.
+
+In pcc mode and in cfront compatibility mode local variables of a
+function are allowed to hide function parameters.  A warning is
+issued for this case.  In modes where this is not allowed an error will
+be issued by the caller.
 */
 {
   a_boolean  err = TRUE;
 
-  if (is_tag_symbol(fundamental_symbol_of(new_sym))) {
+  if (C_dialect == C_dialect_cplusplus &&
+      is_tag_symbol(fundamental_symbol_of(new_sym))) {
     /* New symbol is a tag symbol. */
     if (!is_type_symbol(fundamental_symbol_of(old_sym))) {
       /* The old symbol is a non-type name.  Be sure the new symbol
@@ -1478,12 +1485,31 @@ must be inserted after the old.
       err = FALSE;
       *insert_sym = old_sym;
     }  /* if */
-  } else if (is_tag_symbol(fundamental_symbol_of(old_sym))) {
+  } else if (C_dialect == C_dialect_cplusplus &&
+             is_tag_symbol(fundamental_symbol_of(old_sym))) {
     /* The old symbol is a tag symbol. */
     if (!is_type_symbol(fundamental_symbol_of(new_sym))) {
       /* The new one is a non-type symbol.  It will be placed at
          the front of the list automatically. */
       err = FALSE;
+    }  /* if */
+  } else if ((cfront_compatibility_mode || C_dialect == C_dialect_pcc) &&
+             old_sym->kind == (a_symbol_kind)sk_variable &&
+             old_sym->variant.variable->is_parameter &&
+	     (!(new_sym->kind == (a_symbol_kind)sk_variable) ||
+             (new_sym->variant.variable == NULL ||
+              !(new_sym->variant.variable->is_parameter)))) {
+    /* The old symbol is a parameter and the new symbol not a
+       parameter -- allowed in cfront and pcc modes.  Note that we
+       test the variable pointer for being NULL before dereferencing it
+       above and we also pass the identifier string to the warning routine
+       rather than using the standard symbol name fill-in.  This is done
+       because the variable pointer may not have been filled in at the
+       time the symbol is entered. */
+    err = FALSE;
+    if (!suppress_error) {
+      pos_st_warning(ec_decl_hides_function_parameter, &new_sym->decl_position,
+		     new_sym->header->identifier);
     }  /* if */
   }  /* if */
   return !err;
@@ -1559,12 +1585,17 @@ the proper insert location.
           /* Two declarations in the same name space in the same scope:
              in most cases, this is an error, but in C++, one is allowed to
              define a tag name and a non-type name in the same scope (see ARM
-             3.2, 3.1c, and 7.1.3). */
-          if (C_dialect != C_dialect_cplusplus ||
-              !symbols_may_coexist_in_curr_scope(old_sym_ptr, sym_ptr,
-                                                 &insert_after)) {
+             3.2, 3.1c, and 7.1.3).  In cfront and pcc modes a variable is
+	     allowed to hide a function parameter. */
+          if (!symbols_may_coexist_in_curr_scope(old_sym_ptr, sym_ptr,
+                                                 &insert_after,
+						 suppress_error)) {
             /* Error, this identifier has already been declared. */
             if (!suppress_error) {
+	      /* Note that we pass the identifier string to the error routine
+                 rather than using the standard symbol name fill-in. 
+                 This is done because the variable pointer may not have been
+		 filled in at the time the symbol is entered. */
               pos_st_error((is_type_symbol(sym_ptr) &&
                             is_type_symbol(old_sym_ptr) &&
                             C_dialect == C_dialect_cplusplus) ?

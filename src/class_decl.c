@@ -5240,7 +5240,8 @@ and "class_type" indicates the class in which the declaration occurs.
     a_symbol_ptr  insert_sym = NULL;
     if (symbols_may_coexist_in_curr_scope(locator.specific_symbol,
                                           locator_for_curr_id.specific_symbol,
-                                          &insert_sym)) {
+                                          &insert_sym,
+					 /*supress_error=*/FALSE)) {
       clear_locator(&locator, &locator_for_curr_id.source_position);
       locator.symbol_header = locator_for_curr_id.symbol_header;
       (void)find_projected_symbol(class_type, &locator, /*must_be_tag=*/FALSE,

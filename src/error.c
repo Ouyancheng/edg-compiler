@@ -1744,6 +1744,9 @@ error code.
     case ec_init_needing_temp_not_allowed:
       m = "initialization requiring a temporary is not allowed";
       break;
+    case ec_decl_hides_function_parameter:
+      m = "declaration of %sq hides function parameter";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
