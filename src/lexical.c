@@ -4093,7 +4093,6 @@ involve macro expansion or scanning of a preprocessing directive.
 
 
 a_boolean get_class_qualifier(a_scope_number *scope_number)
-                              
 /*
 Scan an optional class qualifier, e.g., "A::B::" (note that the final
 identifier of a qualified name is not scanned here; see get_qualified_name).
@@ -4150,7 +4149,7 @@ tok_colon_colon otherwise.  This routine should only be called in C++ mode.
           /* Search for the identifier in the given scope. */
           class_symbol = scope_qualified_id_lookup(&locator_for_curr_id,
                                                    class_scope,
-                                                   /*must_be_class=*/TRUE);
+                                                   QIDL_MUST_BE_CLASS);
         }  /* if */
       } while (class_symbol != NULL && next_token() == tok_colon_colon);
       is_qualifier = TRUE;
@@ -4162,7 +4161,7 @@ tok_colon_colon otherwise.  This routine should only be called in C++ mode.
 }  /* get_class_qualifier */
 
 
-a_boolean get_qualified_name(void)
+a_boolean get_qualified_name(a_qualified_id_lookup_options_set options)
 /*
 If the current token is an identifier, see if it is the start of a
 qualified name of the form
@@ -4175,7 +4174,8 @@ If a qualified name is next, scan it and look up the qualified name,
 set specific_symbol in locator_for_curr_id to point to the symbol
 for the qualified identifier, and return TRUE.  This is recognized only
 in C++ mode.  If a qualified name is not next, leave specific_symbol
-set to NULL and return FALSE.
+set to NULL and return FALSE.  options is a set of special options,
+as a bit set.
 */
 {
   a_boolean         is_qualified_name = FALSE, okay = FALSE;
@@ -4225,7 +4225,7 @@ set to NULL and return FALSE.
                scope. */
             name_symbol = scope_qualified_id_lookup(&locator_for_curr_id,
                                                     class_scope,
-                                                    /*must_be_class=*/FALSE);
+                                                    options);
             if (name_symbol != NULL) {
               /* The name was found. */
               okay = TRUE;
