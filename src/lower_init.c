@@ -1901,6 +1901,9 @@ Pop function corresponding to push_generated_routine_context.
   add_scope_orphaned_il_lists(scope);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #if MAINTAIN_NEEDED_FLAGS
+  /* Walk subtrees of local types and variables that have already been
+     marked as needed. */
+  walk_subtrees_of_local_entities(scope);
   /* If the routine is external, mark it as needed. */
   if (rout->storage_class == (a_storage_class)sc_unspecified) {
     mark_as_needed((char *)rout, iek_routine);

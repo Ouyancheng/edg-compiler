@@ -3771,71 +3771,6 @@ is done, is that all the classes have to have been marked first.
 }  /* set_needed_flags_for_typedefs */
 
 
-/* Forward declaration to enable mutual recursion: */
-static void set_needed_flags_at_end_of_file_scope(a_scope_ptr scope);
-
-
-static void set_needed_flags_for_orphan_subtrees(void)
-/*
-Traverse the subtrees of orphaned variables and types on the il_header
-scope_orphaned_list_headers list to determine which entities are "needed".
-These are local types and local static variables of functions.  The
-subtrees could not be walked before the end of the function processing
-(because of additions/changes made by IL lowering and hidden name
-processing), and they also should not be walked until it is known that
-the function will be retained, which may not be known until the end of
-the compilation.  Therefore this processing is done at the end of the
-file scope processing.
-*/
-{
-  a_scope_orphaned_list_header_ptr  solhp;
-
-  for (solhp = il_header.scope_orphaned_list_headers;
-       solhp != NULL;
-       solhp = solhp->next) {
-    a_routine_ptr  rout = solhp->assoc_routine;
-    a_type_ptr     type;
-    a_variable_ptr var;
-
-#if DEBUG
-    if (db_flag_is_set("needed_flags")) {
-      fprintf(f_debug, ">>> Start keep_in_il sweep for orphans of ");
-      db_name(&rout->source_corresp);
-      fprintf(f_debug, ":\n");
-    }  /* if */
-#endif /* DEBUG */
-    for (type = solhp->orphaned_types; type != NULL; type = type->next) {
-      if (is_immediate_class_type(type)) {
-        /* If the class has been marked to indicate that it is needed,
-           then we need to walk the subtree of the class; if not, we can
-           ignore it. */
-        a_class_type_supplement_ptr  ctsp;
-        remark_as_needed((char *)type, (an_il_entry_kind)iek_type);
-        ctsp = type->variant.class_struct_union.extra_info;
-        if (ctsp != NULL && ctsp->assoc_scope != NULL) {
-          /* Check nested classes and static data members, too.  Note that
-             this may be done even if the class itself is not needed. */
-          set_needed_flags_at_end_of_file_scope(ctsp->assoc_scope);
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    for (var = solhp->orphaned_variables; var != NULL; var = var->next) {
-      /* If the variable is marked as needed, remark it to visit its
-         subtree.  The subtree is not visited until this phase, because it
-         can change. */
-      remark_as_needed((char *)var, (an_il_entry_kind)iek_variable);
-    }  /* for */
-#if DEBUG
-    if (db_flag_is_set("needed_flags")) {
-      fprintf(f_debug, "--- End keep_in_il sweep for orphans of ");
-      db_name(&rout->source_corresp);
-      fprintf(f_debug, ".\n");
-    }  /* if */
-#endif /* DEBUG */
-  }  /* for */
-}  /* set_needed_flags_for_orphan_subtrees */
-
-
 static void set_needed_flags_at_end_of_file_scope(a_scope_ptr scope)
 /*
 scope is a pointer to the file scope, a namespace scope, or a class scope.
@@ -3953,7 +3888,6 @@ been completed.
        they can be referenced from the instantiation object files. */
     make_statics_referenced_from_instantiations_external();
 #endif /* ONE_INSTANTIATION_PER_OBJECT && DO_IL_LOWERING */
-    set_needed_flags_for_orphan_subtrees();
     end_of_file_scope_needed_flags_phase = FALSE;
   }  /* if */
 }  /* set_needed_flags_at_end_of_file_scope */
@@ -4353,10 +4287,12 @@ End a name scope by popping an entry off the scope stack.
   }  /* if */
   if (curr_routine != NULL) {
 #if MAINTAIN_NEEDED_FLAGS
+    a_boolean is_needed = FALSE;
+    /* Walk subtrees of local types and variables that have already been
+       marked as needed. */
+    walk_subtrees_of_local_entities(il_scope);
     /* If the function is globally visible and presumably needed by code
        in another translation unit, set the "needed" flag on the function. */
-    a_boolean is_needed = FALSE;
-
     if (curr_routine->storage_class == (a_storage_class)sc_unspecified) {
       is_needed = (curr_routine->source_corresp.needed ||
                    routine_needed_even_if_unreferenced(curr_routine));

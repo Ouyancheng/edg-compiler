@@ -450,6 +450,7 @@ definition of the routine is needed, and not just the declaration.
        remark_routine_definition_needed take care of calling this again
        later when defined gets set if it is not set now. */
     if (rout->defined) {
+      a_scope_ptr            saved_innermost_function_scope;
       a_memory_region_number saved_curr_il_region_number=curr_il_region_number;
       a_scope_ptr scope;
       check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
@@ -460,9 +461,14 @@ definition of the routine is needed, and not just the declaration.
          entries need to be allocated; we need to know what memory region
          to put them in. */
       curr_il_region_number = rout->assoc_scope;
+      /* Set the innermost function scope.  This is needed for finding the
+         variable associated with anonymous union types. */
+      saved_innermost_function_scope = innermost_function_scope;
+      innermost_function_scope = scope;
       /* walk_tree_and_set_needed is not used here so that this routine can
          be callable from outside of the needed flag walk. */
       mark_as_needed((char *)scope, iek_scope);
+      innermost_function_scope = saved_innermost_function_scope;
       curr_il_region_number = saved_curr_il_region_number;
 #if ONE_INSTANTIATION_PER_OBJECT
       if (needed_flag_bit_number == 0)
@@ -578,16 +584,20 @@ otherwise changed (lowered, hidden name entries added) at a later stage
 shouldn't have their subtrees walked until after there is no longer the
 possibility of the subtree changing.  end_of_file_scope_needed_flags_phase is
 set to TRUE in a phase where subtrees should finally be walked (see
-set_needed_flags_at_end_of_file_scope).  Classes declared in function
-prototype scopes (which can happen only in C) are always processed
-immediately.  is_class is TRUE if the entity is a class.
+set_needed_flags_at_end_of_file_scope).  The subtrees of local classes
+and variables are walked once their okay_to_walk_subtree_of_local_entity
+flags are set, which happens at the end of processing of the containing
+function.  Subtrees of classes in prototype scopes (possible only in
+C) are always walked immediately.  is_class is TRUE if the entity is a class.
 */
 #define should_walk_subtree(entry_ptr, entry_kind, is_class) \
- (end_of_file_scope_needed_flags_phase || \
-  !(((is_class) && \
-     !((a_type_ptr)entry_ptr)->declared_in_function_prototype) || \
-    ((entry_kind) == iek_variable && in_file_scope(entry_ptr)) || \
-    ((entry_kind) == iek_routine)))
+  (end_of_file_scope_needed_flags_phase || \
+   ((!(is_class) || \
+     ((a_type_ptr)(entry_ptr))->declared_in_function_prototype) && \
+    (entry_kind) != iek_variable && \
+    (entry_kind) != iek_routine) || \
+   ((a_source_correspondence *)(entry_ptr))-> \
+                                      okay_to_walk_subtree_of_local_entity)
 
 
 #if DO_IL_LOWERING
@@ -913,6 +923,21 @@ the subtree is walked again if it has changed.
 }  /* clear_keep_in_il_to_allow_subtree_walk */
 
 
+void remark_to_keep_in_il(char             *entry_ptr,
+                          an_il_entry_kind entry_kind)
+/*
+If the keep_in_il flag in the indicated entry is already set, clear it
+and set it again.  This is used when the subtree of the entity may have
+changed, to make sure the entities in the subtree are marked to be kept.
+*/
+{
+  if (il_entry_prefix_of(entry_ptr).keep_in_il) {
+    clear_keep_in_il_to_allow_subtree_walk(entry_ptr, entry_kind);
+    mark_to_keep_in_il(entry_ptr, entry_kind);
+  }  /* if */
+}  /* remark_to_keep_in_il */
+
+
 static void r_keep_definitions_of_virtual_functions_in_scope(a_scope_ptr scope)
 /*
 Recursive helper routine for keep_definitions_of_virtual_functions_in_scope.
@@ -1012,16 +1037,22 @@ declaration.
     /* If the definition is present, walk it.  set_routine_defined takes
        care of calling this again later when defined gets set. */
     if (rout->defined) {
+      a_scope_ptr saved_innermost_function_scope;
       a_scope_ptr scope;
       check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
                       "set_routine_keep_definition_in_il: memory region gone");
       scope = il_header.region_scope_entry[rout->assoc_scope];
+      /* Set the innermost function scope.  This is needed for finding the
+         variable associated with anonymous union types. */
+      saved_innermost_function_scope = innermost_function_scope;
+      innermost_function_scope = scope;
       /* walk_tree_and_set_keep_in_il is not used here so that this routine can
          be callable from outside of the keep_in_il flag walk. */
       mark_to_keep_in_il((char *)scope, iek_scope);
       /* Make sure the definitions of virtual functions of local classes
          are kept. */
       keep_definitions_of_virtual_functions_in_scope(scope);
+      innermost_function_scope = saved_innermost_function_scope;
     }  /* if */
   }  /* if */
 }  /* set_routine_keep_definition_in_il */
@@ -1048,12 +1079,7 @@ declaration.
        for that, because before the keep_definition_in_il flag is set the
        subtree of the class is not swept when the class keep_in_il flag
        is set. */
-    if (il_entry_prefix_of(type).keep_in_il) {
-      clear_keep_in_il_to_allow_subtree_walk((char *)type, iek_type);
-      /* walk_tree_and_set_keep_in_il is not used here so that this routine can
-         be callable from outside of the keep_in_il flag walk. */
-      mark_to_keep_in_il((char *)type, iek_type);
-    }  /* if */
+    remark_to_keep_in_il((char *)type, iek_type);
   }  /* if */
 }  /* set_class_keep_definition_in_il */
 
@@ -1435,6 +1461,41 @@ or redeclaration).
 }  /* set_keep_in_il_on_source_sequence_entries */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+void walk_subtrees_of_local_entities(a_scope_ptr scope)
+/*
+scope is a function or block scope.  Visit the local classes and variables
+of the scope and set a flag indicating that henceforth their subtrees
+can be walked in the "needed" flag and keep_in_il processing.
+If any entries have already been marked, walk their subtrees now.
+This is called at the end of the processing for the function of
+which these are local declarations.
+*/
+{
+  a_variable_ptr var;
+  a_type_ptr     type;
+  a_scope_ptr    subscope;
+
+  for (var = scope->variables; var != NULL; var = var->next) {
+    var->source_corresp.okay_to_walk_subtree_of_local_entity = TRUE;
+    remark_as_needed    ((char *)var, (an_il_entry_kind)iek_variable);
+    remark_to_keep_in_il((char *)var, (an_il_entry_kind)iek_variable);
+  }  /* for */
+  for (var = scope->nonstatic_variables; var != NULL; var = var->next) {
+    var->source_corresp.okay_to_walk_subtree_of_local_entity = TRUE;
+    remark_as_needed    ((char *)var, (an_il_entry_kind)iek_variable);
+    remark_to_keep_in_il((char *)var, (an_il_entry_kind)iek_variable);
+  }  /* for */
+  for (type = scope->types; type != NULL; type = type->next) {
+    type->source_corresp.okay_to_walk_subtree_of_local_entity = TRUE;
+    remark_as_needed    ((char *)type, (an_il_entry_kind)iek_type);
+    remark_to_keep_in_il((char *)type, (an_il_entry_kind)iek_type);
+  }  /* for */
+  /* Process nested block scopes. */
+  for (subscope = scope->scopes; subscope != NULL; subscope = subscope->next) {
+    walk_subtrees_of_local_entities(subscope);
+  }  /* for */
+}  /* walk_subtrees_of_local_entities */
 
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
 

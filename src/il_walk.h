@@ -110,6 +110,9 @@ extern void mark_as_needed_like(char                    *entry_ptr,
                                 a_source_correspondence *model_scp,
                                 a_boolean               set_class_defn_needed);
 
+extern void remark_to_keep_in_il(char             *entry_ptr,
+                                 an_il_entry_kind entry_kind);
+
 extern void remark_as_needed(char             *entry_ptr,
                              an_il_entry_kind entry_kind);
 
@@ -122,6 +125,7 @@ extern void set_routine_keep_definition_in_il(a_routine_ptr rout);
 
 extern void set_class_keep_definition_in_il(a_type_ptr type);
 
+extern void walk_subtrees_of_local_entities(a_scope_ptr scope);
 
 EXTERN a_boolean
 		end_of_file_scope_needed_flags_phase;

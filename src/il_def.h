@@ -1047,6 +1047,14 @@ typedef struct a_source_correspondence {
 			   that is referenced from an instantiation and
 			   therefore needs to be made external. */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if MAINTAIN_NEEDED_FLAGS
+  a_bit_field	okay_to_walk_subtree_of_local_entity:1;
+			/* TRUE if it is okay to walk the subtree of this
+			   entity (a local class or local variable) in "needed"
+			   flag or keep_in_il processing.  It's not okay to
+			   walk the subtree if it can still change, i.e., while
+			   the containing function is still being processed. */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #endif /* ifdef CIL */
 #if RECORD_SCOPE_DEPTH_IN_IL
   a_scope_depth	scope_depth;

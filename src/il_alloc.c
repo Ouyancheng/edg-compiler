@@ -2911,6 +2911,9 @@ in il_init.)
 #if ONE_INSTANTIATION_PER_OBJECT
   def_source_corresp.static_used_by_instantiation = FALSE;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if MAINTAIN_NEEDED_FLAGS
+  def_source_corresp.okay_to_walk_subtree_of_local_entity = FALSE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #if RECORD_SCOPE_DEPTH_IN_IL
   def_source_corresp.scope_depth = NO_SCOPE_DEPTH;
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
