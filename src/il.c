@@ -7390,6 +7390,9 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
               sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
             /* Don't report a NULL declared type on the secondary declaration
                of a type entry -- that's what's expected. */
+          } else if (sssdp->entity.kind ==
+                               (a_byte_il_entry_kind)iek_namespace) {
+            /* Ignore it. */
           } else {
             print_type = TRUE;
           }  /* if */
