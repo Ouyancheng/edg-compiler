@@ -1292,6 +1292,37 @@ type is in fact valid.
 }  /* verify_enum_type_correspondence */
 
 
+static a_boolean equiv_base_using_decls(a_using_decl_ptr  ud1,
+                                        a_using_decl_ptr  ud2)
+/*
+Return TRUE if the given using declarations refer to corresponding entities.
+*/
+{
+  a_boolean  result = ud1->is_using_directive == ud2->is_using_directive &&
+                      ud1->access == ud2->access &&
+                      ud1->entity.kind == ud2->entity.kind ;
+
+  if (!result) {
+    /* Nothing more to be tested. */
+  } else if (ud1->qualifier.class_type
+                ->variant.class_struct_union.is_nonreal_class) {
+    /* The using-declaration refers to a dependent base class.  In this case
+       it is not sufficient to compare the canonical entries. */
+    check_assertion(ud1->entity.kind == (an_il_entry_kind)iek_constant);
+    result = identical_types(ud1->qualifier.class_type,
+                             ud2->qualifier.class_type) &&
+             eq_constants((a_constant_ptr)ud1->entity.ptr, 
+                          (a_constant_ptr)ud2->entity.ptr);
+  } else {
+    result = canonical_il_entry_of(ud1->qualifier.class_type) ==
+                           canonical_il_entry_of(ud2->qualifier.class_type) &&
+             canonical_il_entry_of(ud1->entity.ptr) ==
+                                       canonical_il_entry_of(ud2->entity.ptr);
+  }  /* if */
+  return result;
+}  /* equiv_base_using_decls */
+
+
 static a_boolean verify_class_type_correspondence(a_type_ptr  type)
 /*
 Check that the recorded translation unit correspondence for the given class
@@ -1484,13 +1515,7 @@ type is in fact valid.
         a_using_decl_ptr  corresp_ud = corresp_scope->using_decls;
         for (; ud != NULL && corresp_ud != NULL;
              ud = ud->next, corresp_ud = corresp_ud->next) {
-          if (ud->is_using_directive != corresp_ud->is_using_directive ||
-              ud->access != corresp_ud->access ||
-              ud->entity.kind != corresp_ud->entity.kind ||
-              canonical_il_entry_of(ud->entity.ptr) !=
-                               canonical_il_entry_of(corresp_ud->entity.ptr) ||
-              canonical_il_entry_of(ud->qualifier.class_type) !=
-                     canonical_il_entry_of(corresp_ud->qualifier.class_type)) {
+          if (!equiv_base_using_decls(ud, corresp_ud)) {
             match = FALSE;
             report_error = TRUE;
             goto done;
@@ -1668,8 +1693,10 @@ is in fact valid.
                         (a_symbol_ptr)corresp_templ->source_corresp.assoc_info;
     a_template_symbol_supplement_ptr
                     tssp = NULL, corresp_tssp = NULL;
+    /* Use the canonical template entry for scp since it has the correct
+       value for "scp->access". */
     a_source_correspondence_ptr
-                    scp = &templ->source_corresp,
+                    scp = &templ->canonical_template->source_corresp,
                     corresp_scp = &corresp_templ->source_corresp;
     match = verify_name_correspondence(templ);
     if (match && is_template_symbol(templ_sym)) {
@@ -2382,6 +2409,7 @@ supplement for an instantiation that matches inst.
               sym_entry = tssp->all_instantiations;
   a_class_type_supplement_ptr
               ctsp = class_type->variant.class_struct_union.extra_info;
+  char *saved_corresp = trans_unit_corresp_pointer_of(class_type);
 
   for (; sym_entry != NULL; sym_entry = sym_entry->next) {
     a_type_ptr  corresp_type = type_symbol_type(sym_entry->symbol);
@@ -2392,6 +2420,12 @@ supplement for an instantiation that matches inst.
        specialization arguments are equivalent.  The ETA_IS_NONREAL_MEMBER
        option allows differing length for the argument lists.  Do not confuse
        a prototype instantiation with a similar nonreal instantiation. */
+
+    /* While checking the equivalence of a template argument list sometimes
+       requires a recursive check of the correspondence of class_type.
+       To correctly handle those situations, we temporarily assume that
+       class_type and corresp_type do in fact correspond. */
+    set_trans_unit_corresp(class_type, corresp_type);
     if (class_type->variant.class_struct_union.is_prototype_instantiation ==
            corresp_type
                     ->variant.class_struct_union.is_prototype_instantiation &&
@@ -2407,6 +2441,7 @@ supplement for an instantiation that matches inst.
       break;
     }  /* if */
   }  /* for */
+  set_trans_unit_corresp(class_type, saved_corresp);
   return sym_entry;
 }  /* find_class_template_instantiation */
 
