@@ -991,18 +991,11 @@ might not be able to if the template itself has not yet been defined.
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
       reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
-      /* Set the default name linkage to that of the template.  It will be
+      /* Set the default name linkage to extern C++.  It will be
          active while the function body is scanned and then restored. */
       saved_linkage = def_external_linkage;
-      def_external_linkage.kind = class_type->source_corresp.name_linkage;
+      def_external_linkage.kind = (a_name_linkage_kind)nlk_cplusplus_external;
       def_external_linkage.is_explicit = FALSE;
-#if CHECKING
-      if (def_external_linkage.kind == (a_name_linkage_kind)nlk_internal ||
-          def_external_linkage.kind == (a_name_linkage_kind)nlk_none) {
-        unexpected_condition_str2("f_instantiate_template_class:",
-                                  "bad default name linkage kind");
-      }  /* if */
-#endif /* CHECKING */
       /* The tokens of the template definition have been cached away.
          Activate the cache so that they can be rescanned in light of
          the new values associated with the template parameters. */
@@ -1778,19 +1771,11 @@ Instantiate the body of the template function associated with tip.
     pos_error(ec_no_exception_support,
               &func_info_ptr->throw_position);
   }  /* if */
-  /* Set the default routine linkage to that of the template.  It will be
-     active while the function body is scanned and then restored. */
+  /* Set the default routine linkage to extern C++.  It will be active while
+     the function body is scanned and then restored. */
   saved_linkage = def_external_linkage;
-  def_external_linkage.kind = skip_typerefs(rout_ptr->type)->variant.
-                                     routine.extra_info->routine_name_linkage;
+  def_external_linkage.kind = (a_name_linkage_kind)nlk_cplusplus_external;
   def_external_linkage.is_explicit = FALSE;
-#if CHECKING
-  if (def_external_linkage.kind == (a_name_linkage_kind)nlk_internal ||
-      def_external_linkage.kind == (a_name_linkage_kind)nlk_none) {
-    unexpected_condition_str2("instantiate_template_function:",
-                              "bad default name linkage kind");
-  }  /* if */
-#endif /* CHECKING */
   /* Reactivate the tokens comprising the function body and scan them. */
   rescan_reusable_cache(&tcp->tokens);
   scan_function_body(rout_ptr, func_info_ptr,
@@ -9636,8 +9621,8 @@ brace) is returned in *final_token.
     /* Save the current default linkage. */
     saved_linkage = def_external_linkage;
     /* Issue an error if this declaration has C linkage. */
-    if (def_external_linkage.kind ==
-                        (a_name_linkage_kind)nlk_external) {
+    if (def_external_linkage.kind !=
+                        (a_name_linkage_kind)nlk_cplusplus_external) {
       pos_error(ec_bad_linkage_for_decl, &pos_curr_token);
       def_external_linkage.kind = (a_name_linkage_kind)nlk_cplusplus_external;
       def_external_linkage.is_explicit = FALSE;
