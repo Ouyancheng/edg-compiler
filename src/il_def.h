@@ -554,7 +554,7 @@ typedef struct a_constant {
       a_constant_ptr
                 constant;
                         /* The constant to be repeated. */
-      unsigned long
+      a_targ_size_t
                 count;
                         /* The repeat count (greater than zero).  A count of
 			   zero is used for new and delete of an array, and
