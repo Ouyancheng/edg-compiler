@@ -391,6 +391,13 @@ is virtual and honor_virtual is TRUE.  The virtual call is *not* lowered.
   rout_node = function_addr_expr(routine);
   routine->called = TRUE;
   rout_node->next = arg_list;
+  /* Lower the function type (or record it as an orphan).  This is important
+     when calling routines mentioned in dynamic initialization entries that
+     are declared now and get defined later in this compilation.  The type
+     pointer in the routine entry will be changed to a new (equivalent) type
+     at the point of definition, which means the type here will not be
+     attached to any list and will not get lowered unless we do it here. */
+  lower_os_type(routine->type);
   /* Choose the right operation (virtual call or non-virtual call). */
   if (routine->is_virtual && honor_virtual) {
     op = (an_expr_operator_kind)eok_virtual_call;
