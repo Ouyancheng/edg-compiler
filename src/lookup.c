@@ -3473,8 +3473,9 @@ If a match is found, add the entry to to symbol_list.
      below. */
   clear_specific_symbol(*locator);
   /* Look up the symbol in the specified namespace or in the global scope.
-     A linkage lookup is used to prevent other namespaces from being searched
-     if the specified namespace includes using-directives. */
+     A "direct namespace members only" lookup is used to prevent other
+     namespaces from being searched if the specified namespace includes
+     using-directives. */
   if (nsp != NULL) {
     sym = namespace_qualified_id_lookup(locator, nsp,
                                         IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
