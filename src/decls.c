@@ -161,7 +161,7 @@ is not done.
        current identifier is a type name, don't issue access errors yet, and
        don't complain if the name is that of a template but there are no
        template args (since it may actually be a different use of the name). */
-    options = GID_DEFER_ACCESS_ERRORS | GID_TEMPLATE_ARGS_OPTIONAL;
+    options = GID_DEFER_ACCESS_ERRORS;
     if (is_new_type_name) options |= GID_IS_NEW_TYPE_NAME;
     if (is_generalized_identifier_start(options)) {
       /* Look up the current token identifier, which may be a qualified name.
@@ -7575,7 +7575,8 @@ no_get_token:
            class B; typedef class {...} B...    <== Error detected elsewhere
            class C; typedef class C {...} C...  <== Legal
          Note that this logic works for both C++ and standard C. */
-      if (is_qualified_name_start()) {
+      if (curr_token == tok_identifier &&
+          *storage_class != (a_storage_class)sc_typedef) {
         determine_curr_token_type_symbol(/*is_new_type_name=*/FALSE);
       }  /* if */
       if (is_type_specifier() ||
