@@ -1,5 +1,14 @@
 Version 2.13
 
+12/1/92  Change of default in enum layout
+
+The default for the configuration flag
+DEFAULT_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT has been changed to FALSE,
+which forces allocation of enums as ints.  This change was made to
+avoid surprising new clients (some people find small enums surprising);
+admittedly, the change may surprise some existing clients.  It was also
+necessary for cfront compatibility -- cfront puts out enums as ints.
+
 12/1/92  Type set in ck_dynamic_init constant entries in IL
 
 ck_dynamic_init constant entries had a NULL type pointer, which was

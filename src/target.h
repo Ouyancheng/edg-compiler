@@ -368,7 +368,11 @@ typedef unsigned short a_virtual_function_number;
 /*
 Enumerated types:
 */
-#define DEFAULT_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT TRUE
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+#define DEFAULT_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT FALSE /* Do not change */
+#else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
+#define DEFAULT_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT FALSE
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 			/* Default setting for
 			   enum_types_can_be_smaller_than_int.  If TRUE,
 			   enumerated types can be allocated in integral
