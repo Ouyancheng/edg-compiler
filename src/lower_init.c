@@ -3106,6 +3106,20 @@ do_assignment:;
         /* Initialization of a static variable to a constant.  Can be
            done as a static initialization. */
         if (lsvip == NULL) {
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+          /* If this variable is a local static variable that was promoted
+             to file scope, we have to copy the remaining constant to the file
+             scope (it was formerly pointed to by a local-static-variable-init
+             entry in the function scope, and then the variable was promoted
+             by promote_local_entities_to_file_scope). */
+          if (!in_file_scope((char *)simple_constant)) {
+            a_memory_region_number region_to_switch_back_to =
+                                                            NULL_region_number;
+            switch_to_file_scope_region(&region_to_switch_back_to);
+            simple_constant = copy_unshared_constant(simple_constant);
+            switch_back_to_original_region(region_to_switch_back_to);
+          }  /* if */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
           variable->init_kind = (an_init_kind)initk_static;
           variable->initializer.constant = simple_constant;
         } else {

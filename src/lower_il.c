@@ -7681,9 +7681,43 @@ scope) along with the class members.
       mangle_promoted_entity_name(&variable->source_corresp, routine, scope);
       variable->source_corresp.is_local_to_function = FALSE;
       add_to_variables_list(variable, /*at_file_scope=*/TRUE);
+      /* If the variable has an associated local-static-variable-init
+         entry, transfer any initialization to the variable itself. */
+      if (variable->init_kind == (an_init_kind)initk_function_local) {
+        a_local_static_variable_init_ptr lsvip =
+                              find_local_static_variable_init(variable, scope);
+        variable->init_kind = lsvip->init_kind;
+        switch (lsvip->init_kind) {
+          case initk_none:
+          case initk_zero:
+            break;
+          case initk_static:
+            /* For a static initial value, copy the constant to file scope.
+               This might be expensive space-wise, since this might be
+               an aggregate, but there are no good alternatives. */
+            { a_memory_region_number region_to_switch_back_to =
+                                                            NULL_region_number;
+              switch_to_file_scope_region(&region_to_switch_back_to);
+              variable->initializer.constant =
+                           copy_unshared_constant(lsvip->initializer.constant);
+              switch_back_to_original_region(region_to_switch_back_to);
+            }
+            break;
+          case initk_dynamic:
+            /* This dynamic initialization will be rewritten when the
+               stmk_init is processed, so leave it alone for now.  The code
+               there will copy the remaining constant if necessary. */
+            variable->initializer.dynamic = lsvip->initializer.dynamic;
+            break;
+          default:
+            unexpected_condition_str(
+             "promote_local_entities_to_file_scope: bad static var init_kind");
+        }  /* switch */
+      }  /* if */
     }  /* for */
     /* Clear the variables list now that all variables have been promoted. */
     scope->variables = NULL;
+    scope->local_static_variable_inits = NULL;
     if (depth != NO_SCOPE_DEPTH) scope_stack[depth].last_variable = NULL;
   }  /* if */
   /* Visit all block scopes and promote the local entities therein. */
