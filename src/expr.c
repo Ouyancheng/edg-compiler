@@ -29,6 +29,7 @@ expr.c -- Expression scanning routines.
 #include "disambig.h"
 #include "pragma.h"
 #include "preproc.h"
+#include "decl_spec.h"
 
 
 /* Forward declarations. */
