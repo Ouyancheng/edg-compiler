@@ -3809,7 +3809,7 @@ Do IL lowering of the indicated variable and everything under it.
         make_instantiation_info_var("__CBI__", &variable->source_corresp);
       }  /* if */
     }  /* if */
-#endif /* AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
 }  /* lower_variable */
 
