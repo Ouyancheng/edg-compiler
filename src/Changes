@@ -1,5 +1,30 @@
 Version 2.09
 
+9/15/92  Error recovery on pcc mode macro recursion
+
+The error recover on the following program compiler in pcc mode has been
+improved:
+
+  #define a a a
+  a
+
+Formerly this would issue errors about macro recursion until it hit the
+error limit.
+
+9/14/92  Initialization of static data member with incomplete type
+
+Some problems in error diagnosis and error recovery have been fixed.
+In the process it has become clear that there is no restriction against
+arrays of incomplete types in C++ declarations, though a type must of
+course be complete at the point of a defining declaration.  For instance,
+the following is now handled properly:
+
+  struct A {
+    static A x[];
+    A(int);
+  };
+  A A::x[] = { 0, 1, 2 };
+
 9/14/92  Name mangling on extern "C" functions with C++ names
 
 IL lowering now does partial name mangling on C++ special functions
@@ -20,8 +45,6 @@ following is now handled correctly:
 
   class A { public: int x;};
   class B : private A { public: A::y; };   // y is not a member of A
-
-Fixed error recovery 
 
 9/13/92  New error on static data member definitions
 
