@@ -8843,6 +8843,7 @@ scanning type name in a type conversion operator.
   a_type_ptr                bottom_derived_type = NULL;
   a_source_position         type_pos;
   a_boolean                 is_conversion_operator;
+  a_boolean		    class_reactivated = FALSE;
 
   db_enter(3, "scan_conversion_operator");
   /* Push a class reactivation scope if class_type is not NULL.  This is
@@ -8851,7 +8852,21 @@ scanning type name in a type conversion operator.
      operator routines, but we don't know what kind of operator we are
      scanning until we call is_type_start, and the class needs to
      be reactivated before is_type_start is called. */
-  if (class_type != NULL) push_class_reactivation_scope(class_type);
+  if (class_type != NULL && is_incomplete_type(class_type)) {
+    a_symbol_ptr	sym;
+    sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+    /* In valid usage, the class type will always be either a complete
+       real class type or a prototype instantiation.  In other cases,
+       suppress the reactivation because incomplete and nonreal classes
+       cannot be reactivated.  An error will be issued elsewhere for these
+       cases. */
+    if (sym != NULL && 
+        (is_real_class_symbol(sym) ||
+         is_prototype_instantiation_symbol(sym))) {
+      push_class_reactivation_scope(class_type);
+      class_reactivated = TRUE;
+    }  /* if */
+  }  /* if */
   if (is_type_start()) {
     /* It is the start of a type name. */
     is_conversion_operator = TRUE;
@@ -8877,7 +8892,7 @@ scanning type name in a type conversion operator.
     is_conversion_operator = FALSE;
   }  /* if */
   /* Pop the class reactivation scope if one was pushed earlier. */
-  if (class_type != NULL) pop_class_reactivation_scope();
+  if (class_reactivated) pop_class_reactivation_scope();
   db_exit();
   return is_conversion_operator;
 }  /* scan_conversion_operator */
