@@ -29,7 +29,7 @@ for a production version.
 
 void fxp_init_value(a_fixed_point_value  *value)
 /*
-Initialize the given fixed-point value to a safe representation.
+Initialize the given fixed-point value to zero.
 */
 {
   set_integer_value(value, (a_host_large_integer)0);
@@ -52,16 +52,17 @@ Return TRUE if and only if the given fixed-point value is zero.
 
 
 static void conv_integer_value_to_long_double_value(
-                                               an_integer_value         *ival,
-                                               an_internal_float_value  *fval,
-                                               a_boolean                *err)
+                                           an_integer_value         *ival,
+                                           a_boolean                is_signed,
+                                           an_internal_float_value  *fval,
+                                           a_boolean                *err)
 /*
 Convert the integer value in *ival to a floating-point value (of type long
 double) in *fval.  Set *err to TRUE if this does not work.
 
 (The conversion is done through a conversion to string representation: It may
 not be exact.  This routine is used for processing the representation of
-fixed-point value as implicitly scaled integer values.)
+fixed-point values as implicitly scaled integer values.)
 */
 {
   a_constant  integer;
@@ -69,14 +70,43 @@ fixed-point value as implicitly scaled integer values.)
 
   clear_constant(&integer, (a_constant_repr_kind)ck_integer);
 #if LONG_LONG_ALLOWED
-  integer.type = integer_type((an_integer_kind)ik_unsigned_long_long);
+  integer.type =
+              integer_type(is_signed ? (an_integer_kind)ik_long_long
+                                     : (an_integer_kind)ik_unsigned_long_long);
 #else /* !LONG_LONG_ALLOWED */
-  integer.type = integer_type((an_integer_kind)ik_unsigned_long);
+  integer.type = integer_type(is_signed ? (an_integer_kind)ik_long
+                                        : (an_integer_kind)ik_unsigned_long);
 #endif /* LONG_LONG_ALLOWED */
   integer.variant.integer_value = *ival;
   str = str_for_integer_constant(&integer);
   fp_string_to_float((a_float_kind)fk_long_double, str, fval, err);
 }  /* conv_integer_value_to_long_double_value */
+
+
+static void construct_fxp_scale_factor(a_fixed_point_type_descr  *fxp_descr,
+                                       an_internal_float_value   *fp_scale)
+/*
+Construct a long double scaling factor 2^F where F is the number of fractional
+bits in the fixed-point type represented by fxp_descr.  Place the result in
+fp_scale.
+*/
+{
+  int               fract_bits;
+  an_integer_value  int_scale;  
+  a_boolean         err = FALSE;
+
+  fract_bits = targ_fractional_bits_for_fixed_point[fxp_descr->is_unsigned]
+                                                   [(int)fxp_descr->precision]
+                                                   [fxp_descr->is_fract_type];
+  /* Shift the value "1" fract_bits to the left and convert the result to
+     type "long double" using a string as an intermediate representation. */
+  set_integer_value(&int_scale, (a_host_large_integer)1);
+  shift_left_integer_value(&int_scale, fract_bits, &err);
+  check_assertion(!err);
+  conv_integer_value_to_long_double_value(&int_scale, /*is_signed=*/FALSE,
+                                          fp_scale, &err);
+  check_assertion(!err);
+}  /* construct_fxp_scale_factor */
 
 
 void fxp_string_to_fixed_point(a_fixed_point_type_descr  *fxp_descr,
@@ -88,7 +118,7 @@ Convert the decimal fixed-point number in the null-terminated string str to
 internal form in *value.  The number is known to be syntactically correct,
 but may not be representable (it may be too large or too small); if there's
 an error, return *err = TRUE.  The specific fixed-point kind is indicated by
-*fxp_descr (an will typically affect the representation in *value).
+*fxp_descr (and will typically affect the representation in *value).
 The string need not have a decimal point or exponent (it can look like an
 integer).  It may have a leading "-" sign.
 
@@ -99,38 +129,38 @@ fixed-point representation.  It relies on a_fixed_point_value being identical
 to an_integer_value.
 */
 {
-  an_integer_value
-              int_scale;
   char        *result_str;
   an_internal_float_value
               fp_scale, fp_value, fp_scaled_value;
-  int         fract_bits;
   a_boolean   depends_on_fp_mode;
   a_boolean   pos_infinity, neg_infinity, not_a_number;
 
   *err = FALSE;
-  fract_bits = targ_fractional_bits_for_fixed_point[fxp_descr->is_unsigned]
-                                                   [(int)fxp_descr->precision]
-                                                   [fxp_descr->is_fract_type];
-  set_integer_value(&int_scale, (a_host_large_integer)1);
-  shift_left_integer_value(&int_scale, fract_bits, err);
-  check_assertion(!*err);
-  conv_integer_value_to_long_double_value(&int_scale, &fp_scale, err);
-  check_assertion(!*err);
+  construct_fxp_scale_factor(fxp_descr, &fp_scale);
+
+  /* Convert the given string to a floating point value. */
   fp_string_to_float((a_float_kind)fk_long_double, str, &fp_value, err);
   if (*err) {
     goto done;
   }  /* if */
+  /* Multiply the floating-point representation of the given string by the
+     scaling factor. */
   fp_multiply((a_float_kind)fk_long_double,
               &fp_scale, &fp_value, &fp_scaled_value,
               err, &depends_on_fp_mode);
+  if (*err) {
+    goto done;
+  }  /* if */
+  /* Extract the integer part of the result using a string as an intermediate
+     representation. */
   result_str = fp_to_string((a_float_kind)fk_long_double, &fp_scaled_value,
                             &pos_infinity, &neg_infinity, &not_a_number);
   if (pos_infinity || neg_infinity || not_a_number) {
+    *err = TRUE;
     goto done;
   }  /* if */
-  conv_float_string_to_integer_value(result_str, value, /*is_signed=*/TRUE,
-                                     err);
+  conv_float_string_to_integer_value(result_str, value,
+                                     !fxp_descr->is_unsigned, err);
 done:;
 }  /* fxp_string_to_fixed_point */
 
@@ -164,7 +194,7 @@ char* fxp_to_string(a_fixed_point_type_descr  *fxp_descr,
 /*
 Convert the given value with the given fixed-point type description to a
 decimal (null-terminated) string representation in an internal static array.
-Return a pointer to that array.
+Return a pointer to that array.  Suffixes are appended as needed.
 
 (This implementation assumes a_fixed_point_value is a synonym for
 an_integer_value and may produce slightly inaccurate results.)
@@ -173,28 +203,21 @@ an_integer_value and may produce slightly inaccurate results.)
 #define BUF_LENGTH 100
   static char  str[BUF_LENGTH];
 
-  an_integer_value
-              int_scale;
   an_internal_float_value
               fp_scale, fp_value, fp_scaled_value;
-  int         fract_bits;
   a_boolean   depends_on_fp_mode;
   a_boolean   pos_infinity, neg_infinity, not_a_number;
   a_boolean   err = FALSE;
   char        *result_str;
   sizeof_t    length;
 
-  fract_bits = targ_fractional_bits_for_fixed_point[fxp_descr->is_unsigned]
-                                                   [(int)fxp_descr->precision]
-                                                   [fxp_descr->is_fract_type];
-  set_integer_value(&int_scale, (a_host_large_integer)1);
-  shift_left_integer_value(&int_scale, fract_bits, &err);
+  construct_fxp_scale_factor(fxp_descr, &fp_scale);
+  /* Treat the given fixed-point as an integer (not yet scaled) and convert
+     is to type "long double". */
+  conv_integer_value_to_long_double_value(value, !fxp_descr->is_unsigned,
+                                          &fp_value, &err);
   check_assertion(!err);
-  conv_integer_value_to_long_double_value(&int_scale, &fp_scale, &err);
-  check_assertion(!err);
-
-  conv_integer_value_to_long_double_value(value, &fp_value, &err);
-  check_assertion(!err);
+  /* Scale the result and convert it to a string. */
   fp_divide((a_float_kind)fk_long_double,
             &fp_value, &fp_scale, &fp_scaled_value,
             &err, &depends_on_fp_mode);
@@ -216,6 +239,7 @@ an_integer_value and may produce slightly inaccurate results.)
   str[length++] = fxp_descr->is_fract_type ? 'r' : 'k';
   str[length] = '\0';
   return str;
+#undef BUF_LENGTH
 }  /* fxp_to_string */
 
 
