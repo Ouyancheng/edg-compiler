@@ -1,5 +1,11 @@
 Version 2.29
 
+3/15/95  Param-type lists are no longer shared
+
+With a change in how composite routine types are formed, it is now a rule
+that a param-type list will be pointed to by no more than one routine
+type.
+
 3/14/95  Null pointer constants more standard-conforming
 
 Null pointer constants in both C and C++ are limited in the casts and
