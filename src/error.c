@@ -1687,6 +1687,9 @@ error code.
     case ec_template_param_declared_but_not_referenced:
       m = "template parameter %no declared and never referenced";
       break;
+    case ec_ambiguous_ptr_to_overloaded_function:
+      m = "more than one instance of %n matches the required type";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
