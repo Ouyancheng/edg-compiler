@@ -6352,7 +6352,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                     /* Unnamed bit fields are not subject to initialization
                        (and are not even members, according to WP 9.6) so a
                        nonpublic one (whatever that means) has no effect on
-                       aggregregate status. */
+                       aggregate status. */
                   } else {
                     class_aggregate_ruled_out = TRUE;
                   }  /* if */
