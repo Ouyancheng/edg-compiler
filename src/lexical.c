@@ -5006,11 +5006,22 @@ only in C++ mode.
         opname = (an_opname_kind)onk_none;
       }  /* if */
     }  /* if */
-    if (opname == (an_opname_kind)onk_none) {
+    if (opname == (an_opname_kind)onk_none ||
+        opname == (an_opname_kind)onk_question) {
+      /* Note that onk_question is not treated as an operator -- '?' is
+         included in the opname kind table as a convenience in expression
+         processing only. */
       /* syntax_error is deliberately not called. */
       error(ec_exp_operator);
-      /* Put back the current token and make a fake error identifier. */
-      unget_token();
+      if (curr_token != tok_lparen && next_token() == tok_lparen) {
+        /* Ignore the current token (whatever it might be -- e.g., '?') and
+           make a fake identifier to represent the operator. */
+      } else {
+        /* Either the operator token was omitted and we are at the '(' or else
+           we're lost.  Put back the current token and make a fake error
+           identifier. */
+        unget_token();
+      }  /* if */
       make_specific_symbol_error_locator(&locator_for_curr_id);
     } else {
       /* Convert the locator to a locator for the operator. */
