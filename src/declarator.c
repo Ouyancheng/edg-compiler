@@ -889,8 +889,10 @@ issue an error if a default argument expression is encountered.
      a "top-level" function declaration.  Use the storage passed in by the
      caller.  But if func_info is NULL, use a local func info block.  This
      is mainly useful for managing param_id entries properly. */
-  clear_func_info(&local_func_info_block);
-  if (func_info == NULL) func_info = &local_func_info_block;
+  if (func_info == NULL) {
+    clear_func_info(&local_func_info_block);
+    func_info = &local_func_info_block;
+  }  /* if */
   last_param_id = NULL;
   *new_type_ptr = alloc_type((a_type_kind)tk_routine);
   extra_info = (*new_type_ptr)->variant.routine.extra_info;
@@ -1583,7 +1585,9 @@ issue an error if a default argument expression is encountered.
                         scan_exception_specification(func_info,
                                                      exception_spec_allowed);
   }  /* if */
-  done_with_func_info(local_func_info_block);
+  if (func_info == &local_func_info_block) {
+    done_with_func_info(local_func_info_block);
+  }  /* if */
   copy_source_position(start_pos, error_position);
   if (decl_token_cache.first_token != NULL) {
     /* If a declaration token cache was built while processing member function
