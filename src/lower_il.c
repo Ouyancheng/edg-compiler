@@ -9869,8 +9869,9 @@ first operand (but not the second) has been lowered already.
     /* The IA-64 ABI version is
          (op1.f == op2.f) && (op1.f == 0 || op1.d == op2.d)
        In the variant for architectures where the low-order bit of
-       a function address can be 1, the test is simply
-         (op1.f == op2.f) && (op1.d == op2.d)
+       a function address can be 1, the test is
+         (op1.f == op2.f) && ((op1.f == 0 && (((op1.d | op2.d) & 1) == 0))
+                                         || op1.d == op2.d)
     */
     int_type = integer_type((an_integer_kind)ik_int);
     /* Make sure the struct type used to represent a pointer-to-member-function
@@ -9933,21 +9934,20 @@ first operand (but not the second) has been lowered already.
       /* Not a comparison against null. */
       vars_can_change = node_has_side_effects(op1_node, (a_boolean *)NULL) ||
                         node_has_side_effects(op2_node, (a_boolean *)NULL);
-#if IA64_ABI_VARIANT_PMF
-      /* In the variant IA-64 form, no separate test of op1.f == 0 is
-         needed -- a null value must have both fields zero. */
-      compare_i0_node = NULL;
-#else /* !IA64_ABI_VARIANT_PMF */
       select1_node = expr_for_pmf_component(op1_node, 
                                             mptr_if_field,
                                             /*need_copy=*/TRUE,
                                             vars_can_change);
+#if !IA64_ABI_VARIANT_PMF
       if (is_constant_node(select1_node)) {
         /* op1.i is constant, but it's not zero (that case was handled
            above).  So the "op1.i == 0 ||" part of the expression is
            not needed. */
         compare_i0_node = NULL;
-      } else {
+      } else
+#endif /* !IA64_ABI_VARIANT_PMF */
+      /* Do not add code here. */
+      {
 #if IA64_ABI
         /* Cast the function pointer to a ptrdiff_t. */
         select1_node = add_cast(select1_node,
@@ -9966,7 +9966,42 @@ first operand (but not the second) has been lowered already.
                         ((an_expr_operator_kind) (ne_case ? eok_ine : eok_ieq),
                          int_type, select1_node);
       }  /* if */
-#endif /* !IA64_ABI_VARIANT_PMF */
+#if IA64_ABI_VARIANT_PMF
+      /* Add code for "&& (((op1.d | op2.d) & 1) == 0)".  This checks
+         that the low-order bit (indicating virtual function or not) is
+         clear in both entries.  Otherwise, we might have a pointer
+         to member in which "f" is zero to indicate a zero offset
+         in the virtual function table for a virtual function case.
+         This applies in the variant of the IA-64 ABI for architectures
+         where the address of a function can have the low-order bit set. */
+      select1_node = integral_promote_node(
+                              expr_for_pmf_component(op1_node, mptr_d_field,
+                                                     /*need_copy=*/TRUE,
+                                                     vars_can_change);
+      select1_node->next = integral_promote_node(
+                              expr_for_pmf_component(op2_node, mptr_d_field,
+                                                     /*need_copy=*/TRUE,
+                                                     vars_can_change));
+      select1_node = make_operator_node((an_expr_operator_kind)eok_or, 
+                                        select1_node->type, 
+                                        select1_node);
+      select1_node->next = node_for_promoted_integer_constant(
+                                                      1L,
+                                                      targ_ptrdiff_t_int_kind);
+      select1_node = make_operator_node((an_expr_operator_kind)eok_and, 
+                                        select1_node->type,
+                                        select1_node);
+      select1_node->next = node_for_promoted_integer_constant(
+                                                      0L,
+                                                      targ_ptrdiff_t_int_kind);
+      select1_node = make_operator_node
+                         ((an_expr_operator_kind)(ne_case ? eok_ine : eok_ieq),
+                          int_type, select1_node);
+      compare_i0_node->next = select1_node;
+      compare_i0_node = make_operator_node
+                        ((an_expr_operator_kind)(ne_case ? eok_lor : eok_land),
+                         int_type, compare_i0_node);
+#endif /* IA64_ABI_VARIANT_PMF */
       /* Make "op1.d == op2.d" (or "!=" for the ne_case). */
       select1_node = expr_for_pmf_component(op1_node, mptr_d_field,
                                             /*need_copy=*/TRUE,
