@@ -3382,20 +3382,19 @@ be changed too.
 }  /* enter_symbol */
 
 
-a_symbol_ptr  enter_extern_symbol(a_symbol_kind    sym_kind,
-                                  a_symbol_locator *locator)
+a_symbol_ptr enter_extern_symbol(a_symbol_kind    sym_kind,
+                                 a_symbol_locator *locator)
 /*
 Enter an sk_extern_variable or sk_extern_routine symbol into the symbol
 table.  Note that these symbols are put on the "other" symbols list -- they
-are not actually put onto the active list, and they are not found during normal
-symbol lookup.
+are not actually put onto the active list, and they are not found during
+normal symbol lookup.
 */
 {
   a_symbol_header_ptr  header = locator->symbol_header;
   a_symbol_ptr         sym;
   a_boolean            err;
   a_namespace_ptr      nsp;
-  a_scope_depth        depth;
 
   db_enter(4, "enter_extern_symbol");
   sym = alloc_symbol(sym_kind, header, &locator->source_position);
@@ -3406,48 +3405,23 @@ symbol lookup.
     sym->next = header->other_symbols;
     header->other_symbols = sym;
   }  /* if */
-  if (C_mode()) {
-    /* C mode -- always enter it at the file scope. */
-    depth = DEPTH_OF_FILE_SCOPE;
-  } else if (locator->is_file_scope_qualified_name) {
-    /* "::" qualifier appears on the name -- not a namespace member. */
-    depth = DEPTH_OF_FILE_SCOPE;
-  } else if (scope_stack[depth_scope_stack].default_name_linkage ==
-                                          (a_name_linkage_kind)nlk_external) {
-    /* Even in C++ all sk_extern... symbols for extern "C" entities are
-       entered in the file scope, even if the declaration appeared in a
-       namespace scope.  That it's a namespace member is not a property of
-       the entity itself, only of its declaration; i.e., lookup is affected,
-       but not name mangling.  For example:
-         extern "C" void f();
-         namespace N { extern "C" void f(); }
-       ::f and N::f refer to the same entity. */
-    depth = DEPTH_OF_FILE_SCOPE;
-  } else {
+  if (!C_mode()) {
     /* See if this symbol is directly or indirectly a namespace member. */
     nsp = qualifier_namespace_ptr(*locator);
-    if (nsp != NULL) {
-      /* This is a namespace qualified variable or routine, so the scope list
-         to which the extern symbol is added should be that of the namespace.
-         Set depth to NO_SCOPE_DEPTH to cause add_symbol_to_scope_list to use
-         the namespace's list. */
-      depth = NO_SCOPE_DEPTH;
-    } else {
-      depth = depth_innermost_namespace_scope;
-      if (depth != DEPTH_OF_FILE_SCOPE) {
-        nsp = scope_stack[depth].il_scope->variant.assoc_namespace;
-      }  /* if */
+    if (nsp == NULL &&
+        depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+      nsp = scope_stack[depth_innermost_namespace_scope].
+                                  il_scope->variant.assoc_namespace;
     }  /* if */
     /* Set namespace membership, if required. */
     if (nsp != NULL) {
       set_namespace_membership(sym, (a_source_correspondence *)NULL, nsp);
     }  /* if */
   }  /* if */
-  /* Add the symbol to the proper scope's symbol list, but do not add
-     sk_extern_variable and sk_extern_routine symbols to the symbol table
-     proper. */
-  add_symbol_to_scope_list(sym, depth, &err);
-
+  /* Add the symbol to the file scope's symbol list, for checking when the
+     file scope is popped.  (Note: we do not add sk_extern_variable and
+     sk_extern_routine symbols to the symbol table proper.) */
+  add_symbol_to_scope_list(sym, DEPTH_OF_FILE_SCOPE, &err);
   db_exit();
   return sym;
 }  /* enter_extern_symbol */
@@ -4503,8 +4477,10 @@ the latter will be NULL for variables.
 */
 {
   a_symbol_header_ptr hdr_ptr;
-  a_symbol_ptr        sym;
+  a_symbol_ptr        sym, second_best_match;
   a_namespace_ptr     nsp = NULL;
+  a_boolean           extern_C_linkage_specified = FALSE;
+  a_boolean           extern_C_overload = FALSE;
 
   db_enter(4, "find_external_symbol");
   /* Start with the external locator the same as the normal locator.  This
@@ -4579,24 +4555,58 @@ the latter will be NULL for variables.
 #endif /* TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME > 0 */
 #endif /* !TARG_CASE_SENSITIVE_EXTERNAL_NAMES */
     }  /* if */
+    if (!C_mode() && linkage == (a_name_linkage_kind)nlk_external) {
+      extern_C_linkage_specified = TRUE;
+    }  /* if */
     /* See if there is already an external symbol with this name and belonging
        to the appropriate namespace. */
-    if (!C_mode() && !location->is_file_scope_qualified_name &&
-        linkage != (a_name_linkage_kind)nlk_external) {
+    if (!C_mode() && !location->is_file_scope_qualified_name) {
+      /* See if the current declaration is a namespace-qualified name. */
       nsp = qualifier_namespace_ptr(*location);
+      /* If not, use the innermost enclosing namespace by default. */
       if (nsp == NULL &&
           depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
         nsp = scope_stack[depth_innermost_namespace_scope].
                                            il_scope->variant.assoc_namespace;
       }  /* if */
     }  /* if */
+    second_best_match = NULL;
     for (sym = hdr_ptr->other_symbols; sym != NULL; sym = sym->next) {
+      if (extern_C_linkage_specified) {
+        a_source_correspondence  *scp;
+        if (sym->kind == (a_symbol_kind)sk_extern_variable) {
+          scp = &sym->variant.extern_symbol_descr->
+                                    variant.variable->source_corresp;
+        } else if (sym->kind == (a_symbol_kind)sk_extern_routine) {
+          scp = &sym->variant.extern_symbol_descr->
+                                    variant.routine.ptr->source_corresp;
+        }  /* if */
+        if (scp->name_linkage == (a_name_linkage_kind)nlk_external) {
+          if (rout_type != NULL &&
+              sym->kind == (a_symbol_kind)sk_extern_routine &&
+              !is_error_type(sym->variant.extern_symbol_descr->type) &&
+              sym->parent.namespace_ptr == nsp) {
+            /* A special case -- two extern "C" routine declarations in the
+               same scope.  Consider them a match only if their signatures
+               match; it they don't match, this will be treated as an
+               overloading error. */
+            extern_C_overload = TRUE;
+          } else {
+            /* Except for the special case noted above, two extern "C"
+               entities with the same name are always a match, even if they
+               belong to different namespaces or have different signatures,
+               and even if one is a routine and the other is a variable:
+               the names are identical to the linker. */
+            if (second_best_match == NULL) second_best_match = sym;
+            continue;
+          }  /* if */
+        }  /* if */
+      }  /* if */
       if (sym->parent.namespace_ptr != nsp) {
         /* Namespaces do not match -- keep looking. */
-        continue;
-      }  /* if */
-      if (sym->kind == (a_symbol_kind)sk_extern_variable) {
-        break;
+      } else if (sym->kind == (a_symbol_kind)sk_extern_variable) {
+        if (rout_type == NULL) break;
+        if (second_best_match == NULL) second_best_match = sym;
       } else if (sym->kind == (a_symbol_kind)sk_extern_routine) {
         /* A type compatibility check may also be required for routines. */
         if (rout_type == NULL || C_dialect != C_dialect_cplusplus) {
@@ -4608,13 +4618,7 @@ the latter will be NULL for variables.
           /* In C++ the function's type signature is effectively part of the
              name.  Therefore we check for parameter type compatibility (the
              return type is not decisive, since functions with the same
-             param types and different return types are not allowed).  Since
-             names with extern "C" linkage are not mangled, one would think
-             that param type checking would not be required in that case.
-             However, two functions with extern "C" linkage and different
-             param types are treated not as incompatible declarations of a
-             routine but as an instance of illegal overloading of a routine
-             name.  The error is issued later. */
+             param types and different return types are not allowed). */
           /* Note that error types are not considered compatible with
              anything here, and that's deliberate to avoid a false clash
              on something like
@@ -4626,21 +4630,19 @@ the latter will be NULL for variables.
           other_type = sym->variant.extern_symbol_descr->type;
           other_type = skip_typerefs(other_type);
           rout_type = skip_typerefs(rout_type);
-          if (rout_type->variant.routine.extra_info->routine_name_linkage !=
-              other_type->variant.routine.extra_info->routine_name_linkage) {
-            /* The two declarations have different routine-name-linkages
-               (which means potentially different calling conventions).  Not
-               a match. */
-          } else if (param_types_are_compatible(rout_type, other_type,
-                                                TCF_NO_FLAGS)) {
+          if (param_types_are_compatible(rout_type, other_type,
+                                         TCF_NO_FLAGS)) {
             /* Param types are compatible, so we have a match. */
             break;
           }  /* if */
         }  /* if */
       }  /* if */
-      /* No match found yet, so keep looking.  If none if found, a NULL
+      /* No match found yet, so keep looking.  If none is found, a NULL
          sym is returned to the caller. */
     }  /* for */
+    if (sym == NULL && !extern_C_overload) {
+      sym = second_best_match;
+    }  /* if */
   }  /* if */
   /* Make the ext_location source position the same as the original source
      position. */
