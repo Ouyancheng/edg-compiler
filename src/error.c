@@ -1667,10 +1667,10 @@ error code.
       m = "argument list for %nf is missing";
       break;
     case ec_too_few_template_args:
-      m = "to few arguments for %nf";
+      m = "too few arguments for %nf";
       break;
     case ec_too_many_template_args:
-      m = "to many arguments for %nf";
+      m = "too many arguments for %nf";
       break;
     case ec_not_a_type_arg:
       m = "template parameter for a function template must be a type";
