@@ -13,8 +13,9 @@ lower_il.h -- Declarations related to lower_il.c (having to do with
 #include "mem_tables.h"
 #endif /* ifndef MEM_TABLES_H */
 
-
 extern void lower_il_memory_region(a_memory_region_number region_number);
+
+extern void il_lower_init(void);
 
 #endif /* ifndef LOWER_IL_H */
 
