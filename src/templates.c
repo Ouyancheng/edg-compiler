@@ -15376,8 +15376,7 @@ are instantiated using a mechanism like the template instantiation mechanism.
 */
 {
 #if INSTANTIATE_EXTERN_INLINE
-  /* Do nothing in C mode. */
-  if (!C_mode()) {
+  if (instantiate_extern_inline) {
     a_routine_list_entry_ptr	rlep;
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
@@ -15503,8 +15502,7 @@ are instantiated using a mechanism like the template instantiation mechanism.
 */
 {
 #if INSTANTIATE_EXTERN_INLINE
-  /* Nothing to do in C mode. */
-  if (!C_mode()) {
+  if (instantiate_extern_inline) {
     a_routine_list_entry_ptr	rlep;
 
     for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {

@@ -1554,6 +1554,7 @@ process.
   operator_overloading_on_enums_enabled = FALSE;  /* Not really needed. */
   string_literals_are_const = FALSE;
   arg_dependent_lookup_enabled = FALSE;
+  instantiate_extern_inline = FALSE;
   /* The final field of a struct may be an incomplete array. */
   flexible_array_members_allowed = TRUE;
   /* Set the variable that controls whether "//" is allowed as a comment
