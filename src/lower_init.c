@@ -52,10 +52,13 @@ static void lower_destructor_dynamic_init(
                                    an_insert_location_ptr insert_location);
 static void reset_conditional_flag_var(a_variable_ptr     conditional_flag_var,
                                        an_insert_location *insert_location);
-static void push_init_expr_lifetime(an_object_lifetime_ptr *init_expr_lifetime,
-                                    a_boolean              copy_lifetime,
-                                    a_context              *context,
-                                    an_insert_location     *insert_location);
+static void push_init_expr_lifetime(
+                                  an_object_lifetime_ptr *init_expr_lifetime,
+                                  a_boolean              copy_lifetime,
+                                  a_context              *context,
+                                  an_insert_location     *insert_location,
+                                  an_insert_location     *insert_location2,
+                                  an_insert_location_ptr *eff_insert_location);
 
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
@@ -1801,7 +1804,10 @@ routine is returned.
                    rtsp, new_rtsp;
   a_scope_ptr      new_routine_scope;
   an_insert_location
-                   insert_location;
+                   insert_location,
+                   insert_location2;
+  an_insert_location
+                   *eff_insert_location = &insert_location;
   a_memory_region_number
                    new_routine_il_region;
   a_variable_ptr   this_param_var, param_var, last_param_var;
@@ -1861,7 +1867,8 @@ routine is returned.
     if (init_expr_lifetime != NULL) {
       /* Push an object lifetime for temporaries in the default arguments. */
       push_init_expr_lifetime(&init_expr_lifetime, /*copy_lifetime=*/TRUE,
-                              &context, &insert_location);
+                              &context, &insert_location, &insert_location2,
+                              &eff_insert_location);
     }  /* if */
     /* Make a parameter variable for the "this" parameter (again, in lowered
        form as a normal parameter). */
@@ -1931,7 +1938,7 @@ routine is returned.
         /* Activate the object lifetime for temporaries in default arguments.
            This must be done after the default argument expressions are
            copied but before they are lowered. */
-        begin_object_lifetime(init_expr_lifetime, &insert_location);
+        begin_object_lifetime(init_expr_lifetime, eff_insert_location);
       }  /* if */
       /* Lower the default argument expressions.  Note that this must be done
          after the copy because you can't copy an expression once it has been
@@ -1975,7 +1982,7 @@ routine is returned.
                                   call_node->type, temp_node);
       }  /* if */
       /* Insert the call as a statement. */
-      insert_expr_statement(call_node, &insert_location);
+      insert_expr_statement(call_node, eff_insert_location);
       /* Set up the expression to be used in the return statement (the value
          of the temporary). */
       if (void_return) {
@@ -1986,13 +1993,13 @@ routine is returned.
     }  /* if */
     if (init_expr_lifetime != NULL) {
       /* Generate the destructions. */
-      gen_cleanup_actions(init_expr_lifetime, &insert_location);
+      gen_cleanup_actions(init_expr_lifetime, eff_insert_location);
       pop_context();
     }  /* if */
     /* Add the return statement. */
     return_stmt = alloc_statement((a_statement_kind)stmk_return);
     return_stmt->expr = call_node;
-    insert_statement(return_stmt, &insert_location);
+    insert_statement(return_stmt, eff_insert_location);
     add_to_return_memo_list(return_stmt);
     if (exceptions_enabled) {
       /* Add prologue/epilogue code for exceptions if needed. */
@@ -2893,20 +2900,29 @@ resulting expression.
 }  /* copy_expr_to_function_memory_region */
 
 
-static void push_init_expr_lifetime(an_object_lifetime_ptr *init_expr_lifetime,
-                                    a_boolean              copy_lifetime,
-                                    a_context              *context,
-                                    an_insert_location     *insert_location)
+static void push_init_expr_lifetime(
+                                   an_object_lifetime_ptr *init_expr_lifetime,
+                                   a_boolean              copy_lifetime,
+                                   a_context              *context,
+                                   an_insert_location     *insert_location,
+                                   an_insert_location     *insert_location2,
+                                   an_insert_location_ptr *eff_insert_location)
 /*
 *init_expr_lifetime points to an object lifetime that is attached to a
 dynamic initialization and surrounds the initialization.  Push it onto the
 context stack.  If copy_lifetime is TRUE, Push a copy instead, update
 *init_expr_lifetime to point to the copy, and unbind the original.  context is
 the address of a context block to be pushed onto the stack.  *insert_location
-is the point at which any generated code should be inserted; it may be
-updated (by inserting a block statement) if necessary.
+is the point at which any generated code should be inserted.  If this
+routine needs to insert a block there so it can bind the object lifetime
+to it, it will put the insert location for within that block in
+*insert_location2 and set *eff_insert_location to point at *insert_location2.
+Otherwise *eff_insert_location is set to point at *insert_location.  The
+caller then uses *eff_insert_location as the insert point for the
+code for the dynamic initialization.
 */
 {
+  *eff_insert_location = insert_location;
   if (copy_lifetime) {
     /* Copy the lifetime to the current function scope if necessary.
        (For example, when generating the file-scope initialization routine,
@@ -2941,7 +2957,8 @@ updated (by inserting a block statement) if necessary.
        of the lowering of the initialization. */
     block_stmt = alloc_statement((a_statement_kind)stmk_block);
     insert_statement(block_stmt, insert_location);
-    set_block_start_insert_location(block_stmt, insert_location);
+    set_block_start_insert_location(block_stmt, insert_location2);
+    *eff_insert_location = insert_location2;
     /* Rebind the object lifetime to the block. */
     if (!copy_lifetime) {
       unbind_object_lifetime(*init_expr_lifetime);
@@ -3081,12 +3098,12 @@ in this routine must be FALSE in that case.
   if (init_expr_lifetime != NULL) {
     /* The dynamic init defines a lifetime that surrounds the
        initialization.  Push that lifetime onto the context stack. */
-    insert_location2 = *insert_location;
-    eff_insert_location = &insert_location2;
     push_init_expr_lifetime(&init_expr_lifetime,
                             processing_file_scope_init_routine,
                             &context,
-                            eff_insert_location);
+                            insert_location,
+                            &insert_location2,
+                            &eff_insert_location);
   }  /* if */
   if (processing_file_scope_init_routine) {
     /* When processing an initialization in the file-scope initialization
@@ -3102,7 +3119,7 @@ in this routine must be FALSE in that case.
       dip->variant.expression = expr;
     } else if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
       /* Don't copy for the constructor array case; a copy will be done later
-         for that, so a copy here would be rdeundant. */
+         for that, so a copy here would be redundant. */
       if (!constructor_array_init) {
         dip->variant.constructor.args =
                         copy_list_of_expr_trees(dip->variant.constructor.args);
