@@ -3936,8 +3936,9 @@ See section 3.3.3.2 of the standard.
                discussion in Defect Report 106.  While those interpretations
                make it clear that this applies for void *, they seem to
                leave out cv-qualified void *; those apparently still convert
-               to an lvalue. */
-            if (!is_qualified_type(operand.type)) {
+               to an lvalue.  (In GNU C mode, the result is always an
+               lvalue). */
+            if (!is_qualified_type(operand.type) && !gcc_mode) {
               an_expr_node_ptr node = make_node_from_operand(&operand);
               node = make_operator_node((an_expr_operator_kind)eok_indirect,
                                         operand.type, node);
