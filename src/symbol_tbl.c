@@ -8585,16 +8585,21 @@ established that the member is protected in the naming class.
   a_type_ptr       base_class;
   a_base_class_ptr bcp;
 
-  /* The old test here (still done in some modes) is that the member is
-     declared protected.  The new test (see core issue 385) is that the
-     member is protected in the naming class.  That in particular allows
-     using-declarations to make this check no longer apply by making the
-     inherited member public. */
-  if ((any_cfront_mode() ?
+  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+    /* Suppress access checking in prototype instantiations.
+       One can check access only in instances of templates, not in
+       the templates themselves. */
+    have_access = TRUE;
+  } else if ((any_cfront_mode() ?
                         access_for_symbol(fundamental_symbol_of(sym)) :
                         access_across_derivations(sym, proj_sym)) !=
                                            (an_access_specifier)as_protected) {
     /* The member is not protected, so the check does not apply. */
+    /* The old test here (still done in some modes) is that the member is
+       declared protected.  The new test (see core issue 385) is that the
+       member is protected in the naming class.  That in particular allows
+       using-declarations to make this check no longer apply by making the
+       inherited member public. */
     have_access = TRUE;
   } else if (access_class == NULL) {
     /* Class is unknown; error. */
