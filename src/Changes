@@ -1,5 +1,11 @@
 Version 2.37
 
+10/7/97   Small change to diagnostic output
+
+The algorithm for determining how to display a function name in the
+diagnostic output (e.g., with or without its parameter list) has been
+fixed to deal with an obscure inconsistency.
+
 10/7/97   Revision to lookup of names in template instantiations
 
 The lookup rules for names referenced in template instantiations have
