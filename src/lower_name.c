@@ -1392,7 +1392,7 @@ literals.
     add_to_mangled_name('_', mctl);
     eff_ctl = mctl;
   }  /* for */
-   mctl->suppress_partial_spec_args = saved_suppress_partial_spec_args;
+  mctl->suppress_partial_spec_args = saved_suppress_partial_spec_args;
 }  /* mangled_template_arguments */
 
 
