@@ -859,6 +859,10 @@ extern void break_source_corresp(a_source_correspondence *sc);
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+extern void write_file_name(char      *name,
+                            FILE      *f_output,
+                            a_boolean process_escapes);
+
 extern a_source_correspondence *source_corresp_for_il_entry(
                                                  char              *entity_ptr,
                                                  an_il_entry_kind  kind);

@@ -2026,8 +2026,17 @@ end_scan_for_macro_modifs:;
            two characters because it must be escaped in the string. */
         repl_text_len = 0;
         for (temp_ptr = file_name; *temp_ptr != '\0'; temp_ptr++) {
-          if (!exp_header_name && *temp_ptr == '\\') repl_text_len++;
-          repl_text_len++;
+          char ch = *temp_ptr;
+          if (isprint((unsigned char)ch)) {
+            if (!exp_header_name && (ch == '"' || ch == '\\')) repl_text_len++;
+            repl_text_len++;
+          } else if (ch == '\n') {
+            /* Newline is put out as \n. */
+            repl_text_len += 2;
+          } else {
+            /* Unprintable characters are put out as \ooo. */
+            repl_text_len += 4;
+          }  /* if */
         }  /* for */
         /* Allocate space for the filename string. */
         /* "+3" in the following is for the two quotes and the null. */
@@ -2036,8 +2045,22 @@ end_scan_for_macro_modifs:;
         text_loc = repl_text;
         *text_loc++ = '"';  /* Opening quote. */
         for (temp_ptr = file_name; *temp_ptr != '\0'; temp_ptr++) {
-          if (!exp_header_name && *temp_ptr == '\\') *text_loc++ = '\\';
-          *text_loc++ = *temp_ptr;
+          char ch = *temp_ptr;
+          if (isprint((unsigned char)ch)) {
+            if (!exp_header_name && (ch == '"' || ch == '\\')) {
+              *text_loc++ = '\\';
+            }  /* if */
+            *text_loc++ = ch;
+          } else if (ch == '\n') {
+            /* Newline is put out as \n. */
+            *text_loc++ = '\\';
+            *text_loc++ = 'n';
+          } else {
+            /* Unprintable characters are put out as \ooo. */
+            sprintf(text_loc, "\\%03o",
+                        (unsigned int)(ch&((1<<targ_host_string_char_bit)-1)));
+            text_loc += 4;
+          }  /* if */
         }  /* for */
         *text_loc++ = '"';  /* Closing quote. */
         *text_loc = '\0';   /* Final null. */

@@ -507,7 +507,6 @@ Write a #line directive for the indicated line number and file.
   }  /* if */
   if (new_output_file != curr_output_file) {
     /* The file name is put out only if it changed. */
-    char      *p;
     a_boolean process_escapes = C_GEN_BE_GENERATES_ANSI_C;
     curr_output_file = new_output_file;
     /* Put out the file name, putting escapes on characters as necessary.
@@ -516,13 +515,7 @@ Write a #line directive for the indicated line number and file.
     if (gen_old_style_line_dirs) process_escapes = FALSE;
     (void)putc(' ', f_C_output);
     (void)putc('"', f_C_output);
-    for (p = curr_output_file->file_name; *p != '\0'; p++) {
-      char ch = *p;
-      if (process_escapes) {
-        if (ch == '"' || ch == '\\') (void)putc('\\', f_C_output);
-      }  /* if */
-      (void)putc(ch, f_C_output);
-    }  /* for */
+    write_file_name(curr_output_file->file_name, f_C_output, process_escapes);
     (void)putc('"', f_C_output);
   }  /* if */
   (void)putc('\n', f_C_output);

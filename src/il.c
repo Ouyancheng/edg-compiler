@@ -2610,6 +2610,35 @@ Return TRUE if the sequence number seq_number falls within an include file.
 }  /* seq_is_in_include_file */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+void write_file_name(char      *name,
+                     FILE      *f_output,
+                     a_boolean process_escapes)
+/*
+Write out the null-terminated file name "name" to the output file f_output.
+If process_escapes is TRUE, escape special characters as necessary.
+The caller must put out surrounding quotes if they are needed.
+This routine is used to write out the file name in a #line directive.
+*/
+{
+  char *p;
+
+  for (p = name; *p != '\0'; p++) {
+    char ch = *p;
+    if (isprint((unsigned char)ch)) {
+      if (process_escapes && (ch == '"' || ch == '\\')) putc('\\', f_output);
+      putc(ch, f_output);
+    } else if (ch == '\n') {
+      /* Put out newline as \n. */
+      fputs("\\n", f_output);
+    } else {
+      /* Unprintable characters: put out as \ooo. */
+      fprintf(f_output, "\\%03o",
+                        (unsigned int)(ch&((1<<targ_host_string_char_bit)-1)));
+    }  /* if */
+  }  /* for */
+}  /* write_file_name */
+
 #if ORPHAN_PROCESSING_NEEDED
 
 void f_add_orphaned_file_scope_il_entry(char             *entry_ptr,

@@ -2171,7 +2171,6 @@ current line if next_line is TRUE.  The kind character is the third operand:
 else.  This routine should only be called when generate_pp_output is TRUE.
 */
 {
-  char          *p;
   a_line_number eff_line_number;
 
   if (gen_line_info_in_pp_output) {
@@ -2205,13 +2204,7 @@ else.  This routine should only be called when generate_pp_output is TRUE.
     fprintf(f_pp_output, " %lu \"",  (unsigned long)eff_line_number);
     /* Put out the file name.  For ANSI/ISO output, add escapes as
        necessary. */
-    for (p = curr_ise->file_name; *p != '\0'; p++) {
-      char ch = *p;
-      if (!pcc_preprocessing_mode) {
-        if (ch == '"' || ch == '\\') putc('\\', f_pp_output);
-      }  /* if */
-      putc(ch, f_pp_output);
-    }  /* for */
+    write_file_name(curr_ise->file_name, f_pp_output, !pcc_preprocessing_mode);
     fputc('"', f_pp_output);
 #if GEN_EXTRA_LINE_ID_INFO
     if (pcc_preprocessing_mode) {
