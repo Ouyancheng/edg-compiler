@@ -1,5 +1,11 @@
 Version 2.35
 
+2/12/97 Compilation error in lower_init.c when
+        TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE is TRUE
+
+lower_init.c did not compile when TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+is set to TRUE.  Now fixed.  This bug was introduced in 2.32.
+
 2/12/97 "operator" in a class or enum name
 
 An error is now issued when an operator name appears in an elaborated type
