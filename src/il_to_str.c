@@ -35,6 +35,7 @@ Clear an output control block to default values.
   octl->output_name               = NULL;
   octl->output_temp_name          = NULL;
   octl->output_func_declarator    = NULL;
+  octl->output_vla_expression     = NULL;
   octl->gen_compilable_code       = FALSE;
   octl->gen_pcc_code              = FALSE;
   octl->suppress_local_typedefs   = FALSE;
@@ -1087,7 +1088,25 @@ the way described by octl.
 */
 {
   octl->output_str("[");
-  if (type->variant.array.is_variable_size_array) {
+  if (type->variant.array.is_vla) {
+    /* Variable-length array. */
+    if (!type->variant.array.has_assoc_vla_dimension) {
+      /* Array[*] case. */
+      octl->output_str("*");
+    } else {
+      /* Variable-length array with an associated expression. */
+      if (octl->output_vla_expression == NULL) {
+        /* No routine to do the expression routput.  Do default
+           non-compilable output. */
+        check_assertion(!octl->gen_compilable_code);
+        octl->output_str("*");
+      } else {
+        /* Output the expression using a special routine. */
+        a_vla_dimension_ptr vlap = find_vla_dimension(type);
+        octl->output_vla_expression(vlap->dimension_expr);
+      }  /* if */
+    }  /* if */      
+  } else if (type->variant.array.is_variable_size_array) {
     check_assertion(!octl->gen_compilable_code);
     octl->output_str("<variable-sized>");
   } else if (type->variant.array.variant.number_of_elements == 0) {

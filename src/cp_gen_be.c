@@ -140,12 +140,9 @@ static a_source_sequence_entry_ptr
 /*
 The following variables indicate state within a function.  They are saved
 and restored by gen_function_definition to deal with the case of a
-member function nested inside another function.
+member function nested inside another function.  innermost_function_scope
+is also maintained.
 */
-static a_scope_ptr
-		curr_function_scope;
-			/* The current function scope, or NULL if not
-			   inside a function. */
 static a_statement_ptr
 		curr_switch_statement;
 			/* The current switch statement, or NULL if not
@@ -4560,6 +4557,16 @@ done_with_expr:;
 }  /* gen_expr */
 
 
+static void gen_vla_expression(an_expr_node_ptr expr)
+/*
+Interface routine called from the il_to_str routines to output the dimension
+expression in a VLA (variable-length array) declarator.
+*/
+{
+  gen_expression(expr);
+}  /* gen_vla_expression */
+
+
 static void gen_full_expression(an_expr_node_ptr expr)
 /*
 Generate code for the indicated expression, which is a full expression
@@ -5326,7 +5333,7 @@ simple return statement, i.e., just "return;".
     /* The return has an expression. */
     simple_return = FALSE;
     /* Suppress the return expression on constructors. */
-    if (curr_function_scope->variant.routine.ptr->special_kind ==
+    if (innermost_function_scope->variant.routine.ptr->special_kind ==
                                     (a_special_function_kind)sfk_constructor) {
       simple_return = TRUE;
     }  /* if */
@@ -5357,7 +5364,7 @@ the current function.
   if (return_stmt->next == NULL) {
     a_statement_ptr stmt;
     /* Look through the statements in the top block of the function. */
-    for (stmt = curr_function_scope->assoc_block->variant.block.statements;
+    for (stmt= innermost_function_scope->assoc_block->variant.block.statements;
          stmt != NULL;
          stmt = stmt->next) {
       if (stmt == return_stmt) {
@@ -5540,7 +5547,7 @@ Generate code for the indicated statement.
           } else if (statement->expr != NULL) {
             /* Return with an expression. */
             a_routine_ptr curr_routine =
-                                      curr_function_scope->variant.routine.ptr;
+                                 innermost_function_scope->variant.routine.ptr;
             a_type_ptr curr_routine_type = skip_typerefs(curr_routine->type);
             a_type_ptr return_type =
                                 curr_routine_type->variant.routine.return_type;
@@ -6032,7 +6039,7 @@ declaration following this one is such a continuation.
         storage_class = (a_storage_class)sc_unspecified;
       } else if (storage_class == (a_storage_class)sc_unspecified &&
                  il_header.source_language == sl_Cplusplus &&
-                 curr_function_scope == NULL &&
+                 innermost_function_scope == NULL &&
                  is_const_qualified_type(var->type)) {
         /* A const-qualified variable is "static" by default in C++.  Use an
            explicit "extern". */
@@ -6054,7 +6061,7 @@ declaration following this one is such a continuation.
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
       if (storage_class == (a_storage_class)sc_extern &&
-          curr_function_scope != NULL) {
+          innermost_function_scope != NULL) {
         /* Extern within a function.  Clear the global_qualification_needed
            flag in the entity to suppress leading "::" on references. */
         if (var->source_corresp.global_qualification_needed) {
@@ -6074,7 +6081,7 @@ declaration following this one is such a continuation.
         var->source_corresp.name_linkage ==(a_name_linkage_kind)nlk_external &&
         /* Inside a function, this is not allowed, and can only have come from
            an extern "C" { ... } wrapped around the function. */
-        curr_function_scope == NULL) {
+        innermost_function_scope == NULL) {
       write_tok_str("extern \"C\" ");
       /* For a definition, use the form
            extern "C" { int i; };
@@ -6174,18 +6181,19 @@ scope, starting with the opening brace of the top-level block.
 {
   /* Save state variables for functions for the case where a member function
      is nested inside another function. */
-  a_scope_ptr            saved_curr_function_scope = curr_function_scope;
+  a_scope_ptr            saved_innermost_function_scope =
+                                                      innermost_function_scope;
   a_statement_ptr        saved_curr_switch_statement = curr_switch_statement;
   unsigned long          saved_num_curr_switch_statements =
                                                     num_curr_switch_statements;
 
-  curr_function_scope = scope;
+  innermost_function_scope = scope;
   curr_switch_statement = NULL;
   num_curr_switch_statements = 0;
   /* Generate the body statement. */
   gen_statement(scope->assoc_block);
   /* Restore function state variables to their states on entry. */
-  curr_function_scope = saved_curr_function_scope;
+  innermost_function_scope = saved_innermost_function_scope;
   curr_switch_statement = saved_curr_switch_statement;
   num_curr_switch_statements = saved_num_curr_switch_statements;
 }  /* gen_function_definition */
@@ -6413,11 +6421,11 @@ TRUE if the declaration following this one is such a continuation.
          declared extern inside functions. */
       if (storage_class == (a_storage_class)sc_unspecified ||
           (storage_class == (a_storage_class)sc_static &&
-           curr_function_scope != NULL)) {
+           innermost_function_scope != NULL)) {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
       if (storage_class == (a_storage_class)sc_extern &&
-          curr_function_scope != NULL) {
+          innermost_function_scope != NULL) {
         /* Extern within a function.  Clear the global_qualification_needed
            flag in the entity to suppress leading "::" on references. */
         if (rout->source_corresp.global_qualification_needed) {
@@ -6445,7 +6453,7 @@ TRUE if the declaration following this one is such a continuation.
         !friend_decl &&
         /* Inside a function, this is not allowed, and can only have come from
            an extern "C" { ... } wrapped around the function. */
-        curr_function_scope == NULL) {
+        innermost_function_scope == NULL) {
       write_tok_str("extern \"C\" ");
     } else {
       /* Put out the storage class determined above. */
@@ -6815,7 +6823,7 @@ Initialize for the C++/C-generating back end.
   output_position_is_pending = FALSE;
   curr_source_sequence_entry = NULL;
   sublist_parent_source_sequence_entry = NULL;
-  curr_function_scope = NULL;
+  innermost_function_scope = NULL;
   curr_switch_statement = NULL;
   num_curr_switch_statements = 0;
   curr_name_context = NULL;
@@ -6828,6 +6836,7 @@ Initialize for the C++/C-generating back end.
   octl.output_partial_token_str = write_str;
   octl.output_name = gen_name_reference;
   octl.output_func_declarator = gen_function_declarator;
+  octl.output_vla_expression = gen_vla_expression;
   octl.gen_compilable_code = TRUE;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;
 }  /* init_cp_gen_be */

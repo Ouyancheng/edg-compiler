@@ -33,6 +33,9 @@ typedef an_output_name_function *an_output_name_function_ptr;
 typedef void an_output_func_declarator_function(a_type_ptr type);
 typedef an_output_func_declarator_function
                                        *an_output_func_declarator_function_ptr;
+typedef void an_output_vla_expression_function(an_expr_node_ptr expr);
+typedef an_output_vla_expression_function
+                                       *an_output_vla_expression_function_ptr;
 typedef void an_output_temp_name_function(char *entry);
 typedef an_output_temp_name_function *an_output_temp_name_function_ptr;
 typedef struct an_il_to_str_output_control_block
@@ -65,6 +68,12 @@ typedef struct an_il_to_str_output_control_block {
 			/* Function to output a function declarator from
 			   a function type.  NULL if a default routine
 			   should be used. */
+  an_output_vla_expression_function_ptr
+	output_vla_expression;
+			/* Function to output the expression in a VLA
+			   (variable-length array) declarator.  NULL if a
+			   default routine should be used (it puts out
+			   non-compilable code). */
   a_byte_boolean
 	gen_compilable_code;
 			/* TRUE if the generated string is intended to be

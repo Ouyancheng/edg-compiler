@@ -253,10 +253,6 @@ static char	*startup_routine_name;
 			   routine to be called from a .init section. */
 #endif /* USE_INIT_SECTION_IN_GENERATED_C */
 static a_scope_ptr
-		curr_function_scope;
-			/* When processing a function, this points to the
-			   associated function scope.  NULL otherwise. */
-static a_scope_ptr
 		curr_scope;
 			/* Points to the scope being processed currently
 			   (file, function, or block). */
@@ -1693,7 +1689,8 @@ associated pragmas.
   a_pragma_ptr pp, prev_pp = NULL;
 
   while ((pp = find_assoc_pragma(entity_ptr,
-                                 (curr_function_scope != NULL) ? curr_scope :
+                                 (innermost_function_scope != NULL) ?
+                                                                 curr_scope :
                                                                  NULL,
                                  (a_type_ptr)NULL,
                                  prev_pp)) != NULL) {
@@ -3622,6 +3619,16 @@ done_with_operation:
 }  /* dump_expr */
 
 
+static void dump_vla_expression(an_expr_node_ptr expr)
+/*
+Interface routine called from the il_to_str routines to dump the dimension
+expression in a VLA (variable-length array) declarator.
+*/
+{
+  dump_expression(expr);
+}  /* dump_vla_expression */
+
+
 static void dump_boolean_controlling_expression(an_expr_node_ptr node)
 /*
 Generate code for the indicated expression, which is the controlling expression
@@ -4880,7 +4887,7 @@ Dump out the declarations (if any) for a block.
   /* Recognize the top block in a function when it comes by (that statement
      does not have a scope pointer even though there is an associated
      scope). */
-  if (curr_function_scope->assoc_block == statement) {
+  if (innermost_function_scope->assoc_block == statement) {
     if (covariant_return_wrapper_scope != NULL) {
       /* At the start of the top block of a function being generated
          as a wrapper for an overriding virtual function with a covariant
@@ -4891,8 +4898,8 @@ Dump out the declarations (if any) for a block.
                            /*dump_vars_without_initializers=*/TRUE,
                            /*dump_initializers=*/TRUE);
     }  /* if */
-    scope = curr_function_scope;
-    rout = curr_function_scope->variant.routine.ptr;
+    scope = innermost_function_scope;
+    rout = innermost_function_scope->variant.routine.ptr;
   } else {
     scope = statement->variant.block.extra_info->assoc_scope;
   }  /* if */
@@ -5576,7 +5583,7 @@ its subtree.
           /* Declare a temporary to be used for the transformation on the
              return statement that adds a cast for a covariant return. */
           a_routine_ptr curr_routine =
-                                      curr_function_scope->variant.routine.ptr;
+                                 innermost_function_scope->variant.routine.ptr;
           a_type_ptr    curr_routine_type = skip_typerefs(curr_routine->type);
           a_type_ptr    return_type =
                                 curr_routine_type->variant.routine.return_type;
@@ -5790,7 +5797,7 @@ by dump_routine_decl.
   /* Get the top-level scope for the routine definition.  Read it in if
      necessary. */
   scope = get_scope_for_routine_definition(rout, &scope_region_number);
-  curr_function_scope = curr_scope = scope;
+  innermost_function_scope = curr_scope = scope;
   octl.suppress_local_typedefs = FALSE;
   /* Generate the routine name and the parameter declarations. */
   dump_func_definition_type(rout, scope);
@@ -5810,12 +5817,12 @@ by dump_routine_decl.
     orig_scope_region_number = scope_region_number;
     rout = rout->overriding_function_for_covariant_return_type;
     scope = get_scope_for_routine_definition(rout, &scope_region_number);
-    curr_function_scope = curr_scope = scope;
+    innermost_function_scope = curr_scope = scope;
   }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
   /* Generate the body statement. */
   dump_statement(scope->assoc_block);
-  curr_function_scope = NULL;
+  innermost_function_scope = NULL;
   octl.suppress_local_typedefs = TRUE;
   curr_scope = saved_curr_scope;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
@@ -6268,7 +6275,7 @@ Initialize for the C-generating back end.
 #endif /* USE_INIT_SECTION_IN_GENERATED_C */
   f_rout_dynamic_inits = NULL;
   output_initializer_code_directly = FALSE;
-  curr_function_scope = NULL;
+  innermost_function_scope = NULL;
   curr_scope = NULL;
   wide_string_constants_to_unbind_at_end_of_scope = NULL;
   covariant_return_expr = NULL;
@@ -6281,6 +6288,7 @@ Initialize for the C-generating back end.
   octl.output_name = gen_name_reference;
   octl.output_temp_name = dump_temp_name;
   octl.output_func_declarator = dump_function_declarator;
+  octl.output_vla_expression = dump_vla_expression;
   octl.gen_compilable_code = TRUE;
 #if !C_GEN_BE_GENERATES_ANSI_C
   octl.gen_pcc_code = TRUE;
