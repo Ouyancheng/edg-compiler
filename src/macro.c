@@ -189,6 +189,13 @@ static char	*start_of_white_space_in_cpp_string;
 			   quote of the string. */
 
 
+static a_symbol_ptr
+	       	date_macro_symbol,
+		time_macro_symbol;
+			/* Pointers to the symbol entries for the special
+			   macros "__DATE__" and "__TIME__". */
+
+
 void adjust_curr_source_line_structure_after_realloc(char *old_ptr,
                                                      char *old_after_end_ptr,
                                                      char *new_ptr)
@@ -3514,14 +3521,69 @@ return_point:
 }  /* is_valid_identifier */
 
 
+static void init_date_and_time_macros(char  curr_date_time[26])
+/*
+Enter predefined macros __DATE__ and __TIME__, based on the string
+curr_date_time passed in by the caller.
+*/
+{
+  char             date_of_translation[14];
+  char             time_of_translation[11];
+
+  /* Make the date string. */
+  date_of_translation[0] = date_of_translation[12] = '"';
+  /* Copy "Mmm dd " into [1] .. [7]. */
+  (void)memcpy(&date_of_translation[1], &curr_date_time[4], 7);
+  /* Copy "yyyy" into [8] .. [11]. */
+  (void)memcpy(&date_of_translation[8], &curr_date_time[20], 4);
+  date_of_translation[13] = '\0';
+  /* Make the time string. */
+  time_of_translation[0] = time_of_translation[9] = '"';
+  /* Copy "hh:mm:ss" into [1] .. [8]. */
+  (void)memcpy(&time_of_translation[1], &curr_date_time[11], 8);
+  time_of_translation[10] = '\0';
+  if (!using_a_pch_file) {
+    /* Create the symbols. */
+    date_macro_symbol = enter_predef_macro(date_of_translation, "__DATE__",
+                                           /*cannot_be_redefined=*/TRUE,
+                                           /*ref_suppresses_pch_file=*/TRUE);
+    time_macro_symbol = enter_predef_macro(time_of_translation, "__TIME__",
+                                           /*cannot_be_redefined=*/TRUE,
+                                           /*ref_suppresses_pch_file=*/TRUE);
+  } else {
+    /* The symbols already exist -- they were read in from a precompiled
+       header file.  Reset the date and time strings to conform to the new
+       date and time. */
+    check_assertion(date_macro_symbol != NULL &&
+                    date_macro_symbol->variant.macro_def != NULL);
+    date_macro_symbol->variant.macro_def->repl_text =
+                         make_repl_text(date_of_translation, (sizeof_t*)NULL);
+    check_assertion(time_macro_symbol != NULL &&
+                    time_macro_symbol->variant.macro_def != NULL);
+    time_macro_symbol->variant.macro_def->repl_text =
+                         make_repl_text(time_of_translation, (sizeof_t*)NULL);
+  }  /* if */
+
+}  /* set_date_and_time_macros */
+
+
+void fixup_predefined_macros(char  curr_date_time[26])
+/*
+The symbol table for this compilation has been read in from a precompiled
+header file, so some of the predefined macros need to be altered.
+*/
+{
+  /* Reset the replacement text for the __DATE__ and __TIME__ macro symbols. */
+  init_date_and_time_macros(curr_date_time);
+}  /* fixup_predefined_macros */
+
+
 void init_predefined_macros(char  curr_date_time[26])
 /*
 Enter symbols for predefined macros, including those established by
 command line -D options.
 */
 {
-  char             date_of_translation[14];
-  char             time_of_translation[11];
   a_def_undef_string_ptr
                    du_ptr;
   char             *du_str,
@@ -3541,26 +3603,8 @@ command line -D options.
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
-  /* Enter predefined macros __DATE__ and __TIME__, based on the string
-     curr_date_time passed in by the caller. */
-  date_of_translation[0] = date_of_translation[12] = '"';
-  /* Copy "Mmm dd " into [1] .. [7]. */
-  (void)memcpy(&date_of_translation[1], &curr_date_time[4], 7);
-  /* Copy "yyyy" into [8] .. [11]. */
-  (void)memcpy(&date_of_translation[8], &curr_date_time[20], 4);
-  date_of_translation[13] = '\0';
-  time_of_translation[0] = time_of_translation[9] = '"';
-  /* Copy "hh:mm:ss" into [1] .. [8]. */
-  (void)memcpy(&time_of_translation[1], &curr_date_time[11], 8);
-  time_of_translation[10] = '\0';
-
-  (void)enter_predef_macro(date_of_translation, "__DATE__",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/TRUE);
-  (void)enter_predef_macro(time_of_translation, "__TIME__",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/TRUE);
-
+  /* Enter the symbols for the __DATE__ and __TIME__ macros. */
+  init_date_and_time_macros(curr_date_time);
   /* __STDC__ is defined as 1 if we are compiling the ANSI C dialect
      or if we are compiling C++ (ARM 16.10: "Whether __STDC__ is defined
      and, if so, what its value is are implementation dependent."),
@@ -3597,7 +3641,7 @@ command line -D options.
                                             /*ref_suppresses_pch_file=*/FALSE);
   file_macro_symbol    = enter_predef_macro((char *)NULL, "__FILE__",
                                             /*cannot_be_redefined=*/TRUE,
-                                            /*ref_suppresses_pch_file=*/TRUE);
+                                            /*ref_suppresses_pch_file=*/FALSE);
   defined_macro_symbol = enter_predef_macro((char *)NULL, "defined",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
@@ -3773,6 +3817,8 @@ are handled in macro_init.)
       pch_saved_var_array_elem(defined_macro_symbol),
       pch_saved_var_array_elem(line_macro_symbol),
       pch_saved_var_array_elem(file_macro_symbol),
+      pch_saved_var_array_elem(date_macro_symbol),
+      pch_saved_var_array_elem(time_macro_symbol),
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(assert_predicates),
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
