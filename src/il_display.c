@@ -2030,6 +2030,24 @@ Display the indicated new/delete supplement to an expression node.
 }  /* disp_new_delete_supplement */
 
 
+static void disp_accessible_base_classes(an_accessible_base_class_ptr abcp)
+/*
+Display the indicated accessible base class entry.
+*/
+{
+  if (abcp == NULL) {
+    disp_ptr("accessible_base_classes", (char *)abcp,
+             iek_accessible_base_class);
+  } else {
+    disp_name("accessible_base_classes");
+    (void)printf("\n");
+    for (; abcp != NULL; abcp = abcp->next) {
+      disp_ptr("  base_class", (char *)abcp->base_class, iek_base_class);
+    }  /* for */
+  }  /* if */
+}  /* disp_accessible_base_class */
+
+
 static void disp_throw_supplement(a_throw_supplement_ptr tsp)
 /*
 Display the indicated throw supplement to an expression node.
@@ -2037,6 +2055,11 @@ Display the indicated throw supplement to an expression node.
 {
   disp_ptr("type", (char *)tsp->type, iek_type);
   disp_ptr("dynamic_init", (char *)tsp->dynamic_init, iek_dynamic_init);
+  if (tsp->type->kind == (a_type_kind)tk_class ||
+      tsp->type->kind == (a_type_kind)tk_struct ||
+      tsp->type->kind == (a_type_kind)tk_union) {
+    disp_accessible_base_classes(tsp->accessible_base_classes);
+  }  /* if */
 }  /* disp_throw_supplement */
 
 
