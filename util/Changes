@@ -1,5 +1,12 @@
 Version 3.1
 
+11/26/02 Prelinker: support for IA-64 alternate entry points
+
+A new .ti file entry kind has been added to handle alternate entry
+points for constructors and destructors when using the IA-64 ABI in
+conjunction with INSTANTIATE_EXTERN_INLINE.  The prelinker has been
+updated to process the new entries.
+
 10/8/02  eccp: allow .s files to be used
 
 Assembler files with a .s suffix may now be included on the eccp command

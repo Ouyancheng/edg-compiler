@@ -142,6 +142,12 @@ typedef struct a_pl_symbol {
 			   for instances of exported templates.  This is
 			   used to determine if a definition of an exported
 			   template is available. */
+  a_pl_symbol_ptr
+		primary_entry;
+			/* For an alternate entry point, this points to the
+			   symbol associated with the primary entry point.
+			   References to the alternate entry point are treated
+			   as references to the primary entry. */
   char		*name;
 			/* Name of the symbol. */
   int		name_length;
@@ -988,6 +994,7 @@ Allocate a symbol, initialize it, and return a pointer to it.
   psp->next_in_specialization_list = NULL;
   psp->global_sym = NULL;
   psp->template_sym = NULL;
+  psp->primary_entry = NULL;
   psp->instantiation_file = NULL;
   psp->possible_instantiation_sites = NULL;
   psp->referenced = FALSE;
@@ -1244,6 +1251,7 @@ processed further.
 
   /* Clear the pointers to the returned values. */
   *name1 = *name2 = *symbol_name = NULL;
+  *type = '\0';
   /* Find the first colon which terminates either the archive or the
      file name. */
   pos = strchr(pl_input_line, ':');
@@ -1401,6 +1409,7 @@ processed further.
   }  /* if */
   /* Clear the pointers to the returned values. */
   *name1 = *name2 = *symbol_name = NULL;
+  *type = '\0';
   /* Find the first colon which terminates either the archive or the
      file name. */
   pos = strchr(pl_input_line, ':');
@@ -1597,6 +1606,7 @@ processed further.
 
   /* Clear the pointers to the returned values. */
   *name1 = *name2 = *symbol_name = NULL;
+  *type = '\0';
   pos = pl_input_line;
 #if __MICROSOFT_OS__
   /* Skip over the ":" that marks end of drive name, if any. */
@@ -2032,6 +2042,9 @@ call.
   }  /* if */
 
 symbol_found:
+  /* If this symbol refers to an entry point, return the primary
+     entry instead. */
+  if (sym_ptr->primary_entry != NULL) sym_ptr = sym_ptr->primary_entry;
   if (sym_ptr != NULL) {
     if (other_sym != NULL && other_sym->global_sym == NULL) {
       /* Record a pointer to the global symbol in the symbol passed by the
@@ -2141,8 +2154,12 @@ symbol.
       if (psp->referenced) {
         sym->referenced = TRUE;
       }  /* if */
+      /* If this is a definition, check for multiply defined symbols.
+         Because of the way entry points are remapped, a symbol can
+         appear to be defined more than once in a given file.  Ignore
+         such redefinitions. */
       if (psp->defined) {
-        if (sym->defined) {
+        if (sym->defined && sym->defined_in != input_file) {
           sym->multiple_definition = TRUE;
         } else {
           sym->defined_in = input_file;
@@ -2325,6 +2342,7 @@ that line type.
   FILE			*f_template_info = NULL;
   a_boolean		instantiation_dir_set = FALSE;
   a_pl_object_file_ptr	pofp;
+  a_pl_symbol_ptr	last_primary_entry = NULL;
 
   if (pifp->template_info_file_name != NULL) {
     f_template_info = fopen(pifp->template_info_file_name, "r");
@@ -2378,6 +2396,16 @@ that line type.
         }  /* if */
         sym->next = pofp->symbols;
         pofp->symbols = sym;
+        /* Save this symbol as the name referred to by any "entry point"
+           entries that may follow. */
+        last_primary_entry = sym;
+      } else if (strncmp(line_type, "ent:", 4) == 0) {
+        /* An alternate entry point.  References to this name should be
+           treated as references to the primary entry. */
+        char	*name_pos = line_type + 4;
+        sym = pl_find_symbol(name_pos, (a_pl_symbol_ptr)NULL,
+                             /*add=*/TRUE, (a_boolean*)NULL);
+        sym->primary_entry = last_primary_entry;
       } else if (strncmp(line_type, "tnm:", 4) == 0) {
         /* A template definition entry for an exported template. */
         char	*name_pos = line_type + 4;
