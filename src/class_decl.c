@@ -4024,15 +4024,19 @@ routine body is generated at this time.
   db_enter(3, "generate_special_function");
   /* Allocate and initialize the routine type entry for the function. */
   rout_type = alloc_type((a_type_kind)tk_routine);
+  extra_info = rout_type->variant.routine.extra_info;
   if (sfkind == (a_special_function_kind)sfk_destructor) {
     /* Destructors are given a return type of void. */
     rout_type->variant.routine.return_type = void_type();
+    extra_info->assoc_routine_is_dtor = TRUE;
   } else {
     /* Constructors and default assignment operators are given a return type
        of reference to class-type. */
     rout_type->variant.routine.return_type = make_reference_type(class_type);
+    if (sfkind == (a_special_function_kind)sfk_constructor) {
+      extra_info->assoc_routine_is_ctor = TRUE;
+    }  /* if */
   }  /* if */
-  extra_info = rout_type->variant.routine.extra_info;
   extra_info->param_type_list = ptp;
   extra_info->implicit_this_param_type =
            make_qualified_type(make_pointer_type(class_type),
