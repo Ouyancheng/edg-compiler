@@ -3903,7 +3903,6 @@ Return a pointer to the routine entry for the current class's default
 assignment operator.
 */
 {
-  a_symbol_header_ptr  sym_hdr;
   a_symbol_ptr         sym;
   a_boolean            is_overloaded_function;
   a_type_ptr           arg_type;
@@ -4191,22 +4190,27 @@ handled separately.
 #if CHECKING
   if (rp->special_kind != (a_special_function_kind)sfk_constructor &&
       rp->special_kind != (a_special_function_kind)sfk_destructor &&
+      rp->special_kind != (a_special_function_kind)sfk_conversion &&
       (rp->special_kind != (a_special_function_kind)sfk_operator ||
        rp->opname_kind != (an_opname_kind)onk_assign)) {
     internal_error(
-        "reference_to_implicitly_invoked_function: expected ctor, dtor, or =");
+               "reference_to_implicitly_invoked_function: unexpected sfkind");
   }  /* if */
 #endif /* CHECKING */
   /* Check for accessibility. */
   if (!have_access_to_symbol(sym)) {
-    if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
-      err_code = ec_inaccessible_constructor;
-    } else if (rp->special_kind == (a_special_function_kind)sfk_destructor) {
-      err_code = ec_inaccessible_destructor;
+    if (rp->special_kind == (a_special_function_kind)sfk_conversion) {
+      error(ec_inaccessible_conversion_function);
     } else {
-      err_code = ec_inaccessible_assignment_operator;
+      if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
+        err_code = ec_inaccessible_constructor;
+      } else if (rp->special_kind == (a_special_function_kind)sfk_destructor) {
+        err_code = ec_inaccessible_destructor;
+      } else {
+        err_code = ec_inaccessible_assignment_operator;
+      }  /* if */
+      str_error(err_code, name_of_symbol(sym));
     }  /* if */
-    str_error(err_code, name_of_symbol(sym));
   }  /* if */
   /* Mark the IL entry referenced. */
   rp->source_corresp.referenced = TRUE;
