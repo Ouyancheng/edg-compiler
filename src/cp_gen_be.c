@@ -8079,6 +8079,7 @@ Generate one of the predefined UPC pragmas.
   }  /* if */
   gen_pragma_end(pp);
 }  /* gen_upc_pragma */
+
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
 static void gen_pragma(void)
