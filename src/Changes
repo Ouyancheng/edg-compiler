@@ -1,5 +1,12 @@
 Version 2.29
 
+4/6/95   Use of "//" as a comment delimiter in C mode
+
+In Microsoft compatibility mode, "//" is now recognized as a comment
+delimiter.  In addition, END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE can be
+set to enable such recognition generally in C mode, except when strict
+ANSI/ISO C is specified.
+
 4/6/95   ABI_COMPATIBILITY_VERSION
 
 Since we are beginning to add language features that have an effect
