@@ -259,7 +259,8 @@ Macro to test a type kind to see if it is a tag (class or enum).
 
 /* Needed because of forward references: */
 static void gen_name(a_source_correspondence *scp,
-                     an_il_entry_kind        entry_kind);
+                     an_il_entry_kind        entry_kind,
+                     a_boolean               force_qualified_name);
 static void gen_constant(a_constant_ptr constant,
                          a_boolean      need_parens);
 static void gen_type(a_type_ptr type);
@@ -1222,24 +1223,23 @@ class type.
                     anonymous_union_kind == (an_anonymous_union_kind)auk_field;
        class_type = class_type->source_corresp.parent.class_type) {}
   /* Use recursion to handle multiple levels of nesting. */
-  if (class_type->source_corresp.is_class_member) {
-    gen_class_qualifier(class_type->source_corresp.parent.class_type);
-    /* Do the last level. */
-    gen_unqualified_name(&class_type->source_corresp, iek_type);
-  } else {
-    gen_name(&class_type->source_corresp, iek_type);
-  }  /* if */
+  gen_name(&class_type->source_corresp, iek_type,
+           /*force_qualified_name=*/TRUE);
   write_tok_str("::");
 }  /* gen_class_qualifier */
 
 
 static void gen_name(a_source_correspondence *scp,
-                     an_il_entry_kind        entry_kind)
+                     an_il_entry_kind        entry_kind,
+                     a_boolean               force_qualified_name)
 /*
 Output the name of the entity whose source correspondence information
 is given by scp.  entry_kind indicates the IL entry kind.  If the entity
 is unnamed, generate a name.  If the entity is a class member, generate
-a qualified name (if required in the current name context).
+a qualified name (if required in the current name context).  Don't
+suppress the qualifier (because it seems to be unnecessary) if
+force_qualified_name is TRUE (this is used for things like pointer-to-member
+constants, which must have the form of a qualified name).
 */
 {
   /* If the name is a member of a class in C++, output the class qualifier. */
@@ -1248,7 +1248,7 @@ a qualified name (if required in the current name context).
       a_type_ptr class_type = scp->parent.class_type;
       /* If the class type matches the top entry on the name context stack,
          the qualifier is not necessary. */
-      if (curr_name_context_is_class(class_type)) {
+      if (curr_name_context_is_class(class_type) && !force_qualified_name) {
         /* Qualifier not needed. */
       } else {
         gen_class_qualifier(class_type);
@@ -1280,41 +1280,25 @@ in the current name context).
     gen_unqualified_name(scp, entry_kind);
   } else {
     /* Class member. */
-    gen_name(scp, entry_kind);
+    gen_name(scp, entry_kind, /*force_qualified_name=*/FALSE);
   }  /* if */
 }  /* gen_decl_name */
 
 
-static void gen_qualified_name(a_source_correspondence *scp,
-                               an_il_entry_kind        entry_kind)
-/*
-Output the name of the entity whose source correspondence information
-is given by scp.  entry_kind indicates the IL entry kind.  If the entity
-is unnamed, generate a name.  The entity must be a class member, and a
-qualified name is always generated.
-*/
-{
-  gen_class_qualifier(scp->parent.class_type);
-  gen_unqualified_name(scp, entry_kind);
-}  /* gen_qualified_name */
-
-
 /* Interface routines to gen_name. */
+#define gen_qualified_name(scp, entry_kind)                           \
+  gen_name((scp), (entry_kind), /*force_qualified_name=*/TRUE)
 #define gen_routine_name(routine)                                     \
-  gen_name(&(routine)->source_corresp, iek_routine)
+  gen_name(&(routine)->source_corresp, iek_routine,                   \
+           /*force_qualified_name=*/FALSE)
 #define gen_constant_name(constant)                                   \
-  gen_name(&(constant)->source_corresp, iek_constant)
+  gen_name(&(constant)->source_corresp, iek_constant,                 \
+           /*force_qualified_name=*/FALSE)
+#define gen_type_name(type)                                           \
+  gen_name(&(type)->source_corresp, iek_type,                         \
+           /*force_qualified_name=*/FALSE)
 #define gen_field_name(field)                                         \
   gen_unqualified_name(&(field)->source_corresp, iek_field)
-
-
-static void gen_type_name(a_type_ptr type)
-/*
-Output the name of the indicated type, qualified if necessary.
-*/
-{
-  gen_name(&type->source_corresp, iek_type);
-}  /* gen_type_name */
 
 
 static void gen_variable_name(a_variable_ptr var)
@@ -1326,7 +1310,8 @@ Output the name of the indicated variable, qualified is necessary.
     /* "this" parameter in C++. */
     m_write_tok_str("this");
   } else {
-    gen_name(&var->source_corresp, iek_variable);
+    gen_name(&var->source_corresp, iek_variable,
+             /*force_qualified_name=*/FALSE);
   }  /* if */
 }  /* gen_variable_name */
 
@@ -1635,7 +1620,8 @@ Routine to be called by the il_to_str routines to output a name.
   if (kind == iek_type) {
     gen_type_reference((a_type_ptr)entry);
   } else {
-    gen_name((a_source_correspondence *)entry, kind);
+    gen_name((a_source_correspondence *)entry, kind,
+             octl.force_qualified_name);
   }  /* if */
 }  /* gen_name_reference */
 

@@ -42,6 +42,7 @@ Clear an output control block to default values.
 #if DEBUG
   octl->debug_output              = FALSE;
 #endif /* DEBUG */
+  octl->force_qualified_name      = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -225,7 +226,8 @@ be used to output any part of the name.  Called only for C++.
     scp = &class_type->source_corresp;
   }  /* while */
   /* Use recursion to handle multiple levels of nesting. */
-  form_class_or_namespace_qualifier(scp->is_class_member, scp->parent, octl);
+  form_class_or_namespace_qualifier((a_boolean)scp->is_class_member,
+                                    scp->parent, octl);
   /* Do the last level. */
   form_unqualified_name(scp, iek_type, octl);
   octl->output_str("::");
@@ -242,7 +244,9 @@ is_class_member and parent give the class/namespace membership information
 for the entity: if is_class_member is TRUE, the entity is a member of the
 class indicated by parent.class_type.  If is_class_member is FALSE, and
 parent.namespace_ptr is non-NULL, the entity is a member of a namespace,
-and parent.namespace_ptr points to the namespace.
+and parent.namespace_ptr points to the namespace.  Note that the
+output_name routine in the control block (if there is one) will not
+be used to output any part of the name.  Called only for C++.
 */
 {
   if (is_class_member) {
@@ -275,8 +279,8 @@ output in the way described by octl.
     /* If the name is a member of a class or namespace in C++, output the
        qualifier. */
     if (il_header.source_language == sl_Cplusplus) {
-      form_class_or_namespace_qualifier(scp->is_class_member, scp->parent,
-                                        octl);
+      form_class_or_namespace_qualifier((a_boolean)scp->is_class_member,
+                                        scp->parent, octl);
     }  /* if */
     /* Output the base name. */
     form_unqualified_name(scp, kind, octl);
@@ -1475,7 +1479,12 @@ Do the output in the way described by octl.
       }  /* if */
     }  /* if */
     octl->output_str("&");
-    form_name(scp, entry_kind, octl);
+    /* Output the name, forcing it to be a qualified name. */
+    { a_boolean saved_force_qualified_name = octl->force_qualified_name;
+      octl->force_qualified_name = TRUE;
+      form_name(scp, entry_kind, octl);
+      octl->force_qualified_name = saved_force_qualified_name;
+    }
     output_optional_close_paren(need_pm_close_paren, octl);
   }  /* if */
   output_optional_close_paren(need_cast_close_paren, octl);

@@ -90,6 +90,14 @@ typedef struct an_il_to_str_output_control_block {
 	debug_output;	/* TRUE if the generated string is part of debug
 			   output. */
 #endif /* DEBUG */
+  a_byte_boolean
+	force_qualified_name;
+			/* Set to TRUE by the il_to_str routines when calling
+			   the output_name routine, to indicate that the
+			   output must be a qualified name even if the output
+			   routine thinks it could go out as an unqualified
+			   name because of the context (used, e.g., for
+			   pointers-to-members). */
 } an_il_to_str_output_control_block;
 
 /*
