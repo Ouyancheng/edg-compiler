@@ -4002,6 +4002,14 @@ End a name scope by popping an entry off the scope stack.
   }  /* for */
   if (!old_region_still_needed) {
     /* The old memory region is no longer needed. */
+#if DO_IL_LOWERING || IL_SHOULD_BE_WRITTEN_TO_FILE
+    /* Preserve the pointers to any static variables and types, if any,
+       at each function scope and block scope. */
+    if (old_memory_region_number != FILE_SCOPE_REGION_NUMBER) {
+      preserve_local_scope_entities_allocated_in_file_scope(
+					old_memory_region_number);
+    }  /* if */
+#endif /* DO_IL_LOWERING || IL_SHOULD_BE_WRITTEN_TO_FILE */
 #if DO_IL_LOWERING
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
     if (!suppress_il_lowering) {

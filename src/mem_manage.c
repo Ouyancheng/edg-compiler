@@ -1,0 +1,838 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C Front End                            - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+mem_manage.c -- Memory management routines.
+
+*/
+
+#include "basics.h"
+#include "host_envir.h"
+#if __ANSIC__
+#include <stdlib.h>
+#else
+#if __BSD__ || __VMS__
+extern char *malloc(unsigned size);
+extern free(char *); /* Implicitly int to match old-style definition. */
+extern char *realloc(char *ptr, unsigned size);
+#else /* __SYSV__ */
+#include <malloc.h>
+#endif /* __BSD__ || __VMS__ */
+#endif /* __ANSIC__ */
+#include "il.h"
+#include "mem_manage.h"
+#include "error.h"
+
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+#include "il_file.h"
+#if !STANDALONE_UTILITY_PROGRAM
+#include "il_write.h"
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+
+
+static a_mem_block_header_ptr
+		reusable_blocks_list = NULL;
+			/* List of memory blocks freed and available for
+			   reuse.  These are only partial blocks; full blocks
+			   are actually freed with free. */
+
+/*
+Size of a_mem_block_header after adjustment so that the storage following
+it will be properly aligned.  This is a constant.
+*/
+sizeof_t adjusted_header_size = (sizeof_t)(sizeof(a_mem_block_header) +
+  ((sizeof(a_mem_block_header) % HOST_ALIGNMENT_REQUIRED) == 0 ?
+     0 : (HOST_ALIGNMENT_REQUIRED -
+          (sizeof(a_mem_block_header) % HOST_ALIGNMENT_REQUIRED))));
+
+#if DEBUG
+/*
+Record of memory allocated, for space tracking purposes.
+*/
+static unsigned long
+		total_mem_allocated = 0;
+			/* Total memory allocated via malloc, minus total
+			   memory freed via free. */
+static unsigned long
+		max_mem_allocated = 0;
+			/* The high-water mark, the largest value that
+			   total_mem_allocated ever had. */
+static unsigned long
+		total_general_mem_allocated = 0;
+			/* The part of total_mem_allocated that was
+			   allocated in general storage, i.e., by
+			   alloc_general and realloc_general. */
+static unsigned long
+		total_mem_used;
+			/* Total memory allocated by alloc_in_region.
+			   Reset for each input file. */
+static unsigned long
+		num_alignment_bytes_allocated;
+			/* Number of bytes wasted in alignment cracks.
+			   Reset for each input file. */
+static unsigned long
+		*allocated_in_region = NULL;
+			/* Parallel array to mem_region_table.  Keeps track
+			   of the allocation in each region. */
+static a_memory_region_number
+		size_of_allocated_in_region = 0;
+			/* Size of allocated_in_region (in entries, not 
+			   bytes). */
+#endif /* DEBUG */
+
+
+/*
+Determine (if possible) the number of low-order zero bits required in
+aligned addresses on the host.  This allows use of masking instead of
+a remainder operation.
+*/
+#if HOST_ALIGNMENT_REQUIRED == 1
+#define ALIGNMENT_BITS 0
+#else
+#if HOST_ALIGNMENT_REQUIRED == 2
+#define ALIGNMENT_BITS 0x1
+#else
+#if HOST_ALIGNMENT_REQUIRED == 4
+#define ALIGNMENT_BITS 0x3
+#else
+#if HOST_ALIGNMENT_REQUIRED == 8
+#define ALIGNMENT_BITS 0x7
+#else
+#if HOST_ALIGNMENT_REQUIRED == 16
+#define ALIGNMENT_BITS 0xf
+#else
+#if HOST_ALIGNMENT_REQUIRED == 32
+#define ALIGNMENT_BITS 0x1f
+#else
+/* Alignment will have to be established with "%". */
+#define ALIGNMENT_BITS (-1)
+#endif /* == 32 */
+#endif /* == 16 */
+#endif /* == 8 */
+#endif /* == 4 */
+#endif /* == 2 */
+#endif /* == 1 */
+
+#if ALIGNMENT_BITS == 0
+/* No alignment required. */
+#define align_expr(value) 0
+#else /* ALIGNMENT_BITS != 0 */
+#if ALIGNMENT_BITS == -1
+/* Alignment requirement is not a recognized small power of two.  Use "%". */
+#define align_expr(value) ((value) % HOST_ALIGNMENT_REQUIRED)
+#else /* ALIGNMENT_BITS >= 0 */
+/* Alignment requirement is a recognized small power of two.  Use masking. */
+#define align_expr(value) ((value) & ALIGNMENT_BITS)
+#endif /* ALIGNMENT_BITS == -1 */
+#endif /* ALIGNMENT_BITS == 0 */
+
+
+/*
+Macro that will round up its argument -- if required -- to make it evenly
+divisible by HOST_ALIGNMENT_REQUIRED.
+*/
+#if ALIGNMENT_BITS == 0
+
+#define do_align(value) /* Nothing -- no alignment required. */
+
+#else /* ALIGNMENT_BITS != 0 */
+
+#define do_align(value)                                               \
+{ register int excess_bytes = align_expr(value);                      \
+  if (excess_bytes != 0) {                                            \
+    value += HOST_ALIGNMENT_REQUIRED - excess_bytes;                  \
+  }  /* if */                                                         \
+}  /* do_align */
+
+#endif /* ALIGNMENT_BITS == 0 */
+
+
+#if DEBUG
+static void adjust_record_of_total_allocation(long amount)
+/*
+Record that an additional "amount" bytes of memory have been allocated.
+"amount" is negative to indicate space being freed.  "Allocated"
+and "freed" here mean via malloc/free, not by some mechanism on top of that.
+*/
+{
+  /* Do "increment" carefully, since one variable is unsigned and the
+     other is not. */
+  total_mem_allocated = (long)total_mem_allocated + amount;
+  /* Keep track of the high-water mark. */
+  if (total_mem_allocated > max_mem_allocated) {
+    max_mem_allocated = total_mem_allocated;
+  }  /* if */
+}  /* adjust_record_of_total_allocation */
+#endif /* DEBUG */
+
+
+static char *malloc_with_check(sizeof_t size)
+/*
+Interface to malloc that allocates "size" bytes.  Checks for failure of 
+allocation and generates a catastrophic error.
+*/
+{
+  char *ptr;
+
+  if ((ptr = (char *)malloc(size)) == NULL) {
+    catastrophe(ec_out_of_memory);
+  } /* if */
+#if DEBUG
+  /* Track total allocation. */
+  /* Can't do this conditionally on db_active since db_active is not yet
+     set when command line processing is done. */
+  adjust_record_of_total_allocation((long)size);
+  if (debug_level >= 5) {
+    fprintf(f_debug, "malloc_with_check: allocating %lu, total = %lu\n",
+                     (unsigned long)size,
+                     (unsigned long)total_mem_allocated);
+  }  /* if */
+#endif /* DEBUG */
+  return (ptr);
+}  /* malloc_with_check */
+
+
+#if !DEBUG
+/*ARGSUSED*/ /* <-- old_size is not used if !DEBUG. */
+#endif /* DEBUG */
+static char *realloc_with_check(char     *old_ptr,
+                                sizeof_t old_size,
+                                sizeof_t new_size)
+/*
+Interface to realloc: reallocate the block pointed to by "old_ptr" to give
+it the new size "new_size".  If "old_ptr" is NULL, works like 
+malloc_with_check.  "old_size" is present to help with tracking of space used.
+*/
+{
+  char *ptr;
+
+  /* Don't count on realloc allowing a first parameter of NULL to imply
+     malloc-like behavior.  The SVID doesn't define realloc that way. */
+  if (old_ptr == NULL) {
+    ptr = malloc_with_check(new_size);
+  } else {
+    if ((ptr = realloc(old_ptr, new_size)) == NULL) {
+      catastrophe(ec_out_of_memory);
+    } /* if */
+#if DEBUG
+    /* Track total allocation. */
+    /* Can't do this conditionally on db_active since db_active is not yet
+       set when command line processing is done. */
+    adjust_record_of_total_allocation((long)(new_size - old_size));
+    if (debug_level >= 5) {
+      fprintf(f_debug,
+         "realloc_with_check: new size = %lu, old size = %lu, total = %lu\n",
+                         (unsigned long)new_size,
+                         (unsigned long)old_size,
+                         (unsigned long)total_mem_allocated);
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+  return (ptr);
+}  /* realloc_with_check */
+ 
+
+static a_mem_block_header_ptr alloc_mem_block(
+                                          a_memory_region_number region_number,
+                                          sizeof_t               min_size)
+/*
+Add a new memory block to the existing blocks for the indicated region.
+The memory block must have at least "min_size" bytes available in it.
+Return a pointer to the block header.
+*/
+{
+  a_mem_block_header_ptr hdr, prev_hdr;
+  sizeof_t               alloc_size, needed_size;
+  char                   *alloc_addr;
+
+  db_enter(5, "alloc_mem_block");
+  /* Reuse a previously-allocated piece if possible.  Such a piece was
+     the wasted space on the end of a previous block. */
+  if (reusable_blocks_list != NULL) {
+    needed_size = adjusted_header_size + min_size;
+    for (prev_hdr = NULL, hdr = reusable_blocks_list;
+         hdr != NULL;
+         prev_hdr = hdr, hdr = hdr->next) {
+      /* See if the area is big enough (it almost always will be). */
+      alloc_size = hdr->after_end_of_block - hdr->start_of_block;
+      if (alloc_size >= needed_size) {
+        /* The piece is big enough.  Take it out of the list and use it. */
+        if (prev_hdr == NULL) {
+          reusable_blocks_list = hdr->next;
+        } else {
+          prev_hdr->next = hdr->next;
+        }  /* if */
+#if DEBUG
+        if (debug_level >= 5) {
+          fprintf(f_debug, "alloc_mem_block: reusing block, size = %lu\n",
+                           (unsigned long)alloc_size);
+        }  /* if */
+#endif /* DEBUG */
+        goto have_hdr;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  /* No piece available for reuse, so allocate a new one.  Use the
+     HOST_ALLOCATION_INCREMENT unless the minimum required size is bigger
+     than that (that's possible for incredibly large string literals
+     formed by token concatenation). */
+  alloc_size = min_size + adjusted_header_size;
+  if (alloc_size < HOST_ALLOCATION_INCREMENT) {
+    alloc_size = HOST_ALLOCATION_INCREMENT;
+  }  /* if */
+  /* Make sure the block size preserves alignment of the end (this is
+     just so that we're not allocating space at the end that can hardly 
+     ever be used). */
+  do_align(alloc_size);
+  alloc_addr = malloc_with_check(alloc_size);
+  /* Fill in the block header. */
+  hdr = (a_mem_block_header_ptr)alloc_addr;
+  /* malloc_size non-zero indicates that this block came directly from
+     malloc. */
+  hdr->malloc_size = alloc_size;
+  hdr->start_of_block = alloc_addr + adjusted_header_size;
+  hdr->after_end_of_block = alloc_addr + alloc_size;
+have_hdr:
+  /* Everything in the block is available. */
+  hdr->next_avail_in_block = hdr->start_of_block;
+  /* Link the block into the region. */
+  hdr->next = mem_region_table[region_number];
+  mem_region_table[region_number] = hdr;
+  db_exit();
+  return (hdr);
+}  /* alloc_mem_block */
+
+
+static void free_complete_block(a_mem_block_header_ptr hdr)
+/*
+Free a block that was allocated by malloc.
+*/
+{
+#if DEBUG
+  /* Can't do this conditionally on db_active since db_active is not yet
+     set when command line processing is done. */
+  adjust_record_of_total_allocation(-((long)hdr->malloc_size));
+  if (debug_level >= 5) {
+    fprintf(f_debug, "free_complete_block: freeing block of size %lu\n",
+                     (unsigned long)hdr->malloc_size);
+  }  /* if */
+#endif /* DEBUG */
+  free((char *)hdr);
+}  /* free_complete_block */
+
+
+static void free_mem_block(a_mem_block_header_ptr hdr)
+/*
+Free the storage associated with the indicated memory block.
+*/
+{
+  a_mem_block_header_ptr test_hdr, prev_hdr;
+
+  db_enter(5, "free_mem_block");
+  if (hdr->malloc_size > 0 &&
+      hdr->malloc_size == (hdr->after_end_of_block - (char *)hdr)) {
+    /* Blocks that are complete blocks as originally allocated by malloc
+       can be freed by calling free. */
+    free_complete_block(hdr);
+  } else {
+    /* Other blocks cannot be freed that way.  Instead, they are put on
+       a linked list of freed blocks.  As blocks are added, they are
+       checked against the existing freed blocks so that adjacent pieces
+       can be reunited.  If pieces reunite into a complete block, the 
+       block can be freed by calling free. */
+    for (prev_hdr = NULL, test_hdr = reusable_blocks_list;
+         test_hdr != NULL;
+         test_hdr = test_hdr->next) {
+      if (test_hdr->after_end_of_block == (char *)hdr ||
+          hdr->after_end_of_block == (char *)test_hdr) {
+        /* The block on the list is adjacent to the new block.  Remove
+           the test_hdr block from the list and join the two blocks together
+           as a bigger block pointed to by hdr.  Also back up the loop 
+           pointers to get the proper next iteration of the loop. */
+        if (prev_hdr == NULL) {
+          reusable_blocks_list = test_hdr->next;
+        } else {
+          prev_hdr->next = test_hdr->next;
+        }  /* if */
+        if (test_hdr->after_end_of_block == (char *)hdr) {
+          /* The new block follows the test_hdr block. */
+          test_hdr->after_end_of_block = hdr->after_end_of_block;
+          hdr = test_hdr;
+        } else {
+          /* The test_hdr block follows the new block. */
+          hdr->after_end_of_block = test_hdr->after_end_of_block;
+        }  /* if */
+        /* Is the aggregate block now a complete block?  If so, free it and
+           leave the loop. */
+        if (hdr->malloc_size > 0 &&
+            hdr->malloc_size ==
+              (hdr->after_end_of_block - hdr->start_of_block)) {
+          free_complete_block(hdr);
+          goto freed_it;
+        }  /* if */
+        /* prev_hdr must be left as it is for the next iteration. */
+      } else {
+        /* Normal case; block on list is not adjacent to new block. */
+        prev_hdr = test_hdr;        
+      }  /* if */
+    }  /* for */
+    /* Add the resulting block to the list. */
+    hdr->next = reusable_blocks_list;
+    reusable_blocks_list = hdr;
+freed_it:;
+  }  /* if */
+  db_exit();
+}  /* free_mem_block */
+
+
+static void trim_mem_block(a_mem_block_header_ptr hdr)
+/*
+Free any unallocated space remaining in the indicated memory block.
+*/
+{
+  sizeof_t               space_remaining_in_block;
+  a_mem_block_header_ptr new_hdr;
+  char                   *alloc_addr;
+
+  db_enter(5, "trim_mem_block");
+  /* Save the remaining space only if it's big enough. */
+  space_remaining_in_block = hdr->after_end_of_block -
+                             hdr->next_avail_in_block;
+  /* The criterion for "big enough" is really not for very much space.
+     Even very small blocks can be reused, at a minor cost in
+     execution time for in_file_scope if the file scope region
+     gets fragmented. */
+  if (space_remaining_in_block >= sizeof(a_mem_block_header) +
+                                  5*sizeof(a_constant)) {
+    /* Remaining space is "big enough" that it's worth saving.  We know
+       next_avail_in_block is properly aligned because of the way that
+       alloc_in_region works.  Fabricate a header for the space, then 
+       free it. */
+    alloc_addr = hdr->next_avail_in_block;
+    new_hdr = (a_mem_block_header_ptr)alloc_addr;
+    /* Indicate that the area didn't come directly from malloc. */
+    new_hdr->malloc_size = 0;
+    new_hdr->next_avail_in_block = new_hdr->start_of_block =
+                                  alloc_addr + adjusted_header_size;
+    new_hdr->after_end_of_block = alloc_addr + space_remaining_in_block;
+    /* Free the block. */
+    free_mem_block(new_hdr);
+    /* Trim the original block so it does not include the freed space. */
+    hdr->after_end_of_block = alloc_addr;
+  }  /* if */
+  db_exit();
+}  /* trim_mem_block */
+
+
+void init_memory_region(a_memory_region_number region_number)
+/*
+Initialize the indicated region number.  In general, new_memory_region
+should be called instead.  init_memory_region is called directly for the
+special "front end" memory region.
+*/
+{
+  a_memory_region_number old_size;
+
+  if (region_number >= size_of_mem_region_table) {
+    /* mem_region_table must be created or enlarged. */
+    /* Add enough entries to cover a pretty large compilation (each function
+       compiled uses one entry). */
+    old_size = size_of_mem_region_table;
+    size_of_mem_region_table  += 150;
+    mem_region_table = (a_mem_block_header_ptr *)realloc_with_check(
+                          (char *)mem_region_table,
+                          (sizeof_t)(old_size*sizeof(a_mem_block_header_ptr)),
+                          (sizeof_t)(size_of_mem_region_table*
+                                              sizeof(a_mem_block_header_ptr)));
+    /* region_scope_entry is a parallel array to mem_region_table, and must
+       be similarly expanded. */
+    il_header.region_scope_entry = (a_scope_ptr *)realloc_with_check(
+                          (char *)il_header.region_scope_entry,
+                          (sizeof_t)(old_size*sizeof(a_scope_ptr)),
+                          (sizeof_t)(size_of_mem_region_table*
+                                                         sizeof(a_scope_ptr)));
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+    /* ... and also index_for_il_file. */
+    index_for_il_file = (a_file_position *)realloc_with_check(
+                          (char *)index_for_il_file,
+                          (sizeof_t)(old_size*sizeof(a_file_position)),
+                          (sizeof_t)(size_of_mem_region_table*
+                                                    sizeof(a_file_position))); 
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  }  /* if */
+#if DEBUG
+  /* ... and also allocated_in_region.  Note that this allocation might
+         be out of sync with the others. */
+  /* Can't do this conditionally on db_active since db_active is not yet
+     set when command line processing is done. */
+  if (size_of_allocated_in_region < size_of_mem_region_table) {
+    allocated_in_region = (unsigned long *)realloc_with_check(
+                          (char *)allocated_in_region,
+                          (sizeof_t)(size_of_allocated_in_region*
+                                                        sizeof(unsigned long)),
+                          (sizeof_t)(size_of_mem_region_table*
+                                                       sizeof(unsigned long)));
+    /* Zero the new entries. */
+    { a_memory_region_number num;
+      for (num = size_of_allocated_in_region;
+           num < size_of_mem_region_table;
+           num++) {
+        allocated_in_region[num] = 0;
+      }  /* for */
+    }
+    size_of_allocated_in_region = size_of_mem_region_table;
+  }  /* if */
+#endif /* DEBUG */
+  mem_region_table[region_number] = NULL;
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  index_for_il_file[region_number] = 0;
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  /* Allocate the initial memory block. */
+  (void)alloc_mem_block(region_number, (sizeof_t)0);
+  /* Keep track of the highest memory region number used. */
+  if (region_number > highest_used_region_number) {
+    highest_used_region_number = region_number;
+  }  /* if */
+}  /* init_memory_region */
+
+
+a_memory_region_number new_memory_region(void)
+/*
+Create a new memory region and return its memory region number.
+A new region is used for each function's executable code and data.
+*/
+{
+  a_memory_region_number region_number;
+
+  db_enter(5, "new_memory_region");
+  if (highest_used_region_number == MAX_MEMORY_REGION_NUMBER) {
+    /* Too many regions (extremely unlikely). */
+    catastrophe(ec_too_many_memory_regions);
+  }  /* if */
+  region_number = ++highest_used_region_number;
+#if DEBUG
+  if (debug_level >= 2) {
+    fprintf(f_debug, "New memory region, number %ld.\n", (long)region_number);
+  }  /* if */
+#endif /* DEBUG */
+
+  init_memory_region(region_number);
+
+  db_exit();
+  return (region_number);
+}  /* new_memory_region */
+
+
+char *alloc_in_region(a_memory_region_number region_number,
+                      sizeof_t               size)
+/*
+Allocate "size" bytes in memory region "region_number", and return a
+pointer to them.  Generate a catastrophic error and do not return if
+the storage cannot be allocated.  Memory region 0 (NULL_region_number)
+is used for allocation of general front end memory (i.e., not IL).
+*/
+{
+  char                   *temp_ptr;
+  a_mem_block_header_ptr hdr;
+#if DEBUG
+  sizeof_t               orig_size = size;
+#endif /* DEBUG */
+
+  db_enter(5, "alloc_in_region");
+
+  /* Round up the size if necessary to preserve alignment.  Note that
+     aside from keeping the data correctly aligned, this also keeps the
+     next available address properly aligned, which is important in
+     trim_mem_block. */
+  do_align(size);
+
+  /* See if enough space remains in the current block.  If not, get
+     a new block. */
+#if CHECKING
+  if (region_number > highest_used_region_number || region_number < 0) {
+    internal_error("alloc_in_region: bad region number");
+  }  /* if */
+#endif /* CHECKING */
+  hdr = mem_region_table[region_number];
+#if CHECKING
+  if (hdr == NULL) {
+    internal_error("alloc_in_region: region has no blocks");
+  }  /* if */
+#endif /* CHECKING */
+  if (size > (hdr->after_end_of_block - hdr->next_avail_in_block)) {
+    /* Not enough space remaining in current block.  Free any unused
+       space at the end of the current last block, and start a new block. */
+    trim_mem_block(hdr);
+    hdr = alloc_mem_block(region_number, size);
+  }  /* for */
+
+  /* Take the required space out of the current block. */
+  temp_ptr = hdr->next_avail_in_block;
+  hdr->next_avail_in_block += size;
+
+#if DEBUG
+  /* Track total allocation. */
+  total_mem_used += size;
+  num_alignment_bytes_allocated += (size - orig_size);
+  /* Can't do this conditionally on db_active since db_active is not yet
+     set when command line processing is done. */
+  allocated_in_region[region_number] += size;
+#endif /* DEBUG */
+  db_exit();
+  return (temp_ptr);
+}  /* alloc_in_region */
+
+
+char *alloc_fe(sizeof_t size)
+/*
+Allocate and return "size" bytes of storage that will last through execution
+of the front end.
+*/
+{
+  return (alloc_in_region(NULL_region_number, size));
+}  /* alloc_fe */
+
+#ifdef FFE
+
+char *alloc_pufe(sizeof_t size)
+/*
+Allocate and return "size" bytes of storage that will last through
+compilation of one subprogram in the front end.
+*/
+{
+  /* At the moment, this does the same thing as alloc_fe. */
+  return (alloc_in_region(NULL_region_number, size));
+}  /* alloc_pufe */
+
+#endif /* ifdef FFE */
+
+char *alloc_general(sizeof_t size)
+/*
+Allocate and return "size" bytes of general storage.  This differs from
+alloc_fe in that the storage will last through execution of the back end
+if the back end is executed in the same program.
+*/
+{
+  char *ptr = malloc_with_check(size);
+#if DEBUG
+  total_general_mem_allocated += size;
+#endif /* DEBUG */
+  return ptr;
+}  /* alloc_general */
+
+
+char *realloc_general(char     *old_ptr,
+                      sizeof_t old_size,
+                      sizeof_t new_size)
+/*
+Reallocate the area pointed to by old_ptr, which currently has size old_size,
+so that it will have size new_size.  Return a pointer to the new area.
+The old space must have been allocated in general storage (by alloc_general
+or realloc_general).  If old_ptr == NULL, this routine acts like
+alloc_general.
+*/
+{
+  char *ptr = realloc_with_check(old_ptr, old_size, new_size);
+#if DEBUG
+  total_general_mem_allocated -= old_size;
+  total_general_mem_allocated += new_size;
+#endif /* DEBUG */
+  return ptr;
+}  /* realloc_general */
+
+
+void free_memory_region(a_memory_region_number region_number)
+/*
+Free the space for the entire memory region indicated by region_number.
+This is presumably being done because it has been written out to to IL
+file and is no longer needed.
+*/
+{
+  a_mem_block_header_ptr hdr, next_hdr;
+
+  db_enter(5, "free_memory_region");
+  /* Traverse the list of blocks and free each one. */
+  for (hdr = mem_region_table[region_number]; hdr != NULL;) {
+    next_hdr = hdr->next;
+    free_mem_block(hdr);
+    hdr = next_hdr;
+  }  /* for */
+  mem_region_table[region_number] = NULL;
+  db_exit();
+}  /* free_memory_region */
+
+
+void done_with_memory_region(a_memory_region_number region_number)
+/*
+The indicated memory region is no longer needed in the front end.
+Save it if necessary, free the space if possible.
+*/
+{
+  db_enter(5, "done_with_memory_region");
+#if DEBUG
+  if (debug_level >= 1) {
+    fprintf(f_debug, "done_with_memory_region: region %lu, size = %lu\n",
+                     (unsigned long)region_number,
+                     (unsigned long)allocated_in_region[region_number]);
+  }  /* if */
+#endif /* DEBUG */
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+#if !STANDALONE_UTILITY_PROGRAM
+  /* Communication with the back end is via a file.  Write the region and
+     then free its storage. */
+  write_memory_region(region_number);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+  free_memory_region(region_number);
+#else /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
+  /* Communication with the back end is via memory.  Trim the region to
+     reclaim unused storage at the end of the last block.  Unused storage
+     at the ends of blocks other than the last was previously reclaimed. */
+  trim_mem_block(mem_region_table[region_number]);
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  db_exit();
+}  /* done_with_memory_region */
+
+#if DO_IL_LOWERING || IL_SHOULD_BE_WRITTEN_TO_FILE
+
+static void preserve_local_scope (a_scope_ptr scope)
+/*
+Look at a single scope.  If it is a function or block scope, preserve any
+pointers to static variables or local types.  Walk through any list of
+local scopes.
+*/
+{
+  a_scope_ptr local_scope;
+
+  if (scope != NULL) {
+    /* Static variables list and type list are only expected for function
+       or block scope. */
+    if (scope->kind == (a_scope_kind)sck_block ||
+        scope->kind == (a_scope_kind)sck_function) {
+      if (scope->types != NULL || scope->variables != NULL) {
+        /* Create a_group_of_local_scope_entities_allocated_in_file_scope
+	   entry with the variables and type pointers from the scope.  Add
+	   this to the front of any existing list. */
+        a_group_of_local_scope_entities_allocated_in_file_scope_ptr
+		list_ptr;
+
+        list_ptr =
+	   (a_group_of_local_scope_entities_allocated_in_file_scope_ptr)
+           alloc_fe(
+            sizeof(a_group_of_local_scope_entities_allocated_in_file_scope));
+        list_ptr->next = local_scope_entities_allocated_in_file_scope;
+        list_ptr->static_variables = scope->variables;
+        list_ptr->local_types = scope->types;
+        local_scope_entities_allocated_in_file_scope = list_ptr;
+      }  /* if */
+    }  /* if */
+    /* Walk through any local scopes. */
+    for (local_scope = scope->scopes;
+         local_scope != NULL;
+         local_scope = local_scope->next) {
+      preserve_local_scope(local_scope);
+    }  /* for */
+  }  /* if */
+}  /* preserve_local_scope */
+
+
+void preserve_local_scope_entities_allocated_in_file_scope(
+	                      a_memory_region_number region_number)
+/*
+Walking through the list of scope entries for the specified memory
+region, add any pointers to static variables or local types onto a linked
+list of pointers.  The global variable block_file_scope_list points to the 
+list of pointers, which is built on a "first in, last out" basis.
+*/
+{
+  preserve_local_scope(il_header.region_scope_entry[region_number]);
+}  /* preserve_scope_local_type_and_static_variable_pointers */
+
+#endif /* DO_IL_LOWERING || IL_SHOULD_BE_WRITTEN_TO_FILE */
+
+#if DEBUG
+void show_mem_manage_space_used(unsigned long total_accounted_for)
+/*
+Display the total amounts of memory used, for debug purposes.
+total_accounted_for is the amount of space that is accounted for by
+usage counts in other files.
+*/
+{
+  a_memory_region_number region_number;
+  a_mem_block_header_ptr hdr;
+  unsigned long          total_used, total_unallocated = 0;
+
+  fprintf(f_debug, "\nAllocated space in all categories:\n");
+  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total of above", "", "",
+                   total_accounted_for);
+  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Skipped for alignment", "", "",
+                   num_alignment_bytes_allocated);
+  total_accounted_for += num_alignment_bytes_allocated;
+  /* total_mem_used only counts space allocated in memory regions, so
+     it does not include what's in total_general_mem_allocated. */
+  total_used = total_mem_used + total_general_mem_allocated;
+  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Not listed", "", "",
+                   total_used - total_accounted_for);
+  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total used", "", "",
+                   total_used);
+  /* Size the unallocated parts of memory blocks. */
+  for (region_number = NULL_region_number;
+       region_number <= highest_used_region_number;
+       region_number++) {
+    for (hdr = mem_region_table[region_number]; hdr != NULL; hdr = hdr->next) {
+      total_unallocated += hdr->after_end_of_block - hdr->next_avail_in_block;
+    }  /* for */
+  }  /* for */
+  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Avail in mem blocks", "", "",
+                   total_unallocated);
+  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Max mem alloc", "", "",
+                   max_mem_allocated);
+}  /* show_mem_manage_space_used */
+#endif /* DEBUG */
+
+
+void mem_manage_init(void)
+/*
+Initialize static variables related to the mem_manage routines.  This is done
+as a subroutine (rather than relying on static initialization) so that it
+can be redone to compile more than one source file in a single invocation
+of the front end.
+*/
+{
+  /* Variables in mem_tables.h: */
+  highest_used_region_number = NULL_region_number;
+
+#if DO_IL_LOWERING || IL_SHOULD_BE_WRITTEN_TO_FILE
+  /* Initialize the local_scope_entities_allocated_in_file_scope pointer. */
+  local_scope_entities_allocated_in_file_scope = NULL;
+#endif /* DO_IL_LOWERING || IL_SHOULD_BE_WRITTEN_TO_FILE */
+
+  /* Static variables in mem_manage.c: */
+#if DEBUG
+  total_mem_used = 0;
+  num_alignment_bytes_allocated = 0;
+#endif /* DEBUG */
+
+  /* Initialize the memory region for general front end storage. */
+  init_memory_region(NULL_region_number);
+  /* Initialize the memory region for file scope IL information. */
+  init_memory_region(FILE_SCOPE_REGION_NUMBER);
+}  /* mem_manage_init */
+
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C Front End                            - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/

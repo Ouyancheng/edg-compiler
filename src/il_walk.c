@@ -29,6 +29,7 @@ il_walk.c -- Routines to walk the intermediate language tree.
 
 #include "il.h"
 #include "error.h"
+#include "mem_manage.h"
 
 #if ALTERNATE_IL_FILE_FORMAT
 #include "il_file.h"
@@ -384,8 +385,19 @@ Process the indicated scope.
   }  /* switch */
   /* "assoc_block" is done after the declarations. */
   walk_list(ptr->constants, a_constant_ptr, iek_constant);
-  walk_list(ptr->types, a_type_ptr, iek_type);
-  walk_list(ptr->variables, a_variable_ptr, iek_variable);
+  if (ptr->kind == (a_scope_kind)sck_block ||
+      ptr->kind == (a_scope_kind)sck_function) {
+    /* Local types and static variables of a function or a block scope are
+       in the file scope memory region. */
+    remap_ptr(ptr->types, a_type_ptr, iek_type);
+    remap_ptr(ptr->variables, a_variable_ptr, iek_variable);
+  } else {
+    walk_list(ptr->types, a_type_ptr, iek_type);
+    walk_list(ptr->variables, a_variable_ptr, iek_variable);
+  }  /* if */
+#ifdef CFE
+  walk_list(ptr->nonstatic_variables, a_variable_ptr, iek_variable);
+#endif /* ifdef CFE */
   walk_list(ptr->labels, a_label_ptr, iek_label);
   walk_list(ptr->routines, a_routine_ptr, iek_routine);
 #ifdef CFE
@@ -1320,6 +1332,9 @@ need to be updated from their "old" values to the proper "new" values.
 That is what the remap function does.
 */
 {
+  a_group_of_local_scope_entities_allocated_in_file_scope_ptr
+		list_ptr;
+
   db_enter(4, "walk_file_scope_il");
   /* Save the function pointers so they don't have to be passed around. */
   entry_process_func = entry_process_function;
@@ -1340,6 +1355,16 @@ That is what the remap function does.
   walk_string_ptr(il_header.compiler_version, iek_other_text, 0);
   walk_string_ptr(il_header.time_of_compilation, iek_other_text, 0);
   /* region_scope_entry should not be walked. */
+
+  /* Process any non-file scope types and static variables that have been
+     referenced from other memory regions; these are in the file scope memory
+     region. */
+  for (list_ptr = local_scope_entities_allocated_in_file_scope;
+       list_ptr != NULL;
+       list_ptr = list_ptr->next) {
+    walk_list(list_ptr->local_types, a_type_ptr, iek_type);
+    walk_list(list_ptr->static_variables, a_variable_ptr, iek_variable);
+  }  /* for */  
   db_exit();
 }  /* walk_file_scope_il */
 
