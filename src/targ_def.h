@@ -1966,9 +1966,8 @@ generate code for the GNU C compiler (gcc or g++).
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 /*
 Switch that is TRUE if the C-generating or C++-generating back end should
-generate code for MSVC++ (the Microsoft C/C++ compiler).  Setting this flag
-also requires setting MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET flag below.
-This is the initial value of the global variable msvc_is_generated_code_target.
+generate code for MSVC++ (the Microsoft C/C++ compiler).  See also
+MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET below.
 */
 #ifndef MSVC_IS_GENERATED_CODE_TARGET
 #if EDG_WIN32
