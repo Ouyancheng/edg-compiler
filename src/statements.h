@@ -318,7 +318,7 @@ typedef struct a_struct_stmt_stack_entry {
 			   reset after a label) can bind (if it is needed). */
   a_scope_depth depth_of_assoc_scope;
 			/* If kind == ssk_compound and a scope stack entry
-			   was pushed in conjuction with this structured
+			   was pushed in conjunction with this structured
 			   statement stack entry, the depth of the former in
 			   the scope stack; NO_SCOPE_DEPTH otherwise. */
 } a_struct_stmt_stack_entry;

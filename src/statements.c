@@ -956,7 +956,7 @@ the label are promoted to the lifetime of the function scope.
                     "fixup_curr_block_labels_and_gotos:",
                     "bad parent of curr block lifetime");
         promote_label_and_goto_lifetimes(block_cfdp, block_olp, promote_to);
-        /* Null out the lifetime pointer in the block control frow entry.
+        /* Null out the lifetime pointer in the block control flow entry.
            "NULL" means that the lifetimes of any labels or statements within
            are still subject to further promotion. */
         block_cfdp->variant.block.object_lifetime = NULL;
