@@ -1193,7 +1193,7 @@ assumed if the return type is omitted.
 	 then say that the name is undefined.  If it was not a function
 	 type then say it is an invalid pragma argument. */
       if (is_error_locator(locator) ||
-	  (type != NULL && type->kind != (a_type_kind)tk_routine)) {
+	  (type != NULL && !is_function_type(type))) {
         pos_error(ec_invalid_instantiation_pragma_argument, &start_pos);
       } else {
         pos_st_error(ec_undefined_identifier,
@@ -1206,7 +1206,7 @@ assumed if the return type is omitted.
       /* Not a function symbol -- issue an error. */
       pos_error(ec_invalid_instantiation_pragma_argument, &start_pos);
       err = TRUE;
-    } else if (type->kind != (a_type_kind)tk_routine) {
+    } else if (!is_function_type(type)) {
       /* The symbol represents a function but the type is not a routine
          type.  This can occur if a declaration contains the name of a
          function but the declaration is not a function declarator. */
