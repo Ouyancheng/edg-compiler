@@ -1795,7 +1795,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
     if (!(option_kind_used[(int)optk_dependent_name_processing])) {
       /* If dependent name processing was not explicitly set by a command line
          option, set it now. */
-      do_dependent_name_processing = FALSE;
+      do_dependent_name_processing = TRUE;
     }  /* if */
     if (!(option_kind_used[(int)optk_nonstandard_using_decl])) {
       /* If nonstandard using-decl was not explicitly set by a command line
