@@ -3166,7 +3166,8 @@ NULL.
                   (sym->variant.variable.value_has_been_set &&
                    !sym->variant.variable.used)) &&
 #if GNU_EXTENSIONS_ALLOWED
-		 !var_ptr->type->variables_are_implicitly_referenced &&
+                 !var_ptr->type->variables_are_implicitly_referenced &&
+                 var_ptr->section == NULL &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
                  !(is_class_struct_union_type(var_ptr->type) &&
                    (var_ptr->type->
@@ -3178,7 +3179,9 @@ NULL.
         /* An unreferenced or unused variable or an unused parameter.
            If a class is nonreal or if it has a template-dependent field or
            base, it may yet have side effects and no diagnostic should be
-           issued. */
+           issued.  In GNU C, variables with internal linkage are concatenated
+           within their section, which is sometimes used to create link-time
+           chains. */
         a_boolean           suppress_warning;
         an_error_code       error_code;
         an_error_severity   severity = es_warning;
@@ -4214,6 +4217,11 @@ it is an external definition).
          needed now. */
       is_needed = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
+    } else if (var->section != NULL) {
+      /* GNU C concatenates all variables in the same named section.
+         This creates tables that can be accessed from any translation unit
+         even though the individual entries may have had internal linkage. */
+      is_needed = TRUE;
     } else if (var->aliased_variable != NULL) {
       is_needed = variable_needed_even_if_unreferenced(var->aliased_variable);
 #endif /* GNU_EXTENSIONS_ALLOWED */
