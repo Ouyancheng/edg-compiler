@@ -438,6 +438,8 @@ extern void change_ref_kinds(a_ref_entry_ptr         ref_list,
 
 extern void change_refs_to_error(a_ref_entry_ptr ref_list);
 
+extern void change_operand_refs_to_error(an_operand *operand);
+
 extern void change_some_ref_kinds(a_ref_entry_ptr         ref_list,
                                   a_symbol_reference_kind old_kind,
                                   a_symbol_reference_kind new_kind);

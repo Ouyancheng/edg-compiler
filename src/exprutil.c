@@ -303,6 +303,18 @@ The list is linked by the next_operand_ref field.
 }  /* change_refs_to_error */
 
 
+void change_operand_refs_to_error(an_operand *operand)
+/*
+Change the reference kind in any references attached to operand to srk_error.
+*/
+{
+  change_refs_to_error(operand->ref_entries_list);
+  /* Error entries cannot be changed to anything else, so there's no point in
+     keeping them attached to the operand. */
+  operand->ref_entries_list = NULL;
+}  /* change_operand_refs_to_error */
+
+
 void change_some_ref_kinds(a_ref_entry_ptr         ref_list,
                            a_symbol_reference_kind old_kind,
                            a_symbol_reference_kind new_kind)
@@ -650,13 +662,13 @@ Take an existing operand and convert it to an error operand.  Retain the
 position field as the error position.
 */
 {
+  /* Change the references to errors. */
+  change_operand_refs_to_error(operand);
   set_operand_kind(operand, (an_operand_kind)ok_error);
   operand->type = error_type();
   operand->state = (an_operand_state)os_none;
   operand->came_from_reference = FALSE;
   /* bound_function is not cleared on purpose. */
-  /* Change the references to errors. */
-  change_refs_to_error(operand->ref_entries_list);
 }  /* conv_to_error_operand */
 
 
