@@ -625,6 +625,7 @@ do
          --no_guiding_decls | \
          --multibyte_chars | \
          --no_multibyte_chars | \
+         --embedded_c++ | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Options that require additional processing
