@@ -1002,9 +1002,10 @@ static void db_expr_node(an_expr_node_ptr node,
 Dump the contents of the indicated expression node for debug purposes.
 */
 {
-  register an_expr_node_ptr operand;
-  a_constant_ptr            const_ptr;
-  int                       a;
+  register an_expr_node_ptr   operand;
+  a_constant_ptr              const_ptr;
+  int                         a;
+  a_new_delete_supplement_ptr ndsp;
 
   for (a = 0; a < level; a++) fputs(" ", f_debug);
   switch ((int)node->kind) {
@@ -1051,12 +1052,23 @@ Dump the contents of the indicated expression node for debug purposes.
       break;
     case enk_temp_init:
       fputs("temp init: ", f_debug);
-      goto initializer;
-    case enk_new_init:
-      fputs("new init: ", f_debug);
-initializer:
       db_dynamic_initializer(node->variant.init.dynamic_init, level);
       db_expr_node(node->variant.init.expr, level + 2);
+      break;
+    case enk_new_delete:
+      ndsp = node->variant.new_delete;
+      fprintf(f_debug, "%s: routine = %s, type = ",
+                       ndsp->is_new ? "new" : "delete",
+                       (ndsp->routine != NULL) ?
+                                ndsp->routine->source_corresp.name : "(null)");
+      db_type(ndsp->type);
+      fputs("\n", f_debug);
+      if (ndsp->dynamic_init != NULL) {
+        db_dynamic_initializer(ndsp->dynamic_init, level);
+      }  /* if */
+      for (operand = ndsp->arg; operand != NULL; operand = operand->next) {
+        db_expr_node(operand, level + 2);
+      }  /* for */
       break;
     case enk_error:
       fputs("error node\n", f_debug);
@@ -1193,6 +1205,9 @@ static void db_nonconstant_aggregate(a_constant_ptr  con,
 
 void db_dynamic_initializer(a_dynamic_init_ptr  dip,
                             int                 level)
+/*
+Dump a dynamic initializer entry for debug purposes.
+*/
 {
   int a;
 
@@ -3013,10 +3028,12 @@ a pointer to it.
   ctsp->befriending_classes               = NULL;
   ctsp->assoc_scope                       = NULL;
   ctsp->template_arg_list                 = NULL;
-#if ASSIGNMENT_TO_THIS_ALLOWED
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
   ctsp->assoc_operator_new_routine        = NULL;
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
   ctsp->assoc_operator_delete_routine     = NULL;
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DO_IL_LOWERING
   ctsp->virtual_function_table_var        = NULL;
   ctsp->type_as_subobject                 = NULL;
@@ -4631,6 +4648,8 @@ Set the kind of the indicated expression node.  Also set associated variant
 fields to default values.
 */
 {
+  a_new_delete_supplement_ptr ndsp;
+
   node->kind = kind;
   switch (kind) {
     case enk_error:
@@ -4639,7 +4658,6 @@ fields to default values.
     case enk_operation:
       node->variant.operation.kind = (an_expr_operator_kind)eok_last;
       node->variant.operation.assignment_returns_lvalue = FALSE;
-      node->variant.operation.new_or_delete_call_for_array = FALSE;
       node->variant.operation.compiler_generated = FALSE;
       node->variant.operation.operands = NULL;
       break;
@@ -4657,9 +4675,19 @@ fields to default values.
       node->variant.field = NULL;
       break;
     case enk_temp_init:
-    case enk_new_init:
       node->variant.init.dynamic_init = NULL;
       node->variant.init.expr         = NULL;
+      break;
+    case enk_new_delete:
+      /* Allocate the supplement for new/delete. */
+      ndsp = (a_new_delete_supplement_ptr)
+                                    alloc_cil(sizeof(a_new_delete_supplement));
+      node->variant.new_delete = ndsp;
+      ndsp->is_new       = TRUE;
+      ndsp->type         = NULL;
+      ndsp->routine      = NULL;
+      ndsp->arg          = NULL;
+      ndsp->dynamic_init = NULL;
       break;
 #if CHECKING
     default:
@@ -4716,7 +4744,6 @@ Set the operator, type, and operand list in an operator expression node.
   node->type = type;
   node->variant.operation.kind = kind;
   node->variant.operation.assignment_returns_lvalue = FALSE;
-  node->variant.operation.new_or_delete_call_for_array = FALSE;
   node->variant.operation.operands = operands;
 }  /* set_node_operator */
 
@@ -4817,14 +4844,26 @@ and return a pointer to it.
 
 an_expr_node_ptr copy_node(an_expr_node_ptr expr)
 /*
-Make a copy of an expression node and return a pointer to it.
+Allocate a copy of an expression node and return a pointer to it.
 */
 {
-  an_expr_node_ptr expr_copy;
+  an_expr_node_ptr            expr_copy;
+  an_expr_node_kind           kind = expr->kind;
+  a_new_delete_supplement_ptr copy_new_delete;
 
-  expr_copy = alloc_expr_node(expr->kind);
+  expr_copy = alloc_expr_node(kind);
+  /* Preserve the new/delete supplement pointer if there is one. */
+  if (kind == (an_expr_node_kind)enk_new_delete) {
+    copy_new_delete = expr_copy->variant.new_delete;
+  }  /* if */
+  /* Copy the node. */
   *expr_copy = *expr;
   expr_copy->next = NULL;
+  if (kind == (an_expr_node_kind)enk_new_delete) {
+    /* Copy the new/delete supplement. */
+    *copy_new_delete = *expr->variant.new_delete;
+    expr_copy->variant.new_delete = copy_new_delete;
+  }  /* if */
   return expr_copy;
 }  /* copy_node */
 
@@ -4860,24 +4899,37 @@ This routine does the real work for copy_expr_tree and should not be
 called directly.
 */
 {
-  an_expr_node_ptr expr_copy;
+  an_expr_node_kind           kind = expr->kind;
+  an_expr_node_ptr            expr_copy;
+  a_new_delete_supplement_ptr ndsp, copy_ndsp;
 
+  /* Copy the top node. */
   expr_copy = copy_node(expr);
-  if (expr->kind == (an_expr_node_kind)enk_operation) {
+  if (kind == (an_expr_node_kind)enk_operation) {
     /* Copy the operands of the operation. */
     expr_copy->variant.operation.operands =
             internal_copy_list_of_expr_trees(expr->variant.operation.operands);
-  } else if (expr->kind == (an_expr_node_kind)enk_variable ||
-             expr->kind == (an_expr_node_kind)enk_variable_address) {
+  } else if (kind == (an_expr_node_kind)enk_variable ||
+             kind == (an_expr_node_kind)enk_variable_address) {
     /* Rewrite references to temporary variables. */
     expr_copy->variant.variable = rewrite_if_temporary(expr->variant.variable);
-  } else if (expr->kind == (an_expr_node_kind)enk_temp_init ||
-             expr->kind == (an_expr_node_kind)enk_new_init) {
+  } else if (kind == (an_expr_node_kind)enk_temp_init) {
     /* Copy the subtree and dynamic init for a dynamic initialization. */
     expr_copy->variant.init.expr =
                               internal_copy_expr_tree(expr->variant.init.expr);
     expr_copy->variant.init.dynamic_init =
                             copy_dynamic_init(expr->variant.init.dynamic_init);
+  } else if (kind == (an_expr_node_kind)enk_new_delete) {
+    /* Copy the subtree and dynamic init for a new/delete operation. */
+    /* Note that the new/delete supplement was copied by copy_node. */
+    ndsp = expr->variant.new_delete;
+    copy_ndsp = expr_copy->variant.new_delete;
+    if (ndsp->arg != NULL) {
+      copy_ndsp->arg = internal_copy_list_of_expr_trees(ndsp->arg);
+    }  /* if */
+    if (ndsp->dynamic_init != NULL) {
+      copy_ndsp->dynamic_init = copy_dynamic_init(ndsp->dynamic_init);
+    }  /* if */
   }  /* if */
   return expr_copy;
 }  /* internal_copy_expr_tree */
@@ -5191,19 +5243,16 @@ enk_temp_node.
 an_expr_node_ptr func_call_expr(an_expr_node_ptr  function_node,
                                 a_type_ptr        function_type,
                                 a_boolean         is_virtual,
-                                a_boolean         new_or_delete_call_for_array,
                                 a_source_position *err_pos)
 /*
 Make an expression for a call of the function indicated by function_node,
 whose type is function_type, and which is virtual if is_virtual is TRUE or
 a pointer-to-member-function call if the type of function_node is
-pointer-to-member-function.  new_or_delete_call_for_array is TRUE
-if the call is of a C++ new or delete routine to allocate or free an
-array.  The arguments of the call are already attached to function_node.
-A skip_typerefs need not have been done on function_type.  Return
-a pointer to the call node.  *err_pos gives an error position for the
-case where the function return type is invalid (i.e., incomplete);
-an error node is returned for that case.
+pointer-to-member-function.  The arguments of the call are already
+attached to function_node.  A skip_typerefs need not have been done
+on function_type.  Return a pointer to the call node.  *err_pos
+gives an error position for the case where the function return type
+is invalid (i.e., incomplete); an error node is returned for that case.
 */
 {
   an_expr_operator_kind         op;
@@ -5270,10 +5319,6 @@ an error node is returned for that case.
     }  /* if */
     /* Make an expression for the function call. */
     call_node = make_operator_node(op, call_type, function_node);
-    if (new_or_delete_call_for_array) {
-      /* Remember that this is a new or delete call for an array. */
-      call_node->variant.operation.new_or_delete_call_for_array = TRUE;
-    }  /* if */
     /* If a temporary was allocated to hold the returned value, add
        a comma expression to pick up the temporary value, like
          (f(&T, a1, a2), T)
@@ -5361,9 +5406,7 @@ for errors (e.g., the function has an invalid return type).
   dest->next = source;
   /* Make the call node. */
   node = func_call_expr(func_addr_node, rout->type,
-                        (a_boolean)rout->is_virtual,
-                        /*new_or_delete_call_for_array=*/FALSE,
-                        err_pos);
+                        (a_boolean)rout->is_virtual, err_pos);
   /* Put the call node under the statement. */
   stmt->expr = node;
   return stmt;
