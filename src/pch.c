@@ -1013,6 +1013,7 @@ variable lists.
 
 
 #if USE_MMAP_FOR_MEMORY_REGIONS
+static
 a_boolean address_can_be_mapped(a_void_ptr	addr,
 		                sizeof_t	size)
 /*
