@@ -7407,9 +7407,12 @@ otherwise these are NULL).
       if (class_type->variant.class_struct_union.is_interface &&
           check_virtual_interface_member(rtn, locator)) {
         /* This member is implicitly pure virtual by virtue of being
-           declared in an interface class type. */
+           declared in an interface class type.  Interfaces with virtual
+           members cannot be PODs (in particular, they need generated
+           copy-constructors to set virtual function table pointers.) */
         make_virtual_function_pure(rtn, class_type);
         is_virtual = TRUE;
+        class_state->POD_ruled_out = TRUE;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (check_for_virtual_function(is_virtual, sym, class_type, class_state,
