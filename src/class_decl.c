@@ -8858,7 +8858,7 @@ specific information about the member declaration, respectively.
       class_type->variant.class_struct_union.has_zero_init_component = TRUE;
     }  /* if */
   } else {
-    if (unnamed_field && field->is_bit_field) {
+    if (!(unnamed_field && field->is_bit_field)) {
       /* Unnamed bit fields do not need to be initialized.  Other fields that
          do not have a class (or array of class) type may need to be zero-
          initialized. */
