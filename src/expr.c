@@ -2837,8 +2837,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
        operator. */
     op = is_increment ? (an_expr_operator_kind)eok_post_incr :
                         (an_expr_operator_kind)eok_post_decr;
-    template_unary_operation(op, curr_token, operand,
-                             result, &operator_position);
+    template_unary_operation(op, operand, result, &operator_position);
   } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     property_ref_case = is_property_ref_operand(operand);
@@ -3106,8 +3105,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
        operator. */
     op = is_increment ? (an_expr_operator_kind)eok_pre_incr :
                         (an_expr_operator_kind)eok_pre_decr;
-    template_unary_operation(op, save_token, &operand,
-                             result, &start_position);
+    template_unary_operation(op, &operand, result, &start_position);
     result->state = (an_operand_state)os_lvalue;
   } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3360,8 +3358,7 @@ operation is a pointer-to-member (see ARM 5.3).
         }  /* if */
       }  /* if */
       template_unary_operation((an_expr_operator_kind)eok_address,
-                               tok_ampersand, &operand,
-                               result, &start_position);
+                               &operand, result, &start_position);
     } else {
       if (C_dialect == C_dialect_cplusplus &&
           is_overloadable_type_operand(&operand) &&
@@ -3485,8 +3482,7 @@ See section 3.3.3.2 of the standard.
        check its type.  Just produce an expression with a generic
        operator. */
     template_unary_operation((an_expr_operator_kind)eok_indirect,
-                             tok_star, &operand,
-                             result, &start_position);
+                             &operand, result, &start_position);
     result->state = (an_operand_state)os_lvalue;
   } else {
     if (C_dialect == C_dialect_cplusplus &&
@@ -3602,9 +3598,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
   /* Determine the operator. */
   switch (save_token) {
     case tok_plus:
-      /* op does not need to be set (see below), but set it to avoid
-         warnings from analysis tools. */
-      op = (an_expr_operator_kind)eok_error;
+      op = (an_expr_operator_kind)eok_unary_plus;
       break;
     case tok_not:
       op = (an_expr_operator_kind)eok_not;
@@ -3631,8 +3625,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
     if (save_token == (a_token_kind)tok_minus) {
       op = (an_expr_operator_kind)eok_negate;
     }  /* if */
-    template_unary_operation(op, save_token, &operand,
-                             result, &start_position);
+    template_unary_operation(op, &operand, result, &start_position);
     processed = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg) &&
              is_bad_type_for_template_arg_operand(operand.type) &&
@@ -3695,7 +3688,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
       result_type = operand.type;
     }  /* if */
     /* Build the IL for the operation. */
-    do_unary_operation(op, save_token, &operand, result_type, result,
+    do_unary_operation(op, &operand, result_type, result,
                        &start_position);
   }  /* if */
 

@@ -2144,6 +2144,9 @@ expressions on nontype template parameters in function signatures.
     case eok_fnegate:
       opkind = (an_opname_kind)onk_minus;
       break;
+    case eok_unary_plus:
+      opkind = (an_opname_kind)onk_plus;
+      break;
     case eok_not:
       opkind = (an_opname_kind)onk_not;
       break;

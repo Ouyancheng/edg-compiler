@@ -1734,6 +1734,9 @@ the reason is that the constant is a template parameter constant).
         case eok_inegate:
           do_inegate(constant, result, &err_code, &err_severity);
           break;
+        case eok_unary_plus:
+          copy_constant(constant, result);
+          break;
         case eok_complement:
           do_complement(constant, result, &err_code, &err_severity);
           break;

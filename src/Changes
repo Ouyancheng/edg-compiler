@@ -1,5 +1,12 @@
 Version 2.44
 
+5/9/00   IL eok_unary_plus operator, for unary "+", in some configurations
+
+When UNARY_PLUS_IN_IL is TRUE (default is FALSE except when the
+C++-generating back end is being used), the unary plus operator is
+retained in the IL.  When it is FALSE, +expr is represented simply as
+expr, which is what the front end has heretofore done.
+
 5/7/00   Change in cfront mode command-line option processing
 
 Formerly, the cfront mode command-line options would set certain

@@ -988,14 +988,12 @@ extern void template_binary_operation(
                                      a_source_position     *operator_position);
 
 extern void do_unary_operation(an_expr_operator_kind op,
-                               a_token_kind          op_token,
                                an_operand            *operand,
                                a_type_ptr            result_type,
                                an_operand            *result,
                                a_source_position     *start_position);
 
 extern void template_unary_operation(an_expr_operator_kind op,
-                                     a_token_kind          op_token,
                                      an_operand            *operand,
                                      an_operand            *result,
                                      a_source_position     *start_position);

@@ -5060,6 +5060,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_fnegate:
           opstr = "-";
           break;
+        case eok_unary_plus:
+          opstr = "+";
+          break;
         case eok_not:
           write_tok_ch('!');
           gen_boolean_controlling_expression(operand_1);

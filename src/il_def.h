@@ -5487,6 +5487,8 @@ enum an_expr_operator_kind_tag {
   eok_indirect,         /* Pointer de-reference ("*" operator). */
   eok_inegate,          /* Integer negation. */
   eok_fnegate,          /* Floating negation. */
+  eok_unary_plus,	/* Unary "+" (integer, floating, or pointer).  See
+			   UNARY_PLUS_IN_IL. */
   eok_not,              /* Logical complement ("!" operator).  Operand has been
                            standardized to integer/logical. */
   eok_cast,             /* Type cast.  The type of the expression indicates
@@ -8084,7 +8086,7 @@ EXTERN struct il_header_tag {
 /* Table of debug names for expression operators. */
 EXTERN char     *db_operator_names[(int)eok_last+1]
 #if VAR_INITIALIZERS
-= {"*", "i-", "f-", "!", "cast",
+= {"*", "i-", "f-", "+", "!", "cast",
 #ifdef CIL
    "base class cast", "derived class cast",
    "pm base class cast", "pm derived class cast",

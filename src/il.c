@@ -7182,6 +7182,7 @@ to TRUE.  *source_pos gives the source position for errors.
        operation. */
     switch (op) {
       case eok_inegate:
+      case eok_unary_plus:
       case eok_complement:
         do_promotion = TRUE;
         break;

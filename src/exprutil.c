@@ -4629,18 +4629,16 @@ be used (e.g., eok_add, not eok_iadd).
 
 
 void do_unary_operation(an_expr_operator_kind op,
-                        a_token_kind          op_token,
                         an_operand            *operand,
                         a_type_ptr            result_type,
                         an_operand            *result,
                         a_source_position     *start_position)
 /*
 Perform a unary operation on one operand yielding a result.  op
-indicates the operation (and op_token the associated token), and
-operand is the operand.  result_type indicates the type of result; the
-result is placed in *result.  If the operand is constant, the operation
-will be folded if possible.  start_position indicates the operator
-position.
+indicates the operation, and operand is the operand.  result_type indicates
+the type of result; the result is placed in *result.  If the operand is
+constant, the operation will be folded if possible.  start_position
+indicates the operator position.
 */
 {
   a_boolean  did_not_fold, template_constant;
@@ -4649,72 +4647,74 @@ position.
   if (is_error_operand(operand)) {
     make_error_operand(result);
   } else {
-    if (op_token == tok_plus) {
-      /* The result of a unary plus is the promoted operand. */
-      copy_operand(operand, result);
-    } else {
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-      /* Create an IL representation of the expression.  It will be recorded
-         in a constant if the expression is folded. */
-      an_operand  result_expr;
-      build_unary_result_operand(operand, op, result_type, &result_expr);
+    /* Create an IL representation of the expression.  It will be recorded
+       in a constant if the expression is folded. */
+    an_operand  result_expr;
+    build_unary_result_operand(operand, op, result_type, &result_expr);
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-      /* Other operators (not unary "+"). */
-      did_not_fold = TRUE;
-      template_constant = FALSE;
-      if (is_constant_operand(operand) &&
-          /* "&" isn't handled by unary_operation. */
-          op != (an_expr_operator_kind)eok_address) {
-        /* Fold the operation if the operand is constant.  In a nonconstant
-           context, reduce any error to a warning and leave the operation
-           to be done at runtime. */
-        unary_operation(op, &operand->variant.constant,
-                        result_type, &result_constant,
-                        curr_expr_kind_is_const(),
-                        curr_expr_is_evaluated(),
-                        &did_not_fold, &template_constant, start_position);
-      }  /* if */
-      if (did_not_fold) {
-        if (!template_constant && curr_expr_kind_is_const() &&
-            curr_expr_is_evaluated()) {
-          /* A constant operation could not be folded in a constant
-             expression. */
-          pos_error(ec_expr_not_constant, start_position);
-          make_error_operand(result);
-        } else {
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-          copy_operand(&result_expr, result);
-#else /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-          /* The operation could not be folded to a constant, so build
-             an expression node. */
-          build_unary_result_operand(operand, op, result_type, result);
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-          if (template_constant) {
-            /* For an expression based on a template parameter, scanned
-               during the prototype instantiation, make a ck_template_param
-               constant for the result. */
-            make_template_param_expr_constant_operand(
-                                       make_node_from_operand(result), result);
-          }  /* if */
-        }  /* if */
+    did_not_fold = TRUE;
+    template_constant = FALSE;
+    if (is_constant_operand(operand) &&
+        /* "&" isn't handled by unary_operation. */
+        op != (an_expr_operator_kind)eok_address) {
+      /* Fold the operation if the operand is constant.  In a nonconstant
+         context, reduce any error to a warning and leave the operation
+         to be done at runtime. */
+      unary_operation(op, &operand->variant.constant,
+                      result_type, &result_constant,
+                      curr_expr_kind_is_const(),
+                      curr_expr_is_evaluated(),
+                      &did_not_fold, &template_constant, start_position);
+    }  /* if */
+    if (did_not_fold) {
+      if (!template_constant && curr_expr_kind_is_const() &&
+          curr_expr_is_evaluated()) {
+        /* A constant operation could not be folded in a constant
+           expression. */
+        pos_error(ec_expr_not_constant, start_position);
+        make_error_operand(result);
       } else {
-        /* The operation was folded to a constant. */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-        if (!(curr_expr_kind_is(ek_pp) ||
-              curr_expr_kind_is(ek_template_arg))) {
-          /* Record the expression in the constant. */
-          result_constant.expr = result_expr.variant.expression;
-        }  /* if */
+        copy_operand(&result_expr, result);
+#else /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+        /* The operation could not be folded to a constant, so build
+           an expression node. */
+        build_unary_result_operand(operand, op, result_type, result);
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-        make_constant_operand(&result_constant, result);
+#if !UNARY_PLUS_IN_IL
+        if (op == (an_expr_operator_kind)eok_unary_plus &&
+            !is_template_dependent_context()) {
+          /* Do not put the unary "+" in the IL.  The unary "+" operator
+             was added in version 2.44, and pre-existing back ends didn't
+             know about it. */
+          copy_operand(operand, result);
+        }  /* if */
+#endif /* !UNARY_PLUS_IN_IL */
+        if (template_constant) {
+          /* For an expression based on a template parameter, scanned
+             during the prototype instantiation, make a ck_template_param
+             constant for the result. */
+          make_template_param_expr_constant_operand(
+                                       make_node_from_operand(result), result);
+        }  /* if */
       }  /* if */
+    } else {
+      /* The operation was folded to a constant. */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      if (!(curr_expr_kind_is(ek_pp) ||
+            curr_expr_kind_is(ek_template_arg))) {
+        /* Record the expression in the constant. */
+        result_constant.expr = result_expr.variant.expression;
+      }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+      make_constant_operand(&result_constant, result);
     }  /* if */
   }  /* if */
 }  /* do_unary_operation */
 
 
 void template_unary_operation(an_expr_operator_kind op,
-                              a_token_kind          op_token,
                               an_operand            *operand,
                               an_operand            *result,
                               a_source_position     *start_position)
@@ -4760,7 +4760,7 @@ be used (e.g., eok_negate, not eok_inegate).
     }  /* if */
   } else {
     /* Normal case. */
-    do_unary_operation(op, op_token, operand,
+    do_unary_operation(op, operand,
                        type_of_unknown_templ_param_nontype,
                        result, start_position);
   }  /* if */

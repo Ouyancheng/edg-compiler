@@ -3112,6 +3112,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           is_unary = TRUE;
           opstr = "-";
           break;
+        case eok_unary_plus:
+          is_unary = TRUE;
+          opstr = "+";
+          break;
         case eok_not:
           write_tok_ch('!');
           dump_boolean_controlling_expression(operand_1);
