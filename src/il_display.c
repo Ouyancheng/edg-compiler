@@ -491,9 +491,9 @@ Print a short version of the constant at *cp.
   /* Be careful -- some constants have no type. */
   if (con_type == NULL) {
     if (cp->kind != (a_constant_repr_kind)ck_aggregate
+        && cp->kind != (a_constant_repr_kind)ck_init_repeat
 #ifdef FFE
         && cp->kind != (a_constant_repr_kind)ck_init_position
-        && cp->kind != (a_constant_repr_kind)ck_init_repeat
 #endif /* ifdef FFE */
                                                            ) {
       (void)printf("**BAD CONSTANT TYPE**");
