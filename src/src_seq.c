@@ -1040,6 +1040,26 @@ end; otherwise, insert it immediatedly before insert_before.
 }  /* insert_src_seq_list */
 
 
+static void recycle_src_seq_entry(a_source_sequence_entry_ptr  ssep)
+/*
+Return the given source sequence entry to the appropriate available list.
+*/
+{
+  a_source_sequence_entry_ptr  *avail_list_ptr;
+
+  if (in_file_scope(ssep)) {
+    avail_list_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE].
+                                                   source_sequence_avail_list;
+  } else {
+    check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH); 
+    avail_list_ptr = &scope_stack[depth_innermost_function_scope].
+                                                   source_sequence_avail_list;
+  }  /* if */
+  ssep->next = *avail_list_ptr;
+  *avail_list_ptr = ssep;
+}  /* recycle_src_seq_entry */
+
+
 void f_remove_from_src_seq_list(a_source_sequence_entry_ptr  ssep,
                                 a_scope_depth                depth)
 /*
@@ -1054,8 +1074,6 @@ sequence list.  That is not a problem as long as it is not called after
 fixup_function_scope_source_sequence_list has been called.)
 */
 {
-  a_source_sequence_entry_ptr  *avail_list_ptr;
-
   db_enter(4, "f_remove_from_src_seq_list");
   /* Entries allocated in the file scope memory region may be on the list of
      the file scope itself or on a side list of a function scope. */
@@ -1083,18 +1101,57 @@ fixup_function_scope_source_sequence_list has been called.)
     (void)unlink_src_seq_entry(ssep, scope_stack_ptr);
   }  /* if */
   /* Add it to the head of the available list. */
-  if (in_file_scope(ssep)) {
-    avail_list_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE].
-                                              source_sequence_avail_list;
-  } else {
-    check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH); 
-    avail_list_ptr = &scope_stack[depth_innermost_function_scope].
-                                              source_sequence_avail_list;
-  }  /* if */
-  ssep->next = *avail_list_ptr;
-  *avail_list_ptr = ssep;
+  recycle_src_seq_entry(ssep);
   db_exit();
 }  /* f_remove_from_src_seq_list */
+
+
+static void remove_src_seq_entry(a_source_sequence_entry_ptr  ssep)
+/*
+The given source sequence entry must be removed from the list it is on.
+This routine makes no assumption as to which scope that list is associated
+with: It considers all active scopes if needed.
+*/
+{
+  a_scope_depth  depth = NO_SCOPE_DEPTH, d;
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  for (d = depth_scope_stack; d >= DEPTH_OF_FILE_SCOPE; --d) {
+    if (scope_stack[d].ss_list_instantiation_insert_point == ssep) {
+      scope_stack[d].ss_list_instantiation_insert_point = ssep->next;
+    }  /* if */
+  }  /* for */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  if (ssep->prev != NULL && ssep->next != NULL) {
+    /* The source sequence entry is in the middle of a list: There is no
+       need to know which list that is. */
+    ssep->prev->next = ssep->next;
+    ssep->next->prev = ssep->prev;
+    recycle_src_seq_entry(ssep);
+  } else {
+    /* This entry is the first or last entry on a list.  We must therefore
+       determine which scope that list is associated with.  It must either
+       be a scope that is on the current scope stack, or it is the list
+       associated with the file scope IL entry. */
+    if (ssep->prev == NULL) {
+      /* ssep if the first entry on a list. */
+      for (d = depth_scope_stack; d >= DEPTH_OF_FILE_SCOPE; --d) {
+        if (scope_stack[d].source_sequence_list == ssep) {
+          depth = d;
+          break;
+        }  /* if */
+      }  /* for */
+    } else {
+      /* ssep if the last entry on a list. */
+      for (d = depth_scope_stack; d >= DEPTH_OF_FILE_SCOPE; --d) {
+        if (scope_stack[d].end_of_source_sequence_list == ssep) {
+          depth = d;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    f_remove_from_src_seq_list(ssep, depth);
+  }  /* if */
+}  /* remove_src_seq_entry */
 
 
 a_src_seq_secondary_decl_ptr make_source_sequence_secondary_decl(
@@ -2142,7 +2199,6 @@ may do fixup on entities pointed to by source-sequence entries it removes.
   return ssep->next;
 }  /* drop_tag_def_from_src_seq_list */
 
-#endif /* MAINTAIN_NEEDED_FLAGS */
 
 static a_source_sequence_entry_ptr drop_from_fs_src_seq_list(
                                              a_source_sequence_entry_ptr  ssep)
@@ -2181,6 +2237,7 @@ the source sequence entry that follows the entry or entries removed.
   return next_ssep;
 }  /* drop_from_fs_src_seq_list */
 
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 static void promote_src_seq_sublists_to_file_scope_list(a_scope_ptr  sp)
 /*
@@ -2315,7 +2372,7 @@ associated with the indicated sck_function scope.
         db_source_sequence_entry(ssep);
       }  /* if */
 #endif /* DEBUG */
-      (void)drop_from_fs_src_seq_list(ssep);
+      remove_src_seq_entry(ssep);
       /* The source-sequence entry pointer in the routine needs to be
          reset as though the definition had never happened.  This means
          finding its non-defining declaration within the class or
