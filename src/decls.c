@@ -1134,7 +1134,6 @@ current scope.
                                          &pos_curr_token,
                                          scope_stack[decl_scope_level].number);
   assoc_object_sym->variant.variable.ptr = vp;
-  set_source_corresp(&vp->source_corresp, assoc_object_sym);
   if (at_file_or_namespace_scope) {
     set_namespace_membership(assoc_object_sym, &vp->source_corresp,
                              (a_namespace_ptr)NULL);
