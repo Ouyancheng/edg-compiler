@@ -63,7 +63,7 @@ the release should contain no defines.
 #define CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG 0
 #define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY 0
 #define NEW_CAN_BE_FOLDED_INTO_CTOR 0
-#define TARG_WCHAR_T_INT_KIND ((an_integer_kind)il_long)
+#define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
 
 #endif /* defined(sun) */
