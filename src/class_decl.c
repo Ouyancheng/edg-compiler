@@ -5011,9 +5011,10 @@ is TRUE when this is called for a member function definition.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-void member_decl_is_copy_constructor(a_routine_ptr	rout_ptr,
-				     a_type_ptr		class_type,
-				     a_boolean		compiler_generated)
+void check_member_decl_is_copy_constructor(
+				a_routine_ptr		rout_ptr,
+				a_type_ptr		class_type,
+				a_boolean		compiler_generated)
 /*
 Determine whether the routine pointed to by rout_ptr is a copy constructor.
 Update the flags in the class symbol supplement accordingly.
@@ -5036,7 +5037,7 @@ Update the flags in the class symbol supplement accordingly.
       cssp->construction_by_bitwise_copy_allowed = FALSE;
     }  /* if */
   }  /* if */
-}  /* member_decl_is_copy_constructor */
+}  /* check_member_decl_is_copy_constructor */
 
 
 static void decl_member_function(a_symbol_locator        *locator,
@@ -5330,7 +5331,8 @@ declared member functions.
         }  /* if */
         /* Determine if this is a copy constructor.  If so, set the class
            symbol supplement flags appropriately. */
-        member_decl_is_copy_constructor(rtn, class_type, compiler_generated);
+        check_member_decl_is_copy_constructor(rtn, class_type,
+                                              compiler_generated);
       }  /* if */
     } else if (rtn->special_kind == (a_special_function_kind)sfk_destructor) {
       /* Set the pointer to the destructor symbol in the class symbol

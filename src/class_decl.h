@@ -66,10 +66,10 @@ void add_routine_fixup_for_specialization(a_type_ptr		class_type,
 					  a_func_info_block	*func_info,
 					  a_token_cache_ptr	body_cache);
 
-extern
-void member_decl_is_copy_constructor(a_routine_ptr	rout_ptr,
-				     a_type_ptr		class_type,
-				     a_boolean		compiler_generated);
+extern void check_member_decl_is_copy_constructor(
+				a_routine_ptr		rout_ptr,
+				a_type_ptr		class_type,
+				a_boolean		compiler_generated);
 
 extern void report_abstract_class_error(an_error_code      error_code,
                                         a_type_ptr         class_type,

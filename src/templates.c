@@ -9051,9 +9051,9 @@ that follows.
                a specialization can only be considered a copy constructor
                in Microsoft mode too. */
             if (is_constructor_symbol(sym)) {
-              member_decl_is_copy_constructor(rp,
-                                              decl_state->class_declared_in,
-                                              /*compiler_generated=*/FALSE);
+              check_member_decl_is_copy_constructor(
+                                         rp, decl_state->class_declared_in,
+                                         /*compiler_generated=*/FALSE);
             }  /* if */
           } else {
             scan_function_body(sym->variant.routine.ptr, &func_info,
