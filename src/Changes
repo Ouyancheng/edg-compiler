@@ -1,5 +1,7 @@
 Version 2.45
 
+9/12/00  
+
 9/12/00  Additional source position information for class template
          prototype instantiations
 
@@ -33,7 +35,7 @@ This is now fixed.
 9/11/00  Error recovery on invalid partial specialization
 
 An internal error could occur if a partial specialization was (incorrectly)
-declared within the defintion of the primary template (although this
+declared within the definition of the primary template (although this
 example does not result in such an internal error).  This has been fixed.
 
   template <class T> struct A {
