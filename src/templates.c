@@ -6400,6 +6400,9 @@ associated parameter.
         if (const_type != new_const_type &&
             (is_void_type(new_const_type) ||
              is_class_struct_union_type(new_const_type) ||
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+             const_type->kind == (a_type_kind)tk_fixed_point ||
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
              (new_const_type->kind == (a_type_kind)tk_float &&
               !floating_point_template_parameters_allowed))) {
           new_const_type = error_type();
@@ -12077,6 +12080,12 @@ depends on a template parameter type, return TRUE in *template_dependent
          as of 3/94. */
       pos_error(ec_float_template_parameter, &param_pos);
     }  /* if */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  } else if (tp->kind == (a_type_kind)tk_fixed_point) {
+    /* A template parameter cannot have a fixed point type, if enabled in
+       C++ mode. */
+    pos_error(ec_fixed_template_parameter, &param_pos);
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* scan_a_template_parameter_declaration */
 

@@ -1359,6 +1359,7 @@ ec_taking_address_of_temporary;;"taking the address of a temporary"
 ec_attribute_ignored_on_incomplete_class_decl;;"attributes are ignored on a class declaration that is not also a definition"
 ec_implicit_fixed_point_to_floating_point_conversion;;"fixed-point value implicitly converted to floating-point type"
 ec_no_classification_for_fixed_point_type;;"fixed-point types have no classification"
+ec_fixed_template_parameter;;"a template parameter may not have fixed-point type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
