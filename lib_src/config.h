@@ -221,6 +221,29 @@ need to provide them).
 #define SYSTEM_RUNTIME_HAS_IA64_SUPPORT FALSE
 #endif /* ifdef __EDG_IA64_ABI */
 
+/*
+Some systems have partial IA-64 support in their runtime, but lack the
+__cxa_atexit function.  This flag (when TRUE) indicates that the system
+runtime includes the __cxa_atexit function.
+*/
+#ifdef __EDG_IA64_ABI
+#ifndef SYSTEM_RUNTIME_HAS_IA64_ATEXIT
+
+#if SYSTEM_RUNTIME_HAS_IA64_SUPPORT
+#ifdef __linux__
+#define SYSTEM_RUNTIME_HAS_IA64_ATEXIT TRUE
+#else /* ifndef __linux__ */
+#define SYSTEM_RUNTIME_HAS_IA64_ATEXIT FALSE
+#endif /* ifdef __linux__ */
+#else /* !SYSTEM_RUNTIME_HAS_IA64_SUPPORT */
+/* The system does not have IA-64 support, so it can't have atexit. */
+#define SYSTEM_RUNTIME_HAS_IA64_ATEXIT FALSE
+#endif /* SYSTEM_RUNTIME_HAS_IA64_SUPPORT */
+#endif /* ifndef SYSTEM_RUNTIME_HAS_IA64_ATEXIT */
+
+#else /* ifndef __EDG_IA64_ABI */
+#define SYSTEM_RUNTIME_HAS_IA64_ATEXIT FALSE
+#endif /* ifdef __EDG_IA64_ABI */
 
 #if EXCEPTION_HANDLING
 /*

@@ -180,6 +180,9 @@ dso_handle is NULL.
   }  /* while */
 }  /* __cxa_finalize */
 
+#endif /* !SYSTEM_RUNTIME_HAS_IA64_SUPPORT */
+
+#if !SYSTEM_RUNTIME_HAS_IA64_ATEXIT
 
 int ABI_NAMESPACE::__cxa_atexit(a_destructor_ptr destruction_routine,
                                 void             *object,
@@ -208,7 +211,7 @@ when __cxa_finalize is called with a matching dso_handle parameter.
   return success;
 }  /* __cxa_atexit */
 
-#endif /* !SYSTEM_RUNTIME_HAS_IA64_SUPPORT */
+#endif /* !SYSTEM_RUNTIME_HAS_IA64_ATEXIT */
 
 #endif /* defined(__EDG_IA64_ABI) */
 
