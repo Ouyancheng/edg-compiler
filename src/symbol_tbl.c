@@ -3702,7 +3702,7 @@ symbol must be added to the inactive list.
     }  /* if */
     if (hidden_sym != NULL && !redecl_err) {
       /* hidden_sym represents a local variable hidden by another local
-         variable declaration.  Issue a remark.  (The remark is delayed
+         variable declaration.  Issue a remark.  The remark is delayed
          until we know that the declaration was not the cause of an error
          (in which case the remark would be moot). */
       pos_sy_remark(ec_local_variable_hidden, &sym_ptr->decl_position,
