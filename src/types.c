@@ -1968,6 +1968,10 @@ qualification of a member function type.
   a_type_ptr                     result = rtsp->this_class;
 
 #if RESTRICT_ALLOWED
+  /* Note that the "restrict" qualifier goes on top of the pointer type (to
+     denote the limited aliasing of the "this" pointer) whereas the other
+     qualifiers apply to the underlying class type (to denote properties of
+     the object pointed to). */
   if ((rtsp->qualifiers & ~TQ_RESTRICT) != TQ_NONE) {
     result = make_qualified_type(result, rtsp->qualifiers & ~TQ_RESTRICT);
   }  /* if */

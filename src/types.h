@@ -639,8 +639,8 @@ Synthesize the type of the implicit "this" parameter of a routine if the
 underlying class exists (nonstatic members and pointer-to-members); otherwise
 NULL.
 */
-#define implicit_this_param_type_of(rout_type)                               \
-  (skip_typerefs(rout_type)->variant.routine.extra_info->this_class != NULL ?\
+#define implicit_this_param_type_of(rout_type)                         \
+  (routine_type_is_nonstatic_member_function(rout_type) ?              \
                               f_implicit_this_param_type_of(rout_type) : NULL)
 
 /*
