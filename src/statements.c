@@ -2660,6 +2660,11 @@ See also 3.6.4.1.
     sssep->in_else_of_if = TRUE;
     start_stmt_clause(sssep);
     dependent_statement();
+    /* Except for a case like "... else ;" (in C mode), there should always
+       be a non-NULL else-statement pointer. */
+    check_assertion_str(sp->variant.if_stmt.else_statement != NULL ||
+                        sp->has_empty_else_clause,
+                        "if_statement: else-stmt pointer is NULL");
   }  /* if */
   /* End the condition block, if necessary. */
   if (is_condition_decl) finish_condition_block();
@@ -4461,6 +4466,37 @@ Scan a default case label definition.  The syntax is:
 }  /* default_label */
 
 
+static void empty_statement(void)
+/*
+Do processing appropriate to an empty statement (i.e., just a semicolon.)
+*/
+{
+  a_statement_ptr  sp;
+
+  /* Issue diagnostics on pragmas that are trying to bind to the empty
+     statement. */
+  cannot_bind_to_curr_construct();
+  if (C_mode() && struct_stmt_stack[depth_stmt_stack].in_else_of_if) {
+    sp = struct_stmt_stack[depth_stmt_stack].statement;
+    check_assertion(sp != NULL && sp->kind == (a_statement_kind)stmk_if &&
+                    sp->variant.if_stmt.else_statement == NULL);
+    /* We are in the else-clause of a C-mode if-statement for which no block
+       statement was generated.  The empty statement cannot just be skipped
+       over (as usual), since that would be indistinguishable in the IL from
+       an omitted else clause, and
+           if (flag) if (flag2) ; else ; else <statement>;
+       is not the same as
+           if (flag) if (flag2) ; else <statement>;
+       (In C++ mode this is not an issue, since an implicit block statement
+       is generated for the else-clause even when there is no explicit
+       compound statement.)  Mark the statement. */
+    sp->has_empty_else_clause = TRUE;
+  }  /* if */
+  /* Advance past the semicolon. */
+  (void)get_token();
+}  /* empty_statement */
+
+
 static a_boolean statement(void)
 /*
 Scan a statement.  Add it to the current statement sequence.  Return
@@ -4489,10 +4525,7 @@ rescan_statement:
   switch(curr_token) {
     case tok_semicolon:
       /* Empty statement (part of expression-statement, 3.6.3). */
-      /* Issue diagnostics on pragmas that are trying to bind to the empty
-         statement. */
-      cannot_bind_to_curr_construct();
-      (void)get_token();
+      empty_statement();
       break;
     case tok_lbrace:
       /* Compound statement (3.6.2). */
