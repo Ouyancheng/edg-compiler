@@ -7434,9 +7434,6 @@ free that list.  This routine is only used in C++.
     /* There is at least one conversion function that converts some other
        class into the desired class, and the source type is a class.
        See if there is a conversion function that does the job. */
-    /* Note the use of best_match_list rather than best_this_match so that
-       the match on the "this" is compared to the match on the first
-       argument of the constructor cases. */
     try_conversion_function_match(source_operand, dest_type,
                                   /*integral_allowed=*/FALSE,
                                   /*floating_allowed=*/FALSE,
