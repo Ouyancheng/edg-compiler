@@ -352,10 +352,7 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
               db_abbreviated_type((a_type_ptr)entity);
             } else {
               if (scp != NULL) {
-                db_name(scp);
-                if (kind == (an_il_entry_kind)iek_routine) {
-                  db_function_param_list(((a_routine_ptr)entity)->type);
-                }  /* if */
+                db_name_full(scp, kind);
               } else {
                 fprintf(f_debug, "\?\?\?");
               }  /* if */
@@ -489,10 +486,7 @@ flags cleared.  Note that this happens even if no hiding had occurred.
       db_abbreviated_type((a_type_ptr)hnp->entity.ptr);
     } else {
       if (scp != NULL) {
-        db_name(scp);
-        if (entity_kind == (an_il_entry_kind)iek_routine) {
-          db_function_param_list(((a_routine_ptr)hnp->entity.ptr)->type);
-        }  /* if */
+        db_name_full(scp, entity_kind);
       } else {
         fprintf(f_debug, "\?\?\?");
       }  /* if */

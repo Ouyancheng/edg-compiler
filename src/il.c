@@ -468,7 +468,7 @@ Dump a field entry, for debug purposes.
     (void)fputc(' ', f_debug);
   }  /* if */
   fputs("field \"", f_debug);
-  db_name(&fp->source_corresp);
+  db_name_full(&fp->source_corresp, iek_field);
   fputs("\"", f_debug);
   if (fp->is_mutable) fputs(", mutable", f_debug);
   fputs(", type = ", f_debug);
@@ -489,7 +489,7 @@ Dump a static data member (a variable entry), for debug purposes.
   fputs("\n  ", f_debug);
   db_access_control((an_access_specifier)vp->source_corresp.access);
   fputs(" static data member \"", f_debug);
-  db_name(&vp->source_corresp);
+  db_name_full(&vp->source_corresp, iek_variable);
   fputs("\" (", f_debug);
   db_name_linkage((a_name_linkage_kind)vp->source_corresp.name_linkage);
   fprintf(f_debug, " linkage), sc_%s, type = ",
@@ -513,7 +513,7 @@ Dump a member function (a routine entry), for debug purposes.
     fprintf(f_debug, " virtual (%d)", rp->virtual_function_number);
   }  /* if */
   fputs(" member function \"", f_debug);
-  db_name(&rp->source_corresp);
+  db_name_full(&rp->source_corresp, iek_routine);
   fputs("\" (", f_debug);
   db_name_linkage((a_name_linkage_kind)rp->source_corresp.name_linkage);
   fprintf(f_debug, " linkage)%s, sc_%s,\n    type = ",
@@ -541,7 +541,9 @@ debug purposes.
                      (unsigned long)ctsp->virtual_function_info_offset);
     if (ctsp->virtual_function_info_base_class != NULL) {
       fputs(", in ", f_debug);
-      db_name(&ctsp->virtual_function_info_base_class->type->source_corresp);
+      db_name_full(
+                 &ctsp->virtual_function_info_base_class->type->source_corresp,
+                 iek_type);
     }  /* if */
   }  /* if */
 }  /* db_virtual_function_info */
@@ -814,7 +816,7 @@ Dump information on a using-decl entry, for debug purposes.
       if (!udp->is_class_member && sc->parent.namespace_ptr == NULL) {
         fputs("::", f_debug);
       }  /* if */
-      db_name(sc);
+      db_name_full(sc, (an_il_entry_kind)udp->entity.kind);
       if (udp->hidden) fprintf(f_debug, ", hidden");
       if (udp->entity.kind == (a_byte_il_entry_kind)iek_routine) {
         fputs(",\n        ", f_debug);
@@ -926,7 +928,8 @@ Dump the contents of the indicated type entry, for debug purposes.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (tp->variant.pointer.base_variable != NULL) {
             fputs("based(", f_debug);
-            db_name(&tp->variant.pointer.base_variable->source_corresp);
+            db_name_full(&tp->variant.pointer.base_variable->source_corresp,
+                         iek_variable);
             fputs(") ", f_debug);
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1088,8 +1091,8 @@ Dump the contents of the indicated type entry, for debug purposes.
         fputs("function", f_debug);
         if (rtsp->assoc_routine != NULL) {
           fputs(" ", f_debug);
-          db_name(&rtsp->assoc_routine->source_corresp);
-        }
+          db_name_full(&rtsp->assoc_routine->source_corresp, iek_routine);
+        }  /* if */
         fputs("(", f_debug);
         if (!rtsp->prototyped) {
           fputs(" unprototyped", f_debug);
@@ -1139,7 +1142,8 @@ Dump the contents of the indicated type entry, for debug purposes.
                   db_constant(expr->variant.constant);
                   break;
                 case enk_variable:
-                  db_name(&expr->variant.variable->source_corresp);
+                  db_name_full(&expr->variant.variable->source_corresp,
+                               iek_variable);
                   break;
                 case enk_error:
                   fputs("<error>", f_debug);
@@ -1170,7 +1174,7 @@ Dump the contents of the indicated type entry, for debug purposes.
           fputs("typeref ", f_debug);
           if (has_name(tp)) { 
             fputs("\"", f_debug);
-            db_name(&tp->source_corresp);
+            db_name_full(&tp->source_corresp, iek_type);
             fputs("\" ", f_debug);
           }  /* if */
           if (tp->variant.typeref.is_placeholder_for_class_instantiation) {
@@ -1277,7 +1281,7 @@ Dump the contents of the indicated variable for debug purposes.
 */
 {
   fputs("name = ", f_debug);
-  db_name(&var_ptr->source_corresp);
+  db_name_full(&var_ptr->source_corresp, iek_variable);
   if (var_ptr->is_this_parameter) fputs(" (this)", f_debug);
   fputs(", type = ", f_debug);
   db_abbreviated_type(var_ptr->type);
@@ -1341,7 +1345,7 @@ Dump the contents of the indicated expression node for debug purposes.
       break;
     case enk_field:
       fprintf(f_debug, "field ");
-      db_name(&node->variant.field->source_corresp);
+      db_name_full(&node->variant.field->source_corresp, iek_field);
       fputs("\n", f_debug);
       break;
     case enk_temp_init:
@@ -1394,7 +1398,7 @@ Dump the contents of the indicated expression node for debug purposes.
         if (vp == NULL) {
           fputs("<null variable>", f_debug);
         } else {
-          db_name(&vp->source_corresp);
+          db_name_full(&vp->source_corresp, iek_variable);
         }  /* if */
         fputs(" = ", f_debug);
         db_dynamic_initializer(node->variant.condition->dynamic_init, level+2);
@@ -1549,7 +1553,7 @@ entry.
   fprintf(f_debug, "%sdtor: ",
         dip->destruction_is_for_partially_constructed_aggregate ? "EH-" : "");
   if (dtor != NULL) {
-    db_name(&dtor->source_corresp);
+    db_name_full(&dtor->source_corresp, iek_routine);
     fputs("()", f_debug);
   } else {
     fputs("<NULL>", f_debug);
@@ -1574,8 +1578,7 @@ dik_constructor.
   if (dip->variant.constructor.ptr == NULL) {
     fputs("<null>", f_debug);
   } else {
-    db_name(&dip->variant.constructor.ptr->source_corresp);
-    db_function_param_list(dip->variant.constructor.ptr->type);
+    db_name_full(&dip->variant.constructor.ptr->source_corresp, iek_routine);
   }  /* if */
   if (dip->destructor != NULL) {
     fputs("; ", f_debug);
@@ -1695,7 +1698,7 @@ Dump a dynamic initializer entry for debug purposes.
 
   if (dip->variable != NULL) {
     fputs("variable: \"", f_debug);
-    db_name(&dip->variable->source_corresp);
+    db_name_full(&dip->variable->source_corresp, iek_variable);
     fputs("\", ", f_debug);
   }  /* if */
   switch (dip->kind) {
@@ -10010,7 +10013,7 @@ related to "needed" flags.
 #if DEBUG
     if (db_trace("needed_flags", rout, iek_routine)) {
       fprintf(f_debug, "Setting defined on rout ");
-      db_name(&rout->source_corresp);
+      db_name_full(&rout->source_corresp, iek_routine);
       fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
@@ -10412,7 +10415,7 @@ destruction.
 {
   if (dip->variable != NULL) {
     fputs("variable: \"", f_debug);
-    db_name(&dip->variable->source_corresp);
+    db_name_full(&dip->variable->source_corresp, iek_variable);
     fputs("\", ", f_debug);
   }  /* if */
   db_destructor(dip);
@@ -11370,7 +11373,7 @@ Write out a scope entry for debugging purposes.
       } else if (sp->kind == (a_scope_kind)sck_namespace) {
         db_name(&sp->variant.assoc_namespace->source_corresp);
       } else {
-        db_name(&sp->variant.routine.ptr->source_corresp);
+        db_name_full(&sp->variant.routine.ptr->source_corresp, iek_routine);
       }  /* if */
       (void)fputc(')', f_debug);
     }  /* if */
@@ -11522,7 +11525,7 @@ eliminate_unneeded_scope_orphaned_list_entries).
 #if DEBUG
   if (debug_level >= 3 || db_trace("dump_elim", rp, iek_routine)) {
     fprintf(f_debug, "Removing function body for ");
-    db_name(&rp->source_corresp);
+    db_name_full(&rp->source_corresp, iek_routine);
     fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
@@ -11696,7 +11699,7 @@ cleared.
           if (debug_level >= 4 ||
               db_trace("dump_elim", friend_rout, iek_routine)) {
             fputs("  Routine ", f_debug);
-            db_name(&friend_rout->source_corresp);
+            db_name_full(&friend_rout->source_corresp, iek_routine);
             fputs(" no longer befriended by ", f_debug);
             db_type_name(class_type);
             fputc('\n', f_debug);
@@ -11720,7 +11723,7 @@ cleared.
       fprintf(f_debug, "class type: ");
       db_abbreviated_type(class_type);
       fprintf(f_debug, "\nfriend rout: ");
-      db_name(&friend_rout->source_corresp);
+      db_name_full(&friend_rout->source_corresp, iek_routine);
       fprintf(f_debug, "\n");
 #endif /* DEBUG */
         unexpected_condition_str2(
@@ -12155,7 +12158,7 @@ because, for example, they appear on orphan lists.
         if (debug_level >= 3 || db_trace("dump_elim", vp, iek_variable)) {
           fprintf(f_debug, "%semoving orphaned variable ",
                   il_entry_prefix_of(vp).keep_in_il ? "Not r" : "R");
-          db_name(&vp->source_corresp);
+          db_name_full(&vp->source_corresp, iek_variable);
           fputc('\n', f_debug);
         }  /* if */
 #endif /* DEBUG */
@@ -12290,7 +12293,7 @@ eliminated, if appropriate.
     if (debug_level >= 3 || db_trace("dump_elim", vp, iek_variable)) {
       fprintf(f_debug, "%semoving variable ",
               il_entry_prefix_of(vp).keep_in_il ? "Not r" : "R");
-      db_name(&vp->source_corresp);
+      db_name_full(&vp->source_corresp, iek_variable);
       fputc('\n', f_debug);
     }  /* if */
 #endif /* DEBUG */
@@ -12370,7 +12373,7 @@ eliminated, if appropriate.
     if (debug_level >= 3 || db_trace("dump_elim", rp, iek_routine)) {
       fprintf(f_debug, "%semoving routine ",
               il_entry_prefix_of(rp).keep_in_il ? "Not r" : "R");
-      db_name(&rp->source_corresp);
+      db_name_full(&rp->source_corresp, iek_routine);
       fputc('\n', f_debug);
     }  /* if */
 #endif /* DEBUG */
@@ -12465,8 +12468,9 @@ eliminated, if appropriate.
       if (hnp->entity.kind == (a_byte_il_entry_kind)iek_type) {
         db_abbreviated_type((a_type_ptr)hnp->entity.ptr);
       } else {
-        db_name(source_corresp_for_il_entry(hnp->entity.ptr,
-                                      (an_il_entry_kind)hnp->entity.kind));
+        db_name_full(source_corresp_for_il_entry(hnp->entity.ptr,
+                                           (an_il_entry_kind)hnp->entity.kind),
+                     (an_il_entry_kind)hnp->entity.kind);
       }  /* if */
       fputc('\n', f_debug);
     }  /* if */
