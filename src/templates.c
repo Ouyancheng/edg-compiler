@@ -12966,19 +12966,21 @@ it in the IL template entry.
 }  /* record_cache_checksum */
 
 
-static a_symbol_ptr template_static_data_member_declaration
-                    (a_tmpl_decl_state_ptr            decl_state,
+static a_symbol_ptr template_static_data_member_declaration(
+                     a_tmpl_decl_state_ptr            decl_state,
                      a_symbol_locator                 *locator,
+		     a_storage_class		      storage_class,
 		     a_decl_flag_set                  do_flags,
 		     a_type_ptr                       type,
 		     a_template_symbol_supplement_ptr *p_tssp)
 /*
 Scan a template static data member declaration.  locator identifies
-the static data member being declared.  do_flags contains the
+the static data member being declared.  storage_class is the storage class
+specified in the declaration, if any.  do_flags contains the
 declaration flags returned by declarator.  type is the type pointer
 returned by declarator.  template_param_list points to the parameter
-list for this template declaration.  p_tssp points to the location
-in which the template symbol supplement for this template should be
+list for this template declaration.  p_tssp points to the location in
+which the template symbol supplement for this template should be
 returned to the caller.
 */
 {
@@ -13054,6 +13056,11 @@ returned to the caller.
          in the class. */
       check_exception_specification(type, sym, &locator->source_position,
                                     /*is_redecl=*/TRUE);
+    }  /* if */
+    /* A storage class of sc_unspecified means "no storage class explicitly
+       specified" -- anything else is an error. */
+    if (storage_class != (a_storage_class)sc_unspecified) {
+      pos_error(ec_storage_class_not_allowed, &locator->source_position);
     }  /* if */
   }  /* if */
   /* Scan the initializer expression, if any, and cache its tokens.
@@ -14253,7 +14260,8 @@ any non-empty template parameter lists that were scanned.
       if (!is_function_type(type) && 
           locator.specific_symbol != NULL) {
         sym = template_static_data_member_declaration(
-                                 decl_state, &locator, do_flags, type, &tssp);
+                                 decl_state, &locator, storage_class,
+                                 do_flags, type, &tssp);
         /* Save a pointer to the token cache for the initializer.  tssp
            may be NULL in error cases. */
         if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;

@@ -1,5 +1,15 @@
 Version 3.2
 
+2/11/03  Missing error: storage class in template static data member definition
+
+The front end failed to diagnose the presence of a storage class in a
+template static data member definition.  Now fixed.
+
+  template <class T> struct A {
+    static int i;
+  };
+  template <class T> static int A<T>::i = 1;
+
 2/11/03  Missing strict-mode error on implicit "int" in template parameter
 
 A nontype template parameter declaration that omits an explicit type
