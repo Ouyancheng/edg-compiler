@@ -4198,7 +4198,8 @@ will return a pointer to the constructed object.
 
   db_enter(4, "make_default_constructor_body");
   /* Create the parameter variable -- needed for copy constructors only. */
-  rtsp = scope->variant.routine.ptr->type->variant.routine.extra_info;
+  rtsp = (skip_typerefs(scope->variant.routine.ptr->type))->
+                                                 variant.routine.extra_info;
   if (rtsp->param_type_list != NULL) {
     (void)make_parameter(rtsp->param_type_list, (a_storage_class)sc_auto,
                          (a_symbol_ptr)NULL);
@@ -4220,7 +4221,7 @@ Create the body for a default destructor.  It will return no value.
 */
 {
   db_enter(4, "make_default_destructor_body");
-  /* Create an statement block that is empty except for the return
+  /* Create a statement block that is empty except for the return
      statement. */
   scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
   scope->assoc_block->variant.block.statements =
@@ -4438,7 +4439,8 @@ operator routine or do bitwise assignment.
   /* The source variable of the copy is the first parameter on the parameters
      list for the routine.  There must be exactly one parameter for an
      assignment function. */
-  rtsp = scope->variant.routine.ptr->type->variant.routine.extra_info;
+  rtsp = (skip_typerefs(scope->variant.routine.ptr->type))->
+                                                  variant.routine.extra_info;
   source_var = make_parameter(rtsp->param_type_list, (a_storage_class)sc_auto,
                               (a_symbol_ptr)NULL);
   class_type =
@@ -5372,16 +5374,6 @@ class/struct/union is actually defined.
       tag_sym = enter_local_symbol(tag_kind, &locator, effective_decl_level,
                                    /*suppress_redecl_error=*/FALSE);
       set_source_corresp(&(class_type->source_corresp), tag_sym);
-      if (C_dialect == C_dialect_cplusplus) {
-        /* In C++, when a class is not local and not nested within a local
-           class, it is given linkage -- internal linkage by default, with a
-           possible change to external later (see check_class_linkage).
-           Local classes have no linkage and are not subject to this change. */
-        if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
-          class_type->source_corresp.name_linkage =
-                                           (a_name_linkage_kind)nlk_internal;
-        }  /* if */
-      }  /* if */
       if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
           scope_stack[decl_scope_level].kind !=
                                      (a_scope_kind)sck_class_struct_union) {
@@ -5418,6 +5410,16 @@ class/struct/union is actually defined.
       tag_sym = make_unnamed_class_symbol(tag_kind, class_type,
                                           &pos_curr_token);
       tag_sym->variant.class_struct_union.type = class_type;
+    }  /* if */
+    if (C_dialect == C_dialect_cplusplus) {
+      /* In C classes have no linkage.  In C++ classes have either internal
+         linkage or, for classes declared at file scope and with other
+         characteristics (see ARM 3.3), C++ external linkage.  For now
+         give the class internal linkage; it may be changed later (see
+         check_class_linkage).  Note that even nameless classes are marked as
+         having linkage; this is useful for dealing with member functions.) */
+      class_type->source_corresp.name_linkage =
+                                         (a_name_linkage_kind)nlk_internal;
     }  /* if */
   } else {
     /* Using an existing type.  Fetch the type pointer from it. */
