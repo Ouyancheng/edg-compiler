@@ -9419,8 +9419,8 @@ entry in the template symbol supplement of sym.
       /* Set the source correspondence if it has not already been set. */
       set_source_corresp(&decl_state->il_template_entry->source_corresp, sym);
     }  /* if */
-    /* If this is initial declaration, update the template symbol supplement
-       to point to the IL entry . */
+    /* If this is the initial declaration, update the template symbol
+       supplement to point to the IL entry. */
     if (tssp->il_template_entry == NULL) {
       tssp->il_template_entry = decl_state->il_template_entry;
     }  /* if */
