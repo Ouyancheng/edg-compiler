@@ -6309,104 +6309,122 @@ virtual table table pointer that should be passed to the destructor
 }  /* lower_destructor_dynamic_init */
 
 
-static an_expr_node_ptr make_number_of_elements_expr_for_variable_size_array(
-                                           an_expr_node_ptr size_node,
-                                           a_boolean        preserve_size_node,
-                                           a_type_ptr       elem_type)
+static an_expr_node_ptr make_number_of_elements_expr_for_array_new(
+                                        a_new_delete_supplement_ptr ndsp,
+                                        a_type_ptr                  array_type,
+                                        a_type_ptr                  elem_type)
 /*
-Make an expression tree whose value is the number of elements in
-a variable length array, for use in a "new" operation.  size_node is
-the argument from the "new" that gives the size in bytes (i.e.,
-it's roughly number-of-elements times size-of-each-element).
-It's already lowered.  If preserve_size_node is TRUE, the
-size_node expression is being used elsewhere (e.g., as the
-argument to the operator new function) and therefore anything
-used from it must be copied; if preserve_size_node is FALSE,
-the expression can be cannibalized in order to build the new
-expression.  elem_type gives the ultimate element type of the array.
+Make an expression whose value is the number of elements in an
+array, for use in an array "new" operation.  ndsp points to the
+new/delete supplement that gives information about the "new".
+ndsp->arg, if relevant, must be lowered already.  array_type
+gives the array type.  elem_type gives the ultimate element type
+of the array.
 */
 {
   an_expr_node_ptr num_elem_node;
-  a_targ_size_t    elem_size;
-  an_expr_node_ptr constant_node, nonconstant_node;
-  a_constant       size_constant;
-  a_targ_size_t    con_for_size;
-  a_boolean        ovflo;
 
-  elem_type = skip_typerefs(elem_type);
-  /* Get the size of each element, in bytes. */
-  elem_size = elem_type->size;
-  if (elem_size == 1) {
-    /* The element size is 1, so the number of elements is equal to the
-       total size. */
-    if (preserve_size_node) {
-      /* size_node must be preserved, so make a copy of it. */
-      num_elem_node = make_reusable_copy(size_node,
-                                         /*vars_can_change=*/TRUE);
-    } else {
-      num_elem_node = size_node;
-    }  /* if */
+  array_type = skip_typerefs(array_type);
+  if (array_type->size != 0) {
+    /* The easy and usual case -- the array has a constant number of
+       elements.  Do a division to get the right answer for the
+       multi-dimensional array case. */
+    a_constant num_elem_constant;
+    set_unsigned_integer_constant(&num_elem_constant,
+                     (a_host_large_unsigned)array_type->size / elem_type->size,
+                     targ_size_t_int_kind);
+    num_elem_node = alloc_node_for_constant(&num_elem_constant);
   } else {
-    /* A division by the element size is required.  The size expression
-       should look like "expr*n" where "n" is the element size,
-       i.e., a multiplication added while scanning the "new" to convert
-       the number of elements to the total size.  The usual strategy
-       is to remove the "*n".  Note however that for a multi-dimensional
-       array case "n" is the product of the element size and the dimension
-       bounds after the first; for that case we create a new constant
-       that is "n" divided by the element size. */
-    /* Drop any cast on the top of the expression, such as one added by
-       lower_arg_expr_list to promote the expression for calling an old-style
-       function. */
-    while (is_operation_node(size_node) &&
-           size_node->variant.operation.kind ==
+    an_expr_node_ptr size_node;
+    a_boolean        preserve_size_node;
+    a_targ_size_t    elem_size;
+    an_expr_node_ptr constant_node, nonconstant_node;
+    a_constant       size_constant;
+    a_targ_size_t    con_for_size;
+    a_boolean        ovflo;
+
+    /* Nonconstant number of elements in the array.  The number of elements
+       must be extracted from the size expression.  If this is a placement
+       new, the size expression is used in the "new" call, and therefore
+       a reusable copy must be made of whatever part is reused here. */
+    /* Note that the size node is already lowered. */
+    size_node = ndsp->arg;
+    preserve_size_node = ndsp->placement_new;
+    elem_type = skip_typerefs(elem_type);
+    /* Get the size of each element, in bytes. */
+    elem_size = elem_type->size;
+    if (elem_size == 1) {
+      /* The element size is 1, so the number of elements is equal to the
+         total size. */
+      if (preserve_size_node) {
+        /* size_node must be preserved, so make a copy of it. */
+        num_elem_node = make_reusable_copy(size_node,
+                                           /*vars_can_change=*/TRUE);
+      } else {
+        num_elem_node = size_node;
+      }  /* if */
+    } else {
+      /* A division by the element size is required.  The size expression
+         should look like "expr*n" where "n" is the element size,
+         i.e., a multiplication added while scanning the "new" to convert
+         the number of elements to the total size.  The usual strategy
+         is to remove the "*n".  Note however that for a multi-dimensional
+         array case "n" is the product of the element size and the dimension
+         bounds after the first; for that case we create a new constant
+         that is "n" divided by the element size. */
+      /* Drop any cast on the top of the expression, such as one added by
+         lower_arg_expr_list to promote the expression for calling an old-style
+         function. */
+      while (is_operation_node(size_node) &&
+             size_node->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_cast) {
-      size_node = size_node->variant.operation.operands;
-    }  /* if */
-    check_assertion(is_operation_node(size_node) &&
-                    size_node->variant.operation.kind ==
+        size_node = size_node->variant.operation.operands;
+      }  /* if */
+      check_assertion(is_operation_node(size_node) &&
+                      size_node->variant.operation.kind ==
                                          (an_expr_operator_kind)eok_imultiply);
-    nonconstant_node = size_node->variant.operation.operands;
-    constant_node = nonconstant_node->next;
-    check_assertion(is_constant_node(constant_node));
-    if (preserve_size_node) {
-      /* We need to preserve size_node, and therefore we need a copy of the
-         nonconstant node. */
-      nonconstant_node = make_reusable_copy(nonconstant_node,
-                                            /*vars_can_change=*/TRUE);
-    } else {
-      /* We can use the expression directly.  Break the connection
-         between the first operand and second operand of the "*"
-         operation. */
-      nonconstant_node->next = NULL;
-    }  /* if */
-    /* Divide the constant by the element size. */
-    size_constant = *constant_node->variant.constant;
-    check_assertion(size_constant.kind == (a_constant_repr_kind)ck_integer);
-    con_for_size = unsigned_value_of_integer_constant(&size_constant,
-                                                      &ovflo);
-    check_assertion(!ovflo);
-    /* Note that we know the type is not incomplete, so the element size
-       is not zero. */
-    con_for_size /= elem_size;
-    if (con_for_size == 1) {
-      /* No multiplication is needed. */
-      num_elem_node = nonconstant_node;
-    } else {
-      /* The multiplication is still needed.  This must be a multi-
-         dimensional array case. */
-      set_unsigned_integer_value(&size_constant.variant.integer_value,
-                                 con_for_size);
-      constant_node = alloc_node_for_constant(&size_constant);
-      nonconstant_node->next = constant_node;
-      num_elem_node = make_operator_node(
-                                        (an_expr_operator_kind)eok_imultiply,
-                                        nonconstant_node->type,
-                                        nonconstant_node);
+      nonconstant_node = size_node->variant.operation.operands;
+      constant_node = nonconstant_node->next;
+      check_assertion(is_constant_node(constant_node));
+      if (preserve_size_node) {
+        /* We need to preserve size_node, and therefore we need a copy of the
+           nonconstant node. */
+        nonconstant_node = make_reusable_copy(nonconstant_node,
+                                              /*vars_can_change=*/TRUE);
+      } else {
+        /* We can use the expression directly.  Break the connection
+           between the first operand and second operand of the "*"
+           operation. */
+        nonconstant_node->next = NULL;
+      }  /* if */
+      /* Divide the constant by the element size. */
+      size_constant = *constant_node->variant.constant;
+      check_assertion(size_constant.kind == (a_constant_repr_kind)ck_integer);
+      con_for_size = unsigned_value_of_integer_constant(&size_constant,
+                                                        &ovflo);
+      check_assertion(!ovflo);
+      /* Note that we know the type is not incomplete, so the element size
+         is not zero. */
+      con_for_size /= elem_size;
+      if (con_for_size == 1) {
+        /* No multiplication is needed. */
+        num_elem_node = nonconstant_node;
+      } else {
+        /* The multiplication is still needed.  This must be a multi-
+           dimensional array case. */
+        set_unsigned_integer_value(&size_constant.variant.integer_value,
+                                   con_for_size);
+        constant_node = alloc_node_for_constant(&size_constant);
+        nonconstant_node->next = constant_node;
+        num_elem_node = make_operator_node(
+                                          (an_expr_operator_kind)eok_imultiply,
+                                          nonconstant_node->type,
+                                          nonconstant_node);
+      }  /* if */
     }  /* if */
   }  /* if */
   return num_elem_node;
-}  /* make_number_of_elements_expr_for_variable_size_array */
+}  /* make_number_of_elements_expr_for_array_new */
 
 
 static a_dynamic_init_ptr elem_dynamic_init(a_dynamic_init_ptr dip)
@@ -6496,8 +6514,6 @@ arrays with class elements.
   an_expr_node_ptr            assign_node, num_elem_node, vec_new_node;
   a_constant                  null_constant;
   a_variable_ptr              temp_var, zero_temp_var;
-  a_constant                  num_elem_constant;
-  a_boolean                   preserve_size_node;
   an_expr_node_ptr            size_node;
   a_routine_ptr               ctor_routine, dtor_routine, delete_routine;
   an_insert_location          insert_location;
@@ -6514,10 +6530,10 @@ arrays with class elements.
   elem_type = new_delete_base_type_from_operation_type(ndsp->type);
   ptr_elem_type = make_pointer_type(elem_type);
   set_expr_creation_insert_location(&insert_location);
-  /* Build the node for the address of the array (entity_node). */
 #if !NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
  #error -- NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE wrong
 #endif /* !NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+  /* Build the node for the address of the array (entity_node). */
   if (!ndsp->placement_new) {
     /* This is a normal (not placement) new, the usual case.  The __vec_new
        routine should do the allocation of the array. */
@@ -6531,7 +6547,10 @@ arrays with class elements.
        this as an argument list because it will not be used directly as
        such (pieces might be put into an argument list). */
     lower_expr_list(ndsp->arg, 0, 0);
-    preserve_size_node = FALSE;
+    /* Make an expression for the number of elements in the array. */
+    num_elem_node = make_number_of_elements_expr_for_array_new(ndsp,
+                                                               array_type,
+                                                               elem_type);
   } else {
     /* This is a placement new, so the allocation must be done before
        calling the __vec_new routine.  This happens for something like
@@ -6558,6 +6577,15 @@ arrays with class elements.
       delete_args = copy_arg_list_for_placement_delete(ndsp->arg->next);
     }  /* if */
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
+    /* Make an expression for the number of elements in the array.
+       Note that this must be done before the "new" call is generated,
+       because it can add an assignment to the size expression to set a
+       temporary to be used later, and we want to know that before we try
+       to inline the "new" call (without the assignment in place, the size
+       expression could be eliminated altogether). */
+    num_elem_node = make_number_of_elements_expr_for_array_new(ndsp,
+                                                               array_type,
+                                                               elem_type);
     size_node = ndsp->arg;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
     /* Add the size of the runtime prefix used to keep track of the array
@@ -6631,33 +6659,11 @@ arrays with class elements.
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     new_routine = NULL;  /* Allocation done outside of __vec_new. */
     entity_node = var_rvalue_expr(temp_var);
-    /* The size node is used in the "new" call, so it cannot be destroyed. */
-    preserve_size_node = TRUE;
   }  /* if */
   /* Here, we have entity_node pointing to an expression for the address
      of the entity, or entity_node == NULL if the __vec_new call or
-     equivalent will be allocating the storage. */
-  /* Make a node for the number of elements in the array. */
-  if (array_type->size != 0) {
-    /* The easy and usual case -- the array has a constant number of
-       elements.  Do a division to get the right answer for the
-       multi-dimensional array case. */
-    set_unsigned_integer_constant(&num_elem_constant,
-                     (a_host_large_unsigned)array_type->size / elem_type->size,
-                     targ_size_t_int_kind);
-    num_elem_node = alloc_node_for_constant(&num_elem_constant);
-  } else {
-    /* Nonconstant number of elements in the array.  The number of elements
-       must be extracted from the size expression.  If preserve_size_node
-       is TRUE, the size expression is used in the "new" call, and therefore
-       a reusable copy must be made of whatever part is reused here. */
-    num_elem_node = make_number_of_elements_expr_for_variable_size_array(
-                                                            ndsp->arg,
-                                                            preserve_size_node,
-                                                            elem_type);
-  }  /* if */
-  /* Here, num_elem_node is an expression for the number of elements in
-     the array. */
+     equivalent will be allocating the storage.  Also, num_elem_node
+     is an expression for the number of elements in the array. */
   /* Determine the constructor routine (if any) to be called. */
   if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_zero) {
     /* There is a dynamic init entry to initialize the storage after it is
