@@ -9948,6 +9948,14 @@ typedef struct a_hidden_name {
 			   cloning inherited hidden name lists to ensure
 			   that block- or namespace-scope names are not
 			   cloned. */
+  a_bit_field	hidden_by_simulated_injected_class_name:1;
+			/* Used in Microsoft mode only.  Microsoft compilers
+			   (through at least version 7.1) do not inject the
+			   name of an instance of a class template.  In order
+			   to facilitate generating code for non-Microsoft
+			   dialects, we simulate an injected class name in
+			   such cases, and this flag is set for entities
+			   hidden by such simulated injected names. */
   bitfield_to_avoid_codecenter_warnings()
 } a_hidden_name;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */

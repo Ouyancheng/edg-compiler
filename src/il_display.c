@@ -4124,8 +4124,11 @@ Display the indicated hidden-name entry.
   disp_boolean("elaborated_type_specifier_needed",
                (a_boolean)ptr->elaborated_type_specifier_needed);
   disp_boolean("partially_hidden_by_microsoft_injected_class_name",
-            (a_boolean)ptr->partially_hidden_by_microsoft_injected_class_name);
+               (a_boolean)ptr->
+               partially_hidden_by_microsoft_injected_class_name);
   disp_boolean("is_class_member", (a_boolean)ptr->is_class_member);
+  disp_boolean("hidden_by_simulated_injected_class_name",
+               (a_boolean)ptr->hidden_by_simulated_injected_class_name);
 }  /* disp_hidden_name */
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */

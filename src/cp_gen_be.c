@@ -486,7 +486,32 @@ hidden names in C, so there's no point in maintaining this information).
          injection. */
       injection_entry = TRUE;
     }  /* if */
-    if (hnp->qualification_needed !=
+    if (msvc_is_generated_code_target &&
+        hnp->hidden_by_simulated_injected_class_name) {
+      /* Microsoft compilers (through at least version 7.1) do not inject the
+         name of an instance of a class template.  To facilitate generation
+         of code for non-Microsoft dialects when parsing Microsoft-dialect
+         code, we create hidden name entries as if the injection occurred, to
+         force qualification.  Here, however, we are generating code for a
+         Microsoft compiler, so we will ignore such hidden names.  (This is
+         more important than just reducing the size of the generated code.
+         Microsoft compilers prior to version 7.1 had a bug such that a
+         template-id could not be used inside its own class as a qualifier,
+         and this test prevents such qualification in an important case.  For
+         example:
+
+           template<typename T> struct X { };
+           template<typename T>struct Outer { };
+           template<> struct Outer<int> {
+             struct X;
+             struct inner: ::X<int> {
+               inner(const X& s) { }  // must not generate "Outer<int>::X"
+             };
+           };
+
+         Similar code occurs in versions of the standard library <vector>
+         header in the vector<bool> specialization.) */
+    } else if (hnp->qualification_needed !=
         scp->qualification_needed ||
         hnp->partially_hidden_by_microsoft_injected_class_name !=
         scp->partially_hidden_by_microsoft_injected_class_name ||

@@ -218,6 +218,7 @@ static void record_defeatable_name_hiding_for_single_entity(
                               a_symbol_ptr  hidden_sym,
                               a_boolean     tag_hidden_by_nontag,
                               a_boolean     hidden_class_or_namespace_member,
+                              a_boolean     simulated_hiding,
                               a_scope_ptr   sp,
                               a_symbol_ptr  hidden_by)
 /*
@@ -226,7 +227,9 @@ declaration of the same name -- but the hiding can be "defeated" by using an
 elaborated type specifier or global qualification (preceding "::") when
 referring to the hidden name.  Create the hidden-name entity to represent
 this case and add it to the list for the current scope.  If hidden_by is
-non-NULL, it points to the symbol that does the hiding.
+non-NULL, it points to the symbol that does the hiding.  simulated_hiding is
+TRUE when the hiding symbol is the simulated injected name of an instance of
+a class template in Microsoft mode.
 (This routine is meant to be called from record_defeatable_name_hiding only.)
 */
 {
@@ -320,6 +323,7 @@ non-NULL, it points to the symbol that does the hiding.
          qualification is needed. */
       hnp->qualification_needed = TRUE;
     }  /* if */
+    hnp->hidden_by_simulated_injected_class_name = simulated_hiding;
   }  /* if */
 }  /* record_defeatable_name_hiding_for_single_entity */
 
@@ -328,6 +332,7 @@ static void record_defeatable_name_hiding(
                               a_symbol_ptr  hidden_sym,
                               a_boolean     tag_hidden_by_nontag,
                               a_boolean     hidden_class_or_namespace_member,
+                              a_boolean     simulated_hiding,
                               a_scope_ptr   sp,
                               a_symbol_ptr  hidden_by)
 /*
@@ -340,6 +345,8 @@ referring to the entity.  Create the hidden-name entity to represent
 this case and add it to the list for the current scope.  If hidden_by is
 non-NULL, it points to the symbol that does the hiding; when hidden_sym
 and hidden_by refer to the same IL entry, no hidden-name entry is produced.
+simulated_hiding is TRUE when the hiding symbol is the simulated injected
+name of an instance of a class template in Microsoft mode.
 */
 {
   a_symbol_ptr             sym;
@@ -364,8 +371,8 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
              sym != NULL;
              sym = sym->next) {
           record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
-                                        hidden_class_or_namespace_member, sp,
-                                        hidden_by);
+                                        hidden_class_or_namespace_member,
+                                        simulated_hiding, sp, hidden_by);
         }  /* for */
         break;
       case sk_projection:
@@ -393,7 +400,7 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
         }  /* if */
         record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
                                       hidden_class_or_namespace_member,
-                                      sp, hidden_by);
+                                      simulated_hiding, sp, hidden_by);
         break;
       case sk_class_template:
         /* Enter each instance of a class template. */
@@ -406,15 +413,15 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
           if (!is_nonreal_instance_class_symbol(sym) ||
               prototype_instantiations_in_il) {
             record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
-                                          hidden_class_or_namespace_member, sp,
-                                          hidden_by);
+                                          hidden_class_or_namespace_member,
+                                          simulated_hiding, sp, hidden_by);
           }  /* if */
         }  /* for */
         /* Process the template itself. */
         record_defeatable_name_hiding_for_single_entity(
                                              hidden_sym, tag_hidden_by_nontag,
                                              hidden_class_or_namespace_member,
-                                             sp, hidden_by);
+                                             simulated_hiding, sp, hidden_by);
         break;
       case sk_function_template:
         /* Enter each instance of a function template. */
@@ -428,21 +435,21 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
           } else {
             record_defeatable_name_hiding(tip->instance_sym,
                                           tag_hidden_by_nontag,
-                                          hidden_class_or_namespace_member, sp,
-                                          hidden_by);
+                                          hidden_class_or_namespace_member,
+                                          simulated_hiding, sp, hidden_by);
           }  /* if */
         }  /* for */
         /* Process the template itself. */
         record_defeatable_name_hiding_for_single_entity(
                                              hidden_sym, tag_hidden_by_nontag,
                                              hidden_class_or_namespace_member,
-                                             sp, hidden_by);
+                                             simulated_hiding, sp, hidden_by);
         break;
       default:
         record_defeatable_name_hiding_for_single_entity(
                                              hidden_sym, tag_hidden_by_nontag,
                                              hidden_class_or_namespace_member,
-                                             sp, hidden_by);
+                                             simulated_hiding, sp, hidden_by);
         break;
     }  /* switch */
   }  /* if */
@@ -596,14 +603,16 @@ This allows the following example to work:
 static void record_defeatable_hiding_if_not_same(
                                             a_symbol_ptr sym_ptr,
                                             a_scope_ptr  sp,
-                                            a_boolean    sym_is_injected_class)
+                                            a_boolean    sym_is_injected_class,
+                                            a_boolean    simulated_hiding)
 /*
 Look up an inherited symbol in the current scope and record the hiding, if any.
 If sym_is_injected_class is TRUE, sym_ptr represents an injected class name
 (either the real injected class name or, for template instances in Microsoft
 bugs mode, a simulation thereof for purposes of the hidden name table only).
 In this case a symbol found in the surrounding context might represent the same
-class type and should not be hidden.
+class type and should not be hidden.  simulated_hiding is TRUE if the hiding is
+due to the simulated injected name of a template instance in Microsoft mode.
 */
 {
   a_symbol_ptr     old_sym_ptr;
@@ -640,7 +649,7 @@ class type and should not be hidden.
                               old_sym_ptr,
                               /*tag_hidden_by_nontag=*/FALSE,
                               /*hidden_class_or_namespace_member=*/TRUE,
-                              sp, sym_ptr);
+                              simulated_hiding, sp, sym_ptr);
     }  /* if */
   }  /* if */
 }  /* record_defeatable_name_hiding_if_not_same */
@@ -768,7 +777,8 @@ hidden name checking on its own members, too.
       /* Look up the name in the current scope and record the hiding. */
       record_defeatable_hiding_if_not_same(sym_ptr,
                                            sp,
-                                           is_injected_class_symbol(sym_ptr));
+                                           is_injected_class_symbol(sym_ptr),
+                                           /*simulated_hiding=*/FALSE);
       if (sp->kind == (a_scope_kind)sck_class_struct_union) {
         /* Check for ambiguous and inaccessible inherited symbols. */
         a_symbol_locator      locator;
@@ -792,7 +802,8 @@ hidden name checking on its own members, too.
              references to it in this context to be generated as qualified. */
           record_defeatable_name_hiding(
                               sym_ptr, /*tag_hidden_by_nontag=*/FALSE,
-                              /*hidden_class_or_namespace_member=*/TRUE, sp,
+                              /*hidden_class_or_namespace_member=*/TRUE,
+                              /*simulated_hiding=*/FALSE, sp,
                               (a_symbol_ptr)NULL);
         }  /* if */
       }  /* if */
@@ -809,7 +820,8 @@ hidden name checking on its own members, too.
       sym_ptr = (a_symbol_ptr)class_type->source_corresp.assoc_info;
       record_defeatable_hiding_if_not_same(sym_ptr,
                                            sp,
-                                           /*sym_is_injected_class=*/TRUE);
+                                           /*sym_is_injected_class=*/TRUE,
+                                           /*simulated_hiding=*/TRUE);
     }  /* if */
   }  /* if */
 }  /* check_hiding_by_inherited_names */
@@ -891,7 +903,7 @@ type specifier when put out by the C++-generating back end.
       hidden_class_or_namespace_member = FALSE;
       record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
                                     hidden_class_or_namespace_member,
-                                    sp, sym_ptr);
+                                    /*simulated_hiding=*/FALSE, sp, sym_ptr);
     }  /* if */
   }  /* if */
 }  /* check_name_hiding_of_tag_by_nontag */
@@ -953,7 +965,7 @@ C++-generating back end.
       hidden_class_or_namespace_member = TRUE;
       record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
                                     hidden_class_or_namespace_member,
-                                    sp, sym_ptr);
+                                    /*simulated_hiding=*/FALSE, sp, sym_ptr);
     }  /* if */
     /* Do a similar check for tag names in containing scopes. */
     if (sym_ptr->header->any_tag_decl &&
@@ -996,7 +1008,8 @@ C++-generating back end.
             record_defeatable_name_hiding(old_sym_ptr,
                                           tag_hidden_by_nontag,
                                           hidden_class_or_namespace_member,
-                                          sp, sym_ptr);
+                                          /*simulated_hiding=*/FALSE, sp,
+                                          sym_ptr);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -1045,7 +1058,8 @@ resolve ambiguities caused by a using-directive.  For example:
       tag_hidden_by_nontag = FALSE;
       record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
                                     hidden_class_or_namespace_member,
-                                    sp, (a_symbol_ptr)NULL);
+                                    /*simulated_hiding=*/FALSE, sp,
+                                    (a_symbol_ptr)NULL);
     }  /* if */
   }  /* if */
 }  /* resolve_using_directive_ambiguity */

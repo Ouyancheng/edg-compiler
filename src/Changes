@@ -1,5 +1,30 @@
 Version 3.5
 
+10/5/04  C++-generating back end: injected names of class template instances
+
+The C++-generating back end was recently changed to generate code as if the
+name of a class template instance were injected into the class and thus
+capable of hiding names from the surrounding context.  (See the Changes
+entry of 9/21/04.)  In certain cases, the resulting code triggered a bug in
+Microsoft compilers prior to version 7.1.  For example:
+
+  template<typename T> struct X { };
+  template<typename T>struct Outer { };
+  template<> struct Outer<int> {
+    struct X { };
+    struct inner: ::X<int> {
+      inner(const X& s) { }                        // #1
+      friend inline X f(const X& x) { return x; }  // #2
+    };
+  };
+
+In Microsoft mode, the X's in lines #1 and #2 refer to Outer<int>::X rather
+than to the base class ::X<int> of Outer<int>::inner.  If the generated code
+uses a qualified name, however, MSVC++ 7.0 reports an error on line #2 and
+MSVC++ 6.0 reports errors on both lines.  Now the C++-generating back end
+will use unqualified names in such cases when generating code for a
+Microsoft compiler (i.e., when msvc_is_generated_code_target is TRUE).
+
 10/4/04  GNU mode: --gnu_version option
 
 In order to permit the front end to correctly emulate GNU features that vary
