@@ -1,5 +1,11 @@
 Version 2.44
 
+12/20/99 __cpluplus defined as 199711L
+
+The predefined macro __cplusplus is now defined as 199711L as required
+by the C++ standard.  In Microsoft and cfront modes it continues to be
+defined as 1.
+
 12/20/99 Internal error on preprocessing directive in template default argument
 
 An internal error would result if a default argument in a template function

@@ -4186,10 +4186,13 @@ command line -D options.
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
-  /* __cplusplus is defined as 1 if we are compiling C++, left undefined
+  /* __cplusplus is defined as 199711L if we are compiling C++, left undefined
      otherwise.  For compatibility, c_plusplus is also defined. */
   if (C_dialect == C_dialect_cplusplus) {
-    (void)enter_predef_macro("1", "__cplusplus", /*cannot_be_redefined=*/TRUE,
+    (void)enter_predef_macro((microsoft_mode || any_cfront_mode()) ? "1" :
+								     "199711L",
+			     "__cplusplus",
+			     /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
     if (!strict_ansi_mode && !microsoft_mode) {
       (void)enter_predef_macro("1", "c_plusplus",
