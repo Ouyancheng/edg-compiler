@@ -3786,23 +3786,19 @@ on for use in generating cross-reference output describing this declaration.
           routine_ptr->specialized_with_old_syntax = TRUE;
         } else {
           /* There is already a definition.  This is some sort of error. */
-          if (sym->variant.routine.ptr->is_specialized) {
-            /* Already defined, presumably by a specialization. */
-            pos_sy_error(ec_already_defined, &locator->source_position, sym);
-          } else {
-            /* It must be that this function has a body as a result of a
-               prior instantiation. */
-            check_assertion_str2(routine_ptr->is_inline && routine_ptr->called,
-                                 "decl_routine: template function specific",
-                                 "decl -- already has a definition");
-              /* An inline function template has been declared, an instance
-                 of it has been referenced and therefore instantiated on
-                 the fly, and now a specializing declaration appears.
-                 Issue an error (you can't reference an inline template
-                 function that is specialized before the specialization is
-                 declared) and treat it as a redeclaration error. */
+          if (!sym->variant.routine.ptr->is_specialized &&
+              routine_ptr->is_inline && routine_ptr->called) {
+            /* An inline function template has been declared, an instance
+               of it has been referenced and therefore instantiated on
+               the fly, and now a specializing declaration appears.
+               Issue an error (you can't reference an inline template
+               function that is specialized before the specialization is
+               declared) and treat it as a redeclaration error. */
             pos_error(ec_specialization_of_called_inline_template_function,
                       &locator->source_position);
+          } else {
+            /* Already defined, presumably by a specialization. */
+            pos_sy_error(ec_already_defined, &locator->source_position, sym);
           }  /* if */
           linked_redecl_error = TRUE;
           template_function_specific_decl = FALSE;
