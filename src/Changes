@@ -1,5 +1,39 @@
 Version 2.08
 
+8/6/92  Strict ANSI violations can be reported as warnings or errors
+
+Strict ANSI violations are reported as errors when the -A command line
+option is used and as warnings when the -a option is used.
+
+8/6/92  Anachronisms can be enabled/disable via a command line option
+
+A new command line option (-O) has been added to enable or disable
+acceptance of anachronisms.  The default value is supplied by a
+configuration parameter.  The command line option negates the default
+value.  Anachronisms produce warning when enabled and errors when
+disabled.
+
+8/6/92  Cfront compatibility mode changes
+
+A new command line option (-b) has been added to enable certain features
+that are accepted by cfront 2.1.  The following describe the changes made
+for cfront mode:
+
+    - Casts to array type is now allowed only in cfront mode.  A warning
+      is issued.
+    - A Friend declaration that omits the class name now causes a warning to
+      be issued in normal mode.  A remark is issued in cfront mode.
+    - Use of a qualified name in a member declaration now causes a warning
+      to be issued in normal mode.
+    - An operator()() function with default arguments now causes a warning
+      to be issued in normal mode.
+    - A value may be supplied on the return statement in a function with a
+      void return type in cfront mode.  A warning is issued.
+
+See also the 8/4/92 changes for "const anachronism restricted to
+cfront mode", "Special handling of void * in cfront compatibility mode",
+and "Reference parameters in cfront compatibility mode".
+
 8/6/92  Member function redeclarations are disallowed once again
 
 The extension to allow member function redeclarations has been removed.
