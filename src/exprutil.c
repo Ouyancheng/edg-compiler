@@ -27,6 +27,7 @@ exprutil.c -- Expression scanning utility routines.
 /* Additional header files. */
 #include "preproc.h"
 #include "pch.h"
+#include "func_def.h"
 
 
 /*
