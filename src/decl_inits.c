@@ -230,6 +230,109 @@ static void scan_initializer_of_simple_object(
 }  /* scan_initializer_of_simple_object */
 
 
+static a_symbol_ptr get_copy_constructor(a_type_ptr         class_type,
+                                         a_boolean          must_be_const,
+                                         a_source_position  *err_pos,
+                                         a_boolean          *err)
+/*
+Find and return a symbol pointer representing a copy constructor for the
+class indicated by class_type.  If must_be_const is TRUE, return a copy
+constructor that accepts a first parameter whose type is const
+qualified.  Otherwise, return what's found.  If no acceptable copy
+constructor is found, issue a diagnostic, set *err to TRUE, and return a
+NULL pointer.  If more than one acceptable copy constructor is found,
+issue a diagnostic, set *err to TRUE, and return a pointer to one of the
+symbols.
+*/
+{
+  a_symbol_ptr      sym, cctor_sym = NULL;
+  a_boolean         is_overloaded_function, ambiguous = FALSE, is_const;
+#if CHECKING
+  a_boolean         nonconst_found = FALSE;
+#endif /* CHECKING */
+
+  *err = FALSE;
+  class_type = skip_typerefs(class_type);
+  sym = (symbol_supplement_for_class(class_type))->constructor;
+#if CHECKING
+  if (sym == NULL) {
+    internal_error("get_copy_constructor: NULL constructor");
+  }  /* if */
+#endif /* CHECKING */
+  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    is_overloaded_function = TRUE;
+    sym = sym->variant.overloaded_function.symbols;
+  } else {
+    is_overloaded_function = FALSE;
+  }  /* if */
+  for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
+    if (is_copy_constructor(sym->variant.routine,
+                            sym->class_of_which_a_member, &is_const)) {
+      if (must_be_const && !is_const) {
+#if CHECKING
+        nonconst_found = TRUE;
+#endif /* CHECKING */
+        continue;
+      }  /* if */
+      if (cctor_sym != NULL) {
+        /* Ambiguous reference. */
+        ambiguous = TRUE;
+      } else {
+        cctor_sym = sym;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (cctor_sym == NULL) {
+#if CHECKING
+    if (!must_be_const || !nonconst_found) {
+      /* Missing copy constructor. */
+      internal_error("get_copy_constructor: no copy constructor");
+    }  /* if */
+#endif /* CHECKING */
+    /* Missing const copy constructor. */
+    pos_st_error(ec_missing_const_copy_constructor, err_pos,
+                 class_type->source_corresp.name);
+    *err = TRUE;
+  } else if (ambiguous) {
+#if 0
+#else
+#if CHECKING
+    if (must_be_const && nonconst_found) {
+      internal_error(
+           "get_copy_constructor: const/nonconst overloading not implemented");
+    }  /* if */
+#endif /* CHECKING */
+#endif /* if 0 */
+    pos_st_error(ec_ambiguous_copy_constructor, err_pos,
+                 class_type->source_corresp.name);
+    *err = TRUE;
+  }  /* if */
+  return cctor_sym;
+}  /* get_copy_constructor */
+
+
+static a_boolean check_access_to_copy_constructor(a_type_ptr         type,
+                                                  a_source_position  *err_pos)
+/*
+Return TRUE if a copy constructor exists for "type" and it is accessible.
+*/
+{
+  a_symbol_ptr  cctor_sym;
+  a_boolean     err;
+
+  cctor_sym = get_copy_constructor(type, is_const_qualified_type(type),
+                                   err_pos, &err);
+  if (!err && cctor_sym != NULL) {
+    if (!have_access_to_symbol(cctor_sym)) {
+      pos_st_error(ec_inaccessible_constructor, err_pos,
+                   name_of_symbol(cctor_sym));
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  return !err;
+}  /* check_access_to_copy_constructor */
+
+
 static a_constant_ptr get_initializer(a_type_ptr          *type,
                                       a_dynamic_init_ptr  *di_list,
                                       a_dynamic_init_ptr  *end_of_di_list,
@@ -278,14 +381,12 @@ for unions and aggregates at that level).
 #if CHECKING
     if (top_level) {
       internal_error("get_initializer: constructor encountered at top level");
-#if 0
-    } else if (cssp->copy_constructor == NULL) {
+    } else if (!cssp->has_copy_constructor) {
       internal_error("get_initializer: missing copy constructor");
-#endif /* if 0 */
     }  /* if */
 #endif /* CHECKING */
     /* This is an array element that can only be initialized by a
-       constructor.  Treat the expression as an argment for the constructor
+       constructor.  Treat the expression as an argument for the constructor
        call. */
     copy_source_position(pos_curr_token, expr_pos);
     expression = scan_argument_expression();
@@ -295,26 +396,30 @@ for unions and aggregates at that level).
     if (ctor_sym == NULL) {
       /* No such constructor was found.  Abort the initialization. */
       err = TRUE;
-    } else if (ctor_sym != cssp->copy_constructor &&
-               !have_access_to_symbol(cssp->copy_constructor)) {
-      /* Something other than the copy constructor was returned, but the copy
-         constructor still has to be accessible (ARM 12.6.1). */
-      pos_error(ec_inaccessible_copy_constructor, &expr_pos);
-      err = TRUE;
     } else {
-      /* Check that the constructor is accessible and mark it referenced. */
-      reference_to_special_member_function(ctor_sym);
-      init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-      init_con->variant.dynamic_init = dip =
-                  alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-      dip->variant.constructor.routine = ctor_sym->variant.routine;
-      dip->variant.constructor.args = expression;
-      if (*di_list == NULL) {
-        *di_list = dip;
+      a_boolean  dummy_flag;
+      if (!is_copy_constructor(ctor_sym->variant.routine,
+                               ctor_sym->class_of_which_a_member,
+                               &dummy_flag) &&
+          !check_access_to_copy_constructor(*type, &expr_pos)) {
+        /* Something other than the copy constructor was returned, but the
+           copy constructor still has to be accessible (ARM 12.6.1). */
+        err = TRUE;
       } else {
-        (*end_of_di_list)->next = dip;
+        /* Check that the constructor is accessible and mark it referenced. */
+        reference_to_special_member_function(ctor_sym);
+        init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+        init_con->variant.dynamic_init = dip =
+                    alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+        dip->variant.constructor.routine = ctor_sym->variant.routine;
+        dip->variant.constructor.args = expression;
+        if (*di_list == NULL) {
+          *di_list = dip;
+        } else {
+          (*end_of_di_list)->next = dip;
+        }  /* if */
+        *end_of_di_list = dip;
       }  /* if */
-      *end_of_di_list = dip;
     }  /* if */
   } else if (is_aggregate_or_union_type(local_type) ||
              (is_error_type(local_type) && curr_token == tok_lbrace)) {
@@ -838,7 +943,7 @@ The syntax is:
          the object being initialized -- e.g., complex x = 1 is treated as
          complex x(1). */
 #if CHECKING
-      if (cssp->copy_constructor == NULL) {
+      if (!cssp->has_copy_constructor) {
         internal_error("initializer: missing copy constructor");
       }  /* if */
 #endif /* CHECKING */
@@ -848,20 +953,25 @@ The syntax is:
       if (ctor_sym == NULL) {
         /* No such constructor was found.  Abort the initialization. */
         err = TRUE;
-      } else if (ctor_sym != cssp->copy_constructor &&
-                 !have_access_to_symbol(cssp->copy_constructor)) {
-        /* Something other than the copy constructor was returned, but the copy
-           constructor still has to be accessible (ARM 12.6.1). */
-        pos_error(ec_inaccessible_copy_constructor, &expr_pos);
-        err = TRUE;
       } else {
-        /* Check that the constructor is accessible and mark it referenced. */
-        reference_to_special_member_function(ctor_sym);
-        /* Set the dynamic init entry to represent constructor
-           initialization. */
-        clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-        local_di.variant.constructor.routine = ctor_sym->variant.routine;
-        local_di.variant.constructor.args = expression;
+        a_boolean  dummy_flag;
+        if (!is_copy_constructor(ctor_sym->variant.routine,
+                                 ctor_sym->class_of_which_a_member,
+                                 &dummy_flag) &&
+            !check_access_to_copy_constructor(vp_type, &expr_pos)) {
+          /* Something other than the copy constructor was returned, but the
+             copy constructor still has to be accessible (ARM 12.6.1). */
+          err = TRUE;
+        } else {
+          /* Check that the constructor is accessible and mark it
+             referenced. */
+          reference_to_special_member_function(ctor_sym);
+          /* Set the dynamic init entry to represent constructor
+             initialization. */
+          clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
+          local_di.variant.constructor.routine = ctor_sym->variant.routine;
+          local_di.variant.constructor.args = expression;
+        }  /* if */
       }  /* if */
     }  /* if */
     initialization_is_dynamic = TRUE;
