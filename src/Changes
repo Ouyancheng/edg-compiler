@@ -28,7 +28,7 @@ address of a member of an anonymous union.
   };
   int* p = &i;
 
-12/19/95  C++-generating back end: Leading "::" on friend function declaration
+12/19/95  C++-generating back end: Leading "::" on friend declaration
 
 In version 2.30 the C++-generating back end was changed to allow a leading
 "::" on a friend declaration, because that's now allowed in C++ and it
@@ -41,7 +41,7 @@ broke the following:
   };
   void f() {}
 
-Now fixed.
+Now fixed.  A similar problem with class friends has also been fixed.
 
 12/19/95  C++-generating back end: cv-qualifiers on parameter types in
           function declarations
