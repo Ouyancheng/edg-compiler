@@ -90,6 +90,10 @@ typedef struct a_candidate_function {
 			/* TRUE if the function is in the set of best-matching
 			   functions. */
   a_byte_boolean
+		in_best_match_set_for_some_argument;
+			/* TRUE if the function is in the set of best-matching
+			   functions for some argument. */
+  a_byte_boolean
 		std_conversion_after_conversion_function;
 			/* If TRUE, this entry is for a conversion function
 			   and a standard conversion is required after the
@@ -4218,6 +4222,7 @@ are used in resolving calls to overloaded functions.
   cfp->current_arg_match = NULL;
   cfp->prev_func_arg_match_with_same_match_level = NULL;
   cfp->in_best_match_set = FALSE;
+  cfp->in_best_match_set_for_some_argument = FALSE;
   cfp->std_conversion_after_conversion_function = FALSE;
   return cfp;
 }  /* alloc_candidate_function */
@@ -5317,6 +5322,7 @@ is set to NULL.
     number_in_best_match_set = 0;
     for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
       cfp->in_best_match_set = TRUE;
+      cfp->in_best_match_set_for_some_argument = FALSE;
       number_in_best_match_set++;
       set_first_arg_match(cfp);
     }  /* for */
@@ -5366,18 +5372,25 @@ is set to NULL.
          best-match set for this argument and the overall best-match
          set to date. */
       for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
-        if (cfp->in_best_match_set &&
-            cfp->prev_func_arg_match_with_same_match_level !=
+        if (cfp->prev_func_arg_match_with_same_match_level ==
                                                      best_match_for_curr_arg) {
+          /* This function is in the best-match set for the current
+             argument. */
+          cfp->in_best_match_set_for_some_argument = TRUE;
+        } else {
           /* This function is not in the best-match set for the current
-             argument, so remove it from the overall best-match set. */
-          cfp->in_best_match_set = FALSE;
-          /* If there aren't any functions left, there's no point in
-             continuing. */
-          if (--number_in_best_match_set == 0) goto create_final_list;
-         }  /* if */
-        /* Advance the current argument to the next one, in preparation
-           for the next iteration of the outer loop. */
+             argument. */
+          if (cfp->in_best_match_set) {
+            /* Remove the function from the overall best-match set. */
+            cfp->in_best_match_set = FALSE;
+            number_in_best_match_set--;
+            /* Note that we continue here even if number_in_best_match_set is
+               zero so that in_best_match_set_for_some_argument will be
+               set so that we will get the best error message. */
+          }  /* if */
+        }  /* if */
+        /* Advance the current argument for this function to the next one,
+           in preparation for the next iteration of the outer loop. */
         advance_arg_match(cfp);
       }  /* for */
       /* Loop to consider the next argument. */
@@ -5451,36 +5464,39 @@ is set to NULL.
       }  /* if */
     }  /* if */
 create_final_list:
-    /* Make the final list.  If overall_ambiguity is TRUE, leave all of
-       the functions in the candidate functions set, i.e., do nothing. */
+    /* Make the final list.  If overall_ambiguity is TRUE, use the
+       functions that were likely contenders, i.e., those that have
+       in_best_match_set_for_some_argument TRUE. */
     /* If there are no functions left in the best-match set, there is
        overall ambiguity. */
     if (number_in_best_match_set == 0) overall_ambiguity = TRUE;
-    if (!overall_ambiguity) {
-      /* Here, the best candidate functions have in_best_match_set TRUE.
-         Make *candidate_functions a list of just those.  Discard the
-         other functions.  If *undecidable_because_of_error is TRUE,
-         throw away all entries regardless of the in_best_match_set flag. */
-      *candidate_functions = end_candidate_functions = NULL;
-      for (cfp = candidates; cfp != NULL; cfp = cfp_next) {
-        cfp_next = cfp->next;
-        cfp->next = NULL;
-        if (cfp->in_best_match_set && !*undecidable_because_of_error) {
-          /* Keep an entry that made the best-match list. */
-          if (end_candidate_functions == NULL) {
-            *candidate_functions = cfp;
-          } else {
-            end_candidate_functions->next = cfp;
-          }  /* if */
-          end_candidate_functions = cfp;
+    /* Here, the best candidate functions have in_best_match_set TRUE.
+       Make *candidate_functions a list of just those.  (Or, when
+       overall_ambiguity is TRUE, make a list of the candidate functions
+       with in_best_match_set_for_some_argument TRUE.)  Discard the
+       other functions.  If *undecidable_because_of_error is TRUE,
+       throw away all entries regardless of the in_best_match_set flag. */
+    *candidate_functions = end_candidate_functions = NULL;
+    for (cfp = candidates; cfp != NULL; cfp = cfp_next) {
+      cfp_next = cfp->next;
+      cfp->next = NULL;
+      if (!*undecidable_because_of_error &&
+          (overall_ambiguity ? cfp->in_best_match_set_for_some_argument :
+                               cfp->in_best_match_set)) {
+        /* Keep an entry that made the final list. */
+        if (end_candidate_functions == NULL) {
+          *candidate_functions = cfp;
         } else {
-          /* Free an entry that didn't make the final list. */
-          /* Note that this call just frees one entry because we've already
-             cleared the next pointer. */
-          free_candidate_function_list(cfp);
+          end_candidate_functions->next = cfp;
         }  /* if */
-      }  /* for */
-    }  /* if */
+        end_candidate_functions = cfp;
+      } else {
+        /* Free an entry that didn't make the final list. */
+        /* Note that this call just frees one entry because we've already
+           cleared the next pointer. */
+        free_candidate_function_list(cfp);
+      }  /* if */
+    }  /* for */
   }  /* if */
   db_exit();
 }  /* select_best_candidate_functions */
