@@ -495,6 +495,10 @@ declaration as a whole.
      update_source_sequence_list directly. */
   update_source_sequence_list((char *)tp, (an_il_entry_kind)iek_template,
                               (a_source_sequence_entry_ptr)NULL);
+  check_assertion(depth_scope_stack == DEPTH_OF_FILE_SCOPE);
+  /* Set the source-sequence insert point for instantiations to NULL -- no
+     instantiations should be inserted before it. */
+  scope_stack[DEPTH_OF_FILE_SCOPE].ss_list_instantiation_insert_point = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
   return tp;
@@ -904,6 +908,11 @@ Instantiate the body of the template function associated with tip.
   }  /* if */
 #endif /* DEBUG */
   rout_ptr->is_inline = tssp->variant.function.routine->is_inline;
+  /* In case the source position in the routine instance is different from
+     that of the defining template declaration, copy the latter to the
+     instance symbol. */
+  rout_sym->decl_position =
+                tssp->variant.function.routine->source_corresp.decl_position;
   if (rout_ptr->type->kind == (a_type_kind)tk_typeref) {
     /* The function was declared using a typedef.  Now that it is being
        defined (given a body by the instantiation), create an unshared type
@@ -3858,18 +3867,6 @@ entry is pushed on the scope stack.
           internal_error("template_declaration: bad instance for static mem");
         }  /* if */
 #endif /* CHECKING */
-#if 0
-#else /* if !0 */
-        /* Temporary fix until algorithm in find_static_data_member_template,
-           which currently depends on matching decl_positions, is improved.
-           The problem is that the match algorithm expects the decl_position
-           of the member function in the prototype instantiation to be
-           the position of its declaration within the template declaration
-           rather than the position at which it is later defined.  Setting
-           the defined flag here means the source position in the symbol is
-           not overwritten. */
-        sym->defined = TRUE;
-#endif /* if 0 */
         mark_defined(sym, &locator.source_position);
         tssp = sym->variant.static_data_member.instance_ptr->template_info;
         /* Update the param list ptr, which should be non-null when the
@@ -3918,18 +3915,6 @@ entry is pushed on the scope stack.
           pos_sy_error(ec_already_defined, &locator.source_position, sym);
           err = TRUE;
         }  /* if */
-#if 0
-#else /* if !0 */
-        /* Temporary fix until algorithm in find_member_function_template,
-           which currently depends on matching decl_positions, is improved.
-           The problem is that the match algorithm expects the decl_position
-           of the member function in the prototype instantiation to be
-           the position of its declaration within the template declaration
-           rather than the position at which it is later defined.  Setting
-           the defined flag here means the source position in the symbol is
-           not overwritten. */
-        sym->defined = TRUE;
-#endif /* if 0 */
         mark_defined(sym, &locator.source_position);
       } else {
         mark_declared(sym, &locator.source_position);
@@ -3949,8 +3934,8 @@ entry is pushed on the scope stack.
          any previous declaration (i.e., the declaration of the class
          if this is a member function. */
       if (sym->class_of_which_a_member != NULL) {
-        if (!member_template_param_list_matches_class
-                      (template_param_list, sym, &error_position)) {
+        if (!member_template_param_list_matches_class(template_param_list,
+                                                      sym, &error_position)) {
           err = TRUE;
         }  /* if */
       }  /* if */
