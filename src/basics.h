@@ -94,11 +94,11 @@ __ANSIC__ should be set for all WIN32 systems.
 Determine if this is MS-DOS and if this is Turbo-C or Microsoft C.  No
 other MS-DOS compilers are considered at this time.  If this is MS-DOS
 (or, more likely, Windows) set EDG_MSDOS.  if this is Windows, EDG_WIN32
-will also be set.
+will also be set.  Note that EDG_MSDOS will be set for DOS and Windows
+3.1, but will also be set for Windows 95/98/NT.  EDG_WIN32 will only
+be set for 95/98/NT.
 */
 #ifndef EDG_MSDOS
-/* Turbo-C defines __MSDOS__, so this is either not MS-DOS or it is Microsoft
-   C under MS-DOS. */
 #if defined(MSDOS) || defined(__MSDOS__)
 /* Turbo-C defines __MSDOS__ and Microsoft C defines MSDOS, so this
    is MS-DOS. */
