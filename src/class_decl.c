@@ -4505,7 +4505,8 @@ specified by decl_scope_level.
     if (reuse_symbol) {
 #if DEBUG
       if (debug_level >= 4) {
-        db_symbol(sym, "promoting: ", 2);
+        db_symbol(sym,
+                  is_function_symbol(sym) ? "discarding: " : "promoting: ", 2);
       }  /* if */
 #endif /* DEBUG */
       /* Disjoin the symbol from the list.  It will be added to another
@@ -4612,6 +4613,8 @@ specified by decl_scope_level.
         break;
       case sk_member_function:
       case sk_overloaded_function:
+        /* Remove the symbol and don't reenter it. */
+        remove_anonymous_union_member_from_inactive_symbols_list(sym);
         /* This may be a compiler generated default assignment operator, which
            is okay.  Any user-defined member function is illegal. */
         if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
@@ -4628,16 +4631,6 @@ specified by decl_scope_level.
             pos_error(ec_anon_union_member_function,
                       &assoc_object_type->source_corresp.decl_position);
             member_function_error_already_issued = TRUE;
-          }  /* if */
-          /* Class or namespace membership information has to be set even
-             though there's an error here -- otherwise, there can be error
-             recovery problems. */
-          if (class_type != NULL) {
-            set_class_membership(mf_sym, (a_source_correspondence *)NULL,
-                                 class_type);
-          } else {
-            set_namespace_membership(sym, (a_source_correspondence *)NULL,
-                                     (a_namespace_ptr)NULL);
           }  /* if */
         }  /* for */
         break;
@@ -4692,7 +4685,9 @@ specified by decl_scope_level.
     }  /* switch */
 #if DEBUG
     if (debug_level >= 4) {
-      if (reuse_symbol) {
+      if (is_function_symbol(sym)) {
+        /* Nothing. */
+      } else if (reuse_symbol) {
         db_symbol(sym, "after promotion: ", 2);
       } else {
         db_symbol(sym, "new symbol: ", 2);
