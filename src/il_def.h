@@ -1997,7 +1997,10 @@ typedef struct a_routine {
 			/* TRUE for functions that are created by the
 			   compiler, e.g., default constructors in C++. */
   unsigned int  called:1;
-			/* TRUE if this routine is directly called. */
+			/* TRUE if this routine is directly called.
+			   For virtual functions in C++, this indicates that
+			   the routine was named in a call, although maybe
+			   an overriding routine might be called instead. */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   unsigned int	assignment_to_this_done:1;
 			/* TRUE if an assignment to "this" (an anachronism)
@@ -2482,9 +2485,13 @@ typedef struct a_new_delete_supplement {
   a_byte_boolean
 		is_new;
 			/* TRUE for new, FALSE for delete. */
+  a_byte_boolean
+		array_delete;
+			/* TRUE if this is an array delete. */
   a_type_ptr	type;
-			/* The type of the object being allocated or
-			   deallocated. */
+			/* The type of the object being allocated for new;
+			   the type pointed to by the object pointer for
+			   delete. */
   a_routine_ptr	routine;
 			/* Routine to call to do allocation (new) or
 			   deallocation (delete). */
