@@ -39,6 +39,7 @@ static a_type_ptr string_types[MAX_TRACKED_STRING_TYPE_LENGTH+1];
 static a_type_ptr il_signed_int_type;
 static a_type_ptr il_error_type;
 static a_type_ptr il_void_type;
+static a_type_ptr il_no_type;
 
 #if DEBUG
 /*
@@ -418,6 +419,9 @@ Dump the contents of the indicated type entry, for debug purposes.
       break;
     case tk_unknown:
       fputs("<unknown type>", f_debug);
+      break;
+    case tk_none:
+      fputs("<no type>", f_debug);
       break;
     case tk_void:
       fputs("void", f_debug);
@@ -1774,6 +1778,7 @@ to default values.
   switch (kind) {
     case tk_error:
     case tk_unknown:
+    case tk_none:
     case tk_void:
       /* No variant fields to set. */
       break;
@@ -2111,6 +2116,18 @@ Make or find a type entry for an void type, and return a pointer to it.
   }  /* if */
   return (il_void_type);
 }  /* void_type */
+
+
+a_type_ptr no_type(void)
+/*
+Make or find a type entry for a tk_none type, and return a pointer to it.
+*/
+{
+  if (il_no_type == NULL) {
+    il_no_type = fs_type((a_type_kind)tk_none);
+  }  /* if */
+  return (il_no_type);
+}  /* no_type */
 
 
 a_type_ptr *get_based_type(a_type_ptr                     base_type,
