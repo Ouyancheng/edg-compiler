@@ -1139,14 +1139,10 @@ to the declaration information for the template declaration scope being pushed.
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     /* Maintain the depth of the innermost stack entry that affects access
-       control. */
+       control.  Special handing for template instantiation scopes is done
+       in fixup_instantiation_scopes. */
     if (is_scope_kind_that_affects_access_control(kind)) {
       depth_of_innermost_scope_that_affects_access_control = depth_scope_stack;
-    } else if (kind == (a_scope_kind)sck_template_instantiation) {
-      /* A template instantiation makes the things outside it invisible
-         out to the file scope, and the file scope doesn't affect access
-         control. */
-      depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
     }  /* if */
     /* Determine whether this scope affects whether access checks can
        be deferred. */
@@ -1816,12 +1812,21 @@ The following fixups need to be performed:
      only the context information associated with the innermost scope
      will be included in error output. */
   for (depth = depth_scope_stack; depth > orig_depth; depth--) {
-    if (scope_stack[depth].kind == (a_scope_kind)sck_template_instantiation) {
-      a_scope_stack_entry_ptr	ssep = scope_stack_entry_for(depth);
+    a_scope_stack_entry_ptr	ssep = scope_stack_entry_for(depth);
+    if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
       primary_instantiation_depth = depth;
       ssep->nested_instantiation = TRUE;
       ssep->exclude_from_context_output = exclude_from_context_output;
       exclude_from_context_output = TRUE;
+    }  /* if */
+    if (is_scope_kind_that_affects_access_control(ssep->kind)) {
+      /* If the next_scope_that_affects_access_control field points to
+         a scope that is not part of the instantiation context, set it
+         to NO_SCOPE_DEPTH because it should not be considered for purposes
+         of this instantiation. */
+      if (ssep->next_scope_that_affects_access_control <= orig_depth) {
+        ssep->next_scope_that_affects_access_control = NO_SCOPE_DEPTH;
+      }  /* if */
     }  /* if */
   }  /* for */
   primary_ssep = &scope_stack[primary_instantiation_depth];
