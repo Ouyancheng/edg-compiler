@@ -103,7 +103,7 @@ triggering an internal error.
   s = retrieve_il_entry_kind_name(entry_kind);
   (void)fprintf(f_debug, 
                 "IL info: entry kind =%3ld (%s), \n",
-                (long)entry_kind, s, entry_ptr);
+                (long)entry_kind, s);
   (void)fprintf(f_debug, "         entry_ptr = 0x%lx\n", entry_ptr);
 #if __CENTERLINE__
   (void)fprintf(f_debug, "         memory region = %4ld\n",
