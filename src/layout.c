@@ -351,10 +351,10 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
     /* The original type, base_type, has turned out to be correct after all.
        Use it directly to avoid wasting the type qualifiers, if any. */
   } else {
-    /* Build a type with the right qualifiers. */
-    base_type = make_qualified_type(bit_field_type,
-                                    is_const_qualified_type(base_type),
-                                    is_volatile_qualified_type(base_type));
+    /* Build a type with the right qualifiers.  Note that bit_field_type
+       should not have any qualifiers at this point; the qualifiers from the
+       base type, if any, are added. */
+    base_type = make_identically_qualified_type(bit_field_type, base_type);
   }  /* if */
   *p_base_type = base_type;
   *p_bit_field_size = bit_field_size;
