@@ -1,5 +1,18 @@
 Version 2.35
 
+2/21/97  Partially-lowered EH: address of local static guard variable
+
+When IL lowering generates partially-lowered code for exception handling,
+the addresses of variables are represented by ck_stack_offset constants,
+which are supposed to map to some representation of the address of
+an auto variable.  However, for the case of a guard variable for
+the initialization of a local static variable, the guard variable is
+static, and therefore a ck_stack_offset should not be used for it.
+This has been changed to take the address of the guard variable and
+cast it to the appropriate integral type.  The runtime knows it is
+dealing with a guard variable and therefore can treat the integral
+value as an address instead of a stack offset.
+
 2/21/97  "void * const" return type for operator new
 
 An error is now issued if an operator new or new[] function is declared

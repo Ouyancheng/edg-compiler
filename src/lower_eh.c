@@ -1550,10 +1550,23 @@ a variable) and return a pointer to the constant.
   /* Non-portable scheme -- can use a ck_stack_offset for the offset of
      a variable. */
   if (handle->variable != NULL) {
-    handle_con = alloc_constant((a_constant_repr_kind)ck_stack_offset);
-    handle_con->type = integer_type(targ_var_handle_int_kind);
-    handle_con->variant.stack_offset.variable = handle->variable;
-    handle_con->variant.stack_offset.offset = handle->offset;
+    a_variable_ptr var = handle->variable;
+    a_type_ptr     var_handle_type = integer_type(targ_var_handle_int_kind);
+    if (has_static_storage_duration(var->storage_class)) {
+      /* A guard variable for the initialization of a static variable,
+         which is itself static.  Put the address of the variable in the
+         constant, cast to the appropriate integral type. */
+      handle_con = alloc_constant((a_constant_repr_kind)ck_address);
+      set_variable_address_constant(var, handle_con,
+                                    /*set_address_taken_flag=*/TRUE);
+      implicit_cast(handle_con, var_handle_type);
+    } else {
+      /* Normal case (auto variable). */
+      handle_con = alloc_constant((a_constant_repr_kind)ck_stack_offset);
+      handle_con->type = var_handle_type;
+      handle_con->variant.stack_offset.variable = var;
+      handle_con->variant.stack_offset.offset = handle->offset;
+    }  /* if */
   } else {
     /* No variable, so this is a simple constant (e.g., an index into the
        array table). */
