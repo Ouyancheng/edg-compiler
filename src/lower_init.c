@@ -841,12 +841,9 @@ tree.
     } else {
       /* Add an array element selection. */
       /* Do the pointer decay from array to pointer to element. */
-      /* Drop type qualifiers on the pointer type to get rid of "const" which
-         might cause problems (you can't assign to a const). */
       a_type_ptr ptr_elem_type = make_pointer_type(
-                                   f_skip_typerefs(
-                                     array_element_type(
-                                       type_pointed_to(entity_node->type))));
+                                   array_element_type(
+                                     type_pointed_to(entity_node->type)));
       entity_node = add_cast(entity_node, ptr_elem_type);
       if (modifiers->curr_elem != 0) {
         /* Add the subscript if it's non-zero. */
@@ -873,6 +870,7 @@ not simply as an address because it's an lvalue).
 */
 {
   an_expr_node_ptr entity_node;
+  a_type_ptr       entity_type;
 
   /* Make a node for the base address. */
   if (ipdp->indirect_through_variable) {
@@ -887,6 +885,21 @@ not simply as an address because it's an lvalue).
   }  /* if */
   /* Add the modifiers to the base address. */
   entity_node = modify_init_entity_node(entity_node, ipdp->modifiers);
+  /* If the entity type is qualified (e.g., with const), cast the pointer
+     to the unqualified version of the type.  This is necessary because
+     executable code cannot assign to a const entity even though such an
+     entity can be initialized. */
+  entity_type = type_pointed_to(entity_node->type);
+  if (is_qualified_type(entity_type)) {
+    entity_type = make_unqualified_type(entity_type);
+    entity_node = add_cast(entity_node, make_pointer_type(entity_type));
+    /* Because of the cast, we're using the object's address as a real address,
+       not just as an lvalue address, so set the address taken flag if
+       appropriate. */
+    if (!ipdp->indirect_through_variable && !using_as_address) {
+      set_variable_address_taken(ipdp->variable);
+    }  /* if */
+  }  /* if */
   return entity_node;
 }  /* make_init_entity_node */
 
@@ -1180,7 +1193,7 @@ list given by dip->variant.constructor.args has already been lowered.
   a_routine_ptr    ctor_routine = dip->variant.constructor.ptr;
   an_expr_node_ptr last_node;
   a_statement_ptr  call_stmt;
-  a_type_ptr       class_type, ptr_class_type;
+  a_type_ptr       class_type, this_param_type;
 
 #if CHECKING
   if (dip->kind != (a_dynamic_init_kind)dik_constructor) {
@@ -1190,8 +1203,9 @@ list given by dip->variant.constructor.args has already been lowered.
   /* Cast the entity node pointer to the right type.  It might be a pointer
      to the class type-as-subobject. */
   class_type = ctor_routine->source_corresp.class_of_which_a_member;
-  ptr_class_type = make_pointer_type(class_type);
-  entity_node = add_cast_if_necessary(entity_node, ptr_class_type);
+  this_param_type = implicit_this_param_type_of(ctor_routine->type);
+  entity_node = add_cast_if_necessary(entity_node,
+                                      f_skip_typerefs(this_param_type));
   /* If no implied_arg_list is supplied and the constructor needs one
      (because it initializes a class that has virtual base classes), make
      the implied_arg_list (all entries are NULL pointer values). */
@@ -1211,7 +1225,8 @@ list given by dip->variant.constructor.args has already been lowered.
        type is presently a pointer to the class type-as-subobject.
        Note that when source_node is non-NULL, it is an object of the same
        type as the destination class. */
-    source_node = add_cast_if_necessary(source_node, ptr_class_type);
+    source_node = add_cast_if_necessary(source_node,
+                                        make_pointer_type(class_type));
     last_node->next = source_node;
     last_node = source_node;
   }  /* if */
@@ -1677,7 +1692,7 @@ not a virtual call even if the destructor is virtual.
   a_routine_ptr    dtor_routine = dip->destructor;
   a_statement_ptr  call_stmt;
   an_expr_node_ptr implied_arg_node;
-  a_type_ptr       class_type;
+  a_type_ptr       this_param_type;
 
 #if CHECKING
   if (dtor_routine == NULL) {
@@ -1686,9 +1701,9 @@ not a virtual call even if the destructor is virtual.
 #endif /* CHECKING */
   /* Cast the entity node pointer to the right type.  It might be a pointer
      to the class type-as-subobject. */
-  class_type = dtor_routine->source_corresp.class_of_which_a_member;
+  this_param_type = implicit_this_param_type_of(dtor_routine->type);
   entity_node = add_cast_if_necessary(entity_node,
-                                      make_pointer_type(class_type));
+                                      f_skip_typerefs(this_param_type));
   /* If the destructor is for a class that has virtual base classes, add
      the implicit complete-object argument. */
   make_dtor_implied_arg_list(dtor_routine, have_complete_object,
@@ -4414,7 +4429,8 @@ constructor scope, and also lower the user code.
       call_node = make_call_node(new_routine, size_node,
                                  /*honor_virtual=*/FALSE);
       /* Make "this = new_rout(size)". */
-      call_node = add_cast_if_necessary(call_node, this_param_var->type);
+      call_node = add_cast_if_necessary(call_node,
+                                        f_skip_typerefs(this_param_var->type));
       this_param_node = var_lvalue_expr(this_param_var);
       this_param_node->next = call_node;
       assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
