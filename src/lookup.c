@@ -1521,7 +1521,7 @@ that do normal id lookup processing.
          template lookup that considers symbols from both the
          defining and referencing context. */
       if (ssep->instantiation_context_scope !=
-                                          ssep->instantiation_common_scope) {
+                                          ssep->previous_scope) {
         /* Only do the special lookup if the context scope is different
            from the current scope.  If they are the same, just keep
            going back through the scopes. */
