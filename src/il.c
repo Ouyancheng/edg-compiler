@@ -1507,6 +1507,30 @@ region_to_switch_back_to for use later by switch_back_to_original_region.
 }  /* switch_to_file_scope_region */
 
 
+static void switch_to_function_scope_region(
+                              a_memory_region_number *region_to_switch_back_to)
+/*
+Switch to the function-scope memory region if not already there.  Set
+region_to_switch_back_to for use later by switch_back_to_original_region.
+*/
+{
+  a_memory_region_number region;
+
+#if CHECKING
+  if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+    internal_error("switch_to_function_scope_region: no func scope");
+  }  /* if */
+#endif /* CHECKING */
+  region = scope_stack[depth_innermost_function_scope].il_memory_region;
+  if (curr_il_region_number != region) {
+    *region_to_switch_back_to = curr_il_region_number;
+    switch_il_region(region);
+  } else {
+    *region_to_switch_back_to = NULL_region_number;
+  }  /* if */
+}  /* switch_to_function_scope_region */
+
+
 void switch_back_to_original_region(
                                a_memory_region_number region_to_switch_back_to)
 /*
@@ -6356,8 +6380,34 @@ within a function scope.
 {
   a_scope_stack_entry_ptr  scope_stack_ptr;
   a_scope_ptr              sp;
+  a_boolean                function_scope_entry_needed = FALSE;
 
-  if (force_to_fs) {
+  if (!force_to_fs) {
+    scope_stack_ptr = &scope_stack[depth_scope_stack];
+    if (scope_stack_ptr->kind == (a_scope_kind)sck_file ||
+        scope_stack_ptr->kind == (a_scope_kind)sck_function ||
+        (C_dialect == C_dialect_cplusplus &&
+         scope_stack_ptr->kind == (a_scope_kind)sck_class_struct_union)) {
+      /* Use the current scope. */
+    } else if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+      /* Use the function scope. */
+      scope_stack_ptr = &scope_stack[depth_innermost_function_scope];
+    } else {
+      /* Use the file scope. */
+      scope_stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
+      check_assertion(in_file_scope(ssep));
+    }  /* if */
+    if (scope_stack_ptr->kind == (a_scope_kind)sck_function &&
+        in_file_scope(ssep)) {
+      function_scope_entry_needed = TRUE;
+      scope_stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
+    }  /* if */
+  } else {
+    /* Use the file scope. */
+    scope_stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
+    check_assertion(in_file_scope(ssep));
+  }  /* if */  
+  if (force_to_fs || function_scope_entry_needed) {
     /* This source sequence entry is supposed to be placed on the list of
        a function but refers to an entity that has been allocated in the
        filescope memory region.  Given the pointers back and forth between
@@ -6396,31 +6446,25 @@ within a function scope.
       necessary to search through the list to find it.  (This limitation
       only affects local static variables, extern declarations within a
       function scope, and local type declarations.) */
-    a_source_sequence_entry_ptr  proxy_ssep;
+    a_source_sequence_entry_ptr  function_scope_ssep;
+    a_memory_region_number       region_to_switch_back_to;
 
-    check_assertion(curr_il_region_number != FILE_SCOPE_REGION_NUMBER);
+    check_assertion(force_to_fs ==
+                       (curr_il_region_number != FILE_SCOPE_REGION_NUMBER));
     check_assertion(in_file_scope(ssep));
-    proxy_ssep = alloc_source_sequence_entry();
-    proxy_ssep->entity.kind = (a_byte_il_entry_kind)iek_source_sequence_entry;
-    proxy_ssep->entity.ptr  = (char *)ssep;
-    add_to_source_sequence_list(proxy_ssep, /*force_to_fs=*/FALSE);
+    if (function_scope_entry_needed) {
+      switch_to_function_scope_region(&region_to_switch_back_to);
+    }  /* if */
+    function_scope_ssep = alloc_source_sequence_entry();
+    function_scope_ssep->entity.kind =
+                           (a_byte_il_entry_kind)iek_source_sequence_entry;
+    function_scope_ssep->entity.ptr  = (char *)ssep;
+    add_to_source_sequence_list(function_scope_ssep, /*force_to_fs=*/FALSE);
+    if (function_scope_entry_needed) {
+      switch_back_to_original_region(region_to_switch_back_to);
+    }  /* if */
     /* Use the file scope. */
     scope_stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
-  } else {
-    scope_stack_ptr = &scope_stack[depth_scope_stack];
-    if (scope_stack_ptr->kind == (a_scope_kind)sck_file ||
-        scope_stack_ptr->kind == (a_scope_kind)sck_function ||
-        (C_dialect == C_dialect_cplusplus &&
-         scope_stack_ptr->kind == (a_scope_kind)sck_class_struct_union)) {
-      /* Use the current scope. */
-    } else if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
-               !in_file_scope(ssep)) {
-      /* Use the function scope. */
-      scope_stack_ptr = &scope_stack[depth_innermost_function_scope];
-    } else {
-      /* Use the file scope. */
-      scope_stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
-    }  /* if */
   }  /* if */
   sp = scope_stack_ptr->il_scope;
   check_assertion_str(sp != NULL,
