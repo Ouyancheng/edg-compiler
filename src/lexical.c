@@ -5035,7 +5035,7 @@ cannot be used when fetching raw preprocessing tokens.
         /* We have found the next token in the cache that can be used to
            return the value of token_2.  Return the value and set tokens_found
            to indicate that no further processing is needed. */
-        *token_2 = (a_token_kind)ctp->next->token;
+        *token_2 = (a_token_kind)ctp->token;
         tokens_found = TRUE;
       }  /* if */
     }  /* if */
