@@ -1637,11 +1637,12 @@ TRUE and modify locator_for_curr_id appropriate if the current declaration
 is a that of a constructor.
 */
 {
-  a_boolean      is_constructor = FALSE;
-  a_symbol_ptr   tag_sym;
-  a_token_cache  cache;
-  a_symbol_ptr   curr_token_type_symbol;
+  a_boolean          is_constructor = FALSE;
+  a_symbol_ptr       tag_sym, sym;
+  a_token_cache      cache;
+  a_source_position  pos;
 
+  db_enter(4, "is_constructor_decl");
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   if (locator_for_curr_id.symbol_header == tag_sym->header &&
       (!locator_for_curr_id.is_qualified_name ||
@@ -1672,53 +1673,43 @@ is a that of a constructor.
         is_constructor = TRUE;
       }  /* if */
     }  /* if */
-    /* Note that rescan_cached_tokens caches the current token as
-       well as resetting the current token state to what it was
-       before token caching was started.  So the current token
-       should again be the name of the class being defined. */
+    /* Note that rescan_cached_tokens caches the current token as well as
+       resetting the current token state to what it was before token caching
+       was started.  So the current token should again be the name of the
+       class being defined. */
     rescan_cached_tokens(&cache);
     if (is_constructor) {
-      a_source_position  pos;
-
       /* Turn the current locator from a "specific symbol" locator
          into a constructor locator. */
-      curr_token_type_symbol = curr_type_symbol(/*is_new_type_name=*/FALSE,
-                                                /*in_prescan=*/FALSE);
-      if (curr_token_type_symbol != tag_sym) {
+      curr_scope_id_lookup(&locator_for_curr_id, IDL_PROJ_SYMBOL_ALLOWED);
+      sym = locator_for_curr_id.specific_symbol;
+      if (sym != tag_sym) {
         /* The symbol one gets by looking up the class name is not the same as
            the class symbol.  This might be okay, but it has to be checked
            carefully. */
-        if (locator_for_curr_id.specific_symbol != NULL &&
-            class_type ==
-               locator_for_curr_id.specific_symbol->parent.class_type) {
-          if (locator_for_curr_id.specific_symbol->kind !=
-                                    (a_symbol_kind)sk_projection) {
+        if (sym != NULL) {
+          if (sym->kind == (a_symbol_kind)sk_type &&
+              f_skip_typerefs(sym->variant.type) == class_type) {
+            /* There is a typedef for the class type with the same name as
+               the class.  It was found instead of the class on the lookup.
+               That's okay. */
+          } else if (sym->kind != (a_symbol_kind)sk_projection ||
+                     sym->variant.projection.is_using_decl) {
             /* This can only mean that another member has been
                declared with the class name.  Issue an error. */
             str_error(ec_id_already_declared,
                         locator_for_curr_id.symbol_header->identifier);
-          }  /* if */
-        } else if (curr_token_type_symbol != NULL) {
-          if (curr_token_type_symbol->kind == (a_symbol_kind)sk_type &&
-              f_skip_typerefs(curr_token_type_symbol->variant.type) ==
-                                                                  class_type) {
-            /* There is a typedef for the class type with the same name as
-               the class.  It was found instead of the class on the lookup.
-               That's okay. */
-          } else {
-            pos_sy2_error(ec_bad_constructor_name,
-                          &locator_for_curr_id.source_position,
-                          curr_token_type_symbol, tag_sym);
           }  /* if */
         }  /* if */
         /* Use the class symbol instead of whatever the lookup returned. */
         locator_for_curr_id.specific_symbol = tag_sym;
       }  /* if */
       pos = locator_for_curr_id.source_position;
-      change_class_locator_into_constructor_locator(
-                                         &locator_for_curr_id, &pos);
+      change_class_locator_into_constructor_locator(&locator_for_curr_id,
+                                                    &pos);
     }  /* if */
   }  /* if */
+  db_exit();
   return is_constructor;
 }  /* is_constructor_decl */
 
