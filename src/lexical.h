@@ -732,7 +732,8 @@ extern void gen_pp_output_for_curr_line(void);
 extern void gen_rlisting_line_info(char kind);
 /* Generate raw listing output for the macro-expanded form of the current
    line. */
-extern void gen_expanded_raw_listing_output_for_curr_line(void);
+extern void gen_expanded_raw_listing_output_for_curr_line(
+                                                   a_boolean do_inserted_text);
 /* Add an entry recording a logical modification to the source line. */
 extern a_source_line_modif_ptr add_source_line_modif(
                           char                      *line_loc,
@@ -888,17 +889,28 @@ the parent of the original slmp).
   slmp = parent_source_line_modif(slmp);                              \
 }  /* walk_out_of_insertion */
 
-/* Determine the insert location for a source line modification.  This is
-   tricky for an entry that is inserted in front of the first character
-   of curr_source_line. */
+/*
+Determine the insert location for a source line modification.  This is
+tricky for an entry that is inserted in front of the first character
+of curr_source_line.
+*/
 #define loc_of_insert(slmp)                                           \
   ((slmp)->line_loc != NULL ? (slmp)->line_loc : curr_source_line)
 
-/* Return the first character of the current source line.  This is
-   tricky when there is an insert at the start of the line. */
-#define first_char_of_modified_source_line()                          \
-  (line_start_source_line_modif != NULL ?                             \
-     line_start_source_line_modif->inserted_text : curr_source_line)
+/*
+Set loc_in_line to point to the first character of the current source
+line.  This is tricky when there is an insert at the start of the line.
+Also set slmp for use in scanning the line with the "walk_.." macros.
+*/
+#define set_up_for_walk_of_source_line(loc_in_line, slmp)             \
+{ if (line_start_source_line_modif != NULL) {                         \
+    slmp = line_start_source_line_modif;                              \
+    loc_in_line = slmp->inserted_text;                                \
+  } else {                                                            \
+    slmp = NULL;                                                      \
+    loc_in_line = curr_source_line;                                   \
+  }  /* if */                                                         \
+}  /* set_up_for_walk_of_source_line */
 
 #endif /* ifndef LEXICAL_H */
 
