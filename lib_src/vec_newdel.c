@@ -616,7 +616,7 @@ an exception.
          arr_ptr = (void *)(((char *)array_ptr) +
                                                 first_element * element_size);
          i < number_of_elements;
-         i++, increment_ptr(arr_ptr, -element_size)) {
+         i++, increment_ptr(arr_ptr, -(int)(element_size))) {
       /* Call the destructor with 0x2 - whole object = TRUE
                                   0x1 - delete object = FALSE. */
       (*dtor)(arr_ptr, 0x2 /*whole object = TRUE, delete = FALSE*/);
@@ -686,7 +686,7 @@ must be -1 for that case.
            arr_ptr = (void*)((char*)array_ptr +
                              (number_of_elements - 1) * element_size);
            i < number_of_elements;
-           i++, increment_ptr(arr_ptr, -element_size)) {
+           i++, increment_ptr(arr_ptr, -(int)(element_size))) {
 #if EXCEPTION_HANDLING
         /* Update the counter of the number of elements processed in the
            EH stack entry.  This is incremented before the destructor is
