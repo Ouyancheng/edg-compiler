@@ -1,5 +1,44 @@
 Version 2.37
 
+10/15/97  Source-sequence representation for class template instantiation
+          with dependency on member of class being defined
+
+When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is configured
+to TRUE, the source-sequence representation of class instantiations
+triggered during a class definition presents a dilemma when the template
+class is (or is dependent on) a type declared in the enclosing (and not yet
+fully defined) class.  Consider the following:
+
+  template <class T> class A { };
+  class B {
+    template <class T> class N { };
+    A<int> a;
+    N<int> n;
+  };
+
+The source sequence entry for the instantiation of A<int> can float up to
+the file-scope, before the definition of B.  But the one for B::N<int>
+cannot, since neither B nor B::N has been declared yet.  So it is now
+inserted just prior to the declaration of n.  Yet this means the rewrite
+produced by the C++-generating back end looks like this:
+
+  template <class T> class A { };
+  template <> class A<int> { }
+  class B {
+    template <class T> class N { };
+    A<int> a;
+    template<> class N<int> { };             // Invalid C++
+    N<int> n;
+  };
+
+This points to a limitation in the strategy of representing a class
+template instantiation as an explicit specialization -- there is sometimes
+no right place to put it out.  Customers using the C++ generating back end
+with CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE
+should be aware of this dilemma.  Customers using source-sequence entries
+in tool applications with no need to generate compilable code should find
+this change an improvement.
+
 10/15/97  Bug fix on array rvalues in C mode
 
 Array rvalues were implemented in version 2.36 (see 5/22/97 Changes
@@ -15228,7 +15267,7 @@ to be changed for other systems.
 
 10/20/94 IL CHANGE: representation of type qualification
 
-Since we have several clients who have added new type qualifiers (i.e.,
+Since we have several customers who have added new type qualifiers (i.e.,
 beyond const and volatile), we have changed the IL representation of type
 qualification to a bit-vector -- see a_type_qualification (defined in
 il_def.h).  The variant fields in a_type have been changed (is_const and
@@ -16463,7 +16502,7 @@ some of their routines to new files:
 Routines dealing with symbol references (including the one that puts out
 cross reference information) have been moved from symbol_tbl.c to a new
 file symbol_ref.c.  Likewise the #defines for SRK_xxx values have been
-relocated to symbol_ref.h.  This repackaging should help clients who are
+relocated to symbol_ref.h.  This repackaging should help customers who are
 customizing xref support (as well as reduce the size of symbol_tbl.c
 a little).
 
@@ -24480,8 +24519,8 @@ The -t option specifies a template instantiation mode.
 The default for the configuration flag
 DEFAULT_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT has been changed to FALSE,
 which forces allocation of enums as ints.  This change was made to
-avoid surprising new clients (some people find small enums surprising);
-admittedly, the change may surprise some existing clients.  It was also
+avoid surprising new customers (some people find small enums surprising);
+admittedly, the change may surprise some existing customers.  It was also
 necessary for cfront compatibility -- cfront puts out enums as ints.
 
 12/1/92  Type set in ck_dynamic_init constant entries in IL
@@ -25238,7 +25277,7 @@ Trigraphs were formerly recognized only in C mode.
 9/22/92  Buffering of error output
 
 The routine line_buffer_error_output_file, added recently, has been
-removed again (it turns out some of our clients' systems do not
+removed again (it turns out some of our customers' systems do not
 have setvbuf).  Instead, we changed the error output routines to
 write out the source line in chunks instead of one character at a
 time, thus eliminating the inefficiency that pushed us towards
