@@ -708,6 +708,9 @@ with a C back end.
 #if BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING
  #error -- IL lowering must be done for the C-generating back end.
 #endif /* BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL && DO_IL_LOWERING
+ #error -- IL lowering cannot be done when parsed templates may be recorded
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL && DO_IL_LOWERING */
 
 /*
 If DO_IL_LOWERING is TRUE, this gives the routine name used for the
