@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -6678,7 +6678,7 @@ pointer to it.
 }  /* alloc_ctor_init */
 
 
-static a_pragma_ptr alloc_pragma(a_pragma_kind  kind)
+a_pragma_ptr alloc_pragma(a_pragma_kind  kind)
 /*
 Allocate a pragma entry of the required kind, initialize it, and return a
 pointer to it.
@@ -6736,8 +6736,8 @@ pointer to it.
 }  /* alloc_pragma */
 
 
-static void add_to_pragma_list(a_pragma_ptr   pragma,
-                               a_scope_depth  scope_depth)
+void add_to_pragma_list(a_pragma_ptr   pragma,
+                        a_scope_depth  scope_depth)
 /*
 Add pragma to the end of the pragma_list associated with the scope entry
 at scope_depth.
@@ -6759,62 +6759,6 @@ at scope_depth.
   }  /* if */
   ssep->last_pragma = pragma;
 }  /* add_to_pragma_list */
-
-
-a_pragma_ptr add_pragma_to_il(a_pending_pragma_ptr  ppp,
-                              an_il_entry_kind      entity_kind,
-                              char                  *entity_ptr,
-                              a_boolean             at_file_scope)
-/*
-ppp points to the front-end representation of a pragma.  When the pragma
-binding kind is pbk_next, entity_ptr is a pointer to the IL entry of the
-specified entity_kind with which the pragma is associated; otherwise,
-entity_ptr is NULL.  at_file_scope is TRUE if the pragma IL entry should be
-allocated in the file-scope memory region and added to the file-scope
-pragmas list; it is FALSE when the current IL scope should be used.
-
-This routine (1) allocates the IL pragma entry and initializes it, (2)
-binds it to the entity it's associated with, if any, and sets the
-has_associated_pragma flag in the latter, (3) adds it to the appropriate
-scope pragma list, (4) updates the source sequence entry if there is one,
-and (5) returns a pointer to the IL pragma entry to the caller, in case
-there is additional processing to be done.
-*/
-{
-  a_pragma_ptr            pp;
-  a_memory_region_number  region_to_switch_back_to;
-
-#if CHECKING
-  if (entity_ptr != NULL && in_file_scope(entity_ptr) && !at_file_scope) {
-    check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
-  }  /* if */
-#endif /* CHECKING */
-  if (at_file_scope) switch_to_file_scope_region(&region_to_switch_back_to);
-  pp = alloc_pragma(ppp->descr_ptr->kind);
-  pp->decl_position = ppp->id_position;
-  pp->pragma_text = ppp->pragma_text;
-  if (entity_ptr != NULL) {
-    check_assertion(ppp->descr_ptr->binding_kind ==
-                                (a_pragma_binding_kind)pbk_next_construct);
-    pp->entity.kind = entity_kind;
-    pp->entity.ptr = entity_ptr;
-    if (entity_kind == (an_il_entry_kind)iek_statement) {
-      ((a_statement_ptr)entity_ptr)->has_associated_pragma = TRUE;
-    } else {
-      ((a_variable_ptr)entity_ptr)->
-                      source_corresp.has_associated_pragma = TRUE;
-    }  /* if */
-  }  /* if */
-  add_to_pragma_list(pp, at_file_scope ?
-                            DEPTH_OF_FILE_SCOPE : depth_scope_stack);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  f_update_source_sequence_list((char *)pp, (an_il_entry_kind)iek_pragma,
-                                &pp->decl_position,
-                                ppp->source_sequence_entry);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (at_file_scope) switch_back_to_original_region(region_to_switch_back_to);
-  return pp;
-}  /* add_pragma_to_il */
 
 
 a_scope_ptr alloc_scope(a_scope_kind   kind,
@@ -8251,6 +8195,6 @@ when the IL has been read back into memory.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
