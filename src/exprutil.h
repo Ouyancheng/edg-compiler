@@ -30,17 +30,18 @@ exprutil.h -- Declarations related to expression parsing.
 The operators and their precedences are:
 
 Operators			Precedence	Associativity
-[] () . -> ++ --		17		L       [] subscripting
+[] () . -> ++ --		18		L       [] subscripting
 							() function call
 							++ -- postfix
-++ -- & * + - ~ ! sizeof	16		R	Prefix operators
-cast				15		R
-.* ->* (C++ only)		14		L
-* / %				13		L
-+ -				12		L
-<< >>				11		L
-< > <= >=			10		L
-== !=				9		L
+++ -- & * + - ~ ! sizeof	17		R	Prefix operators
+cast				16		R
+.* ->* (C++ only)		15		L
+* / %				14		L
++ -				13		L
+<< >>				12		L
+< > <= >=			11		L
+== !=				10		L
+<? >? (GNU min/max)		9		L
 &				8		L
 ^				7		L
 |				6		L
