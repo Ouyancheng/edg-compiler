@@ -930,9 +930,9 @@ the label are promoted to the lifetime of the function scope.
       if (pop_object_lifetime()) {
         /* Popping the object lifetime did not result in its being removed
            from the IL, so labels and gotos that reference it don't need to
-           have their pointers updated.  This means the block lifetime will
+           ha[-1zve their pointers updated.  This means the block lifetime will
            be retained. */
-        keep_block_object_lifetime = FALSE;
+        keep_block_object_lifetime = TRUE;
       } else if (block_cfdp->variant.block.goto_count != 0 ||
                  block_cfdp->variant.block.any_labels) {
         /* Promote the label and goto lifetime pointers. */
@@ -2182,6 +2182,13 @@ a structured statement has ended.
        alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
     /* This is the end of a compound statement.  Be sure the object lifetime
        is properly bound to an IL entry. */
+    if (sssep->curr_block_object_lifetime != curr_object_lifetime) {
+      check_assertion_str2(sssep->curr_block_object_lifetime->kind ==
+                                (an_object_lifetime_kind)olk_block_after_label,
+                           "pop_stmt_stack:",
+                           "bad kind for curr_block_object_lifetime");
+      sssep->curr_block_object_lifetime = curr_object_lifetime;
+    }  /* if */
     terminate_curr_block_object_lifetime(sssep);
   }  /* if */
   break_label = sssep->break_label;
