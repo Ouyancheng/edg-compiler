@@ -1580,6 +1580,9 @@ grcontext is a local variable used to save state for later restoration.
 {
   grcontext->region_to_switch_back_to = curr_il_region_number;
   switch_il_region(region_number);
+  /* depth_innermost_function_scope is reset, in particular, so that
+     alloc_object_lifetime will not attempt to maintain an available list
+     for object lifetimes in this function (there is no scope stack entry). */
   grcontext->depth_innermost_function_scope = depth_innermost_function_scope;
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
   grcontext->curr_cleanup_region_number = curr_cleanup_region_number;
@@ -3515,6 +3518,10 @@ The subtree of the node has not yet been lowered.
         /* Set the region number to the delete cleanup entry. */
         set_eh_curr_region(cleanup_region_number(dyn_init_to_free_storage),
                            &insert_location);
+        /* Set the conditional_flag variable to nonzero. */
+        set_conditional_flag_var(dyn_init_to_free_storage->
+                               destructible_entity_descr->conditional_flag_var,
+                                   &insert_location);
       }  /* if */
       /* Generate code for the initialization. */
       lower_dynamic_init(dip, &ipd,
@@ -4487,7 +4494,7 @@ constructor scope, and also lower the user code.
                  make_lowered_temporary(integer_type((an_integer_kind)ik_int));
         /* Assign it a number in the object address table. */
         cond_var_handle = object_addr_table_index();
-        /* Set the conditional_flag  variable to nonzero.  The code to
+        /* Set the conditional_flag variable to nonzero.  The code to
            initialize it to zero is inserted later in this routine. */
         set_conditional_flag_var(cond_var, &expr_insert_location);
         /* Add the cleanup region table entry. */
