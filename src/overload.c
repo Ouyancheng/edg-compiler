@@ -2191,14 +2191,6 @@ call.
     visible = FALSE;
     goto end_of_function;
   }  /* if */
-  if (dependent_call && !function_template_case &&
-      function_symbol->variant.routine.ptr->source_corresp.name_linkage ==
-                                           (a_name_linkage_kind)nlk_internal) {
-    /* Functions with internal linkage are invisible in the template-
-       dependent name lookup. */
-    visible = FALSE;
-    goto end_of_function;
-  }  /* if */
   if (!function_template_case) {
     /* The symbol is not a function template (i.e., it's a normal function). */
     routine = function_symbol->variant.routine.ptr;
@@ -2211,6 +2203,14 @@ call.
   } else {
     /* The symbol is a function template. */
     routine = function_symbol->variant.template_info->variant.function.routine;
+  }  /* if */
+  if (dependent_call &&
+      routine->source_corresp.name_linkage ==
+                                           (a_name_linkage_kind)nlk_internal) {
+    /* Functions with internal linkage are invisible in the template-
+       dependent name lookup. */
+    visible = FALSE;
+    goto end_of_function;
   }  /* if */
   if (effects_copy_initialization && routine->is_explicit_constructor) {
     /* Constructors marked "explicit" are to be ignored. */
