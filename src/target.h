@@ -1004,8 +1004,6 @@ EXTERN a_boolean
 #define MSVC_TARGET_VERSION_NUMBER msvc_target_version_number
 #endif /* MAKE_TARG_NAMES_REFER_TO_VARIABLES */
 
-extern void set_plain_char_int_kind(a_boolean plain_chars_are_signed);
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void init_microsoft_sized_int_types(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

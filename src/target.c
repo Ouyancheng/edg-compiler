@@ -31,7 +31,7 @@ target.c -- Target configuration support
 /* Header files common to all files. */
 #include "fe_common.h"
 
-void set_plain_char_int_kind(a_boolean plain_chars_are_signed)
+static void set_plain_char_int_kind(a_boolean plain_chars_are_signed)
 /*
 Set plain_char_int_kind, which indicates the integer kind for "plain"
 (neither signed or unsigned) char.  plain_chars_are_signed indicates
@@ -353,7 +353,8 @@ This is done before command line processing.
                                          TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT;
   targ_bit_field_container_size = TARG_BIT_FIELD_CONTAINER_SIZE;
   targ_microsoft_bit_field_allocation = TARG_MICROSOFT_BIT_FIELD_ALLOCATION;
-  targ_plain_int_bit_field_is_unsigned = TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED;
+  targ_plain_int_bit_field_is_unsigned =
+                           /*lint !e506*/ TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED;
   targ_force_one_bit_bit_field_to_be_unsigned =
                                    TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED;
   targ_enum_bit_fields_are_always_unsigned =
