@@ -609,8 +609,13 @@ extern void assertion_failed(char *filename,
    code is not being used. */
 #define check_assertion(test)						\
   if (!(test)) assertion_failed(__FILE__, __LINE__);
+/* Macro that generates an assertion failed internal error.  Intended to
+   be used in the else clause of an if statement or the default case of a
+   switch statement that is not intended to be reached. */
+#define unexpected_condition()  assertion_failed(__FILE__, __LINE__)
 #else /* !CHECKING */
 #define check_assertion(test) /* Nothing */
+#define unexpected_condition()    /* Nothing */
 #endif /* CHECKING */
 /* Make sure "a_symbol", "a_type" and "a_source_file" are known as struct
    tags before their uses below.  Otherwise, the declarations would be in
