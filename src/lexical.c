@@ -160,25 +160,6 @@ static a_boolean
 			   trivial modifications).  If so, it must be
                            displayed.*/
 
-/*
-Data structure used in deciding where to put extra blanks to separate
-adjacent tokens in textual preprocessing output.
-*/
-static a_byte	pp_lexical_category[CHAR_MAX-CHAR_MIN+1];
-			/* For each character, the lexical category to
-			   be used in preprocessing output.  These categories
-			   are used to decide when extra token-separating
-			   blanks must be inserted between tokens resulting
-			   from macro expansion. */
-#define PLC_SINGLETON 1
-			/* A character in the singleton category always
-			   stands alone as a token, and thus no extra blank
-			   is ever required next to it for token separation. */
-#define PLC_ID_OR_NUMBER 2
-			/* Characters appearing in identifiers or pp-numbers
-			   (see is_id_char). */
-#define PLC_OTHER 3
-			/* All other characters. */
 
 /*
 Information about cached tokens, i.e., tokens saved for later rescanning.
