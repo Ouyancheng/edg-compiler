@@ -4676,6 +4676,11 @@ is not a template declaration scope.
 
       check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
       tssp = template_supplement_for_symbol(sym);
+      /* Discard any previously created substituted type entries.  These
+         may no longer be valid as a result of the redeclaration. */
+      free_list_of_substituted_type_list_entries(
+                                     tssp->variant.function.substituted_types);
+      tssp->variant.function.substituted_types = NULL;
       rout_ptr = tssp->variant.function.routine;
       /* Declaring a default argument on a function template redeclaration is
          nonstandard.  Issue at least a warning, and always an error if the

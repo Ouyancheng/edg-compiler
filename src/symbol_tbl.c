@@ -133,6 +133,11 @@ static a_symbol_list_entry_ptr
 			/* List of symbol list entries freed and available for
 			   reuse. */
 
+static a_substituted_type_list_entry_ptr
+		avail_substituted_type_list_entries;
+			/* List of substituted type list entries freed and
+			   available for reuse. */
+
 static a_template_cache_segment_ptr
 		avail_template_cache_segments;
 			/* List of template cache segments freed and available
@@ -1192,9 +1197,16 @@ Allocate a new type list entry and return a pointer to it.
 {
   register a_substituted_type_list_entry_ptr ptr;
 
-  /* Allocate a new entry. */
-  ptr = (a_substituted_type_list_entry_ptr)
+  if (avail_substituted_type_list_entries != NULL) {
+    /* Reuse an existing entry. */
+    ptr = avail_substituted_type_list_entries;
+    avail_substituted_type_list_entries =
+                                     avail_substituted_type_list_entries->next;
+  } else {
+    /* Allocate a new entry. */
+    ptr = (a_substituted_type_list_entry_ptr)
                                alloc_fe(sizeof(a_substituted_type_list_entry));
+  }  /* if */
 #if DEBUG
   num_substituted_type_list_entries_allocated++;
 #endif /* DEBUG */
@@ -1203,6 +1215,26 @@ Allocate a new type list entry and return a pointer to it.
   ptr->type = NULL;
   return ptr;
 }  /* alloc_substituted_type_list_entry */
+
+
+void free_list_of_substituted_type_list_entries(
+				a_substituted_type_list_entry_ptr stlep)
+/*
+Add a list of symbol list entries to the available list.  stlep may
+be NULL, in which case nothing is done.
+*/
+{
+  a_substituted_type_list_entry_ptr	stlep_tail;
+  if (stlep != NULL) {
+    /* Find the last entry on the list. */
+    stlep_tail = stlep;
+    while (stlep_tail->next != NULL) stlep_tail = stlep_tail->next;
+    /* Add the current available list to the end of the list passed by the
+       caller. */
+    stlep_tail->next = avail_substituted_type_list_entries;
+    avail_substituted_type_list_entries = stlep;
+  }  /* if */
+}  /* free_list_of_substituted_type_list_entries */
 
 
 a_symbol_list_entry_ptr alloc_symbol_list_entry(void)
@@ -8445,6 +8477,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(avail_access_error_descrs),
       pch_saved_var_array_elem(avail_active_using_directives),
       pch_saved_var_array_elem(avail_symbol_list_entries),
+      pch_saved_var_array_elem(avail_substituted_type_list_entries),
       pch_saved_var_array_elem(avail_template_cache_segments),
       pch_saved_var_array_elem(avail_dependent_type_fixups),
       pch_saved_var_array_elem(avail_param_ids),
@@ -8535,6 +8568,7 @@ of the front end.
   avail_access_error_descrs = NULL;
   avail_active_using_directives = NULL;
   avail_symbol_list_entries = NULL;
+  avail_substituted_type_list_entries = NULL;
   avail_template_cache_segments = NULL;
   avail_vla_fixups = NULL;
   error_symbol_header = NULL;

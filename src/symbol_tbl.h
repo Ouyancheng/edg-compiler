@@ -2741,6 +2741,8 @@ extern void set_membership_in_source_corresp(a_source_correspondence  *scp,
 extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 extern
 a_substituted_type_list_entry_ptr alloc_substituted_type_list_entry(void);
+extern void free_list_of_substituted_type_list_entries(
+				a_substituted_type_list_entry_ptr stlep);
 extern a_symbol_list_entry_ptr alloc_symbol_list_entry(void);
 extern void free_list_of_symbol_list_entries(a_symbol_list_entry_ptr slep);
 
