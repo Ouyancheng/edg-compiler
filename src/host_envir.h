@@ -89,6 +89,13 @@ expected by the precompiled header.
 #endif /* ifndef MEM_ALLOCATED_FOR_PCH_ANALYSIS */
 
 /*
+Precompiled header file suffix.
+*/
+#ifndef PCH_FILE_SUFFIX
+#define PCH_FILE_SUFFIX ".pch"
+#endif /* ifndef PCH_FILE_SUFFIX */
+
+/*
 The number of include files that may be opened at any given time.
 After include nesting gets this deep, the same file will be re-opened
 for all other include files.  The primary source file is not included
