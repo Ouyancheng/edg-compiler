@@ -1100,6 +1100,11 @@ omit the space.
     case sc_typedef:
       str = "typedef";
       break;
+#if ASM_FUNCTION_ALLOWED
+    case sc_asm:
+      str = "__asm";
+      break;
+#endif /* ASM_FUNCTION_ALLOWED */
     default:
       unexpected_condition_str("dump_storage_class: bad storage class");
   }  /* switch */
@@ -4270,6 +4275,29 @@ Dump out the contents of a block (but not the surrounding { and }).
   curr_scope = saved_curr_scope;
 }  /* dump_block */
 
+#if ASM_FUNCTION_ALLOWED
+
+static void dump_asm_function_body(an_asm_entry_ptr  aep)
+/*
+Generate an asm function body.
+*/
+{
+  char *p = aep->variant.asm_func_body, *eol;
+
+  write_tok_ch('{');
+  for (; (eol = strchr(p, '\n')) != NULL; p = eol+1) {
+    /* Write a sequence of characters ending with a newline. */
+    *eol = '\0';
+    write_str(p);
+    end_output_line();
+    *eol = '\n';
+  }  /* for */
+  write_str(p);
+  end_output_line_if_begun();
+  write_tok_ch('}');
+}  /* dump_asm_function_body */
+
+#endif /* ASM_FUNCTION_ALLOWED */
 
 static void dump_switch_statement(a_statement_ptr statement)
 /*
@@ -4646,6 +4674,13 @@ Generate C for a statement.
       break;
     case stmk_asm:
       /* asm statement. */
+#if ASM_FUNCTION_ALLOWED
+      if (statement->variant.asm_entry->is_asm_func_body) {
+        /* Generate "{ ... }". */
+        dump_asm_function_body(statement->variant.asm_entry);
+        break;
+      }  /* if */
+#endif /* ASM_FUNCTION_ALLOWED */
       dump_asm_entry(statement->variant.asm_entry);
       break;
 #if !DO_FULL_PORTABLE_EH_LOWERING
