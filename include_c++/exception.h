@@ -5,6 +5,9 @@ exception.h -- Include file for exception handling (see 18.6)
 #ifndef _EXCEPTION_H
 #define _EXCEPTION_H
 
+/* This lets users disabled the EDG supplied exception classes. */
+#ifndef __NO_EDG_EXCEPTION_CLASSES
+
 #include <stdexcept.h>
 
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
@@ -41,6 +44,8 @@ using namespace std;
 #endif /* ifdef __EDG_IMPLICIT_USING_STD */
 
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
+
+#endif /* ifndef __NO_EDG_EXCEPTION_CLASSES */
 
 #endif /* _EXCEPTION_H */
 

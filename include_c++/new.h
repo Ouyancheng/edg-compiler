@@ -28,6 +28,9 @@ new.h -- Include file for C++ default operator new (see ARM 12.5).
 namespace std {
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
+/* This lets users disabled the EDG supplied exception classes. */
+#ifndef __NO_EDG_EXCEPTION_CLASSES
+
   class bad_alloc : public exception {
   public:
     bad_alloc() throw();
@@ -36,6 +39,8 @@ namespace std {
     virtual ~bad_alloc() throw();
     virtual const char* what() const throw();
   };
+
+#endif /* ifndef __NO_EDG_EXCEPTION_CLASSES */
 
   typedef void (*__new_handler)();
   __new_handler set_new_handler(__new_handler);
