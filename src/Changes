@@ -5,7 +5,8 @@ Version 2.46
 In some obscure cases involving designated initializers for unions
 that initialize different members of the same union, the generared
 IL was incorrect, and therefore the generated code was incorrect.
-Now fixed.
+There is also an obscure case involving array initializations and
+skipped elements and re-initialization.  Both are now fixed.
 
 2/27/01  Microsoft compatibility: internal error on _asm with macro reference
 

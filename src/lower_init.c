@@ -6190,6 +6190,7 @@ have already had their designated initializers lowered.
            con.ptr->kind != (a_constant_repr_kind)ck_designator) {
       if (con.ptr->kind == (a_constant_repr_kind)ck_aggregate) {
         /* Process a sub-aggregate. */
+        if (earlier_con.ptr != NULL) split_constant_if_repeated(&earlier_con);
         lower_aggregate_designated_initializers(con.ptr, earlier_con.ptr);
       } else {
         /* Non-aggregate constant. */
