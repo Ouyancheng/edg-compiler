@@ -31,8 +31,8 @@ lower_name.c -- Do name mangling for IL lowering.
 #if NEED_NAME_MANGLING
 #if DO_IL_LOWERING
 #include "templates.h"
-#include "il_walk.h"
 #endif /* DO_IL_LOWERING */
+#include "il_walk.h"
 
 /*
 Control block for mangling.
