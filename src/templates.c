@@ -11456,6 +11456,16 @@ of exported templates for this translation unit.
 }  /* add_to_exported_templates_list */
 
 
+a_boolean any_exported_templates(void)
+/*
+Return TRUE if there have been any exported templates defined in the current
+translation unit.
+*/
+{
+  return exported_templates_list != NULL;
+}  /* any_exported_templates */
+
+
 #if RECORD_TEMPLATE_STRINGS
 
 static void select_caches_and_make_template_string(

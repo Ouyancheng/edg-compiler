@@ -348,6 +348,8 @@ extern void instantiation_wrapup(void);
 
 extern void inline_function_wrapup(void);
 
+extern a_boolean any_exported_templates(void);
+
 extern void add_to_inline_function_list(a_routine_ptr	rout_ptr);
 
 extern
