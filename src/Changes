@@ -1,5 +1,18 @@
 Version 3.0
 
+2/18/02  Name hiding by template parameters
+
+The hidden name table used to not record name hiding by template parameters.
+This would e.g. cause the C++-generating back end to not correctly regenerate
+the following example:
+
+  class T {};
+  template<typename T> class List {
+    ::T x;  // C++-generating back end rendered this as "T x;"
+  };
+
+This is now fixed.
+
 2/18/02  Microsoft mode: overload resolution, reference versus non-reference
 
 An idiosyncracy of MSVC++ overload resolution related to comparing two

@@ -957,6 +957,55 @@ indicated scope.
   }  /* if */
 }  /* check_for_defeatable_name_hiding */
 
+
+static void check_name_hiding_by_template_parameters(a_scope_ptr  sp)
+/*
+If the given scope is a prototype instantiation, check whether some of the
+template parameters may hide other entities.  If so, record that in the hidden
+name table.
+*/
+{
+  a_template_param_ptr  param = NULL;
+
+  if (sp->kind == (a_scope_kind)sck_class_struct_union) {
+    a_type_ptr  type = sp->variant.assoc_type;
+    if (is_immediate_class_type(type) &&
+        type->variant.class_struct_union.is_prototype_instantiation) {
+      a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(type);
+      check_assertion(cssp != NULL && cssp->template_info != NULL);
+      param = cssp->template_info->cache.decl_info->parameters;
+    }  /* if */
+  } else if (sp->kind == (a_scope_kind)sck_function) {
+    a_routine_ptr  routine = sp->variant.routine.ptr;
+    if (routine->is_prototype_instantiation &&
+        !routine->source_corresp.is_local_to_function) {
+      /* Note that member functions of local classes of prototype
+         instantiations are also marked as prototype instantiations
+         (but they don't have template parameters to worry about). */
+      a_symbol_ptr  sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
+      a_template_instance_ptr
+                    instance = sym->variant.routine.instance_ptr;
+      check_assertion(instance != NULL);
+      if (instance->template_info != NULL) {
+        param = instance->template_info->cache.decl_info->parameters;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  for (; param != NULL; param = param->next) {
+    a_symbol_ptr  param_sym = param->param_symbol;
+    if (param_sym->is_error) {
+      /* Ignore invalid parameters. */
+    } else if (param_sym->header->identifier_length == 9 &&
+               *param_sym->header->identifier == '<') {
+      /* This is an unnamed parameter with header identifier "<unnamed>". */
+      check_assertion(
+                 strncmp(param_sym->header->identifier, "<unnamed>", 9) == 0);
+    } else {
+      check_for_defeatable_name_hiding(param_sym, sp);
+    }  /* if */
+  }  /* for */
+}  /* check_name_hiding_by_template_parameters */
+
                        
 void check_name_hiding_for_scope(a_scope_ptr  sp)
 /*
@@ -1007,8 +1056,10 @@ scopes and for the file scope.
     }  /* if */
     /* Find the list of symbols declared in the current scope. */
     switch (sp->kind) {
-      case sck_file:
       case sck_function:
+        check_name_hiding_by_template_parameters(sp);
+        /* FALLTHROUGH */
+      case sck_file:
       case sck_block:
         ssep = &scope_stack[depth_scope_stack];
         sym_list = assoc_pointers_block_of(ssep)->symbols;
@@ -1019,6 +1070,7 @@ scopes and for the file scope.
                                              pointers_block.symbols;
         break;
       case sck_class_struct_union:
+        check_name_hiding_by_template_parameters(sp);
         tp = sp->variant.assoc_type;
         sym_list = symbol_supplement_for_class(tp)->symbols;
         break;
