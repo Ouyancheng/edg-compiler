@@ -71,6 +71,8 @@ static a_boolean
 
 /* Advance declaration needed because of mutual recursion: */
 static void skip_to_endif(a_boolean stop_skip_on_else_or_elif);
+static void pass_directive_to_output(void);
+
 
 /*
 Macro that compares the current token (an identifier) against a constant
@@ -767,6 +769,9 @@ e.g., in generated C code.
     enter_keyword((a_token_kind)tok_va_end,   "va_end");
     /* Declare va_list as a type of "void *". */
     declare_builtin_va_list_type();
+    if (generate_pp_output) {
+      pass_directive_to_output();
+    }  /* if */
   }  /* if */
 }  /* proc_stdarg_include */
 
