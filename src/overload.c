@@ -4641,8 +4641,7 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
        some instances.  This is necessary for the enk_temp_init case
        to avoid using the enk_temp_init address as an rvalue. */
     if (is_arrow_operator && is_expression_operand(bound_function_selector)) {
-      an_expr_node_ptr selector_expr =
-                                   bound_function_selector->variant.expression;
+      selector_expr = bound_function_selector->variant.expression;
       if ((selector_expr->kind == (an_expr_node_kind)enk_temp_init &&
            selector_expr->variant.init.result_is_addr) ||
           is_variable_address_node(selector_expr)) {
