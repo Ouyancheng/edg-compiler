@@ -4,9 +4,9 @@ Version 2.42
 
 With support for class name injection introduced in version 2.41, an
 internal error could occur with use of the C++-generating back end (more
-specifically, with RECORD_HIDDEN_NAMES_IN_IL and WRITE_IL_TO_FILE both
-configured to TRUE) when a class declaration at file scope had the same
-name as a local class.  Now fixed.
+specifically, with IL_SHOULD_BE_WRITTEN_TO_FILE and
+RECORD_HIDDEN_NAMES_IN_IL both configured to TRUE) when a class
+declaration at file scope had the same name as a local class.  Now fixed.
 
   void f() {
     struct S { };
