@@ -220,6 +220,9 @@ typedef int a_decl_flag_set;
 			   a nonstatic member function.  This is of importance
 			   to function_declarator in creating the implicit
 			   this param type entry for such functions. */
+#define DI_IS_CONSTRUCTOR 0x40
+			/* If this bit is set decl_specifiers has determined
+			   that the declaration is that of a constructor. */
 /* Constants defining bits in the output bit vector used in calls to
    declarator. */
 #define DO_NO_OUTPUT_FLAGS 0x0
