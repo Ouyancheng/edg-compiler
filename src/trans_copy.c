@@ -350,7 +350,17 @@ and remap the pointers in the copy by calling remap_function.
     remap_pointers_in_il_entry(copy, kind);
     walk_remap_func = saved_walk_remap_func;
     scp = source_corresp_for_il_entry(copy, kind);
-    if (scp != NULL) scp->copied_from_secondary_trans_unit = TRUE;
+    if (scp != NULL) {
+      a_trans_unit_corresp_ptr tucp = scp->trans_unit_corresp;
+      if (tucp != NULL && !in_secondary_trans_unit(copy)) {
+        /* This entry is the canonical one, so update the canonical pointer
+           to point to the copy in the primary IL.  For the "merge" case,
+           the overwrite_primary_xxx routine updates the canonical pointer. */
+        check_assertion(tucp->canonical == ptr);
+        tucp->canonical = copy;
+      }  /* if */
+      scp->copied_from_secondary_trans_unit = TRUE;
+    }  /* if */
 #if DEBUG
     if (db_trace("trans_copy", ptr, kind)) {
       fprintf(f_debug, "copying from secondary to %lx:\n",
