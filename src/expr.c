@@ -6322,9 +6322,14 @@ See _expr.type.conv_ in the WP.
            or may not turn out to be allowed by the standard for C++. */
         pos_error(ec_bad_cast, &lparen_pos);
         make_error_operand(result);
-      } else if (is_class_struct_union_type(type_cast_to)) {
-        /* A class with no constructor, followed by (), e.g., "A()" --
-           initialization is to zero. */
+      } else if (is_void_type(type_cast_to)) {
+        /* void(). */
+        make_integer_constant_operand(result, 0L);
+        cast_operand_to_void(result, type_cast_to);
+      } else {
+        /* Class or scalar type followed by ().  Do default initialization --
+           the value a static object of that type would get by default (WP
+           _expr.type.conv_). */
         an_expr_node_ptr temp_init_node =
                   create_expr_temporary(type_cast_to,
                                         /*result_is_addr=*/FALSE,
@@ -6332,20 +6337,9 @@ See _expr.type.conv_ in the WP.
         a_dynamic_init_ptr dip = temp_init_node->variant.init.dynamic_init;
         set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_zero);
         make_expression_operand(temp_init_node, temp_init_node->type, result);
-        /* Check for uninitialized reference members within the class. */
-        check_for_missing_initializer((a_symbol_ptr)NULL, type_cast_to);
-      } else {
-        /* A non-class type followed by (); generate the value a static
-           object of that type would get by default (WP _expr.type.conv_),
-           which is to say zero converted to the type. */
-        make_integer_constant_operand(result, 0L);
-        if (is_void_type(type_cast_to)) {
-          /* Use an expression for the void case, because a constant cannot
-             be cast to void. */
-          cast_operand_to_void(result, type_cast_to);
-        } else {
-          cast_operand(type_cast_to, result, /*check_cast_access=*/FALSE,
-                       /*is_implicit_cast=*/FALSE);
+        if (is_class_struct_union_type(type_cast_to)) {
+          /* Check for uninitialized reference members within the class. */
+          check_for_missing_initializer((a_symbol_ptr)NULL, type_cast_to);
         }  /* if */
       }  /* if */
     } else {
