@@ -2267,7 +2267,7 @@ operator_or_conversion_name:
         if (next_token() == tok_lt) {
           flush_tokens();
         } else {
-          get_token();
+          (void)get_token();
         }  /* if */
         err = TRUE;
         if (basic_type == bt_typedef) {

@@ -3966,7 +3966,7 @@ specifier is restored.
     if (curr_token != tok_rbrace) {
       pos_error(ec_exp_rbrace, &pos_curr_token);
     } else {
-      /* Advance past rbrace.  If the current declaration is a top-level
+      /* Advance past right brace.  If the current declaration is a top-level
          declaration, set a global flag to enable checking for a header
          stop. */
       if (is_top_level_declaration) next_token_is_top_level_decl_start = TRUE;
@@ -4438,7 +4438,7 @@ of local variables (and types, etc.) of functions and in blocks.
             if required. */
         goto advance_past_final_token;
       } else {
-        /* The declaration did not appeare at the top level, so we will
+        /* The declaration did not appear at the top level, so we will
            already have advanced past the final token. */ 
         goto return_point;
       }  /* if */

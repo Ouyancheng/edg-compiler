@@ -71,7 +71,7 @@ incorporated:
 /* Manipulation of target integer constants. */
 #include "const_ints.h"
 
-/* Manipulation of internal floating point quantitities. */
+/* Manipulation of internal floating point quantities. */
 #include "float_pt.h"
 
 /* Production of a string-form representation of IL entities. */
