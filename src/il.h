@@ -17,6 +17,9 @@ il.h -- Declarations related to the intermediate language.
 #ifndef IL_H
 #define IL_H 1
 
+#ifndef HOST_ENVIR_H
+#include "host_envir.h"
+#endif /* ifndef HOST_ENVIR_H */
 
 /* il_def.h contains the definition of the IL tables.  It's in a separate
    file so that it can be included in back ends without dragging in all of the
