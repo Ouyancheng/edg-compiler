@@ -1736,7 +1736,7 @@ a typedef, is_typedef is TRUE.
         tp->variant.integer.packed = TRUE;
       } else if (is_immediate_class_type(tp)) {
         /* A packed class is one where all of the members are aligned on
-           a 1-byte boundary.   In addition, bit fields may straddle
+           a 1-byte boundary.  In addition, bit fields may straddle
            container boundaries. */
         tp->variant.class_struct_union.is_packed = TRUE;
         tp->variant.class_struct_union.max_member_alignment = 1;
