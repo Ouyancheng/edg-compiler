@@ -1115,7 +1115,7 @@ file.
     (void)putc('"', f_C_output);
     for (p = curr_output_file->file_name; *p != '\0'; p++) {
       char ch = *p;
-      if (ch == '"' || ch == '\\') (void)putc('\\', f_C_output);
+      if (ch == '"') (void)putc('\\', f_C_output);
       (void)putc(ch, f_C_output);
     }  /* for */
     (void)putc('"', f_C_output);

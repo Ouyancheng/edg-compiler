@@ -1,5 +1,12 @@
 Version 2.36
 
+5/28/97   In generated #line file names, "\" no longer escaped
+
+When the C- or C++-generating back end generates #line directives,
+backslash characters in file names are no longer escaped, so that
+a PC-style file name like "tmp\xyz.h" no longer comes out with
+double backslashes.
+
 5/28/97   Eliminated function static to simplify making the front end
           continue after a catastrophic error
 
