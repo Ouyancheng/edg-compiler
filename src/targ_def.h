@@ -1717,11 +1717,11 @@ generate code for the GNU C compiler (gcc or g++).
 #endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 
 #ifndef GCC_IS_GENERATED_CODE_TARGET
-#ifdef __GNUC__
+#if defined(__GNUC__) && BACK_END_IS_C_GEN_BE
 #define GCC_IS_GENERATED_CODE_TARGET TRUE
-#else /* ifndef __GNUC__ */
+#else /* !defined(__GNUC__) && BACK_END_IS_C_GEN_BE */
 #define GCC_IS_GENERATED_CODE_TARGET FALSE
-#endif /* ifndef __GNUC__ */
+#endif /* !defined(__GNUC__) && BACK_END_IS_C_GEN_BE */
 #endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
@@ -1739,6 +1739,18 @@ initial value of the global variable msvc_is_generated_code_target.
 #define MSVC_IS_GENERATED_CODE_TARGET FALSE
 #endif /* EDG_WIN32 */
 #endif /* ifndef MSVC_IS_GENERATED_CODE_TARGET */
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+/*
+The C-generating and C++-generating back ends should never have to generate
+code for both the Microsoft compiler and the GNU compiler.
+*/
+
+#if MSVC_IS_GENERATED_CODE_TARGET && GCC_IS_GENERATED_CODE_TARGET
+ #error -- MSVC_IS_GENERATED_CODE_TARGET and GCC_IS_GENERATED_CODE_TARGET \
+           may not both be TRUE
+#endif /* MSVC_IS_GENERATED_CODE_TARGET && GCC_IS_GENERATED_CODE_TARGET */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 #if BACK_END_IS_C_GEN_BE
