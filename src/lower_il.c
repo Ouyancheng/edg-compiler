@@ -5227,7 +5227,7 @@ being made.
     /* If we have already created a vcall offset for this routine in the
        virtual function table for vbase, we do not need another one. */
     if (overrider->vcall_offset_index_set) continue;
-    /* Find the override_bcp in the complete object. */
+    /* Find the overrider_bcp in the complete object. */
     if (ctor_bcp != NULL && overrider_bcp != NULL) {
       disambiguator = find_disambiguator(ctor_bcp, overrider_bcp);
       overrider_bcp = corresponding_base_class(overrider_bcp,
@@ -5236,7 +5236,7 @@ being made.
     } else if (ctor_bcp != NULL) {
       overrider_bcp = ctor_bcp;
     } /* if */
-    /* The offset is the offset from vbase to override_bcp -- where both are
+    /* The offset is the offset from vbase to overrider_bcp -- where both are
        considered in the complete object. */
     offset = ((overrider_bcp != NULL) ? overrider_bcp->offset : 0) -
                                                                  vbase_offset;
