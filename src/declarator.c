@@ -1904,7 +1904,7 @@ declaration.
           typedef void CF() const;
        this_class == NULL but qualifiers != TQ_NONE. */
     extra_info->this_class = this_class;
-    extra_info->qualifiers = qualifiers;
+    extra_info->qualifiers = qualifier_err ? TQ_NONE : qualifiers;
 #if 0
     /* Should a diagnostic be issued if a throw specification appears other
        than on a top-level declaration? */
