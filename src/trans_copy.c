@@ -2620,7 +2620,7 @@ static void finish_scope_orphaned_list_processing(
 /*
 Final processing on scope orphaned list headers.  For functions that
 were actually copied over, a new version of the orphaned list header
-entries was generated on the other side (after lowering).  For functions
+entries will be generated on the other side (after lowering).  For functions
 whose bodies were deleted, however, there may be dangling types etc.
 in the scope orphaned list headers in the secondary translation unit.
 The entries have been copied over, but they're not linked into the IL
