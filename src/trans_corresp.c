@@ -3056,6 +3056,7 @@ entities.
   }  /* if */
 }  /* find_type_correspondence */
 
+#if 0 /* FIXME */
 
 static a_boolean parent_class_is_canonical(a_source_correspondence_ptr  scp)
 /*
@@ -3071,6 +3072,7 @@ class is at the end of a (possibly singleton) correspondence chain.
   return result;
 }  /* if */
 
+#endif /*FIXME */
 
 static a_symbol_list_entry_ptr find_class_template_instantiation(
                                        a_template_symbol_supplement_ptr  tssp,
@@ -3300,6 +3302,7 @@ symbol supplement.
   } else if (routine != sym_entry->symbol->variant.routine.ptr) {
     a_routine_ptr  old_ce = (a_routine_ptr)canonical_il_entry_of(
                                       sym_entry->symbol->variant.routine.ptr);
+#if 0 /* FIXME */
     if (parent_class_is_canonical(&routine->source_corresp)) {
       /* If a parent is canonical, all its members should be canonical too.
          Hence, routine should become the canonical entry instead of the
@@ -3310,6 +3313,8 @@ symbol supplement.
     } else {
       set_trans_unit_corresp(iek_routine, routine, old_ce);
     }  /* if */
+#endif /* FIXME */
+    set_trans_unit_corresp(iek_routine, routine, old_ce);
   }  /* if */
 }  /* record_function_template_instantiation */
 
