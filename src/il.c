@@ -3399,7 +3399,7 @@ to it.
 
 
 void add_to_variables_list(a_variable_ptr var_ptr,
-                           a_scope_depth  scope_depth)
+                           a_boolean      at_file_scope)
 /*
 Add the given variable to the variables list for the scope at the indicated
 scope depth.
@@ -3409,15 +3409,32 @@ scope depth.
   a_scope_ptr              sp;
 
   /* Get pointer to current or file scope entry. */
-  ssep = &scope_stack[scope_depth];
-  /* Create the IL scope if necessary (for block scopes). */
-  sp = ensure_il_scope_exists(ssep);
+  if (at_file_scope) {
+    ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+    sp = ssep->il_scope;
+#if CHECKING
+    if (sp == NULL) internal_error("add_to_variables_list: NULL IL scope");
+    if (var_ptr->storage_class != (a_storage_class)sc_static &&
+        var_ptr->storage_class != (a_storage_class)sc_extern &&
+        var_ptr->storage_class != (a_storage_class)sc_unspecified) {
+      internal_error(
+              "add_to_variables_list: bad storage class for file scope list");
+    }  /* if */
+#endif /* CHECKING */
+  } else {
+    ssep = &scope_stack[decl_scope_level];
+    /* Create the IL scope if necessary (for block scopes). */
+    sp = ensure_il_scope_exists(ssep);
+  }  /* if */
   /* Variables requiring static allocation go on one list, those for stack
      and register allocation on another. */
-  if (var_ptr->storage_class == (a_storage_class)sc_static ||
+  if (at_file_scope ||
+      var_ptr->storage_class == (a_storage_class)sc_static ||
       var_ptr->storage_class == (a_storage_class)sc_extern ||
       var_ptr->storage_class == (a_storage_class)sc_unspecified) {
 #if CHECKING
+    /* Variables with static storage will always be allocated in file scope
+       memory region, regardless of which scope's list they are on. */
     if (!in_file_scope(var_ptr)) {
       internal_error("add_to_variables_list: var not in file scope region");
     }  /* if */
@@ -3430,6 +3447,8 @@ scope depth.
     ssep->last_variable = var_ptr;
   } else {
 #if CHECKING
+    /* Variables with nonstatic storage will never be allocated in file scope
+       memory region. */
     if (in_file_scope(var_ptr)) {
       internal_error("add_to_variables_list: var in file scope region");
     }  /* if */
@@ -3477,25 +3496,26 @@ Make a temporary variable whose type is temp_type.  Return a pointer to it.
 {
   a_variable_ptr   temp_var;
   a_scope_kind     scope_kind;
-  a_scope_depth    scope_depth = depth_scope_stack;
+  a_boolean        at_file_scope;
   a_storage_class  storage_class;
 
   /* Use auto storage class in functions, static elsewhere. */
-  scope_kind = scope_stack[scope_depth].kind;
+  scope_kind = scope_stack[decl_scope_level].kind;
   if (scope_kind == (a_scope_kind)sck_function ||
       scope_kind == (a_scope_kind)sck_block) {
     storage_class = (a_storage_class)sc_auto;
+    at_file_scope = FALSE;
   } else {
     /* If not inside a function, use the file scope.  This is important
        when inside a class -- the class goes into the file scope, so the
        temporary must also. */
     storage_class = (a_storage_class)sc_static;
-    scope_depth = DEPTH_OF_FILE_SCOPE;
+    at_file_scope = TRUE;
   }  /* if */
   temp_var = alloc_variable(storage_class);
   temp_var->type = temp_type;
   /* Name linkage stays nlk_none. */
-  add_to_variables_list(temp_var, scope_depth);
+  add_to_variables_list(temp_var, at_file_scope);
   return temp_var;
 }  /* alloc_temporary_variable */
 
@@ -3613,9 +3633,8 @@ Add the given routine to the routines list for the current scope, or
 for the file scope if at_file_scope is TRUE.
 */
 {
-  a_scope_stack_entry_ptr
-		 ssep;
-  a_scope_ptr    sp;
+  a_scope_stack_entry_ptr  ssep;
+  a_scope_ptr              sp;
 
   /* Get pointer to current or file scope entry. */
   ssep = &scope_stack[at_file_scope ? DEPTH_OF_FILE_SCOPE : decl_scope_level];
