@@ -2082,6 +2082,9 @@ Add a string representing a constant value to a string being formed.
       }  /* if */
       add_string_to_segment(scp->name, seg_ptr);
       break;
+    case ck_template_param:
+      add_string_to_segment(cp->source_corresp.name, seg_ptr);
+      break;
     case ck_error:
       add_string_to_segment("<error constant>", seg_ptr);
       break;
