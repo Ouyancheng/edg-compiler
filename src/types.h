@@ -43,6 +43,7 @@ extern a_boolean is_function_type(a_type_ptr tp);
 extern a_boolean is_incomplete_type(a_type_ptr tp);
 extern a_boolean is_object_type(a_type_ptr tp);
 extern a_boolean is_void_type(a_type_ptr tp);
+extern a_boolean is_void_star_type(a_type_ptr tp);
 extern a_boolean is_integral_type(a_type_ptr tp);
 extern a_boolean is_signed_integral_type(a_type_ptr tp);
 extern a_boolean is_enum_type(a_type_ptr tp);

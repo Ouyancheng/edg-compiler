@@ -199,6 +199,25 @@ Return TRUE if the given type is the void type (3.1.2.5).
 }  /* is_void_type */
 
 
+a_boolean is_void_star_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is the void* type.  Note that this does not
+allow "const void*" or any other qualified version.
+*/
+{
+  a_boolean is_void_star = FALSE;
+
+  tp = skip_typerefs(tp);
+  if (is_pointer(tp)) {
+    a_type_ptr ptr_type = type_pointed_to(tp);
+    if (is_void_type(ptr_type) && !is_qualified_type(ptr_type)) {
+      is_void_star = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_void_star;
+}  /* is_void_star_type */
+
+
 a_boolean is_integral_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an integral type (3.1.2.5).
