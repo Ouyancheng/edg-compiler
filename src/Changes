@@ -1,5 +1,12 @@
 Version 2.32
 
+5/6/76  IL CHANGE: field removed from a_class_type_supplement
+
+The field anonymous_union_object.storage_class is no longer required and
+has been removed from a_class_type_supplement.  As a result, the union
+anonymous_union_object is no longer needed either and has also been
+removed.
+
 5/6/96  Indication of specialization in mangled names
 
 Under control of the configuration variable
