@@ -6397,11 +6397,13 @@ of the front end.
   avail_string_literal_tables = NULL;
   avail_string_literal_table_entries = NULL;
 #if DEBUG
-  num_function_shareable_constants_tables_allocated = 0;
   num_string_literal_table_entries_allocated = 0;
   num_string_literal_tables_allocated = 0;
 #endif /* DEBUG */
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
+#if DEBUG
+  num_function_shareable_constants_tables_allocated = 0;
+#endif /* DEBUG */
   function_body_processing_delayed_on_some_func_in_primary_il = FALSE;
 }  /* scope_stk_init */
 
