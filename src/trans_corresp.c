@@ -3495,7 +3495,10 @@ entities.
         } else if (type_sym->is_class_member) {
           /* A conflict, but errors are reported elsewhere for class
              members. */
-        } else if (is_tag_symbol(sym) != is_tag_symbol(type_sym)) {
+        } else if (is_tag_symbol(type_sym) &&
+                   !(is_type_symbol(sym) ||
+                     is_template_symbol(sym) ||
+                     is_namespace_symbol(sym))) {
           /* Tag names have their own name space. */
         } else {
           f_report_bad_trans_unit_corresp((char*)type, &sym->decl_position);
