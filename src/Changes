@@ -1,5 +1,15 @@
 Version 2.22
 
+2/18/94  ANSI C code generation from C-generating back end
+
+The C-generating back end can now be configured to generate ANSI C instead
+of K&R C.  See the flag C_GEN_BE_GENERATES_ANSI_C in target.h.
+This change involved an almost-complete rewrite of c_gen_be.c;
+in the process, the Fortran-specific code has been removed, and
+annotation output is no longer controlled by a build option (it
+is still controlled by a command-line option).  In both K&R C
+and ANSI C generation modes, the output now contains #line directives.
+
 2/17/94  Detection of instantiation loops in -tall mode
 
 In -tall mode it is possible for the compiler to be required to generate
