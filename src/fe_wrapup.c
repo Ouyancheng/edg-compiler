@@ -1,0 +1,134 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C Front End                            - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+fe_wrapup.c - End of front end processing.
+
+*/
+
+#include "basics.h"
+#include "host_envir.h"
+#include "symbol_tbl.h"
+#include "mem_manage.h"
+#include "error.h"
+#include "cmd_line.h"
+#include "macro.h"
+
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+#include "il_write.h"
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+
+
+#if DEBUG
+static void show_space_used(void)
+/*
+Show the amount of memory allocated.
+*/
+{
+  unsigned long total_space = 0;
+
+  /* Show space use in various categories. */
+  total_space += show_symbol_space_used();
+  total_space += show_macro_space_used();
+  total_space += show_lexical_space_used();
+  total_space += show_il_space_used();
+
+  show_mem_manage_space_used(total_space);
+}  /* show_space_used */
+#endif /* DEBUG */
+
+
+void fe_wrapup(void)
+/*
+Do any processing required at the end of execution of the front end.
+*/
+{
+  db_enter(1, "fe_wrapup");
+
+  /* Move the constants in the shareable constants table onto the file-scope
+     constants list so that all file-scope items are found in a traversal
+     of the file-scope IL tree. */
+  add_shareable_constants_to_constants_list();
+
+#if CHECKING
+  /* Check that the stop_token_array elements all made it back to zero.
+     (Every add_stop_token is supposed to have a corresponding
+     remove_stop_token.)  Note that there is also a check in db_exit,
+     which can be used to pin down problems that are initially
+     spotted here. */
+  { int       token;
+    a_boolean any_error = FALSE;
+
+    for (token = 0; token != (int)tok_last; token++) {
+      if (stop_token_array[token] != 0) {
+        any_error = TRUE;
+#if DEBUG
+        if (debug_level != 0) {
+          fprintf(f_debug, "In fe_wrapup: stop_token_array[\"%s\"] != 0\n",
+                           token_names[token]);
+        }  /* if */
+#endif /* DEBUG */
+      }  /* if */
+    }  /* for */
+    if (any_error) internal_error("fe_wrapup: stop_token_array not all zero");
+  }
+#endif /* CHECKING */
+
+  /* Pop the file declaration scope off the scope stack. */
+  pop_scope();
+
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  /* Finish writing the IL file, if there is one. */
+  finish_il_file();
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+
+  /* Close the raw listing file if one is being generated. */
+  if (f_raw_listing != NULL) {
+    if (fflush(f_raw_listing) || ferror(f_raw_listing) ||
+        fclose(f_raw_listing)) {
+      str_catastrophe(ec_file_write_error, "raw listing");
+    }  /* if */
+  }  /* if */
+
+  /* Close the cross-reference file if one is being generated. */
+  if (f_xref_info != NULL) {
+    if (fflush(f_xref_info) || ferror(f_xref_info) || fclose(f_xref_info)) {
+      str_catastrophe(ec_file_write_error, "cross-reference");
+    }  /* if */
+  }  /* if */
+
+#if DEBUG
+  if (debug_level > 0) {
+    /* Print total memory used. */
+    show_space_used();
+  }  /* if */
+#endif /* DEBUG */
+
+#if BACK_END_SHOULD_BE_CALLED || COMPILE_MULTIPLE_SOURCE_FILES
+  /* Free front-end-only storage if calling a back end in the same program,
+     or if compiling multiple source files.  If not, the storage will be
+     freed anyway when the front end terminates, so there's no point in
+     freeing it explicitly (and it's faster not to). */
+  free_memory_region(NULL_region_number);
+#endif /* BACK_END_SHOULD_BE_CALLED || COMPILE_MULTIPLE_SOURCE_FILES */
+
+  db_exit();
+}  /* fe_wrapup */
+
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C Front End                            - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
