@@ -1,5 +1,19 @@
 Version 2.31
 
+1/12/96   Name mangling abort on obscure nontype template argument case
+
+The name mangling code for nontype template arguments expected that
+on the address of a variable or routine the offset would always be
+zero.  This turns out not to be true when the address is cast to a
+related class, so the check has been removed.
+
+  struct T {};
+  struct U {};
+  struct V : public T, public U {};
+  template < U* obj > class Template {};
+  V            x;
+  Template<&x> y;  // Caused internal error
+
 1/12/96   Required diagnostic on nonstandard character at start of macro
 
 Technical Corrigendum 1 for ISO C adds (in 6.8 of the standard) a requirement

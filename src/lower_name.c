@@ -368,7 +368,8 @@ used to encode constants as part of the mangled names of template classes.
         a_routine_ptr        routine;
         an_address_base_kind abkind;
 
-        check_assertion(con->variant.address.offset == 0);
+        /* The offset can be non-zero is cases where a pointer to class was
+           cast to a related class.  That's ignored in the output. */
         abkind = con->variant.address.kind;
 #if CHECKING
         if (abkind == (an_address_base_kind)abk_constant) {
