@@ -1,5 +1,21 @@
 Version 3.6
 
+1/17/05  Abort on incompatible C mode declarations across translation units
+
+When simultaneously processing multiple translation units in C mode, the front
+end sometimes aborted with an internal error if it encountered two incompatible
+definitions of a struct type used to declare an entity with external linkage.
+For example:
+
+  // File 1:
+  struct S { int i; } s;
+
+  // File 2:
+  extern struct S { int j; } s;  // Incompatible field name.  Previously
+                                 // caused an internal error.
+
+This is now fixed (a normal compatibility error is issued). 
+
 1/17/05  C99 inline definitions and local static variables
 
 In C99 mode, the front end previously issued an error whenever a local static

@@ -739,26 +739,17 @@ this routine will create such a correspondence entry.
                            (char*)(entity1), (char*)(entity2))
 
 
-static void f_set_no_trans_unit_corresp(an_il_entry_kind  kind,
-                                        char              *entity)
+static a_trans_unit_corresp_ptr* detach_trans_unit_corresp(
+                                                    an_il_entry_kind  kind,
+                                                    char              *entity)
 /*
-Mark the given IL entry as having no correspondence in another translation
-unit.  This is done by having the correspondence pointer point to the IL entry
-itself.  In contrast, a NULL correspondence pointer indicates that the entry
-has not yet been examined for a matching entry in another translation unit.
+If possible, set the translation unit correspondence pointer in the given
+entity to NULL.  Return the address of that pointer.
 */
 {
   a_trans_unit_corresp_ptr  *tcp;
 
   check_assertion(entity != NULL);
-  trace_corresp_check(entity);
-#if DEBUG
-  if (kind != (an_il_entry_kind)iek_base_class &&
-      db_trace("trans_corresp", entity, kind)) {
-    db_scp(entity);
-    fprintf(f_debug, " has no correspondence.\n");
-  }  /* if */
-#endif /* DEBUG */
   if (kind == (an_il_entry_kind)iek_base_class) {
     /* Base class entries are the only entries with a correspondence pointer
        that is not part of a source correspondence structure. */
@@ -784,6 +775,30 @@ has not yet been examined for a matching entry in another translation unit.
 #endif /* CHECKING */
     *tcp = NULL;
   }  /* if */
+  return tcp;
+}  /* detach_trans_unit_corresp */
+
+
+static void f_set_no_trans_unit_corresp(an_il_entry_kind  kind,
+                                        char              *entity)
+/*
+Mark the given IL entry as having no correspondence in another translation
+unit.  This is done by having the correspondence pointer point to the IL entry
+itself.  In contrast, a NULL correspondence pointer indicates that the entry
+has not yet been examined for a matching entry in another translation unit.
+*/
+{
+  a_trans_unit_corresp_ptr  *tcp;
+
+  trace_corresp_check(entity);
+#if DEBUG
+  if (kind != (an_il_entry_kind)iek_base_class &&
+      db_trace("trans_corresp", entity, kind)) {
+    db_scp(entity);
+    fprintf(f_debug, " has no correspondence.\n");
+  }  /* if */
+#endif /* DEBUG */
+  tcp = detach_trans_unit_corresp(kind, entity);
   if (*tcp == NULL) {
     /* Allocate a correspondence node. */
     *tcp = alloc_trans_unit_corresp();
@@ -814,12 +829,15 @@ has not yet been examined for a matching entry in another translation unit.
 static void f_set_unvisited_trans_unit_corresp(an_il_entry_kind  kind,
                                                char              *entity)
 /*
-Detach the given IL entity from a translation unit correspondence entry.
+Detach the given IL entity from a translation unit correspondence entry
+and free the correspndence entry.
 */
 {
   a_trans_unit_corresp_ptr  tcp = trans_unit_corresp_of_unknown_entry(entity);
 
   if (tcp != NULL) {
+    trace_corresp_check(entity);
+    (void)detach_trans_unit_corresp(kind, entity);
 #if CHECKING
     check_assertion(tcp->count == 1 && tcp->kind == kind);
 #endif /* CHECKING */
@@ -2407,14 +2425,13 @@ is in fact valid.
                     scp, corresp_scp;
 
     if (var == corresp_var) {
-      /* This is the canonical entry.  If applicable, verify the entry in
-         the primary translation unit against this one.  Otherwise, nothing
+      /* This is the canonical entry.  If applicable, verify the current entry
+         against the one in the primary translation unit.  Otherwise, nothing
          needs to be done. */
       a_variable_ptr  prim =
                           (a_variable_ptr)trans_unit_corresp_of(var)->primary;
       if (prim != NULL && var != prim) {
-        corresp_var = var;
-        var = prim;
+        corresp_var = prim;
       } else {
         goto done;
       }  /* if */
@@ -3090,12 +3107,12 @@ is in fact valid.
          identical. */
       match = verify_class_type_correspondence(type);
       if (!match && C_mode()) {
-        set_no_trans_unit_corresp(iek_type, type);
+        clear_type_correspondence(type, /*visited=*/TRUE);
       }  /* if */
     } else if (is_immediate_enum_type(type)) {
       match = verify_enum_type_correspondence(type);
       if (!match && C_mode()) {
-        set_no_trans_unit_corresp(iek_type, type);
+        clear_type_correspondence(type, /*visited=*/TRUE);
       }  /* if */
     } else {
       match = identical_types(type, corresp_type) &&
