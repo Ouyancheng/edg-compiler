@@ -901,8 +901,10 @@ Display the indicated source correspondence entry.
   disp_long("  scope_depth", (long)scp->scope_depth);
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  disp_ptr("  source_sequence_entry", (char *)scp->source_sequence_entry,
-           iek_source_sequence_entry);
+  if (scp->name != NULL || scp->source_sequence_entry != NULL) {
+    disp_ptr("  source_sequence_entry", (char *)scp->source_sequence_entry,
+             iek_source_sequence_entry);
+  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* disp_source_corresp */
 
