@@ -1098,6 +1098,25 @@ about inline attributes, merge it into corresp_routine, which is
 not being eliminated.
 */
 {
+  a_type_ptr                    rout_type, corresp_rout_type;
+  a_routine_type_supplement_ptr rtsp, corresp_rtsp;
+  a_param_type_ptr              param, corresp_param;
+
+  /* Transfer the passed_via_copy_constructor flag in parameters.
+     It may not get set if the routine is not called. */
+  rout_type = skip_typerefs(routine->type);
+  corresp_rout_type = skip_typerefs(corresp_routine->type);
+  rtsp = rout_type->variant.routine.extra_info;
+  corresp_rtsp = corresp_rout_type->variant.routine.extra_info;
+  param = rtsp->param_type_list;
+  corresp_param = corresp_rtsp->param_type_list;
+  for (; param != NULL && corresp_param != NULL;
+       param = param->next, corresp_param = corresp_param->next) {
+    if (param->passed_via_copy_constructor) {
+      corresp_param->passed_via_copy_constructor = TRUE;
+    }  /* if */
+  }  /* for */
+  check_assertion(param == NULL && corresp_param == NULL);
   check_assertion(routine->is_inline == corresp_routine->is_inline ||
                   /* The is_inline flag in templates is not set until
                      the function is fully instantiated. */
