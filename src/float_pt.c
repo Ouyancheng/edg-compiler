@@ -77,12 +77,12 @@ do nothing.
         (void)sprintf(double_string, "%.2e", temp);
         if (strcmp(float_string, double_string) != 0) *err = TRUE;
       }
-      memcpy((char *)float_value, (char *)&float_temp, sizeof(float));
+      (void)memcpy((char *)float_value, (char *)&float_temp, sizeof(float));
     } else {
       /* Store a double in float_value. */
       /* Use memcpy to copy the value since float_value might not be correctly
          aligned. */
-      memcpy((char *)float_value, (char *)&temp, sizeof(double));
+      (void)memcpy((char *)float_value, (char *)&temp, sizeof(double));
     }  /* if */
   }  /* if */
 }  /* store_double */
@@ -101,13 +101,13 @@ Fetch the value from float_value (of kind kind) and return it.
     /* Convert from float to double. */
     /* Use memcpy to copy the value since float_value might not be correctly
        aligned. */
-    memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
+    (void)memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
     temp = float_temp;
   } else {
     /* The value is already double. */
     /* Use memcpy to copy the value since float_value might not be correctly
        aligned. */
-    memcpy((char *)&temp, (char *)float_value, sizeof(double));
+    (void)memcpy((char *)&temp, (char *)float_value, sizeof(double));
   }  /* if */
   return temp;
 }  /* fetch_double */
@@ -139,8 +139,8 @@ new_kind.  If there is an error, return *err TRUE.
     /* There is no change of size, so just copy. */
     /* Use memcpy to copy the value since the values might not be correctly
        aligned. */
-    memcpy((char *)new_value, (char *)old_value,
-           sizeof(an_internal_float_value));
+    (void)memcpy((char *)new_value, (char *)old_value,
+                 sizeof(an_internal_float_value));
   }  /* if */
 }  /* fp_change_kind */
 
@@ -335,7 +335,7 @@ nbytes == 0 means put all zero bytes in *float_value.
   *err = FALSE;
   /* Set all the bytes to zero. */
   p = (a_byte *)float_value;
-  memzero((char *)p, (int)sizeof(an_internal_float_value));
+  memzero((char *)p, sizeof(an_internal_float_value));
   /* Position p to store the most-significant byte. */
   if (host_little_endian) {
     p += nbytes;
