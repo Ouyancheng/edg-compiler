@@ -2770,6 +2770,9 @@ created; the caller must set it.
       }
     }  /* if */
     if (ext_sym != NULL) {
+      if (suppress_incompatible_error) {
+        incomp_severity = es_none;
+      }  /* if */
       if (ext_sym_kind != ext_sym->kind) {
         /* The old entity is a variable and the new one is a routine, or
            vice-versa; error. */
