@@ -201,7 +201,7 @@ and to find existing entries only when appropriate.  Exercise great
 caution when modifying this routine.
 */
 {
-  a_symbol_ptr      tag_sym = NULL;
+  a_symbol_ptr      tag_sym = NULL, templ_sym = NULL;
   a_token_kind      next_tok;
   a_boolean	    err = FALSE;
   a_boolean	    tag_err = FALSE;
@@ -257,6 +257,9 @@ caution when modifying this routine.
             /* This is a template parameter during a prototype instantiation.
                Don't issue an error.  This will be checked during real
                instantiations. */
+          } else if (tag_sym->kind == (a_symbol_kind)sk_class_template) {
+            templ_sym = tag_sym;
+            tag_sym = NULL;
           } else if (is_template_class_symbol(tag_sym) &&
                      tag_kind != (a_symbol_kind)sk_enum_tag &&
                      tag_sym->kind != (a_symbol_kind)sk_enum_tag) {
@@ -279,13 +282,14 @@ caution when modifying this routine.
        template name at file scope must have an argument list.  A use
        of a class template name in another scope is actually a
        declaration of a new class that has nothing to do with the template. */
-    a_symbol_ptr  templ_sym;
     /* Look up what may be a class template symbol.  If the name is
        the start of a qualified name (e.g., A::B) or has a template
        argument list (e.g., A<T>) it will have been coalesced by the
        call to coalesce_and_lookup_qualified_name.  If it just a simple
        identifier (e.g., "A") we need look it up and coalesce it here. */
     templ_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+  }  /* if */
+  if (templ_sym != NULL) {
     /* There are two situations that need to be handled: this could be the
        first time we are scanning this template reference -- in which case
        we need to scan the arguments (using coalesce_template_class_reference).
@@ -294,94 +298,92 @@ caution when modifying this routine.
        the symbol is a template class symbol then the arguments have already
        been scanned and we should simply use the symbol returned by
        normal_id_lookup. */
-    if (templ_sym != NULL) {
-      if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
-        tag_sym = coalesce_template_class_reference(templ_sym, GID_NO_OPTIONS,
-                                                    &err);
-        /* If an error occurred while scanning the template arguments, set
-           tag_sym to NULL.  The caller is not prepared for it to point to
-           an error symbol. */
-        if (err) {
-          tag_sym = NULL;
-          tag_err = TRUE;
-        }  /* if */
-      } else if (is_template_class_symbol(templ_sym)) {
-        /* Use the symbol pointer from the locator (returned by
-           normal_id_lookup earlier).  The template class reference has
-           already been coalesced. */
-        tag_sym = templ_sym;
-      } else {
-        /* Don't prejudice subsequent lookups. */
-        clear_specific_symbol(locator_for_curr_id);
+    if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
+      tag_sym = coalesce_template_class_reference(templ_sym, GID_NO_OPTIONS,
+                                                  &err);
+      /* If an error occurred while scanning the template arguments, set
+         tag_sym to NULL.  The caller is not prepared for it to point to
+         an error symbol. */
+      if (err) {
+        tag_sym = NULL;
+        tag_err = TRUE;
       }  /* if */
+    } else if (is_template_class_symbol(templ_sym)) {
+      /* Use the symbol pointer from the locator (returned by
+         normal_id_lookup earlier).  The template class reference has
+         already been coalesced. */
+      tag_sym = templ_sym;
+    } else {
+      /* Don't prejudice subsequent lookups. */
+      clear_specific_symbol(locator_for_curr_id);
     }  /* if */
-    if (tag_sym == NULL && !tag_err) {
-      /* See if this is an explicit declaration of class type_info, which was
-         already "predeclared".  If it is, reuse the original symbol. */
-      a_symbol_ptr  type_info_sym;
-      check_assertion(type_of_type_info != NULL);
-      type_info_sym = (a_symbol_ptr)type_of_type_info->
+  }  /* if */
+  if (tag_sym == NULL && !tag_err && !locator_for_curr_id.is_qualified_name) {
+    /* See if this is an explicit declaration of class type_info, which was
+       already "predeclared".  If it is, reuse the original symbol. */
+    a_symbol_ptr  type_info_sym;
+    check_assertion(type_of_type_info != NULL);
+    type_info_sym = (a_symbol_ptr)type_of_type_info->
                                          source_corresp.assoc_info;
-      /* Note that we need a match not only on the name but also on the
-         namespace.  This depends on whether the implicitly declared type_info
-         is expected to be in namespace "std" or in the global namespace. */
-      if (locator_for_curr_id.symbol_header == type_info_sym->header &&
+    /* Note that we need a match not only on the name but also on the
+       namespace.  This depends on whether the implicitly declared type_info
+       is expected to be in namespace "std" or in the global namespace. */
+    if (locator_for_curr_id.symbol_header == type_info_sym->header &&
 #if RUNTIME_USES_NAMESPACES
-          decl_scope_level == (DEPTH_OF_FILE_SCOPE + 1) &&
-          strcmp(scope_stack[decl_scope_level].il_scope->variant.
-                   assoc_namespace->source_corresp.name, "std") == 0
+        decl_scope_level == (DEPTH_OF_FILE_SCOPE + 1) &&
+        strcmp(scope_stack[decl_scope_level].il_scope->variant.
+                 assoc_namespace->source_corresp.name, "std") == 0
 #else /* !RUNTIME_USES_NAMESPACES */
-          (decl_scope_level == DEPTH_OF_FILE_SCOPE)
+        (decl_scope_level == DEPTH_OF_FILE_SCOPE)
 #endif /* RUNTIME_USES_NAMESPACES */
-                                                   ) {
-        /* The identifier is indeed "type_info".  Check for the pragma that
-           specifically identifies it as the type_info that is returned by
-           typeid (typically, the type_info defined in typeinfo.h). */
-        a_pending_pragma_ptr  ppp;
-        ppp = extract_specific_pragmas((a_pragma_kind)pk_define_type_info,
-                                       type_info_sym, (a_statement_ptr)NULL,
-                                       /*curr_scope_only=*/TRUE);
-        if (ppp != NULL) {
-          /* This is the one. */
-          tag_sym = type_info_sym;
-          free_pending_pragma_list(ppp);
-        } else {
+                                                 ) {
+      /* The identifier is indeed "type_info".  Check for the pragma that
+         specifically identifies it as the type_info that is returned by
+         typeid (typically, the type_info defined in typeinfo.h). */
+      a_pending_pragma_ptr  ppp;
+      ppp = extract_specific_pragmas((a_pragma_kind)pk_define_type_info,
+                                     type_info_sym, (a_statement_ptr)NULL,
+                                     /*curr_scope_only=*/TRUE);
+      if (ppp != NULL) {
+        /* This is the one. */
+        tag_sym = type_info_sym;
+        free_pending_pragma_list(ppp);
+      } else {
 #if BACK_END_IS_CP_GEN_BE
-          /* When the C++ generating back end is in use, the pragma is not
-             required. */
-          tag_sym = type_info_sym;
+        /* When the C++ generating back end is in use, the pragma is not
+           required. */
+        tag_sym = type_info_sym;
 #else /* !BACK_END_IS_CP_GEN_BE */
 #if ABI_CHANGES_FOR_RTTI
-          /* Run-time support for RTTI declares type_info, so consider the
-             name to be reserved. */
-          pos_st_error(ec_conflicts_with_predeclared_type_info,
-                       &locator_for_curr_id.source_position,
+        /* Run-time support for RTTI declares type_info, so consider the
+           name to be reserved. */
+        pos_st_error(ec_conflicts_with_predeclared_type_info,
+                     &locator_for_curr_id.source_position,
 #if RUNTIME_USES_NAMESPACES
-                       "std::type_info"
+                     "std::type_info"
 #else /* !RUNTIME_USES_NAMESPACES */
-                       "type_info"
+                     "type_info"
 #endif /* RUNTIME_USES_NAMESPACES */
-                                  );
+                                );
           tag_sym = type_info_sym;
 #endif /* ABI_CHANGES_FOR_RTTI */
 #endif /* BACK_END_IS_CP_GEN_BE */
-        }  /* if */
-        if (tag_sym == type_info_sym &&
-            tag_sym->decl_scope == NO_SCOPE_NUMBER) {
-          /* It the type_info symbol has no scope number, it hasn't been
-             added to the symbol table yet.  Use the current source
-             position. */
-          tag_sym->decl_position = locator_for_curr_id.source_position;
-          reenter_symbol(tag_sym, decl_scope_level, /*suppress_error=*/FALSE);
-          /* Call set_source_corresp again to get everything in sync. */
-          set_source_corresp(&(type_of_type_info->source_corresp), tag_sym);
-          set_namespace_membership(tag_sym,
-                                   &(type_of_type_info->source_corresp),
-                                   (a_namespace_ptr)NULL);
-          /* The referenced flag may have been reset by set_source_corresp). */
-          type_of_type_info->source_corresp.referenced = tag_sym->referenced;
-          add_to_types_list(type_of_type_info, decl_scope_level);
-        }  /* if */
+      }  /* if */
+      if (tag_sym == type_info_sym &&
+          tag_sym->decl_scope == NO_SCOPE_NUMBER) {
+        /* It the type_info symbol has no scope number, it hasn't been
+           added to the symbol table yet.  Use the current source
+           position. */
+        tag_sym->decl_position = locator_for_curr_id.source_position;
+        reenter_symbol(tag_sym, decl_scope_level, /*suppress_error=*/FALSE);
+        /* Call set_source_corresp again to get everything in sync. */
+        set_source_corresp(&(type_of_type_info->source_corresp), tag_sym);
+        set_namespace_membership(tag_sym,
+                                 &(type_of_type_info->source_corresp),
+                                 (a_namespace_ptr)NULL);
+        /* The referenced flag may have been reset by set_source_corresp). */
+        type_of_type_info->source_corresp.referenced = tag_sym->referenced;
+        add_to_types_list(type_of_type_info, decl_scope_level);
       }  /* if */
     }  /* if */
   }  /* if */
