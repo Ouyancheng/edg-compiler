@@ -86,11 +86,13 @@ enum an_operand_kind_tag {
 			   type (which selects a specific function) or until
 			   used in some other way (which is an error).  Not
 			   used in C. */
-  ok_sym_for_ptr_to_member,
-			/* A symbol for a data member or member function
-			   preserved so that its address can be taken as a
-			   pointer-to-member.  Has a very limited lifetime.
-			   Not used in C. */
+  ok_sym_for_member,	/* A symbol for a data member or member function
+			   that was referenced by qualified name (e.g., A::f),
+			   preserved because its address might be taken as a
+			   pointer-to-member.  That's guaranteed in the data
+			   member case; in the member function case, it's
+			   possible (likely, even) that the function will be
+			   called instead.  Not used in C. */
   ok_undefined_symbol	/* An undefined symbol encountered while scanning an
 			   expression.  Could be an implicit function
 			   declaration or a genuine undefined symbol.
@@ -115,7 +117,7 @@ typedef struct an_operand {
   a_type_ptr    type;
 			/* Type of this operand.  A tk_unknown type if not
 			   applicable (ok_indefinite_function,
-			   ok_sym_for_ptr_to_member, ok_undefined_symbol). */
+			   ok_undefined_symbol). */
   an_operand_kind
 		kind;
 			/* The kind of operand. */
@@ -132,8 +134,7 @@ typedef struct an_operand {
 			   function. */
   unsigned int	is_qualified_name:1;
 			/* TRUE if the operand was generated from a qualified
-			   name.  Used only when kind ==
-			   ok_indefinite_function. */
+			   name. */
   unsigned int	came_from_reference:1;
 			/* For an lvalue, TRUE if the lvalue came from a
 			   C++ reference. */
@@ -143,7 +144,13 @@ typedef struct an_operand {
 			   remains meaningful only for operands that are
 			   essentially still just a representation for
 			   an identifier, e.g., ok_indefinite_function and
-			   ok_sym_for_ptr_to_member. */
+			   ok_sym_for_member. */
+  unsigned int	is_operand_of_address_of:1;
+			/* TRUE if this operand is the immediate operand
+			   of an "&" address-of operator.  This is
+			   significant in that it discriminates between
+			   the standard and nonstandard ways of taking
+			   a pointer-to-member address of a member function. */
   a_source_position
 		position;
 			/* The source position for the operand. */
@@ -162,7 +169,7 @@ typedef struct an_operand {
 		expression;
     /* When kind == ok_constant: */
     a_constant	constant;
-    /* When kind == ok_indefinite_function, ok_sym_for_ptr_to_member, or
+    /* When kind == ok_indefinite_function, ok_sym_for_member, or
        ok_undefined_symbol: */
     a_symbol_ptr
 		symbol;
@@ -446,8 +453,8 @@ Macro that is TRUE if the operand is an indefinite function operand.
 /*
 Macro that is TRUE if the operand is a pointer-to-member symbol operand.
 */
-#define is_sym_for_ptr_to_member_operand(operand)			\
-	((operand)->kind == (an_operand_kind)ok_sym_for_ptr_to_member)
+#define is_sym_for_member_operand(operand)			        \
+	((operand)->kind == (an_operand_kind)ok_sym_for_member)
 
 /*
 Macro that is TRUE if the operand is an undefined symbol operand.
@@ -542,6 +549,16 @@ extern void overloaded_function_catch_up(
                                   a_boolean         elided_reference,
                                   an_operand        *operand,
                                   a_boolean         *access_error_reported);
+
+extern a_boolean variable_this_exists(a_variable_ptr *this_var);
+
+extern void make_this_variable_operand(a_variable_ptr this_var,
+                                       an_operand     *result);
+
+extern a_boolean make_this_pointer_operand(a_symbol_ptr      member_sym,
+                                           a_source_position *member_pos,
+                                           a_boolean         check_cast_access,
+                                           an_operand        *result);
 
 extern void adjust_overloaded_function_call_arguments(
                              a_symbol_ptr             function_symbol,
@@ -642,9 +659,12 @@ extern void make_lvalue_variable_operand(a_variable_ptr    variable,
                                          an_xref_entry_ptr xep);
 
 extern void make_ptr_to_member_constant_operand(
-                                         a_symbol_ptr      member_proj_sym,
-                                         a_source_position *position,
-                                         an_operand        *result);
+                                    a_symbol_ptr      member_sym,
+                                    a_symbol_ptr      member_proj_sym,
+                                    a_source_position *position,
+                                    a_boolean         check_protected_access,
+                                    a_boolean         is_operand_of_address_of,
+                                    an_operand        *result);
 
 extern a_boolean check_object_pointer_operand(an_operand    *operand,
                                               an_error_code err_code);
@@ -712,9 +732,9 @@ extern void make_indefinite_function_operand(a_symbol_ptr routine_sym,
                                              a_boolean    is_qualified_name,
                                              an_operand   *operand);
 
-extern void make_sym_for_ptr_to_member_operand(a_symbol_ptr      member_sym,
-                                               an_xref_entry_ptr xep,
-                                               an_operand        *operand);
+extern void make_sym_for_member_operand(a_symbol_ptr      member_sym,
+                                        an_xref_entry_ptr xep,
+                                        an_operand        *operand);
 
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 

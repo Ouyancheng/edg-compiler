@@ -1333,54 +1333,44 @@ is being called for a derived class object).
 
 static void cast_pointer_for_field_selection(
                                    an_operand         *operand_1,
-                                   a_type_ptr         *class_struct_union_type,
+                                   a_type_ptr         class_struct_union_type,
                                    a_boolean          *is_arrow_operator,
-                                   a_symbol_locator   *member_locator,
-                                   an_error_code      err_code,
-                                   a_source_position  *err_pos)
+                                   a_symbol_locator   *member_locator)
 /*
 Adjust the left operand of a "->" or "." operation, if necessary, to make
 it point to a class/struct/union of the type containing the indicated member.
 This is significant in C++, where the member may be in a base class of the
 left-operand class, and downward casts are needed.  operand_1 is the left
-operand; *class_struct_union_type is its type (which is updated if casts
-are added); *is_arrow_operator is TRUE for "->", FALSE for "." (it will
-be set to TRUE on return if the operation is normalized into "->" form);
-member_locator is a locator for the member symbol (possibly a projection
-symbol).  It is possible that the member symbol is not related to the
-left operand class; in that case, issue the error err_code at position
-*err_pos (the member symbol position).
+operand; class_struct_union_type is its type; *is_arrow_operator is TRUE
+for "->", FALSE for "." (it will be set to TRUE on return if the operation
+is normalized into "->" form); member_locator is a locator for the member
+symbol (possibly a projection symbol).
 */
 {
   a_symbol_ptr     member_sym = member_locator->specific_symbol;
   a_type_ptr       desired_class = member_sym->class_of_which_a_member;
   a_base_class_ptr bcp;
 
+  /* This routine is similar to make_this_pointer_operand. */
   /* Drop any typedefs on the class type. */
-  *class_struct_union_type = skip_typerefs(*class_struct_union_type);
+  class_struct_union_type = skip_typerefs(class_struct_union_type);
   /* If the member is protected, it can only be accessed through an object
      or pointer of a type to which we have member access (ARM 11.5). */
   if (!member_locator->access_control_error_reported) {
     check_protected_member_access(member_sym, &member_locator->source_position,
-				  *class_struct_union_type);
+				  class_struct_union_type);
   }  /* if */
   /* Do nothing if the type is already okay (which it almost always
-     will be). */
-  if (*class_struct_union_type != desired_class) {
+     will be; only in cases involving qualified names can it be different). */
+  if (class_struct_union_type != desired_class) {
     /* Some adjustment is required.  Find out how the classes are
        related to one another. */
-    bcp = find_base_class_of(*class_struct_union_type, desired_class);
-    if (bcp != NULL) {
-      /* Cast the left operand to the proper type. */
-      base_class_cast_operand(operand_1, bcp, is_arrow_operator,
-                              /*check_cast_access=*/
+    bcp = find_base_class_of(class_struct_union_type, desired_class);
+    check_assertion(bcp != NULL);
+    /* Cast the left operand to the proper type. */
+    base_class_cast_operand(operand_1, bcp, is_arrow_operator,
+                            /*check_cast_access=*/
                                !member_locator->access_control_error_reported);
-      *class_struct_union_type = bcp->type;
-    } else {
-      /* The classes are not related.  Error. */
-      pos_error(err_code, err_pos);
-      conv_to_error_operand(operand_1);
-    }  /* if */
   }  /* if */
   /* If the member symbol is a projection symbol (i.e., it's inherited
      into the class where it is being referenced), cast the left operand
@@ -1392,96 +1382,8 @@ left operand class; in that case, issue the error err_code at position
     bcp = member_sym->variant.projection.extra_info->fundamental_base_class;
     base_class_cast_operand(operand_1, bcp, is_arrow_operator,
                             /*check_cast_access=*/FALSE);
-    *class_struct_union_type = bcp->type;
   }  /* if */
 }  /* cast_pointer_for_field_selection */
-
-
-static a_boolean variable_this_exists(a_variable_ptr *this_var)
-/*
-Return TRUE if there is a currently-visible "this" variable.  If there is,
-also set *this_var to point to the variable entry for it.  This routine
-is called only in C++ mode.
-*/
-{
-  a_boolean   this_exists;
-  a_scope_ptr il_scope;
-
-  *this_var = NULL;
-  if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
-    /* We're not inside a function. */
-    this_exists = FALSE;
-  } else {
-    il_scope = scope_stack[depth_innermost_function_scope].il_scope;
-#if CHECKING
-    if (il_scope == NULL) {
-      internal_error("variable_this_exists: NULL IL scope for function");
-    }  /* if */
-#endif /* CHECKING */
-    *this_var = il_scope->variant.routine.this_param_variable;
-    this_exists = (*this_var != NULL);
-  }  /* if */
-  return this_exists;
-}  /* variable_this_exists */
-
-
-void make_this_variable_operand(a_variable_ptr this_var,
-                                an_operand     *result)
-/*
-Make an operand for the value of the "this" variable this_var.  The source
-position of the operand is set to "pos_curr_token".  The operand is an
-rvalue.
-*/
-{
-  an_expr_node_ptr node;
-
-  /* Make a variable value node for the variable. */
-  node = var_rvalue_expr(this_var);
-  /* Make an operand for the node. */
-  make_expression_operand(node, node->type, result);
-}  /* make_this_variable_operand */
-
-
-static void make_this_pointer_operand(a_symbol_locator   *member_locator,
-                                      an_operand         *result)
-/*
-Make an operand for the "this" pointer of a C++ nonstatic member function.
-The operand made is an rvalue for the value of the pointer.  If we are not
-currently in a nonstatic member function, issue an error and return an
-error operand.  member_locator is a symbol locator for the member for
-which the "this" pointer is being built.  Check that the member symbol is
-a member of the class "this" points to (the member symbol may be a
-projection symbol); if it isn't, issue an error and return an error
-operand.  If it is, adjust the "this" pointer so it points to the class of
-which the member symbol is a direct member.  This routine is called only
-in C++ mode.
-*/
-{
-  a_variable_ptr this_var;
-  a_type_ptr     class_struct_union_type;
-  a_boolean      is_arrow_operator = TRUE;
-
-  if (curr_expr_kind_is_const()) {
-    /* Nonstatic members are not allowed in constant expressions. */
-    error_and_make_error_operand(ec_expr_not_constant, result);
-  } else if (!variable_this_exists(&this_var)) {
-    /* We're not inside a function, or the function does not have a "this"
-       variable. */
-    error_and_make_error_operand(ec_member_ref_requires_object, result);
-  } else {
-    /* Make an operand for the value of the "this" pointer. */
-    make_this_variable_operand(this_var, result);
-    class_struct_union_type = type_pointed_to(this_var->type);
-    /* Adjust the "this" pointer to point to the right class if it's
-       pointing to a derived class of the class of which the symbol
-       is a member. */
-    cast_pointer_for_field_selection(result, &class_struct_union_type,
-                                     &is_arrow_operator,
-                                     member_locator,
-                                     ec_member_ref_requires_object,
-                                     &member_locator->source_position);
-  }  /* if */
-}  /* make_this_pointer_operand */
 
 
 static a_routine_ptr routine_from_function_operand(an_operand *operand)
@@ -1510,8 +1412,10 @@ static void scan_function_call(an_operand *operand,
                                an_operand *bound_function_selector,
 			       an_operand *result)
 /*
-Scan a function call.  The function to be called is given by *operand
-(modified by *bound_function_selector if the function is bound).
+Scan a function call.  The function to be called is given by *operand,
+modified by *bound_function_selector if the function is bound.  Even
+if the function is not bound, bound_function_selector points to an operand
+that can be filled in if an implicit selector is generated.
 On return, *result is set to an operand for the entire call.
 See section 3.3.2.2 of the standard.
 
@@ -1571,6 +1475,36 @@ Syntax:
       bind_member_function_operand_to_selector(operand,
                                                bound_function_selector);
     }  /* if */
+    /* If the operand is a qualified name for a member function
+       (e.g., "A::f") convert it to a bound member function
+       (e.g., "this->A::f").  This is done late so that A::f can be
+       converted to a pointer-to-member implicitly in other contexts
+       (that's an extension). */
+    if (is_sym_for_member_operand(operand) &&
+        is_a_function_designator(operand) &&
+        !operand->bound_function /* probably unnecessary */) {
+      a_symbol_ptr func_sym = operand->variant.symbol;
+      if (make_this_pointer_operand(func_sym,
+                                    &call_position,
+                                    /*check_cast_access=*/
+                                       !operand->access_control_error_reported,
+                                    bound_function_selector)) {
+        /* Make an operand for the function bound to the "this" pointer. */
+        reduce_projection_symbol_to_fundamental_symbol(func_sym);
+        make_function_designator_operand(func_sym,
+                                         /*is_qualified_name=*/TRUE,
+                                         &call_position,
+                                         operand->xref_entries_list, operand);
+        /* Note that the function designator will be converted to a pointer
+           by the do_operand_transformations call just below. */
+      } else {
+        /* There was some problem in constructing the "this" operand. */
+        conv_to_error_operand(operand);
+      }  /* if */
+      bind_member_function_operand_to_selector(operand,
+                                               bound_function_selector);
+    }  /* if */
+    /* Do standard transformations on the operand. */
     do_operand_transformations(operand,
                                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                                TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
@@ -1906,51 +1840,6 @@ a copy of operand_1) is placed in *bound_function_selector.
   copy_operand(operand_1, bound_function_selector);
   bind_member_function_operand_to_selector(result, bound_function_selector);
 }  /* do_member_function_selection_operation */
-
-
-static a_boolean overloaded_function_needs_selector(
-                                       a_symbol_ptr overloaded_function_symbol)
-/*
-overloaded_function_symbol points to an sk_overloaded_function symbol.  Return
-TRUE if any specific function under that symbol requires a selector expression,
-i.e, is a nonstatic member function.  This routine is used only in C++ mode.
-*/
-{
-  a_boolean      needs_selector = FALSE;
-  a_routine_ptr  routine_ptr;
-  a_variable_ptr this_var;
-  a_type_ptr     this_class, function_class;
-
-  if (overloaded_function_symbol->class_of_which_a_member == NULL) {
-    /* Not a member function, so a selector expression is never needed. */
-  } else if (overloaded_function_symbol->variant.overloaded_function.
-                                                      mixed_static_nonstatic) {
-    /* The functions are member functions, and some of the functions are
-       static and some nonstatic, so we don't know whether or not we need
-       the selector expression.  See if there is a current "this"
-       variable that could apply. */
-    if (variable_this_exists(&this_var)) {
-      /* There is a "this" variable.  See if it is for a class that is
-         applicable to these functions. */
-      this_class = f_skip_typerefs(type_pointed_to(this_var->type));
-      function_class = overloaded_function_symbol->class_of_which_a_member;
-      if (is_same_class_or_base_class_thereof(this_class, function_class)) {
-        /* The "this" variable could apply to some function in the set. */
-        needs_selector = TRUE;
-      }  /* if */
-    }  /* if */
-  } else {
-    /* All of the member functions are static or all are nonstatic.  Look at
-       the first function to see which. */
-    routine_ptr = overloaded_function_symbol->variant.overloaded_function.
-                                                  symbols->variant.routine.ptr;
-    if (routine_type_is_nonstatic_member_function(routine_ptr->type)) {
-      /* Nonstatic member function. */
-      needs_selector = TRUE;
-    }  /* if */
-  }  /* if */
-  return needs_selector;
-}  /* overloaded_function_needs_selector */
 
 
 static void scan_field_selection_operator
@@ -2303,14 +2192,10 @@ bound with the function in *bound_function_selector.
         case sk_field:
           /* Normal field selection. */
           /* This operation uses the left-side operand, so cast the
-             operand to the type of the member symbol.  The error test in this
-             call cannot actually generate an error because the error in
-             the qualified name case was checked for above. */
-          cast_pointer_for_field_selection(operand_1, &class_struct_union_type,
+             operand to the type of the member symbol. */
+          cast_pointer_for_field_selection(operand_1, class_struct_union_type,
                                            &is_arrow_operator,
-                                           &locator_for_curr_id,
-                                           ec_no_error,
-                                           &qualified_member_position);
+                                           &locator_for_curr_id);
           do_field_selection_operation(operand_1, orig_class_struct_union_type,
                                        is_arrow_operator,
                                        member_sym, &member_position, xep,
@@ -2339,16 +2224,11 @@ nonstatic_member_function:
               /* The function will require a "this" pointer, so get a pointer
                  (rather than an rvalue) for the first operand. */
               conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
-              /* Cast the selector to the type of the member symbol.  The
-                 error test in this call cannot actually generate an error
-                 because the error in the qualified name case was checked
-                 for above. */
+              /* Cast the selector to the class of the member symbol. */
               cast_pointer_for_field_selection(operand_1,
-                                               &class_struct_union_type,
+                                               class_struct_union_type,
                                                &is_arrow_operator,
-                                               &locator_for_curr_id,
-                                               ec_no_error,
-                                               &qualified_member_position);
+                                               &locator_for_curr_id);
               /* Make an operand for the function with the selector bound
                  to it. */
               do_member_function_selection_operation(operand_1,
@@ -2972,79 +2852,44 @@ operation is a pointer-to-member (see ARM 5.3).
           pos_warning(ec_pcc_address_of_array, &start_position);
           conv_array_operand_to_pointer_operand(&operand);
         } else {
-          /* Check for taking the address of a register variable, and set the
-             address_taken flag if the operand is a variable.  Convert the
-             lvalue operand to an rvalue operand for the pointer. */
+          /* Convert the lvalue operand to an rvalue operand for the
+             pointer. */
           take_address_of_lvalue(&operand);
         }  /* if */
         /* Note that the copy preserves xref_entries_list. */
         copy_operand(&operand, result);
       } else if (is_a_function_designator(&operand)) {
         /* "&" of a function designator.  Change it to a pointer to the
-           function.  This includes overloaded functions, but not overloaded
-           member functions specified by qualified name (see below). */
+           function.  This includes overloaded functions and 
+           member functions specified by qualified name. */
         conv_function_designator_to_ptr_to_function(&operand);
         /* Note that the copy preserves xref_entries_list. */
         copy_operand(&operand, result);
-      } else if (is_sym_for_ptr_to_member_operand(&operand)) {
-        /* The operand is a qualified name for a nonstatic class member, so
+      } else if (is_sym_for_member_operand(&operand)) {
+        /* The operand is a qualified name for a nonstatic data member, so
            the "&" operator returns a pointer-to-member. */
-        /* Change the kind in the cross-reference entries to address-taken. */
-        change_xref_kinds(operand.xref_entries_list, srk_address_taken);
         member_proj_sym = operand.variant.symbol;
         member_sym = fundamental_symbol_of(member_proj_sym);
-        /* Protected members of a base class can only be accessed through an
-           object of a derived class (ARM 11.5).  It is not very clear how
-           this should affect address of member processing.  We allow the
-           address of a protected member to be taken as a member of the
-           derived class but not as a member of the base class.  For example:
-
-		class A { protected: int i; };
-		class B : public A { void mf()};
-
-	        void B::mf() {
-			int A::* pmi = &A::i;	// error - protected member
-			int B::* pmi = &B::i;	// OK
-		}
-
-           Cfront does not do this checking, so we omit it in cfront mode.
-           Also skip this check if an access control error has already been
-           issued for the identifier. */
-        if (!cfront_compatibility_mode &&
-            !operand.access_control_error_reported) {
-          check_protected_member_access(member_proj_sym, &error_position,
-				        member_proj_sym->
-						      class_of_which_a_member);
-        }  /* if */
-        if (member_sym->kind == (a_symbol_kind)sk_field) {
-          /* Pointer to nonstatic data member. */
-          if (member_sym->variant.field.ptr->bit_size != 0) {
-            /* The field may not be a bit field. */
-            error_in_operand(ec_address_of_bit_field, &operand);
-            make_error_operand(result);
-          } else {
-            make_ptr_to_member_constant_operand(member_proj_sym,
-                                                &start_position, result);
-          }  /* if */
-        } else if (member_sym->kind == (a_symbol_kind)sk_member_function) {
-          /* Pointer to nonstatic member function. */
-          make_ptr_to_member_constant_operand(member_proj_sym,
-                                              &start_position, result);
+        check_assertion(member_sym->kind == (a_symbol_kind)sk_field);
+        /* Change the kind in the cross-reference entries to address-taken. */
+        change_xref_kinds(operand.xref_entries_list, srk_address_taken);
+        if (member_sym->variant.field.ptr->bit_size != 0) {
+          /* Cannot take the address of a bit field. */
+          error_in_operand(ec_address_of_bit_field, &operand);
+          make_error_operand(result);
         } else {
-#if CHECKING
-          if (member_sym->kind != (a_symbol_kind)sk_overloaded_function) {
-            internal_error("scan_ampersand_operator: & of bad qualified name");
-          }  /* if */
-#endif /* CHECKING */
-          /* Address of overloaded member function. */
-          make_indefinite_function_operand(member_proj_sym,
-                                           /*is_qualified_name=*/TRUE,
-                                           result);
-          conv_function_designator_to_ptr_to_function(result);
+          /* Make an operand for a pointer-to-member constant. */
+          make_ptr_to_member_constant_operand(
+                                        member_sym,
+                                        member_proj_sym,
+                                        &start_position,
+                                        !operand.access_control_error_reported,
+                                        /*is_operand_of_address_of=*/TRUE,
+                                        result);
         }  /* if */
       } else {
         /* "&" applied to something that is not an lvalue or a function
-           designator. */
+           designator or another permitted case. */
         if (!is_error_operand(&operand)) {
           error_in_operand(ec_expr_not_an_lvalue_or_function_designator,
                            &operand);
@@ -3054,8 +2899,8 @@ operation is a pointer-to-member (see ARM 5.3).
     }  /* if */
   }  /* if */
 
-  copy_source_position(start_position, error_position);
-  copy_source_position(start_position, result->position);
+  error_position = start_position;
+  result->position = start_position;
 
   db_exit();
 }  /* scan_ampersand_operator */
@@ -5753,7 +5598,7 @@ of the base class indicated by bcp.  It remains an lvalue.
   take_address_of_lvalue(operand);
   /* Cast the pointer to a pointer to the new type. */
   base_class_cast_operand(operand, bcp, &is_arrow_operator,
-                          /*is_implicit_cast=*/TRUE);
+                          /*check_cast_access=*/TRUE);
   /* Make an address (an lvalue) for the base class object. */
   conv_object_pointer_to_lvalue(operand);
 }  /* reference_cast */
@@ -6603,7 +6448,7 @@ bound_function_selector to the associated "this" pointer.
   an_operand        this_pointer_operand;
   a_boolean         address_of_qualified_member_name = FALSE;
   a_type_ptr        qual_class_type;
-  a_boolean         err = FALSE;
+  a_boolean         err = FALSE, is_operand_of_address_of;
 
   db_enter(4, "scan_identifier");
 
@@ -6615,12 +6460,14 @@ bound_function_selector to the associated "this" pointer.
 #endif /* CHECKING */
   /* Save the current source position. */
   copy_source_position(pos_curr_token, start_position);
+  /* Find out if this identifier is the immediate operand of a "&". */
+  is_operand_of_address_of = (local_options & EOPT_OPERAND_OF_ADDRESS_OF) != 0;
 
   /* If the identifier is the start of a C++ qualified name, get the whole
      name.  If not, look the name up as a normal identifier.  This routine
      also handles operator names. */
   sym_ptr = coalesce_and_lookup_generalized_identifier
-             (GID_NO_OPTIONS, ilm_normal, &err);
+                                            (GID_NO_OPTIONS, ilm_normal, &err);
   if (locator_for_curr_id.is_semivisible_nested_type) {
     /* The symbol in the locator is a nested class that is not visible
        according to the ARM lookup rules but is returned in support of the
@@ -6674,7 +6521,7 @@ bound_function_selector to the associated "this" pointer.
       /* The token_ends_expr test guards against cases like
            &A::x++
          where the "++" binds more tightly than the "&". */
-      if ((local_options & EOPT_OPERAND_OF_ADDRESS_OF) &&
+      if (is_operand_of_address_of &&
           locator_for_curr_id.is_qualified_name &&
           sym_ptr->class_of_which_a_member != NULL &&
           token_ends_expr(next_token(), PREC_PREFIX, local_options)) {
@@ -6812,17 +6659,16 @@ normal_function:
                  immediate operand of a unary "&"; make up an operand that
                  preserves the qualified name so scan_ampersand_operator can
                  turn it into a pointer-to-member. */
-              make_sym_for_ptr_to_member_operand(projection_sym_ptr, xep,
-                                                 result);
+              make_sym_for_member_operand(projection_sym_ptr, xep, result);
             } else {
+              /* Normal case: "x" is interpreted as "this->x". */
               /* Make an operand for the "this" pointer. */
-              make_this_pointer_operand(&locator_for_curr_id,
-                                        &this_pointer_operand);
-              if (is_error_operand(&this_pointer_operand)) {
-                /* There was some problem in constructing the "this"
-                   operand. */
-                make_error_operand(result);
-              } else {
+              if (make_this_pointer_operand(projection_sym_ptr,
+                                          &locator_for_curr_id.source_position,
+                                            /*check_cast_access=*/
+                                              !locator_for_curr_id.
+                                                 access_control_error_reported,
+                                            &this_pointer_operand)) {
                 /* Do the field selection relative to the "this" pointer. */
                 /* Extract the possibly qualified version of the class type
                    pointed to. */
@@ -6834,38 +6680,43 @@ normal_function:
                                              &locator_for_curr_id.
                                                                source_position,
                                              xep, result);
+              } else {
+                /* There was some problem in constructing the "this"
+                   operand. */
+                make_error_operand(result);
               }  /* if */
             }  /* if */
           }  /* if */
           break;
         case sk_member_function:
-          /* Static member functions get handled like normal functions. */
+          /* Static member functions are handled like normal functions. */
           routine_ptr = sym_ptr->variant.routine.ptr;
           if (!routine_type_is_nonstatic_member_function(routine_ptr->type)) {
             goto normal_function;
           }  /* if */
-          /* Nonstatic member function. */
+          /* Nonstatic nonoverloaded member function. */
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* Not allowed in integral constant expressions. */
             error_and_make_error_operand(ec_expr_not_constant, result);
-          } else if (address_of_qualified_member_name) {
+          } else if (locator_for_curr_id.is_qualified_name) {
             /* The routine was referenced by a qualified name and is the
                immediate operand of a unary "&"; make up an operand that
                preserves the qualified name so scan_ampersand_operator can
                turn it into a pointer-to-member. */
-            make_sym_for_ptr_to_member_operand(projection_sym_ptr, xep,
-                                               result);
+            /* Also keep a function that was referenced by a qualified name
+               in symbol form so that it can potentially be converted to
+               a pointer-to-member (an extension); more typically, it
+               will just be called. */
+            make_sym_for_member_operand(projection_sym_ptr, xep, result);
           } else {
-            /* Also continue here for overloaded functions that require a
-               selector expression. */
-nonstatic_member_function:
+            /* Normal simple case: "f" is interpreted as "this->f". */
             /* Make an operand for the "this" pointer. */
-            make_this_pointer_operand(&locator_for_curr_id,
-                                      &this_pointer_operand);
-            if (is_error_operand(&this_pointer_operand)) {
-              /* There was some problem in constructing the "this" operand. */
-              make_error_operand(result);
-            } else {
+            if (make_this_pointer_operand(projection_sym_ptr,
+                                          &locator_for_curr_id.source_position,
+                                          /*check_cast_access=*/
+                                            !locator_for_curr_id.
+                                                 access_control_error_reported,
+                                          &this_pointer_operand)) {
               /* Make an operand for the function bound to the "this"
                  pointer. */
               do_member_function_selection_operation(&this_pointer_operand,
@@ -6874,6 +6725,9 @@ nonstatic_member_function:
                                                      xep,
                                                      result,
                                                      bound_function_selector);
+            } else {
+              /* There was some problem in constructing the "this" operand. */
+              make_error_operand(result);
             }  /* if */
           }  /* if */
           break;
@@ -6882,21 +6736,13 @@ nonstatic_member_function:
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* Not allowed in integral constant expressions. */
             error_and_make_error_operand(ec_expr_not_constant, result);
-          } else if (address_of_qualified_member_name) {
-            /* The routine was referenced by a qualified name and is the
-               immediate operand of a unary "&"; make up an operand that
-               preserves the qualified name so scan_ampersand_operator can
-               turn it into a pointer-to-member. */
-            make_sym_for_ptr_to_member_operand(projection_sym_ptr, xep,
-                                               result);
           } else {
-            /* We don't know the specific routine, but we may be able to tell
-               whether or not the function will need a selector expression. */
-            if (overloaded_function_needs_selector(sym_ptr)) {
-              /* The function needs or may need a selector expression. */
-              goto nonstatic_member_function;
-            }  /* if */
-            /* A "this" pointer is definitely not needed or not available. */
+            /* Make an operand for an indefinite function.  Note that we
+               do not generate a "this" parameter at this point, even if
+               we could determine that all the functions in the overload
+               cluster are nonstatic member functions.  It's easier to
+               generate it at the other end of the overload resolution
+               when we know for sure whether or not we need it. */
             make_indefinite_function_operand(projection_sym_ptr,
                                              (a_boolean)locator_for_curr_id.
                                                              is_qualified_name,
@@ -6917,9 +6763,9 @@ nonstatic_member_function:
         case sk_undefined:
           /* Symbol was found in the symbol table, but it is undefined.  This
              means that it was encountered earlier but was never turned into a
-             function call.  Or, there was an access check or ambiguity error.
-             No error message is issued here because one was issued earlier.
-             An error operand is returned. */
+             function call.  Or, there was an ambiguity error.  No error
+             message is issued here because one was issued earlier.  An error
+             operand is returned. */
           make_error_operand(result);
           break;
         case sk_type:
@@ -6944,16 +6790,18 @@ nonstatic_member_function:
               !curr_expr_kind_is(ek_sizeof)) {
             /* This is a parameter referenced within a C++ default argument
                expression, which is an error (ARM 8.2.6); or, any reference
-               except in a sizeof.  Once the parameter becomes a real
-               variable, its sk_parameter type becomes sk_variable. */
+               except in a sizeof. */
             error_and_make_error_operand(ec_param_not_allowed, result);
           } else {
             /* Use of a parameter in a sizeof expression, something like
                  void f(a, int b[sizeof(a)]);
                Create a constant pointer to the right type to make an lvalue
-               of the right type, since there is no variable yet. */
+               of the right type, since there is no variable yet (the
+               parameter is represented by an sk_parameter symbol). */
             a_constant constant;
-            a_type_ptr param_type = sym_ptr->variant.param_id->type;
+            a_type_ptr param_type;
+            check_assertion(sym_ptr->kind == (a_symbol_kind)sk_parameter);
+            param_type = sym_ptr->variant.param_id->type;
             make_zero_of_proper_type(make_pointer_type(param_type), &constant);
             make_constant_operand(&constant, result);
             result->state = (an_operand_state)os_lvalue;
@@ -6974,6 +6822,9 @@ nonstatic_member_function:
      to the ARM 11.5 protected member access check. */
   result->access_control_error_reported =
                              locator_for_curr_id.access_control_error_reported;
+  /* Remember whether or not this operand is the immediate operand of
+     a "&" operator. */
+  result->is_operand_of_address_of = is_operand_of_address_of;
   /* Advance past the identifier. */
   (void)get_token();
 after_advance_past_id:
@@ -7298,16 +7149,6 @@ bad_start_of_primary:
                   local_result.variant.symbol->header->identifier);
         make_error_operand(&local_result);
       }  /* if */
-#if CHECKING
-    } else if (is_sym_for_ptr_to_member_operand(&local_result)) {
-      /* An operand was created to represent a qualified name used in a
-         pointer-to-member context, i.e., as the operand of "&".  However,
-         we now find we have an operator of higher precedence following the
-         qualified name, meaning that the qualified name is not actually
-         the direct operand of the "&", as in "&A::x++".  This case should
-         have been handled inside scan_identifier. */
-      internal_error("scan_expr_full: sym_for_ptr_to_member operand escaped");
-#endif /* CHECKING */
     }  /* if */
     if (local_result.bound_function) {
       /* Do not allow bound functions functions to survive unless they

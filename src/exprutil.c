@@ -371,7 +371,7 @@ to default values.
 		     (a_constant_repr_kind)ck_error);
       break;
     case ok_indefinite_function:
-    case ok_sym_for_ptr_to_member:
+    case ok_sym_for_member:
     case ok_undefined_symbol:
       operand->variant.symbol = NULL;
       break;
@@ -397,6 +397,8 @@ values.
   operand->virtual_function = FALSE;
   operand->is_qualified_name = FALSE;
   operand->came_from_reference = FALSE;
+  operand->access_control_error_reported = FALSE;
+  operand->is_operand_of_address_of = FALSE;
   operand->position.seq = 0;
   operand->position.column = SP_COL_UNKNOWN;
   operand->xref_entries_list = NULL;
@@ -485,6 +487,10 @@ destroyed its source position, etc.  Restore such things from
 {
   operand->position = orig_operand->position;
   operand->bound_function = orig_operand->bound_function;
+  operand->is_qualified_name = orig_operand->is_qualified_name;
+  operand->access_control_error_reported =
+                                   orig_operand->access_control_error_reported;
+  operand->is_operand_of_address_of = orig_operand->is_operand_of_address_of;
 }  /* restore_operand_details */
 
 
@@ -680,39 +686,41 @@ is_qualified_name is TRUE if the function was named by a qualified name
 }  /* make_indefinite_function_operand */
 
 
-void make_sym_for_ptr_to_member_operand(a_symbol_ptr      member_sym,
-                                        an_xref_entry_ptr xep,
-                                        an_operand        *operand)
+void make_sym_for_member_operand(a_symbol_ptr      member_sym,
+                                 an_xref_entry_ptr xep,
+                                 an_operand        *operand)
 /*
 Make an operand for a class member name, used in C++ for qualified
-names that appear in a context that calls for a pointer-to-member.
-member_sym points to the symbol entry for the member.  xep points to an
-associated cross-reference entry, or is NULL if cross-reference information
-is not being maintained.  The operand is put into *operand.
+names that appear in a context that calls for (or might call for) a
+pointer-to-member.  For nonstatic data members, that means only cases
+like &A::x.  For nonstatic member functions, it means all cases like
+A::f, because such a thing might decay to a pointer-to-member (that's
+an extension) or it might be called.  Not used for overloaded functions.
+member_sym points to the symbol entry for the member.  xep points to
+an associated cross-reference entry, or is NULL if cross-reference
+information is not being maintained.  The operand is put into *operand.
+It is a function designator if the symbol is a function, an rvalue
+otherwise.
 */
 {
-  a_symbol_ptr  fund_sym = fundamental_symbol_of(member_sym);
-  a_routine_ptr rout;
+  a_symbol_ptr fund_sym = fundamental_symbol_of(member_sym);
 
-  clear_operand((an_operand_kind)ok_sym_for_ptr_to_member, operand);
-  operand->state = (an_operand_state)os_rvalue;
-  operand->type = unknown_type();
+  clear_operand((an_operand_kind)ok_sym_for_member, operand);
+  if (fund_sym->kind == (a_symbol_kind)sk_field) {
+    /* Data member. */
+    operand->state = (an_operand_state)os_rvalue;
+    operand->type = fund_sym->variant.field.ptr->type;
+  } else {
+    check_assertion(fund_sym->kind == (a_symbol_kind)sk_member_function);
+    /* Member function. */
+    operand->state = (an_operand_state)os_function_designator;
+    operand->type = fund_sym->variant.routine.ptr->type;
+  }  /* if */
   operand->variant.symbol = member_sym;
+  operand->is_qualified_name = TRUE;  /* By definition. */
   copy_source_position(pos_curr_token, operand->position);
   operand->xref_entries_list = xep;
-  /* The address of a constructor or destructor may not be taken (ARM 12.1,
-     12.4). */
-  if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    fund_sym = fund_sym->variant.overloaded_function.symbols;
-  }  /* if */
-  if (fund_sym->kind == (a_symbol_kind)sk_member_function) {
-    rout = fund_sym->variant.routine.ptr;
-    if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
-        rout->special_kind == (a_special_function_kind)sfk_destructor) {
-      error_in_operand(ec_addr_of_constructor_or_destructor, operand);
-    }  /* if */
-  }  /* if */
-}  /* make_sym_for_ptr_to_member_operand */
+}  /* make_sym_for_member_operand */
 
 
 /*
@@ -1375,22 +1383,23 @@ except for casts to ambiguous or inaccessible base classes.
                                          /*elided_reference=*/FALSE,
                                          (an_operand *)NULL,
                                          &access_error_reported);
-            make_ptr_to_member_constant_operand(function_symbol,
-                                                &orig_operand.position,
-                                                operand);
-            /* Protected members of a base class can only be accessed
-               through an object of a derived class (ARM 11.5).  It is
-               not very clear how this should affect address of member
-               processing.  We allow the address of a protected member to
-               be taken as a member of the derived class but not as a
-               member of the base class.  Cfront does not do this checking,
-               so we omit it in cfront mode (for more information see the
-               example in scan_ampersand_operator). */
-            if (!cfront_compatibility_mode && !access_error_reported) {
-              check_protected_member_access(function_symbol, &error_position,
-					    overloaded_function_symbol->
-						      class_of_which_a_member);
+            if (strict_ansi_mode && !operand->is_qualified_name &&
+                operand->is_operand_of_address_of) {
+              /* Taking the address of a member function without using
+                 a qualified name is nonstandard.  Suppress the message here
+                 if the message about not using "&" will be generated
+                 by make_ptr_to_member_constant_operand. */
+              pos_diagnostic(strict_ansi_error_severity,
+                             ec_nonstd_member_function_address,
+                             &operand->position);
             }  /* if */
+            make_ptr_to_member_constant_operand(function_symbol,
+                                                overloaded_function_symbol,
+                                                &orig_operand.position,
+                                                !access_error_reported,
+                                                (a_boolean)operand->
+                                                      is_operand_of_address_of,
+                                                operand);
           } else {
             /* Casting an overloaded nonmember or static member function
                to a pointer to function. */
@@ -2948,22 +2957,55 @@ NULL and return FALSE.
 }  /* const_is_addr_of_const_variable */
 
 
-void make_ptr_to_member_constant_operand(a_symbol_ptr      member_proj_sym,
-                                         a_source_position *position,
-                                         an_operand        *result)
+void make_ptr_to_member_constant_operand(
+                                    a_symbol_ptr      member_sym,
+                                    a_symbol_ptr      member_proj_sym,
+                                    a_source_position *position,
+                                    a_boolean         check_protected_access,
+                                    a_boolean         is_operand_of_address_of,
+                                    an_operand        *result)
 /*
 Make an operand for a constant representing a C++ pointer to member.
-member_proj_sym gives the (projection) symbol for the member.
-*position gives the source position to put into the operand.
+member_sym is the member (not overloaded, not a projection symbol).
+member_proj_sym is the same as member_sym, or is the overloaded function
+symbol that contains member_sym, or it can be a projection symbol for
+either of those.  *position gives the source position to put into the
+operand.  If check_protected_access is TRUE and the symbol is a
+protected member, do the ARM 11.5 protected member access check.
+The name that generated this pointer-to-member constant is the operand
+of a "&" operator if is_operand_of_address_of is TRUE.
 */
 {
   a_constant    constant;
-  a_symbol_ptr  member_sym;
   a_type_ptr    member_type, member_class;
   a_field_ptr   field;
   a_routine_ptr rout;
 
-  member_sym = fundamental_symbol_of(member_proj_sym);
+  /* The ARM only allows this when the name is preceded by a "&" (5.3).
+     We allow it without "&" as an extension -- it's very much common
+     practice. */
+  if (strict_ansi_mode && !is_operand_of_address_of) {
+    pos_diagnostic(strict_ansi_error_severity,
+                   ec_nonstd_member_function_address, position);
+  }  /* if */
+  /* Protected members of a base class can only be accessed through an
+     object of a derived class (ARM 11.5).  It is not very clear how
+     this should affect address of member processing.  We allow the
+     address of a protected member to be taken as a member of the
+     derived class but not as a member of the base class.  For example:
+       class A { protected: int i; };
+       class B : public A { void mf(); };
+       void B::mf() {
+         int A::* pmi = &A::i;	// error - protected member
+         int B::* pmj = &B::i;	// OK
+       }
+     Cfront does not do this checking, so we omit it in cfront mode.
+     Also skip this check if an access control error has already been
+     issued for the identifier. */
+  if (!cfront_compatibility_mode && check_protected_access) {
+    check_protected_member_access(member_sym, position,
+                                  member_proj_sym->class_of_which_a_member);
+  }  /* if */
   /* Note that the class of the pointer is always the class in which
      the member was defined, not any derived class.  See ARM 5.3. */
   member_class = member_sym->class_of_which_a_member;
@@ -3023,6 +3065,13 @@ information is not being maintained.
   }  /* if */
 #endif /* CHECKING */
   routine = routine_sym->variant.routine.ptr;
+  if (C_dialect == C_dialect_cplusplus && curr_expr_is_evaluated()) {
+    if (routine == il_header.main_routine) {
+      /* In C++, "main" cannot be called and cannot have its address
+         taken (ARM 3.4). */
+      pos_error(ec_bad_use_of_main, position);
+    }  /* if */
+  }  /* if */
   /* Set up an address-of-function constant. */
   clear_operand((an_operand_kind)ok_constant, result);
   /* The type of the operand is the function type. */
@@ -4167,38 +4216,54 @@ All other cases are left alone.
 void conv_function_designator_to_ptr_to_function(an_operand *operand)
 /*
 Convert a function designator operand to a pointer to function expression 
-operand.  Change the state from "os_function_designator" to "os_rvalue" and
-convert the type from "function" to "pointer to function".
+operand.
 */
 {
-  an_operand orig_operand;
+  an_operand   orig_operand;
+  a_symbol_ptr func_sym, fund_sym;
 
   orig_operand = *operand;
+  /* See if there's an underlying symbol. */
+  if (is_sym_for_member_operand(operand) ||
+      is_indefinite_function_operand(operand)) {
+    /* There is an underlying function symbol. */
+    func_sym = operand->variant.symbol;
+    /* Check for taking the address of a constructor or destructor, which
+       is not allowed (ARM 12.1, 12.4). */
+    fund_sym = fundamental_symbol_of(func_sym);
+    if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      fund_sym = fund_sym->variant.overloaded_function.symbols;
+    }  /* if */
+    if (fund_sym->kind == (a_symbol_kind)sk_member_function) {
+      a_routine_ptr rout = fund_sym->variant.routine.ptr;
+      if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+          rout->special_kind == (a_special_function_kind)sfk_destructor) {
+        error_in_operand(ec_addr_of_constructor_or_destructor, operand);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+
   if (is_error_operand(operand)) {
     /* Error operand; leave it alone. */
   } else if (is_constant_operand(operand)) {
     /* Since the operand becomes "pointer-to" and the constant already has that
        type, just copy the type from the constant. */
     operand->type = operand->variant.constant.type;
-    if (C_dialect == C_dialect_cplusplus) {
-      a_constant_ptr rout_con = &operand->variant.constant;
-      a_routine_ptr  rout;
-      if (rout_con->kind == (a_constant_repr_kind)ck_address &&
-          rout_con->variant.address.kind ==
-                                           (an_address_base_kind)abk_routine) {
-        rout = rout_con->variant.address.variant.routine;
-        if (rout == il_header.main_routine) {
-          /* In C++, "main" cannot be called and cannot have its address
-             taken (ARM 3.4). */
-          error_in_operand(ec_bad_use_of_main, operand);
-        }  /* if */
-      }  /* if */
-    }  /* if */
   } else if (is_expression_operand(operand)) {
     /* Expression operand.  Since the operand becomes "pointer-to" and the
        expression already has that type, just copy the type from the
        expression. */
     operand->type = operand->variant.expression->type;
+  } else if (is_sym_for_member_operand(operand)) {
+    /* Converting a qualified member name to a pointer-to-member. */
+    func_sym = operand->variant.symbol;
+    fund_sym = fundamental_symbol_of(func_sym);
+    /* Make an operand for a pointer-to-member constant. */
+    make_ptr_to_member_constant_operand(fund_sym, func_sym,
+                                        &operand->position,
+                                       !operand->access_control_error_reported,
+                                        operand->is_operand_of_address_of,
+                                        operand);
   } else {
 #if CHECKING
     if (!is_indefinite_function_operand(operand)) {
@@ -4210,6 +4275,9 @@ convert the type from "function" to "pointer to function".
        yet have arguments that will select a specific instance of the function.
        Change to a pointer to an indefinite function by changing the state
        to rvalue. */
+    /* Note that we do not check for the nonstandard "taking address of member
+       function without using &" here; it will be checked once we know
+       which of the functions is actually wanted. */
   }  /* if */
   operand->state = (an_operand_state)os_rvalue;
   operand->came_from_reference = FALSE;
@@ -5291,6 +5359,7 @@ message.
   an_arg_operand_ptr       arg_operand;
   a_boolean                function_is_nonstatic_member_function;
   a_boolean                function_template_case;
+  a_type_ptr               implicit_selector_type = NULL;
 #if DEBUG
   unsigned long            narg;
 #endif /* DEBUG */
@@ -5306,6 +5375,39 @@ message.
   } else {
     /* Non-overloaded function. */
     function_symbol = overloaded_function_symbol;
+  }  /* if */
+  /* If we have no selector, see if any one of the functions requires one.
+     If so, we will look to see if an implicit "this->" can be generated. */
+  if (!have_selector) {
+    a_boolean some_function_needs_selector = FALSE;
+    /* Check the first or only function to see whether or not it requires
+       a selector. */
+    if (function_symbol->kind != (a_symbol_kind)sk_function_template) {
+      routine_type = routine_symbol_type(function_symbol);
+      if (routine_type_is_nonstatic_member_function(routine_type)) {
+        some_function_needs_selector = TRUE;
+      }  /* if */
+    }  /* if */
+    /* If the first function of a list of functions does not need a selector,
+       and the mixed_static_nonstatic says the list contains both static
+       and nonstatic functions, then we know at least one function needs
+       a selector. */
+    if (overloaded_function_case && !some_function_needs_selector &&
+        overloaded_function_symbol->variant.overloaded_function.
+                                                      mixed_static_nonstatic) {
+      some_function_needs_selector = TRUE;
+    }  /* if */
+    if (some_function_needs_selector) {
+      /* We need a selector and we don't have one.  See if a selector
+         can be generated from the "this" pointer of the current function. */
+      a_variable_ptr this_var;
+      if (variable_this_exists(&this_var)) {
+        /* An implicit selector can be generated. */
+        have_selector = TRUE;
+        implicit_selector_type =
+                            make_pointer_type(type_pointed_to(this_var->type));
+      }  /* if */
+    }  /* if */
   }  /* if */
   /* Look at each instance of the overloaded function and see whether or
      not it can match the actual arguments, and if so, how well. */
@@ -5417,8 +5519,27 @@ message.
              exact match. */
           this_match->match_level = aml_exact;
         } else {
-          /* The function requires a "this" parameter. */
-          if (bound_function_selector == NULL) {
+          /* The function requires a selector, and we have one. */
+          if (implicit_selector_type != NULL) {
+            /* The selector is an implicit "this->".  See how well it
+               matches.  It might not match at all. */
+            a_type_ptr this_param_type = routine_type->variant.routine.
+                                          extra_info->implicit_this_param_type;
+            determine_arg_match_level((an_operand *)NULL,
+                                      implicit_selector_type,
+                                      this_param_type,
+                                      /*try_user_conversions=*/FALSE,
+                                      this_match);
+            /* Set the "next" pointer again, because it is cleared by
+               determine_arg_match_level. */
+            this_match->next = this_match_next;
+            if (this_match->match_level == aml_none) {
+              /* Mismatch.  Remember this case to select a different
+                 error message if it turns out no function matches. */
+              *matched_except_for_missing_selector = TRUE;
+              goto reject_function;
+            }  /* if */
+          } else if (bound_function_selector == NULL) {
             /* We're dealing with a constructor case, the selector
                expression is not available, and we can assume that it matches
                perfectly (const- and volatile- qualifiers are not allowed
@@ -5441,9 +5562,9 @@ message.
       } else {
         /* We have no selector. */
         if (function_is_nonstatic_member_function) {
-          /* The function has a "this" parameter, so it is not suitable.
-             Remember this case to select a different error message if it
-             turns out no function matches. */
+          /* A selector is needed and one is not available, so the function
+             is not suitable.  Remember this case to select a different
+             error message if it turns out no function matches. */
           *matched_except_for_missing_selector = TRUE;
           goto reject_function;
         }  /* if */
@@ -6356,11 +6477,11 @@ Determine which of the functions under overloaded_function_symbol should
 be called given an argument list arg_operand_list.  The symbol may be an
 overloaded function, a simple member or nonmember function, or a projection
 symbol for one of those.  If have_selector is TRUE, *bound_function_selector
-is a selector object.  (Note that, for constructor calls,
+is a selector object.  Note that, for constructor calls,
 bound_function_selector can be NULL when have_selector is TRUE; we have a
 selector, but it's not available.  That's okay for constructors, because
 they cannot be const- or volatile-qualified, and the selector expression
-is only needed for that discrimination.)  call_position is the source
+is only needed for that discrimination.  call_position is the source
 position of the call.  If an error of some sort is detected, issue an
 error at that position and return NULL.  err_none_applies is the error
 code to use when no function applies, and err_ambiguous is the error code
@@ -6739,6 +6860,7 @@ an error.
   f_check_protected_member_access(sym, err_pos, class_type);
 }  /* f_check_protected_member_access_catch_up */
 
+
 /*
 If sym is a protected member, do the access check of ARM 11.5.  sym
 is being accessed through the selector "selector".  *err_pos is the
@@ -6753,10 +6875,145 @@ overloaded_function_catch_up.
 }  /* check_protected_member_access_catch_up */
 
 
+a_boolean variable_this_exists(a_variable_ptr *this_var)
+/*
+Return TRUE if there is a currently-visible "this" variable.  If there is,
+also set *this_var to point to the variable entry for it.  This routine
+is called only in C++ mode.
+*/
+{
+  a_boolean   this_exists;
+  a_scope_ptr il_scope;
+
+  *this_var = NULL;
+  if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+    /* We're not inside a function. */
+    this_exists = FALSE;
+  } else {
+    il_scope = scope_stack[depth_innermost_function_scope].il_scope;
+#if CHECKING
+    if (il_scope == NULL) {
+      internal_error("variable_this_exists: NULL IL scope for function");
+    }  /* if */
+#endif /* CHECKING */
+    *this_var = il_scope->variant.routine.this_param_variable;
+    this_exists = (*this_var != NULL);
+  }  /* if */
+  return this_exists;
+}  /* variable_this_exists */
+
+
+void make_this_variable_operand(a_variable_ptr this_var,
+                                an_operand     *result)
+/*
+Make an operand for the value of the "this" variable this_var.  The source
+position of the operand is set to "pos_curr_token".  The operand is an
+rvalue.
+*/
+{
+  an_expr_node_ptr node;
+
+  /* Make a variable value node for the variable. */
+  node = var_rvalue_expr(this_var);
+  /* Make an operand for the node. */
+  make_expression_operand(node, node->type, result);
+}  /* make_this_variable_operand */
+
+
+a_boolean make_this_pointer_operand(a_symbol_ptr      member_sym,
+                                    a_source_position *member_pos,
+                                    a_boolean         check_cast_access,
+                                    an_operand        *result)
+/*
+Make an operand for the "this" pointer of a C++ nonstatic member function.
+The operand made is an rvalue for the value of the pointer.  If we are not
+currently in a nonstatic member function, issue an error and return an
+error operand.  member_sym is the symbol for the member being referenced
+(it may be a projection symbol); the "this" pointer is cast (if necessary)
+to the base class in which that member is defined.  Access checking is
+done on that cast if check_cast_access is TRUE.  If the symbol is a
+member of an unrelated class, issue an error and return an error operand.
+member_pos is the position of the member, for use in errors and as the
+source position of the result operand.  Return TRUE if the "this"
+operand was built without error.  This routine is called only in
+C++ mode.
+*/
+{
+  a_variable_ptr   this_var;
+  a_type_ptr       member_class, this_class;
+  a_boolean        is_arrow_operator = TRUE, okay;
+  a_base_class_ptr bcp;
+
+  /* This routine is similar to cast_pointer_for_field_selection. */
+  if (curr_expr_kind_is_const()) {
+    /* Nonstatic members are not allowed in constant expressions. */
+    pos_error(ec_expr_not_constant, member_pos);
+    make_error_operand(result);
+    okay = FALSE;
+  } else {
+    /* See if a "this" pointer exists and can be used. */
+    if (!variable_this_exists(&this_var)) {
+      /* We're not inside a function, or the function does not have a "this"
+         variable. */
+      okay = FALSE;
+    } else {
+      /* There is a "this" variable. */
+      /* Find the relationship between the "this" variable and the class
+         of the member. */
+      this_class = type_pointed_to(this_var->type);
+      this_class = skip_typerefs(this_class);
+      member_class = member_sym->class_of_which_a_member;
+      if (this_class == member_class) {
+        /* The class is right already.  This is the usual case. */
+        bcp = NULL;
+        okay = TRUE;
+      } else {
+        /* Look for a base class cast.  This comes up when qualified names
+           are used.  Also watch out for error cases where the classes
+           are unrelated. */
+        bcp = find_base_class_of(this_class, member_class);
+        okay = (bcp != NULL);
+      }  /* if */
+    }  /* if */
+    if (!okay) {
+      /* The "this" pointer cannot be used (it doesn't exist or it has
+         no relationship to the member). */
+      pos_error(ec_member_ref_requires_object, member_pos);
+      make_error_operand(result);
+    } else {
+      /* The "this" pointer can be used to access the member. */
+      /* Note that no ARM 11.5 protected member access check is needed, because
+         an access through "this" is always acceptable under the rules in
+         that section. */
+      /* Make an operand for the value of the "this" pointer. */
+      make_this_variable_operand(this_var, result);
+      if (bcp != NULL) {
+        /* Cast the pointer to the base class of the member. */
+        base_class_cast_operand(result, bcp, &is_arrow_operator,
+                                check_cast_access);
+      }  /* if */
+      /* If the member symbol is a projection symbol (i.e., it's inherited
+         into the class where it is being referenced), cast the left operand
+         down to the base class in which the fundamental symbol is defined.
+         There's no access check on this part of the cast because the access
+         to the fundamental base class was checked as part of determining
+         access to the symbol. */
+      if (member_sym->kind == (a_symbol_kind)sk_projection) {
+        bcp= member_sym->variant.projection.extra_info->fundamental_base_class;
+        base_class_cast_operand(result, bcp, &is_arrow_operator,
+                                /*check_cast_access=*/FALSE);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  result->position = *member_pos;
+  return okay;
+}  /* make_this_pointer_operand */
+
+
 static void make_resolved_overloaded_function_operand(
                                  a_symbol_ptr       function_symbol,
                                  a_symbol_ptr       overloaded_function_symbol,
-                                 a_boolean          have_selector,
+                                 a_boolean          *have_selector,
                                  an_operand         *bound_function_selector,
                                  a_boolean          is_qualified_name,
                                  a_source_position  *call_position,
@@ -6768,9 +7025,12 @@ and/or just a simple function), function_symbol is the specific function to
 be called (and not a projection symbol).  Create a function designator
 operand for the function in *function_operand.  The function was named with
 a qualified name if is_qualified_name is TRUE.  The reference has an
-associated selector object if have_selector is TRUE; if that case,
+associated selector object if *have_selector is TRUE; in that case,
 bound_function_selector gives the object, and function_operand is bound to
-that object.  call_position gives the source position of the call.
+that object.  Even when *have_selector is FALSE going in,
+bound_function_selector must point at an operand that can be filled in
+if an implicit selector is generated (*have_selector is set to TRUE for that
+case).  call_position gives the source position of the call.
 */
 {                                 
   a_boolean access_error_reported;
@@ -6788,28 +7048,39 @@ that object.  call_position gives the source position of the call.
   if (routine_type_is_nonstatic_member_function(
                                        routine_symbol_type(function_symbol))) {
     /* The function needs a selector. */
-#if CHECKING
-    if (!have_selector) {
-      internal_error(
-                "make_resolved_overloaded_function_operand: missing selector");
-    }  /* if */
-#endif /* CHECKING */
-    /* Do the ARM 11.5 access checking for the type of selector used
-       to access a protected member. */
-    if (!access_error_reported) {
-      check_protected_member_access_catch_up(function_symbol,
-                                             bound_function_selector,
-                                             call_position);
+    if (!*have_selector) {
+      /* Try to generate a selector. */
+      if (make_this_pointer_operand(function_symbol,
+                                    call_position,
+                                    /*check_cast_access=*/
+                                       !function_operand->
+                                         access_control_error_reported,
+                                    bound_function_selector)) {
+        /* The selector was generated without problem. */
+      } else {
+        /* There was some problem in generating the selector. */
+        conv_to_error_operand(function_operand);
+      }  /* if */
+      *have_selector = TRUE;
+    } else {
+      /* We have a selector. */
+      if (!access_error_reported) {
+        /* Do the ARM 11.5 access checking for the type of selector used
+           to access a protected member. */
+        check_protected_member_access_catch_up(function_symbol,
+                                               bound_function_selector,
+                                               call_position);
+      }  /* if */
     }  /* if */
     /* Bind the function to the selector. */
     bind_member_function_operand_to_selector(function_operand,
                                              bound_function_selector);
   } else {
     /* The routine does not need a selector. */
-    if (have_selector) {
+    if (*have_selector) {
       /* Discard the selector provided. */
       discard_operand(bound_function_selector);
-      have_selector = FALSE;
+      *have_selector = FALSE;
     }  /* if */
   }  /* if */
 }  /* make_resolved_overloaded_function_operand */
@@ -6975,11 +7246,13 @@ Determine which of the functions under overloaded_function_symbol should
 be called given an argument list arg_operand_list.  The symbol may be an
 overloaded function, a simple member or nonmember function, or a projection
 symbol for one of those.  If have_selector is TRUE, *bound_function_selector
-is a selector object.  (Note that, for constructor calls,
+is a selector object.  Note that, for constructor calls,
 bound_function_selector can be NULL when have_selector is TRUE; we have a
 selector, but it's not available.  That's okay for constructors, because
 they cannot be const- or volatile-qualified, and the selector expression
-is only needed for that discrimination.)  is_qualified_name is TRUE if a
+is only needed for that discrimination.  If have_selector is FALSE,
+bound_function_selector must still point at an operand that can be filled
+in if an implicit selector is generated is_qualified_name is TRUE if a
 qualified name was used to name the function (that suppresses the
 virtual-ness of the function).  arg_operand_list is freed by this
 routine.  call_position is the source position of the call.  If an
@@ -7014,7 +7287,7 @@ routine is called only in C++ mode.
        for the function. */
     make_resolved_overloaded_function_operand(function_symbol,
                                               overloaded_function_symbol,
-                                              have_selector,
+                                              &have_selector,
                                               bound_function_selector,
                                               is_qualified_name,
                                               call_position,
@@ -7954,7 +8227,7 @@ functions could still apply).
   a_candidate_function_ptr candidate_functions;
   an_arg_match_summary_ptr arg_match;
   a_boolean                matched_except_for_missing_selector = FALSE;
-  a_boolean                member_is_best_match;
+  a_boolean                member_is_best_match, have_selector;
   an_expr_node_ptr         arg;
   a_type_ptr               routine_type;
   a_param_type_ptr         param;
@@ -8167,13 +8440,13 @@ functions could still apply).
             /* Do the things that would have been done to the symbol but
                weren't because the specific symbol was not known, and build an
                operand for the function. */
+            have_selector = member_is_best_match;
             make_resolved_overloaded_function_operand(
                                                  function_symbol,
                                                  member_is_best_match ?
                                                     member_functions_symbol :
                                                     nonmember_functions_symbol,
-                                                 /*have_selector=*/
-                                                          member_is_best_match,
+                                                 &have_selector,
                                                  bound_function_selector,
                                                  /*is_qualified_name=*/FALSE,
                                                  operator_position,
@@ -8775,7 +9048,7 @@ where the class type is already correct and nothing should be done to it.
     }  /* if */
 #endif /* CHECKING */
     base_class_cast_operand(source_operand, bcp, &is_arrow_operator,
-                            /*is_implicit_cast=*/TRUE);
+                            /*check_cast_access=*/TRUE);
     /* Make an address (an lvalue) for the base class object. */
     conv_object_pointer_to_lvalue(source_operand);
   }  /* if */
