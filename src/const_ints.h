@@ -133,12 +133,11 @@ a_host_large_unsigned unsigned_value_of_integer_constant(a_constant *cp,
 extern int cmp_integer_constants(a_constant *con1,
                                  a_constant *con2);
 
-extern int cmplit_integer_constant(a_constant			*con1,
-	                           a_host_large_integer	value2);
+extern int cmplit_integer_constant(a_constant           *con1,
+                                   a_host_large_integer value2);
 
-extern int cmpulit_integer_constant(
-				a_constant		       *con1,
-				a_host_large_unsigned      unsigned_value2);
+extern int cmpulit_integer_constant(a_constant            *con1,
+                                    a_host_large_unsigned unsigned_value2);
 
 /* Interface to cmplit_integer_constant for the simple case of testing
    for equality. */
@@ -155,7 +154,7 @@ extern a_boolean in_range_for_integer_kind(a_constant      *min_con,
                                            an_integer_kind ikind);
 
 extern a_boolean le_max_integer_value_of_kind(an_integer_value *value,
-	                                      a_boolean	is_signed,
+	                                      a_boolean        is_signed,
 	                                      an_integer_kind  ikind);
 
 extern a_boolean is_max_value_for_integer_kind(a_constant      *con,
@@ -168,9 +167,9 @@ extern char *str_for_integer_constant(a_constant *cp);
 extern void const_ints_init(void);
 
 extern int cmp_integer_values(an_integer_value *op_1,
-		  	      a_boolean	        op_1_unsigned,
+		  	      a_boolean	        op_1_signed,
 			      an_integer_value *op_2,
-			      a_boolean	        op_2_unsigned);
+			      a_boolean	        op_2_signed);
 
 extern void add_integer_values(an_integer_value *op_1,
 			       an_integer_value *op_2,
