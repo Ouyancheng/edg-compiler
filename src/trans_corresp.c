@@ -2573,6 +2573,10 @@ type is in fact valid.
   } else if (!is_immediate_enum_type(corresp_type)) {
     match = FALSE;
     report_error = TRUE;
+  } else if (type->incomplete || corresp_type->incomplete) {
+    /* At least one of the two types was declared without being defined.
+       In that case, there is no need to verify the list of enumerator
+       constants. */
   } else {
     a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list,
                     corresp_enumerator =

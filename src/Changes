@@ -1,5 +1,21 @@
 Version 3.6
 
+1/10/05  Spurious correspondence error on incomplete enum declaration
+
+In C++ mode, an incomplete enum declaration in one translation unit triggered
+a correspondence error against the complete definition in another translation
+unit.  For example:
+
+  // File 1:
+  enum F;        // Nonstandard extension allowed in various modes.
+
+  // File 2:
+  enum F { e };  // Erroneously treated as a declaration that conflicts with
+                 // the one in "File 1".
+
+This is now fixed.  (See also entry of 1/8/05 for another problem with this
+test case when compiled in C mode.)
+
 1/8/05   C++-generating back end: using-directives and hiding
 
 Name hiding resulting from using-directives was not considered, causing
