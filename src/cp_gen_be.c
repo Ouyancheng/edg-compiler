@@ -1596,7 +1596,7 @@ reference to a bound function.
   } else {
     /* Use recursion to handle multiple levels of nesting. */
     gen_name(&class_type->source_corresp, iek_type,
-             /*force_qualified_name=*/TRUE);
+             /*force_qualified_name=*/FALSE);
     write_tok_str("::");
   }  /* if */
 }  /* gen_class_qualifier */
@@ -1616,7 +1616,7 @@ namespace.
   if (nsp != NULL) {
     /* Use recursion to handle multiple levels of nesting. */
     gen_name(&nsp->source_corresp, iek_namespace,
-             /*force_qualified_name=*/TRUE);
+             /*force_qualified_name=*/FALSE);
     write_tok_str("::");
   }  /* if */
 }  /* gen_namespace_qualifier */
