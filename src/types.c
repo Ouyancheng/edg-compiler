@@ -2408,7 +2408,7 @@ by the time they get here.  Note that this routine does not handle user-defined
 conversions (constructors and conversion functions).
 */
 {
-  a_boolean     okay = FALSE, impl_okay;
+  a_boolean     okay = FALSE, impl_okay, suppress_extensions = FALSE;
   an_error_code impl_warning_suggested;
 
   db_enter(5, "expl_conversion_possible");
@@ -2422,6 +2422,11 @@ conversions (constructors and conversion functions).
   }  /* if */
 #endif /* DEBUG */
   *warning_suggested = ec_no_error;
+  /* If in strict ANSI mode and nonstandard constructs should be reported as
+     errors, disable extensions. */
+  if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
+    suppress_extensions = TRUE;
+  }  /* if */
   /* Drop any type qualifiers and typedefs on the two types. */
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
@@ -2430,7 +2435,7 @@ conversions (constructors and conversion functions).
   impl_okay = impl_conversion_possible(source_type,
                                        source_is_constant, source_constant,
                                        dest_type,
-                                       /*suppress_extensions=*/FALSE,
+                                       suppress_extensions,
                                        default_warning_code,
                                        &impl_warning_suggested);
   if (impl_okay && impl_warning_suggested == ec_no_error) {
@@ -2490,9 +2495,15 @@ conversions (constructors and conversion functions).
          to object/incomplete --> pointer to function.  Allowed in C++ if
          the destination is big enough.  Allowed as an extension in C. */
       if (dest_of_ptr_cast_big_enough(source_type, dest_type)) {
-        okay = TRUE;
         if (C_dialect != C_dialect_cplusplus) {
-          *warning_suggested = ec_mixed_function_object_pointers;
+          /* C mode. */
+          if (!suppress_extensions) {
+            okay = TRUE;
+            *warning_suggested = ec_mixed_function_object_pointers;
+          }  /* if */
+        } else {
+          /* C++ mode. */
+          okay = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */

@@ -1,9 +1,15 @@
 Version 2.13
 
+12/4/92  Strict ANSI C mode error on cast between function and data pointers
+
+In strict ANSI C mode (-A), an error instead of a warning is now issued
+for explicit conversions between pointers to functions and pointers
+to data.
+
 12/4/92  In strict ANSI mode, errors on integer overflows
 
 In strict ANSI C or C++ mode (-A), integer overflows in folding operations
-now yield errors regardless of the setting of the
+now yield errors rather than warnings regardless of the setting of the
 TARG_NO_ERROR_ON_INTEGER_OVERFLOW configuration flag.
 
 12/3/92  Speed optimization in constant sharing
