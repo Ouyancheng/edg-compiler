@@ -196,15 +196,13 @@ that routine.  This routine ignores a closing brace if that is appropriate.
 
 static void add_destructor_to_dynamic_init(a_dynamic_init_ptr  dip,
                                            a_type_ptr          class_type,
-                                           a_source_position   *pos,
-                                           a_boolean           static_lifetime)
+                                           a_source_position   *pos)
 /*
 This routine should really be called, "add destructor to dynamic init for
 member of partially constructed aggregate".  dip is a dynamic-init entry
 created for the initialization of a field or array element.  class_type is
 the type of the member.  *pos is the source position in case there's an error
-looking up the destructor.  If static_lifetime is TRUE, the underlying entity
-has static storage duration.
+looking up the destructor.
 */
 {
   a_routine_ptr  dtor_rp;
@@ -220,9 +218,12 @@ has static storage duration.
       /* Since the destructor has been added to a dynamic init entry that
          will not be "on top" when gen_dynamic_initialization is called,
          record the destruction, if needed, with the appropriate
-         object-lifetime entry. */
-      record_end_of_lifetime_destruction(dip, static_lifetime,
-                                         /*block_lifetime=*/TRUE);
+         object-lifetime entry.  Note -- static_lifetime is FALSE because
+         (for function-local static variables) even though the underlying
+         entity has static lifetime, the lifetime of the destruction is as
+         though it were automatic. */
+      record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                         /*block_lifetime=*/FALSE);
     }  /* if */
   }  /* if */
 }  /* add_destructor_to_dynamic_init */
@@ -251,6 +252,7 @@ completed, the aggregate is no longer in a state of partial construction.
     if (cp->kind == (a_constant_repr_kind)ck_dynamic_init) {
       dip = cp->variant.dynamic_init;
       if (dip->destruction_is_for_partially_constructed_aggregate) {
+        remove_from_destruction_list(dip);
         dip->destructor = NULL;
         dip->destruction_is_for_partially_constructed_aggregate = FALSE;
       }  /* if */
@@ -261,7 +263,6 @@ completed, the aggregate is no longer in a state of partial construction.
 
 static a_boolean init_remaining_array_elements(a_type_ptr     array_type,
                                                a_targ_size_t  curr_element,
-                                               a_boolean      static_lifetime,
                                                a_constant_ptr *con_list,
                                                a_constant_ptr *end_of_con_list,
                                                a_boolean      *incomplete_init)
@@ -271,8 +272,7 @@ array whose elements require constructor initialization (and/or destruction
 by calling a destructor) has been only partially initialized.  The remaining
 elements of the array receive initialization by the default constructor.
 array_type is a pointer to the type entry for the array object.  curr_element
-identifies the next element to be initialized.  If static_lifetime is TRUE,
-the underlying entity has static storage duration.  *con_list is a list of
+identifies the next element to be initialized.  *con_list is a list of
 constant entries that represents the initialization of the array;
 *end_of_con_list points to the terminal entry on the list.  *incomplete_init
 is set to TRUE if a reference or const member remains uninitialized.  TRUE
@@ -335,8 +335,7 @@ routine is called in C++ mode only.
             /* If appropriate, add a destructor pointer to the dynamic init
                entry.  This is for the case in which an exception is thrown by
                the constructor before the entire array has been initialized. */
-            add_destructor_to_dynamic_init(dip, element_type, &pos_curr_token,
-                                           static_lifetime);
+            add_destructor_to_dynamic_init(dip, element_type, &pos_curr_token);
           }  /* if */
           /* Now create the constant entry that will point to the new dynamic
              init entry. */
@@ -415,7 +414,6 @@ any member of reference type is encountered.
 
 
 static a_boolean init_remaining_fields(a_field_ptr    *curr_field,
-                                       a_boolean      static_lifetime,
                                        a_constant_ptr *con_list,
                                        a_constant_ptr *end_of_con_list,
                                        a_boolean      *incomplete_init)
@@ -425,7 +423,6 @@ class object is only partially initialized.  It checks whether any of the
 uninitialized fields is itself of class (or array of class) type and if so
 does the appropriate default initialization (i.e., looks for and calls the
 default constructor).  *curr_field is the first of the uninitialized fields.
-If static_lifetime is TRUE, the underlying entity has static storage duration.
 *con_list is a list of constant entries that represents the initialization of
 the array; *end_of_con_list points to the terminal entry on the list.
 *incomplete_init is set to TRUE if a reference or const member remains
@@ -491,8 +488,7 @@ initialized.  This routine is called in C++ mode only.
           /* If appropriate, add a destructor pointer to the dynamic init
              entry.  This is for the case in which an exception is thrown by
              the constructor before the entire array has been initialized. */
-          add_destructor_to_dynamic_init(dip, tp, &pos_curr_token,
-                                         static_lifetime);
+          add_destructor_to_dynamic_init(dip, tp, &pos_curr_token);
         }  /* if */
       }  /* if */
       if (is_array_type(fp->type)) {
@@ -745,8 +741,7 @@ field of a class object (or an array of same) remains uninitialized.
         /* If appropriate, add a destructor pointer to the dynamic init entry.
            This is for the case in which an exception is thrown by the
            constructor before the entire array has been initialized. */
-        add_destructor_to_dynamic_init(dip, local_type, &pos_curr_token,
-                                       static_lifetime);
+        add_destructor_to_dynamic_init(dip, local_type, &pos_curr_token);
       }  /* if */
     }  /* if */
   } else if (is_aggregate_or_union_type(local_type) ||
@@ -1059,7 +1054,6 @@ field of a class object (or an array of same) remains uninitialized.
                we are required to provide default initialization by calling
                the default constructor. */
             if (init_remaining_array_elements(local_type, curr_array_element,
-                                              static_lifetime,
                                               &con_list, &end_of_con_list,
                                              any_uninit_const_or_ref_member)) {
               any_more_members = FALSE;
@@ -1067,8 +1061,7 @@ field of a class object (or an array of same) remains uninitialized.
             }  /* if */
           } else if (kind == (a_type_kind)tk_struct ||
                      kind == (a_type_kind)tk_class) {
-            if (init_remaining_fields(&curr_field, static_lifetime,
-                                      &con_list, &end_of_con_list,
+            if (init_remaining_fields(&curr_field, &con_list, &end_of_con_list,
                                       any_uninit_const_or_ref_member)) {
               if (curr_field == NULL) any_more_members = FALSE;
               *any_dynamic_initialization = TRUE;
