@@ -6015,6 +6015,8 @@ in the routine must be set already.
     name[prim_routine->variant.ctor_dtor.base_name_offset + 1] = ch;
     routine->source_corresp.name = name;
     routine->source_corresp.name_has_been_mangled = TRUE;
+    routine->variant.ctor_dtor.base_name_offset =
+                              prim_routine->variant.ctor_dtor.base_name_offset;
   }  /* if */
 }  /* mangle_alternate_entry_point_name */
 

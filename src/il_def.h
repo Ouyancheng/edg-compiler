@@ -6443,16 +6443,12 @@ typedef struct a_routine {
 			/* When ctor_or_dtor_kind == cdk_none, the other
 			   constructor and destructor entry points. */
       sizeof_t	base_name_offset;
-			/* When ctor_or_dtor_kind != cdk_none, the offset into
-			   the mangled name for this constructor that
-			   indicates the location of the "C" that indicates
-			   that this entity is a constructor.  (This value is
-			   used when calculating the mangled name for
-			   alternate entry points; see
-			   default_version_of_routine.)	 Invalid until the
-			   routine name has been mangled either in
-			   mangle_function_name or in
-			   get_mangled_function_name. */
+			/* Once the name has been mangled, the offset into
+			   the mangled name for this constructor/destructor
+			   of the "C"/"D" that indicates that this entity is a
+			   constructor/destructor.  (This value is used when
+			   calculating the mangled names for alternate entry
+			   points.) */
     } ctor_dtor;
 #endif /* IA64_ABI */
   } variant;
