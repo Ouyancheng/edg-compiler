@@ -9322,7 +9322,7 @@ or implicit) controlling the declaration.
       tag_sym = class_qualified_id_lookup(&locator, bcp->type,
                                           IDL_MUST_BE_TAG |
                                             IDL_DIRECT_CLASS_MEMBERS_ONLY);
-      if (tag_sym != NULL) {
+      if (tag_sym != NULL && !is_class_template_symbol(tag_sym)) {
         create_member_using_declaration(tag_sym, tag_sym,
                                         other_sym, bcp, class_type,
                                         &prev_udp, access);

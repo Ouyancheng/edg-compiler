@@ -8534,9 +8534,10 @@ current scope.
             a_symbol_ptr null_sym_ptr = NULL, tag_sym;
             locator = locator_for_curr_id;
             clear_specific_symbol(locator);
-            tag_sym = namespace_qualified_id_lookup(&locator, nsp,
-                                                    IDL_MUST_BE_TAG);
-            if (tag_sym != NULL) {
+            tag_sym = namespace_qualified_id_lookup(
+                        &locator, nsp,
+                        IDL_MUST_BE_TAG | IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
+            if (tag_sym != NULL && !is_class_template_symbol(tag_sym)) {
               create_nonmember_using_declaration(tag_sym, &null_sym_ptr,
                                                  other_decl, nsp, &prev_udp,
                                                  /*is_list=*/FALSE);
