@@ -474,7 +474,7 @@ and remap the pointers in the copy by calling remap_function.
     if (scp != NULL) scp->copied_from_secondary_trans_unit = TRUE;
 #if DEBUG
     if (db_has_traced_name(ptr, kind)) {
-      fprintf(f_debug, "copying from secondary to primary (at address %lx):\n",
+      fprintf(f_debug, "copying from secondary to %lx:\n",
                        (unsigned long)copy);
       db_entity_info(ptr, kind);
     }  /* if */
@@ -1981,6 +1981,13 @@ secondary scope to the primary file IL.
         }  /* if */
         if (!entry_to_be_merged(type)) {
           /* An entry that had no correspondence. */
+#if DEBUG
+          if (db_has_traced_name(corresp_type, iek_type)) {
+            fprintf(f_debug,
+                    "finish_trans_unit_copy, adding to list after copy:\n");
+            db_entity_info((char *)corresp_type, iek_type);
+          }  /* if */
+#endif /* DEBUG */
           if (is_class_scope && last_type == NULL) {
             /* Determine the last type the first time it is needed. */
             last_type = primary_scope->types;
@@ -1998,6 +2005,14 @@ secondary scope to the primary file IL.
           /* The entry gets merged into the corresponding type. */
           a_type_ptr primary_type =
                (a_type_ptr)checked_trans_unit_corresp_pointer_of(corresp_type);
+#if DEBUG
+          if (db_has_traced_name(corresp_type, iek_type)) {
+            fprintf(f_debug,
+                    "finish_trans_unit_copy, merging into %lx after copy:\n",
+                    (unsigned long)primary_type);
+            db_entity_info((char *)corresp_type, iek_type);
+          }  /* if */
+#endif /* DEBUG */
           if (is_immediate_class_type(corresp_type)) {
             merge_class_details(corresp_type, primary_type);
             if (!class_body_should_be_copied(corresp_type, primary_type)) {
@@ -2053,6 +2068,14 @@ end_of_type_list_add:;
           a_variable_ptr primary_variable =
                    (a_variable_ptr)checked_trans_unit_corresp_pointer_of(
                                                              corresp_variable);
+#if DEBUG
+          if (db_has_traced_name(corresp_variable, iek_variable)) {
+            fprintf(f_debug,
+                    "finish_trans_unit_copy, merging into %lx after copy:\n",
+                    (unsigned long)primary_variable);
+            db_entity_info((char *)corresp_variable, iek_variable);
+          }  /* if */
+#endif /* DEBUG */
           if (primary_variable->storage_class ==
                                              (a_storage_class)sc_unspecified) {
             /* Eliminate the definition of the primary variable (this happens
@@ -2084,6 +2107,13 @@ end_of_type_list_add:;
             }  /* while */
           }  /* if */
         }  /* if */
+#if DEBUG
+        if (db_has_traced_name(corresp_variable, iek_variable)) {
+          fprintf(f_debug,
+                  "finish_trans_unit_copy, adding to list after copy:\n");
+          db_entity_info((char *)corresp_variable, iek_variable);
+        }  /* if */
+#endif /* DEBUG */
         /* Add the variable to the end of the list. */
         if (last_variable == NULL) {
           primary_scope->variables = corresp_variable;
@@ -2149,6 +2179,14 @@ end_of_variable_list_add:;
           a_routine_ptr primary_routine =
                    (a_routine_ptr)checked_trans_unit_corresp_pointer_of(
                                                               corresp_routine);
+#if DEBUG
+          if (db_has_traced_name(corresp_routine, iek_routine)) {
+            fprintf(f_debug,
+                    "finish_trans_unit_copy, merging into %lx after copy:\n",
+                    (unsigned long)primary_routine);
+            db_entity_info((char *)corresp_routine, iek_routine);
+          }  /* if */
+#endif /* DEBUG */
           merge_routine_details(corresp_routine, primary_routine);
           if (!routine_body_should_be_copied(corresp_routine,
                                              primary_routine)) {
@@ -2192,6 +2230,13 @@ end_of_variable_list_add:;
             }  /* while */
           }  /* if */
         }  /* if */
+#if DEBUG
+        if (db_has_traced_name(corresp_routine, iek_routine)) {
+          fprintf(f_debug,
+                  "finish_trans_unit_copy, adding to list after copy:\n");
+          db_entity_info((char *)corresp_routine, iek_routine);
+        }  /* if */
+#endif /* DEBUG */
         /* Add the routine to the end of the list. */
         if (last_routine == NULL) {
           primary_scope->routines = corresp_routine;
