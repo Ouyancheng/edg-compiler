@@ -82,10 +82,38 @@ the cfront static destruction routines and will ensure that any needed
 destructions get done.  The sequence of the destructions will not
 be standard conforming, but there is no way to get standard conforming
 behavior when using the cfront termination routines.
+
+This routine will only be used when munch is being used.  When patch
+is being used, the link structure defined below will result in a call to
+__process_needed_destructions.
 */
 {
   __process_needed_destructions();
 }  /* __std__needed_destruction_list */
+
+
+/*
+Define a link structure that will be used when patch is being used.
+*/
+struct a_link {
+  a_link	*next;
+  a_void_function_ptr
+		ctor;
+  a_void_function_ptr
+		dtor;
+};
+
+static a_link __link = {(a_link*)NULL,
+                        (a_void_function_ptr)NULL,
+                        (a_void_function_ptr)__process_needed_destructions};
+
+static void dummy(a_link *ptr)
+/*
+Suppress unused warning on __link.
+*/
+{
+  dummy(&__link);
+}  /* dummy */
 #endif /* CFRONT_COMPATIBILITY_MODE */
 
 
