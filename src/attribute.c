@@ -71,7 +71,7 @@ static an_alias_fixup_ptr
 
 #if DEBUG
 static unsigned long
-	num_alias_fixups_allocated;
+	num_alias_fixups_allocated = 0;
 #endif /* DEBUG */
 
 
@@ -222,7 +222,7 @@ Traverse the list of alias fixups and set the alias fields as needed.
 
 #if DEBUG
 static unsigned long
-	pragma_extname_string_space;
+	pragma_extname_string_space = 0;
 #endif /* DEBUG */
 
 void redefine_extname_pragma(a_pending_pragma_ptr  ppp)
@@ -292,7 +292,7 @@ static an_attribute_ptr avail_attributes;
 
 #if DEBUG
 static unsigned long
-	num_attributes_allocated;
+	num_attributes_allocated = 0;
 #endif /* DEBUG */
 
 
