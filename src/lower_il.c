@@ -7149,6 +7149,20 @@ the insertion.
       (*insert_pointer)->next = type;
     }  /* if */
     *insert_pointer = type;
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+    if (is_immediate_class_type(type)) {
+      a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
+      /* If some local types of member functions were promoted into the
+         class on their way to the file scope, promote them now too.
+         They go out after the class itself.  There will only be
+         types on this list for non-nested classes (because the promoted
+         types go to the outermost enclosing class). */
+      promote_type_list(ctsp->promoted_local_types, promotion_scope,
+                        insert_pointer);
+      ctsp->promoted_local_types = NULL;
+    }  /* if */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
   }  /* for */
 }  /* promote_type_list */
 
