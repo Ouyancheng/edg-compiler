@@ -1537,7 +1537,8 @@ entity is a template class, add the template arguments.
     /* For entities without names, create a name. */
     gen_temp_name((char *)scp);
   } else if (entry_kind == iek_routine &&
-             ((a_routine_ptr)scp)->special_kind == sfk_conversion) {
+             ((a_routine_ptr)scp)->special_kind ==
+                                     (a_special_function_kind)sfk_conversion) {
     /* For conversion functions, generate the routine name from the type
        name. */
     gen_conversion_function_name((a_routine_ptr)scp);
