@@ -499,7 +499,7 @@ is an error, issue it at *err_pos.  result->type need not be set on entry.
     access_okay = TRUE;
     orig_type = type_pointed_to(constant_1->type);
     curr_type = skip_typerefs(orig_type);
-    for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
+    for (dsp = cast_derivation_path_of(bcp); dsp != NULL; dsp = dsp->next) {
       base_class = dsp->base_class;
       /* Check that the base class is accessible from the current class.
          Accessibility is not checked if the cast is explicit. */
@@ -521,7 +521,7 @@ is an error, issue it at *err_pos.  result->type need not be set on entry.
           base_object(constant_1) == NULL) {
         /* Preserve a NULL pointer. */
       } else {
-        if (base_class->derivation->base_class->is_virtual) {
+        if (any_virtual_steps_in_derivation(base_class)) {
           /* Casting to a virtual base class.  This can only be folded if we
              have a complete object of the derived class type. */
           if (con_complete_object_type(constant_1) != NULL) {
@@ -581,8 +581,9 @@ desired derived type.  If there is an error, it is issued at *err_pos.
     pos_ty2_error(ec_ambiguous_derived_class, err_pos, derived_class_type,
                   bcp->type);
     set_error_constant(result);
-  } else if (bcp->derivation->base_class->is_virtual) {
-    /* The base class is a virtual base of the derived class. */
+  } else if (any_virtual_steps_in_derivation(bcp)) {
+    /* The base class is a virtual base of the derived class, or there's a
+       virtual step on the derivation path. */
     pos_ty2_error(ec_derived_class_from_virtual_base, err_pos,
                   derived_class_type, bcp->type);
     set_error_constant(result);
@@ -595,7 +596,7 @@ desired derived type.  If there is an error, it is issued at *err_pos.
       /* Preserve a NULL pointer. */
     } else {
 #if CHECKING
-      if (bcp->derivation->base_class->is_virtual) {
+      if (any_virtual_steps_in_derivation(bcp)) {
         internal_error("fold_derived_class_cast: virtual base class");
       }  /* if */
 #endif /* CHECKING */
@@ -875,7 +876,7 @@ If there is an error, it is issued at *err_pos.
     pos_ty2_error(ec_ambiguous_derived_class, err_pos, derived_class_type,
                   bcp->type);
     set_error_constant(result);
-  } else if (bcp->derivation->base_class->is_virtual) {
+  } else if (any_virtual_steps_in_derivation(bcp)) {
     /* The base class is a virtual base of the derived class. */
     pos_ty2_error(ec_derived_class_from_virtual_base, err_pos,
                   derived_class_type, bcp->type);
@@ -885,7 +886,7 @@ If there is an error, it is issued at *err_pos.
       /* Check the accessibility of the base class.  (Recall that casts
          to derived types can be done implicitly.) */
       curr_type = derived_class_type;
-      for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
+      for (dsp = cast_derivation_path_of(bcp); dsp != NULL; dsp = dsp->next) {
         /* Check that the base class is accessible from the current class. */
         base_class = dsp->base_class;
         if (!is_accessible_imm_base_class(base_class, curr_type)) {
