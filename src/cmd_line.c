@@ -478,6 +478,14 @@ Initialize the option information table.
                          "no_array_new_and_delete", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_namespaces,
+                         "namespaces", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_namespaces,
+                         "no_namespaces", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -990,23 +998,20 @@ Process the arguments on the command line that invoked the compiler.
         check_assertion(opt_value == TRUE);
         cfront_2_1_mode = TRUE;
         cfront_3_0_mode = FALSE;
-        /* This option implies C++ dialect. */
-        C_dialect = C_dialect_cplusplus;
-        allow_anachronisms = TRUE;
-        long_lifetime_temps = TRUE;
-        bool_is_keyword = FALSE;
-        break;
+        goto common_cfront_mode_settings;
       case optk_cfront_3_0_mode:
         /* cfront 3.0 compatibility mode.  If both 2.1 and 3.0 modes are
            selected, only the most recent applies. */
         check_assertion(opt_value == TRUE);
         cfront_3_0_mode = TRUE;
         cfront_2_1_mode = FALSE;
+common_cfront_mode_settings:
         /* This option implies C++ dialect. */
         C_dialect = C_dialect_cplusplus;
         allow_anachronisms = TRUE;
         long_lifetime_temps = TRUE;
         bool_is_keyword = FALSE;
+        namespaces_enabled = FALSE;
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
@@ -1367,6 +1372,10 @@ Process the arguments on the command line that invoked the compiler.
         /* Enable/disable array new and delete. */
         array_new_and_delete_enabled = opt_value;
         break;
+      case optk_namespaces:
+        /* Enable/disable namespaces. */
+        namespaces_enabled = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1419,6 +1428,9 @@ Process the arguments on the command line that invoked the compiler.
     if (option_kind_used[(int)optk_array_new_and_delete]) {
       command_line_error(ec_cl_array_new_and_delete_option_only_in_cplusplus);
     }  /* if */
+    if (option_kind_used[(int)optk_namespaces]) {
+      command_line_error(ec_cl_namespaces_option_only_in_cplusplus);
+    }  /* if */
     if (option_kind_used[(int)optk_wchar_t_is_keyword]) {
       command_line_error(ec_cl_wchar_t_option_only_in_cplusplus);
     }  /* if */
@@ -1433,6 +1445,7 @@ Process the arguments on the command line that invoked the compiler.
     exceptions_enabled = FALSE;
     rtti_enabled = FALSE;
     array_new_and_delete_enabled = FALSE;
+    namespaces_enabled = FALSE;
     wchar_t_is_keyword = FALSE;
     bool_is_keyword = FALSE;
     alternative_tokens_allowed = FALSE;
@@ -1516,6 +1529,11 @@ Process the arguments on the command line that invoked the compiler.
         /* If array_new_and_delete_enabled was not explicitly set by a
            command line option, set it now. */
         array_new_and_delete_enabled = ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE;
+      }  /* if */
+      if (!(option_kind_used[(int)optk_namespaces])) {
+        /* If namespaces_enabled was not explicitly set by a command line
+           option, set it now. */
+        namespaces_enabled = TRUE;
       }  /* if */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the

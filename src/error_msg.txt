@@ -783,6 +783,7 @@ ec_allocation_operator_in_namespace;;"allocation operator may not be declared in
 ec_deallocation_operator_in_namespace;;"deallocation operator may not be declared in a namespace"
 ec_conflicts_with_using_decl;;"%np1 conflicts with using-declaration of %np2"
 ec_using_decl_conflicts_with_prev_decl;;"using-declaration of %np1 conflicts with %npd2"
+ec_cl_namespaces_option_only_in_cplusplus;;"namespaces option can be used only when compiling C++"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

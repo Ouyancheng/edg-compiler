@@ -224,6 +224,15 @@ array_new_and_delete_enabled, which can be modified by the
 #endif /* ifndef DEFAULT_ARRAY_NEW_AND_DELETE_ENABLED */
 
 /*
+Flag that is TRUE if, in C++, support for namespaces is enabled by default.
+This is the default value of the variable namespaces_enabled, which can be
+modified by the "--namespaces" or "--no_namespaces" command-line options.
+*/
+#ifndef DEFAULT_NAMESPACES_ENABLED
+#define DEFAULT_NAMESPACES_ENABLED TRUE
+#endif /* ifndef DEFAULT_NAMESPACES_ENABLED */
+
+/*
 Flag that is TRUE to enable automatic instantiation support for templates.
 This flag determines whether the code for automatic instantiation is
 to be compiled.

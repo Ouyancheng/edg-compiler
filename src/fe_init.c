@@ -294,7 +294,6 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_friend,    "friend");
     enter_keyword((a_token_kind)tok_inline,    "inline");
     enter_keyword((a_token_kind)tok_mutable,   "mutable");
-    enter_keyword((a_token_kind)tok_namespace, "namespace");
     enter_keyword((a_token_kind)tok_new,       "new");
     enter_keyword((a_token_kind)tok_operator,  "operator");
     enter_keyword((a_token_kind)tok_private,   "private");
@@ -304,7 +303,6 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_this,      "this");
     enter_keyword((a_token_kind)tok_throw,     "throw");
     enter_keyword((a_token_kind)tok_try,       "try");
-    enter_keyword((a_token_kind)tok_using,     "using");
     enter_keyword((a_token_kind)tok_virtual,   "virtual");
     enter_keyword((a_token_kind)tok_const_cast,       "const_cast");
     enter_keyword((a_token_kind)tok_static_cast,      "static_cast");
@@ -349,6 +347,15 @@ Install the keywords in the symbol table.
     } else {
       enter_unimplemented_keyword("dynamic_cast", ec_unimplemented_keyword);
       enter_unimplemented_keyword("typeid",       ec_unimplemented_keyword);
+    }  /* if */
+    /* Enter keywords connected with namespaces only if namespace support
+       is enabled.  Otherwise treat them as "unimplemented keywords". */
+    if (namespaces_enabled) {
+      enter_keyword((a_token_kind)tok_namespace, "namespace");
+      enter_keyword((a_token_kind)tok_using,     "using");
+    } else {
+      enter_unimplemented_keyword("namespace", ec_unimplemented_keyword);
+      enter_unimplemented_keyword("using",     ec_unimplemented_keyword);
     }  /* if */
   }  /* if */
   db_exit();

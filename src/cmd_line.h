@@ -122,6 +122,7 @@ typedef enum /*an_option_kind*/ {
   optk_building_runtime,
   optk_bool_is_keyword,
   optk_array_new_and_delete,
+  optk_namespaces,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -295,6 +296,14 @@ EXTERN a_boolean
 			   enabled.  Significant only in C++ mode.  They
 			   cannot be enabled if the ABI changes for them
 			   are not enabled. */
+EXTERN a_boolean
+		namespaces_enabled
+#if VAR_INITIALIZERS
+                                   = DEFAULT_NAMESPACES_ENABLED
+#endif /* VAR_INITIALIZERS */
+                                                               ;
+			/* TRUE if support for namespaces is enabled.
+			   Significant only in C++ mode. */
 EXTERN an_integer_kind
 		plain_char_int_kind;
 			/* Integer kind for a "plain" char, dependent on
