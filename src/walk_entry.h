@@ -1712,7 +1712,7 @@ end_sizeof:;
                      iek_template);
             break;
           default:
-            internal_error("unexpected template parameter kind");
+            unexpected_condition_str("unexpected template parameter kind");
         }  /* switch */
       }
       break;
