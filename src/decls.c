@@ -2833,15 +2833,15 @@ will be involved in overloading.
         (C_dialect != C_dialect_cplusplus &&
          (is_function && local_storage_class == (a_storage_class)sc_static))) {
       *effective_decl_level = DEPTH_OF_FILE_SCOPE;
+    } else if (scope_stack[decl_scope_level].kind ==
+                                     (a_scope_kind)sck_template_declaration) {
+      is_function_template_decl = TRUE;
+      *effective_decl_level = DEPTH_OF_FILE_SCOPE;
     } else if (C_dialect == C_dialect_cplusplus &&
                is_default_operator_new(locator, type)) {
       /* Default global operator new must always be entered at file scope. */
       *effective_decl_level = DEPTH_OF_FILE_SCOPE;
       is_default_global_operator_new = TRUE;
-    } else if (scope_stack[decl_scope_level].kind ==
-                                     (a_scope_kind)sck_template_declaration) {
-      is_function_template_decl = TRUE;
-      *effective_decl_level = DEPTH_OF_FILE_SCOPE;
     } else {
       *effective_decl_level = decl_scope_level;
       while (scope_stack[*effective_decl_level].kind ==
@@ -4256,6 +4256,20 @@ class template.
          named "main" cannot be called (ARM 3.4). */
       pos_error(ec_function_template_named_main, &locator->source_position);
       set_to_error_locator(*locator);
+    } else if (locator->is_operator_name) {
+      if (locator->variant.opname == (an_opname_kind)onk_delete) {
+        /* A template definition of operator delete is not allowed.  This
+           is inferred from the ARM prohibition against overloading
+           operator delete. */
+        pos_error(ec_template_operator_delete, &locator->source_position);
+        set_to_error_locator(*locator);
+      } else if (is_default_operator_new(locator, type_ptr)) {
+        /* Overloading should not be allowed on the single-argument
+           version of operator new(size_t), though it is not expressly
+           prohibited.  At least one C++ test suite expects an error. */
+        pos_error(ec_template_operator_new, &locator->source_position);
+        set_to_error_locator(*locator);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (sym == NULL) {
@@ -4278,32 +4292,6 @@ class template.
         set_to_error_locator(*locator);
         /* Avoid overloading. */
         homonym_symbol = NULL;
-      }  /* if */
-      if (homonym_symbol != NULL &&
-          homonym_symbol->kind == (a_symbol_kind)sk_routine) {
-        /* A template definition of operator delete is not allowed.  This
-           is inferred from the ARM prohibition against overloading
-           operator delete. */
-        a_routine_ptr  rp = homonym_symbol->variant.routine.ptr;
-        if (rp->special_kind == (a_special_function_kind)sfk_operator) {
-          if (rp->opname_kind == (an_opname_kind)onk_delete) {
-            /* Overloading is not allowed for operator delete() (ARM 12.5). */
-            pos_error(ec_template_operator_delete, &locator->source_position);
-            set_to_error_locator(*locator);
-            homonym_symbol = NULL;
-          } else if (rp->opname_kind == (an_opname_kind)onk_new) {
-            a_param_type_ptr  ptp = rp->type->variant.routine.extra_info->
-                                                             param_type_list;
-            if (ptp->next == NULL) {
-              /* Overloading should not be allowed on the single-argument
-                 version of operator new(size_t), though it is not expressly
-                 prohibited.  At least one C++ test suite expects an error. */
-              pos_error(ec_template_operator_new, &locator->source_position);
-              set_to_error_locator(*locator);
-              homonym_symbol = NULL;
-            }  /* if */
-          }  /* if */
-        }  /* if */
       }  /* if */
       if (homonym_symbol != NULL) {
         /* Another function with the same name has been declared already.  It
