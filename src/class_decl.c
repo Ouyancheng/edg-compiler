@@ -8764,8 +8764,13 @@ class_type.  Set *updated if a projection symbol is created.
            base classes because conversion functions are not looked up by
            name (and sym->ambiguous is meant to denote name lookup
            ambiguity). */
-        sym = make_projection_symbol(bcslep->symbol, class_type, base_class,
-                                     /*path=*/(a_derivation_step*)NULL,
+        a_symbol_ptr      fund_sym = fundamental_symbol_of(bcslep->symbol);
+        a_type_ptr        fund_base_type = fund_sym->parent.class_type;
+        a_base_class_ptr  fund_base = find_base_with_type(fund_base_type,
+                                                          class_type,
+                                                          base_class);
+        sym = make_projection_symbol(bcslep->symbol, class_type, fund_base,
+                                     /*path=*/NULL,
                                      /*ambiguous=*/FALSE);
         sym->variant.projection.access =
                             compute_access(access_for_symbol(bcslep->symbol),

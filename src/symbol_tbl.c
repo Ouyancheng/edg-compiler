@@ -3802,6 +3802,36 @@ a locator for the new symbol.  Return a pointer to the new symbol.
 }  /* enter_overloaded_symbol */
 
 
+a_base_class_ptr find_base_with_type(a_type_ptr        base_type,
+                                     a_type_ptr        class_type,
+                                     a_base_class_ptr  ref_bcp)
+/*
+Determine the base class of class_type whose type it base_type and whose
+derivation path to class_type goes through ref_bcp.
+*/
+{
+  a_base_class_ptr  result = NULL, bcp = base_classes_of(class_type);
+
+  check_assertion(ref_bcp->direct || ref_bcp->is_virtual);
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->type == base_type) {
+      /* ref_bcp is the root of a path to the base class where the inherited
+         name was found.  Be sure ref_bcp is also on the path to bcp before
+         deciding that bcp is the base class containing sym.  Note that if the
+         inheritance is ambiguous there may be several base classes that match
+         the type in question, and there may be more than one for which
+         ref_bcp is on the path. */
+      if (!bcp->ambiguous || ref_bcp == bcp ||
+          is_on_any_derivation_of(bcp, ref_bcp)) {
+        result = bcp;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}
+
+
 a_symbol_ptr make_projection_symbol(a_symbol_ptr      progenitor_sym,
                                     a_type_ptr        class_ptr,
                                     a_base_class_ptr  fundamental_bcp,
@@ -3874,21 +3904,8 @@ progenitor_sym is a member) if ambiguous is TRUE.
                                            (a_base_class_ptr)NULL);
       }  /* if */
       check_assertion(ref_bcp->direct || ref_bcp->is_virtual);
-      for (; bcp != NULL; bcp = bcp->next) {
-        if (bcp->type == tp) {
-          /* ref_bcp is the root of a path to the base class where the
-             inherited name was found.  Be sure ref_bcp is also on the path to
-             bcp before deciding the bcp is the base class of the fundamental
-             symbol.  Note since the inheritance is ambiguous there may be
-             several base classes that match the type in question, and there
-             may be more than one for which ref_bcp is on the path. */
-          if (!bcp->ambiguous || ref_bcp == bcp ||
-              is_on_any_derivation_of(bcp, ref_bcp)) {
-            pdp->fundamental_base_class = bcp;
-            break;
-          }  /* if */
-        }  /* if */
-      }  /* for */
+      pdp->fundamental_base_class = find_base_with_type(tp, class_ptr,
+                                                        ref_bcp);
     }  /* if */
 #if CHECKING
     if (pdp->fundamental_base_class == NULL) {

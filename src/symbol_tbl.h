@@ -2543,6 +2543,10 @@ extern a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
                                             a_symbol_ptr     old_sym_ptr,
                                             a_symbol_ptr     *overload_sym);
 
+extern a_base_class_ptr find_base_with_type(a_type_ptr        base_type,
+                                            a_type_ptr        class_type,
+                                            a_base_class_ptr  ref_bcp);
+
 extern a_symbol_ptr make_projection_symbol(a_symbol_ptr      progenitor_sym,
                                            a_type_ptr        class_ptr,
                                            a_base_class_ptr  fundamental_bcp,
