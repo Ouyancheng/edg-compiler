@@ -2775,6 +2775,9 @@ special function kind (e.g., constructor, destructor), if any.
       if (is_copy_constructor_symbol(sym, &const_object_okay, &dummy_flag)) {
         cssp->has_copy_constructor = TRUE;
         cssp->has_copy_constructor_for_const_object |= const_object_okay;
+        /* If a copy constructor is defined for the class, construction by
+           bitwise copying is not allowed. */
+        cssp->construction_by_bitwise_copy_allowed = FALSE;
       }  /* if */
     } else if (spec_kind == (a_special_function_kind)sfk_destructor) {
       /* Set the pointer to the destructor symbol in the class symbol
