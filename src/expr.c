@@ -2112,6 +2112,7 @@ is the current set of expression-scanning options.
   a_type_ptr            routine_type;
   a_boolean             is_qualified_name;
   a_boolean             is_vacuous_destructor_reference = FALSE;
+  a_boolean             force_indefinite_function = FALSE;
   a_source_position     member_position, qualified_member_position;
   an_identifier_options_set
                         gid_flags;
@@ -2576,6 +2577,12 @@ qualified_name_check:
        yet know which function is being called). */
     if (member_sym->kind == (a_symbol_kind)sk_overloaded_function) {
       rep = NULL;
+    } else if (member_sym->potentially_overloaded) {
+      /* Force a member function that might or might not be overloaded
+         in a prototype instantiation because of a using-declaration
+         to be treated as overloaded. */
+      rep = NULL;
+      force_indefinite_function = TRUE;
     } else {
       rep = ref_entry(member_sym, &member_position);
     }  /* if */
@@ -2650,7 +2657,8 @@ nonstatic_member_function:
               /* The function will require a "this" pointer, so get a pointer
                  (rather than an rvalue) for the first operand. */
               conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
-              if (member_sym->kind == (a_symbol_kind)sk_member_function) {
+              if (!force_indefinite_function &&
+                  member_sym->kind == (a_symbol_kind)sk_member_function) {
                 /* For a simple non-overloaded function, adjust the selector
                    to point to the proper class.  We don't do this for the
                    cases that go through overload resolution, since that
@@ -2669,7 +2677,8 @@ nonstatic_member_function:
               /* Make an operand for the function with the selector bound
                  to it. */
               if (member_sym->kind == (a_symbol_kind)sk_overloaded_function ||
-                  member_sym->kind == (a_symbol_kind)sk_function_template) {
+                  member_sym->kind == (a_symbol_kind)sk_function_template ||
+                  force_indefinite_function) {
                 /* Overloaded function or member template. */
                 make_indefinite_function_operand(locator_for_curr_id.
                                                                specific_symbol,
@@ -13355,8 +13364,7 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
   an_operand        this_pointer_operand;
   a_type_ptr        qual_class_type;
   a_boolean         err = FALSE, is_operand_of_address_of;
-  a_boolean         force_indefinite_routine_due_to_arg_dependent_lookup =
-                                                                         FALSE;
+  a_boolean         force_indefinite_function = FALSE;
 
   db_enter(4, "scan_identifier");
 
@@ -13449,7 +13457,14 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
          called, so go to overload resolution and handle the reference
          there.  Argument-dependent lookup applies only if the name
          is immediately followed by a left parenthesis. */
-      force_indefinite_routine_due_to_arg_dependent_lookup = TRUE;
+      force_indefinite_function = TRUE;
+      rep = NULL;
+    } else if (sym_ptr->potentially_overloaded) {
+      /* Force overload processing on a symbol in a prototype instantiation
+         that coexists with a using-declaration that might or might not
+         overload it. */
+      check_assertion(is_function_symbol(sym_ptr));
+      force_indefinite_function = TRUE;
       rep = NULL;
     } else {
       rep = ref_entry(sym_ptr, &locator_for_curr_id.source_position);
@@ -13594,7 +13609,7 @@ variable:
           set_operand_name_reference_from_locator_for_curr_id(result);
           break;
         case sk_routine:
-          if (force_indefinite_routine_due_to_arg_dependent_lookup) {
+          if (force_indefinite_function) {
             /* In C++, the name in a function call is subject to
                argument-dependent lookup, so treat this function as
                if it is an overloaded function. */
@@ -13703,6 +13718,7 @@ normal_function:
           }  /* if */
           break;
         case sk_member_function:
+          if (force_indefinite_function) goto overloaded_function;
           /* Static member functions are handled like normal functions. */
           routine_ptr = sym_ptr->variant.routine.ptr;
           if (!routine_type_is_nonstatic_member_function(routine_ptr->type)) {

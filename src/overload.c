@@ -4559,6 +4559,10 @@ cannot be done at present.  We are in a template dependent context.
     /* A template member of a prototype instantiation.  We can't call
        find_template_function on these, so defer overload resolution. */
     defer = TRUE;
+  } else if (sym->potentially_overloaded) {
+    /* The function coexists with a using-declaration that might or
+       might not cause it to be overloaded. */
+    defer = TRUE;
   }  /* if */
   return defer;
 }  /* is_symbol_for_which_overload_resolution_should_be_deferred */

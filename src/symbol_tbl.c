@@ -3234,6 +3234,7 @@ this is not allowed, an error will be issued by the caller.
                the default places the function declaration (new_sym) in front
                of the using-decl (old_sym) in the active list. */
             err = FALSE;
+            new_sym->potentially_overloaded = TRUE;
           }  /* if */
         } else if (is_class_member_using_decl_symbol(new_sym)) {
           if (is_nontype_template_param_symbol(fund_new_sym) &&
@@ -3246,6 +3247,7 @@ this is not allowed, an error will be issued by the caller.
                hide the function declaration (old-sym); this is especially
                important for building overload sets. */
             err = FALSE;
+            old_sym->potentially_overloaded = TRUE;
             if (insert_sym != NULL) *insert_sym = old_sym;
           }  /* if */
         }  /* if */
@@ -4430,6 +4432,7 @@ the file scope is used.
                                    hdr_ptr, &(other_sym->decl_position));
     overload_sym->decl_scope = other_sym->decl_scope;
     overload_sym->decl_seq = other_sym->decl_seq;
+    overload_sym->potentially_overloaded = other_sym->potentially_overloaded;
     /* If the symbol is a member of a class or namespace, set the membership
        of the new symbol. */
     if (other_sym->is_class_member) {
@@ -11271,6 +11274,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.is_invisible                      = FALSE;
   cleared_symbol.is_unknown_function               = FALSE;
   cleared_symbol.is_nonreal_member                 = FALSE;
+  cleared_symbol.potentially_overloaded            = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cleared_symbol.is_super_reference                = FALSE;
   cleared_symbol.is_microsoft_invisible_operator   = FALSE;

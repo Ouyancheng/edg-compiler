@@ -2449,6 +2449,11 @@ typedef struct a_symbol {
   a_bit_field	is_nonreal_member:1;
 			/* TRUE if this symbol represents a member of a
 			   nonreal class. */
+  a_bit_field	potentially_overloaded:1;
+			/* TRUE for a function or overloaded function symbol
+			   in a prototype instantiation if the scope also
+			   contains a using-declaration that could be an
+			   additional member of the overload set. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field
 		is_super_reference:1;
