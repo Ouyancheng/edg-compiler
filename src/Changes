@@ -1,5 +1,11 @@
 Version 2.18
 
+6/15/93  Recursive template instantiation bug fixed
+
+During recursive instantiation of a template the template parameters
+were not being reset to the proper value when returning to the
+original instantiation.  This has been fixed.
+
 6/11/93  Setting of break_seq_number
 
 break_seq_number, which gives the sequence number of the break statement
