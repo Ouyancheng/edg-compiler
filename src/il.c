@@ -5222,6 +5222,9 @@ to it.
   fp->bit_size             = 0;
   fp->is_bit_field         = FALSE;
   fp->bit_field_is_signed  = FALSE;
+#if CHECKING
+  fp->avoid_codecenter_warnings = 0;
+#endif /*CHECKING */
 
   db_exit();
   return fp;
