@@ -5202,7 +5202,7 @@ Display the IL for the file scope in human-readable form.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   disp_boolean("microsoft_mode", (a_boolean)il_header.microsoft_mode);
   disp_long("microsoft_version", (a_boolean)il_header.microsoft_version);
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   disp_boolean("gcc_mode", (a_boolean)il_header.gcc_mode);
   disp_boolean("short_enums", (a_boolean)il_header.short_enums);

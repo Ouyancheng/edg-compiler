@@ -3200,9 +3200,9 @@ to indicate whether an enumeration is actually defined.
 #endif /* CHECKING */
     if (enum_types_can_be_smaller_than_int 
 #if GNU_EXTENSIONS_ALLOWED
-        || enum_type->variant.integer.packed
+        || enum_type->variant.integer.packed || il_header.short_enums
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                                            ) {
+                                                                     ) {
       if (!min_max_set || in_range_for_integer_kind(&min_value, &max_value,
                                                     plain_char_int_kind)) {
         /* "Plain" char. */

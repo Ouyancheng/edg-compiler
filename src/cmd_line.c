@@ -932,6 +932,10 @@ Initialize the option information table.
                          "no_gcc",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_short_enums,
+                         "short_enums",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   add_option_description(optk_long_long,
                          "long_long",
@@ -2357,6 +2361,20 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
 }  /* check_and_set_gcc_mode_options */
 
 
+static void exclude_gcc_specific_options(void)
+/*
+GNU C mode was not selected: make sure no option specific to GNU C mode
+was selected either.
+*/
+{
+#if GNU_EXTENSIONS_ALLOWED
+  if (il_header.short_enums) {
+    command_line_error(ec_cl_short_enums_requires_gcc_mode);
+  }  /* if */
+#endif GNU_EXTENSIONS_ALLOWED
+}  /* exclude_gcc_specific_options */
+
+
 static void check_dialect_and_language_modes(void)
 /*
 Check for consistent specification of dialects and language modes.  Dialect
@@ -3370,6 +3388,12 @@ enable_microsoft_mode:
         gcc_mode = opt_value;
         C_dialect = C_dialect_ANSI;
         break;
+      case optk_short_enums:
+        /* An options to specify that all enumeration types should be
+           treated as if they were declared with the "packed" attribute. */
+        check_assertion(opt_value == TRUE);
+        il_header.short_enums = TRUE;
+        break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case optk_long_long:
         /* The long long feature cannot be disabled when the front end is
@@ -3514,6 +3538,8 @@ enable_microsoft_mode:
   }  /* if */
   if (gcc_mode) {
     check_and_set_gcc_mode_options();
+  } else {
+    exclude_gcc_specific_options();
   }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (instantiation_mode == tim_local && automatic_instantiation_mode) {

@@ -9465,6 +9465,10 @@ typedef struct an_il_header {
 		gcc_mode;
 			/* TRUE if the source program was compiled in
 			   GNU C mode. */
+  a_byte_boolean
+		short_enums;
+			/* TRUE if all enumeration types should be considered
+			   to be "packed". */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   a_byte_boolean
