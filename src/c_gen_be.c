@@ -1733,7 +1733,7 @@ Dump an enum.  Print the associated source name if there is one.
   (void)fprintf(f_C_output, "enum %s", get_name(&type->source_corresp));
   constant = type->variant.integer.enum_constant_list;
   if (constant != NULL) {
-    fputc('{', f_C_output);
+    fputs(" {", f_C_output);
     /* Make an integer constant 0 of the same type as the first enumeration
        constant. */
     enum_value = *constant;
