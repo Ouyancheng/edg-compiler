@@ -9009,6 +9009,39 @@ the parent of the outermost enclosing class.
 }  /* parent_namespace_for_symbol */
 
 
+a_boolean is_local_symbol(a_symbol_ptr sym)
+/*
+Return TRUE if the indicated symbol is a function-local symbol.
+*/
+{
+  a_boolean               is_local = FALSE;
+  a_scope_stack_entry_ptr ssep;
+
+  /* Reject the easy cases, i.e., class and namespace members. */
+  if (sym->is_class_member ||
+      sym->parent.namespace_ptr != NULL ||
+      sym->decl_scope == FILE_SCOPE_NUMBER) {
+    /* is_local = FALSE;  -- already set. */
+  } else {
+    /* Look through the scope stack for the scope of the symbol, to see
+       whether the scope is a block scope. */
+    for (ssep = &scope_stack[depth_scope_stack];
+         ssep != NULL;
+         ssep = previous_scope_of(ssep)) {
+      if (ssep->number == sym->decl_scope) {
+        /* Found the scope. */
+        if (ssep->kind == (a_scope_kind)sck_block ||
+            ssep->kind == (a_scope_kind)sck_function) {
+          is_local = TRUE;
+        }  /* if */
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return is_local;
+}  /* is_local_symbol */
+
+
 a_template_param_ptr alloc_template_param
                                  (a_symbol_ptr sym,
 			          a_boolean    def_arg_involves_template_param)

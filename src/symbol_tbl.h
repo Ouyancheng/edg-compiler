@@ -2987,6 +2987,8 @@ extern void check_dependent_type_fixup_list(a_symbol_ptr  sym);
 
 extern a_namespace_ptr parent_namespace_for_symbol(a_symbol_ptr sym);
 
+extern a_boolean is_local_symbol(a_symbol_ptr sym);
+
 extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
 
 
