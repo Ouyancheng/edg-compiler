@@ -1363,17 +1363,13 @@ incremented or decremented will no longer be one.
 {
   a_type_ptr             array_type = type_pointed_to(expr->type), new_type;
   a_type_ptr             ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
-  an_expr_node_ptr       offset, scale_factor, result;
+  an_expr_node_ptr       offset, scale_factor, lval, lval_copy, result;
   an_expr_operator_kind  op = expr->variant.operation.kind;
 
   /* Scale the offset according to the (nonconstant) total number of elements
      in the underlying array type. */
   array_type = skip_typerefs(array_type);
   scale_factor = vla_size_expr(array_type, /*byte_count=*/FALSE);
-  /* Adjust the type of the expression to be the underlying element type. */
-  new_type = make_pointer_type(underlying_array_element_type(array_type));
-  expr->type = new_type;
-  expr->variant.operation.operands->type = expr->type;
   switch (op) {
     case eok_padd:
     case eok_psubtract:
@@ -1403,19 +1399,29 @@ incremented or decremented will no longer be one.
     case eok_ppost_decr:
       /* expr++ is transformed also transformed into a += operator, but we
          need to save the original value to produce the result of the
-         expression.  Note that the += operation will not affect the value
-         of other user variables.  expr-- is entirely similar. */
+         expression.  expr-- is entirely similar. */
       op = (op == (an_expr_operator_kind)eok_ppost_incr) ?
                                    (an_expr_operator_kind)eok_padd_assign :
                                    (an_expr_operator_kind)eok_psubtract_assign;
-      result = make_lvalue_reusable_copy(expr->variant.operation.operands,
-                                         /*vars_can_change=*/FALSE);
-      expr->variant.operation.operands->next = scale_factor;
+      /* The original lvalue: */
+      lval = expr->variant.operation.operands;
+      /* Make a copy that we are going to use to increment/decrement the
+         value pointed to: */
+      lval_copy = make_lvalue_reusable_copy(lval, /*vars_can_change=*/TRUE);
+      lval_copy->next = scale_factor;
+      /* Save the original rvalue in a temporary that will be used to produce
+         the result: */
+      result = assign_expr_to_temp_and_make_expr_for_reuse(
+                                                add_indirection_to_node(lval));
+      /* Adjust the type of the pointer operand to point to the underlying
+         element type. */
+      new_type = make_pointer_type(underlying_array_element_type(array_type));
+      /* Assemble the three expressions as a replacement for the given node. */
       overwrite_node(
         expr,
         make_comma_node(
-          make_operator_node(op, new_type, expr->variant.operation.operands),
-          add_indirection_to_node(result)));
+          make_comma_node(lval, make_operator_node(op, new_type, lval_copy)),
+          result));
       break;
     default:
       unexpected_condition();
@@ -1463,15 +1469,20 @@ number of bytes of the VLA type underlying the sizeof expression.
     /* Something like "sizeof(X[2][n][m/2])".  Unlike uses of VLAs in
        declarations there is no stmk_set_vla_size for VLA types named in
        expressions.  So we may have to perform computations on the fly. */
-    a_type_ptr  tp = expr->variant.runtime_sizeof.variant.type;
-    precomputation = lower_vla_dimensions(tp);
-    vla_type = tp;
+    vla_type = expr->variant.runtime_sizeof.variant.type;
+    if (!(vla_enabled && is_vla_type(vla_type))) {
+      goto done;
+    }  /* if */
+    precomputation = lower_vla_dimensions(vla_type);
   } else {
     /* sizeof was applied to a VLA expression. */
     precomputation = expr->variant.runtime_sizeof.variant.expr;
     vla_type = precomputation->type;
     if (expr->variant.runtime_sizeof.is_lvalue) {
       vla_type = type_pointed_to(vla_type);
+    }  /* if */
+    if (!(vla_enabled && is_vla_type(vla_type))) {
+      goto done;
     }  /* if */
     /* Lower the argument expression, but be sure to have extracted the
        type first.  (The lowered type is no longer a VLA.) */
@@ -1484,6 +1495,7 @@ number of bytes of the VLA type underlying the sizeof expression.
     byte_count = make_comma_node(precomputation, byte_count);
   }  /* if */
   overwrite_node(expr, byte_count);
+done:;
 #else /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
   /* We're not lowering the run-time sizeof operator, but we may have to
      lower the argument if that argument is an expression. */
@@ -1927,7 +1939,7 @@ second parameter.
       if (expr->variant.variable->is_vla) {
         /* VLAs are lowered to pointers (to automatically managed storage).
            The pointer value should be used; not its address. */
-        expr->kind = (an_expr_node_kind)enk_variable;
+        add_indirection_to_node(expr);
       }  /* if */
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
       break;
@@ -2128,14 +2140,15 @@ storage for the given VLA variable.
 */
 {
   an_expr_node_ptr  result = var_lvalue_expr(vla_var), size_expr;
-  a_type_ptr        ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
+  a_type_ptr        size_type = integer_type(targ_size_t_int_kind);
 
   result = add_c99_lowered_cast_if_necessary(result, void_star_type());
   size_expr = vla_size_expr(vla_var->type, /*byte_count=*/TRUE);
+  size_expr = add_c99_lowered_cast_if_necessary(size_expr, size_type);
   result->next = size_expr;
   result = make_prototyped_runtime_call("__vla_alloc", &vla_alloc_routine,
                                         void_type(), void_star_type(),
-                                        ptrdiff_type, result);
+                                        size_type, result);
   return result;
 }  /* make_vla_allocation_expr */
 
