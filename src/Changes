@@ -1,5 +1,21 @@
 Version 3.4
 
+3/31/04  Internal error in routine_needed_even_if_unreferenced
+
+In relatively rare cases involving function templates and nontemplate
+functions with the same name and type, an internal error was triggered
+in routine_needed_even_if_unreferenced.  For example:
+
+  template<typename T> struct S;
+  template<typename T> void f(S<T>*);
+  template<typename T> struct S {
+    friend void f<>(S<T>*);
+  }; 
+  S<int> s;
+  void f(S<int>*) {}  // Nontemplate function.  Triggers an internal error.
+
+This is now fixed.
+
 3/29/04  Microsoft compatibility: floating-point template parameters
 
 Version 7.1 of the Microsoft compiler no longer accepts floating-point

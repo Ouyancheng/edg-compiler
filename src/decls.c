@@ -5115,6 +5115,66 @@ is_function_def is TRUE if the redeclaration is a definition.
   }  /* if */
 }  /* check_incompatible_routine_redecl */
 
+
+static a_symbol_ptr create_external_symbol_for_routine(
+                         a_symbol_locator       *locator,
+                         a_type_ptr             type_ptr,
+                         an_id_linkage_block    *idlbp,
+                         a_func_info_block_ptr  func_info,
+                         a_boolean              microsoft_specialization_redef,
+                         a_boolean              suppress_incompatible_error,
+                         a_boolean              suppress_ext_sym_lookup,
+                         a_routine_ptr          *routine_ptr)
+/*
+Find or create an external symbol entry for a routine being declared.
+This is a wrapper for create_external_symbol_for_linked_entity that returns
+NULL for some template-related cases.  locator, type_ptr, idlbp, and func_info
+describe the routine being declared.  microsoft_specialization_redef is TRUE
+for the relatively rare case of a specialization being redefined (only allowed
+in some Microsoft bugs modes).  suppress_incompatible_error is TRUE if no
+incompatibility diagnostic should be emitted.  If suppress_ext_sym_lookup is
+TRUE, an existing compatible external symbol is ignored.  *routine_ptr is set
+to point to a routine entry attached to an existing compatible external symbol
+(if any is found).
+*/
+{
+  a_symbol_ptr  result = NULL;
+
+  if (locator->is_template_id ||
+      microsoft_specialization_redef ||
+      (idlbp->linked_symbol != NULL &&
+       idlbp->linked_symbol->variant.routine.instance_ptr != NULL)) {
+    /* We're dealing with a template instance (or an explicit specialization):
+       Do not create an external symbol.  (External symbols cannot really deal
+       with template signatures anyway.) */
+  } else if (scope_stack[depth_scope_stack].in_prototype_instantiation &&
+             !prototype_instantiations_in_il) {
+    /* The declaration appeared during a prototype instantiation, but we
+       will not record the prototype instantiation in the IL. */
+  } else {
+    /* Create an external symbol for the present linkable declaration.
+       Ordinarily, this may involve some lookup to find a declaration in a
+       previous scope to which the present one is linked.  However, in
+       Microsoft compilers, an extern "C" declaration (or a declaration with
+       external linkage in C mode) in one scope does not link up with an
+       extern "C" declaration of the same name in another scope (though the
+       linker will catch redefinitions of such names). */
+    a_variable_ptr  dummy_vp;
+    suppress_ext_sym_lookup = suppress_ext_sym_lookup ||
+                              (microsoft_bugs &&
+                               idlbp->name_linkage ==
+                                           (a_name_linkage_kind)nlk_external);
+    result = create_external_symbol_for_linked_entity(
+                                       locator, type_ptr, idlbp->name_linkage,
+                                       func_info, /*redeclaration=*/FALSE,
+                                       suppress_incompatible_error,
+                                       suppress_ext_sym_lookup,
+                                       &dummy_vp, routine_ptr);
+  }  /* if */
+  return result;
+}  /* create_external_symbol_for_routine */
+
+
 #if !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED
 /* ARGSUSED */ /* decl_modifiers and/or attributes are not used in
                   some configurations. */
@@ -5888,29 +5948,12 @@ skip_overloading:;
                           func_info->is_definition;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   *ext_sym = NULL;
-  if (linkage != idl_none && !redeclaration &&
-      !microsoft_specialization_redef &&
-      (!scope_stack[depth_scope_stack].in_prototype_instantiation ||
-       prototype_instantiations_in_il)) {
-    /* Create an external symbol for the present linkable declaration.
-       Ordinarily, this may involve some lookup to find a declaration in a
-       previous scope to which the present one is linked.  However, in
-       Microsoft compilers, an extern "C" declaration (or a declaration with
-       external linkage in C mode) in one scope does not link up with an
-       extern "C" declaration of the same name in another scope (though the
-       linker will catch redefinitions of such names). */
-    a_variable_ptr  dummy_vp;
-    suppress_ext_sym_lookup = suppress_ext_sym_lookup ||
-                              (microsoft_bugs &&
-                               idlb.name_linkage ==
-                                           (a_name_linkage_kind)nlk_external);
-    *ext_sym = 
-        create_external_symbol_for_linked_entity(locator, type_ptr,
-                                                 idlb.name_linkage,
-                                                 func_info, redeclaration,
-                                                 redecl_error_already_issued,
-                                                 suppress_ext_sym_lookup,
-                                                 &dummy_vp, &routine_ptr);
+  if (linkage != idl_none && !redeclaration) {
+    /* Create an external symbol for the present linkable declaration. */
+    *ext_sym = create_external_symbol_for_routine(
+                   locator, type_ptr, &idlb, func_info,
+                   microsoft_specialization_redef, redecl_error_already_issued,
+                   suppress_ext_sym_lookup, &routine_ptr);
   }  /* if */
   if (template_function_specific_decl && sym != linked_symbol) {
     /* This is a declaration of a template function at the local scope.
