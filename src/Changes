@@ -85,7 +85,9 @@ being written to the file).
   #define M 2
   }
 
-This example used to abort in some configurations.  This is now fixed.
+This example used to abort in configurations that accept Microsoft extensions
+and also use source sequence entries, e.g., C++-generating back end
+configurations.  This is now fixed.
 
 10/13/99 Improved wording on nontype template parameter with class type
 
