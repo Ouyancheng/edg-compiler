@@ -1,5 +1,20 @@
 Version 2.31
 
+11/1/95   Initial value constants for static data member constants
+
+The initial value constants for initialized static data members should
+have any source correspondence information cleared (they're unshared
+copies of the constant value).  The information was not cleared, with
+the consequence that bad ANSI/ISO C was generated for this program:
+
+  namespace Q {
+      enum Colors { red = 0, blue, green };
+      struct S {
+          static Colors const color = blue;  // problem here
+      };
+      Colors const S::color;
+  }
+
 10/31/95  cfront compatibility overload resolution changes
 
 Several changes to provide greater compatibility with cfront in overload
