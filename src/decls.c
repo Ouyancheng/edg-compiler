@@ -5806,7 +5806,8 @@ process_class_specifier:
              declarations, so this bit of error recovery tweaking applies
              only to things like prototyped parameter declarations and
              members of structs/unions. */
-          if ((symbol_list_from_locator(locator_for_curr_id)) == NULL) {
+          if (!is_error_locator(locator_for_curr_id) &&
+              (symbol_list_from_locator(locator_for_curr_id)) == NULL) {
             /* The identifier is undefined.  Assume it's an undefined
                typedef name. */
             str_error(ec_undefined_identifier,
