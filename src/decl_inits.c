@@ -3571,9 +3571,11 @@ initialized.  These are addressed in the course of the processing.
                                       ? ilm_qualified_ctor_initializer_name
                                       : ilm_ctor_initializer_name,
                                     &gid_err);
-          if (is_type_template_param_symbol(member_or_base_sym) &&
+          if (member_or_base_sym != NULL &&
+              is_type_template_param_symbol(member_or_base_sym) &&
               type_symbol_type(member_or_base_sym)->kind ==
                                              (a_type_kind)tk_template_param) {
+            /* This is presumably a mem-initializer for a dependent base. */
             template_param_init = TRUE;
           }  /* if */
           if ((!class_name_injection_enabled || microsoft_mode) &&
