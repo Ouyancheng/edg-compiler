@@ -5836,8 +5836,17 @@ Do IL lowering of the indicated statement and everything under it.
         break;
       case stmk_for:
         lower_statement(statement->variant.for_loop.statement);
-        { a_for_loop_ptr extra_info = statement->variant.for_loop.extra_info;
-          lower_statement(extra_info->initialization);
+        { a_for_loop_ptr  extra_info = statement->variant.for_loop.extra_info;
+          a_statement_ptr init_stmt = extra_info->initialization;
+          /* If the initialization is an stmk_init, make it into a block,
+             because lowering may rewrite it as a string of statements,
+             and the stmk_for can only point at a single statement. */
+          if (init_stmt != NULL &&
+              init_stmt->kind == (a_statement_kind)stmk_init) {
+            turn_statement_into_block(init_stmt);
+            init_stmt = init_stmt->variant.block.statements;
+          }  /* if */
+          lower_statement(init_stmt);
           if (extra_info->increment != NULL) {
             lower_normal_expr(extra_info->increment);
           }  /* if */
