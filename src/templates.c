@@ -950,7 +950,12 @@ Instantiate the body of the template function associated with tip.
   (void)push_scope((a_scope_kind)sck_template_instantiation,
                    tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr,
                    rout_sym, tip->template_sym, tip->arg_list);
-  if (!rout_sym->defined) {
+  if (rout_sym->defined) {
+    /* Member functions of class templates where the definition appears
+       inside the class definition will already have been marked as defined
+       (when the class was instantiated).  If mark_defined is called for
+       such cases, an incorrect source sequence entry can be generated. */
+  } else {
     /* We wait till after the push_scope call before calling mark_defined
        because the fact that a template instantiation scope is on the scope
        stack affects some decisions in that routine. */
