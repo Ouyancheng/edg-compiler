@@ -1,5 +1,10 @@
 Version 2.29
 
+3/13/95  Symbol reference for mem-initializer
+
+Symbols that appear in a mem-initializer of a constructor definition
+are now reported as initializations.
+
 -------------------------------------------------------------------------------
 Version 2.28, March 2, 1995
 
