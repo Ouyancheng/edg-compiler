@@ -381,7 +381,9 @@ typedef enum /*an_error_code*/ {
   ec_direct_derivation_less_accessible,
   ec_missing_const_copy_constructor,
   ec_definition_of_implicitly_declared_function,
-  ec_no_suitable_copy_constructor
+  ec_no_suitable_copy_constructor,
+  ec_linkage_specifier_not_allowed,
+  ec_bad_linkage_specifier
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

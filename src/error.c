@@ -1081,6 +1081,12 @@ error code.
     case ec_no_suitable_copy_constructor:
       m = "class \"%s\" has no suitable copy constructor";
       break;
+    case ec_linkage_specifier_not_allowed:
+      m = "linkage specification is not allowed";
+      break;
+    case ec_bad_linkage_specifier:
+      m = "unknown external linkage specification";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
