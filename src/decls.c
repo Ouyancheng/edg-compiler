@@ -485,7 +485,8 @@ new fields are set properly.
       param_count++;
       tp = ptp->type;
       if (is_reference_type(tp)) tp = type_pointed_to(tp);
-      if (is_class_struct_union_type(tp) || is_enum_type(tp)) {
+      if (is_class_struct_union_type(tp) ||
+          (operator_overloading_on_enums_enabled && is_enum_type(tp))) {
         any_class_or_enum_type_params = TRUE;
       } else if (is_template_param_type(tp)) {
         any_template_param_type_params = TRUE;
@@ -653,7 +654,10 @@ new fields are set properly.
          however. */
       if (!is_nonstatic_member_function && !any_class_or_enum_type_params &&
           !any_template_param_type_params) {
-        pos_error(ec_no_args_with_class_type, &locator->source_position);
+        pos_error(operator_overloading_on_enums_enabled ?
+                        ec_no_params_with_class_or_enum_type :
+                        ec_no_params_with_class_type,
+                  &locator->source_position);
         err = TRUE;
       }  /* if */
     }  /* if */
