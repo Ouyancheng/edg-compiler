@@ -4073,8 +4073,7 @@ pointed to by scope_ptr.
   a_namespace_ptr	nsp = scope_ptr->namespaces;
 
   while (nsp != NULL) {
-    if (!nsp->is_namespace_alias &&
-        !nsp->source_corresp.copied_from_secondary_trans_unit) {
+    if (!nsp->is_namespace_alias) {
       a_scope_pointers_block_ptr  pointers_block;
       a_scope_ptr                 assoc_scope = nsp->variant.assoc_scope;
       pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
