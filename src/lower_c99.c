@@ -1445,8 +1445,10 @@ Do C99 lowering on the indicated statement.
 */
 {
   if (statement != NULL) {
+    a_statement_ptr   saved_temp_init_statements = temp_init_statements;
     a_source_position saved_error_position;
 
+    temp_init_statements = NULL;
     /* Set the error position to the statement position, in case there is
        an error in lowering. */
     saved_error_position = error_position;
@@ -1558,6 +1560,7 @@ Do C99 lowering on the indicated statement.
         insert_statement(stmt, &insert_location);
       }  /* while */
     }  /* if */
+    temp_init_statements = saved_temp_init_statements;
     error_position = saved_error_position;
   }  /* if */
 }  /* lower_c99_statement */
