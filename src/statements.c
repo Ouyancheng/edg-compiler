@@ -1253,6 +1253,9 @@ the current statement sequence.
   a_statement_ptr               extra_block;
   a_statement_ptr               temp_stmt;
   a_control_flow_descr_ptr      cfdp;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean                     in_guarded_statement_of_microsoft_try = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "add_statement_at_stmt_pos");
   /* Find the header pointer for the statement list for the current
@@ -1320,6 +1323,7 @@ the current statement sequence.
           head_ptr = &ssp->variant.microsoft_try->cleanup_statement;
         } else {
           head_ptr = &ssp->variant.microsoft_try->guarded_statement;
+          in_guarded_statement_of_microsoft_try = TRUE;
         }  /* if */
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1354,7 +1358,14 @@ the current statement sequence.
        If the dependent statement is a block (because the source dependent
        statement is a block), that block is used. */
     if ((*head_ptr)->kind == (a_statement_kind)stmk_block &&
-        (*head_ptr)->variant.block.extra_info->assoc_scope == NULL &&
+        ((*head_ptr)->variant.block.extra_info->assoc_scope == NULL
+#if MICROSOFT_EXTENSIONS_ALLOWED
+         /* Avoid adding a new block for the continue label of a Microsoft
+            __try, because the top-level variables in the __try are visible
+            in the __except expression. */
+         || in_guarded_statement_of_microsoft_try
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                   ) &&
         !block_stmt_is_cfront_dependent_stmt(*head_ptr)) {
       /* There is an existing block from a source construct.  Find the 
          end of its statement list, and add there.  Note that blocks that
@@ -1381,7 +1392,7 @@ the current statement sequence.
     }  /* if */
     head_ptr = &extra_block->variant.block.statements;
     sssep->extra_block = extra_block;
-  } /* if */
+  }  /* if */
   /* Add the new statement to the end of the statement list for the
      current level of the structured statement stack.  Even unreachable
      code is kept. */
