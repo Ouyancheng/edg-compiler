@@ -4742,7 +4742,7 @@ static a_boolean ttt_contains_template_param_constant(
 /*
 This is a service function designed to be called from traverse_type_tree
 (whence the ttt_ prefix).  If specific_template_param_constant is NULL, it
-returns TRUE if type_ptr is is based on a template parameter constant.  If
+returns TRUE if type_ptr is based on a template parameter constant.  If
 specific_template_param_type is non-NULL, it returns TRUE if type_ptr is
 based on the specified template parameter constant.
 */
