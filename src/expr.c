@@ -7743,9 +7743,11 @@ C++ mode.
 
 
 static void rewrite_cast_to_reference_as_pointer_cast(
-                                                 a_type_ptr *type_cast_to,
-                                                 an_operand *operand,
-                                                 a_boolean  allow_class_rvalue)
+                                      a_type_ptr            *type_cast_to,
+                                      an_operand            *operand,
+                                      a_boolean             allow_class_rvalue,
+                                      an_expr_operator_kind cast_op,
+                                      a_boolean             *processed)
 /*
 Rewrite a cast to a reference as the equivalent cast to a pointer type.
 From [expr.reinterpret.cast]:
@@ -7762,27 +7764,31 @@ From [expr.reinterpret.cast]:
 
 [expr.static.cast] allows a similar conversion, but it's hidden in the words
 
-  An expression e can be explicitly  converted  to  a  type  T  using  a
-  static_cast  of the form static_cast<T>(e) if the declaration T t(e);"
-  is well-formed, for some invented temporary variable  t  (_dcl.init_).
+  An expression e can be explicitly converted to a type T using a
+  static_cast of the form static_cast<T>(e) if the declaration "T t(e);"
+  is well-formed, for some invented temporary variable t (_dcl.init_).
 
-*operand is the expression being cast, an *type_cast_to is the reference type.
+*operand is the expression being cast, and *type_cast_to is the reference type.
 On return, *type_cast_to has been changed to the corresponding pointer
 type.  allow_class_rvalue is TRUE if a class rvalue should be allowed
-(e.g., for a static_cast to a reference-to-const type).
+(e.g., for a static_cast to a reference-to-const type).  Return *processed
+TRUE if the cast has been processed internally in this routine; this
+happens for casts involving unknown template types, in which case a
+generic cast using the operator cast_op is generated.
 */
 {
+  *processed = FALSE;
   *type_cast_to = make_pointer_type(type_pointed_to(*type_cast_to));
   if (is_template_dependent_context() &&
       (is_template_dependent_type(*type_cast_to) ||
        is_template_dependent_type(operand->type))) {
-    /* A template-dependent operation in a prototype instantiation.
-       The lvalue-ness of the operand is uncertain, so use an explicit
-       generic "&" operator. */
-    an_operand operand_copy;
-    copy_operand(operand, &operand_copy);
-    template_unary_operation((an_expr_operator_kind)eok_address,
-                             &operand_copy, operand, &operand_copy.position);
+    /* A template-dependent operation in a prototype instantiation. */
+    generic_cast_operand(operand, *type_cast_to,
+                         cast_op,
+                         /*is_implicit_cast=*/FALSE,
+                         /*is_reference_cast=*/TRUE);
+    conv_object_pointer_to_lvalue(operand);
+    *processed = TRUE;
   } else if (is_an_lvalue(operand)) {
     take_address_of_lvalue(operand);
   } else if (is_a_function_designator(operand)) {
@@ -8064,11 +8070,14 @@ C-style casts and C++ functional-notation type conversions.
         /* Note that this is done after the check for user-defined
            conversions above, since if such a cast can be done by
            a conversion function, it should be. */
-        rewrite_cast_to_reference_as_pointer_cast(&type_cast_to, operand,
-                                                  allow_rvalue_on_rewrite);
+        rewrite_cast_to_reference_as_pointer_cast(
+                                               &type_cast_to, operand,
+                                               allow_rvalue_on_rewrite,
+                                               (an_expr_operator_kind)eok_cast,
+                                               &processed);
       }  /* if */
       /* Check for different types of casts and do the cast. */
-      if (!err) {
+      if (!err && !processed) {
         a_boolean      reinterpret_semantics = FALSE;
         a_boolean      operand_is_constant;
         a_constant_ptr operand_con = NULL;
@@ -8474,13 +8483,16 @@ Syntax:
         /* Note that this is done after the check for user-defined
            conversions above, since if such a cast can be done by
            a conversion function, it should be. */
-        rewrite_cast_to_reference_as_pointer_cast(&type_cast_to, result,
-                                                  allow_rvalue_on_rewrite);
+        rewrite_cast_to_reference_as_pointer_cast(
+                                        &type_cast_to, result,
+                                        allow_rvalue_on_rewrite,
+                                        (an_expr_operator_kind)eok_static_cast,
+                                        &processed);
       }  /* if */
       /* Get the source type after the transformations. */
       source_type = result->type;
       /* Check for different types of casts and do the cast. */
-      if (!err) {
+      if (!err && !processed) {
         a_boolean      operand_is_constant = is_constant_operand(result);
         a_constant_ptr operand_con = NULL;
         if (operand_is_constant) operand_con = &result->variant.constant;
@@ -8567,6 +8579,7 @@ Syntax:
   a_type_ptr        type_cast_to, orig_type_cast_to, source_type;
   a_boolean         cast_to_reference = FALSE, err = FALSE;
   an_error_code     warning_suggested;
+  a_boolean         processed = FALSE;
 
   db_enter(4, "scan_reinterpret_cast_operator");
   /* Save the position of the reinterpret_cast keyword. */
@@ -8615,13 +8628,16 @@ Syntax:
       /* Rewrite a cast to a reference type as a cast to a pointer type.
          Note that the original type_cast_to is preserved in
          orig_type_cast_to. */
-      rewrite_cast_to_reference_as_pointer_cast(&type_cast_to, result,
-                                            /*allow_rvalue_on_rewrite=*/FALSE);
+      rewrite_cast_to_reference_as_pointer_cast(
+                                   &type_cast_to, result,
+                                   /*allow_rvalue_on_rewrite=*/FALSE,
+                                   (an_expr_operator_kind)eok_reinterpret_cast,
+                                   &processed);
     }  /* if */
     /* Get the source type after the transformations. */
     source_type = result->type;
     /* Check for different types of casts and do the cast. */
-    if (!err) {
+    if (!err && !processed) {
       if (reinterpret_cast_conversion_possible(source_type,
                                                type_cast_to,
                                                &warning_suggested)) {
