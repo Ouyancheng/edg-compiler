@@ -1,5 +1,18 @@
 Version 2.27
 
+12/13/94 Incomplete classes nested within anonymous unions
+
+Several bugs have been fixed in how incomplete classes nested within
+anonymous unions are handled.  One of the bugs caused an infinite loop in
+IL lowering; another produced an internal error.  Moreover, the following
+is now processed correctly:
+
+  static union {
+    struct S;
+    /* ... */
+  };
+  struct S { /* ... */ };
+
 12/13/94 Storage class of template specializations
 
 Formerly, a template instance would always get the storage class of
