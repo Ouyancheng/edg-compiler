@@ -8409,24 +8409,47 @@ must be redone for each generated C file.
 
 #if ONE_INSTANTIATION_PER_OBJECT
 
+#if !IA64_ABI
+/*ARGSUSED*/  /* <-- name_char_pos is not used in that case. */
+#endif /* !IA64_ABI */
 static void generate_one_instantiation_C_output_file(
                                      a_source_correspondence *scp,
-                                     unsigned long           needed_bit_number)
+                                     unsigned long           needed_bit_number,
+                                     char                    *name_char_pos)
 /*
 Generate the C output file for the instantiation whose associated
 routine or variable has the given source correspondence field and
-"needed" flag bit number.
+"needed" flag bit number.  If name_char_pos is non-NULL (IA-64 ABI
+only), it points to the character in a constructor or destructor
+name that must be changed to produce the canonical form of the
+name.
 */
 {
-  char	*C_output_file_name;
+  char *C_output_file_name;
+#if IA64_ABI
+  char orig_char;
+#endif /* IA64_ABI */
 
   if (C_output_file_name_buffer == NULL) {
     /* On the first call, allocate a buffer used to construct the file name.
        This buffer will be resized as needed. */
     C_output_file_name_buffer = alloc_text_buffer(256);
   }  /* if */
+#if IA64_ABI
+  if (name_char_pos != NULL) {
+    /* Change the constructor or destructor name to the canonical
+       "C1" or "D1" form. */
+    orig_char = *name_char_pos;
+    check_assertion(orig_char == '1' || orig_char == '2' ||
+                    orig_char == '0' || orig_char == '9');
+    *name_char_pos = '1';
+  }  /* if */
+#endif /* IA64_ABI */
   /* Generate a file name based on the mangled name of the entity. */
   C_output_file_name = generate_instantiation_output_file_name(scp->name);
+#if IA64_ABI
+  if (name_char_pos != NULL) *name_char_pos = orig_char;
+#endif /* IA64_ABI */
   /* Add the right suffix for a generated C file. */
   C_output_file_name = derived_name(C_output_file_name, GEN_C_FILE_SUFFIX);
   /* Add the directory name specified. */
@@ -8441,6 +8464,31 @@ routine or variable has the given source correspondence field and
   needed_flag_bit_number = 0;
 }  /* generate_one_instantiation_C_output_file */
 
+#if IA64_ABI
+
+static a_boolean routine_slice_appears_earlier_on_list(a_routine_ptr rout)
+/*
+Return TRUE if a routine with the same one-instantiation-per-object slice
+number as the indicated routine appears earlier on the file scope routines
+list than rout does.
+*/
+{
+  a_boolean     result = FALSE;
+  a_routine_ptr orout;
+
+  for (orout = il_header.primary_scope->routines;
+       orout != NULL && orout != rout;
+       orout = orout->next) {
+    if (orout->instantiation_needed_bit_number ==
+         rout->instantiation_needed_bit_number) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* routine_slice_appears_earlier_on_list */
+
+#endif /* IA64_ABI */
 
 static void generate_instantiation_C_output_files(void)
 /*
@@ -8455,20 +8503,41 @@ the C output files for all instantiations.
   for (rout = il_header.primary_scope->routines;
        rout != NULL;
        rout = rout->next) {
-    if (rout->instantiation_needed_bit_number != 0 &&
-        /* Ignore generated startup initialization routines. */
-        !routine_is_init_routine(rout) &&
+    if (rout->instantiation_needed_bit_number != 0) {
+      /* Ignore generated startup initialization routines and routines
+         whose bodies are present only for inlining purposes. */
+      if (!routine_is_init_routine(rout) &&
+          !rout->suppress_inline_body) {
+        a_boolean generate_routine = TRUE;
+        char      *char_pos = NULL;
 #if IA64_ABI
-        /* Ignore all but the primary entry points for constructors and
-           destructors.  The others are put in the same slice as the
-           main routine. */
-        ((rout->special_kind != (a_special_function_kind)sfk_constructor &&
-          rout->special_kind != (a_special_function_kind)sfk_destructor) ||
-         rout->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete) &&
+        /* For constructors and destructors, the primary entry point and
+           all the alternate entry points are in the same slice.
+           However, they all get removed individually if unneeded, so
+           any one of the routines could be on the list without the
+           others, and we want to generate the slice only once.
+           Check to see if another routine with the same slice
+           number has already been processed because it's earlier on
+           the list. */
+        if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+            rout->special_kind == (a_special_function_kind)sfk_destructor) {
+          if (routine_slice_appears_earlier_on_list(rout)) {
+            generate_routine = FALSE;
+          } else {
+            /* Determine the address of the character of the name to
+               be changed to get the canonical routine name. */
+            char_pos = &rout->source_corresp.name[rout->variant.ctor_dtor.
+                                                           base_name_offset+1];
+          }  /* if */
+        }  /* if */
 #endif /* IA64_ABI */
-        !rout->suppress_inline_body) {
-      generate_one_instantiation_C_output_file(&rout->source_corresp,
-                                        rout->instantiation_needed_bit_number);
+        if (generate_routine) {
+          generate_one_instantiation_C_output_file(
+                                        &rout->source_corresp,
+                                        rout->instantiation_needed_bit_number,
+                                        char_pos);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* for */
   /* Look through the list of variables to find all instantiated static
@@ -8479,8 +8548,10 @@ the C output files for all instantiations.
     if (var->instantiation_needed_bit_number != 0 &&
         /* Ignore generated __link variables. */
         var->is_template_static_data_member) {
-      generate_one_instantiation_C_output_file(&var->source_corresp,
-                                         var->instantiation_needed_bit_number);
+      generate_one_instantiation_C_output_file(
+                                         &var->source_corresp,
+                                         var->instantiation_needed_bit_number,
+                                         (char *)NULL);
     }  /* if */
   }  /* for */
 }  /* generate_instantiation_C_output_files */
