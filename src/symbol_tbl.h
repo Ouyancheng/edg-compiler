@@ -501,7 +501,6 @@ typedef struct a_function_instantiation_entry {
 } a_function_instantiation_entry;
 
 
-
 typedef struct a_template_symbol_supplement *a_template_symbol_supplement_ptr;
 typedef struct a_template_symbol_supplement {
   /* Additional information about a C++ class or function template
@@ -514,6 +513,12 @@ typedef struct a_template_symbol_supplement {
                         /* The body of the template is stored as a token
                            cache which can be rescanned later during
                            instantiation. */
+  a_scope_depth
+                innermost_instantiation_scope;
+                        /* Contains the scope number of the most recent
+                           instantiation of the class template.  This is
+                           used by push and pop scope to handle recursive
+                           instantiations. */
   union {
     /* When kind = sk_class_template. */
     struct {
@@ -1015,6 +1020,13 @@ typedef struct a_scope_stack_entry {
 		last_dynamic_init;
 			/* End of list of local dynamic initializations, NULL
 			   if none. */
+  a_scope_depth depth_of_previous_instantiation;
+                        /* Used for template instantiation classes to handle
+                           recursive instantiations.  Contains the scope
+                           depth of the previous instantiation of the class
+                           template being instantiated and is used
+                           to restore the template parameters to the correct
+                           state when the scope stack is popped. */
 } a_scope_stack_entry;
 
 EXTERN a_scope_stack_entry_ptr
