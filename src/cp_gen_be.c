@@ -3427,9 +3427,8 @@ is the one associated with the definition of the class.
   }  /* if */
   /* Go through the source sequence list and generate the members of the
      class. */
-  while (curr_source_sequence_entry != NULL &&
-         ss_entry_kind(curr_source_sequence_entry) !=
-                                               iek_src_seq_end_of_construct) {
+  while (ss_entry_kind(curr_source_sequence_entry) !=
+                                                iek_src_seq_end_of_construct) {
     gen_declaration(/*for_init=*/FALSE);
   }  /* while */
   /* This should be the end-of-construct marker for the class. */
