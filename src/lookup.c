@@ -3834,7 +3834,10 @@ be found.
        instantiations. */
     sym = symhdr->symbol == NULL ? symhdr->inactive_symbols : symhdr->symbol;
     for (; sym != NULL; sym = sym->next) {
+      /* The file_scope_number test excludes symbols from other translation
+         units. */
       if (!sym->is_class_member &&
+          sym->decl_scope == file_scope_number &&
           (is_function_symbol(sym) ||
            sym->kind == (a_symbol_kind)sk_function_template)) {
         /* A non-member function or function template. */
