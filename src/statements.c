@@ -5854,8 +5854,18 @@ expr_statement:
            or for a labeled declaration, e.g.,
              lab: int j;
         */
-        error(is_dependent_statement ? ec_dependent_stmt_is_declaration :
-                                       ec_labeled_declaration);
+        if (is_dependent_statement) {
+          error(ec_dependent_stmt_is_declaration);
+        } else if (c99_mode) {
+          /* A labeled statement is not allowed in C99 mode (the syntax
+             doesn't allow it), but we allow it in default mode. */
+          diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity :
+                                        es_warning,
+                     ec_labeled_declaration);
+        } else {
+          /* A labeled declaration in pre-C99 C. */
+          error(ec_labeled_declaration);
+        }  /* if */
         decl_statement();
       } else {
         /* An expression-statement. */

@@ -4,7 +4,8 @@ Version 2.46
 
 The error message has been improved on a labeled declaration in
 C99 mode.  (The C99 syntax allows a label only on a statement,
-not on a declaration.)
+not on a declaration.)  Also, the diagnostic is now a warning
+in non-strict C99 mode.
 
   int main() {
     int a;
