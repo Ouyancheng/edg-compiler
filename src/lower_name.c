@@ -461,14 +461,16 @@ used to encode constants as part of the mangled names of template classes.
          For pointers to member functions, the __mptr triplet of
          values (delta, index, function or offset), encoded as follows:
            LM0_L2n1_1j
-                    ^^- Function name, or alternatively the offset value.
-                        (e.g., LM0_L2n1_4)
+                    ^^- Function name, or alternatively "0" if the pointer
+                        to member uses an offset (e.g., LM0_L11_0).
                ^^^^---- Index value, encoded as an integer.
              ^--------- Delta value.
            ^^---------- "LM" indicates a pointer to member function.
-         This is compatible with cfront 3.0.1.  Note that cfront always
-         seems to put out "0" for the offset value, even when another
-         value seems right. */
+         This is compatible with cfront 3.0.1.  Note that "0" is always
+         used for the offset, not the actual offset value.  This follows
+         cfront.  The idea seems to be that "0" is really a way of saying
+         "there is no function;" the offset value itself would not be
+         of interest to a name demangler. */
       if (!con->variant.ptr_to_member.is_function_ptr) {
         /* Pointer to data member. */
         a_targ_ptrdiff_t delta;
@@ -545,17 +547,9 @@ used to encode constants as part of the mangled names of template classes.
             store_at += str_length;
           }  /* if */
         } else {
-          /* Offset. */
-          (void)sprintf(buffer, "%ld", (long)offset);
-          str = buffer;
-          str_length = strlen(str);  /* Includes "-" sign if any. */
-          literal_length += str_length;
-          if (store_at != NULL) {
-            (void)memcpy(store_at, str, size_t_arg(str_length));
-            /* Use "n" to represent a minus sign. */
-            if (*store_at == '-') *store_at = 'n';
-            store_at += str_length;
-          }  /* if */
+          /* Offset, always coded as "0". */
+          literal_length++;
+          if (store_at != NULL) *store_at++ = '0';
         }  /* if */
       }  /* if */
       break;
