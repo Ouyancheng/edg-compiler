@@ -255,6 +255,11 @@ switches before this point.
 #endif /* ifndef RUNTIME_USES_NAMESPACES */
 #endif /* ifndef ABI_COMPATIBILITY_VERSION */
 
+#if ABI_COMPATIBILITY_VERSION == 228
+/* When doing 2.28 ABI testing, also use the non-alternate IL file format. */
+#define ALTERNATE_IL_FILE_FORMAT 0
+#endif /* ABI_COMPATIBILITY_VERSION */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *
