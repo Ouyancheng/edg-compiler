@@ -1161,11 +1161,11 @@ Scan and process a #pragma directive.
         set_ifg_state(IFG_STATE_ONCE);
         curr_ise->include_history->pragma_once = TRUE;
 	processed = TRUE;
-      } else if (curr_id_is("hdrstop")) {
-        /* A header stop pragma.  The actual processing of the header stop
-           pragma is handled in the special prefix processing code for
-           preprocessing directives.  When it is encountered during a
-           real compilation, it should just be ignored. */
+      } else if (curr_id_is("hdrstop") || curr_id_is("no_pch")) {
+        /* A PCH control pragma.  The actual processing of these
+           pragmas is handled in the special prefix processing code for
+           preprocessing directives.  When they are encountered during a
+           real compilation, they should just be ignored. */
         while (curr_token != tok_newline) (void)get_token();
         processed = TRUE;
       } else {
@@ -1297,6 +1297,10 @@ begin.
     /* Terminate the event list processing when a pragma hdrstop is found. */
     if (is_pragma_hdrstop) {
       process_prefix_pragma_hdrstop();
+    } else if (kind == ppd_pragma && curr_id_is("no_pch")) {
+      /* A #pragma no_pch has been found.  Suppress the creation and
+         of a precompiled header for this compilation. */
+      suppress_creation_of_pch();
     } else {
       convert_pp_directive_to_string();
       add_pch_event(pchek_pp_directive, kind, pp_dir_string_buffer, pos);
