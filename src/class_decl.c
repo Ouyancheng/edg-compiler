@@ -4978,37 +4978,30 @@ declared member functions.
 }  /* decl_member_function */
 
 
-#if !DECL_MODIFIERS_IN_USE
-/* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
-#endif /* !DECL_MODIFIERS_IN_USE */
-void decl_member_function_template(a_symbol_locator     *locator,
-                                   a_type_ptr           class_type,
-                                   a_type_ptr           member_type,
-                                   a_func_info_block    *func_info,
-                                   a_scope_depth        effective_decl_level,
-                                   an_access_specifier  access,
-                                   a_decl_flag_set      dso_flags,
-                                   a_decl_modifier      decl_modifiers,
-                                   a_symbol_ptr         *symbol_ptr)
+static void decl_member_function_template(a_symbol_locator        *locator,
+                                          a_type_ptr              class_type,
+                                          a_type_ptr              member_type,
+                                          a_func_info_block       *func_info,
+                                          a_class_def_state_ptr   class_state,
+                                          a_member_decl_info_ptr  decl_info)
 /*
-Process the declaration of a member function template and return in
-*symbol_ptr the symbol created to represent it.  *locator is the symbol
-locator of the template.  class_type identifies the class in which it was
-declared, and member_type is its function type.  *func_info contains
-information gathered in processing the declarator; effective_decl_level is
-the depth of the class scope; access is the current access specifier in the
-class; and dso_flags and decl_modifiers relay information returned from
-processing the decl-specifiers.  (This function is similar to
-decl_function_template, which handles non-member function templates and
-out-of-class template declarations of functions that are members of
-template classes, and to decl_member_function, which handles in-class member
-function declarations.)
+Process the declaration of a member function template.  *locator is the
+symbol locator of the template.  class_type identifies the class in which it
+was declared, and member_type is its function type.  *func_info contains
+information gathered in processing the declarator.  *class_state and
+*decl_info track general information about the class definition and specific
+information about the member declaration, respectively.  (This function is
+similar to decl_function_template, which handles non-member function
+templates and out-of-class template declarations of functions that are
+members of template classes, and to decl_member_function, which handles
+in-class member function declarations.)
 */
 {
   a_template_symbol_supplement_ptr   tssp;
   a_routine_ptr                      rtn;
   a_symbol_ptr                       sym, other_sym, overload_sym = NULL;
   a_class_symbol_supplement_ptr      cssp;
+  a_scope_depth                      effective_decl_level;
 
   db_enter(3, "decl_member_function_template");
   if (!is_error_locator(*locator)) {
@@ -5050,7 +5043,13 @@ function declarations.)
       }  /* if */
     }  /* for */
   }  /* if */
+  /* Set a flag in each param type entry whose associated type is or
+     contains a template parameter. */
+  set_type_involves_template_param_flags(member_type);
   /* Create the new symbol and enter it into the symbol table. */
+  effective_decl_level = class_type->variant.class_struct_union.extra_info->
+                                           assoc_scope->depth_in_scope_stack;
+  check_assertion(effective_decl_level != NO_SCOPE_DEPTH);
   if (sym == NULL) {
     sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
                              effective_decl_level,
@@ -5063,10 +5062,14 @@ function declarations.)
                      NO_SCOPE_DEPTH);
   tssp = template_supplement_for_symbol(sym);
   tssp->variant.function.routine = rtn;
+  /* Copy the func_info block and then null out its param-id pointer so that
+     it won't be freed. */
+  tssp->variant.function.func_info = *func_info;
+  func_info->param_id_list = NULL;
   /* Set the source correspondence, including the access specifier. */
   set_source_corresp(&rtn->source_corresp, sym);
   set_class_membership(sym, &rtn->source_corresp, class_type);
-  rtn->source_corresp.access = access;
+  rtn->source_corresp.access = class_state->access;
   if (func_info->is_inline) {
     /* Inline member function (either because "inline" was specified or
        a function definition is present). */
@@ -5139,7 +5142,7 @@ function declarations.)
          conversion functions. */
       add_to_conversion_list(sym, cssp);
     }  /* if */
-    if (dso_flags & DSO_CONSTRUCTOR) {
+    if (decl_info->is_constructor) {
       rtn->special_kind = (a_special_function_kind)sfk_constructor;
       /* Set the pointer to the constructor symbol in the class symbol
          supplement. */
@@ -5160,13 +5163,13 @@ function declarations.)
     merge_decl_modifiers(class_type, decl_info,
                          (a_boolean)func_info->is_definition);
 #endif /* if 0 */
-    update_routine_decl_modifiers(rtn, decl_modifiers,
+    update_routine_decl_modifiers(rtn, decl_info->decl_modifiers,
                                   &locator->source_position,
                                   /*is_redecl=*/FALSE,
                                   (a_boolean)func_info->is_definition);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-  *symbol_ptr = sym;
+  decl_info->member_sym = sym;
   db_exit();
 }  /* decl_member_function_template */
 
@@ -8172,9 +8175,10 @@ member.  Determine whether a diagnostic is actually required and put it out.
 }  /* report_missing_constructor */
 
 
-static void class_member_declaration(
+static a_symbol_ptr class_member_declaration(
                                 a_type_ptr              class_type,
                                 a_class_def_state_ptr   class_state,
+                                a_boolean               is_member_template,
                                 a_boolean               *skip_semicolon_check)
 /*
 Scan a member declaration appearing inside a class definition.  class_type
@@ -8209,6 +8213,7 @@ following the member declaration.
                   DSI_IS_MEMBER_DECLARATION | DSI_INLINE_ALLOWED |
                   DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
                   DSI_VACUOUS_TAG_DECL_ALLOWED);
+    if (is_member_template) dsi_flags |= DSI_IS_TEMPLATE_DECLARATION;
   }  /* if */
   /* First scan the declaration specifiers.  In C++ the specifiers may be
      omitted, e.g., for a function member with implicit type. */
@@ -8380,6 +8385,9 @@ following the member declaration.
         if (friend_specified) {
           di_flags |= (DI_IS_FRIEND_DECL | DI_QUALIFIED_NAME_ALLOWED);
         }  /* if */
+        if (is_member_template) {
+          di_flags |= DI_IS_TEMPLATE_DECLARATION;
+        }  /* if */
       }  /* if */
       /* Pass the class's type pointer to declarator if this might be a
          nonstatic member function, in which case its presence will cause an
@@ -8459,12 +8467,7 @@ following the member declaration.
       if (decl_info.dso_flags & DSO_VIRTUAL) {
         check_for_invalid_use_of_virtual(&locator, class_type, &decl_info);
       }  /* if */
-      if (friend_specified) {
-        /* Process a friend function declaration. */
-        rout_sym = decl_friend_function(&locator, class_type, local_type,
-                                        &func_info, decl_info.decl_modifiers);
-      } else {
-        /* Must be a member function declaration. */
+      if (!friend_specified) {
         if ((decl_info.is_constructor || decl_info.is_destructor) &&
             decl_info.storage_class == (a_storage_class)sc_static) {
           /* Constructors and destructors may not be declared "static"
@@ -8481,6 +8484,19 @@ following the member declaration.
              being an aggregate -- keep track. */
           class_state->any_nonpublic_members = TRUE;
         }  /* if */
+      }  /* if */
+      if (friend_specified) {
+        /* Process a friend function declaration. */
+        rout_sym = decl_friend_function(&locator, class_type, local_type,
+                                        &func_info, decl_info.decl_modifiers);
+      } else if (is_member_template) {
+        /* Process the member function template. */
+        decl_member_function_template(&locator, class_type, local_type,
+                                      &func_info, class_state, &decl_info);
+        rout_sym = decl_info.member_sym;
+        goto next_declaration;
+      } else {
+        /* Must be a member function declaration. */
         /* Create a symbol for the member function. */
         decl_member_function(&locator, class_type, local_type, &func_info,
                              class_state, &decl_info,
@@ -8738,7 +8754,35 @@ following the member declaration.
   } while (loop_token(tok_comma));
 next_declaration:;
   db_exit();
+  return decl_info.member_sym;
 }  /* class_member_declaration */
+
+
+a_symbol_ptr class_member_template_declaration(a_type_ptr  class_type)
+/*
+Scan a template function declaration that appears inside a class (or class
+template) definition.  class_type is the parent type, which may be a nonreal
+class (prototype instantiation of a class template).
+*/
+{
+  a_class_def_state *class_state_ptr;
+  a_boolean         skip_semicolon_check;
+  a_scope_depth     scope_level;
+  a_symbol_ptr      sym;
+
+  db_enter(3, "class_member_template_declaration");
+  /* Get the class definition state, which is pointed to from the scope-stack
+     entry. */
+  scope_level = class_type->variant.class_struct_union.extra_info->
+                                       assoc_scope->depth_in_scope_stack;
+  check_assertion(scope_level != NO_SCOPE_DEPTH);
+  class_state_ptr = scope_stack[scope_level].class_def_state;
+  sym = class_member_declaration(class_type, class_state_ptr,
+                                 /*is_member_template=*/TRUE,
+                                 &skip_semicolon_check);
+  db_exit();
+  return sym;
+}  /* class_member_template_declaration */
 
 
 a_boolean scan_class_definition(a_type_ptr       class_type,
@@ -8989,9 +9033,9 @@ nested classes when their definition appears outside of the class template.
             goto next_declaration;
           }  /* if */
         }  /* if */
-
-        class_member_declaration(class_type, &class_state,
-                                 &skip_semicolon_check);
+        (void)class_member_declaration(class_type, &class_state,
+                                       /*is_template_member=*/FALSE,
+                                       &skip_semicolon_check);
         if (!skip_semicolon_check) {
           /* Check for and ignore the semicolon following the member
              declaration.  It's optional after the last declaration (that's

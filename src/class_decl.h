@@ -44,6 +44,8 @@ extern void check_for_conflicts_with_using_decls(
 
 extern void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp);
 
+extern a_symbol_ptr class_member_template_declaration(a_type_ptr  class_type);
+
 extern a_boolean scan_class_definition(
                                    a_type_ptr       class_type,
                                    a_scope_depth    effective_decl_level,
@@ -84,17 +86,6 @@ extern void decl_friend_class(a_type_ptr          class_type,
 
 extern a_symbol_ptr member_function_redecl_sym(a_symbol_ptr  sym,
                                                a_type_ptr    type);
-
-extern void decl_member_function_template(
-                                   a_symbol_locator     *locator,
-                                   a_type_ptr           class_type,
-                                   a_type_ptr           member_type,
-                                   a_func_info_block    *func_info,
-                                   a_scope_depth        effective_decl_level,
-                                   an_access_specifier  access,
-                                   a_decl_flag_set      dso_flags,
-                                   a_decl_modifier      decl_modifiers,
-                                   a_symbol_ptr         *symbol_ptr);
 
 extern a_derivation_step_ptr make_derivation_step(
                                             a_base_class       *base_class,
