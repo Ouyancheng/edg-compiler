@@ -208,8 +208,8 @@ new address for the area.
    area so that that address will not be the same as the start address of
    the area following it in memory. */
 #define fix_ptr(ptr)                                                  \
-{ /* Suppress the warning on use of the expired pointer value in Saber-C. \
-     Version 3.0 warning number. */                                   \
+{ /* Suppress the warning on use of the expired pointer value in CodeCenter. \
+     Version 3.1.1 warning number. */                                 \
   /*SUPPRESS 29*/                                                     \
   if (ptr_in_range(ptr, old_ptr, old_after_end_plus_1)) {             \
     ptr = ptr - old_ptr + new_ptr;                                    \
