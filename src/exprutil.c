@@ -3468,19 +3468,19 @@ to this value.
 
 
 static void promote_operand_for_imaginary_operation(
-                                              an_operand       *operand,
-                                              a_float_kind  new_fkind,
-                                              a_boolean        complex_domain)
+                                              an_operand   *operand,
+                                              a_float_kind new_fkind,
+                                              a_boolean    complex_domain)
 /*
 Promote the given operand to a floating-point type precision specified by
-fkind.  If complex_domain is TRUE, the operand should also be promoted to
+new_fkind.  If complex_domain is TRUE, the operand should also be promoted to
 the complex domain; otherwise, the domain of the operand (real or imaginary)
 should be preserved.
 */
 {
-  a_type_ptr  type = operand->type;
-  a_float_kind  fkind = is_floating_type(type) ? type->variant.float_kind :
-                                                 (a_float_kind)fk_last;
+  a_type_ptr   type = skip_typerefs(operand->type);
+  a_float_kind fkind = is_floating_type(type) ? type->variant.float_kind :
+                                                (a_float_kind)fk_last;
 
   check_assertion(type->kind != (a_type_kind)tk_complex);
   if (new_fkind != fkind || complex_domain) {
@@ -3649,10 +3649,11 @@ the IL operator (*op) implementing the given arithmetic operation.
       *result_type = error_type();
   }  /* switch */
   if (!is_error_type(*result_type)) {
-    promote_operand_for_imaginary_operation(
-     operand_1, fkind_result, (*result_type)->kind == (a_type_kind)tk_complex);
-    promote_operand_for_imaginary_operation(
-     operand_2, fkind_result, (*result_type)->kind == (a_type_kind)tk_complex);
+    a_boolean complex_result = is_complex_type(*result_type);
+    promote_operand_for_imaginary_operation(operand_1, fkind_result,
+                                            complex_result);
+    promote_operand_for_imaginary_operation(operand_2, fkind_result,
+                                            complex_result);
   } else {
     *op = (an_expr_operator_kind)eok_error;
   }  /* if */
