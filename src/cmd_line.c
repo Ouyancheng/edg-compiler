@@ -1734,6 +1734,10 @@ common_cfront_mode_settings:
     /* Reset the SVR4 C compatibility flag just in case it is set by
        default. */
     SVR4_C_mode = FALSE;
+    /* The default for --long_preserving_rules in C++ is FALSE. */
+    if (!option_kind_used[(int)optk_long_preserving_rules]) {
+      long_preserving_rules = FALSE;
+    }  /* if */
   }  /* if */
   if (strict_ansi_mode) {
     /* Strict ANSI mode is incompatible with K&R/pcc mode. */

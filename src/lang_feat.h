@@ -644,7 +644,8 @@ unsigned long, but K&R I says the result is long (unsigned long did not
 exist in K&R I).  This is the initial value of the variable
 long_preserving_rules, which is also controlled by the command-line
 options --[no_]long_preserving_rules.  This feature is independent of
-pcc mode.
+pcc mode.  Note that the default in C++ mode is FALSE regardless of the
+setting of this flag.
 */
 #ifndef DEFAULT_LONG_PRESERVING_RULES
 #define DEFAULT_LONG_PRESERVING_RULES FALSE
