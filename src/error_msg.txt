@@ -866,6 +866,7 @@ ec_useless_type_qualifier_on_return_type;;"type qualifier on return type is mean
 ec_type_qualifier_on_void_return_type;;"in a function definition a type qualifier on a \"void\" return type is not allowed"
 ec_static_data_member_not_allowed;;"static data member declaration is not allowed in this class"
 ec_invalid_declaration;;"template instantiation resulted in an invalid function declaration"
+ec_ellipsis_not_allowed;;"\"...\" is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
