@@ -76,8 +76,12 @@ Flags to be set when using the KAI inliner.
 #ifdef OPTIMIZED_VERSION
 
 /* Options for Sun optimized version. */
+#ifndef CHECKING
 #define CHECKING 1
+#endif /* ifndef CHECKING */
+#ifndef DEBUG
 #define DEBUG 0
+#endif /* ifndef DEBUG */
 
 #else /* !defined(OPTIMIZED_VERSION) */
 
