@@ -238,6 +238,10 @@ the file-scope IL entry at ptr.
 #define fs_orphan_pointer_of(ptr)                                     \
   (*(char **)((char *)(ptr) -                                         \
               SPACE_FOR_IL_ENTRY_PREFIX - SPACE_FOR_FS_ORPHAN_POINTER))
+#else /* !ORPHAN_PROCESSING_NEEDED */
+/* SPACE_FOR_FS_ORPHAN_POINTER is also used to compute the location of the
+   canonical entry pointer (even if no orphan pointers are allocated). */
+#define SPACE_FOR_FS_ORPHAN_POINTER 0
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
 /* Amount of space to allocate for the canonical IL entry pointer
@@ -249,6 +253,25 @@ the file-scope IL entry at ptr.
 #define SPACE_FOR_CANONICAL_IL_POINTER                                \
  ((((sizeof(char *)-1)/HOST_ALIGNMENT_REQUIRED)+1)*                   \
   HOST_ALIGNMENT_REQUIRED)
+
+/*
+Macro to allow reference to the canonical IL entry pointer that precedes
+the file-scope IL entry at ptr.
+*/
+#define canonical_entry_pointer_of(ptr)                               \
+  (*(char **)((char *)(ptr) -                                         \
+              SPACE_FOR_IL_ENTRY_PREFIX -                             \
+              SPACE_FOR_FS_ORPHAN_POINTER -                           \
+              SPACE_FOR_CANONICAL_IL_POINTER))
+
+/*
+Macro to retrieve the value of the canonical IL entry pointer that precedes
+the file-scope IL entry at ptr or NULL if there is no such pointer.
+*/
+#define canonical_entry_for(ptr)                                      \
+  ((il_entry_prefix_of(ptr).secondary_trans_unit &&                   \
+    il_entry_prefix_of(ptr).file_scope) ?                             \
+     canonical_entry_pointer_of(ptr) : NULL)
 
 /*
 Return TRUE if the IL entry pointed to by ptr is in the file scope
