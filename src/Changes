@@ -718,6 +718,7 @@ like a string literal).  A few non-standard constant-expressions are accepted
 [8/30/02] __PRETTY_FUNCTION__ expands to the decorated name of the function in
 which it appears.  [9/12/02] Emulation of the dependent base class lookup
 done by g++.  [9/16/02] Compound literals and designated initializers.
+[9/17/02] Predefined __GNUG__ macro.
 
 8/5/02   Final name mangling not done on some promoted local static
          variables

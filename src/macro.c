@@ -4567,6 +4567,15 @@ Enter symbols for the predefined macros of GNU C and C++.
                            "__GNUC__",
                            /*cannot_be_redefined=*/FALSE,
                            /*ref_suppresses_pch_file=*/FALSE);
+  if (gpp_mode) {
+    /* In GNU C++ mode (but not in GNU C mode), __GNUG__ is identical to
+       __GNUC__. */
+    (void)enter_predef_macro(conv_unsigned_long_to_str
+                                       ((unsigned long)GCC_VERSION),
+                             "__GNUG__",
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
   (void)enter_predef_macro(conv_unsigned_long_to_str
                                      ((unsigned long)GCC_MINOR_VERSION),
                            "__GNUC_MINOR__",
