@@ -11140,7 +11140,8 @@ continue_with_declaration:
            error.  This is done rather than flagging the error here because
            the subroutine can scan over the initializer expression neatly. */
 #if GNU_EXTENSIONS_ALLOWED
-        if (gcc_mode && local_storage_class == (a_storage_class)sc_typedef) {
+        if (gcc_mode && !has_explicit_type_specifier &&
+            local_storage_class == (a_storage_class)sc_typedef) {
           typedef_initializer(symbol_ptr);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           decl_pos_block.var_init_range.end = curr_construct_end_position;
