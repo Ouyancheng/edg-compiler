@@ -9949,7 +9949,6 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
            copies the value to an undesignated location. */
         throw_type = operand_type;
         prep_elision_initializer_operand(&operand, operand_type,
-                                         /*initializing_return_value=*/FALSE,
                                          /*fill_in_dtor=*/FALSE,
                                          ec_bad_initializer_type, &dip);
         /* Determine the destructor to be called.  This is done as
@@ -11655,7 +11654,6 @@ the appropriate dynamic initialization entry and return NULL.
     check_return_value_optimization(&result);
     /* Build a dynamic initialization entry for the return statement. */
     prep_elision_initializer_operand(&result, required_type,
-                                     /*initializing_return_value=*/TRUE,
                                      /*fill_in_dtor=*/FALSE, err_code, dip);
     wrap_up_dynamic_init_full_expression(*dip);
     /* Fix up destructor references in the overall expression. */
@@ -11673,17 +11671,13 @@ the appropriate dynamic initialization entry and return NULL.
       simplify_void_operand(&result);
       expression = make_node_from_void_expression_operand(&result);
     } else {
-      a_boolean is_copy_initialization = TRUE;
-      /* Microsoft VC++ treats return initialization as
-         direct-initialization. */
-      if (microsoft_mode) is_copy_initialization = FALSE;
       /* Convert to the required type. */
       prep_initializer_operand(&result, required_type,
                                (a_conv_descr_ptr)NULL,
                                /*initializing_return_value=*/TRUE,
                                /*initializing_variable=*/FALSE,
                                /*static_lifetime=*/FALSE,
-                               is_copy_initialization,
+                               /*is_copy_initialization=*/TRUE,
                                err_code);
       expression = make_node_from_operand(&result);
     }  /* if */
@@ -12338,9 +12332,7 @@ will be indicated in the dynamic initialization.
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Find out whether or not the conversion is possible, and
      build a dynamic initialization entry to describe the initialization. */
-  prep_elision_initializer_operand(&result, required_type, 
-                                   /*initializing_return_value=*/FALSE,
-                                   fill_in_dtor,
+  prep_elision_initializer_operand(&result, required_type, fill_in_dtor,
                                    ec_bad_initializer_type, dip);
   wrap_up_dynamic_init_full_expression(*dip);
   /* *dip == NULL means there was an error. */
