@@ -845,6 +845,12 @@ layout block used to track the layout of the current class.
       }  /* if */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
       bcp->offset = set_offset_and_alignment(lob, size, alignment);
+#if DEBUG
+      if (debug_level >= 4) {
+        fputs("updated offset for ", f_debug);
+        db_base_class(bcp, /*show_offset=*/TRUE);
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */
   }  /* for */
   db_exit();
@@ -988,6 +994,7 @@ bcp.
   a_targ_size_t      size;
   a_targ_alignment   alignment;
 
+  db_enter(4, "pointer_offset_for_virtual_base_class");
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
 #if CHECKING
   if (bcp->pointer_offset_is_set) {
@@ -1004,6 +1011,13 @@ bcp.
 ??=error pointer_offset_for_virtual_base_class: different sized pointers
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
   bcp->pointer_offset = set_offset_and_alignment(lob, size, alignment);
+#if DEBUG
+  if (debug_level >= 4) {
+    fputs("updated pointer offset for ", f_debug);
+    db_base_class(bcp, /*show_offset=*/TRUE);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
 }  /* pointer_offset_for_virtual_base_class */
 
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
@@ -1418,7 +1432,9 @@ static void set_offsets_for_corresponding_virtual_base_classes(
   db_enter(4, "set_offsets_for_corresponding_virtual_base_classes");
   for (; base_class != NULL; base_class = base_class->next) {
     if (base_class->is_virtual && base_class->direct &&
+#if 0
         first_is_direct(base_class) &&
+#endif /* if 0 */
         base_class->data_section_base_class == NULL) {
       if (!use_decl_order) {
         set_offsets_for_corresponding_virtual_base_classes(
@@ -1440,6 +1456,12 @@ static void set_offsets_for_corresponding_virtual_base_classes(
 #endif /* CHECKING */
         bcp->offset = set_offset_and_alignment(lob, bcp->type->size,
                                                bcp->type->alignment);
+#if DEBUG
+        if (debug_level >= 4) {
+          fputs("updated offset for ", f_debug);
+          db_base_class(bcp, /*show_offset=*/TRUE);
+        }  /* if */
+#endif /* DEBUG */
         fixup_embedded_virtual_base_classes(bcp, lob->class_type);
       }  /* if */
       if (!use_decl_order) break;
@@ -1481,8 +1503,11 @@ base class of class_type, and allocate space for the latter.
       }  /* if */
     }  /* for */
     for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
+#if 0
       if (bcp->direct && bcp->is_virtual &&
+#if 0
           first_is_direct(bcp) &&
+#endif /* if 0 */
           bcp->type->variant.class_struct_union.any_virtual_base_classes &&
           bcp->data_section_base_class == NULL) {
         /* Record the current offset in the data_section_offset of the
@@ -1491,7 +1516,38 @@ base class of class_type, and allocate space for the latter.
            under certain circumstances. */
         bcp->offset = set_offset_and_alignment(lob, bcp->type->size,
                                                bcp->type->alignment);
+#if DEBUG
+        if (debug_level >= 4) {
+          fputs("updated offset for ", f_debug);
+          db_base_class(bcp, /*show_offset=*/TRUE);
+        }  /* if */
+#endif /* DEBUG */
         fixup_embedded_virtual_base_classes(bcp, lob->class_type);
+      }  /* if */
+#endif /* if 0 */
+      if (bcp->direct) {
+        if (!bcp->is_virtual) {
+          if (bcp->type->variant.class_struct_union.any_virtual_base_classes) {
+            break;
+          }  /* if */
+        } else if (first_is_direct(bcp) &&
+                   bcp->type->
+                        variant.class_struct_union.any_virtual_base_classes &&
+                   bcp->data_section_base_class == NULL) {
+          /* Record the current offset in the data_section_offset of the
+             virtual base class entry.  This allows for direct access of
+             its fields (rather than through a pointer) as an optimization
+             under certain circumstances. */
+          bcp->offset = set_offset_and_alignment(lob, bcp->type->size,
+                                                 bcp->type->alignment);
+#if DEBUG
+          if (debug_level >= 4) {
+            fputs("updated offset for ", f_debug);
+            db_base_class(bcp, /*show_offset=*/TRUE);
+          }  /* if */
+#endif /* DEBUG */
+          fixup_embedded_virtual_base_classes(bcp, lob->class_type);
+        }  /* if */
       }  /* if */
     }  /* for */
   } else {
@@ -1601,6 +1657,12 @@ Reserve space at the end of the class object for virtual base classes.
           alignment = bcp->type->variant.class_struct_union.extra_info->
                                         alignment_without_virtual_base_classes;
           bcp->offset = set_offset_and_alignment(lob, size, alignment);
+#if DEBUG
+          if (debug_level >= 4) {
+            fputs("updated offset for ", f_debug);
+            db_base_class(bcp, /*show_offset=*/TRUE);
+          }  /* if */
+#endif /* DEBUG */
         }  /* if */
       }  /* for */
     }  /* if */
