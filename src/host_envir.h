@@ -452,6 +452,19 @@ DO_IL_LOWERING or IL_WALK_NEEDED is TRUE.
 #endif /* DO_IL_LOWERING || IL_WALK_NEEDED */
 
 /*
+Flag that is TRUE if name mangling is needed.  Automatically TRUE if
+IL lowering is used or if automatic template instantiation is selected.
+*/
+#if DO_IL_LOWERING || AUTOMATIC_TEMPLATE_INSTANTIATION
+#undef NEED_NAME_MANGLING
+#define NEED_NAME_MANGLING TRUE  /* Do not change this. */
+#else /* !DO_IL_LOWERING ... */
+#ifndef NEED_NAME_MANGLING
+#define NEED_NAME_MANGLING FALSE
+#endif /* ifndef NEED_NAME_MANGLING */
+#endif /* DO_IL_LOWERING ... */
+
+/*
 Flag that is TRUE to specify that source files should be read in
 binary mode under MS-DOS.  In this mode, carriage return and control-Z
 are handled by the front end instead of the host C runtime library.
