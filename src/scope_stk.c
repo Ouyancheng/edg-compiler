@@ -4519,6 +4519,7 @@ e.g., because it's externally defined.
 	check_assertion(tip != NULL);
         mip = tip->master_instance;
 	if (tip->explicit_instantiation ||
+            instantiation_mode == tim_all ||
 	    (mip != NULL &&
 	     (mip->automatically_instantiated && !mip->add_to_request_file))) {
 	  /* The instance exists as a result of an explicit instantiation
@@ -4526,7 +4527,8 @@ e.g., because it's externally defined.
 	     the automatic instantiation mechanism.  The automatically
              instantiated flag will be set for adopted entities.  The test
              of add_to_request_file is used so that adopted entities will
-             not necessarily be considered to be needed. */
+             not necessarily be considered to be needed.  In -tall mode,
+             instantiations should always be considered needed. */
 	} else {
 	  is_needed = FALSE;
 	}  /* if */
