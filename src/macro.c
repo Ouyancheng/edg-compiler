@@ -1272,7 +1272,7 @@ that's an easy look-up in arg_values.  After that, a linear search is needed.
 }  /* get_arg_value */ 
 
 
-static free_macro_arg_entries(a_macro_arg_ptr prev_end_of_macro_arg_list)
+static void free_macro_arg_entries(a_macro_arg_ptr prev_end_of_macro_arg_list)
 /*
 Free the macro arg entries following "prev_end_of_macro_list" in the
 global list of macro args.  Note that it must be possible to call this
