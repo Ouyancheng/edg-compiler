@@ -5125,17 +5125,33 @@ functions could still apply).
           /* Find any non-member function for the operator. */
           if (!must_be_member_function) {
             nonmember_functions_symbol = opname_function_symbol(kind);
-            /* There are non-member functions.  See how well they match up. */
             if (nonmember_functions_symbol != NULL) {
-              try_overloaded_function_match(nonmember_functions_symbol,
-                                            arg_operand_list,
-                                            /*have_selector=*/FALSE,
-                                            (an_operand *)NULL,
-                                           /*selector_is_object_pointer=*/TRUE,
-                                            /*user_conversion_case=*/FALSE,
-                                            /*try_user_conversions=*/TRUE,
-                                            &candidate_functions,
+              /* There are non-member functions.  See how well they match
+                 up. */
+              if (is_ambiguous_by_inheritance(nonmember_functions_symbol)) {
+                /* The symbol is ambiguous, and as such is an arbitrary
+                   representative of a set of functions that collided due
+                   to namespace inheritance.  There's no point in seeing
+                   if the function indicated matches up, since there might
+                   be another function that isn't represented that would
+                   match better.  This kind of ambiguity may not be possible
+                   now (July 1995), but this is defensive code against
+                   future language changes. */
+                pos_sy_error(ec_ambiguous_name, operator_position,
+                             nonmember_functions_symbol);
+                ambiguous = TRUE;
+              } else {
+                try_overloaded_function_match(
+                                         nonmember_functions_symbol,
+                                         arg_operand_list,
+                                         /*have_selector=*/FALSE,
+                                         (an_operand *)NULL,
+                                         /*selector_is_object_pointer=*/TRUE,
+                                         /*user_conversion_case=*/FALSE,
+                                         /*try_user_conversions=*/TRUE,
+                                         &candidate_functions,
                                          &matched_except_for_missing_selector);
+              }  /* if */
             }  /* if */
           }  /* if */
           /* See if the built-in meaning of the operator can apply if we
