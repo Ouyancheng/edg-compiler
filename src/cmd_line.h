@@ -1494,6 +1494,17 @@ EXTERN a_host_large_integer
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+EXTERN a_boolean
+		gnu_visibility_attribute_enabled
+#if VAR_INITIALIZERS
+			= DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ENABLED
+#endif /* VAR_INITIALIZERS */
+			                                          ;
+			/* TRUE if the GNU "visibility" attribute should be
+			   accepted. */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

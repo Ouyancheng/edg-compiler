@@ -657,7 +657,7 @@ function returns the address of the last attribute.
       attribute_kind = (an_attribute_kind)i;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
       if (attribute_kind == (an_attribute_kind)ak_visibility &&
-          !gnu_visibility_attribute_allowed) {
+          !gnu_visibility_attribute_enabled) {
         attribute_kind = (an_attribute_kind)ak_last;
       }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
