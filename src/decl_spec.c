@@ -2759,7 +2759,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
   /* Now that we have a type, we can apply any attributes attached to it. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
+  if (p_ms_attributes != NULL && *p_ms_attributes != NULL && !is_local_class) {
     an_ms_attribute_target  attr_target =
                       is_interface                          ? MSAT_INTERFACE :
                       (type_kind == (a_type_kind)tk_struct) ? MSAT_STRUCT :
@@ -3599,7 +3599,9 @@ describes Microsoft attributes preceding the enum specifier (if any).
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
+    if (p_ms_attributes != NULL && *p_ms_attributes != NULL &&
+        depth_innermost_function_scope == NO_SCOPE_NUMBER &&
+        !inside_local_class) {
       apply_microsoft_attributes(p_ms_attributes, (char*)enum_type,
                                  (an_il_entry_kind)iek_type, MSAT_ENUM);
     }  /* if */

@@ -6106,7 +6106,8 @@ skip_overloading:;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
+  if (p_ms_attributes != NULL && *p_ms_attributes != NULL &&
+      !idlb.is_block_extern_decl) {
     apply_microsoft_attributes(p_ms_attributes, (char*)routine_ptr,
                                (an_il_entry_kind)iek_routine, MSAT_ROUTINE);
   }  /* if */

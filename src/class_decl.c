@@ -11824,11 +11824,14 @@ passed via template_decl.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ms_attributes != NULL &&
-      (is_member_template || is_member_template_rescan)) {
-    /* Microsoft attributes cannot be specified on templates. */
-    dispose_of_unapplied_attributes(&ms_attributes,
-                                    is_member_template ? ec_ms_attr_not_allowed
-                                                       : ec_no_error);
+      (is_member_template || is_member_template_rescan ||
+       class_type->source_corresp.is_local_to_function)) {
+    /* Microsoft attributes cannot be specified on templates, nor on members
+       of local class types.  When rescanning member templates, there is no
+       need to repeat the diagnostic.*/
+    an_error_code  ec = is_member_template_rescan ? ec_no_error
+                                                  : ec_ms_attr_not_allowed;
+    dispose_of_unapplied_attributes(&ms_attributes, ec);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   decl_info.dso_flags = dso_flags;
