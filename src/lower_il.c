@@ -8384,16 +8384,6 @@ Do IL lowering of the indicated statement and everything under it.
 }  /* lower_statement */
 
 
-/*
-Clear the parent information in the indicated entity to remove the entity
-from any class or namespace of which it might be a member.
-*/
-#define clear_parent(entity) \
-{ (entity)->source_corresp.is_class_member = FALSE; \
-  (entity)->source_corresp.parent.namespace_ptr = NULL; \
-}  /* clear_parent */
-
-
 static void promote_constants(a_scope_ptr scope)
 /*
 Promote the constants on the constants list of the indicated scope
@@ -8425,7 +8415,8 @@ Promote the constants on the constants list of the indicated scope
       (void)fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
-    clear_parent(constant);
+    /* Mangle the name. */
+    mangle_member_constant_name(constant);
     constant->source_corresp.is_local_to_function = FALSE;
     add_to_constants_list(constant, /*at_file_scope=*/TRUE);
   }  /* for */
@@ -8465,7 +8456,8 @@ Promote the static variables on the variables list of the indicated scope
       (void)fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
-    clear_parent(variable);
+    /* Mangle the name. */
+    mangle_member_variable_name(variable);
     variable->source_corresp.is_local_to_function = FALSE;
     add_to_variables_list(variable, DEPTH_OF_FILE_SCOPE);
   }  /* for */
@@ -8497,9 +8489,8 @@ or namespace scope) into the file scope.
       (void)fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
-    /* clear_parent is not called here because we want to keep the class
-       membership in constructors and destructors so we can figure it out
-       easily.  See clear_parent_info_on_file_scope_routines. */
+    /* Mangle the name. */
+    mangle_function_name(routine);
     routine->source_corresp.is_local_to_function = FALSE;
     add_to_routines_list(routine, /*at_file_or_namespace_scope=*/TRUE);
   }  /* for */
@@ -8569,27 +8560,6 @@ and set the next pointer in the last entry on the list to NULL.
 }  /* prepare_to_remove_class_along_with_type_as_subobject */
 
 
-static void clear_is_local_to_function_flag_in_type(a_type_ptr type)
-/*
-The indicated type is (part of something) being promoted out of a function.
-Clear its is_local_to_function flag and the flags of any subtypes.
-*/
-{
-  type->source_corresp.is_local_to_function = FALSE;
-  /* If the type is a class, process its type list. */
-  if (is_immediate_class_type(type)) {
-    a_scope_ptr scope =
-                      type->variant.class_struct_union.extra_info->assoc_scope;
-    if (scope != NULL) {
-      a_type_ptr subtype;
-      for (subtype = scope->types; subtype != NULL; subtype = subtype->next) {
-        clear_is_local_to_function_flag_in_type(subtype);
-      }  /* for */
-    }  /* if */
-  }  /* if */
-}  /* clear_is_local_to_function_flag_in_type */
-
-
 static void promote_type_list(a_type_ptr  type,
                               a_scope_ptr promotion_scope,
                               a_type_ptr  *insert_pointer)
@@ -8599,8 +8569,7 @@ Promote the types on the indicated types list into the scope promotion_scope.
 the insertion.
 */
 {
-  a_type_ptr   next_type;
-  a_scope_kind kind;
+  a_type_ptr next_type;
 
   for (; type != NULL; type = next_type) {
     next_type = type->next;
@@ -8686,33 +8655,6 @@ the insertion.
         (*insert_pointer)->next = type;
       }  /* if */
       *insert_pointer = type;
-      /* Adjust the parent information to reflect the new position of this
-         type. */
-      kind = promotion_scope->kind;
-      if (kind == (a_scope_kind)sck_class_struct_union) {
-        /* Promotion is into a class scope. */
-        set_class_membership((a_symbol_ptr)NULL, &type->source_corresp,
-                             promotion_scope->variant.assoc_type);
-      } else if (kind == (a_scope_kind)sck_namespace) {
-        /* Promotion is into a namespace scope. */
-        set_namespace_membership((a_symbol_ptr)NULL, &type->source_corresp,
-                                 promotion_scope->variant.assoc_namespace);
-      } else {
-        /* Promotion is into some other kind of scope. */
-        clear_parent(type);
-      }  /* if */
-      if (type->source_corresp.is_local_to_function) {
-        /* The is_local_to_function flag is set.  See if we have to clear
-           it.  (We never promote into a function from outside, so we never
-           have to set it.) */
-        if (kind == (a_scope_kind)sck_function ||
-            kind == (a_scope_kind)sck_block ||
-            kind == (a_scope_kind)sck_func_prototype) {
-          /* Still inside a function, so leave is_local_to_function set. */
-        } else {
-          clear_is_local_to_function_flag_in_type(type);
-        }  /* if */
-      }  /* if */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
       if (is_immediate_class_type(type)) {
         a_class_type_supplement_ptr ctsp =
@@ -9133,8 +9075,8 @@ scope) along with the class members.
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
       mangle_promoted_entity_name(&type->source_corresp, routine, scope);
-      /* Clear the is_local_function flag in the type and any subtypes. */
-      clear_is_local_to_function_flag_in_type(type);
+      /* Do not clear the is_local_to_function flag in the type yet, because
+         it's needed in generating a proper mangled name for the class. */
       if (routine_class == NULL) {
         /* Not promoting from a member function: just add to the file-scope
            types list. */
@@ -9164,6 +9106,7 @@ scope) along with the class members.
              enum_con = enum_con->next) {
           mangle_promoted_entity_name(&enum_con->source_corresp, routine,
                                       scope);
+          enum_con->source_corresp.is_local_to_function = FALSE;
         }  /* for */
       }  /* if */
     }  /* for */
@@ -9370,7 +9313,6 @@ have been promoted out of those classes.
         }  /* if */
         prev_type = temp_type;
         scope->types = temp_type_next;
-        clear_parent(temp_type);
         /* Stop on reaching the type pointed to by the placeholder. */
         if (temp_type == namespace_type) break;
       }  /* for */
@@ -9752,6 +9694,48 @@ information is the easiest way to know the associated class for those.
 }  /* clear_parent_info_on_file_scope_routines */
 
 
+static void clear_parent_info_on_type_list(a_type_ptr type_list,
+                                           a_boolean  function_local)
+/*
+Clear class/namespace membership information on the types in the indicated
+list.  If function_local is FALSE, also clear the is_local_to_function flag.
+*/
+{
+  a_type_ptr type;
+
+  for (type = type_list; type != NULL; type = type->next) {
+    clear_parent(type);
+    if (!function_local) type->source_corresp.is_local_to_function = FALSE;
+  }  /* for */
+}  /* clear_parent_info_on_type_list */
+
+
+static void clear_parent_info_on_types(void)
+/*
+Clear class/namespace membership information and the is_local_to_function
+flag (where appropriate) on all types (including orphans from function
+and block scopes).  This is done late in file scope lowering so that the
+information is around for the use of IL lowering, e.g., for promotion
+of types out of namespaces via placeholders.
+*/
+{
+  a_scope_orphaned_list_header_ptr solhp;
+
+  /* Note that this routine is called at the end of lowering a memory
+     region, so the IL is flattened here; there are no nested classes
+     and no namespaces. */
+  clear_parent_info_on_type_list(il_header.primary_scope->types,
+                                 /*function_local=*/FALSE);
+  /* Process local types by visiting the types on orphan lists. */
+  for (solhp = il_header.scope_orphaned_list_headers;
+       solhp != NULL;
+       solhp = solhp->next) {
+    clear_parent_info_on_type_list(solhp->orphaned_types,
+                                   /*function_local=*/TRUE);
+  }  /* for */
+}  /* clear_parent_info_on_types */
+
+
 #if !(NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR)
 /*ARGSUSED*/
 #endif /* !(NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR) */
@@ -9880,6 +9864,8 @@ C++ to C, so that a C back end can handle it without change.
       /* Clear class membership information on routines now that it isn't
          needed anymore for IL lowering purposes. */
       clear_parent_info_on_file_scope_routines();
+      /* Likewise for types. */
+      clear_parent_info_on_types();
     }  /* if */
     /* Add definitions for any typeinfo variables generated for classes.
        This must be done late so that all the required typeinfo variables

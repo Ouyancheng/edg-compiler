@@ -50,6 +50,12 @@ extern void mangle_promoted_entity_name(a_source_correspondence *scp,
                                         a_scope_ptr             scope);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 
+extern void mangle_member_constant_name(a_constant_ptr con);
+
+extern void mangle_function_name(a_routine_ptr routine);
+
+extern void mangle_member_variable_name(a_variable_ptr variable);
+
 extern void do_all_name_mangling(void);
 
 extern void name_lower_one_time_init(void);
