@@ -2173,7 +2173,9 @@ static void dump_ampersand(a_type_ptr type)
 /*
 Output an ampersand to indicate taking the address of something.  However,
 if the something (which has type "type") is an array or function, suppress
-the ampersand since C will assume one.
+the ampersand since C will assume one.  This routine assumes the caller will
+be putting parentheses around the current code, so that the ampersand will
+bind correctly to the entity whose address is taken.
 */
 {
   if (is_function_type(type)) {
@@ -2182,8 +2184,25 @@ the ampersand since C will assume one.
       write_tok_ch('&');
       end_comment();
     }  /* if */
-#if !C_GEN_BE_GENERATES_ANSI_C
   } else if (is_array_type(type)) {
+#if C_GEN_BE_GENERATES_ANSI_C
+    /* Generating ANSI C. */
+    /* For some cases where const qualifiers were removed on variables
+       because of initialization, the address of the variable is less-qualified
+       than it should be, and in a way that cannot be bridged by an implicit
+       conversion in C.  For example:
+         void f() {
+           int i; i = 1;
+           const char a[4] = "abc";
+           const char (&r)[4] = a;
+         }
+       Add a cast to the proper type for that case. */
+    a_type_ptr elem_type = underlying_array_element_type(type);
+    if (get_top_level_type_qualifiers(elem_type) & TQ_CONST) {
+      dump_cast_to_pointer_to(type);
+    }  /* if */
+    write_tok_ch('&');
+#else /* !C_GEN_BE_GENERATES_ANSI_C */
     /* pcc C compilers don't like ampersands in front of arrays.  However,
        the address we want here must have type "pointer-to-array", and
        the implicit decay to pointer will give "pointer-to-array-element",
@@ -2194,7 +2213,7 @@ the ampersand since C will assume one.
       write_tok_ch('&');
       end_comment();
     }  /* if */
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
   } else {
     write_tok_ch('&');
   }  /* if */
@@ -2579,6 +2598,9 @@ of a routine.
     need_parens = TRUE;
     dump_cast(expr->type);
   }  /* if */
+  /* We're counting on the fact that dump_ampersand will not put out anything
+     except an annotation comment.  If that is not the case, parentheses might
+     be required around "&function". */
   dump_ampersand(rout_type);
   dump_routine_name(rout);
   if (need_parens) write_tok_ch(')');
