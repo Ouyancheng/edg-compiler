@@ -696,31 +696,35 @@ is an empty class.
         if (kind == (a_type_kind)tk_error) {
           /* No action required. */
         } else if (kind == (a_type_kind)tk_array) {
-          /* We have been initializing the elements of an array, but we
-             ran out of initializers before reaching the end of the array.
-             If the array element is const qualified or is a class type
-             with const or ref members, the initialization is considered
-             incomplete. */
-          a_type_ptr                     tp;
-          a_class_symbol_supplement_ptr  cssp = NULL;
+          if (is_incomplete_array) {
+            /* No action required. */
+          } else {
+            /* We have been initializing the elements of an array, but we
+               ran out of initializers before reaching the end of the array.
+               If the array element is const qualified or is a class type
+               with const or ref members, the initialization is considered
+               incomplete. */
+            a_type_ptr                     tp;
+            a_class_symbol_supplement_ptr  cssp = NULL;
 
-          tp = underlying_array_element_type(local_type);
-          if (C_dialect == C_dialect_cplusplus &&
-              is_class_struct_union_type(tp)) {
-            cssp = symbol_supplement_for_class(tp);
-          }  /* if */
-          if (cssp != NULL && cssp->constructor != NULL) {
-            /* The initialization of the rest of the array elements will use
-               a default constructor, if one exists. */
-          } else if (is_const_qualified_type(tp)) {
-            /* Element type is const qualified. */
-            *incomplete_init = TRUE;
-          } else if (is_class_struct_union_type(tp)) {
-            tp = skip_typerefs(tp);
-            /* Element type is a class.  Check for const or ref members. */
-            if (tp->variant.class_struct_union.any_const_member ||
-                (cssp != NULL && cssp->any_ref_member)) {
+            tp = underlying_array_element_type(local_type);
+            if (C_dialect == C_dialect_cplusplus &&
+                is_class_struct_union_type(tp)) {
+              cssp = symbol_supplement_for_class(tp);
+            }  /* if */
+            if (cssp != NULL && cssp->constructor != NULL) {
+              /* The initialization of the rest of the array elements will use
+                 a default constructor, if one exists. */
+            } else if (is_const_qualified_type(tp)) {
+              /* Element type is const qualified. */
               *incomplete_init = TRUE;
+            } else if (is_class_struct_union_type(tp)) {
+              tp = skip_typerefs(tp);
+              /* Element type is a class.  Check for const or ref members. */
+              if (tp->variant.class_struct_union.any_const_member ||
+                  (cssp != NULL && cssp->any_ref_member)) {
+                *incomplete_init = TRUE;
+              }  /* if */
             }  /* if */
           }  /* if */
         } else if (kind == (a_type_kind)tk_union) {
