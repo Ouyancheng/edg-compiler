@@ -121,16 +121,16 @@ Convert a string to a long double.
   (void)sscanf(str, "%Lf", &temp);
   /* Check for overflow or underflow by converting the number back to a
      string. */
-  (void)sprintf(buf, "%.40Le", temp);
-  ptr = buf;
-  if (*ptr == '-') ptr++;
+  (void)sprintf(buf, "%.*Le", LDBL_DIG, temp);
   if (temp == 0.0L) {
     a_boolean	nonzero = FALSE;
+    ptr = str;
+    if (*ptr == '-') ptr++;
     /* The result value is zero, make sure the input string was all zeros. */
     for (;;) {
       char	ch = *ptr++;
       if (ch == '\0') break;
-      if (!isdigit((unsigned char)ch)) break;
+      if (!isdigit((unsigned char)ch) && ch != '.') break;
       if (ch != '0') {
         nonzero = TRUE;
         break;
@@ -140,6 +140,8 @@ Convert a string to a long double.
   } else {
     /* If the result string is not numeric, assume it is something like
        "Infinity". */
+    ptr = buf;
+    if (*ptr == '-') ptr++;
     err = !isdigit((unsigned char)*ptr);
   }  /* if */
   /* Set errno to indicate an error. */
@@ -169,10 +171,10 @@ conversion can be done, return the result in "result".
   /* FLT_MAX is available, so we can use it to test for overflow.  We do
      this before converting to float in case an overflow on such a
      conversion would cause a float exception. */
-  static a_boolean init_done = FALSE;
-  static double    double_flt_max;
-  static float     float_flt_max;
-  /* Initialize double_flt_max to FLT_MAX converted as a double.  This
+  static a_boolean		init_done = FALSE;
+  static a_host_fp_value	host_fp_flt_max;
+  static float			float_flt_max;
+  /* Initialize host_fp_flt_max to FLT_MAX converted as a_host_fp_value.  This
      might be slightly larger than FLT_MAX evaluated as a float (because
      of greater precision), but it's what the conversion of the actual
      FLT_MAX will yield, so it's the right value to use for the overflow
@@ -182,14 +184,18 @@ conversion can be done, return the result in "result".
     /* Macros to turn FLT_MAX into a string: */
 #define str2_flt_max(x) #x
 #define str1_flt_max(x) str2_flt_max(x)
-    double_flt_max = strtod_interface(str1_flt_max(FLT_MAX));
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+    host_fp_flt_max = str_to_long_double(str1_flt_max(FLT_MAX));
+#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+    host_fp_flt_max = strtod_interface(str1_flt_max(FLT_MAX));
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 #undef str2_flt_max
 #undef str1_flt_max
     check_assertion_str2(errno == 0, "conv_host_fp_to_float:",
                          "error on conversion of FLT_MAX");
-    float_flt_max = (float)double_flt_max;
+    float_flt_max = (float)host_fp_flt_max;
   }  /* if */
-  if ((temp >= 0.0) ? temp > double_flt_max : temp < -double_flt_max) {
+  if ((temp >= 0.0) ? temp > host_fp_flt_max : temp < -host_fp_flt_max) {
     float float_temp = (float)temp;
     if ((temp >= 0.0) ? (float_temp == float_flt_max) :    /*lint !e777*/
                         (float_temp == -float_flt_max)) {  /*lint !e777*/
@@ -250,8 +256,8 @@ static void conv_host_fp_to_double(a_host_fp_value	temp,
 				   a_boolean		*err,
 		 		   double		*result)
 /*
-Convert "temp" from a_host_fp_value (double or long double) to double.
-Set "err" if an overload would result from the conversion.  If the
+Convert "temp" from a_host_fp_value (which is long double in this case) to
+double.  Set "err" if an overload would result from the conversion.  If the
 conversion can be done, return the result in "result".
 */
 {
@@ -267,10 +273,10 @@ conversion can be done, return the result in "result".
   /* DBL_MAX is available, so we can use it to test for overflow.  We do
      this before converting to double in case an overflow on such a
      conversion would cause a float exception. */
-  static a_boolean	init_done = FALSE;
-  static long double	long_double_dbl_max;
-  static double		double_dbl_max;
-  /* Initialize long_double_dbl_max to DBL_MAX converted as a long double.
+  static a_boolean		init_done = FALSE;
+  static a_host_fp_value	host_fp_dbl_max;
+  static double			double_dbl_max;
+  /* Initialize host_fp_dbl_max to DBL_MAX converted as a_host_fp_value.
      This might be slightly larger than DBL_MAX evaluated as a double (because
      of greater precision), but it's what the conversion of the actual
      DBL_MAX will yield, so it's the right value to use for the overflow
@@ -280,15 +286,15 @@ conversion can be done, return the result in "result".
     /* Macros to turn DBL_MAX into a string: */
 #define str2_dbl_max(x) #x
 #define str1_dbl_max(x) str2_dbl_max(x)
-    long_double_dbl_max = str_to_long_double(str1_dbl_max(DBL_MAX));
+    host_fp_dbl_max = str_to_long_double(str1_dbl_max(DBL_MAX));
 #undef str2_dbl_max
 #undef str1_dbl_max
     check_assertion_str2(errno == 0, "conv_host_fp_to_double:",
                          "error on conversion of DBL_MAX");
-    double_dbl_max = (double)long_double_dbl_max;
+    double_dbl_max = (double)host_fp_dbl_max;
   }  /* if */
-  if ((temp >= 0.0) ? temp > long_double_dbl_max
-                    : temp < -long_double_dbl_max) {
+  if ((temp >= 0.0) ? temp > host_fp_dbl_max
+                    : temp < -host_fp_dbl_max) {
     double double_temp = (double)temp;
     if ((temp >= 0.0) ? (double_temp == double_dbl_max) :    /*lint !e777*/
                         (double_temp == -double_dbl_max)) {  /*lint !e777*/
@@ -516,7 +522,7 @@ variable, and return a pointer to that null-terminated string.
   } else if (kind == (a_float_kind)fk_double) {
     (void)sprintf(str, "%.18Le", temp);
   } else {
-    (void)sprintf(str, "%.40Le", temp);
+    (void)sprintf(str, "%.*Le", LDBL_DIG, temp);
   }  /* if */
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   if (kind == (a_float_kind)fk_float) {
@@ -577,7 +583,7 @@ Convert float_value to a host large integer value in int_value.  Return
   *err = FALSE;
   *depends_on_rounding_mode = FALSE;
   temp = fetch_host_fp_value(kind, float_value);
-  if (temp > (a_host_fp_value)(MAX_HOST_LARGE_INTEGER) ||
+  if (temp > (a_host_fp_value)MAX_HOST_LARGE_INTEGER ||
       temp < (a_host_fp_value)MIN_HOST_LARGE_INTEGER) {
     /* Floating value is too big or too small. */
     *err = TRUE;
@@ -606,7 +612,7 @@ rounding mode, *depends_on_rounding_mode is returned TRUE
   *err = FALSE;
   *depends_on_rounding_mode = FALSE;
   temp = fetch_host_fp_value(kind, float_value);
-  if (temp > (a_host_fp_value)(MAX_HOST_LARGE_UNSIGNED) ||
+  if (temp > (a_host_fp_value)MAX_HOST_LARGE_UNSIGNED ||
       temp < (a_host_fp_value)0) {
     /* Floating value is too big or too small. */
     *err = TRUE;
@@ -616,78 +622,7 @@ rounding mode, *depends_on_rounding_mode is returned TRUE
 }  /* fp_to_host_large_unsigned */
 
 #endif /* ifdef CFE */
-#ifdef FFE
 
-a_byte fp_byte(an_internal_float_value *float_value,
-               a_targ_size_t           byte_num)
-/*
-Extract and return the byte_num-th byte of the floating point value.
-The 0th byte is the one at the lowest memory address.
-*/
-{
-  a_byte *p = (a_byte *)float_value;
-
-  return p[byte_num];
-}  /* fp_byte */
-
-#endif /* ifdef FFE */
-#ifdef FFE
-
-void fp_bytes_to_float(a_float_kind            float_kind,
-                       a_byte                  *bytes,
-                       a_targ_size_t           nbytes,
-                       an_internal_float_value *float_value,
-                       a_boolean               *err)
-/*
-Convert the byte-string beginning at "bytes", which has length "nbytes",
-into a floating-point number of kind "float_kind" in *float_value.
-Return *err TRUE if there is some error.  The bytes in the string
-are in order from most significant to least significant.  There will
-never be more bytes than will fit in the floating-point value, but
-there may be fewer, in which case leading zeros should be assumed.
-nbytes == 0 means put all zero bytes in *float_value.
-*/
-{
-  a_byte    *p;
-  int       iii;
-  a_boolean host_little_endian;
-
-  /* Determine if the host is little-endian or big-endian. */
-  iii = 0;
-  p = (a_byte *)&iii;
-  *p = 1;
-  host_little_endian = (iii == 1);
-
-  *err = FALSE;
-  /* Set all the bytes to zero. */
-  p = (a_byte *)float_value;
-  memzero((char *)p, sizeof(an_internal_float_value));
-  /* Position p to store the most-significant byte. */
-  if (host_little_endian) {
-    p += nbytes;
-  } else {
-    int	fp_size;
-    switch (float_kind) {
-      case fk_float: fp_size = sizeof(float); break;
-#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-      case fk_long_double: fp_size = sizeof(long double); break;
-#endif /*  USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-      default: fp_size = sizeof(double); break;
-    }  /* switch */
-    p += fp_size;
-    p -= nbytes;
-  }  /* if */
-  /* Copy the bytes into the right place. */
-  for (; nbytes > 0; nbytes--, bytes++) {
-    if (host_little_endian) {
-      *(--p) = *bytes;
-    } else {
-      *(p++) = *bytes;
-    }  /* if */
-  }  /* for */
-}  /* fp_bytes_to_float */
-
-#endif /* ifdef FFE */
 
 a_boolean fp_is_zero_constant(a_float_kind            kind,
                               an_internal_float_value *float_value)

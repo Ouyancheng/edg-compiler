@@ -67,17 +67,6 @@ extern void fp_to_host_large_unsigned(
 			a_boolean               *err,
 			a_boolean               *depends_on_rounding_mode);
 #endif /* ifdef CFE */
-#ifdef FFE
-
-extern a_byte fp_byte(an_internal_float_value *float_value,
-                      a_targ_size_t           byte_num);
-
-extern void fp_bytes_to_float(a_float_kind            float_kind,
-                              a_byte                  *bytes,
-                              a_targ_size_t           nbytes,
-                              an_internal_float_value *float_value,
-                              a_boolean               *err);
-#endif /* ifdef FFE */
 
 extern a_boolean fp_is_zero_constant(a_float_kind            kind,
                                      an_internal_float_value *float_value);

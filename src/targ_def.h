@@ -817,9 +817,9 @@ Float types:
 
 
 /*
-Type used to perform host floating point computations.  If double and long
-double are the same size, this can be double.  If long double is larger
-than double, it should be long double.
+Type used to perform host floating point computations.  In general,
+if long double is available, it should be used.  But if long double
+and double are the same size, double may be used.
 */
 #ifndef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 #if USING_ISO_C
