@@ -9083,7 +9083,8 @@ Return TRUE if the indicated symbol is a function-local symbol.
   /* Reject the easy cases, i.e., class and namespace members. */
   if (sym->is_class_member ||
       sym->parent.namespace_ptr != NULL ||
-      sym->decl_scope == FILE_SCOPE_NUMBER) {
+      sym->decl_scope == FILE_SCOPE_NUMBER ||
+      sym->synthesized_namespace_projection) {
     /* is_local = FALSE;  -- already set. */
   } else {
     /* Look through the scope stack for the scope of the symbol, to see
