@@ -5671,24 +5671,14 @@ node is returned for that case.
   a_dynamic_init_ptr            dip;
 
   function_type = skip_typerefs(function_type);
-  /* Any type qualifiers on the return type are dropped because rvalues
-     do not have qualified types. */
-  return_type = skip_typerefs(function_type->variant.routine.return_type);
   /* The function return type must be void or object type and not array
      type.  Half of this check is in add_to_derived_type_list.
      The check here is necessary because it is valid to declare a
      function returning a class/struct/enum type that is incomplete
      at the point of declaration of the function so long as it is completed
      by the time the function is defined or called (if it is). */
-#if CHECKING
-  if (is_array_type(return_type) || is_function_type(return_type)) {
-    internal_error("func_call_expr: function returns array or function");
-  }  /* if */
-#endif /* CHECKING */
-  /* The return type may not be incomplete (but void is okay). */
-  check_for_uninstantiated_template_class(return_type);
-  if (is_incomplete_type(return_type) && !is_void_type(return_type)) {
-    pos_error(ec_calling_function_with_incomplete_return_type, err_pos);
+  if (!check_function_return_type(function_type, err_pos, /*is_call=*/TRUE)) {
+    /* There was some error in the return type, and a diagnostic was issued. */
     call_node = error_node();
   } else {
     if (function_node->kind == (an_expr_node_kind)enk_routine_address) {
@@ -5696,6 +5686,9 @@ node is returned for that case.
       a_routine_ptr routine = function_node->variant.routine;
       if (evaluated) routine->called = TRUE;
     }  /* if */
+    /* Any type qualifiers on the return type are dropped because rvalues
+       do not have qualified types. */
+    return_type = skip_typerefs(function_type->variant.routine.return_type);
     if (is_reference_type(return_type)) {
       /* If the function returns a reference type, make the result a
          pointer. */
@@ -5714,10 +5707,6 @@ node is returned for that case.
     }  /* if */
     /* Make an expression for the function call. */
     call_node = make_operator_node(op, return_type, function_node);
-    /* If the function is one that returns its value to a caller-supplied
-       location (using a copy constructor), add an enk_temp_init node
-       for the implied temporary on top of the call. */
-    set_routine_calling_method_flag(function_type);
     rtsp = function_type->variant.routine.extra_info;
     if (rtsp->value_returned_by_cctor) {
       temp_init_node = create_expr_temporary(return_type,
