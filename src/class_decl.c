@@ -3514,10 +3514,13 @@ and it is legal for virtual member functions only.
   if (!pure_specifier_allowed && !suppress_error) {
     pos_error(ec_pure_specifier_on_nonvirtual_function, &pos_curr_token);
   }  /* if */
-  /* Advance past the "=". */
+  /* Advance past the "=".  Get the next token in "preprocessor mode" so
+     that a string rather than an arithmetic value is returned.  That allows
+     us to check strictly for "0" and not be fooled by, say, "00". */
+  fetch_pp_tokens = TRUE;
   (void)get_token();
-  if (curr_token == tok_int_constant &&
-      eqlit_integer_constant(&const_for_curr_token, 0L)) {
+  fetch_pp_tokens = FALSE;
+  if (*start_of_curr_token == '0' && len_of_curr_token == 1) {
     /* Token following "=" is "0". */
     if (pure_specifier_allowed) {
       /* Update the routine and class type enties. */
