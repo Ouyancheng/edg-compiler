@@ -976,6 +976,12 @@ inside other user-written structs.
 {
   type->next = il_header.primary_scope->types;
   il_header.primary_scope->types = type;
+  if (depth_scope_stack >= DEPTH_OF_FILE_SCOPE &&
+      scope_stack[DEPTH_OF_FILE_SCOPE].last_type == NULL) {
+    /* There are no types on the file scope list, so this type is also the
+       last type on the list. */
+    scope_stack[DEPTH_OF_FILE_SCOPE].last_type = type;
+  }  /* if */
 }  /* add_to_front_of_file_scope_types_list */
 
 
