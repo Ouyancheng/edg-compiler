@@ -2921,12 +2921,18 @@ given type.
       /* This is presumably the first class body instantiation. */
       clear_class_type_correspondence(type, /*visited=*/TRUE);
     } else {
-      if (!type_has_definition(canon) || !in_secondary_trans_unit(type)) {
+      a_boolean  canon_defined = type_has_definition(canon);
+      if (!canon_defined || !in_secondary_trans_unit(type)) {
         /* The canonical entry is about to change. */
         new_canon = TRUE;
         /* Prefer definitions as canonical entries, and definitions in primary
            translation units in particular. */
         change_canonical_entry(trans_unit_corresp_of(type), (char*)type);
+        if (!canon_defined) {
+          /* This is apparently the first full instantiation of this type.
+             Clear the members' correspondences. */
+          clear_class_type_correspondence(type, /*visited=*/TRUE);
+        }  /* if */
         /* Work from the noncanonical entry to set the correspondences of
            members. */
         type = canon;
