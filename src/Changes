@@ -1,6 +1,18 @@
 Version 2.23
 
-4/25/95  New file target.c
+4/26/94  Interchangeable types in strict (warning) mode
+
+In strict/issue-warnings mode, integral types are no longer considered
+interchangeable simply because they have the same size (e.g., int
+and long).  This had been the behavior in strict/issue-errors mode only.
+
+4/26/94  printf/scanf argument checking
+
+A remark is now issued for cases where a printf/scanf argument is
+interchangeable with but not compatible with the required type (e.g.,
+unsigned long vs. long).
+
+4/25/94  New file target.c
 
 target.c has been added.  For now it contains only a single function,
 check_target_configuration, which can be called both from the compiler and
