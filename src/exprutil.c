@@ -4293,7 +4293,7 @@ operand.
     fund_sym = fundamental_symbol_of(func_sym);
     /* Make an operand for a pointer-to-member constant. */
     make_ptr_to_member_constant_operand(fund_sym, func_sym,
-                                        &operand->position,
+                                        &orig_operand.position,
                                        !operand->access_control_error_reported,
                                         operand->is_operand_of_address_of,
                                         operand);
