@@ -5846,7 +5846,11 @@ typedef struct a_vla_dimension {
      latter will be in the function scope memory region, and so this
      construct is used to represent the array dimension.  These entries are
      always allocated in the function scope memory region and appear on a
-     list pointed to by the function scope. */
+     list pointed to by the function scope.  When making a copy of a VLA
+     type a new a_vla_dimension entry must be created for it.  Since we
+     cannot in general evaluate the dimension expression multiple times,
+     a_vla_dimension entries for copies of VLA types point back to the
+     original a_vla_dimension instead. */
   a_vla_dimension_ptr
 		next;
 			/* Pointer to the next in a linked list of entries
@@ -5860,7 +5864,14 @@ typedef struct a_vla_dimension {
   an_expr_node_ptr
 		dimension_expr;
 			/* An expression representing the number of elements
-			   in the array. */
+			   in the array.  NULL if this entry is for a
+			   (compiler-generated) copy of a VLA type. */
+  a_vla_dimension_ptr
+		original_dimension;
+			/* If this is an entry for a (compiler-generated) copy
+			   of a VLA type, this field points to the entry
+			   associated with the original VLA type.  Otherwise,
+			   it is NULL. */
   a_byte_boolean
 		in_prototype_scope;
 			/* TRUE if the dimension expression is used in a

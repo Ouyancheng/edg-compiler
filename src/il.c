@@ -7857,7 +7857,9 @@ a_vla_dimension_ptr find_vla_dimension(a_type_ptr array_type)
 /*
 Find the VLA (variable-length array) dimension entry associated with the
 given array type, and return a pointer to it.  innermost_function_scope
-must be set to the scope for the current function.
+must be set to the scope for the current function.  For (compiler-generated)
+copies of array types, return the entry associated with the original type
+entry.
 */
 {
   a_vla_dimension_ptr vlap;
@@ -7870,6 +7872,12 @@ must be set to the scope for the current function.
     check_assertion_str(vlap != NULL, "find_vla_dimension: not found");
     if (vlap->type == array_type) break;
   }  /* for */
+  if (vlap->original_dimension != NULL) {
+    /* vlap points to an entry for a compiler-generated copy of an array
+       type. */
+    check_assertion(vlap->dimension_expr == NULL);
+    vlap = vlap->original_dimension;
+  }  /* if */
   return vlap;
 }  /* find_vla_dimension */
 
@@ -7986,8 +7994,18 @@ Copy the type entry "from" to "to".
       tp = skip_typerefs(to->variant.routine.return_type);
       dtf_kind = (a_dependent_type_fixup_kind)dtfk_routine_calling_method;
     } else {
+      /* An array type. */
       tp = f_skip_typerefs(underlying_array_element_type(to));
       dtf_kind = (a_dependent_type_fixup_kind)dtfk_array_type_size;
+      if (from->variant.array.has_assoc_vla_dimension) {
+        /* A variable-length array (VLA): Create a new a_vla_dimension entry
+           for the new copy of the type. */
+        a_vla_dimension_ptr  vdp = find_vla_dimension(from), new_vdp;
+        new_vdp = make_vla_dimension(to, (an_expr_node_ptr)NULL,
+                                     vdp->in_prototype_scope, &vdp->position);
+        new_vdp->original_dimension = vdp;
+        check_assertion(C_mode());
+      }  /* if */
     }  /* if */
     if (is_incomplete_type(tp) && is_immediate_class_type(tp)) {
       /* An array type is placed on a fixup list if the underlying element

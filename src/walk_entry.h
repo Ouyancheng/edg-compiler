@@ -2447,7 +2447,12 @@ end_sizeof:;
 
         remap_next_ptr(ptr->next, a_vla_dimension_ptr, iek_vla_dimension);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
-        walk_ptr(ptr->dimension_expr, an_expr_node_ptr, iek_expr_node);
+        if (ptr->dimension_expr != NULL) {
+          walk_ptr(ptr->dimension_expr, an_expr_node_ptr, iek_expr_node);
+        } else {
+          remap_ptr(ptr->original_dimension, a_vla_dimension_ptr,
+                    iek_vla_dimension);
+        }  /* if */
       }
       break;
 #if !NEEDED_FLAG_WALK

@@ -1,5 +1,21 @@
 Version 3.5
 
+7/8/04   Abort on type qualifier appearing on VLA types
+
+In some cases, the front end aborted with an internal error in
+find_vla_dimension if a const or volatile qualifier appeared on a VLA
+type.  For example:
+
+  void g(float [2][2]);
+  void f(int i) {
+    typedef float A[i][i];
+    A const a;
+    g(a);  // Previously aborted while trying to issue a type mismatch
+  }        // diagnostic.
+
+This is now fixed.  The fix required the introduction of a_vla_dimension
+entries that do not directly point to a dimension expression (IL CHANGE).
+
 7/7/04   GNU C mode: Attributes on declaration sometimes lost after definition
 
 GNU attributes appearing on a prototyped function declaration (in GNU C mode),

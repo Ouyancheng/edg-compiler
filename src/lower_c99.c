@@ -2060,10 +2060,12 @@ static void lower_c99_vla_dimension(a_vla_dimension_ptr vdp)
 Lower the expression in a VLA dimension entry.
 */
 {
-  lower_c99_full_expr(vdp->dimension_expr);
+  an_expr_node_ptr  expr = vdp->dimension_expr;
+
+  if (expr != NULL) {
+    lower_c99_full_expr(vdp->dimension_expr);
 #if MINIMAL_INLINING
-  /* Catch constant nonpositive sizes introduced by inlining. */
-  { an_expr_node_ptr expr = vdp->dimension_expr;
+    /* Catch constant nonpositive sizes introduced by inlining. */
     if (is_constant_node(expr)) {
       a_constant_ptr con = expr->variant.constant;
       if (con->kind == (a_constant_repr_kind)ck_integer &&
@@ -2071,8 +2073,8 @@ Lower the expression in a VLA dimension entry.
 	pos_error(ec_array_size_must_be_positive, &vdp->position);
       }  /* if */
     }  /* if */
-  }
 #endif /* MINIMAL_INLINING */
+  }  /* if */
 }  /* lower_c99_vla_dimension */
 
 
