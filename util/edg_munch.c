@@ -27,7 +27,7 @@ This program looks for entries where "a" is "T" and "nnnn..." is "__sti__*" or
 
 */
 
-#include <sys/stdtypes.h>
+/*#include <sys/stdtypes.h>*/
 #include <stdio.h>
 #include <ctype.h>
 #include <malloc.h>
@@ -60,7 +60,7 @@ needed.
 #define is_id_char(c) (((c) != ' ') && ((c) != '\t') && ((c) != '\0'))
 
 
-void error(char*   error_string)
+static void error_util(char*   error_string)
 /*
 Prints an error message and exits with an error exit status.
 */
@@ -70,7 +70,7 @@ Prints an error message and exits with an error exit status.
 }
 
 
-void internal_error(char*   error_string)
+static void internal_error_util(char*   error_string)
 /*
 Prints an internal error message and exits with a catastrophic error
 exit status.
@@ -90,13 +90,13 @@ allocation and generates a catastrophic error.
   char *ptr;
 
   if ((ptr = (char *)malloc(size)) == NULL) {
-    error("out of memory");
+    error_util("out of memory");
   } /* if */
   return (ptr);
 }  /* malloc_with_check */
 
 
-int read_input_line(void)
+static int read_input_line(void)
 /*
 Reads a line of input from standard input.  Returns TRUE if a line of
 input is being returned.  Returns FALSE at end-of-file.  Sets "line_size"
@@ -110,7 +110,7 @@ to the number of characters read not including the trailing null character.
 
   while (ch = getchar(), ch != EOF && ch != '\n') {
     if (++size > INPUT_LINE_SIZE) {
-      internal_error("read_input_line: input line too long.");
+      internal_error_util("read_input_line: input line too long.");
     }  /* if */
     *buffer_pos++ = ch;
   }  /* while */
@@ -128,7 +128,7 @@ to the number of characters read not including the trailing null character.
 }  /* read_input_line */
 
 
-int check_type_and_get_name(char**    name_pos,
+static int check_type_and_get_name(char**    name_pos,
                             int       *name_length,
                             a_boolean *is_ctor)
 /*
@@ -208,7 +208,7 @@ length of the name.
   return (result);
 
 invalid_input:
-  error("invalid input format");
+  error_util("invalid input format");
   /*NOTREACHED*/
 }  /* check_type_and_get_name */
 
@@ -244,11 +244,10 @@ Generate the output for this list of functions.
 
 
 
-main (void)
+int main (void)
 {
   a_list_entry_ptr     ctor_list = NULL;
   a_list_entry_ptr     dtor_list = NULL;
-  a_list_entry_ptr     dtor_tail = NULL;
   a_list_entry_ptr     entry;
   char*                name_pos;
   char*                name_string;
