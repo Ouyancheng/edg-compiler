@@ -155,11 +155,14 @@ abstract or real declarator.
 #define DI_IS_PARAMETER_DECL (a_decl_flag_set)(0x1000)
 			/* If this bit is set the declarator is part of a
 			   function parameter declaration. */
-#define DI_IS_TEMPLATE_SPECIALIZATION (a_decl_flag_set)(0x2000)
-			/* If this bit is set declarator is called for a
-			   declaration of a specialization of a function
-			   template. */
-#define DI_LAST DI_IS_TEMPLATE_SPECIALIZATION
+#define DI_IS_SPECIALIZATION (a_decl_flag_set)(0x2000)
+			/* If this bit is set the declarator appears in a
+			   template specialization.  When
+			   DI_IS_TEMPLATE_DECLARATION is also set, the
+			   specialization declares a template that is a
+			   specialization of the original template; otherwise,
+			   it is a full specialization. */
+#define DI_LAST DI_IS_SPECIALIZATION
 			/* Last bit in the bit vector that is in use. */
 /* Constants defining bits in the output bit vector used in calls to
    declarator. */
