@@ -3634,6 +3634,61 @@ address of the temporary is returned.  This routine is only used in C++ mode.
 }  /* conv_operand_to_object_pointer */
 
 
+static an_expr_node_ptr conv_lvalue_expr_to_rvalue(an_expr_node_ptr node)
+/*
+mode is an expression that is the address for an lvalue.  Create an
+expression for the corresponding rvalue, and return a pointer to it.
+*/
+{
+  a_boolean             optimized_case = FALSE;
+  an_expr_operator_kind op;
+  an_expr_node_ptr      op1, op2, op3;
+  a_type_ptr            new_type;
+
+  if (is_operation_node(node)) {
+    /* An operation node. */
+    new_type = type_pointed_to(node->type);
+    op = node->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_padd ||
+        op == (an_expr_operator_kind)eok_padd_subsc) {
+      /* A pointer addition; change to a subscripting operation. */
+      optimized_case = TRUE;
+      node->variant.operation.kind = (an_expr_operator_kind)eok_subscript;
+    } else if (op == (an_expr_operator_kind)eok_bit_field) {
+      /* The value is the "address" of a bit-field.  Therefore, the
+         indirect version is an extract of the bit-field. */
+      optimized_case = TRUE;
+      node->variant.operation.kind =
+                                  (an_expr_operator_kind)eok_extract_bit_field;
+    } else if (C_dialect == C_dialect_cplusplus &&
+               op == (an_expr_operator_kind)eok_question) {
+      /* "?" operator.  Convert each branch to an rvalue.  This is
+         particularly useful for a case like
+           &(i ? j : k)
+         (only valid in C++). */
+      optimized_case = TRUE;
+      op1 = node->variant.operation.operands;
+      op2 = op1->next;
+      op3 = op2->next;
+      op1->next = op2 = conv_lvalue_expr_to_rvalue(op2);
+      op2->next = conv_lvalue_expr_to_rvalue(op3);
+    } else if (node->variant.operation.assignment_returns_lvalue) {
+      /* The operation is an assignment that returns an lvalue.
+         Change it to one that returns an rvalue. */
+      node->variant.operation.assignment_returns_lvalue = FALSE;
+    }  /* if */
+  }  /* if */
+  if (!optimized_case) {
+    /* Not an optimized case.  Just add an indirection. */
+    node = add_indirection_to_node(node);
+  } else {
+    /* For the optimized cases, set the node type to the type pointed to. */
+    node->type = new_type;
+  }  /* if */
+  return node;
+}  /* conv_lvalue_expr_to_rvalue */
+
+
 void conv_lvalue_to_rvalue(an_operand         *operand,
                            an_expression_kind expression_kind)
 /*
@@ -3808,10 +3863,9 @@ in a constant expression.
             operand->variant.expression = cast_node;
           }  /* if */
         } else {
-          /* Not an lvalue cast; the normal case. */
-          /* Add an indirection to the node (the subroutine does some
-             optimization of special cases). */
-          operand->variant.expression = add_indirection_to_node(node);
+          /* Not an lvalue cast (normal case). */
+          /* Convert the expression to an rvalue. */
+          operand->variant.expression = conv_lvalue_expr_to_rvalue(node);
           operand->state = (an_operand_state)os_rvalue;
           if (C_dialect == C_dialect_cplusplus) {
             /* In C++, replace a const variable by its value. */
