@@ -197,12 +197,6 @@ static a_boolean compatible_ms_bit_field_container_types(a_type_ptr  tp1,
 /*
 Return TRUE if tp1 and tp2 are compatible container types, according to the
 conventions of Microsoft's bit-field allocation scheme.
-
-(Note: the algorithm as implemented may not be quite accurate.  (1) Should
-it really be that two different enumeration types can be compatible with
-each other as bit field containers?  (2) How are wchar_t and bool to be
-handled?  (3) Is explicit signedness really a criterion, so that "int" and
-"unsigned int" are not compatible container types?)
 */
 {
   a_boolean  compat;
@@ -210,17 +204,24 @@ handled?  (3) Is explicit signedness really a criterion, so that "int" and
   /* It is assumed that typerefs have already been stripped off. */
   check_assertion(tp1->kind != (a_type_kind)tk_typeref &&
                   tp2->kind != (a_type_kind)tk_typeref);
-  compat = (tp1 == tp2);
-  if (!compat) {
-    /* The integer kinds must match, as must explicit signedness, and if one
-       is an enumeration type, the other must be, too.  (We only check
-       that both are integral types to deal with the error case.) */
-    if (is_integral_type(tp1) && is_integral_type(tp2) &&
-        tp1->variant.integer.int_kind == tp2->variant.integer.int_kind &&
-        tp1->variant.integer.explicitly_signed ==
-                                   tp2->variant.integer.explicitly_signed &&
-        tp1->variant.integer.enum_type == tp2->variant.integer.enum_type) {
-      compat = TRUE;
+  /* Check that both are integral types, in case of errors. */
+  if (!is_integral_type(tp1) || !is_integral_type(tp1)) {
+    compat = FALSE;
+  } else {
+     compat = (tp1 == tp2);
+     if (!compat) {
+      /* The types are not exactly the same type, so check for compatibility as
+         bit-field containers: the integer kinds must match, as must explicit
+         signedness; neither can be an enumeration type; and if one is wchar_t
+         both must be. */
+      if (tp1->variant.integer.int_kind == tp2->variant.integer.int_kind &&
+          tp1->variant.integer.explicitly_signed ==
+                                     tp2->variant.integer.explicitly_signed &&
+          !tp1->variant.integer.enum_type && !tp2->variant.integer.enum_type &&
+          tp1->variant.integer.wchar_t_type ==
+                                     tp2->variant.integer.wchar_t_type) {
+        compat = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return compat;
