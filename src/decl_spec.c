@@ -980,8 +980,15 @@ the template.
           /* This is a definition of a member template instance -- apparently
              an attempt at old-style specialization, but only the "template<>"
              syntax is allowed for member template specializations. */
-          pos_sy_error(ec_old_specialization_not_allowed, &tag_position,
-                       tag_sym);
+          if (depth_innermost_namespace_scope == depth_scope_stack) {
+            /* A valid scope in which "template<>" can appear. */
+            pos_sy_error(ec_old_specialization_not_allowed, &tag_position,
+                         tag_sym);
+          } else {
+            /* Also an invalid scope. */
+            pos_sy_error(ec_bad_scope_for_specialization, &tag_position,
+                         tag_sym);
+          }  /* if */            
           tag_sym = NULL;
           set_to_named_error_locator(locator);
           err = TRUE;
