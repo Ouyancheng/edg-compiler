@@ -1071,8 +1071,14 @@ do_definition_needed_if_class:
                      is "void *". */
                   optype = type_pointed_to(ptr->type);
                   definition_needed_if_class(optype);
-                  /* Source type must also be complete. */
-                  goto cast_source_type_must_be_pointer_to_complete_class;
+                  /* Source type must also be complete, but watch out for
+                     prototype instantiation cases where the first operand
+                     isn't a pointer to class. */
+                  if (is_pointer_type(op1_type) &&
+                      is_class_struct_union_type(type_pointed_to(op1_type))) {
+                    goto cast_source_type_must_be_pointer_to_complete_class;
+                  }  /* if */
+                  break;
                 case eok_base_class_cast:
 cast_source_type_must_be_pointer_to_complete_class:
                   /* First operand is a pointer to class. */
