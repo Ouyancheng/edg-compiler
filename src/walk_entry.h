@@ -1061,7 +1061,11 @@ the file scope, do not process it (but record an orphan in the latter case).
                 case eok_padd_assign:
                 case eok_psubtract_assign:
                   /* First operand is an lvalue for a pointer. */
-                  optype = type_pointed_to(type_pointed_to(op1_type));
+                  /* Avoid problems in prototype instantiations. */
+                  if (!is_pointer_type(op1_type)) break;
+                  optype = type_pointed_to(op1_type);
+                  if (!is_pointer_type(optype)) break;
+                  optype = type_pointed_to(optype);
                   goto do_definition_needed_if_class;
                 case eok_subscript:
                 case eok_padd:
@@ -1069,6 +1073,8 @@ the file scope, do not process it (but record an orphan in the latter case).
                 case eok_psubtract:
                 case eok_pdiff:
                   /* First operand is a pointer. */
+                  /* Avoid problems in prototype instantiations. */
+                  if (!is_pointer_type(op1_type)) break;
                   optype = type_pointed_to(op1_type);
 do_definition_needed_if_class:
                   definition_needed_if_class(optype);
@@ -1192,9 +1198,12 @@ do_set_proper_definition_needed_flag:
               { a_type_ptr sizeof_type =
                                 ptr->variant.runtime_sizeof.variant.expr->type;
                 if (ptr->variant.runtime_sizeof.is_lvalue) {
+                  /* Watch out for prototype instantiations. */
+                  if (!is_pointer_type(sizeof_type)) goto end_sizeof_type;
                   sizeof_type = type_pointed_to(sizeof_type);
                 }  /* if */
                 definition_needed_if_class(sizeof_type);
+end_sizeof_type:;
               }
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
             }  /* if */
