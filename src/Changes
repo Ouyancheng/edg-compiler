@@ -1,5 +1,17 @@
 Version 2.28
 
+1/25/95  Ellipsis match allowed on function template
+
+An ellipsis match is now allowed on a function template.  The ARM
+disallowed it (it's not an exact match), but recent WPs have removed
+that restriction.
+
+  template<class T> void f(T, ...);
+  main () {
+    short i = 1;
+    f(i, i);
+  }
+
 1/25/95  Any implicit conversion allowed on non-template parameter of
          function template
 

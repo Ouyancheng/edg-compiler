@@ -2009,9 +2009,8 @@ evaluated (but not checked to see if the match is good enough).
                    "function_template_matches_operand_list: missing ellipsis");
     }  /* if */
 #endif /* CHECKING */
-    /* An ellipsis match is not an exact match, so this template cannot be
-       used.  We could allow an extension in this area, but we don't. */
-    goto done;
+    /* An ellipsis match.  This wasn't allowed in the ARM, but it's okay
+       now. */
 #if CHECKING
   } else if (ptp != NULL) {
     /* We ran out of arguments, but we still have parameters.  The parameter
