@@ -2509,6 +2509,22 @@ by octl. */
 }  /* form_uuidof_reference */
 
 
+static a_type_ptr static_unknown_type(void)
+/*
+Return a pointer to an unknown type.  Don't do allocation, because that is not
+allowed in a back end.  This is used to produce a type that will not
+match other types in the IL.
+*/
+{
+  a_type_ptr    type;
+  static a_type static_unknown_type;
+
+  type = &static_unknown_type;
+  clear_type(type, (a_type_kind)tk_unknown);
+  return type;
+}  /* static_unknown_type */
+
+
 static void form_lvalue_for_addressed_entity(
                    a_constant_ptr                        constant,
                    a_type_ptr                            desired_type,
@@ -2611,16 +2627,26 @@ parentheses are not needed.
     case abk_uuidof:
       /* Address of a structure that represents the uuid information for a
          given class type. */
-      type = type_pointed_to(constant->type);
+      if (!constant->implicit_cast) {
+        type = type_pointed_to(constant->type);
+      } else {
+        /* The uuidof address is cast to some other type (e.g., int). */
+        type = static_unknown_type();
+      }  /* if */
       break;
-   case abk_label:
-     /* Address of a label (GNU C extension). */
-     { a_label_ptr label = constant->variant.address.variant.label;
-       type = type_pointed_to(constant->type);
-       entity_kind = iek_label;
-       entity_scp = &label->source_corresp;
-     }
-     break;
+    case abk_label:
+      /* Address of a label (GNU C extension). */
+      { a_label_ptr label = constant->variant.address.variant.label;
+        if (!constant->implicit_cast) {
+          type = type_pointed_to(constant->type);
+        } else {
+          /* The label address is cast to some other type (e.g., int). */
+          type = static_unknown_type();
+        }  /* if */
+        entity_kind = iek_label;
+        entity_scp = &label->source_corresp;
+      }
+      break;
     default:
       unexpected_condition_str(
                    "form_lvalue_for_addressed_entity: bad addr constant kind");

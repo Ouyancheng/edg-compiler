@@ -1,5 +1,19 @@
 Version 3.5
 
+9/15/04  Abort on output of GNU address-of-label cast to integral type
+
+The il_to_str routines aborted ("type_pointed_to: not a pointer type")
+when trying to output a GNU address-of-label (e.g., &&L) that has been
+cast to another type (e.g., an integral type).  There was a potential
+similar problem with Microsoft __uuidof constants, though we
+were unable to find a test case that aborted.  Both cases now fixed.
+
+  int main() {
+    int unsigned long i;
+  L:
+    i = (unsigned long)&&L;
+  }
+
 9/15/04  IA-64 ABI: static typeinfo name string should be COMDAT
 
 In the IA-64 ABI, the variable that contains the name of a typeinfo
