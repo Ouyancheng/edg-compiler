@@ -5124,6 +5124,9 @@ here are into the file scope memory region.
 
 If you change the structure of this header, be sure to change the IL walk
 routines (specifically, remap_il_header_pointers and walk_file_scope_il).
+If you add any pointers, be sure to update the precompiled header
+processing routines that fix up the IL header after restoring
+a precompiled header file.
 */
 typedef enum /* a_source_language */ {
   /* Code for source language. */
