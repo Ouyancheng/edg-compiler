@@ -2865,6 +2865,8 @@ void add_reference_indirection(an_operand *result)
 #endif /* CHECKING */
   result_state = result->state;
   orig_result = *result;
+  /* Change the references to "use". */
+  change_some_ref_kinds(result->ref_entries_list, srk_reference, srk_use);
   node = add_indirection_to_node(make_node_from_operand(result));
   result_type = type_pointed_to(result_type);
   if (is_an_lvalue(result)) {
