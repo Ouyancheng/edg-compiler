@@ -10370,11 +10370,15 @@ the appropriate dynamic initialization entry and return NULL.
     expression = NULL;
   } else {
     /* Normal case. */
-    /* The required type can be void if we are in cfront mode.  If it is
-       void just take the expression as we found it -- don't try to
-       convert it to void. */
-    if (cfront_2_1_mode && is_void_type(required_type)) {
-      /* Leave operand alone. */
+    if (is_void_type(required_type) &&
+        ((microsoft_mode && C_mode()) ||
+         (cfront_2_1_mode && is_void_type(result.type)))) {
+      /* In cfront 2.1 mode a void function may have a return expression of
+         void type.  In Microsoft C mode it may have a return expression of
+         any type; we treat is as a void expression (in part to get better
+         diagnostics). */
+      do_operand_transformations(&result, TOPT_NO_OPTIONS);
+      simplify_void_operand(&result);
     } else {
       /* Convert to the required type. */
       prep_initializer_operand(&result, required_type,
