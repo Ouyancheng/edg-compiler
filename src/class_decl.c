@@ -10063,7 +10063,7 @@ the new declaration.
     }  /* if */
     /* Create a class member using decl entry to represent this
        declaration in the IL. */
-    udp = make_using_decl(fund_sym, &decl_pos);
+    udp = make_using_decl(fund_sym, &decl_pos, depth_scope_stack);
     /* Record the class that was actually specified in the qualified
        name in the source. */
     udp->qualifier.class_type = declared_sym->parent.class_type;

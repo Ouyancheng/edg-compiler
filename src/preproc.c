@@ -871,12 +871,14 @@ Escapes in the string are processed only if process_escapes is TRUE.
 }  /* copy_header_name */
 
 
-static void proc_stdarg_include(void)
+static void proc_stdarg_include(a_boolean	is_cstdarg)
 /*
 Process an #include of <stdarg.h> by creating definitions for the things
 the header defines instead of reading the header file.  This is used when
 we want to pass references to the <stdarg.h> macros through to the output,
 e.g., in generated C code.
+
+is_cstdarg is TRUE in C++ if the header name was "cstdarg".
 */
 {
   /* Ignore an #include after the first. */
@@ -905,7 +907,7 @@ e.g., in generated C code.
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
     /* Declare va_list as a type of "void *". */
-    declare_builtin_va_list_type();
+    declare_builtin_va_list_type(is_cstdarg);
     if (generate_pp_output) {
       pass_directive_to_output();
     }  /* if */
@@ -947,6 +949,7 @@ in which the current file was found).
     catastrophe(ec_exp_file_name);
   } else {
     /* A header name was scanned. */
+    a_boolean	is_cstdarg = FALSE;
     is_system_include = *start_of_curr_token == '<';
     /* Allocate space for and copy the name. */
     /* Escapes are not processed.  That's an implementation choice; you
@@ -969,10 +972,11 @@ in which the current file was found).
     no_token_separators_in_this_line_of_pp_output = TRUE;
     if (pass_stdarg_references_to_generated_code &&
         (strcmp(name_start_pos, "stdarg.h") == 0 ||
-         (!C_mode() && strcmp(name_start_pos, "cstdarg") == 0))) {
+         (!C_mode() &&
+          (is_cstdarg = (strcmp(name_start_pos, "cstdarg") == 0))))) {
       /* Instead or reading the <stdarg.h> or <cstdarg> header file, create
          builtin definitions for the things it's known to define. */
-      proc_stdarg_include();
+      proc_stdarg_include(is_cstdarg);
       /* Check whether a PCH file should be generated at the end of the
          execution of this include directive. */
       check_for_generation_of_pch_on_return_to_primary_file();

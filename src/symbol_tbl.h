@@ -3060,7 +3060,7 @@ EXTERN a_boolean
 			   first time, any any file scope symbols have been
 			   moved to the inactive list. */
 
-void declare_builtin_va_list_type(void);
+void declare_builtin_va_list_type(a_boolean	is_cstdarg);
 
 extern void set_symbol_kind(a_symbol_ptr  sym_ptr,
 			    a_symbol_kind sym_kind);

@@ -1728,6 +1728,7 @@ process.
   do_dependent_name_processing = FALSE;
   export_template_allowed = FALSE;
   export_keyword_enabled = FALSE;
+  va_list_in_std_namespace = FALSE;
   /* The final field of a struct may be an incomplete array. */
   flexible_array_members_allowed = TRUE;
   /* Set the variable that controls whether "//" is allowed as a comment

@@ -2245,6 +2245,14 @@ operation that takes the address of its second (variable) operand.
 #endif /* ifndef BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE */
 
 /*
+Flag that is TRUE if, by default, the va_list type should be in namespace
+std when passing stdarg references to the generated code.
+*/
+#ifndef DEFAULT_VA_LIST_IN_STD_NAMESPACE
+#define DEFAULT_VA_LIST_IN_STD_NAMESPACE TRUE
+#endif /* ifndef DEFAULT_VA_LIST_IN_STD_NAMESPACE */
+
+/*
 If this flag is TRUE, integer types with the same representation
 (same size, alignment, and signedness) are considered to be
 identical in the IL.  This requires back end support, i.e., the back

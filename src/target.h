@@ -980,6 +980,16 @@ EXTERN a_boolean
 			/* If TRUE, references to the macros in <stdarg.h>
 			   are passed through to the output unchanged. */
 
+EXTERN a_boolean
+		va_list_in_std_namespace
+#if VAR_INITIALIZERS
+			    = DEFAULT_VA_LIST_IN_STD_NAMESPACE
+#endif /* VAR_INITIALIZERS */
+			/* If TRUE, the va_list type created when passing
+			   stdarg references to generated code is placed in
+			   the std namespace. */
+                                                              ;
+
 
 EXTERN a_boolean
 		instantiate_extern_inline

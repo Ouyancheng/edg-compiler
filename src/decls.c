@@ -9492,12 +9492,15 @@ A using-directive entry is created and activated for the current scope.
 
 
 a_using_decl_ptr make_using_decl(a_symbol_ptr      sym,
-                                 a_source_position *pos)
+                                 a_source_position *pos,
+				 a_scope_depth	   scope_depth)
 /*
 Allocate a using-decl entry, set its fields based on sym, add it to the list
 for the current scope, and return a pointer to it.  This routine is used for
 class member using-declarations and nonmember using-declarations; similar
-processing is done for using-directives by make_using_directive.
+processing is done for using-directives by make_using_directive.  scope_depth
+is the scope depth of the list on which the using-declaration should be
+placed.
 */
 {
   a_using_decl_ptr  udp;
@@ -9514,7 +9517,7 @@ processing is done for using-directives by make_using_directive.
   udp->entity.ptr = entity;
   udp->position = *pos;
   /* Attach it the list for the current scope. */
-  add_to_using_decls_list(udp, depth_scope_stack);
+  add_to_using_decls_list(udp, scope_depth);
 
   return udp;
 }  /* make_using_decl */
@@ -9603,7 +9606,8 @@ currently being processed (NULL if none).
   } else {
     /* Create a using-decl entry to represent this declaration in
        the IL. */
-    a_using_decl_ptr  udp = make_using_decl(fund_sym, &decl_pos);
+    a_using_decl_ptr  udp = make_using_decl(fund_sym, &decl_pos,
+                                            depth_scope_stack);
     /* Record the class that was actually specified in the qualified
        name in the source. */
     udp->qualifier.namespace_ptr = nsp;

@@ -1,5 +1,14 @@
 Version 3.1
 
+9/10/02  va_list put in std namespace when using built-in stdarg
+
+Formerly, when using the built-in stdarg processing, va_list was put
+into the global namespace, but the C++ standard requires that it be
+in the std namespace.  It is now put into the std namespace and a
+using-declaration is put into the global namespace if the include was
+of "stdarg.h" (rather than "cstdarg").  The old behavior can be obtained
+by setting DEFAULT_VA_LIST_IN_STD_NAMESPACE to FALSE.
+
 9/10/02  GNU C compatibility: Invalid type specifier combinations
 
 In GNU C mode (but not in GNU C++ mode) the front end now ingores extraneous

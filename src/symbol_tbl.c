@@ -176,6 +176,11 @@ static a_symbol_ptr
 static sizeof_t	size_of_trans_unit_for_scope;
 			/* Allocated size of the trans_unit_for_scope table. */
 
+static a_boolean
+		symbol_for_namespace_std_entered;
+			/* TRUE when the symbol for the "std" namespace has
+			   been entered into the symbol table. */
+
 #define TRANS_UNIT_FOR_SCOPE_INCREMENTAL_ALLOCATION 16384
 			/* Incremental allocation for the trans_unit_for_scope
 			   table. */
@@ -5081,11 +5086,14 @@ declaration of the namespace was encountered in the source.
 void enter_symbol_for_namespace_std(a_symbol_locator  *locator)
 /*
 Namespace std was predeclared: its symbol was created but wasn't added to
-the symbol table.  Do that now.  *locator indicates where a declaration of
-namespace std was encountered in the source.
+the symbol table.  Enter it now, if it has not already been entered.  *locator
+indicates where a declaration of namespace std was encountered in the source.
 */
 {
-  enter_symbol_for_namespace(symbol_for_namespace_std, locator);
+  if (!symbol_for_namespace_std_entered) {
+    enter_symbol_for_namespace(symbol_for_namespace_std, locator);
+    symbol_for_namespace_std_entered = TRUE;
+  }  /* if */
 }  /* enter_symbol_for_namespace_std */
 
 #if IA64_ABI
@@ -5131,17 +5139,30 @@ it and return FALSE.  If it is defined already, do nothing and return TRUE.
 
 #endif /* defined(GUARD_MACRO_FOR_VA_LIST) || ... */
 
-void declare_builtin_va_list_type(void)
+void declare_builtin_va_list_type(a_boolean	is_cstdarg)
 /*
 Declare the type va_list when <stdarg.h> is treated as a builtin.  This is
 called at the point where the #include <stdarg.h> appears.
+
+is_cstdarg is TRUE in C++ mode if the header name was specified as
+cstdarg, and FALSE if the header name was specified as stdarg.h.  In
+some modes, use of stdarg.h causes va_list to be put into both the std
+and global namespaces.
 */
 {
   a_symbol_ptr     sym;
   a_type_ptr       va_list_type, va_list_typedef;
   a_symbol_locator locator;
+  a_namespace_ptr  std_namespace = NULL;
+  a_boolean	   new_symbol_created = FALSE;
 
   if (builtin_va_list_type == NULL) {
+    if (va_list_in_std_namespace) {
+      /* When the type is put in namespace std, the symbol for std
+         should already exist. */
+      check_assertion(symbol_for_namespace_std != NULL);
+      std_namespace = symbol_for_namespace_std->variant.namespace_info.ptr;
+    }  /* if */
     /* Look for an existing va_list symbol.  Such a symbol would exist
        if declared in other headers, e.g., stdio.h.  That would be
        nonstandard, but we accommodate it. */
@@ -5149,14 +5170,24 @@ called at the point where the #include <stdarg.h> appears.
 #define VA_LIST_NAME "va_list"
     (void)find_symbol(VA_LIST_NAME, (sizeof_t)(sizeof(VA_LIST_NAME)-1),
                       &locator);
-    sym = file_scope_id_lookup(il_header.primary_scope, &locator,
-                               IDL_NO_OPTIONS);
+    /* Look in either "std" or the global namespace for an existing
+       va_list. */
+    /* A linkage lookup is done to prevent using-directives from affecting
+       the lookup. */
+    if (va_list_in_std_namespace) {
+      sym = namespace_qualified_id_lookup(&locator, std_namespace,
+                                          IDL_LINKAGE_LOOKUP);
+    } else {
+      sym = file_scope_id_lookup(il_header.primary_scope, &locator,
+                                 IDL_LINKAGE_LOOKUP);
+    }  /* if */
     if (sym != NULL && is_type_symbol(sym)) {
-      /* Yes, there is a global type called va_list.  Use it rather than
+      /* Yes, there is an existing type called va_list.  Use it rather than
          declaring a new symbol. */
       va_list_type = type_symbol_type(sym);
     } else {
       /* There is no existing va_list.  Create one. */
+      a_scope_depth	scope_depth;
       /* Look for a special predefined name (e.g., __edg_va_list).  If it's
          declared as a file-scope type, use that type as the type for the
          built-in va_list. */
@@ -5173,10 +5204,30 @@ called at the point where the #include <stdarg.h> appears.
         /* The special symbol does not exist, so use the default "void *". */
         va_list_type = make_pointer_type(void_type());
       }  /* if */
+      /* If the new va_list symbol is to be created in the std namespace,
+         push the namespace now. */
+      if (va_list_in_std_namespace) {
+        push_namespace_scope((a_scope_kind)sck_namespace_extension,
+                             std_namespace);
+        scope_depth = depth_scope_stack;
+        /* Make sure the symbol for the "std" namespace is actually in the
+           symbol table. */
+        enter_symbol_for_namespace_std(&locator);
+      } else {
+        scope_depth = DEPTH_OF_FILE_SCOPE;
+      }  /* if */
       /* Enter a file-scope symbol "va_list" that is a typedef to the
          proper type. */
       sym = full_enter_symbol(VA_LIST_NAME, (sizeof_t)(sizeof(VA_LIST_NAME)-1),
-                              (a_symbol_kind)sk_type, DEPTH_OF_FILE_SCOPE);
+                              (a_symbol_kind)sk_type, scope_depth);
+      new_symbol_created = TRUE;
+      if (va_list_in_std_namespace) {
+        /* Pop the namespace scope pushed above. */
+        pop_namespace_scope();
+        /* When included via "stdarg.h", a using-declaration in the global
+           namespace must be created.  This can't be done until the type
+           is created below. */
+      }  /* if */
 #if RECORD_HIDDEN_NAMES_IN_IL
       /* Set the flag directly, since record_symbol_declaration is not
          called. */
@@ -5216,6 +5267,22 @@ called at the point where the #include <stdarg.h> appears.
     va_list_typedef->va_list_guard_macro2_was_defined =
                                   define_guard_macro(GUARD_MACRO2_FOR_VA_LIST);
 #endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
+    if (new_symbol_created) {
+      if (va_list_in_std_namespace) {
+        /* Set the namespace information for the symbol.  Note that the
+           type itself must remain in the global scope. */
+        set_namespace_membership(sym, (a_source_correspondence*)NULL,
+                                 std_namespace);
+      }  /* if */
+      if (!is_cstdarg) {
+        /* Create a file-scope using-declaration for the namespace scope
+           type. */
+        (void)make_using_decl(sym, &null_source_position, DEPTH_OF_FILE_SCOPE);
+        (void)enter_namespace_projection_symbol(sym, &locator,
+                                                DEPTH_OF_FILE_SCOPE,
+                                                /*suppress_error=*/TRUE);
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* declare_builtin_va_list_type */
 
@@ -10745,6 +10812,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(unnamed_field_symbol_header),
       pch_saved_var_array_elem(global_namespace_list_entry),
       pch_saved_var_array_elem(symbol_for_namespace_std),
+      pch_saved_var_array_elem(symbol_for_namespace_std_entered),
 #if IA64_ABI
       pch_saved_var_array_elem(symbol_for_namespace_abi),
 #endif /* IA64_ABI */
@@ -10795,6 +10863,7 @@ are handled in symbol_tbl_init.)
   }  /* if */
   register_trans_unit_variable(global_namespace_list_entry);
   register_trans_unit_variable(symbol_for_namespace_std);
+  register_trans_unit_variable(symbol_for_namespace_std_entered);
 #if IA64_ABI
   register_trans_unit_variable(symbol_for_namespace_abi);
 #endif /* IA64_ABI */
@@ -10825,6 +10894,7 @@ given translation unit.
   global_namespace_list_entry = NULL;
   /* Initialize the predeclared symbol for namespace "std". */
   symbol_for_namespace_std = NULL;
+  symbol_for_namespace_std_entered = FALSE;
 #if IA64_ABI
   symbol_for_namespace_abi = NULL;
 #endif /* IA64_ABI */

@@ -304,7 +304,8 @@ extern a_routine_ptr make_routine(a_type_ptr      type_ptr,
                                   a_scope_depth   scope_depth);
 
 extern a_using_decl_ptr make_using_decl(a_symbol_ptr      sym,
-                                        a_source_position *pos);
+                                        a_source_position *pos,
+					a_scope_depth	  scope_depth);
 
 extern a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
                                        a_symbol_locator *locator,
