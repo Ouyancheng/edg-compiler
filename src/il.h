@@ -448,8 +448,6 @@ extern void db_access_control(an_access_specifier as);
 
 extern void db_constant(a_constant *cp);
 
-extern void db_field(a_field *fp);
-
 extern void db_type(a_type *tp);
 
 extern void db_abbreviated_type(a_type *tp);
