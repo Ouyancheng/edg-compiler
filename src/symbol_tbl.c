@@ -155,9 +155,6 @@ static a_vla_fixup_ptr
 			/* List of vla fixup entries freed and available for
 			   reuse. */
 
-/* Forward declaration: */
-static char *il_entry_for_symbol_null_okay(a_symbol_ptr      sym,
-                                           an_il_entry_kind  *kind);
 
 void form_optionally_qualified_symbol_name(
 		a_symbol_ptr				sym,
@@ -5339,8 +5336,8 @@ is returned TRUE if the parameter is not a reference parameter.
 }  /* select_copy_assignment_operator */
 
 
-static char *il_entry_for_symbol_null_okay(a_symbol_ptr      sym,
-                                           an_il_entry_kind  *kind)
+char *il_entry_for_symbol_null_okay(a_symbol_ptr      sym,
+                                    an_il_entry_kind  *kind)
 /*
 Return a pointer to the IL entry to which the specified symbol refers.  Also
 return the kind of IL entry that is found.  If the symbol is not associated

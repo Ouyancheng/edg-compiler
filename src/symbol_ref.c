@@ -175,10 +175,10 @@ Return TRUE if sym1 and sym2 point to the same IL entries.
   a_boolean         equiv = (sym1 == sym2);
 
   if (!equiv) {
-    if (sym1->kind == sym2->kind &&
-        il_entry_for_symbol(sym1, &kind) ==
-                  il_entry_for_symbol(sym2, &kind)) {
-      equiv = TRUE;
+    if (sym1->kind == sym2->kind) {
+      char *entry1 = il_entry_for_symbol_null_okay(sym1, &kind);
+      char *entry2 = il_entry_for_symbol_null_okay(sym2, &kind);
+      if (entry1 == entry2 && entry1 != NULL) equiv = TRUE;
     }  /* if */
   }  /* if */
   return equiv;
@@ -277,92 +277,90 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
         /* The normal case.  First find the entity associated with the
            symbol. */
         entity = il_entry_for_symbol(hidden_sym, &kind);
-        if (entity != NULL) {
-          if (sp == NULL) {
-            /* Get pointer to current scope entry. */
-            ssep = &scope_stack[decl_scope_level];
-            if (ssep->kind == (a_scope_kind)sck_pragma) --ssep;
-            while (ssep->kind == (a_scope_kind)sck_template_declaration) {
-              --ssep;
-            }  /* while */
-            /* Create the IL scope if necessary (for block scopes). */
-            sp = ensure_il_scope_exists(ssep);
-            check_assertion_str(sp != NULL,
-                               "record_defeatable_name_hiding: NULL IL scope");
-          }  /* if */
-          /* If there is already a hidden name entry for this entity in this
-             scope, reuse it. */
-          for (hnp = sp->hidden_names; hnp != NULL; hnp = hnp->next) {
-            if (hnp->entity.ptr == entity) break;
-          }  /* for */
+        if (sp == NULL) {
+          /* Get pointer to current scope entry. */
+          ssep = &scope_stack[decl_scope_level];
+          if (ssep->kind == (a_scope_kind)sck_pragma) --ssep;
+          while (ssep->kind == (a_scope_kind)sck_template_declaration) {
+            --ssep;
+          }  /* while */
+          /* Create the IL scope if necessary (for block scopes). */
+          sp = ensure_il_scope_exists(ssep);
+          check_assertion_str(sp != NULL,
+                              "record_defeatable_name_hiding: NULL IL scope");
+        }  /* if */
+        /* If there is already a hidden name entry for this entity in this
+           scope, reuse it. */
+        for (hnp = sp->hidden_names; hnp != NULL; hnp = hnp->next) {
+          if (hnp->entity.ptr == entity) break;
+        }  /* for */
 #if DEBUG
-          if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
-            if (hnp == NULL ||
-                ((tag_hidden_by_nontag &&
-                  !hnp->elaborated_type_specifier_needed) ||
-                 (hidden_class_or_namespace_member &&
-                  !hnp->qualification_needed))) {
-              a_source_correspondence  *scp =
+        if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+          if (hnp == NULL ||
+              ((tag_hidden_by_nontag &&
+                !hnp->elaborated_type_specifier_needed) ||
+               (hidden_class_or_namespace_member &&
+                !hnp->qualification_needed))) {
+            a_source_correspondence  *scp =
                                    source_corresp_for_il_entry(entity, kind);
-              fputs("  in ", f_debug);
-              db_scope(sp);
-              fputs(": use", f_debug);
-              if (hidden_class_or_namespace_member) {
-                fputs(" qualifier", f_debug);
-                if (tag_hidden_by_nontag) fputs(" and", f_debug);
-              }  /* if */
-              if (tag_hidden_by_nontag) fputs(" class-key", f_debug);
-              fputs(" for \"", f_debug);
-              if (kind == (an_il_entry_kind)iek_type) {
-                db_abbreviated_type((a_type_ptr)entity);
-              } else {
-                if (scp != NULL) {
-                  db_name(scp);
-                  if (kind == (an_il_entry_kind)iek_routine) {
-                    db_function_param_list(((a_routine_ptr)entity)->type);
-                  }  /* if */
-                } else {
-                  fprintf(f_debug, "\?\?\?");
-                }  /* if */
-              }  /* if */
-              fprintf(f_debug, "\"%s", hnp == NULL ? "" : " [modif]");
-              fprintf(f_debug, "\n");
+            fputs("  in ", f_debug);
+            db_scope(sp);
+            fputs(": use", f_debug);
+            if (hidden_class_or_namespace_member) {
+              fputs(" qualifier", f_debug);
+              if (tag_hidden_by_nontag) fputs(" and", f_debug);
             }  /* if */
-          }  /* if */
-#endif /* DEBUG */
-          if (hnp == NULL) {
-            /* No existing entry.  Allocate a new one. */
-            a_scope_depth           scope_depth;
-            a_memory_region_number  region_to_switch_back_to;
-
-            /* Get the scope depth from which to determine the appropriate
-               memory region in which to allocate the hidden-name entry. */
-            if (in_file_scope(sp)) {
-              scope_depth = DEPTH_OF_FILE_SCOPE;
+            if (tag_hidden_by_nontag) fputs(" class-key", f_debug);
+            fputs(" for \"", f_debug);
+            if (kind == (an_il_entry_kind)iek_type) {
+              db_abbreviated_type((a_type_ptr)entity);
             } else {
-              scope_depth = sp->depth_in_scope_stack;
-              check_assertion(scope_depth != NO_SCOPE_DEPTH);
+              if (scp != NULL) {
+                db_name(scp);
+                if (kind == (an_il_entry_kind)iek_routine) {
+                  db_function_param_list(((a_routine_ptr)entity)->type);
+                }  /* if */
+              } else {
+                fprintf(f_debug, "\?\?\?");
+              }  /* if */
             }  /* if */
-            switch_to_scope_region(scope_depth, &region_to_switch_back_to);
-            hnp = alloc_hidden_name();
-            switch_back_to_original_region(region_to_switch_back_to);
-            hnp->entity.ptr = entity;
-            hnp->entity.kind = (a_byte_il_entry_kind)kind;
-            /* Add it to the start of the hiden_names list for the current
-               scope. */
-            hnp->next = sp->hidden_names;
-            sp->hidden_names = hnp;
-          }  /* if */
-          /* Set the appropriate flag. */
-          if (tag_hidden_by_nontag) {
-            check_assertion(kind == (an_il_entry_kind)iek_type);
-            hnp->elaborated_type_specifier_needed = TRUE;
-          }  /* if */
-          if (hidden_class_or_namespace_member) {
-            check_assertion(in_file_scope(entity));
-            hnp->qualification_needed = TRUE;
+            fprintf(f_debug, "\"%s", hnp == NULL ? "" : " [modif]");
+            fprintf(f_debug, "\n");
           }  /* if */
         }  /* if */
+#endif /* DEBUG */
+        if (hnp == NULL) {
+          /* No existing entry.  Allocate a new one. */
+          a_scope_depth           scope_depth;
+          a_memory_region_number  region_to_switch_back_to;
+           /* Get the scope depth from which to determine the appropriate
+             memory region in which to allocate the hidden-name entry. */
+          if (in_file_scope(sp)) {
+            scope_depth = DEPTH_OF_FILE_SCOPE;
+          } else {
+            scope_depth = sp->depth_in_scope_stack;
+            check_assertion(scope_depth != NO_SCOPE_DEPTH);
+          }  /* if */
+          switch_to_scope_region(scope_depth, &region_to_switch_back_to);
+          hnp = alloc_hidden_name();
+          switch_back_to_original_region(region_to_switch_back_to);
+          hnp->entity.ptr = entity;
+          hnp->entity.kind = (a_byte_il_entry_kind)kind;
+          /* Add it to the start of the hiden_names list for the current
+             scope. */
+          hnp->next = sp->hidden_names;
+          sp->hidden_names = hnp;
+        }  /* if */
+        /* Set the appropriate flag. */
+        if (tag_hidden_by_nontag) {
+          check_assertion(kind == (an_il_entry_kind)iek_type);
+          hnp->elaborated_type_specifier_needed = TRUE;
+        }  /* if */
+        if (hidden_class_or_namespace_member) {
+          check_assertion(in_file_scope(entity));
+          hnp->qualification_needed = TRUE;
+        }  /* if */
+        break;
     }  /* switch */
   }  /* if */
 }  /* record_defeatable_name_hiding */
