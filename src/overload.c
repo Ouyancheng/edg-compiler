@@ -9076,8 +9076,21 @@ happen only in C++ mode.
   conversion_routine = conversion->routine;
   class_bitwise_copy = conversion->class_identity_or_bitwise_copy;
   if (class_bitwise_copy) {
-    /* The operation is a class bitwise copy.  Do nothing now; the real
-       work gets done below. */
+    /* The operation is a class bitwise copy. */
+    if (skip_typerefs(source_operand->type) == class_type) {
+      /* The source and destination types are the same, so the bitwise copy
+         is a "copy constructor call" that may be eligible for elision. */
+      /* See whether the source is a temporary that can be eliminated. */
+      if (is_temp_init_usable_in_optimization(source_operand,
+                                              !fill_in_dtor,
+                                              &temp_init_node,
+                                              &dip)) {
+        /* Eliminate the temporary and the bitwise copy. */
+        elision_done = TRUE;
+        elision_source_type = source_operand->type;
+        class_bitwise_copy = FALSE;
+      }  /* if */
+    }  /* if */
   } else if (conversion_routine == NULL) {
     /* There was a previous error. */
 #if CHECKING

@@ -1,5 +1,24 @@
 Version 2.44
 
+1/21/00  Copy constructor elision for generated bitwise copy constructor
+
+Copy constructor elision (optimizing away a copy constructor call) is
+now done even when the copy constructor involved is a generated
+bitwise copy constructor, i.e., something implemented as an assignment,
+not a call.
+
+  struct A {
+    A(int);
+    ~A();
+    // Note: no declared copy constructor
+  };
+  A a = A(1); // No temporary created now
+  A aa[2] = { A(1), A(2) };  // No temporaries created now
+
+This eliminates some surprising (but correct, even though unoptimized)
+behavior in classes that have some user-written constructors but no
+user-written copy constructor.
+
 1/21/00  Microsoft compatibility: type names as parameter names (C mode)
 
 When compiling C in Microsoft bugs mode, the front end accepts type names in
