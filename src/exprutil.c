@@ -5808,7 +5808,7 @@ if is_lvalue is TRUE.  Return NULL if the expression cannot be generated.
   an_expr_node_ptr expr = NULL;
 
   if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
-    if (curr_il_region_number == FILE_SCOPE_REGION_NUMBER &&
+    if (curr_il_region_number == file_scope_region_number &&
         !in_file_scope(variable)) {
       /* Can't record a local variable in a file-scope expression.  This
          comes up in constant expressions (like array bounds) that

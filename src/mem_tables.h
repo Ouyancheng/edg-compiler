@@ -31,7 +31,20 @@ typedef int a_memory_region_number;
 #define NULL_region_number  ((a_memory_region_number)0)
 /* NULL_region_number is also used for the region of information used in
 the front end and not written out or otherwise passed to the back end. */
+/*
+FILE_SCOPE_REGION_NUMBER is the memory region number for the
+file scope.  Note that in the front end one should use the global
+variable file_scope_region_number if a secondary translation unit
+might be involved.
+*/
 #define FILE_SCOPE_REGION_NUMBER ((a_memory_region_number)1)
+
+EXTERN a_memory_region_number
+		file_scope_region_number;
+			/* The memory region number for the file scope.
+			   Equal to FILE_SCOPE_MEMORY_REGION except when
+			   processing a secondary translation unit (e.g.,
+			   for export template). */
 
 /*
 Header for a block of memory.  One or more of these make up a memory

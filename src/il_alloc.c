@@ -195,7 +195,7 @@ When orphan processing is needed, also allocate space for the
 next-orphaned-entry pointer preceding the entry and the entry prefix.
 */
 #define do_fs_alloc(ptr, size)                                        \
-{ ptr = alloc_in_region(FILE_SCOPE_REGION_NUMBER,                     \
+{ ptr = alloc_in_region(file_scope_region_number,                     \
                         (sizeof_t)((size) +                           \
                                    SPACE_FOR_FS_ORPHAN_POINTER +      \
                                    SPACE_FOR_IL_ENTRY_PREFIX));       \
@@ -210,7 +210,7 @@ next-orphaned-entry pointer preceding the entry and the entry prefix.
 /* When orphan processing is not needed, file-scope allocation is like
    allocation in any other memory region. */
 #define do_fs_alloc(ptr, size)                                        \
-  do_alloc((ptr), FILE_SCOPE_REGION_NUMBER, TRUE, (size))
+  do_alloc((ptr), file_scope_region_number, TRUE, (size))
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
 
@@ -220,7 +220,7 @@ file-scope and normal allocation methods as necessary).
 */
 #if ORPHAN_PROCESSING_NEEDED
 #define do_any_alloc(ptr, region_number, size)                        \
-{ if ((region_number) == FILE_SCOPE_REGION_NUMBER) {                  \
+{ if ((region_number) == file_scope_region_number) {                  \
     do_fs_alloc((ptr), (size));                                       \
   } else {                                                            \
     do_alloc((ptr), (region_number), FALSE, (size));                  \
@@ -231,7 +231,7 @@ file-scope and normal allocation methods as necessary).
    is the same as allocation in any other region. */
 #define do_any_alloc(ptr, region_number, size)                        \
   do_alloc((ptr), (region_number),                                    \
-           ((region_number) == FILE_SCOPE_REGION_NUMBER), (size))
+           ((region_number) == file_scope_region_number), (size))
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
 #ifdef TRACE_ALLOC
@@ -2420,7 +2420,7 @@ to it.
      otherwise, allocate a new one. */
   /* Note that the file scope and every function scope (i.e., each scope for
      which there is a unique memory region) has its own available list. */
-  if (curr_il_region_number == FILE_SCOPE_REGION_NUMBER) {
+  if (curr_il_region_number == file_scope_region_number) {
     /* Use the file scope. */
     scope_depth = DEPTH_OF_FILE_SCOPE;
   } else {
@@ -2634,7 +2634,7 @@ to it.
      otherwise, allocate a new one. */
   /* Note that each scope that has a source sequence list (there is one such
      scope per memory region) also has its own available list. */
-  if (curr_il_region_number == FILE_SCOPE_REGION_NUMBER) {
+  if (curr_il_region_number == file_scope_region_number) {
     /* Use the file scope. */
     scope_depth = DEPTH_OF_FILE_SCOPE;
   } else {

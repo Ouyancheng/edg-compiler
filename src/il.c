@@ -2090,9 +2090,9 @@ Switch to the file-scope memory region if not already there.  Set
 region_to_switch_back_to for use later by switch_back_to_original_region.
 */
 {
-  if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
+  if (curr_il_region_number != file_scope_region_number) {
     *region_to_switch_back_to = curr_il_region_number;
-    switch_il_region(FILE_SCOPE_REGION_NUMBER);
+    switch_il_region(file_scope_region_number);
   } else {
     *region_to_switch_back_to = NULL_region_number;
   }  /* if */
@@ -2146,7 +2146,7 @@ Allocate a scope entry in the new region and return a pointer to it.
 
   if (kind == (a_scope_kind)sck_file) {
     /* The file scope memory region is created in initialization. */
-    switch_il_region(FILE_SCOPE_REGION_NUMBER);
+    switch_il_region(file_scope_region_number);
   } else {
 #if CHECKING
     if (kind != (a_scope_kind)sck_function) {
@@ -4074,7 +4074,7 @@ put it on a list of constants).
        things that are in the function scope, the constant cannot be
        allocated and shared at the file scope. */
     alloc_in_function_scope = (curr_il_region_number !=
-                               FILE_SCOPE_REGION_NUMBER) &&
+                               file_scope_region_number) &&
                               has_non_file_scope_ref(cp);
     if (alloc_in_function_scope) {
       /* The constant cannot be shared at the file scope.  Look for a copy
@@ -4251,7 +4251,7 @@ caller is responsible for sorting that out.)
       /* A prototype scope must be allocated.  It is always allocated in the
          file scope memory region because it is pointed to from the routine
          type supplement, which is always at file scope. */
-      check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
+      check_assertion(curr_il_region_number == file_scope_region_number);
       sp = alloc_scope((a_scope_kind)sck_func_prototype, ssep->number,
                        (a_routine_ptr)NULL);
       ssep->il_scope = sp;
@@ -6790,7 +6790,7 @@ If var_scope is NULL, use the current scope in the scope stack.
   }  /* if */
   check_assertion(var_scope->kind == (a_scope_kind)sck_function ||
                   var_scope->kind == (a_scope_kind)sck_block);
-  check_assertion(curr_il_region_number != FILE_SCOPE_REGION_NUMBER);
+  check_assertion(curr_il_region_number != file_scope_region_number);
   lsvip = alloc_local_static_variable_init();
   lsvip->next = var_scope->local_static_variable_inits;
   var_scope->local_static_variable_inits = lsvip;
@@ -7202,7 +7202,7 @@ Make a temporary variable whose type is temp_type.  Return a pointer to it.
      However, if the temp is involved in an expression at file scope (within
      a class scope, for instance, or a default argument expression), it
      should be static and be allocated in file scope memory region. */
-  if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
+  if (curr_il_region_number != file_scope_region_number) {
     storage_class = (a_storage_class)sc_auto;
     at_file_scope = FALSE;
   } else {

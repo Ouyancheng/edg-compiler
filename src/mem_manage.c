@@ -1355,6 +1355,7 @@ must be initialized for each compilation.
 */
 {
   highest_used_region_number = NULL_region_number;
+  file_scope_region_number = FILE_SCOPE_REGION_NUMBER;
 #if DEBUG
   total_mem_used = 0;
   num_alignment_bytes_allocated = 0;

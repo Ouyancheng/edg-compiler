@@ -702,7 +702,7 @@ entry that has already been created and linked in for this entity.
   db_enter(4, "f_update_source_sequence_list");
   check_assertion_str(!source_sequence_entries_disallowed,
                       "source sequence entries not allowed in current scope");
-  if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
+  if (curr_il_region_number != file_scope_region_number &&
       kind != iek_statement && kind != iek_switch_clause &&
       in_file_scope(entity_ptr)) {
     /* The entity is in the file scope, but the current memory region is
@@ -821,7 +821,7 @@ region -- and then add it to the end of the source sequence list.
        generated. */
     ssep = NULL;
   } else {
-    check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER ||
+    check_assertion(curr_il_region_number == file_scope_region_number ||
                     scope_stack[depth_scope_stack].kind !=
                                        (a_scope_kind)sck_func_prototype);
     ssep = alloc_source_sequence_entry();
@@ -852,7 +852,7 @@ sequence list.
     /* We are in a context in which source sequence entries are being
        generated. */
     if (kind == (a_byte_il_entry_kind)iek_type &&
-        curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
+        curr_il_region_number != file_scope_region_number) {
       /* Local type. */
       check_assertion(in_file_scope(ptr));
       force_alloc_in_filescope = TRUE;

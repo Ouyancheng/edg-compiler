@@ -1078,7 +1078,7 @@ secondary status.
              secondary declaration. */
           /* Switch to the file scope memory region to allocate the new entry
              if necessary. */
-          if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
+          if (curr_il_region_number != file_scope_region_number &&
               in_file_scope(il_entry_ptr)) {
             force_alloc_in_filescope = TRUE;
             switch_to_file_scope_region(&region_to_switch_back_to);

@@ -1138,19 +1138,19 @@ the scope being pushed.
          However, the IL scope is not allocated until it is needed -- it
          usually isn't. */
       sp = NULL;
-      if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
-        switch_il_region(FILE_SCOPE_REGION_NUMBER);
+      if (curr_il_region_number != file_scope_region_number) {
+        switch_il_region(file_scope_region_number);
       }  /* if */
-      ssep->il_memory_region = FILE_SCOPE_REGION_NUMBER;
+      ssep->il_memory_region = file_scope_region_number;
       break;
     case sck_namespace:
     case sck_namespace_extension:
-      if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
+      if (curr_il_region_number != file_scope_region_number) {
         /* In a legal program we should already be in the file-scope memory
            region -- there must have been an error. */
-        switch_il_region(FILE_SCOPE_REGION_NUMBER);
+        switch_il_region(file_scope_region_number);
       }  /* if */
-      ssep->il_memory_region = FILE_SCOPE_REGION_NUMBER;
+      ssep->il_memory_region = file_scope_region_number;
       if (kind == (a_scope_kind)sck_namespace) {
         sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
         sp->variant.assoc_namespace = assoc_namespace;
@@ -1158,16 +1158,16 @@ the scope being pushed.
       } else {
         sp = assoc_namespace->variant.assoc_scope;
       }  /* if */
-      ssep->il_memory_region = FILE_SCOPE_REGION_NUMBER;
+      ssep->il_memory_region = file_scope_region_number;
       break;
     case sck_class_struct_union:
       /* Class/struct/union definitions require the file-scope memory region,
          since the entities created to represent the members are pointed to
          from the type entry. */
-      if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
-        switch_il_region(FILE_SCOPE_REGION_NUMBER);
+      if (curr_il_region_number != file_scope_region_number) {
+        switch_il_region(file_scope_region_number);
       }  /* if */
-      ssep->il_memory_region = FILE_SCOPE_REGION_NUMBER;
+      ssep->il_memory_region = file_scope_region_number;
       /* Save a copy of the scope number in the class symbol supplement. */
       symbol_supplement_for_class(assoc_type)->member_decl_scope =
                                                               ssep->number;
@@ -1182,7 +1182,7 @@ the scope being pushed.
     case sck_condition:
       /* A C++ condition scope is only created when there is a declaration,
          so we know an IL scope will be required. */
-      check_assertion_str(curr_il_region_number != FILE_SCOPE_REGION_NUMBER,
+      check_assertion_str(curr_il_region_number != file_scope_region_number,
                           "push_scope_full: bad region number for condition");
       sp = alloc_scope((a_scope_kind)sck_condition, ssep->number,
                        (a_routine_ptr)NULL);
@@ -4451,7 +4451,7 @@ End a name scope by popping an entry off the scope stack.
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
     /* Clear out the shareable constants table for the file scope or a
        function scope. */
-    if (old_memory_region_number == FILE_SCOPE_REGION_NUMBER) {
+    if (old_memory_region_number == file_scope_region_number) {
       empty_shareable_constants_table();
     } else {
       empty_func_shareable_constants_table();

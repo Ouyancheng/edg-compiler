@@ -12520,7 +12520,7 @@ C++ to C, so that a C back end can handle it without change.
     /* Mark entries created during this traversal as having already been
        visited by IL lowering. */
     initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
-    if (region_number == FILE_SCOPE_REGION_NUMBER) {
+    if (region_number == file_scope_region_number) {
       /* The file scope. */
       lowering_file_scope = TRUE;
       scope = il_header.primary_scope;
