@@ -8773,7 +8773,14 @@ Issue an error and set *processed to TRUE if the conversion is ambiguous.
   if (is_class_struct_union_type(operand->type)) {
     /* See if the class type can be converted to an acceptable built-in
        type. */
-    if (conversion_from_class_possible(operand, (a_type_ptr)NULL,
+    a_type_ptr dest_type = NULL;
+    if (builtin_types_allowed == BTK_BOOL) {
+      /* There's only one type in the BTK_BOOL category, so make that a
+         conversion to a specific type so that templates can be used. */
+      dest_type = bool_type();
+      builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
+    }  /* if */
+    if (conversion_from_class_possible(operand, dest_type,
                                        builtin_types_allowed,
                                        /*need_lvalue_result=*/FALSE,
                                        /*is_copy_initialization=*/TRUE,

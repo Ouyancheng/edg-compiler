@@ -1,5 +1,17 @@
 Version 2.45
 
+9/25/00  Template conversion function usable for conversion to bool
+
+In a context that requires an expression of type bool, a template
+conversion function will now be considered as a way to do the conversion.
+
+  struct A {
+    template <class T> operator T();
+  } a;
+  int main() {
+    if (a) ;  // Formerly an error
+  }
+
 9/22/00  Diagnostics on extra text after preprocessing directives
 
 Previously, extraneous text following preprocessing directives was only
