@@ -186,7 +186,8 @@ static void init_remaining_array_elements(a_type_ptr          array_type,
                                           a_constant_ptr      *con_list,
                                           a_constant_ptr      *end_of_con_list,
                                           a_dynamic_init_ptr  *di_list,
-                                          a_dynamic_init_ptr  *end_of_di_list)
+                                          a_dynamic_init_ptr  *end_of_di_list,
+                                          a_boolean           *incomplete_init)
 /*
 This routine is called from get_initializer when an array whose
 elements require constructor initialization (and/or destruction by
@@ -218,6 +219,14 @@ the two list.
     if (is_class_struct_union_type(element_type)) {
       /* It is an array of class objects. */
       cssp = symbol_supplement_for_class(element_type);
+      if (cssp->constructor == NULL &&
+          (element_type->variant.class_struct_union.any_const_member ||
+           (C_dialect == C_dialect_cplusplus &&
+            symbol_supplement_for_class(element_type)->any_ref_member))) {
+        /* An array element of class type with no constructor but with
+           const or ref member will end up uninitialized. */
+        *incomplete_init = TRUE;
+      }  /* if */
       if (cssp->constructor != NULL || cssp->destructor != NULL) {
         /* Initialization is required. */
         if (cssp->constructor != NULL) {
@@ -325,7 +334,8 @@ of constant initializers.
 static a_constant_ptr get_initializer(a_type_ptr          *type,
                                       a_dynamic_init_ptr  *di_list,
                                       a_dynamic_init_ptr  *end_of_di_list,
-                                      a_boolean           top_level)
+                                      a_boolean           top_level,
+                                      a_boolean           *incomplete_init)
 /*
 Scan a constant initializer or initializer list, and return a pointer to
 the constant for it (an aggregate constant if an initializer list is
@@ -373,7 +383,7 @@ for unions and aggregates at that level).
         S sa2[] = { s1, s2 };          // error!
         T t1 = { 1, 2 };               // error -- must use T::T()
         T t2 = t1;                     // okay -- uses T::T(const T&)
-        T ta = { t1, t2 };             // okay -- see ARM 12.6.1
+        T ta[] = { t1, t2 };           // okay -- see ARM 12.6.1
      The point to be noted is that if the initialization of sa1 is permitted
      (which is required for C compatibility) the code to initialize sa2 must
      be disallowed, despite what one might expect by looking at s2, t2, and
@@ -505,7 +515,7 @@ for unions and aggregates at that level).
         add_stop_token(tok_comma);
         /* Get the initializer for this one member. */
         member_con = get_initializer(&member_type, di_list, end_of_di_list,
-                                     /*top_level=*/FALSE);
+                                     /*top_level=*/FALSE, incomplete_init);
         remove_stop_token(tok_comma);
         /* Add the constant to the list. */
         if (con_list == NULL) {
@@ -591,6 +601,17 @@ for unions and aggregates at that level).
           /* Read the rest of the constants as part of an error type. */
           kind = (a_type_kind)tk_error;
           member_type = error_type();
+        } else if (done && !no_more_members &&
+                   (kind == (a_type_kind)tk_class ||
+                    kind == (a_type_kind)tk_struct)) {
+          /* There are no more initializers, but there are more fields to
+             initialize.  Issue a warning if there are const or ref members
+             that remain uninitialized. */
+          if (local_type->variant.class_struct_union.any_const_member ||
+              (C_dialect == C_dialect_cplusplus &&
+               symbol_supplement_for_class(local_type)->any_ref_member)) {
+            *incomplete_init = TRUE;
+          }  /* if */
         }  /* if */
       }  /* while */
       /* The entire list of values for the entity being initialized has
@@ -614,7 +635,7 @@ for unions and aggregates at that level).
            the default constructor. */
         init_remaining_array_elements(local_type, curr_array_element,
                                       &con_list, &end_of_con_list, di_list,
-                                      end_of_di_list);
+                                      end_of_di_list, incomplete_init);
       }  /* if */
       /* Allocate the aggregate constant that is the value for the
          initializer. */
@@ -1082,10 +1103,11 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
        non-constants. */
     a_constant_ptr       cp;
     a_dynamic_init_ptr   di_list = NULL, end_of_di_list = NULL;
+    a_boolean            incomplete_init = FALSE;
 
     /* Scan the initializer list. */
     cp = get_initializer(&vp_type, &di_list, &end_of_di_list,
-                         /*top_level=*/TRUE);
+                         /*top_level=*/TRUE, &incomplete_init);
     if (cp->kind == (a_constant_repr_kind)ck_error) {
       err = TRUE;
     } else {
@@ -1102,6 +1124,11 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
                              (a_dynamic_init_kind)dik_nonconstant_aggregate :
                              (a_dynamic_init_kind)dik_constant));
       local_di.variant.constant = cp;
+      if (incomplete_init) {
+        /* A const or ref field was not initialized.  Issue a warning. */
+        pos_sy_warning(ec_var_with_uninitialized_field, source_pos,
+                       symbol_ptr);
+      }  /* if */
     }  /* if */
     if (!err && put_init_in_variable) {
       /* Copy the type back into the variable.  It might have been changed
