@@ -4464,7 +4464,7 @@ function declarations.)
 #if 0
     /* Until support for placement delete is provided, check for potential
        overloading of operator delete. */
-#endif
+#endif  /* if 0 */
     if (locator->is_operator_name &&
         is_delete_operator(locator->variant.opname)) {
       pos_error(ec_template_operator_delete, &locator->source_position);
@@ -7910,6 +7910,19 @@ completed (C++ only).
     /* Find the prototype instantiation symbol associated with this
        real instantiation. */
     corresp_prototype_tag_sym = corresp_prototype_for_class_symbol(tag_sym);
+#if USER_CONTROL_OF_STRUCT_PACKING
+    if (corresp_prototype_tag_sym != NULL) {
+      /* The class is an instantiation of a class template (or a class nested
+         within such an instantiation).  Overwrite the alignment entered for
+         this class (which was based on the instantiation context) with the
+         alignment in force at the point of the template definition, as
+         recorded in the type of the prototype instantiation. */
+      a_type_ptr  tp = corresp_prototype_tag_sym->
+                                         variant.class_struct_union.type;
+      class_type->variant.class_struct_union.max_member_alignment =
+                         tp->variant.class_struct_union.max_member_alignment;
+    }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if (delayed_nested_class_def) {
       /* This is a definition of a C++ nested class that appears outside the
          scope of the parent class definition itself.  Reactivate the
