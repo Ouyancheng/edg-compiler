@@ -1047,8 +1047,10 @@ to indicate whether an enumeration is actually defined.
       enum_type->source_corresp.referenced = FALSE;
       enum_type->source_corresp.decl_position = locator.source_position;
     }  /* if */
-    set_class_membership(tag_sym, &enum_type->source_corresp,
-                         class_of_which_a_member);
+    if (class_of_which_a_member != NULL) {
+      set_class_membership(tag_sym, &enum_type->source_corresp,
+                           class_of_which_a_member);
+    }  /* if */
     /* When an enumeration is defined within a class definition, its access
        should be set based on the access recorded in the current scope stack
        entry and its parent class should be recorded. */
@@ -1245,8 +1247,10 @@ to indicate whether an enumeration is actually defined.
         enum_sym->variant.constant = enum_con;
         enum_con->type = enum_con_type;
         /* Specify membership and access. */
-        set_class_membership(enum_sym, &enum_con->source_corresp,
-                             class_of_which_a_member);
+        if (class_of_which_a_member != NULL) {
+          set_class_membership(enum_sym, &enum_con->source_corresp,
+                               class_of_which_a_member);
+        }  /* if */
         enum_con->source_corresp.access = access;
         mark_defined(enum_sym, &locator.source_position);
         /* Add the enumeration constant to the list under the enumerated
