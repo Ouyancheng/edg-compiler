@@ -5197,6 +5197,8 @@ initially used when processing the declaration of a partial specialization.
     tssp->variant.class_template.prototype_instantiation = prototype_sym;
     prototype_sym->variant.class_struct_union.extra_info->
                                           is_prototype_instantiation = TRUE;
+    prototype_sym->variant.class_struct_union.extra_info->
+                                          is_nonreal_class = TRUE;
   }
 }  /* create_prototype_type */
 
@@ -5635,6 +5637,12 @@ instantiation.
     }  /* if */
     is_redecl = FALSE;
   }  /* if */
+  if (tssp->variant.class_template.prototype_instantiation == NULL) {
+    /* Create the symbol for the prototype instantiation (but don't do
+       the instantiation yet). */
+    create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
+                          is_partial_specialization);
+  }  /* if */
   if (is_definition) {
     /* Save the type kind (corresponding to the class/struct/union token)
        in the class template symbol's supplement -- it will be needed when
@@ -5662,12 +5670,6 @@ instantiation.
     /* This template is a specialization of a member template.  Update the
        template information to reflect this. */
     record_specialization(decl_state, sym, tssp);
-  }  /* if */
-  if (tssp->prototype_template == NULL || tssp->is_specific_definition) {
-    /* Create the symbol for the prototype instantiation (but don't do
-       the instantiation yet).  This not done for subordinate templates. */
-    create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
-                          is_partial_specialization);
   }  /* if */
   if (is_definition) {
     a_token_sequence_number   first_token_number = curr_token_sequence_number;
