@@ -4547,6 +4547,7 @@ value is used).
   a_constant_ptr   rhs_con, con;
   a_targ_size_t    num_elements;
   int              cmp;
+  a_boolean        prev_subsc_just_past_end = FALSE;
 
   *just_past_end = FALSE;
   /* Drop any possible array-decay casts. */
@@ -4605,6 +4606,13 @@ value is used).
                 lhs_node = lhs_node->variant.operation.operands;
                 if (is_pointer_type(lhs_node->type)) {
                   underlying_type = type_pointed_to(lhs_node->type);
+                  /* Check for a subscript at the next level down (i.e.,
+                     we have multi-dimensional subscripting).  Only at the
+                     end of a string of subscripts can we check the
+                     validity of just-past-the-end subscripts on the
+                     earlier subscripts. */
+                  (void)valid_node_if_subscript(lhs_node,
+                                                &prev_subsc_just_past_end);
                 }  /* if */
               }  /* if */
             }  /* if */
@@ -4628,6 +4636,15 @@ value is used).
                 if (sign_of_integer_constant(rhs_con) < 0) {
                   /* Negative subscript. */
                   valid = FALSE;
+                } else if (prev_subsc_just_past_end) {
+                  /* A previous subscript was just past the end. */
+                  if (sign_of_integer_constant(rhs_con) == 0) {
+                    /* This one is zero, so we're still just at the end. */
+                    *just_past_end = TRUE;
+                  } else {
+                    /* This one is positive, so we're off the end. */
+                    valid = FALSE;
+                  }  /* if */
                 } else if (vla_enabled && is_vla_type(underlying_type)) {
                   /* Variable-length arrays cannot be checked for non-negative
                      subscripts. */
