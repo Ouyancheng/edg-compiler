@@ -4871,8 +4871,9 @@ precedence confusion and need_parens is TRUE.
        instantiation.  Optimize if the constant refers to the address
        of a member (to avoid "*" and "&" operators). */
     a_constant_ptr constant = node->variant.constant;
-    if (constant->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_address) {
+    a_template_param_constant_kind tpkind =
+                                         constant->variant.template_param.kind;
+    if (tpkind == (a_template_param_constant_kind)tpck_address) {
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       check_assertion(constant->expr == NULL);
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
@@ -4880,14 +4881,20 @@ precedence confusion and need_parens is TRUE.
       form_constant(constant->variant.template_param.variant.constant,
 		    need_parens, &octl);
       processed = TRUE;
-    } else if (constant->variant.template_param.kind ==
+    } else if (tpkind ==
                        (a_template_param_constant_kind)tpck_unknown_function ||
-               constant->variant.template_param.kind ==
+               tpkind ==
                        (a_template_param_constant_kind)tpck_template_ref) {
       /* A tpck_unknown_function or tpck_template_ref constant represents
          the address of the unknown function.  Drop the "&" to make an
          lvalue. */
       form_unknown_function_constant(constant, &octl);
+      processed = TRUE;
+    } else if (tpkind == (a_template_param_constant_kind)tpck_uuidof) {
+      /* A tpck_uuidof constant represents the address of the Microsoft
+         __uuidof.  Drop the "&" to make an lvalue. */
+      form_uuidof_reference(constant->variant.template_param.variant.type,
+                            &octl);
       processed = TRUE;
     }  /* if */
   } else if (kind == (an_expr_node_kind)enk_constant &&

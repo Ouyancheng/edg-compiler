@@ -1628,7 +1628,8 @@ enum a_template_param_constant_kind_tag {
 			   contains a template parameter type. */
   tpck_uuidof,		/* The template param constant represents the
 			   Microsoft __uuidof operator applied to a type
-			   that contains a template parameter type. */
+			   that contains a template parameter type.  It
+			   represents the address of the implied structure. */
   tpck_template_ref	/* The template param constant provides a pointer
 			   to an unknown function template, and a set of
 			   explicit template arguments for that template. */

@@ -2296,6 +2296,24 @@ if given an empty union.
 }  /* select_arbitrary_field_of_union */
 
 
+void form_uuidof_reference(a_type_ptr                            uuid_type,
+                           an_il_to_str_output_control_block_ptr octl)
+/*
+Output a Microsoft __uuidof reference.  uuid_type is the type, or NULL
+to indicate the "0" case.  Do the output in the way described by octl.
+*/
+{
+  octl->output_str("__uuidof(");
+  if (uuid_type != NULL) {
+    form_type(uuid_type, octl);
+  } else {
+    /* Zero GUID. */
+    octl->output_str("0");
+  }  /* if */
+  octl->output_str(")");
+}  /* form_uuidof_reference */
+
+
 static void form_lvalue_for_addressed_entity(
                    a_constant_ptr                        constant,
                    a_type_ptr                            desired_type,
@@ -2416,19 +2434,12 @@ parentheses are not needed.
       form_constant(con, /*need_parens=*/FALSE, octl);
     } else {
       /* Microsoft __uuidof. */
-      a_type_ptr uuid_type;
-
       check_assertion_str(constant->variant.address.kind ==
                                               (an_address_base_kind)abk_uuidof,
                           "form_lvalue_for_addressed_entity: bad kind");
-      uuid_type = constant->variant.address.variant.type;
-      octl->output_str("__uuidof(");
-      if (uuid_type != NULL) {
-        form_type(uuid_type, octl);
-      } else {
-        /* Zero GUID. */
-        octl->output_str("0");
-      }  /* if */
+      /* The constant represents the address of the __uuidof, so add a "&". */
+      octl->output_str("(&");
+      form_uuidof_reference(constant->variant.address.variant.type, octl);
       octl->output_str(")");
     }  /* if */
   }  /* if */
@@ -3524,9 +3535,8 @@ precedence confusion.  Do the output in the way described by octl.
           octl->output_str(")");
           break;
         case tpck_uuidof:
-          octl->output_str("__uuidof(");
-          form_type(constant->variant.template_param.variant.type, octl);
-          octl->output_str(")");
+          form_uuidof_reference(constant->variant.template_param.variant.type,
+                                octl);
           break;
         default:
           octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**");

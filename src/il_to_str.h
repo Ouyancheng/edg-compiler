@@ -245,6 +245,10 @@ extern void form_pm_constant(
   ((constant)->expr != NULL && !is_enum_constant(constant))
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
+extern void form_uuidof_reference(
+                           a_type_ptr                            uuid_type,
+                           an_il_to_str_output_control_block_ptr octl);
+
 extern void form_unknown_function_constant(
                              a_constant_ptr                        constant,
                              an_il_to_str_output_control_block_ptr octl);
