@@ -1059,6 +1059,7 @@ not being eliminated.
     }  /* if */
   }  /* for */
   corresp_routine->address_taken |= routine->address_taken;
+  corresp_routine->called        |= routine->called;
   check_assertion((param == NULL && corresp_param == NULL) ||
                   !rtsp->prototyped || !corresp_rtsp->prototyped);
   check_assertion(routine->is_inline == corresp_routine->is_inline ||

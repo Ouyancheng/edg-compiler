@@ -1,5 +1,11 @@
 Version 3.6
 
+3/24/05  Routine "called" flag not transferred in multi-translation-unit mode
+
+In some cases when multi-translation-unit mode is used, the "called"
+flag on a routine entry was FALSE even though the routine has been
+called in one of the translation units.  Now fixed.
+
 3/23/05  Memory allocation problem in template parameter remapping
 
 An error in the template parameter remapping routines in il_to_str
