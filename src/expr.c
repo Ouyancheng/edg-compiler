@@ -3755,6 +3755,10 @@ specification allow a variable-sized array as the top type.
         /* The initializer is empty, i.e., "()". */
         (void)get_token();
       }  /* if */
+    } else {
+      /* No new-initializer is present.  Check for error cases like const
+         entities not being initialized. */
+      check_for_missing_initializer((a_symbol_ptr)NULL, new_type);
     }  /* if */
   }  /* if */
   /* Now build the IL for the operation. */
