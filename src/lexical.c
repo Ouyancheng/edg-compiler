@@ -2912,6 +2912,28 @@ static void db_include_guard_info(void)
 #endif /* DEBUG */
 
 
+void check_for_generation_of_pch_on_return_to_primary_file(void)
+/*
+Generate a PCH file if we are at the top of the input stack and the
+flag is set indicating that a PCH file should be generated on return
+to the primary source file.  This routine is called when an include
+file is popped off of the input stack to check whether a PCH file
+should be generated upon return to the primary source file.  This
+routine is also called when an include directive is processed but the
+include is suppressed for some reason.
+*/
+{
+  if (depth_input_stack == 0 && 
+      generate_pch_on_return_to_primary_source_file) {
+    /* We are returning to the primary source file and the flag is set
+       indicating that a PCH file should be generated at this point. */
+    generate_pch_on_return_to_primary_source_file = FALSE;
+    generate_precompiled_header();
+    header_stop_no_longer_pending();
+  }  /* if */
+}  /* check_for_generation_of_pch_on_return_to_primary_file */
+
+
 void open_file_and_push_input_stack (char      *file_name,
                                      a_boolean use_search_path,
 				     a_boolean is_include_file,
@@ -2953,16 +2975,9 @@ all other files.  is_preinclude is TRUE for files included via the
           file_name);
     }  /* if */
 #endif /* DEBUG */
-    if (depth_input_stack == 0 && 
-        generate_pch_on_return_to_primary_source_file) {
-      /* A PCH file should be generated after this include file has been
-         processed.  We've decided that we don't actually need to include
-         the file, however.  That means we should generate the PCH file
-         now. */
-      generate_pch_on_return_to_primary_source_file = FALSE;
-      generate_precompiled_header();
-      header_stop_no_longer_pending();
-    }  /* if */
+    /* Check whether a PCH file should be generated at the end of the
+       execution of this include directive. */
+    check_for_generation_of_pch_on_return_to_primary_file();
     goto done;
   }  /* if */
   push_input_stack(input_file, file_name, display_name, full_file_name,
@@ -3591,16 +3606,9 @@ at the next level down.
       }  /* if */
     }  /* if */
 #endif  /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-    if (depth_input_stack == 0 && 
-        generate_pch_on_return_to_primary_source_file) {
-      /* We just popped back to the primary source file, and the flag
-         was set that indicates that a PCH file should be generated at
-         this point (i.e., at the end of execution of the previous
-         include found in the primary source file. */
-      generate_pch_on_return_to_primary_source_file = FALSE;
-      generate_precompiled_header();
-      header_stop_no_longer_pending();
-    }  /* if */
+    /* Check whether a PCH file should be generated at the end of the
+       execution of this include directive. */
+    check_for_generation_of_pch_on_return_to_primary_file();
   }  /* if */
 #if DEBUG
   if (debug_level >= 5) {

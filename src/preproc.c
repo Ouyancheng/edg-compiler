@@ -838,6 +838,9 @@ Scan and process a #include directive.
       /* Instead or reading the <stdarg.h> or <cstdarg> header file, create
          builtin definitions for the things it's known to define. */
       proc_stdarg_include();
+      /* Check whether a PCH file should be generated at the end of the
+         execution of this include directive. */
+      check_for_generation_of_pch_on_return_to_primary_file();
     } else {
       /* Push the name and associated search directory onto the input stack,
          thus starting input from that file. */

@@ -1,3 +1,11 @@
+Version 2.39
+
+1/15/98   Internal error on PCH file that ends with stdarg.h
+
+An internal error would occur when stdarg.h is the last include file
+in a precompiled header file and pass_stdarg_referenced_to_generated_code
+is TRUE.  This has been fixed.
+-------------------------------------------------------------------------------
 Version 2.38, January 13, 1998
 
 1/12/98   IL version number changed to 2.30

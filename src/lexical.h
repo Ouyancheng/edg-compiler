@@ -1654,6 +1654,8 @@ extern void push_input_stack (FILE      		  *new_input_file,
 
 extern void pop_input_stack(void);
 
+extern void check_for_generation_of_pch_on_return_to_primary_file(void);
+
 /* Set the error position to the current token position. */
 #define set_err_pos_to_curr_token()                                   \
 { copy_source_position(pos_curr_token, error_position);}
