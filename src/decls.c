@@ -511,17 +511,6 @@ new fields are set properly.
     /* Nothing to do. */
   } else if (locator->is_conversion_name) {
     check_assertion(class_type != NULL);
-    /* Check the target type of the conversion -- which is the return type
-       of rout_type. */
-    if (!any_cfront_mode() &&
-        is_void_type(rout_type->variant.routine.return_type)) {
-      /* Conversion operators specifying conversion to void type are not
-         allowed (Boston X3J16). */
-      pos_ty2_error(ec_conversion_to_type_not_allowed,
-                    &locator->source_position, class_type,
-                    rout_type->variant.routine.return_type);
-      err = TRUE;
-    }  /* if */
     /* Any parameter is too many for a conversion function. */
     if (rtsp->param_type_list != NULL || rtsp->has_ellipsis) {
       pos_error(ec_too_many_args_for_conversion, &locator->source_position);

@@ -1,5 +1,11 @@
 Version 2.42
 
+6/17/99  operator void() is allowed
+
+An error is no longer issued when operator void() is declared (in keeping
+with a change to 12.3.2 paragraph 1); instead, a warning is put out that
+the operator will not be used in implicit or explicit conversions.
+
 6/17/99  Separate configuration option for nonconst call anachronism
 
 The anachronism of calling a nonconst member function on a const

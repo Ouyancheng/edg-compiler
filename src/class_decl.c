@@ -6094,9 +6094,7 @@ declared member functions.
           set_target_of_conversion_function_flag(tp);
         }  /* if */
       } else if (is_void_type(tp)) {
-        /* Except in cfront-compatibility mode, conversion to void type will
-           already have been checked for. */
-        check_assertion(any_cfront_mode());
+        /* Conversion to (possibly qualified) void type. */
         is_usable = FALSE;
       }  /* if */
       if (is_usable) {
@@ -6105,10 +6103,10 @@ declared member functions.
            conversion functions. */
         add_to_conversion_list(sym, cssp);
       } else {
-        /* Conversion to the same type or a reference to the same type or to
-           a base class or a reference to a base class "is never used" (WP
-           12.3.2; that is, it is not used in implicit or explicit conversions
-           but only in an explicit invocations of the function). */
+        /* Conversion to void or to the same type or a reference to the same
+           type or to a base class or a reference to a base class "is never
+           used" (WP 12.3.2; that is, it is not used in implicit or explicit
+           conversions but only in an explicit invocations of the function). */
         pos_sy_warning(ec_conversion_function_not_usable,
                        &locator->source_position, sym);
       }  /* if */
