@@ -4,7 +4,7 @@ Version 3.4
 
 The front end now correctly outputs the space used for
 an_overriding_virtual_function entries (when that output is enabled).
-Previously, the size of one such entry was computed as the size to a
+Previously, the size of one such entry was computed as the size of a
 pointer to the entry.
 
 8/29/03  GNU C++ mode: Attributes on explicit template specializations
