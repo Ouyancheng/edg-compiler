@@ -5645,45 +5645,59 @@ Generate code for an instantiation directive.
 
   /* Advance past the source sequence entry for the instantiation directive. */
   adv_curr_source_sequence_entry();
-  /* Position the output file to the directive position. */
-  set_output_position(&idp->position);
-  /* In Microsoft mode the "extern" keyword can be used to indicate that
-     the instantiation of an entity should be suppressed. */
-  if (idp->do_not_instantiate) {
-    write_tok_str("extern ");
-  }  /* if */
-  write_tok_str("template ");
   kind = (an_il_entry_kind)idp->entity.kind;
-  switch (kind) {
-    case iek_routine:
-      { a_routine_ptr rout = (a_routine_ptr)idp->entity.ptr;
-        type = rout->type;
-        scp = &rout->source_corresp;
-      }
-      break;
-    case iek_variable:
-      { a_variable_ptr var = (a_variable_ptr)idp->entity.ptr;
-        type = var->type;
-        scp = &var->source_corresp;
-      }
-      break;
-    case iek_type:
-      { a_type_ptr class_type = (a_type_ptr)idp->entity.ptr;
-        gen_tag_reference(class_type);
-        type = NULL;
-      }
-      break;
-    default:
-      unexpected_condition_str("gen_instantiation_directive: bad entity kind");
-  }  /* switch */
-  if (type != NULL) {
-    gen_general_declaration_using_type(type, scp, kind,
-                                       (a_src_seq_secondary_decl_ptr)NULL,
-                                       TQ_NONE,
-                                       /*suppress_specifiers=*/FALSE,
-                                       GDO_SUPPRESS_POSITION);
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  if (kind == iek_routine || kind == iek_variable) {
+    /* Suppress instantiation directives when specializations are put out
+       for instantiations. */
+  } else
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  if (kind == iek_type) {
+    /* Suppress instantiation directives when specializations are put out
+       for instantiations. */
+  } else
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  /* Do not insert code here; this is the "else" of an "if". */
+  {
+    /* Position the output file to the directive position. */
+    set_output_position(&idp->position);
+    /* In Microsoft mode the "extern" keyword can be used to indicate that
+       the instantiation of an entity should be suppressed. */
+    if (idp->do_not_instantiate) {
+      write_tok_str("extern ");
+    }  /* if */
+    write_tok_str("template ");
+    switch (kind) {
+      case iek_routine:
+        { a_routine_ptr rout = (a_routine_ptr)idp->entity.ptr;
+          type = rout->type;
+          scp = &rout->source_corresp;
+        }
+        goto routine_or_var;
+      case iek_variable:
+        { a_variable_ptr var = (a_variable_ptr)idp->entity.ptr;
+          type = var->type;
+          scp = &var->source_corresp;
+        }
+routine_or_var:
+        gen_general_declaration_using_type(type, scp, kind,
+                                           (a_src_seq_secondary_decl_ptr)NULL,
+                                           TQ_NONE,
+                                           /*suppress_specifiers=*/FALSE,
+                                           GDO_SUPPRESS_POSITION);
+        write_tok_ch(';');
+        break;
+      case iek_type:
+        { a_type_ptr class_type = (a_type_ptr)idp->entity.ptr;
+          gen_tag_reference(class_type);
+          write_tok_ch(';');
+        }
+        break;
+      default:
+        unexpected_condition_str("gen_instantiation_directive: bad ent kind");
+    }  /* switch */
   }  /* if */
-  write_tok_ch(';');
 }  /* gen_instantiation_directive */
 
 

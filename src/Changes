@@ -1,5 +1,14 @@
 Version 2.39
 
+8/6/98    C++-generating back end: no instantiation directives when
+          instantiations are put out as specializations
+
+When source sequence entries for instantiations are configured in, the
+C++-generating back end puts out instantiations as specializations.
+Now, explicit instantiation directives are suppressed in that mode.
+They are not put out because they are unnecessary and invalid -- they
+attempt to instantiate something that has been specialized.
+
 8/6/98    Internal error when base specifier triggers template class
           instantiations
 
