@@ -1126,7 +1126,7 @@ enum a_constant_repr_kind_tag {
   ck_hex_octal,         /* Hex and octal constants; does not appear in the
                            final IL. */
 #endif /* ifdef FIL */
-  ck_last
+  ck_last		/*lint -esym(769,a_constant_repr_kind_tag::ck_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_constant_repr_kind;
@@ -5903,7 +5903,7 @@ enum a_statement_kind_tag {
   stmk_set_array_shape, /* Set adjustable array shape. */
   stmk_input_output,	/* Fortran input/output. */
 #endif /* ifdef FIL */
-  stmk_last
+  stmk_last		/*lint -esym(769,a_statement_kind_tag::stmk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte  a_statement_kind;
@@ -7400,7 +7400,7 @@ typedef enum /* a_source_language */ {
   /* Code for source language. */
   sl_Cplusplus,
   sl_C,
-  sl_Fortran
+  sl_Fortran		/*lint -esym(769,sl_Fortran)*/
 } a_source_language;
 EXTERN struct il_header_tag {
   a_source_file_ptr

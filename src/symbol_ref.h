@@ -59,6 +59,7 @@ in which an address can be taken (e.g., to discriminate between taking the
 address of a const and taking the address of a nonconst object).
 */
 #define SRK_NONE 0x0
+			/*lint -esym(755,SRK_NONE)*/
 #define SRK_DECLARATION 0x1
 			/* Any declaration. */
 #define SRK_DEFINITION 0x2
