@@ -5105,8 +5105,15 @@ declaration.
             }  /* if */
             *old_type = routine_ptr->type;
             /* If this is the definition, reset the type of the routine entry
-               to use the new type. */
-            if (is_function_def) routine_ptr->type = type_ptr;
+               to use the new type.  In GNU C mode, also retain the new type
+               if no definition has been seen yet and the current type is
+               unprototyped. */
+            if (is_function_def ||
+                (gcc_mode && !old_decl_has_body &&
+                 type_ptr->kind == (a_type_kind)tk_routine &&
+                 !type_ptr->variant.routine.extra_info->prototyped)) {
+              routine_ptr->type = type_ptr;
+            }  /* if */
           } else if (microsoft_mode && C_mode() &&
                      identical_types(old_return_type, new_return_type)) {
             /* In Microsoft C mode "anything goes" as far as function

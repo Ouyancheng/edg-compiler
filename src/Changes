@@ -1,6 +1,22 @@
 Version 3.1
 
-7/1/02   Microsoft compatibility: Declaration in for-initializer can hide
+7/2/02   GNU C compatibility: Unprototyped function redeclaration
+         supersedes prior prototyped declaration
+
+In GNU C mode, the front end already accepted unprototyped redeclarations of
+previously prototyped functions.  However, in such situations the type
+information associated with the original prototyped declaration was kept for
+later error checking.  This is now changed for improved compatibility with the
+GNU C compiler: An unprototyped redeclaration of a function essentially
+nullifies the type information implied by an earlier prototyped declaration
+(unless a definition of the function has been seen).  For example:
+
+  void f(char);        // First declaration (prototyped)
+  void f();            // Second declaration (unprototyped)
+  void f(c) int c; {}  // Third declaration conflicts with first:
+                       // Previously an error, now accepted with no diagnostic
+
+7/2/02   Microsoft compatibility: Declaration in for-initializer can hide
          declaration in surrounding scope
 
 Microsoft Visual C++ version 7 allows a for-initializer to declare a
