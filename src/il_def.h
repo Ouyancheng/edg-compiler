@@ -6327,7 +6327,6 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if DO_IL_LOWERING && IA64_ABI
 
 /*
 An enumeration of the different kinds of constructor and destructor entry
@@ -6337,6 +6336,7 @@ the IA64 ABI.
 enum a_ctor_or_dtor_kind_tag {
   cdk_none,		/* A constructor or destructor as originally created
 			   by lowering. */
+#if IA64_ABI
   cdk_complete,		/* A version of a constructor or destructor for a
 			   complete object. */
   cdk_subobject,	/* A version of a constructor or destructor for a
@@ -6344,12 +6344,12 @@ enum a_ctor_or_dtor_kind_tag {
   cdk_deleting,		/* A version of a destructor that destroys a
 			   complete object and then deletes the storage
 			   associated with the object. */
+#endif /* IA64_ABI */
   cdk_last		/*lint -esym(769,a_ctor_or_dtor_kind_tag::cdk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_ctor_or_dtor_kind;
 
-#endif /* DO_IL_LOWERING && IA64_ABI */
 
 /*
 Data structures related to routines:
@@ -6751,7 +6751,8 @@ typedef struct a_routine {
 			   mangled name of the routine.	 */
   a_bit_field /* a_ctor_or_dtor_kind */
 		ctor_dtor_kind:2;
-			/* The kind of constructor or destructor. */
+			/* The kind of constructor or destructor.  cdk_none
+			   for other kinds of routines. */
 #endif /* DO_IL_LOWERING && IA64_ABI */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE

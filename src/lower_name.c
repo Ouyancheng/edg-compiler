@@ -281,6 +281,7 @@ static void mangled_function_base_name(
                                       a_source_correspondence  *scp,
                                       a_special_function_kind  special_kind,
                                       an_opname_kind           opname_kind,
+                                      a_ctor_or_dtor_kind      ctor_dtor_kind,
                                       unsigned int             num_operands,
                                       a_type_ptr               conversion_type,
                                       a_mangling_control_block *mctl);
@@ -288,11 +289,13 @@ static void mangled_function_name(
                              a_routine_ptr            routine,
                              a_boolean                suppress_param_encoding,
                              a_boolean                suppress_parent_encoding,
+                             a_boolean                force_primary_name,
                              sizeof_t                 *base_name_offset,
                              a_mangling_control_block *mctl);
 static void mangled_function_name_externalized_if_necessary(
                               a_routine_ptr            routine,
                               a_boolean                suppress_param_encoding,
+                              a_boolean                force_primary_name,
                               sizeof_t                 *base_name_offset,
                               a_mangling_control_block *mctl);
 static void mangled_member_variable_name(a_variable_ptr           variable,
@@ -940,6 +943,7 @@ for a local entity, for the IA-64 ABI.
   mangled_function_name(routine,
                         suppress_param_encoding,
                         suppress_parent_encoding,
+                        /*force_primary_name=*/TRUE,
                         /*base_name_offset=*/(sizeof_t *)NULL,
                         mctl);
   add_to_mangled_name('E', mctl);
@@ -1646,6 +1650,7 @@ template classes.
 #endif /* IA64_ABI */
     mangled_function_name(routine, suppress_param_encoding,
                           suppress_parent_encoding,
+                          /*force_primary_name=*/TRUE,
                           /*base_name_offset=*/(sizeof_t *)NULL,
                           mctl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -1737,7 +1742,9 @@ to the information describing it.
       mangled_function_name(rout,
                             /*suppress_param_encoding=*/!emulate_gnu_abi_bugs,
                             /*suppress_parent_encoding=*/!emulate_gnu_abi_bugs,
-                            /*base_name_offset=*/(sizeof_t *)NULL, mctl);
+                            /*force_primary_name=*/TRUE,
+                            /*base_name_offset=*/(sizeof_t *)NULL,
+                            mctl);
     } else {
       a_boolean need_nested_name_close = FALSE;
       if (emulate_gnu_abi_bugs) {
@@ -1752,6 +1759,7 @@ to the information describing it.
         mangled_function_base_name(scp,
                                    rinfo->special_kind,
                                    rinfo->opname_kind,
+                                   (a_ctor_or_dtor_kind)cdk_none,
                                    /*num_operands=*/0,
                                    rinfo->conversion_type,
                                    mctl);
@@ -1777,7 +1785,9 @@ to the information describing it.
       mangled_function_name(rout,
                             /*suppress_param_encoding=*/FALSE,
                             /*suppress_parent_encoding=*/FALSE,
-                            /*base_name_offset=*/(sizeof_t *)NULL, mctl);
+                            /*force_primary_name=*/TRUE,
+                            /*base_name_offset=*/(sizeof_t *)NULL,
+                            mctl);
     } else {
       /* Not a routine. */
       /* Add a parent qualifier for a member if needed. */
@@ -1791,6 +1801,7 @@ to the information describing it.
         mangled_function_base_name(scp,
                                    rinfo->special_kind,
                                    rinfo->opname_kind,
+                                   (a_ctor_or_dtor_kind)cdk_none,
                                    /*num_operands=*/0,
                                    rinfo->conversion_type,
                                    mctl);
@@ -1924,8 +1935,10 @@ specification in the mangling for lengths of literals.
       reserve_space_for_length(&length_reservation, mctl);
       if (include_parent_info) {
         /* Include class and namespace information in the name. */
-        mangled_function_name(func, /*suppress_param_encoding=*/TRUE, 
+        mangled_function_name(func,
+                              /*suppress_param_encoding=*/TRUE, 
                               /*suppress_parent_encoding=*/FALSE,
+                              /*force_primary_name=*/TRUE,
                               /*base_name_offset=*/(sizeof_t *)NULL,
                               mctl);
       } else {
@@ -2009,6 +2022,7 @@ has an explicit template argument list, given by template_arg_list.
   mangled_function_base_name(&con->source_corresp,
                              special_kind,
                              opname_kind,
+                             (a_ctor_or_dtor_kind)cdk_none,
                              /*num_operands=*/0,
                              conversion_type,
                              mctl);
@@ -2695,6 +2709,7 @@ and "routine" is the routine to which the entity is local.
     mangled_function_name_externalized_if_necessary(
                                          routine,
                                          /*suppress_param_encoding=*/FALSE,
+                                         /*force_primary_name=*/TRUE,
                                          /*base_name_offset=*/(sizeof_t *)NULL,
                                          mctl);
   }  /* if */
@@ -4010,17 +4025,21 @@ expressions on nontype template parameters in function signatures.
 }  /* mangled_expr_operator_name */
 
 
+#if !IA64_ABI
+/*ARGSUSED*/  /* <-- ctor_dtor_kind is not used in that case. */
+#endif /* !IA64_ABI */
 static void mangled_function_base_name(
                                       a_source_correspondence  *scp,
                                       a_special_function_kind  special_kind,
                                       an_opname_kind           opname_kind,
+                                      a_ctor_or_dtor_kind      ctor_dtor_kind,
                                       unsigned int             num_operands,
                                       a_type_ptr               conversion_type,
                                       a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the base name of the function
-indicated by scp.  special_kind, opname_kind, num_operands, and
-conversion_type give additional information for special functions like
+indicated by scp.  special_kind, opname_kind, ctor_dtor_kind, num_operands,
+and conversion_type give additional information for special functions like
 constructors and conversion functions.
 */
 {
@@ -4045,9 +4064,26 @@ constructors and conversion functions.
     switch (special_kind) {
       case sfk_constructor:
         name = MANGLING_STRING_FOR_CONSTRUCTOR;
+#if IA64_ABI
+        switch (ctor_dtor_kind) {
+          case cdk_none:                   break;
+          case cdk_complete:  name = "C1"; break;
+          case cdk_subobject: name = "C2"; break;
+          default:            unexpected_condition();
+        }  /* switch */
+#endif /* IA64_ABI */
         break;
       case sfk_destructor:
         name = MANGLING_STRING_FOR_DESTRUCTOR;
+#if IA64_ABI
+        switch (ctor_dtor_kind) {
+          case cdk_none:                   break;
+          case cdk_deleting:  name = "D0"; break;
+          case cdk_complete:  name = "D1"; break;
+          case cdk_subobject: name = "D2"; break;
+          default:            unexpected_condition();
+        }  /* switch */
+#endif /* IA64_ABI */
         break;
       case sfk_conversion:
         name = MANGLING_STRING_FOR_CONVERSION_FUNC;
@@ -4076,13 +4112,15 @@ constructors and conversion functions.
 }  /* mangled_function_base_name */
 
 
-#if !IA64_ABI || !DO_IL_LOWERING
-/*ARGSUSED*/ /* <-- base_name_offset is not used in that case. */
-#endif /* !IA64_ABI || !DO_IL_LOWERING */
+#if !IA64_ABI
+/*ARGSUSED*/  /* <-- force_primary_name is not used in that case.
+                     base_name_offset is also not used in some cases. */
+#endif /* !IA64_ABI */
 static void mangled_function_name(
                              a_routine_ptr            routine,
                              a_boolean                suppress_param_encoding,
                              a_boolean                suppress_parent_encoding,
+                             a_boolean                force_primary_name,
                              sizeof_t                 *base_name_offset,
                              a_mangling_control_block *mctl)
 /*
@@ -4090,9 +4128,11 @@ Add to the mangled name the encoding for the name of the function "routine".
 If suppress_param_encoding is TRUE, suppress the information on parameter
 types; just put out the base encoded name.  If suppress_parent_encoding
 is TRUE, suppress the parent qualifier for members of classes and
-namespaces.  If base_name_offset is not NULL, *base_name_offset is set
-to the offset from the start of the mangling to the point where the base
-name appears.
+namespaces.  If force_primary_name is TRUE, use the primary entry point
+name (instead of any alternate entry point) for a constructor or
+destructor (for the IA-64 ABI).  If base_name_offset is not NULL,
+*base_name_offset is set to the offset from the start of the mangling
+to the point where the base name appears.
 */
 {
   a_type_ptr       conversion_type, routine_type;
@@ -4108,6 +4148,8 @@ name appears.
   unsigned int     num_operands;
   a_param_type_ptr ptp;
   an_opname_kind   opname_kind = (an_opname_kind)onk_none;
+  a_ctor_or_dtor_kind
+                   ctor_dtor_kind = (a_ctor_or_dtor_kind)cdk_none;
 
   /* Most of the processing is done in mangled_encoding_for_function_type,
      but this routine handles:
@@ -4203,12 +4245,19 @@ name appears.
     opname_kind = routine->variant.opname_kind;
   }  /* if */
 #if IA64_ABI && DO_IL_LOWERING
+  ctor_dtor_kind = routine->ctor_dtor_kind;
+  if (force_primary_name) {
+    /* Use the "C1" or "D1" primary entry point for a constructor or
+       destructor. */
+    ctor_dtor_kind = (a_ctor_or_dtor_kind)cdk_complete;
+  }  /* if */
   if (base_name_offset != NULL) {
     *base_name_offset = mctl->length;
   }  /* if */
 #endif /* IA64_ABI && DO_IL_LOWERING */
   mangled_function_base_name(&routine->source_corresp, routine->special_kind,
-                             opname_kind, num_operands, conversion_type, mctl);
+                             opname_kind, ctor_dtor_kind,
+                             num_operands, conversion_type, mctl);
   if (mangle_as_template) {
 #if IA64_ABI
 mangle_template:
@@ -4467,14 +4516,17 @@ buffer, and must be copied elsewhere promptly.
 static void mangled_function_name_externalized_if_necessary(
                               a_routine_ptr            routine,
                               a_boolean                suppress_param_encoding,
+                              a_boolean                force_primary_name,
                               sizeof_t                 *base_name_offset,
                               a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the name of the function "routine".
 If suppress_param_encoding is TRUE, suppress the information on parameter
-types; just put out the base encoded name.  If base_name_offset is not NULL,
-*base_name_offset is set to the offset from the start of the mangling to
-the point where the base name appears.  If the routine will be
+types; just put out the base encoded name.  If force_primary_name is TRUE,
+use the primary entry point name (instead of any alternate entry point)
+for a constructor or destructor (for the IA-64 ABI).  If base_name_offset
+is not NULL, *base_name_offset is set to the offset from the start of the
+mangling to the point where the base name appears.  If the routine will be
 externalized, use the encoding for the externalized form.
 */
 {
@@ -4495,9 +4547,12 @@ externalized, use the encoding for the externalized form.
     start_externalized_name(/*is_variable=*/FALSE, mctl);
   }  /* if */
 #endif /* DO_IL_LOWERING */
-  mangled_function_name(routine, suppress_param_encoding,
+  mangled_function_name(routine,
+                        suppress_param_encoding,
                         /*suppress_parent_encoding=*/FALSE,
-                        base_name_offset, mctl);
+                        force_primary_name,
+                        base_name_offset,
+                        mctl);
 #if DO_IL_LOWERING
   if (needs_to_be_externalized) {
     end_externalized_name(&routine->source_corresp, mctl);
@@ -4521,6 +4576,7 @@ name in the routine entry.
   char                     *mangled_name;
   sizeof_t                 *base_name_offset = NULL;
   a_boolean                needs_to_be_externalized = FALSE;
+  a_boolean                force_primary_name = FALSE;
 
 #if DO_IL_LOWERING
   /* Static entities are potentially referenced from exported templates
@@ -4529,6 +4585,9 @@ name in the routine entry.
   needs_to_be_externalized =
                 routine_should_be_externalized_for_exported_templates(routine);
 #endif /* DO_IL_LOWERING */
+#if IA64_ABI
+  force_primary_name = TRUE;
+#endif /* IA64_ABI */
   if ((routine->source_corresp.name_has_been_mangled &&
        !routine->source_corresp.final_name_mangling_pending &&
        (!needs_to_be_externalized || routine->source_corresp.externalized)) ||
@@ -4538,6 +4597,21 @@ name in the routine entry.
     mangled_name = routine->source_corresp.name;
     /* The routine should not be unnamed. */
     check_assertion(mangled_name != NULL);
+#if IA64_ABI
+    if (force_primary_name &&
+        (routine->special_kind == (a_special_function_kind)sfk_constructor ||
+         routine->special_kind == (a_special_function_kind)sfk_destructor)) {
+      /* Change the mangled name of a constructor or destructor to the
+         complete-object version instead of the internal name (e.g.,
+         "C1" in the mangled name instead of "C9"). */
+      /* Copy the name to the mangling buffer so we can change it. */
+      reset_text_buffer(mangling_text_buffer);
+      add_to_text_buffer(mangling_text_buffer, mangled_name,
+                         strlen(mangled_name)+1);
+      mangled_name = mangling_text_buffer->buffer;
+      mangled_name[routine->variant.ctor_dtor.base_name_offset+1] = '1';
+    }  /* if */
+#endif /* IA64_ABI */
   } else {
     /* Generate the mangled name in a buffer. */
     start_mangling(&mctl);
@@ -4546,7 +4620,7 @@ name in the routine entry.
 #if IA64_ABI
     /* It's OK to set the base_name_offset here; it will be set to the same
        value every time.  By setting the value here, we make it available to
-       callers of get_mangled_function_name, even if mangle_function_name has
+       callers of get_mangled_function_name, even if mangled_function_name has
        not yet been called. */
     if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
         routine->special_kind == (a_special_function_kind)sfk_destructor) {
@@ -4555,27 +4629,12 @@ name in the routine entry.
 #endif /* IA64_ABI */
     mangled_function_name_externalized_if_necessary(routine,
                                                     suppress_param_encoding,
+                                                    force_primary_name,
                                                     base_name_offset,
                                                     &mctl);
     mangled_name = end_mangling((a_source_correspondence *)NULL,
                                 /*final=*/TRUE, &mctl);
   }  /* if */
-#if IA64_ABI
-  if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
-      routine->special_kind == (a_special_function_kind)sfk_destructor) {
-    /* Change the mangled name of a constructor or destructor to the
-       complete-object version instead of the internal name (e.g.,
-       "C1" in the mangled name instead of "C9"). */
-    if (mangled_name == routine->source_corresp.name) {
-      /* Copy the name to the mangling buffer so we can change it. */
-      reset_text_buffer(mangling_text_buffer);
-      add_to_text_buffer(mangling_text_buffer, mangled_name,
-                         strlen(mangled_name)+1);
-      mangled_name = mangling_text_buffer->buffer;
-    }  /* if */
-    mangled_name[routine->variant.ctor_dtor.base_name_offset+1] = '1';
-  }  /* if */
-#endif /* IA64_ABI */
   return mangled_name;
 }  /* get_mangled_function_name */
 
@@ -4913,8 +4972,10 @@ Mangle the name of the indicated function, if necessary.
       base_name_offset = &routine->variant.ctor_dtor.base_name_offset;
     }  /* if */
 #endif /* IA64_ABI && DO_IL_LOWERING */
-    mangled_function_name(routine, suppress_param_encoding, 
+    mangled_function_name(routine,
+                          suppress_param_encoding, 
                           /*suppress_parent_encoding=*/FALSE,
+                          /*force_primary_name=*/FALSE,
                           base_name_offset,
                           &mctl);
 #if !IA64_ABI
@@ -5851,6 +5912,7 @@ pointer, or performs the "this" adjustments.
     mangled_function_name(prim_routine,
                           /*suppress_param_encoding=*/FALSE,
                           /*suppress_parent_encoding=*/FALSE,
+                          /*force_primary_name=*/FALSE,
                           /*base_name_offset=*/(sizeof_t *)NULL,
                           &mctl);
   }  /* if */
@@ -5858,6 +5920,49 @@ pointer, or performs the "this" adjustments.
 }  /* mangle_covariant_return_type_entry_name */
 
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if IA64_ABI
+
+void mangle_alternate_entry_point_name(a_routine_ptr routine,
+                                       a_routine_ptr prim_routine)
+/*
+Give a mangled name to the alternate entry point whose routine entry
+is given by routine.  It is an alternate entry for the primary entry
+point identified by prim_routine.  Alternate entry points are used
+for constructors and destructors in the IA-64 ABI.  The ctor_dtor_kind
+in the routine must be set already.
+*/
+{
+  /* A constructor or destructor for an unnamed class may not have a
+     name.  For example, if a local class is used to declare a variable
+     ("struct { C c; } x;"), the constructor will have no name.  In this
+     case, the alternate entry point does not need a name either. */
+  if (has_name(prim_routine)) {
+      char ch;
+      char *name, *mangled_name;
+    /* Compute the mangled name for this new entry point.  It's the same as
+       the routine -- but "C9" or "D9" needs to become "C1", "C2", etc. */
+    /* The name cannot be generated by building it up from scratch, because
+       this routine may be called at a point where the primary routine
+       has already been lowered, and therefore correct mangling for its
+       parameter types is no longer possible.  Therefore we get the
+       primary routine's name (which will have been generated already
+       if the routine has been lowered) and change one character. */
+    mangled_name = get_mangled_function_name(prim_routine);
+    name = alloc_lowered_name_string(strlen(mangled_name) + 1);
+    (void)strcpy(name, mangled_name);
+    switch (routine->ctor_dtor_kind) {
+      case cdk_complete:  ch = '1';               break;
+      case cdk_subobject: ch = '2';               break;
+      case cdk_deleting:  ch = '0';               break;
+      default:            unexpected_condition();
+    }  /* switch */
+    name[prim_routine->variant.ctor_dtor.base_name_offset + 1] = ch;
+    routine->source_corresp.name = name;
+    routine->source_corresp.name_has_been_mangled = TRUE;
+  }  /* if */
+}  /* mangle_alternate_entry_point_name */
+
+#endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING */
 
 #if !IA64_ABI

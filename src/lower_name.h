@@ -101,6 +101,10 @@ extern void mangle_promoted_entity_name(a_source_correspondence *scp,
 extern void mangle_covariant_return_type_entry_name(
                                              a_routine_ptr entry_routine);
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if IA64_ABI
+extern void mangle_alternate_entry_point_name(a_routine_ptr routine,
+                                              a_routine_ptr prim_routine);
+#endif /* IA64_ABI */
 
 extern void do_class_name_mangling(void);
 
