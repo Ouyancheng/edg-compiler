@@ -7274,7 +7274,15 @@ that follows.
         }  /* if */
       } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
                  sym->variant.static_data_member.instance_ptr != NULL) {
-        /* Okay. */
+        if (!types_are_redecl_compatible(type,
+                                         sym->variant.static_data_member.
+                                                            variable->type)) {
+          /* The type of the static data member definition does not match
+             the declaration in the class. */
+          pos_sy_error(ec_not_compatible_with_previous_decl,
+                       &locator.source_position, sym);
+          sym = NULL;
+        }  /* if */
       } else {
         pos_sy_error(ec_entity_cannot_be_specialized,
                      &locator.source_position, sym);
@@ -9114,14 +9122,23 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
     if (sym->kind == (a_symbol_kind)sk_static_data_member) {
       if (sym->variant.static_data_member.instance_ptr != NULL) {
         /* A static data member -- set the instantiation flags. */
-        update_instantiation_flags(sym, kind, start_pos,
-                                   /*is_class_instantiation=*/FALSE,
-                                   is_pragma);
+        if (!types_are_redecl_compatible(type,
+                                         sym->variant.static_data_member.
+                                                            variable->type)) {
+          /* The type of the static data member definition does not match
+             the declaration in the class. */
+          pos_sy_error(ec_not_compatible_with_previous_decl,
+                       &locator.source_position, sym);
+        } else {
+          update_instantiation_flags(sym, kind, start_pos,
+                                     /*is_class_instantiation=*/FALSE,
+                                     is_pragma);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-        if (!is_pragma) {
-          make_instantiation_directive(sym, ssep, &template_keyword_pos);
-        }  /* if */
+          if (!is_pragma) {
+            make_instantiation_directive(sym, ssep, &template_keyword_pos);
+          }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        }  /* if */
       } else {
         /* A static data member, but of a template class. */
         sym_error(ec_not_instantiatable_entity, sym);
