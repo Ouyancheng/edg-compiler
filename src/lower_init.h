@@ -144,6 +144,9 @@ extern void define_construction_vtbls_array(a_type_ptr              class_type,
 extern a_routine_ptr alternate_entry_point(a_routine_ptr       routine,
                                            a_ctor_or_dtor_kind ctor_dtor_kind,
                                            a_boolean           define_now);
+
+extern void create_alternate_entry_points(a_routine_ptr routine,
+                                          a_boolean     define_now);
 #endif /* IA64_ABI */
 
 extern void add_constructor_wrapper_code(a_scope_ptr        scope,

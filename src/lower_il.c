@@ -4575,6 +4575,7 @@ not to put out the definition; otherwise, it's set to NULL.
   a_class_type_supplement_ptr ctsp;
   a_scope_ptr                 scope;
   a_routine_ptr               routine;
+  a_boolean                   vtable_is_optional = FALSE;
 
   *force_static = FALSE;
   *first_virtual = NULL;
@@ -4632,12 +4633,14 @@ not to put out the definition; otherwise, it's set to NULL.
           defined_here = TRUE;
 #if !IA64_ABI
           *force_static = TRUE;
-#endif /* !IA64_ABI */          
+#endif /* !IA64_ABI */
+          vtable_is_optional = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
-  if (*force_static && defined_here) {
+  if (*force_static) vtable_is_optional = TRUE;
+  if (vtable_is_optional && defined_here) {
     /* If the definition is forced to be static, then it cannot be referenced
        from anywhere else.  If there aren't any (real) references in this
        compilation unit, then the definition isn't needed here either. */
@@ -4667,7 +4670,11 @@ not to put out the definition; otherwise, it's set to NULL.
     } else 
 #endif /* IA64_ABI */
     /* Do not insert code here. */
-    if (!vtbl_var->source_corresp.referenced) {
+    if (class_type->typeinfo_var != NULL &&
+        class_type->typeinfo_var->source_corresp.referenced) {
+      /* The typeinfo variable is referenced, so we need the virtual
+         table. */
+    } else if (!vtbl_var->source_corresp.referenced) {
       defined_here = FALSE;
     }  /* if */
   }  /* if */
@@ -7521,23 +7528,13 @@ not include the function scope memory region, if any.
     }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if IA64_ABI
-    if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
-        routine->special_kind == (a_special_function_kind)sfk_destructor) {
+    if ((routine->special_kind == (a_special_function_kind)sfk_constructor ||
+         routine->special_kind == (a_special_function_kind)sfk_destructor) &&
+        routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
       a_routine_list_entry_ptr rlep;
-      /* Create the alternate entry points for the routine.  They are
-         defined exactly when the original routine is defined. */
-      (void)alternate_entry_point(routine, (a_ctor_or_dtor_kind)cdk_complete,
-                                  /*define_now=*/TRUE);
-      (void)alternate_entry_point(routine, (a_ctor_or_dtor_kind)cdk_subobject,
-                                  /*define_now=*/TRUE);
-      if (routine->special_kind == (a_special_function_kind)sfk_destructor &&
-          /* The deleting destructor is used only when the destructor is
-             virtual. */
-          routine->is_virtual) {
-        (void)alternate_entry_point(routine, 
-                                    (a_ctor_or_dtor_kind)cdk_deleting,
-                                    /*define_now=*/TRUE);
-      }  /* if */
+      /* Create the alternate entry points for a constructor or
+         destructor, but do not define them at this time. */
+      create_alternate_entry_points(routine, /*define_now=*/FALSE);
       for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
            rlep != NULL;
            rlep = rlep->next) {
@@ -14764,6 +14761,15 @@ Do IL lowering of the indicated scope and everything under it.
       add_covariant_return_type_entry_routines(scope->variant.routine.ptr);
     }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if IA64_ABI
+    if ((routine->special_kind == (a_special_function_kind)sfk_constructor ||
+         routine->special_kind == (a_special_function_kind)sfk_destructor) &&
+        routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
+      /* Create all the alternate entry points for a constructor or
+         destructor, and give them definitions. */
+      create_alternate_entry_points(routine, /*define_now=*/TRUE);
+    }  /* if */
+#endif /* IA64_ABI */
   }  /* if */
   if (scope_kind != (a_scope_kind)sck_file) pop_context();
   innermost_function_scope = saved_innermost_function_scope;

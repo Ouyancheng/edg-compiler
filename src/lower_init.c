@@ -2410,8 +2410,9 @@ Pop function corresponding to push_generated_routine_context.
   /* Walk subtrees of local types and variables that have already been
      marked as needed. */
   walk_subtrees_of_local_entities(scope);
-  /* If the routine is external, mark it as needed. */
-  if (rout->storage_class == (a_storage_class)sc_unspecified) {
+  /* If the routine is external (but not extern inline), mark it as needed. */
+  if (rout->storage_class == (a_storage_class)sc_unspecified &&
+      !rout->is_inline) {
     mark_as_needed((char *)rout, iek_routine);
   }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -2646,6 +2647,11 @@ default_arg_list.
   }  /* if */
   pop_generated_routine_context(new_routine_scope, new_routine_il_region,
                                 &grcontext);
+#if MINIMAL_INLINING
+  if (new_routine->is_inline && inlining_enabled) {
+    set_up_routine_for_inlining(new_routine_scope);
+  }  /* if */
+#endif /* MINIMAL_INLINING */
 }  /* define_default_version_of_routine */
 
 
@@ -2835,17 +2841,13 @@ destructors in the IA-64 ABI.
                                   routine_type->variant.routine.return_type,
                                   this_param_type);
     new_routine->is_inline = routine->is_inline;
-    new_routine->use_comdat = routine->use_comdat;
-#if LOWER_EXTERN_INLINE
-    if (treat_as_extern_inline(new_routine)) {
-      new_routine->use_comdat = TRUE;
-    }  /* if */
-#endif /* LOWER_EXTERN_INLINE */
+    new_routine->inline_instance_required = routine->inline_instance_required;
     new_routine->source_corresp.is_class_member = TRUE;
     new_routine->source_corresp.parent.class_type =
                                      routine->source_corresp.parent.class_type;
     set_routine_special_kind(new_routine, routine->special_kind);
     new_routine->ctor_dtor_kind = kind;
+    new_routine->compiler_generated = TRUE;
 #if ONE_INSTANTIATION_PER_OBJECT
     new_routine->instantiation_needed_bit_number =
                                       routine->instantiation_needed_bit_number;
@@ -2901,9 +2903,41 @@ destructors in the IA-64 ABI.
     }  /* if */
     define_default_version_of_routine(routine, new_routine, 
                                       (an_expr_node_ptr)NULL);
+#if LOWER_EXTERN_INLINE
+    if (routine->use_comdat) {
+      put_routine_into_comdat_group(new_routine);
+    }  /* if */
+#endif /* LOWER_EXTERN_INLINE */
   }  /* if */
   return new_routine;
 }  /* alternate_entry_point */
+
+
+void create_alternate_entry_points(a_routine_ptr routine,
+                                   a_boolean     define_now)
+/*
+Create all the alternate entry points for the indicated constructor or
+destructor.  Give them definitions if define_now is TRUE and if the
+primary routine has a definition.
+*/
+{
+  check_assertion(routine->special_kind ==
+                                    (a_special_function_kind)sfk_constructor ||
+                  routine->special_kind ==
+                                    (a_special_function_kind)sfk_destructor);
+  (void)alternate_entry_point(routine, (a_ctor_or_dtor_kind)cdk_complete,
+                              define_now);
+  (void)alternate_entry_point(routine, (a_ctor_or_dtor_kind)cdk_subobject,
+                              define_now);
+  if (routine->special_kind == (a_special_function_kind)sfk_destructor &&
+      /* The deleting destructor is used only when the destructor is
+         virtual. */
+      routine->is_virtual) {
+    (void)alternate_entry_point(routine, 
+                                (a_ctor_or_dtor_kind)cdk_deleting,
+                                define_now);
+  }  /* if */
+}  /* create_alternate_entry_points */
 
 #endif /* IA64_ABI */
 
@@ -10670,9 +10704,6 @@ an enk_result_of_overriding_function cast to the proper base class.
     (void)insert_expr_statement(this_adjustment, &insert_location);
   }  /* if */
 #endif /* IA64_ABI */
-  /* Suppress the body of the wrapper function if the primary function
-     is to be suppressed. */
-  routine->suppress_inline_body = overriding_function->suppress_inline_body;
   pop_generated_routine_context(scope, region_number, &grcontext);
 }  /* add_body_for_covariant_return_type_entry_routine */
 
