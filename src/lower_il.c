@@ -9551,19 +9551,24 @@ is_lvalue is TRUE.
   /* Determine the operation type, which is usually the second operand
      type. */
   operation_type = op2->type;
-  if (op == (an_expr_operator_kind)eok_fxadd_assign ||
-      op == (an_expr_operator_kind)eok_fxsubtract_assign ||
-      op == (an_expr_operator_kind)eok_fxmultiply_assign ||
-      op == (an_expr_operator_kind)eok_fxdivide_assign) {
+  if (op == (an_expr_operator_kind)eok_shiftl_assign
+      || op == (an_expr_operator_kind)eok_shiftr_assign
+#if FIXED_POINT_ALLOWED
+      || op == (an_expr_operator_kind)eok_fxshiftl_assign
+      || op == (an_expr_operator_kind)eok_fxshiftr_assign
+#endif /* FIXED_POINT_ALLOWED */
+                                                         ) {
+    /* Shifts.  The operation type is given by the first operand. */
+    operation_type = result_type;
+#if FIXED_POINT_ALLOWED
+  } else if (op == (an_expr_operator_kind)eok_fxadd_assign ||
+             op == (an_expr_operator_kind)eok_fxsubtract_assign ||
+             op == (an_expr_operator_kind)eok_fxmultiply_assign ||
+             op == (an_expr_operator_kind)eok_fxdivide_assign) {
     /* Fixed-point operations.  If the second operand is integral, the
        operation type is given by the first operand. */
     if (is_integral_or_enum_type(op2->type)) operation_type = result_type;
-  } else if (op == (an_expr_operator_kind)eok_fxshiftl_assign ||
-             op == (an_expr_operator_kind)eok_fxshiftr_assign ||
-             op == (an_expr_operator_kind)eok_shiftl_assign ||
-             op == (an_expr_operator_kind)eok_shiftr_assign) {
-    /* Shifts.  The operation type is given by the first operand. */
-    operation_type = result_type;
+#endif /* FIXED_POINT_ALLOWED */
   } else {
     /* Normal case.  The second operand type is the operation type,
        and the first operand is cast to that type. */
