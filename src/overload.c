@@ -6910,10 +6910,12 @@ be a constructor call.
       if (!conversion->result_is_an_lvalue) {
         do_operand_transformations(operand, TOPT_NO_OPTIONS);
       }  /* if */
-    } else if (is_class_struct_union_type(operand->type)) {
+    } else if (is_class_struct_union_type(operand->type) ||
+               is_class_struct_union_type(dest_type)) {
       /* Class types get special handling: they can involve derived --> base
-         conversions, and class rvalues retain their cv-qualifiers. */
-      check_assertion(is_class_struct_union_type(dest_type));
+         conversions, and class rvalues retain their cv-qualifiers.
+         The "or" test is needed because one or the other might be an
+         error type. */
       do_class_object_adjustment(operand, dest_type, conversion);
     } else {
       /* Nonclass case. */
