@@ -1,5 +1,20 @@
 Version 2.32
 
+2/22/96  Bug in name demangling of nested class name in virtual function
+         table name
+
+In version 2.30 of the front end, name mangling for virtual function tables
+was changed to make it match cfront more closely.  The change duplicated
+a quirk of the cfront name mangling scheme, one that doesn't really make
+much sense.  Specifically, the virtual function table for the class A::B
+is now put out as __vtbl__7Q2_1A1B; note the length "7" in front of the
+nested class name, which was not present before version 2.30.  This change
+unfortunately confused the name demangler, which is understandable since
+the name is ambiguous: the new form is also the name that is generated if
+the programmer has a class called "Q2_1A1B".  The demangler has now been
+changed to recognize this case and treat it as the nested class name
+instead of the less-likely "Q2_1A1B".
+
 2/22/96  Reentrancy in name demangler
 
 The state variables used in decode.c have been moved into a structure, and

@@ -796,6 +796,48 @@ e.g., put out "A::x" as simply "x".
 }  /* demangle_type_name */
 
 
+static char *demangle_vtbl_class_name(char                       *ptr,
+                                      a_decode_control_block_ptr dctl)
+/*
+Demangle a class or base class name that is one component of a virtual
+function table name.  Such names are mangled mostly as types, but with
+a few special quirks.
+*/
+{
+  char      *p = ptr;
+  a_boolean nested_name_case = FALSE;
+
+  /* If the name begins with a number, "Q", and another number, assume
+     it's a name with a form like "7Q2_1A1B", which is used to encode
+     A::B as the complete object class name component of a virtual
+     function table name.  This doesn't have any particular sense to
+     it; it's just what cfront does (and EDG's front end does the same
+     at ABI versions >= 2.30 in cfront compatibility mode).  This could
+     fail if the user actually has a class with a name that begins
+     like "Q2_", but there's not much we can do about that. */
+  if (isdigit((unsigned char)*p)) {
+    do { p++; } while (isdigit((unsigned char)*p));
+    if (*p == 'Q') {
+      char *save_p = p;
+      p++;
+      if (isdigit((unsigned char)*p)) {
+        do { p++; } while (isdigit((unsigned char)*p));
+        if (*p == '_') {
+          /* Yes, this is the strange nested name case.  Start the demangling
+             at the "Q". */
+          nested_name_case = TRUE;
+          p = save_p;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!nested_name_case) p = ptr;
+  /* Now use the normal routine to demangle the class name. */
+  p = demangle_type_name(p, /*base_name_only=*/FALSE, dctl);
+  return p;
+}  /* demangle_vtbl_class_name */
+
+
 static char *demangle_type_qualifiers(char                       *ptr,
                                       a_decode_control_block_ptr dctl)
 /*
@@ -1294,7 +1336,7 @@ is set to the size of buffer required to do the demangling.
     /* Note that if the first name is a base class name and it's not simple,
        this will produce output containing partially-mangled information.
        It's hard to do better given the cfront encoding form. */
-    end_ptr = demangle_type(id+8, dctl);
+    end_ptr = demangle_vtbl_class_name(id+8, dctl);
     if (start_of_id_is("__A", end_ptr)) {
       /* "__A" indicates an ambiguous base class. */
       write_id_str(" (ambiguous)", dctl);
@@ -1304,7 +1346,7 @@ is set to the size of buffer required to do the demangling.
       /* Virtual function table for base class in derived class. */
       end_ptr += 2;
       write_id_str(" in ", dctl);
-      end_ptr = demangle_type(end_ptr, dctl);
+      end_ptr = demangle_vtbl_class_name(end_ptr, dctl);
     }  /* if */
   } else if (start_of_id_is("__CBI__", id)) {
     write_id_str("can-be-instantiated flag for ", dctl);
