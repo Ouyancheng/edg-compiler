@@ -1476,11 +1476,6 @@ Set the various flags appropriate to C99 mode.
     restrict_enabled = TRUE;
   }  /* if */
 #if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
-  if (!(option_kind_used[(int)optk_extended_designators])) {
-    /* Support for extended designators is turned on by default in
-       C99 mode. */
-    extended_designators_allowed = TRUE;
-  }  /* if */
   if (!(option_kind_used[(int)optk_designators])) {
     /* Support for designators is turned on by default in C99 mode. */
     designators_allowed = TRUE;
@@ -1492,11 +1487,6 @@ Set the various flags appropriate to C99 mode.
     compound_literals_allowed = TRUE;
   }  /* if */
 #endif /* COMPOUND_LITERAL_ENABLING_POSSIBLE */
-  if (!(option_kind_used[(int)optk_extended_variadic_macros])) {
-    /* Support for extended variadic macros is turned on by default in
-       C99 mode. */
-    extended_variadic_macros_allowed = TRUE;
-  }  /* if */
   if (!(option_kind_used[(int)optk_variadic_macros])) {
     /* Support for variadic macros is turned on by default in C99 mode. */
     variadic_macros_allowed = TRUE;
