@@ -3275,6 +3275,9 @@ Scan and process a #define directive.
             error(ec_duplicate_macro_param_name);
             (void)get_token();
           } else {
+            /* Remember the position of the identifier in case we need to
+               issue an error. */
+            a_source_position err_pos = pos_curr_token;
             /* Add the parameter to the list. */
             param_num++;
             pp = alloc_macro_param();
@@ -3283,9 +3286,6 @@ Scan and process a #define directive.
               (void)memcpy(pp->name, start_of_curr_token,
                            size_t_arg(len_of_curr_token));
               pp->name[len_of_curr_token] = '\0';
-              /* If variadic macros are allowed, macro parameters explicitly
-                 called __VA_ARGS__ should be refused. */
-              check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
             } else {
               /* A variadic parameter named "..." in the parameter list is
                  referred to as "__VA_ARGS__" in the replacement list. */
@@ -3318,6 +3318,13 @@ Scan and process a #define directive.
                 curr_token == tok_ellipsis) {
               variadic = TRUE;
               (void)get_token();
+            }  /* if */
+            if (!variadic && variadic_macros_allowed &&
+                strcmp(pp->name, "__VA_ARGS__") == 0) {
+              /* If variadic macros are allowed, macro parameters explicitly
+                 called __VA_ARGS__ should be refused (except the variadic
+                 parameter itself). */
+              pos_error(ec_VA_ARGS_not_allowed, &err_pos);
             }  /* if */
           }  /* if */
         } while (!variadic && loop_token(tok_comma));

@@ -13,6 +13,11 @@ to be rendered as
 
 by the C++-generating back end.  That is now fixed.
 
+In addition, the identifier __VA_ARGS__ is now allowed as a named variadic
+macro parameter when extended variadic macros are enabled.
+
+  #define X(__VA_ARGS__...) __VA_ARGS__ /* No longer an error. */
+
 6/26/01  Abort when attempting to define a function previously declared
          with a cv-qualified typedef
 
