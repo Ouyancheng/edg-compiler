@@ -538,11 +538,46 @@ remains better than the primary IL copy).
 static void remove_dynamic_initialization(a_dynamic_init_ptr dip);
 
 
-static void remove_constant_initializer_lifetimes(a_constant_ptr con)
+static void remove_expression_dynamic_initializations(an_expr_node_ptr expr)
+/*
+The indicated expression is part of an initializer.  The initializer is
+being deleted.  Unlink any dynamic initializations associated with the
+expression, at minimum those that have lifetimes longer than the
+immediately enclosing object lifetime.
+*/
+{
+  switch (expr->kind) {
+    case enk_object_lifetime:
+      remove_expression_dynamic_initializations(
+                                           expr->variant.object_lifetime.expr);
+      break;
+    case enk_temp_init:
+      remove_dynamic_initialization(expr->variant.init.dynamic_init);
+      break;
+    case enk_operation:
+      /* This covers casts, and possibly "?" and "," operators if those are
+         ever made to pass through a temporary. */
+      { an_expr_node_ptr operand;
+        for (operand = expr->variant.operation.operands;
+             operand != NULL;
+             operand = operand->next) {
+          remove_expression_dynamic_initializations(operand);
+        }  /* for */
+      }
+      break;
+    default:
+      /* No action. */
+      break;
+  }  /* switch */
+}  /* remove_expression_dynamic_initializations */
+  
+
+static void remove_constant_initializer_dynamic_initializations(
+                                                            a_constant_ptr con)
 /*
 The indicated constant is part of an initializer.  The initializer
-is being deleted.  Unlink any object lifetimes associated with
-the constant (e.g., if it's a nonconstant aggregate).
+is being deleted.  Unlink any dynamic initializations or object lifetimes
+associated with the constant (e.g., if it's a nonconstant aggregate).
 */
 {
   if (con->kind == (a_constant_repr_kind)ck_aggregate) {
@@ -550,14 +585,15 @@ the constant (e.g., if it's a nonconstant aggregate).
     for (sub_con = con->variant.aggregate.first_constant;
          sub_con != NULL;
          sub_con = sub_con->next) {
-      remove_constant_initializer_lifetimes(sub_con);
+      remove_constant_initializer_dynamic_initializations(sub_con);
     }  /* for */
   } else if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
     remove_dynamic_initialization(con->variant.dynamic_init);
   } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
-    remove_constant_initializer_lifetimes(con->variant.init_repeat.constant);
+    remove_constant_initializer_dynamic_initializations(
+                                            con->variant.init_repeat.constant);
   }  /* if */
-}  /* remove_constant_initializer_lifetimes */
+}  /* remove_constant_initializer_dynamic_initializations */
 
 
 static void remove_dynamic_initialization(a_dynamic_init_ptr dip)
@@ -574,9 +610,17 @@ and destruction lists.  Also remove any nested object lifetimes.
        it. */
     detach_from_object_lifetime_tree(lifetime);
     dip->init_expr_lifetime = NULL;  /* To be neat. */
-  } else if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+  }  /* if */
+  if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
     /* Remove any lifetimes on aggregate member initializers. */
-    remove_constant_initializer_lifetimes(dip->variant.constant);
+    remove_constant_initializer_dynamic_initializations(dip->variant.constant);
+  } else if (dip->kind == (a_dynamic_init_kind)dik_expression ||
+             dip->kind ==
+                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
+    /* Scan the sub-expression in case there's an initialization of a
+       temporary whose lifetime was extended to the lifetime of the
+       surrounding context. */
+    remove_expression_dynamic_initializations(dip->variant.expression);
   }  /* if */
   remove_from_destruction_list(dip);
 }  /* remove_dynamic_initialization */
