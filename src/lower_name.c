@@ -72,6 +72,11 @@ static char *truncate_mangled_name(char                     *mangled_name,
 static void r_mangled_parent_qualifier(a_source_correspondence  *scp,
                                        unsigned long            nesting_level,
                                        a_mangling_control_block *mctl);
+static void mangled_template_arguments(
+                                    a_template_arg_ptr       template_arg_list,
+                                    a_boolean                partial_spec,
+                                    a_boolean                old_form,
+                                    a_mangling_control_block *mctl);
 
 /*
 Interface to r_mangled_parent_qualifier, to provide nesting_level == 1.
@@ -410,10 +415,12 @@ With old_form FALSE, the representation is "_dd_" regardless of the length.
 
 static void mangled_encoding_for_template_parameter(
                                        a_template_param_coordinate *coordinate,
+                                       a_template_arg_ptr          args,
                                        a_mangling_control_block    *mctl)
 /*
 Add to the mangled name the encoding for a template parameter with the
-given coordinates.
+given coordinates.  args points to the template argument list (for a
+template template parameter), if any.
 */
 {
   check_assertion(distinct_template_signatures);
@@ -430,6 +437,13 @@ given coordinates.
     /* Put out "_depth". */
     add_to_mangled_name('_', mctl);
     add_number_to_mangled_name((unsigned long)coordinate->depth, mctl);
+  }  /* if */
+  if (args != NULL) {
+    /* Put out template arguments of a template template parameter. */
+    mangled_template_arguments(args,
+                               /*partial_spec=*/FALSE,
+                               /*old_form=*/FALSE,
+                               mctl);
   }  /* if */
   /* Put out the final "Z". */
   add_to_mangled_name('Z', mctl);
@@ -871,6 +885,7 @@ specification in the mangling for lengths of literals.
           /* A simple reference to a template parameter. */
           mangled_encoding_for_template_parameter(
                               &con->variant.template_param.variant.coordinates,
+                              (a_template_arg *)NULL,
                               mctl);
           break;
         case tpck_expression:
@@ -1155,6 +1170,7 @@ given by tap.
     /* The value of the argument is itself a template template parameter. */
     mangled_encoding_for_template_parameter(
                                      &tssp->variant.class_template.coordinates,
+                                     (a_template_arg *)NULL,
                                      mctl);
   } else {
     /* The value of the argument is a template. */
@@ -1476,6 +1492,7 @@ that fact should be put out.
       case tptk_param:
         mangled_encoding_for_template_parameter(
                &template_param->variant.template_param.extra_info->coordinates,
+               (a_template_arg *)NULL,
                mctl);
         break;
       case tptk_member:
@@ -1503,12 +1520,9 @@ that fact should be put out.
         is_template_template_param = TRUE;
         mangled_encoding_for_template_parameter(
                                      &tssp->variant.class_template.coordinates,
-                                     mctl);
-        mangled_template_arguments(type->variant.class_struct_union.
+                                     type->variant.class_struct_union.
                                                  extra_info->template_arg_list,
-                                   /*partial_spec=*/FALSE,
-                                   /*old_form=*/FALSE,
-                                   mctl);
+                                     mctl);
       }  /* if */
     }  /* if */
     if (!is_template_template_param) {
@@ -1874,6 +1888,7 @@ Add to the mangled name the encoding for the type "type".
           case tptk_param:
             mangled_encoding_for_template_parameter(
                          &type->variant.template_param.extra_info->coordinates,
+                         (a_template_arg *)NULL,
                          mctl);
             break;
           case tptk_member:

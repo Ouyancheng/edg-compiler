@@ -135,6 +135,11 @@ static char *full_demangle_type_name(char                       *ptr,
                                      a_boolean                  base_name_only,
                                      a_template_param_block_ptr temp_par_info,
                                      a_decode_control_block_ptr dctl);
+static char *demangle_template_arguments(
+                                      char                       *ptr,
+                                      a_boolean                  partial_spec,
+                                      a_template_param_block_ptr temp_par_info,
+                                      a_decode_control_block_ptr dctl);
 /*
 Interface to full_demangle_type_name for the simple case.
 */
@@ -436,10 +441,19 @@ position following what was demangled.
   p++;  /* Advance past the "Z". */
   /* Get the position number. */
   p = get_number(p, &position, dctl);
-  if (*p == '_') {
+  if (*p == '_' && p[1] != '_') {
     /* Form including depth ("Zn_mZ"). */
     p++;
     p = get_number(p, &depth, dctl);
+  }  /* if */
+  /* Output the template parameter name. */
+  write_template_parameter_name(depth, position, nontype, dctl);
+  if (p[0] == '_' && p[1] == '_' && p[2] == 't' && p[3] == 'm' &&
+      p[4] == '_' && p[5] == '_') {
+    /* A template template parameter followed by a template
+       argument list. */
+    p = demangle_template_arguments(p+6, /*partial_spec=*/FALSE,
+                                    (a_template_param_block_ptr)NULL, dctl);
   }  /* if */
   /* Check for the final "Z".  This appears in the mangling to avoid
      ambiguities when the template parameter is followed by something whose
@@ -449,8 +463,6 @@ position following what was demangled.
   } else {
     p++;
   }  /* if */
-  /* Output the template parameter name. */
-  write_template_parameter_name(depth, position, nontype, dctl);
   return p;
 }  /* demangle_template_parameter_name */
 
@@ -1362,13 +1374,6 @@ controls output of extra information on template parameters.
   if (*p == 'Z') {
     /* A template parameter name. */
     p = demangle_template_parameter_name(p, /*nontype=*/FALSE, dctl);
-    /* A template template parameter is followed by a template
-       argument list. */
-    if (p[0] == '_' && p[1] == '_' && p[2] == 't' && p[3] == 'm' &&
-        p[4] == '_' && p[5] == '_') {
-      p = demangle_template_arguments(p+6, /*partial_spec=*/FALSE,
-                                      temp_par_info, dctl);
-    }  /* if */
   } else {
     /* A simple mangled type name consists of digits indicating the length of
        the name followed by the name itself, e.g., "3abc". */
