@@ -107,7 +107,7 @@ Macro that provides a convenient interface to f_transitive_copy_address_of.
 
 
 static char *primary_il_entry_of(char             *ptr,
-                                  an_il_entry_kind kind)
+                                 an_il_entry_kind kind)
 /*
 Return the address in the primary IL that the entry at "ptr" of kind "kind"
 corresponds to.  ptr must either be an address in the primary IL (in
@@ -310,6 +310,47 @@ copy address pointer to point to the copy.
 }  /* copy_string_entry */
 
 
+/*
+Change a pointer to the corresponding address in the primary IL.
+*/
+#define change_pointer_to_primary_IL_pointer(ptr, ptr_type, kind) \
+{ if ((ptr) != NULL) \
+  (ptr) = (ptr_type)primary_il_entry_of((char *)(ptr), (kind)); }
+
+
+static void update_namespace_pointers_block(a_scope_ptr scope)
+/*
+scope is the primary translation unit scope for a namespace that has
+been copied to the primary IL rather than merged.  Update its
+pointers block so that its last-pointers point to the copied
+entries in the primary IL.
+*/
+{
+  a_scope_pointers_block *pointers_block = get_pointers_block_for_scope(scope);
+
+  change_pointer_to_primary_IL_pointer(pointers_block->last_constant,
+                                       a_constant_ptr, iek_constant);
+  change_pointer_to_primary_IL_pointer(pointers_block->last_type,
+                                       a_type_ptr, iek_type);
+  change_pointer_to_primary_IL_pointer(pointers_block->last_variable,
+                                       a_variable_ptr, iek_variable);
+  change_pointer_to_primary_IL_pointer(pointers_block->last_routine,
+                                       a_routine_ptr, iek_routine);
+  change_pointer_to_primary_IL_pointer(pointers_block->last_asm_entry,
+                                       an_asm_entry_ptr, iek_asm_entry);
+  change_pointer_to_primary_IL_pointer(pointers_block->last_dynamic_init,
+                                       a_dynamic_init_ptr, iek_dynamic_init);
+  change_pointer_to_primary_IL_pointer(pointers_block->last_namespace,
+                                       a_namespace_ptr, iek_namespace);
+  change_pointer_to_primary_IL_pointer(pointers_block->last_using_decl,
+                                       a_using_decl_ptr, iek_using_decl);
+  change_pointer_to_primary_IL_pointer(pointers_block->last_pragma,
+                                       a_pragma_ptr, iek_pragma);
+  change_pointer_to_primary_IL_pointer(pointers_block->last_template,
+                                       a_template_ptr, iek_template);
+}  /* update_namespace_pointers_block */
+
+
 static void copy_entry_basic(char                 *ptr,
                              an_il_entry_kind     kind,
                              a_remap_function_ptr remap_function)
@@ -392,6 +433,15 @@ and remap the pointers in the copy by calling remap_function.
       rout->keep_definition_in_il = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
       rout->on_inline_function_list = FALSE;
+    } else if (kind == iek_namespace) {
+      /* Update the pointers block for a namespace scope that has been
+         copied (not merged). */
+      a_namespace_ptr nsp = (a_namespace_ptr)copy;
+      if (!in_secondary_trans_unit(nsp) &&
+          !nsp->is_namespace_alias) {
+        a_scope_ptr scope = nsp->variant.assoc_scope;
+        update_namespace_pointers_block(scope);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* copy_entry_basic */
@@ -1821,59 +1871,6 @@ the secondary translation unit IL).
 }  /* overwrite_primary_routine */
 
 
-/*
-Change a pointer to the corresponding address in the primary IL.
-*/
-#define change_pointer_to_primary_IL_pointer(ptr, ptr_type) \
-{ if ((ptr) != NULL) \
-  (ptr) = (ptr_type)checked_trans_unit_copy_address_of(ptr); }
-
-
-static void update_namespace_pointers_block(a_scope_ptr scope)
-/*
-scope is the secondary translation unit scope for a namespace that has
-been copied to the primary IL rather than merged.  Update its
-pointers block so that its last-pointers point to the copied
-entries in the primary IL.
-*/
-{
-  a_scope_ptr            primary_scope =
-                        (a_scope_ptr)checked_trans_unit_copy_address_of(scope);
-  a_scope_pointers_block *pointers_block =
-                                   get_pointers_block_for_scope(primary_scope);
-  a_namespace_ptr        sub_nsp;
-
-  change_pointer_to_primary_IL_pointer(pointers_block->last_constant,
-                                       a_constant_ptr);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_type,
-                                       a_type_ptr);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_variable,
-                                       a_variable_ptr);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_routine,
-                                       a_routine_ptr);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_asm_entry,
-                                       an_asm_entry_ptr);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_dynamic_init,
-                                       a_dynamic_init_ptr);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_namespace,
-                                       a_namespace_ptr);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_using_decl,
-                                       a_using_decl_ptr);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_pragma,
-                                       a_pragma_ptr);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_template,
-                                       a_template_ptr);
-  /* Process any namespaces under this one. */
-  for (sub_nsp = scope->namespaces;
-       sub_nsp != NULL;
-       sub_nsp = sub_nsp->next) {
-    if (!sub_nsp->is_namespace_alias) {
-      update_namespace_pointers_block(sub_nsp->variant.assoc_scope);
-    }  /* if */
-  }  /* for */
-}  /* update_namespace_pointers_block */
-
-
 static void finish_trans_unit_copy(a_scope_ptr scope)
 /*
 scope is a file, namespace, or class scope from the secondary file IL.  Do
@@ -2322,14 +2319,6 @@ end_of_routine_list_add:;
     /* Merge the object lifetime from "scope" into that from
        "primary_scope". */
     merge_object_lifetimes(scope, primary_scope);
-  } else {
-    /* This scope is not being merged into a counterpart in the primary
-       IL.  It was just copied over. */
-    /* For a namespace scope, update the end-of-list pointers in the
-       pointers block to match to addresses of the copies. */
-    if (scope->kind == (a_scope_kind)sck_namespace) {
-      update_namespace_pointers_block(scope);
-    }  /* if */
   }  /* if */
 }  /* finish_trans_unit_copy */
 
