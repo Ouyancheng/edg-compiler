@@ -282,15 +282,6 @@ flag processing and unneeded IL removal for secondary translation units.
       do_all_name_mangling();
     }  /* if */
 #endif /* DO_IL_LOWERING */
-#if GNU_EXTENSIONS_ALLOWED
-    if (gcc_mode) {
-      /* The GNU C alias attribute can refer to names of entities before those
-         entities are declared.  The actual IL connection is therefore set up
-         when all the entities in a translation unit have been seen.  This must
-         occur before unneeded entities are determined. */
-      process_alias_fixup_list();
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     file_scope_il_wrapup_needed_flag_processing();
   }  /* for */
   for (tup = translation_units->next; tup != NULL; tup = tup->next) {
@@ -345,15 +336,6 @@ already been copied over.
   /* Pop the file scope. */
   pop_scope();
   if (is_primary_translation_unit) {
-#if GNU_EXTENSIONS_ALLOWED
-    if (gcc_mode) {
-      /* The GNU C alias attribute can refer to names of entities before those
-         entities are declared.  The actual IL connection is therefore set up
-         when all the entities in a translation unit have been seen.  This must
-         occur before unneeded entities are determined. */
-      process_alias_fixup_list();
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Do needed-flag processing for the primary translation unit.
        The needed-flag processing for secondary translation units
        was done in part 2. */

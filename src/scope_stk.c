@@ -3434,7 +3434,12 @@ NULL.
            a reference in, say, a sizeof operation doesn't count. */
         if ((rout_ptr->storage_class == (a_storage_class)sc_static ||
              is_member_of_unnamed_namespace(&rout_ptr->source_corresp)) &&
-             !routine_defined(rout_ptr)) {
+             !routine_defined(rout_ptr)
+#if GNU_EXTENSIONS_ALLOWED
+             && (rout_ptr->aliased_routine == NULL ||
+                 !routine_defined(rout_ptr->aliased_routine))
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                             ) {
           if (C_dialect == C_dialect_pcc) {
             /* In pcc mode, just change the routine to extern. */
             rout_ptr->storage_class = (a_storage_class)sc_extern;
@@ -3970,6 +3975,15 @@ unit.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (gcc_mode && kind == (a_scope_kind)sck_file && is_namespace_wrapup) {
+    /* The GNU C alias attribute can refer to names of entities before those
+       entities are declared.  The actual IL connection is therefore set up
+       when all the entities in a translation unit have been seen.  This must
+       occur before unneeded entities are determined. */
+    process_alias_fixup_list();
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if RECORD_HIDDEN_NAMES_IN_IL
   if (!C_mode() && total_errors == 0 && is_primary_translation_unit) {
     if (kind == (a_scope_kind)sck_function ||
