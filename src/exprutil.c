@@ -1646,6 +1646,14 @@ destroyed its source position, etc.  Restore such things from
        the operand and the expression (e.g., because of indirection) and
        we'd like to preserve that over some transformation like
        lvalue-to-rvalue conversion. */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  } else if (is_constant_operand(orig_operand) &&
+             is_constant_operand(operand) &&
+             orig_operand->variant.constant.expr != NULL &&
+             orig_operand->variant.constant.expr ==
+                                             operand->variant.constant.expr) {
+    /* Same for a case where an expression was recorded for a constant. */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   } else {
     set_operand_expr_position_if_expr(operand, (a_source_position *)NULL);
   }  /* if */
