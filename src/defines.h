@@ -20,8 +20,6 @@ the release should contain no defines.
 */
 
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
-#define ASM_FUNCTION_ALLOWED 1
-#define INCLUDE_COMMENTS_IN_ASM_FUNC_BODY 1
 
 #ifdef CP_GEN_BE_VERSION
 /*
@@ -166,6 +164,8 @@ Flags to be set when using the KAI inliner.
 #define USER_CONTROL_OF_STRUCT_PACKING 1
 #ifndef SVR4_TRAP_NULL_POINTER_REFERENCES
 #define SVR4_TRAP_NULL_POINTER_REFERENCES 1
+#define ASM_FUNCTION_ALLOWED 1
+#define INCLUDE_COMMENTS_IN_ASM_FUNC_BODY 1
 #endif /* ifndef SVR4_TRAP_NULL_POINTER_REFERENCES */
 
 #endif /* ifdef __LINUX__ */
