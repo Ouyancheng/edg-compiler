@@ -257,9 +257,19 @@ put the variable in the function scope instead of the current scope
 (which might be a block scope).
 */
 {
+  a_variable_ptr var;
+  a_type_ptr     array_type = array_of(elem_type);
+
   /* Make the variable.  It is unnamed and static. */
-  return make_unnamed_local_static_variable(array_of(elem_type),
-                                            in_function_scope);
+  if (in_function_scope && processing_file_scope_init_routine) {
+    /* In the file-scope init routine, this variable may be shared with
+       the file-scope termination routine, so make it a file-scope variable. */
+    var = make_file_scope_temporary(array_type);
+  } else {
+    /* Normal case. */
+    var = make_unnamed_local_static_variable(array_type, in_function_scope);
+  }  /* if */
+  return var;
 }  /* make_unnamed_local_static_array_var */
 
 
