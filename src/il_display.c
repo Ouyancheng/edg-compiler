@@ -341,8 +341,15 @@ be written.
         (void)printf(": ");
         summarize_constant((a_constant_ptr)entry_ptr);
       } else if (entry_kind == iek_type) {
+        a_type_ptr type = (a_type_ptr)entry_ptr;
         (void)printf(": ");
-        summarize_type((a_type_ptr)entry_ptr);
+        if (type->variant.typeref.is_placeholder_for_file_scope_type) {
+          (void)printf("placeholder for file-scope type ");
+        }  /* if */
+        if (type->variant.typeref.is_placeholder_for_namespace_type) {
+          (void)printf("placeholder for namespace type ");
+        }  /* if */
+        summarize_type(type);
       } else if (entry_kind == iek_source_file) {
         (void)printf(": ");
         disp_null_term_string(((a_source_file_ptr)entry_ptr)->file_name);
