@@ -5076,7 +5076,7 @@ otherwise it is NULL.  The syntax is:
         if (err) {
           /* An error occurred while scanning the identifier -- use an error
              locator. */
-          set_to_error_locator(locator_for_curr_id);
+          set_to_named_error_locator(locator_for_curr_id);
         }  /* if */
         /* Save information on the identifier to be declared. */
         *locator = locator_for_curr_id;
