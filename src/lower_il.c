@@ -6040,6 +6040,13 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
     case enk_throw:
       lower_throw(expr);
       break;
+    case enk_object_lifetime:
+#if 0
+#else
+      lower_expr(expr->variant.object_lifetime.expr, is_lvalue);
+      overwrite_node(expr, expr->variant.object_lifetime.expr);
+#endif /* 0 */
+      break;
 #if CHECKING
     default:
       internal_error("lower_expr: bad kind");

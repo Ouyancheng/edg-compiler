@@ -2377,8 +2377,12 @@ again on subsequent calls.
   a_boolean any_temp_inits;
 
   if (!curr_full_expression_examined_for_unsequenced_temp_inits) {
+    an_expr_node_ptr expr = curr_full_expression;
+    if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+      expr = expr->variant.object_lifetime.expr;
+    }  /* if */
     curr_full_expression_has_unsequenced_temp_inits =
-                 examine_expr_for_unsequenced_temp_inits(curr_full_expression,
+                 examine_expr_for_unsequenced_temp_inits(expr,
                                                          &any_temp_inits);
     curr_full_expression_examined_for_unsequenced_temp_inits = TRUE;
   } /* if */
