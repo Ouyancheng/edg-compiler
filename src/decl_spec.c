@@ -3269,7 +3269,7 @@ is a that of a constructor.
   if (is_constructor && type_mismatch) {
     /* The type used to declare the constructor does not match the type
        of the current class. */
-    pos_ty_error(ec_destructor_type_mismatch,
+    pos_ty_error(ec_constructor_type_mismatch,
                  &locator_for_curr_id.source_position, class_type);
   }  /* if */
   db_exit();
