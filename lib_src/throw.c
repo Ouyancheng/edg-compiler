@@ -1074,6 +1074,7 @@ a try block with a catch that matches the type of the object thrown.
          throw specification entries or throw processing markers that might
          be found.   The only other entries that are considered are
          non-internal try blocks to see if a matching handler can be found. */
+      ehsep = ehsep->next;
       continue;
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_spec) {
       /* Check for violations of throw specifications.  If a throw

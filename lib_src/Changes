@@ -1,5 +1,12 @@
 Version 2.44
 
+3/9/00   Bug in internal try block handling with exception specifications
+
+A bug in the EH code that handles internal try blocks resulted in an
+infinite loop when an exception specification was encountered after
+the internal try was found but before the matching handler for the
+throw.  This has been fixed.
+
 12/15/99 Inline functions in runtime changed to static
 
 The runtime includes some inline functions which, because of the
