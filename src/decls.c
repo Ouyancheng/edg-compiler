@@ -6864,7 +6864,7 @@ caller.
   /* If (because of an error) an empty source-sequence entry was left in the
      list, remove it now. */
   if (namespace_ssep != NULL &&
-      namespace_ssep->entity.kind == (an_il_entry_kind)iek_none) {
+      namespace_ssep->entity.kind == (a_byte_il_entry_kind)iek_none) {
     a_src_seq_sublist_ptr  dummy = NULL;
     remove_from_source_sequence_list(namespace_ssep, &dummy);
   }  /* if */
