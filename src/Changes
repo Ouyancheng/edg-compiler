@@ -7,8 +7,9 @@ implicit decay of arrays to pointers.
 
 2/13/96   Error on ambiguous operator delete for virtual destructor
 
-An error is now issued when a virtual destructor is defined (implicitly or
-explicitly) and the inherited member operator delete is ambiguous -- e.g.,
+If DELETE_CAN_BE_FOLDED_INTO_DTOR is configured to TRUE, an error is now
+issued when a virtual destructor is defined (implicitly or explicitly) and
+the inherited member operator delete is ambiguous -- e.g.,
 
   struct A {
     void operator delete(void *);
@@ -21,6 +22,13 @@ explicitly) and the inherited member operator delete is ambiguous -- e.g.,
   struct D : public A, public B {
     virtual ~D() { };              // Error -- ambiguous operator delete
   };
+
+(This diagnostic is not mandated by the working paper at this time, but the
+problem has recently been added to the core language issues list.  The
+error is issued only for virtual destructors, so as to minimize its impact
+while the working paper is being clarified; for nonvirtual destructors an
+ambiguity error can always be reported when the delete expression is
+processed.)
 
 2/12/96   Spurious access errors on definitions of nested classes
 
