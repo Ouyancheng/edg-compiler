@@ -1,5 +1,21 @@
 Version 2.23
 
+3/1/94  Omission of the declarator on a field declaration
+
+Treatment of the following in C mode has been changed:
+
+  struct S {
+    char a;
+    int;
+    char b;
+  };
+
+In pcc mode the "int;" declaration is just ignored; it used to affect the
+layout of the struct, but not any more.  Otherwise in C mode, a warning
+(or in -A mode an error) is issued.  (In C++ mode an error is always
+issued.)  As a result of this change, the only unnamed fields that appear
+in the IL are unnamed bit fields.
+
 3/1/94  Static function called from automatically instantiated function
 
 The compiler generated a spurious error when a static template function

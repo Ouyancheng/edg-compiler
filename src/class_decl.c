@@ -5983,27 +5983,26 @@ Scan the body of a class definition, including the base classes list.
             goto next_declaration;
           }  /* if */
         }  /* if */
-        if (curr_token == tok_semicolon && C_dialect == C_dialect_cplusplus) {
+        if (curr_token == tok_semicolon) {
           /* There's no declarator following the declaration specifier.  This
              is okay sometimes.  When it is, skip over declarator processing
              to the next declaration. */
-          if (local_defines_something && !local_declares_something &&
-              member_type->kind == (a_type_kind)tk_union &&
-              is_unnamed_class_symbol((a_symbol_ptr)member_type->
+          if (!C_mode()) {
+            /* C++ mode. */
+            if (local_defines_something && !local_declares_something &&
+                member_type->kind == (a_type_kind)tk_union &&
+                is_unnamed_class_symbol((a_symbol_ptr)member_type->
                                                 source_corresp.assoc_info) &&
-              !friend_specified &&
-              member_storage_class != (a_storage_class)sc_typedef) {
-            /* An anonymous union -- "union { int i, j; };" */
-            is_anonymous_union = TRUE;
-            /* Note that in this case we don't just skip on to the next
-               declaration -- decl_nonstatic_data_member needs to be called. */
-          } else {
-            if (friend_specified) {
+                !friend_specified &&
+                member_storage_class != (a_storage_class)sc_typedef) {
+              /* An anonymous union -- "union { int i, j; };" */
+              is_anonymous_union = TRUE;
+            } else if (friend_specified) {
               if ((dso_flags & DSO_ELABORATED_TYPE_SPECIFIER) &&
                   !is_enum_type(member_type)) {
                 /* This is a friend class declaration, of the form:
                            friend class A;
-                   (which is the only form the ARM (see 11.4) allows. */
+                   which is the only form the ARM (see 11.4) allows. */
                 if (is_nonreal_instantiation) {
                   /* The friend declaration is not processed during prototype
                      instantiation -- it's meaningless until a real
@@ -6043,16 +6042,17 @@ Scan the body of a class definition, including the base classes list.
                                strict_ansi_error_severity : es_warning,
                              ec_missing_typedef_name, &pos_curr_token);
             } else if (local_defines_something) {
-              /* A declaration with no declarator that defines a type but does
-                 not declare a name -- something like "struct { int i; };" or
-                 "enum {};".  */
+              /* A declaration with no declarator that defines a type but
+                 does not declare a name (since local_declares_something
+                 if FALSE) -- e.g., "struct { int i; };" or "enum {};".  */
               /* Does the ARM rule out such useless constructs?  The
                  introduction to Chapter 7 says, "A declaration introduces
-                 one or more names into a program", and when declares_something
-                 is FALSE no name was introduced.  On the other hand, 9.2 para
-                 4 allows the omission of declarators with enum and class
-                 specifiers.  However, we take this to include only enum and
-                 class specifiers that at least declare *something*. */
+                 one or more names into a program", since when
+                 declares_something is FALSE no name was introduced.  On
+                 the other hand, 9.2 para 4 allows the omission of
+                 declarators with enum and class specifiers.  However, we
+                 take this to include only enum and class specifiers that
+                 at least declare *something*. */
               pos_diagnostic(strict_ansi_mode ?
                                strict_ansi_error_severity : es_warning,
                              ec_useless_decl, &decl_start_pos);
@@ -6061,6 +6061,29 @@ Scan the body of a class definition, including the base classes list.
                  ARM 9.2. */
               pos_error(ec_useless_decl, &decl_start_pos);
             }  /* if */
+          } else {
+            /* C mode. */
+            if (C_dialect == C_dialect_pcc) {
+              /* Silently ignore the unnamed field.  Note that no trace of
+                 it appears in the IL. */
+            } else if (local_defines_something) {
+              /* A struct or enum declaration, but no identifier.  Issue a
+                 warning (or error in -A mode). */
+              pos_diagnostic(strict_ansi_mode ?
+                               strict_ansi_error_severity : es_warning,
+                             ec_exp_identifier, &pos_curr_token);
+            } else {
+              /* Issue a warning (or error in -A mode) on the useless
+                 declaration. */
+              pos_diagnostic(strict_ansi_mode ?
+                               strict_ansi_error_severity : es_warning,
+                             ec_useless_decl, &decl_start_pos);
+            }  /* if */
+          }  /* if */
+          if (is_anonymous_union) {
+            /* Don't just skip on to the next declaration --
+               decl_nonstatic_data_member needs to be called. */
+          } else {
             /* Bypass the semicolon and skip to the next declaration. */
             (void)get_token();
             goto next_declaration;
@@ -6087,14 +6110,6 @@ Scan the body of a class definition, including the base classes list.
             unnamed_field = TRUE;
             local_type = member_type;
             set_to_error_locator(locator);
-          } else if (curr_token == tok_semicolon && first_declarator &&
-                     C_dialect == C_dialect_pcc) {
-            /* In pcc mode, the entire declarator list can be omitted to
-               indicate an unnamed field.  It's a non-bit-field that forces
-               padding. */
-            unnamed_field = TRUE;
-            local_type = member_type;
-            set_to_error_locator(locator);
           } else if (is_anonymous_union) {
             /* There is no declarator. */
             local_type = member_type;
@@ -6104,7 +6119,8 @@ Scan the body of a class definition, including the base classes list.
             a_decl_flag_set    declarator_input_flags, declarator_output_flags;
             a_type_ptr         bottom_derived_type;
 
-            if (C_dialect == C_dialect_cplusplus) {
+            if (!C_mode()) {
+              /* C++ mode */
               if (curr_routine_fixup != NULL) {
                 /* We must be in a declarator list and this must be at least
                    the second item in the list. */
@@ -6125,6 +6141,7 @@ Scan the body of a class definition, including the base classes list.
                 /* Normal case.  Allocate a new routine fixup entry. */
                 curr_routine_fixup = alloc_routine_fixup();
               }  /* if */
+              add_stop_token(tok_lbrace);
             }  /* if */
             /* Set the various flags for declarator processing. */
             declarator_input_flags = DI_REAL_DECLARATOR_ALLOWED;
@@ -6152,7 +6169,6 @@ Scan the body of a class definition, including the base classes list.
                                         DI_QUALIFIED_NAME_ALLOWED;
             }  /* if */
             declarator_input_flags |= DI_OPERATOR_NAME_ALLOWED;
-            if (!C_mode()) add_stop_token(tok_lbrace);
             /* Pass the class's type pointer to declarator if this might
                be a nonstatic member function, in which case its presence
                will cause an implicit "this" parameter type to be created.
