@@ -32,7 +32,7 @@ This program looks for entries where "a" is "T" and "nnnn..." is "__sti__*" or
 #include <malloc.h>
 #include "basics.h"
 #include "host_envir.h"
-#include "target.h"
+#include "targ_def.h"
 #include "edg_munch.h"
 
 /*

@@ -20,7 +20,7 @@ C-generating back end, that this program does not try to decode.
 */
 #include "basics.h"
 #include "host_envir.h"
-#include "target.h"
+#include "targ_def.h"
 #include "decode.h"
 #include "getopt.h"
 
