@@ -4949,8 +4949,10 @@ declaration.
                incompatible_types_are_SVR4_compatible(type_ptr,
                                                       routine_ptr->type)) ||
               (gcc_mode && is_function_def &&
-               !type_ptr->variant.routine.extra_info->prototyped &&
-               routine_ptr->type->variant.routine.extra_info->prototyped &&
+               !skip_typerefs(type_ptr)
+                                    ->variant.routine.extra_info->prototyped &&
+               skip_typerefs(routine_ptr->type)
+                                    ->variant.routine.extra_info->prototyped &&
                f_types_are_compatible(routine_ptr->type, type_ptr,
                                       TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
                                       TCF_NO_DEFAULT_ARG_PROMOTIONS))) {
