@@ -1,5 +1,16 @@
 Version 2.38
 
+11/20/97  EH cleanup state for delete from constructor wrapper code
+
+In a common configuration, the constructor wrapper code generated
+by IL lowering does an allocation to handle a "new" of the class.
+When exceptions are enabled, it also records that the corresponding
+delete should be done if an exception is thrown within the
+constructor.  If the throw comes while executing in a nested block
+of the constructor that is not preceded by any declarations of
+destructible objects, the EH cleanup state was incorrect and the
+deletion was not done.  Now fixed.
+
 11/20/97  Expressions involving nontype template parameters handled
           incorrectly in template argument deduction
 

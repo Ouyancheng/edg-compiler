@@ -8028,7 +8028,8 @@ Add the indicated dynamic init entry to the end of the destructions list
 of the indicated object lifetime entry.
 */
 {
-  a_dynamic_init_ptr last_dip;
+  a_dynamic_init_ptr     last_dip;
+  an_object_lifetime_ptr colp;
 
   check_assertion_str2(in_file_scope(olp) == in_file_scope(dip),
                        "add_to_end_of_destructions_list: object lifetime",
@@ -8049,6 +8050,13 @@ of the indicated object lifetime entry.
   dip->next_in_destruction_list = NULL;
   /* Update the lifetime pointer in the dynamic init entry. */
   dip->lifetime = olp;
+  /* Any child lifetime whose parent_destruction_sublist indicates that
+     it is at the beginning of the lifetime should include this destruction. */
+  for (colp = olp->child_lifetime; colp != NULL; colp = colp->next) {
+    if (colp->parent_destruction_sublist == NULL) {
+      colp->parent_destruction_sublist = dip;
+    }  /* if */
+  }  /* for */
 }  /* add_to_end_of_destructions_list */
 
 
