@@ -4516,6 +4516,40 @@ cannot be done at present.  We are in a template dependent context.
 }  /* is_symbol_for_which_overload_resolution_should_be_deferred */
 
 
+static a_boolean is_symbol_for_which_arg_dependent_lookup_should_be_suppressed(
+                                                              a_symbol_ptr sym)
+/*
+Return TRUE if the indicated symbol is one for which argument-dependent
+lookup should be suppressed.
+*/
+{
+  a_boolean suppress = FALSE;
+
+  if (sym->is_class_member) {
+    /* Argument-dependent lookup is suppressed for a member function. */
+    suppress = TRUE;
+  } else if (is_block_extern_symbol(sym)) {
+    /* Argument-dependent lookup is suppressed for a block extern.
+       This is core issue 239.  Note that local using-declarations
+       are excluded. */
+    if (gpp_mode || sun_mode ||
+        (microsoft_mode && microsoft_version == 1310)) {
+      /* Sun, g++ 3.2/3.3, and Microsoft 7.1 do not suppress the
+         argument-dependent lookup for a block extern.  Microsoft 6.0
+         and 7.0 appear to suppress this, but that's actually because
+         they do not do argument-dependent lookup at all. */
+    } else {
+      suppress = TRUE;
+    }  /* if */
+  } else if (gpp_mode && is_local_symbol(sym)) {
+    /* g++ 3.2/3.3 suppress the argument-dependent lookup for a
+       using-declaration. */
+    suppress = TRUE;
+  }  /* if */
+  return suppress;
+}  /* is_symbol_for_which_arg_dependent_lookup_should_be_suppressed */
+
+
 a_symbol_ptr select_overloaded_function(
                          a_symbol_ptr             overloaded_function_symbol,
                          a_boolean                is_template_id,
@@ -4598,15 +4632,10 @@ and return NULL.  This routine is called only in C++ mode.
     sym_is_undefined = (overloaded_function_symbol->kind ==
                                                   (a_symbol_kind)sk_undefined);
     if (do_arg_dep_lookup && !sym_is_undefined) {
-      /* If the function found is a block extern or a member function, suppress
-         argument-dependent lookup.  The member function part of that is
-         in the standard.  The block extern part is not, but was strongly
-         supported as a change at the Nov. 98 standards committee meeting.
-         Using-declarations are treated similarly. */
-      if (overloaded_function_symbol->is_class_member) {
-        do_arg_dep_lookup = FALSE;
-      } else if (!strict_ansi_mode &&
-                 is_local_symbol(overloaded_function_symbol)) {
+      /* For certain symbols, e.g., member functions, suppress argument-
+         dependent lookup. */
+      if (is_symbol_for_which_arg_dependent_lookup_should_be_suppressed(
+                                                 overloaded_function_symbol)) {
         do_arg_dep_lookup = FALSE;
       }  /* if */
     }  /* if */
@@ -9090,12 +9119,11 @@ such cases (where operator overloading might apply, but we can't tell).
             /* Ignore error symbols and like. */
             normal_sym = NULL;
           }  /* if */
-          if (!strict_ansi_mode && normal_sym != NULL &&
-              is_local_symbol(normal_sym)) {
-            /* If the symbol found is a block extern or using-declaration,
-               skip the argument-dependent processing.  This is not in the
-               standard, but at the Nov. 98 standards committee meeting there
-               was strong sentiment for altering the rule to do it this way. */
+          if (normal_sym != NULL &&
+              is_symbol_for_which_arg_dependent_lookup_should_be_suppressed(
+                                                                 normal_sym)) {
+            /* In certain cases, e.g., block externs, suppress the argument-
+               dependent lookup. */
           } else {
             /* Build a list of the argument types, to be used to do
                argument-dependent lookup below. */
