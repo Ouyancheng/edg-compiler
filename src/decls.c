@@ -8437,7 +8437,18 @@ continue_with_declaration:
         a_boolean  is_function_type_decl = is_function;
         if (!is_function_type_decl) {
           a_type_ptr  tp = local_type_ptr;
-          while (is_ptr_or_ref_type(tp)) tp = type_pointed_to(tp);
+          for (;;) {
+            if (is_ptr_or_ref_type(tp)) {
+              /* Get type pointed to and continue. */
+              tp = type_pointed_to(tp);
+            } else if (is_ptr_to_member_type(tp)) {
+              /* Get member type and continue. */
+              tp = pm_member_type(tp);
+            } else {
+              /* No function type can be involved.  Stop looping. */
+              break;
+            }  /* if */
+          }  /* for */
           is_function_type_decl = is_function_type(tp);
         }  /* if */
         if (is_function_type_decl) {

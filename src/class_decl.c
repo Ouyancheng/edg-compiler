@@ -5943,8 +5943,32 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                 pos_error(ec_abstract_class_object_not_allowed,
                           &locator.source_position);
               }  /* if */
+              if (local_defines_something && first_declarator) {
+                /* The ARM (8.2.5) explicitly prohibits defining a type in
+                   a function return type.  This is taken to apply to
+                   pointer-to-function type declarations as well to the
+                   function declarations. */
+                a_type_ptr  tp = local_type;
+                for (;;) {
+                  if (is_function_type(tp)) {
+                    /* Function type in which the return type involves a
+                       definition. */
+                    pos_error(ec_type_def_not_allowed_in_func_type_decl,
+                              &decl_start_pos);
+                    break;
+                  } else if (is_ptr_or_ref_type(tp)) {
+                    /* Get type pointed to and continue. */
+                    tp = type_pointed_to(tp);
+                  } else if (is_ptr_to_member_type(tp)) {
+                    /* Get member type and continue. */
+                    tp = pm_member_type(tp);
+                  } else {
+                    /* No function type can be involved.  Stop looping. */
+                    break;
+                  }  /* if */
+                }  /* for */
+              }  /* if */
             }  /* if */
-
           }  /* if */
           remove_stop_token(tok_colon);
           if (is_function_type(local_type) &&
@@ -6004,11 +6028,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                   }  /* if */
                 }  /* if */
               }  /* if */
-              if (local_defines_something && first_declarator) {
-                /* Type definition in function return type. */
-                pos_error(ec_type_def_not_allowed_in_func_type_decl,
-                          &decl_start_pos);
-              } else if (!type_explicitly_specified) {
+              if (!type_explicitly_specified) {
                 /* No type specifier. */
                 if (is_constructor || is_destructor ||
                     locator.is_conversion_name) {
