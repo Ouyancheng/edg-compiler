@@ -6358,16 +6358,20 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
 
 a_boolean scan_class_definition(a_type_ptr       class_type,
                                 a_scope_depth    effective_decl_level,
+                                a_scope_depth    orig_decl_level,
                                 a_boolean        is_local_class,
                                 a_boolean        delayed_nested_class_def)
 /*
 Scan the body of a class definition, including the base classes list.
 class_type points to the type entry of the class, struct, or union whose
 definition is to be scanned.  effective_decl_level indicates the name scope
-to which the class declaration belongs.  is_local_class is TRUE if the class
-definition appears inside a function body.  delayed_nested_class_def is TRUE
-if the class is a nested class whose parent class definition has already
-been completed (C++ only).
+to which the class declaration belongs.  orig_decl_level is usually the same
+as effective_decl_level, but when the class was specified with a
+namespace-qualified name, it is instead the scope depth before the namespace
+extension scope was pushed.  is_local_class is TRUE if the class definition
+appears inside a function body.  delayed_nested_class_def is TRUE if the
+class is a nested class whose parent class definition has already been
+completed (C++ only).
 */
 {
   a_boolean                       err = FALSE;
@@ -7908,9 +7912,40 @@ next_declaration:
     /* Pop the pseudo-scope created for the fields. */
     pop_scope();
     if (delayed_nested_class_def) {
-      /* A nested class defined outside the parent class definition.  Restore
-         the scope stack to its original state. */
+      /* A nested class defined outside the parent class definition. */
+      a_type_ptr  placeholder;
+
+      /* Restore the scope stack to its original state. */
       pop_class_reactivation_scope();
+      /* Enter a typedef entry that points at the nested class just defined.
+         It will serve to indicate just where (in the sequence of type
+         declarations the delayed nested
+         type definition appeared. */
+      placeholder = alloc_type((a_type_kind)tk_typeref);
+      placeholder->variant.typeref.type = class_type;
+      placeholder->variant.typeref.is_placeholder_for_nested_class_def = TRUE;
+      class_type->variant.class_struct_union.
+                                nested_class_defined_outside_of_parent = TRUE;
+      /* Note that we add the placeholder type to the types list of the
+         scope active when the original declaration was seen -- before any
+         namespace extension scopes were pushed if the nested class was
+         specified with a namespace-qualified name -- for instance:
+           namespace N { class A { class B; }; }
+           class N::A::B { };
+         Here the namespace-extension scope for N is still on the scope stack,
+         but we want the placeholder typeref to be added to the file scope,
+         which is what orig_decl_level should specify. */
+      add_to_types_list(placeholder, orig_decl_level);
+      if (scope_stack[orig_decl_level].il_scope->kind ==
+                                            (a_scope_kind)sck_namespace) {
+        /* The original declaration scope is a namespace scope instead of the
+           file scope.  Make the placeholder a member of the namespace. */
+        a_namespace_ptr nsp = scope_stack[orig_decl_level].il_scope->
+                                                      variant.assoc_namespace;
+        set_namespace_membership((a_symbol_ptr)NULL,
+                                 &placeholder->source_corresp,
+                                 nsp);
+      }  /* if */
     }  /* if */
     remove_stop_token(tok_rbrace);
     /* Check for and ignore the closing brace. */
