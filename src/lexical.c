@@ -6795,7 +6795,7 @@ Allocate a file suffix entry, initialize it, and return a pointer to it.
 {
   a_file_suffix_ptr fsp;
 
-  fsp = (a_file_suffix_ptr)alloc_fe(sizeof(a_file_suffix));
+  fsp = (a_file_suffix_ptr)alloc_general(sizeof(a_file_suffix));
 #if DEBUG
   num_file_suffixes_allocated++;
 #endif /* DEBUG */
@@ -6831,7 +6831,7 @@ If the entry is already on the list the new entry is ignored.
        now pointed to by prev_fsp. */
     fsp = alloc_file_suffix();
     /* Allocate space for the suffix including a null delimiter. */
-    fsp->suffix = (char *)alloc_fe((sizeof_t)length + 1);
+    fsp->suffix = (char *)alloc_general((sizeof_t)length + 1);
     strncpy(fsp->suffix, suffix, length);
     /* Terminate the copy of the string with a null character. */
     fsp->suffix[length] = '\0';
