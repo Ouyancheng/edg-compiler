@@ -709,7 +709,7 @@ call end_error.
         type1 binop type2
      Special cases:
         type1 [ type2 ]
-        type1 ? type2 : type3
+        type1 : type2     (used for "?")
      List form used for (), -> new, new[], delete, and delete[]:
         type1, type2, ...
   */
@@ -738,6 +738,8 @@ call end_error.
       /* After the first operand. */
       if (kind == (an_opname_kind)onk_subscript) {
         put_str_to_temp_text_buffer(" [ ");
+      } else if (kind == (an_opname_kind)onk_question) {
+        put_str_to_temp_text_buffer(" : ");
       } else if (!unary_operator) {
         /* Binary operators go between the first and second operands. */
         put_ch_to_temp_text_buffer(' ');
@@ -748,8 +750,6 @@ call end_error.
       /* After the second operand. */
       if (kind == (an_opname_kind)onk_subscript) {
         put_str_to_temp_text_buffer(" ]");
-      } else if (kind == (an_opname_kind)onk_question) {
-        put_str_to_temp_text_buffer(" : ");
       }  /* if */
     }  /* if */
   }  /* for */
