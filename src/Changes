@@ -1,5 +1,10 @@
 Version 2.30
 
+5/25/95  "Delayed" definition of nested classes
+
+The definition of a nested class outside its enclosing class is now
+allowed in C++.
+
 -------------------------------------------------------------------------------
 Version 2.29, May 24, 1995
 
