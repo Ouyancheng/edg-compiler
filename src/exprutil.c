@@ -3618,62 +3618,45 @@ void make_constructor_dynamic_init(a_routine_ptr    ctor_routine,
                                    a_boolean        result_is_addr,
                                    an_operand       *result)
 /*
-Create a temporary and an enk_temp_init node that calls the constructor
-routine ctor_routine with the argument list arg_expr_list.  Return an
-operand for the value (result_is_addr == FALSE) or address (result_is_addr
-== TRUE) of the temporary in *result.
+Create an enk_temp_init node that calls the constructor ctor_routine with
+the argument list arg_expr_list.  Return an operand for the value (if
+result_is_addr == FALSE) or address (if result_is_addr == TRUE) of the
+temporary in *result.
 */
 {
   a_type_ptr         class_type;
-  a_variable_ptr     temp_var;
   a_dynamic_init_ptr dip;
-  an_expr_node_ptr   temp_init_node, return_value_node;
+  an_expr_node_ptr   temp_init_node;
 
 #if CHECKING
   if (ctor_routine->special_kind != (a_special_function_kind)sfk_constructor) {
     internal_error("make_constructor_dynamic_init: routine not constructor");
   }  /* if */
 #endif /* CHECKING */
-  class_type = skip_typerefs(ctor_routine->type)->variant.routine.extra_info->
-                                                      implicit_this_param_type;
-  class_type = type_pointed_to(class_type);
-  class_type = skip_typerefs(class_type);
-  /* Allocate the temporary, the dynamic initialization entry, and the
-     enk_temp_init node.  find_class_rvalue_var_node recognizes
-     the form of the expression created here. */
-  temp_var = create_expr_temporary(class_type, /*force_temp_init=*/TRUE,
-                                   curr_expr_is_evaluated(),
-                                   &temp_init_node);
+  class_type = ctor_routine->source_corresp.class_of_which_a_member;
+  /* Create the dynamic initialization entry and the enk_temp_init node. */
+  temp_init_node = create_expr_temporary(class_type, result_is_addr,
+                                         curr_expr_is_evaluated());
   dip = temp_init_node->variant.init.dynamic_init;
   /* Use a dik_constructor to call the constructor routine. */
   set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constructor);
   dip->variant.constructor.ptr = ctor_routine;
   dip->variant.constructor.args = arg_expr_list;
-  if (result_is_addr) {
-    /* Make a node for the address of the temporary. */
-    return_value_node = var_lvalue_expr(temp_var);
-  } else {
-    /* Make a node for the value of the temporary. */
-    return_value_node = var_rvalue_expr(temp_var);
-  }  /* if */
-  /* Attach the value node under the enk_temp_init. */
-  attach_expr_under_temp_init(&return_value_node, temp_init_node);
   /* Make an operand for the overall expression. */
-  make_expression_operand(return_value_node, return_value_node->type, result);
+  make_expression_operand(temp_init_node, temp_init_node->type, result);
 }  /* make_constructor_dynamic_init */
 
 
 static void temp_init_from_operand(an_operand *operand)
 /*
-Create a temporary variable of type temp_type and make an enk_temp_init
-node that initializes the temporary to the indicated operand.
-The source operand can be an rvalue or an lvalue.  On return, *operand
-will have been changed to an rvalue for the address of the temporary.
+Create an enk_temp_init node that initializes a temporary to a copy of the
+indicated operand.  The source operand can be an rvalue or an lvalue.
+On return, *operand will have been changed to an rvalue for the address
+of the temporary.  Only used in C++ mode.
 */
 {
-  a_variable_ptr     temp_var;
   a_dynamic_init_ptr dip;
-  an_expr_node_ptr   temp_init_node, temp_lvalue_node;
+  an_expr_node_ptr   temp_init_node;
   a_boolean          cctor_case, class_bitwise_copy;
   a_type_ptr         temp_type;
   a_routine_ptr      cctor_routine;
@@ -3721,67 +3704,19 @@ will have been changed to an rvalue for the address of the temporary.
   if (!cctor_case) {
     /* Normal case -- use a dik_expression initialization to copy the
        operand into the temporary. */
-    /* Allocate the temporary, the dynamic initialization entry, and the
-       enk_temp_init node. */
-    temp_var = create_expr_temporary(temp_type, /*force_temp_init=*/TRUE,
-                                     curr_expr_is_evaluated(),
-                                     &temp_init_node);
+    /* Allocate the dynamic initialization entry and the enk_temp_init node. */
+    temp_init_node = create_expr_temporary(temp_type, /*result_is_addr=*/TRUE,
+                                           curr_expr_is_evaluated());
     dip = temp_init_node->variant.init.dynamic_init;
     conv_lvalue_to_rvalue(operand);
     set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_expression);
     dip->variant.expression = make_node_from_operand(operand);
-    /* Make a node for the address of the temporary. */
-    temp_lvalue_node = var_lvalue_expr(temp_var);
-    /* Attach the value node under the enk_temp_init. */
-    attach_expr_under_temp_init(&temp_lvalue_node, temp_init_node);
     /* Make an operand for the overall expression. */
-    make_expression_operand(temp_lvalue_node, temp_lvalue_node->type, operand);
+    make_expression_operand(temp_init_node, temp_init_node->type, operand);
   }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details(operand, &orig_operand);
 }  /* temp_init_from_operand */
-
-
-static an_expr_node_ptr find_class_rvalue_var_node(an_expr_node_ptr node,
-                                                   a_type_ptr       new_type)
-/*
-Walk down an expression tree representing a class rvalue, looking for
-an enk_variable node that gives the value of the tree.  We want to find
-such a node so that we can change it to an enk_variable_address node and
-make the overall tree into an lvalue for the same object.  Return
-a pointer to the enk_variable node (but do not change it).  If the
-enk_variable is not found, return NULL.  While descending to the
-enk_variable node, set the node types to new_type.  This is used on a
-second call of this routine to change the node types to add a pointer-to
-to reflect the change made to the enk_variable node.  On the first call,
-new_type will be the original type and the assignments will not change
-anything.
-
-This routine *must* recognize the expression forms generated for
-rvalue classes, specifically those generated by func_call_expr and
-make_constructor_dynamic_init.  The general form is some number of
-enk_temp_init nodes, some number of comma nodes, and an enk_variable
-node at the bottom.
-*/
-{
-  /* Drop any enk_temp_init nodes. */
-  while (node->kind == (an_expr_node_kind)enk_temp_init) {
-    node->type = new_type;
-    node = node->variant.init.expr;
-  }  /* while */
-  /* Drop any comma operators, moving down to the second operand of
-     the comma each time. */
-  while (is_operation_node(node) &&
-         node->variant.operation.kind == (an_expr_operator_kind)eok_comma) {
-    node->type = new_type;
-    node = node->variant.operation.operands->next;
-  }  /* while */
-  /* Check to see that we've found the enk_variable node. */
-  if (node->kind != (an_expr_node_kind)enk_variable) {
-    node = NULL;
-  }  /* if */
-  return node;
-}  /* find_class_rvalue_var_node */
 
 
 static void conv_class_rvalue_expr_to_object_pointer(
@@ -3797,8 +3732,7 @@ rewriting is possible, and set *converted accordingly; do not change
 the expression.
 */
 {
-  an_expr_node_ptr node = *p_node, var_node, op1, op2, op3;
-  a_type_ptr       new_type;
+  an_expr_node_ptr node = *p_node, op1, op2, op3;
   a_boolean        is_operation, op1_possible, op2_possible, op3_possible;
 
   *converted = FALSE;
@@ -3850,8 +3784,8 @@ the expression.
         node->type = make_pointer_type(node->type);
       }  /* if */
     }  /* if */
-  } else if (is_operation &&
-      node->variant.operation.kind == (an_expr_operator_kind)eok_value_field) {
+  } else if (is_operation && node->variant.operation.kind ==
+                                      (an_expr_operator_kind)eok_value_field) {
     /* Selection of a field from an rvalue.  Try to find an lvalue in
        the struct rvalue, and if one can be found rewrite the operation
        as a normal field selection. */
@@ -3881,22 +3815,14 @@ the expression.
       node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
       node->type = make_pointer_type(node->type);
     }  /* if */
-  } else {
-    /* Try to find a class temporary in the tree.  If we can find one,
-       we can use its address. */
-    var_node = find_class_rvalue_var_node(node, node->type);
-    if (var_node != NULL) {
-      /* This is a case we can optimize. */
-      *converted = TRUE;
-      if (!see_if_possible) {
-        /* Change the value of the variable to the address of the variable. */
-        new_type = make_pointer_type(var_node->type);
-        var_node->kind = (an_expr_node_kind)enk_variable_address;
-        var_node->type = new_type;
-        /* Visit the intermediate nodes (if any) again and change their
-           types to the new pointer-to type. */
-        (void)find_class_rvalue_var_node(node, new_type);
-      }  /* if */
+  } else if (node->kind == (an_expr_node_kind)enk_temp_init) {
+    /* A temporary initialization.  Flip the flag that indicates the value
+       or address of the temporary. */
+    check_assertion(!node->variant.init.result_is_addr);
+    *converted = TRUE;
+    if (!see_if_possible) {
+      node->variant.init.result_is_addr = TRUE;
+      node->type = make_pointer_type(node->type);
     }  /* if */
   }  /* if */
   *p_node = node;
@@ -7175,7 +7101,7 @@ be processed under an ellipsis).
 #endif /* CHECKING */
     arg = param->default_arg_expr;
     if (arg != NULL) {
-      arg = copy_expr_tree(arg, /*clone_temps=*/TRUE);
+      arg = copy_expr_tree(arg);
     } else {
       /* In cases where there was an error in the declaration of a function
          template (a parameter with an default argument expression was
@@ -9447,7 +9373,7 @@ If the conversion is not possible, issue the error incompatible_err,
 convert source_operand to an error operand, and return *err TRUE.
 If user_conversion is non-NULL, the conversion is already known to be
 possible, and *user_conversion describes the user-defined conversion
-part of it, if any.
+part of it, if any.  Only used in C++.
 */
 {
   a_user_conv_descr local_user_conversion;
