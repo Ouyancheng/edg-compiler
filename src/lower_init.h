@@ -137,6 +137,8 @@ extern void lower_file_scope_dynamic_inits(void);
 
 extern void make_code_to_invoke_file_scope_init_and_term_routines(void);
 
+extern void init_lower_one_time_init(void);
+
 extern void init_lower_init(void);
 
 #endif /* DO_IL_LOWERING */

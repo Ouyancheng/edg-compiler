@@ -32,6 +32,7 @@ lower_init.c -- IL lowering: initializations and new/delete.
 #include "expr.h"
 #include "exprutil.h"
 #include "const_ints.h"
+#include "pch.h"
 
 static a_routine_ptr
 		file_scope_init_routine,
@@ -5130,6 +5131,27 @@ Do lowering on the file-scope dynamic initializations list.
     switch_il_region(FILE_SCOPE_REGION_NUMBER);
   }  /* if */
 }  /* lower_file_scope_dynamic_inits */
+
+
+void init_lower_one_time_init(void)
+/*
+Do one-time initialization of static variables declared in lower_init.c.
+(Variables that need to be reinitialized with each new translation unit
+are handled in il_lower_init.)
+*/
+{
+  /* Save variables from that are needed for precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(vec_new_routine),
+      pch_saved_var_array_elem(vec_new_eh_routine),
+      pch_saved_var_array_elem(vec_cctor_routine),
+      pch_saved_var_array_elem(vec_delete_routine),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* one_time_init_lower_init */
 
 
 void init_lower_init(void)
