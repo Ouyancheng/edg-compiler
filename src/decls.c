@@ -3969,9 +3969,14 @@ skip_overloading:;
   }  /* if */
   if (!C_mode() && !redeclaration) {
     if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
-      set_namespace_membership(sym, source_corresp_ptr,
-                               scope_stack[depth_innermost_namespace_scope].
-                                           il_scope->variant.assoc_namespace);
+      /* Set the namespace parent.  Note that for block-extern declarations,
+         this is done only in the IL entry, not in the symbol. */
+      set_namespace_membership(
+                   depth_innermost_function_scope == NO_SCOPE_DEPTH ?
+                     sym : (a_symbol_ptr)NULL,
+                   source_corresp_ptr,
+                   scope_stack[depth_innermost_namespace_scope].il_scope->
+                                                    variant.assoc_namespace);
     }  /* if */
   }  /* if */
   if (func_info->is_main_function) {
