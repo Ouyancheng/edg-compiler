@@ -4977,9 +4977,10 @@ to it.
 #if DEBUG
   num_switch_clauses_allocated++;
 #endif /* DEBUG */
-  scp->next           = NULL;
-  scp->constant_list  = NULL;
-  scp->statements     = NULL;
+  scp->next             = NULL;
+  scp->constant_list    = NULL;
+  scp->statements       = NULL;
+  scp->break_seq_number = 0;
   return scp;
 }  /* alloc_switch_clause */
 

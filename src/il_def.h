@@ -2505,6 +2505,10 @@ typedef struct a_switch_clause {
                            a "break").  Any other action (including
                            fall-through to the next clause) is indicated by
                            an explicit goto as the last statement. */
+  a_seq_number	break_seq_number;
+			/* If the clause ends with a break statement, this
+			   gives the break statement's sequence number.
+			   Otherwise, zero. */
 } a_switch_clause;
 
 #endif /* ifdef CIL */

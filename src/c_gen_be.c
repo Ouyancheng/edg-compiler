@@ -6889,7 +6889,7 @@ Generate C for a statement.
 	  }  /* while */
 	}  /* if */
         if (need_break) {
-          startline((a_seq_number)0);
+          startline(switch_clause->break_seq_number);
 	  fputs("break;", f_C_output);
         }  /* if */
 	/* Outdent for the dependent statements and the case label. */

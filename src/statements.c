@@ -1193,20 +1193,25 @@ See also 3.6.6.3.
     /* No appropriate structured statement was found. */
     error(ec_break_must_be_in_loop_or_switch);
     dest_label = alloc_temp_label();
-  } else if (sssep->kind == ssk_switch &&
-             sssep->curr_switch_clause != NULL &&
-             depth_stmt_stack != 0 &&
-             &struct_stmt_stack[depth_stmt_stack-1] == sssep) {
-    /* This break statement exits a switch clause.  No goto need be generated,
-       because the default action at the end of the clause in the IL
-       is a "break".  However, the current switch clause must be ended.
-       Note that this special trick can be done only when the break is 
-       at the top level in the case clause. */
-    sssep->curr_switch_clause = NULL;
-    sssep->last_dep_statement = NULL;
-    term_stmt_clause(sssep);
-    code_reachable = rc_unreachable;
   } else {
+    if (sssep->kind == ssk_switch &&
+        sssep->curr_switch_clause != NULL) {
+      /* A break that exits a switch clause. */
+      sssep->curr_switch_clause->break_seq_number = pos_curr_token.seq;
+      if (depth_stmt_stack != 0 &&
+          &struct_stmt_stack[depth_stmt_stack-1] == sssep) {
+        /* This break statement exits a switch clause in a way that can
+           be represented implicitly as the default action at the end of
+           the clause.  No goto is required.  However, the current switch
+           clause must be ended.  Note that this special trick can be done
+           only when the break is at the top level in the case clause. */
+        sssep->curr_switch_clause = NULL;
+        sssep->last_dep_statement = NULL;
+        term_stmt_clause(sssep);
+        code_reachable = rc_unreachable;
+        goto break_handled;
+      }  /* if */
+    }  /* if */
     /* This break statement exits a loop, or some part of a switch that
        is not inside a switch clause. */
     dest_label = sssep->break_label;
@@ -1218,6 +1223,7 @@ See also 3.6.6.3.
     sp = add_statement((a_statement_kind)stmk_goto);
     /* Put the destination label into the goto. */
     sp->variant.label = dest_label;
+break_handled:;
   }  /* if */
   /* Ignore the initial "break". */
 #if CHECKING

@@ -1928,6 +1928,7 @@ Display the indicated switch clause.
   disp_ptr("next", (char *)ptr->next, iek_switch_clause);
   disp_ptr("constant_list", (char *)ptr->constant_list, iek_constant);
   disp_ptr("statements", (char *)ptr->statements, iek_statement);
+  disp_unsigned_long("break_seq_number", (unsigned long)ptr->break_seq_number);
 }  /* disp_switch_clause */
 
 #endif /* ifdef CFE */

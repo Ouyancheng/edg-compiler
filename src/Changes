@@ -1,5 +1,11 @@
 Version 2.08
 
+7/10/92  Added break_seq_number to switch clause
+
+The IL entry a_switch_clause now has a field break_seq_number that gives the
+source line sequence number for the "break" statement for the clause,
+if any.  This is helpful in generating symbolic debugging information.
+
 7/9/92   Bits flipped in implicit destructor arguments
 
 For cfront compatibility, the bits in the implicit argument passed
