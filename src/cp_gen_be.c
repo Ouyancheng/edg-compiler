@@ -3400,10 +3400,16 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           { a_type_ptr type = type_pointed_to(operand_1->type);
             gen_type(type);
             write_str("::~");
-            /* Don't use gen_type here, because we don't want the template
-               arguments, if any, listed.  Also, we want to output a
-               partial token. */
-            write_str(type->source_corresp.name);
+            if (is_class_type_kind(type->kind)) {
+              /* Class case. */
+              /* Don't use gen_type here, because we don't want the template
+                 arguments, if any, listed.  Also, we want to output a
+                 partial token. */
+              write_str(type->source_corresp.name);
+            } else {
+              /* Case like "int::~int". */
+              gen_type(type);
+            }  /* if */
           }
           write_tok_str("()");
           goto done_with_operation;
