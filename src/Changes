@@ -29,7 +29,7 @@ A problem in the way in which the instantiation context is established
 resulted in incorrect name lookups in certain cases involving nested
 namespaces.  This has been fixed.
 
-  // Gets a spurious error when compiled in strict mode.  
+  // Got a spurious error when compiled in strict mode.  
   namespace N0 {
     namespace N1 {
       template <class T> struct A { };
