@@ -8825,9 +8825,9 @@ class (prototype instantiation of a class template).
   sym = class_member_declaration(class_type, class_state_ptr,
                                  /*is_member_template=*/TRUE,
                                  &skip_semicolon_check, &dummy_type);
-  if (sym->is_error) sym = NULL;
-  if (sym == NULL) {
+  if (sym == NULL || sym->is_error) {
     pos_error(ec_bad_member_template_decl, &decl_start_pos);
+    sym = NULL;
   } else if (sym->kind != (a_symbol_kind)sk_function_template) {
     pos_sy_error(ec_bad_member_template_sym, &sym->decl_position, sym);
     sym = NULL;
