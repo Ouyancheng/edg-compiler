@@ -8245,10 +8245,11 @@ Clear the fields of a function information block to default values.
 }  /* clear_func_info */
 
 
-void add_to_dependent_type_fixup_list(a_type_ptr         class_type,
-                                      a_type_ptr         type,
-                                      a_param_type_ptr   param_type,
-                                      a_source_position  *pos)
+void add_to_dependent_type_fixup_list(a_type_ptr                   class_type,
+                                      a_dependent_type_fixup_kind  fixup_kind,
+                                      char                         *ptr,
+                                      a_byte_il_entry_kind         entity_kind,
+                                      a_source_position            *pos)
 /*
 class_type is a pointer an incomplete class/struct/union type, and type or
 param_type is dependent on it, so an entry is created so that type or
@@ -8260,9 +8261,6 @@ defined.  Either type or param_type (but not both) is non-NULL.
   a_class_symbol_supplement_ptr  cssp;
 
   db_enter(5, "add_to_dependent_type_fixup_list");
-  /* One or the other of type and param_type, but not both, should be
-     non-NULL. */
-  check_assertion((type == NULL) != (param_type == NULL));
   /* A dependent type fixup entry is required for the type or param type. */
   if (avail_dependent_type_fixups != NULL) {
     /* Reuse a previously freed entry. */
@@ -8276,15 +8274,11 @@ defined.  Either type or param_type (but not both) is non-NULL.
     num_dependent_type_fixups_allocated++;
 #endif /* DEBUG */
   }  /* if */
+  dtfp->fixup_kind = fixup_kind;
+  dtfp->entity.ptr = ptr;
+  dtfp->entity.kind = entity_kind;
   dtfp->decl_position = *pos;
   dtfp->next = NULL;
-  if (type == NULL) {
-    dtfp->is_param_type = TRUE;
-    dtfp->variant.param_type = param_type;
-  } else {
-    dtfp->is_param_type = FALSE;
-    dtfp->variant.type = type;
-  }  /* if */
   /* Add a fixup entry to the end of the list associated with the class. */
   cssp = symbol_supplement_for_class(class_type);
   if (cssp->dependent_type_fixup_list == NULL) {
@@ -8308,6 +8302,7 @@ of the declaration can be completed for the dependent types, too.
 {
   a_dependent_type_fixup_ptr     dtfp, next_dtfp, prev_dtfp, list;
   a_class_symbol_supplement_ptr  cssp;
+  a_type_ptr                     tp;
 
   cssp = symbol_supplement_for_class(class_type);
   list = cssp->dependent_type_fixup_list;
@@ -8323,33 +8318,108 @@ of the declaration can be completed for the dependent types, too.
       prev_dtfp = NULL;
       for (dtfp = list; dtfp != NULL; dtfp = next_dtfp) {
         next_dtfp = dtfp->next;
-        error_position = dtfp->decl_position;
-        if (dtfp->is_param_type) {
+        switch (dtfp->fixup_kind) {
+          case dtfk_arg_transfer_method:
+            check_assertion(dtfp->entity.kind ==
+                                    (a_byte_il_entry_kind)iek_param_type);
+            /* A parameter of class type.  Set the flag indicating whether
+               passing it requires a copy constructor call. */
+            set_arg_transfer_method_flag((a_param_type_ptr)dtfp->entity.ptr,
+                                           &dtfp->decl_position);
+            break;
+          case dtfk_array_type_size:
+            check_assertion(dtfp->entity.kind ==
+                                    (a_byte_il_entry_kind)iek_type);
+            tp = (a_type_ptr)dtfp->entity.ptr;
+            if (!is_error_type(tp)) {
+              check_assertion(is_array_type(tp));
+              if (is_incomplete_type(tp->variant.array.element_type)) {
+                /* The array is still incomplete.  This can happen if it is
+                   dependent on another array that is still to be checked (the
+                   case of "array of array of T").  Leave dtfp on the list and
+                   continue. */
+                prev_dtfp = dtfp;
+                goto next_list_entry;
+              } else {
+                /* An array of elements of the (now complete) class type.  The
+                   array's size can be computed. */
+                set_type_size(tp);
+              }  /* if */
+            }  /* if */
+            break;
+          case dtfk_routine_calling_method:
+            check_assertion(dtfp->entity.kind ==
+                                    (a_byte_il_entry_kind)iek_type);
+            tp = (a_type_ptr)dtfp->entity.ptr;
+            if (!is_error_type(tp)) {
+              check_assertion(is_function_type(tp));
+              if (dtfp->fixup_kind ==
+                   (a_dependent_type_fixup_kind)dtfk_routine_calling_method) {
+                /* A function returning a class type.  Set the flag indicating
+                   whether the return involves a copy constructor. */
+                set_routine_calling_method_flag(tp, &dtfp->decl_position);
+              }  /* if */
+            }  /* if */
+            break;
+          case dtfk_check_op_arrow_return_type:
+            check_assertion(dtfp->entity.kind ==
+                                    (a_byte_il_entry_kind)iek_routine);
+            check_operator_arrow_return_type((a_routine_ptr)dtfp->entity.ptr,
+                                             /*is_expr_use=*/FALSE,
+                                             &dtfp->decl_position);
+            break;
+#if CHECKING
+          default:
+            internal_error("check_dependent_type_fixup_list: bad fixup kind");
+#endif /* CHECKING */
+        }  /* switch */
+#if 0
+        if (dtfp->fixup_kind ==
+                     (a_dependent_type_fixup_kind)dtfk_arg_transfer_method) {
+          check_assertion(dtfp->entity.kind ==
+                                  (a_byte_il_entry_kind)iek_param_type);
           /* A parameter of class type.  Set the flag indicating whether
              passing it requires a copy constructor call. */
-          set_arg_transfer_method_flag(dtfp->variant.param_type,
-                                       &dtfp->decl_position);
+          set_arg_transfer_method_flag((a_param_type_ptr)dtfp->entity.ptr,
+                                         &dtfp->decl_position);
         } else {
-          a_type_ptr  tp = dtfp->variant.type;
-          if (is_array_type(tp)) {
-            if (is_incomplete_type(tp->variant.array.element_type)) {
-              /* The array is still incomplete.  This can happen if it is
-                 dependent on another array that is still to be checked (the
-                 case of "array of array of T").  Leave dtfp on the list and
-                 continue. */
-              prev_dtfp = dtfp;
-              goto next_list_entry;
+          check_assertion(dtfp->entity.kind == (a_byte_il_entry_kind)iek_type);
+          tp = (a_type_ptr)dtfp->entity.ptr;
+          if (!is_error_type(tp)) {
+            if (dtfp->fixup_kind ==
+                     (a_dependent_type_fixup_kind)dtfk_array_type_size) {
+              check_assertion(is_array_type(tp));
+              if (is_incomplete_type(tp->variant.array.element_type)) {
+                /* The array is still incomplete.  This can happen if it is
+                   dependent on another array that is still to be checked (the
+                   case of "array of array of T").  Leave dtfp on the list and
+                   continue. */
+                prev_dtfp = dtfp;
+                goto next_list_entry;
+              } else {
+                /* An array of elements of the (now complete) class type.  The
+                   array's size can be computed. */
+                set_type_size(tp);
+              }  /* if */
             } else {
-              /* An array of elements of the (now complete) class type.  The
-                 array's size can be computed. */
-              set_type_size(tp);
+              check_assertion(is_function_type(tp));
+              if (dtfp->fixup_kind ==
+                   (a_dependent_type_fixup_kind)dtfk_routine_calling_method) {
+                /* A function returning a class type.  Set the flag indicating
+                   whether the return involves a copy constructor. */
+                set_routine_calling_method_flag(tp, &dtfp->decl_position);
+              } else {
+                check_assertion(dtfp->fixup_kind ==
+                                    (a_dependent_type_fixup_kind)
+                                            dtfk_check_op_arrow_return_type);
+                check_operator_arrow_return_type(tp, class_type,
+                                                 /*is_expr_use=*/FALSE,
+                                                 &dtfp->decl_position);
+              }  /* if */
             }  /* if */
-          } else {
-            /* A function returning a class type.  Set the flag indicating
-               whether the return involves a copy constructor. */
-            set_routine_calling_method_flag(tp, &dtfp->decl_position);
           }  /* if */
         }  /* if */
+#endif /* if 0 */
         /* If the head of the list is being removed (the common case) reset the
            list pointer. */
         check_assertion((list == dtfp) == (prev_dtfp == NULL));
