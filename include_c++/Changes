@@ -1,3 +1,10 @@
+Version 2.20, November 4, 1993
+
+11/04/93 Exit function has C++ linkage
+
+The exit function has been changed to have C++ linkage.  A version of
+exit is now supplied with the C++ runtime to support exception handling.
+
 ------------------------------------------------------------------------------
 Version 2.05, April 30, 1992
 
