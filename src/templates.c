@@ -7110,10 +7110,12 @@ that follows.
                                 declarator_ssep);
 
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+        a_variable_ptr  vp = sym->variant.static_data_member.variable;
+        a_template_instance_ptr	tip =
+                                 sym->variant.static_data_member.instance_ptr;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Do fixup on the source sequence entry that was just created to
            represent the current declaration. */
-        a_variable_ptr  vp = sym->variant.static_data_member.variable;
         if (!is_definition) {
           (void)set_src_seq_secondary_decl_type((char *)vp, type);
         } else {
@@ -7121,6 +7123,12 @@ that follows.
           if (vp->declared_type == NULL) vp->declared_type = type;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        if (is_definition) vp->specific_def = TRUE;
+        if (is_definition) tip->specific_def = TRUE;
+        tip->specific_decl = TRUE;
+#if 0
+        vp->is_specialization = TRUE;
+#endif /* 0 */
         /* Deal with initializer. */
         if (is_definition) {
           a_boolean  incomplete_type_error_reported = FALSE;
@@ -7137,10 +7145,11 @@ that follows.
         }  /* if */
         (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
       } else {
+        a_routine_ptr  rp = sym->variant.routine.ptr;
+        a_template_instance_ptr	tip = sym->variant.routine.instance_ptr;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Do fixup on the source sequence entry that was just created to
            represent the current declaration. */
-        a_routine_ptr  rp = sym->variant.routine.ptr;
         if (!is_definition) {
           (void)set_src_seq_secondary_decl_type((char *)rp, type);
         } else {
@@ -7148,6 +7157,12 @@ that follows.
           if (rp->declared_type == NULL) rp->declared_type = type;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        if (is_definition) rp->specific_def = TRUE;
+        if (is_definition) tip->specific_def = TRUE;
+        tip->specific_decl = TRUE;
+#if 0
+        rp->is_specialization = TRUE;
+#endif /* 0 */
         if (is_definition) {
           /* This is a defining declaration of the function template. */
           func_info.is_definition = TRUE;
