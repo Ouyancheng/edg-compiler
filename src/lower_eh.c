@@ -3288,6 +3288,7 @@ Do IL lowering for an stmk_try_block statement.
 
 
 #if DO_FULL_PORTABLE_EH_LOWERING
+#if !ABI_CHANGES_FOR_RTTI
 
 /* Routines to build an access string for a throw, using the temp_text
    buffer. */
@@ -3373,6 +3374,10 @@ expr is a throw expression node.  If necessary, generate a string
 constant to describe the accessible base classes of the thrown type and
 return a pointer to it.  The constant is shareable.  If no constant
 is needed, return NULL.
+
+This mechanism was made obsolete by changes in the definition of
+access checking for throw.  Now, typeinfo information can be used
+instead.
 */
 {
   a_type_ptr                   type;
@@ -3405,13 +3410,14 @@ is needed, return NULL.
   return string_con;
 }  /* make_throw_access_string */
 
+#endif /* !ABI_CHANGES_FOR_RTTI */
 
 /*
-Pointers to routine entries for the runtime routines __throw_alloc,
+Pointers to routine entries for the runtime routines __throw_setup,
 __throw, and __rethrow, used in throwing exceptions.  NULL until allocated.
 */
 static a_routine_ptr
-		throw_alloc_routine,
+		throw_setup_routine,
 		throw_routine,
 		rethrow_routine;
 
@@ -3450,10 +3456,8 @@ Lower an enk_throw expression node.
   a_type_ptr         ptr_throw_type;
   a_variable_ptr     temp_var, typeinfo_var;
   an_expr_node_ptr   call_node, typeinfo_node, size_node, flags_node;
-  an_expr_node_ptr   access_node, assign_node;
+  an_expr_node_ptr   assign_node;
   unsigned long      flags_value;
-  a_constant         access_con;
-  a_constant_ptr     string_con;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
   /* Check for a throw with no operand, i.e., a rethrow. */
@@ -3478,19 +3482,23 @@ Lower an enk_throw expression node.
     check_assertion(dip->destructor == NULL);
 #if DO_FULL_PORTABLE_EH_LOWERING
     /* Make the assignment
-         temp = __throw_alloc(&typeinfo, size, flags, access)
+         temp = __throw_setup(&typeinfo, size, flags)
        This allocates the space into which the thrown object is copied and
        sets temp to point to that space.  typeinfo is the typeinfo variable
        for the base type of the type thrown; size is the size in bytes of
-       the type thrown; flags has the ETS_IS_POINTER bit set to indicate
-       that a pointer to the typeinfo type is being thrown; and access
-       is non-NULL when throwing a class -- it is a character string
-       indicating which of the base classes are accessible. */
+       the type thrown; and flags has the ETS_IS_POINTER bit set to indicate
+       that a pointer to the typeinfo type is being thrown. */
+#if !ABI_CHANGES_FOR_RTTI
+    /* The old form is
+         temp = __throw_alloc(&typeinfo, size, flags, access)
+       which has access non-NULL when throwing a class -- it is a character
+       string indicating which of the base classes are accessible. */
+#endif /* !ABI_CHANGES_FOR_RTTI */
     ptr_throw_type = make_pointer_type(throw_type);
     temp_var = make_lowered_temporary(ptr_throw_type);
     /* Make the typeinfo variable for the throw type. */
     typeinfo_var = typeinfo_var_for_type(throw_type, &flags_value);
-    /* Make the arguments for the __throw_alloc call. */
+    /* Make the arguments for the __throw_setup call. */
     typeinfo_node = var_lvalue_expr(typeinfo_var);
     size_node = node_for_integer_constant((long)throw_type->size,
                                           targ_size_t_int_kind);
@@ -3498,21 +3506,33 @@ Lower an enk_throw expression node.
     flags_node = node_for_integer_constant((long)flags_value,
                                            (an_integer_kind)ik_int);
     size_node->next = flags_node;
+#if !ABI_CHANGES_FOR_RTTI
     /* Make a string to describe the accessible base classes, and pass
        its address to the runtime routine. */
-    string_con = make_throw_access_string(expr);
-    if (string_con == NULL) {
-      /* No access string.  Use a NULL pointer. */
-      make_zero_of_proper_type(char_star_type(), &access_con);
-    } else {
-      set_constant_address_constant(string_con, &access_con);
-      implicit_cast(&access_con, char_star_type());
-    }  /* if */
-    access_node = alloc_node_for_constant(&access_con);
-    flags_node->next = access_node;
-    /* Make the __throw_alloc call. */
-    call_node = make_runtime_rout_call("__throw_alloc", &throw_alloc_routine,
+    { an_expr_node_ptr access_node;
+      a_constant       access_con;
+      a_constant_ptr   string_con;
+      string_con = make_throw_access_string(expr);
+      if (string_con == NULL) {
+        /* No access string.  Use a NULL pointer. */
+        make_zero_of_proper_type(char_star_type(), &access_con);
+      } else {
+        set_constant_address_constant(string_con, &access_con);
+        implicit_cast(&access_con, char_star_type());
+      }  /* if */
+      access_node = alloc_node_for_constant(&access_con);
+      flags_node->next = access_node;
+    }
+#endif /* !ABI_CHANGES_FOR_RTTI */
+    /* Make the __throw_setup call. */
+#if !ABI_CHANGES_FOR_RTTI
+    /* Old interface */
+    call_node = make_runtime_rout_call("__throw_alloc", &throw_setup_routine,
                                        void_star_type(), typeinfo_node);
+#else /* ABI_CHANGES_FOR_RTTI */
+    call_node = make_runtime_rout_call("__throw_setup", &throw_setup_routine,
+                                       void_star_type(), typeinfo_node);
+#endif /* !ABI_CHANGES_FOR_RTTI */
     /* Cast the pointer to the right type. */
     call_node = add_cast_if_necessary(call_node, ptr_throw_type);
     /* Make the node to assign the pointer to the temporary. */
@@ -3525,8 +3545,8 @@ Lower an enk_throw expression node.
     call_node = make_runtime_rout_call("__throw", &throw_routine,
                                        void_type(), (an_expr_node_ptr)NULL);
     /* Overwrite the original node with a comma expression joining the
-       __throw_alloc and __throw expressions:
-         ((temp = __throw_alloc(...)), __throw())
+       __throw_setup and __throw expressions:
+         ((temp = __throw_setup(...)), __throw())
     */
     assign_node->next = call_node;
     set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
@@ -3535,7 +3555,7 @@ Lower an enk_throw expression node.
     /* Now generate the initialization code for the dynamic initialization
        and insert it preceding the call of __throw.  That gets it between
        the allocation and the throw:
-         ((temp = __throw_alloc(...)), (initialization, __throw()))
+         ((temp = __throw_setup(...)), (initialization, __throw()))
        The address to be initialized is pointed to by the temporary. */
     set_var_indirect_init_pos_descr(temp_var, &ipd);
     set_expr_insert_location(call_node, &insert_location);
@@ -3642,7 +3662,7 @@ with each new translation unit are handled in eh_lower_init.)
       pch_saved_var_array_elem(array_descr_type),
 #endif /* GENERATE_EH_TABLES */
 #if DO_FULL_PORTABLE_EH_LOWERING
-      pch_saved_var_array_elem(throw_alloc_routine),
+      pch_saved_var_array_elem(throw_setup_routine),
       pch_saved_var_array_elem(throw_routine),
       pch_saved_var_array_elem(rethrow_routine),
       pch_saved_var_array_elem(jmp_buf_type),
@@ -3700,7 +3720,7 @@ invocation of the front end.
   array_descr_type = NULL;
 #endif /* GENERATE_EH_TABLES */
 #if DO_FULL_PORTABLE_EH_LOWERING
-  throw_alloc_routine = NULL;
+  throw_setup_routine = NULL;
   throw_routine = NULL;
   rethrow_routine = NULL;
   jmp_buf_type = NULL;
