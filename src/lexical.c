@@ -7795,7 +7795,9 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
            flag). */
         normal_locator = locator_for_curr_id;
         normal_sym = normal_id_lookup(&normal_locator, IDL_MUST_BE_CLASS);
-        if (normal_sym != NULL && is_class_or_class_proxy_symbol(normal_sym)) {
+        if (normal_sym != NULL &&
+            (is_class_symbol(normal_sym) ||
+             is_template_param_type_symbol(normal_sym))) {
           normal_tp = type_symbol_type(normal_sym);
           normal_tp = skip_typerefs(normal_tp);
           if (acceptable_dtor_type(field_sel_type, normal_tp)) {
