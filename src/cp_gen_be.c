@@ -4812,6 +4812,19 @@ there's some possibility of precedence confusion and need_parens is TRUE.
               /* Nonmember function or static member function. */
               gen_routine_name(rout);
             }  /* if */
+          } else if (is_operation_node(operand_1) &&
+                     (operand_1->variant.operation.kind ==
+                               (an_expr_operator_kind)eok_points_to_static ||
+                      operand_1->variant.operation.kind ==
+                               (an_expr_operator_kind)eok_lvalue_dot_static ||
+                      operand_1->variant.operation.kind ==
+                               (an_expr_operator_kind)eok_rvalue_dot_static)) {
+            /* Call of a static member function identified by a static
+               selection, e.g., p->f().  Put out the selection without
+               surrounding parentheses, to avoid problems with overloaded
+               functions (the function identifier must be right next to the
+               argument parentheses). */
+            gen_lvalue_no_parens(operand_1);
           } else {
             /* Specific routine is not known (e.g., call through a pointer). */
             /* Note that this can't be a member function. */
