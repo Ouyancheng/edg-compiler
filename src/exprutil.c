@@ -2614,11 +2614,12 @@ for a const variable's value.
 
 
 /*
-In C++ mode, replace an operand for a const variable by the value of the
-variable.  The operand must be an expression operand for a variable.
+Replace an operand for a const variable by the value of the variable.
+Only used in C++ mode.
 */
 #define replace_const_variable_by_its_value(operand)                  \
-{ if (C_dialect == C_dialect_cplusplus &&                             \
+{ if (is_expression_operand(operand) &&                               \
+      is_variable_node(operand->variant.expression) &&                \
       is_const_variable(operand->variant.expression->variant.variable)) { \
     f_replace_const_variable_by_its_value(operand);                   \
   }  /* if */                                                         \
@@ -2638,11 +2639,13 @@ the operand is set to "pos_curr_token".
   node = var_rvalue_expr(variable);
   /* Make an operand for the node. */
   make_expression_operand(node, node->type, result);
-  /* In C++, replace a const variable by its value. */
-  replace_const_variable_by_its_value(result);
-  /* If the variable has a reference type, add an implicit indirection. */
-  if (C_dialect == C_dialect_cplusplus && is_reference_type(variable->type)) {
-    add_reference_indirection(result);
+  if (C_dialect == C_dialect_cplusplus) {
+    /* In C++, replace a const variable by its value. */
+    replace_const_variable_by_its_value(result);
+    /* If the variable has a reference type, add an implicit indirection. */
+    if (is_reference_type(variable->type)) {
+      add_reference_indirection(result);
+    }  /* if */
   }  /* if */
 }  /* make_rvalue_variable_operand */
 
@@ -3661,11 +3664,10 @@ in a constant expression.
   a_targ_ptrdiff_t          offset;
   a_constant_ptr            constant, string_constant;
   an_operand                orig_operand;
-  a_boolean                 optimized_case = FALSE;
+  a_boolean                 optimized_case;
   an_address_base_kind      abkind;
   a_type_ptr                addr_type, char_type;
   a_variable_ptr            variable;
-  an_expr_operator_kind     op;
   an_expr_node_ptr          operand_node, cast_node;
   a_type_ptr                cast_orig_type, unqualified_type;
 
@@ -3702,6 +3704,7 @@ in a constant expression.
       if (is_constant_operand(operand)) {
         /* The lvalue address is specified by a constant.  Some optimizations
            are possible for address constants. */
+        optimized_case = FALSE;
         constant = &operand->variant.constant;
         if (constant->kind == (a_constant_repr_kind)ck_address) {
           /* Check for something like "abc"[2]. */
@@ -3752,6 +3755,12 @@ in a constant expression.
             }  /* if */
           }  /* if */
         }  /* if */
+        if (!optimized_case) {
+          /* Not a special case -- add an indirection operator. */
+          build_unary_result_operand(operand,
+                                     (an_expr_operator_kind)eok_indirect,
+                                     operand->type, operand);
+        }  /* if */
       } else {
 #if CHECKING
         /* Since the expression is not a constant, it must be an expression. */
@@ -3759,90 +3768,56 @@ in a constant expression.
           internal_error("conv_lvalue_to_rvalue: addr not constant or expr");
         }  /* if */
 #endif /* CHECKING */
-        /* The lvalue address is represented by an expression node. */
+        /* The lvalue address is represented by some kind of expression
+           node. */
         node = operand->variant.expression;
-        if (is_variable_address_node(node)) {
-          /* The lvalue address is the address of a variable.  Therefore, the
-             rvalue is the variable itself. */
-          optimized_case = TRUE;
-          variable = node->variant.variable;
-          set_expr_node_kind(node, (an_expr_node_kind)enk_variable);
-          node->variant.variable = variable;
-          node->type = operand->type;
-          operand->state = (an_operand_state)os_rvalue;
-          /* In C++, replace a const variable by its value. */
-          replace_const_variable_by_its_value(operand);
-        } else if (is_operation_node(node)) {
-          /* An operator node. */
-          op = node->variant.operation.kind;
-          if (op == (an_expr_operator_kind)eok_padd ||
-              op == (an_expr_operator_kind)eok_padd_subsc) {
-            /* The lvalue address is a pointer addition.  Therefore, the
-               rvalue is a subscript operation. */
-            optimized_case = TRUE;
-            node->variant.operation.kind =
-                                          (an_expr_operator_kind)eok_subscript;
-            node->type = operand->type;
-            operand->state = (an_operand_state)os_rvalue;
-          } else if (op == (an_expr_operator_kind)eok_bit_field) {
-            /* The lvalue is the "address" of a bit-field.  Therefore, the
-               rvalue is an extract of the bit-field. */
-            optimized_case = TRUE;
-            node->variant.operation.kind =
-                                  (an_expr_operator_kind)eok_extract_bit_field;
-            node->type = operand->type;
-            operand->state = (an_operand_state)os_rvalue;
-          } else if (C_dialect == C_dialect_pcc &&
-                     op == (an_expr_operator_kind)eok_lvalue_cast) {
-            /* In pcc mode, lvalues cast to a same-sized type can stay
-               lvalues.  This is indicated by casting the lvalue address
-               to pointer-to-new-type.  Here, turn such a case back into an
-               ordinary cast on the rvalue. */
-            cast_node = node;
-            operand_node = cast_node->variant.operation.operands;
-            cast_orig_type = type_pointed_to(cast_node->type);
-            /* Save the cast node on the side, and make the operand back
-               into the lvalue it was before the lvalue cast.  Then convert
-               that lvalue to an rvalue (by a recursive call), and
-               cast the resulting rvalue using the saved cast node. */
-            optimized_case = TRUE;
-            operand->type = type_pointed_to(operand_node->type);
-            operand->variant.expression = operand_node;
-            conv_lvalue_to_rvalue(operand, expression_kind);
-            if (!is_expression_operand(operand) ||
-                is_bit_field_extract_node(operand->variant.expression)) {
-              /* The operand is not based on an expression node (unexpected,
-                 but checked just to be safe), or the operand is a bit-field
-                 extraction (where the cast can be folded into the extraction).
-                 Throw away the cast node and do a cast. */
-              cast_operand(cast_orig_type, operand, expression_kind,
-                           /*is_implicit_cast=*/FALSE);
-            } else {
-              /* The cast node can be reused (usual case). */
-              operand->type = cast_node->type = cast_orig_type;
-              cast_node->variant.operation.kind =
+        if (C_dialect == C_dialect_pcc && is_operation_node(node) &&
+            node->variant.operation.kind ==
+                                      (an_expr_operator_kind)eok_lvalue_cast) {
+          /* In pcc mode, lvalues cast to a same-sized type can stay
+             lvalues.  This is indicated by casting the lvalue address
+             to pointer-to-new-type.  Here, turn such a case back into an
+             ordinary cast on the rvalue. */
+          cast_node = node;
+          operand_node = cast_node->variant.operation.operands;
+          cast_orig_type = type_pointed_to(cast_node->type);
+          /* Save the cast node on the side, and make the operand back
+             into the lvalue it was before the lvalue cast.  Then convert
+             that lvalue to an rvalue (by a recursive call), and
+             cast the resulting rvalue using the saved cast node. */
+          operand->type = type_pointed_to(operand_node->type);
+          operand->variant.expression = operand_node;
+          conv_lvalue_to_rvalue(operand, expression_kind);
+          if (!is_expression_operand(operand) ||
+               is_bit_field_extract_node(operand->variant.expression)) {
+            /* The operand is not based on an expression node (unexpected,
+               but checked just to be safe), or the operand is a bit-field
+               extraction (where the cast can be folded into the extraction).
+               Throw away the cast node and do a cast. */
+            cast_operand(cast_orig_type, operand, expression_kind,
+                         /*is_implicit_cast=*/FALSE);
+          } else {
+            /* The cast node can be reused (usual case). */
+            operand->type = cast_node->type = cast_orig_type;
+            cast_node->variant.operation.kind =
                                                (an_expr_operator_kind)eok_cast;
-              /* The expression pointer may have been changed in the 
-                 conversion to lvalue, so put it in the cast node again. */
-              cast_node->variant.operation.operands =
+            /* The expression pointer may have been changed in the 
+               conversion to lvalue, so put it in the cast node again. */
+            cast_node->variant.operation.operands =
                                                    operand->variant.expression;
-              operand->variant.expression = cast_node;
-            }  /* if */
-          } else if (node->variant.operation.assignment_returns_lvalue) {
-            /* The operation is an assignment that returns an lvalue.
-               Change it to one that returns an rvalue. */
-            optimized_case = TRUE;
-            node->variant.operation.assignment_returns_lvalue = FALSE;
-            node->type = operand->type;
-            operand->state = (an_operand_state)os_rvalue;
+            operand->variant.expression = cast_node;
+          }  /* if */
+        } else {
+          /* Not an lvalue cast; the normal case. */
+          /* Add an indirection to the node (the subroutine does some
+             optimization of special cases). */
+          operand->variant.expression = add_indirection_to_node(node);
+          operand->state = (an_operand_state)os_rvalue;
+          if (C_dialect == C_dialect_cplusplus) {
+            /* In C++, replace a const variable by its value. */
+            replace_const_variable_by_its_value(operand);
           }  /* if */
         }  /* if */
-      }  /* if */
-      if (!optimized_case) {
-        /* Not a special case -- add the indirection operator. */
-        build_unary_result_operand(operand,
-                                   (an_expr_operator_kind)eok_indirect,
-                                   operand->type, operand);
       }  /* if */
       /* Drop any type qualifiers on the operand type. */
       if (is_qualified_type(operand->type)) {
