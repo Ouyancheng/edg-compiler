@@ -1217,14 +1217,22 @@ the file scope, do not process it (but record an orphan in the latter case).
                        iek_source_sequence_entry);
         remap_ptr(ptr->prev, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
-        remap_ptr(ptr->entity.ptr, a_char_ptr, ptr->entity.kind);
+        if (ptr->entity.kind ==
+                          (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
+          walk_ptr(ptr->entity.ptr, a_char_ptr,
+                   (an_il_entry_kind)ptr->entity.kind);
+        } else {
+          remap_ptr(ptr->entity.ptr, a_char_ptr,
+                    (an_il_entry_kind)ptr->entity.kind);
+        }  /* if */
       }
       break;
     case iek_src_seq_secondary_decl:
       {
         a_src_seq_secondary_decl_ptr ptr =
                                       (a_src_seq_secondary_decl_ptr)entry_ptr;
-        remap_ptr(ptr->entity.ptr, a_char_ptr, ptr->entity.kind);
+        remap_ptr(ptr->entity.ptr, a_char_ptr,
+                  (an_il_entry_kind)ptr->entity.kind);
       }
       break;
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
