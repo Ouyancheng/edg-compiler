@@ -28,12 +28,35 @@ layout.h -- Declarations related to layout.c (having to do with laying out
 typedef unsigned long an_unnormalized_bit_offset;
 
 #if USER_CONTROL_OF_STRUCT_PACKING
+typedef struct a_pack_alignment_stack_entry *a_pack_alignment_stack_entry_ptr;
+
+/* An entry in which to save current pack-alignment state during the
+   instantiation of a class or function template.  The state is restored
+   when the instantiation is completed. */
+typedef struct a_pack_alignment_state *a_pack_alignment_state_ptr;
+typedef struct a_pack_alignment_state {
+  a_targ_alignment
+		saved_max_member_alignment;
+			/* The value of curr_max_member_alignment (defined
+			   in layout.c) when the instantiation begins. */
+  a_pack_alignment_stack_entry_ptr
+		saved_pack_alignment_stack;
+			/* A pointer to the top of the pack-alignment stack
+			   (see pack_alignment_stack, defined in layout.c)
+			   when the instantiation begins. */
+} a_pack_alignment_state;
+
+extern void reset_pack_alignment_state(a_targ_alignment            alignment,
+                                       a_pack_alignment_state_ptr  state);
+
+extern void restore_pack_alignment_state(a_pack_alignment_state_ptr state);
+
 extern a_boolean check_pack_alignment_value(long              value,
                                             a_targ_alignment  *alignment);
 
 extern void pack_pragma(a_pending_pragma_ptr ppp);
 
-extern void set_max_member_alignment_for_class(a_type_ptr  class_type);
+extern a_targ_alignment current_max_alignment_for_class_members(void);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 extern void do_class_layout(a_type_ptr  class_type);

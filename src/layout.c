@@ -218,8 +218,8 @@ conventions of Microsoft's bit-field allocation scheme.
 
 #if USER_CONTROL_OF_STRUCT_PACKING
 
-/* An entry on the pack alignment stack. */
-typedef struct a_pack_alignment_stack_entry *a_pack_alignment_stack_entry_ptr;
+/* An entry on the pack alignment stack.  a_pack_alignment_stack_entry_ptr
+   is already defined in layout.h. */
 typedef struct a_pack_alignment_stack_entry {
   a_pack_alignment_stack_entry_ptr
 		next;
@@ -252,6 +252,42 @@ static a_pack_alignment_stack_entry_ptr
 		avail_pack_alignment_stack_entries;
 			/* List of pack alignment stack entries freed and
 			   available for reuse. */
+
+
+void reset_pack_alignment_state(a_targ_alignment            alignment,
+                                a_pack_alignment_state_ptr  state)
+/*
+Called in C++ when entering a (non-prototype) class template instantiation
+or a function definition.  The default pack alignment is reset to the
+indicated alignment and the pack alignment stack is temporarily suspended
+(i.e., it's pointer is cleared).
+*/
+{
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+
+  state->saved_max_member_alignment = curr_max_member_alignment;
+  state->saved_pack_alignment_stack = pack_alignment_stack;
+  if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
+      ssep->in_prototype_instantiation) {
+  } else {
+    curr_max_member_alignment = alignment;
+    pack_alignment_stack = NULL;
+  }  /* if */
+}  /* save_pack_alignment_state */
+
+
+void restore_pack_alignment_state(a_pack_alignment_state_ptr  state)
+/*
+Called to C++ to restore the default pack alignment and pack alignment
+stack when exiting a class template instantiation or function definition.
+*/
+{
+  curr_max_member_alignment = state->saved_max_member_alignment;
+  if (pack_alignment_stack != NULL) {
+    /* Issue a diagnostic? */
+  }  /* if */
+  pack_alignment_stack = state->saved_pack_alignment_stack;
+}  /* restore_pack_alignment_state */
 
 
 static void push_pack_alignment(char              *name,
@@ -365,6 +401,7 @@ if n is supplied or to the value associated with the last entry popped.
   a_boolean           is_push = FALSE, is_pop = FALSE;
   long                val;
   an_error_severity   severity;
+  a_boolean           updated = FALSE;
 
   db_enter(3, "pack_pragma");
   /* Save the stop token state, push a pragma scope, etc. */
@@ -444,6 +481,7 @@ if n is supplied or to the value associated with the last entry popped.
         /* Push the entry onto to stack, saving the current pack alignment
            before it's overwritten by a new value. */
         push_pack_alignment(name, curr_max_member_alignment);
+        updated = TRUE;
       } else {
         if (pack_alignment_stack != NULL) {
           if (name != NULL && pasep == NULL && severity == es_error) {
@@ -458,6 +496,7 @@ if n is supplied or to the value associated with the last entry popped.
                entry off the stack. */
             curr_max_member_alignment = pack_alignment_stack->alignment;
             pop_pack_alignment();
+            updated = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -473,6 +512,8 @@ if n is supplied or to the value associated with the last entry popped.
       /* Reset the current pack alignment value to zero, which means: use the
          default pack alignment that was specified on the command line. */
       curr_max_member_alignment = 0;
+    } else {
+      updated = TRUE;
     }  /* if */
     /* Advance to the right parenthesis. */
     (void)get_token();
@@ -485,6 +526,7 @@ if n is supplied or to the value associated with the last entry popped.
       /* Empty argument list: "#pragma pack()", which means revert to the
          command-line default. */
       curr_max_member_alignment = 0;
+      updated = TRUE;
     }  /* if */
   } else {
     /* Expected an integer constant. */
@@ -495,6 +537,28 @@ if n is supplied or to the value associated with the last entry popped.
   (void)required_token(tok_rparen, ec_exp_rparen);
   /* Restore the stop token array, pop the pragma scope, etc. */
   wrapup_rescan_of_pragma_tokens(/*pragma_err=*/FALSE, save_stop_tokens_array);
+  if (updated) {
+    a_scope_stack_entry_ptr  ssep;
+    a_symbol_ptr             sym = NULL;
+
+    if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+      ssep = &scope_stack[depth_innermost_function_scope];
+      if (ssep->pragma_pack_is_local) {
+        sym = (a_symbol_ptr)(ssep->il_scope->
+                              variant.routine.ptr->source_corresp.assoc_info);
+      }  /* if */
+    } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+      ssep = &scope_stack[depth_innermost_instantiation_scope] + 1;
+      if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
+          !ssep->in_prototype_instantiation) {
+        sym = (a_symbol_ptr)(ssep->il_scope->
+                               variant.assoc_type->source_corresp.assoc_info);
+      }  /* if */
+    }  /* if */
+    if (sym != NULL) {
+      pos_sy_warning(ec_local_pragma_pack, &ppp->pragma_position, sym);
+    }  /* if */
+  }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
     fprintf(f_debug, "curr_max_member_alignment = %d, stack = ",
@@ -512,24 +576,15 @@ if n is supplied or to the value associated with the last entry popped.
 } /* pack_pragma */
 
 
-void set_max_member_alignment_for_class(a_type_ptr  class_type)
+a_targ_alignment current_max_alignment_for_class_members(void)
 /*
-Record the current "pack alignment" in the indicated class type entry.  It
-will be the value set by the most recent #pragma pack directive or else the
-default value (if any) set on the command line.
+Return the current pack alignment -- using curr_max_member_alignment if it
+is non-zero and default_max_member_alignment otherwise.
 */
 {
-  a_targ_alignment  pack_alignment;
-
-  if (curr_max_member_alignment > 0) {
-    /* Use the value set by a #pragma pack. */
-    pack_alignment = curr_max_member_alignment;
-  } else {
-    /* Use the default value set on the command line. */
-    pack_alignment = default_max_member_alignment;
-  }  /* if */
-  class_type->variant.class_struct_union.max_member_alignment = pack_alignment;
-}  /* set_max_member_alignment_for_class */
+  return (curr_max_member_alignment > 0) ? curr_max_member_alignment :
+                                           default_max_member_alignment;
+}  /* current_max_alignment_for_class_members */
 
 
 static void adjust_alignment_for_packing(a_targ_alignment *alignment,
