@@ -1,5 +1,16 @@
 Version 2.31
 
+10/19/95  Version number variable in generated C
+
+The C-generating back end now puts out a tentative definition of a
+variable that identifies the version number, e.g.,
+
+  int __EDGCPFE__2_30;
+
+This has the secondary benefit of guaranteeing that every generated
+C file contains at least one declaration (which is an ANSI/ISO C
+requirement).
+
 10/18/95  Specializing member functions of template classes
 
 A member function of a class template may now be specialized even
