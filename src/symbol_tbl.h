@@ -504,10 +504,6 @@ typedef struct a_function_instantiation_entry {
 			   template class member functions entries whose
 			   instantiation_required flag is TRUE.  New entries
 			   are added to the end of the list. */
-  a_function_instantiation_entry_ptr
-                prev_instantiation_required;
-			/* Same as above except points to the previous
-			   entry on the list. */
   a_symbol_ptr  routine_sym;
                         /* Pointer to the symbol entry that describes this
                            template function instance. */

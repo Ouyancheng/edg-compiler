@@ -5921,7 +5921,6 @@ Allocate a new function instantiation entry and return a pointer to it.
 #endif /* DEBUG */
   ptr->next    = NULL;
   ptr->next_instantiation_required = NULL;
-  ptr->prev_instantiation_required = NULL;
   ptr->routine_sym = NULL;
   ptr->template_sym = NULL;
   ptr->arg_list = NULL;	
@@ -5941,7 +5940,8 @@ void update_instantiation_required_flag
 Updates the instantiation required flag in a function instantiation
 entry.  If the flag is set to TRUE the instantiation entry is added
 to a list of instantiation entries for which instantiation is required.
-If the flag is set to FALSE the entry is removed from the list.
+If the flag is set to FALSE the entry is simply updated but not removed
+from the list.
 */
 {
   /* Nothing needs to be done if the flag already has the new value. */
@@ -5954,19 +5954,6 @@ If the flag is set to FALSE the entry is removed from the list.
         instantiations_required_tail = fiep;
       } else {
         instantiations_required_tail->next_instantiation_required = fiep;
-        fiep->prev_instantiation_required = instantiations_required_tail;
-      }  /* if */
-    } else {
-      /* Remove the entry from the list. */
-      a_function_instantiation_entry_ptr prev;
-      a_function_instantiation_entry_ptr next;
-      prev = fiep->prev_instantiation_required;
-      next = fiep->next_instantiation_required;
-      if (prev != NULL) {
-        prev->next_instantiation_required = next;
-      }  /* if */
-      if (next != NULL) {
-        next->prev_instantiation_required = prev;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5985,7 +5972,7 @@ which instantiations are required.
   fiep = instantiations_required_head;
   while (fiep != NULL) {
 #if 0
-    instantiate_function(fiep);
+    if (fiep->instantiation_required) instantiate_function(fiep);
 #endif /* 0 */
     fiep = fiep->next_instantiation_required;
   }  /* while */
