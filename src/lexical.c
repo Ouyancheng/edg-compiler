@@ -37,11 +37,9 @@ and parsing of them into tokens.
 #include "statements.h"
 #include "symbol_ref.h"
 #include "templates.h"
-#if ASM_FUNCTION_ALLOWED
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
 #include "func_def.h"
 #endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
-#endif /* ASM_FUNCTION_ALLOWED */
 
 
 /*
@@ -3748,17 +3746,23 @@ Test whether curr_char_loc is the start of a comment.  It is already
 known that *curr_char_loc == '/'.  The test can be tricky if
 *curr_char_loc and *(curr_char_loc+1) are "/" and "*" but those
 resulted from pasting of tokens in a macro expansion; that case should
-not be considered to be the start of a comment.  In pcc mode, the
-token pasting rules are different, and the start of a comment is
-assumed.
-Also tests for "//" in C++ mode.
+not be considered to be the start of a comment.  In pcc mode and
+Microsoft mode, the token pasting rules are different, and the start
+of a comment is assumed.  Also tests for "//" in C++ mode.
 */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define or_microsoft_mode_slash_slash() \
+  || (microsoft_mode && *(curr_char_loc+1) == '/')
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define or_microsoft_mode_slash_slash() /* Nothing */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define start_of_comment()                                            \
   ((*(curr_char_loc+1) == '*' ||                                      \
     (end_of_line_comments_allowed && *(curr_char_loc+1) == '/')) &&   \
    (within_curr_source_line(curr_char_loc) ||                         \
     (pcc_preprocessing_mode && !in_pcc_mode_half_comment &&           \
-     *(curr_char_loc+1) == '*')))
+     *(curr_char_loc+1) == '*')                                       \
+    or_microsoft_mode_slash_slash() ))
 
 
 void skip_white_space(void)
@@ -3792,20 +3796,19 @@ source text (end of token, start of expansion, end of expansion).
    keep_comments_in_pp_output switch, this is basically a time optimization --
    we avoid doing the comment deletion if we will not be outputting the
    modified line text in some way (as preprocessing or raw listing output). */
-#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 /* If asm functions are allowed, also delete comments if inside an asm
-   function body. */
-#define NEED_TO_DELETE_COMMENT                                        \
+   function body (this includes Microsoft asm blocks).  The comments
+   are copied to the asm string before they are deleted. */
+#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#define or_in_asm_function_body() || in_asm_function_body
+#else /* !(ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED) */
+#define or_in_asm_function_body() /* Nothing */
+#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#define need_to_delete_comment()                                      \
   ((((generate_pp_output && !do_not_put_curr_line_in_pp_output) ||    \
      f_raw_listing != NULL) &&                                        \
-    !keep_comments_in_pp_output) ||                                   \
-   in_asm_function_body)
-#else /* !ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-#define NEED_TO_DELETE_COMMENT                                        \
-  (((generate_pp_output && !do_not_put_curr_line_in_pp_output) ||     \
-    f_raw_listing != NULL) &&                                         \
-   !keep_comments_in_pp_output)
-#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+    !keep_comments_in_pp_output)                                      \
+   or_in_asm_function_body())
 /* Macro used to check whether the comment start position has been determined
    and to determine it if not already done. */
 #define determine_comment_pos_if_not_yet_done()				\
@@ -3943,8 +3946,9 @@ white_space_loop:
       if (!start_of_comment()) goto end_skip;
       /* This is the start of a comment. */
       if (pcc_preprocessing_mode &&
-          !within_curr_source_line(curr_char_loc)) {
-        /* We're in pcc mode, and the token opening characters came from
+          !within_curr_source_line(curr_char_loc) &&
+          *(curr_char_loc+1) == '*') {
+        /* We're in pcc mode, and the "/ *" token opening characters came from
            token pasting inside a macro.  They are considered to start a
            strange sort of comment: it's a comment to the compiler but not a
            comment to the preprocessor.  Therefore, we have to skip tokens
@@ -3967,10 +3971,52 @@ white_space_loop:
         comment_start_loc = curr_char_loc;
         /* Advance past the first "/". */
         curr_char_loc++;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (microsoft_mode) {
+          if (!within_curr_source_line(curr_char_loc)) {
+            /* In Microsoft mode, a // comment delimiter can appear in a macro:
+                 #define startcomment() /##/
+                 startcomment() This is ignored
+               Work outward to the primary source line.
+            */
+            do {
+              slmp = assoc_source_line_modif(curr_char_loc);
+              /* If the comment delimiter appears in the expansion of a
+                 macro argument, don't consider it the start of a comment.
+                 This is disallowed partly because you get in trouble with
+                 copy_modif_list later if you allow it (the modification
+                 entries are in the wrong order). */
+              if (slmp->is_isolated_text) goto end_skip;
+              leave_insertion(slmp, curr_char_loc);
+            } while (!within_curr_source_line(curr_char_loc));
+            if (need_to_delete_comment()) {
+              /* The text of the comment needs to be deleted. */
+              curr_char_loc = comment_start_loc;
+              do {
+                slmp = assoc_source_line_modif(curr_char_loc);
+                while (*curr_char_loc != '\0') curr_char_loc++;
+#if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
+                /* Before deleting the comment, see if it's part of an asm
+                   function body -- if so, make a copy of it. */
+                if (in_asm_function_body && !in_preprocessing_directive) {
+                  copy_from_source_to_asm_func_buffer(comment_start_loc,
+                                                      curr_char_loc);
+                }  /* if */
+#endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
+                /* Delete the comment entirely. */
+                add_deletion_source_line_modif(comment_start_loc,
+                                   (sizeof_t)(curr_char_loc-comment_start_loc),
+                                               /*for_comment=*/TRUE);
+                leave_insertion(slmp, curr_char_loc);
+                comment_start_loc = curr_char_loc;
+              } while (!within_curr_source_line(curr_char_loc));
+            }  /* if */
+          }  /* if */
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Advance to the end of line. */
         do {} while (*(++curr_char_loc) != '\n');
-        if (NEED_TO_DELETE_COMMENT) {
-#if ASM_FUNCTION_ALLOWED
+        if (need_to_delete_comment()) {
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
           /* Before deleting the comment, see if it's part of an asm function
              body -- if so, make a copy of it. */
@@ -3979,7 +4025,6 @@ white_space_loop:
                                                 curr_char_loc);
           }  /* if */
 #endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
-#endif /* ASM_FUNCTION_ALLOWED */
           /* Delete the comment entirely. */
           add_deletion_source_line_modif(comment_start_loc,
                                    (sizeof_t)(curr_char_loc-comment_start_loc),
@@ -4081,15 +4126,14 @@ normal_comment:
            loop, so it should be very fast. */
         while ((ch = *curr_char_loc) != '*' || *(curr_char_loc+1) != '/') {
           if (ch == '\n' || ch == '\0') {
-            /* End of the first line of the comment. */
+            /* End of a line of the comment. */
             /* Determine the source position for the start of the comment
                now, before we lose the current source line. */
             determine_comment_pos_if_not_yet_done();
-#if ASM_FUNCTION_ALLOWED
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
             if (in_asm_function_body && !in_preprocessing_directive) {
-              /* Don't change the comment text if it's going into an asm
-                 function body. */
+              /* Copy the comment text if it's part of an asm function
+                 body. */
               if (ch == '\n') {
                 curr_char_loc++;
                 ch = '\0';
@@ -4098,7 +4142,6 @@ normal_comment:
                                                   curr_char_loc);
             }  /* if */
 #endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
-#endif /* ASM_FUNCTION_ALLOWED */
             /* We are supposed to delete the characters of the source line
                from delete_source_from_loc on, if it is non-NULL.  This would
                be, for example, because we are scanning a macro invocation. */
@@ -4107,7 +4150,7 @@ normal_comment:
               /* Reset the "from" position for subsequent lines. */
               delete_source_from_loc = curr_source_line;
               delete_only_for_comment = FALSE;
-            } else if (NEED_TO_DELETE_COMMENT) {
+            } else if (need_to_delete_comment()) {
               /* Delete the characters of the comment if writing preprocessor
                  output with the comments deleted.  The newline will be kept,
                  and therefore the comment is deleted entirely rather than
@@ -4167,8 +4210,7 @@ normal_comment:
         /* End of comment.  Take the "*" and "/", go back to throw away more
            white space. */
         curr_char_loc += 2;
-        if (NEED_TO_DELETE_COMMENT && delete_source_from_loc == NULL) {
-#if ASM_FUNCTION_ALLOWED
+        if (need_to_delete_comment() && delete_source_from_loc == NULL) {
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
           /* Before deleting the comment, see if it's part of an asm function
              body -- if so, make a copy of it. */
@@ -4177,7 +4219,6 @@ normal_comment:
                                                 curr_char_loc);
           }  /* if */
 #endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
-#endif /* ASM_FUNCTION_ALLOWED */
           /* Delete the characters of the comment if writing preprocessor
              output with the comments deleted.  Under ANSI rules, the comment
              must be replaced by one space if there is no other white space
@@ -4185,16 +4226,8 @@ normal_comment:
              Under pcc rules, the comment is always deleted entirely.
              The deletion here is suppressed if we are deleting everything 
              up to this point anyway (delete_source_from_loc != NULL). */
-          if (pcc_preprocessing_mode
+          if (pcc_preprocessing_mode) {
             /* pcc mode; delete the comment entirely. */
-#if ASM_FUNCTION_ALLOWED
-#if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
-              || (in_asm_function_body && !in_preprocessing_directive)
-            /* Entire comment was copied into into the asm function body --
-               don't add a space. */
-#endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
-#endif /* ASM_FUNCTION_ALLOWED */
-                                                                      ) {
             add_deletion_source_line_modif(comment_start_loc,
                                    (sizeof_t)(curr_char_loc-comment_start_loc),
                                            /*for_comment=*/TRUE);

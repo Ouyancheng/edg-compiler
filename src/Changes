@@ -1,5 +1,16 @@
 Version 2.32
 
+4/4/96    // comment begun in macro expansion in Microsoft mode
+
+The Microsoft Visual C++ compiler allows the following:
+
+  #define COMMENT /##/
+  COMMENT This is ignored
+
+That is, the "//" fabricated in the macro does open a comment.  Ordinarily,
+we would just chuckle heartily at this bug, but as it happens, it is used
+in some of the MFC headers.  So, we've implemented it in Microsoft mode.
+
 4/3/96    Exception specification on redundant block-extern declaration
 
 A spurious error has been eliminated in the following case:
