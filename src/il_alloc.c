@@ -729,8 +729,7 @@ to it.
   bcp->derived_class                   = NULL;
   bcp->decl_position                   = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  bcp->base_specifier_range.start      = null_source_position;
-  bcp->base_specifier_range.end        = null_source_position;
+  bcp->base_specifier_range            = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   bcp->is_virtual                      = FALSE;
   bcp->direct                          = FALSE;
@@ -1265,8 +1264,7 @@ to it.
   /* One of the variant fields, chosen arbitrarily, is initialized. */
   vp->initializer.constant        = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  vp->initializer_range.start     = null_source_position;
-  vp->initializer_range.end       = null_source_position;
+  vp->initializer_range           = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #ifdef CIL
   vp->referenced_non_locally      = FALSE;
@@ -1717,8 +1715,7 @@ its kind to the indicated kind.
   node->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  node->expr_range.start = null_source_position; 
-  node->expr_range.end = null_source_position;
+  node->expr_range = null_source_range; 
   node->operator_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   set_expr_node_kind(node, kind);
@@ -2075,8 +2072,7 @@ pointer to it.
   }  /* switch */
   cip->initializer = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  cip->ctor_init_range.start = null_source_position; 
-  cip->ctor_init_range.end = null_source_position;
+  cip->ctor_init_range = null_source_range; 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   return cip;
@@ -2508,8 +2504,7 @@ Allocate a comment entry, initialize its fields, and return a pointer to it.
 #if DEBUG
   num_comments_allocated++;
 #endif /* DEBUG */
-  cp->source_range.start = null_source_position;
-  cp->source_range.end   = null_source_position;
+  cp->source_range = null_source_range;
 
   return cp;
 }  /* alloc_comment */
@@ -2618,12 +2613,9 @@ void clear_decl_position_supplement(a_decl_position_supplement_ptr  dpsp)
 Clear the fields of the specified decl-position-supplement entry.
 */
 {
-  dpsp->identifier_range.start = null_source_position;
-  dpsp->identifier_range.end = null_source_position;
-  dpsp->specifiers_range.start = null_source_position;
-  dpsp->specifiers_range.end = null_source_position;
-  dpsp->declarator_range.start = null_source_position;
-  dpsp->declarator_range.end = null_source_position;
+  dpsp->identifier_range = null_source_range;
+  dpsp->specifiers_range = null_source_range;
+  dpsp->declarator_range = null_source_range;
 }  /* clear_decl_position_supplement */
 
 
