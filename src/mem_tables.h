@@ -88,14 +88,16 @@ typedef struct an_il_entry_prefix {
      struct the same size as a long.  (This is just for efficiency;
      other sizes will work too.) */
 #define NUM_OF_BIT_FIELDS_IN_PREFIX (3 + (DO_IL_LOWERING != 0))
-#define BITS_IN_ENTRY_NUMBER                                          \
-  (sizeof(long)*CHAR_BIT - NUM_OF_BIT_FIELDS_IN_PREFIX)
 
 #if __MSDOS__
   /* Under MS-DOS compilers this bit field is probably bigger than
      an "int", so use "unsigned long". */
+#define BITS_IN_ENTRY_NUMBER                                          \
+  (sizeof(long)*CHAR_BIT - NUM_OF_BIT_FIELDS_IN_PREFIX)
   unsigned long	entry_number:BITS_IN_ENTRY_NUMBER;
 #else /* !__MSDOS__ */
+#define BITS_IN_ENTRY_NUMBER                                          \
+  (sizeof(int)*CHAR_BIT - NUM_OF_BIT_FIELDS_IN_PREFIX)
   unsigned int	entry_number:BITS_IN_ENTRY_NUMBER;
 #endif /* __MSDOS__ */
 			/* Entry number for the IL entry. */
