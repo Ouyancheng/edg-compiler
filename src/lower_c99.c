@@ -1035,6 +1035,30 @@ constructs.
 }  /* lower_c99_constant_expr */
 
 
+/*
+A list of statements that initialize temporaries for lowered
+compound literals, to be inserted once we get back up to statement
+level.
+*/
+static a_statement_ptr temp_init_statements;
+
+
+static void add_to_end_of_temp_init_statements_list(a_statement_ptr stmt)
+/*
+Add the indicated statement to the end of the temp_init_statements list.
+*/
+{
+  if (temp_init_statements == NULL) {
+    temp_init_statements = stmt;
+  } else {
+    a_statement_ptr end_of_list = temp_init_statements;
+    while (end_of_list->next != NULL) end_of_list = end_of_list->next;
+    end_of_list->next = stmt;
+  }  /* if */
+  stmt->next = NULL;
+}  /* add_to_end_of_temp_init_statements_list */
+
+
 static void lower_c99_temp_init(an_expr_node_ptr expr)
 /*
 Lower the given enk_temp_init expression.  An enk_temp_init is used
@@ -1069,6 +1093,9 @@ in C99 mode to represent a compound literal.
   if (dip->is_partially_initialized_compound_literal) {
     var->is_partially_initialized = TRUE;
   }  /* if */
+  if (is_variably_modified_type(temp_type)) {
+    var->has_variably_modified_type = TRUE;
+  }  /* if */
   /* Change the enk_temp_init to a reference to the value or address
      of the temporary. */
   if (result_is_addr) {
@@ -1096,18 +1123,24 @@ in C99 mode to represent a compound literal.
                      &keep_dynamic_init,
                      (a_constant **)NULL);
 
+  if (var->has_variably_modified_type) {
+    /* If the variable has variably-modified type, put out an stmk_vla_decl
+       for it. */
+    a_statement_ptr stmk_vla_decl_stmt =
+                              alloc_statement((a_statement_kind)stmk_vla_decl);
+    stmk_vla_decl_stmt->variant.vla.is_typedef_decl = FALSE;
+    stmk_vla_decl_stmt->variant.vla.variant.variable = var;
+    add_to_end_of_temp_init_statements_list(stmk_vla_decl_stmt);
+  }  /* if */
   if (keep_dynamic_init) {
     /* Add an stmk_init statement for the constant part of the temporary
        initialization. */
     a_statement_ptr stmk_init_stmt =
                                   alloc_statement((a_statement_kind)stmk_init);
     stmk_init_stmt->variant.dynamic_init = dip;
-    /* Insert the stmk_init statement at the beginning of the current
-       block. */
-    check_assertion(curr_context->scope != NULL);
-    set_block_start_insert_location(curr_context->scope->assoc_block,
-                                    &insert_location);
-    insert_statement(stmk_init_stmt, &insert_location);
+    /* Put the statement on a list to be inserted when we get back to
+       statement level. */
+    add_to_end_of_temp_init_statements_list(stmk_init_stmt);
     var->init_kind = (an_init_kind)initk_dynamic;
     var->initializer.dynamic = dip;
   }  /* if */
@@ -1377,6 +1410,20 @@ Do C99 lowering on the indicated statement.
     default:
       unexpected_condition_str("lower_c99_statement: bad statement kind");
   }  /* switch */
+  if (temp_init_statements != NULL) {
+    /* Insert statements generated for lowering of compound literals.
+       They are inserted preceding the current statement. */
+    an_insert_location insert_location;
+    a_statement_ptr    orig_stmt;
+    change_statement_into_block(statement, &orig_stmt);
+    set_block_start_insert_location(statement, &insert_location);
+    while (temp_init_statements != NULL) {
+      a_statement_ptr stmt = temp_init_statements;
+      temp_init_statements = stmt->next;
+      stmt->next = NULL;
+      insert_statement(stmt, &insert_location);
+    }  /* while */
+  }  /* if */
   error_position = saved_error_position;
 }  /* lower_c99_statement */
 
@@ -1761,6 +1808,7 @@ for each translation unit.
   lowered_complex_long_double = NULL;
 #endif /* LOWER_COMPLEX */
 
+  temp_init_statements = NULL;
 #if MINIMAL_INLINING
   /* Do inline.c initialization. */
   if (inlining_enabled) inline_init();
