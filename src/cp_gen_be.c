@@ -2715,17 +2715,19 @@ it is a typedef.
 {
   a_boolean   another_decl_follows = FALSE;
   a_type_kind kind;
+  a_type_ptr  unqual_type;
 
   type = type_specifier_of_type(type);
-  kind = type->kind;
+  unqual_type = skip_typerefs(type);
+  kind = unqual_type->kind;
   /* Look for a comma list (a) if the underlying type is an unnamed tag, and
      (b) always in a for-init. */
   if (for_init ||
-      ((is_class_type_kind(kind) || is_enum_type(type)) &&
-       (!has_name(skip_typerefs(type)) ||
+      ((is_class_type_kind(kind) || kind == (a_type_kind)tk_enum) &&
+       (!has_name(unqual_type) ||
         /* Include cases where the tag has a name only for linkage purposes. */
         (kind != (a_type_kind)tk_enum &&
-         type->variant.class_struct_union.originally_unnamed)))) {
+         unqual_type->variant.class_struct_union.originally_unnamed)))) {
     a_source_sequence_entry_ptr ssep;
     /* Skip macros and pragmas. */
     (void)process_preprocessing_directives();
