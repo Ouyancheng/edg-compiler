@@ -586,7 +586,7 @@ typedef struct a_constant {
                            constant entries following this ck_init_position
                            entry (i.e., the distance to the next gap in
                            initialization or to the end of the variable
-                           being initialized. */
+                           being initialized). */
     } init_position;
     /* When kind == ck_hex_octal: */
     /* (Does not appear outside of the Fortran front end.) */
@@ -1267,19 +1267,20 @@ typedef struct a_class_type_supplement {
 			   arguments" on which the instantiation is based.
 			   This pointer is NULL for ordinary classes that are
 			   not generated from a template. */
-#if ASSIGNMENT_TO_THIS_ALLOWED
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
   a_routine_ptr	assoc_operator_new_routine;
 			/* The operator new() routine to be used for the class.
 			   NULL until a new is done or a constructor is
-			   defined.  Not needed if assignment to "this" is
-			   not allowed, because the constructor does not
-			   do the allocation in that case. */
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+			   defined.  Needed only if the constructor sometimes
+			   does the new. */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
   a_routine_ptr	assoc_operator_delete_routine;
 			/* The operator delete() routine to be used for the
 			   class.  NULL until a delete is done or a destructor
-			   is defined.  Used in generating the delete
-			   operation in the destructor. */
+			   is defined.  Needed only if the destructor sometimes
+			   does the delete. */
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DO_IL_LOWERING
   a_variable_ptr
 		virtual_function_table_var;
@@ -2142,8 +2143,7 @@ enum an_expr_node_kind_tag {
                            operation to indicate the field. */
   enk_temp_init,	/* Initialization of a temporary and evaluation of
 			   an expression that creates/uses it.  C++ only. */
-  enk_new_init,		/* Initialization of an entity allocated by a C++
-			   "new" or destruction on a "delete". */
+  enk_new_delete,	/* C++ "new" or "delete". */
 #endif /* ifdef CIL */
 #ifdef FIL
   enk_stmt_label_value, /* A statement label value for an ASSIGN or
@@ -2454,6 +2454,37 @@ enum an_expr_operator_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_expr_operator_kind;
 
+/* Description of a C++ "new" or "delete" operation. */
+typedef struct a_new_delete_supplement *a_new_delete_supplement_ptr;
+typedef struct a_new_delete_supplement {
+  a_byte_boolean
+		is_new;
+			/* TRUE for new, FALSE for delete. */
+  a_type_ptr	type;
+			/* The type of the object being allocated or
+			   deallocated. */
+  a_routine_ptr	routine;
+			/* Routine to call to do allocation (new) or
+			   deallocation (delete). */
+#if NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR
+			/* NULL if the new or delete has been folded into a
+			   constructor or destructor call.  If NULL,
+			   dynamic_init will be non-NULL. */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR */
+  an_expr_node_ptr
+		arg;	/* For new, the argument list for the "new" call,
+			   provided even when routine == NULL.  For delete,
+			   the pointer to the object to be deleted; if the
+			   two-argument version of delete is used, the size
+			   is attached as a second argument. */
+  a_dynamic_init_ptr
+		dynamic_init;
+			/* If non-NULL, points to a dynamic initialization
+			   entry that indicates the initialization (new) or
+			   destruction (delete) to be done. */
+} a_new_delete_supplement;
+
+
 typedef struct an_expr_node {
   /* A single expression node. */
   a_type_ptr    type;
@@ -2496,11 +2527,6 @@ typedef struct an_expr_node {
 			   including for operations that are not
 			   assignments.  Only TRUE in C++. */
       unsigned int
-		new_or_delete_call_for_array:1;
-			/* TRUE if the operation is an eok_call that calls
-			   a new or delete routine to allocate or free an
-			   array.  FALSE otherwise.  Only TRUE in C++. */
-      unsigned int
 		compiler_generated:1;
 			/* TRUE if the operation is compiler-generated rather
 			   than explicitly present in the source program.
@@ -2534,25 +2560,22 @@ typedef struct an_expr_node {
                         /* A pointer to the field.  Only used as an operand
                            to an eok_field or eok_value_field operation
                            (or the similar bit-field operators). */
-    /* When kind == enk_temp_init or enk_new_init: */
+    /* When kind == enk_temp_init: */
     /* C++ only. */
     struct {
       a_dynamic_init_ptr
 		dynamic_init;
 			/* Dynamic initialization entry that does the
-			   initialization for a temporary (enk_temp_init)
-			   or allocated storage (enk_new_init).  Destruction
-			   might also be indicated (enk_temp_init, or
-			   enk_new_init for delete). */
+			   initialization for the temporary. */
       an_expr_node_ptr
-		expr;	/* For enk_temp_init: expression evaluated after the
-			   temporary is initialized.  For enk_new_init:
-			   expression giving the address of the entity;
-			   if the address is non-NULL, the initialization
-			   (or destruction) is done.  For both enk_temp_init
-			   and enk_new_init, the value of this expression is
-			   the value of the overall expression. */
+		expr;	/* Expression evaluated after the temporary is
+			   initialized, also the value of the expression. */
     } init;
+    /* When kind == enk_new_delete: */
+    a_new_delete_supplement_ptr
+		new_delete;
+			/* Pointer to an entry that describes the new or
+			   delete operation (C++ only). */
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == enk_stmt_label_value: */
