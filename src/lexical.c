@@ -11899,6 +11899,7 @@ scanned is, in fact, an identifier).
           ilm == ilm_typename ||
           ilm == ilm_class ||
           ilm == ilm_using_typename ||
+          ilm == ilm_qualified_ctor_initializer_name ||
           (ilm == ilm_tentative_type && implicit_typename_enabled)) {
         a_template_arg_ptr	arg_list;
         arg_list = locator_for_curr_id.template_arg_list;

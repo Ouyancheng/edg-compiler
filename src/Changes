@@ -1,5 +1,17 @@
 Version 3.0
 
+3/19/02  Spurious error on qualified template-id in ctor-initializer
+
+A spurious error was issued when a qualified template-id was used as
+a base class ctor-initializer when not using implicit typename.  This
+has been fixed.
+
+  template <class T, int I> struct B {};
+  template <class T> struct A : public T::template B<T,2> {
+    A();
+  };
+  template <class T> A<T>::A() : T::template B<T,2>() {}  // error here
+
 3/18/02  Hex floating point constants when using double as long double
 
 When USE_LONG_DOUBLE_FOR_HOST_FP_VALUE is FALSE (i.e., when using
