@@ -3889,10 +3889,10 @@ namespace-extension scope.
 }  /* qualified_name_redecl_sym */
 
 
-#if !DECL_MODIFIERS_IN_USE
+#if !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED
 /* ARGSUSED */ /* decl_modifiers and/or attributes are not used in
                   some configurations. */
-#endif /* !DECL_MODIFIERS_IN_USE */
+#endif /* !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED */
 void decl_variable(a_symbol_locator             *locator,
                    a_storage_class              storage_class,
                    a_type_ptr                   type_ptr,
@@ -4559,10 +4559,10 @@ decl_pos_info supplement of the secondary-decl entry.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-#if !DECL_MODIFIERS_IN_USE
+#if !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED
 /* ARGSUSED */ /* decl_modifiers and/or attributes are not used in
                   some configurations. */
-#endif /* !DECL_MODIFIERS_IN_USE */
+#endif /* !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED */
 void decl_routine(a_symbol_locator             *locator,
                   a_storage_class              storage_class,
                   a_type_ptr                   type_ptr,
@@ -6714,11 +6714,11 @@ typedef, we must make sure to propagate that to its members.
 }  /* set_linkage_for_class_members */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
+#if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL.  attributes
-		is not used unless GNU extensions are supported. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+                is not used unless GNU extensions are supported. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED */
 void decl_typedef(a_symbol_locator             *locator,
                   a_type_ptr                   type_ptr,
                   a_type_ptr                   class_type,

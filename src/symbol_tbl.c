@@ -9447,10 +9447,10 @@ return NULL.
 }  /* param_id_on_list */
 
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS
+#if !GENERATE_SOURCE_SEQUENCE_LISTS || !GNU_EXTENSIONS_ALLOWED
 /* ARGSUSED */ /* <-- param_ssep is only used with source sequence lists. 
                       attributes is only used with GNU extensions. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS || !GNU_EXTENSIONS_ALLOWED */
 void add_to_param_id_list(a_symbol_locator            *locator,
                           a_type_ptr                  type_ptr,
                           a_source_position           *type_pos,

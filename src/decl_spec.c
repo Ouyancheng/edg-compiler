@@ -1526,10 +1526,12 @@ it is left unchanged.
 } /* check_nested_class_redeclaration */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
+#if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+             /* marked_as_gnu_extension is not used if GNU C extensions
+                are not allowed. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED */
 static a_boolean class_specifier(a_boolean         vacuous_decl_allowed,
                                  a_boolean         is_friend_decl,
                                  a_boolean         is_typedef,

@@ -3100,7 +3100,11 @@ default arguments should be suppressed (needed for template specializations).
           /* Watch out for unnamed parameters in C++. */
           gen_general_declaration_using_type(
                                           param_var->declared_type,
+#if GNU_EXTENSIONS_ALLOWED
                                           param->mode,
+#else /* GNU_EXTENSIONS_ALLOWED */
+                                          (a_type_mode_kind)tmk_none,
+#endif /* GNU_EXTENSIONS_ALLOWED */
                                           has_name(param_var) ?
                                              &param_var->source_corresp : NULL,
                                           iek_variable,
@@ -3236,6 +3240,9 @@ entry if sec_decl is non-NULL.
 }  /* set_decl_position */
 
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- mode is not used in that case. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static void gen_general_declaration_using_type(
                               a_type_ptr                   type,
                               a_type_mode_kind             mode,
