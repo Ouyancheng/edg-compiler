@@ -5781,7 +5781,7 @@ type-as-subobject of class_type.
   if (has_name(class_type)) {
     start_mangling(&mctl);
     add_str_to_mangled_name("__SO__", &mctl);
-    mangled_basic_class_name(class_type, &mctl);
+    mangled_type_name(class_type, &mctl);
     /* Not "final" because this type will go through the final processing
        later.  We don't want to (e.g.) compress twice. */
     temp_name = end_mangling((a_source_correspondence *)NULL,
