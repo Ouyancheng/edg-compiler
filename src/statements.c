@@ -1614,39 +1614,6 @@ start of a sequence of declarations.
 #endif /* RECORD_MACROS_IN_IL */
             kind == (an_il_entry_kind)iek_pragma) {
           prev_ssep = prev_ssep->prev;
-        } else if (kind == (an_il_entry_kind)iek_src_seq_sublist) {
-          kind = ss_entry_kind(
-                      assoc_sublist_of(prev_ssep)->source_sequence_list);
-          if (kind == (an_il_entry_kind)iek_pragma
-#if RECORD_MACROS_IN_IL
-              || kind == (an_il_entry_kind)iek_macro
-#endif /* RECORD_MACROS_IN_IL */
-                                                    ) {
-            /* A sublist the first entry of which is a pragma or macro -- keep
-               backing up. */
-#if CHECKING
-            /* We are assuming that the sublist was created for one or more
-               global-scope pragmas and/or macros -- and that nothing else
-               is on its list. Confirm the assumption. */
-            ssep = assoc_sublist_of(prev_ssep)->source_sequence_list;
-            for (; ssep != NULL; ssep = ssep->next) {
-              if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_pragma) {
-                a_pragma_ptr  pp = (a_pragma_ptr)ssep->entity.ptr;
-                check_assertion(pp->entity.ptr == NULL);
-#if RECORD_MACROS_IN_IL
-              } else if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_macro) {
-                /* Okay. */
-#endif /* RECORD_MACROS_IN_IL */
-              } else {
-                unexpected_condition();
-              }  /* if */
-            }  /* for */
-#endif /* CHECKING */
-            prev_ssep = prev_ssep->prev;
-          } else {
-            /* Use the sublist entry as the reference. */
-            break;
-          }  /* if */
         } else {
           /* We've found a source sequence entry that can help us find the
              source sequence entry to point to from the decl statement. */
@@ -1712,9 +1679,15 @@ start of a sequence of declarations.
       sp->source_sequence_entry = ssep;
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("dump_decl_stmt")) {
-        fputs("after calling declaration, ss list starting at prev_ssep:\n",
-              f_debug);
-        db_ss_list(prev_ssep);
+        fputs("after calling declaration", f_debug);
+        if (prev_ssep == NULL) {
+          fputs(", prev_ssep is NULL, ss list:\n", f_debug);
+          db_ss_list_for_scope_depth(depth_scope_stack);
+        } else {
+          fputs("after calling declaration, ss list starting at prev_ssep:\n",
+                f_debug);
+          db_ss_list(prev_ssep);
+        }  /* if */
         fprintf(f_debug, "decl statement points at:%s",
                            ssep == NULL ? " NULL\n" : "\n  ");
         if (ssep != NULL) db_source_sequence_entry(ssep);
