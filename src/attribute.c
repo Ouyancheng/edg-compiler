@@ -1482,7 +1482,6 @@ messages about any invalid attributes.
         { a_routine_type_supplement_ptr rtsp;
           a_param_type_ptr              ptp;
           a_boolean                     error_occurred = FALSE;
-          int                           count;
           ensure_routine_type_is_modifiable(&rp->type);
           rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
           if (!rtsp->prototyped) {
@@ -1498,17 +1497,25 @@ messages about any invalid attributes.
               error_occurred = TRUE;
             }  /* if */
           } else {
+            int  count = 0;
             /* Check to see that the format argument has string type
                and that the substitution argument is the first
                variable argument. */
-            for (count = 0, ptp = rtsp->param_type_list; ptp != NULL; 
-                 ptp = ptp->next) {
-              count++;
-              if (count == ap->variant.format.fmt_arg &&
-                  !(is_pointer_type(ptp->type) &&
-                    is_character_type(type_pointed_to(ptp->type)))) {
-                pos_error(ec_fmt_arg_is_not_string, &ap->position);
-                error_occurred = TRUE;
+            if (rtsp->this_class != NULL) {
+              /* For nonstatic member function, the implicit "*this" parameter
+                 is number one, and the first declared parameter is numbered
+                 two. */
+              ++count;
+            }  /* if */
+            for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
+              ++count;
+              if (count == ap->variant.format.fmt_arg) {
+                if(!(is_pointer_type(ptp->type) &&
+                     is_character_type(type_pointed_to(ptp->type)))) {
+                  pos_error(ec_fmt_arg_is_not_string, &ap->position);
+                  error_occurred = TRUE;
+                }  /* if */
+                break;
               }  /* if */
             }  /* for */
             /* If the format argument index is out of range, issue an
@@ -1546,7 +1553,6 @@ messages about any invalid attributes.
       case ak_format_arg:
         { a_routine_type_supplement_ptr rtsp;
           a_param_type_ptr              ptp;
-          int                           count;
           a_boolean                     error_occurred = FALSE;
           ensure_routine_type_is_modifiable(&rp->type);
           rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
@@ -1556,9 +1562,15 @@ messages about any invalid attributes.
           } else {
             /* Check to see that the format argument has string type
                and that the substitution argument is variable. */
-            for (count = 0, ptp = rtsp->param_type_list; ptp != NULL; 
-                 ptp = ptp->next) {
-              count++;
+            int  count = 0;
+            if (rtsp->this_class != NULL) {
+              /* For nonstatic member function, the implicit "*this" parameter
+                 is number one, and the first declared parameter is numbered
+                 two. */
+              ++count;
+            }  /* if */
+            for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
+              ++count;
               if (count == ap->variant.fmt_arg &&
                   !(is_pointer_type(ptp->type) &&
                     is_character_type(type_pointed_to(ptp->type)))) {

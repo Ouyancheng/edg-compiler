@@ -1,5 +1,17 @@
 Version 3.2
-	
+
+4/21/03  GNU C++: Format attribute on nonstatic member functions
+
+In GNU C++ mode, the parameter numbering scheme for the "format" and
+"format_arg" attributes treats the implicit "*this" parameter of nonstatic
+member functions as "number one."
+
+  struct S {
+    void f(char const*, ...) __attribute__((format(printf, 2, 3)));
+      // Previously an error because the front end considered the ellipsis
+      // parameter to be parameter "2".  Now accepted.
+  };
+
 4/21/03  Universal character names in identifiers
 
 UCNs in identifiers were not translated to a canonical form.  As a result,
