@@ -2330,14 +2330,9 @@ Make the code that will ensure that the file-scope initialization routine
     make_zero_of_proper_type(ptr_struct_type, init_con1);
     /* Address of __sti__module_id for "ctor" field. */
     init_con2 = alloc_constant((a_constant_repr_kind)ck_address);
-    if (file_scope_init_routine != NULL) {
-      set_routine_address_constant(file_scope_init_routine, init_con2,
-                                   /*set_address_taken_flag=*/TRUE);
-      implicit_cast(init_con2, ptr_func_type);
-    } else {
-      /* No init routine.  Use NULL. */
-      make_zero_of_proper_type(ptr_func_type, init_con2);
-    }  /* if */
+    set_routine_address_constant(file_scope_init_routine, init_con2,
+                                 /*set_address_taken_flag=*/TRUE);
+    implicit_cast(init_con2, ptr_func_type);
     /* NULL for "dtor" field. */
     init_con3 = alloc_constant((a_constant_repr_kind)ck_address);
     make_zero_of_proper_type(ptr_func_type, init_con3);
