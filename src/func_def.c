@@ -204,6 +204,12 @@ a new symbol is created and entered in the symbol table.
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
+  if (!C_mode() && !any_cfront_mode()) {
+    /* A top-level type qualifier may have been stripped off.  Record the
+       type qualification in the param type entry, based on the parameter
+       variable's type qualifier. */
+    ptp->qualifiers = get_type_qualifiers(param_id->type);
+  }  /* if */
   db_exit();
 }  /* decl_parameter */
 
