@@ -15,8 +15,8 @@ Now fixed.
 
 3/31/03  Improved error message for invalid diagnostic option
 
-The message issued for an invalid operand to the --diag_suppress, etc.
-options has been modified so that the cause of the error is more
+The messages issued for an invalid operand to the --diag_suppress, etc.
+options have been modified so that the cause of the error is more
 obvious.
 
 3/31/03  IA-64 ABI: No call of _main at start of main program
