@@ -219,13 +219,15 @@ void instantiate_template_function(a_function_instantiation_entry_ptr  fiep)
 #endif /* if 0 */
   }  /* if */
 #endif /* CHECKING */
-#if 0
-#else
-  /* TEMPORARY -- all template functions are put out as static for now -- to
-     avoid problems with their being declared in multiple files. */
-  rout_ptr->storage_class = (a_storage_class)sc_static;
-  rout_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
-#endif /* if 0 */
+  if (instantiation_mode == tim_local) {
+    /* Put out template function as internally linked. */
+    rout_ptr->storage_class = (a_storage_class)sc_static;
+    rout_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+  } else {
+    rout_ptr->storage_class = (a_storage_class)sc_unspecified;
+    rout_ptr->source_corresp.name_linkage =
+                                  (a_name_linkage_kind)nlk_cplusplus_external;
+  }  /* if */
   rout_type = rout_ptr->type;
   rtsp = rout_type->variant.routine.extra_info;
   tssp = fiep->template_sym->variant.template.extra_info;
@@ -1139,6 +1141,13 @@ templ_sym).
      point at each other. */
   fiep->routine_sym = sym;
   sym->variant.routine.instance_ptr = fiep;
+  /* Normally, function instantiation entries are not marked for actual
+     instantiation (that is, for generation of the function body) until there
+     is an invocation of the function.  This is partly under user constrol,
+     however: if instantiation_mode is tim_all, mark it immediately. */
+  if (instantiation_mode == tim_all) {
+    update_instantiation_required_flag(fiep, /*value=*/TRUE);
+  }  /* if */
 
   db_exit();
   return sym;
@@ -1352,6 +1361,14 @@ void record_predeclared_template_function(a_symbol_ptr  templ_sym,
          point at each other. */
       fiep->routine_sym = rout_sym;
       rout_sym->variant.routine.instance_ptr = fiep;
+      /* Normally, function instantiation entries are not marked for actual
+         instantiation (that is, for generation of the function body) until
+         there is an invocation of the function.  This is partly under user
+         constrol, however: if instantiation_mode is tim_all, mark it
+         immediately. */
+      if (instantiation_mode == tim_all) {
+        update_instantiation_required_flag(fiep, /*value=*/TRUE);
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
@@ -1448,8 +1465,15 @@ and create a function instantiation entry to bind the two symbols together.
      point at each other. */
   fiep->routine_sym = rout_sym;
   rout_sym->variant.routine.instance_ptr = fiep;
+  /* Normally, function instantiation entries are not marked for actual
+     instantiation (that is, for generation of the function body) until there
+     is an invocation of the function.  This is partly under user constrol,
+     however: if instantiation_mode is tim_all, mark it immediately. */
+  if (instantiation_mode == tim_all) {
+    update_instantiation_required_flag(fiep, /*value=*/TRUE);
+  }  /* if */
   db_exit();
-}  /* find_memeber_function_template */
+}  /* find_member_function_template */
 
 
 a_symbol_ptr find_template_function(a_symbol_ptr        templ_sym,
