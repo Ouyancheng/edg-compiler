@@ -902,7 +902,7 @@ first line of the file.
                /*is_include_file=*/FALSE,
                /*is_system_include=*/FALSE,
                /*is_preinclude=*/FALSE);
-  if (preinclude_file_name != NULL) {
+  if (preinclude_file_name != NULL && !using_a_pch_file) {
     /* There is a preinclude file to be included at the beginning of
        the compilation. */
     open_file_and_push_input_stack(

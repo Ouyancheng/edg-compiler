@@ -1,5 +1,12 @@
 Version 2.42
 
+3/31/99  --preinclude and using precompiled header file
+
+When a compilation specified a --preinclude file, and also used a
+previously-generated precompiled header (PCH) file, the line numbers
+in the IL were wrong, which could cause various problems including
+internal errors.  Now fixed.
+
 3/31/99  Internal error in add_dyn_init_cleanup: no temps
 
 A bug in setting the overlaps_temps_in_inner_lifetime flag caused an
