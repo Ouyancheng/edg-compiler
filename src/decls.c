@@ -9863,17 +9863,14 @@ continue_with_declaration:
           is_incomplete_type(local_type_ptr)) {
         /* Issue an error on a variable for which this is the defining
            declaration but whose type is incomplete.  Also, in C mode, issue
-           an error on a static variable with incomplete type (6.7.2 para 3)
-           or a externally linked variable with a tentative definition but an
-           uncompletable type (a case like "void i;" at file scope).  And in
-           C++ mode, since no object may be of void type, issue the error for
-           cases like "extern void i;" even though it is not a defining
-           declaration. */
+           an error on an externally linked variable with a tentative
+           definition but an uncompletable type (a case like "void i;" at file
+           scope).  And in C++ mode, since no object may be of void type,
+           issue the error for cases like "extern void i;" even though it is
+           not a defining declaration. */
         if (is_variable_def ||
             (!C_mode() && is_void_type(local_type_ptr)) ||
-            (is_tentative_definition &&
-             (local_storage_class == (a_storage_class)sc_static ||
-              is_void_type(local_type_ptr)))) {
+            (is_tentative_definition && is_void_type(local_type_ptr))) {
           if (!incomplete_type_error_reported) {
             pos_error(ec_incomplete_type_not_allowed,
                       &locator.source_position);

@@ -1,5 +1,15 @@
 Version 2.42
 
+6/28/99  Allow the declaration of a file-scope static with incomplete type
+         in C mode
+
+The front end used to issue an error on the following example:
+
+  static int fi[]; /* Could not have "static" and "incomplete type" */
+  static int fi[] = { 42, 43 };
+
+This is now accepted in C mode.
+
 6/28/99  Specifying an invalid output file name as a PCH file
 
 The front end will not permit a file name to be used as an output file
