@@ -3743,8 +3743,9 @@ function symbols.
         } else if (sym->kind == (a_symbol_kind)sk_projection &&
                    sym->variant.projection.is_using_decl &&
                    is_function_symbol(fundamental_symbol_of(sym))) {
-          /* This function symbol has been through a using-declaration.  It
-             should be joined with the current symbol in an overload set. */
+          /* This function symbol has been declared in this class through a
+             using-declaration.  It should be joined with the current symbol
+             in an overload set. */
         } else {
           /* Found the name in the current class, but it is not a member
              function.  The error will be detected again and reported in
@@ -4090,7 +4091,6 @@ static a_symbol_ptr decl_member_function(
                              a_special_function_kind        spec_kind,
                              an_override_registry_entry_ptr *registry_ptr,
                              a_decl_modifier		    decl_modifiers)
-
 /*
 For a member function declaration:  create a symbol entry and a routine entry
 for the member function, add the symbol to the symbol table, and append the
@@ -4378,6 +4378,54 @@ special function kind (e.g., constructor, destructor), if any.
   db_exit();
   return sym;
 }  /* decl_member_function */
+
+
+void decl_member_function_template(a_symbol_locator     *locator,
+                                   a_type_ptr           class_type,
+                                   a_type_ptr           member_type,
+                                   a_func_info_block    *func_info,
+                                   a_scope_depth        effective_decl_level,
+                                   an_access_specifier  access,
+                                   a_decl_flag_set      dso_flags,
+                                   a_symbol_ptr         *symbol_ptr,
+                                   a_decl_modifier      decl_modifiers,
+                                   a_template_param_ptr templ_param_list)
+/*
+*/
+{
+  a_template_symbol_supplement_ptr   tssp;
+  a_routine_ptr                      rtn;
+  a_symbol_ptr                       sym;
+
+  check_operator_function_params(member_type, class_type, locator);
+  sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
+                           effective_decl_level,
+                           /*suppress_redecl_error=*/FALSE);
+  rtn = make_routine(member_type, (a_storage_class)sc_unspecified,
+                     /*at_file_or_namespace_scope=*/FALSE,
+                     /*add_to_list=*/FALSE);
+  tssp = template_supplement_for_symbol(sym);
+  tssp->variant.function.routine = rtn;
+  /* Set the source correspondence, including the access specifier. */
+  set_source_corresp(&rtn->source_corresp, sym);
+  set_class_membership(sym, &rtn->source_corresp, class_type);
+  rtn->source_corresp.access = access;
+  if (func_info->is_inline) {
+    /* Inline member function (either because "inline" was specified or
+       a function definition is present). */
+    rtn->is_inline = TRUE;
+    rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+    rtn->storage_class = (a_storage_class)sc_static;
+  } else {
+    /* Noninline member function. */
+    rtn->is_inline = FALSE;
+    /* Member functions should have the same name linkage as the class of
+       which they are members. */
+    rtn->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
+    rtn->storage_class = (a_storage_class)sc_extern;
+  }  /* if */
+  *symbol_ptr = sym;
+}  /* decl_member_function_template */
 
 
 static void scan_pure_specifier(a_symbol_ptr  rout_sym,
