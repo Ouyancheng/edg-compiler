@@ -1963,7 +1963,7 @@ This is used to emulate a strange GNU IA-64 layout bug.
   check_assertion(ebcp->is_virtual);
 
   for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct && bcp != ebcp) {
+    if (bcp->direct && bcp->offset_is_set && bcp != ebcp) {
       a_base_class_ptr  sub_bcp = base_classes_of(bcp->type);
       for (; sub_bcp != NULL; sub_bcp = sub_bcp->next) {
         if (sub_bcp->is_virtual && same_entities(sub_bcp->type, ebcp->type)) {
