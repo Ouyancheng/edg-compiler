@@ -122,7 +122,9 @@ class is the same as the name that locator_for_curr_id represents.
     match = FALSE;
   } else {
     class_sym = (a_symbol_ptr)ssep->assoc_type->source_corresp.assoc_info;
-    match = (locator_for_curr_id.symbol_header == class_sym->header);
+    match = (locator_for_curr_id.symbol_header == class_sym->header &&
+             (!locator_for_curr_id.is_qualified_name ||
+              locator_for_curr_id.qualifier_class_type == ssep->assoc_type));
   }  /* if */
   return match;
 }  /* is_name_of_curr_class */
