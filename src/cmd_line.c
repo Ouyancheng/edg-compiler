@@ -868,12 +868,12 @@ Initialize the option information table.
                          "ignore_std",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_parse_function_templates,
-                         "parse_function_templates",
+  add_option_description(optk_parse_nonclass_templates,
+                         "parse_templates",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_parse_function_templates,
-                         "no_parse_function_templates",
+  add_option_description(optk_parse_nonclass_templates,
+                         "no_parse_templates",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 }  /* initialize_option_descriptions */
@@ -1308,7 +1308,7 @@ by a command line option.
     if (!option_kind_used[(int)optk_dependent_name_processing]) {
       do_dependent_name_processing = FALSE;
     }  /* if */
-    if (!option_kind_used[(int)optk_parse_function_templates]) {
+    if (!option_kind_used[(int)optk_parse_nonclass_templates]) {
       nonclass_prototype_instantiations = FALSE;
       prototype_instantiations_in_il = FALSE;
     }  /* if */
@@ -1424,7 +1424,7 @@ optk_cfront_3_0_mode.
   if (!(option_kind_used[(int)optk_dependent_name_processing])) {
     do_dependent_name_processing = FALSE;
   }  /* if */
-  if (!option_kind_used[(int)optk_parse_function_templates]) {
+  if (!option_kind_used[(int)optk_parse_nonclass_templates]) {
     nonclass_prototype_instantiations = FALSE;
     prototype_instantiations_in_il = FALSE;
   }  /* if */
@@ -1603,9 +1603,9 @@ setting is used, and to set various unmentioned settings as needed.
   if (option_kind_used[(int)optk_dependent_name_processing]) {
     command_line_error(ec_cl_dep_name_option_only_in_cplusplus);
   }  /* if */
-  if (option_kind_used[(int)optk_parse_function_templates]) {
+  if (option_kind_used[(int)optk_parse_nonclass_templates]) {
     command_line_error(
-                     ec_cl_parse_function_templates_option_only_in_cplusplus);
+                     ec_cl_parse_nonclass_templates_option_only_in_cplusplus);
   }  /* if */
   if (option_kind_used[(int)optk_ignore_namespace_std]) {
     command_line_error(ec_cl_ignore_std_option_only_in_cplusplus);
@@ -1933,7 +1933,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
          option, set it now. */
       do_dependent_name_processing = TRUE;
     }  /* if */
-    if (!(option_kind_used[(int)optk_parse_function_templates])) {
+    if (!(option_kind_used[(int)optk_parse_nonclass_templates])) {
       /* If prototype instantiation of nonclasses was not explicitly set by a
          command line option, set it now. */
       nonclass_prototype_instantiations = TRUE;
@@ -2817,7 +2817,7 @@ enable_microsoft_mode:
            alias for the global namespace. */
         ignore_std_namespace = opt_value;
         break;
-      case optk_parse_function_templates:
+      case optk_parse_nonclass_templates:
         /* Enable prototype instantiation of nonclass templates. */
         nonclass_prototype_instantiations = opt_value;
         break;
@@ -2877,11 +2877,11 @@ enable_microsoft_mode:
   if (do_dependent_name_processing) {
     /* Do nonclass prototype instantiations when dependent name processing
        is being done. */
-    if (option_kind_used[(int)optk_parse_function_templates] &&
+    if (option_kind_used[(int)optk_parse_nonclass_templates] &&
         !nonclass_prototype_instantiations) {
-      /* The option --no_parse_function_templates was used: it implies that
+      /* The option --no_parse_templates was used: it implies that
          no dependent name processing is done. */
-      command_line_error(ec_cl_dep_name_requires_parse_function_templates);
+      command_line_error(ec_cl_dep_name_requires_parse_nonclass_templates);
     }  /* if */
     nonclass_prototype_instantiations = TRUE;
     /* Do argument dependent lookup when doing dependent name processing. */

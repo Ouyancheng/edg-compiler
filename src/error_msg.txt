@@ -1072,8 +1072,8 @@ ec_no_access_or_using_decl_in_union;;"access declarations and using-declarations
 ec_not_class_member;;"%no is not a class member"
 ec_nonstd_const_member_decl_not_allowed;;"nonstandard member constant declaration is not allowed"
 ec_cl_ignore_std_option_only_in_cplusplus;;"option \"ignore_std\" can be used only when compiling C++"
-ec_cl_parse_function_templates_option_only_in_cplusplus;;"option \"parse_function_templates\" can be used only when compiling C++"
-ec_cl_dep_name_requires_parse_function_templates;;"option \"dep_name\" cannot be used with \"no_parse_function_templates\""
+ec_cl_parse_nonclass_templates_option_only_in_cplusplus;;"option \"parse_templates\" can be used only when compiling C++"
+ec_cl_dep_name_requires_parse_nonclass_templates;;"option \"dep_name\" cannot be used with \"no_parse_templates\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
