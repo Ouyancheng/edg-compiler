@@ -17,6 +17,20 @@ lang_feat.h -- Definition of source language features to be accepted.
 #define LANG_FEAT_H 1
 
 /*
+Flag that is TRUE to allow the AT&T extensions to ANSI C preprocessing,
+i.e., #assert, #unassert, and the use of assertions in #if expressions.
+These extensions were added in System V release 4.
+*/
+#define ATT_PREPROCESSING_EXTENSIONS_ALLOWED TRUE
+
+/*
+Flag that is TRUE to include asm function definitions in the language.
+Note that in the standard version the code to implement this is not
+included, so this flag cannot be set to TRUE.
+*/
+#define ASM_FUNCTION_ALLOWED FALSE
+
+/*
 Flag that is TRUE if assignment to "this" (a C++ anachronism) should
 be allowed.  This affects the source language accepted.  If assignment
 to "this" is allowed, the interface to and wrapper code within constructors
