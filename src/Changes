@@ -1,5 +1,13 @@
 Version 2.18
 
+5/26/93 Fixed bug in detecting parenthesized initializer
+
+The code that distinguishes a parenthesized intializer in a variable
+declaration from a parameter list in a function declaration has been
+modified to handle this case correctly:
+
+  void (*pf)()(0);        // same as:  void (*pf)() = 0;
+
 5/23/93 Abort fixed in vacuous destructor handling
 
 An abort could occur when scanning a vacuous destructor references
