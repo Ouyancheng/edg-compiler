@@ -118,14 +118,10 @@ typedef enum /*an_option_kind*/ {
   optk_brief_diagnostics,
   optk_nonconst_ref_anachronism,
   optk_no_preproc_only,
-#if RTTI_ENABLING_POSSIBLE
   optk_rtti,
-#endif /* RTTI_ENABLING_POSSIBLE */
   optk_building_runtime,
   optk_bool_is_keyword,
-#if ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
   optk_array_new_and_delete,
-#endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -514,7 +510,8 @@ EXTERN a_calling_convention
 EXTERN a_boolean
 		wchar_t_is_keyword
 #if VAR_INITIALIZERS
-                                   = DEFAULT_WCHAR_T_IS_KEYWORD
+                                   = DEFAULT_WCHAR_T_IS_KEYWORD &&
+                                     WCHAR_T_ENABLING_POSSIBLE
 #endif /* VAR_INITIALIZERS */
                                                                ;
 			/* Indicates whether wchar_t is to be considered a
@@ -525,7 +522,8 @@ EXTERN a_boolean
 EXTERN a_boolean
 		bool_is_keyword
 #if VAR_INITIALIZERS
-                                   = DEFAULT_BOOL_IS_KEYWORD
+                                   = DEFAULT_BOOL_IS_KEYWORD &&
+                                     BOOL_ENABLING_POSSIBLE
 #endif /* VAR_INITIALIZERS */
                                                                ;
 			/* Indicates whether bool is to be considered a

@@ -503,6 +503,39 @@ command line options.
 #define DEFAULT_SVR4_C_MODE FALSE
 #endif /* ifndef DEFAULT_SVR4_C_MODE */
 
+/*
+Flag that is TRUE if support for bool can be enabled.
+*/
+#ifndef BOOL_ENABLING_POSSIBLE
+#define BOOL_ENABLING_POSSIBLE TRUE
+#endif /* ifndef BOOL_ENABLING_POSSIBLE */
+
+/*
+Flag that is TRUE if support for wchar_t can be enabled.
+*/
+#ifndef WCHAR_T_ENABLING_POSSIBLE
+#define WCHAR_T_ENABLING_POSSIBLE TRUE
+#endif /* ifndef WCHAR_T_ENABLING_POSSIBLE */
+
+/*
+Flag that is TRUE if RTTI can be enabled.  The special value "DEFAULT"
+causes the setting of this flag to be determined in targ_def.h based
+on other configuration flags.
+*/
+#ifndef RTTI_ENABLING_POSSIBLE
+#define RTTI_ENABLING_POSSIBLE DEFAULT
+#endif /* ifndef RTTI_ENABLING_POSSIBLE */
+
+/*
+Flag that is TRUE if array new and delete can be enabled.  The special
+value "DEFAULT" causes the setting of this flag to be determined in
+targ_def.h based on other configuration flags.
+*/
+#ifndef ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
+#define ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE DEFAULT
+#endif /* ifndef ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
+
+
 #endif /* ifndef LANG_FEAT_H */
 
 /******************************************************************************

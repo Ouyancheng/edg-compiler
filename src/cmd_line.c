@@ -381,12 +381,14 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if WCHAR_T_ENABLING_POSSIBLE
   add_option_description(optk_wchar_t_is_keyword, "wchar_t_keyword",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
   add_option_description(optk_wchar_t_is_keyword, "no_wchar_t_keyword",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#endif /* WCHAR_T_ENABLING_POSSIBLE */
 #if USER_CONTROL_OF_STRUCT_PACKING
   /* Note -- the Microsoft-style "-Zpn" option is not supported.  The driver
      that invokes the front end may convert it to "--pack_alignment=n". */
@@ -449,12 +451,14 @@ Initialize the option information table.
   add_option_description(optk_building_runtime, "building_runtime", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if BOOL_ENABLING_POSSIBLE
   add_option_description(optk_bool_is_keyword, "bool",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
   add_option_description(optk_bool_is_keyword, "no_bool",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#endif /* BOOL_ENABLING_POSSIBLE */
 #if ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
   add_option_description(optk_array_new_and_delete,
                          "array_new_and_delete", '\0',
@@ -1329,12 +1333,10 @@ Process the arguments on the command line that invoked the compiler.
 	   be done. */
         suppress_do_preprocessing_only = opt_value;
         break;
-#if RTTI_ENABLING_POSSIBLE
       case optk_rtti:
         /* Enable/disable runtime type information (RTTI). */
         rtti_enabled = opt_value;
         break;
-#endif /* RTTI_ENABLING_POSSIBLE */
       case optk_building_runtime:
         /* We are building the runtime library for the compiler. */
         check_assertion(opt_value == TRUE);
@@ -1344,12 +1346,10 @@ Process the arguments on the command line that invoked the compiler.
         /* bool is or is not a keyword. */
         bool_is_keyword = opt_value;
         break;
-#if ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
       case optk_array_new_and_delete:
         /* Enable/disable array new and delete. */
         array_new_and_delete_enabled = opt_value;
         break;
-#endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1396,16 +1396,12 @@ Process the arguments on the command line that invoked the compiler.
     if (option_kind_used[(int)optk_exception_handling]) {
       command_line_error(ec_cl_exceptions_option_only_in_cplusplus);
     }  /* if */
-#if RTTI_ENABLING_POSSIBLE
     if (option_kind_used[(int)optk_rtti]) {
       command_line_error(ec_cl_rtti_option_only_in_cplusplus);
     }  /* if */
-#endif /* RTTI_ENABLING_POSSIBLE */
-#if ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
     if (option_kind_used[(int)optk_array_new_and_delete]) {
       command_line_error(ec_cl_array_new_and_delete_option_only_in_cplusplus);
     }  /* if */
-#endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
     if (option_kind_used[(int)optk_wchar_t_is_keyword]) {
       command_line_error(ec_cl_wchar_t_option_only_in_cplusplus);
     }  /* if */
@@ -1480,18 +1476,28 @@ Process the arguments on the command line that invoked the compiler.
       /* Set optional features to standard settings for strict C++ mode. */
       /* Enable recognition of operator keywords and digraphs. */
       alternative_tokens_allowed = TRUE;
-      wchar_t_is_keyword = TRUE;
-      bool_is_keyword = TRUE;
+      if (!(option_kind_used[(int)optk_wchar_t_is_keyword])) {
+        /* If wchar_t_is_keyword was not explicitly set by a command line
+           option, set it now. */
+        wchar_t_is_keyword = WCHAR_T_ENABLING_POSSIBLE;
+      }  /* if */
+      if (!(option_kind_used[(int)optk_bool_is_keyword])) {
+        /* If bool_is_keyword was not explicitly set by a command line
+           option, set it now. */
+        bool_is_keyword = BOOL_ENABLING_POSSIBLE;
+      }  /* if */
       /* Temporary lifetime is short. */
       long_lifetime_temps = FALSE;
-#if RTTI_ENABLING_POSSIBLE
-      /* Enable RTTI. */
-      rtti_enabled = TRUE;
-#endif /* RTTI_ENABLING_POSSIBLE */
-#if ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
-      /* Enable array new and delete. */
-      array_new_and_delete_enabled = TRUE;
-#endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
+      if (!(option_kind_used[(int)optk_rtti])) {
+        /* If rtti_enabled was not explicitly set by a command line
+           option, set it now. */
+        rtti_enabled = RTTI_ENABLING_POSSIBLE;
+      }  /* if */
+      if (!(option_kind_used[(int)optk_array_new_and_delete])) {
+        /* If array_new_and_delete_enabled was not explicitly set by a
+           command line option, set it now. */
+        array_new_and_delete_enabled = ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE;
+      }  /* if */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the
        error threshold was set at a higher level. */
