@@ -310,7 +310,8 @@ static void gen_general_declaration_using_type(
                              an_il_entry_kind             entry_kind,
                              a_src_seq_secondary_decl_ptr sec_decl,
                              a_type_qualifier_set         added_qualifiers,
-                             a_boolean                    suppress_specifiers);
+                             a_boolean                    suppress_specifiers,
+                             a_boolean                    suppress_position);
 static void gen_declaration_using_type(a_type_ptr              type,
                                        a_source_correspondence *scp,
                                        an_il_entry_kind        entry_kind);
@@ -2039,7 +2040,8 @@ the routine; otherwise it is NULL.
           gen_general_declaration_using_type(param->type, NO_NAME, iek_none,
                                             (a_src_seq_secondary_decl_ptr)NULL,
                                              qualifiers,
-                                             /*suppress_specifiers=*/FALSE);
+                                             /*suppress_specifiers=*/FALSE,
+                                             /*suppress_position=*/FALSE);
         }  /* if */
         /* Put out a default argument expression if there is one. */
         gen_default_arg_expr(param);
@@ -2118,7 +2120,8 @@ static void gen_general_declaration_using_type(
                               an_il_entry_kind             entry_kind,
                               a_src_seq_secondary_decl_ptr sec_decl,
                               a_type_qualifier_set         added_qualifiers,
-                              a_boolean                    suppress_specifiers)
+                              a_boolean                    suppress_specifiers,
+                              a_boolean                    suppress_position)
 /*
 Output a declaration built around a type.  The argument scp is the source
 correspondence entry for the entity being declared, or NULL if there is
@@ -2128,7 +2131,9 @@ declaration of the entity, and sec_decl points to information about the
 secondary declaration.  If added_qualifiers is not zero, the indicated
 qualifiers are added on top of the type.  If suppress_specifiers is TRUE,
 the type specifiers of the declaration are suppressed; this is used for
-comma-separated declarations (e.g., in a for-init statement).
+comma-separated declarations (e.g., in a for-init statement).  If
+suppress_position is TRUE, the output position is not set to the source
+position indicated in *scp.
 */
 {
   /* Write the specifiers and the first part of the declarator. */
@@ -2141,7 +2146,7 @@ comma-separated declarations (e.g., in a for-init statement).
   /* Write the name if there is one. */
   if (scp != NULL) {
     /* Set the source position for the name. */
-    set_decl_position(scp, sec_decl);
+    if (!suppress_position) set_decl_position(scp, sec_decl);
     /* Write the name. */
     gen_decl_name(scp, entry_kind);
     /* Push the name context for a class/namespace member. */
@@ -2167,7 +2172,8 @@ scp is NULL).
   gen_general_declaration_using_type(type, scp, entry_kind,
                                      (a_src_seq_secondary_decl_ptr)NULL,
                                      TQ_NONE,
-                                     /*suppress_specifiers=*/FALSE);
+                                     /*suppress_specifiers=*/FALSE,
+                                     /*suppress_position=*/FALSE);
 }  /* gen_declaration_using_type */
 
 
@@ -2508,7 +2514,8 @@ declaration following this one is such a continuation.
                                      iek_field,
                                      (a_src_seq_secondary_decl_ptr)NULL,
                                      TQ_NONE,
-                                     suppress_specifiers);
+                                     suppress_specifiers,
+                                     /*suppress_position=*/FALSE);
   if (field->is_bit_field) {
     /* A bit field.  Put out the size. */
     write_tok_ch(':');
@@ -2840,7 +2847,8 @@ declaration following this one is such a continuation.
       /* Normal typedef. */
       gen_general_declaration_using_type(under_type, &type->source_corresp,
                                          iek_type, sec_decl, TQ_NONE,
-                                         suppress_specifiers);
+                                         suppress_specifiers,
+                                         /*suppress_position=*/FALSE);
     }  /* if */
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list =
@@ -4876,6 +4884,57 @@ Generate code for a namespace "using" directive.
 }  /* gen_using_directive */
 
 
+static void gen_instantiation_directive(void)
+/*
+Generate code for an instantiation directive.
+*/
+{
+  an_il_entry_kind               kind;
+  a_type_ptr                     type;
+  a_source_correspondence        *scp;
+  an_instantiation_directive_ptr idp =
+                                  ss_entry_ptr(curr_source_sequence_entry,
+                                               an_instantiation_directive_ptr);
+
+  /* Advance past the source sequence entry for the instantiation directive. */
+  adv_curr_source_sequence_entry();
+  /* Position the output file to the directive position. */
+  set_output_position(&idp->position);
+  write_tok_str("template ");
+  kind = (an_il_entry_kind)idp->entity.kind;
+  switch (kind) {
+    case iek_routine:
+      { a_routine_ptr rout = (a_routine_ptr)idp->entity.ptr;
+        type = rout->type;
+        scp = &rout->source_corresp;
+      }
+      break;
+    case iek_variable:
+      { a_variable_ptr var = (a_variable_ptr)idp->entity.ptr;
+        type = var->type;
+        scp = &var->source_corresp;
+      }
+      break;
+    case iek_type:
+      { a_type_ptr class_type = (a_type_ptr)idp->entity.ptr;
+        gen_tag_reference(class_type);
+        type = NULL;
+      }
+      break;
+    default:
+      unexpected_condition_str("gen_instantiation_directive: bad entity kind");
+  }  /* switch */
+  if (type != NULL) {
+    gen_general_declaration_using_type(type, scp, kind,
+                                       (a_src_seq_secondary_decl_ptr)NULL,
+                                       TQ_NONE,
+                                       /*suppress_specifiers=*/FALSE,
+                                       /*suppress_position=*/TRUE);
+  }  /* if */
+  write_tok_ch(';');
+}  /* gen_instantiation_directive */
+
+
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       top_statement_of_switch)
 /*
@@ -5770,7 +5829,8 @@ declaration following this one is such a continuation.
                                      iek_variable,
                                      sec_decl,
                                      TQ_NONE,
-                                     suppress_specifiers);
+                                     suppress_specifiers,
+                                     /*suppress_position=*/FALSE);
   /* Output the initializer, if any, but only if this is a definition.
      For member constants (static data members initialized within the
      class), the initializer gets put out on the declaration rather than
@@ -6121,7 +6181,8 @@ TRUE if the declaration following this one is such a continuation.
     check_assertion(!is_definition);
     gen_general_declaration_using_type(qual_rout_type, &rout->source_corresp,
                                        iek_routine, sec_decl, TQ_NONE,
-                                       suppress_specifiers);
+                                       suppress_specifiers,
+                                       /*suppress_position=*/FALSE);
   } else {
     /* Normal routine case.  Do the declaration in a special way because
        (a) function definitions use information from the function parameter
@@ -6323,6 +6384,9 @@ that case) and old-style parameter declarations.
         break;
       case iek_class_member_using_decl:
         gen_class_member_using_decl();
+        break;
+      case iek_instantiation_directive:
+        gen_instantiation_directive();
         break;
       default:
         unexpected_condition_str(
