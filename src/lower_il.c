@@ -149,7 +149,7 @@ Clear an insert location and set its expr_insert field to expr_insert.
   insert_location->expr_insert = expr_insert;
   if (expr_insert) {
     insert_location->variant.expr.ptr = NULL;
-    insert_location->variant.expr.insert_before = FALSE;
+    insert_location->variant.expr.insert_before = TRUE;
   } else {
     insert_location->variant.statement.ptr = NULL;
     insert_location->variant.statement.insert_at_block_start = FALSE;
@@ -2057,19 +2057,24 @@ will be after the expression added.
   if (insert_location->variant.expr.insert_before) {
     first_operand = inserted_expr;
     second_operand = orig_expr_copy;
+    /* Change the insert location so that it inserts before the second
+       expression (the original one).  Note that we cannot make an "after"
+       insertion implicitly; they are tricky and must be made explicitly. */
+    insert_location->variant.expr.ptr = second_operand;
   } else {
     first_operand = orig_expr_copy;
     second_operand = inserted_expr;
+    /* The insert location is left as it is, for insertion after the original
+       node, which will be the comma node.  That's used instead of the
+       second operand to avoid problems with keeping the type of comma
+       nodes up to date when inserts are done under them in their second
+       operands. */
   }  /* if */
   first_operand->next = second_operand;
   second_operand->next = NULL;
   /* Turn the original node into a comma node. */
   change_node_to_operation(orig_expr, (an_expr_operator_kind)eok_comma,
                            second_operand->type, first_operand);
-  /* Change the insert location so that it inserts after the
-     expression just added. */
-  insert_location->variant.expr.insert_before = FALSE;
-  insert_location->variant.expr.ptr = inserted_expr;
 }  /* insert_expr */
 
 
@@ -5784,9 +5789,11 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                      in case the value of the assignment is used.  That is,
                        this = expr
                      becomes
-                       ((this = expr), initialization, this)
+                       ((this = expr), this)
+                     which then becomes
+                       ((this = expr), (initialization, this))
                   */
-                  an_expr_node_ptr   new_expr;
+                  an_expr_node_ptr   new_expr, orig_expr_copy;
                   an_insert_location insert_location;
 
                   if (expr->variant.operation.
@@ -5799,14 +5806,24 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                        of the "this" parameter. */
                     new_expr = var_rvalue_expr(this_param_var);
                   }  /* if */
-                  set_expr_insert_location(expr, &insert_location);
-                  insert_location.variant.expr.insert_before = FALSE;
+                  /* Change "this = expr" to "((this = expr), this)" by
+                     converting the original expression to a comma node.
+                     Make a copy of the original node so the original node can
+                     be overwritten. */
+                  orig_expr_copy = copy_node(expr);
+                  /* The copy is not an lvalue-returning operation. */
+                  orig_expr_copy->variant.operation.
+                                returns_lvalue_instead_of_usual_rvalue = FALSE;
+                  orig_expr_copy->type = this_param_var->type;
+                  orig_expr_copy->next = new_expr;
+                  change_node_to_operation(expr,
+                                           (an_expr_operator_kind)eok_comma,
+                                           expr->type, orig_expr_copy);
+                  set_expr_insert_location(new_expr, &insert_location);
                   /* The insert location now specifies insertion before the
-                     expression we just inserted.  Add the wrapper code
-                     there. */
+                     final expression.  Add the wrapper code there. */
                   add_constructor_wrapper_code(nearest_function_scope,
                                                &insert_location);
-                  insert_expr(new_expr, &insert_location);
                 }  /* if */
               }  /* if */
             }  /* if */
