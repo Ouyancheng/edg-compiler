@@ -175,7 +175,18 @@ typedef struct a_candidate_function {
 		next;	/* Next entry on the list of candidates, or NULL
 			   if this is the last entry. */
   a_symbol_ptr	function_symbol;
-			/* Pointer to the symbol for the function. */
+			/* Pointer to the symbol for the function.  NULL if
+			   the "function" is a built-in operator. */
+  char		*operand_type_pattern;
+			/* For a built-in operator, the operand type pattern
+			   string (see operand_type_pattern_for_operator).
+			   Specifically, the appropriate one- or two-character
+			   segment of the operand pattern string.  NULL
+			   if not a built-in operator. */
+  a_type_ptr	pointer_type;
+			/* For a built-in operator with an operand pattern
+			   including pointers, this indicates the pointer
+			   type. */
 } a_candidate_function;
 /*
 Argument match levels for overloaded function call resolution; See ARM 13.2.
@@ -325,6 +336,14 @@ extern a_symbol_ptr select_overloaded_function(
                             a_source_position       *call_position,
                             an_operand              *function_operand,
                             an_expr_node_ptr        *arg_expr_list);
+
+extern void try_to_convert_class_operand_to_builtin_type(
+                                           an_operand         *operand,
+                                           a_boolean          integral_allowed,
+                                           a_boolean          floating_allowed,
+                                           a_boolean          pointer_allowed,
+                                           an_expression_kind expression_kind,
+                                           a_boolean          *processed);
 
 extern void check_for_operator_overloading(
                                     an_opname_kind     kind,
