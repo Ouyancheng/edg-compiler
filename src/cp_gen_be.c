@@ -2678,6 +2678,11 @@ is the one associated with the definition of the class.
                                    type->source_corresp.source_sequence_entry);
   /* Position the output file to the declaration position. */
   set_output_position(&type->source_corresp.decl_position);
+  if (ctsp != NULL &&
+      ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_variable) {
+    /* For a global anonymous union, put out "static" in front of the union. */
+    write_tok_str("static ");
+  }  /* if */
   write_tok_str(tag_kind(type->kind));
   /* Write the name of the class. */
   /* Note that a name will be generated for an unnamed class.  Suppress
