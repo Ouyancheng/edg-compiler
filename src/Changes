@@ -1,5 +1,14 @@
 Version 2.45
 
+10/12/00 Inconsistent source sequence entry list for prototype instantiation
+         of a class template
+
+When both TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS and
+PROTOTYPE_INSTANTIATIONS_IN_IL were configured TRUE, the source sequence
+entries for the prototype instantiation of a class template were reordered
+into an inconsistent list.  This could e.g. lead the C++-generating back end
+to abort.  Now fixed.
+
 10/12/00 Incorrect lowered code for ctor-initializer copies of empty base
          classes
 

@@ -4609,6 +4609,11 @@ End a name scope by popping an entry off the scope stack.
 #endif /* DEBUG */
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (ssep->kind == (a_scope_kind)sck_template_instantiation &&
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+        /* The prototype instantiation should not be moved away from the
+           associated template. */
+        !ssep->in_prototype_instantiation &&
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         !ssep->microsoft_specialization_instantiation_scope) {
       insert_instantiation_src_seq_list(ssep);
     } else
