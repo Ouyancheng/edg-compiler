@@ -795,7 +795,8 @@ invalid attributes.
         } else if (is_incomplete_type(vp->type)) {
           /* Parameters must already have complete types, and
              there is no point in complaining twice. */
-        } else if (check_transparent_union(vp->type, &ap->position)) {
+        } else if (check_transparent_union(skip_typerefs(vp->type),
+                                           &ap->position)) {
           /* The assoc_param_type field is not yet filed in here so we
              save the transparent bit in the variable.  When
              fixup_parameter_types is called the bit will be copied
