@@ -8,6 +8,19 @@ compilation with the __BSD__ flag set.  Previously, the __BSD__
 flag would result in the definition of macros for memcpy and memcmp.
 This is now only done when not using an ANSI C compiler.
 
+3/21/95  Implicit scope for dependent statements in cfront 3.0 mode
+
+Now it is only in cfront-2.1 compatibility mode that the dependent
+statement of an if, while, do-while, or for statement does not implicitly
+define a scope.  In cfront-3.0 mode, the behavior is now consistent with
+standard C++.
+
+  void f() {
+    int i;
+    if (i)
+      for (int i=0; i<10; i++) { }  // Error in cfront 2.1 mode but now
+  }                                 //   okay in cfront 3.0 mode
+
 3/20/95  Type compatibility of known- and unknown-bound arrays in C++
 
 Now two array types with the same element type and of known- and
