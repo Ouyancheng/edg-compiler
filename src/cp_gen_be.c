@@ -3759,18 +3759,29 @@ done_with_operation:
         /* Use expression. */
         gen_lvalue(expr->variant.typeid_info.expr);
       }  /* if */
-      write_tok_str(")");
+      write_tok_ch(')');
       break;
     case enk_address_of_ellipsis:
       write_tok_str("&...");
       break;
     case enk_temp_init:
       /* Temporary creation/initialization. */
-      /* The temporary is being used as an rvalue here, so the result of
-         the node should be the value of the temporary. */
-      check_assertion_str(!expr->variant.init.result_is_addr,
-                          "gen_expr: enk_temp_init returning addr as rvalue");
-      gen_temp_init(expr);
+      if (expr->variant.init.result_is_addr) {
+        /* Using the address of the temp.  This can come up if it is allowed
+           to cast a class rvalue to a reference type. */
+        a_type_ptr temp_type = type_pointed_to(expr->type);
+        write_tok_ch('(');
+        gen_ampersand(temp_type);
+        write_tok_ch('(');
+        check_assertion(is_class_struct_union_type(temp_type));
+        gen_type(temp_type);
+        write_tok_str(" &)");
+        gen_temp_init(expr);
+        write_tok_ch(')');
+      } else {
+        /* Normal case (using the value of the temp). */
+        gen_temp_init(expr);
+      }  /* if */
       break;
     case enk_new_delete:
       /* new or delete operation. */
