@@ -272,6 +272,11 @@ should be suppressed.
       /* A throw always has side effects. */
       has_side_effects = TRUE;
       break;
+    case enk_object_lifetime:
+      has_side_effects = node_has_side_effects(
+                                            node->variant.object_lifetime.expr,
+                                            &suppress);
+      break;
 #if CHECKING
     default:
       internal_error("node_has_side_effects: bad node kind");
