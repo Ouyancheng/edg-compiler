@@ -1,5 +1,11 @@
 Version 2.13
 
+1/18/93 Fixed bug in assigning access to anonymous union members
+
+The names specified in an anonymous union that appears within a class
+definition are now marked with the access specifier appropriate to their
+position within the containing class.
+
 1/18/93 Fixed bug with type qualifiers on function template arguments
 
 The following is now handled correctly:
