@@ -86,16 +86,16 @@ needed (say, for incredibly large string literals formed by token
 concatenation).
 
 When USE_MMAP_FOR_MEMORY_REGIONS is TRUE, HOST_ALLOCATION_INCREMENT
-must be a multiple of the host page size.  On Windows-NT, when
+must be a multiple of the host page size.  On Windows NT, when
 USE_MMAP_FOR_MEMORY_REGIONS is TRUE, HOST_ALLOCATION_INCREMENT must
 be a multiple of 64K.
 */
 #ifndef HOST_ALLOCATION_INCREMENT
-#if __MSDOS__ && !__WIN32__
+#if __MSDOS__
 #define HOST_ALLOCATION_INCREMENT 16384
-#else /* !(__MSDOS__ && !__WIN32__) */
+#else /* !__MSDOS__ */
 #define HOST_ALLOCATION_INCREMENT 65536
-#endif /* __MSDOS__ && !__WIN32__ */
+#endif /* __MSDOS__  */
 #endif /* ifndef HOST_ALLOCATION_INCREMENT */
 				   
 /*
@@ -799,15 +799,15 @@ of input lines should be ignored.
 /*
 Default temporary file directory.
 */
-#if __MSDOS__
+#if __MICROSOFT_OS__
 #ifndef DEFAULT_TMPDIR
 #define DEFAULT_TMPDIR "\\tmp\\"
 #endif /* ifndef DEFAULT_TMPDIR */
-#else /* !__MSDOS__ */
+#else /* !__MICROSOFT_OS__ */
 #ifndef DEFAULT_TMPDIR
 #define DEFAULT_TMPDIR "/usr/tmp"
 #endif /* ifndef DEFAULT_TMPDIR */
-#endif /* !__MSDOS__ */
+#endif /* !__MICROSOFT_OS__ */
 
 /*
 Default system include directory.
@@ -831,11 +831,11 @@ to get the object file name.  That name is used only for generating object
 file dependencies for a makefile.
 */
 #ifndef OBJECT_FILE_SUFFIX
-#if __MSDOS__
+#if __MICROSOFT_OS__
 #define OBJECT_FILE_SUFFIX ".obj"
-#else /* !__MSDOS__ */
+#else /* !__MICROSOFT_OS__ */
 #define OBJECT_FILE_SUFFIX ".o"
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 #endif /* ifndef OBJECT_FILE_SUFFIX */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
@@ -861,12 +861,12 @@ and do not contain instantiation list entries.
 The suffixes to be used when searching for an instantiation source file
 that is associated with a given instantiation header file.
 */
-#if __MSDOS__
+#if __MICROSOFT_OS__
 /* Case is not significant in MS-DOS file names. */
 #define DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST "C::CPP::CXX:CC"
-#else /* !__MSDOS__ */
+#else /* !__MICROSOFT_OS__ */
 #define DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST "c:C:cpp:CPP:cxx:CXX:cc"
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 /*
@@ -1130,13 +1130,13 @@ extern char *derived_name(char *file_name,
                           char *suffix);
 #endif /* NEED_DERIVED_NAME */
 /* Test whether or not a file name is absolute (a full path name). */
-#if __MSDOS__
+#if __MICROSOFT_OS__
 #define is_absolute_file_name(file_name) \
   (((file_name)[0] == '/') || ((file_name)[0] == '\\') || \
    (isalpha((unsigned char)(file_name)[0]) && ((file_name)[1] == ':')))
-#else /* !__MSDOS__ */
+#else /* !__MICROSOFT_OS__ */
 #define is_absolute_file_name(file_name) ((file_name)[0] == '/')
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 /* Combine a directory name and file name into a full path name. */
 extern char *combine_dir_and_file_name (char *dir_name,
                                         char *file_name,
@@ -1342,13 +1342,13 @@ extern void host_envir_init(void);
 /*
 Define a macro that can be used to compare two file names.
 */
-#if __MSDOS__
+#if __MICROSOFT_OS__
 /* On MS-DOS, the comparison must be case insensitive. */
 #define compare_file_names(s1, s2) strnicmp((s1), (s2), INT_MAX)
-#else /* !__MSDOS__ */
+#else /* !__MICROSOFT_OS__ */
 /* On other systems, the comparison is case sensitive. */
 #define compare_file_names(s1, s2) strcmp((s1), (s2))
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 
 #if __WIN32__
 extern void open_mapped_input_file(char *file_name);

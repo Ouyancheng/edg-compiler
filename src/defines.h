@@ -126,8 +126,6 @@ Flags to be set when using the KAI inliner.
 
 /* Options for Windows-NT version. */
 
-#define __MSDOS__ 1
-#define __MSC__ 1
 #define __ANSIC__ 1
 #define USING_ISO_C 1
 #define TARG_LITTLE_ENDIAN TRUE

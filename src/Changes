@@ -1,5 +1,16 @@
 Version 2.33
 
+8/7/96  Configuration flags for building DOS and Windows versions
+
+Previously, the __MSDOS__ configuration flag was required to be set
+not only when building under MS-DOS, but also when building the
+front end on Windows NT and Windows 95.  The front end has been
+changed so that __MSDOS__ should only be set when building under
+MS-DOS.  A new configuration flag named __MICROSOFT_OS__ is automatically
+set when either __MSDOS__ or __WIN32__ is set.  This new flag is used
+to conditionally compile code that is common to both MS-DOS and
+WIN32 environments.
+
 8/7/96  mem_manage.c did not compile in certain configurations
 
 When building a standalone utility program, mem_manage.c would

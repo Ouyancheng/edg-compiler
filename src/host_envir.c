@@ -43,7 +43,7 @@ Argument strings for fopen.
 #define FOPEN_MODE_FOR_BINARY_UPDATE "w+b"
 #define FOPEN_MODE_FOR_BINARY_READ "rb"
 #else /* !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
-#if __ANSIC__ || __MSDOS__
+#if __ANSIC__ || __MICROSOFT_OS__
 /* ANSI C allows binary modes.  So does MS-DOS. */
 #define FOPEN_MODE_FOR_READ "r"
 #define FOPEN_MODE_FOR_WRITE "w"
@@ -51,7 +51,7 @@ Argument strings for fopen.
 #define FOPEN_MODE_FOR_BINARY_WRITE "wb"
 #define FOPEN_MODE_FOR_BINARY_UPDATE "w+b"
 #define FOPEN_MODE_FOR_BINARY_READ "rb"
-#else /* !(__ANSIC__ || __MSDOS__) */
+#else /* !(__ANSIC__ || __MICROSOFT_OS__) */
 /* Assume UNIX (binary and text files the same). */
 #define FOPEN_MODE_FOR_READ "r"
 #define FOPEN_MODE_FOR_WRITE "w"
@@ -59,10 +59,10 @@ Argument strings for fopen.
 #define FOPEN_MODE_FOR_BINARY_WRITE "w"
 #define FOPEN_MODE_FOR_BINARY_UPDATE "w+"
 #define FOPEN_MODE_FOR_BINARY_READ "r"
-#endif /* __ANSIC__  || __MSDOS__ */
+#endif /* __ANSIC__  || __MICROSOFT_OS__ */
 #endif /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
 
-#if __MSDOS__
+#if __MICROSOFT_OS__
 /* Include file layout for MS-DOS compilers. */
 #if __TURBOC__
 /* Need dir.h for lengths of path components. */
@@ -73,7 +73,7 @@ Argument strings for fopen.
 #include <process.h>
 #endif /* __MSC__ */
 #endif /* __TURBOC__ */
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 
 /* ANSI signal handlers return void. Older UNIX signal handlers in general,
 and SVID compliant signal handlers in particular, return int. */
@@ -134,21 +134,21 @@ CLOCK_FREQUENCY is defined properly below.
 #endif /* defined(sun) */
 #endif /* __ANSIC__ */
 
-#if !__MSDOS__
+#if !__MICROSOFT_OS__
 /* If we are not on MS-DOS, we assume that we are on some sort of
    Unix system.  Include unistd.h to get declarations for
    the system calls and library routines. */
 #include <unistd.h>
-#endif /* !__MSDOS__ */
+#endif /* !__MICROSOFT_OS__ */
 
 /*
 Determine whether getcwd or getwd should be used to get the current
 directory.  getwd is used on BSD, getcwd on other systems.
 */
-#if __MSDOS__
+#if __MICROSOFT_OS__
 #define USE_GETCWD 1
 #include <direct.h>
-#else /* !__MSDOS___ */
+#else /* !__MICROSOFT_OS___ */
 #if __BSD__
 #include <sys/param.h>
 #if !defined(__cplusplus)
@@ -159,9 +159,9 @@ EXTERN_C char* getwd(char *pathname);
 #include <unistd.h>
 #define USE_GETCWD 1
 #endif /* __BSD__ */
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 
-#if __MSDOS__
+#if __MICROSOFT_OS__
 /* Function definitions for MS-DOS compilers. */
 #if __TURBOC__ || __ZTC__
 /* Neither Turbo C nor Zortech have the getpid call.  Since MSDOS does
@@ -171,7 +171,7 @@ static int getpid(void)
   return (1);
 }
 #endif /* __TURBOC__ */
-#else /* __MSDOS__ */
+#else /* __MICROSOFT_OS__ */
 /* Function definitions for non MS-DOS compilers. */
 #ifdef __cplusplus
 #include <time.h>
@@ -187,7 +187,7 @@ EXTERN_C int unlink(const char *path);
 EXTERN_C time_t time(time_t* tloc);
 #endif /* __BSD__ */
 #endif /* ifdef __cplusplus */
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 
 /*
 Define some maximum lengths for MS-DOS file name handling stuff.  Note that the
@@ -197,7 +197,7 @@ is the length of the directory part of the path including a trailing slash.
 "__MAXFILE__" is the length of the base file name.  "__MAXEXT__" is the length
 of the extension including the leading ".".
 */
-#if __MSDOS__
+#if __MICROSOFT_OS__
 #if __TURBOC__
 #define __MAXDRIVE__ MAXDRIVE
 #define __MAXDIR__   MAXDIR
@@ -222,14 +222,14 @@ error -- unknown MS-DOS compiler.
 #endif /* __ZTC */
 #endif /* __MSC__ */
 #endif /* __TURBOC__ */
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 
 
 /*
 Define a macro which takes a complete file path and breaks it up into the parts
 as described above.
 */
-#if __MSDOS__
+#if __MICROSOFT_OS__
 #if __TURBOC__
 #define split_path(path, drive, dir, file, ext) \
 	  (void)fnsplit(path, drive, dir, file, ext)
@@ -326,7 +326,7 @@ error -- unknown MS-DOS compiler.
 #endif /* __ZTC */
 #endif /* __MSC__ */
 #endif /* __TURBOC__ */
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 
 
 static a_directory_name_entry_ptr
@@ -507,9 +507,9 @@ used to represent stdin; it must return  NULL.
 */
 {
   char *last_slash;
-#if __MSDOS__
+#if __MICROSOFT_OS__
   char *last_backslash;
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 
   if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
     /* Special pseudo-name used for stdin; no directory. */
@@ -522,7 +522,7 @@ used to represent stdin; it must return  NULL.
 #else /* !__VMS__ */
     /* UNIX-like system -- check for last slash. */
     last_slash = strrchr(file_name, '/');
-#if __MSDOS__
+#if __MICROSOFT_OS__
     /* MSDOS -- Allow backslash as an alternative to "/", and check for ":"
        of disk name. */
     last_backslash = strrchr(file_name, '\\');
@@ -533,7 +533,7 @@ used to represent stdin; it must return  NULL.
       /* Disk name is specified, as in "c:abc". */
       last_slash = file_name+1;
     }  /* if */
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 #endif /* __VMS__ */
   }  /* if */
   return(last_slash);
@@ -628,7 +628,7 @@ in IL storage.  No pooling of strings is done.
 
 #if NEED_DERIVED_NAME
 
-#if __MSDOS__
+#if __MICROSOFT_OS__
 static void truncate_msdos_filename(char *filename)
 /*
 Truncate the base and extension parts of an MSDOS filename so that it fits into
@@ -672,7 +672,7 @@ the base if necessary.
      the original. */
   merge_path(filename, drive, dir, file, ext);
 }  /* truncate_msdos_filename */
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 
 #endif /* NEED_DERIVED_NAME */
 #if NEED_DERIVED_NAME
@@ -715,11 +715,11 @@ be passed to the back end.
   (void)memcpy(der_name, name_start, size_t_arg(base_name_length));
   (void)memcpy(&der_name[base_name_length], suffix, size_t_arg(suffix_length));
   der_name[der_name_length] = '\0';
-#if __MSDOS__
+#if __MICROSOFT_OS__
   /* Check for and truncate file names that are too long for MSDOS 
      to handle. */
   truncate_msdos_filename(der_name);
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "derived name = \"%s\".\n", der_name);
@@ -760,10 +760,10 @@ to allocate the space in the intermediate language memory region.
     need_to_add_slash = FALSE;
 #else /* !__VMS__ */
     need_to_add_slash = (dir_name[dir_length-1] != '/');
-#if __MSDOS__
+#if __MICROSOFT_OS__
     /* Under MSDOS, both kinds of slashes need to be checked. */
     need_to_add_slash = need_to_add_slash && (dir_name[dir_length-1] != '\\');
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 #endif /* __VMS__ */
     total_length = dir_length + strlen(file_name) + need_to_add_slash + 1;
     /* See if the buffer is provided and if the required string will fit 
@@ -779,7 +779,7 @@ to allocate the space in the intermediate language memory region.
     (void)memcpy(temp_file_name, dir_name, size_t_arg(dir_length));
     if (need_to_add_slash) {
       /* Add the slash following the directory name. */
-#if __MSDOS__
+#if __MICROSOFT_OS__
       if (strchr(dir_name, '/') != NULL) {
 	/* The original path uses regular UNIX-style slashes; use one to splice
 	   the file and path to make it look consistent. */
@@ -790,9 +790,9 @@ to allocate the space in the intermediate language memory region.
 	   slash. */
         temp_file_name[dir_length++] = '\\';
       }  /* if */
-#else /* __MSDOS__ */
+#else /* __MICROSOFT_OS__ */
       temp_file_name[dir_length++] = '/';
-#endif /* if __MSDOS__ */
+#endif /* if __MICROSOFT_OS__ */
     }  /* if */
     /* Add the file name to the directory name. */
     (void)strcpy(&temp_file_name[dir_length], file_name);
@@ -1204,7 +1204,7 @@ Delete the file with the indicated name.  It shouldn't be open currently.
 }  /* delete_file */
 
 
-#if __MSDOS__
+#if __MICROSOFT_OS__
 /*
 Data structure used to keep a list of open temporary files under MS-DOS,
 in order to get their names to close them.
@@ -1221,7 +1221,7 @@ static a_temp_file_name_ptr
 		open_temp_files = NULL;
 			/* List of all temp files currently open. */
 			/* This doesn't have to be reset by fe_init. */
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 
 
 FILE *open_temp_file(a_boolean binary_file)
@@ -1249,11 +1249,11 @@ file should be a binary file if binary_file is TRUE.
   dir_len = strlen(temp_dir);
   /* See if a slash must be added to the directory name. */
   need_slash = (temp_dir[dir_len-1] != '/');
-#if __MSDOS__
+#if __MICROSOFT_OS__
   /* Under MS-DOS we don't need to add a slash if the path already ends with
      a backslash. */
   if (need_slash && temp_dir[dir_len-1] != '\\') need_slash = TRUE;
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
   do {
     /* Put together the name dir + "/edg" + seed + "_" + process id.  See if
        that will fit in the buffer. */
@@ -1283,7 +1283,7 @@ file should be a binary file if binary_file is TRUE.
   } while (retry_count-- > 0);
   str_catastrophe(ec_cannot_open_temp_file, buffer);
 have_file:;
-#if __MSDOS__
+#if __MICROSOFT_OS__
   /* Can't delete the file now, so add it to the list of files to be cleaned
      up. */
   /* Use general storage for the allocation, because it may have to survive
@@ -1296,10 +1296,10 @@ have_file:;
     new_entry->next = open_temp_files;
     open_temp_files = new_entry;
   }
-#else /* !__MSDOS__ */
+#else /* !__MICROSOFT_OS__ */
   /* Delete the file now, so it will disappear when closed. */
   (void)unlink(buffer);
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
   return(temp_file);
 }  /* open_temp_file */
 
@@ -1310,7 +1310,7 @@ Close and delete the indicated temporary file.
 */
 {
   (void)fclose(temp_file);
-#if __MSDOS__
+#if __MICROSOFT_OS__
   { a_temp_file_name_ptr tfnp, prev_tfnp;
     /* Find the entry for this file on the list of open files. */
     for (prev_tfnp = NULL, tfnp = open_temp_files;
@@ -1334,14 +1334,14 @@ Close and delete the indicated temporary file.
   internal_error("close_temp_file: file not on list");
 #endif /* CHECKING */
 close_done:;
-#else /* !__MSDOS__ */
+#else /* !__MICROSOFT_OS__ */
   /* The file was unlinked when opened, and therefore was deleted automatically
      when closed. */
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 }  /* close_temp_file */
 
 
-#if __MSDOS__
+#if __MICROSOFT_OS__
 static void close_all_temp_files(void)
 /*
 Close and delete all open temporary files.
@@ -1351,7 +1351,7 @@ Close and delete all open temporary files.
     close_temp_file(open_temp_files->file);
   }  /* while */
 }  /* close_all_temp_files */
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 
 
 #if COMPILE_MULTIPLE_SOURCE_FILES
@@ -1521,7 +1521,7 @@ execution of the front end (for example, SIGINT).
      error be reported where the file is written. */
   (void)signal(SIGXFSZ, SIG_IGN);
 #endif /* SIGXFSZ */
-#if __MSDOS__
+#if __MICROSOFT_OS__
   /* Under MS-DOS, establish an atexit routine to close and delete all
      temporary files. */
   if (atexit(close_all_temp_files) != 0) {
@@ -1529,7 +1529,7 @@ execution of the front end (for example, SIGINT).
     internal_error("set_signal_handlers: could not set atexit handler");
 #endif /* CHECKING */
   }  /* if */
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 }  /* set_signal_handlers */
 
 #ifdef NEED_SIZE_T_ARG_ERROR

@@ -65,8 +65,7 @@ compiling with a C++ compiler it is set to ``extern "C"''.
 #endif /* __cplusplus */
 
 /*
-Determine if this is a WIN32 (e.g., Windows-NT) system.  __MSDOS__ will
-also be defined below.
+Determine if this is a WIN32 (e.g., Windows NT or Windows 95) system.
 */
 #ifndef __WIN32__
 #ifdef _WIN32
@@ -77,10 +76,18 @@ also be defined below.
 #endif /* ifndef __WIN32__ */
 
 /*
-Determine if this is MS-DOS and if this is Turbo-C or Microsoft C.  No other
-MS-DOS compilers are considered at this time.  If "__MSDOS__" is defined, as
-in Turbo-C, use it as is.  If it is not defined, and some other compiler pre-
-defined macro indicates that this is MS-DOS, define "__MSDOS__".
+__ANSIC__ should be set for all WIN32 systems.
+*/
+#if __WIN32__
+#define __ANSIC__ 1
+#endif /* __WIN32__ */
+
+/*
+Determine if this is MS-DOS and if this is Turbo-C or Microsoft C.  No
+other MS-DOS compilers are considered at this time.  If "__MSDOS__"
+is defined, as in Turbo-C, use it as is.  If it is not defined, and some
+other compiler pre-defined macro indicates that this is MS-DOS,
+define "__MSDOS__".
 */
 #ifndef __MSDOS__
 /* Turbo-C defines __MSDOS__, so this is either not MS-DOS or it is Microsoft
@@ -88,14 +95,30 @@ defined macro indicates that this is MS-DOS, define "__MSDOS__".
 #ifdef MSDOS
 /* Microsoft C defines MSDOS, so this is MS-DOS. */
 #define __MSDOS__ 1
-#endif /* ifndef MSDOS */
+#else /* ifndef MSDOS */
+#define __MSDOS__ 0
+#endif /* ifdef MSDOS */
 #endif /* ifdef __MSDOS__ */
 
 /*
-If this is MS-DOS, as indicated by the macro "__MSDOS__", determine which
-compiler it is.  Borland, Zortech, and Microsoft are supported.
+Set a flag that indicates that some Microsoft operating system is being
+used.  Most of the DOS/Windows code applies to all systems (i.e.,
+file name manipulation routines), and so can just test this flag.
 */
-#ifdef __MSDOS__
+#ifndef __MICROSOFT_OS__
+#if __WIN32__ || __MSDOS__
+#define __MICROSOFT_OS__ 1
+#else /* !(__WIN32__ || __MSDOS__) */
+#define __MICROSOFT_OS__ 0
+#endif /* !(__WIN32__ || __MSDOS__) */
+#endif /* ifndef __MICROSOFT_OS__ */
+
+/*
+If this is a Microsoft operating system, as indicated by the macro
+"__MICROSOFT_OS__", determine which compiler it is.  Borland, Zortech,
+and Microsoft are supported.
+*/
+#if __MICROSOFT_OS__
 #ifdef __TURBOC__
 /* Borland's (Turbo-C or C++) library is ANSI compatible. */
 #define __ANSIC__ 1
@@ -110,9 +133,7 @@ compiler it is.  Borland, Zortech, and Microsoft are supported.
 #define __ANSIC__ 1
 #endif /* ifdef __ZTC__ */
 #endif /* ifdef __TURBOC__ */
-#else /* !defined(__MSDOS__) */
-#define __MSDOS__ 0
-#endif /* ifdef __MSDOS__ */
+#endif /* ifdef __MICROSOFT_OS__ */
 #ifndef __MSC__
 #define __MSC__ 0
 #endif /* ifndef __MSC__ */
@@ -231,10 +252,10 @@ typedef unsigned int a_bit_field;
    int and are now (in ANSI C) size_t, e.g., the length on fwrite. */
 /* Note that size_t_arg may evaluate its argument more than once. */
 typedef size_t	true_size_t;
-#if !__MSDOS__ || __WIN32__
+#if !__MSDOS__
 typedef size_t	sizeof_t;
 #define size_t_arg(arg) ((size_t)(arg))
-#else /* !(!__MSDOS__ || __WIN32__) */
+#else /* !__MSDOS__ */
 /* Most MS-DOS C compilers have a 16-bit size_t, so use unsigned long. */
 typedef unsigned long sizeof_t;
 /* size_t_arg checks for truncation. */
@@ -242,7 +263,7 @@ typedef unsigned long sizeof_t;
   ((sizeof_t)(arg) > UINT_MAX ? size_t_arg_error() : (true_size_t)(arg))
 #define NEED_SIZE_T_ARG_ERROR 1
 extern true_size_t size_t_arg_error(void);
-#endif /* !(!__MSDOS__ || __WIN32__) */
+#endif /* !__MSDOS__ */
 /* Use a_ptrdiff for ptrdiff_t because ptrdiff_t appears in <sys/types.h> on
    some UNIX systems. */
 typedef ptrdiff_t a_ptrdiff;
