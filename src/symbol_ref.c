@@ -255,6 +255,17 @@ this case and add it to the list for the current scope.
             check_assertion(in_file_scope(entity));
             hnp->global_qualification_needed = TRUE;
           }  /* if */
+#if DEBUG
+          if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+            fprintf(f_debug, "Hidden name entry for ");
+            db_name(source_corresp_for_il_entry(entity, kind));
+            fprintf(f_debug, " in ");
+            db_scope(sp);
+            if (tag_hidden_by_nontag) fprintf(f_debug, ", use class-key");
+            if (global_hidden_by_nonglobal) fprintf(f_debug, ", use \"::\"");
+            fprintf(f_debug, "\n");
+          }  /* if */
+#endif /* DEBUG */
         }  /* if */
     }  /* switch */
   }  /* if */
