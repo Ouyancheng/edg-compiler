@@ -5465,7 +5465,7 @@ of the function, and again overloading is a possibility.
             a_routine_ptr         rp = sym->variant.routine.ptr;
             a_name_reference_ptr  name_ref = NULL;
 #if RECORD_FORM_OF_NAME_REFERENCE
-            name_ref = qualifiable_name_reference(locator, &rp->source_corresp);
+            name_ref =qualifiable_name_reference(locator, &rp->source_corresp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
             /* Since this is a non-defining entry, it is represented by a
                secondary-decl entry in the source sequence list.  Enter the
