@@ -8778,10 +8778,16 @@ typedef struct a_block {
 			   assoc_scope is NULL but nevertheless there is
 			   an object lifetime region associated with this
 			   block (e.g., for cfront dependent statements). */
-  a_byte_boolean
-		end_of_block_reachable;
+  a_bit_field
+		end_of_block_reachable:1;
 			/* TRUE if the end of the block is reachable.  The
 			   safe setting is TRUE. */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field
+		is_statement_expression:1;
+			/* TRUE if this block is the outer block created for
+			   a GNU statement expression. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   a_upc_access_method
 		upc_access_method;

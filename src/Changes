@@ -1,5 +1,18 @@
 Version 3.4
 
+2/26/04  C++-generating back end: Abort on GNU statement expressions
+
+The C++-generating back end could abort when attempting to render a
+GNU statement expression that appears in a for-initializer.  (The problem
+only occurred in GNU C++ mode; not in GNU C mode.)  For example:
+
+  void f() {
+    for (int k = ({ 1 }); ;) {}  // Triggered abort when rendered in
+  }                              // the C++-generating back end.
+
+This is now fixed.  As part of the fix, the field end_of_block_reachable
+within struct a_block was changed to a bit field (this is an IL CHANGE).
+
 2/26/04  Error recovery on template copy constructor that copies by value
 
 An abort in select_overloaded_copy_constructor ensued after an

@@ -3730,6 +3730,11 @@ Display the indicated block.
   disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
   disp_boolean("end_of_block_reachable",
                (a_boolean)ptr->end_of_block_reachable);
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->is_statement_expression) {
+    disp_boolean("is_statement_expression", ptr->is_statement_expression);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
 }  /* disp_block */
 

@@ -2025,7 +2025,9 @@ the current function scope.
 */
 {
   if (!source_sequence_entries_disallowed) {
-    if (C_dialect == C_dialect_cplusplus) {
+    if (C_dialect == C_dialect_cplusplus &&
+        !(sp->kind == (a_statement_kind)stmk_block &&
+          sp->variant.block.extra_info->is_statement_expression)) {
       /* If the previous statement was a decl-statement, deactivate it. */
       wrapup_decl_statement();
     }  /* if */
@@ -3212,6 +3214,7 @@ block under the "try" in a function try block.
     /* A GNU statement expression.  Do not link the statement into
        the current statement on the statement stack. */
     block_stmt = alloc_statement((a_statement_kind)stmk_block);
+    block_stmt->variant.block.extra_info->is_statement_expression = TRUE;
     set_stmt_source_position(block_stmt->position, pos_curr_token);
   }  /* if */
   stmt_update_source_sequence_list(block_stmt);

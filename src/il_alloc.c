@@ -2775,6 +2775,9 @@ fields to default values.
       bp->assoc_scope            = NULL;
       bp->lifetime               = NULL;
       bp->end_of_block_reachable = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+      bp->is_statement_expression = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
       bp->upc_access_method      = (a_upc_access_method)upc_access_unspecified;
 #endif /* UPC_EXTENSIONS_ALLOWED */
