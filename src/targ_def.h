@@ -835,7 +835,9 @@ calling a destructor for a local static variable.  When the switch here
 is TRUE, the local types and variables will be (selectively) promoted
 to the actual file scope.
 */
+#ifndef PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
 #define PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE BACK_END_IS_C_GEN_BE
+#endif /* ifndef PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 
 /*
 This switch controls whether or not all functions and function calls will
@@ -848,7 +850,9 @@ should be set to FALSE.)  This is the initial value of the variable
 make_all_functions_unprototyped.  There is no command-line option to
 change that variable, but having a variable makes it possible to have one.
 */
+#ifndef MAKE_ALL_FUNCTIONS_UNPROTOTYPED
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED CFRONT_OBJECT_CODE_COMPATIBILITY
+#endif /* ifndef MAKE_ALL_FUNCTIONS_UNPROTOTYPED */
 
 /*
 When this switch is FALSE, exception handling code will not be lowered.
