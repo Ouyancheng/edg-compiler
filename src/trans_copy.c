@@ -464,25 +464,31 @@ and remap the pointers in the copy by calling remap_function.
      for an entry in a file scope memory region), so that they can be
      recomputed in the context of the primary IL. */
   il_entry_prefix_of(copy).keep_in_il = FALSE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
   if (scp != NULL) {
+#if MAINTAIN_NEEDED_FLAGS
     scp->needed = FALSE;
 #if ONE_INSTANTIATION_PER_OBJECT
     scp->per_instantiation_needed_flags = NULL;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#endif /* MAINTAIN_NEEDED_FLAGS */
     if (kind == iek_type) {
+#if MAINTAIN_NEEDED_FLAGS
       a_type_ptr type = (a_type_ptr)copy;
       if (is_immediate_class_type(type)) {
         type->variant.class_struct_union.definition_needed = FALSE;
         type->variant.class_struct_union.keep_definition_in_il = FALSE;
       }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
     } else if (kind == iek_routine) {
       a_routine_ptr rout = (a_routine_ptr)copy;
+#if MAINTAIN_NEEDED_FLAGS
       rout->definition_needed = FALSE;
       rout->keep_definition_in_il = FALSE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
       rout->on_inline_function_list = FALSE;
     }  /* if */
   }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* copy_entry_basic */
 
 
