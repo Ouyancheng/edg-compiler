@@ -678,6 +678,10 @@ EXTERN a_scope_stack_entry_ptr
 			   if necessary.  size_scope_stack gives the
 			   number of elements currently allocated.
 			   Allocation is not per-file. */
+/* Note that the following variables, which give positions in the scope stack,
+   are defined as indexes into the array, not as pointers.  Pointers into
+   the scope stack are dangerous because the scope stack can be reallocated
+   and moved on a push_scope. */
 EXTERN a_scope_depth
 		depth_scope_stack;
 			/* Current depth of the scope stack.  NO_SCOPE_DEPTH
@@ -695,6 +699,15 @@ EXTERN a_scope_depth
 			/* Level in the scope stack that contains the innermost
 			   function scope, or NO_SCOPE_DEPTH if there isn't
 			   one. */
+
+/*
+Flag set to weaken the access control checking during the scanning of
+the specifiers and declarator in a file-scope declaration.  This allows
+definitions of class member functions and static data members to avoid
+access errors on accesses to non-public members.
+*/
+EXTERN a_boolean
+		weaken_access_control_for_file_scope_declarator_names;
 
 /*
 Enumeration indicating a kind of reference to a symbol, used in
@@ -753,6 +766,9 @@ typedef int an_id_lookup_options_set;
 
 extern a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                                      an_id_lookup_options_set options);
+
+extern a_symbol_ptr projection_in_class(a_symbol_ptr orig_sym,
+                                        a_type_ptr   class_type);
 
 extern a_symbol_ptr scope_qualified_id_lookup(a_symbol_locator *locator,
                                               a_scope_number   scope_number,
