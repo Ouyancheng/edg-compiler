@@ -308,7 +308,10 @@ extern an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed,
 extern a_variable_ptr condition_declaration(void);
 
 /* Bit vector used to pass flags into declarator and into and out of
-   declaration routines.  Each bit represents a flag. */
+   declaration routines.  Each bit represents a flag.  (Note that several of
+   the bit sets described with this type have more than 16 flags; "unsigned
+   long" is used to assure that there is no overflow problem in environments
+   where "unsigned int" would be too small.) */
 typedef unsigned long a_decl_flag_set;
 
 #if DECL_MODIFIERS_IN_USE
