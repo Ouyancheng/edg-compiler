@@ -826,15 +826,17 @@ at file scope.
 
 
 a_boolean f_identical_types(a_type_ptr type_1,
-                            a_type_ptr type_2)
+                            a_type_ptr type_2,
+                            a_boolean  il_identical)
 /*
 Return TRUE if the two types are identical.  This includes separate copies
 of identical types, as well as the case where the pointers point to the
-same type.  This is not a C concept; it's more of an IL concept.  Basically,
-two types are identical if no cast is needed to assign a value of one
-type to an entity of the other type.  This routine should never be called
-directly; it's meant to be called only by the macro identical_types, which
-does the initial test for exact pointer equality. 
+same type.  If il_identical is TRUE, check only that the types are
+identical from the point of view of the IL.  Basically, two types are
+IL-identical if no cast is needed to assign a value of one type to an entity
+of the other type.  This routine should never be called directly; it's
+meant to be called only by the macros identical_types and il_identical_types,
+which do the initial test for exact pointer equality.
 */
 {
   register a_boolean            identical = FALSE;
@@ -843,9 +845,14 @@ does the initial test for exact pointer equality.
 
   db_enter(4, "f_identical_types");
 
-  if (is_const_qualified_type(type_1) != is_const_qualified_type(type_2) ||
-      is_volatile_qualified_type(type_1) !=
-                                        is_volatile_qualified_type(type_2)) {
+  /* Although the macros do the type_1 == type_2 test, repeat it here
+     so it's present for the recursive calls. */
+  if (type_1 == type_2) {
+    identical = TRUE;
+  } else if (is_const_qualified_type(type_1) !=
+                                             is_const_qualified_type(type_2) ||
+             is_volatile_qualified_type(type_1) !=
+                                          is_volatile_qualified_type(type_2)) {
     /* The type qualifiers do not match, so the types are not identical. */
     /* identical = FALSE;  -- Already set. */
   } else {
@@ -881,7 +888,7 @@ does the initial test for exact pointer equality.
                                             type_2->variant.integer.int_kind) {
               identical = TRUE;
 #if SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
-            } else if (same_repr_int_types(type_1, type_2)) {
+            } else if (il_identical && same_repr_int_types(type_1, type_2)) {
               /* Integers with the same representation are considered to be
                  identical in the IL if the FE is configured that way. */
               identical = TRUE;
@@ -897,15 +904,17 @@ does the initial test for exact pointer equality.
         case tk_reference:
           /* For pointers and references, they must point to identical
 	     types. */
-          identical = identical_types(
-                           type_1->variant.pointer_type_pointed_to,
-                           type_2->variant.pointer_type_pointed_to);
+          identical = f_identical_types(
+                                       type_1->variant.pointer_type_pointed_to,
+                                       type_2->variant.pointer_type_pointed_to,
+                                       il_identical);
           break;
         case tk_array:
           /* For arrays, the sizes must be the same and the element types
              must be identical. */
-          if (identical_types(type_1->variant.array.element_type,
-                              type_2->variant.array.element_type) &&
+          if (f_identical_types(type_1->variant.array.element_type,
+                                type_2->variant.array.element_type,
+                                il_identical) &&
               type_1->variant.array.number_of_elements ==
               type_2->variant.array.number_of_elements) {
             identical = TRUE;
@@ -923,18 +932,20 @@ does the initial test for exact pointer equality.
              parameter type (if any) must be identical. */
           extra_info1 = type_1->variant.routine.extra_info;
           extra_info2 = type_2->variant.routine.extra_info;
-          if (identical_types(type_1->variant.routine.return_type,
-                              type_2->variant.routine.return_type) &&
+          if (f_identical_types(type_1->variant.routine.return_type,
+                                type_2->variant.routine.return_type,
+                                il_identical) &&
               extra_info1->prototyped == extra_info2->prototyped &&
               extra_info1->has_ellipsis == extra_info2->has_ellipsis &&
-              identical_types(extra_info1->implicit_this_param_type,
-                              extra_info2->implicit_this_param_type)) {
+              f_identical_types(extra_info1->implicit_this_param_type,
+                                extra_info2->implicit_this_param_type,
+                                il_identical)) {
             /* Compare the types of the parameters on the two lists. */
             for (list1 = extra_info1->param_type_list,
                                           list2 = extra_info2->param_type_list;
                  list1 != NULL && list2 != NULL;
                  list1 = list1->next, list2 = list2->next) {
-              if (!identical_types(list1->type, list2->type)) {
+              if (!f_identical_types(list1->type, list2->type, il_identical)) {
                 /* The parameter types are not identical. */
                 goto funcs_not_identical;
               }  /* if */

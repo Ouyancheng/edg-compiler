@@ -70,9 +70,12 @@ extern void set_type_size(a_type_ptr type_ptr);
 extern a_type_ptr type_after_integral_promotion(a_type_ptr type);
 extern a_type_ptr default_argument_promotion(a_type_ptr old_type);
 #define identical_types(t1, t2) \
-	 ((t1) == (t2) || f_identical_types((t1), (t2)))
+  ((t1) == (t2) || f_identical_types((t1), (t2), /*il_identical=*/FALSE))
+#define il_identical_types(t1, t2) \
+  ((t1) == (t2) || f_identical_types((t1), (t2), /*il_identical=*/TRUE))
 extern a_boolean f_identical_types(a_type_ptr type_1,
-                                   a_type_ptr type_2);
+                                   a_type_ptr type_2,
+                                   a_boolean  il_identical);
 extern a_boolean interchangeable_types(a_type_ptr type_1,
                                        a_type_ptr type_2);
 #define types_are_compatible(t1, t2) \
