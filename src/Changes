@@ -1,5 +1,11 @@
 Version 2.16
 
+4/5/93  IL lowering problem with destructor calls in init of local static
+
+Destructor calls for temporaries needed within the once-only initialization
+of a local static variable are now issued within the "if" that prevents
+the initialization from being done more than once.
+
 4/5/93  Template parameter list error diagnosis
 
 Errors are now issued when a template parameter list is inconsistent

@@ -4511,12 +4511,11 @@ Do IL lowering of a pointer-to-member constant.
     /* Pointer to member function. */
     repr_for_ptr_to_member_function_constant(constant, &delta, &index,
                                              &routine, &offset);
-    if (lowering_file_scope) {
+    if (processing_file_scope_init_routine) {
       /* Switch to the file scope.  Needed when lowering constants in a
-         file-scope initialization or termination routine: the current memory
-         region would be the one for the generated routine, and the
-         alloc_constant calls below must allocate the constants in the
-         file scope memory region. */
+         file-scope initialization routine: the current memory region would
+         be the one for the generated routine, and the alloc_constant calls
+         below must allocate the constants in the file scope memory region. */
       switch_to_file_scope_region(&region_to_switch_back_to);
     }  /* if */
     /* Make sure the struct type used to represent a pointer-to-member-function
@@ -7445,7 +7444,7 @@ be kept, FALSE if it should be deleted.
       if (processing_file_scope_init_routine ||
           first_time_test_var != NULL) {
         /* When generating the file-scope initialization routine we have
-           an expressions from the file scope that must be used in the function
+           an expression from the file scope that must be used in the function
            scope of the initialization routine, so copy it.  Otherwise
            we have a difficult job keeping track of the nodes that are in
            the file scope and those that are in the function scope.
@@ -10182,6 +10181,60 @@ original statement under it.
 }  /* turn_statement_into_block */
 
 
+static void gen_one_required_destructor_call(
+                                a_required_destructor_call_ptr rdcp,
+                                an_insert_location_ptr         insert_location)
+/*
+Generate code for the required destructor call described by rdcp.  The code
+is inserted at *insert_location and *insert_location is updated.
+*/
+{
+  an_insert_location     insert_location2;
+  an_insert_location_ptr effective_insert_loc;
+
+  effective_insert_loc = insert_location;
+  /* If the entity is a local static variable or a conditionally-created
+     temporary, generate an "if" statement to test whether or not the
+     variable was ever initialized.  Only do the destruction if it
+     was. */
+  if (rdcp->first_time_test_var != NULL) {
+    add_last_time_test(rdcp->first_time_test_var, 
+                       insert_location,
+                       &insert_location2);
+    effective_insert_loc = &insert_location2;
+  }  /* if */
+  lower_destructor_dynamic_init(&rdcp->dynamic_init,
+                                &rdcp->init_pos_descr,
+                                effective_insert_loc);
+}  /* gen_one_required_destructor_call */
+
+
+static void gen_and_remove_required_destructor_calls_up_to(
+                                a_required_destructor_call_ptr stop_before,
+                                an_insert_location_ptr         insert_location)
+/*
+Generate code for and then remove the required destructor call entries on the
+list for the current context, up to before the entry stop_before.  stop_before
+can be NULL to indicate the entire list.  The code is inserted at
+*insert_location and *insert_location is updated.
+*/
+{
+  a_required_destructor_call_ptr rdcp;
+
+  /* Go through the list of required destructor calls, stopping when the
+     indicated entry if reached.  Recall that the list is built by adding
+     to its front, so the entries at the front are the later entries,
+     those we want to process and remove. */
+  for (rdcp = curr_context->required_destructor_calls;
+       rdcp != stop_before;
+       rdcp = rdcp->next) {
+    gen_one_required_destructor_call(rdcp, insert_location);
+  }  /* for */
+  /* Remove the entries from the list. */
+  curr_context->required_destructor_calls = stop_before;
+}  /* gen_and_remove_required_destructor_calls_up_to */
+
+
 static void lower_stmk_init(a_statement_ptr statement)
 /*
 Generate code for a stmk_init (dynamic initialization) statement.
@@ -10231,6 +10284,8 @@ Generate code for a stmk_init (dynamic initialization) statement.
     a_boolean          keep_dynamic_init;
     an_init_pos_descr  ipd;
     a_variable_ptr     first_time_test_var = NULL;
+    a_required_destructor_call_ptr
+                       required_destructor_calls_before;
 
     set_insert_location(statement, &insert_location);
     set_var_init_pos_descr(dip->variable, &ipd);
@@ -10238,6 +10293,11 @@ Generate code for a stmk_init (dynamic initialization) statement.
        test. */
     if (dip->variable->storage_class == (a_storage_class)sc_static) {
       add_first_time_test(&insert_location, &first_time_test_var);
+      /* Remember the last required destruction at this point.  Anything
+         added within the conditional should be generated and removed at
+         the end of the conditional. */
+      required_destructor_calls_before =
+                                       curr_context->required_destructor_calls;
     }  /* if */
     lower_dynamic_init(dip, &ipd, first_time_test_var,
                        /*is_expr_temporary=*/FALSE,
@@ -10247,6 +10307,13 @@ Generate code for a stmk_init (dynamic initialization) statement.
     if (!keep_dynamic_init) {
       /* Delete the stmk_init statement. */
       turn_statement_into_noop(statement);
+    }  /* if */
+    if (first_time_test_var != NULL) {
+      /* Generate any required destructor calls for temporaries built within
+         a first-time test conditional section. */
+      gen_and_remove_required_destructor_calls_up_to(
+                                              required_destructor_calls_before,
+                                              &insert_location);
     }  /* if */
   } else {
     /* Normal C case.  Lower the subtree if any. */
@@ -10283,8 +10350,6 @@ a branch of some kind (goto or return).
   a_statement_ptr                statement;
   a_context_ptr                  context_ptr;
   a_required_destructor_call_ptr rdcp;
-  an_insert_location             insert_location2;
-  an_insert_location_ptr         effective_insert_loc;
 
   /* Loop outward through the indicated scopes. */
   for (context_ptr = curr_context;; context_ptr = context_ptr->parent) {
@@ -10306,20 +10371,7 @@ a branch of some kind (goto or return).
       }  /* if */
       /* Loop through the list of required destructor calls. */
       for (; rdcp != NULL; rdcp = rdcp->next) {
-        effective_insert_loc = insert_location;
-        /* If the entity is a local static variable or a conditionally-created
-           temporary, generate an "if" statement to test whether or not the
-           variable was ever initialized.  Only do the destruction if it
-           was. */
-        if (rdcp->first_time_test_var != NULL) {
-          add_last_time_test(rdcp->first_time_test_var, 
-                             insert_location,
-                             &insert_location2);
-          effective_insert_loc = &insert_location2;
-        }  /* if */
-        lower_destructor_dynamic_init(&rdcp->dynamic_init,
-                                      &rdcp->init_pos_descr,
-                                      effective_insert_loc);
+        gen_one_required_destructor_call(rdcp, insert_location);
       }  /* for */
     }  /* if */
     /* Stop when the outer scope is reached. */
