@@ -6693,7 +6693,8 @@ type.  allow_class_rvalue is TRUE if a class rvalue should be allowed
   } else if (is_a_function_designator(operand)) {
     conv_function_designator_to_ptr_to_function(operand,
                                                 /*allow_ctor=*/FALSE);
-  } else if (allow_class_rvalue &&
+  } else if ((allow_class_rvalue || any_cfront_mode() || sun_mode ||
+              allow_nonconst_ref_anachronism) &&
              is_class_struct_union_type(operand->type)) {
     /* Allow a cast of a class rvalue to a reference type, when appropriate
        (e.g., for a static_cast to a reference-to-const type). */
@@ -7466,7 +7467,7 @@ Syntax:
          Note that the original type_cast_to is preserved in
          orig_type_cast_to. */
       rewrite_cast_to_reference_as_pointer_cast(&type_cast_to, result,
-                                         /*allow_rvalue_on_rewrite=*/sun_mode);
+                                            /*allow_rvalue_on_rewrite=*/FALSE);
     }  /* if */
     /* Get the source type after the transformations. */
     source_type = result->type;
