@@ -1587,8 +1587,8 @@ Syntax:
     }  /* if */
     /* Change the kind in the reference entry for the function from an
        address-taken entry back to a simple reference. */
-    change_some_ref_kinds(operand->ref_entries_list, srk_address_taken,
-                          srk_reference);
+    change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
+                          SRK_REFERENCE);
   }  /* if */
 
   /* Scan the arguments of the call. */
@@ -2978,7 +2978,7 @@ operation is a pointer-to-member (see ARM 5.3).
         member_sym = fundamental_symbol_of(member_proj_sym);
         check_assertion(member_sym->kind == (a_symbol_kind)sk_field);
         /* Change the kind in the reference entries to address-taken. */
-        change_ref_kinds(operand.ref_entries_list, srk_address_taken);
+        change_ref_kinds(operand.ref_entries_list, SRK_ADDRESS_TAKEN);
         if (member_sym->variant.field.ptr->bit_size != 0) {
           /* Cannot take the address of a bit field. */
           error_in_operand(ec_address_of_bit_field, &operand);
@@ -3584,7 +3584,7 @@ at *delete_position, but the IL entry is not marked as referenced.
                   operator_delete_symbol->kind ==
                                             (a_symbol_kind)sk_member_function);
   /* Mark the routine symbol referenced, but not the IL entry (yet). */
-  reference_to_symbol(srk_reference, operator_delete_symbol,
+  reference_to_symbol(SRK_REFERENCE, operator_delete_symbol,
                       delete_position, /*update_il_entry=*/FALSE);
   return operator_delete_symbol->variant.routine.ptr;
 }  /* select_delete_routine */
@@ -7339,7 +7339,7 @@ variable:
                 /* The identifier is const and has a known constant value. */
                 make_constant_operand(con_val, result);
                 /* The value of the variable is used. */
-                change_ref_kinds(rep, srk_use);
+                change_ref_kinds(rep, SRK_USE);
               }  /* if */
             } else {
               /* All other cases are not allowed. */

@@ -63,17 +63,16 @@ unsigned long	num_arg_operands_allocated,
 #endif /* DEBUG */
 
 
-static a_ref_entry_ptr alloc_ref_entry(a_symbol_reference_kind kind,
-                                       a_symbol_ptr            sym_ptr,
+static a_ref_entry_ptr alloc_ref_entry(a_symbol_ptr            sym_ptr,
                                        a_source_position       *pos)
 /*
 Allocate a reference entry and return a pointer to it.  The information
-provided (kind of reference, kind of expression, symbol pointer, and
-location of reference) is placed in the entry.  An entry of this kind
-is used to hold information on a single reference to a symbol in an
-expression.  The information is held, rather than recorded immediately,
-because the kind of reference may be revised as more of the expression
-is scanned.
+provided (kind of expression, symbol pointer, and location of reference) is
+placed in the entry.  At this point the kind of reference is the generic
+SRK_REFERENCE.  An entry of this kind is used to hold information on a single
+reference to a symbol in an expression.  The information is held, rather than
+recorded immediately, because the kind of reference may be revised as more of
+the expression is scanned.
 */
 {
   a_ref_entry_ptr rep;
@@ -89,7 +88,7 @@ is scanned.
     num_ref_entries_allocated++;
 #endif /* DEBUG */
   }  /* if */
-  rep->kind = kind;
+  rep->kind = SRK_REFERENCE;
   rep->already_recorded = FALSE;
   rep->symbol = sym_ptr;
   copy_source_position(*pos, rep->position);
@@ -225,9 +224,9 @@ recorded right away and no entry is created; NULL is returned.
   a_symbol_ptr    fund_sym = fundamental_symbol_of(sym_ptr);
 
   /* For only certain kinds of symbols can the kind of reference be affected
-     by context: for example, variables can have srk_use, srk_modification,
-     srk_use_and_modif, and srk_address_taken references, but types can
-     only have srk_reference references. */
+     by context: for example, variables can have SRK_USE, SRK_MODIFICATION,
+     and SRK_ADDRESS_TAKEN references, but types can only have SRK_REFERENCE
+     references. */
   switch (fund_sym->kind) {
     case sk_constant:            /* Constant (enumerator). */
     case sk_variable:            /* Variable or parameter. */
@@ -250,13 +249,13 @@ recorded right away and no entry is created; NULL is returned.
   if (!ref_kind_can_be_affected_by_context || !evaluated) {
     /* The kind of reference is independent of context, so record it right
        away and do not build an entry. */
-    reference_to_symbol(srk_reference, sym_ptr, source_position,
+    reference_to_symbol(SRK_REFERENCE, sym_ptr, source_position,
                         /*update_il_entry=*/evaluated);
     rep = NULL;
   } else {
     /* The kind of reference can be affected by context, so build an entry
        for it. */
-    rep = alloc_ref_entry(srk_reference, sym_ptr, source_position);
+    rep = alloc_ref_entry(sym_ptr, source_position);
     /* Put the entry on the list of entries for the current expression.
        The list is dumped when flush_ref_entries_list is called.
        The entry is put at the end of the list to preserve source order. */
@@ -274,7 +273,7 @@ recorded right away and no entry is created; NULL is returned.
 
 
 void change_ref_kinds(a_ref_entry_ptr         ref_list,
-                      a_symbol_reference_kind new_kind)
+                      a_symbol_reference_set  new_kind)
 /*
 Change the kind-of-reference field to new_kind in each of the reference
 entries on the list ref_list.  The list is linked by the next_operand_ref
@@ -282,7 +281,7 @@ field.
 */
 {
   a_ref_entry_ptr         rep;
-  a_symbol_reference_kind old_kind;
+  a_symbol_reference_set  old_kind;
 
   for (rep = ref_list; rep != NULL; rep = rep->next_operand_ref) {
     /* For some cases, the old kind of reference is put out before the new
@@ -294,14 +293,14 @@ field.
          }
        One really wants both kinds of references. */
     old_kind = rep->kind;
-    if (old_kind == srk_error) {
+    if (old_kind & SRK_ERROR) {
       /* An error reference is never changed to something else. */
     } else {
-      if ((old_kind == srk_modification || old_kind == srk_use_and_modif) &&
-          new_kind == srk_address_taken) {
+      if ((old_kind & SRK_MODIFICATION) &&
+          new_kind == SRK_ADDRESS_TAKEN) {
         record_reference(rep);
       }  /* if */
-      rep->kind = new_kind;
+      rep->kind = SRK_REFERENCE | new_kind;
     }  /* if */
   }  /* for */
 }  /* change_ref_kinds */
@@ -313,13 +312,13 @@ Change the reference entries on the list ref_list to error references.
 The list is linked by the next_operand_ref field.
 */
 {
-  change_ref_kinds(ref_list, srk_error);
+  change_ref_kinds(ref_list, SRK_ERROR);
 }  /* change_refs_to_error */
 
 
 void change_operand_refs_to_error(an_operand *operand)
 /*
-Change the reference kind in any references attached to operand to srk_error.
+Change the reference kind in any references attached to operand to SRK_ERROR.
 */
 {
   change_refs_to_error(operand->ref_entries_list);
@@ -346,8 +345,8 @@ arg_operand_list to error references.
 
 
 void change_some_ref_kinds(a_ref_entry_ptr         ref_list,
-                           a_symbol_reference_kind old_kind,
-                           a_symbol_reference_kind new_kind)
+                           a_symbol_reference_set  old_kind,
+                           a_symbol_reference_set  new_kind)
 /*
 Change the kind-of-reference field to "new_kind" in each of the reference
 entries on the list ref_list that currently has the kind "old_kind".
@@ -357,17 +356,25 @@ The list is linked by the next_operand_ref field.
   a_ref_entry_ptr rep;
 
   for (rep = ref_list; rep != NULL; rep = rep->next_operand_ref) {
-    if (rep->kind == old_kind) rep->kind = new_kind;
+    if (old_kind == SRK_REFERENCE) {
+      /* Changing a generic reference to a specific reference.  If the
+         reference entry is generic too, just set the new bit. */
+      if (rep->kind == SRK_REFERENCE) rep->kind |= new_kind;
+    } else if (rep->kind & old_kind) {
+      /* Changing a specific reference to a generic reference or to a
+         difference specific reference. */
+      rep->kind = SRK_REFERENCE;
+      if (new_kind != SRK_REFERENCE) rep->kind |= new_kind;
+    }  /* if */
   }  /* for */
 }  /* change_some_ref_kinds */
 
 
 void record_operand_modification_refs(an_operand *operand)
 /*
-Record any modification and use-modification references indicated on
-the references list for *operand.  This is used at potential sequence points.
-The reference entries are left on the list but are marked as having
-been already recorded.
+Record any modification references indicated on the references list for
+*operand.  This is used at potential sequence points. The reference entries
+are left on the list but are marked as having been already recorded.
 */
 {
   a_ref_entry_ptr rep;
@@ -375,7 +382,7 @@ been already recorded.
   for (rep = operand->ref_entries_list;
        rep != NULL;
        rep = rep->next_operand_ref) {
-    if (rep->kind == srk_modification || rep->kind == srk_use_and_modif) {
+    if (rep->kind & SRK_MODIFICATION) {
       record_reference(rep);
     }  /* if */
   }  /* for */
@@ -660,7 +667,7 @@ This is only used in C++, for left operands of field selections.
 */
 {
   /* The references in the operand aren't real references. */
-  change_ref_kinds(operand->ref_entries_list, srk_reference);
+  change_ref_kinds(operand->ref_entries_list, SRK_REFERENCE);
 }  /* discard_operand */
 
 
@@ -2923,7 +2930,7 @@ void add_reference_indirection(an_operand *result)
   result_state = result->state;
   orig_result = *result;
   /* Change the references to "use". */
-  change_some_ref_kinds(result->ref_entries_list, srk_reference, srk_use);
+  change_some_ref_kinds(result->ref_entries_list, SRK_REFERENCE, SRK_USE);
   node = add_indirection_to_node(make_node_from_operand(result));
   result_type = type_pointed_to(result_type);
   if (is_an_lvalue(result)) {
@@ -3557,7 +3564,7 @@ address_taken flag.
   operand->state = (an_operand_state)os_rvalue;
   operand->came_from_reference = FALSE;
   /* Change the kind in the reference entries to address-taken. */
-  change_ref_kinds(operand->ref_entries_list, srk_address_taken);
+  change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
   /* Restore the original source position, etc. */
   restore_operand_details(operand, &orig_operand);
 }  /* take_address_of_lvalue */
@@ -3580,7 +3587,8 @@ used before it is modified.
   /* Change the kind in the reference entries to modification or
      use/modification. */
   change_ref_kinds(operand->ref_entries_list,
-                   value_used ? srk_use_and_modif : srk_modification);
+                   value_used ?
+                          (SRK_USE | SRK_MODIFICATION) : SRK_MODIFICATION);
 }  /* modifying_lvalue */
 
 
@@ -3979,11 +3987,11 @@ not an lvalue, it is left alone.
     /* Note that what we want to avoid here is changing "modified" references
        to "use" references, as would happen for references surviving
        from an lvalue-returning assignment. */
-    change_some_ref_kinds(operand->ref_entries_list, srk_reference, srk_use);
+    change_some_ref_kinds(operand->ref_entries_list, SRK_REFERENCE, SRK_USE);
     /* Change the kind in the reference entry for a subscripted array from an
        address-taken entry to a simple "use" reference. */
-    change_some_ref_kinds(operand->ref_entries_list, srk_address_taken,
-                          srk_use);
+    change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
+                          SRK_USE);
     if (is_error_operand(operand)) {
       /* Error operand -- leave it alone (but make sure it's not an lvalue
          anymore). */
@@ -4225,7 +4233,7 @@ operand.
      to change the reference to referenced instead of address-taken. */
   restore_operand_details_incl_ref(operand, &orig_operand);
   /* Change the kind in the reference entries to address-taken. */
-  change_ref_kinds(operand->ref_entries_list, srk_address_taken);
+  change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
 }  /* conv_function_designator_to_ptr_to_function */
 
 

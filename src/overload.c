@@ -2826,7 +2826,7 @@ if an access control checking error was detected.
          "new" call can be folded into a constructor call).  Mark the symbol
          as referenced, but not the IL entry. */
       check_assertion(operand == NULL);
-      reference_to_symbol(srk_reference, function_symbol, call_position,
+      reference_to_symbol(SRK_REFERENCE, function_symbol, call_position,
                           /*update_il_entry=*/FALSE);
     } else {
       /* The reference is not elided. */
@@ -3121,8 +3121,8 @@ case).  call_position gives the source position of the call.
                                &access_error_reported);
   /* Change the kind of reference to the function from "address taken"
      to "reference". */
-  change_some_ref_kinds(function_operand->ref_entries_list, srk_address_taken,
-                        srk_reference);
+  change_some_ref_kinds(function_operand->ref_entries_list, SRK_ADDRESS_TAKEN,
+                        SRK_REFERENCE);
   /* Check whether or not a selector is needed. */
   if (routine_type_is_nonstatic_member_function(
                                        routine_symbol_type(function_symbol))) {

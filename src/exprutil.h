@@ -56,8 +56,9 @@ able to record the reference once the kind of reference is known.
 typedef struct a_ref_entry *a_ref_entry_ptr;
 typedef struct a_ref_entry {
   /* Describes one reference to a symbol. */
-  a_symbol_reference_kind
-		kind;	/* Kind of reference (modification, address taken,
+  a_symbol_reference_set
+		kind;
+			/* Kind of reference (modification, address taken,
 			   etc.). */
   a_byte_boolean
 		already_recorded;
@@ -439,7 +440,7 @@ extern a_ref_entry_ptr ref_entry(a_symbol_ptr      sym_ptr,
                                  a_source_position *source_position);
 
 extern void change_ref_kinds(a_ref_entry_ptr         ref_list,
-                             a_symbol_reference_kind new_kind);
+                             a_symbol_reference_set  new_kind);
 
 extern void change_refs_to_error(a_ref_entry_ptr ref_list);
 
@@ -449,8 +450,8 @@ extern void change_arg_operand_list_refs_to_error(
                                           an_arg_operand_ptr arg_operand_list);
 
 extern void change_some_ref_kinds(a_ref_entry_ptr         ref_list,
-                                  a_symbol_reference_kind old_kind,
-                                  a_symbol_reference_kind new_kind);
+                                  a_symbol_reference_set  old_kind,
+                                  a_symbol_reference_set  new_kind);
 
 extern void record_operand_modification_refs(an_operand *operand);
 
