@@ -223,19 +223,6 @@ static char	*file_section_names[(int)pfs_last + 1] =
 #endif /* DEBUG */
 
 
-static void prepare_to_write_precompiled_header_file(void)
-/*
-We're about to write a precompiled header file.  Make any needed updates to
-the data structures that will be written out.
-*/
-{
-  /* The data structures that help speed up the management of the namespace
-     scope routines lists live in general memory and are hence not saved in
-     the precompiled header file. */
-  perform_scheduled_routine_moves();
-}  /* prepare_to_write_precompiled_header_file */
-
-
 static void write_file_section_id(a_pch_file_section section)
 /*
 Write the file section ID to the PCH file.
@@ -1524,9 +1511,6 @@ write out the precompiled header file.
          restoring the header information. */
       db_cannot_generate_reason("too few declarations");
     } else {
-      /* Allow for any work needed to prepare data structures that will be
-         recorded in the precompiled header file. */
-      prepare_to_write_precompiled_header_file();
       /* Okay -- go ahead and do it. */
       write_precompiled_header_file();
     }  /* if */
