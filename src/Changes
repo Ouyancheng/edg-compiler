@@ -1,5 +1,35 @@
 Version 2.18
 
+6/7/93 Cfront compatibility change for friend functions in class definitions
+
+Cfront 2.1 does not correctly look up names in friend functions that are
+inside class definitions.  In this example function f should refer to the
+versions of a1, a2, e1, f1, and f2 that are defined in the class definition.
+Instead, cfront uses the global definitions.  In cfront compatibility
+mode we now handle this as cfront does.
+  
+  int a1;
+  int a2;
+  int e1;
+  void f1();
+  void f2();
+  class A {
+    enum E {e1,e2};
+    int a1;
+    static int a2;
+    void f1();
+    static void f2();
+    friend void f()
+    {
+      int i1 = a1;  // cfront uses global a1
+      int i2 = a2;  // cfront uses global a2
+      int i3 = e1;  // cfront uses global a3
+      f1();  // cfront uses global f1
+      f2();  // cfront uses global f2
+    }
+  };
+
+
 6/2/93 Using "." for qualification
 
 Cfront allows "." to be used in place of "::" in qualified names.
@@ -923,12 +953,12 @@ that was also defined inside the class.  For example,
     void f1(){}
     virtual void f2()
     {
-      f1();	// f1 will be instantiated while f2 is being instantiated
+      f1();  // f1 will be instantiated while f2 is being instantiated
       A<T> xx;
     }
   };
 
-  A<int> a;	// Causes virtual inlines to be instantiated
+  A<int> a;  // Causes virtual inlines to be instantiated
 
 4/5/93  Class template with the same name as a template parameter
 
