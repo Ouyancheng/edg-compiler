@@ -31,6 +31,7 @@ decls.c -- Scanning of declarations.
 #include "target.h"
 #include "decl_inits.h"
 #include "preproc.h"
+#include "const_ints.h"
 #include "templates.h"
 #include "types.h"
 #if ASM_FUNCTION_ALLOWED
@@ -1865,12 +1866,12 @@ token.
       }  /* if */
 #endif /* CHECKING */
       /* Array size must be greater than zero. */
-      if (is_signed_integral_type(constant.type) &&
-          constant.variant.integer_value <= 0) {
+      if (sign_of_integer_constant(&constant) <= 0) {
         error(ec_array_size_must_be_positive);
         err = TRUE;
       } else {
-        num_of_elements = constant.variant.integer_value;
+        num_of_elements = unsigned_value_of_integer_constant(&constant, &err);
+        if (err) error(ec_array_size_too_large);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1925,11 +1926,12 @@ is set to NULL and the constant value is used for the size.
 #if CHECKING
         if (constant.kind != (a_constant_repr_kind)ck_integer) {
           internal_error("nonconstant_array_declarator: array size not int");
-        } else if (constant.variant.integer_value <= 0) {
+        } else if (sign_of_integer_constant(&constant) <= 0) {
           internal_error("nonconstant_array_declarator: element count < 1");
         }  /* if */
 #endif /* CHECKING */
-        num_of_elements = constant.variant.integer_value;
+        num_of_elements = unsigned_value_of_integer_constant(&constant, &err);
+        if (err) error(ec_array_size_too_large);
       }  /* if */
     } else {
       /* An expression was returned.  Create an array whose element count
@@ -4990,12 +4992,11 @@ to indicate whether an enumeration is actually defined.
   a_type_ptr               enum_con_type;
   a_symbol_ptr             enum_sym;
   a_constant               constant;
-  long                     curr_value;
+  a_boolean                err;
   a_constant_ptr           enum_con;
   a_constant_ptr           end_of_enum_con_list;
-  long                     max_value = TARG_INT_MIN;
-  long                     min_value = TARG_INT_MAX;
-  a_boolean                done;
+  a_constant               max_value, min_value;
+  a_boolean                done, min_max_set;
   a_source_position        pos_comma;
   a_boolean                prototype_tag_resolution = FALSE;
   a_memory_region_number   region_to_switch_back_to;
@@ -5134,12 +5135,11 @@ to indicate whether an enumeration is actually defined.
          the first constant is put on the list. */
       set_type_size(enum_con_type);
     }  /* if */
+    min_max_set = FALSE;
     if (C_dialect == C_dialect_cplusplus && curr_token == tok_rbrace) {
       /* An enumerator constant list is optional in C++. */
-      min_value = max_value = 0;
     } else {
       add_stop_token(tok_rbrace);
-      curr_value = -1;  /* Incremented before first use. */
       end_of_enum_con_list = NULL;
       /* Scan the list of enumerated constants. */
       do {
@@ -5159,38 +5159,46 @@ to indicate whether an enumeration is actually defined.
            the constant expression (if any) has been scanned.  (C standard,
            3.1.2.1 and 3.5.2.2) */
         remove_stop_token(tok_assign);
+        err = FALSE;
         /* See if "= constant-expression" follows. */
         if (curr_token == tok_assign) {
           (void)get_token();
           /* Scan the constant expression. */
           scan_integral_constant_expression(&constant);
           if (is_error_constant(&constant)) {
-            curr_value = 0;
+            err = TRUE;
           } else {
 #if CHECKING
             if (constant.kind != (a_constant_repr_kind)ck_integer) {
               internal_error("enum_specifier: enum value not int");
             }  /* if */
 #endif /* CHECKING */
-            curr_value = constant.variant.integer_value;
             /* Check the value to see if it is out of range.  (3.5.2.2,
                constraints) */
-            if (curr_value > TARG_INT_MAX ||
-                curr_value < TARG_INT_MIN) {
+            if (cmplit_integer_constant(&constant, TARG_INT_MAX) > 0 ||
+                cmplit_integer_constant(&constant, TARG_INT_MIN) < 0) {
               error(ec_enum_value_out_of_int_range);
-              curr_value = 0;
+              err = TRUE;
             }  /* if */
           }  /* if */
         } else {
-          /* No explicit value, so use a value one larger than the previous
-             value. */
-          /* Check the value to see if it is out of range.  (3.5.2.2,
-             constraints) */
-          if (curr_value == TARG_INT_MAX) {
-            error(ec_enum_value_out_of_int_range);
-            curr_value = 0;
+          /* No explicit value. */
+          if (end_of_enum_con_list == NULL) {
+            /* This is the first enumerator.  Start with zero. */
+            set_integer_constant(&constant, 0L, (an_integer_kind)ik_int);
+          } else if (is_error_constant(&constant)) {
+            /* There was a previous error. */
+            err = TRUE;
           } else {
-            curr_value++;
+            /* Use a value one larger than the previous value. */
+            /* Check the value to see if it is out of range.  (3.5.2.2,
+               constraints) */
+            if (eqlit_integer_constant(&constant, (long)TARG_INT_MAX)) {
+              error(ec_enum_value_out_of_int_range);
+              err = TRUE;
+            } else {
+              incr_integer_constant(&constant);
+            }  /* if */
           }  /* if */
         }  /* if */
         /* Enter the enumeration constant identifier. */
@@ -5201,14 +5209,24 @@ to indicate whether an enumeration is actually defined.
         *declares_something = TRUE;
         /* Track the highest and lowest values in the enumeration.  These are
            used to determine the appropriate representation type. */
-        if (curr_value < min_value) min_value = curr_value;
-        if (curr_value > max_value) max_value = curr_value;
+        if (err) {
+          /* There was some kind of error in the value for the enumerator. */
+          set_error_constant(&constant);
+        } else if (!min_max_set) {
+          max_value = constant;
+          min_value = constant;
+          min_max_set = TRUE;
+        } else if (cmp_integer_constants(&constant, &max_value) > 0) {
+          max_value = constant;
+        } else if (cmp_integer_constants(&constant, &min_value) < 0) {
+          min_value = constant;
+        }  /* if */
         /* Assign the value to the enumeration constant. */
         enum_con = alloc_constant((a_constant_repr_kind)ck_integer);
+        *enum_con = constant;
         set_source_corresp(&(enum_con->source_corresp), enum_sym);
         enum_sym->variant.constant = enum_con;
         enum_con->type = enum_con_type;
-        enum_con->variant.integer_value = curr_value;
         /* Specify membership and access. */
         enum_con->source_corresp.class_of_which_a_member =
                 enum_sym->class_of_which_a_member = class_of_which_a_member;
@@ -5256,20 +5274,32 @@ to indicate whether an enumeration is actually defined.
        it is pointless to try "unsigned int", because all enumeration
        values must fall in the "int" range. */	
     if (C_dialect != C_dialect_pcc && enum_types_can_be_smaller_than_int) {
-      if (min_value >= targ_min_char && max_value <= targ_max_char) {
+      if (!min_max_set ||
+          (cmplit_integer_constant(&min_value, (long)targ_min_char) >= 0 &&
+           cmplit_integer_constant(&max_value, (long)targ_max_char) <= 0)) {
         /* "Plain" char. */
         enum_type->variant.integer.int_kind = plain_char_int_kind;
-      } else if (min_value >= TARG_SCHAR_MIN && max_value <= TARG_SCHAR_MAX) {
+      } else if (cmplit_integer_constant(&min_value,
+                                         (long)TARG_SCHAR_MIN) >= 0 &&
+                 cmplit_integer_constant(&max_value,
+                                         (long)TARG_SCHAR_MAX) <= 0) {
         /* Signed char. */
         enum_type->variant.integer.int_kind = (an_integer_kind)ik_signed_char;
-      } else if (min_value >= 0 && max_value <= TARG_UCHAR_MAX) {
+      } else if (cmplit_integer_constant(&min_value, 0L) >= 0 &&
+                 cmplit_integer_constant(&max_value,
+                                         (long)TARG_UCHAR_MAX) <= 0) {
         /* Unsigned char. */
         enum_type->variant.integer.int_kind =
                                              (an_integer_kind)ik_unsigned_char;
-      } else if (min_value >= TARG_SHRT_MIN && max_value <= TARG_SHRT_MAX) {
+      } else if (cmplit_integer_constant(&min_value,
+                                         (long)TARG_SHRT_MIN) >= 0 &&
+                 cmplit_integer_constant(&max_value,
+                                         (long)TARG_SHRT_MAX) <= 0) {
         /* Short. */
         enum_type->variant.integer.int_kind = (an_integer_kind)ik_short;
-      } else if (min_value >= 0 && max_value <= TARG_USHRT_MAX) {
+      } else if (cmplit_integer_constant(&min_value, 0L) >= 0 &&
+                 cmplit_integer_constant(&max_value,
+                                         (long)TARG_USHRT_MAX) <= 0) {
         /* Unsigned short.  Note that we can only get here if
            sizeof(short) < sizeof(int) on the target, for otherwise the
            previous test (for "short") is testing the same range as "int"

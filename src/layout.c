@@ -131,9 +131,14 @@ B.  Layout options
 #include "cmd_line.h"
 #include "types.h"
 #include "target.h"
+#include "const_ints.h"
+
 
 void clear_layout_block(a_layout_block_ptr  lob,
                         a_type_ptr          class_type)
+/*
+Clear the block used to contain information while working out class layout.
+*/
 {
   lob->class_type = class_type;
   lob->byte_offset = 0;
@@ -153,65 +158,80 @@ fit in a bit field of size bit_field_size.  If not, give a warning.  Return
 must be unsigned.
 */
 {
-  long           smallest, largest, smallest_possible, largest_possible,
-                 enum_val;
+  a_constant     smallest, largest;
+  int            bits_needed, bits_needed_smallest, bits_needed_largest;
   a_constant_ptr enum_con;
-  a_boolean      use_signed;
+  a_boolean      smallest_is_negative, largest_is_nonnegative, use_signed;
 
   /* Check the constants on the list.  Start by finding the largest and
-     smallest constants.  All constants are "int", so no consideration of
-     unsigned constants is necessary.  We are assuming most enum type lists
+     smallest constants.  We are assuming most enum type lists
      won't be too long, and there won't be too many bit fields with enum
      type, so a linear search should be acceptable.  Furthermore,
      the usual case is that the bit field is big enough, so we're probably
      going to scan the whole constant list; therefore it's okay to always
      scan the whole list even though some errors could be detected during
      the scan. */
-  smallest = largest = 0;
-  for (enum_con = bit_field_type->variant.integer.enum_constant_list;
-       enum_con != NULL;
-       enum_con = enum_con->next) {
-    enum_val = enum_con->variant.integer_value;
-    if (enum_val < smallest) smallest = enum_val;
-    if (enum_val >  largest) largest  = enum_val;
-  }  /* for */
+  enum_con = bit_field_type->variant.integer.enum_constant_list;
+  if (enum_con == NULL) {
+    /* There are no enumeration constants, so no bits are needed to
+       represent all of them. */
+    bits_needed_smallest = bits_needed_largest = 0;
+    smallest_is_negative = FALSE;
+    largest_is_nonnegative = TRUE;
+  } else {
+    smallest = *enum_con;
+    largest = *enum_con;
+    for (;;) {
+      enum_con = enum_con->next;
+      if (enum_con == NULL) break;
+      if (cmp_integer_constants(enum_con, &smallest) < 0) smallest = *enum_con;
+      if (cmp_integer_constants(enum_con, &largest)  > 0) largest  = *enum_con;
+    }  /* for */
+    /* Determine the number of bits needed to represent the smallest and
+       largest values. */
+    bits_needed_smallest =
+                        bits_required_to_represent_integer_constant(&smallest);
+    bits_needed_largest =
+                        bits_required_to_represent_integer_constant(&largest);
+    smallest_is_negative = (sign_of_integer_constant(&smallest) < 0);
+    largest_is_nonnegative = (sign_of_integer_constant(&largest) >= 0);
+  }  /* if */
   /* Determine the proper signedness for the bit field.  One can't
      simply use the signedness of the enum type, since that was chosen
      for efficiency reasons: if the enum values just fit in the bit
      field size, an unsigned field might be necessary even though a 
      signed type was a good choice for the enum type. */
-  if (smallest < 0) {
+  if (smallest_is_negative) {
     /* Some enum values are negative, so a signed type is required.
        The enum type must already be signed. */
     use_signed = TRUE;
-  } else if ((((unsigned long)1 << (bit_field_size-1)) & largest) &&
-             largest >= 0) {
-    /* The largest value is positive, and it's so big it would require
-       a "1" in the sign bit.  Therefore, an unsigned type is required. */
+  } else if (bits_needed_largest >= bit_field_size) {
+    /* The largest value is nonnegative (because the smallest is nonnegative),
+       and it's big enough that it wouldn't fit in a signed field.
+       Therefore, an unsigned type is required. */
     use_signed = FALSE;
   } else {
     /* The signedness is not forced by the enum values, so use the 
        target preference.  Make a one-bit field always unsigned. */
-    use_signed = (bit_field_size != 1 &&
-                  !(TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED));
+    if (bit_field_size == 1) {
+      use_signed = FALSE;
+    } else {
+      use_signed = !TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED;
+    }  /* if */
   }  /* if */
-  /* Make the largest and smallest values that will fit in the
-     bit field, given the signedness selected. */
-  /* Make the largest possible signed value, i.e., all 1's below the
-     sign bit. */
-  largest_possible = ((unsigned long)1 << (bit_field_size-1)) - 1;
-  if (use_signed) {
-    /* Signed bit field. */
-    smallest_possible = ~largest_possible;
+  /* Determine the number of bits needed. */
+  if (use_signed && largest_is_nonnegative) {
+    /* Using a signed bit field and the largest is nonnegative, so the largest
+       really requires one more bit for a zero sign. */
+    bits_needed_largest++;
+  }  /* if */
+  if (bits_needed_largest > bits_needed_smallest) {
+    bits_needed = bits_needed_largest;
   } else {
-    /* Unsigned bit field. */
-    smallest_possible = 0;
-    /* Turn "all 1's below the sign bit" into "all 1's including the sign 
-       bit".  Watch out for integer overflow. */
-    largest_possible = ((unsigned long)largest_possible << 1) | 1;
+    bits_needed = bits_needed_smallest;
   }  /* if */
   /* Check that the enum values will fit in the bit field. */
-  if (smallest < smallest_possible || largest > largest_possible) {
+  if (bits_needed > bit_field_size) {
     warning(ec_enum_bit_field_too_small);
   }  /* if */
   *need_signed_type = use_signed;
@@ -238,8 +258,9 @@ of the declaration (unsigned int in the above example); it may be updated
 on return.  *p_bit_field_size is set to the bit field size in bits.
 */
 {
-  long       bit_field_size;
+  long       bit_field_size, max_size_allowed;
   a_type_ptr base_type = *p_base_type;
+  a_boolean  err;
   a_constant constant;
   a_type_ptr bit_field_type;
 
@@ -281,18 +302,17 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
 #endif /* CHECKING */
     /* The size of the bit field must be non-negative and must not exceed
        the size of the underlying type (except for enums, whose type was
-       picked by the front end) or the target maximum bit field size.
-       Note that this also catches very large unsigned values (they look
-       negative). */
-    bit_field_size = constant.variant.integer_value;
-    if (bit_field_size < 0 ||
-        (!bit_field_type->variant.integer.enum_type &&
-         bit_field_size > (bit_field_type->size*TARG_CHAR_BIT))) {
+       picked by the front end) or the target maximum bit field size. */
+    max_size_allowed = TARG_MAX_BIT_FIELD_SIZE;
+    if (!bit_field_type->variant.integer.enum_type) {
+      max_size_allowed = bit_field_type->size*TARG_CHAR_BIT;
+    }  /* if */
+    bit_field_size = unsigned_value_of_integer_constant(&constant, &err);
+    /* Note that one reason for err to be TRUE is if the constant is
+       less than zero. */
+    if (err || bit_field_size > max_size_allowed) {
       error(ec_bad_bit_field_size);
-      bit_field_size = bit_field_type->size*TARG_CHAR_BIT;
-    } else if (bit_field_size > TARG_MAX_BIT_FIELD_SIZE) {
-      error(ec_bad_bit_field_size);
-      bit_field_size = TARG_MAX_BIT_FIELD_SIZE;
+      bit_field_size = max_size_allowed;
     } else if (bit_field_size == 0) {
       /* The bit-field size is zero, so the field must be unnamed. */
       if (!unnamed_bit_field) {
