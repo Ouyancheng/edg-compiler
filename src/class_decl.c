@@ -2824,6 +2824,7 @@ of the function, and again overloading is a possibility.
   a_class_type_supplement_ptr  ctsp;
   a_routine_list_entry_ptr     rlep;
   a_symbol_reference_kind      srk_flags;
+  a_source_sequence_entry_ptr  declarator_ssep = NULL;
 
   db_enter(3, "decl_friend_function");
   if (!is_error_locator(*locator)) {
@@ -2836,6 +2837,9 @@ of the function, and again overloading is a possibility.
     sym = locator->specific_symbol;
     srk_flags = SRK_DECLARATION | SRK_FRIEND;
     if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    declarator_ssep = func_info->declarator_ssep;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (sym != NULL && sym->class_of_which_a_member != NULL &&
         !is_member_function_symbol(sym)) {
       /* sym represents a member of a class, but it is not a member function.
@@ -2875,9 +2879,9 @@ of the function, and again overloading is a possibility.
       } else {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
-      decl_var_or_routine(locator, storage_class, function_type,
-                          func_info, (a_source_sequence_entry_ptr)NULL,
-                          srk_flags, &sym, &linkage, &old_type, &ext_sym);
+      decl_var_or_routine(locator, storage_class, function_type, func_info,
+                          declarator_ssep, srk_flags, &sym, &linkage,
+                          &old_type, &ext_sym);
       /* WP 11.4 para 5 prohibits defining a nonmember function in a local
          class friend declaration. */
       if (func_info->is_definition &&
@@ -2916,12 +2920,6 @@ of the function, and again overloading is a possibility.
                        &locator->source_position, sym);
           set_to_error_locator(*locator);
         } else {
-          a_source_sequence_entry_ptr  declarator_ssep =
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-                                                   func_info->declarator_ssep;
-#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-                                                   NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                     declarator_ssep);
           /* Do throw specification compatibility checking. */
@@ -3538,10 +3536,11 @@ and it is legal for virtual member functions only.
 }  /* scan_pure_specifier */
 
 
-static void decl_member_constant(a_symbol_locator    *locator,
-                                 a_type_ptr          class_type,
-                                 a_type_ptr          member_type,
-                                 an_access_specifier access)
+static void decl_member_constant(a_symbol_locator            *locator,
+                                 a_type_ptr                  class_type,
+                                 a_type_ptr                  member_type,
+                                 an_access_specifier         access,
+                                 a_source_sequence_entry_ptr ssep)
 /*
 Do processing for a member constant, including scanning the initializer
 constant and entering the name in the symbol table.  member_type is
@@ -3563,6 +3562,9 @@ no other qualifier, and where the resulting type is a scalar type -- e.g.,
     static const int k;            // static data member
     static const int l = 10;       // static data member, syntax error
   };
+
+If source-sequence lists are being generated, ssep is a pointer to an empty
+source-sequence entry for the declarator; otherwise it is NULL.
 */
 {
   a_symbol_ptr     sym;
@@ -3590,7 +3592,8 @@ no other qualifier, and where the resulting type is a scalar type -- e.g.,
   cp->source_corresp.access = access;
   cp->source_corresp.class_of_which_a_member =
                           sym->class_of_which_a_member = class_type;
-  mark_defined(sym, &locator->source_position);
+  record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
+                            &locator->source_position, ssep);
   add_to_constants_list(cp, /*at_file_scope=*/FALSE);
   db_exit();
 }  /* decl_member_constant */
@@ -6575,7 +6578,8 @@ Scan the body of a class definition, including the base classes list.
                      C_dialect == C_dialect_cplusplus) {
             /* Provide support for the nonstandard declaration of a member
                constant of integral type -- e.g., "const int I = 2;". */
-            decl_member_constant(&locator, class_type, local_type, access);
+            decl_member_constant(&locator, class_type, local_type, access,
+                                 declarator_ssep);
           } else {
             if (C_dialect == C_dialect_cplusplus) {
               if (!type_explicitly_specified && first_declarator) {
