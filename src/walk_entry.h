@@ -903,6 +903,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
 #if GNU_EXTENSIONS_ALLOWED
         walk_string_ptr(ptr->section, iek_other_text, 0);
+        walk_string_ptr(ptr->aliased_variable, iek_other_text, 0);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);

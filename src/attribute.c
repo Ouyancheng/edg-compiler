@@ -852,6 +852,35 @@ invalid attributes.
           vp->section = ap->variant.section;
         }  /* if */
         break;
+      case ak_alias:
+        if (check_variable_not_local(vp, ap)) {
+          if (vp->storage_class != (a_storage_class)sc_extern) {
+            /* A variable cannot have a definition and simultaneously be
+               an alias for another variable.   Note that GCC
+               emits a diagnostic for these cases:
+
+                 int i attribute((alias("j")));
+                 static int i attribute((alias("j")));
+
+               but not these:
+               
+                 int i; extern int i attribute((alias("j")));
+                 extern int i attribute((alias("j"))); int i = 3;
+
+               In the latter case, the initialization of "i" is
+               completely ignored.
+
+               This seems to be a bug in GCC.  This front end
+               consistently issues diagnostics for all of these
+               cases. */
+            pos_sy_error(ec_cannot_be_alias_and_defn,
+                         &ap->position,
+                         (a_symbol_ptr)vp->source_corresp.assoc_info);
+          } else {
+            vp->aliased_variable = ap->variant.alias;
+          }  /* if */
+        }  /* if */
+        break;
       case ak_nocommon:
         if (check_variable_not_local(vp, ap)) {
           vp->is_not_common = TRUE;
@@ -968,7 +997,7 @@ messages about any invalid attributes.
         if (rp->defined) {
           /* A routine cannot have a definition and simultaneously be
              an alias for another routine. */
-          pos_sy_error(ec_rout_cannot_be_alias_and_defn,
+          pos_sy_error(ec_cannot_be_alias_and_defn,
                        &ap->position,
                        (a_symbol_ptr)rp->source_corresp.assoc_info);
         } else {

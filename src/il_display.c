@@ -1833,6 +1833,10 @@ Display the indicated variable.
   if (ptr->section != NULL) {
     disp_string_ptr("section", ptr->section, iek_other_text, (sizeof_t)0);
   }  /* if */
+  if (ptr->aliased_variable != NULL) {
+    disp_string_ptr("aliased_variable", ptr->aliased_variable, 
+                    iek_other_text, (sizeof_t)0);
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("initializer_range", &ptr->initializer_range);

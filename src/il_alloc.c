@@ -1531,6 +1531,7 @@ to it.
   vp->assoc_template              = NULL;
 #if GNU_EXTENSIONS_ALLOWED
   vp->section                     = NULL;
+  vp->aliased_variable            = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #ifdef CIL
   vp->referenced_non_locally      = FALSE;

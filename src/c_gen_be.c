@@ -1460,6 +1460,9 @@ Write out attributes that apply to the indicated variable.
   if (var->section != NULL) {
     write_section_attribute(var->section);
   }  /* if */
+  if (var->aliased_variable != NULL) {
+    write_string_argument_attribute("__alias__", var->aliased_variable);
+  }  /* if */
 }  /* write_variable_attributes */
 
 

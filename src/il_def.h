@@ -5310,6 +5310,10 @@ typedef struct a_variable {
   char		*section;
 			/* If non-NULL, the section in which this
 			   variable should be placed. */
+  char		*aliased_variable;
+			/* If non-NULL, the name of the variable for
+			   which the name of this variable is an
+			   alias. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
