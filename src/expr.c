@@ -6206,6 +6206,14 @@ nonstatic_member_function:
                                          result);
           }  /* if */
           break;
+        case sk_parameter:
+          /* This must be a C++ default argument expression.  Parameters are
+             not allowed (ARM 8.2.6). */
+#if CHECKING
+          /* What is the appropriate internal error check? */
+#endif /* CHECKING */
+          error_and_make_error_operand(ec_param_not_allowed, result);
+          break;
 #if CHECKING
         case sk_keyword:
         default:
