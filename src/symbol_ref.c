@@ -655,10 +655,7 @@ hidden name checking on its own members, too.
                (a_symbol_ptr)(skip_typerefs(type_symbol_type(sym_ptr))->
                                                   source_corresp.assoc_info);
         }  /* if */
-        if (tag_sym != NULL &&
-            (symbols_are_equivalent(old_sym_ptr, tag_sym) ||
-             (is_class_template_symbol(old_sym_ptr) &&
-              is_template_class_symbol(tag_sym)))) {
+        if (tag_sym != NULL && symbols_are_equivalent(old_sym_ptr, tag_sym)) {
           /* sym_ptr does not hide old_sym_ptr -- they represent the same
              declaration. */
         } else if (old_sym_ptr->decl_scope == file_scope_number ||
@@ -796,10 +793,7 @@ C++-generating back end.
          (a_symbol_ptr)(skip_typerefs(type_symbol_type(sym_ptr))->
                                             source_corresp.assoc_info);
     }  /* if */
-    if (tag_sym != NULL &&
-        (symbols_are_equivalent(old_sym_ptr, tag_sym) ||
-         (is_class_template_symbol(old_sym_ptr) &&
-          is_template_class_symbol(tag_sym)))) {
+    if (tag_sym != NULL && symbols_are_equivalent(old_sym_ptr, tag_sym)) {
       /* sym_ptr does not hide old_sym_ptr -- they represent the same
          declaration. */
     } else if (old_sym_ptr->decl_scope == sym_ptr->decl_scope &&
@@ -1111,8 +1105,6 @@ scopes and for the file scope.
       } else if (is_template_class_symbol(sym)) {
         /* The template itself belongs to the same scope -- one check for a
            given name is sufficient. */
-      } else if (is_injected_class_symbol(sym)) {
-        /* Ignore symbols representing injected class names. */
       } else if (sym->kind == (a_symbol_kind)sk_projection) {
         /* Ignore inherited names -- they are handled separately. */
       } else {
