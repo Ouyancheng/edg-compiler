@@ -7725,7 +7725,7 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
           }  /* if */
         }  /* for */
       }  /* if */
-      check_assertion(corresp_prototype_tag_sym != NULL);
+      check_assertion(corresp_prototype_tag_sym != NULL || total_errors != 0);
     }  /* if */
   } else {
     /* curr_sym is not a nested class.  If it has a template symbol it may be

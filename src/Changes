@@ -1,5 +1,19 @@
 Version 2.32
 
+4/29/96 Error recovery bug: internal error during template instantiation
+
+If a nested class member of an anonymous union in a class template had
+the same name as the class containing the anonymous union, and the
+anonymous union was nested within a template class, an internal
+error would result.  This has been fixed.
+
+  template <class T> struct A {
+    union { struct A { }; };
+  };
+  void f() {
+    A<double> x;
+  }
+
 4/29/96 Error recovery bug in C mode: internal error fixed
 
 In C mode an internal error is no longer triggered while recovering after
