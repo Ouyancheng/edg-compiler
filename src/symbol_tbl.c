@@ -2646,11 +2646,14 @@ new(), and therefore might be a projection symbol.
   is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
   if (is_overloaded) sym = sym->variant.overloaded_function.symbols;
   for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
-    /* Look for a symbol for a function with just one parameter.
-       Default arguments are not allowed and need not be checked for. */
-    ptp = sym->variant.routine.ptr->type->variant.routine.extra_info->
+    /* Ignore function templates. */
+    if (is_function_symbol(sym)) {
+      /* Look for a symbol for a function with just one parameter.
+         Default arguments are not allowed and need not be checked for. */
+      ptp = sym->variant.routine.ptr->type->variant.routine.extra_info->
                                                                param_type_list;
-    if (ptp != NULL && ptp->next == NULL) break;
+      if (ptp != NULL && ptp->next == NULL) break;
+    }  /* if */
   }  /* for */
   return sym;
 }  /* extract_default_operator_new_sym */
@@ -4938,7 +4941,8 @@ a_symbol_ptr opname_function_symbol(an_opname_kind kind)
 /*
 Return a pointer to the symbol entry for the operator function for the
 operator identified by kind, or NULL if there is no such operator.
-Only non-member functions will be found.
+Only non-member functions will be found.  Function templates *will*
+be found.
 */
 {
   a_symbol_ptr        sym = NULL;
@@ -4949,8 +4953,10 @@ Only non-member functions will be found.
   if (symhdr != NULL) {
     /* Yes.  Look for one that's visible and a non-member function. */
     for (sym = symhdr->symbol; sym != NULL; sym = sym->next) {
-      if (sym->class_of_which_a_member == NULL && is_function_symbol(sym)) {
-        /* A non-member function. */
+      if (sym->class_of_which_a_member == NULL &&
+          (is_function_symbol(sym) ||
+           sym->kind == (a_symbol_kind)sk_function_template)) {
+        /* A non-member function or function template. */
         break;
       }  /* if */
     }  /* for */

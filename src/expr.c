@@ -3988,6 +3988,12 @@ As an anachronism, allow an expression inside the [ ].
       /* Mark the routine symbol referenced, but not the IL entry (yet). */
       mark_symbol_referenced(srk_reference, operator_delete_symbol,
                              &delete_position);
+      /* Since delete cannot be overloaded, the symbol should not be
+         overloaded or a function template. */
+      check_assertion(operator_delete_symbol->kind ==
+                                                   (a_symbol_kind)sk_routine ||
+                      operator_delete_symbol->kind ==
+                                            (a_symbol_kind)sk_member_function);
       delete_routine = operator_delete_symbol->variant.routine.ptr;
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
       if (dtor_routine != NULL) {
