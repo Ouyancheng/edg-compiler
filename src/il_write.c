@@ -352,7 +352,7 @@ Write the initial information to the IL file, if there is one.
   a_memory_region_number zero_region_number = 0;
   a_file_position        zero_file_position = 0;
 
-  /* Note that the file was opened already in cmd_line.c.  f_il_output
+  /* Note that the file was opened already by open_il_file.  f_il_output
      remains NULL if no IL file is being written, as when preprocessing
      only is being done. */
   if (f_il_output != NULL) {
