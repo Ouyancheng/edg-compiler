@@ -14242,15 +14242,16 @@ to reflect the error.
 static void check_reference_from_inline_function(a_symbol_ptr  sym_ptr)
 /*
 sym_ptr is a symbol for a variable or routine being referenced in an
-expression.  In C99 mode, if the reference occurs within an inline function
-body with external linkage, be sure the reference is not to an entity with
-internal linkage (see 6.7.4 of the C99 standard).  Issue a diagnostic if the
-constraint is violated.
+expression.  In C99 mode, if the reference occurs within a so-called "inline
+definition" with external linkage, the reference should not be to an entity
+with internal linkage (see 6.7.4 of the C99 standard).  Since we cannot tell
+until the end of the translation unit if the current function definition is
+an "inline definition", we keep a record of suspect cases for later
+verification.
 */
 {
-  a_boolean          bad_ref;
+  a_boolean          suspect_ref;
   a_routine_ptr      curr_rout;
-  an_error_severity  severity;
 
   check_assertion(c99_mode);
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
@@ -14263,20 +14264,17 @@ constraint is violated.
         /* A variable reference -- see if it is a non-local variable with
            internal linkage. */
         a_variable_ptr  vp = sym_ptr->variant.variable.ptr;
-        bad_ref = (vp->storage_class == (a_storage_class)sc_static &&
-                   !vp->source_corresp.is_local_to_function);
+        suspect_ref = (vp->storage_class == (a_storage_class)sc_static &&
+                      !vp->source_corresp.is_local_to_function);
       } else {
         check_assertion(sym_ptr->kind == (a_symbol_kind)sk_routine);
         /* A function reference -- see if it is a function with internal
            linkage. */
-        bad_ref = (sym_ptr->variant.routine.ptr->storage_class ==
-                                              (a_storage_class)sc_static);
+        suspect_ref = (sym_ptr->variant.routine.ptr->storage_class ==
+                                                  (a_storage_class)sc_static);
       }  /* if */
-      if (bad_ref) {
-        /* Issue the diagnostic. */
-        severity = strict_ansi_mode ? strict_ansi_discretionary_severity :
-                                      es_discretionary_error;
-        diagnostic(severity, ec_bad_linkage_of_ref_within_inline_function);
+      if (suspect_ref) {
+        check_c99_inline_definition(/*var=*/NULL, &error_position);
       }  /* if */
     }  /* if */
   } /* if */
@@ -14690,9 +14688,11 @@ variable:
             if (bad_nested_function_variable_ref(sym_ptr, result, &rep)) {
               /* Error. */
             } else {
-              /* In C99 mode check that a variable referenced within an
-                 inline function is valid. */
-              if (c99_mode) check_reference_from_inline_function(sym_ptr);
+              /* In C99 mode (except in GNU C mode) check that a variable
+                 referenced within an inline function is valid. */
+              if (c99_mode && !gcc_mode) {
+                check_reference_from_inline_function(sym_ptr);
+              }  /* if */
               /* Make a variable operand that is a variable address node.
                  The type of the operand is a pointer to the type of the
                  variable. */
@@ -14718,9 +14718,11 @@ normal_function:
             change_refs_to_error(rep);
             rep = NULL;
           } else {
-            /* In C99 mode check that a function referenced within an
-               inline function is valid. */
-            if (c99_mode) check_reference_from_inline_function(sym_ptr);
+            /* In C99 mode (except in GNU C mode) check that a function
+               referenced within an inline function is valid. */
+            if (c99_mode && !gcc_mode) {
+              check_reference_from_inline_function(sym_ptr);
+            }  /* if */
             /* Make a function designator operand for the function. */
             make_function_designator_operand(projection_sym_ptr,
                                              (a_boolean)locator_for_curr_id.

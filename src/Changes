@@ -1,5 +1,24 @@
 Version 3.6
 
+3/24/05  C99 inline definitions and entities with internal linkage
+
+In C99 mode, the front end previously issued an error whenever a function with
+external linkage declared with the keyword "inline" referred to an entity with
+internal linkage.  Now, an error is only issued for function definitions that
+are "inline definitions": Every declaration in the translation unit must have
+the keyword inline, and no declaration in that translation unit may be marked
+as "extern" or "static".  For example:
+
+  static int s;
+  inline void f() {  // Not an inline definition, because second declaration
+                     // not marked "inline".
+    return s;        // Previously an error in C99 mode.  Now okay.
+  }
+  void f();
+
+Furthermore, the diagnostic has been eliminated altogether in GNU C99 mode.
+(See also the related issue in the Changes entry of 1/17/05.)
+
 3/24/05  Routine "called" flag not transferred in multi-translation-unit mode
 
 In some cases when multi-translation-unit mode is used, the "called"

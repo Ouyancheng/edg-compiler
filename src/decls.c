@@ -5291,7 +5291,7 @@ declaration.
   if (c99_mode && !gcc_mode && is_variable_def &&
       depth_innermost_function_scope != NO_SCOPE_DEPTH &&
       variable_ptr->storage_class == (a_storage_class)sc_static) {
-    check_c99_local_static_variable(variable_ptr, locator);
+    check_c99_inline_definition(variable_ptr, &locator->source_position);
   }  /* if */
   if (vla_enabled) {
     if (is_variably_modified_type(type_ptr)) {

@@ -723,96 +723,118 @@ Return a function shareable constant table to the available list.
 
 
 /*
-Local static variables in C99 require a check that cannot be fully accomplished
-until the complete translation unit has been seen.  We therefore record suspect
-static variable definitions in a list of a_c99_local_static_variable_locator
-nodes for later verification.
+Certain constructs in C99 inline definitions require a check that cannot be
+fully accomplished until the complete translation unit has been seen (because
+it isn't known until then whether a function definition is in fact an "inline
+definition").  We therefore record suspect constructs in a list of
+a_c99_inline_definition_locator nodes for later verification.
 */
 
-typedef struct a_c99_local_static_variable_locator
-		*a_c99_local_static_variable_locator_ptr;
+typedef struct a_c99_inline_definition_locator
+		*a_c99_inline_definition_locator_ptr;
 
-typedef struct a_c99_local_static_variable_locator {
-  a_c99_local_static_variable_locator_ptr
+typedef struct a_c99_inline_definition_locator {
+  a_c99_inline_definition_locator_ptr
 		next;
 			/* Pointer to the next record to check. */
   a_routine_ptr
 		routine;
-			/* The routine in which the variable was defined. */
+			/* The routine in which the static entity was defined
+			   or referenced. */
   a_source_position
 		position;
-			/* The source position of the variable definition. */
-} a_c99_local_static_variable_locator;
+			/* The source position of the suspect construct. */
+  a_boolean
+		static_variable_decl;
+			/* TRUE if the suspect construct is a local static
+			   variable declaration.  Otherwise, the issue is that
+			   a reference to the static entity may be invalid. */
+} a_c99_inline_definition_locator;
 
 
-static a_c99_local_static_variable_locator_ptr
-		c99_local_static_variable_locators_to_check;
-			/* A pointer to the list of locators for suspect C99
-			   local static variables. */
+static a_c99_inline_definition_locator_ptr
+		c99_inline_definition_locators_to_check;
+			/* A pointer to the list of locators for suspect
+			   constructs in C99 inline definitions. */
 
-static a_c99_local_static_variable_locator_ptr
-		avail_c99_local_static_variable_locators;
-			/* A pointer to a list of C99 local static variable
-			   locators that are no longer in use. */
+static a_c99_inline_definition_locator_ptr
+		avail_c99_inline_definition_locators;
+			/* A pointer to a list of locators that are no longer
+			   in use. */
 
 #if DEBUG
 static unsigned long
-	num_c99_local_static_variable_locators_allocated;
+	num_c99_inline_definition_locators_allocated;
 #endif /* DEBUG */
 
-void check_c99_local_static_variable(a_variable_ptr    var,
-                                     a_symbol_locator  *loc)
+void check_c99_inline_definition(a_variable_ptr     var,
+                                 a_source_position  *pos)
 /*
 In C99 it is an error for a modifiable local static variable to be defined in
-an "inline definition" (indicated by suppress_inline_body).  We cannot tell
-whether the current routine definition is an "inline definition" until the end
-of the translation unit.  So at this time we just record the position of the
-local static variable if an error is still a possibility.
+an "inline definition" (indicated by suppress_inline_body).  It is also an
+error to reference a file-scope static entity from such a function.  We
+cannot tell whether the current routine definition is an "inline definition"
+until the end of the translation unit.  So at this time we just record the
+position of the suspect construct if an error is still a possibility.  If var
+is non-NULL, it represent a local static variable being declared; otherwise,
+the suspect construct is a reference to a file-scope static entity.
 */
 {
-  a_type_ptr type = var->type;
+  a_boolean  suspect_construct = TRUE;
 
-  check_assertion(var->storage_class == (a_storage_class)sc_static);
-  if (is_array_type(type)) {
-    /* In C, an array of const element type is not considered const,
-       so drop down to the element type to do the test. */
-    type = underlying_array_element_type(type);
+  check_assertion(var == NULL ||
+                  var->storage_class == (a_storage_class)sc_static);
+  if (var != NULL) {
+    /* Declarations of local static variables in inline definitions are not a
+       problem if the variable is not modifiable. */
+    a_type_ptr type = var->type;
+    if (is_array_type(type)) {
+      /* In C, an array of const element type is not considered const,
+         so drop down to the element type to do the test. */
+      type = underlying_array_element_type(type);
+    }  /* if */
+    if (is_const_qualified_type(type)) {
+      /* A nonmodifiable local static variable. */
+      suspect_construct = FALSE;
+    }  /* if */
   }  /* if */
-  if (!is_const_qualified_type(type)) {
-    /* A modifiable local static variable. */
+  if (suspect_construct) {
+    /* Only record an entry if the current function might be a C99 inline
+       definition. */
     a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
     check_assertion(rp != NULL);
     if (rp->is_inline && rp->suppress_inline_body &&
         rp->storage_class == (a_storage_class)sc_unspecified) {
-      a_c99_local_static_variable_locator_ptr  to_check;
-      if (avail_c99_local_static_variable_locators == NULL) {
-        to_check = alloc_fe_of_type(a_c99_local_static_variable_locator);
+      a_c99_inline_definition_locator_ptr  to_check;
+      if (avail_c99_inline_definition_locators == NULL) {
+        to_check = alloc_fe_of_type(a_c99_inline_definition_locator);
 #if DEBUG
-        ++num_c99_local_static_variable_locators_allocated;
+        ++num_c99_inline_definition_locators_allocated;
 #endif /* DEBUG */
       } else {
-        to_check = avail_c99_local_static_variable_locators;
-        avail_c99_local_static_variable_locators =
-                               avail_c99_local_static_variable_locators->next;
+        to_check = avail_c99_inline_definition_locators;
+        avail_c99_inline_definition_locators =
+                                 avail_c99_inline_definition_locators->next;
       }  /* if */
-      to_check->next = c99_local_static_variable_locators_to_check;
-      c99_local_static_variable_locators_to_check = to_check;
+      to_check->next = c99_inline_definition_locators_to_check;
+      c99_inline_definition_locators_to_check = to_check;
       to_check->routine = rp;
-      to_check->position = loc->source_position;
+      to_check->position = *pos;
+      to_check->static_variable_decl = (var != NULL);
     }  /* if */
   }  /* if */
-}  /* check_c99_local_static_variable */
+}  /* check_c99_inline_definition */
 
 
-static void verify_c99_local_static_variables(void)
+static void verify_c99_inline_definitions(void)
 /*
 Traverse the list of suspect local static variables to see if any was defined
 in a C99 "inline definition".  (Called when the file scope is popped for the
 first time.)
 */
 {
-  a_c99_local_static_variable_locator_ptr  to_verify, entry =
-                                   c99_local_static_variable_locators_to_check;
+  a_c99_inline_definition_locator_ptr  to_verify, entry =
+                                      c99_inline_definition_locators_to_check;
 
   while (entry != NULL) {
     to_verify = entry;
@@ -820,14 +842,19 @@ first time.)
       an_error_severity  severity = strict_ansi_mode ?
                                           strict_ansi_discretionary_severity :
                                           es_discretionary_error;
-      pos_diagnostic(severity, ec_static_variable_in_inline_function,
-                     &to_verify->position);
+      an_error_code      code;
+      if (to_verify->static_variable_decl) {
+        code = ec_static_variable_in_inline_function;
+      } else {
+        code = ec_bad_linkage_of_ref_within_inline_function;
+      }  /* if */
+      pos_diagnostic(severity, code, &to_verify->position);
     }  /* if */
     entry = entry->next;
-    to_verify->next = avail_c99_local_static_variable_locators;
-    avail_c99_local_static_variable_locators = to_verify;
+    to_verify->next = avail_c99_inline_definition_locators;
+    avail_c99_inline_definition_locators = to_verify;
   }  /* while */
-}  /* verify_c99_local_static_variables */
+}  /* verify_c99_inline_definitions */
 
 
 a_scope_pointers_block *get_pointers_block_for_scope(a_scope_ptr scope)
@@ -5723,7 +5750,7 @@ End a name scope by popping an entry off the scope stack.
       wrap_up_symbols_with_no_scope();
       /* In C99 mode, issue diagnostics for any local static variables that
          were defined in "inline definitions". */
-      verify_c99_local_static_variables();
+      verify_c99_inline_definitions();
     }  /* if */
   }  /* if */
   il_scope = ssep->il_scope;
@@ -6780,9 +6807,9 @@ routines is reported as part of the symbol table memory used.
                      num_function_shareable_constants_tables_allocated,
                      a_function_shareable_constants_table);
   db_space_used_lost("loc. static var. locators",
-                     avail_c99_local_static_variable_locators,
-                     num_c99_local_static_variable_locators_allocated,
-                     a_c99_local_static_variable_locator);
+                     avail_c99_inline_definition_locators,
+                     num_c99_inline_definition_locators_allocated,
+                     a_c99_inline_definition_locator);
   return grand_total;
 }  /* db_show_scope_stack_space_used */
 
@@ -6817,11 +6844,11 @@ are handled in scope_stk_init.)
       pch_saved_var_array_elem(num_string_literal_table_entries_allocated),
 #endif /* DEBUG */
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
-      pch_saved_var_array_elem(c99_local_static_variable_locators_to_check),
-      pch_saved_var_array_elem(avail_c99_local_static_variable_locators),
+      pch_saved_var_array_elem(c99_inline_definition_locators_to_check),
+      pch_saved_var_array_elem(avail_c99_inline_definition_locators),
 #if DEBUG
       pch_saved_var_array_elem(
-                            num_c99_local_static_variable_locators_allocated),
+                            num_c99_inline_definition_locators_allocated),
 #endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -6907,10 +6934,10 @@ of the front end.
   num_string_literal_tables_allocated = 0;
 #endif /* DEBUG */
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
-  c99_local_static_variable_locators_to_check = NULL;
-  avail_c99_local_static_variable_locators = NULL;
+  c99_inline_definition_locators_to_check = NULL;
+  avail_c99_inline_definition_locators = NULL;
 #if DEBUG
-  num_c99_local_static_variable_locators_allocated = 0;
+  num_c99_inline_definition_locators_allocated = 0;
   num_function_shareable_constants_tables_allocated = 0;
 #endif /* DEBUG */
   function_body_processing_delayed_on_some_func_in_primary_il = FALSE;

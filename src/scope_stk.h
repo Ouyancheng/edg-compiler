@@ -1103,8 +1103,8 @@ EXTERN a_boolean
 void compute_name_collision_discriminator(a_symbol_ptr  sym);
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
 
-extern void check_c99_local_static_variable(a_variable_ptr    var,
-                                            a_symbol_locator  *loc);
+extern void check_c99_inline_definition(a_variable_ptr     var,
+                                        a_source_position  *pos);
 
 /* Begin a name scope. */
 extern a_scope_ptr push_scope(a_scope_kind       kind,
