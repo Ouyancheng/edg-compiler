@@ -1,5 +1,16 @@
 Version 2.35
 
+2/11/97 Nontype template parameter of type "reference to function"
+
+A nontype template parameter with a type of "reference to function" was
+not properly handled in expressions.  Now fixed.
+
+  template <void(&fp)()> struct S {
+    static void m() {
+      fp(); 		// Now accepted
+    }
+  };
+
 2/11/97 Incorrect handling of member function template declared inline
         after having been called
 

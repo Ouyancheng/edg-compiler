@@ -1383,7 +1383,11 @@ The position of the current token will be used as the operand position.
     underlying_type = type_pointed_to(constant.type);
     constant.type = make_pointer_type(underlying_type);
     make_constant_operand(&constant, operand);
-    operand->state = (an_operand_state)os_lvalue;
+    if (is_function_type(underlying_type)) {
+      operand->state = (an_operand_state)os_function_designator;
+    } else {
+      operand->state = (an_operand_state)os_lvalue;
+    }  /* if */
     operand->type = underlying_type;
   } else {
     /* Normal (non-reference) case. */
