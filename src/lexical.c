@@ -7448,7 +7448,10 @@ qualified name.
                 lookup_options |= IDL_TREAT_AS_TEMPLATE_ID;
               }  /* if */
             } else if (implicit_typename_enabled &&
-                       (options & GID_IS_TYPENAME) != 0) {
+                       (options & GID_IS_EXPR_CONTEXT) == 0) {
+              if (next_tok == tok_lt) {
+                lookup_options |= IDL_TREAT_AS_TEMPLATE_ID;
+              }  /* if */
             }  /* if */
             if (qualifier_is_type) {
               /* Look up the name in the class specified by the qualifier
