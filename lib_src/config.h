@@ -40,6 +40,8 @@ USE_ATEXIT indicates that the atexit function should be used.
 #ifndef USE_ATEXIT
 #ifndef sun
 #define USE_ATEXIT TRUE
+#else /* ifdef sun */
+#define USE_ATEXIT FALSE
 #endif /* ifndef sun */
 #endif /* ifndef USE_ATEXIT */
 
