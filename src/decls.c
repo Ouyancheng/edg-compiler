@@ -6968,8 +6968,25 @@ Returns TRUE if there is an error in the specifiers.
                 pos_st_remark(ec_nonstd_friend_decl, &ident_pos, "class");
                 goto process_class_specifier;
               } else {
-                if (tag_sym == NULL || !is_class_symbol(tag_sym)) {
-                  /* Lookup failed to find a class symbol.  Issue an error. */
+                a_type_ptr  tp = NULL;
+
+                if (tag_sym != NULL && is_class_symbol(tag_sym)) {
+                  tp = type_symbol_type(tag_sym);
+                  if (tp->kind == (a_type_kind)tk_typeref) {
+                    if (is_qualified_type(tp)) {
+                      /* This should be an error:
+                           typedef const struct A TA;
+                           class B { friend TA; };
+                      */
+                      tp = NULL;
+                    } else {
+                      tp = skip_typerefs(tp);
+                    }  /* if */
+                  }  /* if */
+                }  /* if */
+                if (tp == NULL) {
+                  /* Lookup failed to find an unqualified class symbol.  Issue
+                     an error. */
                   error(ec_bad_friend_decl);
                   err = TRUE;
                   *type_ptr = error_type();
@@ -6989,7 +7006,7 @@ Returns TRUE if there is an error in the specifiers.
                     /* Default case -- remark. */
                     severity = es_remark;
                   }  /* if */
-                  *type_ptr = type_symbol_type(tag_sym);
+                  *type_ptr = tp;
                   switch ((*type_ptr)->kind) {
                     case tk_class:   class_key_string = "class";   break;
                     case tk_struct:  class_key_string = "struct";  break;
