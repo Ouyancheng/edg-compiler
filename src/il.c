@@ -8901,6 +8901,11 @@ return NULL.
         break;
       case iek_type:
         tp = ss_entry_ptr(ssep, a_type_ptr);
+        if (tp->kind == (a_type_kind)tk_typeref) {
+          /* For a typedef, drop the typedef itself to get to the declared
+             type of the typedef. */
+          tp = tp->variant.typeref.type;
+        }  /* if */
         break;
       case iek_field:
         tp = ss_entry_ptr(ssep, a_field_ptr)->type;
