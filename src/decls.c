@@ -411,6 +411,8 @@ we keep scanning till the end of the declarator and return leaving both
       may_be_decl = FALSE;
       goto done;
     }  /* if */
+  } else if (curr_token == tok_lbracket) {
+    /* May be an array declarator. */
   } else {
     /* Not a nested declarator.  May be a real declarator. */
     if (is_qualified_name_start() || curr_token == tok_operator) {
