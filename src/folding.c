@@ -1324,7 +1324,7 @@ casts between unrelated classes.
                                             &err_code, &err_severity);
       } else {
         *did_not_fold = TRUE;
-      }
+      }  /* if */
       break;
 
     case tk_error:
