@@ -2177,6 +2177,9 @@ error code.
       m =
         "excessive recursive instantiation of %n due to instantiate-all mode";
       break;
+    case ec_cl_strict_ansi_incompatible_with_anachronisms:
+      m = "strict ANSI mode is incompatible with allowing anachronisms";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -477,8 +477,7 @@ unknown_option:
 #if DEFAULT_ALLOW_ANACHRONISMS
       allow_anachronisms = FALSE;
 #else /* DEFAULT_ALLOW_ANACHRONISMS */
-      command_line_error
-        ("strict ANSI mode is incompatible with allowing anachronisms");
+      command_line_error(ec_cl_strict_ansi_incompatible_with_anachronisms);
 #endif /* DEFAULT_ALLOW_ANACHRONISMS */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the
