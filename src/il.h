@@ -587,12 +587,14 @@ extern an_expr_node_ptr copy_expr_tree(an_expr_node_ptr         expr,
                                        an_expr_copy_options_set options);
 
 extern an_expr_node_ptr copy_default_arg_expr(
-                               an_expr_node_ptr expr,
+			       a_routine_ptr	rout_ptr,
+                               a_param_type_ptr ptp,
                                a_boolean        inside_conditional_expression);
 
 extern an_expr_node_ptr duplicate_default_arg_expr(an_expr_node_ptr expr);
 
 extern an_expr_node_ptr copy_default_arg_expr_list(
+			       a_routine_ptr	rout_ptr,
                                a_param_type_ptr ptp,
                                a_boolean        inside_conditional_expression);
 

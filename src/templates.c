@@ -4823,6 +4823,9 @@ make_new_type:
           if (ptp->has_default_arg) {
             new_ptp->has_default_arg = TRUE;
           }  /* if */
+          if (ptp->has_unevaluated_template_default) {
+            new_ptp->has_unevaluated_template_default = TRUE;
+          }  /* if */
           /* Add the new param type entry to the param types list. */
           if (prev_ptp == NULL) {
             new_type->variant.routine.extra_info->param_type_list = new_ptp;
@@ -5041,16 +5044,107 @@ Do some simple consistency checking on a function template argument list.
 #endif /* CHECKING */
 
 
-void delayed_scan_for_function_template_default_args(
+void instantiate_default_argument(a_symbol_ptr		rout_sym,
+				  a_param_type_ptr	param)
+/*
+Rescan a default arguments of a template function, or member function
+of a template class.  rout_sym points to the symbol of the function
+instance with which the parameter is associated.  param points the
+the parameter list entry for the parameter whose default argument is
+to be instantiated.
+*/
+{
+  a_def_arg_expr_fixup_ptr		daefp;
+  a_param_type_ptr			templ_ptp;
+  a_param_type_ptr			ptp;
+  a_routine_ptr				templ_rout;
+  a_routine_ptr				rout_ptr;
+  a_type_ptr				templ_rout_type;
+  a_type_ptr				rout_type;
+  a_template_instance_ptr		tip;
+  a_symbol_ptr				template_sym;
+  int					arg_num;
+  a_template_symbol_supplement_ptr	tssp;
+
+  check_assertion(rout_sym->kind == (a_symbol_kind)sk_routine ||
+                  rout_sym->kind == (a_symbol_kind)sk_member_function);
+  rout_ptr = rout_sym->variant.routine.ptr;
+  rout_type = skip_typerefs(rout_ptr->type);
+  ptp = rout_type->variant.routine.extra_info->param_type_list;
+  /* Determine the argument number that "param" represents. */
+  for (arg_num = 1; ptp != NULL; ptp = ptp->next, arg_num++) {
+    if (ptp == param) break;
+  }  /* for */
+  /* Reset the flag that indicates that this default value has not yet
+     been evaluated. */
+  ptp->has_unevaluated_template_default = FALSE;
+  tip = rout_sym->variant.routine.instance_ptr;
+  check_assertion(tip != NULL);
+  template_sym = tip->template_sym;
+  tssp = template_supplement_for_symbol(template_sym);
+  templ_rout = tssp->variant.function.routine;
+  templ_rout_type = skip_typerefs(templ_rout->type);
+  daefp = tssp->variant.function.def_arg_expr_list;
+  /* Find the param type entry for the "prototype" template routine that
+     corresponds to the argument number determined above. */
+  templ_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
+  for (; arg_num > 1; arg_num--, templ_ptp = templ_ptp->next) {
+    if (daefp == NULL || templ_ptp == NULL) {
+      daefp = NULL;
+      break;
+    }  /* if */
+    /* Only skip to the next default argument fixup entry when we encounter
+       a parameter with a default argument. */
+    if (templ_ptp->has_default_arg) daefp = daefp->next;
+  }  /* for */
+  /* We should always find the corresponding parameter of the template,
+     unless some error occurred earlier. */
+  check_assertion(daefp != NULL || total_errors != 0);
+  /* Now that we've found the corresponding parameter of the template,
+     instantiate that default argument value. */
+  if (daefp != NULL) {
+    /* Push the template instantiation scope for the context in which the
+       default argument is to be evaluated. */
+    push_template_instantiation_scope(daefp->cache.decl_info,
+                                            (a_type_ptr)NULL, rout_ptr,
+                                            tip->instance_sym,
+                                            tip->template_sym,
+                                            rout_ptr->template_arg_list);
+    /* The function prototype scope should be reactivated and its symbols
+       reentered because parameter names hide names from enclosing scopes
+       and, moreover, may not be used in default argument expressions
+       (3.4.1p11). */
+    (void)push_scope((a_scope_kind)sck_func_prototype,
+                     daefp->cache.decl_info->declaration_scope,
+                     (a_type_ptr)NULL,
+                     (a_routine_ptr)NULL);
+    if (tip->prototype_scope_symbols != NULL) {
+      reactivate_prototype_scope_symbols(tip->prototype_scope_symbols);
+    }  /* if */
+    /* Update the default argument expression entry to point to the
+       current param type entry. */
+    daefp->param_type = ptp;
+    /* Rescan the default argument tokens from the cache. */
+    rescan_reusable_cache(&daefp->cache.tokens);
+    delayed_scan_of_default_arg_expr(daefp->param_type,
+                                     /*check_for_errors=*/FALSE);
+    /* Pop the reactivated function prototype scope off the stack. */
+    pop_scope();
+    /* Pop the template instantiation scope. */
+    pop_template_instantiation_scope();
+  }  /* if */
+}  /* instantiate_default_argument */
+
+
+void check_for_function_template_default_args(
 		    a_routine_ptr		     templ_rout,
 		    a_routine_ptr		     rout_ptr,
-                    a_template_instance_ptr	     tip,
-                    a_template_symbol_supplement_ptr tssp,
-                    a_boolean                        push_instantiation_scope)
+                    a_template_symbol_supplement_ptr tssp)
 /*
-Rescan the default arguments of a function template.  push_instantiation_scope
-is TRUE if an instantiation scope should be pushed for each argument scanned.
-It is FALSE if the instantiation scope was pushed by the caller.
+Determine which of the parameters of the template instance specified by
+rout_ptr have default arguments.  Note that the defaults are not actually
+scanned here.  They will be scanned later, only if the value of the default
+is needed for a call.
 */
 {
   a_def_arg_expr_fixup_ptr	daefp;
@@ -5067,7 +5161,7 @@ It is FALSE if the instantiation scope was pushed by the caller.
     ptp = rout_type->variant.routine.extra_info->param_type_list;
     /* Loop through the two linked lists of param_type entries and the
        default argument expression fixup entries, and update the default
-       arg expressions in the corresponding the param_type entries. */
+       argument flags in the corresponding param_type entries. */
     for (; ptp != NULL; ptp = ptp->next, templ_ptp = templ_ptp->next) {
       if (templ_ptp == NULL) {
         /* There is a mismatch in the number of default arguments between
@@ -5078,46 +5172,16 @@ It is FALSE if the instantiation scope was pushed by the caller.
       }  /* if */
       if (templ_ptp->has_default_arg) {
 	check_assertion(daefp != NULL);
-        if (push_instantiation_scope) {
-          /* Push the template instantiation scope. */
-          push_template_instantiation_scope(daefp->cache.decl_info,
-                                            (a_type_ptr)NULL, rout_ptr,
-                                            tip->instance_sym,
-                                            tip->template_sym,
-                                            rout_ptr->template_arg_list);
-        }  /* if */
-        /* The function prototype scope should be reactivated and its symbols
-           reentered because parameter names hide names from enclosing scopes
-           and, moreover, may not be used in default argument expressions
-           (ARM 8.2.6). */
-        (void)push_scope((a_scope_kind)sck_func_prototype,
-                         daefp->cache.decl_info->declaration_scope,
-                         (a_type_ptr)NULL,
-                         (a_routine_ptr)NULL);
-        if (tip->prototype_scope_symbols != NULL) {
-          reactivate_prototype_scope_symbols(tip->prototype_scope_symbols);
-        }  /* if */
         /* Update the default argument expression entry to point to the
            current param type entry. */
-	daefp->param_type = ptp;
         ptp->has_default_arg = TRUE;
-        /* It's a default arg expression that needs to be rescanned. */
-        /* Let get_token know about the cache. */
-        rescan_reusable_cache(&daefp->cache.tokens);
-        delayed_scan_of_default_arg_expr(daefp->param_type,
-                                         /*check_for_errors=*/FALSE);
+        ptp->has_unevaluated_template_default = TRUE;
         daefp = daefp->next;
-        /* Pop the reactivated function prototype scope off the stack. */
-        pop_scope();
-        if (push_instantiation_scope) {
-          /* Pop the template instantiation scope. */
-          pop_template_instantiation_scope();
-        }  /* if */
       }  /* if */
     }  /* for */
     check_assertion(daefp == NULL || total_errors != 0);
   }  /* if */
-}  /* delayed_scan_for_function_template_default_args */
+}  /* check_for_function_template_default_args */
 
 
 static a_type_ptr create_error_routine_type(a_routine_ptr	templ_rout,
@@ -5707,12 +5771,12 @@ type based on the template argument list and the template parameter list
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   {
     a_symbol_locator	locator;
-    /* If there are default arguments whose types depend on template
-       parameters, scan the default argument expressions. */
+    /* Set the default argument information in the newly created routine
+       based on the information for the template.  Note that the default
+       argument values are not actually scanned at this point.  They will
+       be scanned later, only if their value(s) are needed. */
     if (tssp->variant.function.def_arg_expr_list != NULL) {
-      delayed_scan_for_function_template_default_args
-			                   (templ_rout, rp, tip, tssp,
-                                            /*push_instantiation_scope=*/TRUE);
+      check_for_function_template_default_args(templ_rout, rp, tssp);
     }  /* if */
     /* If this is a user-defined conversion or an overloaded operator,
        check for errors in the argument list.  The routine we are
@@ -8040,7 +8104,7 @@ instantiation.
              match a previous declaration of the class. */
           if (microsoft_bugs && sym->defined) {
             /* The Microsoft compiler does not check the parameter list
-               of a template that is redeclared after is has been defined. */
+               of a template that is redeclared after it has been defined. */
           } else if (!reconcile_template_param_lists(
                                 templ_params, sym, &locator.source_position)) {
             err = TRUE;
@@ -8507,7 +8571,8 @@ present, the nesting depth "0" is used.
 void prescan_function_template_default_arg_expr(a_param_type_ptr  ptp)
 /*
 Scan a default argument expression and add it to the list of arguments
-pointed to by the template symbol supplement.
+pointed to by the template symbol supplement.  "ptp" can be NULL if
+the tokens should be scanned and discarded.
 */
 {
   a_def_arg_expr_fixup_ptr	*list;
@@ -8515,14 +8580,29 @@ pointed to by the template symbol supplement.
   a_token_cache_ptr		decl_cache;
 
   /* The current scope stack entry is expected to be a function prototype
-     scope.  The enclosing scope is expected to be the template declaration
-     scope for the current function template. */
+     scope.  The enclosing scope is expected to be either the template
+     declaration scope for the current function template or the instantiation
+     scope for the partial instantiation of a template function declaration
+     In the latter case, the tokens that are cached are simply discarded. */
   ssep = scope_stack_entry_for(depth_scope_stack-1);
-  check_assertion(ssep->kind == (a_scope_kind)sck_template_declaration);
-  /* Get a pointer to the declaration token cache for the function template. */
-  decl_cache = &ssep->tmpl_decl_state->decl_token_cache;
+  if (ssep->kind == (a_scope_kind)sck_template_declaration) {
+    /* Get a pointer to the declaration token cache for the function
+       template. */
+    decl_cache = &ssep->tmpl_decl_state->decl_token_cache;
+  } else if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
+    a_symbol_ptr			template_sym = ssep->template_sym;
+    a_template_symbol_supplement_ptr	tssp;
+    /* Get a pointer to the decl_cache associated with the function template
+       whose declaration is being instantiated. */
+    check_assertion(template_sym->kind == (a_symbol_kind)sk_function_template);
+    tssp = template_supplement_for_symbol(template_sym);
+    decl_cache = &tssp->variant.function.decl_cache.tokens;
+  }  /* if */
   list = &curr_default_args;
   prescan_default_function_arg_expr(ptp, list, decl_cache);
+  /* Indicate that this default argument is a template default argument
+     whose expression has not yet been evaluated. */
+  if (ptp != NULL) ptp->has_unevaluated_template_default = TRUE;
 }  /* prescan_function_template_default_arg_expr */
 
 

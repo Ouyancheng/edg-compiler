@@ -2193,11 +2193,13 @@ that are marked "explicit" are ignored.
     if (param != NULL) {
       /* Fewer arguments than required.  No match unless there are default
          argument values.  Note that has_default_arg is not used here,
-         except for function templates, because there are cases where
-         has_default_arg is set and default_arg_expr is not set yet. */
-      if (function_template_case ?
-               !param->has_default_arg :
-               param->default_arg_expr == NULL) goto reject_function;
+         because there are cases where has_default_arg is set and
+         default_arg_expr is not set yet.  A default argument with a NULL
+         default_arg_expr is accepted if it has an unevaluated template
+         value, because we know this value can be produced when the call
+         is generated. */
+      if (!param->has_unevaluated_template_default &&
+          param->default_arg_expr == NULL) goto reject_function;
 #if DEBUG
       if (debug_level >= 4) {
         fprintf(f_debug, "try_overloaded_function_match: default arg match\n");
@@ -4094,7 +4096,8 @@ under an ellipsis or old-style function.
 static an_expr_node_ptr node_for_arg_of_overloaded_function_call(
                                       an_arg_operand_ptr       arg_operand,
                                       an_arg_match_summary_ptr arg_match,
-                                      a_param_type_ptr         param)
+                                      a_param_type_ptr         param,
+                                      a_routine_ptr	       rout_ptr)
 /*
 arg_operand represents an argument to an overloaded function call (including
 operator cases); the call has now been resolved to a specific function.
@@ -4104,10 +4107,11 @@ convert it to expression form, and return a pointer to the expression.
 arg_operand can be NULL to indicate that we've run out of actual
 arguments (default argument values will be used).  param can be NULL
 to indicate that we've run out of parameters (remaining arguments will
-be processed under an ellipsis).
+be processed under an ellipsis).  rout_ptr is the routine pointer for the
+specific function being called.
 */
 {
-  an_expr_node_ptr arg;
+  an_expr_node_ptr arg = NULL;
 
   if (arg_operand == NULL) {
     /* Match uses a default argument value.  Get it from the parameter type
@@ -4118,17 +4122,13 @@ be processed under an ellipsis).
     "node_for_arg_of_overloaded_function_call: missing param for default arg");
     }  /* if */
 #endif /* CHECKING */
-    arg = param->default_arg_expr;
-    if (arg != NULL) {
+    if (param->default_arg_expr != NULL ||
+        param->has_unevaluated_template_default) {
+      /* The parameter has a default value, or one can be generated for a
+         template-based function. */
       arg = copy_default_arg_expr(
-                         arg,
+                         rout_ptr, param,
                          (a_boolean)expr_stack->inside_conditional_expression);
-    } else {
-      /* In cases where there was an error in the declaration of a function
-         template (a parameter with a default argument expression was
-         followed by one without), put in an error node for the default
-         expression for the parameter without one. */
-      arg = error_node();
     }  /* if */
   } else {
     /* Actual argument is present (normal case). */
@@ -4242,8 +4242,9 @@ overloaded operator cases.
     for (arg_operand = arg_operand_list,
              param = routine_type->variant.routine.extra_info->param_type_list;
          arg_operand != NULL || param != NULL;) {
-      arg = node_for_arg_of_overloaded_function_call(arg_operand, arg_match,
-                                                     param);
+      arg = node_for_arg_of_overloaded_function_call(
+                                         arg_operand, arg_match, param,
+                                         function_symbol->variant.routine.ptr);
       /* Add this argument to the end of the expression-form argument list
          being built up. */
       if (prev_arg == NULL) {
@@ -6309,9 +6310,9 @@ functions could still apply).
               for (; arg_operand != NULL;
                    arg_operand = arg_operand->next,
                         arg_match = arg_match->next) {
-                arg = node_for_arg_of_overloaded_function_call(arg_operand,
-                                                               arg_match,
-                                                               param);
+                arg = node_for_arg_of_overloaded_function_call(
+                                         arg_operand, arg_match, param,
+                                         function_symbol->variant.routine.ptr);
                 if (arg_expr_list == NULL) {
                   arg_expr_list = arg;
                 } else {
@@ -7201,7 +7202,7 @@ call in *arg_expr_list.  This routine is used only in C++ mode.
      arguments for them. */
   if (param_list != NULL) {
     (*arg_expr_list)->next = copy_default_arg_expr_list(
-                         param_list->next,
+                         ctor_routine, param_list->next,
                          (a_boolean)expr_stack->inside_conditional_expression);
   }  /* if */
 }  /* set_up_for_constructor_call */

@@ -5847,9 +5847,14 @@ TRUE if this is a constructor declaration rather than a constructor reference.
          It's not only the first param-type entry that has to be checked,
          since there's also this to deal with:
            class X { X(int = 0, X* = new X); };
+
+         A default argument with a NULL default_arg_expr is accepted if it
+         has an unevaluated template value, because we know this value can
+         be produced when the call is generated.
       */
       for (; ptp != NULL;ptp = ptp->next) {
-        if (ptp->default_arg_expr == NULL) {
+        if (ptp->default_arg_expr == NULL &&
+            !ptp->has_unevaluated_template_default) {
           is_def_ctor = FALSE;
           break;
         }  /* if */
@@ -7505,45 +7510,70 @@ scope memory region.
 
 
 an_expr_node_ptr copy_default_arg_expr(
-                                an_expr_node_ptr expr,
+				a_routine_ptr	 rout,
+                                a_param_type_ptr ptp,
                                 a_boolean        inside_conditional_expression)
 /*
-Copy a default argument expression and return a pointer to the copy.
-This routine is used to copy such expressions when they are added implicitly
-to calls, but not to copy them when function types pointing to default
-argument expressions are copied.  The difference between the two is in the
-handling of object lifetimes.  In addition, a flag is set to identify this
-as a "generated" default argument expression.  inside_conditional_expression
-is TRUE if the default argument expression copy will be inside a conditional
-part of an expression.
+Copy the default argument expression from ptp, which is a parameter of
+rout, and return a pointer to the copy.  This routine is used to copy
+such expressions when they are added implicitly to calls, but not to
+copy them when function types pointing to default argument expressions
+are copied.  The difference between the two is in the handling of
+object lifetimes.  In addition, a flag is set to identify this as a
+"generated" default argument expression.
+inside_conditional_expression is TRUE if the default argument
+expression copy will be inside a conditional part of an expression.
 */
 {
   an_expr_copy_options_set options = CE_NO_OPTIONS;
+  an_expr_node_ptr	   expr;
 
-  if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
-    /* The top node is an enk_object_lifetime.  The lifetime is not copied.
-       Instead, copies of dynamic inits associated with that lifetime will be
-       bound into the curr_object_lifetime. */
-    expr = expr->variant.object_lifetime.expr;
+  if (ptp->has_unevaluated_template_default) {
+    /* This is a parameter of a function template, or a member function of a
+       template class, and the default value has not yet been instantiated.
+       Instantiate it now. */
+    a_symbol_ptr	rout_sym;
+    check_assertion_str2(rout != NULL, "copy_default_arg_expr:",
+                         "NULL routine pointer");
+    rout_sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
+    instantiate_default_argument(rout_sym, ptp);
   }  /* if */
-  if (inside_conditional_expression) {
-    /* The copy will be inside a conditional part of an expression. */
-    options |= CE_INSIDE_CONDITIONAL_EXPRESSION;
+  /* Watch out for cases where a default argument is followed by
+     a non-default argument.  An error will have been issued at
+     the point of declaration of the function, but the problem
+     could not be corrected there because the function type may
+     have come from a typedef (i.e., it might be shared). */
+  if (ptp->default_arg_expr == NULL) {
+    expr = error_node();
+  } else {
+    expr = ptp->default_arg_expr;
+    if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+      /* The top node is an enk_object_lifetime.  The lifetime is not copied.
+         Instead, copies of dynamic inits associated with that lifetime will be
+         bound into the curr_object_lifetime. */
+      expr = expr->variant.object_lifetime.expr;
+    }  /* if */
+    if (inside_conditional_expression) {
+      /* The copy will be inside a conditional part of an expression. */
+      options |= CE_INSIDE_CONDITIONAL_EXPRESSION;
+    }  /* if */
+    expr = copy_expr_tree(expr, options);
+    expr->generated_default_arg = TRUE;
   }  /* if */
-  expr = copy_expr_tree(expr, options);
-  expr->generated_default_arg = TRUE;
   return expr;
 }  /* copy_default_arg_expr */
 
 
 an_expr_node_ptr copy_default_arg_expr_list(
+				a_routine_ptr	 rout,
                                 a_param_type_ptr ptp,
                                 a_boolean        inside_conditional_expression)
 /*
-Make an expression list containing copies of the default argument expressions
-for the parameter indicated by ptp and all parameters following that.
-If ptp is non-NULL, it must point to a parameter with a default argument
-expression.  inside_conditional_expression is TRUE if the default argument
+Make an expression list containing copies of the default argument
+expressions for the parameter indicated by ptp, which is a parameter
+of rout, and all parameters following that. If ptp is non-NULL, it
+must point to a parameter with a default argument expression.
+inside_conditional_expression is TRUE if the default argument
 expression copies will be inside a conditional part of an expression.
 */
 {
@@ -7551,23 +7581,15 @@ expression copies will be inside a conditional part of an expression.
 
   if (ptp != NULL) {
 #if CHECKING
-    if (ptp->default_arg_expr == NULL) {
+    if (ptp->default_arg_expr == NULL &&
+        !ptp->has_unevaluated_template_default) {
       internal_error("copy_default_arg_expr_list: param has no default arg");
     }  /* if */
 #endif /* CHECKING */
     /* Copy the default argument expressions. */
     do {
-      /* Watch out for cases where a default argument is followed by
-         a non-default argument.  An error will have been issued at
-         the point of declaration of the function, but the problem
-         could not be corrected there because the function type may
-         have come from a typedef (i.e., it might be shared). */
-      if (ptp->default_arg_expr == NULL) {
-        arg_node = error_node();
-      } else {
-        arg_node = copy_default_arg_expr(ptp->default_arg_expr,
-                                         inside_conditional_expression);
-      }  /* if */
+      arg_node = copy_default_arg_expr(rout, ptp,
+                                       inside_conditional_expression);
       if (first_node == NULL) {
         first_node = arg_node;
       } else {

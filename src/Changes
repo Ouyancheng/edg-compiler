@@ -1,5 +1,19 @@
 Version 2.40
 
+11/28/98  Template default arguments instantiated only when needed
+
+Default arguments of function templates and member functions of class
+templates are now instantiated only when the default argument is used
+in a call.
+
+  template <class T> int f(T, T = T()){}
+  struct A {
+     A(int){}
+     // no default constructor for A
+  };
+  A a(1);
+  int i = f(a,a);
+
 11/24/98  Microsoft compatibility: support for __assume
 
 In Microsoft mode the __assume(expression) construct is now accepted.

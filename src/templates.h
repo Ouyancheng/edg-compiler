@@ -277,13 +277,13 @@ extern a_boolean equiv_template_param_lists(
 
 extern void prescan_function_template_default_arg_expr(a_param_type_ptr  ptp);
 
-extern
-void delayed_scan_for_function_template_default_args(
+extern void check_for_function_template_default_args(
 		    a_routine_ptr		     templ_rout,
 		    a_routine_ptr		     rout_ptr,
-                    a_template_instance_ptr	     tip,
-                    a_template_symbol_supplement_ptr tssp,
-                    a_boolean                        push_instantiation_scope);
+                    a_template_symbol_supplement_ptr tssp);
+
+extern void instantiate_default_argument(a_symbol_ptr		rout_sym,
+					 a_param_type_ptr	param);
 
 extern void template_directive_or_declaration(
 			a_token_kind			*final_token,

@@ -1412,11 +1412,12 @@ issue an error if a default argument expression is encountered.
           /* Argument expressions are not allowed in overloaded operator
              declarations.  Issue an error, but go ahead and scan the
              expression. */
-          a_scope_kind  parent_scope_kind;
-          a_boolean     is_member_or_friend_function;
-          a_boolean     cache_default_arg;
-          a_boolean     ignore_default_arg_expr;
-          a_boolean	invalid_default_arg = FALSE;
+          a_scope_kind		parent_scope_kind;
+          a_boolean		is_member_or_friend_function;
+          a_boolean		cache_default_arg;
+          a_boolean		ignore_default_arg_expr;
+          a_boolean		invalid_default_arg = FALSE;
+          a_param_type_ptr	ptp_for_scan;
 
           if (!default_arg_expr_allowed) {
             pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
@@ -1446,6 +1447,7 @@ issue an error if a default argument expression is encountered.
               /* A template instantiation -- the function declarator tokens are
                  being rescanned.  All the default arguments are scanned from
                  caches during a later fixup, so ignore the expression now. */
+              cache_default_arg = TRUE;
               ignore_default_arg_expr = TRUE;
             } else if (parent_scope_kind ==
                                   (a_scope_kind)sck_class_reactivation &&
@@ -1465,6 +1467,10 @@ issue an error if a default argument expression is encountered.
                that can begin a default argument. */
             invalid_default_arg = TRUE;
           }  /* if */
+          /* A NULL param type pointer is used as a signal to the caching
+             and scanning routines that the default argument should be
+             ignored. */
+          ptp_for_scan = ignore_default_arg_expr ? NULL : ptp;
           if (cache_default_arg) {
             /* The default argument should be cached because it is either
                in a member function declaration inside a class or in
@@ -1485,17 +1491,17 @@ issue an error if a default argument expression is encountered.
             if (is_member_or_friend_function) {
               /* Scan the default arguments for a member or friend
                  function. */
-              prescan_member_function_default_arg_expr(ptp, &decl_token_cache);
+              prescan_member_function_default_arg_expr(ptp_for_scan,
+                                                       &decl_token_cache);
             } else {
               /* Scan the default arguments for a function template. */
-              prescan_function_template_default_arg_expr(ptp);
+              prescan_function_template_default_arg_expr(ptp_for_scan);
             }  /* if */
           } else {
             /* Not a case in which the default argument should be
                cached -- or else a syntax error.  Go ahead and
                scan the expression and convert it to the required type. */
-            scan_default_arg_expr(ignore_default_arg_expr ?
-                                    (a_param_type_ptr)NULL : ptp);
+            scan_default_arg_expr(ptp_for_scan);
           }  /* if */
           if (default_arg_expr_allowed) {
             ptp->has_default_arg = TRUE;

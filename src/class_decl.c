@@ -730,7 +730,8 @@ void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp,
 					      a_token_cache_ptr decl_cache)
 /*
 Scan a default argument expression and link the default argument
-entry onto a list in the current routine fixup entry.
+entry onto a list in the current routine fixup entry.  "ptp" can be NULL if
+the tokens should be scanned and discarded.
 */
 {
   a_def_arg_expr_fixup_ptr  *list;
@@ -984,8 +985,11 @@ Process the default argument expressions for the indicated class.
           for (; daefp != NULL; daefp = daefp->next) {
             discard_token_cache(&daefp->cache.tokens);
           }  /* for */
-          /* Scan the default arguments associated with the template for this
-             function. */
+          /* Update the default argument information for this function based
+	     on the information about the template from which it was
+             generated.  Note that the default argument values are not
+             actually scanned at this point.  They will be scanned later,
+             only if their value(s) are needed. */
           if (sym->variant.routine.instance_ptr == NULL) {
             /* Some sort of error condition. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -995,12 +999,10 @@ Process the default argument expressions for the indicated class.
             /* Get the template symbol from the instance pointer. */
             tssp = sym->variant.routine.instance_ptr->template_sym->
                                variant.routine.instance_ptr->template_info;
-            delayed_scan_for_function_template_default_args(
+            check_for_function_template_default_args(
                                            tssp->variant.function.routine,
                                            sym->variant.routine.ptr,
-                                           sym->variant.routine.instance_ptr,
-                                           tssp,
-                                           /*push_instantiation_scope=*/FALSE);
+                                           tssp);
           }  /* if */
         } else {
           /* A friend (or other non-member-function) declaration in a real

@@ -6775,7 +6775,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
              arg. */
           ptp = ptp->next;
           dip->variant.constructor.args =
-           copy_default_arg_expr_list(ptp,
+           copy_default_arg_expr_list(cctor, ptp,
                                       /*inside_conditional_expression=*/FALSE);
           /* Only at runtime is the source known. */
           dip->variant.constructor.

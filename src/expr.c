@@ -1032,6 +1032,7 @@ mismatch:
 
 
 static void scan_call_arguments(a_type_ptr         function_type,
+                                a_routine_ptr	   routine,
                                 a_boolean          already_after_left_paren,
                                 an_expr_node_ptr   *p_argument_list,
                                 a_boolean          overloaded_function_case,
@@ -1039,15 +1040,19 @@ static void scan_call_arguments(a_type_ptr         function_type,
 /*
 Scan the arguments of a function call and return a list of argument
 expressions in *p_argument_list.  The type of the function being called is
-given by function_type; function_type is NULL if the type is not known.
-The current token at the time of call is the opening "(" of the
-argument list, unless already_after_left_paren is TRUE, in which case
-it is the token following the left parenthesis (but the add_stop_token
-call has not been done).  On return, the current token is the token
-following the closing ")".  If overloaded_function_case is TRUE, this
-call is scanning the arguments for a call of an overloaded function, so
-build an argument operand list and return a pointer to it in
-*arg_operand_list.
+given by function_type; function_type is NULL if the type is not known,
+or for an overloaded function case.  The current token at the time of
+call is the opening "(" of the argument list, unless already_after_left_paren
+is TRUE, in which case it is the token following the left parenthesis (but
+the add_stop_token call has not been done).  On return, the current token
+is the token following the closing ")".  If overloaded_function_case is
+TRUE, this call is scanning the arguments for a call of an overloaded
+function, so build an argument operand list and return a pointer to it in
+*arg_operand_list.  routine points to the routine being called; it's NULL
+if the specific function being called is not known, e.g., when
+overloaded_function_case is TRUE or when calling through a pointer.
+(Actually, it's ignored when overloaded_function_case is TRUE, so it
+can be anything, including an overloaded function symbol, in that case.)
 */
 {
   a_param_type_ptr    curr_param_type;
@@ -1074,6 +1079,7 @@ build an argument operand list and return a pointer to it in
     /* Start with an empty list of argument operands. */
     *arg_operand_list = NULL;
     end_arg_operand_list = NULL;
+    function_type = NULL;
   }  /* if */
   if (function_type != NULL) {
     a_routine_type_supplement_ptr extra_info;
@@ -1094,8 +1100,8 @@ build an argument operand list and return a pointer to it in
     /* Get the varargs count. */
     varargs_count = extra_info->lint_varargs_count;
   } else {
-    /* Bad function operand.  Therefore, we have no information on
-       parameters. */
+    /* Overloaded function, or bad function operand.  We have no information
+       on parameters. */
     curr_param_type = NULL;
     prototyped = FALSE;
     has_ellipsis = FALSE;
@@ -1312,9 +1318,10 @@ build an argument operand list and return a pointer to it in
     if (curr_param_type != NULL) {
       /* Not enough arguments? */
       /* If there is a default argument value, or several, use them. */
-      if (curr_param_type->default_arg_expr != NULL) {
+      if (curr_param_type->default_arg_expr != NULL ||
+          curr_param_type->has_unevaluated_template_default) {
         curr_node = copy_default_arg_expr_list(
-                         curr_param_type,
+                         routine, curr_param_type,
                          (a_boolean)expr_stack->inside_conditional_expression);
         if (argument_head == NULL) {
           argument_head = curr_node;
@@ -1480,7 +1487,8 @@ is after the closing parenthesis of the argument list.
   }  /* if */
 
   /* Scan the arguments. */
-  scan_call_arguments(routine_type, /*already_after_left_paren=*/TRUE,
+  scan_call_arguments(routine_type, constructor_sym->variant.routine.ptr,
+                      /*already_after_left_paren=*/TRUE,
                       arg_expr_list, overloaded_function_case,
                       &arg_operand_list);
   error_position = start_position;
@@ -1737,7 +1745,7 @@ Syntax:
   }  /* if */
 
   /* Scan the arguments of the call. */
-  scan_call_arguments(routine_type,
+  scan_call_arguments(routine_type, routine,
                       already_after_left_paren, &argument_list,
                       overloaded_function_case, &arg_operand_list);
   error_position = call_position;
@@ -5431,7 +5439,7 @@ specification allow a variable-sized array as the top type.
         /* Scan the expression list as an argument list for which we do not yet
            know the function.  The argument values are returned in a list
            headed by arg_operand_list. */
-        scan_call_arguments((a_type_ptr)NULL,
+        scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
                             /*already_after_left_paren=*/TRUE,
                             &dummy, /*overloaded_function_case=*/TRUE,
                             &arg_operand_list);
@@ -5728,7 +5736,7 @@ specification allow a variable-sized array as the top type.
         if (ctor_routine != NULL) {
           needs_initialization = TRUE;
           /* Provide default arguments if any. */
-          init_arg_expr_list = copy_default_arg_expr_list(
+          init_arg_expr_list = copy_default_arg_expr_list(ctor_routine,
                 skip_typerefs(ctor_routine->type)->variant.routine.extra_info->
                                                               param_type_list,
                 (a_boolean)expr_stack->inside_conditional_expression);

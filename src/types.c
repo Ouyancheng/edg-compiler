@@ -4846,12 +4846,16 @@ make_new_comp_type:
              argument expression. */
           if (ptp1->has_default_arg) {
             new_ptp->has_default_arg = TRUE;
+            new_ptp->has_unevaluated_template_default =
+                                        ptp1->has_unevaluated_template_default;
             if (ptp1->default_arg_expr != NULL) {
               new_ptp->default_arg_expr =
                           duplicate_default_arg_expr(ptp1->default_arg_expr);
             }  /* if */
           } else if (ptp2->has_default_arg) {
             new_ptp->has_default_arg = TRUE;
+            new_ptp->has_unevaluated_template_default =
+                                        ptp2->has_unevaluated_template_default;
             if (ptp2->default_arg_expr != NULL) {
               new_ptp->default_arg_expr =
                           duplicate_default_arg_expr(ptp2->default_arg_expr);
@@ -6390,6 +6394,8 @@ make_new_type:
         new_ptp = make_param_type(tp, &null_source_position);
         if (ptp->has_default_arg) {
           new_ptp->has_default_arg = TRUE;
+          new_ptp->has_unevaluated_template_default =
+                                         ptp->has_unevaluated_template_default;
           if (ptp->default_arg_expr != NULL) {
             new_ptp->default_arg_expr =
                              duplicate_default_arg_expr(ptp->default_arg_expr);
