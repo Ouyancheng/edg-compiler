@@ -7159,6 +7159,13 @@ scan.
         instantiate_il_entity(
                        &con->variant.address.variant.variable->source_corresp);
       }  /* if */
+    } else if (con->kind == (a_constant_repr_kind)ck_ptr_to_member) {
+      if (con->variant.ptr_to_member.is_function_ptr) {
+        a_routine_ptr rout = con->variant.ptr_to_member.variant.routine;
+        if (rout != NULL) {
+          instantiate_il_entity(&rout->source_corresp);
+        }  /* if */
+      }  /* if */
     }  /* if */
   } else if (expr->kind == (an_expr_node_kind)enk_new_delete) {
     a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;

@@ -1,5 +1,25 @@
 Version 2.46
 
+2/13/02  Instantiation of function used in pointer to member in default
+         argument
+
+Functions used in pointer-to-member references in a default argument
+expression are now marked to be instantiated when the default
+argument is used.  The following example got an instantiation loop
+before this fix.
+
+  template <class T> struct A {
+    void f();
+  };
+  template <class T> void A<T>::f(){}
+  void f(int i = (&A<int>::f,1)){}
+  template <class T> void g(T) {
+    f();
+  }
+  int main() {
+    g(1);
+  }
+
 2/13/02  "new" of nonreal class in prototype instantiation
 
 In some cases, a "new" of a nonreal class processed inside a prototype
