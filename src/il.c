@@ -6440,6 +6440,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
     } else if (kind == iek_comment) {
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+    } else if (kind == iek_switch_clause) {
     } else {
       a_source_position       *pos;
       a_source_correspondence *scp;
@@ -6676,7 +6677,9 @@ void update_source_sequence_list(char               *entity_ptr,
                                  a_source_position  *pos)
 /*
 Allocate a source sequence entry for the entity and add it to the list for
-the current scope.
+the current scope.  pos is the source position, for use in cases where this
+call records a secondary declaration; for entities for which that
+concept does not apply, pos can be NULL.
 */
 {
   a_source_sequence_entry_ptr   ssep = alloc_source_sequence_entry();
@@ -6687,11 +6690,11 @@ the current scope.
 
 
   if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
-      kind != iek_statement &&
+      kind != iek_statement && kind != iek_switch_clause &&
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-                               kind != iek_comment &&
+      kind != iek_comment &&
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
-        in_file_scope(entity_ptr)) {
+      in_file_scope(entity_ptr)) {
     force_alloc_in_filescope = TRUE;
     switch_to_file_scope_region(&region_to_switch_back_to);
   } else {
@@ -6707,6 +6710,8 @@ the current scope.
   } else if (kind == iek_comment) {
     /* Comments have no pointer back to the source sequence entry. */
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+  } else if (kind == iek_switch_clause) {
+    /* Switch clauses have no pointer back to the source sequence entry. */
   } else {
     /* Declared entity -- extract the source correspondence field. */
     scp = &((a_variable_ptr)entity_ptr)->source_corresp;

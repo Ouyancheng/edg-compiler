@@ -2840,6 +2840,11 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
     } else {
       prev_scp->next = scp;
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Add a source sequence entry for the switch clause. */
+    update_source_sequence_list((char *)scp, iek_switch_clause,
+                                (a_source_position *)NULL);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Represent this case label by adding an entry to the
        control_flow_descr_list. */
     add_to_control_flow_descr_list(
