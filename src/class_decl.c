@@ -4187,6 +4187,35 @@ of assoc_field_object and assoc_var_object is defined.
 }  /* check_anonymous_union_symbols */
 
 
+static void add_error_field(a_type_ptr  class_type,
+                            a_field_ptr *end_of_list)
+/*
+Add a field of error type to the field list for the specified class type.
+*/
+{
+  a_symbol_locator  locator;
+  a_symbol_ptr      sym;
+  a_field_ptr       fp = alloc_field();
+
+  set_to_error_locator(locator);
+  fp->type = error_type();
+  fp->source_corresp.class_of_which_a_member = class_type;
+  /* Create the field symbol. */
+  sym = enter_local_symbol((a_symbol_kind)sk_field, &locator,
+                           depth_scope_stack, /*suppress_redecl_error=*/TRUE);
+  sym->class_of_which_a_member = class_type;
+  sym->variant.field.ptr = fp;
+  set_source_corresp(&(fp->source_corresp), sym);
+  /* Add the field to the temporary list for this class/struct/union. */
+  if (*end_of_list == NULL) {
+    class_type->variant.class_struct_union.field_list = fp;
+  } else {
+    (*end_of_list)->next = fp;
+  }  /* if */
+  *end_of_list = fp;
+}  /* add_error_field */
+
+
 static void decl_nonstatic_data_member(a_symbol_locator    *locator,
                                        a_layout_block_ptr  lob,
                                        a_type_ptr          *member_type,
@@ -5226,7 +5255,7 @@ Scan the body of a class definition, including the base classes list.
   a_symbol_ptr                    tag_sym, corresp_prototype_tag_sym = NULL;
   a_boolean                       first_declarator;
   a_decl_flag_set                 dsi_flags;
-  a_boolean                       is_first_field;
+  a_boolean                       is_first_field, any_named_fields;
   a_source_position               decl_start_pos;
   a_scope_ptr                     scope_ptr;
   a_field_ptr                     end_of_field_list = NULL;
@@ -5350,8 +5379,10 @@ Scan the body of a class definition, including the base classes list.
         cssp->prototype_token_sequence_number = curr_token_sequence_number;
       }  /* if */
     }  /* if */
-    if (C_dialect == C_dialect_cplusplus && curr_token == tok_rbrace) {
-      /* A member list is optional in C++. */
+    any_named_fields = FALSE;
+    if (curr_token == tok_rbrace) {
+      /* A member list is optional in C++.  In C mode, it's an error, but
+         the diagnostic is issued later, when any_named_fields is checked. */
     } else {
       if (class_type->kind == (a_type_kind)tk_class) {
         /* Members of a C++ class have private access by default. */
@@ -6314,6 +6345,9 @@ Scan the body of a class definition, including the base classes list.
                   }  /* if */
                 }  /* if */
               }  /* if */
+              /* Set the flag to record that at least one named field was
+                 encountered. */
+              if (!unnamed_field) any_named_fields = TRUE;
               decl_nonstatic_data_member(&locator, &layout_block, &local_type,
                                          access, unnamed_field,
                                          is_anonymous_union, declarator_ssep,
@@ -6399,6 +6433,15 @@ next_declaration:
         remove_stop_token(tok_semicolon);
         /* Keep processing member declarations until the closing brace. */
       } while (curr_token != tok_rbrace && curr_token != tok_end_of_source);
+    }  /* if */
+    if (C_mode() && curr_token == tok_rbrace && !any_named_fields) {
+      /* In C mode, there must be at least one named field.  This covers
+         both "struct S { };" and "struct S { int:1; };", the latter producing
+         undefined behavior according to the C standard.  Issue an error
+         and also create a dummy field to reduce error recovery problems
+         down the line. */
+      error(ec_no_named_fields);
+      add_error_field(class_type, &end_of_field_list);
     }  /* if */
     /* Adding the type to the current scope's types list is done after
        reaching the closing brace to get the IL types list in the right
