@@ -434,7 +434,7 @@ associated with the current token.
   /* Increment the number of pragmas in reusable caches and the number of
      pragmas in this particular cache. */
   { a_pending_pragma_ptr	ppp = curr_token_pragmas;
-    long			count = 0;
+    unsigned long		count = 0;
     while (ppp != NULL) {
       count++;
       ppp = ppp->next;
