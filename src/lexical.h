@@ -99,6 +99,9 @@ typedef enum /*a_token_kind*/ {
 #if RESTRICT_ALLOWED
   tok_restrict,
 #endif /* RESTRICT_ALLOWED */
+#if MICROSOFT_KEYWORDS_ALLOWED
+  tok_cdecl, tok_declspec, tok_fastcall, tok_microsoft_inline, tok_stdcall,
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
   /* C++ tokens not in C (ARM, 2.4): */
   tok_colon_colon       /* :: */,   tok_period_star        /* .* */,
   tok_arrow_star        /* ->* */,
@@ -143,6 +146,9 @@ EXTERN char	*token_names[(int)tok_last+1]
 #if RESTRICT_ALLOWED
    "restrict",
 #endif /* RESTRICT_ALLOWED */
+#if MICROSOFT_KEYWORDS_ALLOWED
+   "__cdecl", "__declspec", "__fastcall", "__inline", "__stdcall",
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
    "::", ".*", "->*", "asm", "catch", "class", "delete", "friend",
    "inline", "new", "operator", "private", "protected", "public",
    "template", "this", "throw", "try", "virtual",
@@ -394,6 +400,13 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
 #if RESTRICT_ALLOWED
    (an_opname_kind)onk_none,          /* tok_restrict */
 #endif /* RESTRICT_ALLOWED */
+#if MICROSOFT_KEYWORDS_ALLOWED
+   (an_opname_kind)onk_none,          /* tok_cdecl */
+   (an_opname_kind)onk_none,          /* tok_declspec */
+   (an_opname_kind)onk_none,          /* tok_fastcall */
+   (an_opname_kind)onk_none,          /* tok_microsoft_inline */
+   (an_opname_kind)onk_none,          /* tok_stdcall */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_colon_colon */
    (an_opname_kind)onk_none,          /* tok_period_star */
    (an_opname_kind)onk_arrow_star,
