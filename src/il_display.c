@@ -1165,7 +1165,6 @@ Display a_routine_type_supplement.
              iek_throw_specification);
   }  /* if */
 #endif /* ifdef CFE */
- (void) printf("\n");
 }  /* disp_routine_type_supplement */
 
 #ifdef FFE
