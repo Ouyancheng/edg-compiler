@@ -203,8 +203,8 @@ sign bit.
 }  /* set_fixed_point_to_saturated_value */
 
 
-void negate_fixed_point_value(a_fixed_point_value	*op_1,
-			      a_boolean			*err)
+static void negate_fixed_point_value(a_fixed_point_value	*op_1,
+				     a_boolean			*err)
 /*
 Negate a fixed-point value.  The result is returned in the first operand
 (op_1 = -op_1).  err is TRUE if an overflow occurred.
@@ -272,7 +272,7 @@ fxp_descr describes the format of the value being stored.
          from 2 to 6
          from 3 to 7
     */
-    int i;
+    unsigned int i;
     for (i = 0; i < source_size; ++i) {
       char	*source;
       char	*dest;
@@ -371,7 +371,7 @@ value is negative, is_negative will be TRUE.
   int			bits;
 
   /* Make sure an_integer_value can be copied into a_mantissa. */
-  check_assertion(sizeof(an_integer_value) <= sizeof(mp->parts));
+  check_assertion(sizeof(an_integer_value) <= sizeof(mp->parts));/*lint !e506*/
   /* Clear the mantissa. */
   init_mantissa(mp);
   *exponent = 0;
@@ -796,7 +796,7 @@ the value cannot be converted to the destination type.
   conv_mantissa_to_fixed_point(&mantissa, exponent, is_negative, fxp_descr,
                                /*overflow=*/FALSE, fxp_value, err, &inexact);
 #if TARG_HAS_IEEE_FLOATING_POINT
-  if (fp_is_nan_or_infinity(fp_value, fk_long_double)) {
+  if (fp_is_nan_or_infinity(fp_value, (a_float_kind)fk_long_double)) {
     /* Not-a-number or infinity.  Treat this as an error. */
     *err = TRUE;
   }  /* if */
