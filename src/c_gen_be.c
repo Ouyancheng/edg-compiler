@@ -7241,6 +7241,23 @@ Generate C for a statement.
       dump_statement(statement->variant.loop_statement);
       indent -= 2;
       break;
+    case stmk_for:
+      fputs("for (", f_C_output);
+      dump_statement(statement->variant.for_loop.extra_info->initialization);
+      startline((a_seq_number)0);
+      if (statement->expr != NULL) {
+        dump_boolean_controlling_expression(statement->expr);
+      }  /* if */
+      fputs("; ", f_C_output);
+      if (statement->variant.for_loop.extra_info->increment != NULL) {
+        dump_expression(statement->variant.for_loop.extra_info->increment,
+                        /*need_parens=*/FALSE);
+      }  /* if */
+      fputs(")", f_C_output);
+      indent += 2;
+      dump_statement(statement->variant.for_loop.statement);
+      indent -= 2;
+      break;
     case stmk_goto:
       /* Note that K&R/pcc compilers do not provide a separate name space
          for labels. */
@@ -8038,6 +8055,13 @@ its subtree.
       case stmk_end_test_while:
 #endif /* ifdef CFE */
         dump_prescan_temps(statement->variant.loop_statement);
+        break;
+      case stmk_for:
+        dump_prescan_temps(
+                       statement->variant.for_loop.extra_info->initialization);
+        dump_prescan_temps(statement->variant.for_loop.statement);
+        dump_expr_prescan_temps(
+                            statement->variant.for_loop.extra_info->increment);
         break;
       case stmk_block:
         /* If the block has its own scope, do not prescan now for temporaries;

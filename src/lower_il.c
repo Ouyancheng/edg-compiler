@@ -5834,6 +5834,15 @@ Do IL lowering of the indicated statement and everything under it.
       case stmk_end_test_while:
         lower_statement(statement->variant.loop_statement);
         break;
+      case stmk_for:
+        lower_statement(statement->variant.for_loop.statement);
+        { a_for_loop_ptr extra_info = statement->variant.for_loop.extra_info;
+          lower_statement(extra_info->initialization);
+          if (extra_info->increment != NULL) {
+            lower_normal_expr(extra_info->increment);
+          }  /* if */
+        }
+        break;
       case stmk_block:
         /* Push a block context around the processing of the block.
            Do not do that if the block has no associated scope.
