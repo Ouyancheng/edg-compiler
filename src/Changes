@@ -39,10 +39,12 @@ The handling of anachronisms as tiebreakers in overload resolution has
 been improved.  They were supposed to be considered on every argument,
 but in fact were considered only on the first argument.
 
-2/9/96    Access error on friend class declaration
+2/9/96    Access and ambiguity checking on qualified name in elaborated
+          type specifier
 
-We now issue an error when a qualified name in a friend declaration refers
-to an inaccessible class -- for instance,
+We now issue an error when a qualified name in an elaborated type
+specifier refers to an inaccessible or ambiguous class or enumeration --
+for instance,
 
   class A {
     class B;
@@ -50,6 +52,11 @@ to an inaccessible class -- for instance,
   class C {
     friend class A::B;     // Error now issued: A::B is not accessible
   };
+
+The exception is that such an error is not issued on the deferred
+definition of a private nested class:
+
+  class A::B { ... };     // Okay
 
 2/6/96    Removal of unneeded object lifetime entries
 
