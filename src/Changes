@@ -4,7 +4,7 @@ Version 2.32
           old-style param list
 
 An internal error has been fixed in managing the source-sequence lists
-for this rather obscure case, where a omitted parameter appears in a
+for this rather obscure case, where an omitted parameter appears in a
 function prototype nested within a function prototype:
 
   void f(a) int a(int); { ... } 
