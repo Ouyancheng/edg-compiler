@@ -35,7 +35,8 @@ error.c -- Error reporting routines.
 
 /* Many support functions and macros that are generally available in the
    front end are duplicated here so that error.c can be compiled
-   independently of a front end (e.g. with a standalone IL display utility. */
+   independently of a front end (e.g. with a standalone IL display
+   utility). */
 
 /* Macro to strip tk_typeref entries from a type. */
 #define skip_typerefs(tp)                                             \
