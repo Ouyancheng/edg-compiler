@@ -6654,7 +6654,7 @@ Scan the body of a class definition, including the base classes list.
               /* This looked like a cfront-style member function typedef.  Be
                  sure the type was a function type. */
               if (is_function_type(local_type)) {
-                /* Issue a warning on the extension. *
+                /* Issue a warning on the extension. */
                 pos_warning(ec_ptr_to_member_typedef,
                             &locator.source_position);
               } else {
