@@ -10885,7 +10885,7 @@ destructor scope.
       if_node = make_operator_node((an_expr_operator_kind)eok_land,
                                    int_type, this_compare_node);
     }  /* if */
-#endif ASSIGNMENT_TO_THIS_ALLOWED
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
     /* Make "if ((param & 0x1) != 0)". */
     insert_if_statement(if_node, &insert_location, &insert_location2);
     /* Make "delete-routine((void *)this);" under the "if". */
