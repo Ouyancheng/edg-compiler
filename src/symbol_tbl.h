@@ -727,8 +727,17 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
    one defined as a typedef, or, in C++, as a class, struct, union,
    or enum. */
 #define is_type_symbol(sym)                                           \
-   ((sym)->kind == (a_symbol_kind)sk_type ||                          \
-    (C_dialect == C_dialect_cplusplus && is_tag_symbol(sym)))
+  ((sym)->kind == (a_symbol_kind)sk_type ||                           \
+   (C_dialect == C_dialect_cplusplus && is_tag_symbol(sym)))
+
+/*
+Extract the type from a type symbol (one for which is_type_symbol is TRUE).
+*/
+#define type_symbol_type(sym)                                         \
+  (((sym)->kind == (a_symbol_kind)sk_type ||                          \
+    (sym)->kind == (a_symbol_kind)sk_enum_tag) ?                      \
+                               (sym)->variant.type :                  \
+                               (sym)->variant.class_struct_union.type)
 
 /* Return a pointer to the current routine entry (only usable when within
    a routine definition). */
