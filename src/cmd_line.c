@@ -918,7 +918,7 @@ processing routine to update the severity.
       fprintf(f_debug, "Setting error severity for: %s\n", opt_start);
     }  /* if */
 #endif /* DEBUG */
-    if (isdigit(*opt_start)) {
+    if (isdigit((unsigned char)*opt_start)) {
       int error_number = (int)scan_opt_arg_number(opt_start);
       error = set_severity_for_error_number(error_number, severity);
       if (error) {

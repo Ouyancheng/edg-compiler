@@ -520,7 +520,7 @@ mangling for lengths of literals.
              following the decimal point. */
           /* The first digit after the decimal is considered significant even
              if it is a zero. */
-          for (last_signif = ++p; isdigit(*p); p++) {
+          for (last_signif = ++p; isdigit((unsigned char)*p); p++) {
             if (*p != '0') last_signif = p;
           }  /* for */
           /* Change any insignificant zeroes to blanks. */

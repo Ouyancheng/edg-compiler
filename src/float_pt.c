@@ -177,7 +177,7 @@ do nothing.
             (void)sprintf(float_string, "%.2e", float_temp);
             ptr = float_string;
             if (*ptr == '-') ptr++;
-            if (!isdigit(*ptr)) {
+            if (!isdigit((unsigned char)*ptr)) {
               /* Probably overflow. */
               *err = TRUE;
             }  /* if */
