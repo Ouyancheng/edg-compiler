@@ -8193,10 +8193,13 @@ the sk_variable symbol.  Otherwise, return NULL.
 
 
 static void scan_identifier(an_operand               *result,
-                            a_local_expr_options_set local_options)
+                            a_local_expr_options_set local_options,
+                            a_symbol_ptr             *p_sym_ptr)
 /*
 Scan an identifier, and return an operand for it in *operand.  In C++,
 also handle qualified names like A::x and operator names like "operator+".
+If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
+(the base symbol, not any projection symbol).
 */
 {
   a_symbol_ptr      sym_ptr, projection_sym_ptr, anon_var_sym;
@@ -8210,6 +8213,7 @@ also handle qualified names like A::x and operator names like "operator+".
 
   db_enter(4, "scan_identifier");
 
+  if (p_sym_ptr != NULL) *p_sym_ptr = NULL;
 #if CHECKING
   if (curr_expr_kind_is(ek_pp)) {
     /* Should never see an identifier in a preprocessing directive. */
@@ -8598,6 +8602,7 @@ after_advance_past_id:
   /* Set the error position to the starting position. */
   copy_source_position(start_position, error_position);
   copy_source_position(start_position, result->position);
+  if (p_sym_ptr != NULL) *p_sym_ptr = sym_ptr;
 
   db_exit();
 }  /* scan_identifier */
@@ -8757,7 +8762,7 @@ see expr.h).
     case tok_operator:               /* Start of "operator+" and the like. */
       /* Watch out for something like "S::*". */
       if (!is_qualified_name_start()) goto bad_start_of_primary;
-      scan_identifier(&local_result, local_options);
+      scan_identifier(&local_result, local_options, (a_symbol_ptr *)NULL);
       break;
     case tok_this:
       /* In C++, "this" in a nonstatic member function is a non-lvalue that
@@ -10083,6 +10088,70 @@ to the expression created.  The variable var must have an associated symbol.
   return expr;
 }  /* make_condition_value_expression */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_variable_ptr based_variable(void)
+/*
+Scan the variable specification in a __based specifier, e.g.,
+
+   int __based(p) * q;
+               ^this variable
+
+The variable must be a pointer variable.  A pointer to the variable is
+returned, or NULL if there is an error.  This is a Microsoft extension;
+this routien is called only when microsoft_mode is TRUE.
+*/
+{
+  an_operand              operand;
+  a_variable_ptr          variable = NULL;
+  a_symbol_ptr            sym_ptr;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
+
+  /* Even though this is not an expression scan, make sure the expr_stack
+     has something on it.  If there is already something on the stack,
+     save it, clear the stack, and restore it later. */
+  saved_expr_stack = expr_stack;
+  expr_stack = NULL;
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE);
+  /* The variable is not evaluated (at least not here). */
+  expr_stack_entry.evaluated = FALSE;
+  expr_stack_entry.potentially_evaluated = FALSE;
+  /* Scan the identifier. */
+  scan_identifier(&operand, (a_local_expr_options_set)EOPT_NO_OPTIONS,
+                  &sym_ptr);
+  if (is_error_operand(&operand) || sym_ptr == NULL) {
+    /* Some previous error. */
+  } else {
+    /* Make sure the name referenced is a variable. */
+    switch (sym_ptr->kind) {
+      case sk_variable:
+        variable = sym_ptr->variant.variable.ptr;
+        break;
+      case sk_static_data_member:
+        variable = sym_ptr->variant.static_data_member.variable;
+        break;
+      default:
+        pos_error(ec_based_requires_variable_name, &operand.position);
+        break;
+    }  /* if */
+    if (variable != NULL) {
+      /* Make sure the variable has a pointer type. */
+      if (!is_pointer_type(variable->type)) {
+        if (!is_error_type(variable->type)) {
+          pos_error(ec_based_var_must_be_ptr, &operand.position);
+        }  /* if */
+        variable = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  pop_expr_stack();
+  expr_stack = saved_expr_stack;
+  return variable;
+}  /* based_variable */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /******************************************************************************
 *                                                             \  ___  /       *
