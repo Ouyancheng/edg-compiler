@@ -1668,6 +1668,14 @@ that do normal id lookup processing.
       ref_sym = common_sym;
     }  /* if */
   }  /* if */
+  if (ref_sym != NULL && !is_function_symbol(ref_sym)) {
+    /* Only functions from the referencing context are used.  All other
+       names can only come from the definition context.  The WP
+       requires only "dependent" functions from the referencing context
+       be considered.  The "dependent" lookup portion has not been
+       implemented yet. */
+    ref_sym = NULL;
+  }  /* if */
   if (ref_sym != NULL && def_sym != NULL) {
     /* Both symbols are present.  Merge the results. */
     sym = merge_instantiation_lookup_symbols(ref_sym, def_sym, locator,
