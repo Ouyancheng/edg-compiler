@@ -672,13 +672,14 @@ returned.
 
 /*
 Useful macro that determines whether a field of size bit_size at the
-current offset will fit into a container of size container_size (in bytes)
-aligned according to container_alignment.  For use only when
-targ_microsoft_bit_field_allocation is FALSE.
+current offset will fit into a container of the indicated size (in bytes)
+that is aligned according to the indicated alignment.  (For use only when
+targ_microsoft_bit_field_allocation is FALSE.)
 */
 #define fits_in_container(size, alignment)                               \
- (((lob->byte_offset % (alignment))*targ_char_bit + lob->bit_offset)     \
-                                   <= ((size)*targ_char_bit - bit_size))
+ (bit_size <=                                                            \
+    targ_char_bit * ((size) - (lob->byte_offset % (alignment))) -        \
+                                                       lob->bit_offset)
 
   if (bit_size == 0) {
     /* A zero-width bit field is declared for alignment only.  The container
