@@ -5748,7 +5748,14 @@ NULL.
       template_class_sym = tssp->variant.class_template.instantiations;
       for (; template_class_sym != NULL;
              template_class_sym = template_class_sym->next) {
-        end_of_scope_symbol_check(template_class_sym, curr_routine);
+
+        if (template_class_sym->
+                    variant.class_struct_union.extra_info->is_nonreal_class) {
+          /* Skip the recursive check for prototype instantiation of a class
+             template. */
+        } else {
+          end_of_scope_symbol_check(template_class_sym, curr_routine);
+        }  /* if */
       }  /* for */
       }
       break;
@@ -5792,6 +5799,7 @@ End a name scope by popping an entry off the scope stack.
   a_scope_depth            scope_depth;
   a_boolean                old_region_still_needed;
   a_boolean		   do_semivisible_type_processing = TRUE;
+  a_boolean                is_prototype_instantiation = FALSE;
 
   db_enter(3, "pop_scope");
   ssep = &scope_stack[depth_scope_stack];
@@ -5840,6 +5848,11 @@ End a name scope by popping an entry off the scope stack.
       }  /* if */
     }  /* for */
   }
+  /* Check for prototype instantiation of a class template. */
+  if (kind == (a_scope_kind)sck_class_struct_union &&
+      (symbol_supplement_for_class(ssep->assoc_type))->is_nonreal_class) {
+    is_prototype_instantiation = TRUE;
+  }  /* if */
   /* Remove the symbols declared in this scope from the symbol table.
      Check for unreferenced symbols, and issue warnings for those. */
   for (sym = ssep->symbols; sym != NULL; sym = sym->next_in_scope) {
@@ -5849,6 +5862,9 @@ End a name scope by popping an entry off the scope stack.
          checked when the function scope is popped.  Tag symbols are
 	 checked because tags associated with incomplete types need to
 	 be put on the types list of the prototype scope. */
+    } else if (is_prototype_instantiation) {
+      /* Don't check on symbols entered in the scope of a class template
+         prototype instantiation -- the information may not be complete. */
     } else {
       end_of_scope_symbol_check(sym, curr_routine);
     }  /* if */
