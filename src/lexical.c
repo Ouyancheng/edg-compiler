@@ -5719,11 +5719,13 @@ This routine may only be called in C++ mode.
             class_type_is_really_a_class = TRUE;
           } else {
             /* The class symbol points to a type.  This is the case when
-               a class qualifier contains template parameter types.  Set
-               class type to the template parameter type. */
+               a class qualifier contains template parameter types or for
+               the last qualifier of a vacuous destructor.  Set
+               class type to the type pointed to. */
             check_assertion(class_symbol->kind == (a_symbol_kind)sk_type);
             class_type = class_symbol->variant.type;
-            check_assertion(is_template_param_type(class_type));
+            check_assertion(is_template_param_type(class_type) ||
+                            is_vacuous_dtor);
             class_type_is_really_a_class = FALSE;
           }  /* if */
         }  /* if */
