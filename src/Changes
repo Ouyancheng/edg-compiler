@@ -1,5 +1,13 @@
 Version 2.23
 
+3/21/94 an_orphan_il_list renamed a_scope_orphaned_list_header
+
+The IL entry called an_orphan_il_list has been renamed
+a_scope_orphaned_list_header, and the field in il_header that points
+to that list has been renamed scope_orphaned_list_headers.
+The list of these entries is also now built in forward order
+instead of reverse order of source appearance.
+
 3/21/94 Constant expressions inside not-evaluated expressions
 
 The expression processing routines have been changed so that constant
