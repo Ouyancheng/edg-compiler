@@ -1458,10 +1458,16 @@ execute the preprocessor directive.
   /* Restore the error position as at entry. */
   copy_source_position(save_error_position, error_position);
   if (is_header_stop_dir) {
-    /* This is the last directive in a precompiled header file that is
-       to be generated. */
-    generate_precompiled_header();
-    header_stop_no_longer_pending();
+    if (dir_kind == ppd_include) {
+      /* When we have completed scanning of this include file, generate
+         the precompiled header. */
+      generate_pch_on_return_to_primary_source_file = TRUE;
+    } else {
+      /* This is the last directive in a precompiled header file that is
+         to be generated. */
+      generate_precompiled_header();
+      header_stop_no_longer_pending();
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* pp_directive */

@@ -1805,6 +1805,7 @@ Initialize variables used by the precompiled header routines.
   header_stop_source_position = null_source_position;
   header_stop_position_pending = FALSE;
   next_event_resumes_compilation = FALSE;
+  generate_pch_on_return_to_primary_source_file = FALSE;
   pragma_hdrstop_found = FALSE;
   pos_of_last_event_from_pch = null_source_position;
   using_a_pch_file = FALSE;

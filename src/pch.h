@@ -230,6 +230,13 @@ EXTERN a_boolean
 			   This is TRUE when the next event should be
 			   processed normally. */
 
+EXTERN a_boolean
+		generate_pch_on_return_to_primary_source_file;
+			/* This flag indicates that a precompiled header
+			   should be generated the next time that the
+			   input stack is popped back to the primary
+			   source file. */
+
 
 /*
 Macro used to set cannot_do_pch_processing.

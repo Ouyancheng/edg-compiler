@@ -2734,6 +2734,16 @@ at the next level down.
       }  /* if */
     }  /* if */
 #endif  /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+    if (depth_input_stack == 0 && 
+        generate_pch_on_return_to_primary_source_file) {
+      /* We just popped back to the primary source file, and the flag
+         was set that indicates that a PCH file should be generated at
+         this point (i.e., at the end of execution of the previous
+         include found in the primary source file. */
+      generate_pch_on_return_to_primary_source_file = FALSE;
+      generate_precompiled_header();
+      header_stop_no_longer_pending();
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 5) {
