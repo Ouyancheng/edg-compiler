@@ -348,6 +348,21 @@ Process the arguments on the command line that invoked the compiler.
       case 't':
         /* Template instantiation mode. */
         instantiation_mode_string = optarg;
+        /* Determine the template instantiation mode to be used. */
+        if (instantiation_mode_string != NULL) {
+          if (strcmp(instantiation_mode_string, "none") == 0) {
+            instantiation_mode = tim_none;
+          } else if (strcmp(instantiation_mode_string, "all") == 0) {
+            instantiation_mode = tim_all;
+          } else if (strcmp(instantiation_mode_string, "used") == 0) {
+            instantiation_mode = tim_used;
+          } else if (strcmp(instantiation_mode_string, "local") == 0) {
+            instantiation_mode = tim_local;
+          } else {
+            str_command_line_error("invalid instantiation mode: ",
+      			           instantiation_mode_string);
+          }  /* if */
+        }  /* if */
         break;
       case 'u':
         /* Use unsigned chars. */
@@ -506,7 +521,7 @@ unknown_option:
   if (C_dialect != C_dialect_cplusplus) {
     if (allow_anachronisms != DEFAULT_ALLOW_ANACHRONISMS) {
       command_line_error
-        ("Anachronism option (-O) can only be used when compiling C++");
+        ("anachronism option (-O) can only be used when compiling C++");
     }  /* if */
     if (suppress_virtual_function_table_definition) {
       command_line_error(
@@ -515,7 +530,7 @@ unknown_option:
     }  /* if */
     if (instantiation_mode_string != NULL) {
       command_line_error(
-      "Instantiation mode (-t) can only be used when compiling C++");
+      "instantiation mode (-t) can only be used when compiling C++");
     }  /* if */
   }  /* if */
   if (strict_ansi_mode) {
@@ -550,20 +565,6 @@ unknown_option:
   /* Add the default directories to the end of the include search path.
      The list is then any -I directories, in the order they were specified,
      and the default directories at the end. */
-  /* Determine the template instantiation mode to be used. */
-  if (instantiation_mode_string != NULL) {
-    if (strcmp(instantiation_mode_string, "none") == 0) {
-      instantiation_mode = tim_none;
-    } else if (strcmp(instantiation_mode_string, "all") == 0) {
-      instantiation_mode = tim_all;
-    } else if (strcmp(instantiation_mode_string, "used") == 0) {
-      instantiation_mode = tim_used;
-    } else if (strcmp(instantiation_mode_string, "local") == 0) {
-      instantiation_mode = tim_local;
-    } else {
-      command_line_error("invalid instantiation mode");
-    }  /* if */
-  }  /* if */
   add_default_include_search_path();
   /* Set the system include search path to be the same as the user search
      path at this point (the directory of the source file will be added to the
