@@ -839,6 +839,9 @@ error code.
     case ec_missing_initializer_on_const:
       m = "internally-linked const variable requires an initializer";
       break;
+    case ec_this_used_incorrectly:
+      m = "\"this\" may only be used inside a nonstatic member function";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

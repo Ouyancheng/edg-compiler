@@ -303,7 +303,8 @@ typedef enum /*an_error_code*/ {
   ec_type_identifier_not_allowed,
   ec_type_definition_not_allowed,
   ec_bad_type_name_redefinition,
-  ec_missing_initializer_on_const
+  ec_missing_initializer_on_const,
+  ec_this_used_incorrectly
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
