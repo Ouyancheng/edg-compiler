@@ -1552,6 +1552,7 @@ will be involved in overloading.
   an_id_linkage_kind linkage = idl_none;
   a_boolean          is_object, is_function;
   a_boolean          at_file_or_namespace_scope;
+  a_boolean          is_main;
   a_boolean          is_friend_decl = FALSE;
   a_symbol_ptr       other_decl;
   a_storage_class    local_storage_class = *storage_class;
@@ -1584,16 +1585,15 @@ will be involved in overloading.
     /* Symbol is compiler-generated as a result of an error, so there are
        no other declarations of the same symbol. */
   } else if (is_object && depth_innermost_function_scope != NO_SCOPE_DEPTH &&
-             local_storage_class != sc_extern) {
+             local_storage_class != (a_storage_class)sc_extern) {
     /* Local variable declaration. */
   } else if (scope_stack[decl_scope_level].kind ==
                                      (a_scope_kind)sck_func_prototype) {
     /* Function parameters have no linkage. */
   } else {
+    is_main = (func_info == NULL ? FALSE : func_info->is_main_function);
     *linked_symbol = find_linked_symbol(locator, effective_decl_level, type,
-                                        func_info == NULL ?
-                                          FALSE : func_info->is_main_function,
-                                        is_friend_decl,
+                                        is_main, is_friend_decl,
                                         is_function_template_decl,
                                         &other_decl, overload_symbol);
 determine_linkage:
@@ -1993,16 +1993,15 @@ issue_diagnostic:
 
 
 static a_symbol_ptr create_external_symbol_for_linked_entity(
-                              a_symbol_locator     *locator,
-                              a_boolean            is_function,
-                              a_type_ptr           type_ptr,
-                              a_name_linkage_kind  name_linkage,
-                              a_boolean            redeclaration,
-                              a_boolean            suppress_incompatible_error,
-                              a_boolean            suppress_ext_sym_lookup,
-			      a_boolean            is_implicit_declaration,
-                              a_variable_ptr       *variable_ptr,
-                              a_routine_ptr        *routine_ptr)
+                            a_symbol_locator       *locator,
+                            a_type_ptr             type_ptr,
+                            an_id_linkage_kind     linkage,
+                            a_func_info_block_ptr  func_info,
+                            a_boolean              redeclaration,
+                            a_boolean              suppress_incompatible_error,
+                            a_boolean              suppress_ext_sym_lookup,
+                            a_variable_ptr         *variable_ptr,
+                            a_routine_ptr          *routine_ptr)
 /*
 Find or create an external symbol entry for a variable or routine being
 declared.  *locator gives the symbol locator for the identifier;
@@ -2030,9 +2029,27 @@ created; the caller must set it.
   a_boolean                  err = FALSE;
   a_boolean                  use_existing_il_entry = FALSE;
   a_type_ptr                 preexisting_type;
+  a_name_linkage_kind        name_linkage;
+  a_boolean                  is_implicit_declaration;
+  a_boolean                  is_function;
 
-  ext_sym_kind = is_function ? (a_symbol_kind)sk_extern_routine :
-                               (a_symbol_kind)sk_extern_variable;
+  if (func_info != NULL) {
+    check_assertion(is_function_type(type_ptr));
+    is_function = TRUE;
+    is_implicit_declaration = func_info->is_implicit_declaration;
+    ext_sym_kind = (a_symbol_kind)sk_extern_routine;
+  } else {
+    is_function = FALSE;
+    ext_sym_kind = (a_symbol_kind)sk_extern_variable;
+  }  /* if */
+  if (linkage == idl_internal) {
+    name_linkage = (a_name_linkage_kind)nlk_internal;
+  } else if (C_dialect != C_dialect_cplusplus ||
+             (is_function && func_info->is_main_function)) {
+    name_linkage = (a_name_linkage_kind)nlk_external;
+  } else {
+    name_linkage = def_external_linkage.kind;
+  }  /* if */
   if (suppress_ext_sym_lookup) {
     /* Ignore the presence of an external symbol with which the current
        symbol is compatible. */
@@ -2634,123 +2651,177 @@ as appropriate to suppress warnings (e.g., in end_of_scope_symbol_check).
 }  /* mark_symbol_to_suppress_warnings */
 
 
+static void set_name_linkage(an_id_linkage_kind      linkage,
+                             a_symbol_ptr            sym,
+                             a_source_correspondence *scp,
+                             a_symbol_ptr            ext_sym,
+                             a_symbol_ptr            overload_sym,
+                             a_source_position       *error_pos)
+/*
+Called from decl_variable and decl_routine, this function sets the name
+linkage of the IL entry.  linkage is the id_linkage (internal, external,
+none) has has been assigned.  sym is the symbol for the variable or routine
+whose name linkage is to be set, and scp points to the source correspondence
+of the associated IL entry.  ext_sym is the associated sk_external_variable
+or sk_external_routine symbol, if any.  When the entry is a routine that
+belongs to an overload set, overload_sym is non-NULL and points to the
+sk_overloaded_function that represents the set.  *error_pos is the source
+position of the identifier.
+*/
+{
+  a_boolean  is_function = (sym->kind == (a_symbol_kind)sk_routine);
+
+  if (linkage == idl_external) {
+    /* Indicate in the IL entry that the name is externally visible by
+       assigning the external linkage kind that is the default for the current
+       context. */
+    if (C_dialect != C_dialect_cplusplus ||
+        (is_function && sym->variant.routine.ptr == il_header.main_routine)) {
+      /* Note that "main" is always given "C" linkage. */
+      scp->name_linkage = (a_name_linkage_kind)nlk_external;
+      sym->explicit_linkage_specifier = FALSE;
+    } else if (scp->name_linkage == (a_name_linkage_kind)nlk_none) {
+      /* No prior declaration, so there's no conflict. */
+      scp->name_linkage = def_external_linkage.kind;
+      sym->explicit_linkage_specifier = def_external_linkage.is_explicit;
+      ext_sym->explicit_linkage_specifier = def_external_linkage.is_explicit;
+      if (overload_sym != NULL &&
+          def_external_linkage.kind == (a_name_linkage_kind)nlk_external) {
+        /* "At most one of a set of overloaded functions . . . can have
+           C linkage" (ARM 7.4).  Search for conflicts. */
+        a_symbol_ptr  sp;
+        for (sp = overload_sym->variant.overloaded_function.symbols;
+             sp != NULL;
+             sp = sp->next) {
+          if (sp != sym &&
+              sp->variant.routine.ptr->source_corresp.name_linkage ==
+                                         (a_name_linkage_kind)nlk_external) {
+            pos_sy_error(ec_overloaded_function_linkage, error_pos,
+                         overload_sym);
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    } else {
+      /* Multiple specifications of external linkage must be the same
+         (ARM 7.4).  But it's a little trickier than that.  We will not
+         override the previous specification, but we need to be sure the
+         current one is consistent with it. */
+      a_boolean  err = FALSE;
+      if (scp->name_linkage == def_external_linkage.kind) {
+        /* The linkage kinds (C or C++) are the same; however, the ARM states,
+           "A function declaration without a linkage specification may not
+           precede the first linkage specification for that function." */
+        if (def_external_linkage.is_explicit) {
+          err = (!sym->explicit_linkage_specifier &&
+                 !ext_sym->explicit_linkage_specifier);
+          /* Mark the symbols as having an explicit linkage specifier to
+             keep this error from occurring again later. */
+          sym->explicit_linkage_specifier = TRUE;
+          ext_sym->explicit_linkage_specifier = TRUE;
+        }  /* if */
+      } else {
+        /* Linkage is not the same, but it's no error as long as the current
+           specification is implicit. */
+        err = def_external_linkage.is_explicit;
+      }  /* if */
+      if (err) {
+        /* Neither functions nor variables are supposed to have inconsistent
+           linkage specifications, but it's more of a problem for functions.
+           Issue an error for functions, a warning for variables. */
+        pos_sy_diagnostic(is_function ? (an_error_severity)es_error :
+                                        (strict_ansi_mode ?
+                                            strict_ansi_error_severity :
+                                            (an_error_severity)es_warning),
+                          ec_incompatible_linkage_specifier,
+                          error_pos, ext_sym);
+      }  /* if */
+    }  /* if */
+  } else if (linkage == idl_internal) {
+    /* Internal linkage. */
+    scp->name_linkage = (a_name_linkage_kind)nlk_internal;
+  } else {
+    /* No linkage -- e.g., an automatic variable. */
+    check_assertion(scp->name_linkage == (a_name_linkage_kind)nlk_none);
+  }  /* if */
+  if (C_dialect == C_dialect_cplusplus) {
+    /* A variable or routine with linkage should not be declared in terms of
+       a local type. */
+    if (scp->name_linkage != (a_name_linkage_kind)nlk_none &&
+        depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+      /* We're inside a function body and the entity has linkage -- must be
+         a block extern declaration. */
+      a_type_ptr  tp = is_function ? sym->variant.routine.ptr->type :
+                                     sym->variant.variable.ptr->type;
+      if (is_or_contains_local_type(tp)) {
+        pos_error(is_function ? ec_local_type_in_function :
+                                ec_local_type_in_nonlocal_var,
+                  error_pos);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* set_name_linkage */
+
+
 #if !DECL_MODIFIERS_IN_USE
 /* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
 #endif /* !DECL_MODIFIERS_IN_USE */
-void decl_var_or_routine(a_symbol_locator             *locator,
-                         a_storage_class              storage_class,
-                         a_type_ptr                   type_ptr,
-                         a_func_info_block_ptr        func_info,
-                         a_source_sequence_entry_ptr  declarator_ssep,
-                         a_symbol_reference_kind      srk_flags,
-                         a_decl_modifier	      decl_modifiers,
-                         a_symbol_ptr                 *symbol_ptr,
-                         an_id_linkage_kind           *linkage_ptr,
-                         a_type_ptr                   *old_type,
-                         a_symbol_ptr                 *ext_sym)
+void decl_variable(a_symbol_locator             *locator,
+                   a_storage_class              storage_class,
+                   a_type_ptr                   type_ptr,
+                   a_source_sequence_entry_ptr  declarator_ssep,
+                   a_symbol_reference_kind      srk_flags,
+                   a_decl_modifier              decl_modifiers,
+                   a_symbol_ptr                 *symbol_ptr,
+                   an_id_linkage_kind           *linkage_ptr,
+                   a_type_ptr                   *old_type,
+                   a_symbol_ptr                 *ext_sym)
 /*
-Enter the declaration of an identifier for a variable or routine.
-*locator gives the symbol locator (and thus its name and its declaration
-position).  storage_class, type_ptr, and decl_modifiers give the storage
-class, type, and declaration modifier flags.  func_info will be
-non-NULL if and only if this is a function declaration.  If it is
-non-NULL then: if func_info->implicit_declaration is TRUE, this
-declaration is for an implicit function declaration, and *symbol_ptr
-already contains a pointer to the symbol entry, which is already in
-the symbol table; if func_info->is_definition is TRUE, the identifier
-being defined is part of a function definition (meaning there is a
-body in the definition), in which case it is guaranteed that type_ptr
-points to an unshared type entry, and that type entry will be
-preserved as the routine type.  Create and enter a symbol entry, and
-return a pointer to it in *symbol_ptr.  Also allocate any associated
-IL construct, and attach it to the symbol.  If the identifier has
-linkage and there is an existing symbol or IL entry, it will be
-re-used.  Return in *linkage_ptr the linkage of the identifier.
-Return in *old_type any previously-known type for this identifier from
-a linked identifier in the same scope, or NULL if there was no
-previously-known type.  If the identifier has linkage, return in
-*ext_sym a pointer to the external symbol entry; otherwise, set
-*ext_sym to NULL.  declarator_ssep (non-NULL only if source sequence
-entries are being generated) is a pointer to the empty source sequence
-entry already created for the declarator and added to the appropriate
-list; its kind and entity pointer are updated.  srk_flags contain
-specific information about the kind of declaration (whether it's a
-definition, a tentative definition (C only), an implicit declaration
-(C only), a friend declaration (C++ only), and so forth); this
-information is passed on for use in generating cross-reference output
-describing this declaration.
+Enter the declaration of an identifier for a variable.  *locator gives the
+symbol locator (and thus its name and its declaration position).  type_ptr,
+storage_class, and decl_modifiers give the type, storage class, and
+declaration modifier flags.  Create and enter a symbol entry, and return a
+pointer to it in *symbol_ptr.  Also allocate any associated IL construct,
+and attach it to the symbol.  If the identifier has linkage and there is an
+existing symbol or IL entry, it will be re-used.  Return in *linkage_ptr the
+linkage of the identifier.  Return in *old_type any previously-known type
+for this identifier from a linked identifier in the same scope, or NULL if
+there was no previously-known type.  If the identifier has linkage, return
+in *ext_sym a pointer to the external symbol entry; otherwise, set *ext_sym
+to NULL.  declarator_ssep (non-NULL only if source sequence entries are
+being generated) is a pointer to the empty source sequence entry already
+created for the declarator and added to the appropriate list; its kind and
+entity pointer are updated.  srk_flags contain specific information about
+the kind of declaration (whether it's a definition, a tentative definition
+(C only), and so forth); this information is passed on for use in generating
+cross-reference output describing this declaration.
 */
 {
   a_symbol_ptr             sym = NULL;
-  a_boolean                is_function;
-  a_boolean                at_file_scope;
-  a_symbol_ptr             linked_symbol, homonym_symbol;
-  a_symbol_ptr             overload_symbol = NULL;
+  a_boolean                alloc_at_file_scope;
+  a_symbol_ptr             linked_symbol;
   a_boolean                redecl_error_already_issued = FALSE;
   a_boolean                linked_redecl_error = FALSE;
-  a_boolean                old_decl_has_body = FALSE;
   a_boolean                redeclaration = FALSE;
   a_variable_ptr           variable_ptr = NULL;
-  a_routine_ptr            routine_ptr = NULL;
   an_id_linkage_kind       linkage;
   a_source_correspondence  *source_corresp_ptr;
   a_scope_depth            effective_decl_level;
-  a_boolean                template_function_specific_decl = FALSE;
   a_boolean                suppress_ext_sym_lookup = FALSE;
-  a_boolean                is_main_function = FALSE;
-  a_boolean                is_function_def = FALSE;
-  a_boolean                changed_to_inline = FALSE;
   a_boolean                is_variable_def = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr               declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-  db_enter(3, "decl_var_or_routine");
+  db_enter(3, "decl_variable");
   *old_type = NULL;
-  is_function = is_function_type(type_ptr);
-  check_assertion(is_function == (func_info != NULL));
   check_assertion(storage_class != (a_storage_class)sc_typedef);
-  check_assertion(srk_flags & SRK_DECLARATION);
-  if (is_function) {
-    if (func_info->is_main_function) is_main_function = TRUE;
-    if (func_info->is_definition) {
-      is_function_def = TRUE;
-      check_assertion(srk_flags & SRK_DEFINITION);
-    }  /* if */
-    if (C_dialect == C_dialect_cplusplus) {
-      if (func_info->is_inline) {
-        check_assertion(storage_class == (a_storage_class)sc_unspecified ||
-                        storage_class == (a_storage_class)sc_static);
-        storage_class = (a_storage_class)sc_static;
-      }  /* if */
-      /* If this is an overloaded operator, check for errors in the
-         argument list. */
-      check_operator_function_params(type_ptr, /*class_type=*/(a_type_ptr)NULL,
-                                     locator);
-    }  /* if */
-  } else {
-    if (srk_flags & SRK_DEFINITION) is_variable_def = TRUE;
-  }  /* if */
-  effective_decl_level = compute_effective_decl_level(is_function,
-                                                      storage_class,
-                                                      srk_flags & SRK_FRIEND);
-  if (is_function && func_info->is_implicit_declaration) {
-    check_assertion(srk_flags & SRK_IMPLICIT);
-    if (C_dialect != C_dialect_cplusplus) {
-      /* For an implicit function, the identifier would not be in the process
-         of being declared implicitly as a function if there were any visible
-         declaration of it, and therefore it must have external linkage. */
-      linkage = idl_external;
-    } else {
-      /* In C++ this is an error case.  Don't give this dummy routine any
-         linkage. */
-      linkage = idl_none;
-    }  /* if */
-    linked_symbol = NULL;
-    homonym_symbol = NULL;
-    sym = *symbol_ptr;
-  } else if (locator->is_qualified_name && locator->specific_symbol != NULL) {
-    if ((is_function_def || is_variable_def) &&
+  if (srk_flags & SRK_DEFINITION) is_variable_def = TRUE;
+  effective_decl_level =
+            compute_effective_decl_level(/*is_function=*/FALSE, storage_class,
+                                         /*is_friend_decl=*/FALSE);
+  if (locator->is_qualified_name && locator->specific_symbol != NULL) {
+    if (is_variable_def &&
         !namespace_is_enclosed_by_curr_scope(locator->specific_symbol)) {
       /* This declaration appears within a namespace scope in which the name
          cannot be defined -- it is a member (directly or indirectly) of a
@@ -2761,39 +2832,32 @@ describing this declaration.
       linked_redecl_error = TRUE;
       linkage = idl_none;
       linked_symbol = NULL;
-      homonym_symbol = NULL;
     } else {
 #if 0
       /* This is temporary. */
 #endif /* if 0 */
       linkage = idl_external;
       linked_symbol = locator->specific_symbol;
-      homonym_symbol = NULL;
     }  /* if */
   } else {
     /* Determine the linkage of this symbol. */
+    a_symbol_ptr  homonym_symbol;
+
     linkage = id_linkage(locator, &storage_class, effective_decl_level,
-                         type_ptr, func_info, &linked_symbol, &homonym_symbol);
+                         type_ptr, (a_func_info_block_ptr)NULL, &linked_symbol,
+                         &homonym_symbol);
   }  /* if */
-  /* at_file_scope will be TRUE if the IL variable or routine must be
+  /* alloc_at_file_scope will be TRUE if the IL variable entry must be
      allocated in the file scope memory region.  This is always true
-     of routines, and also true of variables with linkage. */
-  at_file_scope = (is_function || linkage != idl_none);
+     true for variables with linkage. */
+  alloc_at_file_scope = (linkage != idl_none);
   if (linkage != idl_none && linked_symbol != NULL) {
     /* There is a previous identifier of this name in the same scope,
        to which this declaration is linked. */
-    if (is_function && linked_symbol->kind == (a_symbol_kind)sk_routine &&
-        linked_symbol->variant.routine.instance_ptr != NULL) {
-      /* This is not actually a redeclaration -- linked_symbol refers to a
-         function template instantiation. */
-      template_function_specific_decl = TRUE;
-    } else {
-      /* The new declaration must be compatible with the old. */
-      redeclaration = TRUE;
-    }  /* if */
+    redeclaration = TRUE;
   }  /* if */
   if (redeclaration) {
-    if (linked_symbol->kind == (a_symbol_kind)sk_variable && !is_function) {
+    if (linked_symbol->kind == (a_symbol_kind)sk_variable) {
       if (C_mode() && linked_symbol->defined) {
         if (linked_symbol->variant.variable.ptr->init_kind !=
                                                (an_init_kind)initk_none) {
@@ -2820,17 +2884,6 @@ describing this declaration.
            message, set the referenced flag in the linked symbol. */
         suppress_ext_sym_lookup = TRUE;
         mark_symbol_to_suppress_warnings(linked_symbol);
-#if 0
-      } else if (is_variable_def && !C_mode() &&
-                 !namespace_is_enclosed_by_curr_scope(linked_symbol)) {
-        /* This declaration appears within a namespace scope in which the
-           variable cannot be defined -- it is a member (directly or
-           indirectly) of a namespace that is not enclosed by the current
-           namespace scope (see WP 7.3.1.4). */
-        sym_error(ec_bad_scope_for_definition, linked_symbol);
-        set_to_named_error_locator(*locator);
-        linked_redecl_error = TRUE;
-#endif /* if 0 */
       } else {
         /* Linked symbol and new symbol are both variables.  See if they
            are compatible. */
@@ -2849,8 +2902,383 @@ describing this declaration.
           variable_ptr->type = type_ptr = composite_type(type_ptr, *old_type);
         }  /* if */
       }  /* if */
-    } else if (linked_symbol->kind == (a_symbol_kind)sk_routine &&
-               is_function) {
+    } else {
+      /* The linked symbol is a routine, while the new one is a variable. */
+      pos_sy_error(ec_not_compatible_with_previous_decl,
+                   &locator->source_position, linked_symbol);
+      redecl_error_already_issued = TRUE;
+      linked_redecl_error = TRUE;
+    }  /* if */
+  }  /* if */
+  if (linked_redecl_error) {
+    /* There is a linked symbol, but it is not compatible with the new
+       declaration.  Force a new symbol and a new IL entry. */
+    sym = NULL;
+    linked_symbol = NULL;
+    variable_ptr = NULL;
+    *old_type = NULL;
+    redeclaration = FALSE;
+  }  /* if */
+  if (sym == NULL) {
+    /* There is no (compatible) symbol, so enter one now. */
+    sym = enter_local_symbol((a_symbol_kind)sk_variable, locator,
+                            effective_decl_level, redecl_error_already_issued);
+  }  /* if */
+  if (C_dialect == C_dialect_cplusplus) {
+    if (decl_scope_level == DEPTH_OF_FILE_SCOPE &&
+        storage_class == (a_storage_class)sc_unspecified &&
+        is_const_qualified_type(type_ptr)) {
+      /* In C++ all const qualified objects at file scope with no explicit
+         storage class are internally linked unless previously declared to
+         be extern (ARM 7.1.1).  The storage class has been left "unspecified"
+         because till now we didn't know whether this was a redeclaration. */
+      if (variable_ptr == NULL ||
+          variable_ptr->storage_class != (a_storage_class)sc_extern) {
+        storage_class = (a_storage_class)sc_static;
+        linkage = idl_internal;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  *ext_sym = NULL;
+  if (linkage != idl_none) {
+    /* The symbol has external or internal linkage.  Find or create an
+       external symbol entry for the identifier name, to check that the
+       current declaration is compatible with any previous and future
+       declarations of the same name.  Note that while other declarations
+       are required to be compatible with the present one (because all
+       declarations of a name with linkage refer to the same object or
+       function), no composite type is formed; the type of the IL entity
+       is only what is known in the current scope.  The external symbol
+       keeps track of the full composite type behind the scenes.
+       If we do not already have an IL entry, and the external symbol entry
+       points to one, get a pointer to it and use it. */
+    a_routine_ptr  dummy_rp;
+    *ext_sym = 
+        create_external_symbol_for_linked_entity(locator, type_ptr, linkage,
+                                                 (a_func_info_block_ptr)NULL,
+                                                 redeclaration,
+                                                 redecl_error_already_issued,
+                                                 suppress_ext_sym_lookup,
+                                                 &variable_ptr, &dummy_rp);
+  }  /* if */
+  /* The entity being declared is a variable. */
+  if (variable_ptr == NULL) {
+    /* There is no IL entry, so create one now.  If the variable has
+       internal or external linkage, it is entered at the file scope. */
+    variable_ptr = make_variable(type_ptr, storage_class, alloc_at_file_scope);
+    source_corresp_ptr = &variable_ptr->source_corresp;
+    if (*ext_sym != NULL &&
+        (*ext_sym)->variant.extern_symbol_descr->variant.variable != NULL) {
+      /* A new variable entry has been created, yet the external symbol
+         already refers to a different variable.  This can occur when there
+         is an error, but it can also occur in SVR4 C mode -- for example:
+           unsigned int i;
+           void f(int i) { { extern int i; } }
+         where the second declaration of i has an incompatible type, yet
+         no error is issued. */
+      if (!linked_redecl_error &&
+          !is_error_type((*ext_sym)->variant.extern_symbol_descr->type)) {
+        check_assertion_str2(SVR4_C_mode && !is_variable_def &&
+                             (storage_class == (a_storage_class)sc_extern),
+                             "decl_variable:",
+                             "can't set superseded_external");
+        variable_ptr->superseded_external = TRUE;
+      }  /* if */
+    }  /* if */
+  } else {
+    /* There is an existing IL entry that we are reusing. */
+    /* Check for internal linkage on the old but not the new, or
+       vice-versa. */
+    check_for_linkage_conflict(&variable_ptr->storage_class,
+                               &linkage, &storage_class,
+                               &locator->source_position,
+                               /*suppress_diagnostic=*/linked_redecl_error);
+    /* Modify the storage class if necessary (an unspecified storage 
+       class on the new declaration indicates a tentative definition --
+       see 3.7.2).  Do not force anything but sc_unspecified on the
+       preexisting variable entry -- we don't want to change the storage
+       class in a case like this:  int i; extern int i; . */
+    if (storage_class == (a_storage_class)sc_unspecified) {
+      variable_ptr->storage_class = (a_storage_class)sc_unspecified;
+    }  /* if */
+    /* If the IL entry was previously referenced, the symbol should be
+       marked as referenced too.  We may have a case like this:
+         void f() { extern int i; i = 0; }
+         int i;
+       The IL entity associated with i is referenced in the function scope
+       but the symbol at file scope is created later -- it should have its
+       "referenced" flag set to prevent unwanted "defined but not referenced"
+       warnings from being put out. */
+    if (storage_class != (a_storage_class)sc_extern &&
+        variable_ptr->source_corresp.referenced) {
+      sym->referenced = TRUE;
+    }  /* if */
+    /* Similarly, it should have its "used" flag set.  This is only needed
+       for file-scope static variables, in cases like this:
+         int f() { extern int i; return i; }
+         static int i = 0;
+       to avoid "set-but-never-used" diagnostics. */
+    source_corresp_ptr = &variable_ptr->source_corresp;
+    if (((a_symbol_ptr)source_corresp_ptr->assoc_info)->
+                                                  variant.variable.used) {
+      sym->variant.variable.used = TRUE;
+    }  /* if */
+    /* Move the variable entry to the end of the variables list if this is
+       its definition. */
+    if (srk_flags & SRK_DEFINITION) {
+      /* This is definition of a variable that has previously been declared.
+         In C++ only one declaration of a variable can be construed to be
+         its definition, so if we are in C++ mode this is it. */
+      if (C_mode() && sym->defined && (srk_flags & SRK_TENTATIVE_DEF)) {
+        /* In C ignore a tentative definition (i.e., one for which no
+           initializer is present) if the variable has already been defined
+           in a previous tentative definition. */
+      } else {
+        /* This is a definition of a variable that was not previously
+           defined, so unlink the variable entry and relink it at the end
+           of the variables list, so that variables appear in the order in
+           which they are defined. */
+        /* This is only possible for file-scope variables, never for local
+           variables, since it is only by means of a prior extern declaration
+           or (in C mode only) a prior tentative definition that we can be
+           defining a variable that has already been declared. */
+        check_assertion(in_file_scope(variable_ptr));
+        remove_from_variables_list(variable_ptr);
+        add_to_variables_list(variable_ptr,
+                              /*at_file_or_namespace_scope=*/TRUE);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  update_variable_decl_modifiers(variable_ptr, decl_modifiers,
+                                 &locator->source_position,
+                                 redeclaration);
+  /* Link the symbol to the IL variable entry. */
+  sym->variant.variable.ptr = variable_ptr;
+  if (*ext_sym != NULL &&
+      (*ext_sym)->variant.extern_symbol_descr->variant.variable == NULL) {
+    /* Link the external symbol to the IL variable entry. */
+    (*ext_sym)->variant.extern_symbol_descr->variant.variable = variable_ptr;
+  }  /* if */
+  /* Set the source correspondence, but leave it pointing at an outer-scope
+     symbol if there is one. */
+  if (source_corresp_ptr->assoc_info == NULL) {
+    /* There is no symbol pointed to from the variable or routine, so
+       update it with the current symbol. */
+    set_source_corresp(source_corresp_ptr, sym);
+  } else if (!redeclaration) {
+    /* Record a reference to the outer-scope symbol of the same name,
+       but do not set the IL entity referenced flag. */
+    record_symbol_reference(SRK_REFERENCE,
+                            (a_symbol_ptr)source_corresp_ptr->assoc_info,
+                            &locator->source_position,
+                            /*update_il_entry=*/FALSE);
+  }  /* if */
+  if (linkage != idl_none) {
+    /* In case this is a block extern declaration, clear the
+       is_local_to_function flag -- it will have been set based on scope
+       alone in set_source_corresp. */
+    source_corresp_ptr->is_local_to_function = FALSE;
+  }  /* if */
+  if (!C_mode() && alloc_at_file_scope && !redeclaration) {
+    if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+      set_namespace_membership(sym, source_corresp_ptr,
+                               scope_stack[depth_innermost_namespace_scope].
+                                           il_scope->variant.assoc_namespace);
+    }  /* if */
+  }  /* if */
+  set_name_linkage(linkage, sym, source_corresp_ptr, *ext_sym,
+                   (a_symbol_ptr)NULL, &locator->source_position);
+  /* If cross-reference information is being issued, update the output.  If
+     source sequence entries are being generated, update the declarator_ssep
+     entry. */
+  record_symbol_declaration(srk_flags, sym, &locator->source_position,
+                            declarator_ssep);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Do fixup on the source sequence entry that was just created to
+     represent the current declaration.  Note that declaration_ssep is not
+     used, since it may have been replaced (e.g., when a file scope entity
+     is declared in a local scope and a sublist is generated). */
+  if (!is_variable_def || (srk_flags & SRK_TENTATIVE_DEF)) {
+    /* A function declaration but not a definition. */
+    (void)set_src_seq_secondary_decl_type((char *)variable_ptr,
+                                          declared_type);
+  } else {
+    /* The defining declaration of the variable.  Record the type. */
+    if (variable_ptr->declared_type == NULL) {
+      variable_ptr->declared_type = declared_type;
+    } else {
+      check_assertion(C_mode());
+    }  /* if */
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Do processing required for the rest of the pragmas, if any, that are
+     bound to the current declaration. */
+  process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
+  if (is_variable_def && is_volatile_qualified_type(type_ptr)) {
+    /* A variable with a volatile type is considered to be used and modified
+       from "elsewhere".  (We use "is_variable_def" to exclude cases like
+       "extern volatile int x", for which the flags shouldn't be set unless
+       there is an explicit use in this translation unit.)  Note that this
+       must be done after set_source_corresp because the latter clears the
+       IL referenced flag. */
+    source_corresp_ptr->referenced = TRUE;
+    sym->referenced = TRUE;
+    sym->variant.variable.used = TRUE;
+    sym->variant.variable.value_has_been_set = TRUE;
+  }  /* if */
+  /* Return symbol and linkage pointers. */
+  *symbol_ptr = sym;
+  *linkage_ptr = linkage;
+
+#if DEBUG
+  if (debug_level >= 3) {
+    db_symbol(sym, "", 4);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+}  /* decl_variable */
+
+
+#if !DECL_MODIFIERS_IN_USE
+/* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
+#endif /* !DECL_MODIFIERS_IN_USE */
+void decl_routine(a_symbol_locator             *locator,
+                         a_storage_class              storage_class,
+                         a_type_ptr                   type_ptr,
+                         a_func_info_block_ptr        func_info,
+                         a_source_sequence_entry_ptr  declarator_ssep,
+                         a_symbol_reference_kind      srk_flags,
+                         a_decl_modifier	      decl_modifiers,
+                         a_symbol_ptr                 *symbol_ptr,
+                         an_id_linkage_kind           *linkage_ptr,
+                         a_type_ptr                   *old_type,
+                         a_symbol_ptr                 *ext_sym)
+/*
+Enter the declaration of an identifier for a nonmember routine.  *locator
+gives the symbol locator (and thus its name and its declaration position).
+storage_class, type_ptr, and decl_modifiers give the storage class, type,
+and declaration modifier flags.  If func_info->implicit_declaration is TRUE,
+this declaration is for an implicit function declaration, and *symbol_ptr
+already contains a pointer to the symbol entry, which is already in the
+symbol table; if func_info->is_definition is TRUE, the identifier being
+defined is part of a function definition (meaning there is a body in the
+definition), in which case it is guaranteed that type_ptr points to an
+unshared type entry, and that type entry will be preserved as the routine
+type.  Create and enter a symbol entry, and return a pointer to it in
+*symbol_ptr.  Also allocate any associated IL construct, and attach it to
+the symbol.  If the identifier has linkage and there is an existing symbol
+or IL entry, it will be re-used.  Return in *linkage_ptr the linkage of the
+identifier.  Return in *old_type any previously-known type for this
+identifier from a linked identifier in the same scope, or NULL if there was
+no previously-known type.  If the identifier has linkage, return in *ext_sym
+a pointer to the external symbol entry; otherwise, set *ext_sym to NULL.
+declarator_ssep (non-NULL only if source sequence entries are being
+generated) is a pointer to the empty source sequence entry already created
+for the declarator and added to the appropriate list; its kind and entity
+pointer are updated.  srk_flags contain specific information about the kind
+of declaration (whether it's a definition, an implicit declaration (C only),
+a friend declaration (C++ only), and so forth); this information is passed
+on for use in generating cross-reference output describing this declaration.
+*/
+{
+  a_symbol_ptr             sym = NULL;
+  a_symbol_ptr             linked_symbol, homonym_symbol;
+  a_symbol_ptr             overload_symbol = NULL;
+  a_boolean                redecl_error_already_issued = FALSE;
+  a_boolean                linked_redecl_error = FALSE;
+  a_boolean                old_decl_has_body = FALSE;
+  a_boolean                redeclaration = FALSE;
+  a_routine_ptr            routine_ptr = NULL;
+  an_id_linkage_kind       linkage;
+  a_source_correspondence  *source_corresp_ptr;
+  a_scope_depth            effective_decl_level;
+  a_boolean                template_function_specific_decl = FALSE;
+  a_boolean                suppress_ext_sym_lookup = FALSE;
+  a_boolean                is_function_def = FALSE;
+  a_boolean                changed_to_inline = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_type_ptr               declared_type = type_ptr;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+  db_enter(3, "decl_routine");
+  *old_type = NULL;
+  check_assertion(func_info != NULL);
+  check_assertion(storage_class != (a_storage_class)sc_typedef);
+  check_assertion(srk_flags & SRK_DECLARATION);
+  if (func_info->is_definition) {
+    is_function_def = TRUE;
+    check_assertion(srk_flags & SRK_DEFINITION);
+  }  /* if */
+  if (C_dialect == C_dialect_cplusplus) {
+    if (func_info->is_inline) {
+      check_assertion(storage_class == (a_storage_class)sc_unspecified ||
+                      storage_class == (a_storage_class)sc_static);
+      storage_class = (a_storage_class)sc_static;
+    }  /* if */
+    /* If this is an overloaded operator, check for errors in the
+       argument list. */
+    check_operator_function_params(type_ptr, /*class_type=*/(a_type_ptr)NULL,
+                                   locator);
+  }  /* if */
+  effective_decl_level = compute_effective_decl_level(/*is_function=*/TRUE,
+                                                      storage_class,
+                                                      srk_flags & SRK_FRIEND);
+  if (func_info->is_implicit_declaration) {
+    check_assertion(srk_flags & SRK_IMPLICIT);
+    if (C_dialect != C_dialect_cplusplus) {
+      /* For an implicit function, the identifier would not be in the process
+         of being declared implicitly as a function if there were any visible
+         declaration of it, and therefore it must have external linkage. */
+      linkage = idl_external;
+    } else {
+      /* In C++ this is an error case.  Don't give this dummy routine any
+         linkage. */
+      linkage = idl_none;
+    }  /* if */
+    linked_symbol = NULL;
+    homonym_symbol = NULL;
+    sym = *symbol_ptr;
+  } else if (locator->is_qualified_name && locator->specific_symbol != NULL) {
+    if ((is_function_def) &&
+        !namespace_is_enclosed_by_curr_scope(locator->specific_symbol)) {
+      /* This declaration appears within a namespace scope in which the name
+         cannot be defined -- it is a member (directly or indirectly) of a
+         namespace that is not enclosed by the current namespace scope
+         (see WP 7.3.1.4). */
+      sym_error(ec_bad_scope_for_definition, locator->specific_symbol);
+      set_to_named_error_locator(*locator);
+      linked_redecl_error = TRUE;
+      linkage = idl_none;
+      linked_symbol = NULL;
+      homonym_symbol = NULL;
+    } else {
+#if 0
+      /* This is temporary. */
+#endif /* if 0 */
+      linkage = idl_external;
+      linked_symbol = locator->specific_symbol;
+      homonym_symbol = NULL;
+    }  /* if */
+  } else {
+    /* Determine the linkage of this symbol. */
+    linkage = id_linkage(locator, &storage_class, effective_decl_level,
+                         type_ptr, func_info, &linked_symbol, &homonym_symbol);
+  }  /* if */
+  if (linkage != idl_none && linked_symbol != NULL) {
+    /* There is a previous identifier of this name in the same scope,
+       to which this declaration is linked. */
+    if (linked_symbol->kind == (a_symbol_kind)sk_routine &&
+        linked_symbol->variant.routine.instance_ptr != NULL) {
+      /* This is not actually a redeclaration -- linked_symbol refers to a
+         function template instantiation. */
+      template_function_specific_decl = TRUE;
+    } else {
+      /* The new declaration must be compatible with the old. */
+      redeclaration = TRUE;
+    }  /* if */
+  }  /* if */
+  if (redeclaration) {
+    if (linked_symbol->kind == (a_symbol_kind)sk_routine) {
       /* Linked symbol and new symbol are both routines.  The new declaration
          must be compatible with the old. */
       sym = linked_symbol;
@@ -2882,21 +3310,10 @@ describing this declaration.
            in the linked symbol. */
         suppress_ext_sym_lookup = TRUE;
         mark_symbol_to_suppress_warnings(linked_symbol);
-#if 0
-      } else if (is_function_def && !C_mode() &&
-                 !namespace_is_enclosed_by_curr_scope(linked_symbol)) {
-        /* This declaration appears within a namespace scope in which the
-           variable cannot be defined -- it is a member (directly or
-           indirectly) of a namespace that is not enclosed by the current
-           namespace scope (see WP 7.3.1.4). */
-        sym_error(ec_bad_scope_for_definition, linked_symbol);
-        set_to_named_error_locator(*locator);
-        linked_redecl_error = TRUE;
-#endif /* if 0 */
       } else {
         /* Check that the routine types are compatible. */
         a_boolean routines_compat = FALSE;
-        if (!C_mode() && !is_main_function) {
+        if (!C_mode() && !func_info->is_main_function) {
           /* For routines that can be overloaded, id_linkage has already
              checked that the routine types are the same.  "main" cannot
              be overloaded, so it was not checked. */
@@ -2965,8 +3382,7 @@ describing this declaration.
         }  /* if */
       }  /* if */
     } else {
-      /* The linked symbol is a variable, while the new one is a routine,
-         or vice-versa; error. */
+      /* The linked symbol must be a variable. */
       pos_sy_error(ec_not_compatible_with_previous_decl,
                    &locator->source_position, linked_symbol);
       redecl_error_already_issued = TRUE;
@@ -2974,7 +3390,7 @@ describing this declaration.
     }  /* if */
   } else {
     /* Not a redeclaration. */
-    if (is_function && C_dialect == C_dialect_cplusplus) {
+    if (C_dialect == C_dialect_cplusplus) {
       /* Be sure the default arguments, if any, are at the end of the
          parameters list. */
       check_default_args(type_ptr);
@@ -3099,22 +3515,20 @@ skip_overloading:;
        declaration.  Force a new symbol and a new IL entry. */
     sym = NULL;
     linked_symbol = NULL;
-    variable_ptr = NULL;
     routine_ptr = NULL;
     *old_type = NULL;
     redeclaration = FALSE;
   }  /* if */
   if (sym == NULL) {
     /* There is no (compatible) symbol, so enter one now. */
-    sym = enter_local_symbol
-                  ((a_symbol_kind)(is_function ? sk_routine : sk_variable),
-                   locator, effective_decl_level, redecl_error_already_issued);
-  } else if (is_function && func_info->is_implicit_declaration) {
+    sym = enter_local_symbol ((a_symbol_kind)sk_routine, locator,
+                              effective_decl_level,
+                              redecl_error_already_issued);
+  } else if (func_info->is_implicit_declaration) {
     /* This is an implicit declaration of a function.  The symbol has
        already been entered and marked as declared. */
   } else {
-    if (C_dialect == C_dialect_cplusplus && is_function &&
-        routine_ptr != NULL) {
+    if (C_dialect == C_dialect_cplusplus && routine_ptr != NULL) {
       /* Do compatibility checking on the throw specification and, if this
          is a definition, bind the throw specification to the routine entry.
          Note that if it is a definition the checking must be done before
@@ -3123,247 +3537,105 @@ skip_overloading:;
       check_exception_specification(func_info, routine_ptr);
     }  /* if */
   }  /* if */
-  if (C_dialect == C_dialect_cplusplus) {
-    if (!is_function && decl_scope_level == DEPTH_OF_FILE_SCOPE &&
-        storage_class == (a_storage_class)sc_unspecified &&
-        is_const_qualified_type(type_ptr)) {
-      /* In C++ all const qualified objects at file scope with no explicit
-         storage class are internally linked unless previously declared to
-         be extern (ARM 7.1.1).  The storage class has been left "unspecified"
-         because till now we didn't know whether this was a redeclaration. */
-      if (variable_ptr == NULL ||
-          variable_ptr->storage_class != (a_storage_class)sc_extern) {
-        storage_class = (a_storage_class)sc_static;
-        linkage = idl_internal;
-      }  /* if */
-    }  /* if */
-  }  /* if */
   *ext_sym = NULL;
   if (linkage != idl_none) {
-    /* The symbol has external or internal linkage.  Find or create an
-       external symbol entry for the identifier name, to check that the
-       current declaration is compatible with any previous and future
-       declarations of the same name.  Note that while other declarations
-       are required to be compatible with the present one (because all
-       declarations of a name with linkage refer to the same object or
-       function), no composite type is formed; the type of the IL entity
-       is only what is known in the current scope.  The external symbol
-       keeps track of the full composite type behind the scenes.
-       If we do not already have an IL entry, and the external symbol entry
-       points to one, get a pointer to it and use it. */
-    /* Determine the name linkage that should be used in looking up an
-       existing external symbol entry. */
-    a_name_linkage_kind  name_linkage;
-    a_boolean            is_implicit_declaration;
-
-    if (linkage == idl_internal) {
-      name_linkage = (a_name_linkage_kind)nlk_internal;
-    } else if (C_dialect != C_dialect_cplusplus || is_main_function) {
-      name_linkage = (a_name_linkage_kind)nlk_external;
-    } else {
-      name_linkage = def_external_linkage.kind;
-    }  /* if */
-    is_implicit_declaration = (is_function &&
-			       func_info->is_implicit_declaration);
-    *ext_sym = create_external_symbol_for_linked_entity(
-                                                 locator, is_function,
-                                                 type_ptr, name_linkage,
-                                                 redeclaration,
+    a_variable_ptr  dummy_vp;
+    *ext_sym = 
+        create_external_symbol_for_linked_entity(locator, type_ptr, linkage,
+                                                 func_info, redeclaration,
                                                  redecl_error_already_issued,
                                                  suppress_ext_sym_lookup,
-                                                 is_implicit_declaration,
-                                                 &variable_ptr, &routine_ptr);
+                                                 &dummy_vp, &routine_ptr);
   }  /* if */
-  if (!is_function) {
-    /* The entity being declared is a variable. */
-    if (variable_ptr == NULL) {
-      /* There is no IL entry, so create one now.  If the variable has
-         internal or external linkage, it is entered at the file scope. */
-      variable_ptr = make_variable(type_ptr, storage_class, at_file_scope);
-      source_corresp_ptr = &variable_ptr->source_corresp;
-      if (*ext_sym != NULL &&
-          (*ext_sym)->variant.extern_symbol_descr->variant.variable != NULL) {
-        /* A new variable entry has been created, yet the external symbol
-           already refers to a different variable.  This can occur when there
-           is an error, but it can also occur in SVR4 C mode -- for example:
-             unsigned int i;
-             void f(int i) { { extern int i; } }
-           where the second declaration of i has an incompatible type, yet
-           no error is issued. */
-        if (!linked_redecl_error &&
-            !is_error_type((*ext_sym)->variant.extern_symbol_descr->type)) {
-          check_assertion_str2(SVR4_C_mode && !is_variable_def &&
-                               (storage_class == (a_storage_class)sc_extern),
-                               "decl_var_or_routine:",
-                               "can't set superseded_external");
-          variable_ptr->superseded_external = TRUE;
-        }  /* if */
-      }  /* if */
-    } else {
-      /* There is an existing IL entry that we are reusing. */
-      /* Check for internal linkage on the old but not the new, or
-         vice-versa. */
-      check_for_linkage_conflict(&variable_ptr->storage_class,
-                                 &linkage, &storage_class,
-                                 &locator->source_position,
-                                 /*suppress_diagnostic=*/linked_redecl_error);
-      /* Modify the storage class if necessary (an unspecified storage 
-         class on the new declaration indicates a tentative definition --
-         see 3.7.2).  Do not force anything but sc_unspecified on the
-         preexisting variable entry -- we don't want to change the storage
-         class in a case like this:  int i; extern int i; . */
-      if (storage_class == (a_storage_class)sc_unspecified) {
-        variable_ptr->storage_class = (a_storage_class)sc_unspecified;
-      }  /* if */
-      /* If the IL entry was previously referenced, the symbol should be
-         marked as referenced too.  We may have a case like this:
-           void f() { extern int i; i = 0; }
-           int i;
-         The IL entity associated with i is referenced in the function scope
-         but the symbol at file scope is created later -- it should have its
-         "referenced" flag set to prevent unwanted "defined but not referenced"
-         warnings from being put out. */
-      if (storage_class != (a_storage_class)sc_extern &&
-          variable_ptr->source_corresp.referenced) {
-        sym->referenced = TRUE;
-      }  /* if */
-      /* Similarly, it should have its "used" flag set.  This is only needed
-         for file-scope static variables, in cases like this:
-           int f() { extern int i; return i; }
-           static int i = 0;
-         to avoid "set-but-never-used" diagnostics. */
-      source_corresp_ptr = &variable_ptr->source_corresp;
-      if (((a_symbol_ptr)source_corresp_ptr->assoc_info)->
-                                                    variant.variable.used) {
-        sym->variant.variable.used = TRUE;
-      }  /* if */
-      /* Move the variable entry to the end of the variables list if this is
-         its definition. */
-      if (srk_flags & SRK_DEFINITION) {
-        /* This is definition of a variable that has previously been declared.
-           In C++ only one declaration of a variable can be construed to be
-           its definition, so if we are in C++ mode this is it. */
-        if (C_mode() && sym->defined && (srk_flags & SRK_TENTATIVE_DEF)) {
-          /* In C ignore a tentative definition (i.e., one for which no
-             initializer is present) if the variable has already been defined
-             in a previous tentative definition. */
-        } else {
-          /* This is a definition of a variable that was not previously
-             defined, so unlink the variable entry and relink it at the end
-             of the variables list, so that variables appear in the order in
-             which they are defined. */
-          /* This is only possible for file-scope variables, never for local
-             variables, since it is only by means of a prior extern declaration
-             or (in C mode only) a prior tentative definition that we can be
-             defining a variable that has already been declared. */
-          check_assertion(in_file_scope(variable_ptr));
-          remove_from_variables_list(variable_ptr);
-          add_to_variables_list(variable_ptr,
-                                /*at_file_or_namespace_scope=*/TRUE);
-        }  /* if */
+  if (template_function_specific_decl && sym != linked_symbol) {
+    /* This is a declaration of a template function at the local scope.
+       A function instantiation entry with an associated symbol and routine
+       entry already exist.  Be sure this local symbol is properly bound
+       to the file-scope entities to which it corresponds. */
+    check_assertion(linked_symbol != NULL &&
+                    effective_decl_level != DEPTH_OF_FILE_SCOPE &&
+                    (routine_ptr == NULL ||
+                     routine_ptr == linked_symbol->variant.routine.ptr));
+    sym->variant.routine.instance_ptr =
+                                linked_symbol->variant.routine.instance_ptr;
+    routine_ptr = linked_symbol->variant.routine.ptr;
+    sym->variant.routine.ptr = routine_ptr;
+    *old_type = routine_ptr->type;
+    reconcile_routine_types(routine_ptr, type_ptr,
+                            /*preserve_rout_type=*/TRUE,
+                            /*preserve_type_ptr=*/FALSE);
+    /* Do compatibility checking for the throw specification. */
+    check_exception_specification(func_info, routine_ptr);
+  } else if (routine_ptr == NULL) {
+    /* There is no IL entry, so create one now, and add it to the routine
+       list of the file scope. */
+    routine_ptr = make_routine(type_ptr, storage_class,
+                               /*at_file_scope=*/TRUE, /*add_to_list=*/TRUE);
+    if (C_dialect == C_dialect_cplusplus) {
+      /* Bind the throw specification to the routine entry. */
+      add_exception_specification(func_info, routine_ptr);
+      if (locator->is_operator_name) {
+        routine_ptr->special_kind = (a_special_function_kind)sfk_operator;
+        routine_ptr->opname_kind = locator->variant.opname;
       }  /* if */
     }  /* if */
-    update_variable_decl_modifiers(variable_ptr, decl_modifiers,
-                                   &locator->source_position,
-                                   redeclaration);
-    /* Link the symbol to the IL variable entry. */
-    sym->variant.variable.ptr = variable_ptr;
-    if (*ext_sym != NULL &&
-        (*ext_sym)->variant.extern_symbol_descr->variant.variable == NULL) {
-      /* Link the external symbol to the IL variable entry. */
-      (*ext_sym)->variant.extern_symbol_descr->variant.variable = variable_ptr;
+    if (!linked_redecl_error && *ext_sym != NULL &&
+        (*ext_sym)->variant.extern_symbol_descr->
+                                            variant.routine.ptr != NULL) {
+      /* A new routine entry has been created, yet the external symbol
+         already refers to a different routine.  This can occur when there
+         is an error, but it can also occur in SVR4 C mode -- for example:
+           extern int ff();
+           void f(int ff) { { extern float ff(); } }
+         where the second declaration of ff has an incompatible type, yet
+         no error is issued. */
+      routine_ptr->superseded_external = TRUE;
     }  /* if */
   } else {
-    /* The entity being declared is a routine. */
-    if (template_function_specific_decl && sym != linked_symbol) {
-      /* This is a declaration of a template function at the local scope.
-         A function instantiation entry with an associated symbol and routine
-         entry already exist.  Be sure this local symbol is properly bound
-         to the file-scope entities to which it corresponds. */
-      check_assertion(linked_symbol != NULL &&
-                      effective_decl_level != DEPTH_OF_FILE_SCOPE &&
-                      (routine_ptr == NULL ||
-                       routine_ptr == linked_symbol->variant.routine.ptr));
-      sym->variant.routine.instance_ptr =
-                                  linked_symbol->variant.routine.instance_ptr;
-      routine_ptr = linked_symbol->variant.routine.ptr;
-      sym->variant.routine.ptr = routine_ptr;
-      *old_type = routine_ptr->type;
-      reconcile_routine_types(routine_ptr, type_ptr,
-                              /*preserve_rout_type=*/TRUE,
-                              /*preserve_type_ptr=*/FALSE);
-      /* Do compatibility checking for the throw specification. */
-      check_exception_specification(func_info, routine_ptr);
-    } else if (routine_ptr == NULL) {
-      /* There is no IL entry, so create one now, and add it to the routine
-         list of the file scope. */
-      routine_ptr = make_routine(type_ptr, storage_class,
-                                 /*at_file_scope=*/TRUE, /*add_to_list=*/TRUE);
-      if (C_dialect == C_dialect_cplusplus) {
-        /* Bind the throw specification to the routine entry. */
-        add_exception_specification(func_info, routine_ptr);
-        if (locator->is_operator_name) {
-          routine_ptr->special_kind = (a_special_function_kind)sfk_operator;
-          routine_ptr->opname_kind = locator->variant.opname;
-        }  /* if */
-      }  /* if */
-      if (!linked_redecl_error && *ext_sym != NULL &&
-          (*ext_sym)->variant.extern_symbol_descr->
-                                              variant.routine.ptr != NULL) {
-        /* A new routine entry has been created, yet the external symbol
-           already refers to a different routine.  This can occur when there
-           is an error, but it can also occur in SVR4 C mode -- for example:
-             extern int ff();
-             void f(int ff) { { extern float ff(); } }
-           where the second declaration of ff has an incompatible type, yet
-           no error is issued. */
-        routine_ptr->superseded_external = TRUE;
-      }  /* if */
-    } else {
-      /* There is an existing IL entry that we are reusing. */
-      /* Check for internal linkage on the old but not the new, or
-         vice-versa. */
-      a_boolean suppress_diagnostic = linked_redecl_error;
+    /* There is an existing IL entry that we are reusing. */
+    /* Check for internal linkage on the old but not the new, or
+       vice-versa. */
+    a_boolean suppress_diagnostic = linked_redecl_error;
 
-      if (routine_ptr->compiler_generated) {
-        /* This is an entry for a compiler generated ::operator new or
-           ::operator delete.  It was created during initialization, but
-           is overridden by the present declaration. */
+    if (routine_ptr->compiler_generated) {
+      /* This is an entry for a compiler generated ::operator new or
+         ::operator delete.  It was created during initialization, but
+         is overridden by the present declaration. */
 #if CHECKING
-        if (routine_ptr->special_kind ==
+      if (routine_ptr->special_kind ==
                              (a_special_function_kind)sfk_operator) {
-           check_assertion_str(is_new_operator(routine_ptr->opname_kind) ||
-                               is_delete_operator(routine_ptr->opname_kind),
-                               "decl_var_or_routine: bad opname kind");
-        }  /* if */
+        check_assertion_str(is_new_operator(routine_ptr->opname_kind) ||
+                             is_delete_operator(routine_ptr->opname_kind),
+                             "decl_routine: bad opname kind");
+      }  /* if */
 #endif /* CHECKING */
-        routine_ptr->compiler_generated = FALSE;
-        check_assertion(sym->decl_position.seq == 0);
-        /* Record the new source position, both in the symbol and in the
-           routine entry. */
-        sym->decl_position = locator->source_position;
-        routine_ptr->source_corresp.decl_position = sym->decl_position;
-        suppress_diagnostic = TRUE;
-      }  /* if */
+      routine_ptr->compiler_generated = FALSE;
+      check_assertion(sym->decl_position.seq == 0);
+      /* Record the new source position, both in the symbol and in the
+         routine entry. */
+      sym->decl_position = locator->source_position;
+      routine_ptr->source_corresp.decl_position = sym->decl_position;
+      suppress_diagnostic = TRUE;
+    }  /* if */
 #if ASM_FUNCTION_ALLOWED
-      if (storage_class == (a_storage_class)sc_asm ||
-          routine_ptr->storage_class == (a_storage_class)sc_asm) {
-        /* asm functions have internal linkage but do not conflict
-           with previous declarations that are either extern or static. */
-          routine_ptr->storage_class = storage_class = (a_storage_class)sc_asm;
-      } else {
+    if (storage_class == (a_storage_class)sc_asm ||
+        routine_ptr->storage_class == (a_storage_class)sc_asm) {
+      /* asm functions have internal linkage but do not conflict
+         with previous declarations that are either extern or static. */
+        routine_ptr->storage_class = storage_class = (a_storage_class)sc_asm;
+    } else {
 #endif /* ASM_FUNCTION_ALLOWED */
-        check_for_linkage_conflict(&routine_ptr->storage_class, &linkage,
-                                   &storage_class, &locator->source_position,
-                                   suppress_diagnostic);
+      check_for_linkage_conflict(&routine_ptr->storage_class, &linkage,
+                                 &storage_class, &locator->source_position,
+                                 suppress_diagnostic);
 #if ASM_FUNCTION_ALLOWED
-      }  /* if */
+    }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
-      if (is_function_def) {
+    if (is_function_def) {
 #if 0
-        /* This is temporary. */
+      /* This is temporary. */
 #endif /* if 0 */
-        if (routine_ptr->source_corresp.parent.namespace_ptr == NULL) {
+      if (routine_ptr->source_corresp.parent.namespace_ptr == NULL) {
         a_boolean saved_referenced_flag;
         /* If this is a definition, unlink the routine entry and relink it
            at the end of the routines list, so that routines appear in the
@@ -3382,39 +3654,38 @@ skip_overloading:;
         /* Keep an indication of any references so far (the referenced
            flag is reset by the set_source_corresp call). */
         routine_ptr->source_corresp.referenced = saved_referenced_flag;
-      }  /* if */
-      if (func_info->is_inline && !routine_ptr->is_inline) {
-        changed_to_inline = TRUE;
-      }  /* if */
 #if 0
       /* This is temporary. */
 #endif /* if 0 */
       }  /* if */
+      if (func_info->is_inline && !routine_ptr->is_inline) {
+        changed_to_inline = TRUE;
+      }  /* if */
     }  /* if */
-    if (func_info->is_inline) routine_ptr->is_inline = TRUE;
-    source_corresp_ptr = &routine_ptr->source_corresp;
-    update_routine_decl_modifiers(routine_ptr, decl_modifiers,
-                                  &locator->source_position, redeclaration,
-                                  is_function_def);
-    /* Link the symbol to the IL routine entry. */
-    sym->variant.routine.ptr = routine_ptr;
-    if (*ext_sym != NULL &&
-        (*ext_sym)->variant.extern_symbol_descr->variant.routine.ptr == NULL) {
-      /* Link the external symbol to the IL routine entry. */
-      (*ext_sym)->variant.extern_symbol_descr->
-                                  variant.routine.ptr = routine_ptr;
-    }  /* if */
-    if (any_deferred_access_checks()) {
-      /* Now that we know which function has been declared, recheck any
-         access errors that occurred while scanning the declaration. */
-      perform_deferred_access_checks_for_function(routine_ptr);
-    }  /* if */
+  }  /* if */
+  if (func_info->is_inline) routine_ptr->is_inline = TRUE;
+  source_corresp_ptr = &routine_ptr->source_corresp;
+  update_routine_decl_modifiers(routine_ptr, decl_modifiers,
+                                &locator->source_position, redeclaration,
+                                is_function_def);
+  /* Link the symbol to the IL routine entry. */
+  sym->variant.routine.ptr = routine_ptr;
+  if (*ext_sym != NULL &&
+      (*ext_sym)->variant.extern_symbol_descr->variant.routine.ptr == NULL) {
+    /* Link the external symbol to the IL routine entry. */
+    (*ext_sym)->variant.extern_symbol_descr->
+                                variant.routine.ptr = routine_ptr;
+  }  /* if */
+  if (any_deferred_access_checks()) {
+    /* Now that we know which function has been declared, recheck any
+       access errors that occurred while scanning the declaration. */
+    perform_deferred_access_checks_for_function(routine_ptr);
   }  /* if */
   /* Set the source correspondence, but leave it pointing at an outer-scope
      symbol if there is one. */
   if (source_corresp_ptr->assoc_info == NULL) {
-    /* There is no symbol pointed to from the variable or routine, so
-       update it with the current symbol. */
+    /* There is no symbol pointed to from the routine, so update it with the
+       current symbol. */
     set_source_corresp(source_corresp_ptr, sym);
   } else if (!redeclaration && !template_function_specific_decl) {
     /* Record a reference to the outer-scope symbol of the same name,
@@ -3438,100 +3709,26 @@ skip_overloading:;
        alone in set_source_corresp. */
     source_corresp_ptr->is_local_to_function = FALSE;
   }  /* if */
-  if (!C_mode() && at_file_scope && !redeclaration) {
+  if (!C_mode() && !redeclaration) {
     if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
       set_namespace_membership(sym, source_corresp_ptr,
                                scope_stack[depth_innermost_namespace_scope].
                                            il_scope->variant.assoc_namespace);
     }  /* if */
   }  /* if */
-  if (linkage == idl_external) {
-    /* Indicate in the IL entry that the name is externally visible by
-       assigning the external linkage kind that is the default for the current
-       context. */
-    if (C_dialect != C_dialect_cplusplus || is_main_function) {
-      /* Note that "main" is always given "C" linkage. */
-      source_corresp_ptr->name_linkage = (a_name_linkage_kind)nlk_external;
-      sym->explicit_linkage_specifier = FALSE;
-    } else if (source_corresp_ptr->name_linkage ==
-                                         (a_name_linkage_kind)nlk_none) {
-      /* No prior declaration, so there's no conflict. */
-      source_corresp_ptr->name_linkage = def_external_linkage.kind;
-      sym->explicit_linkage_specifier = 
-                              (*ext_sym)->explicit_linkage_specifier = 
-                                         def_external_linkage.is_explicit;
-      if (overload_symbol != NULL &&
-          def_external_linkage.kind == (a_name_linkage_kind)nlk_external) {
-        /* "At most one of a set of overloaded functions . . . can have
-           C linkage" (ARM 7.4).  Search for conflicts. */
-        a_symbol_ptr  sp;
-        for (sp = overload_symbol->variant.overloaded_function.symbols;
-             sp != NULL;
-             sp = sp->next) {
-          if (sp != sym &&
-              sp->variant.routine.ptr->source_corresp.name_linkage ==
-                                         (a_name_linkage_kind)nlk_external) {
-            pos_sy_error(ec_overloaded_function_linkage,
-                         &locator->source_position, overload_symbol);
-            break;
-          }  /* if */
-        }  /* for */
-      }  /* if */
+  if (func_info->is_main_function) {
+    /* This is "main", so remember the location of its routine entry. */
+    if (il_header.main_routine == NULL) {
+      il_header.main_routine = routine_ptr;
     } else {
-      /* Multiple specifications of external linkage must be the same
-         (ARM 7.4).  But it's a little trickier than that.  We will not
-         override the previous specification, but we need to be sure the
-         current one is consistent with it. */
-      a_boolean  err = FALSE;
-      if (source_corresp_ptr->name_linkage == def_external_linkage.kind) {
-        /* The linkage kinds (C or C++) are the same; however, the ARM states,
-           "A function declaration without a linkage specification may not
-           precede the first linkage specification for that function." */
-        if (def_external_linkage.is_explicit) {
-          err = (!sym->explicit_linkage_specifier &&
-                 !(*ext_sym)->explicit_linkage_specifier);
-          /* Mark the symbols as having an explicit linkage specifier to
-             keep this error from occurring again later. */
-          sym->explicit_linkage_specifier = 
-                              (*ext_sym)->explicit_linkage_specifier = TRUE;
-        }  /* if */
-      } else {
-        /* Linkage is not the same, but it's no error as long as the current
-           specification is implicit. */
-        err = def_external_linkage.is_explicit;
-      }  /* if */
-      if (err) {
-        /* Neither functions nor variables are supposed to have inconsistent
-           linkage specifications, but it's more of a problem for functions.
-           Issue an error for functions, a warning for variables. */
-        pos_sy_diagnostic(is_function ?
-                            (an_error_severity)es_error :
-                            (strict_ansi_mode ?
-                               strict_ansi_error_severity :
-                               (an_error_severity)es_warning),
-                          ec_incompatible_linkage_specifier,
-                          &locator->source_position, *ext_sym);
-      }  /* if */
-    }  /* if */
-  } else if (linkage == idl_internal) {
-    /* Internal linkage. */
-    source_corresp_ptr->name_linkage = (a_name_linkage_kind)nlk_internal;
-  } else {
-    /* No linkage -- e.g., an automatic variable. */
-    check_assertion(source_corresp_ptr->name_linkage ==
-                                               (a_name_linkage_kind)nlk_none);
-  }  /* if */
-  if (C_dialect == C_dialect_cplusplus) {
-    /* A variable or routine with linkage should not be declared in terms of
-       a local type. */
-    if (source_corresp_ptr->name_linkage != (a_name_linkage_kind)nlk_none) {
-      if (is_or_contains_local_type(type_ptr)) {
-        pos_error(is_function ? ec_local_type_in_function :
-                                ec_local_type_in_nonlocal_var,
-                  &locator->source_position);
-      }  /* if */
+      /* Unless there's an error there cannot be two "main" functions. */
+      check_assertion_str(il_header.main_routine == routine_ptr ||
+                            total_errors > 0,
+                          "decl_routine: main redeclared");
     }  /* if */
   }  /* if */
+  set_name_linkage(linkage, sym, source_corresp_ptr, *ext_sym,
+                   overload_symbol, &locator->source_position);
   /* If cross-reference information is being issued, update the output.  If
      source sequence entries are being generated, update the declarator_ssep
      entry. */
@@ -3542,37 +3739,22 @@ skip_overloading:;
      represent the current declaration.  Note that declaration_ssep is not
      used, since it may have been replaced (e.g., when a file scope entity
      is declared in a local scope and a sublist is generated). */
-  if (is_function) {
-    if (is_function_def) {
-      /* The defining declaration of the function.  The type as it actually
-         appeared in the current declaration may already have been set in
-         reconcile_routine_types. */
-      if (routine_ptr->declared_type == NULL) {
-        check_assertion(type_ptr == declared_type);
-        routine_ptr->declared_type = type_ptr;
-      }  /* if */
-      if (srk_flags & SRK_FRIEND) routine_ptr->defined_in_friend_decl = TRUE;
-    } else {
-      /* A function declaration but not a definition.  Set the type in the
-         secondary declaration entry. */
-      a_src_seq_secondary_decl_ptr  sssdp;
-      sssdp = set_src_seq_secondary_decl_type((char *)routine_ptr,
-                                              declared_type);
-      if (sssdp != NULL && (srk_flags & SRK_FRIEND)) sssdp->friend_decl = TRUE;
+  if (is_function_def) {
+    /* The defining declaration of the function.  The type as it actually
+       appeared in the current declaration may already have been set in
+       reconcile_routine_types. */
+    if (routine_ptr->declared_type == NULL) {
+      check_assertion(type_ptr == declared_type);
+      routine_ptr->declared_type = type_ptr;
     }  /* if */
+    if (srk_flags & SRK_FRIEND) routine_ptr->defined_in_friend_decl = TRUE;
   } else {
-    if (!is_variable_def || (srk_flags & SRK_TENTATIVE_DEF)) {
-      /* A function declaration but not a definition. */
-      (void)set_src_seq_secondary_decl_type((char *)variable_ptr,
+    /* A function declaration but not a definition.  Set the type in the
+       secondary declaration entry. */
+    a_src_seq_secondary_decl_ptr  sssdp;
+    sssdp = set_src_seq_secondary_decl_type((char *)routine_ptr,
                                             declared_type);
-    } else {
-      /* The defining declaration of the variable.  Record the type. */
-      if (variable_ptr->declared_type == NULL) {
-        variable_ptr->declared_type = declared_type;
-      } else {
-        check_assertion(C_mode());
-      }  /* if */
-    }  /* if */
+    if (sssdp != NULL && (srk_flags & SRK_FRIEND)) sssdp->friend_decl = TRUE;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (is_function_def) {
@@ -3594,18 +3776,6 @@ skip_overloading:;
   /* Do processing required for the rest of the pragmas, if any, that are
      bound to the current declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
-  if (is_variable_def && is_volatile_qualified_type(type_ptr)) {
-    /* A variable with a volatile type is considered to be used and modified
-       from "elsewhere".  (We use "is_variable_def" to exclude cases like
-       "extern volatile int x", for which the flags shouldn't be set unless
-       there is an explicit use in this translation unit.)  Note that this
-       must be done after set_source_corresp because the latter clears the
-       IL referenced flag. */
-    source_corresp_ptr->referenced = TRUE;
-    sym->referenced = TRUE;
-    sym->variant.variable.used = TRUE;
-    sym->variant.variable.value_has_been_set = TRUE;
-  }  /* if */
   /* Return symbol and linkage pointers. */
   *symbol_ptr = sym;
   *linkage_ptr = linkage;
@@ -3616,7 +3786,7 @@ skip_overloading:;
   }  /* if */
 #endif /* DEBUG */
   db_exit();
-}  /* decl_var_or_routine */
+}  /* decl_routine */
 
 
 #if !DECL_MODIFIERS_IN_USE
@@ -3631,7 +3801,7 @@ void decl_function_template(a_symbol_locator     *locator,
                             a_template_param_ptr templ_param_list)
 /*
 Roughly speaking, this routine does for function templates what
-decl_var_or_routine does for ordinary functions.  Lookup and reuse or else
+decl_routine does for ordinary functions.  Lookup and reuse or else
 create a function template symbol; for new symbols also create a routine
 entry (though one that is not added to the IL).  *locator represents the
 current identifier, type_ptr is the function type, storage_class is the
@@ -4258,10 +4428,10 @@ symbol has already been entered as an undefined symbol.
   clear_func_info(&func_info);
   func_info.is_implicit_declaration = TRUE;
   if (exceptions_enabled) func_info.throw_position = locator.source_position;
-  decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
-                      &func_info, (a_source_sequence_entry_ptr)NULL,
-                      (SRK_DECLARATION | SRK_IMPLICIT), DM_NONE,
-                      &symbol_ptr, &linkage, &old_type, &ext_sym);
+  decl_routine(&locator, (a_storage_class)sc_extern, rout_type, &func_info,
+               (a_source_sequence_entry_ptr)NULL,
+               (SRK_DECLARATION | SRK_IMPLICIT), DM_NONE, &symbol_ptr,
+               &linkage, &old_type, &ext_sym);
   done_with_func_info(func_info);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
@@ -5627,7 +5797,7 @@ block.
         nsp->variant.assoc_scope->variant.assoc_namespace = nsp;
         srk_flags |= SRK_DEFINITION;
       } else {
-        /* An extension of the original defintion of this namespace -- push
+        /* An extension of the original definition of this namespace -- push
            a scope for the scanning the namespace body. */
         nsp = ns_sym->variant.namespace_info.ptr;
         (void)push_namespace_scope((a_scope_kind)sck_namespace_extension, nsp);
@@ -5663,7 +5833,7 @@ block.
 }  /* namespace_declaration */
 
 
-static void using_directive()
+static void using_directive(void)
 /*
 Scan a using directive.  Its syntax is:
 
@@ -5693,7 +5863,7 @@ A using-directive entry is created and activated for the current scope.
       error(ec_missing_namespace_name);
     } else {
       /* Allocate a using-directive entry specifying this namespace and
-         acticate it. */
+         activate it. */
       make_using_directive(sym->variant.namespace_info.ptr, &decl_start_pos);
     }  /* if */
     (void)get_token();
@@ -5703,7 +5873,7 @@ A using-directive entry is created and activated for the current scope.
 }  /* using_directive */
 
 
-static void nonmember_using_declaration()
+static void nonmember_using_declaration(void)
 /*
 Scan a using_declaration in a nonclass scope.  Its syntax is:
 
@@ -5887,7 +6057,6 @@ TRUE if an error was reported while the decl-specifiers were scanned.
 #if ASM_FUNCTION_ALLOWED
       } else if (storage_class == (a_storage_class)sc_asm) {
         pos_error(ec_bad_asm_function_def, &pos_curr_token);
-        local_storage_class = (a_storage_class)sc_unspecified;
 #endif /* ASM_FUNCTION_ALLOWED */
       } else {
         if (!declares_something) {
@@ -6771,10 +6940,10 @@ continue_with_declaration:
                                        /*is_redecl=*/TRUE);
       } else if (is_function) {
         /* A function declaration with no body. */
-        decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
-                            &func_info, declarator_ssep, SRK_DECLARATION,
-                            decl_modifiers, &symbol_ptr, &linkage, &old_type,
-                            &ext_sym);
+        decl_routine(&locator, local_storage_class, local_type_ptr,
+                     &func_info, declarator_ssep, SRK_DECLARATION,
+                     decl_modifiers, &symbol_ptr, &linkage, &old_type,
+                     &ext_sym);
       } else {
         /* A variable declaration. */
         a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
@@ -6820,10 +6989,9 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
         if (is_variable_def) srk_flags |= SRK_DEFINITION;
-        decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
-                            (a_func_info_block *)NULL, declarator_ssep,
-                            srk_flags, decl_modifiers, &symbol_ptr, &linkage,
-                            &old_type, &ext_sym);
+        decl_variable(&locator, local_storage_class, local_type_ptr,
+                      declarator_ssep, srk_flags, decl_modifiers,
+                      &symbol_ptr, &linkage, &old_type, &ext_sym);
         var_ptr = symbol_ptr->variant.variable.ptr;
         /* Fetch the type of the symbol again, since it might have been
            changed when reconciled with the original declaration. */
