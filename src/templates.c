@@ -15558,8 +15558,11 @@ that follows.
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
             check_assertion(rp->declared_type == NULL);
             set_routine_declared_type(rp, declared_type);
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
             if (rp->source_corresp.source_sequence_entry != NULL &&
+#if !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+                microsoft_nonstd_specialization &&
+#endif /* !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
                 (an_il_entry_kind)rp->source_corresp.source_sequence_entry->
                                                                  entity.kind ==
                              (an_il_entry_kind)iek_src_seq_secondary_decl) {
@@ -15572,7 +15575,7 @@ that follows.
                                           (char *)rp, declared_type, name_ref,
                                           flags, &decl_pos_block);
             }  /* if */
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
           } else {
             (void)update_src_seq_secondary_decl((char *)rp, declared_type,
                                                 name_ref, flags,
