@@ -1191,9 +1191,15 @@ typedef struct a_template_instance {
                            as being possible by a can_instantiate pragma. */
   a_bit_field	automatically_instantiated:1;
 			/* TRUE if the instance was listed in the instantiation
-			   information file as an instantiation assigned to
+			   request file as an instantiation assigned to
 			   this compilation.  This field is only used when
 			   automatic template instantiation is configured. */
+  a_bit_field	add_to_request_file:1;
+			/* TRUE if the instance was "adopted" by this
+			   translation unit because it was known not to be
+			   defined elsewhere.  A list of these entities is
+			   returned to the prelinker to be appended to
+			   the instantiation request file. */
   a_bit_field	suppress_instantiation:1;
 			/* TRUE if the instantiation of this entity should be
 			   suppressed because of previous errors that occurred

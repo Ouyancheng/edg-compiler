@@ -8314,6 +8314,7 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->explicit_do_not_instantiate = FALSE;
   tip->explicit_can_instantiate    = FALSE;
   tip->automatically_instantiated  = FALSE;
+  tip->add_to_request_file	   = FALSE;
   tip->suppress_instantiation      = FALSE;
   tip->can_be_instantiated	   = FALSE;
   tip->explicit_instantiation_pos  = null_source_position;

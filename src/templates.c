@@ -59,6 +59,13 @@ typedef struct an_instance_lookup_entry {
 			   the instantiation list file.  This will typically
 			   be the mangled name of the function or static
 			   data member. */
+  a_byte_boolean
+		in_request_file;
+			/* TRUE if the name is present in the request file. */
+  a_byte_boolean
+		in_definition_list_file;
+			/* TRUE if the name is present in the definition
+			   list file. */
 } an_instance_lookup_entry;
 
 /*
@@ -98,9 +105,12 @@ only or when the back end is suppressed.
   (!do_preprocessing_only && !suppress_back_end)
 
 
-#define INSTANCE_LOOKUP_TABLE_SIZE 127
+#define INSTANCE_LOOKUP_TABLE_SIZE 10007
 			/* The number of buckets in the instance lookup table.
-			   This number should be prime. */
+			   This number should be prime.  The number is large
+			   because this table is also used to process the
+			   definition list file, which may contain a very
+			   large number of symbols. */
 
 static an_instance_lookup_entry_ptr
 		instance_lookup_table[INSTANCE_LOOKUP_TABLE_SIZE];
@@ -108,7 +118,7 @@ static an_instance_lookup_entry_ptr
 			   entries associated with instantiations that hashed
 			   to a given group. */
 
-#define HASH_FACTOR 73
+#define HASH_FACTOR ((unsigned int)73)
 			/* The multiplier used in the hash algorithm that
 			   generates an index in the hash table from an
                            identifier name string.
@@ -140,16 +150,27 @@ static FILE	*f_instantiation_request;
 			   read.  Only valid when do_auto_instantiation is
 			   TRUE. */
 static a_boolean
-		any_instantiations_assigned_to_this_translation_unit;
+		request_file_check_needed;
 			/* TRUE if any instantiations have been assigned
-			   to this translation unit.  This means that it
+			   to this translation unit or if a definition list
+			   file is in use.  This means that it
 			   is necessary to compare the instances in this
 			   translation unit with the list of assigned
-			   instantiations. */
+			   instantiations and/or with the list of entities
+			   in the definition list file.  */
 
 static FILE	*f_template_info;
 			/* File variable associated with the template
 			   information file. */
+
+static a_boolean
+		any_instantiated_entitites_added_to_request_file;
+			/* TRUE if any instances have had their add to
+			   request flag set and have also been instantiated.
+			   This is used to determine whether a list of
+			   added entities should be generated at the end of
+			   the compilation. */
+
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 typedef struct a_can_instantiate_entry *a_can_instantiate_entry_ptr;
@@ -619,7 +640,7 @@ associated with this information file line.
   if (f_template_info == NULL) {
     open_template_info_file();
   }  /* if */
-  fprintf(f_template_info, "%s:%s", line_type_names[line_type], string);
+  fprintf(f_template_info, "%s:%s", line_type_names[(int)line_type], string);
   if (flags_string) {
     fprintf(f_template_info, ":%s", flags_string);
   }  /* if */
@@ -10943,8 +10964,9 @@ template entities.
   a_boolean	specialization_defined;
   a_boolean	template_def;
 
-  if (!tip->explicit_do_not_instantiate && (tip->explicit_instantiation ||
-      ((tip->instantiation_required || instantiation_mode == tim_all) &&
+  if (!tip->already_instantiated && !tip->explicit_do_not_instantiate &&
+      (tip->explicit_instantiation ||
+       ((tip->instantiation_required || instantiation_mode == tim_all) &&
         (instantiation_mode != tim_none ||
          is_static_or_inline_template_function(tip))))) {
     /* For error checking purposes, find out if a specific definition
@@ -11057,6 +11079,70 @@ function.
 }  /* too_many_unused_instantiations */
 
 
+static a_boolean f_entity_can_be_instantiated(a_template_instance_ptr tip)
+/*
+Determines whether this compilation is capable of generating an
+instantiation of a given template instance.
+*/
+{
+  a_boolean	result = TRUE;
+  a_boolean	template_def;
+  a_boolean	specialized;
+
+  /* For error checking purposes, find out if a specialization declaration
+     exists and whether a body exists for the template definition. */
+  if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+    a_variable_ptr	vp;
+    vp = tip->instance_sym->variant.static_data_member.variable;
+    specialized = vp->is_specialized;
+    template_def = tip->template_sym->defined;
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+    if (!template_def && !specialized && !tip->suppress_instantiation &&
+        !tip->explicit_do_not_instantiate &&
+        !tip->already_instantiated && implicit_template_inclusion_mode) {
+      /* If a template definition is not present, attempt to include a
+         source file that will provide the definition.  Then check
+         again to see if a template definition is present. */
+      do_implicit_include_if_needed(tip);
+      template_def = tip->template_sym->defined;
+    }  /* if */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+  } else {
+    a_symbol_ptr		      template_sym;
+    a_template_symbol_supplement_ptr  tssp;
+    a_routine_ptr		      rp;
+    rp = tip->instance_sym->variant.routine.ptr;
+    template_sym = tip->template_sym;
+    tssp = template_supplement_for_symbol(template_sym);
+    specialized = rp->is_specialized;
+    template_def = cache_for_template(tssp)->tokens.first_token != NULL;
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+    if (!template_def && !specialized && !tip->suppress_instantiation &&
+        !tip->already_instantiated && implicit_template_inclusion_mode) {
+      /* If a template definition is not present, attempt to include a
+         source file that will provide the definition.  Then check
+         again to see if a template definition is present. */
+      do_implicit_include_if_needed(tip);
+      template_def = cache_for_template(tssp)->tokens.first_token != NULL;
+    }  /* if */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+  }  /* if */
+  result = template_def && !specialized && !tip->already_instantiated &&
+           !tip->suppress_instantiation && !tip->explicit_do_not_instantiate;
+  tip->can_be_instantiated = result;
+  return result;
+}  /* f_entity_can_be_instantiated */
+
+
+/*
+Macro that calls f_entity_can_be_instantiated.  If we have already determined
+that the entity can be instantiated, the call is suppressed and the
+previously computed value is returned.
+*/
+#define entity_can_be_instantiated(tip)					\
+  ((tip)->can_be_instantiated ? (tip)->can_be_instantiated	\
+                              : f_entity_can_be_instantiated(tip))
+
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 static an_instance_lookup_entry_ptr alloc_instance_lookup_entry(void)
 /*
@@ -11070,6 +11156,8 @@ to it.
                                 alloc_fe(sizeof(an_instance_lookup_entry));
   ilp->next = NULL;
   ilp->name = NULL;
+  ilp->in_request_file = FALSE;
+  ilp->in_definition_list_file = FALSE;
   return ilp;
 }  /* alloc_instance_lookup_entry */
 
@@ -11090,25 +11178,28 @@ later check whether a specified name was included in that list.
   int			       length;
 
   length = strlen(name);
-  /* Hash the symbol's name.  This involves taking the name's
-     first, last, and middle 3 characters.  Of course, if the name has
-     fewer than 5 characters, take the entire name. */
-  if (length > 5) {
+  /* Hash the symbol's identifier.  This involves taking the identifier's
+     first 3, last 3, and middle 3 characters.  Of course, if the identifier
+     has 9 or fewer characters, take the entire identifier. */
+  ptr = name;
+  if (length > 9) {
+    hash_value = (unsigned int)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr;
     ptr = name + (length >> 1) - 1;
-    hash_value = (int)*name;
-    hash_value = (hash_value * HASH_FACTOR) +
-                                             (int)*(name + length - 1);
-    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr;
+    ptr = name + length - 3;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr;
   } else {
-    register int i;
-    ptr = name;
-    for (i = 0; i < length; i++) {
-      hash_value = (hash_value * HASH_FACTOR) + (int)*ptr++;
+    register int a;
+    for (a = 0; a < length; a++) {
+      hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
     }  /* for */
   }  /* if */
-
   /* Look in the symbol bucket saving the position in case this symbol needs
      to be added. */
   bucket_number = hash_value % INSTANCE_LOOKUP_TABLE_SIZE;
@@ -11140,9 +11231,9 @@ symbol_found:
 }  /* find_instance */
 
 
-static char *read_request_file(void)
+static char *read_instance_name(FILE *f_file)
 /*
-Reads a line of input from the instantiation list file.  Returns TRUE if
+Reads a line of input from the file specified by f_file.  Returns TRUE if
 a line of input is being returned.  Returns FALSE at end-of-file.
 */
 {
@@ -11162,7 +11253,7 @@ a line of input is being returned.  Returns FALSE at end-of-file.
   }  /* if */
   buffer_pos = input_line;
 
-  while (ch = getc(f_instantiation_request), ch != EOF && ch != '\n') {
+  while (ch = getc(f_file), ch != EOF && ch != '\n') {
     if (++size == request_file_line_size) {
       /* The input line needs to be expanded.  This occurs one character
          before the actual end of the buffer to ensure that there will be
@@ -11188,7 +11279,7 @@ a line of input is being returned.  Returns FALSE at end-of-file.
   if (ch == EOF && size == 0) result = NULL;
 
   return (result);
-}  /* read_request_file */
+}  /* read_instance_name */
 
 
 static a_boolean open_instantiation_request_file(void)
@@ -11231,18 +11322,51 @@ were entered in the hash table; otherwise returns FALSE.
        that don't contain instantiation entries. */
     for (i = 1; i <= INSTANTIATION_REQUEST_LINES_RESERVED; ++i) {
       /* Read and discard the line. */
-      (void)read_request_file();
+      (void)read_instance_name(f_instantiation_request);
     }  /* if */
-    /* The variable do_auto_instantiation indicates that an instantiation
-       list file is present. */
-    while ((line = read_request_file()) != NULL) {
-      (void)find_instance(line, /*add=*/TRUE);
+    while ((line = read_instance_name(f_instantiation_request)) != NULL) {
+      an_instance_lookup_entry_ptr	ilp;
+      ilp = find_instance(line, /*add=*/TRUE);
+      ilp->in_request_file = TRUE;
       result = TRUE;
     }  /* while */
     (void)fclose(f_instantiation_request);
   }  /* if */
   return result;
 }  /* read_instantiation_request_file */
+
+
+static a_boolean read_definition_list_file(void)
+/*
+If a definition list file was specified, read the entries from the
+definition list file and enter them into the instance table.
+Return TRUE if any entries were read.
+*/
+{
+  FILE		*f_definition_list;
+  char		*line;
+  a_boolean	result = FALSE;
+
+  if (definition_list_file_name != NULL && generate_template_files()) {
+    /* Open the definition list file. */
+    f_definition_list = fopen(definition_list_file_name, "r");
+    if (f_definition_list == NULL) {
+      str_catastrophe(ec_cannot_open_definition_list_file,
+                      definition_list_file_name);
+    }  /* if */
+    /* Read the list of instances from the definition list file and
+       create an entry in the instance lookup table that is flagged
+       as being in the definition list file. */
+    while ((line = read_instance_name(f_definition_list)) != NULL) {
+      an_instance_lookup_entry_ptr	ilp;
+      ilp = find_instance(line, /*add=*/TRUE);
+      ilp->in_definition_list_file = TRUE;
+      result = TRUE;
+    }  /* while */
+    fclose(f_definition_list);
+  }  /* if */
+  return result;
+}  /* read_definition_list_file */
 
 
 static a_boolean init_auto_instantiation_information(void)
@@ -11261,15 +11385,23 @@ request file.
 }  /* init_auto_instantiation_information */
 
 
-static a_boolean check_if_present_in_request_file(a_template_instance_ptr tip)
+static void check_if_present_in_request_file(
+			a_template_instance_ptr		tip,
+			a_boolean			*instantiate,
+			a_boolean			*not_defined_elsewhere)
 /*
 See if the specified instantiation is one that is included in the
-instantiation request file.  Return TRUE if it is present.
+instantiation request file.  Return TRUE in instantiated if it is present
+Return TRUE in not_defined_elsewhere if the entity is known to to
+be defined in some other part of the program (e.g. it is not in an
+object or library with which this file is being linked).
 */
 {
-  char		*name;
-  a_boolean	found = FALSE;
+  char				*name;
+  an_instance_lookup_entry_ptr	ilp;
 
+  *not_defined_elsewhere = FALSE;
+  *instantiate = FALSE;
   if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
     a_variable_ptr	variable;
     variable = tip->instance_sym->variant.static_data_member.variable;
@@ -11279,10 +11411,17 @@ instantiation request file.  Return TRUE if it is present.
     routine = tip->instance_sym->variant.routine.ptr;
     name = get_mangled_function_name(routine);
   }  /* if */
-  if (find_instance(name, /*add=*/FALSE) != NULL) {
-    found = TRUE;
+  ilp = find_instance(name, /*add=*/FALSE);
+  if (ilp != NULL && ilp->in_request_file) {
+    /* The entity was named in the instantiation request file. */
+    *instantiate = TRUE;
+  } else if (definition_list_file_name != NULL &&
+             tip->instantiation_required && !tip->already_instantiated &&
+             (ilp == NULL || !ilp->in_definition_list_file)) {
+    /* The entity was not in the instantiation list file, but neither is
+       it in the list of already-defined entities.  Instantiate it here. */
+    *not_defined_elsewhere = TRUE;
   }  /* if  */
-  return found;
 }  /* check_if_present_in_request_file */
 
 
@@ -11347,8 +11486,31 @@ routine simply checks whether the specified entity was named in the
 instantiation request file.
 */
 {
-  if (check_if_present_in_request_file(tip)) {
-    tip->automatically_instantiated = TRUE;
+  if (request_file_check_needed) {
+    a_boolean	instantiate;
+    a_boolean	not_defined_elsewhere;
+    a_boolean	add_to_request_file = FALSE;
+    check_if_present_in_request_file(tip, &instantiate,
+                                     &not_defined_elsewhere);
+    if (not_defined_elsewhere) {
+      /* If the entity is known not to be defined elsewhere, see if an
+         instantiation should be performed here.  Only external entities
+         can be added to a request file. */
+      if (tip->instantiation_required && !tip->already_instantiated &&
+          !is_static_or_inline_template_function(tip)) {
+        add_to_request_file = TRUE;
+      }  /* if */
+    }  /* if */
+    if (instantiate || add_to_request_file) {
+      /* An instantiation should be done here. */
+      tip->automatically_instantiated = TRUE;
+    }  /* if */
+    if (add_to_request_file) {
+      /* The instantiation was not requested by the prelinker, but was
+         "adopted" by this translation unit because it is known not to
+         be defined anywhere else. */
+      tip->add_to_request_file = TRUE;
+    }  /* if */
   }  /* if */
 }  /* check_if_entity_should_be_automatically_instantiated */
 
@@ -11571,92 +11733,30 @@ update_instantiation_required_flag to do the appropriate processing.
 }  /* process_deferred_instantiation_requests */
 
 
-static a_boolean f_entity_can_be_instantiated(a_template_instance_ptr tip)
-/*
-Determines whether this compilation is capable of generating an
-instantiation of a given template instance.
-*/
-{
-  a_boolean	result = TRUE;
-  a_boolean	template_def;
-  a_boolean	specialized;
-
-  /* For error checking purposes, find out if a specialization declaration
-     exists and whether a body exists for the template definition. */
-  if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-    a_variable_ptr	vp;
-    vp = tip->instance_sym->variant.static_data_member.variable;
-    specialized = vp->is_specialized;
-    template_def = tip->template_sym->defined;
-#if INSTANTIATION_BY_IMPLICIT_INCLUSION
-    if (!template_def && !specialized && !tip->suppress_instantiation &&
-        !tip->already_instantiated && implicit_template_inclusion_mode) {
-      /* If a template definition is not present, attempt to include a
-         source file that will provide the definition.  Then check
-         again to see if a template definition is present. */
-      do_implicit_include_if_needed(tip);
-      template_def = tip->template_sym->defined;
-    }  /* if */
-#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-  } else {
-    a_symbol_ptr		      template_sym;
-    a_template_symbol_supplement_ptr  tssp;
-    a_routine_ptr		      rp;
-    rp = tip->instance_sym->variant.routine.ptr;
-    template_sym = tip->template_sym;
-    tssp = template_supplement_for_symbol(template_sym);
-    specialized = rp->is_specialized;
-    template_def = cache_for_template(tssp)->tokens.first_token != NULL;
-#if INSTANTIATION_BY_IMPLICIT_INCLUSION
-    if (!template_def && !specialized && !tip->suppress_instantiation &&
-        !tip->already_instantiated && implicit_template_inclusion_mode) {
-      /* If a template definition is not present, attempt to include a
-         source file that will provide the definition.  Then check
-         again to see if a template definition is present. */
-      do_implicit_include_if_needed(tip);
-      template_def = cache_for_template(tssp)->tokens.first_token != NULL;
-    }  /* if */
-#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-  }  /* if */
-  result = template_def && !specialized && !tip->already_instantiated &&
-           !tip->suppress_instantiation && !tip->explicit_do_not_instantiate;
-  tip->can_be_instantiated = result;
-  return result;
-}  /* f_entity_can_be_instantiated */
-
-
-/*
-Macro that calls f_entity_can_be_instantiated.  If we have already determined
-that the entity can be instantiated, the call is suppressed and the
-previously computed value is returned.
-*/
-#define entity_can_be_instantiated(tip)					\
-  ((tip)->can_be_instantiated ? (tip)->can_be_instantiated	\
-                              : f_entity_can_be_instantiated(tip))
-
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 #if DO_IL_LOWERING
 
 static void create_instantiation_flag_variables(
 				a_source_correspondence *scp,
-				a_template_instance_ptr	tip,
-				a_boolean		can_instantiate)
+				a_boolean		instance_required,
+				a_boolean		do_not_instantiate,
+				a_boolean		can_be_instantiated)
 /*
 For automatic instantiation, generate a variable or variables with
 names that encode instantiation information.  Note that this is done
 only if IL lowering is done.
 */
 {
-  if (tip->instantiation_required) {
+  if (instance_required) {
     /* This routine or variable is template-based. */
     make_instantiation_info_var("__TIR__", scp);
   }  /* if */
-  if (tip->explicit_do_not_instantiate) {
+  if (do_not_instantiate) {
     /* This routine or variable cannot be instantiated. */
     make_instantiation_info_var("__DNI__", scp);
   }  /* if */
-  if (can_instantiate) {
+  if (can_be_instantiated) {
     /* This routine or variable can be instantiated. */
     make_instantiation_info_var("__CBI__", scp);
   }  /* if */
@@ -11667,8 +11767,9 @@ only if IL lowering is done.
 
 static void write_instantiation_flags_to_template_info_file(
 				a_source_correspondence *scp,
-				a_template_instance_ptr	tip,
-				a_boolean		can_instantiate)
+				a_boolean		instance_required,
+				a_boolean		do_not_instantiate,
+				a_boolean		can_be_instantiated)
 /*
 For automatic instantiation, write an entry to the template information
 file that specifies the instantiation flags associated with the entity.
@@ -11677,21 +11778,72 @@ file that specifies the instantiation flags associated with the entity.
   char	flags[4];
   char	*flag_ptr = flags;
 
-  if (tip->instantiation_required) {
+  if (instance_required) {
     /* This routine or variable is template-based. */
     *flag_ptr++ = 'T';
   }  /* if */
-  if (tip->explicit_do_not_instantiate) {
+  if (do_not_instantiate) {
     /* This routine or variable cannot be instantiated. */
     *flag_ptr++ = 'D';
   }  /* if */
-  if (can_instantiate) {
+  if (can_be_instantiated) {
     /* This routine or variable can be instantiated. */
     *flag_ptr++ = 'C';
   }  /* if */
   *flag_ptr = '\0';
-  write_to_template_info_file(tilt_instantiation_flag, scp->name, flags);
+  if (flags[0] != '\0') {
+    /* Only write the line if at least one flag is set. */
+    write_to_template_info_file(tilt_instantiation_flag, scp->name, flags);
+  }  /* if */
 }  /* write_instantiation_flags_to_template_info_file */
+
+
+static void add_entities_to_request_file(void)
+/*
+Go through the instantiations required list to find any entities
+that should be added to the request file.  The list is written
+to the definition list file.  The prelinker is responsible
+for adding the entries to the actual instantiation request file.
+*/
+{
+  a_template_instance_ptr	tip;
+  FILE				*f_definition_list;
+
+  check_assertion(definition_list_file_name != NULL);
+  f_definition_list = fopen(definition_list_file_name, "w");
+  if (f_definition_list == NULL) {
+    str_catastrophe(ec_cannot_open_definition_list_file,
+                    definition_list_file_name);
+  }  /* if */
+  /* Write a special string to the start of the list of entities to
+     be added to the request file.  This is used by the prelinker to
+     verify that the file was created by the front end, and is not
+     a leftover definition list file created by the prelinker. */
+  fputs(":add:\n", f_definition_list);
+  for (tip = instantiations_required; tip != NULL;
+       tip = tip->next_in_instantiation_list) {
+    /* Make sure the entity was actually instantiated before adding it to
+       the request file.  It is possible for the add_to_request_file
+       flag to be set for entities that cannot be instantiated. */
+    if (tip->add_to_request_file && tip->already_instantiated) {
+      char	*name;
+      if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+        a_variable_ptr	vp;
+        vp = tip->instance_sym->variant.static_data_member.variable;
+        name = vp->source_corresp.name;
+      } else {
+        a_routine_ptr	rp;
+        rp = tip->instance_sym->variant.routine.ptr;
+        name = rp->source_corresp.name;
+      }  /* if */
+      fputs(name, f_definition_list);
+      fputs("\n", f_definition_list);
+    }  /* if */
+  }  /* for */
+  if (fclose(f_definition_list)) {
+    str_catastrophe(ec_file_write_error, "definition list file");
+  }  /* if */
+}  /* add_entities_to_request_file */
 
 
 void update_auto_instantiation_flags(void)
@@ -11717,7 +11869,9 @@ and "do not instantiate" flags are set here.
     a_symbol_ptr			instance_sym = tip->instance_sym;
     a_routine_ptr			routine;
     a_variable_ptr			variable;
-    a_boolean				can_instantiate;
+    a_boolean				can_be_instantiated;
+    a_boolean				do_not_instantiate;
+    a_boolean				instance_required;
     a_boolean				is_static_data_member;
 
     /* Skip non-external function. */
@@ -11730,8 +11884,23 @@ and "do not instantiate" flags are set here.
       is_static_data_member = FALSE;
       routine = instance_sym->variant.routine.ptr;
     }  /* if */
-    can_instantiate = tip->already_instantiated ||
-                      entity_can_be_instantiated(tip);
+    can_be_instantiated = tip->already_instantiated ||
+                          entity_can_be_instantiated(tip);
+    if (is_static_data_member) {
+      variable->can_be_instantiated = can_be_instantiated;
+      do_not_instantiate = variable->do_not_instantiate
+                         = tip->explicit_do_not_instantiate;
+      instance_required = variable->instance_required
+                        = (tip->instantiation_required &&
+                           !variable->is_specialized);
+    } else {
+      routine->can_be_instantiated = can_be_instantiated;
+      do_not_instantiate = routine->do_not_instantiate
+                         = tip->explicit_do_not_instantiate;
+      instance_required = routine->instance_required
+                        = (tip->instantiation_required &&
+                           !routine->is_specialized);
+    }  /* if */
 #if DEBUG
     if (debug_level >= 4) {
       db_name(is_static_data_member ?
@@ -11739,20 +11908,10 @@ and "do not instantiate" flags are set here.
       fputs(":\n", f_debug);
       fprintf(f_debug, " already_instantiated=%d\n",
               tip->already_instantiated);
-      fprintf(f_debug, " instantiation_required=%d\n",
-              tip->instantiation_required);
-      fprintf(f_debug, " can_instantiate=%d\n", can_instantiate);
+      fprintf(f_debug, " instance_required=%d\n", instance_required);
+      fprintf(f_debug, " can_be_instantiated=%d\n", can_be_instantiated);
     }  /* if */
 #endif /* DEBUG */
-    if (is_static_data_member) {
-      variable->can_be_instantiated = can_instantiate;
-      variable->do_not_instantiate = tip->explicit_do_not_instantiate;
-      variable->instance_required = tip->instantiation_required;
-    } else {
-      routine->can_be_instantiated = can_instantiate;
-      routine->do_not_instantiate = tip->explicit_do_not_instantiate;
-      routine->instance_required = tip->instantiation_required;
-    }  /* if */
     if (instantiation_flags_needed) {
       /* For automatic instantiation, generate the instantiation flags
          used by the prelinker.  These flags are placed in either the
@@ -11765,13 +11924,14 @@ and "do not instantiate" flags are set here.
       if (instantiation_flags_in_template_info_file &&
           generate_template_files()) {
         /* The flags are to be placed in the template information file. */
-        write_instantiation_flags_to_template_info_file(scp, tip,
-                                                        can_instantiate);
+        write_instantiation_flags_to_template_info_file(
+             scp, instance_required, do_not_instantiate, can_be_instantiated);
 #if DO_IL_LOWERING
       } else {
         /* The flags are to be placed in the IL as special variables. */
         if (il_lowering_needed()) {
-          create_instantiation_flag_variables(scp, tip, can_instantiate);
+          create_instantiation_flag_variables(
+             scp, instance_required, do_not_instantiate, can_be_instantiated);
         }  /* if */
 #endif /* DO_IL_LOWERING */
       }  /* if */
@@ -11801,6 +11961,11 @@ and "do not instantiate" flags are set here.
     }  /* if */
 #endif /*  ONE_INSTANTIATION_PER_OBJECT */
   }  /* for */
+  if (any_instantiated_entitites_added_to_request_file) {
+    /* This translation unit "adopted" some instantiations that were known
+       not to be defined elsewhere. */
+    add_entities_to_request_file();
+  }  /* if */
   db_exit();
 }  /* update_auto_instantiation_flags */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
@@ -11871,6 +12036,12 @@ specified by tip.
 #endif /* DEBUG */
   /* Do the instantiation. */
   instantiate_entity(tip);
+  if (tip->add_to_request_file) {
+    /* This flag is set once we know we have instantiated something that
+       is to be added to the request file.  This triggers the generation
+       of a list of added entities at the end of the compilation. */
+    any_instantiated_entitites_added_to_request_file = TRUE;
+  }  /* if */
   /* Restore the original instantiation mode.  This is needed because it
      is used later on in the front end wrapup process when assigning
      linkage class members. */
@@ -11910,7 +12081,6 @@ that might be required.
       /* See if the entity should be instantiated as a result of an
          assignment by the automatic instantiation mechanism. */
       if (entity_can_be_instantiated(tip) &&
-          any_instantiations_assigned_to_this_translation_unit &&
           tip->automatically_instantiated && !tip->already_instantiated) {
         do_automatic_instantiation_of_entity(tip);
       }  /* if */
@@ -11957,9 +12127,13 @@ specific definition that made it unnecessary.
   /* Set the flag that indicates that this compilation includes
      external template entities. */
   any_instantiations_required = instantiations_required != NULL;
-  /* Read in the list of entities to be automatically instantiated. */
-  any_instantiations_assigned_to_this_translation_unit =
-                                       init_auto_instantiation_information();
+  /* Read in the list of entities to be automatically instantiated.  We
+     also need to do automatic instantiation checking when a definition
+     list was supplied.  In automatic instantiation mode, when a definition
+     list file is in use, we do the instantiation unless the entity is
+     in the definition list file. */
+  if (init_auto_instantiation_information()) request_file_check_needed = TRUE;
+  if (read_definition_list_file()) request_file_check_needed = TRUE;
   /* Go through the instantiations list and determine whether a given entity
      is flagged for automatic instantiation.  This must be done before
      instantiating things in -tused mode because a -tused function that
@@ -12897,7 +13071,8 @@ Initializations for template.
   f_instantiation_request = NULL;
   f_template_info = NULL;
   memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
-  any_instantiations_assigned_to_this_translation_unit = FALSE;
+  request_file_check_needed = FALSE;
+  any_instantiated_entitites_added_to_request_file = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   /* Allocate a type to be used for template parameter constants whose
      real types cannot be known.  This type will be used for all such

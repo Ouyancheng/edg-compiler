@@ -1,5 +1,20 @@
 Version 2.37
 
+10/15/97  Improved interface with the prelinker
+
+The interface between the front end and prelinker has been modified to
+reduce the number of times that the front end must be invoked to
+generate the complete set of instantiations needed by a program.
+
+The prelinker generates a "definition list" file that contains a list
+of all the entities defined in the object files and libraries that
+are being used to create the program.  The front end uses this list
+to determine whether any newly required instantiations have already
+been defined somewhere else in the program.  If an instantiation
+is not already defined elsewhere, it is "adopted" by the file being
+compiled.  In many cases, this complete set of instantiations can
+be generated with only a single iteration of the prelinker.
+
 10/14/97  Internal error when using precompiled header files
 
 An internal error would occur when using precompiled headers if

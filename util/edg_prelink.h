@@ -61,6 +61,16 @@ Declarations for EDG template prelink utility.
 #define PL_DEFAULT_CHECK_SPECIALIZATION_ERRORS TRUE
 #endif /* ifndef PL_DEFAULT_CHECK_SPECIALIZATION_ERRORS */
 
+/* Indicates whether the prelinker should, by default, create a definition
+   list file when invoking the front end.  The definition list file contains
+   a list of all of the entities defined in the objects and libraries with
+   which the a given file is linked.  It permits the front end to determine
+   whether or not a new instantiation that is referenced can be
+   instantiated. */
+#ifndef PL_DEFAULT_USE_DEFINITION_LIST
+#define PL_DEFAULT_USE_DEFINITION_LIST TRUE
+#endif /* ifndef PL_DEFAULT_USE_DEFINITION_LIST */
+
 
 /* Command to be used to produce a namelist of an object file. */
 static char		default_nm_command[] = "/bin/nm -og";

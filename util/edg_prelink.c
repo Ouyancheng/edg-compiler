@@ -20,11 +20,7 @@ Prelink utility for template instantiation.
 #include "targ_def.h"
 #include "edg_prelink.h"
 #include "decode.h"
-#if __ANSIC__
 #include <stdlib.h>
-#else /* !__ANSIC__ */
-#include <malloc.h>
-#endif /* __ANSI__ */
 #include <errno.h>
 
 #if __MICROSOFT_OS__
@@ -370,6 +366,16 @@ static a_boolean
 		use_template_info_file = USE_TEMPLATE_INFO_FILE;
 			/* TRUE if a template information file is used. */
 
+static a_boolean
+		use_definition_list = PL_DEFAULT_USE_DEFINITION_LIST;
+			/* TRUE if the prelinker should create a definition
+			   list file to be passed to the front end. */
+
+static char	*temporary_file_name = NULL;
+			/* The name to be used as a temporary file for
+			   the creation of a definition list file. */
+			
+
 typedef enum /* an_nm_format_kind */ {
 	nmfk_default,
 		/* SunOS 4.1. */
@@ -451,7 +457,7 @@ static a_pl_symbol_ptr	pl_symbol_table[PL_SYMBOL_TABLE_SIZE];
    in the hash table from an identifier name string.  Do not change
    without investigating the hash table performance that results.
    Prime values are likely to work better than non-prime values. */
-#define PL_HASH_FACTOR 73
+#define PL_HASH_FACTOR ((unsigned int)73)
 
 
 void pl_internal_error(char*   error_string)
@@ -575,6 +581,9 @@ typedef enum /*a_pl_error_code*/ {
   pl_ec_nm_returned_error,
   pl_ec_multiple_assignments,
   pl_ec_no_object_file_name_specified,
+  pl_ec_invalid_definition_list_option,
+  pl_ec_cannot_open_temporary_file,
+  pl_ec_adopted_by_file,
   pl_ec_last 	/* must be last */
 } a_pl_error_code;
 
@@ -664,6 +673,15 @@ string.
     break;
   case pl_ec_no_object_file_name_specified:
     m = "-O and -N require a new object list file name specified with the -o option";
+    break;
+  case pl_ec_invalid_definition_list_option:
+    m = "invalid definition list option \"%s\"";
+    break;
+  case pl_ec_cannot_open_temporary_file:
+    m = "cannot create temporary file \"%s\"";
+    break;
+  case pl_ec_adopted_by_file:
+    m = "%s: %s adopted by file %s\n";
     break;
   default:
     pl_internal_error("invalid error code");
@@ -1749,22 +1767,26 @@ call.
   }  /* if */
   /* Compute the string length. */
   length = strlen(name);
-  /* Hash the symbol's name.  This involves taking the name's
-     first, last, and middle 3 characters.  Of course, if the name has
-     fewer than 5 characters, take the entire name. */
-  if (length > 5) {
+  /* Hash the symbol's identifier.  This involves taking the identifier's
+     first 3, last 3, and middle 3 characters.  Of course, if the identifier
+     has 9 or fewer characters, take the entire identifier. */
+  ptr = name;
+  if (length > 9) {
+    hash_value = (unsigned int)*ptr++;
+    hash_value = (hash_value * PL_HASH_FACTOR) + (unsigned int)*ptr++;
+    hash_value = (hash_value * PL_HASH_FACTOR) + (unsigned int)*ptr;
     ptr = name + (length >> 1) - 1;
-    hash_value = (int)*name;
-    hash_value = (hash_value * PL_HASH_FACTOR) +
-                                             (int)*(name + length - 1);
-    hash_value = (hash_value * PL_HASH_FACTOR) + (int)*ptr++;
-    hash_value = (hash_value * PL_HASH_FACTOR) + (int)*ptr++;
-    hash_value = (hash_value * PL_HASH_FACTOR) + (int)*ptr;
+    hash_value = (hash_value * PL_HASH_FACTOR) + (unsigned int)*ptr++;
+    hash_value = (hash_value * PL_HASH_FACTOR) + (unsigned int)*ptr++;
+    hash_value = (hash_value * PL_HASH_FACTOR) + (unsigned int)*ptr;
+    ptr = name + length - 3;
+    hash_value = (hash_value * PL_HASH_FACTOR) + (unsigned int)*ptr++;
+    hash_value = (hash_value * PL_HASH_FACTOR) + (unsigned int)*ptr++;
+    hash_value = (hash_value * PL_HASH_FACTOR) + (unsigned int)*ptr;
   } else {
-    register int i;
-    ptr = name;
-    for (i = 0; i < length; i++) {
-      hash_value = (hash_value * PL_HASH_FACTOR) + (int)*ptr++;
+    register int a;
+    for (a = 0; a < length; a++) {
+      hash_value = (hash_value * PL_HASH_FACTOR) + (unsigned int)*ptr++;
     }  /* for */
   }  /* if */
 
@@ -2371,10 +2393,12 @@ the file is flagged as requiring recompilation.
              when a file that was assigned a given instantiation no
              longer requires that particular instantiation. */
           remove_from_request_file = TRUE;
+          recompile_file = TRUE;
         } else if (!psp->is_template) {
           /* The symbol no longer represents a template.  Remove it from the
              instantiation request file. */
           remove_from_request_file = TRUE;
+          recompile_file = TRUE;
         } else if (!psp->referenced) {
           /* The symbol was referenced by another file and now is not.
              Recompile the file because it may not be needed at all. */
@@ -2468,6 +2492,10 @@ the file is flagged as requiring recompilation.
         psp = psp->next;
       }  /* while */
     }  /* if */
+    /* When using a definition list, only update one file per iteration,
+       because the recompilation of one file may affect the decisions made
+       later about other files. */
+    if (pifp->recompile && use_definition_list) break;
   }  /* for */
   return done;
 }  /* pl_determine_actions */
@@ -2505,8 +2533,9 @@ hold the command.
 
   /* Allocate the command line with twice the space needed to make room
      for added escape characters. */
+  if (part2 == NULL) part2 = "";
   if (part3 == NULL) part3 = "";
-  check_assertion(part1 != NULL && part2 != NULL);
+  check_assertion(part1 != NULL);
   length = (strlen(part1) + strlen(part2) + strlen(part3)) * 2;
   check_assertion(length > 3);
   command = (char *)pl_malloc_with_check(length);
@@ -2535,15 +2564,18 @@ hold the command.
 }  /* build_command_line */
 
 
-static int pl_recompile_file(a_pl_input_file_ptr	pifp,
-                             char			*extra_command_args)
+static int pl_recompile_file(a_pl_input_file_ptr pifp,
+                             char		 *extra_command_args,
+			     char		 *extra_args_for_display)
 /*
 Execute the command to recompile the file specified by pifp.  The
 string specified by extra_command_args is added to the command line
-found in pifp.
+found in pifp.  extra_args_for_display is a version of extra_command_args
+to be used when displaying the command line.
 */
 {
   char		*command;
+  char		*display_command;
   int		result;
   a_boolean	chdir_needed;
 
@@ -2558,7 +2590,18 @@ found in pifp.
   }  /* if */
   command = build_command_line(pifp->command_line, extra_command_args,
                                pifp->compilation_file_name);
-  fprintf(stdout, pl_error_text(pl_ec_executing), message_prefix, command);
+  if (extra_args_for_display != NULL) {
+    /* If an alternate version of the extra arguments was supplied for
+       display purposes, create an alternate version of the command
+       line. */
+    display_command = build_command_line(pifp->command_line,
+                                         extra_args_for_display,
+                                         pifp->compilation_file_name);
+  } else {
+    display_command = command;
+  }  /* if */
+  fprintf(stdout, pl_error_text(pl_ec_executing), message_prefix,
+          display_command);
   fflush(stdout);
   result = system(command);
   /* The return value from the system command is usually the return value of
@@ -2570,6 +2613,7 @@ found in pifp.
     result = result >> 8;
   }  /* if */
   free(command);
+  if (display_command != command) free(display_command);
   if (chdir_needed) {
     /* Return to the original directory. */
     pl_change_directory(curr_dir_name);
@@ -2677,6 +2721,114 @@ information.
 }  /* prepare_to_move_nonlocal_file */
 
 
+static FILE *pl_create_temp_file(void)
+/*
+Create a temporary file for writing.  Return the file pointer associated
+with the file.  Sets the global variable temporary_file_name to the
+name to be used for the temporary file.
+*/
+{
+  FILE		*f_temp;
+  char		*tmpdir;
+
+  if (temporary_file_name == NULL) {
+    /* Create the name of the temporary file to be created. */
+    tmpdir = getenv("TMPDIR");
+    if (tmpdir == NULL) {
+#if MICROSOFT_OS
+      tmpdir = "/temp";
+#else /*  MICROSOFT_OS */
+      tmpdir = "/tmp";
+#endif /*  MICROSOFT_OS */
+    }  /* if */
+    sprintf(pl_file_name_buffer, "%s/%0dpltf", tmpdir, getpid());
+    temporary_file_name = pl_copy_string(pl_file_name_buffer);
+  }  /* if */
+  f_temp = fopen(temporary_file_name, "w");
+  if (f_temp == NULL) {
+    pl_error(pl_ec_cannot_open_temporary_file, temporary_file_name);
+  }  /* if */
+  return f_temp;
+}  /* pl_create_temp_file */
+
+
+static char *pl_create_definition_list_file(void)
+/*
+Create a file containing a list of all of the entities defined in the
+object files and libraries named on the command line.  Return a
+pointer to an option string to be passed to the front end that
+provides the name of the file created.  This will be something
+like "--definition_list_file=/tmp/something".
+*/
+{
+  static char		*definition_list_option = NULL;
+  FILE			*f_temp;
+  a_pl_input_file_ptr	pifp;
+  a_pl_object_file_ptr	pofp;
+  a_pl_symbol_ptr	psp;
+
+  f_temp = pl_create_temp_file();
+  for (pifp = pl_input_files; pifp != NULL; pifp = pifp->next) {
+    for (pofp = pifp->objects; pofp != NULL; pofp = pofp->next) {
+      for (psp = pofp->symbols; psp != NULL; psp = psp->next) {
+        if (psp->defined) {
+          fputs(psp->name, f_temp);
+          fputs("\n", f_temp);
+        }  /* if */
+      }  /* for */
+    }  /* for */
+  }  /* for */
+  fclose(f_temp);
+  if (definition_list_option == NULL) {
+    /* The first time this routine is called, create the option name.
+       This assumes that the temporary file name does not change from one
+       call to the next. */
+    sprintf(pl_file_name_buffer, "--definition_list_file=%s",
+            temporary_file_name);
+    definition_list_option = pl_copy_string(pl_file_name_buffer);
+  }  /* if */
+  return definition_list_option;
+}  /* pl_create_definition_list_file */
+
+
+static void pl_check_for_adopted_instantiations(a_pl_input_file_ptr pifp)
+/*
+Read a temporary file created by the front end and update the instantiation
+request file with the instantiations adopted by the front end.  Append
+the entries to the instantiation request file.
+*/
+{
+  FILE	*f_request;
+  FILE	*f_temp;
+
+  f_temp = fopen(temporary_file_name, "r");
+  if (f_temp != NULL) {
+    /* The front end will put an initial line with the string ":add:" in
+       it when writing the list of entities that are to be added to the
+       request file.  This is used to verify that the file is not a
+       definition list file that was left around. */
+    if (pl_read_input_line(f_temp) && strcmp(pl_input_line, ":add:") == 0) {
+      /* Update the request file in append mode. */
+      f_request = fopen(pifp->request_file_name, "a");
+      if (f_request == NULL) {
+        pl_error(pl_ec_cannot_open_file_for_update, pifp->request_file_name);
+      }  /* if */
+      while (pl_read_input_line(f_temp)) {
+        fputs(pl_input_line, f_request);
+        fputs("\n", f_request);
+        if (verbose) {
+          fprintf(stdout, pl_error_text(pl_ec_adopted_by_file),
+                  message_prefix, pl_decoded_name(pl_input_line),
+                  pifp->file_name);
+        }  /* if */
+      }  /* if */
+      fclose(f_request);
+    }  /* if */
+    fclose(f_temp);
+  }  /* if */
+}  /* pl_check_for_adopted_instantiations */
+
+
 static int pl_update_request_files(void)
 /*
 If the list of instantiates for a given instantiation request file
@@ -2722,16 +2874,25 @@ has changed then write the updated list of instantiations to the file.
         psp = psp->next_in_request_file;
       }  /* while */
       fclose(f_request);
-      if (!suppress_compilation) {
-	/* This depends on the command line being in the first reserved
-	   line. */
+      if (!suppress_compilation && pifp->recompile) {
+        char	*definition_list_option = NULL;
+        char	*def_list_display_option = NULL;
 #if PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION
         (void)unlink(pifp->file_name);
 #endif /* PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION */
-	/* Suppress CodeCenter warnings because get_reserved_line contains
-	   a test that evaluates to a constant when its argument is a
-	   constant. */
-        return_status = pl_recompile_file(pifp, "");
+        if (use_definition_list) {
+          definition_list_option = pl_create_definition_list_file(); 
+          def_list_display_option = "--definition_list_file=<temp-file>";
+        }  /* if */
+        return_status = pl_recompile_file(
+                       pifp, definition_list_option, def_list_display_option);
+        if (use_definition_list) {
+          /* Read the definition list file to see if the front end
+             adopted any instantiations. */
+          pl_check_for_adopted_instantiations(pifp);
+          /* Remove the temporary file that contains the definition list. */
+          unlink(temporary_file_name);
+        }  /* if */
         /* Stop if an error occurs. */
         if (return_status != 0) break;
       }  /* if */
@@ -2765,7 +2926,8 @@ flags will be removed.
       (void)unlink(pifp->file_name);
 #endif /* PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION */
       return_status = pl_recompile_file(pifp,
-                                        "--suppress_instantiation_flags");
+                                        "--suppress_instantiation_flags",
+                                        (char *)NULL);
       if (return_status > max_return_status) max_return_status = return_status;
     }  /* if */
     pifp = pifp->next;
@@ -3131,9 +3293,16 @@ int main(int argc, char *argv[])
   /* Process command-line options. */
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
-#define OPTION_LIST "imnqrs:vuB:c:d:Df:l:L:No:OR:SW:"
+#define OPTION_LIST "a:c:d:f:il:mno:qrs:vuB:DL:NOR:SW:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
+      case 'a':
+        /* Specify whether a definition list file should be created. */
+        if (strcmp(optarg, "0") != 0 && strcmp(optarg, "1") != 0) {
+          pl_error(pl_ec_invalid_definition_list_option, optarg);
+        }  /* if */
+        use_definition_list = atoi(optarg) != 0;
+        break;
       case 'c':
         /* Specify the nm command to be used instead of the default
            value. */

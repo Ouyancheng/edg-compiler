@@ -256,7 +256,11 @@ Initialize the option information table.
   add_option_description(optk_template_info_file,
                          "template_info_file",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
-                         pchek_command_line);
+                         pchek_none);
+  add_option_description(optk_definition_list_file_name,
+                         "definition_list_file",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   add_option_description(optk_implicit_template_inclusion,
@@ -703,7 +707,7 @@ Initialize the option information table.
   add_option_description(optk_instantiation_dir,
                          "instantiation_dir",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
-                         pchek_command_line);
+                         pchek_none);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 }  /* initialize_option_descriptions */
 
@@ -1377,6 +1381,9 @@ common_cfront_mode_settings:
         break;
       case optk_template_info_file:
         template_info_file_name = opt_arg;
+        break;
+      case optk_definition_list_file_name:
+        definition_list_file_name = opt_arg;
         break;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
