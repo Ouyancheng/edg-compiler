@@ -128,7 +128,8 @@ delete is unusual, and exceptions are enabled:
 The EDG implementation of the IA-64 ABI used to allocate virtual base classes
 in the tail padding of trailing nonvirtual empty base classes under some
 circumstances.  However, this is not allowed by the IA-64 ABI specifications.
-This is an ABI CHANGE.
+This is an ABI CHANGE, which we are retroactively considering part of the 
+3.1 release.  [Patch sent out 3/19/03.]
 
 3/10/03  Incorrect code for copy of empty base class in generated copy
          constructor
@@ -143,7 +144,7 @@ following the point of allocation of the empty base class.  If that
 space contained other members or base classes, this was generally
 harmless, but if it contained a pointer to a virtual base class (in
 the Cfront-like ABI) the pointer would have been set already and the
-move clobbered it.  Now fixed.
+move clobbered it.  Now fixed.  [Patch sent out 3/19/03.]
 
   struct E {};
   struct A {
@@ -157,6 +158,7 @@ move clobbered it.  Now fixed.
 
 The field "range_end" in switch case entry fields was neither initialized
 (in il_alloc.c) nor displayed (in il_display.c).  This has been fixed.
+[Patch sent out 3/19/03.]
 
 3/6/03   Spurious type incompatibility errors with multiple translation units
 
@@ -176,7 +178,7 @@ defined only in a secondary translation unit, the code generated
 to do construction or destruction sometimes did not properly pass
 a set of virtual function tables to the subobject constructor or
 destructor.  As a consequence, the program was likely to abort
-at runtime.
+at runtime.  [Patch sent out 3/19/03.]
 
 3/6/03   "restrict" keyword in template strings
 
@@ -191,7 +193,9 @@ emitted as "__restrict__".
 
 The IA-64 ABI runtime routine __cxa_vec_ctor returns void, not
 void * as we thought.  The front end and the runtime have been
-changed accordingly.
+changed accordingly.  Note that this is an ABI CHANGE, which
+we are retroactively considering part of the 3.1 release.
+[Patch sent out 3/19/03.]
 
 3/5/03   GNU C++ mode: cast from pointer to smaller integer allowed
 
@@ -223,6 +227,7 @@ with LOWER_EXTERN_INLINE set to TRUE, the definition of an extern
 inline member function of a template might be missing (resulting
 in an unsatisfied external at link time).  This was due to a problem
 in the copy process for multiple translation unit IL, now fixed.
+[Patch sent out 3/19/03.]
 
 3/5/03   compiler_generated flag in cast following conversion function
          call
@@ -259,7 +264,7 @@ In some convoluted cases involving multiple translation units
 function type used in a virtual function call.  As a consequence,
 the type in the cast of the function address from the virtual
 function table did not have a "this" parameter, while the associated
-argument list (correctly) did.  Now fixed.
+argument list (correctly) did.  Now fixed.  [Patch sent out 3/19/03.]
 
 3/1/03   Incorrect setting of C99 STDC pragma information
 
@@ -280,7 +285,7 @@ erroneous behavior of the GNU C++ 3.2 implementation of the IA-64 ABI
 when DEFAULT_EMULATE_GNU_ABI_BUGS is TRUE.  (The GNU C++ 3.2 ABI is
 also used by default in later versions of GNU C++.)  These relatively
 subtle changes are all related to the alignment of virtual base class
-subobject.
+subobject.  [Patch sent out 3/19/03.]
 
 2/27/03  GNU C mode: Ignore anonymous union field name conflicts
 
@@ -309,6 +314,7 @@ put out as an external definition.  This could cause a link-time
 error for a duplicate definition if another copy of the same
 function was generated in another compilation.  Such a function
 is now put out properly as a static inline function.
+[Patch sent out 3/19/03.]
 
   struct A {
     virtual A *f() {}
@@ -331,13 +337,14 @@ but not in general).  Also, the code that determines whether a local
 type typeinfo should be put into a COMDAT in the IA-64 ABI was
 incorrect and could cause an assertion failure in make_typeinfo_var
 (on a line that tests innermost_function_scope != NULL).  Both fixed.
+[Patch sent out 3/19/03.]
 
 2/25/03  IA-64 ABI: missing typeinfo for class used only in pointer to member
 
 A class used only in a pointer-to-member type in an exception
 handling context in a version that uses the IA-64 ABI could result
 in a link error due to a missing typeinfo variable for that
-class type.  Now fixed.
+class type.  Now fixed.  [Patch sent out 3/19/03.]
 
   template <class T> struct A {
     A(int) {}
@@ -379,7 +386,7 @@ one return statement in its body.  Now fixed.
 
 An internal error ("region table generated but empty lifetime on func",
 in lower_eh.c) was generated while lowering a generated routine
-in exception handling.  Now fixed.
+in exception handling.  Now fixed.  [Patch sent out 3/19/03.]
 
 2/20/03  GNU C mode: Nonempty class types marked as empty
 
@@ -389,13 +396,14 @@ flag set to true.  For example:
   typedef int I;
   struct S { I i; };  // Incorrectly marked as empty
 
-This is now fixed.
+This is now fixed.  [Patch sent out 3/19/03.]
 
 2/20/03  Use of uninitialized variable in process_overloaded_operator_arrow
 
 Some code in process_overloaded_operator_arrow (used to check the
 left operand of the "->" operator for overloading) used an uninitialized
 structure in some cases, which could lead to a crash.  Now fixed.
+[Patch sent out 3/19/03.]
 
 2/20/03  Abort in extract_constant_from_operand, "?" operator in C mode
 
@@ -409,11 +417,11 @@ where the first operand's value is not known at compile time.
     return 0;
   } 
 
-2/20/02  Abort in process_local_types on export cases
+2/20/03  Abort in process_local_types on export cases
 
 An abort has been fixed in process_local_types (il_walk.c line 2377
 in version 3.1).  This bug was introduced in version 3.1 and
-comes up only for complex export cases.
+comes up only for complex export cases.  [Patch sent out 3/19/03.]
 
 2/19/03  IL lowering generated multiple virtual function tables for type_info
 
@@ -424,6 +432,7 @@ C generation, this made no difference, because the declarations for
 the two variables would be considered to declare a single variable.
 However, when the IL is fed to a back end, the two global variables
 with the same name could end up causing problems.  Now fixed.
+[Patch sent out 3/19/03.]
 
 2/19/03  Internal error when lowering base classes with classic EDG layout
 
@@ -444,12 +453,13 @@ the Cfront-like ABI.  This is therefore also an ABI CHANGE, although
 in most configurations (i.e., when IL lowering is enabled) an internal
 error was triggered.  In the latter case, the ABI difference could not
 be noticed since no object file was actually generated.
+[Patch sent out 3/19/03.]
 
 2/19/03  Internal error when using precompiled headers with export
 
 An internal error (in init_date_and_time_macros) could occur when using
 precompiled header files in conjunction with exported templates.  this
-has been fixed.
+has been fixed.  [Patch sent out 3/19/03.]
 
 2/13/03  Spurious correspondence error
 
@@ -457,7 +467,8 @@ A spurious correspondence error was issued if a class like the one below
 was included in more that one translation unit.  The problem occurred
 when the initializer of a const static data member involved a dependent
 function call, and only in compilations involving multiple translation 
-units (e.g., with exported templates).  Now fixed.
+units (e.g., with exported templates).  Now fixed.  [Patch sent out
+3/19/03.]
 
   template <class T, class T2> struct A {
     static int test(...);
@@ -483,7 +494,7 @@ field of a type obtained from the application of the skip_typerefs macro.
 2/12/03  Abort in IL display utility with C99 variable-length arrays
 
 The IL display program used to abort when trying to output the type of a
-variable-length array.  This is now fixed.
+variable-length array.  This is now fixed.  [Patch sent out 3/19/03.]
 
 2/12/03  Missing error: storage class in template static data member definition
 
@@ -542,7 +553,7 @@ In such cases, the overrider selected by the front end is the one from the
 unambiguous base class.  This error check was added in version 3.1 in
 accordance with the standard (and g++), but in these other modes it was
 effectively a regression because those other compilers do not diagnose the
-ambiguity in cases such as this.
+ambiguity in cases such as this.  [Patch sent out 3/19/03.]
 
 2/10/03  Unspecified array size computed from extended designator
 
@@ -552,7 +563,7 @@ containing an extended designated initializer.  For example:
 
   int a[] = { [ 0 ... 1 ] = 42 };  // Used to set sizeof(a) = sizeof(int)
 
-This is now fixed.
+This is now fixed.  [Patch sent out 3/19/03.]
 
 2/10/03  GNU mode: Diagnostic for unrecognized format function type
 
@@ -569,13 +580,13 @@ and the attribute is ignored.  For example:
 Under relatively obscure circumstances the front end could abort while
 attempting to establish a cross-translation-unit correspondence between
 two types have the same name but different parent classes.  This is now
-fixed.
+fixed.  [Patch sent out 3/19/03.]
 
 2/6/03   GNU C++ mode: Attributes on members not recorded in IL
 
 In many cases, attributes specified on member functions and static data
 members were not correctly recorded in the IL in GNU C++ mode.  This is
-now fixed.
+now fixed.  [Patch sent out 3/19/03.]
 
 2/6/03   GNU C++ mode: asm name on class members
 
@@ -585,6 +596,8 @@ member functions and on static data members.  For example:
   struct S {
     static void f() asm("S_f");  // Now accepted in GNU C++ mode
   };
+
+[Patch sent out 3/19/03.]
 
 2/6/03   assoc_template not set for predeclared template instance
 
@@ -603,7 +616,7 @@ The routines used to prescan declarations did not handle __declspec
 properly.  This could result in disambiguation problems and/or spurious
 errors on declarations of members of template classes.  Now fixed.
 Note that this test case correctly results in an error about the invalid
-use of dllimport.
+use of dllimport.  [Patch sent out 3/19/03.]
 
   template <class T> struct X{ __declspec(dllimport) X(); };
   template <class T> __declspec(dllimport) X<T>::X() { }
@@ -645,7 +658,7 @@ as:
 I.e.,  it mistakenly omitted class qualifiers on definitions that were
 moved outside the class.  This problem was caused by incorrectly
 recording the form of name reference for the moved definition.
-This is now fixed.
+This is now fixed.  [Patch sent out 3/19/03.]
 
 2/5/03   Microsoft compatibility: argument-dependent lookup
 
@@ -657,6 +670,7 @@ for MSVC++ version 7.1 and above).
 An attempt to create a void parameter type as a result of template argument
 substitution should cause deduction to fail.  Formerly, this resulted in
 a "unexpected function type" error during template instantiation.
+[Patch sent out 3/19/03.]
 
   template <class T> char f(T*, void (*)(typename T::value_type) = 0);
   struct X { typedef void value_type; };
@@ -673,7 +687,7 @@ the "used" attribute is kept in the IL even when it is not used.
 2/4/03   IL display build problem with IA-64 ABI and no IL lowering
 
 The IL display program did not build correctly when using the IA-64
-ABI without IL lowering.  This has been fixed.
+ABI without IL lowering.  This has been fixed.  [Patch sent out 3/19/03.]
 
 2/3/03   GNU C++ mode: Exception specifications ignored when no support for
          C++ exception handling
@@ -698,6 +712,7 @@ This GNU extension is now emulated in our front end.
 
 As a result of a disambiguation problem, a spurious error was issued
 on declarations such as this one.  This has been fixed.
+[Patch sent out 3/19/03.]
 
   extern int f(int, void (*fp)(int) = (void (*)(int)) __null);
 
@@ -706,7 +721,8 @@ on declarations such as this one.  This has been fixed.
 An abort in src_seq.c (in src_seq_check_for_non_autonomous_tag) has
 been corrected.  This could come up in some versions that use source
 sequence entries (e.g., C++-generating back end versions), with
-an attempt to declare a nested class in C mode.
+an attempt to declare a nested class in C mode.  [Patch sent out
+3/19/03.]
 
   struct named1 {
     int aa;
@@ -735,6 +751,7 @@ implement the offsetof macro) caused an abort
 
 The performance on examples with very large complex inheritance
 hierarchies has been improved when using IL lowering.
+[Patch sent out 3/19/03.]
 
 1/29/03  IA-64 ABI: extra unneeded thunks
 
@@ -747,13 +764,14 @@ called.
 1/29/03  Compilation problem with GENERATE_EH_TABLES set to FALSE
 
 lower_eh.c did not compile correctly when GENERATE_EH_TABLES is
-set to FALSE.  Now fixed.
+set to FALSE.  Now fixed.  [Patch sent out 3/19/03.]
 
 1/27/03  Partial ordering and template template parameters
 
 Use of certain function templates that use template template parameters
 resulted in spurious ambiguity errors when one template should have been
 preferred based on the partial ordering rules.  This has been fixed.
+[Patch sent out 3/19/03.]
 
   template<template<class> class TTP, class T> int f(TTP<int>, T) {
     return 1;
