@@ -1,5 +1,27 @@
 Version 3.4
 
+8/19/03  Microsoft mode: Abort in C++-generating back end due to missing
+         declared_type
+
+When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE and
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is FALSE, the
+front end sometimes generated a secondary source sequence entry for an
+in-class member function template specialization (which is only supported
+in Microsoft mode) without setting its declared_type field.  This could
+lead to an internal error in the C++-generating back end.  For example:
+
+  template<typename> struct H {};
+  template<typename T1> struct S {
+    template<typename T2> T1* operator=(H<T2> const&) { return 0; }
+    template<> T1* operator=(H<T1> const&) { return 0; }
+      // In-class specialization used to generate an invalid secondary
+      // source sequence entry.
+  };
+  template struct S<int>;
+
+This is now fixed (a primary source sequence entry is now generated for
+the in-class specialization).
+
 8/18/03  C++-generating back end: Abort on Microsoft in-class specialization
 
 The C++-generating back end sometimes triggered an internal error caused
