@@ -90,19 +90,21 @@ member declarator (class-name :: *).
 */
 {
   a_boolean      is_start = FALSE;
-  a_token_cache  token_cache;
   a_type_ptr     class_type;
   a_boolean      is_file_scope_qualifier, has_global_qualifier, err;
+  a_boolean      is_ptr_to_member;
 
-  if (get_class_qualifier(&token_cache, &class_type, &is_file_scope_qualifier,
-                          &has_global_qualifier, &err)) {
+  if (get_class_qualifier(&class_type, &is_file_scope_qualifier,
+                          &has_global_qualifier, &is_ptr_to_member, &err)) {
     /* A class qualifier is present.  Note that file scope qualifiers are not
        permitted.  This is a pointer-to-member declarator if the current token
        is a "*". */
-    if (curr_token == tok_star) is_start = TRUE;
-    /* Back up to the start of the class qualifier.  It will be rescanned
-       by the caller. */
-    rescan_cached_tokens(&token_cache);
+    if (is_ptr_to_member) {
+      is_start = TRUE;
+      /* Upon return from get_class_qualifier the current token is
+         tok_class_qualifier.  Get the "*" that follows the qualifier. */
+      get_token();
+    }  /* if */
   }  /* if */
   return is_start;
 }  /* is_ptr_to_member_declarator_start */
@@ -4187,7 +4189,7 @@ Only the first form is accepted in C.
   a_boolean      err;
   a_type_ptr     class_type;
   a_boolean      is_file_scope_qualifier, has_global_qualifier;
-  a_token_cache  token_cache;
+  a_boolean      is_ptr_to_member;
 
 
   db_enter(3, "pointer_declarator");
@@ -4248,12 +4250,13 @@ Only the first form is accepted in C.
     /* Check for C++ a pointer-to-member declarator. */
     } else if (C_dialect == C_dialect_cplusplus &&
                is_qualified_name_start() &&
-               get_class_qualifier(&token_cache, &class_type,
+               get_class_qualifier(&class_type,
                                    &is_file_scope_qualifier,
-                                   &has_global_qualifier, &err)) {
+                                   &has_global_qualifier,
+                                   &is_ptr_to_member, &err)) {
       /* A class qualifier is present.  This is a pointer-to-member
          declarator if the current token is a "*". */
-      if (curr_token == tok_star && !is_file_scope_qualifier) {
+      if (is_ptr_to_member && !is_file_scope_qualifier) {
         /* Qualified name followed by "*". */
         if (class_type == NULL) {
           /* It looks like a pointer-to-member declarator, but there was some
@@ -4265,12 +4268,11 @@ Only the first form is accepted in C.
           /* A valid pointer-to-member declarator. */
           complete_type = ptr_to_member_type(complete_type, class_type);
         }  /* if */
-        /* Cached tokens do not need to be rescanned. */
-        discard_token_cache(&token_cache);
+        /* Upon return from get_class_qualifier the current token is
+           tok_class_qualifier.  Get the "*" that follows the qualifier. */
+        get_token();
       } else {
-        /* The class qualifier is not followed by a "*", so back up to the
-           start of the class qualifier and exit the loop. */
-        rescan_cached_tokens(&token_cache);
+        /* The class qualifier is not followed by a "*", so exit the loop. */
         break;
       }  /* if */
     } else {

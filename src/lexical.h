@@ -859,6 +859,31 @@ typedef struct a_reusable_cache_entry {
 } a_reusable_cache_entry;
 
 
+/*
+Contains information about the current class qualifier.  Valid only when
+the current token is tok_class_qualifier.
+*/
+typedef struct a_class_qualifier *a_class_qualifier_ptr;
+typedef struct a_class_qualifier {
+  a_type_ptr    class_type;
+                        /* Points to the class type described by the class
+                           qualifier.  NULL for file scope qualifiers. */
+  a_boolean     has_global_qualifier;
+                        /* TRUE if the qualifier begins with a unary "::". */
+  a_boolean     is_file_scope_qualifier;
+                        /* TRUE for file scope qualifiers. */
+  a_boolean     is_ptr_to_member;
+                        /* TRUE if the qualifier is followed by a "*". */
+  a_boolean     err;
+                        /* TRUE if there was an error while scanning the
+                           qualifier. */
+  a_source_position
+                error_position;
+                        /* The position of the start of the qualifier. */
+} a_class_qualifier;
+
+
+
 /* Initialize a token cache. */
 extern void clear_token_cache(a_token_cache *cache);
 /* Discard the contents of a token cache. */
@@ -966,18 +991,18 @@ extern a_boolean f_get_opname(void);
 /* Test for ":: new" and ":: delete". */
 extern a_boolean is_global_new_or_delete(void);
 /* Get a C++ class-qualifier, like "A::". */
-extern a_boolean get_class_qualifier(a_token_cache *cache,
-                                     a_type_ptr    *class_type,
+extern a_boolean get_class_qualifier(a_type_ptr    *class_type,
                                      a_boolean     *is_file_scope_qualifier,
                                      a_boolean     *has_global_qualifier,
+                                     a_boolean     *is_ptr_to_member,
                                      a_boolean     *err);
 /* Get a C++ qualified name, like "A::x". */
 /* See symbol_tbl.h for the options set definition. */
 extern a_boolean get_qualified_name(an_id_lookup_options_set options);
 /* Return TRUE if the current token might be the start of a C++ qualified
    name.  Don't be fooled by "::new" or "::delete". */
-#define is_qualified_name_start()                                     \
-  (curr_token == tok_identifier ||                                    \
+#define is_qualified_name_start()                                        \
+  (curr_token == tok_identifier || curr_token == tok_class_qualifier ||  \
    (curr_token == tok_colon_colon && !is_global_new_or_delete()))
 /* Same thing for use in switch statements, in the form
      case QUALIFIED_NAME_START_CASE:

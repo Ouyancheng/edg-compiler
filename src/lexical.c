@@ -213,6 +213,14 @@ once per compilation unit.
 static a_boolean
                 dollar_in_id_diagnostic_issued;
 
+/*
+Contains information describing the current class qualifier.  Valid only
+when the current token is tok_class_qualifier.
+*/
+static a_class_qualifier curr_class_qualifier;
+
+
+
 #if DEBUG
 /*
 Counts of tables allocated, to track total use of memory.
@@ -4669,10 +4677,23 @@ These look like qualified names but aren't.
 }  /* is_global_new_or_delete */
 
 
-a_boolean get_class_qualifier(a_token_cache *cache,
-                              a_type_ptr    *class_type,
+/*
+Check whether the a symbol represents a class template and if so,
+call the routine to scan the argument list.  Otherwise just return the
+original symbol.
+*/
+#define check_for_class_template(sym)				\
+    (((sym) != NULL && 						\
+      (sym)->kind == (a_symbol_kind)sk_class_template) ?	\
+                                   get_template_class(sym) :	\
+                                   sym)
+                            
+
+
+a_boolean get_class_qualifier(a_type_ptr    *class_type,
                               a_boolean     *is_file_scope_qualifier,
                               a_boolean     *has_global_qualifier,
+                              a_boolean     *is_ptr_to_member,
                               a_boolean     *err)
 /*
 Scan an optional class qualifier, e.g., "A::B::" (note that the final
@@ -4684,36 +4705,51 @@ indicates the file scope, set *class_type to NULL and
 *is_file_scope_qualifier to TRUE.  For any case that begins with a unary
 "::", return *has_global_qualifier TRUE.  Return *err TRUE if there was
 an error.  On return: if there was a qualifier, the current token will be
-the token following the last "::"; if there was no qualifier, the current
-token is the same as on entry.  This routine may only be called in C++
-mode.  If cache is non-NULL, the tokens making up the class qualifier
-should be cached in it; the caller will decide whether or not the cached
-tokens should be rescanned.
+tok_class_qualifier and the next token will be the token following the
+final "::"; if there was no qualifier, the current token is the same as on
+entry.  If the token following the qualifier is a "*", *is_ptr_to_member is
+will be TRUE.  This routine may only be called in C++ mode. 
 */
 {
   a_boolean         is_qualifier = FALSE;
   a_symbol_ptr      class_symbol;
   a_source_position start_position;
+  a_token_kind       next_tok;
 
+  db_enter(4, "get_class_qualifier");
   *err = FALSE;
   *class_type = NULL;
   *is_file_scope_qualifier = FALSE;
+  *is_ptr_to_member = FALSE;
+  /* If the current token is a class qualifier it means that we have already
+     analized the current qualifier and shouldn't try to do so again.
+     Return the status information saved from the previous call.  */
+  if (curr_token == tok_class_qualifier) {
+    is_qualifier = TRUE;
+    *class_type = curr_class_qualifier.class_type;
+    *has_global_qualifier = curr_class_qualifier.has_global_qualifier;
+    *is_file_scope_qualifier = curr_class_qualifier.is_file_scope_qualifier;
+    *is_ptr_to_member = curr_class_qualifier.is_ptr_to_member;
+    *err = curr_class_qualifier.err;
+    copy_source_position(curr_class_qualifier.error_position, error_position);
+    copy_source_position(error_position, pos_curr_token);
+    goto exit;
+  }  /* if */
   start_position = pos_curr_token;
   /* Look for a leading unary "::". */
   /* Don't be fooled by "::new" and "::delete". */
   *has_global_qualifier = FALSE;
-  /* Clear the token cache, if necessary. */
-  if (cache != NULL) clear_token_cache(cache);
   if (curr_token == tok_colon_colon && !is_global_new_or_delete()) {
     *has_global_qualifier = *is_file_scope_qualifier = is_qualifier = TRUE;
-    if (cache != NULL) cache_curr_token(cache);
     (void)get_token();
   }  /* if */
-  /* See if we have an identifier followed by "::". */
-  if (curr_token == tok_identifier && next_token() == tok_colon_colon) {
-    /* This is a qualifier. */
-    is_qualifier = TRUE;
-    *is_file_scope_qualifier = FALSE;
+  /* For the next token to be part of the qualifier it must be a class name
+     followed by "::".  Templates make it more difficult to detect this
+     situation so we accept an identifier followed by either a "::" or a
+     left angle bracket. */
+  next_tok = next_token();
+  if (curr_token == tok_identifier &&
+      (next_tok == tok_colon_colon || next_tok == tok_lt)) {
     /* Look up the identifier to see if it could be a class name.  Note that
        we don't consider the normal eclipsing rules.  A class can be found
        even when hidden by something else:
@@ -4740,47 +4776,84 @@ tokens should be rescanned.
                        locator_for_curr_id.specific_symbol);
       }  /* if */
     }  /* if */
-    for (;;) {
-      /* Keep looping while there are more levels of class qualification.
-         Exit from loop is in the middle. */
-      if (class_symbol == NULL) {
-        /* The identifier is followed by a "::" but is not a class symbol. */
-        if (!*err) {
-          error(ec_id_must_be_class_name);
-          *err = TRUE;
+    /* If the class symbol is for a class template, process the argument
+       list. */
+    class_symbol = check_for_class_template(class_symbol);
+    /* See if the identifier is followed by "::".  Note that nex_tok is not
+       used because the next token may have changed while scanning a
+       template argument list. */
+    if (next_token() == tok_colon_colon) {
+      /* This is a qualifier. */
+      is_qualifier = TRUE;
+      *is_file_scope_qualifier = FALSE;
+      for (;;) {
+        /* Keep looping while there are more levels of class qualification.
+           Exit from loop is in the middle. */
+        if (class_symbol == NULL ||
+            class_symbol->kind == (a_symbol_kind)sk_class_template) {
+          /* The identifier is followed by a "::" but is not a class symbol. */
+          if (!*err) {
+            error(ec_id_must_be_class_name);
+            *err = TRUE;
+          }  /* if */
+          *class_type = NULL;
+        } else {
+          /* Record the reference on the symbol. */
+          mark_referenced(class_symbol, &pos_curr_token);
+          /* Do ambiguity and access control checking on the class symbol. */
+          check_ambiguity_and_verify_access(&locator_for_curr_id);
+          *class_type = skip_typerefs(class_symbol->
+                                          variant.class_struct_union.type);
         }  /* if */
-        *class_type = NULL;
-      } else {
-        /* Record the reference on the symbol. */
-        mark_referenced(class_symbol, &pos_curr_token);
-        /* Do ambiguity and access control checking on the class symbol. */
-        check_ambiguity_and_verify_access(&locator_for_curr_id);
-        *class_type = skip_typerefs(class_symbol->
-                                        variant.class_struct_union.type);
-      }  /* if */
-      /* Cache the identifier, if required. */
-      if (cache != NULL) {
-        locator_for_curr_id.specific_symbol = NULL;
-        cache_curr_token(cache);
-      }  /* if */
-      /* Skip over the class-name, and the "::". */
-      (void)get_token();
-      /* Cache the "::", if required. */
-      if (cache != NULL) cache_curr_token(cache);
-      if (get_token() != tok_identifier || next_token() != tok_colon_colon) {
-        /* Not an identifier followed by "::", so end the loop. */
-        break;
-      }  /* if */
-      /* There is another level of qualification.  Search for the identifier
-         in the given scope. */
-      if (!*err) {
-        class_symbol = class_qualified_id_lookup(&locator_for_curr_id,
-                                                 *class_type,
-                                                 IDL_MUST_BE_CLASS);
-      }  /* if */
-    }  /* for */
+        /* Skip over the class-name, and the "::". */
+        (void)get_token();
+        if (get_token() != tok_identifier || next_token() != tok_colon_colon) {
+          /* Not an identifier followed by "::", so end the loop. */
+          break;
+        }  /* if */
+        /* There is another level of qualification.  Search for the identifier
+           in the given scope. */
+        if (!*err) {
+          class_symbol = class_qualified_id_lookup(&locator_for_curr_id,
+                                                   *class_type,
+                                                   IDL_MUST_BE_CLASS);
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
-  if (is_qualifier) error_position = start_position;
+  if (is_qualifier) {
+    if (curr_token == tok_star) *is_ptr_to_member = TRUE;
+    /* If this is a qualifier, unget then token that follows the last "::"
+       so that the next token scanned by the caller will be the identifier
+       that follows the qualifier. */
+    unget_token();
+  }  /* if */
+  /* Save the results of this qualifier scan.  These values will be returned
+     if another scan is attempted of the same qualifier. */
+  if (is_qualifier) { 
+    error_position = start_position;
+    curr_token = tok_class_qualifier;
+    curr_class_qualifier.class_type = *class_type;
+    curr_class_qualifier.has_global_qualifier = *has_global_qualifier;
+    curr_class_qualifier.is_file_scope_qualifier = *is_file_scope_qualifier;
+    curr_class_qualifier.is_ptr_to_member = *is_ptr_to_member;
+    curr_class_qualifier.err = *err;
+    copy_source_position(error_position, curr_class_qualifier.error_position);
+    copy_source_position(error_position, pos_curr_token);
+  }  /* if */
+exit:
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "is_qualifier=%0d, has_global_qualifier=%0d, ",
+            is_qualifier, *has_global_qualifier);
+    fprintf(f_debug, "is_file_scope_qualifier=%0d\n",
+            *is_file_scope_qualifier);
+    fprintf(f_debug, "type = %s", *class_type == NULL ? NULL : "");
+    if (*class_type != NULL) db_type(*class_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
   return is_qualifier;
 }  /* get_class_qualifier */
 
@@ -4809,11 +4882,13 @@ the error on the final identifier not being found on lookup.
 {
   a_boolean            is_qualified_name = FALSE, qualifier_err, okay;
   a_boolean            is_file_scope_qualifier, has_global_qualifier;
+  a_boolean            is_ptr_to_member;
   a_boolean            suppress_error;
   a_type_ptr           class_type;
   a_source_position    start_position;
   a_symbol_header_ptr  class_symbol_header;
 
+  db_enter(4, "get_qualified_name");
 #if CHECKING
   if (options & IDL_CONSTRAINTS) {
     internal_error("get_qualified_name: options may not have constraints");
@@ -4828,13 +4903,15 @@ the error on the final identifier not being found on lookup.
       } else {
         /* See if there is a class qualifier (the "A::" part of "A::x"), and
            if so, get it and determine the class it represents. */
-        if (get_class_qualifier((a_token_cache *)NULL,
-                                &class_type, &is_file_scope_qualifier,
-                                &has_global_qualifier, &qualifier_err)) {
+        if (get_class_qualifier(&class_type, &is_file_scope_qualifier,
+                                &has_global_qualifier, &is_ptr_to_member,
+                                &qualifier_err)) {
           /* A class qualifier is present. */
           /* Save the start position of the qualified name (get_class_qualifier
              puts it in error_position). */
           start_position = error_position;
+          /* Get then token following the identifier. */
+          get_token();
           set_err_pos_to_curr_token();
           okay = FALSE;
           if (!is_file_scope_qualifier) {
@@ -4914,6 +4991,7 @@ the error on the final identifier not being found on lookup.
 #endif /* DEBUG */
     }  /* if */
   }  /* if */
+  db_exit();
   return is_qualified_name;
 }  /* get_qualified_name */
 
@@ -4954,9 +5032,7 @@ is TRUE (specifically, that "::new" or "::delete" is not next).
        to a instance of the class template.  Scan the argument list and
        get a pointer to the symbol for the specific instance of the template
        class. */
-    if (symbol != NULL && symbol->kind == (a_symbol_kind)sk_class_template) {
-      symbol = get_template_class(symbol);
-    }  /* if */
+    symbol = check_for_class_template(symbol);
   }  /* if */
   return symbol;
 }  /* get_normal_id_or_qualified_name */
@@ -5030,6 +5106,11 @@ of the front end.
   avail_source_line_modifs = NULL;
   sequence_id_for_source_line_modifs = 0;
   delete_source_from_loc = NULL;
+  curr_class_qualifier.class_type = NULL;
+  curr_class_qualifier.has_global_qualifier = FALSE;
+  curr_class_qualifier.is_file_scope_qualifier = FALSE;
+  curr_class_qualifier.is_ptr_to_member = FALSE;
+  curr_class_qualifier.err = FALSE;
   /* Clear the set of tokens on which to stop a flush following a
      syntax error. */
   clear_stop_tokens();

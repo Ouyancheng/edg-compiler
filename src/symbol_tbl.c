@@ -3795,8 +3795,9 @@ C and C++.
                                                            nsk_tag : nsk_other;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
-#define is_acceptable_symbol(sym)                                     \
-  ((!must_be_class || is_class_symbol(fundamental_symbol_of(sym))) && \
+#define is_acceptable_symbol(sym)                                       \
+  ((!must_be_class ||							\
+     is_class_or_class_template_symbol(fundamental_symbol_of(sym))) &&  \
    (!must_be_tag   || is_tag_symbol  (fundamental_symbol_of(sym))))
 /* Local macro that tests whether or not a symbol on the active list
    is acceptable.  See if the symbol is in the proper name space. */
@@ -5675,13 +5676,6 @@ an instance of the class template.
     db_symbol(new_sym, "Returning: ", 2);
   }  /* if */
 #endif /* DEBUG */
-
-#if 0
-  /* Temporary debugging code use to test name lookup. */
-  push_scope(sck_template_instantiation,
-             template_symbol->variant.template.extra_info->declaration_scope,
-             new_sym->variant.type, (a_routine_ptr)NULL);
-#endif
 
   remove_stop_token(tok_gt);
 skip_processing:

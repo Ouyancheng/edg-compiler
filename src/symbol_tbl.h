@@ -1358,6 +1358,12 @@ extern a_template_param_ptr alloc_template_param(void);
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
                    is_class_struct_union_type((sym)->variant.type)))
 
+/* Return TRUE if a symbol is a class symbol or a class template symbol.
+   This macro should only be used in C++ mode. */
+#define is_class_or_class_template_symbol(sym)                        \
+  ((sym)->kind == (a_symbol_kind)sk_class_template ||		      \
+   is_class_symbol(sym))
+
 /* Return TRUE if a symbol is a tag symbol.   A tag symbol is
    one defined as a class, struct, union, or enum (but not as a typedef
    of one of those). */
