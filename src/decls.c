@@ -669,28 +669,30 @@ a pointer-to-member type.
 */
 {
   a_boolean    ptr_to_member_type_found;
+  a_type_ptr   tp;
 
   if (is_ptr_to_member_type(bottom_derived_type)) {
     ptr_to_member_type_found = TRUE;
   } else {
     ptr_to_member_type_found = FALSE;
-    while (derived_type != bottom_derived_type) {
-      derived_type = skip_typerefs(derived_type);
-      switch (derived_type->kind) {
+    bottom_derived_type = make_unqualified_type(bottom_derived_type);
+    tp = make_unqualified_type(derived_type);
+    while (tp != bottom_derived_type) {
+      switch (tp->kind) {
         case tk_ptr_to_member:
           ptr_to_member_type_found = TRUE;
           goto done;
         case tk_array:
-          derived_type = derived_type->variant.array.element_type;
+          tp = tp->variant.array.element_type;
           break;
         case tk_pointer:
-          derived_type = derived_type->variant.pointer.type;
+          tp = tp->variant.pointer.type;
           break;
         case tk_routine:
-          derived_type = derived_type->variant.routine.return_type;
+          tp = tp->variant.routine.return_type;
           break;
         case tk_typeref:
-          derived_type = derived_type->variant.typeref.type;
+          tp = tp->variant.typeref.type;
           break;
         case tk_error:
           goto done;
@@ -699,6 +701,7 @@ a pointer-to-member type.
           internal_error("ptr_to_member_in_derived_type_list: bad type kind");
 #endif /* CHECKING */
       }  /* switch */
+      tp = make_unqualified_type(tp);
     }  /* while */
   }  /* if */
 done:
@@ -6417,8 +6420,7 @@ explicitly specified (rather than defaulted to "int").
           decl_parameter(&(param_id->locator), &param_id->symbol);
         }  /* if */
         /* The param_type entry must be allocated in the file-scope region. */
-        ptp = alloc_param_type(/*at_file_scope=*/TRUE);
-        ptp->type = param_id->type;
+        ptp = alloc_param_type(param_id->type, /*at_file_scope=*/TRUE);
         /* Add the parameter variable to the list of parameters for this
            routine.  This is done in this way so that the parameters
            will be in the order they appear in the original identifier
