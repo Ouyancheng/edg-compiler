@@ -124,6 +124,10 @@ Clear a symbol locator.
 #ifndef TYPES_H
 #include "types.h"
 #endif /* ifndef TYPES_H */
+#ifndef CLASS_DECL_H
+#include "class_decl.h"
+#endif /* ifndef CLASS_DECL_H */
+
 
 /*
 Kinds of symbols in the symbol table.
@@ -706,7 +710,14 @@ typedef struct a_scope_stack_entry {
 			   the file scope.  The only meaningful case is
 			   a constant indicating the address of a local
 			   variable. */
-
+  a_delayed_scan_fixup_ptr
+		delayed_scan_fixup_list,
+		last_delayed_scan_fixup;
+			/* Defined for sck_class_struct_union scopes only:
+			   the head and tail of a list of entities used in
+			   the token caching and delayed scanning scheme
+			   required for C++ member functions (routine bodies
+			   and default arguments). */
   /* The following pointers are the end pointers for the lists begun
      in the current IL scope entry.  They are needed only while the scope
      is active (to add entries to the ends of lists), and are therefore
