@@ -157,9 +157,10 @@ for IL entries with "next" fields.  ptr is the pointer to the first list,
 ptr_type is the type of the pointer and entry_kind is the kind of entries.
 */
 #define walk_orphan_list(walk_style, ptr, ptr_type, entry_kind) \
-{ char **orph_ptr = &(char *)(ptr); \
-  for (; *orph_ptr != NULL; orph_ptr = (char**)(*orph_ptr-sizeof(char *))) { \
-    walk_style((ptr_type)(*orph_ptr), ptr_type, entry_kind) \
+{ ptr_type *orph_ptr = (ptr_type *)&(ptr); \
+  for (; *orph_ptr != NULL; \
+       orph_ptr = (ptr_type *)((char *)(*orph_ptr)-sizeof(char *))) { \
+    walk_style((*orph_ptr), ptr_type, entry_kind) \
   }  /* for */ \
 }  /* walk_orphan_list */
 #endif /* ORPHAN_PROCESSING_NEEDED */
