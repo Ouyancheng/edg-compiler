@@ -2847,7 +2847,8 @@ extern a_boolean is_member_enum_symbol(a_symbol_ptr sym);
 #define is_class_or_class_proxy_symbol(sym)                               \
   (is_class_symbol(sym) ||					      \
    (sym)->kind == (a_symbol_kind)sk_class_template ||		      \
-   ((sym)->kind == (a_symbol_kind)sk_type && (sym)->is_template_param))
+   ((sym)->kind == (a_symbol_kind)sk_type &&			      \
+    is_template_param_type((sym)->variant.type)))
 
 /* Return TRUE if the symbol is a template class symbol. */
 #define is_template_class_symbol(sym)				      \
