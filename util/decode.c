@@ -1992,6 +1992,8 @@ This demangles the "__nn_mm_name" form produced by the C-generating
 back end.  This is not something visible unless the C-generating back end
 is used, and it's a local name, which is ordinarily outside the charter
 of these demangling routines, but it's an easy and common case, so...
+
+Also handles the cfront-style __nnName form.
 */
 {
   char *p = ptr+2;
@@ -1999,21 +2001,25 @@ of these demangling routines, but it's an easy and common case, so...
   /* Check for the initial two numbers and underscores.  The caller checked
      for the two initial underscores and the digit following that. */
   do { p++; } while (isdigit((unsigned char)*p));
-  if (*p != '_') {
-    bad_mangled_name(dctl);
-    goto end_of_routine;
+  if (isalpha((unsigned char)*p)) {
+    /* Cfront-style local name, like "__2name". */
+  } else {
+    if (*p != '_') {
+      bad_mangled_name(dctl);
+      goto end_of_routine;
+    }  /* if */
+    p++;
+    if (!isdigit((unsigned char)*p)) {
+      bad_mangled_name(dctl);
+      goto end_of_routine;
+    }  /* if */
+    do { p++; } while (isdigit((unsigned char)*p));
+    if (*p != '_') {
+      bad_mangled_name(dctl);
+      goto end_of_routine;
+    }  /* if */
+    p++;
   }  /* if */
-  p++;
-  if (!isdigit((unsigned char)*p)) {
-    bad_mangled_name(dctl);
-    goto end_of_routine;
-  }  /* if */
-  do { p++; } while (isdigit((unsigned char)*p));
-  if (*p != '_') {
-    bad_mangled_name(dctl);
-    goto end_of_routine;
-  }  /* if */
-  p++;
   /* Copy the rest of the string to output. */
   while (*p != '\0') {
     write_id_ch(*p, dctl);

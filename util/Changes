@@ -1,5 +1,10 @@
 Version 2.36
 
+4/11/97  Name demangling: cfront-style local names
+
+decode.c now recognizes and demangles cfront-style local names, e.g.,
+"__2i" for "i".
+
 4/11/97  Name demangling: function-local names
 
 decode.c now understands more mangled names of entities local to
