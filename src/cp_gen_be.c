@@ -2231,6 +2231,7 @@ source sequence entry is the one associated with the field.
   adv_curr_source_sequence_entry();
   set_output_position(&field->source_corresp.decl_position);
   gen_member_access_specifier_for_decl_of(&field->source_corresp);
+  if (field->is_mutable) write_tok_str("mutable ");
   /* Generate the field type and name.  No name is displayed for unnamed
      bit fields and anonymous union fields. */
   gen_declaration_using_type(field->type,
