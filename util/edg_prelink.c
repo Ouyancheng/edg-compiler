@@ -1681,6 +1681,7 @@ has changed then write the updated list of instantiations to the file.
         pl_read_input_line(ii_file);
         reserved_lines[i] = pl_copy_string(pl_input_line);
       }  /* for */
+      fclose(ii_file);
       /* Truncate the original file so that it can be rewritten. */
       ii_file = fopen(pifp->info_filename, "w");
       if (ii_file == NULL) {
