@@ -502,6 +502,7 @@ typedef unsigned long a_targ_size_t;  /* Must be host "unsigned long". */
 			/* Default value, used to initialize global variable
 			   targ_size_t_max. */
 
+#ifndef TARG_SIZE_T_INT_KIND
 /* Pick a typical representation for size_t: the smaller of unsigned int or
    unsigned long that can hold a pointer value. */
 #if TARG_SIZEOF_POINTER <= TARG_SIZEOF_INT
@@ -511,6 +512,7 @@ typedef unsigned long a_targ_size_t;  /* Must be host "unsigned long". */
 #endif /* TARG_SIZEOF_POINTER <= TARG_SIZEOF_INT */
 			/* Default value, used to initialize global variable
 			   targ_size_t_int_kind. */
+#endif /* ifndef TARG_SIZE_T_INT_KIND */
 
 /* Specification of a target alignment requirement.  1 means no alignment
    requirement. */
