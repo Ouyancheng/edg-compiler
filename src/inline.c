@@ -1492,6 +1492,36 @@ Issue a diagnostic about a failure to inline the indicated routine.
 }  /* issue_inlining_failure_diagnostic */
 
 
+static a_boolean routine_type_is_temporarily_altered(a_routine_ptr routine)
+/*
+Return TRUE if the indicated routine's type is temporarily altered by
+a block extern declaration.
+*/
+{
+  a_boolean                altered = FALSE;
+  an_extern_type_fixup_ptr etfp;
+  a_scope_depth            scope_depth;
+
+  if (in_front_end) {
+    for (scope_depth = depth_scope_stack;
+         scope_depth != NO_SCOPE_DEPTH;
+         scope_depth--) {
+      for (etfp = scope_stack[scope_depth].extern_type_fixup_list;
+           etfp != NULL;
+           etfp = etfp->next) {
+        if (etfp->is_routine &&
+            etfp->variant.routine == routine) {
+          altered = TRUE;
+          goto end_of_routine;
+        }  /* if */
+      }  /* for */
+    }  /* for */
+  }  /* if */
+end_of_routine:
+  return altered;
+}  /* routine_type_is_temporarily_altered */
+
+
 void do_inlining_of_call(an_expr_node_ptr expr,
                          a_statement_ptr  statement)
 /*
@@ -1516,6 +1546,12 @@ statement).
     if (!routine->is_inline) {
       /* Make sure that if the routine gets marked as inline later an
          out-of-line copy is generated to satisfy this call. */
+      routine->need_out_of_line_copy = TRUE;
+    } else if (C_mode() && routine_type_is_temporarily_altered(routine)) {
+      /* If the routine is visible through a block extern declaration that
+         doesn't match the real routine type (e.g., one that is
+         unprototyped, where the real routine has a prototype), do not
+         attempt inlining. */
       routine->need_out_of_line_copy = TRUE;
     } else {
       if (!routine->inlinable) {

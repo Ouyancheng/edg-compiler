@@ -1,5 +1,17 @@
 Version 2.46
 
+2/6/02   Abort on inlining in C99 mode, with block extern
+
+In certain cases in C99 mode, a call of an inline function made in
+the presence of a compatible but not identical block extern
+declaration provoked an abort.  Now fixed.
+
+  inline int g(int a, int b) { return a + b; }
+  int f(void) {
+    int g();
+    return g("test");
+  }
+
 2/6/02   Field selections instead of casts for lowered base class accesses
 
 IL lowering has been changed slightly so that whenever possible it uses
