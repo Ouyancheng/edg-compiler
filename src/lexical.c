@@ -7345,7 +7345,8 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
             }  /* if */
           }  /* if */
         } else {
-          if (qualifier_is_type && qualifier_type == NULL) {
+          if ((qualifier_is_type && qualifier_type == NULL) ||
+              (!qualifier_is_type && qualifier_namespace == NULL)) {
 	    okay = FALSE;
           } else if (qualifier_is_type && !is_nonclass_dtor && 
                      is_incomplete_type(qualifier_type) &&
@@ -7379,7 +7380,7 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
 					    idl_options) != NULL) {
                 /* Ambiguity and access control checking is not done because
                    we don't know yet what kind of reference this is. */
-              } else if (!qualifier_is_type &&
+              } else if (!qualifier_is_type && qualifier_namespace != NULL &&
                          namespace_qualified_id_lookup
                                  (&locator_for_curr_id,
                                   skip_namespace_aliases(qualifier_namespace),
