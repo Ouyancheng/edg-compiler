@@ -931,9 +931,9 @@ of the file name is bad.
          non-POSIX test using S_IFREG. */
 #ifdef S_ISREG
       if (!S_ISREG(buf.st_mode))
-#else
+#else /* ifndef S_ISREG */
       if ((buf.st_mode & S_IFREG) == 0)
-#endif
+#endif /* ifdef S_ISREG */
 					{
         /* Not a "regular" file. */
         *bad_format = TRUE;
@@ -1591,6 +1591,33 @@ Display the difference in CPU time and elapsed time between two timers.
   fprintf(stderr, "%-30s %10.2f (CPU) %10.2f (elapsed)\n", message,
           cpu_time, real_time);
 }  /* display_time_used */
+
+
+void get_file_identifier(char			*file_name,
+			 a_file_identifier_ptr	id)
+/*
+Return an identifier that can be used to determine whether two files
+are the same.  On systems that have inode numbers, the identifier
+contains the device and inode numbers.  On other systems, the file name
+must be used to do the comparison.  On these systems, the file identifier
+is simply used to store the length of the file name.  The length is
+used as an initial test before comparing the strings.
+*/
+{
+#if STAT_INFORMATION_INCLUDES_INODE
+  struct stat	buf;
+  if (stat(file_name, &buf) == 0) {
+    id->st_dev = buf.st_dev;
+    id->st_ino = buf.st_ino;
+  } else {
+    unexpected_condition_str2("get_file_identifier:", "stat() failed");
+  }  /* if */  
+#else /* !STAT_INFORMATION_INCLUDES_INODE */
+  /* We are using the file name for comparison.  Just store the length
+     in the identifier to be used as an initial test. */
+  *id = strlen(file_name);
+#endif /* STAT_INFORMATION_INCLUDES_INODE */
+}  /* get_file_identifier */
 
 
 /******************************************************************************
