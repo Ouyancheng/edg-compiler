@@ -336,6 +336,7 @@ and the type may be modified (e.g., to set the length of the string).
 static a_boolean process_string_constant_initializer(
                                  a_type_ptr                     *type_ptr,
                                  a_constant_ptr                 *init_con,
+                                 an_aggregate_init_info_ptr     init_info,
                                  an_aggregate_init_context_ptr  init_context)
 /*
 If the variable type (given in *type_ptr) is a character array and the
@@ -347,7 +348,8 @@ If *type_ptr is an incomplete type, change it to reflect the actual size of
 the string literal. (Note the extra level of indirection that allows that.)
 If there is an error, issue an error and return an error constant.
 During prototype instantiations, *type_ptr may also be an array whose
-element type is template dependent.
+element type is template dependent.  init_info and init_context are pointers
+to blocks of information tracking this initialization.  
 */
 {
   a_boolean      is_string_init = FALSE;
@@ -419,12 +421,21 @@ element type is template dependent.
       }  /* if */
       *init_con = alloc_error_constant();
     } else {
+      a_type_ptr  array_type = skip_typerefs(*type_ptr);
       if (!using_pending_init_con) {
         /* Allocate the string constant. */
         *init_con = alloc_unshared_constant(cp);
       } else {
         /* The prescanned constant was already allocated. */
         *init_con = cp;
+      }  /* if */
+      if (!is_incomplete_type(array_type) &&
+          !has_unknown_specified_bound(array_type)) {
+        /* Record if any elements of the array remain uninitialized. */
+        if (array_type->variant.array.variant.number_of_elements
+                                                 > cp->variant.string.length) {
+          init_info->any_uninitialized_member = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -930,8 +941,8 @@ only if *dip_ptr is NULL.  If the initializer is nonconstant or
   a_constant       constant, *cp = NULL;
 
   if (process_string_constant_initializer(
-                                   &type, &cp,
-                                   (an_aggregate_init_context_ptr)NULL)) {
+                                  &type, &cp, (an_aggregate_init_info_ptr)NULL,
+                                  (an_aggregate_init_context_ptr)NULL)) {
     /* The object being initialized has type array of char or wchar_t, and
        is being initialized with a string. */
     is_constant = TRUE;
@@ -1899,7 +1910,8 @@ this function points to a tree that includes a dynamic-init entry.
     } else {
       brace_flag = FALSE;
     }  /* if */
-    if (process_string_constant_initializer(type, &init_con, &context)) {
+    if (process_string_constant_initializer(type, &init_con,
+                                            init_info, &context)) {
       /* The object being initialized has type array of char or wchar_t, and
          is being initialized with a string. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

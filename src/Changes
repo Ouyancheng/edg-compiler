@@ -1,5 +1,19 @@
 Version 3.6
 
+11/12/04 Character arrays partially initialized with string literals
+
+The front end now marks as "partially initialized" character array variables
+initialized with string literals whose length is smaller than that of the
+array variable.  For example:
+
+  void f() {
+    char s[4] = "x";  // s now flagged as "partially initialized".
+  }
+
+Aggregate variables containing character array fields are similarly treated.
+Back ends should ensure that the uninitialized elements of a partially
+initialized array are zero-initialized.
+
 11/12/04 GNU compatibility: __builtin_constant_p
 
 In GNU modes, version 3.5 of the front end introduced a bug in the evaluation
