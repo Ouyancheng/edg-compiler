@@ -3103,8 +3103,8 @@ new(), and therefore might be a projection symbol.
     if (is_function_symbol(sym)) {
       /* Look for a symbol for a function with just one parameter.
          Default arguments are not allowed and need not be checked for. */
-      ptp = sym->variant.routine.ptr->type->variant.routine.extra_info->
-                                                               param_type_list;
+      ptp = skip_typerefs(sym->variant.routine.ptr->type)->
+                                  variant.routine.extra_info->param_type_list;
       if (ptp != NULL && ptp->next == NULL) break;
     }  /* if */
   }  /* for */
