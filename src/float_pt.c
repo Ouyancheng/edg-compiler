@@ -588,8 +588,9 @@ static float float_zero = 0.0;
 a_boolean make_fp_nan(an_internal_float_value *value,
                       a_float_kind             kind)
 /*
-Make a float quiet Not-a-Number value in *value.  Return FALSE if the operation
-did not succeed or if it is mode-dependent; return TRUE otherwise.
+Make a quiet Not-a-Number value of the given floating-point kind in *value.
+Return FALSE if the operation did not succeed or if it is mode-dependent;
+return TRUE otherwise.
 */
 {
   a_boolean  err = FALSE, fp_mode_dependent = FALSE;
@@ -621,8 +622,9 @@ did not succeed or if it is mode-dependent; return TRUE otherwise.
 a_boolean make_fp_infinity(an_internal_float_value *value,
                            a_float_kind             kind)
 /*
-Make a float positive Infinity value in *value.  Return FALSE if the operation
-did not succeed or if it is mode-dependent; return TRUE otherwise.
+Make a positive Infinity value of the given floating-point kind in *value.
+Return FALSE if the operation did not succeed or if it is mode-dependent;
+return TRUE otherwise.
 */
 {
   a_boolean  err = FALSE, fp_mode_dependent = FALSE;

@@ -923,6 +923,116 @@ is after the closing parenthesis of the argument list.
 
 #if GNU_EXTENSIONS_ALLOWED
 
+static a_boolean is_gnu_builtin_function(a_routine_ptr  rp)
+/*
+Return TRUE if and only if the given routine represents a GNU built-in
+function.
+*/
+{
+  return rp->special_kind == (a_special_function_kind)sfk_none &&
+         rp->variant.builtin_function_kind !=
+                                            (a_builtin_function_kind)bfk_none;
+}  /* is_gnu_builtin_function */
+
+
+static a_boolean is_foldable_gnu_builtin_function_operand(an_operand  *op)
+/*
+Return TRUE if and only if the given operand corresponds to a GNU built-in
+function and calls to that function might be valid constant-expressions.
+*/
+{
+  a_boolean  result = FALSE;
+  a_routine_ptr  rp = routine_from_function_operand(op);
+
+  if (rp != NULL && is_gnu_builtin_function(rp)) {
+    switch (rp->variant.builtin_function_kind) {
+      case bfk_constant_p:
+      case bfk_classify_type:
+      case bfk_huge_valf:
+      case bfk_huge_val:
+      case bfk_huge_vall:
+#if TARG_HAS_IEEE_FLOATING_POINT
+      case bfk_nanf:
+      case bfk_nan:
+      case bfk_nanl:
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+        result = TRUE;
+        break;
+      default:
+        /* Nothing to be done. */
+        break;
+    }  /* switch */
+  }  /* if */
+  return result;
+}  /* is_foldable_gnu_builtin_function_operand */
+
+
+static a_type_class_kind gnu_type_class_for_type(a_type_ptr  type)
+/*
+Return the GNU type class associated with the given type.  (This is used
+to implement the GNU function __builtin_classify_type.)
+*/
+{
+  a_type_class_kind  tck;
+
+  type = skip_typerefs(type);
+  switch (type->kind) {
+    case tk_void:
+      tck = (a_type_class_kind)tck_void;
+      break;
+    case tk_integer:
+      /* Although there is a type class for enumeration types, GCC
+         does not seem to use it.  It returns tck_integer instead. */
+      if (is_character_type(type)) {
+        tck = (a_type_class_kind)tck_char;
+      } else if (is_bool_type(type)) {
+        tck = (a_type_class_kind)tck_bool;
+      } else {
+        tck = (a_type_class_kind)tck_integer;
+      }  /* if */
+      break;
+    case tk_pointer:
+      if (is_pointer_type(type)) {
+        tck = (a_type_class_kind)tck_pointer;
+      } else {
+        tck = (a_type_class_kind)tck_reference;
+      }  /* if */
+      break;
+    case tk_float:
+      tck = (a_type_class_kind)tck_float;
+      break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_complex:
+      tck = (a_type_class_kind)tck_complex;
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case tk_routine:
+      tck = (a_type_class_kind)tck_routine;
+      break;
+    case tk_struct:
+    case tk_class:
+      tck = (a_type_class_kind)tck_struct;
+      break;
+    case tk_union:
+      tck = (a_type_class_kind)tck_union;
+      break;
+    case tk_array:
+      if (is_string_type(type)) {
+        tck = (a_type_class_kind)tck_string;
+      } else {
+        tck = (a_type_class_kind)tck_array;
+      }  /* if */
+      break;
+    case tk_error:
+      tck = (a_type_class_kind)tck_none;
+      break;
+    default:
+      unexpected_condition();
+      break;
+  }  /* switch */
+  return tck;
+}  /* gnu_type_class_for_type */
+
 #if TARG_HAS_IEEE_FLOATING_POINT
 
 static a_boolean is_empty_string_literal(a_constant_ptr  cp)
@@ -934,7 +1044,8 @@ address thereof.
   a_boolean  result;
 
   if (cp->kind == (a_constant_repr_kind)ck_address &&
-      cp->variant.address.kind == (an_address_base_kind)abk_constant) {
+      cp->variant.address.kind == (an_address_base_kind)abk_constant &&
+      cp->variant.address.offset == 0) {
     cp = cp->variant.address.variant.constant;
   }  /* if */
   if (cp->kind == (a_constant_repr_kind)ck_string &&
@@ -969,102 +1080,53 @@ given operand by a constant operand if appropriate.
       args->kind == (an_expr_node_kind)enk_routine_address) {
     /* A direct call: Examine which routine is called. */
     a_routine_ptr  rp = args->variant.routine;
-    if (rp->special_kind == (a_special_function_kind)sfk_none) {
+    if (is_gnu_builtin_function(rp)) {
+      a_type_ptr  result_type = skip_typerefs(call->type);
       args = args->next;
       switch (rp->variant.builtin_function_kind) {
         case bfk_constant_p:
           /* "1" if the argument is constant; "0" otherwise. */
           if (args != NULL && args->next == NULL &&
-              is_integral_type(call->type)) {
+              is_integral_type(result_type)) {
             a_boolean  val = (args->kind == (an_expr_node_kind)enk_constant);
             clear_constant(&result, (a_constant_repr_kind)ck_integer);
             result.type = call->type;
             set_integer_constant(&result, (a_host_large_integer)val,
-                                 call->type->variant.integer.int_kind);
+                                 result_type->variant.integer.int_kind);
             folded = TRUE;
           }  /* if */
           break;
         case bfk_classify_type:
+          /* Produce an integer representing the GNU type-class associated
+             with the argument. */
           if (args != NULL && args->next == NULL &&
-              is_integral_type(call->type)) {
-            a_type_class_kind  tck;
-            a_type_ptr         type = skip_typerefs(args->type);
-            switch (type->kind) {
-              case tk_void:
-                tck = (a_type_class_kind)tck_void;
-                break;
-              case tk_integer:
-                /* Although there is a type class for enumeration types, GCC
-                   does not seem to use it.  It returns tck_integer instead. */
-                if (is_character_type(type)) {
-                  tck = (a_type_class_kind)tck_char;
-                } else if (is_bool_type(type)) {
-                  tck = (a_type_class_kind)tck_bool;
-                } else {
-                  tck = (a_type_class_kind)tck_integer;
-                }  /* if */
-                break;
-              case tk_pointer:
-                if (is_pointer_type(type)) {
-                  tck = (a_type_class_kind)tck_pointer;
-                } else {
-                  tck = (a_type_class_kind)tck_reference;
-                }  /* if */
-                break;
-              case tk_float:
-                tck = (a_type_class_kind)tck_float;
-                break;
-#if C99_IL_EXTENSIONS_SUPPORTED
-              case tk_complex:
-                tck = (a_type_class_kind)tck_complex;
-                break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-              case tk_routine:
-                tck = (a_type_class_kind)tck_routine;
-                break;
-              case tk_struct:
-              case tk_class:
-                tck = (a_type_class_kind)tck_struct;
-                break;
-              case tk_union:
-                tck = (a_type_class_kind)tck_union;
-                break;
-              case tk_array:
-                if (is_string_type(type)) {
-                  tck = (a_type_class_kind)tck_string;
-                } else {
-                  tck = (a_type_class_kind)tck_array;
-                }  /* if */
-                break;
-              case tk_error:
-                tck = (a_type_class_kind)tck_none;
-                break;
-              default:
-                unexpected_condition();
-                break;
-            }  /* switch */
+              is_integral_type(result_type)) {
+            a_type_class_kind  tck = gnu_type_class_for_type(args->type);
             clear_constant(&result, (a_constant_repr_kind)ck_integer);
             result.type = call->type;
             set_integer_constant(&result, (a_host_large_integer)tck,
-                                 call->type->variant.integer.int_kind);
+                                 result_type->variant.integer.int_kind);
             folded = TRUE;
           }  /* if */
           break;
         case bfk_huge_valf:
         case bfk_huge_val:
         case bfk_huge_vall:
+          /* A "huge" floating-point value.  (I.e., positive Infinity if
+             that is available, or the largest possible value of the
+             associated floating-point type.) */
           if (args == NULL && is_floating_type(call->type)) {
             clear_constant(&result, (a_constant_repr_kind)ck_float);
             result.type = call->type;
             folded = make_huge_fp_val(&result.variant.float_value,
-                                      skip_typerefs(call->type)
-                                                        ->variant.float_kind);
+                                      result_type->variant.float_kind);
           }  /* if */
           break;
 #if TARG_HAS_IEEE_FLOATING_POINT
         case bfk_nanf:
         case bfk_nan:
         case bfk_nanl:
+          /* A non-signaling (or "quiet") Not-a-Number value. */
           if (args != NULL && args->next == NULL &&
               args->kind == (an_expr_node_kind)enk_constant &&
               is_empty_string_literal(args->variant.constant) &&
@@ -1072,8 +1134,7 @@ given operand by a constant operand if appropriate.
             clear_constant(&result, (a_constant_repr_kind)ck_float);
             result.type = call->type;
             folded = make_fp_nan(&result.variant.float_value,
-                                 skip_typerefs(call->type)
-                                                        ->variant.float_kind);
+                                 result_type->variant.float_kind);
           }  /* if */
           break;
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
@@ -1142,6 +1203,7 @@ Syntax:
   a_boolean         ignore_call = FALSE;
   a_boolean         saved_evaluated, saved_potentially_evaluated;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean         call_may_be_folded = FALSE;
   a_boolean         call_folded_to_constant = FALSE;
 
   db_enter(4, "scan_function_call");
@@ -1164,7 +1226,11 @@ Syntax:
                                 &call_position) < 0) ?
                                             bound_function_selector->position :
                                             call_position;
-  if (curr_expr_kind_is(ek_pp)) {
+#if GNU_EXTENSIONS_ALLOWED
+  call_may_be_folded = gnu_mode && !curr_expr_kind_is(ek_pp) &&
+                       is_foldable_gnu_builtin_function_operand(operand);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  if (!call_may_be_folded && curr_expr_kind_is_const()) {
     /* Routine calls not allowed in constant expressions appearing in
        preprocessor directives. */
     error_in_operand(ec_bad_constant_function_call, operand);
@@ -1584,15 +1650,14 @@ Syntax:
                            /*is_conversion=*/FALSE,
                            &call_position, result);
 #if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode && is_expression_operand(result)) {
+    if (call_may_be_folded) {
       /* Some __builtin_xxx functions act as constant-expressions. */
       call_folded_to_constant = fold_call_if_possible(result);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
-  if (!call_folded_to_constant && curr_expr_kind_is_const() &&
-      !curr_expr_kind_is(ek_pp)) {
-    /* Unfolded routine calls not allowed in constant expressions. */
+  if (call_may_be_folded && !call_folded_to_constant) {
+    /* Unfolded routine calls are not allowed in constant expressions. */
     error_in_operand(ec_bad_constant_function_call, result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
@@ -13192,6 +13257,14 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
       rep = NULL;
     } else if (sym_ptr->kind == (a_symbol_kind)sk_routine &&
                !C_mode() && arg_dependent_lookup_enabled &&
+#if GNU_EXTENSIONS_ALLOWED
+               /* Argument-dependent lookup should never apply to calls of
+                  GNU built-in functions.  Since such functions may need to
+                  be constant-folded, we do not want to use an indefinite
+                  routine operand to represent the call. */
+               !(gpp_mode &&
+                 is_gnu_builtin_function(sym_ptr->variant.routine.ptr)) &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
                next_token() == tok_lparen) {
       /* When argument-dependent lookup is enabled, even if the symbol
          is a simple routine name it might not be the routine that is
