@@ -808,7 +808,7 @@ is_template_dependent_context, but excludes nonreal instantiations.
 
 /*
 TRUE if we are in a template prototype instantiation context but not
-in the context of a class specialization.  This excluded Microsoft
+in the context of a class specialization.  This excludes Microsoft
 in-class specializations within prototype instantiations.  Note that
 this is FALSE for template declaration contexts.
 */
