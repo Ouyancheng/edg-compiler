@@ -36,12 +36,6 @@ extern void pack_pragma(a_pending_pragma_ptr ppp);
 extern void set_max_member_alignment_for_class(a_type_ptr  class_type);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
-extern void scan_bit_field_size(a_boolean         *unnamed_bit_field,
-                                a_type_ptr        *p_base_type,
-                                long              *p_bit_field_size,
-                                a_boolean         *p_is_signed,
-                                a_symbol_locator  *locator);
-
 extern void do_class_layout(a_type_ptr  class_type);
 
 extern void layout_one_time_init(void);
