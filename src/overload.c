@@ -5220,6 +5220,8 @@ do_arg_dep_lookup is TRUE.  This routine is called only in C++ mode.
     }  /* for */
     process_end_of_call_arguments(&arg_block);
     *arg_expr_list = arg_block.argument_head;
+    /* Free the argument list. */
+    free_arg_operand_list(arg_operand_list);
   }  /* if */
   db_exit();
   return base_function_symbol;
