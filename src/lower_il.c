@@ -5463,10 +5463,10 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
       /* The first operand of expr is an lvalue-returning "?" or ",".
          That is, expr is the node on top of a "?" or ",". */
       an_expr_node_ptr child2 = child1->next;
+      /* "gchild" stands for "grandchild". */
       an_expr_node_ptr gchild1 = child1->variant.operation.operands;
       an_expr_node_ptr gchild2 = gchild1->next;
       an_expr_node_ptr gchild3, newop1, newop2;
-      a_boolean        expr_result_is_not_used = expr->result_is_not_used;
       if (op == (an_expr_operator_kind)eok_question) {
         /* Lvalue "?" rewrite.  Change
              ((g1 ? g2 : g3) = c2)
@@ -5482,12 +5482,14 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
         gchild3 = gchild2->next;
         /* Build (g2 = c2). */
         newop1 = copy_node(expr);
-        newop1->result_is_not_used = expr_result_is_not_used;
+        /* newop1->result_is_not_used is FALSE, which is right, regardless
+           of whether the result of the "?" is used, because the "?" does
+           not have void type (it's an lvalue, so it has a pointer type). */
         newop1->variant.operation.operands = gchild2;
         gchild2->next = child2;
         /* Build (g3 = c2) using a copy of c2. */
         newop2 = copy_node(expr);
-        newop2->result_is_not_used = expr_result_is_not_used;
+        /* Likewise, newop2->result_is_not_used is properly FALSE. */
         newop2->variant.operation.operands = gchild3;
         gchild3->next = (child2 != NULL) ? copy_expr_tree(child2) : NULL;
         /* Replace the original top node with a "?" node. */
@@ -5508,7 +5510,7 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
            for unary operations. */
         /* Build (g2 = c2). */
         newop1 = copy_node(expr);
-        newop1->result_is_not_used = expr_result_is_not_used;
+        /* newop1->result_is_not_used is properly FALSE; see comment above. */
         newop1->variant.operation.operands = gchild2;
         gchild2->next = child2;
         newop2 = NULL;
@@ -5522,7 +5524,6 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
         expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
         expr->type = newop1->type;
       }  /* if */
-      expr->result_is_not_used = expr_result_is_not_used;
       /* Do further rewriting on the operations just inserted. */
       lower_operations_returning_lvalue_instead_of_usual_rvalue(newop1,
                                                            /*is_lvalue=*/TRUE);
@@ -5536,7 +5537,6 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
                 op != (an_expr_operator_kind)eok_comma)) {
       an_expr_node_ptr child2 = child1->next;
       an_expr_node_ptr newop;
-      a_boolean        expr_result_is_not_used = expr->result_is_not_used;
       a_boolean        suppress_warning, vars_can_change;
       /* expr is an lvalue-returning operation that is not a "?" or ",".
          Rewrite
@@ -5562,12 +5562,13 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
       /* Attach a copy of the lvalue address to the assignment node, as the
          second operand of the comma operator. */
       newop->next = make_lvalue_reusable_copy(child1, vars_can_change);
-      newop->next->result_is_not_used = expr_result_is_not_used;
+      /* newop->next->result_is_not_used is properly FALSE, since the
+         comma expression has non-void type (it's an lvalue, so it has
+         a pointer type). */
       /* Change the original node to an lvalue-returning comma node. */
       set_node_operator(expr, (an_expr_operator_kind)eok_comma,
                         expr->type, newop);
       expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
-      expr->result_is_not_used = expr_result_is_not_used;
     }  /* if */
   }  /* if */
 }  /* lower_operations_returning_lvalue_instead_of_usual_rvalue */

@@ -1,5 +1,10 @@
 Version 2.21
 
+11/22/93 result_is_not_used flag on operands of "?" and ","
+
+The result_is_not_used flag is now TRUE on operands of "?" and "," operations
+only if the "?" or "," operation has void type.
+
 11/22/93 Function definition when the function type comes from a typedef
 
 An internal error has been fixed that occurred in scan_function_body in

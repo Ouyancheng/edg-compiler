@@ -5196,8 +5196,13 @@ the value of the expression is discarded.
 */
 {
   node->result_is_not_used = TRUE;
-  /* For some operations, subnodes get marked too. */
-  if (node->kind == (an_expr_node_kind)enk_operation) {
+  /* For some operations, subnodes get marked too.  This is only done with
+     operations that have void type, because otherwise we run into problems
+     if we rewrite the subnodes thinking they're top-level nodes -- it changes
+     the subnode type without changing the parent node type (or the sibling
+     node type, in the "?" case). */
+  if (node->kind == (an_expr_node_kind)enk_operation &&
+      is_void_type(node->type)) {
     an_expr_operator_kind op = node->variant.operation.kind;
     an_expr_node_ptr      operand_1 = node->variant.operation.operands;
 
