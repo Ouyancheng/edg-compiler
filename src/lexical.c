@@ -4573,12 +4573,6 @@ id of a qualified name or the normal identifier.
     }  /* if */
 #endif /* CHECKING */
     reduce_projection_symbol_to_fundamental_symbol(symbol);
-    if (symbol != NULL && (options & IDL_MUST_BE_TYPE_NAME) &&
-        !is_type_symbol(symbol)) {
-      /* When the must-be-type-name flag is set, just return NULL if the
-         symbol is not a type name. */
-      symbol = NULL;
-    }  /* if */
   } else {
     /* Normal identifier -- look it up. */
     symbol = normal_id_lookup(&locator_for_curr_id, options);
