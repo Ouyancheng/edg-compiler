@@ -519,15 +519,6 @@ extern a_boolean overloaded_function_match_possible(
                                a_boolean          selector_is_object_pointer);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-extern void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
-                                          an_expr_node_ptr  arg_expr_list,
-                                          a_type_ptr        temp_type,
-                                          a_boolean         result_is_addr,
-                                          a_boolean         is_explicit_cast,
-                                          a_boolean         is_value_init,
-                                          a_source_position *position,
-                                          an_operand        *result);
-
 extern void temp_init_from_operand(an_operand *operand,
                                    a_boolean  result_is_addr);
 
@@ -592,7 +583,6 @@ extern void adjust_overloaded_function_call_arguments(
                            a_type_ptr               routine_type,
                            a_boolean                have_selector,
                            an_operand               *bound_function_selector,
-                           a_boolean                class_bitwise_copy,
                            an_arg_operand_ptr       arg_operand_list,
                            an_arg_match_summary_ptr arg_match_list,
                            an_expr_node_ptr         *arg_expr_list);
@@ -694,11 +684,19 @@ extern void check_access_to_elided_copy_constructor(
 
 extern a_boolean operand_is_temp_init(an_operand *operand);
 
+extern a_boolean is_temp_init_usable_in_optimization(
+                                   an_operand         *source_operand,
+                                   a_boolean          suppress_dtor,
+                                   a_boolean          initializing_var_or_temp,
+                                   an_expr_node_ptr   *p_temp_init_node,
+                                   a_dynamic_init_ptr *p_dip);
+
 extern void prep_elision_initializer_operand(
                                   an_operand         *source_operand,
                                   a_type_ptr         dest_type,
                                   a_boolean          initializing_return_value,
                                   a_boolean          fill_in_dtor,
+                                  a_boolean          initializing_var_or_temp,
                                   an_error_code      err_code,
                                   a_dynamic_init_ptr *dip);
 

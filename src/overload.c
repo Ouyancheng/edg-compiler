@@ -7144,7 +7144,6 @@ void adjust_overloaded_function_call_arguments(
                            a_type_ptr               routine_type,
                            a_boolean                have_selector,
                            an_operand               *bound_function_selector,
-                           a_boolean                class_bitwise_copy,
                            an_arg_operand_ptr       arg_operand_list,
                            an_arg_match_summary_ptr arg_match_list,
                            an_expr_node_ptr         *arg_expr_list)
@@ -7166,11 +7165,9 @@ those arguments during the overload resolution process, and return a
 list of argument expressions in *arg_expr_list.  arg_match_list gives
 the argument match summaries for the selector object and the
 arguments.  arg_operand_list and arg_match_list are freed.
-class_bitwise_copy is TRUE when the function being called is
-a generated bitwise copy constructor; the argument is processed
-for a C-style bitwise copy in that case.  This routine is used for
-cases that look like calls (i.e., they have argument lists in
-parentheses) or casts; it is not used for overloaded operator cases.
+This routine is used for cases that look like calls (i.e., they have
+argument lists in parentheses) or casts; it is not used for
+overloaded operator cases.
 */
 {
   an_arg_match_summary_ptr arg_match;
@@ -7215,26 +7212,9 @@ parentheses) or casts; it is not used for overloaded operator cases.
     for (arg_operand = arg_operand_list,
              param = routine_type->variant.routine.extra_info->param_type_list;
          arg_operand != NULL || param != NULL;) {
-      if (class_bitwise_copy) {
-        /* Turn the argument for a generated bitwise copy constructor into
-           an rvalue of the right class type. */
-        a_type_ptr dest_type = f_skip_typerefs(type_pointed_to(param->type));
-        if (is_null_user_conv_descr(&arg_match->conversion)) {
-          arg_match->conversion.class_identity_or_bitwise_copy = TRUE;
-        }  /* if */
-        arg_match->conversion.result_is_an_lvalue = FALSE;
-        user_convert_operand(&arg_operand->operand,
-                             dest_type,
-                             &arg_match->conversion,
-                             (a_conv_descr *)NULL,
-                             /*force_temp_for_class_bitwise_copy=*/FALSE);
-        arg = make_node_from_operand(&arg_operand->operand);
-      } else {
-        /* Normal case, not a bitwise copy. */
-        arg = node_for_arg_of_overloaded_function_call(
-                                           arg_operand, arg_match, param,
-                                           routine);
-      }  /* if */
+      arg = node_for_arg_of_overloaded_function_call(
+                                         arg_operand, arg_match, param,
+                                         routine);
       /* Add this argument to the end of the expression-form argument list
          being built up. */
       if (prev_arg == NULL) {
@@ -7428,7 +7408,6 @@ routine is called only in C++ mode.
                                               routine_type,
                                               have_selector,
                                               bound_function_selector,
-                                              /*class_bitwise_copy=*/FALSE,
                                               arg_operand_list,
                                               arg_match_list,
                                               arg_expr_list);
@@ -11109,14 +11088,13 @@ call in *arg_expr_list.  This routine is used only in C++ mode.
 }  /* set_up_for_constructor_call */
 
 
-void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
-                                   an_expr_node_ptr  arg_expr_list,
-                                   a_type_ptr        temp_type,
-                                   a_boolean         result_is_addr,
-                                   a_boolean         is_explicit_cast,
-                                   a_boolean         is_value_init,
-                                   a_source_position *position,
-                                   an_operand        *result)
+static void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
+                                          an_expr_node_ptr  arg_expr_list,
+                                          a_type_ptr        temp_type,
+                                          a_boolean         result_is_addr,
+                                          a_boolean         is_explicit_cast,
+                                          a_source_position *position,
+                                          an_operand        *result)
 /*
 Create an enk_temp_init node that calls the constructor ctor_routine with
 the argument list arg_expr_list.  Return an operand for the value (if
@@ -11129,9 +11107,7 @@ a member.  If it is NULL, the class type is used.  ctor_routine can
 be NULL to indicate that the constructor is unknown because one or
 more of the arguments is template-dependent in a prototype instantiation.
 temp_type must be non-NULL in that case.  is_explicit_cast is TRUE if
-this node represents an explicit cast.  is_value_init is TRUE if
-this call is generated to do value-initialization.  *position gives
-the source position.
+this node represents an explicit cast.  *position gives the source position.
 */
 {
   a_dynamic_init_ptr dip;
@@ -11164,7 +11140,7 @@ the source position.
   /* Use a dik_constructor to call the constructor routine. */
   dip->variant.constructor.ptr = ctor_routine;
   dip->variant.constructor.args = arg_expr_list;
-  dip->variant.constructor.value_initialization = is_value_init;
+  dip->variant.constructor.value_initialization = FALSE;
   /* Make an operand for the overall expression. */
   make_expression_operand(temp_init_node, temp_init_node->type, result);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
@@ -11320,7 +11296,7 @@ in that case.
                                 ctor_arg_conversion, &arg_expr_list);
     make_constructor_dynamic_init(conversion_routine, arg_expr_list,
                                   dest_type, /*result_is_addr=*/FALSE,
-                                  is_explicit_cast,  /*is_value_init=*/FALSE,
+                                  is_explicit_cast,
                                   &orig_operand.position, operand);
   }  /* if */
   /* Restore the original source position, etc. */
@@ -11548,18 +11524,22 @@ returns the value or address of the temporary is immaterial.
 }  /* operand_is_temp_init */
 
 
-static a_boolean is_temp_init_usable_in_optimization(
-                                          an_operand         *source_operand,
-                                          a_boolean          suppress_dtor,
-                                          an_expr_node_ptr   *p_temp_init_node,
-                                          a_dynamic_init_ptr *p_dip)
+a_boolean is_temp_init_usable_in_optimization(
+                                   an_operand         *source_operand,
+                                   a_boolean          suppress_dtor,
+                                   a_boolean          initializing_var_or_temp,
+                                   an_expr_node_ptr   *p_temp_init_node,
+                                   a_dynamic_init_ptr *p_dip)
 /*
 Determine whether or not source_operand is an enk_temp_init node that can be
 used in a copy constructor elision optimization.  Return TRUE if so, and
 also set *p_temp_init_node and *p_dip to the underlying expression node
 and dynamic initialization entry.  If suppress_dtor is TRUE, any destruction
 indicated in the initialization is cleared (this is used, for example,
-for a return, because the caller will do the destruction).
+for a return, because the caller will do the destruction).  If
+initializing_var_or_temp is TRUE, the entity being initialized is
+a complete variable or temporary (not, for example, the return value
+of a function).
 */
 {
   a_boolean          is_usable_temp_init = FALSE;
@@ -11580,7 +11560,7 @@ for a return, because the caller will do the destruction).
        optimization on a return). */
     if (dip->kind != (a_dynamic_init_kind)dik_none &&
         (!dip->is_optimized_class_rvalue_question_mark ||
-         !suppress_dtor)) {
+         initializing_var_or_temp)) {
       is_usable_temp_init = TRUE;
       /* Take the dynamic init off whatever destruction list it is on, if any,
          because it will be given to the caller, who will put it on a
@@ -11630,13 +11610,14 @@ is TRUE if the dynamic initialization should indicate destruction.
 
 
 static void determine_dynamic_init_for_class_init(
-                                       an_operand         *source_operand,
-                                       a_type_ptr         dest_type,
-                                       a_conv_descr       *conversion,
-                                       a_conv_descr       *ctor_arg_conversion,
-                                       a_boolean          fill_in_dtor,
-                                       a_dynamic_init_ptr *p_dip,
-                                       an_expr_node_ptr   *p_temp_init_node)
+                                   an_operand         *source_operand,
+                                   a_type_ptr         dest_type,
+                                   a_conv_descr       *conversion,
+                                   a_conv_descr       *ctor_arg_conversion,
+                                   a_boolean          fill_in_dtor,
+                                   a_boolean          initializing_var_or_temp,
+                                   a_dynamic_init_ptr *p_dip,
+                                   an_expr_node_ptr   *p_temp_init_node)
 /*
 An entity of type dest_type (a class type) is being initialized from
 source_operand.  The constructor or conversion function required to do the
@@ -11645,13 +11626,15 @@ is non-NULL, it gives the conversion on the first argument of the
 constructor (important only in some nonstandard modes).  Create a dynamic
 initialization entry to do the initialization (and any required
 destruction, if fill_in_dtor is TRUE) and return a pointer to
-it in *dip (or return *dip == NULL for an error).  If
-p_temp_init_node is non-NULL, create an enk_temp_init node (for the
-address of a temporary) pointing to that dynamic initialization entry,
-and return a pointer to it in *p_temp_init_node.  An error node is
-returned for an error.  dest_type is allowed to be a class having
-no constructors at all.  The initialization represented is an "="
-initialization, i.e.,
+it in *p_dip (or return *p_dip == NULL for an error).  If
+initializing_var_or_temp is TRUE, the entity being initialized is
+a complete variable or temporary (not, for example, the return value
+of a function).  If p_temp_init_node is non-NULL, create an
+enk_temp_init node (for the address of a temporary) pointing to that
+dynamic initialization entry, and return a pointer to it in
+*p_temp_init_node.  An error node is returned for an error.  dest_type
+is allowed to be a class having no constructors at all.  The
+initialization represented is an "=" initialization, i.e.,
 
   dest_type var = source_operand;
 
@@ -11686,6 +11669,7 @@ happen only in C++ mode.
       /* See whether the source is a temporary that can be eliminated. */
       if (is_temp_init_usable_in_optimization(source_operand,
                                               !fill_in_dtor,
+                                              initializing_var_or_temp,
                                               &temp_init_node,
                                               &dip)) {
         /* Eliminate the temporary and the bitwise copy. */
@@ -11723,6 +11707,7 @@ happen only in C++ mode.
            optimized away. */
         if (is_temp_init_usable_in_optimization(source_operand,
                                                 !fill_in_dtor,
+                                                initializing_var_or_temp,
                                                 &temp_init_node,
                                                 &dip)) {
           elision_done = TRUE;
@@ -11759,6 +11744,7 @@ happen only in C++ mode.
       if (identical_types(source_operand->type, dest_type) &&
           is_temp_init_usable_in_optimization(source_operand,
                                               !fill_in_dtor,
+                                              initializing_var_or_temp,
                                               &temp_init_node,
                                               &dip)) {
         elision_done = TRUE;
@@ -11848,6 +11834,8 @@ happen only in C++ mode.
   /* Build an enk_temp_init node if one is needed and one did not exist
      already. */
   if (p_temp_init_node != NULL) {
+    /* Note that the code here is very similar to the code at the end of
+       scan_ctor_arguments. */
     if (temp_init_node == NULL) {
       if (dip == NULL) {
         /* Some error.  Return an error node. */
@@ -11880,6 +11868,7 @@ void prep_elision_initializer_operand(
                                   a_type_ptr         dest_type,
                                   a_boolean          initializing_return_value,
                                   a_boolean          fill_in_dtor,
+                                  a_boolean          initializing_var_or_temp,
                                   an_error_code      err_code,
                                   a_dynamic_init_ptr *dip)
 /*
@@ -11890,11 +11879,13 @@ initializing_return_value is TRUE if the initialization is being done
 to return a value in a return statement.  The dynamic initialization
 entry will also indicate a destructor if appropriate and if
 fill_in_dtor is TRUE.  Return a pointer to the dynamic initialization
-entry in *dip (or NULL for an error).  err_code is the error code to
-be used in case of error.  source_operand may be changed by this
-routine.  This routine is used in both C and C++ mode, but it exists
-to do copy constructor elision in C++ mode.  This is an initialization
-with the "=" semantics (copy-initialization).
+entry in *dip (or NULL for an error).  If initializing_var_or_temp is
+TRUE, the entity being initialized is a complete variable or temporary
+(not, for example, the return value of a function).  err_code is the
+error code to be used in case of error.  source_operand may be changed
+by this routine.  This routine is used in both C and C++ mode, but it
+exists to do copy constructor elision in C++ mode.  This is an
+initialization with the "=" semantics (copy-initialization).
 */
 {
   a_conv_descr conversion, ctor_arg_conversion;
@@ -11926,6 +11917,7 @@ with the "=" semantics (copy-initialization).
     determine_dynamic_init_for_class_init(source_operand, dest_type,
                                           &conversion, &ctor_arg_conversion,
                                           fill_in_dtor,
+                                          initializing_var_or_temp,
                                           dip, (an_expr_node_ptr *)NULL);
   }  /* if */
   /* Restore the original source position, etc. */
@@ -11990,7 +11982,6 @@ in C++ mode.
         make_constructor_dynamic_init(cctor_routine, cctor_arg, temp_type,
                                       result_is_addr,
                                       /*is_explicit_cast=*/FALSE,
-                                      /*is_value_init=*/FALSE,
                                       &orig_operand.position,
                                       operand);
       }  /* if */
@@ -13090,6 +13081,7 @@ see conversion_to_class_possible.
     determine_dynamic_init_for_class_init(source_operand, param_type,
                                           conversion, (a_conv_descr *)NULL,
                                           /*fill_in_dtor=*/TRUE,
+                                          /*initializing_var_or_temp=*/FALSE,
                                           &dip, &temp_init_node);
     make_expression_operand(temp_init_node, temp_init_node->type,
                             source_operand);

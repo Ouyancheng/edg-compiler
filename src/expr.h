@@ -153,12 +153,13 @@ extern a_boolean scan_aggregate_initializer_expression(
                                    a_constant         *constant);
 
 extern void scan_class_parenthesized_initializer(
-                                      a_type_ptr         class_type,
-                                      a_type_ptr         object_class_type,
-                                      a_boolean          force_object_lifetime,
-                                      a_source_position  *source_pos,
-                                      a_boolean          fill_in_dtor,
-                                      a_dynamic_init_ptr *dip);
+                                   a_type_ptr         class_type,
+                                   a_type_ptr         object_class_type,
+                                   a_boolean          force_object_lifetime,
+                                   a_source_position  *source_pos,
+                                   a_boolean          fill_in_dtor,
+                                   a_boolean          initializing_var_or_temp,
+                                   a_dynamic_init_ptr *p_dip);
 
 extern void scan_template_argument_constant_expression(a_type_ptr param_type,
                                                        a_constant *constant);

@@ -815,61 +815,85 @@ variable.
 
 
 static void scan_ctor_arguments(a_symbol_ptr       constructor_sym,
-                                an_expr_node_ptr   *arg_expr_list,
-                                a_routine_ptr      *conversion_routine,
-                                a_boolean          *unknown_dependent_function,
-                                a_boolean          *class_bitwise_copy,
                                 a_source_position  *source_pos,
-                                a_type_ptr         object_class_type)
+                                a_type_ptr         object_class_type,
+                                a_type_ptr         dest_type,
+                                a_boolean          fill_in_dtor,
+                                a_boolean          initializing_var_or_temp,
+                                a_boolean          elision_allowed,
+                                a_dynamic_init_ptr *p_dip,
+                                an_expr_node_ptr   *p_temp_init_node)
 /*
 Scan the argument list for a C++ constructor call.  The current token is
 the one right after the opening parenthesis of the argument list.  The
 constructor symbol (possibly overloaded) is constructor_sym.
-Scan the arguments and the closing parenthesis, and return the
-argument list in *arg_expr_list and a pointer to the proper constructor
-routine in *conversion_routine.  If the proper constructor cannot be
-determined, return NULL.  *unknown_dependent_function is returned TRUE
-if the proper constructor could not be determined because one or more
-of the arguments has a template-dependent type (in a prototype
-instantiation).  *class_bitwise_copy is returned TRUE if the
-constructor selected is a generated copy constructor that does
-a bitwise copy (conversion_routine is still set to the routine,
-but the routine is not marked as called).  If class_bitwise_copy
-is NULL, bitwise copy constructors are not special-cased.
-*source_pos indicates the source position of the call.  This
-routine may be called only in C++ mode.  It's used for parenthesis-
+Scan the arguments and the closing parenthesis, and return a pointer
+to a dynamic initialization entry for the constructor call in *p_dip
+(*p_dip is set to NULL for an error).  If p_temp_init_node is non-NULL,
+create an enk_temp_init node (for the value of a temporary) pointing
+to that dynamic initialization entry, and return a pointer to it in
+*p_temp_init_node; dest_type must be provided in that case and is the
+type for the node.  An error node is returned for an error.
+*source_pos indicates the source position of the call (often, the
+position of the left parenthesis).  object_class_type is the type of
+the object being constructed, which may be different than the type of
+the constructor being called (e.g., when a base class constructor is
+being called for a derived class object); if it's NULL, the class of
+the constructor is assumed.  If fill_in_dtor is TRUE, appropriate
+destruction is placed in the returned dynamic initialization.
+If initializing_var_or_temp is TRUE, the entity being initialized is
+a complete variable or temporary (not, for example, a base class in
+a ctor-initializer).  If elision_allowed is TRUE, a call of a copy
+constructor can be elided or turned into a bitwise move.
+
+This routine may be called only in C++ mode.  It's used for parenthesis-
 enclosed initializers for classes that have constructors, as in
 
   class A {...};
   A x(1, 2, 3);
 
 The caller need not add the right parenthesis to the stop tokens set, or
-remove it later, as this routine takes care of that.  object_class_type
-is the type of the object being constructed, which may be different than
-the type of the constructor being called (e.g., when a base class constructor
-is being called for a derived class object).  On return, the source position
-is after the closing parenthesis of the argument list.
+remove it later, as this routine takes care of that.  On return, the
+source position is after the closing parenthesis of the argument list.
 */
 {
   a_boolean           overloaded_function_case = FALSE;
+  a_boolean           unknown_dependent_ctor = FALSE;
   a_boolean           is_bitwise_copy = FALSE;
+  a_boolean           is_temp_after_conv = FALSE;
+  a_boolean           optimized = FALSE;
+  a_boolean           value_initialization = FALSE;
   a_routine_ptr       routine;
-  a_type_ptr          routine_type;
+  a_type_ptr          routine_type, class_type;
   a_source_position   start_position;
   an_arg_operand_ptr  arg_operand_list;
   an_arg_match_summary_ptr
                       arg_match_list;
+  an_expr_node_ptr    arg_expr_list;
+  a_dynamic_init_ptr  dip = NULL;
+  an_expr_node_ptr    temp_init_node = NULL;
 
   db_enter(4, "scan_ctor_arguments");
-  *conversion_routine = NULL;
-  *unknown_dependent_function = FALSE;
-  if (class_bitwise_copy != NULL) *class_bitwise_copy = FALSE;
+  class_type = constructor_sym->parent.class_type;
+  /* If the object_class_type is not specified, use the default. */
+  if (object_class_type == NULL) object_class_type = class_type;
   start_position = pos_curr_token;
   if (constructor_sym->kind == (a_symbol_kind)sk_member_function) {
     /* Constructor is not overloaded.  In this case, the argument types
        can be checked as the argument list is scanned. */
     routine_type = routine_symbol_type(constructor_sym);
     routine = constructor_sym->variant.routine.ptr;
+    if (is_copy_constructor(routine, (a_type_ptr)NULL,
+                            (a_type_qualifier_set *)NULL,
+                            /*is_declarative_context=*/FALSE)) {
+      /* The sole constructor is a copy constructor.  We may be able to
+         elide the call, so go through the processing route for overloaded
+         functions so that we will not convert the operand to the parameter
+         type and then have to unconvert it later to do the optimization. */
+      overloaded_function_case = TRUE;
+      routine_type = NULL;
+      routine = NULL;
+    }  /* if */
   } else {
     check_assertion_str(
               constructor_sym->kind == (a_symbol_kind)sk_overloaded_function ||
@@ -880,11 +904,15 @@ is after the closing parenthesis of the argument list.
     routine_type = NULL;
     routine = NULL;
   }  /* if */
+  if (value_initialization_enabled && curr_token == tok_rparen) {
+    /* Empty parentheses ("()") indicate value-initialization. */
+    value_initialization = TRUE;
+  }  /* if */
 
   /* Scan the arguments. */
   scan_call_arguments(routine_type, routine,
                       /*already_after_left_paren=*/TRUE,
-                      arg_expr_list, overloaded_function_case,
+                      &arg_expr_list, overloaded_function_case,
                       /*unknown_dependent_function=*/FALSE,
                       &arg_operand_list, (a_source_position *)NULL);
   error_position = start_position;
@@ -902,40 +930,130 @@ is after the closing parenthesis of the argument list.
                                                  /*do_arg_dep_lookup=*/FALSE,
                                                  ec_no_matching_constructor,
                                                  ec_ambiguous_constructor,
-                                                 &start_position,
+                                                 source_pos,
                                                  (a_token_sequence_number)0,
                                                  (a_boolean *)NULL,
-                                                 unknown_dependent_function,
+                                                 &unknown_dependent_ctor,
                                                  (a_boolean *)NULL,
                                                  (a_symbol_ptr *)NULL,
                                                  &arg_match_list);
   }  /* if */
   if (constructor_sym != NULL) {
-    a_routine_ptr rout = constructor_sym->variant.routine.ptr;
-    if (class_bitwise_copy != NULL &&
-        rout->compiler_generated &&
-        is_copy_constructor(rout, (a_type_ptr)NULL,
+    /* No error; we know which constructor is to be called. */
+    an_arg_match_summary_ptr arg_match;
+    a_type_ptr               param_type, source_type;
+    routine = constructor_sym->variant.routine.ptr;
+    if (elision_allowed &&
+        is_copy_constructor(routine, (a_type_ptr)NULL,
                             (a_type_qualifier_set *)NULL,
                             /*is_declarative_context=*/FALSE) &&
-        symbol_supplement_for_class(rout->source_corresp.parent.class_type)->
+        /* Avoid problems with specified arguments with defaults: */
+        arg_operand_list->next == NULL) {
+      a_routine_ptr conv_routine;
+      /* The constructor selected is a copy constructor, so certain
+         optimizations may be possible. */
+      param_type =
+              routine->type->variant.routine.extra_info->param_type_list->type;
+      source_type = type_pointed_to(param_type);
+      check_assertion(overloaded_function_case);  /* We forced this above. */
+      arg_match = arg_match_list->next;
+      if (is_null_user_conv_descr(&arg_match->conversion) &&
+          f_same_entities(f_skip_typerefs(arg_operand_list->operand.type),
+                          class_type) &&
+          is_temp_init_usable_in_optimization(&arg_operand_list->operand,
+                                              /*suppress_dtor=*/!fill_in_dtor,
+                                              initializing_var_or_temp,
+                                              &temp_init_node,
+                                              &dip)) {
+        /* The source operand for the copy is itself a temporary of the
+           same cv-unqualified type as the destination, so copy constructor
+           elision can be done.  In this case the dynamic init entry already
+           present is reused. */
+        check_access_to_elided_copy_constructor(source_type, source_pos);
+        optimized = TRUE;
+      } else if (!microsoft_bugs && 
+                 (conv_routine = arg_match->conversion.routine) != NULL &&
+                 ((conv_routine->special_kind ==
+                                    (a_special_function_kind)sfk_constructor &&
+                   f_same_entities(conv_routine->source_corresp.parent.
+                                                                    class_type,
+                                   class_type)) ||
+                  (conv_routine->special_kind ==
+                                    (a_special_function_kind)sfk_conversion &&
+                   f_same_entities(f_skip_typerefs(
+                                        f_skip_typerefs(conv_routine->type)->
+                                                  variant.routine.return_type),
+                                   class_type)))) {
+        /* The argument will be a temporary of the right type after the
+           user-defined conversion indicated for the argument is applied,
+           and elision can be done on that. */
+        /* MSVC++ doesn't do this optimization, at least not in 7.1 and 8.0
+           beta. */
+        is_temp_after_conv = TRUE;
+        optimized = TRUE;
+      } else if (routine->compiler_generated &&
+                 symbol_supplement_for_class(class_type)->
                                         construction_by_bitwise_copy_allowed) {
-      /* The constructor selected is a bitwise copy constructor.  The
-         routine is not marked as called.  No access checking is needed
-         because a generated copy constructor is always public. */
-      *class_bitwise_copy = is_bitwise_copy = TRUE;
-      record_symbol_reference((SRK_REFERENCE | SRK_IMPLICIT),
-                              constructor_sym, source_pos,
-                              /*update_il_entry=*/FALSE);
+        /* The constructor selected is a bitwise copy constructor.  A move
+           can be used instead of a call.  The routine is not marked as
+           called.  No access checking is needed because a generated copy
+           constructor is always public. */
+        is_bitwise_copy = TRUE;
+        record_symbol_reference((SRK_REFERENCE | SRK_IMPLICIT),
+                                constructor_sym, source_pos,
+                                /*update_il_entry=*/FALSE);
+        optimized = TRUE;
+      }  /* if */
+    }  /* if */
+    if (optimized) {
+      /* Optimized cases -- extract the argument as an expression, doing
+         required user-defined conversions but not any final conversion
+         that would be added by adjust_overloaded_function_call_arguments
+         merely to make the argument match the copy constructor's parameter
+         type (e.g., addition of "const" for a reference-to-const parameter
+         type). */
+      /* Note that the code here also does not append default argument
+         values as adjust_overloaded_function_call_arguments would. */
+      if (is_null_user_conv_descr(&arg_match->conversion)) {
+        arg_match->conversion.class_identity_or_bitwise_copy = TRUE;
+      }  /* if */
+      if (is_bitwise_copy) {
+        arg_match->conversion.result_is_an_lvalue = FALSE;
+      }  /* if */
+      user_convert_operand(&arg_operand_list->operand,
+                           class_type,
+                           &arg_match->conversion,
+                           (a_conv_descr *)NULL,
+                           /*force_temp_for_class_bitwise_copy=*/FALSE);
+      if (is_temp_after_conv) {
+        /* We determined previously that the result after the conversion
+           would be a temp we could reuse. */
+        (void)is_temp_init_usable_in_optimization(
+                                               &arg_operand_list->operand,
+                                               /*suppress_dtor=*/!fill_in_dtor,
+                                               initializing_var_or_temp,
+                                               &temp_init_node,
+                                               &dip);
+        check_access_to_elided_copy_constructor(source_type, source_pos);
+        /* The dynamic init we now have is the result of the overall
+           operation. */
+        check_assertion(dip != NULL);
+      } else {
+        arg_expr_list = make_node_from_operand(&arg_operand_list->operand);
+      }  /* if */
+      free_arg_match_summary_list(arg_match_list);
+      free_arg_operand_list(arg_operand_list);
     } else {
+      /* Normal, not-optimized case.  The argument list will be processed in
+         the normal way below. */
       /* Check that the constructor is accessible and mark it referenced. */
       expr_reference_to_implicitly_invoked_function(constructor_sym,
                                                     source_pos,
                                                     object_class_type,
                                                     /*honor_virtual=*/FALSE);
     }  /* if */
-    *conversion_routine = rout;
   }  /* if */
-  if (overloaded_function_case) {
+  if (overloaded_function_case && !optimized) {
     /* Build an expression-form argument list.  Convert the arguments on
        the argument list to the right types.  The call is done even
        when constructor_sym is NULL because it also frees arg_operand_list
@@ -943,14 +1061,70 @@ is after the closing parenthesis of the argument list.
     /* Again, note that a special case allows passing have_selector == TRUE and
        NULL for the selector operand when dealing with constructors. */
     adjust_overloaded_function_call_arguments(constructor_sym,
-                                              *unknown_dependent_function,
+                                              unknown_dependent_ctor,
                                               (a_type_ptr)NULL,
                                               /*have_selector=*/TRUE,
                                               (an_operand *)NULL,
-                                              is_bitwise_copy,
                                               arg_operand_list,
                                               arg_match_list,
-                                              arg_expr_list);
+                                              &arg_expr_list);
+  }  /* if */
+  if (dip == NULL) {
+    /* Make the dynamic initialization entry for the call. */
+    if (constructor_sym == NULL && !unknown_dependent_ctor) {
+      /* Error. */
+      /* dip = NULL; -- already set. */
+    } else {
+      if (is_bitwise_copy) {
+        /* Bitwise copy construction of a class. */
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+        dip->variant.expression = arg_expr_list;
+      } else {
+        /* Constructor call. */
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
+        dip->variant.constructor.ptr = routine; /* NULL for unknown dep. */
+        dip->variant.constructor.args = arg_expr_list;
+        dip->variant.constructor.value_initialization = value_initialization;
+      }  /* if */
+      if (fill_in_dtor) {
+        /* Fill in the destructor information.  Note that we cannot use
+           alloc_dtor_dynamic_init because it does not allow for the
+           object_class_type to differ from the class_type. */
+        dip->destructor = expr_select_destructor(class_type,
+                                                 object_class_type,
+                                                 source_pos,
+                                                 /*honor_virtual=*/FALSE);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  *p_dip = dip;
+  /* Build an enk_temp_init node if one is needed and one did not exist
+     already. */
+  if (p_temp_init_node != NULL) {
+    /* Note that the code here is very similar to the code at the end of
+       determine_dynamic_init_for_class_init. */
+    if (temp_init_node == NULL) {
+      if (dip == NULL) {
+        /* Some error.  Return an error node. */
+        temp_init_node = error_node();
+      } else {
+        temp_init_node = alloc_temp_init_node(dest_type, dip,
+                                              /*result_is_addr=*/FALSE,
+                                              /*is_explicit_cast=*/FALSE);
+      }  /* if */
+    } else {
+      /* Existing enk_temp_init; make sure we get the value of the
+         temporary instead of its address.  Note that in this case dip
+         is the dynamic init pointer extracted from that node. */
+      if (temp_init_node->variant.init.result_is_addr) {
+        temp_init_node->variant.init.result_is_addr = FALSE;
+        temp_init_node->type = type_pointed_to(temp_init_node->type);
+      }  /* if */
+      /* Put the dynamic initialization on a destruction list if
+         appropriate. */
+      set_temp_init_dynamic_init_lifetime(temp_init_node);
+    }  /* if */
+    *p_temp_init_node = temp_init_node;
   }  /* if */
   db_exit();
 }  /* scan_ctor_arguments */
@@ -7274,11 +7448,10 @@ specification allow a variable-sized array as the top type.
   a_boolean         use_global_new = FALSE;
   a_symbol_ptr      operator_new_symbol, function_symbol, ctor_sym;
   a_symbol_ptr      proj_function_symbol;
-  a_routine_ptr     ctor_routine, delete_routine = NULL;
+  a_routine_ptr     delete_routine = NULL;
   a_boolean         needs_initialization, trapped_left_paren;
-  a_boolean         zero_initialization, dependent_initialization;
-  a_boolean         value_initialization;
-  an_expr_node_ptr  arg_expr_list, init_arg_expr_list, init_val_node;
+  a_boolean         zero_initialization;
+  an_expr_node_ptr  arg_expr_list, init_val_node;
   a_constant        sizeof_constant;
   an_arg_operand_ptr
                     arg_operand_list, sizeof_arg_operand;
@@ -7296,8 +7469,6 @@ specification allow a variable-sized array as the top type.
   a_dynamic_init_ptr
                     dip;
   a_boolean         unknown_dependent_new = FALSE;
-  a_boolean         unknown_dependent_ctor = FALSE;
-  a_boolean         class_bitwise_copy = FALSE;
 
   db_enter(4, "scan_new_operator");
 
@@ -7694,7 +7865,6 @@ specification allow a variable-sized array as the top type.
                                               (a_type_ptr)NULL,
                                               /*have_selector=*/FALSE,
                                               (an_operand *)NULL,
-                                              /*class_bitwise_copy=*/FALSE,
                                               arg_operand_list,
                                               arg_match_list,
                                               &arg_expr_list);
@@ -7710,12 +7880,9 @@ specification allow a variable-sized array as the top type.
   /* See if the object has or needs initialization.  Note that we need to
      scan the initializer (if there is one) even if an error was detected
      above. */
+  dip = NULL;
   needs_initialization = FALSE;
   zero_initialization = FALSE;
-  dependent_initialization = FALSE;
-  value_initialization = FALSE;
-  unknown_dependent_ctor = FALSE;
-  ctor_routine = NULL;
   init_val_node = NULL;
   if (curr_token != tok_lparen) {
     /* No new-initializer is present. */
@@ -7725,6 +7892,7 @@ specification allow a variable-sized array as the top type.
       a_boolean is_generated_ctor = FALSE, do_const_test = FALSE;
       /* Look for a default constructor. */
       if (ctor_sym != NULL) {
+        a_routine_ptr ctor_routine;
         /* The class has one or more nontrivial constructors.  Look for
            a default constructor.  The call issues an error and returns NULL
            if no default constructor is found. */
@@ -7737,8 +7905,8 @@ specification allow a variable-sized array as the top type.
                                                   &type_position,
                                                   base_new_type,
                                          curr_expr_is_potentially_evaluated());
-        init_arg_expr_list = NULL;
         if (ctor_routine != NULL) {
+          an_expr_node_ptr init_arg_expr_list;
           needs_initialization = TRUE;
           /* Provide default arguments if any. */
           init_arg_expr_list = expr_copy_default_arg_expr_list(ctor_routine,
@@ -7747,6 +7915,31 @@ specification allow a variable-sized array as the top type.
           do_const_test = TRUE;
           is_generated_ctor = ctor_routine->compiler_generated;
           warn_about_missing_delete_if(TRUE);
+          /* Make the dynamic initialization entry. */
+          dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
+          dip->variant.constructor.ptr = ctor_routine;
+          dip->variant.constructor.args = init_arg_expr_list;
+          dip->variant.constructor.value_initialization = FALSE;
+          if (array_new) {
+            /* The entity is an array whose elements have a class type that
+               has a default constructor.  Use a dik_nonconstant_aggregate
+               initialization. */
+            /* If exceptions are enabled, put in a destructor.  It's needed
+               to destroy elements if a throw is done part-way through the
+               initialization of the array. */
+            if (exceptions_enabled) {
+              dip->destructor = expr_select_destructor(
+                                          base_new_type, base_new_type,
+                                          &type_position,
+                                          /*honor_virtual=*/FALSE);
+              if (dip->destructor != NULL) {
+                dip->destruction_is_for_partially_constructed_aggregate = TRUE;
+              }  /* if */
+            }  /* if */
+            dip = add_array_nonconstant_aggregate_init(dip, new_type,
+                                                       base_new_type,
+                                                    effective_num_of_elements);
+          }  /* if */
         }  /* if */
       } else if (reference_to_trivial_default_constructor(base_new_type,
                                                           &type_position)) {
@@ -7791,32 +7984,30 @@ specification allow a variable-sized array as the top type.
       err = TRUE;
     }  /* if */
     if (ctor_sym != NULL) {
-      a_boolean empty_parens = (curr_token == tok_rparen);
       /* Class with a (nontrivial) constructor. */
       /* Develop the dynamic init entry, if any, used to free storage
          if an exception is thrown before the initialization is finished.
          This must be done after it has been determined that initialization
          is required, but before the initialization is actually processed. */
       make_dyn_init_for_deletion_for_throw();
-      /* Scan the constructor arguments. */
-      scan_ctor_arguments(ctor_sym, &init_arg_expr_list, &ctor_routine,
-                          &unknown_dependent_ctor,
-                          /* The constructor call cannot be elided if
-                             it's doing the allocation. */
-                          (new_routine != NULL) ? &class_bitwise_copy:
-                                                  (a_boolean *)NULL,
-                          &init_position, base_new_type);
+      /* Scan the constructor arguments and build the dynamic initialization
+         entry. */
+      scan_ctor_arguments(ctor_sym, &init_position,
+                          (a_type_ptr)NULL, (a_type_ptr)NULL,
+                          /*fill_in_dtor=*/FALSE,
+                          /*initializing_var_or_temp=*/FALSE,
+                          /* The constructor call cannot be eliminated or
+                             turned into a bitwise move if it's doing the
+                             allocation. */
+                          /*elision_allowed=*/(new_routine != NULL),
+                          &dip, (an_expr_node_ptr *)NULL);
       warn_about_missing_delete_if(TRUE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      /* In the array case (an error), throw away the argument list. */
-      if (array_new) init_arg_expr_list = NULL;
-      needs_initialization = (ctor_routine != NULL ||
-                              unknown_dependent_ctor);
-      /* A "()" initializer implies value initialization. */
-      value_initialization = (value_initialization_enabled &&
-                              needs_initialization && empty_parens);
+      /* In the array case (an error), throw away the initialization. */
+      if (array_new) dip = NULL;
+      needs_initialization = (dip != NULL);
     } else if (is_template_dependent_context() &&
                is_template_dependent_type(new_type)) {
       /* A "new" of a template-dependent type, in a prototype instantiation. */
@@ -7825,7 +8016,6 @@ specification allow a variable-sized array as the top type.
       end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       needs_initialization = TRUE;
-      dependent_initialization = TRUE;
     } else {
       /* Not a class with a constructor. */
       if (curr_token != tok_rparen) {
@@ -7896,42 +8086,11 @@ specification allow a variable-sized array as the top type.
     if (needs_initialization) {
       /* The allocated space must be initialized.  A dynamic init entry is
          used. */
-      if (class_bitwise_copy) {
-        /* Bitwise copy construction of a class. */
-        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
-        dip->variant.expression = init_arg_expr_list;
-      } else if (ctor_routine != NULL || unknown_dependent_ctor) {
-        /* Constructor call. */
-        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
-        dip->variant.constructor.ptr = ctor_routine;
-        dip->variant.constructor.args = init_arg_expr_list;
-        dip->variant.constructor.value_initialization = value_initialization;
-        if (array_new) {
-          /* The entity is an array whose elements have a class type that
-             has a default constructor.  Use a dik_nonconstant_aggregate
-             initialization. */
-          /* If exceptions are enabled, put in a destructor.  It's needed
-             to destroy elements if a throw is done part-way through the
-             initialization of the array. */
-          if (exceptions_enabled) {
-            dip->destructor = expr_select_destructor(
-                                        base_new_type, base_new_type,
-                                        &type_position,
-                                        /*honor_virtual=*/FALSE);
-            if (dip->destructor != NULL) {
-              dip->destruction_is_for_partially_constructed_aggregate = TRUE;
-            }  /* if */
-          }  /* if */
-          dip = add_array_nonconstant_aggregate_init(dip, new_type,
-                                                     base_new_type,
-                                                    effective_num_of_elements);
-        }  /* if */
+      if (dip != NULL) {
+        /* The dynamic initialization has already been determined above. */
       } else if (zero_initialization) {
         /* Zero-initialization. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
-      } else if (dependent_initialization) {
-        /* Template-dependent initialization (i.e., we don't know the
-           type).  dip is already set. */
       } else {
         /* Expression as initial value. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
@@ -10599,14 +10758,11 @@ type_cast_to.  The starting position of the type is given by *start_position.
 The result is returned in *result.  See _expr.type.conv_ in the WP.
 */
 {
-  a_source_position             lparen_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position             end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean                     err = FALSE;
   a_symbol_ptr                  ctor_sym;
-  an_expr_node_ptr              arg_expr_list;
-  a_routine_ptr                 ctor_routine;
   a_boolean                     ctor_case = FALSE;
   a_class_symbol_supplement_ptr cssp;
   an_operand                    local_bound_function_selector;
@@ -10647,48 +10803,27 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
     }  /* if */
   }  /* if */
   /* Check for a left parenthesis. */
-  copy_source_position(pos_curr_token, lparen_pos);
   (void)required_token(tok_lparen, ec_exp_lparen);
   if (ctor_case) {
     /* Converting to a class type.  The contents of the parentheses are
        arguments for a constructor call. */
-    a_boolean unknown_dependent_function, class_bitwise_copy;
-    a_boolean empty_parens = (curr_token == tok_rparen);
-    scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine,
-                        &unknown_dependent_function, &class_bitwise_copy,
-                        &lparen_pos, type_cast_to);
+    scan_ctor_arguments(ctor_sym, start_position,
+                        (a_type_ptr)NULL, type_cast_to,
+                        /*fill_in_dtor=*/TRUE,
+                        /*initializing_var_or_temp=*/TRUE,
+                        /*elision_allowed=*/TRUE,
+                        &dip, &temp_init_node);
     error_position = *start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (err || (ctor_routine == NULL && !unknown_dependent_function)) {
+    if (err || dip == NULL) {
       /* Error of some sort. */
       make_error_operand(result);
-    } else if (class_bitwise_copy) {
-      /* Make a dynamic init entry that does a bitwise copy. */
-      temp_init_node = create_expr_temporary(type_cast_to,
-                                             /*result_is_addr=*/FALSE,
-                                             /*is_explicit_cast=*/TRUE,
-                                             /* Abstract class test done
-                                                previously. */
-                                             /*suppress_abstract_test=*/TRUE,
-                                             (a_dynamic_init_kind)
-                                                                dik_expression,
-                                             start_position,
-                                             &dip);
-      dip->variant.expression = arg_expr_list;
+    } else {
+      dip->is_explicit_cast = TRUE;
       make_expression_operand(temp_init_node, temp_init_node->type,
                               result);
-    } else {
-      /* Make a dynamic init entry that calls the constructor to initialize
-         a temporary.  Make an operand for the value of the temporary. */
-      make_constructor_dynamic_init(ctor_routine, arg_expr_list,
-                                    type_cast_to, /*result_is_addr=*/FALSE,
-                                    /*is_explicit_cast=*/TRUE,
-                                    /*is_value_init=*/
-                                                  empty_parens &&
-                                                  value_initialization_enabled,
-                                    start_position, result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_bugs && microsoft_version < 1100) {
         /* In Microsoft C++ mode, a constructor is considered to return
@@ -10725,7 +10860,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
            TC1 makes this not an error, because the initialization is
            value-initialization, and there's no error for value-
            initializing a reference, but that has to be wrong. */
-        pos_error(ec_bad_cast, &lparen_pos);
+        pos_error(ec_bad_cast, start_position);
         make_error_operand(result);
       } else if (is_array_type(type_cast_to)) {
         /* Also a cast to an array type, let by above in some modes. */
@@ -10755,7 +10890,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
           /* Force generation of the trivial default constructor for a
              non-POD class to detect any errors.  See core issue 302. */
           if (reference_to_trivial_default_constructor(type_cast_to,
-                                                       &lparen_pos)) {
+                                                       start_position)) {
             if (!value_initialization_enabled) {
               /* Value initialization is disabled, and this is a non-POD
                  class with a trivial default constructor.  The initialization
@@ -13825,6 +13960,7 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
         prep_elision_initializer_operand(&operand, throw_type,
                                          /*initializing_return_value=*/FALSE,
                                          /*fill_in_dtor=*/FALSE,
+                                         /*initializing_var_or_temp=*/FALSE,
                                          ec_bad_initializer_type, &dip);
         if (dip == NULL) err = TRUE;
         /* Determine the destructor to be called.  This is done as
@@ -17009,7 +17145,9 @@ required_type will be void if the expression should have void type
     /* Build a dynamic initialization entry for the return statement. */
     prep_elision_initializer_operand(&result, required_type,
                                      /*initializing_return_value=*/TRUE,
-                                     /*fill_in_dtor=*/FALSE, err_code, dip);
+                                     /*fill_in_dtor=*/FALSE,
+                                     /*initializing_var_or_temp=*/FALSE,
+                                     err_code, dip);
     wrap_up_dynamic_init_full_expression(*dip);
     /* Fix up destructor references in the overall expression. */
     fix_up_dynamic_init_dtors();
@@ -17865,7 +18003,7 @@ err_pos as the error position.
 a_boolean scan_class_initializer_expression(a_type_ptr         required_type,
                                             a_dynamic_init_ptr *dip)
 /*
-Scan an expression that is the initial value of an entity of class type.
+Scan an expression that is the initial value of a variable of class type.
 required_type indicates the class type (it may have some qualifiers on top
 of it).  When there is no error build a dynamic initialization entry that
 describes the initialization to be done (placing the pointer to it in *dip)
@@ -17898,6 +18036,7 @@ As indicated, this is initialization with the "=" semantics
   prep_elision_initializer_operand(&result, required_type,
                                    /*initializing_return_value=*/FALSE,
                                    /*fill_in_dtor=*/TRUE,
+                                   /*initializing_var_or_temp=*/TRUE,
                                    ec_bad_initializer_type, dip);
   wrap_up_dynamic_init_full_expression(*dip);
   /* *dip == NULL means there was an error. */
@@ -18058,10 +18197,12 @@ required_type_determined:
       *is_constant = TRUE;
     } else {
       /* Build a dynamic initialization entry to describe the initialization.
-         */
+         The entity here is never a complete object, so destruction
+         is not filled in. */
       prep_elision_initializer_operand(&result, required_type,
                                        /*initializing_return_value=*/FALSE,
                                        /*fill_in_dtor=*/FALSE,
+                                       /*initializing_var_or_temp=*/FALSE,
                                        ec_bad_initializer_type, dip);
       wrap_up_dynamic_init_full_expression(*dip);
       /* *dip == NULL means there was an error. */
@@ -18111,12 +18252,13 @@ required_type_determined:
 
 
 void scan_class_parenthesized_initializer(
-                                      a_type_ptr         class_type,
-                                      a_type_ptr         object_class_type,
-                                      a_boolean          force_object_lifetime,
-                                      a_source_position  *source_pos,
-                                      a_boolean          fill_in_dtor,
-                                      a_dynamic_init_ptr *p_dip)
+                                   a_type_ptr         class_type,
+                                   a_type_ptr         object_class_type,
+                                   a_boolean          force_object_lifetime,
+                                   a_source_position  *source_pos,
+                                   a_boolean          fill_in_dtor,
+                                   a_boolean          initializing_var_or_temp,
+                                   a_dynamic_init_ptr *p_dip)
 /*
 Scan a parenthesized initializer for an object of type class_type.
 class_type must be a class type having at least one constructor.
@@ -18134,20 +18276,17 @@ An object lifetime is forced around the initialization if
 force_object_lifetime is TRUE.  On return, the current position is
 following the closing parenthesis of the initializer.  If fill_in_dtor
 is TRUE, any required destruction will be indicated in the dynamic
-initialization.  *source_pos is the source position to be used in
-overall errors.
+initialization.  If initializing_var_or_temp is TRUE, the entity
+being initialized is a complete variable or temporary (not, for
+example, a base class in a ctor_initializer).  *source_pos is the
+source position to be used in overall errors.
 */
 {
   an_expr_stack_entry           expr_stack_entry;
   a_class_symbol_supplement_ptr cssp;
-  an_expr_node_ptr              arg_list;
-  a_routine_ptr                 conversion_routine;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position             end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_boolean                     unknown_dependent_function;
-  a_boolean                     value_initialization;
-  a_boolean                     class_bitwise_copy;
 
   db_enter(4, "scan_class_parenthesized_initializer");
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
@@ -18156,48 +18295,25 @@ overall errors.
                   /*suppress_object_lifetime=*/FALSE);
   check_assertion(C_dialect == C_dialect_cplusplus &&
                   is_class_struct_union_type(class_type));
-  value_initialization = (curr_token == tok_rparen &&
-                          value_initialization_enabled);
   cssp = symbol_supplement_for_class(class_type);
   check_assertion(cssp->constructor != NULL);
   /* Scan the constructor argument list. */
-  scan_ctor_arguments(cssp->constructor, &arg_list, &conversion_routine,
-                      &unknown_dependent_function, &class_bitwise_copy,
-                      source_pos, object_class_type);
+  scan_ctor_arguments(cssp->constructor, source_pos,
+                      object_class_type, (a_type_ptr)NULL,
+                      fill_in_dtor,
+                      initializing_var_or_temp,
+                      /*elision_allowed=*/TRUE,
+                      p_dip, (an_expr_node_ptr *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (conversion_routine == NULL && !unknown_dependent_function) {
+  if (*p_dip == NULL) {
     /* An error. */
-    *p_dip = NULL;
     discard_curr_expr_object_lifetime();
   } else {
-    a_dynamic_init_ptr dip;
-    if (class_bitwise_copy) {
-      /* Set the dynamic init entry to represent a bitwise copy. */
-      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
-      dip->variant.expression = arg_list;
-    } else {
-      /* Set the dynamic init entry to represent constructor initialization. */
-      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
-      dip->variant.constructor.ptr = conversion_routine;
-      dip->variant.constructor.args = arg_list;
-      /* The entity is value-initialized if the parentheses were empty. */
-      dip->variant.constructor.value_initialization = value_initialization;
-    }  /* if */
-    *p_dip = dip;
-    if (fill_in_dtor) {
-      /* Fill in the destructor information.  Note that we cannot use
-         alloc_dtor_dynamic_init because it does not allow for the
-         object_class_type to differ from the class_type. */
-      dip->destructor = expr_select_destructor(class_type,
-                                               object_class_type,
-                                               source_pos,
-                                               /*honor_virtual=*/FALSE);
-    }  /* if */
     /* If there's an object lifetime around the initialization, transfer it
        to the dynamic initialization entry. */
-    wrap_up_dynamic_init_full_expression(dip);
+    wrap_up_dynamic_init_full_expression(*p_dip);
   }  /* if */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
