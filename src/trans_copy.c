@@ -950,9 +950,6 @@ do any necessary processing, e.g., externalizing it if it is static.
         /* A static inline function becomes extern inline. */
         check_assertion(routine->is_inline);
         routine->storage_class = (a_storage_class)sc_unspecified;
-#if INSTANTIATE_EXTERN_INLINE
-        if (instantiate_extern_inline) routine->suppress_inline_body = TRUE;
-#endif /* INSTANTIATE_EXTERN_INLINE */
       }  /* if */
     }  /* if */
 #endif /* DO_IL_LOWERING */
