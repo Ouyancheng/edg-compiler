@@ -1021,7 +1021,8 @@ static a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
 Scan a tag identifier for a class, struct, union, enum, or interface
 declaration.  If a tag symbol already exists for the identifier, return
 a pointer to that symbol; otherwise return NULL.  If there is no
-identifier or if there is an error, return NULL.
+identifier or if there is an error, return NULL; otherwise, set *locator
+to represent the identifier.
 
 *is_friend_decl is TRUE when the declaration appears to be of the form
 "friend class X;"; if it turns out that no semicolon follows the identifier,
@@ -1105,7 +1106,8 @@ caution when modifying this routine.
              specifier is a simple identifier, it cannot be dependent and it
              should be declared in the innermost enclosing namespace scope. */
           instance_sym = scope_stack[computed_decl_level].instance_sym;
-          if ((!locator->is_qualified_name && !locator->is_template_id) ||
+          if ((!locator_for_curr_id.is_qualified_name &&
+               !locator_for_curr_id.is_template_id) ||
               instance_sym == NULL ||
               !is_nonreal_instance_class_symbol(instance_sym)) {
             computed_decl_level = depth_innermost_namespace_scope;
