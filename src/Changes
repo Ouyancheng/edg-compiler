@@ -1,5 +1,17 @@
 Version 3.1
 
+5/15/02  GNU C compatibility: spurious error when ellipsis in prototype
+         declaration follows an unprototyped definition
+
+Mixing unprototyped definitions with prototype declarations that
+include an ellipsis parameter sometimes triggered a spurious error
+in GNU C mode.  This has been fixed.
+
+  void f(int, ...);
+  void f(n) int n; {}
+  void f(int, ...);  // Used to trigger an error; now accepted
+
+
 5/15/02  Microsoft compatibility: disambiguation problem with __based
 
 Disambiguation of declarations vs. expressions did not handle the

@@ -3391,6 +3391,7 @@ not be TRUE.
         rout_type->variant.routine.return_type =
                             comp_type->variant.routine.return_type;
         rtsp->prototyped = comp_rtsp->prototyped;
+        rtsp->has_ellipsis = comp_rtsp->has_ellipsis;
         preserve_qualifiers_from_rout_type = FALSE;
         if (rtsp->param_type_list == NULL) {
           /* The entire list may just be transferred over. */
