@@ -169,6 +169,13 @@ static a_boolean
 			   has its instantiation required flag updated
 			   while processing an entry later on the list. */
 
+static a_boolean
+		implicit_inclusion_done_during_instantiation_wrapup;
+			/* TRUE if a file was implicitly included during
+			   instantiation wrapup.  An implicit inclusion
+			   could make it possible to instantiate some entity
+			   that previously could not be instantiated. */
+
 static a_symbol_list_entry_ptr
 		deferred_instantiations;
 			/* A list of symbol entries for instantiations that
@@ -10566,6 +10573,11 @@ file we simply return.
                              full_file_name, /*is_include_file=*/FALSE,
                              is_system_include, ifhp);
             scan_implicitly_included_template_definition_file();
+            if (in_instantiation_wrapup ) {
+              /* Set a flag if this implicit inclusion was done during
+                 instantiation wrapup. */
+              implicit_inclusion_done_during_instantiation_wrapup = TRUE;
+            }  /* if */
 	  }  /* if */
         } else {
           /* The file name returned by open_file_for_input is the same as
@@ -11109,6 +11121,22 @@ contains instantiatable entities.
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 
+static void instantiate_entity(a_template_instance_ptr tip)
+/*
+Call the appropriate routine to instantiate the function or static
+data member specified by tip.
+*/
+{
+  if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+    /* Static data member definition. */
+    define_template_static_data_member(tip);
+  } else {
+    /* Function instantiation. */
+    instantiate_template_function(tip);
+  }  /* if */
+}  /* instantiate_entity */
+
+
 void update_instantiation_required_flag(a_template_instance_ptr tip,
                                         a_boolean               value,
 					a_boolean		defer_inline)
@@ -11215,12 +11243,7 @@ defer_inline is TRUE.
 	     the instantiation of another function.  The entry will be put
 	     on the instantiation required list and instantiated later in
              instantiation_wrapup. */
-          if (tip->instance_sym->kind ==
-                                        (a_symbol_kind)sk_static_data_member) {
-            define_template_static_data_member(tip);
-          } else {
-            instantiate_template_function(tip);
-          }  /* if */
+          instantiate_entity(tip);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -11283,7 +11306,7 @@ update_instantiation_required_flag to do the appropriate processing.
 
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-static a_boolean can_be_instantiated(a_template_instance_ptr tip)
+static a_boolean f_can_be_instantiated(a_template_instance_ptr tip)
 /*
 Determines whether this compilation is capable of generating an
 instantiation of a given template instance.
@@ -11302,7 +11325,7 @@ instantiation of a given template instance.
     template_def = tip->template_sym->defined;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
     if (!template_def && !specialized && !tip->suppress_instantiation &&
-        implicit_template_inclusion_mode) {
+        !tip->already_instantiated && implicit_template_inclusion_mode) {
       /* If a template definition is not present, attempt to include a
          source file that will provide the definition.  Then check
          again to see if a template definition is present. */
@@ -11321,7 +11344,7 @@ instantiation of a given template instance.
     template_def = cache_for_template(tssp)->tokens.first_token != NULL;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
     if (!template_def && !specialized && !tip->suppress_instantiation &&
-        implicit_template_inclusion_mode) {
+        !tip->already_instantiated && implicit_template_inclusion_mode) {
       /* If a template definition is not present, attempt to include a
          source file that will provide the definition.  Then check
          again to see if a template definition is present. */
@@ -11332,62 +11355,19 @@ instantiation of a given template instance.
   }  /* if */
   result = template_def && !specialized && !tip->already_instantiated &&
            !tip->suppress_instantiation && !tip->explicit_do_not_instantiate;
+  tip->can_be_instantiated = result;
   return result;
-}  /* can_be_instantiated */
+}  /* f_can_be_instantiated */
 
 
-static void automatic_instantiation(void)
 /*
-Go through the instantiations_required list and look for entries that
-were in the instantiation information file.  See if the entry can be
-instantiated (and has not already been instantiated).  Instantiate any
-entities from the info file list that can be instantiated.
+Macro that calls f_can_be_instantiated.  If we have already determined
+that the entity can be instantiated, the call is suppressed and the
+previously computed value is returned.
 */
-{
-  a_template_instance_ptr	tip;
-  a_template_instantiation_mode	saved_instantiation_mode;
-
-  db_enter(3, "automatic_instantiation");
-  /* Set the instantiation mode to tim_none.  This is done to ensure that
-     only the instantiations explicitly requested in the list file are
-     performed.  We don't want a mode like "used" or "all" to cause
-     other instantiations to happen as a consequence of the requested
-     instantiations that are performed. */
-  saved_instantiation_mode = instantiation_mode;
-  instantiation_mode = tim_none;
-  /* Set the flag that indicates that this compilation includes
-     external template entities. */
-  any_instantiations_required = instantiations_required != NULL;
-  for (tip = instantiations_required;
-       tip != NULL; tip = tip->next_in_instantiation_list) {
-    /* Skip entries that do were not included in the instantiation
-       information file. */
-    if (!any_instantiations_assigned_to_this_translation_unit ||
-        !tip->automatically_instantiated) continue;
-    /* Skip non-external function. */
-    if (is_static_or_inline_template_function(tip)) continue;
-    /* Skip entries that have already been instantiated. */
-    if (tip->already_instantiated) continue;
-    if (can_be_instantiated(tip)) {
-#if DEBUG
-      if (debug_level >= 4) {
-        fprintf(f_debug, "Automatic instantiation processing for:\n");
-        db_symbol(tip->instance_sym, "", 0);
-      }  /* if */
-#endif /* DEBUG */
-      if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-        define_template_static_data_member(tip);
-      } else {
-        instantiate_template_function(tip);
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  /* Restore the original instantiation mode.  This is needed because it
-     is used later on in the front end wrapup process when assigning
-     linkage class members. */
-  instantiation_mode = saved_instantiation_mode;
-  db_exit();
-}  /* automatic_instantiation */
+#define can_be_instantiated(tip)					\
+  ((tip)->can_be_instantiated ? (tip)->can_be_instantiated	\
+                                         : f_can_be_instantiated(tip))
 
 
 void update_auto_instantiation_flags(void)
@@ -11522,6 +11502,78 @@ as requiring instantiations.
 }  /* delayed_processing_of_can_instantiate_class_pragmas */
 
 
+static void do_automatic_instantiation_of_entity(a_template_instance_ptr tip)
+/*
+Do the automatic instantiation of the function or static data member
+specified by tip.
+*/
+{
+  a_template_instantiation_mode	saved_instantiation_mode;
+  /* Set the instantiation mode to tim_none.  This is done to ensure that
+     only the instantiations explicitly requested in the list file are
+     performed.  We don't want a mode like "used" or "all" to cause
+     other instantiations to happen as a consequence of the requested
+     instantiations that are performed. */
+  saved_instantiation_mode = instantiation_mode;
+  instantiation_mode = tim_none;
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "Automatic instantiation processing for:\n");
+    db_symbol(tip->instance_sym, "", 0);
+  }  /* if */
+#endif /* DEBUG */
+  /* Do the instantiation. */
+  instantiate_entity(tip);
+  /* Restore the original instantiation mode.  This is needed because it
+     is used later on in the front end wrapup process when assigning
+     linkage class members. */
+  instantiation_mode = saved_instantiation_mode;
+}  /* do_automatic_instantiation_of_entity */
+
+
+static void do_any_needed_instantiations(void)
+/*
+Go through the instantiations required list and do any instantiations
+that might be required.
+*/
+{
+  a_template_instance_ptr	tip;
+
+  do {
+    entries_updated_during_instantiation_wrapup = FALSE;
+    implicit_inclusion_done_during_instantiation_wrapup = FALSE;
+    for (tip = instantiations_required;
+         tip != NULL;
+         tip = tip->next_in_instantiation_list) {
+      /* Skip entries that have already been instantiated. */
+      if (tip->already_instantiated) continue;
+      /* See if the entity should be instantiated.  Note that the value
+         returned by can_be_instantiated is not used to determine whether
+         should_be_instantiated is called because the tests done by
+         should_be_instantiated can result the generation of diagnostics
+         that are required even if the entity can't be instantiated. */
+      (void)can_be_instantiated(tip);
+      if ((instantiation_mode == tim_all || tip->instantiation_required) &&
+          !tip->already_instantiated) {
+        if (should_be_instantiated(tip, /*implicit_inclusion_ok=*/TRUE)) {
+          instantiate_entity(tip);
+        }  /* if */
+      }  /* if */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+      /* See if the entity should be instantiated as a result of an
+         assignment by the automatic instantiation mechanism. */
+      if (can_be_instantiated(tip) &&
+          any_instantiations_assigned_to_this_translation_unit &&
+          tip->automatically_instantiated && !tip->already_instantiated) {
+        do_automatic_instantiation_of_entity(tip);
+      }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+    }  /* for */
+  } while (entries_updated_during_instantiation_wrapup ||
+           implicit_inclusion_done_during_instantiation_wrapup);
+}  /* do_any_needed_instantiations */
+
+
 void instantiation_wrapup(void)
 /*
 Performs end-of-compilation processing for template instantiation.  An
@@ -11555,6 +11607,9 @@ specific definition that made it unnecessary.
      called by fe_wrapup after instantiation_wrapup has completed. */
   in_instantiation_wrapup = TRUE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
+  /* Set the flag that indicates that this compilation includes
+     external template entities. */
+  any_instantiations_required = instantiations_required != NULL;
   /* Read in the list of entities to be automatically instantiated. */
   any_instantiations_assigned_to_this_translation_unit =
                                        init_auto_instantiation_information();
@@ -11570,44 +11625,10 @@ specific definition that made it unnecessary.
     check_if_entity_should_be_automatically_instantiated(tip);
   }  /* for */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  do {
-    entries_updated_during_instantiation_wrapup = FALSE;
-    for (tip = instantiations_required;
-         tip != NULL;
-         tip = tip->next_in_instantiation_list) {
-      /* See if the entity should be instantiated.  Note that the result of
-         can_be_instantiated is ignored because the tests done by
-         should_be_instantiated can result the generation of diagnostics
-         that are required even if the entity can't be instantiated. */
-      if ((instantiation_mode == tim_all || tip->instantiation_required) &&
-          !tip->already_instantiated) {
-        if (should_be_instantiated(tip, /*implicit_inclusion_ok=*/TRUE)) {
-          if (tip->instance_sym->kind ==
-                                        (a_symbol_kind)sk_static_data_member) {
-            /* Static data member definition. */
-            define_template_static_data_member(tip);
-          } else {
-            /* Function instantiation. */
-            instantiate_template_function(tip);
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  } while (entries_updated_during_instantiation_wrapup);
-
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-  if (automatic_instantiation_mode) {
-    /* Do processing related to automatic instantiation processing. */
-    automatic_instantiation();
-  }  /* if */
-  for (tip = instantiations_required;
-       tip != NULL;
-       tip = tip->next_in_instantiation_list) {
-    /* Call can_be_instantiated.  This is done to force any implicit
-       inclusions that may be needed. */
-    (void)can_be_instantiated(tip);
-  }  /* for */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  /* Go through the instantiations required list and generated any
+     instantiations that are needed or were assigned to this file by
+     the automatic instantiation mechanism. */
+  do_any_needed_instantiations();
   /* If any friend state changed between the initial prescan and the later one,
      an error should have been issued somewhere. */
   check_assertion_str2(!any_friend_state_changed || total_errors != 0,
@@ -12500,6 +12521,7 @@ Initializations for template.
   instantiations_required_tail = NULL;
   in_instantiation_wrapup = FALSE;
   entries_updated_during_instantiation_wrapup = FALSE;
+  implicit_inclusion_done_during_instantiation_wrapup = FALSE;
   can_instantiate_list = NULL;
   defer_inline_function_fixup_and_instantiations = 0;
   deferred_instantiations = NULL;

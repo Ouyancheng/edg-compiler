@@ -1198,6 +1198,15 @@ typedef struct a_template_instance {
 			/* TRUE if the instantiation of this entity should be
 			   suppressed because of previous errors that occurred
 			   during the partial instantiation of the entity. */
+  a_bit_field	can_be_instantiated:1;
+			/* TRUE if this entity can be instantiated.  This
+			   means that a template definition is available
+			   if one is needed.  Note that if this flag is FALSE
+			   it does not necessarily mean that the entity cannot
+			   be instantiated, because a definition may have
+			   been supplied since the last time the check was
+			   done.  The can_be_instantiated routine should
+		           be used instead of this field. */
   a_source_position
 		explicit_instantiation_pos;
 			/* The position of the instantiation request pragma
