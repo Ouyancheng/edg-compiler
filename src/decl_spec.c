@@ -1926,9 +1926,8 @@ the template.
     }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (!is_class_definition &&
-      (is_friend_decl ||
-       !is_redeclaration && tag_sym->kind != (a_symbol_kind)sk_type)) {
+  if (!is_class_definition && *declares_something &&
+      tag_sym->kind != (a_symbol_kind)sk_type) {
     /* Update source range information in the secondary-decl entry. */
     a_source_sequence_entry_ptr     ssep;
     a_src_seq_secondary_decl_ptr    sssdp;
