@@ -11915,13 +11915,16 @@ data member specified by tip.
   /* The instantiation process may rescan various things and invalidate the
      current token positions as a result.  Save these positions so that they
      may be restored when we are done. */
-  a_source_position saved_pos_curr_token = pos_curr_token;
-  a_source_position saved_error_position = error_position;
+  a_source_position saved_pos_curr_token, saved_error_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position saved_curr_construct_end_position =
-                                                 curr_construct_end_position;
+  a_source_position saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
+  saved_pos_curr_token = pos_curr_token;
+  saved_error_position = error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  saved_curr_construct_end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
     /* Static data member definition. */
     define_template_static_data_member(tip);
