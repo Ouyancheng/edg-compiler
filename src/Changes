@@ -1,5 +1,15 @@
 Version 2.40
 
+11/16/98  Spurious error on friend destructor declaration in class template
+
+A spurious error was issued if a class template declared a destructor
+to be a friend, and the class type of the destructor was dependent on
+a template parameter.  This has been fixed.
+
+  template <class T> struct A {
+    friend T::~X();
+  };
+
 11/11/98  C++-generating back end: scope in which specialization is
           put out to represent an instantiation
 

@@ -493,12 +493,15 @@ current lookup options.  The symbol is created as a class template
 if a "treat as template ID" lookup is done.  The symbol is created as a
 type if the lookup is a "must be class or namespace", "must be tag" or
 "typename lookup".  In addition, if "implicit typename" is enabled, we
-also force the member to be a type when doing a "tentative type" lookup.
+also force the member to be a type when doing a "tentative type" lookup
+(but not if the name being looked up is something that could not be
+a typename, like a destructor).
+  
 Implicit typename mode is used to compile code that was not written
 using "typename".  If the symbol is not considered to be a class
 template or a type, then it is created as a constant.
 */
-#define nonreal_member_symbol_kind(options)			\
+#define nonreal_member_symbol_kind(locator, options)		\
   ((a_symbol_kind)((options & IDL_TREAT_AS_TEMPLATE_ID)		\
     ? sk_class_template						\
     : 								\
@@ -506,7 +509,9 @@ template or a type, then it is created as a constant.
        options & IDL_MUST_BE_TAG ||				\
        options & IDL_MUST_BE_CLASS ||				\
        options & IDL_TYPENAME_LOOKUP) ||				\
-      (implicit_typename_enabled && (options & IDL_TENTATIVE_TYPE_LOOKUP)) \
+      (implicit_typename_enabled && (options & IDL_TENTATIVE_TYPE_LOOKUP) && \
+       !(locator)->is_destructor_name && !(locator)->is_conversion_name &&   \
+       !(locator)->is_operator_name) \
         ? sk_type						\
         : sk_constant))
 
@@ -539,7 +544,7 @@ routine.
   /* Determine the symbol kind to be created.  The symbol can be a
      type, constant, or class template, depending on the kind of
      lookup being done. */
-  kind = nonreal_member_symbol_kind(options);
+  kind = nonreal_member_symbol_kind(locator, options);
   /* Create a symbol for the member.  mark_declared is not called
      because this symbol is not visible to the user. */
   sym = alloc_symbol(kind, locator->symbol_header, &locator->source_position);
@@ -2569,14 +2574,15 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
         a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
         /* Found an acceptable symbol. */
         if (is_proxy_or_nonreal_class_lookup &&
-            sym->kind != nonreal_member_symbol_kind(options)) {
+            sym->kind != nonreal_member_symbol_kind(locator, options)) {
           /* The nonreal class member found is a type when a nontype is
              expected or vice-versa.  Ignore this symbol. */
         } else if (any_nonreal_base_classes &&
                    !implicit_typename_enabled &&
                    sym->kind == (a_symbol_kind)sk_projection &&
                    sym->variant.projection.fund_sym_is_nonreal_member &&
-                   fund_sym->kind != nonreal_member_symbol_kind(options)) {
+                   fund_sym->kind != nonreal_member_symbol_kind(locator,
+                                                                options)) {
           /* The symbol is a projection symbol in derived class that points
              to a nonreal member of a base class.  Ignore this symbol
              when not using implicit-typename, if it is a type when a nontype
@@ -2626,7 +2632,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
               !implicit_typename_enabled &&
               sym->kind == (a_symbol_kind)sk_projection &&
               sym->variant.projection.fund_sym_is_nonreal_member &&
-              fund_sym->kind != nonreal_member_symbol_kind(options)) {
+              fund_sym->kind != nonreal_member_symbol_kind(locator, options)) {
           /* The symbol is a projection symbol in derived class that points
              to a nonreal member of a base class.  Ignore this symbol
              when not using implicit-typename, if it is a type when a nontype
