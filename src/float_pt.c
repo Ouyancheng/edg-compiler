@@ -883,10 +883,13 @@ Return a mask that can be used to test bit number "bit" of a mantissa.
 void round_hex_fp_value(a_mantissa_ptr	mp,
 		        long		*exponent,
 		        int		value_bits,
+			a_boolean	is_signed,
 		        a_boolean	*inexact)
 /*
 Round the floating point value specified by "mp" and "exponent" to the
-nearest value that can be represented by "value_bits" bits.
+nearest value that can be represented by "value_bits" bits.  "is_signed"
+is TRUE if the mantissa has a high-order sign bit.  This is used when
+rounding fixed-point values.
 */
 {
   an_fp_value_part	part;
@@ -966,8 +969,9 @@ nearest value that can be represented by "value_bits" bits.
       }  /* for */
     }  /* if */
     /* If we didn't overflow into the high order bit of the mantissa,
-       shift the mantissa back to its original position. */
-    if ((mp->parts[0] & 0x80000000) == 0) {
+       shift the mantissa back to its original position.  For signed values,
+       we need to consider overflow into the sign bit as an overflow. */
+    if ((mp->parts[0] & (is_signed ? 0x40000000 : 0x80000000)) == 0) {
       shift_left_mantissa(mp, 1);
       /* Restore the previously saved underflow state. */
       mp->underflow = saved_underflow;
@@ -987,11 +991,12 @@ Compute the number of bits actually used to represent the mantissa
 value.
 */
 {
-  int	part;
-  int	bits = 0;
+  int			part;
+  int			bits = 0;
+  an_fp_value_part	part_val;
 
+  /* Compute the bit number of the last bit. */
   for (part = MANTISSA_PARTS - 1; part >= 0; part--) {
-    an_fp_value_part	part_val;
     /* Find the first part with some nonzero bits. */
     part_val = mp->parts[part];
     if (part_val == 0) continue;
@@ -1007,6 +1012,27 @@ value.
     /* Exit the loop once we've found a non-zero part. */
     break;
   }  /* for */
+  if (bits != 0 && (mp->parts[0] & 0x8000000) == 0) {
+    /* The mantissa is not normalized.  Compute the number of the first bit
+       that is set. */
+    int	first_bit = 0;
+    for (part = 0; part < MANTISSA_PARTS; part++) {
+      part_val = mp->parts[part];
+      if (part_val == 0) {
+        /* The entire part has no bits set.  Move on to the next part. */
+        first_bit += 32;
+        continue;
+      }  /* if */
+      if ((part_val & 0xffff0000) == 0) { part_val <<= 16; first_bit += 16; }
+      if ((part_val & 0xff000000) == 0) { part_val <<= 8; first_bit += 8; }
+      if ((part_val & 0xf0000000) == 0) { part_val <<= 4; first_bit += 4; }
+      if ((part_val & 0xC0000000) == 0) { part_val <<= 2; first_bit += 2; }
+      if ((part_val & 0x80000000) == 0) { part_val <<= 1; first_bit += 1; }
+      /* Stop once we've reached a non-zero part. */
+      break;
+    }  /* for */
+    bits -= first_bit;
+  }  /* if */
   return bits;
 }  /* number_of_bits_in_mantissa */
 
@@ -1553,7 +1579,7 @@ because the exponent was out of range).
   }  /* if */
   if (any_digits) {
     /* Round the value to the nearest representable value. */
-    round_hex_fp_value(mp, &exponent, mant_dig, inexact);
+    round_hex_fp_value(mp, &exponent, mant_dig, /*signed=*/FALSE, inexact);
     if (kind != (a_float_kind)fk_long_double ||
         !long_double_has_no_implicit_bit) {
       /* Shift one bit further to have an implied initial one bit.  This is

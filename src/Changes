@@ -267,7 +267,9 @@ to the nearest representable value for the destination type resulted
 in an overflow.  Now fixed.
 
   int main() {
+    // These assignments produced incorrect values.
     unsigned short _Fract f = 1.0r;
+    _Accum a = (_Accum)65535.9999847uk;
   }
 
 9/8/04   C++-generating back end: Microsoft compilers and qualifiers on
