@@ -1531,6 +1531,9 @@ Display the indicated routine.
   if (ptr->pure_virtual) {
     disp_boolean("pure_virtual", TRUE);
   }  /* if */
+  if (ptr->covariant_return_virtual_override) }
+    disp_boolean("covariant_return_virtual_override", TRUE);
+  }  /* if */
   if (ptr->is_inline) {
     disp_boolean("is_inline", TRUE);
   }  /* if */
@@ -3164,6 +3167,10 @@ Display the indicated overriding virtual function entry.
            iek_routine);
   disp_ptr("primary_function", (char *)ptr->primary_function, iek_routine);
   disp_ptr("base_class", (char *)ptr->base_class, iek_base_class);
+  if (ptr->return_adjustment_base_class != NULL) {
+    disp_ptr("return_adjustment_base_class",
+             (char *)ptr->return_adjustment_base_class, iek_base_class);
+  }  /* if */
 }  /* disp_overriding_virtual_function */
 
 

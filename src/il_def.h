@@ -737,11 +737,11 @@ typedef union a_parent_class_or_namespace {
 typedef struct a_source_correspondence {
   /* Structure placed within several IL constructs to tie the IL construct
      instance back to a corresponding source construct instance. */
-  char          *assoc_info;
-                        /* Pointer to associated information.  In the front
-                           end, points to the associated front end symbol,
-                           or NULL if there is no associated symbol.  Must
-                           be cast to the proper pointer type for use. */
+  char		*assoc_info;
+			/* Pointer to associated information.  In the front
+			   end, points to the associated front end symbol,
+			   or NULL if there is no associated symbol.  Must
+			   be cast to the proper pointer type for use. */
 #if DO_IL_LOWERING
 			/* When IL lowering is done, this is used in
 			   ck_ptr_to_member constants changed to ck_aggregate
@@ -751,8 +751,8 @@ typedef struct a_source_correspondence {
 			   pointer is set. */
 #endif /* DO_IL_LOWERING */
   char          *name;
-                        /* Pointer to null-terminated name, or NULL if
-                           there is no corresponding source entity. */
+			/* Pointer to null-terminated name, or NULL if
+			   there is no corresponding source entity. */
 #if NEED_NAME_MANGLING
   char		*unmangled_name;
 			/* If name_has_been_mangled is TRUE, points to the
@@ -769,29 +769,29 @@ typedef struct a_source_correspondence {
 			   parent.namespace_ptr points to the namespace. */
 #endif /* ifdef CIL */
   a_source_position
-                decl_position;
-                        /* The source position at which this entity is
-                           declared.  Unknown if sequence number in it
-                           is 0.  Can be valid even if there is no associated
-                           source name, to indicate the place where the
-                           entity appeared without being named. */
+		decl_position;
+			/* The source position at which this entity is
+			   declared.  Unknown if sequence number in it
+			   is 0.  Can be valid even if there is no associated
+			   source name, to indicate the place where the
+			   entity appeared without being named. */
 #ifdef CIL
   a_bit_field /* an_access_specifier */
 		access:2;
-                        /* The access control specified at the point of
-                           declaration.  Restricted access may be indicated
-                           for class members only; all other entities are
-                           "public" by default.  In C mode, always "public". */
+			/* The access control specified at the point of
+			   declaration.	 Restricted access may be indicated
+			   for class members only; all other entities are
+			   "public" by default.	 In C mode, always "public". */
 #endif /* ifdef CIL */
   a_bit_field	referenced:1;
-                        /* TRUE if the item is referenced in the
-                           intermediate language.  This is always TRUE
-                           for definitions of externally-visible entities,
-                           since they may be referenced from other
-                           translation units.  Also set for auto variables
-                           that are dynamically initialized.  Also differs
-                           from the flag in the symbol entry in that more
-                           than one symbol can point to the same IL entry. */
+			/* TRUE if the item is referenced in the
+			   intermediate language.  This is always TRUE
+			   for definitions of externally-visible entities,
+			   since they may be referenced from other
+			   translation units.  Also set for auto variables
+			   that are dynamically initialized.  Also differs
+			   from the flag in the symbol entry in that more
+			   than one symbol can point to the same IL entry. */
 #if MAINTAIN_NEEDED_FLAGS
   a_bit_field	needed:1;
 			/* TRUE to indicate that an entity is referenced in
@@ -817,7 +817,7 @@ typedef struct a_source_correspondence {
   a_bit_field	is_local_to_function:1;
 			/* TRUE if a function scope intervenes in the scope
 			   stack between the scope to which the entity belongs
-			   and the file scope.  In general, entities declared
+			   and the file scope.	In general, entities declared
 			   in function and block scopes and within local
 			   classes have the flag set to TRUE, and objects
 			   declared at file scope and within nonlocal classes
@@ -1812,7 +1812,7 @@ typedef struct a_param_type {
 #ifdef CIL
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
   char          *name;
-                        /* Pointer to null-terminated name, or NULL if none
+			/* Pointer to null-terminated name, or NULL if none
 			   was declared. */
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
   a_bit_field	passed_via_copy_constructor:1;
@@ -2421,6 +2421,17 @@ typedef struct an_overriding_virtual_function {
 			   identifying the class of which the overriding
 			   function is a member; when it is a member of the
 			   current derived class, then this field is NULL. */
+  a_base_class_ptr
+		return_adjustment_base_class;
+			/* When the return types of the overriding and
+			   overridden functions are pointer or reference to D
+			   and B, respectively (where class D is derived from
+			   class B), a pointer to a base class entry for B on
+			   the base_classes list of D.  The entry represents
+			   the adjustment required on the return. The field
+			   is NULL when no such adjustment is required (i.e.,
+			   when the return types of the overriding and
+			   overridden functions are identical). */
 } an_overriding_virtual_function;
 
 
@@ -4091,6 +4102,10 @@ typedef struct a_routine {
 			/* TRUE for virtual member functions declared with a
 			   "pure" specifier (C++ only).  TRUE only if
 			   is_virtual is also TRUE. */
+  a_bit_field	covariant_return_virtual_override;
+			/* TRUE if is_virtual is TRUE and this routine is an
+			   overriding virtual function with a covariant
+			   return type (C++ only). */
   a_bit_field	is_inline:1;
 			/* TRUE for C++ functions that were specified in the
 			   source as candidates for inlining (either by the

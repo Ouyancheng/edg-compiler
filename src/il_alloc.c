@@ -586,10 +586,11 @@ return a pointer to it.
 #if DEBUG
   num_overriding_virtual_functions_allocated++;
 #endif /* DEBUG */
-  ovfp->next                = NULL;
-  ovfp->overriding_function = NULL;
-  ovfp->primary_function    = NULL;
-  ovfp->base_class          = NULL;
+  ovfp->next                         = NULL;
+  ovfp->overriding_function          = NULL;
+  ovfp->primary_function             = NULL;
+  ovfp->base_class                   = NULL;
+  ovfp->return_adjustment_base_class = NULL;
 
   return ovfp;
 }  /* alloc_overriding_virtual_function */
@@ -1323,6 +1324,8 @@ to it.  The entry is allocated in the file scope memory region.
   rp->address_taken               = FALSE;
   rp->is_virtual                  = FALSE;
   rp->pure_virtual                = FALSE;
+  rp->covariant_return_virtual_override
+                                  = FALSE;
   rp->is_inline                   = FALSE;
   rp->compiler_generated          = FALSE;
   rp->defined                     = FALSE;

@@ -1792,6 +1792,8 @@ do_set_proper_definition_needed_flag:
         remap_ptr(ptr->overriding_function, a_routine_ptr, iek_routine);
         remap_ptr(ptr->primary_function, a_routine_ptr, iek_routine);
         remap_ptr(ptr->base_class, a_base_class_ptr, iek_base_class);
+        remap_ptr(ptr->return_adjustment_base_class, a_base_class_ptr,
+                  iek_base_class);
       }
       break;
     case iek_derivation_step:
