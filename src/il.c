@@ -4520,7 +4520,7 @@ they are not already present.
          a qualifier is removed, a flag must be set so that it will be added
          back. */
       while (base_type->kind == (a_type_kind)tk_typeref) {
-        if (!typeref_is_qualified(base_type)) {
+        if (typeref_is_typedef(base_type)) {
           /* This is a typedef -- preserve it, so that the qualifier is built
              on top of it. */
           break;
@@ -4564,15 +4564,32 @@ Return a type that is the unqualified version of the type given by type.
 {
   a_type_ptr  element_type;
 
-  /* Remove the minimum number of typerefs that will produce an unqualified
-     type, in order to save typedefs if possible. */
-  if (C_mode() || !is_array_type(type)) {
+  if (is_array_type(type)) {
+    /* There can never be type qualifiers on top of an array type.  If there
+       are qualifiers, they are attached to the element type. */
+    if (C_mode()) {
+      /* In C array-of-const-int (for example) is not considered a qualified
+         type -- is_qualfied_type will not return TRUE for it, so nothing
+         more needs to be done to make it unqualified. */
+    } else {
+      /* In C++ array-of-const-int *is* a qualified type.  Remove the
+         qualifiers from the element type and create another array type. */
+      element_type = underlying_array_element_type(type);
+      if (element_type == NULL) {
+        /* Array-of-NULL is a possible temporay state during construction of
+           a derived type. */
+      } else {
+        element_type = make_unqualified_type(element_type);
+        type = copy_array_type_replacing_element_type(type, element_type);
+      }  /* if */
+    }  /* if */
+  } else {
+    /* Non-array case.  Remove the minimum number of typerefs that will
+       produce an unqualified type.  It's done in a loop in order to save
+       typedefs if possible. */
     while (is_top_level_qualified_type(type)) {
       type = type->variant.typeref.type;
     }  /* while */
-  } else if (type->kind == (a_type_kind)tk_typeref) {
-    element_type = make_unqualified_type(underlying_array_element_type(type));
-    type = copy_array_type_replacing_element_type(type, element_type);
   }  /* if */
   return type;
 }  /* make_unqualified_type */
