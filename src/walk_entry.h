@@ -1652,8 +1652,8 @@ the file scope, do not process it (but record an orphan in the latter case).
                              iek_routine_list_entry);
         walk_list_not_needed(ptr->friend_classes, a_class_list_entry_ptr,
                              iek_class_list_entry);
-        walk_list_not_needed(ptr->template_arg_list, a_template_arg_ptr,
-                             iek_template_arg);
+        walk_list(ptr->template_arg_list, a_template_arg_ptr,
+                  iek_template_arg);
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
         remap_ptr(ptr->assoc_operator_new_routine, a_routine_ptr, iek_routine);
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
