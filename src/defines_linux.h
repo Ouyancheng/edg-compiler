@@ -39,6 +39,8 @@ This is the version for Linux.
 #define BUILTIN_VA_LIST_OVERRIDE_TYPE "__gnuc_va_list"
 #define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 0
 #define IGNORE_CARRIAGE_RETURN_IN_SOURCE 1
+#define GNU_EXTENSIONS_ALLOWED 1
+#define DEFAULT_GNU_COMPATIBILITY 0
 
 /* Settings needed in order for bit-field allocation to match gcc. */
 #define TARG_BIT_FIELD_CONTAINER_SIZE (-1)
