@@ -1,5 +1,12 @@
 Version 2.23
 
+3/28/94  Name mangling tweaks
+
+Names generated for base class special fields (e.g., virtual base class
+pointers), type-as-subobject versions of class types, and virtual function
+tables now encode nested type names properly.  This matters only in
+very bizarre test programs.
+
 3/26/94  C-mode extension for last field of a struct
 
 In C-mode the last field of a struct is allowed to be an array of unknown
