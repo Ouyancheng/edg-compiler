@@ -813,7 +813,7 @@ with a source correspondence field.
 }  /* mark_canonical_as_needed */
 
 
-#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 
 static void mark_any_thunks_as_needed(a_routine_ptr rout)
 /*
@@ -831,8 +831,7 @@ If the indicated routine has any thunks, mark them as needed.
   }  /* for */
 }  /* mark_any_thunks_as_needed */
 
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
 /*
 Macro that returns TRUE if a class is local to a function.  This is the same
@@ -973,6 +972,7 @@ as needed.
          as needed too, since that's the one that will be copied to the
          primary IL. */
       mark_canonical_as_needed(entry_ptr, entry_kind);
+#if DO_IL_LOWERING
 #if IA64_ABI || ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
       if (entry_kind == (an_il_entry_kind)iek_routine) {
         a_routine_ptr rout = (a_routine_ptr)entry_ptr;
@@ -1003,6 +1003,7 @@ as needed.
         }  /* if */
       }  /* if */
 #endif /* IA64_ABI || ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#endif /* DO_IL_LOWERING */
     }  /* if */
   }  /* if */
   return prune;
