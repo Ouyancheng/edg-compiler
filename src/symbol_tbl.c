@@ -2308,29 +2308,6 @@ added to the scope symbols list and is not linked into the symbol table.
     for (; bcp != NULL; bcp = bcp->next) {
       if (bcp->type == pdp->fundamental_symbol->class_of_which_a_member) {
         pdp->fundamental_base_class = bcp;
-#if CHECKING
-#if 0
-        /* Confirm that the type match was in fact sufficient.  The code
-           corresponds to the more expensive search used in the presence of
-           ambiguity (see below). */
-#if 0
-        for (tail = path; tail->next != NULL; tail = tail->next) {}
-        if (progenitor_pdp != NULL) {
-          tail->next = progenitor_pdp->fundamental_base_class->derivation;
-        }  /* if */
-        if (!equivalent_paths(path, bcp->derivation)) {
-          internal_error("make_projection_symbol: bad path match");
-        }  /* if */
-        tail->next = NULL;
-#endif /* if 0 */
-        if (progenitor_pdp != NULL) {
-          path = preferred_derivation_of(
-                                progenitor_pdp->fundamental_base_class)->path;
-        }  /* if */
-        check_assertion(
-                  congruent_paths(preferred_derivation_of(bcp)->path, path));
-#endif /* 0 */
-#endif /* CHECKING */
         break;
       }  /* if */
     }  /* for */
@@ -4650,6 +4627,8 @@ only the same members of the same class but with equivalent derivations).
   a_boolean              equiv = FALSE;
   a_symbol_ptr           fundamental_sym1;
   a_type_ptr             rout_type;
+  a_base_class_ptr       temp_bcp;
+  a_derivation_step_ptr  tail1, tail2;
 
   db_enter(4, "projections_are_equivalent");
   fundamental_sym1 = fundamental_symbol_of(sym1);
@@ -4694,35 +4673,32 @@ check_rout_type:
         equiv = TRUE;
     }  /* switch */
     if (!equiv) {
-#if 0
-      /* Fundamental symbols are the same but may not represent the same
-         object (= field) or routine.  ("The same routine" is taken to mean
-         the same static member function or the same nonstatic member function
-         called with the same "this" pointer.  Is that justified by the ARM?)
-         In other words, they are the same if the paths are equivalent.
-         Note that if either symbol is a projection symbol, its path must
-         be (temporarily) modified to reflect the path all the way to
-         the fundamental symbol. */
-      tail1 = tail2 = NULL;
-      if (sym1->kind == (a_symbol_kind)sk_projection) {
-        for (tail1 = path1; tail1->next != NULL; tail1 = tail1->next) {}
-        tail1->next = sym1->variant.projection.extra_info->
-                                        fundamental_base_class->derivation;
-      }  /* if */
-      if (sym2->kind == (a_symbol_kind)sk_projection) {
-        for (tail2 = path2; tail2->next != NULL; tail2 = tail2->next) {}
-        tail2->next = sym2->variant.projection.extra_info->
-                                        fundamental_base_class->derivation;
-      }  /* if */
-      /* Compare the modified paths. */
-      if (equivalent_paths(path1, path2)) equiv = TRUE;
-      /* Restore the paths to the original state, if necessary. */
-      if (tail1 != NULL) tail1->next = NULL;
-      if (tail2 != NULL) tail2->next = NULL;
-#endif /* if 0 */
-      a_base_class_ptr       temp_bcp;
-      a_derivation_step_ptr  tail1, tail2;
-
+      /* The fundamental symbols are the same but may not represent the same
+         object (nonstatic data member) or routine (nonstatic member function).
+         They will be considered the same only if the belong to the same
+         base class subobject.  For example,
+                   A{i}
+                   |
+                   V
+                 /   \
+                B     C
+                 \   /
+                   D
+         If "i" were declared in A, it is inherited by D along two paths which
+         are equivalent insofar as the lead to one and the same base class
+         subobject.  However, in this case,
+                A{i}  A{i}
+                |     |
+                B     C
+                 \   /
+                   D
+         A::i is inherited by D along paths that lead to different base class
+         subobjects named "A".  Thus the determination of equivalence requires
+         determining whether the paths lead to the same of different base
+         class subobjects. */
+      /* If sym1 or sym2 is a projection symbol, use a path that goes all the
+         way to the corresponding fundamental symbol instead of a path to the
+         projection. */
       if (sym1->kind == (a_symbol_kind)sk_projection) {
         temp_bcp = sym1->variant.projection.extra_info->fundamental_base_class;
         path1 = preferred_derivation_of(temp_bcp)->path;
@@ -4731,12 +4707,17 @@ check_rout_type:
         temp_bcp = sym2->variant.projection.extra_info->fundamental_base_class;
         path2 = preferred_derivation_of(temp_bcp)->path;
       }  /* if */
+      /* Find the end of each path. */
       for (tail1 = path1; tail1->next != NULL; tail1 = tail1->next) {}
       for (tail2 = path2; tail2->next != NULL; tail2 = tail2->next) {}
       if (tail1->base_class->type == tail2->base_class->type) {
         if (tail1->base_class->is_virtual) {
+          /* If the ends of the paths refer to the same virtual base class,
+             then the members belong to the same subobject. */
           if (tail2->base_class->is_virtual) equiv = TRUE;
         } else if (!tail2->base_class->is_virtual) {
+          /* If they refer to the same nonvirtual base class, the paths must
+             coincide for it to be the same subobject. */
           if (congruent_paths(path1, path2)) equiv = TRUE;
         }  /* if */
       }  /* if */
