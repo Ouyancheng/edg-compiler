@@ -5247,6 +5247,7 @@ lists of declarations, as in for-init statements.
   a_variable_ptr               var;
   a_src_seq_secondary_decl_ptr sec_decl;
   a_boolean                    is_definition = FALSE;
+  a_boolean                    need_extern_C_closing_brace = FALSE;
   a_boolean                    consider_initialization;
   a_storage_class              storage_class;
   a_type_ptr                   var_type;
@@ -5326,6 +5327,15 @@ lists of declarations, as in for-init statements.
            an extern "C" { ... } wrapped around the function. */
         curr_function_scope == NULL) {
       write_tok_str("extern \"C\" ");
+      /* For a definition, use the form
+           extern "C" { int i; };
+         because simply
+           extern "C" int i;
+         is no longer a definition. */
+      if (is_definition) {
+        write_tok_str("{ ");
+        need_extern_C_closing_brace = TRUE;
+      }  /* if */
     } else {
       /* Put out the storage class determined above. */
       gen_storage_class(storage_class);
@@ -5357,6 +5367,10 @@ lists of declarations, as in for-init statements.
   if (gen_final_semicolon) {
     /* Finish the declaration. */
     write_tok_ch(';');
+    write_space();
+  }  /* if */
+  if (need_extern_C_closing_brace) {
+    write_tok_ch('}');
     write_space();
   }  /* if */
 }  /* gen_variable_decl */
