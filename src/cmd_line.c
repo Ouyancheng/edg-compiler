@@ -1197,7 +1197,7 @@ by a command line option.
       string_literals_are_const = FALSE;
     }  /* if */
     if (!option_kind_used[(int)optk_class_name_injection]) {
-      class_name_injection_enabled = FALSE;
+      class_name_injection_enabled = TRUE;
     }  /* if */
     if (!option_kind_used[(int)optk_arg_dependent_lookup]) {
       arg_dependent_lookup_enabled = FALSE;

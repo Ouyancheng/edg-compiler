@@ -1,5 +1,10 @@
 Version 2.42
 
+3/31/99  Microsoft compatibility: class name injection enabled in
+         Microsoft mode
+
+Class name injection is now enabled in Microsoft mode.
+
 3/30/99  Spurious error when type_info appears in elaborated type specifier
          following its definition
 
