@@ -22,13 +22,12 @@ const_ints.h -- Declarations related to manipulation of target integer
 #include "il.h"
 #endif /* ifndef IL_H */
 
+
 extern void set_integer_value(an_integer_value *intval,
                               long             value);
 
 extern void set_unsigned_integer_value(an_integer_value *intval,
                                        unsigned long    value);
-
-extern a_boolean int_kind_is_signed(an_integer_kind kind);
 
 extern a_boolean int_constant_is_signed(a_constant_ptr constant);
 
