@@ -1,5 +1,16 @@
 Version 2.23
 
+3/21/94 Constant expressions inside not-evaluated expressions
+
+The expression processing routines have been changed so that constant
+expressions inside not-evaluated expressions are always evaluated.
+This avoids an internal error on the following:
+
+  int i = sizeof(int[1+1]);
+
+A previous change to scan_intaddr_operator (2/21/94) is subsumed
+by this change, and has been backed out.
+
 3/16/94 C-generating back end output formatting
 
 The C-generating back end has been changed so that it does not begin
