@@ -1,5 +1,7 @@
 Version 2.42
 
+8/11/99  IL version number changed to 2.34
+
 8/10/99  No implicit conversion of const string literal to void *
 
 The change for const string literals accidentally allowed the implicit
