@@ -796,6 +796,16 @@ to indicate a primary declaration.
     } else {
       autonomous = sec_decl->autonomous_tag_decl;
     }  /* if */
+    if (autonomous &&
+        il_header.source_language == sl_Cplusplus &&
+        type->variant.class_struct_union.extra_info->anonymous_union_kind ==
+                                       (an_anonymous_union_kind)auk_variable) {
+      /* An anonymous union type associated with a variable is marked as
+         autonomous even though it's part of the variable declaration.
+         For purposes of the C++-generating back end, consider it
+         non-autonomous. */
+      autonomous = FALSE;
+    }  /* if */
   }  /* if */
   return autonomous;
 }  /* is_autonomous_decl */
@@ -2647,11 +2657,6 @@ is the one associated with the definition of the class.
                                    type->source_corresp.source_sequence_entry);
   /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
-  if (ctsp != NULL &&
-      ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_variable) {
-    /* For an anonymous union, put out the storage class. */
-    gen_storage_class(ctsp->anonymous_union_object.storage_class);
-  }  /* if */
   write_tok_str(tag_kind(type->kind));
   write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2877,7 +2882,8 @@ this one is such a continuation.
   if (!is_autonomous_decl(type, sec_decl)) {
     /* This type declaration is embedded in another declaration.
        Do not put it out at this time.  Mark it for processing when
-       it is encountered while traversing the IL tree. */
+       it is encountered while traversing the IL tree.  Note that
+       anonymous unions associated with variables get this processing too. */
     skip_type_and_delay_definition(type, is_definition);
   } else {
     /* Set the output position. */
