@@ -4295,10 +4295,10 @@ mode.
         }  /* if */
         *class_type = NULL;
       } else {
-        /* Do ambiguity and access control checking on the class symbol. */
-        check_ambiguity_and_verify_access(&locator_for_curr_id);
         /* Record the reference on the symbol. */
         mark_referenced(class_symbol, &pos_curr_token);
+        /* Do ambiguity and access control checking on the class symbol. */
+        check_ambiguity_and_verify_access(&locator_for_curr_id);
         *class_type = class_symbol->variant.class_struct_union.type;
       }  /* if */
       /* Skip over the class-name, and the "::". */
