@@ -194,6 +194,19 @@ extern a_boolean instantiation_needed_flag_is_set(
   ((rout)->is_inline && ((rout)->storage_class == (a_storage_class)sc_static))
 #endif /* LOWER_EXTERN_INLINE */
 
+/*
+Return TRUE if the routine should be treated as an extern inline function.
+This includes both actual extern inline functions and static functions
+that have been externalized because they are potentially referenced
+from exported templates.  Note that this determination is independent of
+the handling given to extern inlines, i.e., whether they are instantiated
+or converted to static.
+*/
+#define treat_as_extern_inline(rout)                                    \
+  (((rout)->is_inline &&                                                \
+    (rout)->storage_class == (a_storage_class)sc_unspecified) ||        \
+   (rout)->consider_to_be_extern_inline)
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 /* Macro to set the needed flag. */

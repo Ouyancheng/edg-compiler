@@ -4129,11 +4129,9 @@ overridden function).
   /* Give the new routine the same linkage as the overriding routine. */
   if (overriding_function->storage_class == (a_storage_class)sc_static
 #if LOWER_EXTERN_INLINE
-      || (overriding_function->is_inline &&
-          overriding_function->storage_class ==
-                                       (a_storage_class)sc_unspecified)
+      || treat_as_extern_inline(overriding_function)
 #endif /* LOWER_EXTERN_INLINE */
-                                                                       ) {
+                                                    ) {
     entry_routine->storage_class = (a_storage_class)sc_static;
     entry_routine->source_corresp.name_linkage =
                                              (a_name_linkage_kind)nlk_internal;
@@ -5667,8 +5665,7 @@ not include the function scope memory region, if any.
     }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if LOWER_EXTERN_INLINE
-    if (routine->is_inline &&
-        routine->storage_class == (a_storage_class)sc_unspecified) {
+    if (treat_as_extern_inline(routine)) {
       /* An extern inline routine.  Make it a normal static inline routine.
          Other transformations (e.g., promoting local static variables
          out as external variables) are done elsewhere. */
@@ -11722,8 +11719,7 @@ block -- scopes for "for" init blocks do not have one.
                                   routine, scope);
       variable->source_corresp.is_local_to_function = FALSE;
 #if LOWER_EXTERN_INLINE
-      if (routine->is_inline &&
-          routine->storage_class == (a_storage_class)sc_unspecified) {
+      if (treat_as_extern_inline(routine)) {
         /* An extern inline routine.  Make the promoted variable externally
            visible.  This uses the relaxed ref/def model for externals. */
         variable->storage_class = (a_storage_class)sc_unspecified;
@@ -11908,8 +11904,7 @@ part of the lowering of the file scope memory region.
   }  /* if */
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #if LOWER_EXTERN_INLINE
-  if (routine->is_inline &&
-      routine->storage_class == (a_storage_class)sc_unspecified) {
+  if (treat_as_extern_inline(routine)) {
     /* Promote static variables out of an extern inline routine, making
        them external so the same ones are accessed from all copies of the
        function. */
@@ -12765,10 +12760,13 @@ translation units (their statics are picked up after copying).
     if (rout->source_corresp.static_used_by_instantiation
 #if LOWER_EXTERN_INLINE
         /* Lowered extern inline routines can be duplicated in each
-           slice and each compilation and need not be externalized. */
+           slice and each compilation and need not be externalized.
+           Test the name linkage instead of the storage class because
+           the storage class has been changed to static by this point. */
         && (!rout->is_inline ||
             rout->source_corresp.name_linkage ==
                                              (a_name_linkage_kind)nlk_internal)
+        && !treat_as_extern_inline(rout)
 #endif /* LOWER_EXTERN_INLINE */
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
         && !rout->source_corresp.duplicate_static_in_instantiation_slices

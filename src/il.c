@@ -13544,7 +13544,8 @@ eliminated, if appropriate.
          inline functions using a mechanism like the template instantiation
          mechanism, clear the inline instance required flag. */
       if ((rp->is_template_function && !rp->is_specialized) ||
-          (instantiate_extern_inline && rp->is_inline)) {
+          (instantiate_extern_inline &&
+           (rp->is_inline || treat_as_extern_inline(rp)))) {
         a_symbol_ptr             sym;
         a_boolean                okay_to_clear_flag = TRUE;
 

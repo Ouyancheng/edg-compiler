@@ -3619,9 +3619,7 @@ A pointer to the conditional variable is returned in *test_var.
   /* Make the static first-time-test variable in the current scope. */
   int_type = integer_type((an_integer_kind)ik_int);
 #if LOWER_EXTERN_INLINE
-  if (innermost_function_scope->variant.routine.ptr->is_inline &&
-      innermost_function_scope->variant.routine.ptr->storage_class ==
-                                             (a_storage_class)sc_unspecified) {
+  if (treat_as_extern_inline(innermost_function_scope->variant.routine.ptr)) {
     /* The current routine is extern inline, so the guard variable has to
        be external (because the local static variable itself will be
        turned into an external variable). */

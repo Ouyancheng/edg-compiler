@@ -130,7 +130,6 @@ are instantiated.
 
 #if DO_IL_LOWERING
 
-
 static void externalize_entity_for_exported_templates(
                                                   a_source_correspondence *scp,
                                                   an_il_entry_kind        kind)
@@ -172,12 +171,18 @@ It's a static entity that may be referenced from exported templates.
     }  /* if */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-  /* Such functions are instantiatable and get added to the inline function
-     list. */
-  if (!is_variable && instantiate_extern_inline &&
-      !(rout->is_template_function && !rout->is_specialized) &&
-      !rout->on_inline_function_list) {
-    add_to_inline_function_list(rout);
+  if (!is_variable &&
+      !(rout->is_template_function && !rout->is_specialized &&
+        !rout->is_inline)) {
+    /* This is a routine that is not an inline template.  Treat it as if
+       it were extern inline. */
+    rout->consider_to_be_extern_inline = TRUE;
+    if (instantiate_extern_inline &&
+        !rout->on_inline_function_list) {
+      /* Add the function to the inline functions list, which is an
+         instantiation list for non-templates. */
+      add_to_inline_function_list(rout);
+    }  /* if */
   }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   mark_as_needed((char *)scp, kind);
