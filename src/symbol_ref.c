@@ -208,7 +208,7 @@ this case and add it to the list for the current scope.
         /* Ignore most projection symbols. */
         break;
       }  /* if */
-      /* Fall through. */
+      /* FALLTHROUGH */
     case sk_namespace_projection:
       /* Enter the fundamental symbol of a namespace projection. */
       record_defeatable_name_hiding(fundamental_symbol_of(hidden_sym),
@@ -719,7 +719,21 @@ hiding.
          look for a declaration in an enclosing scope that is hidden by this
          declaration -- if there is one, see if the hidden reference can be
          resolved by using a name qualifier. */
-      if (sym_ptr->decl_scope != FILE_SCOPE_NUMBER) {
+      if ((sym_ptr->kind == (a_symbol_kind)sk_routine ||
+           sym_ptr->kind == (a_symbol_kind)sk_member_function) &&
+           sym_ptr->variant.routine.instance_ptr != NULL &&
+           !sym_ptr->variant.routine.instance_ptr->is_guiding_decl) {
+        /* Ignore function template instances; the references that trigger
+           their creation are not declarations that can hide other
+           declarations. */
+      } else if (sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
+                 (!sym_ptr->is_class_member &&
+                  (nsp = sym_ptr->parent.namespace_ptr) != NULL &&
+                  nsp->source_corresp.name == NULL &&
+                  nsp->source_corresp.parent.namespace_ptr == NULL)) {
+        /* Ignore names that belong to the file scope or to an unnamed
+           namespace scope immediately within the file scope. */
+      } else {
         an_id_lookup_options_set	options;
         clear_specific_symbol(locator);
         options = IDL_HIDDEN_NAME_LOOKUP | IDL_SKIP_CURR_SCOPE |
@@ -737,21 +751,9 @@ hiding.
                declarations. */
           } else if (old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
                      old_sym_ptr->is_class_member ||
-                     old_sym_ptr->parent.namespace_ptr != NULL) {
+                     old_sym_ptr->parent.namespace_ptr != NULL ||
+                     old_sym_ptr->synthesized_namespace_projection) {
             /* A qualifiable name. */
-            if (!is_potentially_hidden_by(old_sym_ptr, sym_ptr)) {
-              /* old_sym_ptr does not belong to a scope that is outside that
-                 of sym_ptr, so it can't be hidden by sym_ptr in a way that
-                 could resolved by adding a qualifier.  (This can come up
-                 when sym_ptr refers to a template instantiation.) */
-            } else {
-              tag_hidden_by_nontag = FALSE;
-              hidden_class_or_namespace_member = TRUE;
-              record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
-                                            hidden_class_or_namespace_member,
-                                            (a_scope_ptr)NULL);
-            }  /* if */
-          } else if (old_sym_ptr->synthesized_namespace_projection) {
             tag_hidden_by_nontag = FALSE;
             hidden_class_or_namespace_member = TRUE;
             record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
