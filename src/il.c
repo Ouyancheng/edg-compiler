@@ -3240,13 +3240,6 @@ at file scope.
   ptp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
   ptp->default_arg_expr = NULL;
-  /* If we are in the midst of processing a function template declaration or
-     a prototype instantiation of class template and the associated type entry
-     involves (anywhere in its type tree) a template parameter, mark the param
-     type entry; this is useful for function arg matching. */
-  ptp->type_involves_template_param =
-                     (C_dialect == C_dialect_cplusplus &&
-                      is_or_contains_template_param(type));
   set_arg_transfer_method_flag(ptp);
 
   db_exit();
