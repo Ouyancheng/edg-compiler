@@ -41,8 +41,11 @@ EXTERN int	__debug_level /* = 0 */;
                             means increasing amounts. */
 #endif /* DEBUG */
 #if DEBUG || CHECKING
-EXTERN FILE	*__f_debug initial_value(stderr);
-			/* Debug output file. */
+#define __f_debug stderr
+			/* Debug output file.  This is a macro and not a
+			   variable because the initialization of a variable
+			   with the value "stderr" cannot be done as a static
+			   initialization on some systems. */
 #endif /* DEBUG || CHECKING */
 
 /*

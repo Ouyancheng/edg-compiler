@@ -1,3 +1,10 @@
+Version 2.43
+
+8/13/99  Prelinker: build problem on some systems
+
+The prelinker did not compile on some systems (e.g., Red Hat 6.0) on which
+the assignment of stderr to a FILE* is not a static initialization.  Now fixed.
+-------------------------------------------------------------------------------
 Version 2.42, August 12, 1999
 
 8/11/99  Demangling of promoted local static names

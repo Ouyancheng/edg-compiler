@@ -389,7 +389,7 @@ static char	*temporary_file_name = NULL;
 			/* The name to be used as a temporary file for
 			   the creation of a definition list file. */
 
-static FILE	*f_informational = stderr;
+static FILE	*f_informational;
 			/* The file to be used when displaying informational
 			   messages. */
 			
@@ -3385,6 +3385,8 @@ int main(int argc, char *argv[])
   a_boolean		 suppress_instantiation_flags = FALSE;
   a_boolean		 list_object_files = FALSE;
 
+  /* Set the file to be used for informational messages. */
+  f_informational = stderr;
   /* This must be done before any messages are issued. */
   message_prefix = pl_error_text(pl_ec_message_prefix);
   /* Allocate arrays to hold pointers to -L directory names and library
