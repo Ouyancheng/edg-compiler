@@ -1536,9 +1536,11 @@ Display the indicated variable.
     disp_boolean("is_parameter", TRUE);
   }  /* if */
   disp_initializer(ptr->init_kind, &ptr->initializer);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (ptr->template_decl != NULL) {
     disp_template_decl("template_decl", ptr->template_decl);
   }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("initializer_range", &ptr->initializer_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -2004,6 +2006,11 @@ Display the indicated routine.
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);
   }  /* if */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (ptr->template_decl != NULL) {
+    disp_template_decl("template_decl", ptr->template_decl);
+  }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (ptr->template_arg_list != NULL) {
     disp_template_arg_list("template_arg_list", ptr->template_arg_list);
   }  /* if */
@@ -3987,18 +3994,17 @@ Display the indicated class type supplement entry.
     disp_class_list("friend_classes", ptr->friend_classes);
   }  /* if */
   disp_ptr("assoc_scope", (char * )ptr->assoc_scope, iek_scope);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (ptr->template_decl != NULL) {
     disp_template_decl("template_decl", ptr->template_decl);
   }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (ptr->template_arg_list != NULL) {
     disp_template_arg_list("template_arg_list", ptr->template_arg_list);
   }  /* if */
   if (ptr->partial_spec_template_arg_list != NULL) {
     disp_template_arg_list("partial_spec_template_arg_list",
                            ptr->template_arg_list);
-  }  /* if */
-  if (ptr->template_decl != NULL) {
-    disp_template_decl("template_decl", ptr->template_decl);
   }  /* if */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
   disp_ptr("assoc_operator_new_routine",
