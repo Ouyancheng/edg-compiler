@@ -12347,7 +12347,7 @@ the operator is a member or a reference to such a base class; as required
 by a post-ARM change to the Working Paper, the warning states that the
 declaration, though permitted, will not be used in explicit or implicit
 type conversions.  In addition, an error is issued when the target type is
-(possible cv-qualified) void, in accord with a pending change to the
+(possibly cv-qualified) void, in accord with a pending change to the
 Working Paper, agreed to at the Boston meeting.  For example:
 
   class Base { };
