@@ -146,6 +146,41 @@ keyword.
     }  /* if */
   }  /* if */
 }  /* prescan_microsoft_extended_decl_modifiers */
+
+
+static void prescan_based_modifier(a_token_cache       *token_cache_ptr,
+                                   a_disambig_flag_set flags)
+/*
+Prescan the Microsoft __based modifier:
+
+	__based ( identifier )
+
+When this routine is called, the current token must be the __based
+keyword.
+*/
+{
+  check_assertion_str2(curr_token == tok_based,
+                       "prescan_microsoft_extended_decl_modifiers:",
+                       "curr_token not tok_based");
+  /* Bypass the __based token. */
+  cache_curr_token(token_cache_ptr);
+  (void)get_token();
+  if (curr_token == tok_lparen) {
+    cache_curr_token(token_cache_ptr);
+    /* Get the next token, which should be an identifier. */
+    get_token_and_coalesce_if_identifier(flags);
+    if (curr_token == tok_identifier) {
+      /* Get the next token, which should be a right paren. */
+      cache_curr_token(token_cache_ptr);
+      get_token_and_coalesce_if_identifier(flags);
+      if (curr_token == tok_rparen) {
+        /* Bypass the right paren. */
+        cache_curr_token(token_cache_ptr);
+        get_token_and_coalesce_if_identifier(flags);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* prescan_based_modifier */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
@@ -458,10 +493,15 @@ part of a declarator is found, may_be_decl is set to FALSE.
       /* Cache and bypass any pointer to member operators. */
       cache_curr_token(token_cache_ptr);
       (void)get_token_and_coalesce_if_identifier(flags);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Look for a Microsoft __based modifier. */
+    } else if (curr_token == tok_based) {
+      prescan_based_modifier(token_cache_ptr, flags);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* No more ptr-operators. */
       break;
-    }  /* for */
+    }  /* if */
   }  /* for */
   if (curr_token == tok_lparen) {
     /* Left parenthesis indicating nested declarator.  For the abstract
