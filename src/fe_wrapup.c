@@ -96,7 +96,7 @@ and before the back end (if any) is executed.
   }
 #endif /* CHECKING */
 
-  if (C_dialect == C_dialect_cplusplus) {
+  if (C_dialect == C_dialect_cplusplus && any_cfront_mode()) {
     /* Determine whether any classes defined in this file require external
        linkage, and if so do the appropriate fixup. */
     check_class_linkage();
