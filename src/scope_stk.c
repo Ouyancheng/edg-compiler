@@ -1485,7 +1485,8 @@ scopes.
     /* Update the depth of the innermost instantiation scope so that it points
        to the namespace that is the parent of the template being
        instantiated. */
-    depth_innermost_namespace_scope = instantiation_prev_scope;
+    depth_innermost_namespace_scope =
+              ssep->depth_innermost_namespace_scope = instantiation_prev_scope;
     check_assertion(scope_stack[instantiation_prev_scope].assoc_namespace ==
                                                                    parent_nsp);
     /* Set the active using flags for the newly created context. */
