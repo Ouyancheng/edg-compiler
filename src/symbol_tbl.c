@@ -8150,7 +8150,7 @@ symbol "used" or "set", if appropriate.
         }  /* if */
       }  /* if */
     }  /* if */
-    write_xref_entry(kind, sym_for_xref, source_position);
+    write_xref_entry(kind_for_xref, sym_for_xref, source_position);
   }  /* if */
   /* Set the referenced flag in the symbol. */
   sym_ptr->referenced = TRUE;
