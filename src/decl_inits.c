@@ -811,17 +811,23 @@ The syntax is:
        must be used. */
     syntax_error(ec_brace_initialization_not_allowed);
     err = TRUE;
-  } else if (C_dialect == C_dialect_cplusplus &&
-             is_class_struct_union_type(vp_type) && curr_token != tok_lbrace) {
+  } else if (is_class_struct_union_type(vp_type) &&
+             curr_token != tok_lbrace &&
+             (C_dialect == C_dialect_cplusplus ||
+                (vp != NULL &&
+                 !has_static_storage_duration(vp->storage_class)))) {
     /* Special C++ case:  a class aggregate may be initialized with an object
        of its class or a class derived from it.  E.g., if S is the name of a
        struct and x is an S, then S y = x is permitted.  In addition, x may
        be any expression of a type for which there is a type conversion to S.
        Thus S y = 1 is a legal initialization if S(int) exists to perform the
        conversion. */
+    /* In ordinary C a struct or union variable may be initialized by an
+       object of the same type as long as dynamic initialization is otherwise
+       allowed. */
     /* Scan the expression on the right hand side of the equal sign. */
     expression = scan_argument_expression();
-    if (cssp->constructor == NULL) {
+    if (cssp == NULL || cssp->constructor == NULL) {
       /* The case of C-style structs.  No constructor exists, but simple
          struct assignment can be performed.  Check the type by assignment
          rules. */
