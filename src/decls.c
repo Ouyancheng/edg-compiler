@@ -5010,6 +5010,7 @@ Return a pointer to the variable that is declared.
   a_source_position            decl_pos;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
   a_boolean                    incomplete_type_error_reported;
+  a_boolean                    missing_declarator;
 
   db_enter(3, "condition_declaration");
   decl_pos = pos_curr_token;
@@ -5030,12 +5031,20 @@ Return a pointer to the variable that is declared.
   if (storage_class == (a_storage_class)sc_unspecified) {
     storage_class = (a_storage_class)sc_auto;
   }  /* if */
-  /* Scan the declarator.  It is not allowed to specify a function or an
-     array. */
-  declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, type_ptr,
-             /*member_parent_type=*/(a_type_ptr)NULL, &locator, &type_ptr,
-             &bottom_derived_type, (a_call_conv_descr_ptr)NULL,
-             &declarator_ssep, (a_func_info_block_ptr)NULL);
+  if (is_declarator_start()) {
+    /* Scan the declarator.  It is not allowed to specify a function or an
+       array. */
+    declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, type_ptr,
+               /*member_parent_type=*/(a_type_ptr)NULL, &locator, &type_ptr,
+               &bottom_derived_type, (a_call_conv_descr_ptr)NULL,
+               &declarator_ssep, (a_func_info_block_ptr)NULL);
+  } else {
+    /* No declarator.  Issue a single diagnostic on this malformed
+       condition declaration. */
+    missing_declarator = TRUE;
+    set_to_error_locator(locator);
+    error_position = pos_curr_token;
+  }  /* if */
   if (is_incomplete_type(type_ptr)) {
     /* Incomplete type is not allowed. */
     pos_error(ec_incomplete_type_not_allowed, &decl_pos);
@@ -5062,14 +5071,18 @@ Return a pointer to the variable that is declared.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                             &sym->decl_position, declarator_ssep);
-  /* The syntax for condition (see WP [stmt.select]) explicitly requires the
-     "= expr" syntax for initialization (that is, parenthesized initializers
-     are disallowed, as is implicit initialization of objects with default
-     constructors). */
-  (void)required_token(tok_assign, ec_exp_assign);
-  initializer(sym, &locator.source_position, (an_id_linkage_kind)idl_none,
-              /*parenthesized_initializer=*/FALSE, /*is_parameter=*/FALSE,
-              &incomplete_type_error_reported);
+  if (missing_declarator) {
+    syntax_error(ec_exp_declarator_in_condition_decl);
+  } else {
+    /* The syntax for condition (see WP [stmt.select]) explicitly requires the
+       "= expr" syntax for initialization (that is, parenthesized initializers
+       are disallowed, as is implicit initialization of objects with default
+       constructors). */
+    (void)required_token(tok_assign, ec_exp_assign);
+    initializer(sym, &locator.source_position, (an_id_linkage_kind)idl_none,
+                /*parenthesized_initializer=*/FALSE, /*is_parameter=*/FALSE,
+                &incomplete_type_error_reported);
+  }  /* if */
   db_exit();
   /* Return a pointer to the variable. */
   return vp;
