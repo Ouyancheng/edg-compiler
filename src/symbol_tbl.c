@@ -1572,6 +1572,7 @@ and return a pointer to it.
       tssp->variant.class_template.instantiations = NULL;
       tssp->variant.class_template.type_kind = (a_type_kind)tk_error;
       tssp->variant.class_template.prototype_instantiation = NULL;
+      tssp->variant.class_template.partial_specializations = NULL;
       tssp->variant.class_template.prototype_instantiation_complete = FALSE;
       tssp->variant.class_template.access =
                                          (an_access_specifier)as_inaccessible;

@@ -1261,6 +1261,16 @@ typedef struct a_template_symbol_supplement {
 			/* Points to the symbol representing the prototype
 			   instantiation.  The prototype instantiation is
 			   also on the instantiations list above. */
+      a_symbol_ptr
+		partial_specializations;
+			/* A list of class template symbols for partial
+			   specializations of the current class template.
+			   This is present only for class templates that are
+			   "primary" templates (i.e., those that are not
+			   already partial specializations).  NULL for
+			   templates with no partial specializations or for
+			   templates that are already partial
+			   specializations. */
       a_bit_field
 		prototype_instantiation_complete:1;
 			/* TRUE when the prototype instantiation of the
