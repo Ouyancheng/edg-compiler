@@ -1974,6 +1974,8 @@ state.
         sym_ptr->variant.projection.is_using_decl = FALSE;
         sym_ptr->variant.projection.any_intervening_using_decl = FALSE;
         sym_ptr->variant.projection.fund_sym_is_nonreal_member = FALSE;
+        sym_ptr->variant.projection.
+                     injected_class_template_name_is_unambiguous = FALSE;
       }
       break;
     case sk_overloaded_function:
@@ -7588,13 +7590,15 @@ if no such base-class symbol is found).
 }  /* find_progenitor */
 
 
-a_symbol_ptr find_progenitor_symbol(a_type_ptr               class_ptr,
-                                    a_symbol_locator         *locator,
-                                    an_id_lookup_options_set options,
-                                    a_derivation_step_ptr    *path,
-                                    an_access_specifier      *access,
-                                    a_boolean                *ambiguous,
-                                    a_boolean                *any_using_decl)
+a_symbol_ptr find_progenitor_symbol(
+                      a_type_ptr               class_ptr,
+                      a_symbol_locator         *locator,
+                      an_id_lookup_options_set options,
+                      a_derivation_step_ptr    *path,
+                      an_access_specifier      *access,
+                      a_boolean                *ambiguous,
+                      a_boolean                *any_using_decl,
+                      a_boolean                *unambiguous_injected_template)
 /*
 Given a pointer to a class (or struct or union) type and a locator, find
 in the classes from which the current class is derived a symbol that
@@ -7604,6 +7608,9 @@ there is more than one progenitor.  *path and *access (and *ambiguous as well
 under certain circumstances) may be set by subroutines and are just passed
 through back to the caller.  *any_using_decl is set if any progenitor candidate
 represents a using declaration or is or the projection of symbol that does.
+*unambiguous_injected_template is set when class_name_injection_enabled is
+TRUE, when *ambiguous is also set, and when all members of the progenitor
+set are instances of the same template.
 */
 {
   a_symbol_ptr      progenitor_sym;
@@ -7637,6 +7644,48 @@ represents a using declaration or is or the projection of symbol that does.
         }  /* for */
       }  /* if */
       *ambiguous = TRUE;
+    }  /* if */
+    /* If this projection is ambiguous, it may be appropriate to set a
+       flag indicating that it is ambiguous for instances of a class template
+       but not for the template itself.  E.g.,
+         struct B : A<int>, A<double> { ... };
+       A reference to "A" within B is ambiguous if one is interested in a
+       class but unambiguous if one is interested in a template.  (This is
+       an issue only when class-name-injection is enabled.) */
+    if (*ambiguous && class_name_injection_enabled) {
+      a_symbol_ptr  sym, templ_sym = NULL;
+
+      /* Set the flag to TRUE and look to change it back to FALSE. */
+      *unambiguous_injected_template = TRUE;
+      /* Traverse the list of progenitor symbols. */
+      for (pp = progenitor_set; pp != NULL; pp = pp->next) {
+        sym = pp->sym;
+        if (progenitor_sym->kind == (a_symbol_kind)sk_projection) {
+          /* Special handling when the progenitor is itself a projection. */
+          if (progenitor_sym->ambiguous &&
+              !progenitor_sym->variant.projection.
+                              injected_class_template_name_is_unambiguous) {
+            *unambiguous_injected_template = FALSE;
+            break;
+          }  /* if */
+          sym = fundamental_symbol_of(sym);
+        }  /* if */
+        if (is_injected_template_symbol(sym)) {
+          /* The name is a projection of an injected class template name. */
+          sym = class_template_for_injected_template_symbol(sym);
+          if (templ_sym == NULL) {
+            /* Must be the first time through the loop. */
+            templ_sym = sym;
+          } else if (templ_sym != sym) {
+            /* The templates don't match. */
+            *unambiguous_injected_template = FALSE;
+            break;
+          }  /* if */
+        } else {
+          *unambiguous_injected_template = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
     }  /* if */
     *access = progenitor->access;
     /* Move the derivation path from the progenitor entry and return it to
@@ -7799,6 +7848,7 @@ created if a projected symbol cannot be found in any of the real bases.
   a_class_symbol_supplement_ptr	cssp;
   a_boolean			any_using_decl = FALSE;
   a_boolean		        fund_sym_is_nonreal_member = FALSE;
+  a_boolean                     unambiguous_injected_template = FALSE;
 
   db_enter(4, "find_projected_symbol");
 #if DEBUG
@@ -7824,7 +7874,8 @@ created if a projected symbol cannot be found in any of the real bases.
   } else {
     progenitor_sym = find_progenitor_symbol(class_ptr, locator, options,
                                             &path, &access, &ambiguous,
-                                            &any_using_decl);
+                                            &any_using_decl,
+                                            &unambiguous_injected_template);
     /* In Microsoft bugs mode, if the progenitor symbol is for a nonstatic
        member (data or function), and we are doing a tentative template
        lookup, ignore this symbol. */
@@ -7879,6 +7930,11 @@ created if a projected symbol cannot be found in any of the real bases.
       new_sym->variant.projection.any_intervening_using_decl = any_using_decl;
       new_sym->variant.projection.fund_sym_is_nonreal_member =
                                                    fund_sym_is_nonreal_member;
+      if (new_sym->ambiguous) {
+        new_sym->
+          variant.projection.injected_class_template_name_is_unambiguous =
+                                                unambiguous_injected_template;
+      }  /* if */
       /* Add the symbol to the symbol table. */
       if (add_to_active_list) {
         /* Insert the symbol into the active list. */

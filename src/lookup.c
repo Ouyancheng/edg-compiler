@@ -392,9 +392,12 @@ member function is defined.
        derived class.  For the bug to occur, the name must be defined
        in the base class even if the name was redefined in the derived
        class.  Look for the name in a base class. */
+    a_boolean  unambiguous_injected_template = FALSE;
+
     new_sym = find_progenitor_symbol(class_type, locator,
                                      /*must_be_tag=*/FALSE, &path, &access,
-                                     &ambiguous, &any_using_decl);
+                                     &ambiguous, &any_using_decl,
+                                     &unambiguous_injected_template);
   }  /* if */
   if (new_sym != NULL) {
     a_symbol_ptr  fund_sym = fundamental_symbol_of(new_sym);

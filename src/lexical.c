@@ -8949,7 +8949,10 @@ selection operator, in which case it points to the type of the left operand.
 	     check cannot because it must be done based on the projection
 	     symbol, not on the symbol pointed to by the projection symbol. */
 	  specific_sym = locator_for_curr_id.specific_symbol;
-	  if (specific_sym != NULL && specific_sym->ambiguous) {
+	  if (specific_sym != NULL && specific_sym->ambiguous &&
+              (specific_sym->kind != (a_symbol_kind)sk_projection ||
+               !specific_sym->variant.projection.
+                               injected_class_template_name_is_unambiguous)) {
 	    pos_sy_error(ec_ambiguous_name,
 			 &locator_for_curr_id.source_position,
 			 specific_sym);

@@ -2020,6 +2020,19 @@ typedef struct a_symbol {
 			   of a derived class, when the lookup fails to find
 			   a member in the derived class or any of the real
 		 	   base classes. */
+      a_bit_field
+		injected_class_template_name_is_unambiguous:1;
+			/* If ambiguous is TRUE, this flag is TRUE if the
+			   fundamental symbols represent injected class names
+			   for instances of the same class template; if
+			   ambiguous is FALSE, this flag is undefined.
+			   The flag is TRUE in cases like this:
+			     class B : public A<int>, public A<float> { ... };
+			   where within B the projections of the injected
+			   class names of the base classes are ambiguous
+			   insofar as one is interested in the base class type
+			   and unambiguous insofar as one is interested in
+			   the template. */
     } projection;
     /* When kind = sk_overloaded_function: */
     struct {
@@ -2842,14 +2855,15 @@ extern a_boolean is_accessible_virtual_base_class(
                                              a_base_class_ptr bcp,
                                              a_type_ptr       viewpoint_class);
 
-extern
-a_symbol_ptr find_progenitor_symbol(a_type_ptr               class_ptr,
-                                    a_symbol_locator         *locator,
-                                    an_id_lookup_options_set options,
-                                    a_derivation_step_ptr    *path,
-                                    an_access_specifier      *access,
-                                    a_boolean                *ambiguous,
-                                    a_boolean                *any_using_decl);
+extern a_symbol_ptr find_progenitor_symbol(
+                      a_type_ptr               class_ptr,
+                      a_symbol_locator         *locator,
+                      an_id_lookup_options_set options,
+                      a_derivation_step_ptr    *path,
+                      an_access_specifier      *access,
+                      a_boolean                *ambiguous,
+                      a_boolean                *any_using_decl,
+                      a_boolean                *unambiguous_injected_template);
 
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);
