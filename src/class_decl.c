@@ -2846,15 +2846,21 @@ of the function, and again overloading is a possibility.
       }  /* if */
       if (sym != NULL) {
         if (sym->defined && func_info->is_definition) {
-          /* Trying to defined a function that's already defined. */
+          /* Trying to define a function that's already defined. */
           pos_sy_error(ec_function_redefinition,
                        &locator->source_position, sym);
           set_to_error_locator(*locator);
         } else {
+          a_source_sequence_entry_ptr  declarator_ssep =
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+                                                   func_info->declarator_ssep;
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+                                                   NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           if (func_info->is_definition) {
-            mark_defined(sym, &locator->source_position);
+            f_mark_defined(sym, &locator->source_position, declarator_ssep);
           } else {
-            mark_declared(sym, &locator->source_position);
+            f_mark_declared(sym, &locator->source_position, declarator_ssep);
           }  /* if */
           /* Do throw specification compatibility checking. */
           check_throw_specification(func_info, sym->variant.routine.ptr);
