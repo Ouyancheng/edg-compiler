@@ -10275,6 +10275,11 @@ of local variables (and types, etc.) of functions and in blocks.
   if (!decl_start) {
     if (function_definition_allowed && is_declarator_start()) {
       /* Function definition with omitted specifiers. */
+    } else if (curr_token == tok_identifier &&
+               locator_for_curr_id.specific_symbol != NULL &&
+               locator_for_curr_id.specific_symbol->kind ==
+                                              (a_symbol_kind)sk_undefined) {
+      /* Error case. */
     } else {
       /* Look for some cases that are obviously not the start of a declaration,
          and give a more specific "Expected a declaration" message. */
@@ -10422,7 +10427,8 @@ continue_with_declaration:
     }  /* if */
     discard_curr_construct_pragmas();
   } else if (dangling_type_specifier ||
-             (!C_mode() && identifier_is_template_id())) {
+             (!decl_specifiers_omitted && !C_mode() &&
+              identifier_is_template_id())) {
     /* A class, struct, union, or enum definition was followed by a type
        specifier keyword.  Issue a missing-semicolon error, since the type
        specifier can be taken as introducing a new declaration. */
