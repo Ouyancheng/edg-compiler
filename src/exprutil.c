@@ -3722,7 +3722,7 @@ issue an error.
      issued for the identifier. */
   if (!any_cfront_mode() && check_protected_access) {
     check_protected_member_access(member_sym, position,
-                                  member_proj_sym->class_of_which_a_member);
+                                  member_proj_sym->parent.class_type);
   }  /* if */
   /* No need to instantiate the class; since we have a member of it, it must
      be instantiated already. */
@@ -3762,7 +3762,7 @@ issue an error.
   }  /* if */
   /* Note that the class of the pointer is always the class in which
      the member was defined, not any derived class.  See ARM 5.3. */
-  member_class = member_sym->class_of_which_a_member;
+  member_class = member_sym->parent.class_type;
   constant.type = ptr_to_member_type(member_type, member_class);
   make_constant_operand(&constant, result);
   result->position = *position;
@@ -4045,7 +4045,7 @@ a diagnostic is put out in some cases.
              functions that return invalid types as long as they are never
              called.) */
           if (symbol_supplement_for_class(rp->source_corresp.
-                            class_of_which_a_member)->class_template != NULL) {
+                                parent.class_type)->class_template != NULL) {
             /* If the return type is invalid, change the return type to an
                error_type and issue a diagnostic. */
             check_operator_arrow_return_type(rp, /*is_expr_use=*/TRUE,
@@ -4346,8 +4346,7 @@ of the pointer to that bit field, in *ptr_type.
       if (field->offset_bit_remainder == 0) {
         /* Get the overall alignment of the structure of which this field is
            a member. */
-        struct_alignment =
-                      field->source_corresp.class_of_which_a_member->alignment;
+        struct_alignment = field->source_corresp.parent.class_type->alignment;
         /* Look for an integral type that matches the bit field size. */
         for (int_kind = (an_integer_kind)0;
              (int)int_kind < (int)ik_last;
@@ -5080,7 +5079,7 @@ If arg_operand is non-NULL, it points to an operand for the argument.
     check_assertion(fund_sym->kind == (a_symbol_kind)sk_member_function);
     rout = fund_sym->variant.routine.ptr;
     ptr_type = ptr_to_member_type(rout->type,
-                                 rout->source_corresp.class_of_which_a_member);
+                                  rout->source_corresp.parent.class_type);
   } else {
     /* Nonmember function. */
    ptr_type = make_pointer_type(arg_type);

@@ -156,12 +156,14 @@ source_pos is the source position of the reference.  See ARM 13.3,
         routine_type = routine_symbol_type(sym);
         /* Note that the type qualifiers on both types have already been
            dropped. */
-        if (identical_types(routine_type, dest_underlying_type) &&
-            sym->class_of_which_a_member == dest_class) {
-          /* Exact match. */
-          match_sym = sym;
-          *match_level = aml_exact;
-          number_of_matches++;
+        if (identical_types(routine_type, dest_underlying_type)) {
+          if ((dest_class == NULL && !sym->is_class_member) ||
+              (dest_class == sym->parent.class_type)) {
+            /* Exact match. */
+            match_sym = sym;
+            *match_level = aml_exact;
+            number_of_matches++;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */
@@ -279,11 +281,11 @@ param_type.
          sym != NULL;
          sym = sym->next) {
       a_type_ptr routine_type = routine_symbol_type(sym), ptr_routine_type;
-      if (sym->class_of_which_a_member == NULL) {
-        ptr_routine_type = make_pointer_type(routine_type);
-      } else {
+      if (sym->is_class_member) {
         ptr_routine_type = ptr_to_member_type(routine_type,
-                                              sym->class_of_which_a_member);
+                                              sym->parent.class_type);
+      } else {
+        ptr_routine_type = make_pointer_type(routine_type);
       }  /* if */
       if (tentatively_matches_template_type(ptr_routine_type,
                                             param_type,
@@ -3369,7 +3371,7 @@ C++ mode.
          of the member. */
       this_class = type_pointed_to(this_var->type);
       this_class = skip_typerefs(this_class);
-      member_class = member_sym->class_of_which_a_member;
+      member_class = member_sym->parent.class_type;
       if (this_class == member_class) {
         /* The class is right already.  This is the usual case. */
         bcp = NULL;
@@ -5034,7 +5036,7 @@ functions could still apply).
             /* There are member functions for this class type.  See how well
                they match up. */
 #if CHECKING
-            if (member_functions_symbol->class_of_which_a_member == NULL) {
+            if (!member_functions_symbol->is_class_member) {
               internal_error(
                             "check_for_operator_overloading: func not member");
             }  /* if */
@@ -6006,7 +6008,7 @@ call in *arg_expr_list.  This routine is used only in C++ mode.
   reference_to_implicitly_invoked_function(ctor_symbol,
                                            &operand->position,
                                            ctor_routine->source_corresp.
-                                                       class_of_which_a_member,
+                                                           parent.class_type,
                                            /*honor_virtual=*/FALSE,
                                           curr_expr_is_potentially_evaluated(),
                                            /*suppress_access_check=*/FALSE);
@@ -6058,7 +6060,7 @@ been adjusted, etc.).
     internal_error("make_constructor_dynamic_init: routine not constructor");
   }  /* if */
 #endif /* CHECKING */
-  class_type = ctor_routine->source_corresp.class_of_which_a_member;
+  class_type = ctor_routine->source_corresp.parent.class_type;
   /* Create the dynamic initialization entry and the enk_temp_init node. */
   temp_init_node = create_expr_temporary(class_type, result_is_addr, position);
   dip = temp_init_node->variant.init.dynamic_init;

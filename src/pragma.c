@@ -727,7 +727,7 @@ or sp pointer must be supplied.  The IL entry is then added to the IL.
   if (is_bound_to_il) {
     if (sym != NULL) {
       entity = il_entry_for_symbol(sym, &entity_kind);
-      class_type = sym->class_of_which_a_member;
+      if (sym->is_class_member) class_type = sym->parent.class_type;
     } else {
       entity = (char *)sp;
       entity_kind = (an_il_entry_kind)iek_statement;

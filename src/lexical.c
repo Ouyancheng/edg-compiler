@@ -6354,8 +6354,8 @@ by the options.  Returns TRUE if any errors were diagnosed.
         options & GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION) {
       a_symbol_ptr  type_sym;
       a_type_ptr	type = locator_for_curr_id.qualifier_class_type;
-      while (type->source_corresp.class_of_which_a_member != NULL) {
-        type = type->source_corresp.class_of_which_a_member;
+      while (type->source_corresp.is_class_member) {
+        type = type->source_corresp.parent.class_type;
       }  /* while */
       type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
       if (!is_template_class_symbol(type_sym)) {
@@ -6843,7 +6843,7 @@ qualified name.
         } else {
           /* Record the reference on the symbol. */
           mark_referenced(class_symbol, &pos_curr_token);
-          if (class_symbol->class_of_which_a_member != NULL) {
+          if (class_symbol->is_class_member) {
             /* Do ambiguity and access control checking on the class symbol.
                Only do the check if the symbol points to a class member.
                The requirement that the class symbol be a member also ensures
@@ -7046,16 +7046,16 @@ qualified name.
 	   only error to be issued will be "global qualifier not allowed"
 	   error issued by the coalesce routine. */
         a_symbol_ptr	type_sym = NULL;
-	a_type_ptr	cowam;
+
         /* Set dtor_class_type to class_type.  This is only needed when
 	   we have a typedef name.  For a type name like "int" it will
 	   already have been set. */
         dtor_class_type = class_type;
         if (is_global_qualified_name) {
 	  class_type = NULL;
-	} else if (class_symbol != NULL &&
-                   (cowam = class_symbol->class_of_which_a_member) != NULL) {
-          type_sym = class_qualified_id_lookup(&locator_for_curr_id, cowam,
+	} else if (class_symbol != NULL && class_symbol->is_class_member) {
+          type_sym = class_qualified_id_lookup(&locator_for_curr_id,
+                                               class_symbol->parent.class_type,
                                                IDL_NO_OPTIONS);
 	} else {
 	  type_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);

@@ -193,15 +193,14 @@ the output_name routine in the control block (if there is one) will not
 be used to output any part of the name.  Called only for C++.
 */
 {
-  a_type_ptr parent_class;
-
   /* Ignore anonymous union levels. */
   for (; class_type->variant.class_struct_union.extra_info->
                     anonymous_union_kind == (an_anonymous_union_kind)auk_field;
-       class_type = class_type->source_corresp.class_of_which_a_member) {}
-  parent_class = class_type->source_corresp.class_of_which_a_member;
-  /* Use recursion to handle multiple levels of nesting. */
-  if (parent_class != NULL) form_class_qualifier(parent_class, octl);
+       class_type = class_type->source_corresp.parent.class_type) {}
+  if (class_type->source_corresp.is_class_member) {
+    /* Use recursion to handle multiple levels of nesting. */
+    form_class_qualifierf(class_type->source_corresp.parent.class_type, octl);
+  }  /* if */
   /* Do the last level. */
   form_unqualified_name(&class_type->source_corresp, iek_type, octl);
   octl->output_str("::");
@@ -229,9 +228,8 @@ output in the way described by octl.
                         "form_name: doesn't handle compilable output");
     /* If the name is a member of a class in C++, output the class
        qualifier. */
-    if (il_header.source_language == sl_Cplusplus) {
-      a_type_ptr class_type = scp->class_of_which_a_member;
-      if (class_type != NULL) form_class_qualifier(class_type, octl);
+    if (il_header.source_language == sl_Cplusplus && scp->is_class_member) {
+      form_class_qualifier(scp->parent.class_type, octl);
     }  /* if */
     /* Output the base name. */
     form_unqualified_name(scp, kind, octl);
