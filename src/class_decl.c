@@ -5976,8 +5976,28 @@ or implicit) controlling the declaration.
         pos_sy_error(ec_no_access_to_name,
                      &locator_for_curr_id.source_position, sym);
       } else {
+        /* Find the base class of class_type to which fund_sym belongs.  bcp
+           points to the base class to which declared_sym belongs. */
+        a_base_class_ptr  fund_base_class;
+
+        if (fund_sym == declared_sym ||
+            fund_sym->parent.class_type == declared_sym->parent.class_type) {
+          /* Common case: the fundamental symbol is the same as the declared
+             symbol, or a member of the overload set it represents. */
+          fund_base_class = bcp;
+        } else {
+          /* Special case:  Find the base class associated with the
+             fundamental symbol. */
+          fund_base_class = base_classes_of(class_type);
+          for (;;) {
+            if (fund_base_class->type == fund_sym->parent.class_type &&
+                is_on_any_derivation_of(fund_base_class, bcp)) break;
+            fund_base_class = fund_base_class->next;
+            check_assertion(fund_base_class != NULL);
+          }  /* for */
+        }  /* if */
         /* Create the projection symbol. */
-        new_sym = make_projection_symbol(sym, class_type, bcp,
+        new_sym = make_projection_symbol(sym, class_type, fund_base_class,
                                          (a_derivation_step_ptr)NULL,
                                          /*ambiguous=*/FALSE);
         new_sym->variant.projection.access_adjustment_made = TRUE;
