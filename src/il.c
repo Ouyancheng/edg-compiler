@@ -6652,6 +6652,14 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           db_type_name((a_type_ptr)sseocp->entity.ptr);
           fputc('"', f_debug);
           break;
+        case iek_routine:
+          fputs("func-prototype", f_debug);
+          if (sseocp->entity.ptr != NULL) {
+            fputs(" for \"", f_debug);
+            db_name(&((a_routine_ptr)sseocp->entity.ptr)->source_corresp);
+            fputc('"', f_debug);
+          }  /* if */
+          break;
         default:
           fprintf(f_debug, "***BAD END-OF-CONSTRUCT KIND %s***",
                            il_entry_kind_names[(int)sseocp->entity.kind]);
