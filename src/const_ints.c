@@ -793,7 +793,7 @@ shift count is a legal value.
     op_1->part[i] = (an_int_value_part)(work & MAX_UINT_VALUE_PART);
   }  /* for */
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-}  /* shift_right_integer_values */
+}  /* shift_right_integer_value */
 
 
 void subtract_integer_values(an_integer_value *op_1,
