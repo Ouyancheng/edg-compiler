@@ -8877,7 +8877,6 @@ standard.
         /* The result is not a null pointer constant. */
         result->variant.constant.null_pointer_constant_ruled_out = TRUE;
       }  /* if */
-      result->variant.constant.is_simple_zero = FALSE;
     }  /* if */
   }  /* if */
 
@@ -9464,7 +9463,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                is_constant_operand(&operand_3))
 #endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
                                                )) {
-    /* Fold the operation to a constant. */
+    /* The first operand is a constant.  Fold the operation to the
+       second or third operand. */
     an_operand *other_operand;
     if (operand_1_is_false) {
       /* The first operand is false; return the third operand as the result. */
@@ -9476,6 +9476,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       other_operand = &operand_3;
     }  /* if */
     result->is_simple_string_literal = FALSE;
+    result->is_cfront_null_pointer_constant = FALSE;
     if (is_constant_operand(result)) {
       if (!is_constant_operand(other_operand) ||
           other_operand->variant.constant.null_pointer_constant_ruled_out ||
@@ -9483,7 +9484,6 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
         /* The result is not a null pointer constant. */
         result->variant.constant.null_pointer_constant_ruled_out = TRUE;
       }  /* if */
-      result->variant.constant.is_simple_zero = FALSE;
     }  /* if */
   } else {
     /* Build the expression. */
@@ -11160,6 +11160,11 @@ see expr.h).
     case tok_true:
     case tok_false:
       make_constant_operand(&const_for_curr_token, &local_result);
+      if (any_cfront_mode() && const_for_curr_token.is_simple_zero) {
+        /* Cfront accepts only a simple 0 as a null pointer constant.
+           Keep track of that. */
+        local_result.is_cfront_null_pointer_constant = TRUE;
+      }  /* if */
       (void)get_token();
       break;
 

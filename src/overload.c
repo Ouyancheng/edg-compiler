@@ -1443,7 +1443,7 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
         !(any_cfront_mode() && arg_operand_is_constant &&
           is_null_pointer_constant(arg_operand_constant) &&
           (is_pointer_type(param_type) || is_ptr_to_member_type(param_type)) &&
-          !arg_operand_constant->is_simple_zero)) {
+          !arg_operand->is_cfront_null_pointer_constant)) {
       /* Match with standard conversions. */
       arg_summary->match_level = aml_std_conversion;
       arg_summary->conversion.std = std_conversion;
@@ -5418,7 +5418,7 @@ the target type to be used).
                                (is_pointer_type(eff_specific_type) ||
                                 is_ptr_to_member_type(eff_specific_type));
         if (cfront_null_ptr_constant_case &&
-            (!source_constant->is_simple_zero ||
+            (!arg_operand->operand.is_cfront_null_pointer_constant ||
              (cfront_3_0_mode &&
               (kind == (an_opname_kind)onk_lt ||
                kind == (an_opname_kind)onk_gt ||

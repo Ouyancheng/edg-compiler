@@ -239,6 +239,10 @@ typedef struct an_operand {
 			   decay of such a literal to a pointer.  FALSE
 			   for a string literal that has been subjected to
 			   a cast or other operation. */
+  a_bit_field	is_cfront_null_pointer_constant:1;
+			/* TRUE if this operand is a simple 0 which is
+			   suitable as a null pointer constant in
+			   overload resolution in cfront mode. */
   a_source_position
 		position;
 			/* The source position for the operand. */

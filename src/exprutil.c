@@ -1285,6 +1285,7 @@ values.
   operand->is_operand_of_address_of = FALSE;
   operand->is_template_id = FALSE;
   operand->is_simple_string_literal = FALSE;
+  operand->is_cfront_null_pointer_constant = FALSE;
   operand->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   operand->end_position = null_source_position;
