@@ -9,7 +9,7 @@ function template.
 
 4/15/03  C99: keywords may be handled improperly in _Pragma operators
 
-When scanning a pragma for which "processing_C_code" is FALSE, keywords
+When scanning a pragma for which "processing_C_code" is FALSE, keyword
 recognition should have been disabled but was instead enabled when the
 pragma was specified using a C99 _Pragma operator.  Now fixed.
 
