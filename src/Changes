@@ -1,5 +1,19 @@
 Version 2.38
 
+11/24/97  C++-generating back end: internal error when unneeded entities
+          are eliminated
+
+An internal error could occur when (1) the C++-generating back end is
+used, (2) NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is
+configured to TRUE, and (3) elimination of unneeded IL entries is enabled.
+(The problem stems from the interaction of two changes introduced in
+version 2.37 -- see entries for 9/23/97 and 10/15/97.)  The bug is now
+fixed, but the abort could occur with the simplest of cases:
+
+  class A {
+    void f() { }    // A::f is not referenced in this translation unit
+  };
+
 11/24/97  C++-generating back end: friend decl of static function
 
 In Microsoft mode, a friend declaration can include a storage class,
@@ -10,14 +24,9 @@ did not check for Microsoft mode specifically, and that meant
 incorrect output in non-Microsoft mode for cases like the following:
 
   static int f();
-  int local() {
-    struct X {
-      friend int f();
-    };
-    return f();
-  }
-  int f() { return 0; }
-
+  struct X {
+    friend int f();
+  };
 
 11/22/97  --preinclude comand-line option
 

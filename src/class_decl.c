@@ -1054,7 +1054,16 @@ nested class.
                entry was put out for the member or friend function
                definition.  The primary source sequence entry was deferred
                till now, when the class definition is complete. */
-            /* Now put out the source sequence entry for the routine. */
+#if CHECKING
+            a_source_sequence_entry_ptr  ssep = rp->source_corresp.
+                                                    source_sequence_entry;
+            check_assertion(ss_entry_kind(ssep) ==
+                                (an_il_entry_kind)iek_src_seq_secondary_decl);
+#endif /* CHECKING */
+            /* Now put out the source sequence entry for the routine, after
+               clearing the source-sequence pointer to be sure it will be
+               reset. */
+            rp->source_corresp.source_sequence_entry = NULL;
             update_source_sequence_list((char *)rp,
                                         (an_il_entry_kind)iek_routine,
                                         (a_source_sequence_entry_ptr)NULL);
