@@ -2436,7 +2436,7 @@ do_argument_again:
           if (pcc_preprocessing_mode) goto end_arg_expansion;
           /* It's also not necessary (and not allowed) if the expanded
              form of the argument is never used. */
-          if (!pp->need_expanded_form) goto end_arg_expansion;
+          if (pp == NULL || !pp->need_expanded_form) goto end_arg_expansion;
           slmp = add_source_line_modif(start_of_curr_token, 1,
                                        map->raw_text,
                                        map->raw_text+map->raw_len);
