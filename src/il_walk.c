@@ -16,16 +16,15 @@ il_walk.c -- Routines to walk the intermediate language tree.
 #include "basics.h"
 #include "host_envir.h"
 
-#if IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG || STANDALONE_UTILITY_PROGRAM
+#if IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG || NEED_IL_DISPLAY
 /* If debugging or display output is needed, the utility routine to 
    format a character string based on the IL entry kind must be compiled.
 */
 #include "il_walk.h"
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG ||
-         STANDALONE_UTILITY_PROGRAM */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG || NEED_IL_DISPLAY */
 
 /* None of this is needed if not writing IL to a file. */
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
+#if IL_WALK_NEEDED
 
 #include "il.h"
 #include "error.h"
@@ -150,6 +149,42 @@ Process the source correspondence field pointed to by ptr.
   walk_string_ptr((ptr).name, iek_id_name, 0) \
 }
 #endif /* ifdef CIL */
+
+
+static void add_orphaned_file_scope_il_entry (char             *entry_ptr,
+                                              an_il_entry_kind entry_kind)
+/*
+Link the specified file scope IL entry onto the orphaned_file_scope_il_entries
+linked list for the designated IL entry kind.  Only IL entries in the
+file scope memory region have the necessary additional pointer space 
+allocated immediately preceding the entry.
+*/
+{
+  char **last_entry_ptr;
+
+#if CHECKING
+  if (!in_file_scope(entry_ptr)) {
+    internal_error(
+ "add_orphaned_file_scope_il_entry: IL entry not in file scope memory region");
+  }  /* if */
+#endif /* CHECKING */
+  /* Check if this IL entry is already on the orphaned entry list. */
+  last_entry_ptr = &orphaned_file_scope_il_entries[(int)entry_kind].last_entry;
+  if (*(char *)(entry_ptr - sizeof(char *)) == NULL &&
+      entry_ptr != *last_entry_ptr) {
+    /* This entry is not in the existing list; add it to the end of the
+       list. */
+    if (*last_entry_ptr == NULL) {
+      /* This is the first entry on this list */
+      orphaned_file_scope_il_entries[(int)entry_kind].first_entry = 
+                                                               entry_ptr;
+    } else {
+      /* Add to the tail of the existing list. */
+      *(char **)(*last_entry_ptr - sizeof (char *)) = entry_ptr;
+    }  /* if */
+    *last_entry_ptr = entry_ptr;
+  }  /* if */
+}  /* add_orphaned_file_scope_il_entry */
 
 
 static void walk_constant(a_constant_ptr ptr)
@@ -436,7 +471,14 @@ and the entry pointer is to an entry in the file scope, just return
     if (walk_subtree) {
       /* If we are walking through a function scope, and the entry here is
          in the file scope, just return. */
-      if (!walking_file_scope && in_file_scope(entry_ptr)) goto end_of_routine;
+      /* If a non-string gfile scope entry, ensure that the entry is on the 
+         the orphaned_file_scope_il_entries list. */
+      if (!walking_file_scope && in_file_scope(entry_ptr)) {
+        if (is_string_entry_kind(entry_kind)) {
+          add_orphaned_file_scope_il_entry(entry_ptr, entry_kind);
+        }  /* if */
+        goto end_of_routine;
+      }  /* if */
       /* See if this entry has been reached already, and if so, don't process
          it or its subtree.  This is indicated by the il_walk_flag field of the
          source_correspondence entry, for those entries that have one.  Note
@@ -1332,9 +1374,6 @@ need to be updated from their "old" values to the proper "new" values.
 That is what the remap function does.
 */
 {
-  a_group_of_local_scope_entities_allocated_in_file_scope_ptr
-		list_ptr;
-
   db_enter(4, "walk_file_scope_il");
   /* Save the function pointers so they don't have to be passed around. */
   entry_process_func = entry_process_function;
@@ -1355,16 +1394,6 @@ That is what the remap function does.
   walk_string_ptr(il_header.compiler_version, iek_other_text, 0);
   walk_string_ptr(il_header.time_of_compilation, iek_other_text, 0);
   /* region_scope_entry should not be walked. */
-
-  /* Process any non-file scope types and static variables that have been
-     referenced from other memory regions; these are in the file scope memory
-     region. */
-  for (list_ptr = local_scope_entities_allocated_in_file_scope;
-       list_ptr != NULL;
-       list_ptr = list_ptr->next) {
-    walk_list(list_ptr->local_types, a_type_ptr, iek_type);
-    walk_list(list_ptr->static_variables, a_variable_ptr, iek_variable);
-  }  /* for */  
   db_exit();
 }  /* walk_file_scope_il */
 
@@ -1478,9 +1507,10 @@ Remap the pointers in il_header by running them through remap_function.
   remap_func = prev_remap_func;
 }  /* remap_il_header_pointers. */
 
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+
+#endif /* IL_WALK_NEEDED */
                      
-#if IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG || STANDALONE_UTILITY_PROGRAM
+#if IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG || NEED_IL_DISPLAY
 
 char *retrieve_il_entry_kind_name(an_il_entry_kind entry_kind)
 /*
@@ -1554,8 +1584,7 @@ entry kind passed as an argument.
   return s;
 }  /* retrieve_il_entry_kind_name */
 
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG ||
-          STANDALONE_UTILITY_PROGRAM */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG || NEED_IL_DISPLAY */
 
 /******************************************************************************
 *                                                             \  ___  /       *
