@@ -1015,7 +1015,7 @@ source position is after the closing parenthesis of the argument list.
       /* Note that the code here also does not append default argument
          values as adjust_overloaded_function_call_arguments would. */
       if (is_null_user_conv_descr(&arg_match->conversion)) {
-        arg_match->conversion.class_identity_or_bitwise_copy = TRUE;
+        arg_match->conversion.class_object_adjustment_required = TRUE;
       }  /* if */
       if (is_bitwise_copy) {
         arg_match->conversion.result_is_an_lvalue = FALSE;
@@ -1024,7 +1024,7 @@ source position is after the closing parenthesis of the argument list.
                            class_type,
                            &arg_match->conversion,
                            (a_conv_descr *)NULL,
-                           /*force_temp_for_class_bitwise_copy=*/FALSE);
+                           /*force_copy_to_temp=*/FALSE);
       if (is_temp_after_conv) {
         /* We determined previously that the result after the conversion
            would be a temp we could reuse. */
@@ -9128,8 +9128,7 @@ for non-class operands).  This routine is called only in C++ mode.
              object to the same class type, ignoring cv-qualifiers. */
           user_convert_operand(operand, type_cast_to, &conversion,
                                &ctor_arg_conversion,
-                               /*force_temp_for_class_bitwise_copy=*/
-                                                           !any_cfront_mode());
+                               /*force_copy_to_temp=*/!any_cfront_mode());
           *processed = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_bugs && microsoft_version < 1100 &&

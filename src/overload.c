@@ -7380,7 +7380,7 @@ routine is called only in C++ mode.
                          conversion_type,
                          &arg_match_list->conversion,
                          (a_conv_descr *)NULL,
-                         /*force_temp_for_class_bitwise_copy=*/FALSE);
+                         /*force_copy_to_temp=*/FALSE);
     /* See whether the conversion function returns a reference type. */
     if (arg_match_list->conversion.result_is_an_lvalue) {
       routine_type = conversion_type;
@@ -9310,7 +9310,7 @@ Adjust the operand type to match the type requirement.
         prep_for_known_possible_conversion(operand, &arg_match->conversion);
         user_convert_operand(operand, /*dest_type=*/(a_type_ptr)NULL,
                              &arg_match->conversion, (a_conv_descr *)NULL,
-                             /*force_temp_for_class_bitwise_copy=*/FALSE);
+                             /*force_copy_to_temp=*/FALSE);
       } else {
         /* The conversion is not usable, e.g., because the conversion
            is ambiguous.  Redo the analysis of the conversion to get
@@ -10507,7 +10507,7 @@ Issue an error and set *processed to TRUE if the conversion is ambiguous.
       conversion.result_is_an_lvalue = FALSE;
       user_convert_operand(operand, /*dest_type=*/(a_type_ptr)NULL,
                            &conversion, (a_conv_descr *)NULL,
-                           /*force_temp_for_class_bitwise_copy=*/FALSE);
+                           /*force_copy_to_temp=*/FALSE);
       *processed = TRUE;
     } else if (ambiguous) {
       /* There is more than one possible conversion to a built-in type. */
@@ -10949,17 +10949,15 @@ error:
 
 
 static void prep_class_bitwise_copy_operand(an_operand *source_operand,
-                                            a_type_ptr dest_type,
-                                            a_boolean  conv_to_rvalue)
+                                            a_type_ptr dest_type)
 /*
 source_operand is to be copied bitwise to an entity of type dest_type.
 Both have class types.  Adjust source_operand if necessary, specifically
-for the case where the source type is a derived class of dest_type.
-This is used for initialization.  See ARM 8.4.1 (aggregate initialization).
-This routine does not do the bitwise copy; it just prepares the operand
-for it.  Note also that this routine is called for the identity case
-where the class type is already correct and nothing should be done to it.
-conv_to_rvalue is TRUE if the result should be forced to be an rvalue.
+for the case where the source type is a derived class of dest_type,
+and convert it to an rvalue if it isn't one already.  This routine does
+not do the bitwise copy; it just prepares the operand for it.  Note
+also that this routine is called for the identity case where the class
+type is already correct and nothing should be done to it.
 */
 {
   a_type_ptr       source_type = source_operand->type;
@@ -10987,10 +10985,8 @@ conv_to_rvalue is TRUE if the result should be forced to be an rvalue.
     }  /* if */
     adjust_class_object_type(source_operand, dest_type, bcp);
   }  /* if */
-  if (conv_to_rvalue) {
-    /* Make the source an rvalue. */
-    do_operand_transformations(source_operand, TOPT_NO_OPTIONS);
-  }  /* if */
+  /* Make the source an rvalue. */
+  do_operand_transformations(source_operand, TOPT_NO_OPTIONS);
 }  /* prep_class_bitwise_copy_operand */
 
 
@@ -11181,20 +11177,26 @@ void user_convert_operand(an_operand   *operand,
                           a_type_ptr   dest_type,
                           a_conv_descr *conversion,
                           a_conv_descr *ctor_arg_conversion,
-                          a_boolean    force_temp_for_class_bitwise_copy)
+                          a_boolean    force_copy_to_temp)
 /*
 Do the user-defined conversion indicated by *conversion to convert
 *operand to dest_type.  dest_type may be NULL to indicate that
 no additional conversion is needed after the conversion function is called.
 If ctor_arg_conversion is non-NULL, it describes the conversion to be done
 on the argument of the user-defined conversion, which in that case will
-be a constructor call.  Note that this routine converts the operand to
-a destination type, but does not copy it anywhere; that's up to the caller.
-That's particularly significant when the "conversion" is a class bitwise
-copy: the adjustment here changes the operand to access the same class
-object with the new type, but does not copy it to a temporary.  However,
-if force_temp_for_class_bitwise_copy is TRUE, a temporary will be created
-in that case.
+be a constructor call.  *conversion generally must indicate a user-defined
+conversion (possibly a bitwise copy), but for convenience this routine
+will also handle a conversion with only class_object_adjustment_required
+indicated.  Note that this routine converts the operand to a
+destination type, but does not copy it anywhere; that's up to the
+caller.  That's particularly significant when the "conversion" is a
+class bitwise copy or simple class object adjustment: the processing
+here changes the operand to access the same class object with the new
+type, but does not copy it to a temporary.  However, if in such a case
+force_copy_to_temp is TRUE and conversion->result_is_an_lvalue
+indicates an rvalue result is required, a temporary will be created,
+the operand will be copied into it, and the result is an rvalue for
+the temporary.
 */
 {
   an_expr_node_ptr  rout_node, arg_expr_list;
@@ -11212,11 +11214,11 @@ in that case.
   }  /* if */
 #endif /* CHECKING */
   is_explicit_cast = conversion->is_explicit_cast;
+  if (conversion->result_is_an_lvalue) force_copy_to_temp = FALSE;
   if (conversion->class_identity_or_bitwise_copy) {
     /* Bitwise copy of a class. */
-    a_boolean conv_to_rvalue = !conversion->result_is_an_lvalue;
-    prep_class_bitwise_copy_operand(operand, dest_type, conv_to_rvalue);
-    if (force_temp_for_class_bitwise_copy && conv_to_rvalue) {
+    prep_class_bitwise_copy_operand(operand, dest_type);
+    if (force_copy_to_temp) {
       /* Make a copy of the class object in a temporary. */
       temp_init_by_bitwise_copy_from_operand(operand,
                                              /*result_is_addr=*/FALSE,
@@ -11229,6 +11231,15 @@ in that case.
     generic_cast_operand(operand, dest_type,
                          (an_expr_operator_kind)eok_cast,
                          !is_explicit_cast, /*is_reference_cast=*/FALSE);
+  } else if (conversion_routine == NULL) {
+    /* A simple class object type adjustment without a call of a conversion
+       routine. */
+    check_assertion(conversion->class_object_adjustment_required &&
+                    dest_type != NULL);
+    do_class_object_adjustment(operand, dest_type, conversion);
+    if (force_copy_to_temp) {
+      temp_init_from_operand(operand, /*result_is_addr=*/FALSE);
+    }  /* if */
   } else if (conversion_routine->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
     /* Conversion function. */
@@ -11324,7 +11335,7 @@ The conversion is assumed not to be due to an explicit cast.
     /* Call a user-defined conversion routine. */
     user_convert_operand(source_operand, dest_type, conversion,
                          (a_conv_descr *)NULL,
-                         /*force_temp_for_class_bitwise_copy=*/FALSE);
+                         /*force_copy_to_temp=*/FALSE);
   } else {
     /* Cast the operand to the result type. */
     cast_operand(dest_type, source_operand, /*check_cast_access=*/TRUE,
@@ -11738,7 +11749,7 @@ happen only in C++ mode.
          this point, and not to the destination type if it is different. */
       user_convert_operand(source_operand, (a_type_ptr)NULL,
                            conversion, (a_conv_descr *)NULL,
-                           /*force_temp_for_class_bitwise_copy=*/FALSE);
+                           /*force_copy_to_temp=*/FALSE);
       /* See if the result of the conversion is already in a temporary
          of the right type. */
       if (identical_types(source_operand->type, dest_type) &&
@@ -11782,8 +11793,7 @@ happen only in C++ mode.
   } else if (class_bitwise_copy) {
     /* The operation is a class bitwise copy, so use a dik_expression. */
     a_dynamic_init_kind kind = (a_dynamic_init_kind)dik_expression;
-    prep_class_bitwise_copy_operand(source_operand, dest_type,
-                                    /*conv_to_rvalue=*/TRUE);
+    prep_class_bitwise_copy_operand(source_operand, dest_type);
     if (is_constant_operand(source_operand)) {
       /* In some cases (e.g., when the initializer is a compound literal
          in g++ mode) the dynamic initialization should use a constant. */
@@ -12052,7 +12062,7 @@ copy-initialization.
          result of the conversion function rather than dest_type. */
       user_convert_operand(source_operand, /*dest_type=*/(a_type_ptr)NULL,
                            conversion, (a_conv_descr *)NULL,
-                           /*force_temp_for_class_bitwise_copy=*/FALSE);
+                           /*force_copy_to_temp=*/FALSE);
     } else {
       /* Normal case. */
       convert_operand(source_operand, dest_type, conversion);
@@ -13433,7 +13443,7 @@ used only in C++ mode.
                                           &template_case,
                                           (a_symbol **)NULL)) {
       possible = TRUE;
-      conv->class_identity_or_bitwise_copy = TRUE;
+      conv->class_object_adjustment_required = TRUE;
       conv->result_is_an_lvalue = TRUE;
     } else if (!curr_expr_kind_is_const() &&
                is_class_struct_union_type(op1_type)) {
@@ -13495,7 +13505,7 @@ used only in C++ mode.
         /* Set *conv to indicate the related-class conversion. */
         conv->std.cast_base_class = bcp;
         conv->std.nontrivial_conversion = (bcp != NULL);
-        conv->class_identity_or_bitwise_copy = TRUE;
+        conv->class_object_adjustment_required = TRUE;
         conv->result_is_an_lvalue = FALSE;
       }  /* if */
     } else {

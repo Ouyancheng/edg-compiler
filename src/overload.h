@@ -53,12 +53,17 @@ typedef struct a_conv_descr {
 			   conversion function calls. */
   a_byte_boolean
 		class_identity_or_bitwise_copy;
-			/* If TRUE, the "conversion" for a class is either
-			   identity (the class already has the right type) or
-			   is a bitwise copy (substituting for either a
-			   copy constructor or an assignment operator).
-			   Note that the source type may be a derived class
-			   of the destination type. */
+			/* If TRUE, the "conversion" for a class is a bitwise
+			   copy (possibly from a derived class to a base
+			   class).  If this is viewed as a conversion instead
+			   of a copy, it looks like an identity conversion
+			   or a derived-to-base conversion, with possible
+			   cv-qualifier adjustment.  However: this flag is
+			   set only for cases where bitwise copy is the
+			   appropriate semantics, and is never used for
+			   general type adjustments on class objects (see
+			   class_object_adjustment_required).  routine is
+			   always NULL when this flag is set. */
   a_byte_boolean
 		result_is_an_lvalue;
 			/* If TRUE, the function returns a reference and the
@@ -74,13 +79,16 @@ typedef struct a_conv_descr {
 			   ambiguous. */
   a_byte_boolean
 		class_object_adjustment_required;
-			/* If TRUE, the result type of the conversion routine
-			   is a class type.  It differs from the desired
-			   type in being a derived class or in having different
-			   cv-qualifiers, but such adjustment is not a standard
-			   conversion; it's part of reference binding.
-			   std.cast_base_class indicates the derived --> base
-			   part of the adjustment. */
+			/* If TRUE, a class object requires a type adjustment
+			   of cv-qualifiers or (when std.cast_base_class is
+			   non-NULL) to a base class.  The existing class
+			   object is treated as having the new type; no copy
+			   is made.  This adjustment may be needed on the
+			   original source (routine == NULL) or on the result
+			   of a conversion routine call (routine != NULL).
+			   The adjustment is similar to a standard conversion,
+			   but it isn't considered to be one: the standard
+			   views it as part of reference binding. */
   a_byte_boolean
 		conversion_for_direct_reference_binding;
 			/* If TRUE, the conversion indicated is one that
@@ -671,12 +679,11 @@ extern a_boolean user_defined_conversion_possible(
                                       a_conv_descr *ctor_arg_conversion,
                                       a_boolean    *failed);
 
-extern void user_convert_operand(
-                           an_operand   *operand,
-                           a_type_ptr   dest_type,
-                           a_conv_descr *conversion,
-                           a_conv_descr *ctor_arg_conversion,
-                           a_boolean    force_temp_for_class_bitwise_copy);
+extern void user_convert_operand(an_operand   *operand,
+                                 a_type_ptr   dest_type,
+                                 a_conv_descr *conversion,
+                                 a_conv_descr *ctor_arg_conversion,
+                                 a_boolean    force_copy_to_temp);
 
 extern void check_access_to_elided_copy_constructor(
                                              a_type_ptr        source_type,
