@@ -2,6 +2,16 @@ Version 2.24, July 8, 1994
 
 7/8/94   IL version number changed to 2.16
 
+7/8/94   USING_OLD_STYLE_C conditional compilation flag
+
+A flag named USING_OLD_STYLE_C has been added to basics.h.  The
+default value is FALSE, so you will need to define this flag if 
+you are building the front end with an old style (i.e., K&R/pcc)
+compiler.
+
+__STDC__ was not used because it is not set consistently by existing
+ANSI/ISO C compilers.
+
 7/6/94   Diagnostic on storage class with autonomous tag declaration
 
 An error (but still a warning in cfront mode) is issued when a storage
