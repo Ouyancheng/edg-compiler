@@ -1,5 +1,25 @@
 Version 3.5
 
+9/20/04  Microsoft compatibility: For-init scope
+
+MSVC++ 7.0 and earlier always use a nonstandard for-init scope.  I.e.,
+variables declared in a for-init construct are visible after the end of
+the "for" statement.  MSVC++ 7.1 has made this behavior dependent on
+whether the type of a variable has a nontrivial destructor: If it does,
+the standard scoping rules apply; otherwise, the nonstandard rules of
+previous MSVC++ versions apply.  For example:
+
+  struct S { S(); ~S(); };
+  void f() {
+    for (S *p, s; false;) {}
+    // In Microsoft mode with microsoft_version == 1310, p is visible
+    // here, but s (which has a destructor) is not.
+  }
+
+The front end has been updated to match the behavior of the MSVC++ 7.1
+compiler when microsoft_version >= 1310, unless the --old_for_init or
+--new_for_init options are specified.
+
 9/17/04  Incorrect access error on Microsoft property field with protected
          underlying function
 
@@ -226,25 +246,6 @@ expression or a constant expression.  This is used in this
 case to force folding of constant expressions even when they
 don't look constant in the IL, as in the above, but it has
 potential utility for a number of other issues in the future.
-
-9/7/04   Microsoft compatibility: For-init scope
-
-MSVC++ 7.0 and earlier always use a nonstandard for-init scope.  I.e.,
-variables declared in a for-init construct are visible after the end of
-the "for" statement.  MSVC++ 7.1 has made this behavior dependent on
-whether the type of a variable has a nontrivial destructor: If it does,
-the standard scoping rules apply; otherwise, the nonstandard rules of
-previous MSVC++ versions apply.  For example:
-
-  struct S { S(); ~S(); };
-  void f() {
-    for (S *p, s; false;) {}
-    // In Microsoft mode with microsoft_version == 1310, p is visible
-    // here, but s (which has a destructor) is not.
-  }
-
-The front end has been updated to match the behavior of the MSVC++ 7.1
-compiler when microsoft_version >= 1310.
 
 9/7/04   Microsoft compatibility: Spurious correspondence error on in-class
          specializations

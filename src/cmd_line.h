@@ -1189,6 +1189,15 @@ EXTERN a_boolean
 			   it extends only to the end of the for-statement;
 			   the latter is standard-conforming behavior. */
 
+EXTERN a_boolean
+		microsoft_type_dependent_for_init_scope /* = FALSE */;
+			/* TRUE if the scope of a variable declared in a C++
+			   for-init statement should be handled as the default
+			   MSVC++ 7.1 behavior: Variables with destructors
+			   follow the new rules, whereas variables without
+			   destructors follow the old rules.  When TRUE,
+			   use_nonstandard_for_init_scope must be FALSE. */
+
 
 EXTERN a_boolean
 		warning_on_for_init_difference

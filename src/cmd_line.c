@@ -1564,7 +1564,12 @@ by a command line option.
          MSVC++ 7.1 uses the new rule for for-init variables with nontrivial
          destructors and the old rule for other variables.  We emulate the
          MSVC++ 7.1 behavior using the standard scope stack setup. */
-      use_nonstandard_for_init_scope = (microsoft_version < 1310);
+      if (microsoft_version < 1310) {
+        use_nonstandard_for_init_scope = TRUE;
+      } else {
+        use_nonstandard_for_init_scope = FALSE;
+        microsoft_type_dependent_for_init_scope = TRUE;
+      }  /* if */
     }  /* if */
     ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
     if (!option_kind_used[(int)optk_enum_overloading]) {

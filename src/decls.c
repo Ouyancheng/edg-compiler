@@ -1488,8 +1488,7 @@ the same as depth_scope_stack).
       }  /* if */
     }  /* while */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && microsoft_version >= 1310 &&
-             !use_nonstandard_for_init_scope &&
+  } else if (microsoft_type_dependent_for_init_scope &&
              scope_stack[depth].is_for_init_block) {
     /* MSVC++ 7.1 will use standard scoping for for-init variables that need
        a destructor call, but old-style scoping for other variables. */
@@ -4175,7 +4174,9 @@ to TRUE if we are in Microsoft mode and in a for-init block.
       struct_stmt_stack[depth_stmt_stack].for_init) {
     *in_for_init = TRUE;
     if (microsoft_version >= 1300 &&
-        (decl_level != depth_scope_stack || use_nonstandard_for_init_scope)) {
+        (use_nonstandard_for_init_scope ||
+         (decl_level != depth_scope_stack &&
+          microsoft_type_dependent_for_init_scope))) {
       a_scope_depth  saved_decl_scope_level = decl_scope_level;
       a_symbol_ptr   prev_decl;
       /* Look for an existing variable in the scope in which the for-init
