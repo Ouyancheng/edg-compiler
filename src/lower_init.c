@@ -6420,12 +6420,14 @@ arrays with class elements.
   insert_expr(vec_new_node, &insert_location);
   if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_zero) {
     /* Generate a runtime routine call to zero the entity. */
+    a_type_ptr       eff_type = array_type;
     an_expr_node_ptr eff_num_elem_node = NULL;
     if (array_type->size == 0) {
+      eff_type = elem_type;
       eff_num_elem_node = make_reusable_copy(num_elem_node,
                                              /*vars_can_change=*/TRUE);
     }  /* if */
-    insert_call_to_zero_entity(elem_type,
+    insert_call_to_zero_entity(eff_type,
                                /*have_complete_object=*/TRUE,
                                var_rvalue_expr(zero_temp_var),
                                eff_num_elem_node,
