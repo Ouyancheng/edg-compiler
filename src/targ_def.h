@@ -1584,6 +1584,20 @@ handling but not for RTTI.
            ABI_COMPATIBILITY_VERSION <= 228
 #endif /* ABI_CHANGES_FOR_RTTI && (ABI_COMPATIBILITY_VERSION <= 228) */
 
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_RTTI
+/*
+This switch controls whether the typeinfo variables for RTTI are generated
+when RTTI is turned off.  Setting this switch to TRUE will reduce memory
+use in applications that never use RTTI, but it also makes it possible to
+end up with configuration mismatches and link errors or runtime aborts,
+e.g., by compiling part of the program in one mode and part in another.
+See also the variable generate_rtti_typeinfo.
+*/
+#ifndef SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED
+#define SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED FALSE
+#endif /* ifndef SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED */
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_RTTI */
+
 /*
 This switch controls whether or not the ABI changes for array
 new and delete are done.  New runtime routines are added, and the

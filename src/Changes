@@ -1,5 +1,17 @@
 Version 2.39
 
+7/27/98   Turning off generation of typeinfo variables when RTTI is
+          disabled
+
+There is now a configuration flag
+SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED, which can be set to TRUE
+to suppress typeinfo variables when RTTI is turned off (e.g., via
+--no_rtti).  That's not the default behavior, because we believe that
+allowing changes that have ABI implications to be made via command-line
+options makes it too easy to shoot oneself in the foot.  However, many
+customers have asked for this, and they are the best judges of what's
+right in their product.
+
 7/26/96   Disambiguation problem
 
 Cases like the following were not disambiguated properly, owing to

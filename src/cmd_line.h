@@ -342,6 +342,21 @@ EXTERN a_boolean
 			   (RTTI) is enabled.  Significant only in C++ mode.
 			   RTTI cannot be enabled if the extended typeinfo
 			   for it is not generated. */
+
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_RTTI
+EXTERN a_boolean
+		generate_rtti_typeinfo
+#if VAR_INITIALIZERS
+                                       = TRUE
+#endif /* VAR_INITIALIZERS */
+                                             ;
+			/* TRUE if the typeinfo tables that support RTTI
+			   should be generated.  If FALSE, typeinfo tables
+			   will be generated only for types used in exceptions.
+			   Must be TRUE if rtti_enabled is TRUE.  See
+			   SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED. */
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_RTTI */
+
 EXTERN a_boolean
 		array_new_and_delete_enabled
 #if VAR_INITIALIZERS

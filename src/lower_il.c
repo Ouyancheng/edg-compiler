@@ -3621,13 +3621,13 @@ FALSE means either the base class does not need a virtual function table
           virtual function table instance. */
       needed = FALSE;
 #if ABI_CHANGES_FOR_RTTI
-    } else {
-      /* When RTTI is supported, entry [0] of the virtual function table
-         identifies the type of the complete object, so a separate instance
-         is needed for each derived class even if the derived class does
-         not override any virtual functions. */
+    } else if (generate_rtti_typeinfo) {
+      /* When RTTI information is generated, entry [0] of the virtual function
+         table identifies the type of the complete object, so a separate
+         instance is needed for each derived class even if the derived
+         class does not override any virtual functions. */
       needed = TRUE;
-#else /* !ABI_CHANGES_FOR_RTTI */
+#endif /* ABI_CHANGES_FOR_RTTI */
     } else if (bcp->overriding_virtual_functions != NULL) {
       /* Some of the virtual functions in the base class are overridden
          in class_type, so a separate virtual function table instance is
@@ -3643,7 +3643,6 @@ FALSE means either the base class does not need a virtual function table
     } else {
       /* In other cases, no separate instance is needed. */
       needed = FALSE;
-#endif /* ABI_CHANGES_FOR_RTTI */
     }  /* if */
   }  /* if */
   return needed;
@@ -4469,16 +4468,6 @@ virtual function table.
     vtbl_var->storage_class = (a_storage_class)sc_unspecified;
     /* The variable can be referenced from another compilation unit. */
     vtbl_var->source_corresp.referenced = TRUE;
-#if GENERATE_EH_TABLES && !ABI_CHANGES_FOR_RTTI
-    /* If exceptions are enabled, force generation of the typeinfo variable
-       for the type because it might be referenced from some other compilation
-       unit.  When RTTI is implemented, the virtual function table always
-       points to the typeinfo variable (see below), so this code is not
-       needed. */
-    if (exceptions_enabled && bcp == NULL) {
-      (void)make_typeinfo_var(class_type);
-    }  /* if */
-#endif /* GENERATE_EH_TABLES && !ABI_CHANGES_FOR_RTTI */
 #if ONE_INSTANTIATION_PER_OBJECT
     if (one_instantiation_per_object) {
       /* If there is a decider function, put the virtual function table into
@@ -4517,18 +4506,32 @@ virtual function table.
     vtbl_var->initializer.constant = aggr_con;
     /* Put out the initialization for the [0] entry. */
 #if ABI_CHANGES_FOR_RTTI
-    /* The [0] entry includes the offset of the class whose vtbl is being
-       made in the complete class, and a pointer to the typeinfo entry for
-       the class. */
-    add_vtbl_entry_init((bcp != NULL) ? (a_targ_ptrdiff_t)bcp->offset :
-                                        (a_targ_ptrdiff_t)0,
-                        (a_routine_ptr)NULL,
-                        make_typeinfo_var(class_type),
-                        aggr_con, first_virtual);
-#else /* !ABI_CHANGES_FOR_RTTI */
-    add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL,
-                        (a_variable_ptr)NULL, aggr_con, first_virtual);
+    if (generate_rtti_typeinfo) {
+      /* The [0] entry includes the offset of the class whose vtbl is being
+         made in the complete class, and a pointer to the typeinfo entry for
+         the class. */
+      add_vtbl_entry_init((bcp != NULL) ? (a_targ_ptrdiff_t)bcp->offset :
+                                          (a_targ_ptrdiff_t)0,
+                          (a_routine_ptr)NULL,
+                          make_typeinfo_var(class_type),
+                          aggr_con, first_virtual);
+    } else
 #endif /* ABI_CHANGES_FOR_RTTI */
+    /* Do not insert code here; this is the "else" of an "if". */
+    {
+      add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL,
+                          (a_variable_ptr)NULL, aggr_con, first_virtual);
+#if GENERATE_EH_TABLES
+      /* If exceptions are enabled, force generation of the typeinfo variable
+         for the type because it might be referenced from some other
+         compilation unit.  When RTTI information is generated, the virtual
+         function table always points to the typeinfo variable, so this
+         processing is not needed. */
+      if (exceptions_enabled && bcp == NULL) {
+        (void)make_typeinfo_var(class_type);
+      }  /* if */
+#endif /* GENERATE_EH_TABLES */
+    }  /* if */
     /* Put out the body of the table. */
     fill_virtual_function_table(aggr_con, class_type, bcp, ctor_bcp,
                                 &next_entry_number, first_virtual);
@@ -12375,6 +12378,11 @@ are handled in il_lower_init.)
   /* Do inline.c initialization. */
   if (inlining_enabled) inline_one_time_init();
 #endif /* MINIMAL_INLINING */
+#if ABI_CHANGES_FOR_RTTI
+  check_assertion_str2(!rtti_enabled || generate_rtti_typeinfo,
+                       "Configuration problem: RTTI information must be",
+                       "generated when RTTI is enabled");
+#endif /* ABI_CHANGES_FOR_RTTI */
 }  /* il_lower_one_time_init */
 
 

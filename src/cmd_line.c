@@ -2329,6 +2329,12 @@ enable_microsoft_mode:
        enabled. */
     allow_nonconst_ref_anachronism = TRUE;
   }  /* if */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_RTTI
+#if SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED
+  /* Suppress typeinfo variables when RTTI is disabled. */
+  generate_rtti_typeinfo = rtti_enabled;
+#endif /* SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED */
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_RTTI */
   /* warning_on_for_init_difference may be TRUE only if the new for-init
      scoping rules are in effect. */
   if (use_nonstandard_for_init_scope) warning_on_for_init_difference = FALSE;
