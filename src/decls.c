@@ -1871,6 +1871,7 @@ called by id_linkage.
             if (equiv_template_param_lists(other_templ_param_list,
                                            idlbp->templ_param_list,
                                            /*issue_errors=*/FALSE,
+	                                   ETP_NO_OPTIONS,
                                            (a_source_position*)NULL) &&
                 routine_types_are_compatible(tp, idlbp->type, TCF_NO_FLAGS)) {
               /* The other_decl template function matches the current

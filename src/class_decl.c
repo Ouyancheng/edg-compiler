@@ -5260,9 +5260,10 @@ When templates_only is TRUE, only function templates members are considered.
       other_templ_param_list =
                        tssp->variant.function.decl_cache.decl_info->parameters;
       if (!equiv_template_param_lists(other_templ_param_list,
-                                     templ_param_list,
-                                     /*issue_errors=*/FALSE,
-                                     (a_source_position*)NULL)) {
+                                      templ_param_list,
+                                      /*issue_errors=*/FALSE,
+                                      ETP_NO_OPTIONS,
+                                      (a_source_position*)NULL)) {
         /* The template parameter lists do not match. */
         continue;
       }  /* if */
@@ -7107,6 +7108,7 @@ in-class member function declarations.)
           if (equiv_template_param_lists(other_templ_param_list,
                                          templ_param_list,
                                          /*issue_errors=*/FALSE,
+                                         ETP_NO_OPTIONS,
                                          (a_source_position*)NULL) &&
               param_types_are_compatible(tp, member_type, TCF_NO_FLAGS)) {
             an_error_code  error_code = ec_no_error;

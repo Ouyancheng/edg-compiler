@@ -1,5 +1,17 @@
 Version 3.1
 
+11/19/02 GNU C++ compatibilty: incompatible template parameter accepted
+         in the definition of a member of a class template
+
+In g++ mode, the definition of a member of a class template that appears
+outside of the class definition may declare a nontype template parameter
+with a type that is different than the type used in the definition
+of the class template.  A warning is issued.
+
+  template <char s> struct B { void f(); };
+  template <int i> void B<i>::f(){}
+
+
 11/18/02 GNU C++ compatibility: Uninitialized non-const members
 
 In GNU C++ compatibility mode, only a warning (instead of an error) is issued

@@ -70,6 +70,18 @@ typedef int an_equiv_templ_arg_options_set;
 			   a partial specialization. */
 
 /*
+Flags used to specify options to equiv_template_param_lists.
+*/
+typedef int an_equiv_templ_param_options_set;
+
+#define ETP_NO_OPTIONS			0x0
+#define ETP_BAD_PARAM_TYPE_OKAY		0x1
+			/* TRUE if a nontype parameter initially declared with
+			   one type may be redeclared later with a different
+			   type.  This is used to emulate Microsoft and
+			   g++ bugs. */
+
+/*
 Flags used to specify options to set_instance_requried and
 update_instantiation_required_flag.
 */
@@ -356,10 +368,11 @@ extern a_boolean equiv_template_arg_lists(
 				an_equiv_templ_arg_options_set	options);
 
 extern a_boolean equiv_template_param_lists(
-				a_template_param_ptr	old_list,
-				a_template_param_ptr	new_list,
-				a_boolean		issue_errors,
-				a_source_position	*error_pos);
+			a_template_param_ptr			old_list,
+			a_template_param_ptr			new_list,
+			a_boolean				issue_errors,
+			an_equiv_templ_param_options_set	options,
+			a_source_position			*error_pos);
 
 extern a_boolean equiv_templates(a_template_ptr	templ1,
 				 a_template_ptr	templ2);

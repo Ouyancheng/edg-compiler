@@ -2935,6 +2935,7 @@ is in fact valid.
                                     corresp_tssp->cache.decl_info->parameters,
                                     tssp->cache.decl_info->parameters,
                                     /*issue_errors=*/FALSE,
+                                    ETP_NO_OPTIONS,
                                     &templ_sym->decl_position) ||
            /* Check if a (member) class template was specialized in one
               translation unit, but generated in the other.  To avoid
@@ -4336,6 +4337,7 @@ when looking up a correspondence: if none is found, return NULL.
                                     corresp_tssp->cache.decl_info->parameters,
                                     tssp->cache.decl_info->parameters,
                                     /*issue_errors=*/FALSE,
+                                    ETP_NO_OPTIONS,
                                     &templ_sym->decl_position)) {
           /* The template parameters correspond; now check the arguments: they
              are attached to the prototype instantiation. */
@@ -4360,6 +4362,7 @@ when looking up a correspondence: if none is found, return NULL.
     if (equiv_template_param_lists(corresp_tssp->cache.decl_info->parameters,
                                    tssp->cache.decl_info->parameters,
                                    /*issue_errors=*/TRUE,
+                                   ETP_NO_OPTIONS,
                                    &templ_sym->decl_position)) {
       corresp_templ = corresp_tssp->il_template_entry;
     }  /* if */
@@ -4396,6 +4399,7 @@ symbols when looking up a correspondence: if none is found, return NULL.
     if (equiv_template_param_lists(corresp_tssp->cache.decl_info->parameters,
                                    tssp->cache.decl_info->parameters,
                                    /*issue_errors=*/FALSE,
+                                   ETP_NO_OPTIONS,
                                    &templ_sym->decl_position) &&
         identical_types(routine->type, corresp_routine->type) &&
         equiv_template_arg_lists(routine->template_arg_list,

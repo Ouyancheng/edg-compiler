@@ -4031,6 +4031,7 @@ equivalent template parameter lists.
              equiv_template_param_lists(tssp1->cache.decl_info->parameters,
                                         tssp2->cache.decl_info->parameters,
 				        /*issue_errors=*/FALSE,
+					ETP_NO_OPTIONS,
 				        (a_source_position*)NULL);
   }  /* if */
   return result;
@@ -4188,7 +4189,7 @@ the same constant.
         equiv = FALSE;
       } else if (eq_constants(con1, con2)) {
         /* Okay. */
-      } else if (is_prototype &&
+      } else if (is_prototype && (microsoft_bugs || gpp_mode) &&
                  equiv_nontype_template_param_names(con1, con2)) {
         /* Two template parameter names that have a type mismatch but
            that should be considered equivalent in the current mode. */
@@ -4730,7 +4731,8 @@ another template parameter.
           if (equiv_template_param_lists(
                            arg_template->cache.decl_info->parameters,
                            tpp->variant.templ->cache.decl_info->parameters,
-                           /*issue_errors=*/FALSE, (a_source_position*)NULL)) {
+                           /*issue_errors=*/FALSE, ETP_NO_OPTIONS,
+                           (a_source_position*)NULL)) {
             tap->variant.templ = specified_tap->variant.templ;
           } else {
             arg_kind_mismatch = TRUE;
@@ -4867,6 +4869,7 @@ match is found.
       param_list = tssp->cache.decl_info->parameters;
       if (equiv_template_param_lists(param_list_for_templ, param_list,
                                      /*issue_errors=*/FALSE,
+				     ETP_NO_OPTIONS,
                                      (a_source_position*)NULL)) {
         /* The actual template is compatible with the template template
            parameter.  See if it is compatible with any previously deduced
@@ -8820,17 +8823,19 @@ sure that they are at the same nesting depth.  Return TRUE if they are.
 
 
 a_boolean equiv_template_param_lists(
-				a_template_param_ptr	old_list,
-				a_template_param_ptr	new_list,
-				a_boolean		issue_errors,
-				a_source_position	*error_pos)
+			a_template_param_ptr			old_list,
+			a_template_param_ptr			new_list,
+			a_boolean				issue_errors,
+			an_equiv_templ_param_options_set	options,
+			a_source_position			*error_pos)
 /*
 Compare the template parameter list pointed to by old_list with the
 one pointed to by new_list.  To be equivalent, the parameter lists must
 have the same number of parameters, be of the same kind (type vs. nontype),
 and nontype parameters must be of the same type.  Return TRUE if the
 lists are equivalent.  If issue_errors is TRUE, errors are issued
-describing any incompatibilities.
+describing any incompatibilities.  "options" is a set of option flags
+to be used.
 */
 {
   a_template_param_ptr		new_tpp;
@@ -8866,15 +8871,16 @@ describing any incompatibilities.
       /* Both are constants.  Make sure the values are the same. */
       err = !eq_constants(old_tpp->variant.constant.ptr,
                           new_tpp->variant.constant.ptr);
-      if (err && microsoft_bugs) {
-        /* In Microsoft bugs mode, a member of a class template can be
-           declared using a template parameter with a type that is different
-           than that of the associated class template. */
+      if (err && (microsoft_bugs || gpp_mode) &&
+          (options & ETP_BAD_PARAM_TYPE_OKAY) != 0) {
+        /* In Microsoft bugs mode and in g++ mode, a member of a class
+           template can be declared using a template parameter with a type
+           that is different than that of the associated class template. */
         err = !equiv_nontype_template_param_names(
                  old_tpp->variant.constant.ptr, new_tpp->variant.constant.ptr);
         if (!err && !any_errors) {
           /* An incompatible redeclaration of the parameter that is accepted
-             in Microsoft bugs mode.  Issue a warning. */
+             in Microsoft bugs mode and g++ mode.  Issue a warning. */
           pos_sy_warning(ec_not_compatible_with_previous_decl,
                          &new_sym->decl_position, old_sym);
         }  /* if */
@@ -8961,7 +8967,9 @@ list (the one specified by param_list).
   old_tpp = class_sym->variant.template_info->cache.decl_info->parameters;
   /* Compare the two template parameter lists. */
   any_errors = !equiv_template_param_lists(old_tpp, new_tpp,
-                                           /*issue_errors=*/TRUE, error_pos);
+                                           /*issue_errors=*/TRUE,
+                                           ETP_BAD_PARAM_TYPE_OKAY,
+                                           error_pos);
   if (!any_errors) {
     /* Update type parameters so that they point to the same template
        parameter type supplement. */
