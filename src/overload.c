@@ -161,7 +161,9 @@ cast.
            proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
         /* Remove projections added for namespaces, if any. */
         sym = fundamental_symbol_of(proj_sym);
-        if (sym->kind == (a_symbol_kind)sk_function_template) {
+        if (proj_sym->is_invisible) {
+          /* Ignore invisible symbols from friend declarations. */
+        } else if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* Function template.  Ignore on this pass, but enable a second pass
              to try matching it. */
           need_templates_pass = TRUE;
@@ -192,7 +194,9 @@ cast.
            proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
         /* Remove projections added for namespaces, if any. */
         sym = fundamental_symbol_of(proj_sym);
-        if (sym->kind == (a_symbol_kind)sk_function_template) {
+        if (proj_sym->is_invisible) {
+          /* Ignore invisible symbols from friend declarations. */
+        } else if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* Function template. */
           if (has_matching_template_function(sym, dest_underlying_type,
                                              template_arg_list,
@@ -239,7 +243,9 @@ cast.
            proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
         /* Remove projections added for namespaces, if any. */
         sym = fundamental_symbol_of(proj_sym);
-        if (sym->kind == (a_symbol_kind)sk_function_template) {
+        if (proj_sym->is_invisible) {
+          /* Ignore invisible symbols from friend declarations. */
+        } else if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* Template.  Could be converted to "void *", but that would always
              be ambiguous. */
           if (is_ptr && is_void_type(dest_underlying_type)) {
