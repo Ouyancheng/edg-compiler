@@ -1031,7 +1031,8 @@ inside other user-written structs.
   if (type->next == NULL && depth_scope_stack >= DEPTH_OF_FILE_SCOPE) {
     /* There are no types on the file scope list, so this type is also the
        last type on the list. */
-    scope_stack[DEPTH_OF_FILE_SCOPE].pointers_block.last_type = type;
+    assoc_pointers_block_of(&scope_stack[DEPTH_OF_FILE_SCOPE])->last_type =
+                                                                          type;
   }  /* if */
 }  /* add_to_front_of_file_scope_types_list */
 
@@ -10836,18 +10837,31 @@ the file scope.
 
   if (pragmas != NULL) {
     /* Put the pragma list on the end of the file-scope pragma list. */
-    last_fs_pragma=scope_stack[DEPTH_OF_FILE_SCOPE].pointers_block.last_pragma;
+    if (depth_scope_stack >= DEPTH_OF_FILE_SCOPE) {
+      last_fs_pragma = assoc_pointers_block_of(
+                               &scope_stack[DEPTH_OF_FILE_SCOPE])->last_pragma;
+    } else {
+      last_fs_pragma = il_header.primary_scope->pragmas;
+      if (last_fs_pragma != NULL) {
+        for (;
+             last_fs_pragma->next != NULL;
+             last_fs_pragma = last_fs_pragma->next) {}
+      }  /* if */
+    }  /* if */
     if (last_fs_pragma == NULL) {
       il_header.primary_scope->pragmas = pragmas;
     } else {
       last_fs_pragma->next = pragmas;
     }  /* if */
-    /* Find the end of the pragma list and record that as the end of the
-       file scope pragmas list. */
-    for (last_fs_pragma = pragmas;
-         last_fs_pragma->next != NULL;
-         last_fs_pragma = last_fs_pragma->next) {}
-    scope_stack[DEPTH_OF_FILE_SCOPE].pointers_block.last_pragma=last_fs_pragma;
+    if (depth_scope_stack >= DEPTH_OF_FILE_SCOPE) {
+      /* Find the end of the pragma list and record that as the end of the
+         file scope pragmas list. */
+      for (last_fs_pragma = pragmas;
+           last_fs_pragma->next != NULL;
+           last_fs_pragma = last_fs_pragma->next) {}
+      assoc_pointers_block_of(&scope_stack[DEPTH_OF_FILE_SCOPE])->last_pragma =
+                                                                last_fs_pragma;
+    }  /* if */
     scope->pragmas = NULL;
   }  /* if */
 }  /* promote_pragmas */
@@ -11777,7 +11791,10 @@ have been promoted out of those classes.
   }  /* for */
   /* Update the "last" pointer for the file-scope types list. */
   check_assertion(prev_type == NULL || prev_type->next == NULL);
-  scope_stack[DEPTH_OF_FILE_SCOPE].pointers_block.last_type = prev_type;
+  if (depth_scope_stack >= DEPTH_OF_FILE_SCOPE) {
+    assoc_pointers_block_of(&scope_stack[DEPTH_OF_FILE_SCOPE])->last_type =
+                                                                     prev_type;
+  }  /* if */
   /* Promote all members other than types out of the namespaces. */
   do_scope_namespace_member_promotion(il_header.primary_scope);
 }  /* do_all_namespace_member_promotion */

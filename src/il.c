@@ -9645,7 +9645,7 @@ with the class or namespace.
                   variant.class_struct_union.extra_info->assoc_scope;
       scope_depth = sp->depth_in_scope_stack;
       if (scope_depth != NO_SCOPE_DEPTH) {
-        pointers_block = &scope_stack[scope_depth].pointers_block;
+        pointers_block = assoc_pointers_block_of(&scope_stack[scope_depth]);
       } else {
         /* The scope stack entry is no longer available. */
         pointers_block = NULL;
