@@ -887,16 +887,6 @@ static a_field_ptr
 		ehse_function_saved_region_number_field,
 		ehse_throw_spec_field;
 
-/*
-Values for the "kind" field of eh_stack_entry.  This must match the runtime's
-definition of these values.
-*/
-typedef enum {
-  ehsek_try_block,
-  ehsek_function,
-  ehsek_throw_spec
-} an_eh_stack_entry_kind;
-
 
 static a_type_ptr make_eh_stack_entry_type(void)
 /*
@@ -1502,7 +1492,7 @@ pointer can be examined.
 void set_eh_curr_region(a_context_ptr      context,
                         an_insert_location *insert_location)
 /*
-Generate code at *insert_location to set the global variable eh_curr_region
+Generate code at *insert_location to set the global variable __eh_curr_region
 to indicate the destruction region that applies to the last cleanup action
 on the list attached to the indicated context.  If there are no cleanup
 actions in that context, set eh_curr_region to NULL_EH_REGION_NUMBER.
@@ -1665,22 +1655,39 @@ the caller to do insertion after the code inserted.
 }  /* push_eh_stack_frame */
 
 
-static void pop_eh_stack_frame(a_variable_ptr     stack_frame_var,
-                               an_insert_location *insert_location)
+void pop_eh_stack_frame(an_eh_stack_entry_kind kind,
+                        a_variable_ptr         stack_frame,
+                        an_insert_location     *insert_location)
 /*
-Generate code to pop an exception handling stack frame on the stack.
-*stack_frame_var points to a local temporary variable that holds the
-stack frame.  The code is inserted at *insert_location.
+Generate code to pop an exception handling stack frame off the stack.
+kind indicates the kind of stack frame.  *stack_frame points to a
+local temporary variable that holds the stack frame.  The code is
+inserted at *insert_location.
 */
 {
-  an_expr_node_ptr local_frame_next;
+  an_expr_node_ptr local_frame_next, stack_frame_function_saved_region_number;
 
-  /* Add code as follows:
-       __curr_eh_stack_entry = local_frame.next;
-  */
-  local_frame_next = field_rvalue_selection_expr(
-                                              var_lvalue_expr(stack_frame_var),
-                                              ehse_next_field);
+  /* If this is a function stack frame, restore __eh_curr_region from
+     the stack frame. */
+  if (kind == ehsek_function) {
+    stack_frame_function_saved_region_number = 
+                  field_rvalue_selection_expr(
+                    field_lvalue_selection_expr(
+                      field_lvalue_selection_expr(var_lvalue_expr(stack_frame),
+                                                  ehse_variant_field),
+                      ehse_function_field),
+                    ehse_function_saved_region_number_field);
+    /* Copy stack_frame.variant.function.saved_region_number into
+       the global variable __eh_curr_region. */
+    (void)insert_var_assignment_statement(
+                                      make_eh_curr_region_var(),
+                                      (an_expr_operator_kind)eok_iassign,
+                                      stack_frame_function_saved_region_number,
+                                      insert_location);
+  }  /* if */
+  /* Add __curr_eh_stack_entry = local_frame.next; */
+  local_frame_next = field_rvalue_selection_expr(var_lvalue_expr(stack_frame),
+                                                 ehse_next_field);
   (void)insert_var_assignment_statement(curr_eh_stack_entry_var,
                                         (an_expr_operator_kind)eok_passign,
                                         local_frame_next,
@@ -1859,7 +1866,7 @@ is given by "scope".  Called only if exceptions are enabled.
                                                   ehse_variant_field),
                       ehse_function_field),
                     ehse_function_saved_region_number_field);
-    /* Copy the global variable eh_curr_region into
+    /* Copy the global variable __eh_curr_region into
        func_frame.variant.function.saved_region_number */
     (void)insert_assignment_statement(func_frame_function_saved_region_number,
                                       (an_expr_operator_kind)eok_iassign,
@@ -1881,12 +1888,12 @@ is given by "scope".  Called only if exceptions are enabled.
       turn_branch_into_block(rmp->stmt, &insert_location, &rmp->stmt);
       if (need_function_epilogue) {
         /* Insert code to pop the prologue pushed for the function. */
-        pop_eh_stack_frame(func_frame, &insert_location);
+        pop_eh_stack_frame(ehsek_function, func_frame, &insert_location);
       }  /* if */
       if (need_throw_epilogue) {
         /* Insert code to pop the prologue pushed for the throw
            specification. */
-        pop_eh_stack_frame(throw_frame, &insert_location);
+        pop_eh_stack_frame(ehsek_throw_spec, throw_frame, &insert_location);
       }  /* if */
     }  /* for */
   }  /* if */
@@ -1983,11 +1990,10 @@ Do IL lowering for an stmk_try_block statement.
   a_statement_ptr    prev_if_stmt, if_stmt;
   long               catch_clause_number;
   a_constant         null_constant;
+  a_context          context;
+  a_cleanup_action_ptr
+                     cap;
 
-  stmt_to_try = statement->variant.try_block.statement;
-  handlers = statement->variant.try_block.handlers;
-  /* Lower the dependent statement of the try. */
-  lower_statement(stmt_to_try);
   /* Change the stmk_try_block statement into a block, and prepare to insert
      code at the start of the block. */
   turn_statement_into_block(statement);
@@ -1995,6 +2001,19 @@ Do IL lowering for an stmk_try_block statement.
   copy_of_orig_stmt = statement->variant.block.statements;
   /* Generate code to push a stack frame. */
   push_eh_stack_frame(ehsek_try_block, &try_frame, &insert_location);
+  /* Push a context around the try and catch.  This is needed to ensure that
+     the "try" stack frame is popped on a goto out of the try or catch. */
+  push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
+  /* Add a cleanup action that will pop the stack frame. */
+  cap = add_cleanup_action(cak_try_block,
+                           /*applies_on_block_exit=*/TRUE,
+                           /*applies_on_exception_cleanup=*/FALSE,
+                           &insert_location);
+  cap->variant.try_frame = try_frame;
+  stmt_to_try = copy_of_orig_stmt->variant.try_block.statement;
+  handlers = copy_of_orig_stmt->variant.try_block.handlers;
+  /* Lower the dependent statement of the try. */
+  lower_statement(stmt_to_try);
   /* Generate a description of the catch clause types. */
   catch_array_var = make_catch_array_var(handlers);
   /* Put the address of the catch types description array into the stack
@@ -2056,9 +2075,6 @@ Do IL lowering for an stmk_try_block statement.
   /* The dependent statement is the statement under the "try". */
   copy_of_orig_stmt->variant.if_stmt.then_statement = stmt_to_try;
   if_stmt = copy_of_orig_stmt;
-  /* Pop the stack after the rewritten "if" statement. */
-  set_insert_location(copy_of_orig_stmt, &insert_location);
-  pop_eh_stack_frame(try_frame, &insert_location);
   /* Walk through the catch clauses and turn each one into an "if" in the
      "else" part of the previous "if". */
   catch_clause_number = 0;
@@ -2103,6 +2119,12 @@ Do IL lowering for an stmk_try_block statement.
     handler->statement->variant.block.extra_info->assoc_scope->
                                                   variant.assoc_handler = NULL;
   }  /* for */
+  /* Generate code to pop the "try" frame off the stack after the rewritten
+     "if" statement. */
+  set_insert_location(copy_of_orig_stmt, &insert_location);
+  gen_cleanup_actions(curr_context, &insert_location);
+  /* Pop the context pushed around the try block. */
+  pop_context();
 }  /* lower_try_block */
 
 
