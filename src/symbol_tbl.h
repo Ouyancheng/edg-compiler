@@ -1721,6 +1721,12 @@ typedef struct a_scope_stack_entry {
 			   with a source sequence list (= DEPTH_OF_FILE_SCOPE
 			   or depth_innermost_function_scope). */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  a_hidden_name_ptr
+		last_hidden_name;
+			/* End of the list of hidden-name entries entered on
+			   the corresponding IL scope entry; NULL if none. */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   a_scope_depth depth_template_declaration_scope;
 			/* Depth of the sck_template_declaration scope entry,
 			   if any, that the current scope is enclosed by;

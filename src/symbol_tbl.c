@@ -6705,6 +6705,9 @@ of the template.
   ssep->source_sequence_entries_disallowed =
                                        source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  ssep->last_hidden_name         = NULL;
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   ssep->depth_template_declaration_scope = depth_template_declaration_scope;
   ssep->depth_innermost_instantiation_scope =
                                        depth_innermost_instantiation_scope;

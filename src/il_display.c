@@ -2584,6 +2584,23 @@ Display the indicated pragma entry.
   disp_pragma_kind_name(ptr->kind);
 }  /* disp_pragma */
 
+#if RECORD_HIDDEN_NAMES_IN_IL
+
+static void disp_hidden_name(a_hidden_name_ptr  ptr)
+/*
+Display the indicated hidden-name entry.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_hidden_name);
+  disp_ptr("entity", (char *)ptr->entity.ptr,
+           (an_il_entry_kind)ptr->entity.kind);
+  disp_boolean("global_qualification_needed",
+               ptr->global_qualification_needed);
+  disp_boolean("elaborated_type_specifier_needed",
+               ptr->elaborated_type_specifier_needed);
+}  /* disp_hidden_name */
+
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
 static void disp_scope(a_scope_ptr ptr)
 /*
@@ -3377,6 +3394,11 @@ This routine is called during IL walking.
         case iek_pragma:
           disp_pragma((a_pragma_ptr)entry_ptr);
           break;
+#if RECORD_HIDDEN_NAMES_IN_IL
+        case iek_hidden_name:
+          disp_hidden_name((a_hidden_name_ptr)entry_ptr);
+          break;
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #ifdef FFE
         case iek_label_list_entry:
           disp_label_list_entry((a_label_list_entry_ptr)entry_ptr);

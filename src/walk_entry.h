@@ -786,6 +786,16 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_string_ptr(ptr->pragma_text, iek_other_text, 0);
       }
       break;
+#if RECORD_HIDDEN_NAMES_IN_IL
+    case iek_hidden_name:
+      {
+        a_hidden_name_ptr ptr = (a_hidden_name_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_hidden_name_ptr, iek_hidden_name);
+        remap_ptr(ptr->entity.ptr, a_char_ptr,
+                  (an_il_entry_kind)ptr->entity.kind);
+      }
+      break;
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
     case iek_scope:
       {
         a_scope_ptr ptr = (a_scope_ptr)entry_ptr;
@@ -891,6 +901,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->src_seq_sublist_list, a_src_seq_sublist_ptr,
                   iek_src_seq_sublist);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if RECORD_HIDDEN_NAMES_IN_IL
+        walk_list(ptr->hidden_names, a_hidden_name_ptr, iek_hidden_name);
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
       }
       break;
 #ifdef FFE

@@ -118,6 +118,10 @@ static unsigned long
 static unsigned long
 		num_scope_orphaned_list_headers_allocated;
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#if RECORD_HIDDEN_NAMES_IN_IL
+static unsigned long
+		num_hidden_names_allocated;
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
 /*
 Number of times the based_types lists of types are searched for related types.
@@ -6946,26 +6950,29 @@ points to the associated routine if the kind is sck_function.
       internal_error("alloc_scope: bad scope kind");
 #endif /* CHECKING */
   }  /* switch */
-  sp->assoc_block         = NULL;
-  sp->constants           = NULL;
-  sp->types               = NULL;
-  sp->variables           = NULL;
-  sp->nonstatic_variables = NULL;
-  sp->labels              = NULL;
-  sp->routines            = NULL;
-  sp->asm_entries         = NULL;
-  sp->scopes              = NULL;
-  sp->dynamic_inits       = NULL;
-  sp->pragmas             = NULL;
+  sp->assoc_block          = NULL;
+  sp->constants            = NULL;
+  sp->types                = NULL;
+  sp->variables            = NULL;
+  sp->nonstatic_variables  = NULL;
+  sp->labels               = NULL;
+  sp->routines             = NULL;
+  sp->asm_entries          = NULL;
+  sp->scopes               = NULL;
+  sp->dynamic_inits        = NULL;
+  sp->pragmas              = NULL;
   sp->depth_in_scope_stack = NO_SCOPE_DEPTH;
 #ifdef FIL
-  sp->entries             = NULL;
-  sp->namelist_groups     = NULL;
+  sp->entries              = NULL;
+  sp->namelist_groups      = NULL;
 #endif /* ifdef FIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sp->source_sequence_list = NULL;
   sp->src_seq_sublist_list = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  sp->hidden_names         = NULL;
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
   db_exit();
   return sp;
@@ -8110,6 +8117,54 @@ entry, if there is one.
 }  /* set_autonomous_tag_decl_flag */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if RECORD_HIDDEN_NAMES_IN_IL
+
+a_hidden_name_ptr alloc_hidden_name(void)
+/*
+Allocate a hidden-name entry in the current memory region, initialize its
+fields, and return a pointer to it.
+*/
+{
+  a_hidden_name_ptr  hnp;
+
+  hnp = (a_hidden_name_ptr)alloc_cil(sizeof(a_hidden_name));
+#if DEBUG
+  num_hidden_names_allocated++;
+#endif /* DEBUG */
+  hnp->next                             = NULL;
+  hnp->entity.kind                      = (a_byte_il_entry_kind)iek_none;
+  hnp->entity.ptr                       = NULL;
+  hnp->global_qualification_needed      = FALSE;
+  hnp->elaborated_type_specifier_needed = FALSE;
+
+  return hnp;
+}  /* alloc_hidden_name */
+
+
+void add_to_hidden_names_list(a_hidden_name_ptr  hdp)
+/*
+Add the given hidden-name entry to the hidden names list for the current
+scope.
+*/
+{
+  a_scope_stack_entry_ptr  ssep;
+  a_scope_ptr              sp;
+
+  /* Get pointer to current scope entry. */
+  ssep = &scope_stack[decl_scope_level];
+  /* Create the IL scope if necessary (for block scopes). */
+  sp = ensure_il_scope_exists(ssep);
+  check_assertion_str(sp != NULL, "add_to_routines_list: NULL IL scope");
+  if (sp->hidden_names == NULL) {
+    sp->hidden_names = hdp;
+  } else {
+    ssep->last_hidden_name->next = hdp;
+  }  /* if */
+  ssep->last_hidden_name = hdp;
+
+}  /* add_to_hidden_names_list */
+
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
 #if DEBUG
 unsigned long show_il_space_used(void)
@@ -8204,6 +8259,9 @@ Display and return the amount of space used for various IL tables.
   db_space_used_nontype("fs orphan pointers", num_fs_orphan_pointers_allocated,
                         SPACE_FOR_FS_ORPHAN_POINTER);
 #endif /* ORPHAN_PROCESSING_NEEDED */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  db_space_used("hidden names", num_hidden_names_allocated, a_hidden_name);
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   db_space_used("IL entry prefix", num_il_entry_prefixes_allocated,
                 an_il_entry_prefix);
 
@@ -8398,6 +8456,9 @@ of the front end.
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   num_scope_orphaned_list_headers_allocated = 0;
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  num_hidden_names_allocated             = 0;
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #endif /* DEBUG */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   last_scope_orphaned_list_header = NULL;

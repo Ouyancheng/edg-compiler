@@ -313,6 +313,9 @@ typedef enum /*an_il_entry_kind*/ {
   iek_scope_orphaned_list_header,
 			/* a_scope_orphaned_list_header */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  iek_hidden_name,	/* a_hidden_name */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   iek_pragma,		/* a_pragma */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
@@ -401,6 +404,9 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 /* iek_scope_orphaned_list_header */	"scope-orphaned-list-header",
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#if RECORD_HIDDEN_NAMES_IN_IL
+/* iek_hidden_name */			"hidden-name",
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 /* iek_pragma */			"pragma",
 /* iek_last */				"last"
 } /* il_entry_kind_names */
@@ -4686,6 +4692,36 @@ typedef struct a_scope_orphaned_list_header {
 
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
+#if RECORD_HIDDEN_NAMES_IN_IL
+/*
+An entry identifying an entity whose name is hidden by another declaration
+but where the hiding can be defeated either by using global qualification (a
+preceding "::") and/or by using an elaborated type specifier.  This is used
+in C++ only.
+*/
+typedef struct a_hidden_name *a_hidden_name_ptr;
+typedef struct a_hidden_name {
+  a_hidden_name_ptr
+		next;
+			/* Next in a linked list of hidden-name entries; NULL
+			   for the last on the list. */
+  a_tagged_pointer
+		entity;
+			/* The entity that is hidden by another use of the
+			   same name. */
+  unsigned int	global_qualification_needed:1;
+			/* TRUE if entity is a file scope entity hidden by a
+			   local scope declaration, so that the hiding can be
+			   defeated by using global qualification. */
+  unsigned int	elaborated_type_specifier_needed:1;
+			/* TRUE if entity identifies a tagged type but its
+			   name redeclared by nontype declaration in the
+			   current scope, so that the hiding can be defeated
+			   by using an elaborated type specifier. */
+} a_hidden_name;
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
+
+
 enum a_scope_kind_tag {
   /* Kinds of scopes. */
   sck_file,		/* File scope. */
@@ -4920,6 +4956,16 @@ typedef struct a_scope {
 			   comprised of entries belonging to the file-scope
 			   memory region. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  a_hidden_name_ptr
+		hidden_names;
+			/* For file, function, and block scopes, a linked
+			   list of hidden-name entries, designating entities
+			   that can be made available in the current scope
+			   only if an elaborate type specifier and/or global
+			   qualification (a preceding "::") is used.  Only
+			   used in C++. */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 } a_scope;
 
 /*
