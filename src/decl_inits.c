@@ -1272,7 +1272,7 @@ returned set to TRUE.
     var_err = TRUE;
     /* Set static_lifetime to a fake value that will be consistent with where
        the declaration appears. */
-    static_lifetime = (depth_innermost_function_scope == NULL);
+    static_lifetime = (depth_innermost_function_scope == NO_SCOPE_DEPTH);
   }  /* if */
   if (!var_err) {
     vp_type = vp->type;
