@@ -170,7 +170,6 @@ the current statement sequence.
       case stmk_for:
         if (sssep->for_init) {
           head_ptr = &ssp->variant.for_loop.extra_info->initialization;
-          check_assertion(*head_ptr == NULL);
         } else {
           head_ptr = &ssp->variant.for_loop.statement;
         }  /* if */
@@ -1111,7 +1110,13 @@ Scan the initializing expression or, in C++, declaration of a for statement.
     if (curr_token != tok_semicolon) expression_statement();
     (void)required_token(tok_semicolon, ec_exp_semicolon);
   }  /* if */
+  /* Restore the for_init flag to its default value. */
   sssep->for_init = FALSE;
+  /* Clear the fields that will have been updated if the for-init required
+     more than one stmk_init statement, e.g.:
+       for (int i = 0, j = 10; j > i; --j, ++i) { }    */
+  sssep->extra_block        = NULL;
+  sssep->last_dep_statement = NULL;
 }  /* for_init_statement */
 
 
