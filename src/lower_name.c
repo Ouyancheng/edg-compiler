@@ -36,7 +36,14 @@ Control block for mangling.
 typedef struct a_mangling_control_block *a_mangling_control_block_ptr;
 typedef struct a_mangling_control_block {
   sizeof_t	length;
-			/* Current length of the mangled name. */
+			/* Current length of the mangled name.  Note that
+			   this differs from mangling_text_buffer->size in
+			   that it does not count the blanks left as reserved
+			   space for leading lengths, which will be removed
+			   at the end of generating the name. */
+  sizeof_t	num_leftover_spaces;
+			/* Count of the extra leftover spaces described
+			   above. */
   a_boolean	suppress_partial_spec_args;
 			/* TRUE to suppress extra information on partial
 			   specialization arguments. */
@@ -108,6 +115,7 @@ Set the fields of the indicated mangling control block to default values.
 */
 {
   mctl->length = 0;
+  mctl->num_leftover_spaces = 0;
   mctl->suppress_partial_spec_args = FALSE;
 }  /* clear_mangling_control_block */
 
@@ -132,7 +140,8 @@ Add the indicated character to the mangled name.
   /* Count characters. */
   mctl->length++;
   add_char_to_text_buffer(mangling_text_buffer, ch);
-  check_assertion(mctl->length == mangling_text_buffer->size);
+  check_assertion(mctl->length + mctl->num_leftover_spaces ==
+                                                   mangling_text_buffer->size);
 }  /* add_to_mangled_name */
 
 
@@ -147,7 +156,8 @@ Add the indicated null-terminated string to the mangled name.
   /* Count characters. */
   mctl->length += len;
   add_to_text_buffer(mangling_text_buffer, str, len);
-  check_assertion(mctl->length == mangling_text_buffer->size);
+  check_assertion(mctl->length + mctl->num_leftover_spaces ==
+                                                   mangling_text_buffer->size);
 }  /* add_str_to_mangled_name */
 
 
@@ -168,6 +178,27 @@ other mangled names.
 
   /* Add the final null. */
   add_to_mangled_name('\0', mctl);
+  if (mctl->num_leftover_spaces) {
+    /* This string contains some leftover spaces, the result of saving extra
+       room for potentially large leading length indications.  Remove those
+       spaces now. */
+    char *src = mangling_text_buffer->buffer;
+    char *dest = src;
+    char ch;
+    do {
+      ch = *src++;
+      if (ch != ' ') {
+        *dest++ = ch;
+      } else {
+        /* Removing a space. */
+        mangling_text_buffer->size--;
+        mctl->num_leftover_spaces--;
+      }  /* if */
+    } while (ch != '\0');
+    check_assertion_str(mctl->num_leftover_spaces == 0 &&
+                        mangling_text_buffer->size == mctl->length,
+                        "end_mangling: wrong nunber of leftover spaces");
+  }  /* if */
   buffer = mangling_text_buffer->buffer;
   if (final) {
     /* Compress the mangled name to make it smaller. */
@@ -207,69 +238,78 @@ encoding.
 }  /* add_number_to_mangled_name */
 
 
-static void reserve_space_for_length(sizeof_t                 *start_position,
-                                     a_mangling_control_block *mctl)
+/*
+Information about a spot where space was reserved by
+reserve_space_for_length for later use by fill_in_length to fill in
+a leading length.
+*/
+typedef struct a_length_reservation {
+  sizeof_t	start_position;
+			/* The offset in the mangling_text_buffer of the
+			   first character of the space reserved for insertion
+			   of the length. */
+  sizeof_t	start_length;
+			/* The length of the mangled name (not counting the
+			   leftover spaces, which will be removed later)
+			   preceding the length, used to compute the length
+			   of the text following. */
+} a_length_reservation;
+
+
+static void reserve_space_for_length(
+                                  a_length_reservation     *length_reservation,
+                                  a_mangling_control_block *mctl)
 /*
 Reserve some space in the mangled name so that we can insert a length
-later.  Return the position of the length in *start_position.
+later.  Return information on the position of the reserved space in
+*length_reservation.
 */
 {
-  *start_position = mctl->length;
-  /* We reserve 3 characters so that we don't have to move strings of
-     length 100 through 999.  Smaller strings are not that expensive
-     to move, and bigger strings come up very seldom. */
-  add_str_to_mangled_name("   ", mctl);
-#define NUM_CHARS_RESERVED_FOR_LENGTH 3
+  int i;
+
+  length_reservation->start_position = mangling_text_buffer->size;
+  length_reservation->start_length = mctl->length;
+  /* Leave room for lengths of up to 999,999. */
+#define NUM_CHARS_RESERVED_FOR_LENGTH 6
+  /* Fill the space with blanks, which cannot be part of a valid mangled
+     name.  We'll overwrite some of those blanks with the actual length
+     determined later.  The leftover blanks will be removed at the end of
+     mangling. */
+  for (i = 1; i <= NUM_CHARS_RESERVED_FOR_LENGTH; i++) {
+    add_to_mangled_name(' ', mctl);
+  }  /* for */
+  mctl->length -= NUM_CHARS_RESERVED_FOR_LENGTH;
+  mctl->num_leftover_spaces += NUM_CHARS_RESERVED_FOR_LENGTH;
 }  /* reserve_space_for_length */
 
 
-static void fill_in_length(sizeof_t                 start_position,
+static void fill_in_length(a_length_reservation     *length_reservation,
                            a_mangling_control_block *mctl)
 /*
 Fill in the length of an item in the space previously reserved by a
-call of reserve_space_for_length.  start_position is the value returned
-from that call.
+call of reserve_space_for_length.  *length_reservation contains the
+information returned from that call.
 */
 {
   sizeof_t length, length_length;
-  long     offset;
-  char     *length_pos = mangling_text_buffer->buffer + start_position;
+  char     *length_pos;
   char     buffer[20];
 
   /* Determine the length, and the number of digits needed to
      represent the length. */
-  length = mctl->length - start_position - NUM_CHARS_RESERVED_FOR_LENGTH;
+  length = mctl->length - length_reservation->start_length;
   (void)sprintf(buffer, "%lu", (unsigned long)length);
   length_length = strlen(buffer);
-  offset = length_length - NUM_CHARS_RESERVED_FOR_LENGTH;
-  if (offset != 0) {
-    /* The text of the item must be moved. */
-    char *dest = length_pos+length_length;
-    char *src  = length_pos+NUM_CHARS_RESERVED_FOR_LENGTH;
-#if USING_ISO_C
-    (void)memmove(dest, src, length);
-#else /* !USING_ISO_C */
-    if (offset > 0) {
-      /* Move up.  Note that this means we're moving a very long string. */
-      char *final_dest = dest-1;
-      dest += length-1;
-      src  += length-1;
-      do {
-        *dest-- = *src--;
-      } while (dest != final_dest);
-    } else {
-      /* Move down. */
-      char *final_dest = dest+length;
-      do {
-        *dest++ = *src++;
-      } while (dest != final_dest);
-    }  /* if */
-#endif /* USING_ISO_C */
-  }  /* if */
+  check_assertion_str(length_length <= NUM_CHARS_RESERVED_FOR_LENGTH,
+                      "mangled name length is too large");
+  /* Determine the position of the start of the length in the buffer. */
+  length_pos = mangling_text_buffer->buffer +
+               length_reservation->start_position;
   /* Copy the length. */
   (void)memcpy(length_pos, buffer, size_t_arg(length_length));
-  mctl->length += offset;
-  mangling_text_buffer->size += offset;
+  /* The characters overwritten are no longer leftover spaces. */
+  mctl->length += length_length;
+  mctl->num_leftover_spaces -= length_length;
 }  /* fill_in_length */
 
 
@@ -657,9 +697,9 @@ This is used to encode address constants as part of the mangled names of
 template classes.
 */
 {
-  char                     *str;
-  an_address_base_kind     abkind;
-  sizeof_t                 start_position;
+  char                 *str;
+  an_address_base_kind abkind;
+  a_length_reservation length_reservation;
 
   /* The offset can be non-zero in cases where a pointer to class was
      cast to a related class.  That's ignored in the output. */
@@ -672,7 +712,7 @@ template classes.
         ^^^^---- Name of entity.
        ^-------- Length of the name.
      This is compatible with cfront 3.0.1. */
-  reserve_space_for_length(&start_position, mctl);
+  reserve_space_for_length(&length_reservation, mctl);
   if (abkind == (an_address_base_kind)abk_variable) {
     a_variable_ptr variable = con->variant.address.variant.variable;
     if (variable->source_corresp.is_class_member ||
@@ -722,7 +762,7 @@ template classes.
     unexpected_condition_str(
                           "mangled_encoding_for_address_constant: bad abkind");
   }  /* if */
-  fill_in_length(start_position, mctl);
+  fill_in_length(&length_reservation, mctl);
 }  /* mangled_encoding_for_address_constant */
 
 
@@ -798,7 +838,7 @@ specification in the mangling for lengths of literals.
     add_str_to_mangled_name(str, mctl);
     add_to_mangled_name('_', mctl);
     if (func != NULL) {
-      sizeof_t start_position;
+      a_length_reservation length_reservation;
       /* Name of function. */
       /* The newer version of this includes parent information, but that's
          not compatible with cfront. */
@@ -812,7 +852,7 @@ specification in the mangling for lengths of literals.
          a ridiculous idea. */
       include_parent_info = distinct_template_signatures;
 #endif /* ABI_COMPATIBILITY_VERSION < 235 */
-      reserve_space_for_length(&start_position, mctl);
+      reserve_space_for_length(&length_reservation, mctl);
       if (include_parent_info) {
         /* Include class and namespace information in the name. */
         mangled_function_name(func, /*suppress_param_encoding=*/TRUE, mctl);
@@ -828,7 +868,7 @@ specification in the mangling for lengths of literals.
           add_to_mangled_name(str[str_length], mctl);
         }  /* for */
       }  /* if */
-      fill_in_length(start_position, mctl);
+      fill_in_length(&length_reservation, mctl);
     } else {
       /* Offset, always coded as "0". */
       add_to_mangled_name('0', mctl);
@@ -967,23 +1007,23 @@ specification in the mangling for lengths of literals.
           template_arg_list = NULL;
           unk_func_con = con;
 do_unknown_function:
-          { sizeof_t start_position;
-            reserve_space_for_length(&start_position, mctl);
+          { a_length_reservation length_reservation;
+            reserve_space_for_length(&length_reservation, mctl);
             mangled_encoding_for_unknown_function(unk_func_con,
                                                   has_template_args,
                                                   template_arg_list,
                                                   mctl);
-            fill_in_length(start_position, mctl);
+            fill_in_length(&length_reservation, mctl);
           }
           break;
         case tpck_member:
           /* A member of a template parameter type, e.g., T::x. */
-          { sizeof_t start_position;
-            reserve_space_for_length(&start_position, mctl);
+          { a_length_reservation length_reservation;
+            reserve_space_for_length(&length_reservation, mctl);
             mangled_member_name(&con->source_corresp,
                                 /*is_specialization=*/FALSE,
                                 mctl);
-            fill_in_length(start_position, mctl);
+            fill_in_length(&length_reservation, mctl);
           }
           break;
         case tpck_cast:
@@ -1290,8 +1330,8 @@ given by tap.
                                      mctl);
   } else {
     /* The value of the argument is a template. */
-    a_source_correspondence  *scp = &temp->source_corresp;
-    sizeof_t                 start_position;
+    a_source_correspondence *scp = &temp->source_corresp;
+    a_length_reservation    length_reservation;
 
     /* Name of template.  The encoding is like
          4abcd <-- encoding for template "abcd"
@@ -1299,7 +1339,7 @@ given by tap.
          ^-------- Length of the name.
     */
     check_assertion(scp->name != NULL);
-    reserve_space_for_length(&start_position, mctl);
+    reserve_space_for_length(&length_reservation, mctl);
     /* Put out the base part of the name. */
     add_str_to_mangled_name(scp->name, mctl);
     if (scp->is_class_member || scp->parent.namespace_ptr != NULL) {
@@ -1309,7 +1349,7 @@ given by tap.
          is a member. */
       mangled_parent_qualifier(scp, mctl);
     }  /* if */
-    fill_in_length(start_position, mctl);
+    fill_in_length(&length_reservation, mctl);
   }  /* if */
 }  /* mangled_encoding_for_template_template_argument */
 
@@ -1327,10 +1367,10 @@ the old form of length specification in the mangling for lengths of
 literals.
 */
 {
-  char               *str;
-  a_template_arg_ptr tap;
-  sizeof_t           start_position;
-  a_boolean          saved_suppress_partial_spec_args =
+  char                 *str;
+  a_template_arg_ptr   tap;
+  a_length_reservation length_reservation;
+  a_boolean            saved_suppress_partial_spec_args =
                                               mctl->suppress_partial_spec_args;
 
   /* The mangled form of template arguments is something like
@@ -1356,7 +1396,7 @@ literals.
      referenced in the template arguments. */
   mctl->suppress_partial_spec_args = TRUE;
 #endif /* ABI_COMPATIBILITY_VERSION > 245 */
-  reserve_space_for_length(&start_position, mctl);
+  reserve_space_for_length(&length_reservation, mctl);
   add_to_mangled_name('_', mctl);
   /* Run through the template argument list, determining the representation
      for each argument. */
@@ -1380,7 +1420,7 @@ literals.
     }  /* if */
   }  /* for */
   /* Go back and fill in the length. */
-  fill_in_length(start_position, mctl);
+  fill_in_length(&length_reservation, mctl);
   mctl->suppress_partial_spec_args = saved_suppress_partial_spec_args;
 }  /* mangled_template_arguments */
 
@@ -1621,14 +1661,14 @@ that fact should be put out.
     if (!is_template_template_param) {
       /* Not a template template parameter. */
       /* Put out the class name preceded by its length. */
-      sizeof_t start_position;
-      reserve_space_for_length(&start_position, mctl);
+      a_length_reservation length_reservation;
+      reserve_space_for_length(&length_reservation, mctl);
       mangled_full_class_name(type,
                               show_partial_spec_args,
                               show_template_specialization,
                               show_specialization,
                               mctl);
-      fill_in_length(start_position, mctl);
+      fill_in_length(&length_reservation, mctl);
     }  /* if */
   }  /* if */
 }  /* mangled_class_encoding */
@@ -3299,7 +3339,7 @@ a virtual function table.  The name describes the base class given by bcp.
 */
 {
   a_derivation_step_ptr dsp;
-  sizeof_t              start_position;
+  a_length_reservation  length_reservation;
 
   /* The form of the name is like
        4abcd
@@ -3310,9 +3350,9 @@ a virtual function table.  The name describes the base class given by bcp.
   */
   dsp = cast_derivation_path_of(bcp);
   /* Put out the name length and the name. */
-  reserve_space_for_length(&start_position, mctl);
+  reserve_space_for_length(&length_reservation, mctl);
   mangled_derivation_name(dsp, mctl);
-  fill_in_length(start_position, mctl);
+  fill_in_length(&length_reservation, mctl);
   if (bcp->ambiguous) {
     /* Ambiguous base classes get a suffix to differentiate the different
        like-named base classes. */
@@ -3350,10 +3390,10 @@ for use in a virtual function table name.
   if (type_needs_parent_qualifier(type)) {
     /* The type is a nested type.  Add a length in front of the mangled
        form (e.g., "7Q2_1A1B" instead of "Q2_1A1B"). */
-    sizeof_t start_position;
-    reserve_space_for_length(&start_position, mctl);
+    a_length_reservation length_reservation;
+    reserve_space_for_length(&length_reservation, mctl);
     mangled_type_name(type, mctl);
-    fill_in_length(start_position, mctl);
+    fill_in_length(&length_reservation, mctl);
   } else {
     /* Not a nested type name; just put out the type encoding. */
     mangled_type_name(type, mctl);

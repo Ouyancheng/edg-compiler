@@ -1,5 +1,13 @@
 Version 2.46
 
+1/26/02  Name mangling performance improvement
+
+The name mangling code in lower_name.c has been reworked (again)
+to fix a performance problem.  Instead of generating some mangled
+names twice -- once to get the size, and then again for real --
+it now leaves extra space for the lengths and then removes the
+unneeded extra characters at the end of processing.
+
 1/23/02  Microsoft compatibility: __super keyword
 
 The Microsoft __super keyword is accepted in Microsoft mode.
