@@ -2496,9 +2496,11 @@ is used.
        that entry instead of adding a new one. */
     snlep = curr_seq_number_lookup_entry;
   } else {
-    if (curr_seq_number_lookup_entry != NULL) {
-      /* Set the ending sequence number of the previous entry.  In some cases,
-         it may have already been set. */
+    if (curr_seq_number_lookup_entry != NULL &&
+        curr_seq_number_lookup_entry->last == 0) {
+      /* Set the ending sequence number of the previous entry.  Don't set the
+         value if it has already been set (this code would give the wrong
+         value in such cases). */
       curr_seq_number_lookup_entry->last = seq_number - 1;
     }  /* if */
     snlep = alloc_seq_number_lookup_entry();
