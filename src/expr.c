@@ -2559,6 +2559,7 @@ is the current set of expression-scanning options.
           revert_gcc_rvalue_to_lvalue_if_possible(operand_1,
                                                   /*ignore_casts=*/FALSE);
         } else if (microsoft_mode && !C_mode() &&
+                   is_class_struct_union_type(orig_class_struct_union_type) &&
                    symbol_supplement_for_class(orig_class_struct_union_type)->
                                                                       is_POD) {
           /* MSVC++ treats a field selection off an rvalue POD type as an
