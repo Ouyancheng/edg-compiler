@@ -1460,6 +1460,8 @@ reported); storage_class is the storage class from the specifiers list; and
 has_explicit_type_specifier is TRUE if the type of the function was explicitly
 specified (rather than defaulted to "int").  A pointer to the symbol pointer
 associated with the function is returned.
+This function is also called in the case of a nondefining out-of-class
+member declaration (allowed in Microsoft mode only).
 */
 {
   a_symbol_ptr                   symbol_ptr, ext_sym;
@@ -1658,31 +1660,31 @@ associated with the function is returned.
       locator->is_class_member) {
     /* There is no definition. */
   } else {
-  routine_ptr = symbol_ptr->variant.routine.ptr;
-  flags = SFB_NO_FLAGS;
-  if (!has_explicit_type_specifier) {
-    flags |= SFB_IMPLICITLY_DECLARED_RETURN_TYPE;
-  }  /* if */
-  scan_function_body(routine_ptr, func_info, flags);
+    routine_ptr = symbol_ptr->variant.routine.ptr;
+    flags = SFB_NO_FLAGS;
+    if (!has_explicit_type_specifier) {
+      flags |= SFB_IMPLICITLY_DECLARED_RETURN_TYPE;
+    }  /* if */
+    scan_function_body(routine_ptr, func_info, flags);
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
-  /* Save the symbol associated with the most recent constructor or
-     destructor for which a definition was supplied outside of the
-     class definition.  Clear this value when any other member function
-     is processed.  This is used to emulate a cfront name lookup bug.
-     See check_for_cfront_name_lookup_bug in symbol_tbl.c for more
-     information. */
-  if (routine_ptr->source_corresp.is_class_member) {
-    if (cfront_2_1_mode) {
-      if (routine_ptr->special_kind ==
+    /* Save the symbol associated with the most recent constructor or
+       destructor for which a definition was supplied outside of the
+       class definition.  Clear this value when any other member function
+       is processed.  This is used to emulate a cfront name lookup bug.
+       See check_for_cfront_name_lookup_bug in symbol_tbl.c for more
+       information. */
+    if (routine_ptr->source_corresp.is_class_member) {
+      if (cfront_2_1_mode) {
+        if (routine_ptr->special_kind ==
 			 (a_special_function_kind)sfk_constructor ||
-          routine_ptr->special_kind ==
+            routine_ptr->special_kind ==
 			 (a_special_function_kind)sfk_destructor) {
-        last_ctor_or_dtor_sym = symbol_ptr;
-      } else {
-        last_ctor_or_dtor_sym = NULL;
+          last_ctor_or_dtor_sym = symbol_ptr;
+        } else {
+          last_ctor_or_dtor_sym = NULL;
+        }  /* if */
       }  /* if */
     }  /* if */
-  }  /* if */
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
   }  /* if */
 

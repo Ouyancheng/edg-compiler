@@ -8046,7 +8046,7 @@ TRUE if the declaration following this one is such a continuation.
       /* The function is not defined (here), so use "extern" instead of
          no storage class.  Also use "extern" for file-scope static routines
          declared extern inside functions.  Again, Microsoft member
-         redeclaration are an exception (storage class should be omitted). */
+         redeclarations are an exception (storage class should be omitted). */
       if (microsoft_out_of_class_redecl) {
         check_assertion(microsoft_mode);
         storage_class = (a_storage_class)sc_unspecified;
