@@ -2067,8 +2067,8 @@ pointer to it.
   }  /* switch */
   cip->initializer = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  cip->ctor_range.start = null_source_position; 
-  cip->ctor_range.end = null_source_position;
+  cip->ctor_init_range.start = null_source_position; 
+  cip->ctor_init_range.end = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   return cip;

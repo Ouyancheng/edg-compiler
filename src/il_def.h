@@ -6671,7 +6671,7 @@ typedef struct a_constructor_init {
 			   initialization entry. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range
-		ctor_range;
+		ctor_init_range;
 			/* When the mem-initializer is explicit in the source,
 			   the source positions corresponding to the opening
 			   "(" and the closing ")".  Both positions may be
