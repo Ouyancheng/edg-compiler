@@ -3084,11 +3084,14 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
    injected class name symbol is only acceptable when the injected symbol
    does not points to the class in which the lookup is being done;
    otherwise, that symbol is rejected and (typically) the constructor
-   symbol will be returned later. */
+   symbol will be returned later.  An injected class name is accepted
+   when doing a class-or-namespace or tag lookup, because such a lookup
+   could never find the constructor. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((sym)->is_class_member &&					      \
    (!is_injected_class_symbol(sym) ||				      \
-    /* direct_class_members_only ||*/				      \
+    must_be_class_or_namespace ||				      \
+    must_be_tag ||						      \
     class_type != (fund_sym)->variant.type.ptr) &&		      \
    (sym)->parent.class_type == class_type &&                          \
    (!must_be_class_or_namespace ||				      \
