@@ -1651,6 +1651,7 @@ a pointer to the character position following what was demangled.
   a_template_param_block
                 temp_par_info;
 
+start_of_mangled_name:
   origname = p;
   clear_template_param_block(&temp_par_info);
   /* Scan through the name (the first part of the mangled name) without
@@ -1692,10 +1693,40 @@ a pointer to the character position following what was demangled.
               parameter types for a member function.
          (c)  "F" followed by the encoding for the parameter types for a
               nonmember function.
+         (d)  "L" plus a local block number, followed by the mangled function
+              name, for a function-local entity.
        Members of namespaces are encoded similarly. */
     p = end_ptr;
     pname = NULL;
-    if (end_ptr[0] != 'F') {
+    if (end_ptr[0] == 'L') {
+      unsigned long block_number;
+      /* The name of an entity within a function, mangled on promotion out
+         of the function.  For example, "i__L1__f__Fv" for "i" from block 1
+         of function "f(void)". */
+      /* Put out the entity name (the first part of the mangled name). */
+      (void)demangle_name(origname, (unsigned long)0, dctl);
+      write_id_str(" in", dctl);
+      /* Get the block number and put it out.  Block 0 is the top-level block
+         of the function, and need not be identified. */
+      p = get_number(end_ptr+1, &block_number, dctl);
+      if (block_number != 0) {
+        char buffer[30];
+        write_id_str(" block ", dctl);
+        (void)sprintf(buffer, "%lu", block_number);
+        write_id_str(buffer, dctl);
+        write_id_str(" of", dctl);
+      }  /* if */
+      write_id_str(" function ", dctl);
+      /* Check for the two underscores following the block number. */
+      if (p[0] != '_' || p[1] != '_') {
+        bad_mangled_name(dctl);
+        end_ptr = p;
+        goto end_of_routine;
+      }  /* if */
+      /* Go back to scan and output the function name. */
+      p += 2;
+      goto start_of_mangled_name;
+    } else if (end_ptr[0] != 'F') {
       /* A class (or namespace) name must be next. */
       /* Remember the location of the parent entity name. */
       pname = end_ptr;

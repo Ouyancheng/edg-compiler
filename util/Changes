@@ -1,5 +1,17 @@
 Version 2.33
 
+9/26/96  Name demangler and names of types/variables promoted out of functions
+
+The name demangler can now demangle names of variables and types promoted
+out of functions in IL lowering.  The "__Lnn" piece of such mangled names
+has been moved to between the local entity name and the mangled name of
+the function, instead of at the end, to make demangling easier.  The scope
+number in the "__Lnn" has also been made relative to the function.
+(These two changes have no ABI implications, since such names have been,
+by definition, internal to a compilation.)  A mangled name like
+"j__L2__f__Fv" (formerly something like "j__f__Fv__L10") is now demangled
+as "j in block 2 of function f()".
+
 9/24/96  -b option failed to restore C++ mode in eccp
 
 The -b option (cfront compatibility) should cause eccp to operate
