@@ -370,12 +370,13 @@ extern a_symbol_ptr select_overloaded_function(
                             an_expr_node_ptr        *arg_expr_list);
 
 extern void try_to_convert_class_operand_to_builtin_type(
-                                           an_operand         *operand,
-                                           a_boolean          integral_allowed,
-                                           a_boolean          floating_allowed,
-                                           a_boolean          pointer_allowed,
-                                           an_expression_kind expression_kind,
-                                           a_boolean          *processed);
+                                       an_operand         *operand,
+                                       a_boolean          integral_allowed,
+                                       a_boolean          floating_allowed,
+                                       a_boolean          pointer_allowed,
+                                       a_boolean          result_may_be_lvalue,
+                                       an_expression_kind expression_kind,
+                                       a_boolean          *processed);
 
 extern void check_for_operator_overloading(
                                     an_opname_kind     kind,
@@ -621,6 +622,7 @@ extern a_boolean user_defined_conversion_possible(
 
 extern void user_convert_operand(an_operand         *operand,
                                  a_type_ptr         dest_type,
+                                 a_boolean          result_may_be_lvalue,
                                  a_routine_ptr      conversion_routine,
                                  an_expression_kind expression_kind);
 

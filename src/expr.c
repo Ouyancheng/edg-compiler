@@ -3853,7 +3853,9 @@ conversions.
                                          &conversion_routine,
                                          &failed)) {
       /* A user-defined conversion can be done. */
-      user_convert_operand(operand, type_cast_to, conversion_routine,
+      user_convert_operand(operand, type_cast_to,
+                           /*result_may_be_lvalue=*/cast_to_reference,
+                           conversion_routine,
                            expression_kind);
     } else if (failed) {
       /* A user-defined conversion was our only hope, and it failed.
@@ -6525,6 +6527,7 @@ a pointer to the expression tree.
                                                  /*integral_allowed=*/TRUE,
                                                  /*floating_allowed=*/FALSE,
                                                  /*pointer_allowed=*/FALSE,
+                                                /*result_may_be_lvalue=*/FALSE,
                                                  (an_expression_kind)ek_normal,
                                                  &processed);
   }  /* if */
@@ -7274,6 +7277,7 @@ type of the expression must be scalar.
                                                  /*integral_allowed=*/TRUE,
                                                  /*floating_allowed=*/TRUE,
                                                  /*pointer_allowed=*/TRUE,
+                                                /*result_may_be_lvalue=*/FALSE,
                                                  (an_expression_kind)ek_normal,
                                                  &processed);
   }  /* if */
