@@ -319,7 +319,7 @@ for unions and aggregates at that level).
       }  /* if */
       *end_of_di_list = dip;
       /* Mark the constructor as referenced. */
-      rp->source_corresp.referenced = TRUE;
+      reference_to_special_member_function(rp);
     }  /* if */
   } else if (is_aggregate_or_union_type(local_type) ||
              (is_error_type(local_type) && curr_token == tok_lbrace)) {
@@ -790,7 +790,7 @@ The syntax is:
       local_di.variant.constructor.routine = rp;
       local_di.variant.constructor.args = arg_list;
       /* Mark the constructor referenced. */
-      rp->source_corresp.referenced = TRUE;
+      reference_to_special_member_function(rp);
     }  /* if */
     initialization_is_dynamic = TRUE;
   } else if (cssp != NULL && cssp->constructor != NULL &&
@@ -873,7 +873,7 @@ The syntax is:
         local_di.variant.constructor.routine = rp;
         local_di.variant.constructor.args = expression;
         /* Mark the constructor as referenced. */
-        rp->source_corresp.referenced = TRUE;
+        reference_to_special_member_function(rp);
       }  /* if */
     }  /* if */
     initialization_is_dynamic = TRUE;
@@ -1087,14 +1087,14 @@ a_boolean def_initializer(a_symbol_ptr       sym,
         } else {
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
           local_di.variant.constructor.routine = rp =
-                                   cssp->default_constructor->variant.routine;
+                                  cssp->default_constructor->variant.routine;
           local_di.variant.constructor.args = NULL;
           /* Mark the constructor referenced. */
-          rp->source_corresp.referenced = TRUE;
+          reference_to_special_member_function(rp);
           if (cssp->destructor != NULL) {
             local_di.destructor = rp = cssp->destructor->variant.routine;
             /* Mark the destructor referenced. */
-            rp->source_corresp.referenced = TRUE;
+            reference_to_special_member_function(rp);
           }  /* if */
           if (var_type != tp) {
             ctor_dip =
@@ -1124,7 +1124,7 @@ a_boolean def_initializer(a_symbol_ptr       sym,
         clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_none);
         local_di.destructor = rp = cssp->destructor->variant.routine;
         /* Mark the destructor referenced. */
-        rp->source_corresp.referenced = TRUE;
+        reference_to_special_member_function(rp);
         gen_dynamic_initialization(var, &local_di);
         /* Don't set def_init_performed.  A dik_none dynamic initialization
            doesn't count as initialization. */
@@ -1270,14 +1270,21 @@ initialized.  These are addressed in the course of the processing.
       }  /* if */
     }  /* if */
   }  /* for */
+  /* Three lists that have been created thus far were made to cover the
+     default initialization required because base classes and fields need
+     it.  It remains to scan the user specified initializers, if any, and
+     to integrate them into the lists. */
   if (curr_token == tok_colon) {
-    /* Bypass the colon. */
+    /* User-specified initializers are present.  Bypass the colon. */
     (void)get_token();
     add_stop_token(tok_lbrace);
+    /* Loop through the comma-separated list of initializers. */
     do {
       err = FALSE;
       add_stop_token(tok_comma);
+      /* A base class name or a member name is expected. */
       if (!is_qualified_name_start()) {
+        /* Either an identifier or "::" is expected here. */
         syntax_error(ec_exp_identifier);
       } else {
         bcp = NULL;
@@ -1285,94 +1292,127 @@ initialized.  These are addressed in the course of the processing.
         /* Scan the base class name or member name. */
         member_or_base_sym = get_normal_id_or_qualified_name(IDL_NO_OPTIONS);
         if (member_or_base_sym == NULL) {
+          /* No such name or qualified name in the symbol table. */
           str_error(ec_not_a_field_or_base_class,
                     class_type->source_corresp.name);
-          err = TRUE;
           init_type = error_type();
-        } else if (member_or_base_sym->kind == (a_symbol_kind)sk_field) {
-          /* Okay. */
+        } else if (member_or_base_sym->kind == (a_symbol_kind)sk_field &&
+                   member_or_base_sym->class_of_which_a_member == class_type) {
+          /* This is a field of the current class and may be mentioned in the
+             constructor's initializer list.  But it's an error to refer to
+             it by a qualified name. */
+          if (locator_for_curr_id.is_qualified_name) {
+            pos_error(ec_qualified_name_not_allowed,
+                      &locator_for_curr_id.source_position);
+          }  /* if */
           init_type = member_or_base_sym->variant.field->type;
-          if (is_array_type(init_type) && !is_char_array_type(init_type)) {
-#if 0
-                                           is_string_type?
-#endif
+          /* The syntax does not provide for the initialization of arrays --
+             except character strings. */
+          if (is_array_type(init_type) && !is_string_type(init_type)) {
             error(ec_cannot_initialize);
             init_type = error_type();
-          } else {
-            for (new_cip = cip_list;
-                 new_cip != NULL;
-                 new_cip = new_cip->next) {
-              if (new_cip->variant.field ==
-                  member_or_base_sym->variant.field) {
-                 break;
+            goto scan_paren;
+          }  /* if */
+          if (is_class_struct_union_type(init_type)) {
+            cssp = symbol_supplement_for_class(init_type);
+            if (cssp->constructor == NULL) {
+              /* Error -- there is no constructor. */
+              if (init_type->source_corresp.name != NULL) {
+                str_error(ec_no_constructor, init_type->source_corresp.name);
+              } else {
+                error(ec_cannot_initialize);
               }  /* if */
+              init_type = error_type();
+              goto scan_paren;
             }  /* if */
-            if (new_cip != NULL) {
+          }  /* if */
+          /* Check the list for a constructor init entry that refers to this
+             member.  If it's there we may have a reinitialization error. */
+          for (new_cip = cip_list; new_cip != NULL; new_cip = new_cip->next) {
+            if (new_cip->variant.field == member_or_base_sym->variant.field) {
               if (new_cip->initializer != NULL) {
                 error(ec_already_initialized);
                 err = TRUE;
+                goto scan_paren;
               }  /* if */
+              break;
+            }  /* if */
+          }  /* for */
+          if (new_cip == NULL) {
+            /* No constructor init entry exists for this field.  Allocate one
+               and add it to the list. */
+            new_cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
+            new_cip->variant.field = member_or_base_sym->variant.field;
+            if (cip_list == NULL) {
+              /* Easy case:  start a new list. */
+              cip_list = end_of_cip_list = new_cip;
             } else {
-              new_cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
-              new_cip->variant.field = member_or_base_sym->variant.field;
-              if (cip_list == NULL) {
-                /* Easy case:  start a new list. */
-                cip_list = end_of_cip_list = new_cip;
-              } else {
-                prev_cip = NULL;
-                cip = cip_list;
-                for (sym = class_sym->
-                             variant.class_struct_union.extra_info->symbols;
-                     sym != NULL;
-                     sym = sym->next_in_scope) {
-                  if (sym->kind == (a_symbol_kind)sk_field) {
-                    if (sym == member_or_base_sym) {
-                      /* Found the field.  Insert new_cip into cip_list
-                         immediately following prev_cip.  If prev_cip is NULL
-                         this will be at the head of the list. */
-                      if (prev_cip == NULL) {
-                        new_cip->next = cip_list;
-                        cip_list = new_cip;
-                      } else {
-                        new_cip->next = prev_cip->next;
-                        prev_cip->next = new_cip;
-                      }  /* if */
-                      break;
-                    } else if (sym->variant.field == cip->variant.field) {
-                      /* We didn't find the field we're trying to insert, but
-                         we did find the next item on the list. */
-                      if (cip == end_of_cip_list) {
-                        /* Since this is the end of the list, we know the
-                           new field must appear after the current entry.
-                           Cut short the search. */
-                        end_of_cip_list->next = new_cip;
-                        end_of_cip_list = new_cip;
-                        break;
-                      }  /* if */
-                      /* Advance through the cip list, saving the current
-                         entry as a possible insertion point. */
-                      prev_cip = cip;
-                      cip = cip->next;
+              /* The order in which fields appear on the constructor init list
+                 must correspond exactly to the order in which they were
+                 declared.  This order is preserved in the symbol list for the
+                 class, so advance through the symbol list and through whatever
+                 is already on the constructor init list together. */
+              prev_cip = NULL;
+              cip = cip_list;
+              sym = class_sym->variant.class_struct_union.extra_info->symbols;
+              for (; sym != NULL; sym = sym->next_in_scope) {
+                if (sym->kind == (a_symbol_kind)sk_field) {
+                  /* Found a nonstatic data member. */
+                  if (sym == member_or_base_sym) {
+                    /* Found the field.  Insert new_cip into cip_list
+                       immediately following prev_cip.  If prev_cip is NULL
+                       this will be at the head of the list. */
+                    if (prev_cip == NULL) {
+                      /* Insert at head of list. */
+                      new_cip->next = cip_list;
+                      cip_list = new_cip;
+                    } else {
+                      /* Insert into the list. */
+                      new_cip->next = prev_cip->next;
+                      prev_cip->next = new_cip;
                     }  /* if */
+                    break;
+                  } else if (sym->variant.field == cip->variant.field) {
+                    /* We didn't find the field we're trying to insert, but
+                       we did find the next item on the list. */
+                    if (cip == end_of_cip_list) {
+                      /* Since this is the end of the list, we know the new
+                         field must appear after the current entry.  Cut short
+                         the search. */
+                      end_of_cip_list->next = new_cip;
+                      end_of_cip_list = new_cip;
+                      break;
+                    }  /* if */
+                    /* Advance through the cip list, saving the current entry
+                       as a possible insertion point. */
+                    prev_cip = cip;
+                    cip = cip->next;
                   }  /* if */
-                }  /* for */
-              }  /* if */
-              /* At this point new_cip should point to the field's constructor
-                 init entry to which the initializer should be attached.  It
-                 has been located in or inserted into the list of such entries
-                 at a spot corresponding to its declaration order. */
+                }  /* if */
+              }  /* for */
             }  /* if */
           }  /* if */
+          /* At this point new_cip should point to the field's constructor init
+             entry to which the initializer should be attached.  It has been
+             located in or inserted into the list of such entries at a spot
+             corresponding to its declaration order. */
         } else if (is_class_symbol(member_or_base_sym)) {
+          /* It is a base class of the current class for which initialization
+             is to be done. */
           a_boolean  indirect_nonvirtual_base_class_found = FALSE;
           init_type = type_symbol_type(member_or_base_sym);
-          bcp = class_type->variant.class_struct_union.extra_info->
-                                                             base_classes;
+          /* Locate it in the base classes list for the current class.  Note
+             that only direct and virtual base classes can be specified. */
+          bcp = class_type->
+                    variant.class_struct_union.extra_info->base_classes;
           for (; bcp != NULL; bcp = bcp->next) {
             if (bcp->type == init_type) {
               if (bcp->direct || bcp->is_virtual) {
                 break;
               } else {
+                /* A base class of the required type was found, but it is
+                   neither direct nor virtual.  Unless another is found with
+                   the same name, this will be an error. */
                 indirect_nonvirtual_base_class_found = TRUE;
               }  /* if */
             }  /* if */
@@ -1380,68 +1420,78 @@ initialized.  These are addressed in the course of the processing.
           if (bcp == NULL) {
             /* No match found. */
             if (indirect_nonvirtual_base_class_found) {
+              /* Actually, a match was found, but it was not a direct or
+                 virtual base class. */
               error(ec_indirect_nonvirtual_base_class_not_allowed);
             } else {
+              /* Not a base class of the class for which a constructor is
+                 being defined. */
               str_error(ec_not_a_field_or_base_class,
                         class_type->source_corresp.name);
             }  /* if */
             init_type = error_type();
           } else {
+            /* The base class was found.  Now look on the appropriate list of
+               constructor initializers.  It must be on the list if it itself
+               has a constructor; and if not, it can't be mentioned in a
+               constructor initializer list. */
             new_cip = (bcp->is_virtual) ? virtual_list : direct_list;
             for (; new_cip != NULL; new_cip = new_cip->next) {
               if (new_cip->variant.base_class == bcp) break;
             }  /* for */
             if (new_cip == NULL) {
+              /* We didn't find it on the list, so issue the error. */
               str_error(ec_no_constructor, init_type->source_corresp.name);
               init_type = error_type();
+            } else if (new_cip->initializer != NULL) {
+              error(ec_already_initialized);
+              err = TRUE;
             }  /* if */
           }  /* if */
+        } else {
+          /* Not a base class, not a field.  Issue an error. */
+          str_error(ec_not_a_field_or_base_class,
+                    class_type->source_corresp.name);
+          init_type = error_type();
         }  /* if */
+scan_paren:
         /* Advance past the identifier. */
         (void)get_token();
         if (required_token(tok_lparen, ec_exp_lparen)) {
-          if (is_error_type(init_type)) {
-            /* Flush tokens? Scan? */
-          } else if (is_scalar_type(init_type)) {
-            add_stop_token(tok_rparen);
-            /* Allocate a new dynamic init entry, setting the kind to dik_none
-               for now.  It will be adjusted after the scan. */
-            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-            scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
-                                              /*convert_array_to_ptr=*/TRUE,
-                                              &init_type, dip, &err);
-            new_cip->initializer = dip;
-            remove_stop_token(tok_rparen);
-            (void)required_token(tok_rparen, ec_exp_rparen);
-          } else if (is_class_struct_union_type(init_type)) {
+          if (is_class_struct_union_type(init_type)) {
+            /* This is either a base class or a field of class type.  In
+               either case, it must be initialized by a constructor call. */ 
+            an_expr_node_ptr  arg_list;
             cssp = symbol_supplement_for_class(init_type);
             if (cssp->constructor == NULL) {
+              /* Error -- there is no constructor. */
               str_error(ec_no_constructor, init_type->source_corresp.name);
               err = TRUE;
+              flush_tokens();
             } else {
               /* This is treated like an initialization of the form
                  S x (arg [, ...]), where S is a class type name.  Depending
                  on the arguments present, a constructor will be selected and
                  returned.  The scan function returns FALSE if it finds no
                  constructor for which the arguments match. */
-              an_expr_node_ptr  arg_list;
               if (!scan_ctor_arguments(cssp->constructor, &rp, &arg_list)) {
                 err = TRUE;
-              } else {
-                /* Set the dynamic init entry to represent constructor
-                   initialization. */
-                dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-                dip->variant.constructor.routine = rp;
-                dip->variant.constructor.args = arg_list;
-                /* Mark the constructor referenced. */
-                rp->source_corresp.referenced = TRUE;
-                if (cssp->destructor != NULL) {
-                  dip->destructor = rp = cssp->destructor->variant.routine;
-                  rp->source_corresp.referenced = TRUE;
-                }  /* if */
               }  /* if */
             }  /* if */
-            if (err) {
+            if (!err) {
+              /* Set the dynamic init entry to represent constructor
+                 initialization. */
+              dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+              dip->variant.constructor.routine = rp;
+              dip->variant.constructor.args = arg_list;
+              /* Mark the constructor referenced. */
+              reference_to_special_member_function(rp);
+              if (cssp->destructor != NULL) {
+                dip->destructor = rp = cssp->destructor->variant.routine;
+                reference_to_special_member_function(rp);
+              }  /* if */
+            } else {
+              /* Create a fake initializer to represent the error. */
               a_constant_ptr  cp;
               dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
               cp = alloc_constant((a_constant_repr_kind)ck_error);
@@ -1449,6 +1499,21 @@ initialized.  These are addressed in the course of the processing.
               dip->variant.constant = cp;
             }  /* if */
             new_cip->initializer = dip;
+          } else {
+            add_stop_token(tok_rparen);
+            if (is_error_type(init_type)) {
+              flush_tokens();
+            } else if (is_scalar_type(init_type)) {
+              /* Allocate a new dynamic init entry, setting the kind to
+                 dik_none for now.  It will be adjusted after the scan. */
+              dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+              scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
+                                                /*convert_array_to_ptr=*/TRUE,
+                                                &init_type, dip, &err);
+              new_cip->initializer = dip;
+            }  /* if */
+            remove_stop_token(tok_rparen);
+            (void)required_token(tok_rparen, ec_exp_rparen);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -1456,7 +1521,9 @@ initialized.  These are addressed in the course of the processing.
     } while (loop_token(tok_comma));
     remove_stop_token(tok_lbrace);
   }  /* if */
-  /* Merge the three lists into one. */
+  /* Merge the three lists into one:  virtual base classes followed by
+     nonvirtual direct base classes followed by nonstatic data members
+     (ARM 12.6.2). */
   if (direct_list != NULL) {
     end_of_direct_list->next = cip_list;
     cip_list = direct_list;
@@ -1480,9 +1547,10 @@ initialized.  These are addressed in the course of the processing.
         if (is_array_type(tp)) {
           array_type = tp;
           do {
-            tp = skip_typerefs(tp->variant.array.element_type);
+            tp = array_element_type(tp);
           } while(is_array_type(tp));
-        }  /* while */
+          tp = skip_typerefs(tp);
+        }  /* if */
       } else {
         /* Get the type of the base class. */
         tp = skip_typerefs(cip->variant.base_class->type);
@@ -1505,18 +1573,18 @@ initialized.  These are addressed in the course of the processing.
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
       } else {
         /* A default constructor does exist.  Generate the dynamic init
-           entry and mark the constructor routine as referenced. */
+           entry and mark the constructor routine referenced. */
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
         dip->variant.constructor.routine = rp =
-                               cssp->default_constructor->variant.routine;
-        rp->source_corresp.referenced = TRUE;
+                                  cssp->default_constructor->variant.routine;
         dip->variant.constructor.args = NULL;
+        reference_to_special_member_function(rp);
       }  /* if */
       /* Record the destructor, if any, in the dynamic init entry. */
       if (cssp->destructor != NULL) {
         dip->destructor = rp = cssp->destructor->variant.routine;
         /* Mark the destructor referenced. */
-        rp->source_corresp.referenced = TRUE;
+        reference_to_special_member_function(rp);
       }  /* if */
       if (array_type != NULL) {
         /* We have an array of objects with constructors.  Create a dynamic
