@@ -154,6 +154,10 @@ extern void type_name(a_type_ptr *type_ptr);
 extern void new_type_name(a_boolean         is_parenthesized,
                           a_type_ptr        *type_ptr);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_type_ptr simple_type_specifier_sequence(void);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern
 a_boolean scan_conversion_operator(a_source_position           *id_pos,
                                    a_boolean                   is_class_member,

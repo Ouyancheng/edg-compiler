@@ -5519,6 +5519,29 @@ within this routine if is_parenthesized comes in FALSE.
   db_exit();
 }  /* new_type_name */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_type_ptr simple_type_specifier_sequence(void)
+/*
+Scan a sequence of simple-type-specifiers and return a pointer to the
+resulting type.  This is called in Microsoft mode for function-style casts
+where the type involves more than one token -- e.g., "unsigned int(x)".
+*/
+{
+  a_decl_flag_set       dso_flags;
+  a_storage_class       storage_class;
+  a_type_ptr            type_ptr;
+  a_type_qualifier_set  qualifiers;
+  a_decl_modifier       decl_modifiers;
+
+  check_assertion(microsoft_mode && is_type_specifier());
+  (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
+                        &storage_class, &type_ptr, &qualifiers,
+                        &decl_modifiers);
+  return type_ptr;
+}  /* simple_type_specifier_sequence */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean scan_conversion_operator(a_source_position           *id_pos,
                                    a_boolean                   is_class_member,
