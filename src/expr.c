@@ -1833,8 +1833,8 @@ The result is placed in *result.
     if (is_constant_operand(operand_1) && curr_expr_is_evaluated() &&
         expr_stack->fold_constant_addr_exprs
 #if UPC_EXTENSIONS_ALLOWED
-          /* Do not fold field operations for shared structs */
-          && !is_shared_qualified_type(class_struct_union_type)
+        /* Do not fold field operations for shared structs. */
+        && !is_shared_qualified_type(class_struct_union_type)
 #endif /* UPC_EXTENSIONS_ALLOWED */
                                              ) {
       /* Don't try to fold bit fields except when their addresses

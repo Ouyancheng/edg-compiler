@@ -4381,8 +4381,8 @@ Returns NULL in case of error.
 static a_upc_block_size scan_upc_block_size(a_basic_type  basic_type,
                                             a_boolean     *err)
 /*
-Scan and return the (constant) integer block size specified on a UPC shared type 
-qualifier.  This routine also scans the enclosing brackets.  E.g.,
+Scan and return the (constant) integer block size specified on a UPC shared
+type qualifier.  This routine also scans the enclosing brackets.  E.g.,
 	shared[100] int a[35];  // Block size 100
 */
 {
@@ -4611,7 +4611,7 @@ Returns TRUE if there is an error in the specifiers.
   a_boolean                  any_decl_specifiers_seen = FALSE;
   a_boolean                  marked_as_gnu_extension =
                                   (input_flags & DSI_MARKED_AS_GNU_EXTENSION);
-  a_upc_block_size           block_size = 0;
+  a_upc_block_size           block_size = UPC_BLOCK_SIZE_NONE;
 #if UPC_EXTENSIONS_ALLOWED
   a_upc_block_size           saved_block_size;
   a_boolean                  multiple_shared_seen = FALSE;
