@@ -1,7 +1,7 @@
 Version 2.45
 
-8/9/00  Nonstandard anonymous unions mistakenly represented as standard C++
-        anonymous unions
+8/9/00   Nonstandard anonymous unions mistakenly represented as standard C++
+         anonymous unions
 
 The modifications applied for the Changes entry of 7/18/00 (nested types in
 nonstandard anonymous unions) brought about the unintended side effect of
@@ -9,7 +9,7 @@ having nonstandard anonymous unions represented as standard auk_field C++
 anonymous unions.  In C mode, this led to implicit field selections not being
 generated in the IL and potential aborts in back ends that consumed that IL.
 
-8/9/00  Source position on expression from pointer-to-member call
+8/9/00   Source position on expression from pointer-to-member call
 
 The source position in the IL expression for a pointer-to-member call
 of the form
@@ -20,8 +20,8 @@ was not quite correct.  The start position of the call was
 given as the position of the "p" rather than the position of the
 opening left parenthesis.  Now fixed.
 
-8/9/00  Folding of constant address expressions in aggregate class
-        initializations
+8/9/00   Folding of constant address expressions in aggregate class
+         initializations
 
 A change to provide greater conformance with the C++ standard on
 initializations in aggregate classes (see Changes entry of 4/7/99)
@@ -32,8 +32,8 @@ folding in such initializers.  The folding has been restored.
   static char a[3];
   static X x[] = {&a[0]};  // Once again folded to a constant address
 
-8/8/00  Microsoft compatibility: typedef name of a class visible to in-class
-        member definitions
+8/8/00   Microsoft compatibility: typedef name of a class visible to in-class
+         member definitions
 
 In Microsoft mode, when a class definition appears as part of a typedef
 declaration, the body of a member function defined inside that class
@@ -48,7 +48,7 @@ makes the following example valid:
                         // is not yet known.
 
 
-8/4/00  Microsoft compatibility: inherited members can be named as friends
+8/4/00   Microsoft compatibility: inherited members can be named as friends
 
 In Microsoft mode, the front end now allows friend declarations to refer to
 an inherited member of another class.  For example:
@@ -59,8 +59,8 @@ an inherited member of another class.  For example:
     friend void D::f();  // Accepted in Microsoft mode only
   };
 
-8/3/00  C++-generating back end: output of static extern "C" function in
-        Sun mode
+8/3/00   C++-generating back end: output of static extern "C" function in
+         Sun mode
 
 In Sun mode, a static function can also be extern "C".  The C++-generating
 back end did not quite handle that combination correctly.  Now fixed.
@@ -73,7 +73,7 @@ The field "surrounding_name_linkage_state" of "a_routine" entries is now set
 for all routine declarations (not just definitions; see also Changes entry of
 8/31/99).
 
-8/2/00  Correct selection of overriding virtual functions
+8/2/00   Correct selection of overriding virtual functions
 
 In some relatively complex situations involving multiple base classes of a
 same type, the C++ front end could select the wrong virtual function as the
@@ -106,8 +106,8 @@ final overrider.  For example:
 
 This is now fixed.
 
-8/2/00  Microsoft compatibility: Names from the instantiation context not
-        considered during instantiation lookups
+8/2/00   Microsoft compatibility: Names from the instantiation context not
+         considered during instantiation lookups
 
 When not using dependent name lookup, the front end considers functions
 from both the template definition context and the context of the reference
@@ -129,7 +129,7 @@ We now emulate this behavior in Microsoft mode.
     N::g('c');
   }
 
-8/2/00  Certain hidden names considered visible for dependent lookup
+8/2/00   Certain hidden names considered visible for dependent lookup
 
 When doing dependent name lookup, certain symbols that should not be visible
 were incorrectly included in the lookup.  This could result in spurious
