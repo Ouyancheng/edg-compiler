@@ -1,5 +1,17 @@
 Version 2.35
 
+2/4/97  Abort on use of invalid conversion operator
+
+An abort could occur when calling a template conversion operator using an
+ill-formed type.  This has been fixed.
+
+  struct A { template <class T> operator T*() {return 0;} };
+  void f() {
+    A a;
+    int* p = 0;
+    p = a.operator int int*(); 
+  }
+
 2/4/97  #pragma directive at end of namespace scope
 
 Pragma processing was not being done correctly just before the closing

@@ -3323,7 +3323,7 @@ is none, create a new one.
   prev_conv_hdr = NULL;
   conv_hdr = conversion_header_list;
   for (; conv_hdr != NULL; conv_hdr = conv_hdr->next) {
-    if (types_are_compatible(type, conv_hdr->type)) {
+    if (types_are_strictly_compatible(type, conv_hdr->type)) {
       /* Found it.  Move it to the front of the list. */
       if (prev_conv_hdr != NULL) {
         prev_conv_hdr->next = conv_hdr->next;
