@@ -540,3 +540,4 @@ switches before this point.
 * Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
+#define EXPENSIVE_CHECKING 1

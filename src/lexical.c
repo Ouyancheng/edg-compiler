@@ -3677,6 +3677,7 @@ used to find this file.
   curr_ise->ifg_state = IFG_STATE_START;
   curr_ise->saved_any_tokens_fetched =
 				      any_tokens_fetched_from_curr_input_file;
+  curr_ise->is_preinclude = is_preinclude;
   curr_ise->preinclude_macros_only = preinclude_macros_only;
   any_tokens_fetched_from_curr_input_file = FALSE;
 #if CHECKING
@@ -3873,6 +3874,15 @@ at the next level down.
      for the purpose of defining macros.  We will continue reading the
      primary source file. */
   if (curr_ise->preinclude_macros_only) at_end_of_source_file = FALSE;
+  if (curr_ise->is_preinclude) {
+    /* See if the end of the preinclude marks the end of the text that is
+       part of the precompiled header being generated. */
+    if (header_stop_position_pending &&
+        cmp_source_positions(header_stop_source_position,
+                             preinclude_source_position) == 0) {
+      generate_pch_on_return_to_primary_source_file = TRUE;
+    }  /* if */
+  }  /* if */
   /* Pop the input stack. */
   /* If the stack is empty, there is no current input file any more.
      This happens at the end of the primary source file. */

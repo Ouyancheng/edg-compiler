@@ -967,11 +967,14 @@ source file's compilation.
 }  /* fe_init_part_1 */
 
 
-static void open_primary_source_file(void)
+static void open_primary_source_file(a_boolean pch_prefix_scan)
 /*
 Open the primary source file, push the input stack, and get the
 first line of the file.  Note that "primary" in this case means "the
 top one in a translation unit", including a secondary translation unit.
+
+pch_prefix_scan is TRUE when this routine is called during the initial
+scan of a file to build the PCH prefix information.
 */
 {
   if (is_primary_translation_unit) {
@@ -994,7 +997,8 @@ top one in a translation unit", including a secondary translation unit.
                /*is_include_next=*/FALSE);
   /* Save the source file pointer for this translation unit. */
   curr_translation_unit->source_file = curr_ise->assoc_actual_il_file;
-  if (preinclude_file_name != NULL && !using_a_pch_file) {
+  if (preinclude_file_name != NULL && !pch_prefix_scan &&
+      !using_a_pch_file) {
     /* There is a preinclude file to be included at the beginning of
        the compilation. */
     open_file_and_push_input_stack(
@@ -1022,7 +1026,7 @@ is being done.  This is called prior to the initial scan of the
 file prefix done by the precompiled header processing routines.
 */
 {
-  open_primary_source_file();
+  open_primary_source_file(/*pch_prefix_scan=*/TRUE);
 }  /* fe_init_for_pch_prefix_scan */
 
 
@@ -1041,7 +1045,7 @@ being used).
      identify the position as before the start of source. */
   /* Push the primary source input file onto the input stack.  Make
      a copy of the file name in IL storage. */
-  open_primary_source_file();
+  open_primary_source_file(/*pch_prefix_scan=*/FALSE);
   if (is_primary_translation_unit) {
     /* This IL header initialization is not done earlier because the values
        from a precompiled header file cannot be used (as is done with the

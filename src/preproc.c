@@ -2008,6 +2008,32 @@ begin.
 }  /* pch_prefix_processing_for_pp_directive */
 
 
+void create_preinclude_pch_event(void)
+/*
+Create a PCH event for a preinclude file.
+*/
+{
+  add_pch_event(pchek_pp_directive, ppd_include, (char*)NULL,
+                &preinclude_source_position, (a_line_number)0);
+}  /* create_preinclude_pch_event */
+
+
+void pch_prefix_processing_for_preinclude(void)
+/*
+This routine is called at the start of a translation unit to determine
+whether "real" compilation of the current file should being immediately
+following the processing of a preincluded file.
+*/
+{
+  if (using_a_pch_file) {
+    if (cmp_source_positions(pos_of_last_event_from_pch,
+                             preinclude_source_position) == 0) {
+      next_event_resumes_compilation = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* pch_prefix_processing_for_preinclude */
+
+
 void pp_directive(void)
 /*
 The "#" of a preprocessor directive is the current character.  Scan and
@@ -2236,10 +2262,14 @@ When the preinclude_macros option is used, scan and discard any tokens
 until the end of the preinclude file is reached.
 */
 {
-  for (;;) {
-    if (get_token() == tok_end_of_source) break;
-  }  /* for */
-  pop_input_stack();
+  if (!using_a_pch_file) {
+    /* The preinclude will have been processed as part of the PCH when
+       using a precompiled header. */
+    for (;;) {
+      if (get_token() == tok_end_of_source) break;
+    }  /* for */
+    pop_input_stack();
+  }  /* if */
 }  /* process_macro_preinclude */
 
 

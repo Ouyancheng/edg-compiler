@@ -563,6 +563,11 @@ following, indicating something special:
 #define SP_COL_CMD_LINE 1
 			/* The position is in the command line. */
 
+#define SP_PREINCLUDE 2
+			/* A special source position used for precompiled
+			   header processing to indicate that the header
+			   stop position is after the preincluded file. */
+
 /* Macro to copy a source position. */
 #define copy_source_position(from, to) ((to) = (from))
 
@@ -585,6 +590,15 @@ EXTERN a_source_position
 #endif /* VAR_INITIALIZERS */
                                                             ;
 			/* NULL source position, for initialization. */
+
+EXTERN a_source_position
+		preinclude_source_position
+#if VAR_INITIALIZERS
+                                     = { 0, SP_PREINCLUDE }
+#endif /* VAR_INITIALIZERS */
+                                                            ;
+			/* Special position used for PCH processing of
+			   preincluded files. */
 
 typedef enum /*a_C_dialect*/ {
   /* Possible C/C++ dialects to compile. */

@@ -624,6 +624,10 @@ information.
      information.  This affects the way in which preprocessing directives
      are handled and the way end-of-file is processed. */
   building_pch_prefix = TRUE;
+  /* If a preinclude file was specified, create an event for it. */
+  if (preinclude_file_name != NULL) {
+    create_preinclude_pch_event();
+  }  /* if */
   /* Simply do a get_token call.  This will return the first token
      of the file that is not a comment or a preprocessing directive.
      Because the prefix information includes only preprocessing directives,
@@ -2258,9 +2262,6 @@ Initialize variables used by the precompiled header routines.
     /* PCH processing must be able to restart the scan of the primary
        source file.  This can't be done with standard input, so we have
        to suppress PCH processing. */
-    abandon_pch_processing();
-  } else if (preinclude_file_name != NULL) {
-    /* We can't do PCH processing when using preincluded files. */
     abandon_pch_processing();
   }  /* if */
 

@@ -876,6 +876,8 @@ typedef struct an_input_stack_entry {
   a_bit_field	saved_any_tokens_fetched:1;
 			/* Used to save and restore the value of the global
 			   variable any_tokens_fetched_from_curr_input_file. */
+  a_bit_field	is_preinclude:1;
+			/* TRUE if this is a preincluded file. */
   a_bit_field	preinclude_macros_only:1;
 			/* TRUE if this is a preincluded file that was
 			   included by the preinclude_macros option, and

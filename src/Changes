@@ -1,5 +1,10 @@
 Version 3.1
 
+8/19/02   Preinclude can be used in conjunction with precompiled headers
+
+The use of preinclude files was previously not supported when using
+precompiled header files.  These features may now be used together.
+
 8/17/02   IL write/read error, pragma on Microsoft property field
 
 Inconsistent IL (and an IL write/read error if an IL file is written)

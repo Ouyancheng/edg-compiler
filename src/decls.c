@@ -11659,6 +11659,11 @@ In C++, however, the declaration list is optional (3.4):
                                opt
 */
 {
+  if (using_a_pch_file) {
+    /* When using a precompiled header, do any special processing needed
+       for a preincluded file. */
+    pch_prefix_processing_for_preinclude();
+  }  /* if */
   /* If the preinclude_macros option was used, scan the files that provide
      macro definitions. */
   if (is_macro_preinclude) process_macro_preinclude();
