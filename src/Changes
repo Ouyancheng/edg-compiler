@@ -1,5 +1,15 @@
 Version 2.32
 
+4/23/96 Declaring the current template to be a friend of itself
+
+A bug has been fixed that made it impossible to declare the current
+template to be a friend of itself.  This is needed, for example, if
+each instance of A is to be a friend of every other instance of A.
+
+  template <class T> class A {
+    template <class T2> friend struct A;
+  };
+
 4/23/96 struct il_header renamed struct il_header_tag
 
 The struct name il_header has been renamed il_header_tag so that it
