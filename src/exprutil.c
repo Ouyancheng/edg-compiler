@@ -1884,7 +1884,8 @@ conversions.
   a_boolean  did_not_fold;
 
   /* Drop any qualifiers on the destination type.  Qualifiers on an rvalue
-     have no meaning. */
+     have no meaning in C, and no meaning for non-class rvalues in C++,
+     which is all this routine handles. */
   new_type = make_unqualified_type(new_type);
   if (il_identical_types((*node)->type, new_type) &&
       /* Don't allow dropping a cast to the same type over a bit-field
@@ -1958,7 +1959,8 @@ user-defined conversions.
 #endif /* CHECKING */
 
   /* Drop any qualifiers on the destination type.  Qualifiers on an rvalue
-     have no meaning. */
+     have no meaning in C, and no meaning for non-class rvalues in C++,
+     which is all this routine handles. */
   new_type = make_unqualified_type(new_type);
   /* If the cast doesn't change the type, do nothing.
      Can't test for il_identical_types at this point, since for an
@@ -3076,15 +3078,15 @@ Return FALSE and issue an error message if the operand is not a pointer to a
 function type.  If there is an error, change the operand to an error operand.
 */
 {
-  register a_boolean  okay = TRUE;
-  register a_type_ptr pointer_type;
+  a_boolean  okay = TRUE;
+  a_type_ptr pointer_type;
 
   if (is_error_operand(operand)) {
     /* If the operand has a type of error, an error message has already been
        issued. */
     okay = FALSE;
   } else {
-    pointer_type = skip_typerefs(operand->type);
+    pointer_type = operand->type;
     if (!is_pointer_type(pointer_type) ||
         !is_function_type(type_pointed_to(pointer_type))) {
       error_in_operand(ec_expr_not_ptr_to_function, operand);
@@ -3103,7 +3105,7 @@ If there is an error, change "operand" to an error operand.
 See section 3.1.2.5 of the standard.
 */
 {
-  register a_boolean okay = TRUE;
+  a_boolean okay = TRUE;
 
   if (is_error_operand(operand)) {
     /* If the operand has a type of error, an error message has already been
@@ -3124,8 +3126,8 @@ Return TRUE if the operand contains a constant zero value (of integral
 or floating type).
 */
 {
-  register a_boolean is_constant_zero = FALSE;
-  an_expr_node_ptr   node;
+  a_boolean        is_constant_zero = FALSE;
+  an_expr_node_ptr node;
 
   if (is_expression_operand(operand)) {
     /* Check if the expression is a constant zero. */
@@ -3147,8 +3149,8 @@ Return TRUE if the operand contains a false constant value (a zero of
 integral, floating, pointer, or pointer to member type).
 */
 {
-  register a_boolean is_constant_false = FALSE;
-  an_expr_node_ptr   node;
+  a_boolean        is_constant_false = FALSE;
+  an_expr_node_ptr node;
 
   if (is_expression_operand(operand)) {
     /* Check if the expression is a false constant. */
@@ -4025,8 +4027,8 @@ the value) of the temporary if result_is_addr is TRUE.
     temp_init_node->type = make_pointer_type(temp_type);
   } else {
     /* The result is the value of the temporary, so the type is the type
-       of the temporary. */
-    temp_init_node->type = skip_typerefs(temp_type);
+       of the temporary as an rvalue. */
+    temp_init_node->type = rvalue_type(temp_type);
   }  /* if */
   /* Make sure the IL scope that the temporary is part of exists.  Even though
      the temporary does not exist as a variable, it's still (from a language
@@ -4142,14 +4144,9 @@ a diagnostic is put out in some cases.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Any type qualifiers on the return type are dropped because rvalues
-     do not have qualified types. */
-  return_type = skip_typerefs(function_type->variant.routine.return_type);
-  if (is_reference_type(return_type)) {
-    /* If the function returns a reference type, make the result a
-       pointer. */
-    return_type = make_pointer_type(type_pointed_to(return_type));
-  }  /* if */
+  /* Determine the return type, dealing with reference types and
+     cv-qualifiers. */
+  return_type = return_type_of(function_type);
   /* Determine the operator to use for the call. */
   if (is_ptr_to_member_type(function_node->type)) {
     /* Call using a pointer-to-member-function. */
@@ -4195,8 +4192,8 @@ on function_type.  *call_pos gives the source position of the call.
 */
 {
   an_expr_node_ptr call_node;
-  a_type_ptr       return_type;
 
+  function_type = skip_typerefs(function_type);
   /* Make the function call expression node. */
   call_node = func_call_expr(function_node, function_type, is_virtual,
                              virtual_suppressed, call_pos);
@@ -4204,9 +4201,7 @@ on function_type.  *call_pos gives the source position of the call.
   make_expression_operand(call_node, call_node->type, result);
   result->position = *call_pos;
   /* A function call returning a reference is an lvalue. */
-  function_type = skip_typerefs(function_type);
-  return_type = skip_typerefs(function_type->variant.routine.return_type);
-  if (is_reference_type(return_type)) {
+  if (is_reference_type(function_type->variant.routine.return_type)) {
     conv_object_pointer_to_lvalue(result);
     call_node->implicit_reference_indirection = TRUE;
   }  /* if */
@@ -4907,15 +4902,15 @@ non-NULL return *con_value == NULL.
     if (optimized_case) {
       /* For the optimized cases, set the node type to the type pointed to. */
       node->type = type_pointed_to(node->type);
-      /* Drop type qualifiers because they are meaningless on rvalues.
-         Note that no cast is needed to drop the qualifiers: an IL shorthand
-         applies in this case. */
+      /* Drop type qualifiers as appropriate for an rvalue.  Note that no
+         cast is needed to drop the qualifiers: an IL shorthand applies in
+         this case. */
       if (is_qualified_type(node->type)) {
-        node->type = make_unqualified_type(node->type);
+        node->type = rvalue_type(node->type);
       }  /* if */
     } else {
       /* Not an optimized case.  Just add an indirection.  This also drops
-         the type qualifiers. */
+         the type qualifiers as appropriate. */
       node = add_indirection_to_node(node);
     }  /* if */
   }  /* if */
@@ -5122,19 +5117,19 @@ not an lvalue, it is left alone.
           qualifiers_dropped = TRUE;
         }  /* if */
       }  /* if */
-      /* Drop any type qualifiers on the operand type (if they have not
-         been dropped already). */
+      /* Drop type qualifiers on the operand type as appropriate (if they
+         have not been dropped already). */
       if (!qualifiers_dropped && is_qualified_type(operand->type)) {
-        a_type_ptr unqualified_type = make_unqualified_type(operand->type);
+        a_type_ptr new_type = rvalue_type(operand->type);
         if (is_expression_operand(operand)) {
           /* For an expression node, just change the expression type.
              That's an IL shorthand form for this case, and avoids a
              cast to a struct or union type. */
-          operand->type = operand->variant.expression->type = unqualified_type;
+          operand->type = operand->variant.expression->type = new_type;
         } else {
           /* For other cases (including constants), do the cast the normal
              way. */
-          cast_operand(unqualified_type, operand, /*check_cast_access=*/TRUE,
+          cast_operand(new_type, operand, /*check_cast_access=*/TRUE,
                        /*is_implicit_cast=*/TRUE);
         }  /* if */
       }  /* if */
