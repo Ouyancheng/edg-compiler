@@ -3613,7 +3613,7 @@ function_lparen:
     }  /* if */
     complete_type = derived_type;
   }  /* if */
-  if (is_function_type(complete_type)) {
+  if (complete_type != NULL && is_function_type(complete_type)) {
     /* Check whether the routine needs special support for returning a class
        object by value. */
     set_routine_calling_method_flag(complete_type);
@@ -5300,7 +5300,7 @@ explicitly specified (rather than defaulted to "int").
   a_routine_ptr      routine_ptr;
   a_scope_ptr        scope_ptr;
   a_param_id_ptr     param_id;
-  a_param_type_ptr   ptp, old_style_param_types, end_old_style_param_types;
+  a_param_type_ptr   old_style_param_types, end_old_style_param_types;
   a_symbol_ptr       param_symbol_ptr;
   an_id_linkage_kind linkage;
   a_type_ptr         return_type, old_type, unqualified_rout_type;
