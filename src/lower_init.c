@@ -3847,6 +3847,8 @@ C99 mode for the same reason.
   an_insert_location *eff_insert_location = insert_location;
   an_object_lifetime_ptr
                      init_expr_lifetime, local_static_lifetime;
+  an_object_lifetime_ptr
+                     orig_init_expr_lifetime;
   a_context          context, static_context, static_context2;
   a_context_ptr      eff_context = curr_context;
   a_boolean          expr_is_lvalue, local_keep_dynamic_init = FALSE;
@@ -3983,7 +3985,7 @@ C99 mode for the same reason.
       }  /* if */
     }  /* if */
   }  /* if */
-  init_expr_lifetime = dip->init_expr_lifetime;
+  orig_init_expr_lifetime = init_expr_lifetime = dip->init_expr_lifetime;
   /* See if this is an initialization of an array via a constructor.  For
      such initializations certain things get delayed because the actual
      initialization gets done by a runtime routine. */
@@ -4014,6 +4016,13 @@ C99 mode for the same reason.
        object lifetimes too.  Also note that these entries will have been
        copied already if they're inside a higher-level initialization
        that has already been copied. */
+    /* Temporarily restore the original init_expr_lifetime value, needed
+       so that remove_from_destruction_list can manage the
+       overlaps_temps_in_inner_lifetime flag when destructions are
+       removed.  The dip->init_expr_lifetime field will have been cleared if
+       the lifetime was unbound during the call to push_init_expr_lifetime. */
+    an_object_lifetime_ptr saved_init_expr_lifetime = dip->init_expr_lifetime;
+    dip->init_expr_lifetime = orig_init_expr_lifetime;
     if (dip->kind == (a_dynamic_init_kind)dik_expression ||
         dip->kind == (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
       an_expr_node_ptr expr = dip->variant.expression;
@@ -4033,6 +4042,7 @@ C99 mode for the same reason.
         }  /* if */
       }  /* if */
     }  /* if */
+    dip->init_expr_lifetime = saved_init_expr_lifetime;
   }  /* if */
   if (init_expr_lifetime != NULL) {
     /* Begin the object lifetime defined by this initialization.  Note that
