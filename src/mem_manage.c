@@ -1122,15 +1122,15 @@ Free a block of memory to general storage.
 {
   a_memory_allocation_ptr	map;
 
-  free((char*)ptr);
-#if DEBUG
-  total_general_mem_allocated -= size;
-#endif /* DEBUG */
   /* Find the memory allocation entry for this memory and clear the pointer
      so that it won't be freed again, or found by a subsequent search. */
   map = find_memory_allocation(ptr, /*resizable=*/FALSE);
   map->buffer = NULL;
   map->size = 0;
+  free((char*)ptr);
+#if DEBUG
+  total_general_mem_allocated -= size;
+#endif /* DEBUG */
 }  /* free_general */
 
 
@@ -1763,7 +1763,7 @@ free general storage.
   a_text_buffer_ptr	tbp;
   for (tbp = text_buffer_list; tbp != NULL; tbp = tbp->next) {
     /* Free the memory pointed to by the buffer. */
-    (void)free(tbp->buffer);
+    free(tbp->buffer);
     tbp->buffer = NULL;
   }  /* for */
   text_buffer_list = NULL;
@@ -1780,7 +1780,7 @@ Free the general memory specified by *list.
 
   for (map = *list; map != NULL; map = next_map) {
     next_map = map->next;
-    (void)free((a_void_ptr)map->buffer);
+    free((a_void_ptr)map->buffer);
     if (map < &memory_allocation_table[0] &&
         map > &memory_allocation_table[SIZE_MEMORY_ALLOCATION_TABLE]) {
       /* This memory allocation entry is not part of the static memory

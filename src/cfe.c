@@ -32,7 +32,9 @@ Changed to C++ front end and enhanced by
 /* Additional header files. */
 #include "fe_init.h"
 #include "fe_wrapup.h"
+#if MAKE_FRONT_END_CALLABLE
 #include "mem_manage.h"
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 #if BACK_END_IS_C_GEN_BE
 #include "c_gen_be.h"
@@ -184,7 +186,7 @@ status is returned to the caller.
   /* Free all memory used by the compilation. */
   mem_manage_wrapup();
   return most_severe_diagnostic;
-#endif /* MAKE_FRONT_END_CALLABLE */
+#endif /* !MAKE_FRONT_END_CALLABLE */
 }  /* main */
 
 
