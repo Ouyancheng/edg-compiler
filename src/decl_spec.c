@@ -6858,6 +6858,8 @@ process_class_specifier:
           } else if (named_address_space != 0) {
             if (named_address_space_from_qualifier_set(*qualifiers) != 0) {
               error(ec_multiple_named_address_spaces);
+            } else if (input_flags & DSI_IS_PARAMETER) {
+              error(ec_named_address_space_for_parameter);
             } else {
               non_restrict_qualifier_pos = pos_curr_token;
               set_named_address_space_in_qualifier_set(*qualifiers,

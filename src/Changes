@@ -1,5 +1,12 @@
 Version 3.5
 
+7/21/04  Embedded C: Parameters in named address spaces
+
+The front end now issues an error when attempting to declare a parameter in
+a named address space (previously no diagnostic was issued).  For example:
+
+  void f(_EDG_NAS_A int x);  // Error (_EDG_NAS_A is a named address space).
+
 7/21/04  Embedded C: Spurious error on smallest _Accum value
 
 A spurious error was issued if the result of a constant operation
