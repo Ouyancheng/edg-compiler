@@ -7291,7 +7291,7 @@ End a name scope by popping an entry off the scope stack.
   il_scope = ssep->il_scope;
   if (C_dialect == C_dialect_cplusplus) {
     if (kind == (a_scope_kind)sck_function ||
-        kind == (a_scope_kind)sck_block) {
+        (kind == (a_scope_kind)sck_block && il_scope != NULL)) {
       /* If there are any local classes, check for compiler-generated
          virtual destructors for which bodies should be put out. */
       check_virtual_destructors(il_scope->types);
