@@ -480,13 +480,23 @@ and indentation is the indentation desired.
           fprintf(f_debug, "\n");
           col = 0;
         }  /* for */
-        inst_sym = tssp->variant.class.instantiations;
-        while (inst_sym != NULL) {
-          fprintf(f_debug, "%*sInstantiation:\n", indentation, "");
-          fprintf(f_debug, "%*s", indentation + 2, "");
-          db_symbol(inst_sym, "", indentation + 4);
-          inst_sym = inst_sym->next;
-        }  /* while */
+        if (sym->kind == sk_class_template) {
+          inst_sym = tssp->variant.class.instantiations;
+          while (inst_sym != NULL) {
+            fprintf(f_debug, "%*sInstantiation:\n", indentation, "");
+            fprintf(f_debug, "%*s", indentation + 2, "");
+            db_symbol(inst_sym, "", indentation + 4);
+            inst_sym = inst_sym->next;
+          }  /* while */
+        } else {
+          a_routine_ptr  routine = tssp->variant.function.routine;
+          fprintf(f_debug, "%*sRoutine type: ", indentation, "");
+          if (routine != NULL) {
+            db_type(tssp->variant.function.routine->type);
+          } else {
+            fprintf(f_debug, "(routine ptr is NULL)\n");
+          }  /* if */
+        }  /* if */
         col = 0;
         suppress_newline = TRUE;
       }
@@ -883,6 +893,7 @@ state.
         } else {
           tssp->variant.function.instantiations = NULL;
           clear_token_cache(&tssp->variant.function.decl_token_cache);
+          tssp->variant.function.routine = NULL;
         }  /* if */
         clear_token_cache(&tssp->body_token_cache);
       }
@@ -4950,18 +4961,28 @@ check_routine:
     case sk_type:
       scp = &sym->variant.type->source_corresp;
       break;
+#endif /* CHECKING */
     case sk_class_template:
       {
-      a_symbol_ptr  template_class_sym;
-      template_class_sym =
-               sym->variant.template.extra_info->variant.class.instantiations;
+      a_template_symbol_supplement_ptr  tssp;
+      a_symbol_ptr                      template_class_sym;
+      a_template_param_ptr              tap;
+      tssp = sym->variant.template.extra_info;
+      template_class_sym = tssp->variant.class.instantiations;
       for (; template_class_sym != NULL;
              template_class_sym = template_class_sym->next) {
         end_of_scope_symbol_check(template_class_sym, curr_routine);
       }  /* for */
+      /* Check for unreferenced template parameters. */
+      tap = tssp->parameters;
+      while (tap != NULL) {
+        if (!tap->param_symbol->referenced) {
+          report_unreferenced(tap->param_symbol);
+        }  /* if */
+        tap = tap->next;
+      }  /* while */
       }
       break;
-#endif /* CHECKING */
     default:
       /* No processing for other kinds. */
       break;

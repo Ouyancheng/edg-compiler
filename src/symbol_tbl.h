@@ -574,6 +574,11 @@ typedef struct a_template_symbol_supplement {
                         /* The cached tokens for the function declaration. 
                            Contains the tokens that precede the left brace
                            of the function body. */
+      a_routine_ptr
+                routine;
+                        /* Points to a routine entry for the function
+                           template.  This is needed for function
+                           matching. */
     } function;
   } variant;
 } a_template_symbol_supplement;
