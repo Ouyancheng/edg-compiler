@@ -5773,7 +5773,7 @@ Issue a diagnostic if it is not.
        C99 mode, but is disallowed when dollar signs are permitted in
        identifiers. */
     err_code = ec_UCN_names_basic_char;
-  } else if (ucn <= 0xa0 && ucn != 0x24 && ucn != 0x40 && ucn != 0x60) {
+  } else if (ucn < 0xa0 && ucn != 0x24 && ucn != 0x40 && ucn != 0x60) {
     /* A UCN cannot name a character less than 0xa0 except for
        "$" (0x24), "@" (0x40), and "`" (0x60).  Note that the dollar
        sign may be prohibited by the test above. */
