@@ -4915,43 +4915,6 @@ list.
 }  /* add_to_dynamic_inits_list */
 
 
-void record_end_of_lifetime_destruction(a_dynamic_init_ptr dip,
-                                        a_boolean          static_lifetime)
-/*
-If the dynamic init entry pointed to by dip has a destructor associated with
-it, add the entry to the destructors list for curr_object_liftime (or, if
-the entry has static lifetime, for the file scope's object lifetime entry).
-*/
-{
-  an_object_lifetime_ptr  olp;
-
-  db_enter(4, "record_end_of_lifetime_destruction");
-  if (dip->destructor != NULL) {
-    /* This is a destructable entity. */
-    if (static_lifetime && !in_file_scope(curr_object_lifetime)) {
-      /* The variable has static lifetime, so be sure to use the lifetime
-         of the file scope. */
-      olp = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->lifetime;
-    } else {
-      olp = curr_object_lifetime;
-    }  /* if */
-    /* Update the lifetime pointer in the dynamic init entry. */
-    dip->lifetime = olp;
-    /* Add the dynamic init entry to the front of the destructions list for
-       the lifetime.  (It's on the front because the last entry constructed
-       will be the first entry destructed.) */
-    dip->next_in_destruction_list = olp->destructions;
-    olp->destructions = dip;
-#if DEBUG
-    if (debug_level >= 4) {
-      db_pending_destructions(dip, (an_object_lifetime_ptr)NULL);
-    }  /* if */
-#endif /* DEBUG */
-  }  /* if */
-  db_exit();
-}  /* record_end_of_lifetime_destruction */
-
-
 static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr dip)
 /*
 Make a copy of a dynamic initialization entry and return a pointer to the copy.
@@ -7246,6 +7209,63 @@ to it.
 }  /* alloc_object_lifetime */
 
 
+void record_end_of_lifetime_destruction(a_dynamic_init_ptr dip,
+                                        a_boolean          is_local_static_var)
+/*
+If the dynamic init entry pointed to by dip has a destructor associated with
+it, add the entry to the destructors list for curr_object_liftime (or, if
+the entry represents a function-local static variable, for the appropriate
+lifetime entry in the function scope).
+*/
+{
+  an_object_lifetime_ptr  olp;
+  a_boolean               has_dtor = FALSE;
+  a_type_ptr              tp;
+  a_scope_ptr             sp;
+
+  db_enter(4, "record_end_of_lifetime_destruction");
+  if (dip->destructor != NULL) {
+    has_dtor = TRUE;
+  } else if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+    check_assertion(dip->variable != NULL);
+    tp = skip_typerefs(dip->variable->type);
+    check_assertion(is_array_type(tp));
+    tp = skip_typerefs(underlying_array_element_type(tp));
+    if (is_immediate_class_type(tp) &&
+        (symbol_supplement_for_class(tp))->destructor != NULL) {
+      has_dtor = TRUE;
+    }  /* if */
+  }  /* if */
+  if (has_dtor) {
+    /* This is a destructable entity. */
+    if (is_local_static_var) {
+      sp = scope_stack[depth_innermost_function_scope].il_scope;
+      olp = sp->variant.routine.lifetime_of_local_static_vars;
+      if (olp == NULL) {
+        olp = alloc_object_lifetime(
+                             (an_object_lifetime_kind)olk_function_static);
+        bind_object_lifetime(olp, (an_il_entry_kind)iek_scope, (char *)sp);
+      }  /* if */
+    } else {
+      olp = curr_object_lifetime;
+    }  /* if */
+    /* Update the lifetime pointer in the dynamic init entry. */
+    dip->lifetime = olp;
+    /* Add the dynamic init entry to the front of the destructions list for
+       the lifetime.  (It's on the front because the last entry constructed
+       will be the first entry destructed.) */
+    dip->next_in_destruction_list = olp->destructions;
+    olp->destructions = dip;
+#if DEBUG
+    if (debug_level >= 4) {
+      db_pending_destructions(dip, (an_object_lifetime_ptr)NULL);
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+  db_exit();
+}  /* record_end_of_lifetime_destruction */
+
+
 #if DEBUG
 void db_destruction(a_dynamic_init_ptr  dip)
 /*
@@ -7268,6 +7288,17 @@ Dump the "name" of an object lifetime (really, some identifying information
 about it).
 */
 {
+  char *str;
+
+  switch (olp->kind) {
+    case olk_global_static:     str = "global_static";    break;
+    case olk_local:             str = "local";            break;
+    case olk_function_static:   str = "function_static";  break;
+    case olk_expr_temporary:    str = "expr_temporary";   break;
+    case olk_constructor_init:  str = "constructor_init"; break;
+    default:                    str = "???";              break;
+  }  /* switch */
+  fprintf(f_debug, "%s [", str);
   if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
     db_scope((a_scope_ptr)olp->entity.ptr);
   } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_none) {
@@ -7275,9 +7306,11 @@ about it).
   } else {
     fputs(il_entry_kind_names[(int)olp->entity.kind], f_debug);
     if (olp->entity.kind == (a_byte_il_entry_kind)iek_label) {
+      fputc(' ', f_debug);
       db_name(&((a_label_ptr)olp->entity.ptr)->source_corresp);
     }  /* if */
   }  /* if */
+  fputc(']', f_debug);
 }  /* db_object_lifetime_name */
     
 
