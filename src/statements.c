@@ -1093,7 +1093,6 @@ the current statement sequence.
   a_statement_ptr               extra_block;
   a_statement_ptr               temp_stmt;
   a_control_flow_descr_ptr      cfdp;
-  an_object_lifetime_ptr        olp;
 
   db_enter(4, "add_statement_at_stmt_pos");
   /* Find the header pointer for the statement list for the current
@@ -1653,7 +1652,9 @@ current structured statement.
   sssep->label_invalidates_curr_block_object_lifetime
                               = FALSE;
   sssep->curr_block_object_lifetime  = olp;
+#if 0
   sssep->extra_block_insert_loc      = NULL;
+#endif /* if 0 */
   sssep->depth_of_assoc_scope        = NO_SCOPE_DEPTH;
   if (kind == ssk_compound && !sp->dependent_statement) {
     sssep->depth_of_assoc_scope = depth_scope_stack;
@@ -1781,116 +1782,92 @@ Do final processing on the object lifetime -- that is, if it is going to be
 retained in the IL, bind it to an IL entity.
 */
 {
-  a_statement_ptr         block_stmt, sp;
-  a_statement_ptr         insert_loc;
+  a_statement_ptr         sp;
   an_object_lifetime_ptr  olp;
 
   /* Set olp to point to the object lifetime that is currently active for
      the block associated with *sssep. */
   olp = sssep->curr_block_object_lifetime;
-  if (olp != NULL && olp->entity.ptr == NULL &&
-      !is_useless_object_lifetime(olp)) {
+  if (olp != NULL && olp->kind == (an_object_lifetime_kind)olk_block &&
+      olp->entity.ptr == NULL && !is_useless_object_lifetime(olp)) {
     /* olp is still unbound but it has a destructions list.  It will be
        retained in the IL, so it needs to be bound to an IL entry -- either a
        scope or a block. */
-    check_assertion_str2(olp == innermost_block_object_lifetime(
-                                                        curr_object_lifetime),
+    check_assertion_str2(olp == curr_object_lifetime,
                          "terminate_curr_block_object_lifetime:",
                          "not at top of lifetime stack");
-    /* Check whether the insert location has been set.  If so, this lifetime
-       is not the one originally created for this compound statement; rather,
-       it was created to replace the original one when the latter was
-       "invalidated" by a label appearing somewhere inside the block. */
-    insert_loc = sssep->extra_block_insert_loc;
-    if (insert_loc == NULL && sssep->depth_of_assoc_scope != NO_SCOPE_DEPTH) {
+    sp = sssep->statement;
+    check_assertion(sp->kind == (a_statement_kind)stmk_block);
+    if (!sp->dependent_statement) {
+      /* There is a scope associated with this block; bind the lifetime
+         directly to it. */
+      (void)ensure_il_scope_exists(&scope_stack[depth_scope_stack]);
+      check_assertion_str2(olp->entity.ptr != NULL,
+                           "terminate_curr_block_object_lifetime:",
+                           "scope stack out of sync with struct stmt stack");
+    } else {
+      /* This is a cfront dependent statement and no scope was pushed for the
+         block; bind the object lifetime to the block entry itself. */
+      bind_object_lifetime(olp, (an_il_entry_kind)iek_block,
+                           (char *)sp->variant.block.extra_info);
+    }  /* if */
+#if 0
+    if (sssep->depth_of_assoc_scope != NO_SCOPE_DEPTH) {
       /* This is the original object lifetime and there is a scope associated
          with this block.  Bind the lifetime directly to the scope. */
       (void)ensure_il_scope_exists(&scope_stack[sssep->depth_of_assoc_scope]);
     } else {
-      if (insert_loc == NULL) {
-        /* This is the original object lifetime but there is no scope
-           associated with this block -- this must be a cfront dependent
-           statement.  Bind the lifetime to the block statement. */
-        block_stmt = sssep->statement;
-        check_assertion(block_stmt->kind == (a_statement_kind)stmk_block &&
-                        block_stmt->dependent_statement);
-      } else {
-        /* This is not the original object lifetime.  Create a new block
-           statement and insert it at the specified location. */
-        block_stmt = alloc_statement((a_statement_kind)stmk_block);
-        /* Set its statement position by copying that of the statement after
-           which it is to be inserted. */
-        block_stmt->position = insert_loc->position;
-        /* Insert the block into the statement list. */
-        block_stmt->variant.block.statements = insert_loc->next;
-        insert_loc->next = block_stmt;
-        /* The extra_block pointer in the structured statement entry should
-           point at the innermost extra block.  If there is already one there,
-           we need to determine whether the new one should replace it. */
-        if (sssep->extra_block == NULL ||
-            (sp = block_stmt->variant.block.statements) == NULL) {
-          /* Okay. */
-          sssep->extra_block = block_stmt;
-        } else {
-          /* See if any block statements appear in the list (and are therefore
-             innermore than the new block statement). */
-          for (;;) {
-            if (sp->kind == (a_statement_kind)stmk_block) {
-              /* Found one. */
-              break;
-            } else if (sp == NULL) {
-              /* Didn't find one. */
-              sssep->extra_block = block_stmt;
-              break;
-            }  /* if */
-            sp = sp->next;
-          }  /* for */
-        }  /* if */
-        /* Note:  sssep->last_dep_statement should not be affected. */
-        /* Clear the insert location now that it has been used -- to help
-           prevent its being used again by mistake. */
-        sssep->extra_block_insert_loc = NULL;
-      }  /* if */
-      /* Now bind the associated block entry and the lifetime entry. */
+      /* This is the original object lifetime but there is no scope
+         associated with this block -- this must be a cfront dependent
+         statement.  Bind the lifetime to the block statement. */
+      block_stmt = sssep->statement;
+      check_assertion(block_stmt->kind == (a_statement_kind)stmk_block &&
+                      block_stmt->dependent_statement);
+      /* Now bind the block entry and the object lifetime. */
       bind_object_lifetime(olp, (an_il_entry_kind)iek_block,
                            (char *)block_stmt->variant.block.extra_info);
     }  /* if */
+#endif /* if 0 */
   }  /* if */
 }  /* terminate_curr_block_object_lifetime */
 
 
-static void reset_curr_block_object_lifetime(a_statement_ptr            stmt,
-                                             a_struct_stmt_stack_entry  *sssep)
+static void reset_curr_block_object_lifetime()
 /*
-sssep is a structured statement stack entry for a compound statement; it
-should represent the current structured statement.  stmt is either a label
-statement or else it is structured statement that has just terminated and in
-which a label may have appeared.  In either case, a label "invalidates" the
-object lifetime of the current block.  Do final processing on the invalidated
-object lifetime and create a new one to run for the rest of this compound
-statement.
+If the current structured statement stack entry represents a compound
+statement in which a label has appeared that "invalidates" the object
+lifetime of the current block, do final processing on the invalidated object
+lifetime and create a new one (of kind olk_block_after_label) to run for the
+rest of this compound statement.  This handles cases in which the label
+appears in the same block or in a nested block.  For example:
+
+    {                           // start of outer block
+      <olk_block>
+      {                         // start of inner block
+        <olk_block>
+    L:                          // "invalidates" both olk_block lifetimes
+        <olk_block_after_label>
+      }                         // resume outer block
+      <olk_block_after_label>
+    }
+
+This routine is called both at label statements and immediately after a
+structured statement terminates (i.e., in the context of the block just
+resumed).
 */
 {
-  /* If stmt is a label statement, create the new object lifetime
-     unconditionally.  Otherwise, create it only if the currently active
-     object lifetime was invalidated by a label defined in in the nested
-     block that was just terminated. */
-  if (stmt->kind == (a_statement_kind)stmk_label ||
+  a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack[depth_stmt_stack];
+  
+  if (sssep->kind == (a_struct_stmt_kind)ssk_compound &&
       sssep->label_invalidates_curr_block_object_lifetime) {
     /* Do any final processing required before eclipsing the previously
        active object lifetime with a new one. */
     terminate_curr_block_object_lifetime(sssep);
     /* Push the object lifetime and set the struct-stmt-stack entry to point
        to it. */
-    push_object_lifetime((an_il_entry_kind)iek_block, (char *)NULL,
-                         (an_object_lifetime_kind)olk_block);
+    push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
+                         (an_object_lifetime_kind)olk_block_after_label);
     sssep->curr_block_object_lifetime = curr_object_lifetime;
-    /* If it turns out that a destructible object is attached to this
-       lifetime, it will need to be bound to a block statement.  Only then
-       will the latter be created and added to the statement list.  Record
-       the point at which it will be inserted -- namely, immediately after
-       the current label or block statement. */
-    sssep->extra_block_insert_loc = stmt;
   }  /* if */
 }  /* reset_curr_block_object_lifetime */
 
@@ -1903,7 +1880,7 @@ a structured statement has ended.
 {
   register a_struct_stmt_stack_entry_ptr sssep;
   a_struct_stmt_kind                     kind;
-  a_statement_ptr                        sp, last_label_in_block = NULL;
+  a_statement_ptr                        sp;
   
   db_enter(4, "pop_stmt_stack");
   sssep = &struct_stmt_stack[depth_stmt_stack];
@@ -1964,17 +1941,6 @@ a structured statement has ended.
        statement.  It must also be done after curr_reachability has been
        adjusted. */
     define_label(sssep->break_label);
-    if (C_mode() && sssep->kind == (a_struct_stmt_kind)ssk_compound) {
-      /* The structured statement we have returned to is a compound statement.
-         If appropriate (i.e., if a label appeared in the context that just
-         terminated and if the object lifetime for the block just returned to
-         has destructions), make sure the object lifetime is properly bound
-         to an IL entity and then create a new one to serve for the rest of
-         the current block.  Pass in sp, the statement associated with the
-         structured statement just popped -- it becomes the insert position
-         for subsequent resettings. */
-      reset_curr_block_object_lifetime(sp, sssep);
-    }  /* if */
   }  /* if */
   db_exit();
 }  /* pop_stmt_stack */
@@ -2128,6 +2094,10 @@ the block statement.
     /* Pop the name scope. */
     pop_scope();
   }  /* if */
+  /* If a label appeared in the context of the block that was just
+     terminated, it may be appropriate to push a new object lifetime for
+     the scope being resumed. */
+  reset_curr_block_object_lifetime();
 }  /* finish_block_statement */
 
 
@@ -2307,6 +2277,10 @@ See also 3.6.4.2.
       alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
   /* Pop the structured statement stack. */
   pop_stmt_stack();
+  /* If a label appeared in the context of the block that was just
+     terminated, it may be appropriate to push a new object lifetime for
+     the scope being resumed. */
+  reset_curr_block_object_lifetime();
 
   db_exit();
 }  /* switch_statement */
@@ -2358,6 +2332,10 @@ See also 3.6.5.1.
   define_continue_label();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
+  /* If a label appeared in the context of the block that was just
+     terminated, it may be appropriate to push a new object lifetime for
+     the scope being resumed. */
+  reset_curr_block_object_lifetime();
 
   db_exit();
 }  /* while_statement */
@@ -2415,6 +2393,10 @@ See also 3.6.5.2.
   remove_stop_token(tok_semicolon);
   /* Pop the structured statement stack. */
   pop_stmt_stack();
+  /* If a label appeared in the context of the block that was just
+     terminated, it may be appropriate to push a new object lifetime for
+     the scope being resumed. */
+  reset_curr_block_object_lifetime();
 
   db_exit();
 }  /* do_statement */
@@ -2488,6 +2470,10 @@ where handler-seq is a sequence of one or more handlers of the form
   pop_object_lifetime();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
+  /* If a label appeared in the context of the block that was just
+     terminated, it may be appropriate to push a new object lifetime for
+     the scope being resumed. */
+  reset_curr_block_object_lifetime();
 
   db_exit();
 }  /* try_block_statement */
@@ -2618,6 +2604,10 @@ either an expression statement or a declaration statement.
   define_continue_label();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
+  /* If a label appeared in the context of the block that was just
+     terminated, it may be appropriate to push a new object lifetime for
+     the scope being resumed. */
+  reset_curr_block_object_lifetime();
 
   db_exit();
 }  /* for_statement */
@@ -2723,8 +2713,11 @@ pointer is NULL).
 */
 {
   while (olp != function_scope_object_lifetime) {
-    if (olp->kind == (an_object_lifetime_kind)olk_block &&
-        olp->destructions != NULL) break;
+    if ((olp->kind == (an_object_lifetime_kind)olk_block ||
+         olp->kind == (an_object_lifetime_kind)olk_block_after_label) &&
+        !is_useless_object_lifetime(olp)) {
+      break;
+    }  /* if */
     olp = olp->parent_lifetime;
   }  /* while */
   return olp;
@@ -3878,17 +3871,11 @@ rescan_statement:
                    ((a_symbol_ptr)label->source_corresp.assoc_info)->decl_seq;
           if (!C_mode()) {
             a_struct_stmt_stack_entry_ptr  sssep;
-            sssep = &struct_stmt_stack[depth_stmt_stack];
-            if (sssep->kind == (a_struct_stmt_kind)ssk_compound) {
-              /* Create an object lifetime to run from this point to the end of
-                 the current scope.  It's needed to handle backwards gotos to
-                 the current label. */
-              reset_curr_block_object_lifetime(label->variant.exec_stmt,
-                                               sssep);
-            }  /* if */
+
             /* Flag all enclosing blocks to "invalidate" their currently active
                object lifetimes. */
-            for (--sssep; sssep >= struct_stmt_stack; --sssep) {
+            sssep = &struct_stmt_stack[depth_stmt_stack];
+            for (; sssep >= struct_stmt_stack; --sssep) {
               if (sssep->kind == (a_struct_stmt_kind)ssk_compound) {
                 sssep->label_invalidates_curr_block_object_lifetime = TRUE;
                 if (sssep->is_catch_clause) {
@@ -3901,6 +3888,10 @@ rescan_statement:
                 break;
               }  /* if */
             }  /* for */
+            /* Create an object lifetime to run from this point to the end of
+               the current scope.  It's needed to handle backwards gotos to
+               the current label. */
+            reset_curr_block_object_lifetime();
           }  /* if */
         }  /* if */
 #if CHECKING
