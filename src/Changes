@@ -1,6 +1,12 @@
 Version 2.08
 
-8/5/82  Friend declarations of new and delete
+8/6/92  Bug with very long diagnostic messages fixed
+
+There was a bug in add_string_to_segment in error.c that showed up when
+a segment was extended to accommodate an especially long diagnostic
+insert.  It is now fixed.
+
+8/5/92  Friend declarations of new and delete
 
 A bug has been fixed that caused a spurious error on a friend
 declaration of an operator new() or operator delete() function.
