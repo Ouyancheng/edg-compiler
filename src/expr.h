@@ -24,6 +24,54 @@ expr.h -- Declarations related to expression parsing.
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
 
+
+/*
+Entry describing a function that is a candidate instance of an overloaded
+function.  This entry is used is resolving overloaded function calls.
+*/
+typedef struct a_candidate_function *a_candidate_function_ptr;
+typedef struct a_candidate_function {
+  a_candidate_function_ptr
+		next;	/* Next entry on the list of candidates, or NULL
+			   if this is the last entry. */
+  a_symbol_ptr	function_symbol;
+			/* Pointer to the symbol for the function. */
+} a_candidate_function;
+/*
+Entry describing how well a given actual argument matches the corresponding
+formal parameter, used in resolving overloaded function calls.
+*/
+typedef enum /*an_argument_match_level*/ {
+  /* Match levels -- See ARM 13.2. */
+  aml_none,		/* No match. */
+  aml_exact,		/* Exact match or trivial conversions. */
+  aml_promotions,	/* Match with promotions. */
+  aml_standard_conv,	/* Match with standard conversions. */
+  aml_user_conv,	/* Match with user-defined conversions. */
+  aml_ellipsis,		/* Match with ellipsis. */
+  aml_error		/* Match with error type (not in ARM). */
+} an_argument_match_level;
+typedef struct an_argument_match_summary *an_argument_match_summary_ptr;
+typedef struct an_argument_match_summary {
+  an_argument_match_summary_ptr
+		next;	/* Pointer to entry for following argument, or NULL
+			   if this is the last argument.  Also used to link
+			   entries on the avail_argument_match_summries
+			   list. */
+  an_argument_match_level
+		match_level;
+			/* Match level -- see ARM 13.2.  Primary key. */
+  unsigned long	downward_cast_levels;
+			/* If the compatibility involves a downward cast,
+			   this is the count of levels; for a cast to void *,
+			   ULONG_MAX.  Zero otherwise.  Secondary key. */
+  a_byte_boolean
+		qualifiers_added;
+			/* Type qualifiers (const/volatile) were added; this
+			   is the tertiary key, used as a tie-breaker. */
+} an_argument_match_summary;
+
+
 extern a_boolean node_has_side_effects(an_expr_node_ptr node);
 
 extern a_boolean scan_ctor_arguments(a_symbol_ptr     constructor_sym,
