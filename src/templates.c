@@ -26,8 +26,10 @@ templates.c -- Support for C++ templates.
 
 /* Additional header files. */
 #include "disambig.h"
-#include "lower_name.h"
 #include "statements.h"
+#if NEED_NAME_MANGLING
+#include "lower_name.h"
+#endif /* NEED_NAME_MANGLING */
 
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
