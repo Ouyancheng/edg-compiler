@@ -288,11 +288,15 @@ extern a_boolean intf_rout_is_inline_template_function(a_routine_ptr rout);
     intf_rout_is_inline_template_function(rout)))
 #endif /* STANDALONE_UTILITY_PROGRAM */
 
+/* Helper macro for macros treat_as_static_inline and treat_as_extern_inline
+   (see below). */
+#if LOWER_EXTERN_INLINE && !IA64_ABI
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define and_not_dllexport(rout)  && !((rout)->decl_modifiers & DM_DLLEXPORT)
 #else /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define and_not_dllexport(rout)  /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* LOWER_EXTERN_INLINE && !IA64_ABI */
 
 /* Macro to determine whether a routine is to be treated as a static inline
    function.  This includes "extern inline" functions that are lowered to
