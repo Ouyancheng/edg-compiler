@@ -6101,11 +6101,11 @@ Add the given label to the labels list for the function (not current) scope.
   a_scope_ptr    sp;
 
   /* Get pointer to the current function scope entry. */
-#if DEBUG
+#if CHECKING
   if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
     internal_error("add_to_labels_list: not inside function");
   }  /* if */
-#endif /* DEBUG */
+#endif /* CHECKING */
   ssep = &scope_stack[depth_innermost_function_scope];
   sp = ssep->il_scope;
 #if CHECKING
