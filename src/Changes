@@ -91,7 +91,7 @@ the GNU compiler suite.  See also the Changes entry of 10/20/03.)
 2/12/04 Abort on partial specialization using template template parameters
 
 In certain error cases, an abort could occur when determining which of
-two class templates partial specializations should be used when both
+two class template partial specializations should be used when both
 match a given class template instance.  The problem occurs only if one or
 more of the template parameters are template template parameters.  We have
 not been able to produce a small example of the problem, and believe that
