@@ -709,7 +709,7 @@ back end is being used.
 /*
 Flag that is TRUE if source sequence lists are being generated and if they
 should include information about comments.
-Note: As of November 1996, this is not yet implemented.
+Note: As of August, 1998, this is not yet implemented.
 */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #ifndef COMMENTS_IN_SOURCE_SEQUENCE_LISTS
@@ -758,6 +758,55 @@ Union of two previous flags.
          !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #define TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS FALSE
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS... */
+
+/*
+Flag that indicates whether a source sequence entry representing a template
+instantiation is permitted within the portion of the source sequence list
+representing a class definition; it is the default setting for global
+variable instantiations_permitted_in_class_src_seq_list.  When the flag is
+TRUE, it can be viewed as an annotation identifying where a (partial or full)
+instantiation occurred, but it does not necessarily translate into valid C++
+(e.g., when the C++-generating back end is used).  When the flag is FALSE,
+the source sequence entry representing the instantiation "floats" up to the
+namespace scope that contains the class, but it can happen that a template
+argument will be dependent on a class member, resulting again in invalid
+C++.  For example:
+  template <class T> int f(T) { return 0; }
+  class A {
+    static class N { } n;
+    void g(int = f(n));
+  };
+When the flag is TRUE, the C++-generating back end produces this:
+  template <class T> int f(T) { return 0; }
+  class A {
+    static class N { } n;
+    template<> f(N);        // invalid location of explicit specialization
+    void g(int = f(n));
+  };
+and when it is FALSE, the result is this:
+  template <class T> int f(T) { ... }
+  class A;
+  template<> f(A::N);       // undefined name
+  class A {
+    static class N { } n;
+    void g(int = f(n));
+  };
+The default value is FALSE, which, when the C++-generating back end is
+used, will result in compilable code most of the time.  However, if the
+generated code is being run through a compiler that accepts explicit
+specializations within a class scope, then setting the value to TRUE would
+probably produce compilable code more often, since dependency problems
+would be less common.
+*/
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#ifndef DEFAULT_INSTANTIATIONS_PERMITTED_IN_CLASS_SRC_SEQ_LIST
+/* You can change this: */
+#define DEFAULT_INSTANTIATIONS_PERMITTED_IN_CLASS_SRC_SEQ_LIST FALSE
+#endif /* ifndef DEFAULT_INSTANTIATIONS_PERMITTED_IN_CLASS_SRC_SEQ_LIST */
+#else /* !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+/* Do not change this: */
+#define DEFAULT_INSTANTIATIONS_PERMITTED_IN_CLASS_SRC_SEQ_LIST FALSE
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 /*
 Flag that is TRUE to enable support for processing of orphaned file scope
