@@ -1,5 +1,14 @@
 Version 2.36
 
+5/6/97    Microsoft compatibility: __declspec(uuid("...")) and __uuidof
+
+Microsoft Visual C++ 5.0 adds two new features to deal with IDs
+used with an object system called COM.  __declspec(uuid("...")) is used
+on declarations of classes to indicate the ID associated with the class.
+__uuidof(...) is an expression operator that returns a struct of type
+_GUID filled with the proper values to represent the ID associated with
+the class type underlying its operand.
+
 5/5/97    a_decl_modifiers_block
 
 The declaration routines that deal with declaration modifiers (e.g.,

@@ -6463,6 +6463,226 @@ cast to the proper base class.
 }  /* add_body_for_covariant_return_type_entry_routine */
 
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+/*
+Pointer to the struct type for the Microsoft _GUID, once it is created.
+NULL until created.
+*/
+static a_type_ptr
+		guid_type;
+static a_type_ptr
+		guid_array_type;
+			/* Array type for the Data4 member of _GUID. */
+static a_variable_ptr
+		null_guid_variable;
+			/* Variable for a NULL GUID, once created. */
+
+static a_type_ptr make_guid_type(void)
+/*
+Make the struct type for the Microsoft _GUID, used for the __uuidof
+operator (an extension).  Its definition is
+
+  struct _GUID {
+    unsigned long  Data1;
+    unsigned short Data2;
+    unsigned short Data3;
+    unsigned char  Data4[8];
+  };
+
+*/
+{
+  a_field_ptr last_field;
+
+  if (guid_type == NULL) {
+    /* Make the _GUID struct type.  It doesn't actually have a name. */
+    guid_type = alloc_type((a_type_kind)tk_struct);
+    add_to_front_of_file_scope_types_list(guid_type);
+    last_field = NULL;
+    /* field: unsigned long Data1; */
+    make_lowered_field("Data1",
+                       integer_type((an_integer_kind)ik_unsigned_long),
+                       guid_type, &last_field);
+    /* field: unsigned short Data2; */
+    make_lowered_field("Data2",
+                       integer_type((an_integer_kind)ik_unsigned_short),
+                       guid_type, &last_field);
+    /* field: unsigned short Data3; */
+    make_lowered_field("Data3",
+                       integer_type((an_integer_kind)ik_unsigned_short),
+                       guid_type, &last_field);
+    /* field: unsigned char Data4[8]; */
+    guid_array_type = alloc_type((a_type_kind)tk_array);
+    guid_array_type->variant.array.element_type =
+                               integer_type((an_integer_kind)ik_unsigned_char);
+    guid_array_type->variant.array.variant.number_of_elements = 8;
+    set_type_size(guid_array_type);
+    make_lowered_field("Data4", guid_array_type, guid_type, &last_field);
+    finish_class_type(guid_type);
+  }  /* if */
+  return guid_type;
+}  /* make_guid_type */
+
+
+/* Convert a character hex digit to the associated hex digit value. */
+#define hexvalue(ch) ((ch) - (isdigit((unsigned char)ch) ? '0' : \
+                             (islower((unsigned char)ch) ? 'a'-0xa : 'A'-0xA)))
+
+
+static a_constant_ptr conv_uuid_constant(char            **ptr,
+                                         int             ndigits,
+                                         an_integer_kind ikind)
+/*
+Convert ndigits hexadecimal digits of the uuid string at *ptr, and increment
+*ptr by ndigits.  Put the converted digits into an integer constant with
+kind ikind, allocate an unshared copy, and return a pointer to the
+allocated integer constant.
+*/
+{
+  char             *local_ptr = *ptr;
+  a_constant       con;
+  a_constant_ptr   con_ptr;
+  a_boolean        err;
+  an_integer_value digit;
+
+  /* Start with zero. */
+  make_zero_of_proper_type(integer_type(ikind), &con);
+  /* Loop to convert each hexadecimal digit. */
+  for (; ndigits > 0; ndigits--) {
+    char ch = *local_ptr++;
+    int  intdigit = hexvalue(ch);
+    /* Multiply previous value by 16. */
+    shift_left_integer_value(&con.variant.integer_value, 4, &err);
+    /* Or in digit. */
+    set_unsigned_integer_value(&digit, (a_host_large_unsigned)intdigit);
+    or_integer_values(&con.variant.integer_value, &digit);
+  }  /* for */
+  *ptr = local_ptr;
+  /* Allocate the final constant. */
+  con_ptr = alloc_unshared_constant(&con);
+  return con_ptr;
+}  /* conv_uuid_constant */
+
+
+static a_variable_ptr uuid_variable_for_type(a_type_ptr class_type)
+/*
+Return a pointer to the uuid variable for the indicated class type, creating
+the variable if necessary.  This relates to the Microsoft extensions
+that deal with GUIIDs for the COM by way of the __declspec(uuid(...))
+modifier and the __uuidof() expression operator.  The uuid variable is
+initialized with the right values for the uuid associated with the
+class type.  class_type is NULL to request the uuid variable for a null
+GUID.
+*/
+{
+  a_class_type_supplement_ptr ctsp;
+  a_variable_ptr              uuid_var;
+
+  if (class_type != NULL) {
+    check_assertion(is_immediate_class_type(class_type));
+    ctsp = class_type->variant.class_struct_union.extra_info;
+    uuid_var = ctsp->uuid_variable;
+  } else {
+    /* NULL GUID is wanted. */
+    uuid_var = null_guid_variable;
+  }  /* if */
+  if (uuid_var == NULL) {
+    a_memory_region_number
+                   region_to_switch_back_to;
+    char           *ptr;
+    a_constant_ptr aggr, con1, con2, con3, con4, prev_con;
+    int            i;
+
+    /* Create the (unnamed) uuid variable. */
+    uuid_var = make_lowered_variable((char *)NULL, /*already_il_name=*/TRUE,
+                                     make_guid_type(),
+                                     (a_storage_class)sc_static);
+    if (class_type != NULL) {
+      ctsp->uuid_variable = uuid_var;
+      ptr = ctsp->uuid_string;
+    } else {
+      /* NULL GUID is wanted. */
+      null_guid_variable = uuid_var;
+      ptr = "00000000-0000-0000-0000-000000000000";
+    }  /* if */
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    /* Convert the uuid string to a list of initializer constants. */
+    /* The string looks like ("h" is a hexadecimal digit):
+         hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
+         --Data1- -D2- -D3- ------Data4------
+    */
+    check_assertion_str(ptr != NULL,
+                        "uuid_variable_for_type: null uuid_string");
+    prev_con = NULL;
+    /* Data1. */
+    con1 = conv_uuid_constant(&ptr, 8, (an_integer_kind)ik_unsigned_long);
+    ptr++;  /* Skip "-". */
+    /* Data2. */
+    con2 = conv_uuid_constant(&ptr, 4, (an_integer_kind)ik_unsigned_short);
+    ptr++;  /* Skip "-". */
+    /* Data3. */
+    con3 = conv_uuid_constant(&ptr, 4, (an_integer_kind)ik_unsigned_short);
+    ptr++;  /* Skip "-". */
+    /* Data4. */
+    /* This is an aggregate constant with 8 constants under it, one for
+       each element of the unsigned char array. */
+    con4 = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    con4->type = guid_array_type;
+    prev_con = NULL;
+    for (i = 0; i < 8; i++) {
+      a_constant_ptr con4e =
+                conv_uuid_constant(&ptr, 2, (an_integer_kind)ik_unsigned_char);
+      if (prev_con == NULL) {
+        con4->variant.aggregate.first_constant = con4e;
+      } else {
+        prev_con->next = con4e;
+      }  /* if */
+      prev_con = con4e;
+      /* Skip "-" after first 4 hex digits. */
+      if (i == 1) ptr++;
+    }  /* for */
+    con4->variant.aggregate.last_constant = prev_con;
+    check_assertion_str(*ptr == '\0',
+            "uuid_variable_for_type: uuid string does not end where expected");
+    /* Assemble the four constants under another aggregate constant. */
+    aggr = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    aggr->type = uuid_var->type;
+    aggr->variant.aggregate.first_constant = con1;
+    con1->next = con2;
+    con2->next = con3;
+    con3->next = con4;
+    aggr->variant.aggregate.last_constant = con4;
+    /* Attach the aggregate constant as the initial value of the variable. */
+    uuid_var->init_kind = (an_init_kind)initk_static;
+    uuid_var->initializer.constant = aggr;
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
+  return uuid_var;
+}  /* uuid_variable_for_type */
+
+
+void lower_uuidof(an_expr_node_ptr expr)
+/*
+Lower the Microsoft C++ extension __uuidof() operator, which returns
+a struct of type _GUID that provides information about the
+__declspec(uuid(...)) attribute with which the operand class was declared.
+*/
+{
+  a_type_ptr       class_type = expr->variant.typeid_info.type;
+  a_variable_ptr   uuid_var;
+  an_expr_node_ptr addr_uuid_var;
+
+  /* Note that the expression in the enk_uuidof node is not used. */
+  /* Create the initialized uuid variable for the type, if it doesn't
+     exist already. */
+  uuid_var = uuid_variable_for_type(class_type);
+  /* Replace the expression tree with a cast of the address of the
+     uuid variable to the right type. */
+  addr_uuid_var = var_lvalue_expr(uuid_var);
+  change_to_cast(expr, addr_uuid_var, expr->type);
+}  /* lower_uuidof */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void init_lower_one_time_init(void)
 /*
@@ -6489,6 +6709,9 @@ are handled in il_lower_init.)
       pch_saved_var_array_elem(needed_destruction_type),
       pch_saved_var_array_elem(needed_destruction_object_field),
       pch_saved_var_array_elem(array_new_prefix_size_var),
+      pch_saved_var_array_elem(guid_type),
+      pch_saved_var_array_elem(guid_array_type),
+      pch_saved_var_array_elem(null_guid_variable),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);

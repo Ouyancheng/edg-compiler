@@ -7056,6 +7056,11 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
       lower_typeid(expr);
       break;
 #endif /* ABI_CHANGES_FOR_RTTI */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case enk_uuidof:
+      lower_uuidof(expr);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case enk_object_lifetime:
       unexpected_condition_str("lower_expr: enk_object_lifetime not at top");
     case enk_condition:
