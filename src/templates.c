@@ -313,6 +313,12 @@ no need to actually instantiate X<int> in the example above.
 
 a_type_ptr copy_type_with_substitution(a_type_ptr          type,
                                        a_template_arg_ptr  templ_arg_list)
+/*
+If type, a pointer to a type entry, is a template-parameter type,
+return the corresponding real type, based on the template argument list.
+If it contains a template-parameter type, return a copy with the substitution
+made.  If it contains nor template-paramter type, simple return the type.
+*/
 {
   a_type_ptr          tp, tp2;
   int                 i;
@@ -338,9 +344,9 @@ a_type_ptr copy_type_with_substitution(a_type_ptr          type,
     case tk_ptr_to_member:
       tp = copy_type_with_substitution(type->variant.ptr_to_member.type,
                                        templ_arg_list);
-      tp2 = copy_type_with_substitution(type->variant.ptr_to_member.
-                                                       class_of_which_a_member,
-                                        templ_arg_list);
+      tp2 = copy_type_with_substitution(
+                          type->variant.ptr_to_member.class_of_which_a_member,
+                          templ_arg_list);
       type = ptr_to_member_type(tp, tp2);
       break;
     case tk_routine:
@@ -379,9 +385,18 @@ a_type_ptr copy_type_with_substitution(a_type_ptr          type,
 }  /* copy_type_with_substitution */
 
 
-static a_boolean matches_template_type(a_type_ptr         type,
-                                       a_type_ptr         templ_type,
-                                       a_template_arg_ptr *templ_arg_list)
+a_boolean matches_template_type(a_type_ptr         type,
+                                a_type_ptr         templ_type,
+                                a_template_arg_ptr *templ_arg_list)
+/*
+Compare type and templ_type.  The latter is from a parameter list of a
+function template.  If they are identical, return TRUE.  If they are
+identical but for a template parameter, return TRUE if the type is consistent
+with other uses of that template parameter, as represented in the template
+argument list.  Otherwise, return FALSE.  When for the nth template
+parameter, the nth template arg has not yet been created, extend the
+template argument list to include n entries.
+*/
 {
   a_boolean           match = FALSE;
   a_type_ptr          tp, ttp;
@@ -453,26 +468,22 @@ static a_boolean matches_template_type(a_type_ptr         type,
         case tk_ptr_to_member:
           tp = type->variant.ptr_to_member.type;
           ttp = templ_type->variant.ptr_to_member.type;
-          if (identical_types(tp, ttp) ||
-              matches_template_type(tp, ttp, templ_arg_list)) {
+          if (matches_template_type(tp, ttp, templ_arg_list)) {
             tp = type->variant.ptr_to_member.class_of_which_a_member;
             ttp = templ_type->variant.ptr_to_member.class_of_which_a_member;
-            match = (identical_types(tp, ttp) ||
-                     matches_template_type(tp, ttp, templ_arg_list));
+            match = (matches_template_type(tp, ttp, templ_arg_list));
           }  /* if */
           break;
         case tk_routine:
           tp = type->variant.routine.return_type;
           ttp = templ_type->variant.routine.return_type;
-          if (identical_types(tp, ttp) ||
-              matches_template_type(tp, ttp, templ_arg_list)) {
+          if (matches_template_type(tp, ttp, templ_arg_list)) {
             ptp = type->variant.routine.extra_info->param_type_list;
             tptp = templ_type->variant.routine.extra_info->param_type_list;
             for (;;) {
               tp = ptp->type;
               ttp = tptp->type;
-              if (!identical_types(tp, ttp) &&
-                  !matches_template_type(tp, ttp, templ_arg_list)) {
+              if (!matches_template_type(tp, ttp, templ_arg_list)) {
                 break;
               }  /* if */
               ptp = ptp->next;
@@ -484,10 +495,8 @@ static a_boolean matches_template_type(a_type_ptr         type,
             }  /* for */
           }  /* if */
           break;
-#if CHECKING
         default:
-          internal_error("matches_template_type: bad type kind");
-#endif /* CHECKING */
+          match = TRUE;
       }  /* switch */
     }  /* if */
   }  /* if */
@@ -495,145 +504,141 @@ static a_boolean matches_template_type(a_type_ptr         type,
 }  /* matches_template_type */
 
 
-static a_template_arg_ptr build_template_arg_list(
-                                              a_symbol_ptr     templ_sym,
-                                              a_type_ptr       return_type,
-                                              a_param_type_ptr param_type_list)
+#if CHECKING
+static void check_template_arg_list(a_template_arg_ptr  templ_arg_list,
+                                    a_symbol_ptr        templ_sym)
 {
-  a_template_symbol_supplement_ptr  tssp;
-  a_type_ptr                        templ_rout_type, tp;
-  a_param_type_ptr                  templ_ptp, ptp;
-  a_template_arg_ptr                templ_arg_list;
-  a_boolean                         okay;
+  a_template_param_ptr  tpp;
+  a_template_arg_ptr    tap;
 
-  db_enter(3, "build_template_arg_list");
-  templ_arg_list = NULL;
-  tssp = templ_sym->variant.template.extra_info;
-  templ_rout_type = tssp->variant.function.routine->type;
-  if (return_type == NULL) {
-    /* The return type does not figure into the match, so it can be ignored. */
-    okay = TRUE;
-  } else {
-    tp = templ_rout_type->variant.routine.return_type;
-    okay = (identical_types(return_type, tp) ||
-            matches_template_type(return_type, tp, &templ_arg_list));
-  }  /* if */
-  if (okay) {
-    ptp = param_type_list;
-    templ_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
-    for (; templ_ptp != NULL; templ_ptp = templ_ptp->next) {
-      if (ptp == NULL) {
-#if CHECKING
-        if (!templ_ptp->has_default_arg) {
-          internal_error("new_template_function_symbol: expected default arg");
-        }  /* if */
-#endif /* CHECKING */
-#if 0
-        /* NYI */
-#endif /* if 0 */
-      } else {
-        if (!identical_types(ptp->type, templ_ptp->type) &&
-            !matches_template_type(ptp->type, templ_ptp->type,
-                                   &templ_arg_list)) {
-          okay = FALSE;
-          break;
-        }  /* if */
-      }  /* if */
-      ptp = ptp->next;
-#if CHECKING
-      if (ptp != NULL && templ_ptp->next == NULL) {
-        internal_error("new_template_function_symbol: bad param_type list");
-      }  /* if */
-#endif /* if 0 */
-    }  /* for */
-  }  /* if */
-  if (!okay) {
-    if (templ_arg_list != NULL) {
-      free_template_arg_list(templ_arg_list);
-      templ_arg_list = NULL;
+  tpp = templ_sym->variant.template.extra_info->parameters;
+  for (tap = templ_arg_list; tap != NULL; tap = tap->next) {
+    if (tpp == NULL) {
+      internal_error("check_template_arg_list: made too many template args");
+    } else if (tap->variant.type == NULL) {
+      internal_error("check_template_arg_list: missing type ptr");
     }  /* if */
-#if CHECKING
-  } else {
-    a_template_param_ptr  templ_param = tssp->parameters;
-    a_template_arg_ptr    templ_arg = templ_arg_list;
-    for (; templ_arg != NULL; templ_arg = templ_arg->next) {
-      if (templ_param == NULL) {
-        internal_error("build_template_arg_list: made too many template args");
-      } else if (templ_arg->variant.type == NULL) {
-        internal_error("build_template_arg_list: missing type ptr");
-      }  /* if */
-      templ_param = templ_param->next;
-    }  /* for */
-    if (templ_param != NULL) {
-      internal_error("build_template_arg_list: made too few template args");
-    }  /* if */
-#endif /* CHECKING */
+    tpp = tpp->next;
+  }  /* for */
+  if (tpp != NULL) {
+    internal_error("check_template_arg_list: made too few template args");
   }  /* if */
-  db_exit();
-  return templ_arg_list;
-}  /* build_template_arg_list */
+}  /* check_template_arg_list */
+#endif /* CHECKING */
 
 
-a_symbol_ptr find_template_function(a_symbol_ptr        function_template_sym,
-                                    a_type_ptr          curr_type,
-                                    a_param_type_ptr    param_type_list,
+a_symbol_ptr make_template_function(a_symbol_ptr        templ_sym,
+                                    a_type_ptr          rout_type,
+                                    a_template_arg_ptr  templ_arg_list,
                                     a_source_position   *source_pos)
 /*
+Allocate the symbol and routine entry for a template function, based on
+the function template (represented by templ_sym) and the function type
+(rout_type), and allocate and enter the associated function instantiation
+entry, where the template arg list for the instantiation (templ_arg_list)
+is also recorded.  If rout_type is NULL, create a routine type based on
+the template argument list and the template parameter list (reached through
+templ_sym).
 */
 {
   a_symbol_ptr                        sym;
-  a_type_ptr                          return_type, rout_type;
-  a_boolean                           check_default_args;
+  a_template_symbol_supplement_ptr    tssp;
+  a_memory_region_number              region_to_switch_back_to;
+  a_function_instantiation_entry_ptr  fiep;
+  a_routine_ptr                       templ_rout, rp;
+
+  db_enter(4, "make_template_function");
+#if CHECKING
+  check_template_arg_list(templ_arg_list, templ_sym);
+#endif /* CHECKING */
+  /* Allocate the template function symbol.  Note that it is not entered
+     into the symbol table -- it will appear on a function instantiation
+     list under the function template symbol and, optionally, in the overload
+     list if it is also explicity declared by the user. */
+  sym = make_template_function_symbol(templ_sym, source_pos);
+  tssp = templ_sym->variant.template.extra_info;
+  templ_rout = tssp->variant.function.routine;
+  /* All IL routines must be at the file scope level, so switch to that
+     memory region if necessary to allocate the routine entry. */
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  sym->variant.routine.ptr = rp = alloc_routine();
+  switch_back_to_original_region(region_to_switch_back_to);
+  /* Give the routine entry the type passed in, and set other fields in
+     accord with the settings in the template. */
+  rp->type = rout_type;
+  rp->storage_class = templ_rout->storage_class;
+  rp->special_kind = templ_rout->special_kind;
+  rp->opname_kind = templ_rout->opname_kind;
+  rp->is_inline = templ_rout->is_inline;
+  /* Add it to the file scope routines list. */
+  add_to_routines_list(rp, /*at_file_scope=*/TRUE);
+  /* Create the associated function instantiation entry and link it
+     onto the front of the instantiation list for the template. */
+  fiep = alloc_function_instantiation_entry();
+  fiep->template_sym = templ_sym;
+  fiep->arg_list = templ_arg_list;
+  fiep->next = tssp->variant.function.instantiations;
+  tssp->variant.function.instantiations = fiep;
+  /* Make the function instantiation entry and its associated symbol
+     point at each other. */
+  fiep->routine_sym = sym;
+  sym->variant.routine.instance_ptr = fiep;
+
+  db_exit();
+  return sym;
+}  /* make_template_function */
+
+
+a_symbol_ptr find_template_function(a_symbol_ptr        templ_sym,
+                                    a_type_ptr          curr_type,
+                                    a_source_position   *source_pos)
+/*
+Search for a template function based on the function template represented
+by templ_sym and the type pointed to by curr_type.  If no such template
+function exists, try to create one.  If the search/creation is successful
+return a pointer to the symbol; otherwise, return NULL.
+*/
+{
+  a_symbol_ptr                        sym;
+  a_type_ptr                          rout_type, templ_rout_type;
   a_template_symbol_supplement_ptr    tssp;
   a_function_instantiation_entry_ptr  fiep;
-  a_param_type_ptr                    ptp, reference_ptp;
-  a_template_arg_ptr                  template_arg_list;
+  a_param_type_ptr                    ptp, other_ptp;
+  a_template_arg_ptr                  templ_arg_list = NULL;
 
   db_enter(3, "find_template_function");
 #if CHECKING
-  if ((curr_type == NULL) == (param_type_list == NULL)) {
-    internal_error("find_template_function: bad rout type / param type combo");
+  if (!is_function_type(curr_type)) {
+    internal_error("find_template_function: expected routine type");
   }  /* if */
 #endif /* CHECKING */
-  if (curr_type == NULL) {
-    check_default_args = TRUE;
-    return_type = NULL;
-  } else {
-#if CHECKING
-    if (!is_function_type(curr_type)) {
-      internal_error("find_template_function: expected routine type");
-    }  /* if */
-#endif /* CHECKING */
-    curr_type = skip_typerefs(curr_type);
-    param_type_list = curr_type->variant.routine.extra_info->param_type_list;
-    check_default_args = FALSE;
-    return_type = curr_type->variant.routine.return_type;
-  }  /* if */
+  curr_type = skip_typerefs(curr_type);
   /* sym is the symbol for a template function to be returned.  Returning NULL
      means no template function could be found or created. */
   sym = NULL;
-  tssp = function_template_sym->variant.template.extra_info;
+  tssp = templ_sym->variant.template.extra_info;
+  templ_rout_type = tssp->variant.function.routine->type;
   /* First be sure the number of parameters in the template function is
-     compatible with the number in param_type_list. */
-  reference_ptp = tssp->variant.function.routine->type->
-                                  variant.routine.extra_info->param_type_list;
-  for (ptp = param_type_list; ptp != NULL; ptp = ptp->next) {
-    if (reference_ptp == NULL) {
+     equal to the number in param_type_list. */
+  ptp = curr_type->variant.routine.extra_info->param_type_list;
+  other_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
+  for (; ptp != NULL; ptp = ptp->next) {
+    if (other_ptp == NULL) {
       /* Too many params to match this template. */
       goto done;
     }  /* if */
-    reference_ptp = reference_ptp->next;
+    other_ptp = other_ptp->next;
   }  /* if */
-  if (reference_ptp != NULL && (!check_default_args ||
-                                !reference_ptp->has_default_arg)) {
+  if (other_ptp != NULL) {
     /* Too many args in function template (and therefore in each of its
        instantiations) to justify looking any further. */
     goto done;
   }  /* if */
   /* Make a pass over the entries representing instantiations of the function
      template to see if any of them match the current type signature. */
-  fiep = tssp->variant.function.instantiations;
-  for (; fiep != NULL; fiep = fiep->next) {
+  for (fiep = tssp->variant.function.instantiations;
+       fiep != NULL;
+       fiep = fiep->next) {
     if (fiep->specific_decl) {
       /* A function that matches this template but has a user declaration.
          If it is the function we seek it will already have been found
@@ -642,117 +647,63 @@ a_symbol_ptr find_template_function(a_symbol_ptr        function_template_sym,
     }  /* if */
     sym = fiep->routine_sym;
     rout_type = sym->variant.routine.ptr->type;
-    if (return_type != NULL) {
-      if (!identical_types(return_type,
-                           rout_type->variant.routine.return_type)) {
+    /* Return type must match exactly. */
+    if (!identical_types(curr_type->variant.routine.return_type,
+                         rout_type->variant.routine.return_type)) {
+      /* No match.  Advance to the next template function symbol. */
+      goto get_next_sym;
+    }  /* if */
+    /* Each parameter type must match exactly. */
+    ptp = curr_type->variant.routine.extra_info->param_type_list;
+    other_ptp = rout_type->variant.routine.extra_info->param_type_list;
+    for (; ptp != NULL; ptp = ptp->next) {
+      if (!identical_types(ptp->type, other_ptp->type)) {
         /* No match.  Advance to the next template function symbol. */
         goto get_next_sym;
       }  /* if */
-    }  /* if */
-    reference_ptp = rout_type->variant.routine.extra_info->param_type_list;
-    ptp = param_type_list;
-#if CHECKING
-    if (reference_ptp == NULL || ptp == NULL) {
-      internal_error("find_template_function: bad param type list");
-    }  /* if */
-#endif /* CHECKING */
-    for (;;) {
-      if (!identical_types(ptp->type, reference_ptp->type)) {
-        /* No match.  Advance to the next template function symbol. */
-        goto get_next_sym;
-      }  /* if */
-      reference_ptp = reference_ptp->next;      
-      ptp = ptp->next;
-      if (ptp == NULL) {
-        /* We have a match. */
-#if CHECKING
-        if (reference_ptp != NULL) {
-          if (check_default_args && reference_ptp->has_default_arg) {
-            /* Okay. */
-          } else {
-            /* The template function does not have enough parameters.  This
-               should already have been checked for. */
-            internal_error("find_template_function: param list mixup");
-          }  /* if */
-        }  /* if */
-#endif /* CHECKING */
-#if 0
-        /* Add code to look for multiple matches from the same template? */
-#endif /* if 0 */
-        goto done;
-#if CHECKING
-#endif /* CHECKING */
-      }  /* if */
+      other_ptp = other_ptp->next;      
     }  /* for */
+    /* Falling through to here means curr_type exactly matches the function
+       type for sym.  Skip over the remaining processing and return sym to
+       the caller. */
+    goto done;
 get_next_sym:;
+    /* No match so far.  Continue looping through the function instantiation
+       entries. */
   }  /* for */
   /* Falling through to here means the type signature passed in does not
      match any existing template function based on the function template in
      question, but that it is not disqualified on other grounds.  Try to match
      the type signature to the template's type signature.  If successful, a
      template arg list is returned; otherwise, NULL is returned. */
-  template_arg_list = build_template_arg_list(function_template_sym,
-                                              return_type,
-                                              param_type_list);
-  if (template_arg_list == NULL) {
-    sym = NULL;
+  sym = NULL;
+  if (!matches_template_type(curr_type->variant.routine.return_type,
+                             templ_rout_type->variant.routine.return_type,
+                             &templ_arg_list)) {
+    goto done;
   } else {
-    a_memory_region_number              region_to_switch_back_to;
-    a_function_instantiation_entry_ptr  fiep;
-    a_routine_ptr                       templ_rout, rp;
-    a_param_type_ptr                    ptp, new_ptp, prev_ptp;
-
-    sym = make_template_function_symbol(function_template_sym, source_pos);
-    /* All IL routines and their types must be at the file scope level, so
-       switch to that memory region if necessary. */
-    templ_rout = tssp->variant.function.routine;
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    if (curr_type != NULL) {
-      /* Just reuse the type entry passed in by the caller. */
-    } else {
-      curr_type = alloc_type((a_type_kind)tk_routine);
-      prev_ptp = NULL;
-      for (ptp = param_type_list; ptp != NULL; ptp = ptp->next) {
-        new_ptp = alloc_param_type(ptp->type);
-        if (prev_ptp == NULL) {
-          curr_type->variant.routine.extra_info->param_type_list = new_ptp;
-        } else {
-          prev_ptp->next = new_ptp;
-        }  /* if */
-        prev_ptp = new_ptp;
-      }  /* for */
-      curr_type->variant.routine.return_type =
-                copy_type_with_substitution(templ_rout->type->
-                                                   variant.routine.return_type,
-                                            template_arg_list);
-      add_to_types_list(curr_type, DEPTH_OF_FILE_SCOPE,
-                        /*in_old_style_param_decl_list=*/FALSE);
-    }  /* if */
-    rp = alloc_routine();
-    rp->type = curr_type;
-    rp->storage_class = templ_rout->storage_class;
-    rp->special_kind = templ_rout->special_kind;
-    rp->opname_kind = templ_rout->opname_kind;
-    rp->is_inline = templ_rout->is_inline;
-    add_to_routines_list(rp, /*at_file_scope=*/TRUE);
-    switch_back_to_original_region(region_to_switch_back_to);
-    sym->variant.routine.ptr = rp;
-    /* Create the associated function instantiation entry and link it
-       onto the front of the instantiation list for the template. */
-    fiep = alloc_function_instantiation_entry();
-    fiep->template_sym = function_template_sym;
-    fiep->arg_list = template_arg_list;
-    fiep->next = tssp->variant.function.instantiations;
-    tssp->variant.function.instantiations = fiep;
-    /* Make the function instantiation entry and its associated symbol
-       point at each other. */
-    fiep->routine_sym = sym;
-    sym->variant.routine.instance_ptr = fiep;
+    /* The routine type for curr_type can be accommodated to the template
+       return type.  Now check each of the parameters. */
+    ptp = curr_type->variant.routine.extra_info->param_type_list;
+    other_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
+    for (; other_ptp != NULL; other_ptp = other_ptp->next) {
+      if (!matches_template_type(ptp->type, other_ptp->type,
+                                 &templ_arg_list)) {
+        goto done;
+      }  /* if */
+      ptp = ptp->next;
+    }  /* for */
   }  /* if */
+  sym = make_template_function(templ_sym, curr_type, templ_arg_list,
+                               source_pos);
 done:
+  if (sym == NULL && templ_arg_list != NULL) {
+    free_template_arg_list(templ_arg_list);
+  }  /* if */
   db_exit();
   return sym;
 }  /* find_template_function */
+
 
 
 static a_boolean class_template_declaration(a_symbol_ptr  *p_sym_ptr,
