@@ -28,15 +28,13 @@ the release should contain no defines.
 
 /* Options for Sun optimized version. */
 #define CHECKING 1
-#define DEBUG 1
+#define DEBUG 0
 
 #else /* !defined(OPTIMIZED_VERSION) */
 
 /* Options for Sun test version. */
 #define __BSD__ 1
-#ifndef STANDALONE_IL_DISPLAY
 #define IL_SHOULD_BE_WRITTEN_TO_FILE 1
-#endif /* !defined(STANDALONE_IL_DISPLAY) */
 #define FIL 1
 #define GENERATE_SOURCE_SEQUENCE_LISTS 1
 #define LONG_LONG_ALLOWED 1
@@ -45,6 +43,32 @@ the release should contain no defines.
 #endif /* !defined(OPTIMIZED_VERSION) */
 
 #else /* !defined(sun) */
+
+#ifdef _WIN32
+
+/* Options for Windows-NT version. */
+
+#define __MSDOS__
+#define __MSC__ 1
+#define __ANSIC__ 1
+#define TARG_LITTLE_ENDIAN TRUE
+#define TARG_JMP_BUF_NUM_ELEMENTS 8
+#define STAT_FIRST_PARAM_IS_CONST 1
+#define DEBUG 1
+#define CHECKING 1
+
+#ifndef OPTIMIZED_VERSION
+#define OPTIMIZED_VERSION 1
+#endif /* !defined(OPTIMIZED_VERSION) */
+
+#if OPTIMIZED_VERSION
+#define IL_SHOULD_BE_WRITTEN_TO_FILE 0
+#else /* !OPTIMIZED_VERSION */
+#define IL_SHOULD_BE_WRITTEN_TO_FILE 1
+#define ALTERNATE_IL_FILE_FORMAT 0
+#endif /* OPTIMIZED_VERSION */
+
+#else /* !defined(_WIN32) */
 
 /* Options for UnixWare test version. */
 #define __SYSV__
@@ -66,6 +90,7 @@ the release should contain no defines.
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
 
+#endif /* defined(_WIN32) */
 #endif /* defined(sun) */
 
 
