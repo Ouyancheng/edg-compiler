@@ -2493,6 +2493,7 @@ will be involved in overloading.
           } else {
             if (other_decl->kind != (a_symbol_kind)sk_variable &&
                 other_decl->kind != (a_symbol_kind)sk_routine &&
+                other_decl->kind != (a_symbol_kind)sk_function_template &&
                 other_decl->kind != (a_symbol_kind)sk_overloaded_function) {
               other_decl = NULL;
             }  /* if */
@@ -3613,6 +3614,60 @@ skip_overloading:;
 #endif /* DEBUG */
   db_exit();
 }  /* decl_var_or_routine */
+
+
+void decl_function_template(a_symbol_locator    *locator,
+                            a_type_ptr          type_ptr,
+                            a_symbol_ptr        *symbol_ptr)
+/*
+*/
+{
+  a_storage_class                   storage_class;
+  a_scope_depth                     effective_decl_level;
+  a_symbol_ptr                      sym, overload_symbol, homonym_symbol;
+  a_template_symbol_supplement_ptr  tssp;
+  a_routine_ptr                     rout_ptr;
+  a_memory_region_number            region_to_switch_back_to;
+
+  db_enter(3, "decl_function_template");
+  storage_class = (a_storage_class)sc_extern;
+  effective_decl_level = DEPTH_OF_FILE_SCOPE;
+  (void)id_linkage(locator, &storage_class, type_ptr,
+                   /*is_main_function=*/FALSE, &sym, &homonym_symbol,
+                   &effective_decl_level);
+  if (sym != NULL) {
+#if CHECKING
+    if (sym->kind != (a_symbol_kind)sk_function_template) {
+      internal_error("decl_function_template:  unexpected linked symbol");
+    }  /* if */
+#endif /* CHECKING */
+    /* Error checking here? -- reconcile_routine_types call? -- etc. */
+  } else if (homonym_symbol != NULL) {
+    sym = enter_overloaded_symbol((a_symbol_kind)sk_function_template, locator,
+                                  homonym_symbol, &overload_symbol);
+  } else {
+    sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
+                             DEPTH_OF_FILE_SCOPE,
+                             /*suppress_redecl_error=*/FALSE);
+  }  /* if */
+  tssp = sym->variant.template.extra_info;
+  rout_ptr = tssp->variant.function.routine;
+  if (rout_ptr == NULL) {
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    tssp->variant.function.routine = rout_ptr = alloc_routine();
+    switch_back_to_original_region(region_to_switch_back_to);
+    rout_ptr->type = type_ptr;
+    rout_ptr->storage_class = (a_storage_class)sc_extern;
+    set_source_corresp(&rout_ptr->source_corresp, sym);
+  }  /* if */
+  *symbol_ptr = sym;
+#if DEBUG
+  if (debug_level >= 3) {
+    db_symbol(sym, "", 2);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+}  /* decl_function_template */
 
 
 static void define_static_data_member(a_symbol_locator   *locator,
