@@ -55,7 +55,11 @@ EXTERN unsigned int
 			/* Number of bits in a target char. */
 
 EXTERN unsigned int
-		targ_host_string_char_bit;
+		targ_host_string_char_bit
+#if VAR_INITIALIZERS
+                                          = TARG_HOST_STRING_CHAR_BIT
+#endif /* VAR_INITIALIZERS */
+                                                                     ;
 			/* The number of data bits per character used when
 			   representing target characters as a string on the
 			   host; dependent on targ_char_bit and CHAR_BIT.
@@ -220,6 +224,21 @@ EXTERN a_boolean
 			   depends on the signedness and size of the values of
 			   the enum and defaults to the signedness indicated
 			   by targ_plain_int_bit_field_is_unsigned. */
+
+EXTERN int	targ_zero_width_bit_field_alignment
+#if VAR_INITIALIZERS
+                                         = TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* Alignment adjustment to be made when a zero-width
+			   (unnamed) bit field is declared.  If > 0 it is the
+			   alignment to be used (typically the alignment of
+			   one of the integral types, in which case the value
+			   should be cast to a_targ_alignment).  A value of
+			   zero means "use the minimal alignment", which is
+			   single-byte alignment.  Any value less than zero
+			   means "use the alignment of the base type given in
+			   the declaration". */
 
 /*
 Pointer types:
@@ -477,8 +496,9 @@ EXTERN an_integer_kind
    should be used *only* to initialize the variables declared in this file.
    To enforce this convention, they are undefined at this time.  (This is
    not foolproof, but it should catch most such misuses).  */
-#undef TARG_CHAR_BIT
 #undef TARG_LITTLE_ENDIAN
+#undef TARG_CHAR_BIT
+#undef TARG_HOST_STRING_CHAR_BIT
 #undef TARG_HAS_SIGNED_CHARS
 #undef TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT
 #undef TARG_WCHAR_T_INT_KIND
@@ -497,6 +517,7 @@ EXTERN an_integer_kind
 #undef TARG_BIT_FIELD_CONTAINER_SIZE
 #undef TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED
 #undef TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
+#undef TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT
 #undef TARG_SIZEOF_POINTER
 #undef TARG_ALIGNOF_POINTER
 #undef TARG_PTRDIFF_T_MAX
