@@ -1057,20 +1057,19 @@ pointed to by dip or con is already lowered.
     case dik_constant:
       /* Assign a constant to the entity to be initialized. */
       /* The constant has already been lowered. */
-      { if (dip != NULL) con = dip->variant.constant;
-        if (con->kind == (a_constant_repr_kind)ck_string &&
-            !con->implicit_cast) {
-          /* An character array initialized by a string literal, e.g., in
-             a ctor-initializer. */
-          a_constant addr_con;
-          set_constant_address_constant(con, &addr_con);
-          init_val_node = alloc_node_for_constant(&addr_con);
-          string_literal_case = TRUE;
-        } else {
-          /* Normal case, not a string literal. */
-          init_val_node = make_node_for_il_constant(con);
-        }  /* if */
-      }
+      if (dip != NULL) con = dip->variant.constant;
+      if (con->kind == (a_constant_repr_kind)ck_string &&
+          !con->implicit_cast) {
+        /* An character array initialized by a string literal, e.g., in
+           a ctor-initializer. */
+        a_constant addr_con;
+        set_constant_address_constant(con, &addr_con);
+        init_val_node = alloc_node_for_constant(&addr_con);
+        string_literal_case = TRUE;
+      } else {
+        /* Normal case, not a string literal. */
+        init_val_node = make_node_for_il_constant(con);
+      }  /* if */
       break;
     case dik_expression:
       /* Assign an expression to the entity to be initialized. */
