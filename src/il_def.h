@@ -2920,10 +2920,9 @@ typedef struct a_type {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_bit_field	autonomous_primary_tag_decl:1;
 			/* TRUE if this type entry represents a class, struct,
-			   union, or enum and its the primary source sequence
-			   entry refers to a declaration (usually the
-			   definition) that is not part of the declaration of
-			   another entity.  For instance,
+			   union, or enum and its primary source sequence
+			   entry refers to a declaration that is not part
+			   of the declaration of another entity.  For instance,
 			     class A { int i; };    // An "autonomous" decl
                              class B { int i; } b;  // Not "autonomous"
 			   The flag would be set TRUE for A but not for B
