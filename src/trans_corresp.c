@@ -2685,6 +2685,7 @@ type is in fact valid.
                                            corresp_info.max_member_alignment ||
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
           class_info.is_empty_class != corresp_info.is_empty_class ||
+          class_info.is_specialized != corresp_info.is_specialized ||
           (sup != NULL &&
            (sup->virtual_function_info_offset !=
                                    corresp_sup->virtual_function_info_offset ||
@@ -2697,7 +2698,6 @@ type is in fact valid.
         class_info.is_nonreal_class != corresp_info.is_nonreal_class ||
         class_info.is_prototype_instantiation !=
                                      corresp_info.is_prototype_instantiation ||
-        class_info.is_specialized != corresp_info.is_specialized ||
         (sup != NULL &&
          (
 #if NEAR_AND_FAR_ALLOWED

@@ -1,5 +1,20 @@
 Version 3.1
 
+10/9/02  Spurious correspondence error
+
+A spurious correspondence error was issued if a template class was specialized
+in one translation unit and incomplete in another (and both translation
+units were loaded either by export processing or in --multi_trans_unit
+mode).  This has been fixed.
+
+  file 1:
+  template <class T> struct A;
+  template <> struct A<int> {};
+
+  file 2:
+  template <class T> struct A;
+  void f(A<int>*){}
+
 10/9/02  Invalid IL for some friend class declarations in templates
 
 The IL produced for some nondependent friend class declarations appearing in
