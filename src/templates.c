@@ -103,13 +103,11 @@ static char	*line_type_names[(int)tilt_last+1] = {
 
 /*
 Macro that is TRUE if the instantiation request and/or template information
-files should be generated.  This is done when automatic instantiation is
-enabled, but not when doing preprocessing only or when the back end is
-suppressed.
+files should be generated.  This is not done when doing preprocessing
+only or when the back end is suppressed.
 */
 #define generate_template_files()					\
-  (automatic_instantiation_mode &&					\
-   !do_preprocessing_only && !suppress_back_end)
+  (!do_preprocessing_only && !suppress_back_end)
 
 
 #define INSTANCE_LOOKUP_TABLE_SIZE 10007
@@ -603,10 +601,10 @@ static void write_to_template_info_file(
 				char				*flags_string);
 
 
-static void generate_template_info_file_name(void)
+static void generate_template_file_names(void)
 /*
- Generate a name for the template information file if one was not
- specified.
+Generate a name for the template information file and instantiation
+request file if names were not provided on the command line.
 */
 {
   if (template_info_file_name == NULL) {
@@ -616,6 +614,15 @@ static void generate_template_info_file_name(void)
          based on the primary source file name. */
       template_info_file_name = 
             derived_name(primary_source_file_name, TEMPLATE_INFO_FILE_SUFFIX);
+      /* The name of the instantiation request file can be specified on the
+         command line.  If none is specified, then a default name is
+         generated. */
+      if (ii_file_name != NULL) {
+        instantiation_request_file_name = ii_file_name;
+      } else {
+        instantiation_request_file_name =
+            derived_name(primary_source_file_name, INSTANTIATION_FILE_SUFFIX);
+      }  /* if */
     } else {
       /* If the input is coming from standard input and no template information
          file name was specified, use a default value.  This should be
@@ -624,7 +631,7 @@ static void generate_template_info_file_name(void)
       template_info_file_name = "default.ti";
     }  /* if */
   }  /* if */
-}  /* generate_template_info_file_name */
+}  /* generate_template_file_names */
 
 
 static void open_template_info_file(void)
@@ -11910,15 +11917,8 @@ file.  Return TRUE if the file was successfully opened.
 {
   f_instantiation_request = NULL;
   if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
-    /* Only open the file if the input is coming from a file.  The name of
-       the instantiation request file can be specified on the command
-       line.  If none is specified, then a default name is generated. */
-    if (ii_file_name != NULL) {
-      instantiation_request_file_name = ii_file_name;
-    } else {
-      instantiation_request_file_name =
-            derived_name(primary_source_file_name, INSTANTIATION_FILE_SUFFIX);
-    }  /* if */
+    /* Only open the file if the input is coming from a file. */
+    check_assertion(instantiation_request_file_name != NULL);
     f_instantiation_request = fopen(instantiation_request_file_name, "r");
   }  /* if */
   return f_instantiation_request != NULL;
@@ -12764,31 +12764,35 @@ specific definition that made it unnecessary.
      called by fe_wrapup after instantiation_wrapup has completed. */
   in_instantiation_wrapup = TRUE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  /* Set the flag that indicates that this compilation includes
-     external template entities. */
-  any_instantiations_required = instantiations_required != NULL;
-  /* Read in the list of entities to be automatically instantiated.  We
-     also need to do automatic instantiation checking when a definition
-     list was supplied.  In automatic instantiation mode, when a definition
-     list file is in use, we do the instantiation unless the entity is
-     in the definition list file. */
-  if (init_auto_instantiation_information()) request_file_check_needed = TRUE;
-  if (read_definition_list_file()) request_file_check_needed = TRUE;
-  /* Go through the instantiations list and determine whether a given entity
-     is flagged for automatic instantiation.  This must be done before
-     instantiating things in -tused mode because a -tused function that
-     is only referenced by unneeded code (e.g., an uncalled static function)
-     will be eliminated unless it is flagged for automatic instantiation or
-     was explicitly instantiated. */
-  for (tip = instantiations_required;
-       tip != NULL;
-       tip = tip->next_in_instantiation_list) {
-    check_if_entity_should_be_automatically_instantiated(tip);
-  }  /* for */
-  /* Create the file name of the template information file.  This may
-     be used to create the file or to remove it if no template entities
-     exist. */
-  generate_template_info_file_name();
+  /* Create the file name of the template information file and template
+     request file.  This may be used to create the files or to remove them
+     if no template entities exist. */
+  generate_template_file_names();
+  if (automatic_instantiation_mode) {
+    /* Set the flag that indicates that this compilation includes
+       external template entities. */
+    any_instantiations_required = instantiations_required != NULL;
+    /* Read in the list of entities to be automatically instantiated.  We
+       also need to do automatic instantiation checking when a definition
+       list was supplied.  In automatic instantiation mode, when a definition
+       list file is in use, we do the instantiation unless the entity is
+       in the definition list file. */
+    if (init_auto_instantiation_information()) {
+      request_file_check_needed = TRUE;
+    }  /* if */
+    if (read_definition_list_file()) request_file_check_needed = TRUE;
+    /* Go through the instantiations list and determine whether a given entity
+       is flagged for automatic instantiation.  This must be done before
+       instantiating things in -tused mode because a -tused function that
+       is only referenced by unneeded code (e.g., an uncalled static function)
+       will be eliminated unless it is flagged for automatic instantiation or
+       was explicitly instantiated. */
+    for (tip = instantiations_required;
+         tip != NULL;
+         tip = tip->next_in_instantiation_list) {
+      check_if_entity_should_be_automatically_instantiated(tip);
+    }  /* for */
+  }  /* if */
   if (any_instantiations_required && use_template_info_file &&
       generate_template_files()) {
     /* Make sure the template information file has been created. */

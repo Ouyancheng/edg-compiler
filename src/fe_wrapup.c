@@ -119,9 +119,7 @@ and before the back end (if any) is executed.
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   /* Do any special processing needed to wrapup the automatic instantiation
      process at the end of the translation unit. */
-  if (automatic_instantiation_mode) {
-    wrapup_auto_instantiation_information();
-  }  /* if */
+  wrapup_auto_instantiation_information();
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 
