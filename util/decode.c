@@ -746,7 +746,7 @@ position following what was demangled.
     p += op_length;
     /* Put parentheses around the operation. */
     write_id_ch('(', dctl);
-    /* For a cast, sizeof, or __ALIGNOF__, get the type. */
+    /* For a cast, sizeof, or __alignof__, get the type. */
     if (takes_type) {
       if (strcmp(operator_str, "cast") == 0) {
         write_id_ch('(', dctl);
@@ -766,7 +766,7 @@ position following what was demangled.
     }  /* if */
     /* Get the count of operands. */
     p = get_single_digit_number(p, &num_operands, dctl);
-    /* sizeof and __ALIGNOF__ take zero operands. */
+    /* sizeof and __alignof__ take zero operands. */
     if (num_operands != 0) {
       if (num_operands == 1) {
         /* Unary operator -- operator comes first. */
@@ -1050,7 +1050,7 @@ encoding, return NULL.
     s = "sizeof(";
     *takes_type = TRUE;
   } else if (start_of_id_is("af", ptr)) {
-    s = "__ALIGNOF__(";
+    s = "__alignof__(";
     *takes_type = TRUE;
   } else if (start_of_id_is("uu", ptr)) {
     s = "__uuidof(";
@@ -3978,16 +3978,30 @@ The syntax is:
     /* An expression beginning with an operator name. */
     if (*ptr == 'v') {
       /* Vendor extended operator, used for alignof. */
-      if (strncmp(ptr, "v111__ALIGNOF__", 15) == 0) {
+      if (start_of_id_is("v112__alignof__e", ptr)) {
+        /* __alignof__(expr) */
         op_str = "__alignof__(";
         close_str = ")";
         num_operands = 1;
+        ptr += 16;
+      } else if (start_of_id_is("v111__alignof__", ptr)) {
+        /* __alignof__(type) */
+        op_str = "__alignof__(";
+        close_str = ")";
+        num_operands = 0;
         ptr += 15;
-      } else if (strncmp(ptr, "v18__uuidof", 12) == 0) {
-        op_str = "__uuidof__(";
+      } else if (start_of_id_is("v19__uuidofe", ptr)) {
+        /* __uuidof(expr) */
+        op_str = "__uuidof(";
         close_str = ")";
         num_operands = 1;
         ptr += 12;
+      } else if (start_of_id_is("v18__uuidof", ptr)) {
+        /* __uuidof(type) */
+        op_str = "__uuidof(";
+        close_str = ")";
+        num_operands = 0;
+        ptr += 11;
       }  /* if */
     } else {
       /* Not an extended operator. */
@@ -4023,9 +4037,18 @@ The syntax is:
         write_id_str(":", dctl);
         ptr = demangle_expression(ptr, dctl);
       } else {
-        /* Special cases: sizeof(type), scope resolution "::" */
+        /* Special cases: sizeof(type), __alignof__(type),
+           __uuidof(type), scope resolution "::" */
         if (strcmp(op_str, "sizeof(") == 0) {
           /* sizeof(type). */
+          write_id_str(op_str, dctl);
+          ptr = demangle_type(ptr, dctl);
+        } else if (strcmp(op_str, "__alignof__(") == 0) {
+          /* __alignof__(type). */
+          write_id_str(op_str, dctl);
+          ptr = demangle_type(ptr, dctl);
+        } else if (strcmp(op_str, "__uuidof(") == 0) {
+          /* __uuidof(type). */
           write_id_str(op_str, dctl);
           ptr = demangle_type(ptr, dctl);
         } else if (strcmp(op_str, "::") == 0) {
