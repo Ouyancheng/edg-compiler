@@ -1,5 +1,19 @@
 Version 2.23
 
+4/15/94  Tentative variable definitions vs. redeclarations
+
+A bug has been fixed (C mode only) to properly distinguish, at the point
+at which cross-reference information and source sequence entries are
+generated, between tentative variable definitions, actual definitions, and
+redeclarations.  For example:
+
+  /* In C mode only. */
+  int a;                 /* Tentative definition. */
+  int a = 0;             /* Actual definition. */
+  int a;                 /* Redeclaration (but used to be treated for xref
+                            and source-sequence output as though it were a
+                            definition). */
+
 4/12/94  Source position in cross reference entry
 
 The cross reference source position on a qualified name appearing as a
