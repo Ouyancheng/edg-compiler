@@ -7333,12 +7333,20 @@ continue_with_declaration:
       /* After a declaration has been scanned, it is no longer possible
          that the next thing is a function definition. */
       function_definition_allowed = FALSE;
-      /* Assume that qualified names that are not functions refer to static
-         data members. */
-      is_static_data_member = (!is_function &&
-                               locator.specific_symbol != NULL &&
-                               locator.specific_symbol->
-                                            class_of_which_a_member != NULL);
+      is_static_data_member = FALSE;
+      if (locator.specific_symbol != NULL &&
+          locator.specific_symbol->class_of_which_a_member != NULL) {
+        if (is_function) {
+          /* A qualified name that identifies a function is allowed only when
+             the function body is present. */
+          pos_error(ec_member_function_redeclaration, &declarator_pos);
+          set_to_error_locator(locator);
+        } else {
+          /* Assume that qualified names that are not functions refer to static
+             data members. */
+          is_static_data_member = TRUE;
+        }  /* if */
+      }  /* if */
       /* Issue diagnostics on missing type specifiers, etc. */
       if (!is_main_function) {
         if (decl_specifiers_omitted &&
