@@ -152,6 +152,7 @@ array bound.  This has been fixed.
     f(a);
   }
 
+-------------------------------------------------------------------------------
 Version 2.36, June 17, 1997
 
 6/17/97   IL version number changed to 2.28
