@@ -18,7 +18,7 @@ number into a source file and line number.  This optimization uncovered
 an existing problem that resulted in gaps in the sequence numbers
 when using implicit inclusion.  These gaps could result in an internal error
 on an attempt to get the source file and line number for a sequence number
-that from one of the gaps.  This has been fixed.
+from one of the gaps.  This has been fixed.
 
 7/1/04   Multiple-translation unit problem with two-argument operator delete
 
