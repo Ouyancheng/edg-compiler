@@ -313,6 +313,13 @@ definition of the class is needed, and not just the declaration.
   /* Set the flag if it is not set already. */
   if (!type->variant.class_struct_union.definition_needed) {
     type->variant.class_struct_union.definition_needed = TRUE;
+#if DEBUG
+    if (db_flag_is_set("dump_elim")) {
+      fprintf(f_debug, "Setting definition_needed on ");
+      db_abbreviated_type(type);
+      fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
     /* If the class is already marked as needed, redo the sweep for that,
        because before the definition_needed flag is set the subtree of
        the class is not swept when the class needed flag is set. */
@@ -368,6 +375,23 @@ as needed.
     } else {
       /* The flag is not set, so set it and keep walking. */
       scp->needed = TRUE;
+#if DEBUG
+      if (db_flag_is_set("dump_elim")) {
+        if (entry_kind == iek_type) {
+          fprintf(f_debug, "Setting needed on type     ");
+          db_abbreviated_type((a_type_ptr)entry_ptr);
+          fprintf(f_debug, "\n");
+        } else if (entry_kind == iek_variable) {
+          fprintf(f_debug, "Setting needed on variable ");
+          db_name(&((a_variable_ptr)entry_ptr)->source_corresp);
+          fprintf(f_debug, "\n");
+        } else if (entry_kind == iek_routine) {
+          fprintf(f_debug, "Setting needed on routine  ");
+          db_name(&((a_routine_ptr)entry_ptr)->source_corresp);
+          fprintf(f_debug, "\n");
+        }  /* if */
+      }  /* if */
+#endif /* DEBUG */
       if (entry_kind == iek_routine) {
         /* The entry is a routine.  If it has a definition, walk it now.
            Note that walking the routine and its subtree will not
@@ -393,15 +417,6 @@ as needed.
              needed. */
           prune = TRUE;
         }  /* if */
-      }  /* if */
-      if (prune && scp->is_class_member) {
-        /* When the subtree is not going to be walked now and the entity is
-           a class member, mark the parent as needed anyway.  This is done
-           in the normal processing, but we're suppressing that by not walking
-           the subtree. */
-        a_type_ptr parent_class = scp->parent.class_type;
-        walk_tree_and_set_needed((char *)parent_class, iek_type);
-        set_class_definition_needed(parent_class);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -537,6 +552,13 @@ declaration.
   /* Set the flag if it is not set already. */
   if (!type->variant.class_struct_union.keep_definition_in_il) {
     type->variant.class_struct_union.keep_definition_in_il = TRUE;
+#if DEBUG
+    if (db_flag_is_set("dump_elim")) {
+      fprintf(f_debug, "Setting keep_definition_in_il on ");
+      db_abbreviated_type(type);
+      fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
     /* If the class is already marked to be kept in the IL, redo the sweep
        for that, because before the keep_definition_in_il flag is set the
        subtree of the class is not swept when the class keep_in_il flag
@@ -650,6 +672,23 @@ to be kept.
   } else {
     /* The flag is not set, so set it and keep walking. */
     il_entry_prefix_of(entry_ptr).keep_in_il = TRUE;
+#if DEBUG
+    if (entry_kind == iek_type && db_flag_is_set("dump_elim")) {
+      if (entry_kind == iek_type) {
+        fprintf(f_debug, "Setting keep_in_il on type     ");
+        db_abbreviated_type((a_type_ptr)entry_ptr);
+        fprintf(f_debug, "\n");
+      } else if (entry_kind == iek_variable) {
+        fprintf(f_debug, "Setting keep_in_il on variable ");
+        db_name(&((a_variable_ptr)entry_ptr)->source_corresp);
+        fprintf(f_debug, "\n");
+      } else if (entry_kind == iek_routine) {
+        fprintf(f_debug, "Setting keep_in_il on routine  ");
+        db_name(&((a_routine_ptr)entry_ptr)->source_corresp);
+        fprintf(f_debug, "\n");
+      }  /* if */
+    }  /* if */
+#endif /* DEBUG */
     /* If this is an entry that might be redeclared or redefined later,
        do not walk its subtree now. */
     if (should_not_walk_subtree(entry_ptr, entry_kind)) {
@@ -667,7 +706,9 @@ to be kept.
       /* When the subtree is not going to be walked now and the entity is
          a class member, mark the parent as needed anyway.  This is done
          in the normal processing, but we're suppressing that by not walking
-         the subtree. */
+         the subtree.  This is needed in particular to make sure the
+         definition of a class is kept if one of its member functions
+         is kept. */
       a_source_correspondence *scp =
                             source_corresp_for_il_entry(entry_ptr, entry_kind);
       check_assertion(scp != NULL);
