@@ -1034,6 +1034,11 @@ enum a_template_param_constant_kind_tag {
 };
 typedef a_byte a_template_param_constant_kind;
 
+typedef unsigned long a_template_param_list_pos;
+			/* A ordinal position number within a template
+			   parameter or argument list (i.e., a given
+			   parameter is the Nth parameter in the list). */
+
 #endif /* ifdef CIL */
 
 typedef struct a_constant {
@@ -1252,7 +1257,7 @@ typedef struct a_constant {
 			/* The kind of template param constant. */
       union {
 	/* When template param constant kind == tpck_param: */
-        unsigned long
+        a_template_param_list_pos
 		list_position;
 			/* Ordinal value indicating the position of the
 			   template parameter in its declaration list (1 is
@@ -2982,7 +2987,7 @@ typedef struct a_type {
       a_template_param_type_kind
 		kind;
 			/* The kind of template param type. */
-      unsigned long
+      a_template_param_list_pos
 		list_position;
 			/* Ordinal value indicating the position of a
 			   tptk_param template parameter in its declaration
