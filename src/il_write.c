@@ -847,9 +847,11 @@ Write the indicated memory region to the file f_il_output.
                    (char *)orphaned_file_scope_il_entries,
                    sizeof(orphaned_file_scope_il_entries));
       /* The pointers in the orphaned IL entry table must be remapped to
-         entry_numbers. */
-      remap_orphaned_file_scope_entry_array_ptrs(
-                                   remap_ptr_to_entry_number);
+         entry numbers. */
+      remap_first_ptr_of_orphaned_file_scope_entry_array(
+                                                    remap_ptr_to_entry_number);
+      remap_last_ptr_of_orphaned_file_scope_entry_array(
+                                                    remap_ptr_to_entry_number);
 
 #endif /* ALTERNATE_IL_FILE_FORMAT */
       /* Copy the orphaned_file_scope_il_entries array to the file. */
