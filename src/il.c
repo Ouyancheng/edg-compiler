@@ -7106,7 +7106,7 @@ destructions under it.
   if (olp != NULL) {
     an_object_lifetime_ptr  temp = olp->child_lifetime;
     for (; temp != NULL; temp = temp->next) {
-      db_object_lifetime(temp);
+      db_object_lifetime_tree(temp);
     }  /* for */
   }  /* if */
 }  /* db_object_lifetime_tree */
