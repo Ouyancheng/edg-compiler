@@ -1565,7 +1565,9 @@ static
 void reactivate_class_and_instantiation_scopes(
                       a_template_decl_info_ptr	decl_info,
                       a_type_ptr		parent_class,
-                      a_symbol_ptr		instance_sym)
+                      a_symbol_ptr		instance_sym,
+		      a_type_ptr		assoc_type,
+		      a_routine_ptr		assoc_routine)
 /*
 Reactivate the class specified by parent_class and any classes that enclose
 parent class.  If any of the classes are template classes, push
@@ -1573,7 +1575,9 @@ instantiation scopes for those classes too.  parent_class is the class
 that must be reactivated.  decl_info is the template declaration
 information for the template being instantiated.  instance_sym is the
 symbol to be used (if not NULL) as the instance symbol for the outermost
-instantiation scope that is pushed.
+instantiation scope that is pushed.   Likewise, assoc_type and assoc_routine
+are non-NULL when they should be used for the outermost instantiation scope.
+
 */
 {
   a_type_ptr                        class_type;
@@ -1584,6 +1588,8 @@ instantiation scope that is pushed.
   a_template_decl_info_ptr	    enclosing_tdip;
   a_boolean			    is_template;
   a_symbol_ptr			    enclosing_instance_sym = NULL;
+  a_type_ptr			    enclosing_assoc_type = NULL;
+  a_routine_ptr			    enclosing_assoc_routine = NULL;
 
   class_type = skip_typerefs(parent_class);
   class_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
@@ -1605,20 +1611,31 @@ instantiation scope that is pushed.
        the class is used instead. */
     if (decl_info == NULL) decl_info = tssp->cache.decl_info;
     enclosing_tdip = decl_info->enclosing_template_decl;
-    if (instance_sym == NULL) instance_sym = class_sym;
+    /* If no instance symbol is passed from the caller, use the symbol
+       and type from the class that is being reactivated.  Otherwise,
+       use the symbol, type and/or routine passed by the caller. */
+    if (instance_sym == NULL) {
+      instance_sym = class_sym;
+      assoc_type = class_type;
+      assoc_routine = NULL;
+    }  /* if */
     enclosing_instance_sym = NULL;
   } else {
     /* If this is not a template, use the decl_info value passed in as
        the value passed to the recursive call below. */
     enclosing_tdip = decl_info;
     enclosing_instance_sym = instance_sym;
+    enclosing_assoc_type = assoc_type;
+    enclosing_assoc_routine = assoc_routine;
   }  /* if */
   if (class_sym->is_class_member) {
     /* If this is not the outermost class, reactivate any enclosing
        classes. */
     reactivate_class_and_instantiation_scopes(enclosing_tdip,
                                               class_sym->parent.class_type,
-                                              enclosing_instance_sym);
+                                              enclosing_instance_sym,
+                                              enclosing_assoc_type,
+                                              enclosing_assoc_routine);
   }  /* if */
   if (is_template) {
     if (tssp->variant.class_template.prototype_instantiation_complete) {
@@ -1628,8 +1645,8 @@ instantiation scope that is pushed.
       template_arg_list = class_type->variant.class_struct_union.extra_info->
                                                            template_arg_list;
       (void)push_scope_full((a_scope_kind)sck_template_instantiation,
-                          decl_info->declaration_scope, class_type,
-                          (a_routine_ptr)NULL, (a_namespace_ptr)NULL,
+                          decl_info->declaration_scope, assoc_type,
+                          assoc_routine, (a_namespace_ptr)NULL,
                           instance_sym, template_sym, template_arg_list,
                           decl_info);
     }  /* if */
@@ -1648,7 +1665,9 @@ static void push_instantiation_context(
 		a_scope_depth			*p_definition_depth,
 		a_scope_depth			*p_context_depth,
                 a_scope_depth			*p_after_definition_depth,
-                a_symbol_ptr			instance_sym)
+                a_symbol_ptr			instance_sym,
+                a_type_ptr			assoc_type,
+		a_routine_ptr			assoc_routine)
 /*
 Pushes the scopes necessary to create the appropriate context for a
 particular instantiation.  This process includes
@@ -1680,7 +1699,8 @@ stack is fixed up later.  instance_sym is the symbol to be used for
 the outermost class instantiation scope and is non-NULL for nontemplate
 member instantiations when the outermost instantiation scope is actually
 the instantiation scope for the member, not the class that is being
-reactivated.
+reactivated.  Likewise, assoc_type and assoc_routine are non-NULL when
+they should be used for the outermost instantiation scope.
 */
 {
   a_scope_depth		common_depth;
@@ -1733,7 +1753,8 @@ reactivated.
        enclosing classes.  For any enclosing classes that are template classes,
        push an instantiation scope for the class as well. */
     reactivate_class_and_instantiation_scopes(decl_info, definition_class,
-                                              instance_sym);
+                                              instance_sym, assoc_type,
+                                              assoc_routine);
   }  /* if */
   /* Return the calculated scope depths to the caller. */
   *p_common_depth = common_depth;
@@ -1829,6 +1850,8 @@ scopes.
   a_boolean			is_template = FALSE;
   a_template_decl_info_ptr	enclosing_tdip;
   a_symbol_ptr			enclosing_instance_sym;
+  a_type_ptr			enclosing_assoc_type;
+  a_routine_ptr			enclosing_assoc_routine;
   a_boolean			is_nested_prototype_instantiation = FALSE;
 
   /* Clear the flag that indicates that we are in a local class so that any
@@ -1853,6 +1876,8 @@ scopes.
        template symbol supplement will be used instead. */
     enclosing_tdip = decl_info->enclosing_template_decl;
     enclosing_instance_sym = NULL;
+    enclosing_assoc_type = NULL;
+    enclosing_assoc_routine = NULL;
   } else {
     /* This entity is not a template, use the template declaration information
        that was passed in. */
@@ -1861,6 +1886,8 @@ scopes.
        nontemplate member that is being instantiated as the instance
        symbol for the outermost instantiation scope. */
     enclosing_instance_sym = instance_sym;
+    enclosing_assoc_type = assoc_type;
+    enclosing_assoc_routine = assoc_routine;
   }  /* if */
   /* See if this is a nested prototype instantiation.  A nested prototype
      instantiation is the prototype instantiation of a member template
@@ -1897,7 +1924,8 @@ scopes.
     push_instantiation_context(enclosing_tdip, parent_nsp, parent_class,
                                reference_nsp, &common_depth, &definition_depth,
                                &context_depth, &after_definition_depth,
-                               enclosing_instance_sym);
+                               enclosing_instance_sym, enclosing_assoc_type,
+                               enclosing_assoc_routine);
     /* At this point, definition_depth points to the parent scope
        of the template being instantiated.  Save this value before it
        is potentially modified below. */
