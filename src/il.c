@@ -2846,7 +2846,7 @@ pointer points into the lookup array.
        have a starting sequence number one greater than the ending
        sequence number.  That is why the test above checks for equality
        with the ending sequence number. */
-    if (snlep1->source_file == snlep2->source_file) {
+    if (!snlep2->source_file->is_include_file) {
       /* We've found the entry for the primary source file. */
       result = 0;
     } else {
