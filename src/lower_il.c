@@ -4051,26 +4051,66 @@ subobject being built.  If they don't, then they don't share a
 virtual function table pointer with the next class up.
 */
 {
-  a_base_class_ptr derived;
+  a_base_class_ptr derived, temp_bcp;
 
   check_assertion(bcp->shares_virtual_function_info);
   while (bcp->shares_virtual_function_info) {
     if (bcp->is_virtual && ctor_bcp != NULL) {
-      /* For a virtual base class, see if it is actually allocated in the
-         subobject we are constructing.  If not, stop here. */
-      a_base_class_ptr corresp_virtual = corresp_base_class(bcp, ctor_bcp);
-      if (corresp_virtual->offset != ctor_bcp->offset) break;
-    }  /* if */
-    if (bcp->derived_class->variant.class_struct_union.extra_info->
+      /* For a virtual base class, follow the sharing in the complete
+         object. */
+      a_base_class_ptr corresp_bcp = corresp_base_class(bcp, ctor_bcp);
+      if (!corresp_bcp->shares_virtual_function_info) break;
+      if (corresp_bcp->derived_class->variant.class_struct_union.extra_info->
+                                           primary_base_class == corresp_bcp) {
+        /* We've reached the complete object class without encountering
+           the subobject class, so stop here. */
+        break;
+      }  /* if */
+      /* Find the next more derived base that shares its virtual
+         function table with corresp_bcp. */
+      derived = base_classes_of(corresp_bcp->derived_class);
+      while (derived->primary_base_class != corresp_bcp) {
+        derived = derived->next;
+      }  /* while */
+      /* Stop if we've reached the class of the subobject being constructed. */
+      if (derived->type == ctor_bcp->type) {
+        if (derived == ctor_bcp) {
+          bcp = NULL;
+        } else {
+          /* We've reached some other base with the same type as ctor_bcp,
+             which means that we've left the ctor_bcp subobject.  */
+        }  /* if */
+        break;
+      }  /* if */
+      /* Get back to bcp in the subobject class, if possible.  */
+      for (temp_bcp = base_classes_of(bcp->derived_class);
+           temp_bcp != NULL;
+           temp_bcp = temp_bcp->next) {
+        if (temp_bcp->type == derived->type &&
+            corresp_base_class(temp_bcp, ctor_bcp) == derived) {
+          break;
+        }  /* if */
+      }  /* for */
+      if (temp_bcp == NULL) {
+        /* We've gone outside the subobject, so stop at the current point. */
+        break;
+      } else {
+        bcp = temp_bcp;
+      }  /* if */
+    } else {
+      /* Not a virtual base class, or ctor_bcp == NULL. */
+      if (bcp->derived_class->variant.class_struct_union.extra_info->
                                                   primary_base_class == bcp) {
-      bcp = NULL;
-      break;
+        /* We've reached the class of the subobject being constructed. */
+        bcp = NULL;
+        break;
+      }  /* if */
+      /* Find the next more derived base that shares its virtual
+         function table with bcp. */
+      derived = base_classes_of(bcp->derived_class);
+      while (derived->primary_base_class != bcp) derived = derived->next;
+      bcp = derived;
     }  /* if */
-    /* Loop until we find the most derived base that shares its virtual
-       function table with bcp. */
-    derived = base_classes_of(bcp->derived_class);
-    while (derived->primary_base_class != bcp) derived = derived->next;
-    bcp = derived;
   }  /* while */
   return bcp;
 }  /* find_base_sharing_virtual_function_table */
