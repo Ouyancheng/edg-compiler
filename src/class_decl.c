@@ -3674,18 +3674,13 @@ or struct definition.  The syntax is
         if (access_already_specified) {
           error(ec_access_already_specified);
         } else {
-          switch (curr_token) {
-            case tok_public:
-              access = (an_access_specifier)as_public;
-              break;
-            case tok_protected:
-              access = (an_access_specifier)as_protected;
-              break;
-            case tok_private:
-              access = (an_access_specifier)as_private;
-              break;
-            default:;  /* Avoid gcc warnings. */
-          }  /* switch */
+          if (curr_token == tok_public) {
+            access = (an_access_specifier)as_public;
+          } else if (curr_token == tok_protected) {
+            access = (an_access_specifier)as_protected;
+          } else {
+            access = (an_access_specifier)as_private;
+          }  /* if */
           access_already_specified = TRUE;
         }  /* if */
       } else {
@@ -5657,7 +5652,7 @@ declared member functions.
 
       /* Check the target type of the conversion -- which is the return type
          of rout_type. */
-      tp = skip_typerefs(return_type_of(rtn->type));
+      tp = f_skip_typerefs(return_type_of(rtn->type));
       if (tp == class_type) {
         /* Converting to same type (possibly qualified) is not done. */
         is_usable = FALSE;
@@ -6478,7 +6473,7 @@ FALSE .
   an_error_severity              severity = es_none;
 
   db_enter(4, "is_valid_union_field");
-  if (is_array_type(tp)) tp = skip_typerefs(underlying_array_element_type(tp));
+  if (is_array_type(tp)) tp=f_skip_typerefs(underlying_array_element_type(tp));
   if (is_class_struct_union_type(tp)) {
     cssp = symbol_supplement_for_class(tp);
     if (cssp->constructor != NULL || cssp->destructor != NULL) {
@@ -6905,6 +6900,7 @@ ones are allocated in the scope specified by decl_scope_level.
                   &assoc_object_type->source_corresp.decl_position);
         /* Remove the symbol and don't reenter it. */
         remove_anonymous_union_member_from_inactive_symbols_list(sym);
+        break;
       case sk_static_data_member:
         /* Must be an error, since unions cannot have static data members,
            and the nonstandard case is only allowed to have fields.  Ignore
@@ -7638,7 +7634,7 @@ specific information about the member declaration, respectively.
        struct, or union -- there is additional checking to be done. */
     a_type_ptr  tp = skip_typerefs(member_type);
     if (is_array_type(tp)) {
-      tp = skip_typerefs(underlying_array_element_type(tp));
+      tp = f_skip_typerefs(underlying_array_element_type(tp));
     }  /* if */
     if (is_class_struct_union_type(tp)) {
       /* If the member type has const-qualified fields, propagate the flag
@@ -8808,18 +8804,13 @@ and update *access accordingly.
   while (curr_token == tok_public || curr_token == tok_private ||
          curr_token == tok_protected) {
     found = TRUE;
-    switch (curr_token) {
-      case tok_public:
-        *access = (an_access_specifier)as_public;
-        break;
-      case tok_protected:
-        *access = (an_access_specifier)as_protected;
-        break;
-      case tok_private:
-        *access = (an_access_specifier)as_private;
-        break;
-      default:;  /* Avoid gcc warnings. */
-    }  /* switch */
+    if (curr_token == tok_public) {
+      *access = (an_access_specifier)as_public;
+    } else if (curr_token == tok_protected) {
+      *access = (an_access_specifier)as_protected;
+    } else {
+      *access = (an_access_specifier)as_private;
+    }  /* if */
     scope_stack[decl_scope_level].current_access = *access;
     /* Advance to the colon, which is required. */
     (void)get_token();
