@@ -3950,7 +3950,8 @@ cross-reference output describing this declaration.
     a_routine_ptr  dummy_rp;
     suppress_ext_sym_lookup = suppress_ext_sym_lookup ||
                               (microsoft_bugs &&
-                               idlb.name_linkage == nlk_external);
+                               idlb.name_linkage ==
+                                           (a_name_linkage_kind)nlk_external);
     *ext_sym = 
         create_external_symbol_for_linked_entity(locator, type_ptr,
                                                  idlb.name_linkage,
@@ -4952,7 +4953,8 @@ skip_overloading:;
     a_variable_ptr  dummy_vp;
     suppress_ext_sym_lookup = suppress_ext_sym_lookup ||
                               (microsoft_bugs &&
-                               idlb.name_linkage == nlk_external);
+                               idlb.name_linkage ==
+                                           (a_name_linkage_kind)nlk_external);
     *ext_sym = 
         create_external_symbol_for_linked_entity(locator, type_ptr,
                                                  idlb.name_linkage,
