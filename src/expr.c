@@ -6688,12 +6688,13 @@ standard.
       if (is_constant_operand(operand_1) && is_scalar_type(operand_1->type)) {
         operand_1_is_false = op_is_false_constant(operand_1);
         if (save_token == tok_and_and && operand_1_is_false) {
-          /* 0 && something -- this always evaluates to a zero value. */
+          /* 0 && something -- this always evaluates to a zero/false value. */
           local_result = 0;
           known_result = TRUE;
           expr2_evaluated = FALSE;
         } else if (save_token == tok_or_or && !operand_1_is_false) {
-          /* non-zero || something -- this always evaluates to a value of 1. */
+          /* non-zero || something -- this always evaluates to a value of
+             1/true. */
           local_result = 1;
           known_result = TRUE;
           expr2_evaluated = FALSE;
@@ -6746,15 +6747,17 @@ standard.
     (void)check_boolean_controlling_expr(operand_1);
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
     (void)check_boolean_controlling_expr(&operand_2);
+    result_type = boolean_result_type();
     if (!known_result) {
       /* Normal case: the result is not known. */
-      result_type = boolean_result_type();
       op = which_binary_operator(save_token, result_type);
       do_binary_operation(op, operand_1, &operand_2, result_type, result,
                           &operator_position);
     } else {
       /* The expression evaluates to a constant. */
       make_integer_constant_operand(result, local_result);
+      /* Cast if necessary (e.g., to bool). */
+      cast_operand(result_type, result, /*is_implicit_cast=*/TRUE);
       if (!is_constant_operand(&operand_2) ||
           operand_2.variant.constant.null_pointer_constant_ruled_out ||
           operand_1->variant.constant.null_pointer_constant_ruled_out) {
