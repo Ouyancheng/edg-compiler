@@ -44,11 +44,6 @@ extern void db_ss_list_for_scope(a_scope_ptr  sp);
 
 extern void fixup_function_scope_source_sequence_list(a_scope_ptr  sp);
 
-extern a_src_seq_secondary_decl_ptr make_source_sequence_secondary_decl(
-                                            char               *ptr,
-                                            an_il_entry_kind   kind,
-                                            a_type_ptr         declared_type);
-
 extern void add_source_sequence_entry_to_list(
                                        a_source_sequence_entry_ptr new_ssep);
 
@@ -83,6 +78,11 @@ extern void add_end_of_construct_source_sequence_entry(
 extern void reset_ss_list_instantiation_insert_point(void);
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
+extern a_src_seq_secondary_decl_ptr make_source_sequence_secondary_decl(
+                                            char               *ptr,
+                                            an_il_entry_kind   kind,
+                                            a_type_ptr         declared_type);
 
 extern a_scope_depth scope_depth_for_class_ss_list(a_type_ptr  class_type);
 

@@ -641,7 +641,7 @@ will go on a sublist if it was allocated in the file-scope memory region.
     if (scope_stack_ptr->il_scope != NULL) {
       db_scope(scope_stack_ptr->il_scope);
     } else {
-      db_scope_kind(scope_stack_ptr->kind);
+      (void)db_scope_kind(scope_stack_ptr->kind);
       fprintf(f_debug, " scope %d", (int)scope_stack_ptr->number);
     }  /* if */
     if (depth_scope_stack != depth_ss_list_scope) {
