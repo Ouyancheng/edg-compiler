@@ -423,7 +423,7 @@ Process the indicated scope.
     }  /* if */
   }  /* if */
   walk_list(ptr->nonstatic_variables, a_variable_ptr, iek_variable);
-#else
+#else /* ifndef CFE */
   walk_list(ptr->types, a_type_ptr, iek_type);
   walk_list(ptr->variables, a_variable_ptr, iek_variable);
 #endif /* ifdef CFE */
@@ -1264,6 +1264,8 @@ and the entry pointer is to an entry in the file scope, just return
                   "walk_entry_and_subtree: bad anonymous union kind");
 #endif /* CHECKING */
           } /* switch */
+          remap_ptr(ptr->virtual_function_info_base_class, a_base_class_ptr,
+                    iek_base_class);
           walk_list(ptr->access_adjustments, an_access_adjustment_ptr,
                     iek_access_adjustment);
           walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
