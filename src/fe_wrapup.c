@@ -13,23 +13,26 @@ fe_wrapup.c - End of front end processing.
 
 */
 
-#include "basics.h"
-#include "host_envir.h"
-#include "lexical.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Note that symbol_tbl.h will pull in lexical.h.  Just include the former,
+   to make the best use of precomiled header groupings. */
 #include "symbol_tbl.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
 #include "templates.h"
-#include "mem_manage.h"
-#include "error.h"
-#include "cmd_line.h"
 #include "macro.h"
 #include "class_decl.h"
 #include "exprutil.h"
 #include "statements.h"
-
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_write.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */

@@ -13,17 +13,20 @@ folding.c -- Folding routines.
 
 */
 
-#include "basics.h"
-#include "error.h"
-#include "lexical.h"
-#include "il.h"
-#include "target.h"
-#include "expr.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Include types.h before the hdrstop.  It will cause symbol_tbl.h and
+   lexical.h to be pulled in, too, so they don't need to be specified
+   explicitly. */
 #include "types.h"
-#include "float_pt.h"
-#include "const_ints.h"
-#include "cmd_line.h"
-#include "symbol_tbl.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+#include "expr.h"
 #include "folding.h"
 
 /*

@@ -13,21 +13,20 @@ error.c -- Error reporting routines.
 
 */
 
-#include "basics.h"
-#include "target.h"
-#include "error.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
 #include "err_data.h"
-#include "host_envir.h"
-#include "cmd_line.h"
-#include "mem_manage.h"
-#include "float_pt.h"
-#include "const_ints.h"
-#include "il.h"
-#include "types.h"
-#include "il_to_str.h"
 #if !STANDALONE_UTILITY_PROGRAM
 #include "symbol_tbl.h"
 #include "lexical.h"
+#include "types.h"
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_write.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */

@@ -33,8 +33,14 @@ called in the same program as the front end is produced (if needed).
 #endif /* !BACK_END_IS_CP_GEN_BE */
 #endif /* ifdef STANDALONE_CP_GEN_BE */
 
-#include "basics.h"
-#include "host_envir.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
 
 /* See if this code is needed at all. */
 #if BACK_END_IS_CP_GEN_BE
@@ -59,17 +65,8 @@ a "for"] would have to be rewritten.)
  #error -- The C++/C-generating back end requires RECORD_TEMPLATES_IN_IL.
 #endif /* !RECORD_TEMPLATES_IN_IL */
 
-#include "target.h"
 #include "cp_gen_be.h"
-#include "cmd_line.h"
-#include "debug.h"
-#include "error.h"
-#include "mem_manage.h"
-#include "il.h"
-#include "float_pt.h"
-#include "const_ints.h"
 #include "types.h"
-#include "il_to_str.h"
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_file.h"

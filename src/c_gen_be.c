@@ -31,21 +31,19 @@ instead of K&R C.
 #endif /* !BACK_END_IS_C_GEN_BE */
 #endif /* ifdef STANDALONE_C_GEN_BE */
 
-#include "basics.h"
-#include "host_envir.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
 
 /* See if this code is needed at all. */
 #if BACK_END_IS_C_GEN_BE
 
-#include "target.h"
 #include "c_gen_be.h"
-#include "cmd_line.h"
-#include "debug.h"
-#include "error.h"
-#include "mem_manage.h"
-#include "il.h"
-#include "float_pt.h"
-#include "const_ints.h"
 #include "types.h"
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
@@ -60,7 +58,6 @@ instead of K&R C.
 /* Include files needed only to define storage for global variables
    in the main program. */
 #include "lexical.h"
-#include "cmd_line.h"
 #include "il_walk.h"
 #include "expr.h"
 #endif /* STANDALONE_C_GEN_BE */

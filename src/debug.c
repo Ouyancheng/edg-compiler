@@ -13,8 +13,14 @@ debug.c -- Debug routines.
 
 */
 
+/* Header files common to all files. */
+#include "fe_common.h"
 
-#include "basics.h"
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
 
 /* The #if here is done after the inclusion of basics.h because basics.h
    may set DEBUG. */
@@ -26,10 +32,6 @@ debug.c -- Debug routines.
 #else /* !__ANSIC__ */
 extern int atoi(char *);
 #endif /* __ANSIC__ */
-
-#include "debug.h"
-#include "error.h"
-#include "mem_manage.h"
 
 /*
 The stop token checksum test is only done when CHECKING code is included
