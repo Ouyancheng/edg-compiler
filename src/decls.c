@@ -3912,11 +3912,21 @@ declaration.
 */
 {
   a_source_sequence_entry_ptr  rout_ssep;
+  a_type_ptr                   rout_type = rp->type;
   a_param_id_ptr               param_id;
   a_param_type_ptr             ptp;
 
-  if (!source_sequence_entries_disallowed &&
-      rp->source_corresp.source_sequence_entry != NULL) {
+  if (source_sequence_entries_disallowed) {
+    /* We are in a context in which source sequence entries are not being
+       created.  No further action is required. */
+  } else if (rp->source_corresp.source_sequence_entry == NULL) {
+    /* This is probably a compiler-generated function. */
+  } else if (rp->type->kind != (a_type_kind)tk_routine) {
+    /* This must be a declaration in terms of a function typedef.  No default
+       arguments can have been specified on this particular declaration. */
+  } else {
+    /* Scan the param-id entries looking for cases in which a default
+       argument appeared in the current function declaration. */
     rout_ssep = NULL;
     param_id = func_info->param_id_list;
     ptp = rp->type->variant.routine.extra_info->param_type_list;
@@ -3925,15 +3935,22 @@ declaration.
     for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
       if (param_id->has_default_arg) {
         check_assertion(ptp->has_default_arg);
+        /* A default argument was declared for this parameter. */
         if (rout_ssep == NULL) {
+          /* We have delayed finding the source-sequence entry for the routine
+             declaration until we we sure we'd need it. */
           if (func_info->is_definition) {
+            /* This must be the primary declaration of the function -- use the
+               source sequence entry pointed to the routine entry. */
             rout_ssep = rp->source_corresp.source_sequence_entry;
             check_assertion(rout_ssep ==
                              last_matching_source_sequence_entry((char *)rp));
           } else {
+            /* Check the source-sequence list for the current scope, searching
+               from the back. */
             rout_ssep = last_matching_source_sequence_entry((char *)rp);
+            check_assertion(rout_ssep != NULL);
           }  /* if */
-          if (rout_ssep == NULL) break;
         }  /* if */
         ptp->rout_src_seq_entry_for_default_arg_decl = rout_ssep;
       }  /* if */
