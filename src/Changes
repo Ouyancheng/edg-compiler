@@ -1,5 +1,12 @@
 Version 2.42
 
+3/17/99  Incorrect union variant used in too_many_unused_instantiations
+
+The incorrect variant of a union could be accessed by the routine
+too_many_unused_instantiations in certain cases.  This could cause the
+front end to fail to instantiate a template static data member.  This
+has been fixed.
+
 3/16/99  Microsoft compatibility: loss of __declspec attributes on class
          redeclaration
 

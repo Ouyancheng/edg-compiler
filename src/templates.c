@@ -12280,7 +12280,8 @@ defer_inline is TRUE.
     /* Leave the instantiation_required flag unchanged in this mode. */
   } else if (instantiation_mode == tim_all && !value) {
     /* An "unused" instantiation is being added to the list. */
-    if (too_many_unused_instantiations(tip->template_sym, tssp)) {
+    if (is_function_symbol(sym) &&
+        too_many_unused_instantiations(tip->template_sym, tssp)) {
       /* Don't add this entry to the list.  This prevents infinite
          instantiation loops. */
       add_to_list = FALSE;
