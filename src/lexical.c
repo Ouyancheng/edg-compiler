@@ -5219,17 +5219,16 @@ check_start_of_pp_directive:
 	     preprocessing directive. */
 	  if (!currently_in_pp_if_skip) {
 	    remember_token_start(); /* For the "#" pseudo-token. */
-#if CHECKING
 	    {
+#if CHECKING
 	      a_cached_token_ptr curr_cached_token = cached_token_rescan_list;
 #endif /* CHECKING */
 	      pp_directive();
-#if CHECKING
-	      if (curr_cached_token != cached_token_rescan_list) {
-		internal_error("get_token: token cache affected by preprocessing directive");
-	      }	/* if */
+	      check_assertion_str2(curr_cached_token ==
+				                    cached_token_rescan_list,
+				   "get_token: token cache",
+				   "affected by preprocessing directive");
 	    }
-#endif /* CHECKING */
 	    /* After the directive has been processed, go skip white space and
 	       scan another token. */
 	    skip_white_space();
