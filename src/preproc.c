@@ -80,6 +80,7 @@ identifier associated with the specified pragma kind.
     strncmp(pragma_ids[(int)(pragma_kind)], start_of_curr_token,	\
             size_t_arg(len_of_curr_token)) == 0)
 
+
 static a_pp_directive_kind identify_dir_keyword(void)
 /*
 Identify the keyword of the current preprocessing directive, and return the
@@ -1457,6 +1458,55 @@ is asked to act like cpp.
     }  /* if */
   }  /* if */
 }  /* cpp_driver */
+
+
+void preproc_one_time_init(void)
+/*
+Do one-time initialization of variables related to preprocessing.
+(Variables that need to be reinitialized with each new translation unit
+are handled in preproc_init.)
+*/
+{
+  /* Save variables from lexical.h and lexical.c that are needed for
+     precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(pp_dir_string_buffer),
+      pch_saved_var_array_elem(size_pp_dir_string_buffer),
+      pch_saved_var_array_elem(pp_if_stack),
+      pch_saved_var_array_elem(size_pp_if_stack),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+
+}  /* preproc_one_time_init */
+
+
+void preproc_init(void)
+/*
+Initialize things related to preprocessing.  (Predefined macros are
+established by init_predefined_macros.)
+*/
+{
+  /* Most of these variables control lexical functions, but they are defined
+     in preproc.h. */
+  fetch_pp_tokens = FALSE;
+  expand_macros = TRUE;
+  in_preprocessing_directive = FALSE;
+  processing_C_code_in_pragma = FALSE;
+  do_string_literal_concatenation = TRUE;
+  in_pp_if_expression = FALSE;
+  exp_header_name = FALSE;
+  exp_digit_sequence = FALSE;
+  do_not_put_curr_line_in_pp_output = TRUE;
+  pass_pp_directive_to_output = FALSE;
+  next_seq_in_pp_output = 1;
+  prev_pp_output_line_was_complete = TRUE;
+  currently_in_pp_if_skip = FALSE;
+  pp_if_stack_depth = -1;
+  base_pp_if_stack_depth = -1;
+}  /* preproc_init */
 
 
 /******************************************************************************

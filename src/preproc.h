@@ -208,6 +208,10 @@ extern void verify_that_all_pp_ifs_were_closed(void);
 /* Driver for mode where compiler just does preprocessing, like cpp. */
 extern void cpp_driver(void);
 
+extern void preproc_one_time_init(void);
+
+extern void preproc_init(void);
+
 #endif /* ifndef PREPROC_H */
 
 /******************************************************************************
