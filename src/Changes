@@ -1,5 +1,15 @@
 Version 3.2
 
+4/2/03   Abort on use of # inside macro argument in #if expression
+
+When ATT_PREPROCESSING_EXTENSIONS_ALLOWED is TRUE, a use of a "#"
+inside a macro argument in a #if expression resulted in an abort
+in scan_assert_predicate_reference in macro.c.  Now fixed.
+
+  #define f(x) x
+  #if f(#)  // Caused abort
+  #endif
+
 4/2/03   GNU C++ mode: lookup of injected class name vs. constructor
 
 g++ finds the injected class name in certain contexts where, according

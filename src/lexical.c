@@ -7882,7 +7882,7 @@ check_start_of_pp_directive:
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
 	/* An AT&T System V release 4 extension uses #name(tokens) in a
 	   preprocessing #if to test an #assert predicate name. */
-	if (in_pp_if_expression) {
+	if (in_pp_if_expression && delete_source_from_loc == NULL) {
 	  /* Scan the #name(tokens) and create a 1 (TRUE) or 0 (FALSE) constant
 	     value accordingly. */
           scan_assert_predicate_reference(&rescan);
