@@ -2299,7 +2299,10 @@ for handling virtual bases and functions.
       class_type->size = targ_sizeof_int;
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    class_type->size = 1;
+    /* Do not insert code here. */
+    {
+      class_type->size = 1;
+    }  /* if */
   }  /* if */
   /* If the class has virtual base classes, the size and alignment without
      virtual base classes will already have been recorded; otherwise, record

@@ -24,7 +24,6 @@ literals.c -- Literal constant conversion to and from internal form.
 
 /* Additional header files. */
 #include "literals.h"
-#include "preproc.h"
 
 
 /* Convert a character hex digit to the associated hex digit value. */
@@ -512,9 +511,9 @@ are not enabled, and thus stays zero on all calls).
       /* Determine the size of the multibyte character sequence that begins at
          the current character.  Since we're returning one character on this
          call, the remaining count is one less than the size. */
-      a_boolean error;
-      *remaining_mbc_char_count = mbc_length(lptr, &error) - 1;
-      if (error) {
+      a_boolean err;
+      *remaining_mbc_char_count = mbc_length(lptr, &err) - 1;
+      if (err) {
         /* Invalid multibyte character sequence. */
         conv_line_loc_to_source_pos(lptr, &error_position);
         warning(ec_bad_multibyte_char);
@@ -675,11 +674,11 @@ the size of wchar_t.
   } else {
     unsigned  long wc;
     int       numch;
-    a_boolean error;
+    a_boolean err;
 
     /* Convert a multibyte character sequence to a wide character. */
-    numch = mbc_to_wide_char(*temp_ptr, &wc, &error);
-    if (error) {
+    numch = mbc_to_wide_char(*temp_ptr, &wc, &err);
+    if (err) {
       /* Invalid multibyte character sequence. */
       conv_line_loc_to_source_pos(*temp_ptr, &error_position);
       warning(ec_bad_multibyte_char);
