@@ -919,6 +919,13 @@ error code.
     case ec_qualified_name_not_allowed:
       m = "qualified name is not allowed";
       break;
+    case ec_paren_initialization_not_allowed:
+      m =
+        "initialization with \"(...)\" is not allowed -- no constructor exists";
+      break;
+    case ec_brace_initialization_not_allowed:
+      m = "initialization with \"{...}\" is not allowed for this object";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
