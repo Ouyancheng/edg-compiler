@@ -262,12 +262,17 @@ typedef struct an_expr_or_stmt_traversal_block {
 extern void clear_expr_or_stmt_traversal_block(
                                    an_expr_or_stmt_traversal_block_ptr tblock);
 
+extern void traverse_constant(a_constant_ptr                      constant,
+                              an_expr_or_stmt_traversal_block_ptr tblock);
+
 extern void traverse_dynamic_init(a_dynamic_init_ptr                  dip,
                                   an_expr_or_stmt_traversal_block_ptr tblock);
 
-
 extern void traverse_expr(an_expr_node_ptr                    expr,
                           an_expr_or_stmt_traversal_block_ptr tblock);
+
+extern void traverse_statement(a_statement_ptr                     statement,
+                               an_expr_or_stmt_traversal_block_ptr tblock);
 
 #endif /* ifndef IL_WALK_H */
 

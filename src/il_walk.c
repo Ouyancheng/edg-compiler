@@ -2470,13 +2470,7 @@ default values.
 }  /* clear_expr_or_stmt_traversal_block */
 
 
-static void traverse_constant(a_constant_ptr                      constant,
-                              an_expr_or_stmt_traversal_block_ptr tblock);
-
 static void traverse_expr_list(an_expr_node_ptr                    expr_list,
-                               an_expr_or_stmt_traversal_block_ptr tblock);
-
-static void traverse_statement(a_statement_ptr                     statement,
                                an_expr_or_stmt_traversal_block_ptr tblock);
 
 
@@ -2497,11 +2491,12 @@ specified in the control block.
 }  /* traverse_constant_list */
 
 
-static void traverse_constant(a_constant_ptr                      constant,
-                              an_expr_or_stmt_traversal_block_ptr tblock)
+void traverse_constant(a_constant_ptr                      constant,
+                       an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 Walk the tree of the given constant.  Call user-provided routines as
-specified in the control block.
+specified in the control block.  A constant can have a "tree" when
+it's the initializer for an aggregate.
 */
 {
   if (tblock->process_constant != NULL) {
@@ -2713,8 +2708,8 @@ as specified in the control block.
 }  /* traverse_statement_list */
 
 
-static void traverse_statement(a_statement_ptr                     statement,
-                               an_expr_or_stmt_traversal_block_ptr tblock)
+void traverse_statement(a_statement_ptr                     statement,
+                        an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 Walk the tree of the given statement.  Call user-provided routines
 as specified in the control block.
@@ -2760,7 +2755,7 @@ as specified in the control block.
     case stmk_return:
       if (statement->variant.return_dynamic_init != NULL) {
         traverse_dynamic_init(statement->variant.return_dynamic_init, tblock);
-      } else {
+      } else if (statement->expr != NULL) {
         traverse_expr(statement->expr, tblock);
       }  /* if */
       break;
