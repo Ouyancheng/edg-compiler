@@ -415,6 +415,11 @@ unit, in case multiple source files are allowed.
   statements_one_time_init();
   symbol_tbl_one_time_init();
   templates_one_time_init();
+#if DO_IL_LOWERING
+  if (!suppress_il_lowering) {
+    il_lower_one_time_init();
+  }  /* if */
+#endif /* DO_IL_LOWERING */
 }  /* fe_one_time_init */
 
 

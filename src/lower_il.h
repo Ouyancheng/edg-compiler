@@ -663,6 +663,8 @@ extern void lower_il_memory_region(a_memory_region_number region_number);
 extern unsigned long show_lowering_space_used(void);
 #endif /* DEBUG */
 
+extern void il_lower_one_time_init(void);
+
 extern void il_lower_init(void);
 
 #else /* !DO_IL_LOWERING */

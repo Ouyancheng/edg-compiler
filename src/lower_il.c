@@ -37,6 +37,7 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 #include "class_decl.h"
 #include "layout.h"
 #include "mem_manage.h"
+#include "pch.h"
 
 
 /*
@@ -7836,6 +7837,41 @@ Display and return the amount of space used for various IL lowering tables.
   return grand_total;
 }  /* show_lowering_space_used */
 #endif /* DEBUG */
+
+
+void il_lower_one_time_init(void)
+/*
+Do one-time initialization of variables related to IL lowering.
+(Variables that need to be reinitialized with each new translation unit
+are handled in il_lower_init.)
+*/
+{
+  /* Save variables from lower_il.h and lower_il.c that are needed for
+     precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(avail_init_pos_modifiers),
+      pch_saved_var_array_elem(avail_cleanup_actions),
+      pch_saved_var_array_elem(avail_return_memos),
+      pch_saved_var_array_elem(pure_virtual_called_routine),
+      pch_saved_var_array_elem(vptp_type),
+      pch_saved_var_array_elem(mptr_type),
+      pch_saved_var_array_elem(mptr_d_field),
+      pch_saved_var_array_elem(mptr_i_field),
+      pch_saved_var_array_elem(mptr_f_field),
+#if DEBUG
+      pch_saved_var_array_elem(num_init_pos_modifiers_allocated),
+      pch_saved_var_array_elem(allocated_name_string_length),
+      pch_saved_var_array_elem(num_cleanup_actions_allocated),
+      pch_saved_var_array_elem(num_return_memos_allocated),
+#endif /* DEBUG */
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+  init_lower_one_time_init();
+  eh_lower_one_time_init();
+}  /* il_lower_one_time_init */
 
 
 void il_lower_init(void)
