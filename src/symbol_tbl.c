@@ -2398,8 +2398,7 @@ and return a pointer to it.
       tssp->variant.class_template.out_of_class_partial_specs = NULL;
       tssp->variant.class_template.friend_info = NULL;
       tssp->variant.class_template.prototype_instantiation_complete = FALSE;
-      tssp->variant.class_template.access =
-                                         (an_access_specifier)as_inaccessible;
+      tssp->variant.class_template.access = (an_access_specifier)as_public;
       tssp->variant.class_template.name_linkage =
                                             (a_name_linkage_kind)nlk_none;
       tssp->variant.class_template.not_standalone_nested_class = FALSE;
