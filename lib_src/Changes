@@ -1,5 +1,9 @@
 Version 2.32
 
+4/26/96  Include of malloc.h removed from throw.c
+
+throw.c now includes stdlib.h instead of malloc.h.
+
 2/21/96  __memzero routine added for initialization of member arrays
 
 A new file, memzero.c, has been added to supply a routine called

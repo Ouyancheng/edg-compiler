@@ -13,7 +13,7 @@ Throw processing for exception handling.
 
 */
 
-#include <malloc.h>
+#include <stdlib.h>
 #include "basics.h"
 #include "config.h"
 #include "runtime.h"
