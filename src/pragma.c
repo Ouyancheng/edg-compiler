@@ -722,7 +722,7 @@ there is additional processing to be done.
       /* Set the has_associated_pragma field. */
       scp->has_associated_pragma = TRUE;
     }  /* if */
-    /* If we know the scope depth use, that depth.  For class and namespace
+    /* If we know the scope depth, use that depth.  For class and namespace
        members (in which case scope_depth is NO_SCOPE_DEPTH) use the
        file scope for purposes of switching to the proper memory region. */
     scope_depth_to_switch_to = scope_depth != NO_SCOPE_DEPTH ?
