@@ -2987,6 +2987,11 @@ the orphan lists for function-local entities are also processed.
   /* Visit all namespaces. */
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
     if (!nsp->is_namespace_alias) {
+      /* Make sure that an unnamed namespace in a secondary translation unit
+         is given a mangled name in that translation unit, so it has the
+         right module id.  If the namespace contains only types, the name
+         wouldn't otherwise be mangled at this time. */
+      give_unnamed_namespace_a_name(nsp);
       do_scope_other_name_mangling(nsp->variant.assoc_scope);
     }  /* if */
   }  /* for */
