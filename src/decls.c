@@ -4192,11 +4192,16 @@ to TRUE if we are in Microsoft mode and in a for-init block.
       decl_scope_level = saved_decl_scope_level;
       if (prev_decl != NULL &&
           prev_decl->decl_scope == scope_stack[decl_level].number) {
-        pos_start_diagnostic(es_warning, ec_for_init_hides_declaration,
-                             &loc->source_position);
-        add_diag_info_with_pos_insert(ec_for_init_hidden_declaration,
-                                      &prev_decl->decl_position);
-        end_error();
+        if (!(prev_decl->kind == (a_symbol_kind)sk_variable &&
+              prev_decl->variant.variable.declared_in_for_init)) {
+          /* Do not issue a warning if the hidden variable is a for-init
+             declaration since that is common and unsurprising practice. */
+          pos_start_diagnostic(es_warning, ec_for_init_hides_declaration,
+                               &loc->source_position);
+          add_diag_info_with_pos_insert(ec_for_init_hidden_declaration,
+                                        &prev_decl->decl_position);
+          end_error();
+        }  /* if */
         hiding = TRUE;
       }  /*if */
     }  /*if */
