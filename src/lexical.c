@@ -275,15 +275,15 @@ in laps.
     if (arg_pragma != laps->arg_pragma) {
       fprintf(f_debug, "Setting arg_pragma = %d\n", (int)laps->arg_pragma);
     }  /* if */
-  if (lint_varargs_count != laps->lint_varargs_count) {
+    if (lint_varargs_count != laps->lint_varargs_count) {
       fprintf(f_debug, "Setting lint_varargs_count = %d\n",
                                                 (int)laps->lint_varargs_count);
     }  /* if */
-  if (lint_argsused_flag != (a_boolean)laps->lint_argsused_flag) {
+    if (lint_argsused_flag != (a_boolean)laps->lint_argsused_flag) {
       fprintf(f_debug, "Setting lint_argsused_flag = %s\n",
                        laps->lint_argsused_flag ? "TRUE" : "FALSE");
     }  /* if */
-  if (lint_notreached_flag != (a_boolean)laps->lint_notreached_flag) {
+    if (lint_notreached_flag != (a_boolean)laps->lint_notreached_flag) {
       fprintf(f_debug, "Setting lint_notreached_flag = %s\n",
                        laps->lint_notreached_flag ? "TRUE" : "FALSE");
     }  /* if */
@@ -306,6 +306,32 @@ Clear the lint and pragma state in a token cache.
   laps->lint_argsused_flag   = FALSE;
   laps->lint_notreached_flag = FALSE;
 }  /* clear_lint_and_pragma_state */
+
+
+void clear_decl_lint_and_pragma_globals(void)
+/*
+Clear the global flags representing the lint and pragma state with declaration
+lifetimes.
+*/
+{
+#if DEBUG
+  if (debug_level >= 3) {
+    if (arg_pragma != (an_arg_pragma_kind)apk_none) {
+      fprintf(f_debug, "Setting arg_pragma = apk_none\n");
+    }  /* if */
+    if (lint_varargs_count != NOT_LINT_VARARGS) {
+      fprintf(f_debug, "Setting lint_varargs_count = %d\n",
+                       (int)NOT_LINT_VARARGS);
+    }  /* if */
+    if (lint_argsused_flag) {
+      fprintf(f_debug, "Setting lint_argsused_flag = FALSE\n");
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+  arg_pragma           = (an_arg_pragma_kind)apk_none;
+  lint_varargs_count   = NOT_LINT_VARARGS;
+  lint_argsused_flag   = FALSE;
+}  /* clear_decl_lint_and_pragma_globals */
 
 
 static void unimplemented_keyword_diagnostic(a_symbol_ptr  sym)
