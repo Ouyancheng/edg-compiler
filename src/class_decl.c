@@ -2884,13 +2884,13 @@ restrictive.  Issue an appropriate diagnostic at the given position.
 */
 {
   if (overrider->variant.routine.ptr->compiler_generated) {
-    /* Issue a warning on a compiler-generated constructor
-       or assignment operator. */
+    /* Issue a warning on a compiler-generated constructor, destructor, or
+       assignment operator. */
     pos_sy2_warning(ec_generated_exception_spec_override_incompat,
                     source_pos, overrider, overridden);
   } else {
-    /* Microsoft compilers don't diagnose this (and in fact, they
-       don't do much with exception specifications at all). */
+    /* Microsoft compilers don't diagnose this (and in fact, they don't do
+       much with exception specifications at all). */
     pos_sy2_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
                        ec_exception_spec_override_incompat,
                        source_pos, overrider, overridden);
@@ -2954,15 +2954,7 @@ routine entry and return TRUE; otherwise return FALSE.
           if (exception_spec_is_less_restrictive(rout->type, rp->type)) {
             /* The exception specification for the overriding virtual function
                is less restrictive that that of the overridden function. */
-            if (rout->compiler_generated) {
-              /* Issue a warning on a compiler-generated destructor. */
-              pos_sy2_warning(ec_generated_exception_spec_override_incompat,
-                              source_pos, rout_sym, sym);
-            } else {
-              pos_sy2_diagnostic(es_discretionary_error,
-                                 ec_exception_spec_override_incompat,
-                                 source_pos, rout_sym, sym);
-            }  /* if */
+            report_override_exception_spec_mismatch(rout_sym, sym, source_pos);
           }  /* if */
           record_virtual_function_override(bcp, rp, rout,
                                            (a_base_class_ptr)NULL);
