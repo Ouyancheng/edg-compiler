@@ -6522,6 +6522,12 @@ which instantiations are required.
           }  /* if */
 #endif /* DEBUG */
           instantiate_template_function(fiep);
+          if (do_all) {
+            /* Set the referenced flag.  Otherwise the back-end might decide
+  	       not to generate the function because it wasn't called. */ 
+            fiep->routine_sym->variant.routine.ptr->
+					source_corresp.referenced = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       fiep = fiep->next_instantiation_required;
