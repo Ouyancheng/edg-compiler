@@ -2256,6 +2256,7 @@ A reference is not the definition unless the type is unnamed.
        e.g., because there's something else called "X" in the same scope. */
     if (il_header.source_language == sl_Cplusplus &&
         type->declaration_put_out &&
+        !type->definition_delayed &&
         !type->elaborated_type_specifier_needed) {
       /* Use just the type name. */
       gen_type_name(type);
