@@ -4747,6 +4747,77 @@ check_rout_type:
 }  /* projections_are_equivalent */
 
 
+static a_boolean check_for_dominance(a_symbol_ptr          sym1,
+                                     a_symbol_ptr          sym2,
+                                     a_derivation_step_ptr path_to_sym2,
+                                     a_type_ptr            class_type)
+/*
+This routine returns TRUE if sym2 is on a path dominated by sym1.
+
+Dominance is discussed (rather imprecisely) in ARM 10.1.1.  Briefly, if the
+declaration of a name in a virtual base class is hidden/overridden by a
+redeclaration along one of the paths from the virtual base class, an ambiguity
+between the initial declaration and the redeclaration is resolved in favor of
+the latter.  Consider, for example,
+    class A {public: int i; };
+    class B : virtual public A {public: int i; };
+    class C : virtual public A {};
+    class D : public B, public C {};
+which graphically looks like this:
+          A{i}
+         /   \
+        B{i}  C
+         \   /
+           D
+Within the scope of D, where one derivation path for i leads to B::i and the
+other leads to A::i, there is in fact no ambiguity, since the declaration of
+i in B dominates all other paths from A.  Thus an unqualified reference to i
+within the scope of D unambiguously refers to B::i (though of course a
+qualified reference either to A::i or to C::i will pick up A::i).
+*/
+{
+  a_boolean              dominated = FALSE;
+  a_derivation_step_ptr  step;
+  a_base_class_ptr       bcp, next_bcp, dominated_bcp = NULL;
+
+  /* If sym1, the candidate dominating symbol, is a projection symbol, find
+     its fundamental symbol. */
+  reduce_projection_symbol_to_fundamental_symbol(sym1);
+  /* Loop through the base classes of the class of which sym1 is a member. */
+  for (bcp = base_classes_of(sym1->class_of_which_a_member);
+       bcp != NULL;
+       bcp = next_bcp) {
+    next_bcp = bcp->next;
+    /* We are interested only in virtual base classes. */
+    if (bcp->is_virtual) {
+      /* Translate the virtual base class into a base class of the common
+         derived type. */
+      bcp = corresponding_base_class(bcp, class_type, (a_base_class_ptr)NULL);
+      if (dominated_bcp == NULL) {
+        /* dominated_bcp is a base class of the candidate dominated declaration
+           or a base class on its derivation. */
+        for (step = path_to_sym2; step->next != NULL; step = step->next);
+        dominated_bcp = corresponding_base_class(step->base_class, class_type,
+                                                 (a_base_class_ptr)NULL);
+        if (sym2->kind == (a_symbol_kind)sk_projection) {
+          a_base_class_ptr  temp_bcp = sym2->variant.projection.extra_info->
+                                                       fundamental_base_class;
+          dominated_bcp = corresponding_base_class(temp_bcp, class_type,
+                                                   dominated_bcp);
+        }  /* if */
+      }  /* if */
+      if (dominated_bcp == bcp ||
+          is_on_any_derivation_of(bcp, dominated_bcp)) {
+        dominated = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+done:
+  return dominated;
+}  /* check_for_dominance */       
+
+
 static a_symbol_ptr find_progenitor_symbol(a_type_ptr            class_ptr,
                                            a_symbol_locator      *locator,
                                            a_boolean             must_be_tag,
@@ -4809,10 +4880,10 @@ through back to the caller.
           } else {
             /* This is an ambiguous reference, unless one of the instances of
                the name dominates the path to the other. */
-            if (check_for_dominance(sym, other_sym, other_path)) {
+            if (check_for_dominance(sym, other_sym, other_path, class_ptr)) {
               /* sym dominates other_sym, resolving a potential ambiguity. */
               free_derivation_step(other_path);
-            } else if (check_for_dominance(other_sym, sym, *path)) {
+            } else if (check_for_dominance(other_sym, sym, *path, class_ptr)) {
               /* other_sym dominates sym. */
               sym = other_sym;
               free_derivation_step(*path);
