@@ -210,8 +210,11 @@ typedef struct a_user_conv_descr {
 			   class_bitwise_copy is TRUE. */
   a_byte_boolean
 		class_bitwise_copy;
-			/* If TRUE, the conversion is a bitwise copy (either
-			   a copy constructor or an assignment operator). */
+			/* If TRUE, the "conversion" is a bitwise copy
+			   (substituting for either a copy constructor or
+			   an assignment operator).  Note that the source
+			   type may be a derived class of the destination
+			   type. */
   a_byte_boolean
 		std_conversion_needed;
 			/* If TRUE, a standard conversion is required after
