@@ -1,5 +1,14 @@
 Version 2.44
 
+5/15/00  #include_next preprocessing directive
+
+The #include_next preprocessing directive of gcc is now supported.
+It has the same form as the #include directive, but begins searching
+for the indicated file in directories on the search path following
+the directory of the current file.  This is useful in header files
+that replace another header file -- they can include the file they
+override via #include_next and then adjust the defined values.
+
 5/15/00  Internal error when declaring a nonstandard member constant in an
          expression context
 

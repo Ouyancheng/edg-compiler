@@ -720,6 +720,12 @@ typedef struct an_input_stack_entry {
 			   Can be the same as file_name. */
   char		*dir_name;
 			/* The directory name of full_name.  Can be "". */
+  a_directory_name_entry_ptr
+		dir_entry;
+			/* The directory name entry on the search path that
+			   was used to find this file, or NULL if the
+			   search path was not used (e.g., for an absolute
+			   path name). */
   a_line_number	line_number;
 			/* Physical line number of the line most recently
 			   read from this file.  May have been modified by
@@ -1691,14 +1697,17 @@ extern void open_file_and_push_input_stack(char      *file_name,
                                            a_boolean use_search_path,
                                            a_boolean is_include_file,
                                            a_boolean is_system_include,
-                                           a_boolean is_preinclude);
-extern FILE *open_file_for_input(char     *file_name,
-                                 a_boolean use_search_path,
-                                 a_boolean is_system_include,
-                                 a_boolean replace_suffix,
-                                 char      **full_file_name,
-                                 char      **display_name,
-				 a_boolean *from_system_include_dir);
+                                           a_boolean is_preinclude,
+                                           a_boolean is_include_next);
+extern FILE *open_file_for_input(
+                           char                       *file_name,
+                           a_boolean                  use_search_path,
+                           a_boolean                  is_system_include,
+                           a_boolean                  is_include_next,
+                           a_boolean                  replace_suffix,
+                           char                       **full_file_name,
+                           char                       **display_name,
+                           a_directory_name_entry_ptr *dir_entry);
 extern void push_input_stack(
 			FILE			    *new_input_file,
                         char			    *name_as_written,
@@ -1707,7 +1716,7 @@ extern void push_input_stack(
 			a_boolean                   is_include_file,
 			a_boolean                   is_system_include,
                         a_boolean                   is_preinclude,
-			a_boolean		    from_system_include_dir,
+                        a_directory_name_entry_ptr  dir_entry,
 			an_include_file_history_ptr ifhp);
 
 extern void pop_input_stack(void);

@@ -13132,7 +13132,8 @@ file we simply return.
   char			*full_file_name, *display_name;
   FILE			*f_source;
   a_boolean		is_system_include;
-  a_boolean		from_system_include_dir;
+  a_directory_name_entry_ptr
+                        dir_entry;
 #if DEBUG
   a_boolean		print_debug_info = FALSE;
 #endif /* DEBUG */
@@ -13154,7 +13155,7 @@ file we simply return.
       sfp->name_as_written != NULL) {
     /* A source file was found and it does not refer to the primary source
        file.  sfp->name_as_written will be NULL if the file name came from
-       a #line directive.  In which case the implicit inclusion will not
+       a #line directive, in which case the implicit inclusion will not
        be attempted. */
     if (!sfp->related_file_implicit_include_done) {
       /* If we haven't already included the corresponding source file then
@@ -13172,9 +13173,10 @@ file we simply return.
       f_source = open_file_for_input(sfp->name_as_written, 
                                      /*use_search_path=*/TRUE,
                                      is_system_include,
+                                     /*is_include_next=*/FALSE,
 				     /*replace_suffix=*/TRUE,
 				     &full_file_name, &display_name,
-				     &from_system_include_dir);
+				     &dir_entry);
       if (f_source != NULL) {
         an_include_file_history_ptr	ifhp;
         /* A related source file was found.  Make sure that the name of the
@@ -13203,7 +13205,7 @@ file we simply return.
             push_input_stack(f_source, (char *)NULL, display_name,
                              full_file_name, /*is_include_file=*/FALSE,
                              is_system_include, /*is_preinclude=*/FALSE,
-                             from_system_include_dir, ifhp);
+                             dir_entry, ifhp);
             scan_implicitly_included_template_definition_file();
             if (in_instantiation_wrapup ) {
               /* Set a flag if this implicit inclusion was done during

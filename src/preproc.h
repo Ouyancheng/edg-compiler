@@ -46,6 +46,7 @@ typedef enum /*a_pp_directive_kind*/ {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ppd_import,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  ppd_include_next,
   ppd_not_valid
 } a_pp_directive_kind;
 
@@ -84,6 +85,7 @@ EXTERN char	*pp_directive_kind_names[(int)ppd_not_valid+1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
     "import",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    "include_next",
     "not_valid"
   }
 #endif /* VAR_INITIALIZERS */

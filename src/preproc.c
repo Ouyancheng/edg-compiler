@@ -185,6 +185,9 @@ the "#" the current token (at least logically).
       /* #import directive (a Microsoft extension). */
       kind = ppd_import;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (curr_id_is("include_next")) {
+      /* #include_next directive. */
+      kind = ppd_include_next;
     } else {
       kind = ppd_not_valid;
     }  /* if */
@@ -864,9 +867,12 @@ e.g., in generated C code.
 }  /* proc_stdarg_include */
 
 
-static void proc_include(void)
+static void proc_include(a_boolean is_include_next)
 /*
-Scan and process a #include directive.
+Scan and process a #include directive.  If is_include_next is TRUE, the
+directive is a #include_next (a gcc extension that begins the search for
+the file in the directory on the search path that follows the directory
+in which the current file was found).
 */
 {
   char      *name_start_pos;
@@ -923,7 +929,8 @@ Scan and process a #include directive.
                                      /*use_search_path=*/TRUE,
                                      /*is_include_file=*/TRUE,
                                      is_system_include,
-                                     /*is_preinclude=*/FALSE);
+                                     /*is_preinclude=*/FALSE,
+                                     is_include_next);
     }  /* if */
   }  /* if */
 }  /* proc_include */
@@ -980,7 +987,8 @@ simply include that.
                                    /*use_search_path=*/FALSE,
                                    /*is_include_file=*/TRUE,
                                    /*is_system_include=*/FALSE,
-                                   /*is_preinclude=*/FALSE);
+                                   /*is_preinclude=*/FALSE,
+                                   /*is_include_next=*/FALSE);
   }  /* if */
 }  /* proc_import */
 
@@ -1708,7 +1716,7 @@ execute the preprocessor directive.
      generate_precompiled_header. */
   local_is_header_stop_dir = is_header_stop_position(start_of_dir_position);
   if (is_header_stop_dir || local_is_header_stop_dir) {
-    if (dir_kind == ppd_include
+    if (dir_kind == ppd_include || dir_kind == ppd_include_next
 #if MICROSOFT_EXTENSIONS_ALLOWED
         || dir_kind == ppd_import
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1749,7 +1757,7 @@ execute the preprocessor directive.
         proc_endif();
         break;
       case ppd_include:
-        proc_include();
+        proc_include(/*is_include_next=*/FALSE);
         break;
       case ppd_define:
         proc_define();
@@ -1793,6 +1801,10 @@ execute the preprocessor directive.
         proc_import();
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case ppd_include_next:
+        nonstandard_pp_directive();
+        proc_include(/*is_include_next=*/TRUE);
+        break;
       case ppd_null:
         /* Null directive -- ignore. */
         break;
@@ -1817,6 +1829,7 @@ execute the preprocessor directive.
       case ppd_else:
       case ppd_endif:
       case ppd_include:
+      case ppd_include_next:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case ppd_import:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1850,7 +1863,7 @@ execute the preprocessor directive.
   /* Restore the error position as at entry. */
   copy_source_position(save_error_position, error_position);
   if (is_header_stop_dir || local_is_header_stop_dir) {
-    if (dir_kind != ppd_include
+    if (dir_kind != ppd_include && dir_kind != ppd_include_next
 #if MICROSOFT_EXTENSIONS_ALLOWED
         && dir_kind != ppd_import
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

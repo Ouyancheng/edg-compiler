@@ -2922,7 +2922,8 @@ void open_file_and_push_input_stack(char      *file_name,
                                     a_boolean use_search_path,
 				    a_boolean is_include_file,
                                     a_boolean is_system_include,
-                                    a_boolean is_preinclude)
+                                    a_boolean is_preinclude,
+                                    a_boolean is_include_next)
 /*
 Push the indicated file onto the input stack, so that the next time a line
 is read, it will come from that file.  If the file cannot be opened,
@@ -2934,20 +2935,21 @@ is_include_file is TRUE if the file is being read as the result of a
 FALSE for implicitly included files.  is_system_include is TRUE for
 files included with the #include <file.h> notation and FALSE for
 all other files.  is_preinclude is TRUE for files included via the
---preinclude command-line option.
+--preinclude command-line option.  is_include_next is TRUE if the
+file is being pushed for an #include_next directive.
 */
 {
   char				*full_file_name;
   char				*display_name;
   FILE 				*input_file;
   an_include_file_history_ptr	ifhp;
-  a_boolean			from_system_include_dir;
+  a_directory_name_entry_ptr    dir_entry;
 
   db_enter(2, "open_file_and_push_input_stack");
   input_file = open_file_for_input(file_name, use_search_path,
-                                   is_system_include,
+                                   is_system_include, is_include_next,
                                    /*replace_suffix=*/FALSE, &full_file_name,
-                                   &display_name, &from_system_include_dir);
+                                   &display_name, &dir_entry);
   check_assertion(input_file != NULL);
   if (suppress_subsequent_include_of_file(full_file_name, &ifhp)) {
     /* This file contains include guard code.  An inclusion here would
@@ -2967,7 +2969,7 @@ all other files.  is_preinclude is TRUE for files included via the
   }  /* if */
   push_input_stack(input_file, file_name, display_name, full_file_name,
                    is_include_file, is_system_include, is_preinclude,
-                   from_system_include_dir, ifhp);
+                   dir_entry, ifhp);
 done:
   db_exit();
 }  /* open_file_and_push_input_stack */
@@ -3010,7 +3012,7 @@ static FILE *search_for_input_file(
 			a_file_suffix_ptr		suffix_list,
 			a_boolean			replace_suffix,
 			char				**name_found,
-			a_boolean			*system_include_dir)
+			a_directory_name_entry_ptr	*dir_entry)
 /*
 Look for file_name in the list of directories specified by search path.
 
@@ -3021,8 +3023,9 @@ replace_suffix is FALSE a suffix_list may still be specified, in which
 case the suffix list is only used if file_name has no suffix.  This
 is used to supply a default suffix for headers specified without a
 suffix.  The path name of the file found is returned in name_found.
-If the directory in which the file was found is a system include
-directory system_include_dir is set to TRUE.
+*dir_entry is set to point to the directory name entry on the search
+path in which the file was found, or NULL if the search path was not
+used.
 */
 {
   char				*suffix_loc;
@@ -3037,6 +3040,7 @@ directory system_include_dir is set to TRUE.
   char				buffer[FILE_NAME_BUFFER_SIZE];
   char				*prev_dir_name = NULL;
 
+  *dir_entry = NULL;
   /* Determine whether we need to do the suffix replacement processing.
      This is done when replace_suffix is TRUE or when when file name
      supplied has no suffix. */
@@ -3053,7 +3057,7 @@ directory system_include_dir is set to TRUE.
   } else {
     /* Loop through the directory name entries.  The "done" flag will be
        set if the loop should not be repeated (i.e., an absolute path name
-       was specified. */
+       was specified). */
     for (curr_directory_name_entry = search_path;
          !done && curr_directory_name_entry != NULL;
          curr_directory_name_entry = curr_directory_name_entry->next) {
@@ -3109,8 +3113,8 @@ directory system_include_dir is set to TRUE.
       }  /* if */
       if (new_input_file != NULL) {
         done = TRUE;
-        *system_include_dir = curr_directory_name_entry->system_include_dir;
-         break;
+        *dir_entry = curr_directory_name_entry;
+        break;
       }  /* if */
     }  /* for */
   }  /* if */
@@ -3133,13 +3137,14 @@ directory system_include_dir is set to TRUE.
 /*ARGSUSED*/ /* <-- replace_suffix is used only if instantiation may use
                     implicit inclusion. */
 #endif /* !INSTANTIATION_BY_IMPLICIT_INCLUSION */
-FILE *open_file_for_input(char      *file_name,
-                          a_boolean use_search_path,
-                          a_boolean is_system_include,
-                          a_boolean replace_suffix,
-                          char      **full_file_name,
-                          char      **display_name,
-			  a_boolean *from_system_include_dir)
+FILE *open_file_for_input(char                       *file_name,
+                          a_boolean                  use_search_path,
+                          a_boolean                  is_system_include,
+                          a_boolean                  is_include_next,
+                          a_boolean                  replace_suffix,
+                          char                       **full_file_name,
+                          char                       **display_name,
+                          a_directory_name_entry_ptr *dir_entry)
 /*
 Try to open file_name, and return a pointer to the file if the open is
 successful.  file_name must be allocated in IL storage.  use_search_path is
@@ -3147,29 +3152,38 @@ TRUE if the search path of include directories should be used when trying
 the open.  is_system_include is TRUE if the included file name was
 specified in <...>.  If the open is successful, the full name of the file
 that is opened is returned in *full_file_name, the name intended for use in
-diagnostics and other output is returned in *display_name, and
-from_system_include_dir is TRUE if the file was found in an include
-directory that is marked as a "system" include directory.  replace_suffix
-is TRUE when this routine is used to search for an implicitly included
-template definition file.  When replace_suffix is used, each suffix in the
-implicit_instantiation_file_suffix_list is used to search for a template
-definition file.  When replace_suffix is FALSE, the open must be successful
-and a catastrophic error will be issued if it is not; otherwise, a NULL
-file pointer will be returned.
+diagnostics and other output is returned in *display_name.  *dir_entry
+is set to point to the entry on the search path in which the file was
+found, or NULL if the search path was not used.  is_include_next is
+TRUE if the file is being opened for an #include_next directive.
+replace_suffix is TRUE when this routine is used to search for an
+implicitly included template definition file.  When replace_suffix is
+used, each suffix in the implicit_instantiation_file_suffix_list is
+used to search for a template definition file.  When replace_suffix is
+FALSE, the open must be successful and a catastrophic error will be
+issued if it is not; otherwise, a NULL file pointer will be returned.
 */
 {
   char                        *temp_file_name;
   FILE                        *new_input_file;
-  a_boolean		      system_include_dir = FALSE;
   a_directory_name_entry_ptr  search_path;
 
   db_enter(2, "open_file_for_input");
+  *dir_entry = NULL;
   search_path = NULL;
   if (use_search_path) {
     /* Determine the list of directories to be searched when opening
        the file. */
-    search_path = is_system_include ? sys_incl_search_path :
-                                      incl_search_path;
+    if (is_include_next) {
+      /* For #include_next, start at the search path entry after the one
+         in which the current file was found. */
+      search_path = curr_ise->dir_entry;
+      if (search_path != NULL) search_path = search_path->next;
+    } else if (is_system_include) {
+      search_path = sys_incl_search_path;
+    } else {
+      search_path = incl_search_path;
+    } /* if */
   }  /* if */
   new_input_file = NULL;
   *full_file_name = NULL;
@@ -3185,14 +3199,14 @@ file pointer will be returned.
                                        file_name, use_search_path, search_path,
                                        implicit_instantiation_file_suffix_list,
                                        replace_suffix, &temp_file_name,
-                                       &system_include_dir);
+                                       dir_entry);
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   } else {
     new_input_file = search_for_input_file(
                                        file_name, use_search_path, search_path,
                                        include_file_suffix_list,
                                        /*replace_suffix=*/FALSE,
-                                       &temp_file_name, &system_include_dir);
+                                       &temp_file_name, dir_entry);
     if (new_input_file == NULL) {
       /* The file could not be opened. */
       str_catastrophe(ec_source_file_could_not_be_opened, file_name);
@@ -3207,7 +3221,6 @@ file pointer will be returned.
     /* Note that *display_name gets the same name as full name.  This is
        a matter of taste. */
     *display_name = temp_file_name;
-    *from_system_include_dir = system_include_dir;
   }  /* if */
   db_exit();
   return new_input_file;
@@ -3242,18 +3255,18 @@ void push_input_stack(
 		a_boolean			is_include_file,
 		a_boolean		 	is_system_include,
                 a_boolean                       is_preinclude,
-		a_boolean			from_system_include_dir,
+                a_directory_name_entry_ptr      dir_entry,
 		an_include_file_history_ptr	ifhp)
 /*
 Push the indicated file onto the input stack.  name_as_written,
 display_name, and full_file_name are various forms of the file name.
 is_include_file is TRUE if the file is being read as the result of a
-#include directive or a --preinclude command-line-option.  It is
-FALSE for implicitly included files.  is_system_include is TRUE for
-files included with the #include <file.h> notation and FALSE for
-all other files.  is_preinclude is TRUE for files included via the
---preinclude command-line option.  from_system_include_dir is TRUE for
-files included from directories marked as system include directories.
+#include directive or a --preinclude command-line-option.  It is FALSE
+for implicitly included files.  is_system_include is TRUE for files
+included with the #include <file.h> notation and FALSE for all other
+files.  is_preinclude is TRUE for files included via the --preinclude
+command-line option.  dir_entry points to the entry on the search path
+that was used to find this file.
 */
 {
   int                times_name_appears;
@@ -3317,6 +3330,7 @@ files included from directories marked as system include directories.
   curr_ise->full_name = full_file_name;
   curr_ise->file_name = display_name;
   curr_ise->dir_name = directory_of(full_file_name);
+  curr_ise->dir_entry = dir_entry;
   curr_ise->is_include_file = is_include_file;
   curr_ise->nested_inclusion = (times_name_appears != 0);
   curr_ise->include_history   = ifhp;
@@ -3354,7 +3368,8 @@ files included from directories marked as system include directories.
                               full_file_name, name_as_written,
                               &(curr_ise->assoc_il_file), is_include_file,
                               is_system_include, is_preinclude,
-			      from_system_include_dir);
+			      (dir_entry != NULL &&
+                                               dir_entry->system_include_dir));
   /* The two il file pointers start out the same.  They will be made to
      point to distinct entries if a #line directive is processed:
      assoc_il_file will point to the entry for the #line, and
@@ -3597,14 +3612,16 @@ at the next level down.
       char		*full_file_name;
       char		*display_name;
       FILE		*f_source;
-      a_boolean		from_system_include_dir;
+      a_directory_name_entry_ptr
+                        dir_entry;
       a_source_file_ptr	sfp = prev_ise->assoc_actual_il_file;
       f_source = open_file_for_input(
                               sfp->name_as_written, /*use_search_path=*/TRUE,
                               (a_boolean)sfp->included_by_system_include,
+                              /*is_include_next=*/FALSE,
  			      /*replace_suffix=*/TRUE,
 			      &full_file_name, &display_name,
-                              &from_system_include_dir);
+                              &dir_entry);
       if (f_source != NULL) {
         /* A related source file was found.  Make sure that the name of the
            file found is not the same as the file we started with.  This
@@ -3641,8 +3658,7 @@ at the next level down.
             push_input_stack(f_source, (char *)NULL, display_name,
                              full_file_name, /*is_include_file=*/FALSE,
                              (a_boolean)sfp->included_by_system_include,
-			     /*is_preinclude=*/FALSE,
-                             from_system_include_dir, ifhp);
+			     /*is_preinclude=*/FALSE, dir_entry, ifhp);
           }  /* if */
         }  /* if */
       }  /* if */
