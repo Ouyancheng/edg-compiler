@@ -2232,6 +2232,7 @@ and return a pointer to it.
   sssdp->friend_decl                = FALSE;
   sssdp->implicit_decl              = FALSE;
   sssdp->declared_in_func_prototype = FALSE;
+  sssdp->explicit_template_specialization = FALSE;
 #if CHECKING
   sssdp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

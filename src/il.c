@@ -8006,6 +8006,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       a_boolean                     is_friend = FALSE;
       a_boolean                     is_implicit = FALSE;
       a_boolean                     is_anon_union_parent = FALSE;
+      a_boolean                     is_specialization = FALSE;
       a_boolean                     func_prototype_decl = FALSE;
       a_boolean                     other_scope_def = FALSE;
       a_type_ptr                    declared_type = NULL;
@@ -8026,6 +8027,9 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           if (sssdp->friend_decl) is_friend = TRUE;
           if (sssdp->implicit_decl) is_implicit = TRUE;
           if (sssdp->declared_in_func_prototype) func_prototype_decl = TRUE;
+          if (sssdp->explicit_template_specialization) {
+            is_specialization = TRUE;
+          }  /* if */
         } else {
           scp = source_corresp_for_il_entry(
                                          ssep->entity.ptr,
@@ -8090,6 +8094,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         }  /* if */
         if (is_anon_union_parent) {
           fprintf(f_debug, "%sanon union parent",
+                           (lparen_printed ? ", " : " ("));
+          lparen_printed = TRUE;
+        }  /* if */
+        if (is_specialization) {
+          fprintf(f_debug, "%sspecialization",
                            (lparen_printed ? ", " : " ("));
           lparen_printed = TRUE;
         }  /* if */
