@@ -1,5 +1,22 @@
 Version 2.29
 
+3/13/95  Signatures for builtin [] and pointer +/-
+
+The signature for the builtin operators [] and pointer +/- in overload
+resolution take a *promoted* integral type for the integer operand, even
+though the builtin operators do not do integral promotion.  The signature
+with the promoted integral type is what is in the WP, and it's what makes
+sense, to avoid ambiguity on something like
+
+  struct A {
+    operator[](int);
+    operator int*();
+  } a;
+  short s;
+  main () {
+    a[s];  // Makes more sense if not ambiguous
+  }
+
 3/13/95  Protected conversion function access check
 
 The check for access to a protected conversion function in a base class
@@ -7,14 +24,14 @@ gave a spurious error if the base class conversion function was const:
 
   class A {
   protected:
-      operator void*() const;
+    operator void*() const;
   };
   class B : public A {
-      void foo();
+    void foo();
   };
   void B::foo() {
-      const B cB;
-      (void*)cB;  // Formerly gave spurious error
+    const B cB;
+    (void*)cB;  // Formerly gave spurious error
   }
 
 3/13/95  Symbol reference for mem-initializer

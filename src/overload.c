@@ -3837,7 +3837,7 @@ static char *operand_type_pattern_for_operator(an_opname_kind kind,
 Return a string describing the argument type patterns permitted for the
 indicated operator (the unary version if unary_operator is TRUE).
 The argument string contains one or more possible patterns separated
-by semicolons, e.g., "AA;Pi;iP"; each pattern has one letter (for
+by semicolons, e.g., "AA;PI;IP"; each pattern has one letter (for
 unary operators) or two letters (for binary operators) giving the type
 code for the associated operand:
   I  Promoted integral
@@ -3850,7 +3850,7 @@ code for the associated operand:
   m  Corresponding pointer to member, when two pointer to member operands
      must match in type
 The first character of the overall string is "L" if the operator requires
-an lvalue as its first operand, e.g., "LAA;Pi;iP".
+an lvalue as its first operand, e.g., "LAA;PI;IP".
 */
 {
   char *operand_type_pattern;
@@ -3907,11 +3907,11 @@ an lvalue as its first operand, e.g., "LAA;Pi;iP".
         break;
       case onk_plus:
         /* "+" takes arith+arith, pointer+int, or int+pointer. */
-        operand_type_pattern = "AA;Pi;iP";
+        operand_type_pattern = "AA;PI;IP";
         break;
       case onk_minus:
         /* "-" takes arith-arith, pointer-int, or pointer-pointer. */
-        operand_type_pattern = "AA;Pi;pp";
+        operand_type_pattern = "AA;PI;pp";
         break;
       case onk_lt:
       case onk_le:
@@ -3949,15 +3949,15 @@ an lvalue as its first operand, e.g., "LAA;Pi;iP".
         break;
       case onk_plus_assign:
         /* "+=" takes arith+arith or pointer+int, the first an lvalue. */
-        operand_type_pattern = "LaA;Pi";
+        operand_type_pattern = "LaA;PI";
         break;
       case onk_minus_assign:
         /* "-=" takes arith-arith or pointer-int, the first an lvalue. */
-        operand_type_pattern = "LaA;Pi";
+        operand_type_pattern = "LaA;PI";
         break;
       case onk_subscript:
         /* "[]" takes pointer[int] or int[pointer]. */
-        operand_type_pattern = "Pi;iP";
+        operand_type_pattern = "PI;IP";
         break;
       case onk_plus_plus:
       case onk_minus_minus:
@@ -4465,7 +4465,7 @@ can be used, it is added to the candidate_functions list.
      are one or more semicolon-separated argument patterns, each one consisting
      of one letter (for unary operators) or two letters (for binary operators)
      indicating the allowed argument types.  As a concrete example, the
-     pattern for "-=" is "LaA;Pi", indicating that the operator requires
+     pattern for "-=" is "LaA;PI", indicating that the operator requires
      an lvalue and takes operands of types arith-arith or pointer-int. */
   operand_type_pattern = operand_type_pattern_for_operator(kind,
                                                            unary_operator);
