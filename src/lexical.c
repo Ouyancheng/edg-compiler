@@ -5094,16 +5094,7 @@ by the options.  Returns TRUE if any errors were diagnosed.
       } else if (!is_prototype_instantiation_symbol(type_sym)) {
 	/* The class is a template class but not the prototype
 	   instantiation. */
-        a_symbol_ptr class_template_sym;
-        a_symbol_ptr prototype_sym;
-        a_type_ptr   prototype_type;
-        class_template_sym = type_sym->variant.class_struct_union.
-						extra_info->class_template;
-        prototype_sym = class_template_sym->variant.template_info->
-			   variant.class_template.prototype_instantiation;
-        prototype_type = prototype_sym->variant.class_struct_union.type;
-        pos_syty_error(ec_must_be_prototype_instantiation, &pos_curr_token, 
-		       class_template_sym, prototype_type);
+        pos_error(ec_must_be_prototype_instantiation, &pos_curr_token);
         any_errors = TRUE;
       }  /* if */
     }  /* if */
