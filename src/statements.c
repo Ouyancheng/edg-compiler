@@ -1204,7 +1204,7 @@ Return TRUE if the given expression is a "throw".
 /*
 Return TRUE if this block statement is bound to an object lifetime and
 must therefore be a cfront dependent statement (a dependent statement for
-which no scope is created).  Note: this test is only reliable between
+which no scope is created).  Note: this test is only reliable
 while the corresponding structured statement is on the structured statement
 stack -- i.e., between calls of push_stmt_stack and pop_stmt_stack.
 */
@@ -2408,7 +2408,7 @@ The syntax is:
 See also 3.6.4.2.
 */
 {
-  a_statement_ptr                sp;
+  a_statement_ptr                sp, body_statement;
   a_control_flow_descr_ptr       cfdp;
   a_struct_stmt_stack_entry_ptr  sssep;
 
@@ -2472,11 +2472,20 @@ See also 3.6.4.2.
   remove_stop_token(tok_rparen);
   /* Scan the dependent statement. */
   dependent_statement();
-  if (curr_reachability.reachable && sssep->curr_switch_clause != NULL) {
-    /* We've reached the end of the switch statement, but the final switch
-       clause was not terminated by a break or other branch statement.  Set
-       the flag indicating that the clause ends with an "implied break". */
-    sssep->curr_switch_clause->implied_break_at_end = TRUE;
+  if (sssep->curr_switch_clause != NULL) {
+    /* We ended the switch statement inside a switch clause. */
+    if (curr_reachability.reachable) {
+      /* The final switch clause was not terminated by a break or other
+         branch statement.  Set the flag indicating that the clause ends
+         with an "implied break". */
+      sssep->curr_switch_clause->implied_break_at_end = TRUE;
+    }  /* if */
+    /* The end of the body statement is not reachable. */
+    body_statement = sp->variant.switch_stmt.body_statement;
+    if (body_statement != NULL &&
+        body_statement->kind == (a_statement_kind)stmk_block) {
+      body_statement->variant.block.extra_info->end_of_block_reachable = FALSE;
+    }  /* if */
   }  /* if */
   add_to_control_flow_descr_list(
       alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
@@ -3625,7 +3634,7 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
 {
   a_switch_clause_ptr scp, prev_scp;
   a_constant_ptr      cp, prev_cp;
-  a_boolean           can_add_to_curr_clause;
+  a_boolean           can_add_to_curr_clause, err = FALSE;
   a_boolean           label_directly_in_switch;
   a_statement_ptr     clause_stmts;
   a_reachability_summary
@@ -3647,7 +3656,8 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
       if (cp == NULL) {
         /* "default" appears more than once. */
         error(ec_default_label_appears_more_than_once);
-        goto routine_exit;
+        err = TRUE;
+        goto after_check;
       }  /* if */
     } else {
       /* Check the list of constants in this clause to see if the new
@@ -3657,12 +3667,19 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
           if (cp->kind == (a_constant_repr_kind)ck_integer &&
               cmp_integer_constants(cp, constant_ptr) == 0) {
             error(ec_case_label_appears_more_than_once);
-            goto routine_exit;
+            err = TRUE;
+            goto after_check;
           }  /* if */
         }  /* for */
       } /* if */
     }  /* if */
   }  /* for */
+after_check:
+  if (err) {
+    /* An error case; use an error constant instead. */
+    constant_ptr = alloc_constant((a_constant_repr_kind)ck_error);
+    set_error_constant(constant_ptr);
+  }  /* if */
   /* There is a strange case in switches, where case labels appear within
      a structured statement nested within the switch, rather than directly
      within the switch itself, as in
@@ -3855,7 +3872,6 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
                          (an_object_lifetime_kind)olk_block_after_label);
     }  /* if */
   }  /* if */
-routine_exit:
   db_exit();
 }  /* add_switch_clause */
 
