@@ -3250,11 +3250,19 @@ process_class_specifier:
                                  ((*output_flags & DSO_EXPLICIT) ? 1 : 0) +
                                  (is_inline ? 1 : 0))) {
             a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
-            if (input_flags & DSI_IS_TEMPLATE_DECLARATION) --ssep;
-            if (ssep->kind != (a_scope_kind)sck_class_struct_union) {
+            a_type_ptr               class_type;
+
+            if (ssep->kind == (a_scope_kind)sck_template_instantiation ||
+                (input_flags & DSI_IS_TEMPLATE_DECLARATION)) {
+              /* Either this is a member template declaration or a rescan of
+                 of a member template declaration to instantiate it. */
+              --ssep;
+            }  /* if */
+            if (ssep->kind != (a_scope_kind)sck_class_struct_union &&
+                ssep->kind != (a_scope_kind)sck_class_reactivation) {
               /* Error case of some sort. */
             } else {
-              a_type_ptr class_type = ssep->assoc_type;
+              class_type = ssep->assoc_type;
               check_assertion(class_type != NULL &&
                               is_class_struct_union_type(class_type)); 
               if (is_constructor_decl(class_type)) {
