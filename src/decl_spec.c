@@ -1982,8 +1982,6 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
                             is_ref_within_new_expr, &effective_decl_level,
                             &tag_resolution, &is_predeclared_type_decl,
                             &local_decl_pos_block);
-  }  /* if */
-  if (tag_id_present) {
     if (tag_sym != NULL) {
       if (is_friend_decl) {
         /* A friend declaration: if the identifier was a qualified name
@@ -2120,6 +2118,15 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
     } else if (curr_token == tok_lbrace ||
                (C_dialect == C_dialect_cplusplus && curr_token == tok_colon)) {
       /* This is a tagless class definition. */
+#if GNU_EXTENSIONS_ALLOWED
+      if (gpp_mode && type_kind == (a_type_kind)tk_class) {
+        /* In GNU C++ mode, unnamed class types defined with the "class"
+           keyword are treated as if they were declared with the "struct"
+           keyword.  This is true even if the unnamed type acquires a name
+           for linkage purposes through a typedef. */
+        type_kind = (a_type_kind)tk_struct;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       /* Neither the tag id nor the {...} is present.  This is an error. */
       if (scope_stack[depth_scope_stack].kind ==

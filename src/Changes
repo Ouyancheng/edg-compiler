@@ -1,5 +1,16 @@
 Version 3.4
 
+8/7/03   GNU C++ mode: Unnamed "class" treated as "struct"
+
+In GNU C++ mode, an unnamed class type defined with the "class" keyword is
+treated as if it had been defined with the "struct" keyword instead.
+For example:
+
+  typedef class { int i; } C;
+  C x;
+  int *pi = &x.i;  // Normally an access error, but C::i is public in
+                   // GNU C++ mode.
+
 8/7/03   GNU IA-64 ABI: Empty base subobject conflict criterion
 
 The Changes entry of 7/14/03 said:
