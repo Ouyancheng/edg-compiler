@@ -80,6 +80,9 @@ extern a_boolean is_type_start(void);
 extern a_boolean is_decl_start(a_boolean  expr_context,
                                a_boolean  real_declarator_allowed);
 
+extern a_boolean check_member_function_typedef(a_type_ptr         tp,
+                                               a_source_position  *pos);
+
 extern a_boolean f_check_for_overload_anachronism(void);
 
 /*

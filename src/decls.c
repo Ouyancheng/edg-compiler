@@ -265,6 +265,26 @@ declaration processing will continue as though "overload" had not been seen.
   return discard_declaration;
 }  /* f_check_for_overload_anachronism */
 
+
+a_boolean check_member_function_typedef(a_type_ptr         tp,
+                                        a_source_position  *pos)
+/*
+If tp is a "member function typedef" (cfront compatibility mode only) issue
+an error diagnostic and return TRUE.
+*/
+{
+  a_boolean     is_member_function_typedef = FALSE;
+  a_type_ptr    rout_type, class_type;
+  a_symbol_ptr  sym;
+
+  if (is_cfront_member_function_typedef(tp, &rout_type, &class_type, &sym)) {
+    pos_sy_error(ec_bad_use_of_member_function_typedef, pos, sym);
+    is_member_function_typedef = TRUE;
+  }  /* if */
+  return is_member_function_typedef;
+}  /* check_member_function_typedef */
+
+
 #if !RESTRICT_ALLOWED
 /*ARGSUSED*/ /* restrict_qualified is used only when "restrict" is allowed. */
 #endif /* !RESTRICT_ALLOWED */
