@@ -484,7 +484,7 @@ always appear in the same order on the routines list of a class scope.)
 #endif /* NEED_NAME_MANGLING */
          /* Ordinary members of template classes have a NULL template argument
             list. */ 
-          (routine->is_template_function && !routine->is_specialized &&
+          (routine->is_template_function &&
            routine->template_arg_list != NULL))) {
     routine = routine->next;
   }  /* while */
@@ -511,7 +511,7 @@ always appear in the same order on the types list of a class scope.)
           /* Nonprototype instantiations can differ from one translation unit
              to another. */
           (is_immediate_class_type(result) &&
-           is_unspecialized_template_class(result) &&
+           result->variant.class_struct_union.is_template_class &&
            !result->variant.class_struct_union.is_prototype_instantiation))) {
     result = result->next;
   }  /* while */
@@ -1660,11 +1660,12 @@ are not checked.
       }
       /* Traverse member types: */
       {
-        a_type_ptr  mem_type = scope->types;
-        a_type_ptr  corresp_mem_type = corresp_scope->types;
+        a_type_ptr  mem_type = skip_generated_type(scope->types);
+        a_type_ptr  corresp_mem_type =
+                                    skip_generated_type(corresp_scope->types);
         for (; mem_type != NULL && corresp_mem_type != NULL;
-             mem_type = mem_type->next,
-                                  corresp_mem_type = corresp_mem_type->next) {
+             mem_type = skip_generated_type(mem_type->next),
+             corresp_mem_type = skip_generated_type(corresp_mem_type->next)) {
           record_trans_unit_corresp(mem_type, corresp_mem_type);
           if (is_immediate_class_type(mem_type)) {
             establish_trans_unit_correspondences_for_class(mem_type);
@@ -1987,6 +1988,8 @@ symbol supplement.
   if (sym_entry == NULL) {
     /* The instantiation was not found on the canonical list.  Add it now. */
     add_instantiation(corresp_tssp, inst->instance_sym);
+    /* There was no correspondence for that routine. */
+    set_no_trans_unit_corresp(routine);
   }  /* if */
 }  /* record_function_template_instantiation */
 
