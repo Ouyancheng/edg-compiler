@@ -11896,6 +11896,72 @@ Display the contents of a token cache.
 }  /* db_token_cache */
 
 
+unsigned long show_lexical_space_used(void)
+/*
+Display and return the amount of space used for various lexical tables.
+*/
+{
+  unsigned long num, size, total, grand_total = 0;
+
+  /* Subtract the number of tokens and pragmas used in reusable caches from
+     the total number allocated.  Reusable cached tokens and pragmas will be
+     reported separately. */
+  num_cached_tokens_allocated -= num_cached_tokens_in_reusable_caches;
+  num_pending_pragmas_allocated -= num_pragmas_in_reusable_caches;
+
+  db_space_used_header("Lexical table use:");
+
+  db_space_used_lost("orig line modif", avail_orig_line_modifs,
+                     num_orig_line_modifs_allocated, an_orig_line_modif);
+  db_space_used_lost("source line modif", avail_source_line_modifs,
+                     num_source_line_modifs_allocated, a_source_line_modif);
+  db_space_used_lost("cached token", avail_cached_tokens,
+                     num_cached_tokens_allocated, a_cached_token);
+  db_space_used("reusable cached token",
+                 num_cached_tokens_in_reusable_caches, a_cached_token);
+  db_space_used_lost("cached constant", avail_cached_constants,
+                     num_cached_constants_allocated, a_constant);
+  db_space_used_lost("cache stack entry", avail_reusable_cache_entries,
+                     num_reusable_cache_entries_allocated,
+                     a_reusable_cache_entry);
+  db_space_used_lost("pending pragma entry", avail_pending_pragmas,
+                     num_pending_pragmas_allocated,
+                     a_pending_pragma);
+  db_space_used_lost("stop token stack entry", avail_stop_token_stack_entries,
+                     num_stop_token_stack_entries_allocated,
+                     a_stop_token_stack_entry);
+  db_space_used("reusable cache pragmas",
+                 num_pragmas_in_reusable_caches, a_pending_pragma);
+  db_space_used("pragma kind descriptions", num_pragma_descriptions_allocated,
+                a_pragma_kind_description);
+  db_space_used("file suffixes", num_file_suffixes_allocated,
+                a_file_suffix);
+  db_space_used("text buffers", num_text_buffers_allocated, a_text_buffer);
+  db_space_used("include file histories", num_include_file_histories_allocated,
+                an_include_file_history);
+  db_space_used_other("cached pp token strings", cached_pp_token_string_space,
+                      "");
+  grand_total += cached_pp_token_string_space;
+
+  total = after_end_of_curr_source_line - curr_source_line;
+  db_space_used_general_buffer("curr_source_line", total);
+  if (size_pp_dir_string_buffer != 0) {
+    db_space_used_general_buffer
+          ("pragma string", ((unsigned long)size_pp_dir_string_buffer));
+  }  /* if */
+
+  if (after_end_of_raw_listing_buffer != NULL) {
+    total = after_end_of_raw_listing_buffer - raw_listing_buffer;
+    db_space_used_general_buffer("raw_listing_buffer", total);
+  }  /* if */
+
+  db_space_used_total();
+
+  return (grand_total);
+}  /* show_lexical_space_used */
+#endif /* DEBUG */
+
+
 a_text_buffer_ptr alloc_text_buffer(sizeof_t	allocation_increment)
 /*
 Allocate and initialize a text buffer.  allocation_increment is the
@@ -11982,72 +12048,6 @@ to be displayed.
 }  /* db_text_buffer */
 
 #endif /* DEBUG */
-
-unsigned long show_lexical_space_used(void)
-/*
-Display and return the amount of space used for various lexical tables.
-*/
-{
-  unsigned long num, size, total, grand_total = 0;
-
-  /* Subtract the number of tokens and pragmas used in reusable caches from
-     the total number allocated.  Reusable cached tokens and pragmas will be
-     reported separately. */
-  num_cached_tokens_allocated -= num_cached_tokens_in_reusable_caches;
-  num_pending_pragmas_allocated -= num_pragmas_in_reusable_caches;
-
-  db_space_used_header("Lexical table use:");
-
-  db_space_used_lost("orig line modif", avail_orig_line_modifs,
-                     num_orig_line_modifs_allocated, an_orig_line_modif);
-  db_space_used_lost("source line modif", avail_source_line_modifs,
-                     num_source_line_modifs_allocated, a_source_line_modif);
-  db_space_used_lost("cached token", avail_cached_tokens,
-                     num_cached_tokens_allocated, a_cached_token);
-  db_space_used("reusable cached token",
-                 num_cached_tokens_in_reusable_caches, a_cached_token);
-  db_space_used_lost("cached constant", avail_cached_constants,
-                     num_cached_constants_allocated, a_constant);
-  db_space_used_lost("cache stack entry", avail_reusable_cache_entries,
-                     num_reusable_cache_entries_allocated,
-                     a_reusable_cache_entry);
-  db_space_used_lost("pending pragma entry", avail_pending_pragmas,
-                     num_pending_pragmas_allocated,
-                     a_pending_pragma);
-  db_space_used_lost("stop token stack entry", avail_stop_token_stack_entries,
-                     num_stop_token_stack_entries_allocated,
-                     a_stop_token_stack_entry);
-  db_space_used("reusable cache pragmas",
-                 num_pragmas_in_reusable_caches, a_pending_pragma);
-  db_space_used("pragma kind descriptions", num_pragma_descriptions_allocated,
-                a_pragma_kind_description);
-  db_space_used("file suffixes", num_file_suffixes_allocated,
-                a_file_suffix);
-  db_space_used("text buffers", num_text_buffers_allocated, a_text_buffer);
-  db_space_used("include file histories", num_include_file_histories_allocated,
-                an_include_file_history);
-  db_space_used_other("cached pp token strings", cached_pp_token_string_space,
-                      "");
-  grand_total += cached_pp_token_string_space;
-
-  total = after_end_of_curr_source_line - curr_source_line;
-  db_space_used_general_buffer("curr_source_line", total);
-  if (size_pp_dir_string_buffer != 0) {
-    db_space_used_general_buffer
-          ("pragma string", ((unsigned long)size_pp_dir_string_buffer));
-  }  /* if */
-
-  if (after_end_of_raw_listing_buffer != NULL) {
-    total = after_end_of_raw_listing_buffer - raw_listing_buffer;
-    db_space_used_general_buffer("raw_listing_buffer", total);
-  }  /* if */
-
-  db_space_used_total();
-
-  return (grand_total);
-}  /* show_lexical_space_used */
-#endif /* DEBUG */
-
 
 void lexical_one_time_init(void)
 /*
