@@ -165,7 +165,8 @@ correct, but may not be representable (it may be too large or too small);
 if there's an error, return *err = TRUE.  The precision of the value
 is indicated by kind (float, double, long double); full precision will
 be kept, but the value is checked to see that it will fit in the indicated
-type.
+type.  The string need not have a decimal point or exponent (it can
+look like an integer).
 */
 {
   double temp;
