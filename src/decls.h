@@ -187,11 +187,11 @@ extern void decl_var_or_routine(a_symbol_locator   *locator,
                                 a_symbol_ptr       *ext_sym);
 #endif /* ASM_FUNCTION_ALLOWED */
 
-/* Bit vector used to pass flags into and out of declaration_specifiers.
+/* Bit vector used to pass flags into and out of decl_specifiers.
    Each bit represents a flag. */
 typedef int a_decl_flag_set;
 /* Constants defining bits in the input bit vector, used in calls to
-   declaration_specifiers. */
+   decl_specifiers. */
 #define DSI_NO_INPUT_FLAGS 0x0
 #define DSI_STORAGE_CLASS_SPECIFIER_ALLOWED 0x1
 			/* If this bit is set the declaration specifiers may
@@ -206,7 +206,7 @@ typedef int a_decl_flag_set;
 			/* If this bit is set the declaration specifiers are
 			   part of the declaration of a parameter. */
 /* Constants defining bits in the output bit vector, returned from
-   declaration_specifiers. */
+   decl_specifiers. */
 #define DSO_NO_OUTPUT_FLAGS 0x0
 #define DSO_HAS_EXPLICIT_TYPE_SPECIFIER 0x1
 			/* If this bit is set the declaration specifiers
@@ -244,10 +244,10 @@ typedef int a_decl_flag_set;
 			   enum declaration.  Error reporting is left to the
 			   caller in such cases. */
 
-extern a_boolean declaration_specifiers(a_decl_flag_set	input_flags,
-					a_decl_flag_set	*output_flags,
-					a_storage_class *storage_class,
-					a_type_ptr      *type_ptr);
+extern a_boolean decl_specifiers(a_decl_flag_set input_flags,
+				 a_decl_flag_set *output_flags,
+				 a_storage_class *storage_class,
+				 a_type_ptr      *type_ptr);
 
 #endif /* DECLS_H */
 
