@@ -3975,7 +3975,7 @@ skip_overloading:;
          at the end of the routines list, so that routines appear in the
          order that their bodies appear. */
       remove_from_routines_list(routine_ptr);
-      add_to_routines_list(routine_ptr, /*at_file_scope=*/TRUE);
+      add_to_routines_list(routine_ptr, /*at_file_or_namespace_scope=*/TRUE);
       /* Put in the storage class for the definition (static or 
          unspecified). */
       routine_ptr->storage_class = storage_class;
