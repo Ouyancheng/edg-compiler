@@ -57,16 +57,24 @@ Flags to be set when using the KAI inliner.
 #endif /* ifdef INLINER_VERSION */
 
 #ifdef sun
+
+#include "defines_solaris.h"
+
+#ifndef SUN_TEST_VERSION
+#define SUN_TEST_VERSION 1
+#endif /* ifndef SUN_TEST_VERSION */
+
+#if SUN_TEST_VERSION
+
 /* Options common to Sun-hosted versions. */
+
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
 #define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED 1
 #define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 1
-#define LONG_LONG_ALLOWED 1
-#define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0
+#undef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 #define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 1
 #define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE 1
 #define COMPOUND_LITERAL_ENABLING_POSSIBLE 1
-#define IGNORE_CARRIAGE_RETURN_IN_SOURCE 1
 #define INSTANTIATE_EXTERN_INLINE 1
 #ifdef SELFCOMP_VERSION
 /* Self-compiled version. */
@@ -92,29 +100,17 @@ Flags to be set when using the KAI inliner.
 #endif /* ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES */
 
 #ifdef SOLARIS
-#define __ANSIC__ 1
-#ifndef C_GEN_BE_GENERATES_ANSI_C
-#define C_GEN_BE_GENERATES_ANSI_C 1
 #ifdef __SUNPRO_C
 #if 0
 /* Does not always work right. */
 #define GUARD_MACRO2_FOR_VA_LIST "_SYS_VA_LIST_H"
-#endif
+#endif /* 0 */
 #else /* ifndef __SUNPRO_C */
 #define GCC_IS_C_GEN_BE_TARGET 1
 #endif /* ifdef __SUNPRO_C */
-#endif /* ifndef C_GEN_BE_GENERATES_ANSI_C */
-#define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
-#define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
-#define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
-#define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 0
-#define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT 0
-#define USE_PRAGMA_IDENT_IN_GENERATED_CODE 1
-#define STDC_ZERO_IN_NONSTRICT_MODE 1
-#define GUARD_MACRO_FOR_VA_LIST "_VA_LIST"
+
 #ifdef sparc
 /* SPARC Solaris version. */
-#define TARG_JMP_BUF_NUM_ELEMENTS 12
 #else /* !defined(sparc) */
 /* Intel Solaris version. */
 #define TARG_LITTLE_ENDIAN TRUE
@@ -182,6 +178,8 @@ Flags to be set when using the KAI inliner.
 #define DEFAULT_VLA_ENABLED 0
 
 #endif /* !defined(OPTIMIZED_VERSION) */
+
+#endif /* SUN_TEST_VERSION */
 
 #else /* !defined(sun) */
 
