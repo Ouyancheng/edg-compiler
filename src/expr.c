@@ -4523,7 +4523,9 @@ type of the expression.
   /* Scan an expression. */
   scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* The expression is treated as an rvalue. */
-  conv_lvalue_to_rvalue(&operand);
+  do_operand_transformations(&operand,
+                             (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                              TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION));
   /* Remember the type. */
   symbol_ptr->variant.type.ptr = operand.type;
   pop_expr_stack();
