@@ -624,6 +624,12 @@ typedef struct a_param_type {
                            this is the last one. */
   a_type_ptr    type;
                         /* Type of the parameter. */
+  an_expr_node_ptr
+		default_arg_expr;
+			/* Expression node representing the default value
+			   to be used as the actual argument on a function
+			   call when the actual argument corresponding to
+			   this parameter is omitted (C++ only). */
   a_byte        il_walk_flag;
                         /* Like the flag in a_source_correspondence:
                            indicates whether or not this entry has been
@@ -2503,7 +2509,7 @@ typedef struct an_entry_param {
   a_variable_ptr
                 param_var;
                         /* The variable for this parameter.  This may be part
-                           of the paramaters list for the primary entry point,
+                           of the parameters list for the primary entry point,
                            or on the local variables list of the current
                            routine. */
 } an_entry_param;

@@ -2008,6 +2008,7 @@ at_file_scope == TRUE.
 #endif /* DEBUG */
   ptp->next = NULL;
   ptp->type = NULL;
+  ptp->default_arg_expr = NULL;
   ptp->il_walk_flag = INITIAL_IL_WALK_FLAG_SETTING;
 
   db_exit();
