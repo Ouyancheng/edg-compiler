@@ -5265,6 +5265,9 @@ skip_overloading:;
          routine entry. */
       sym->decl_position = locator->source_position;
       routine_ptr->source_corresp.decl_position = sym->decl_position;
+      /* Record the type of the latest declaration (which may have a different
+         exception specification). */
+      routine_ptr->type = type_ptr;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (routine_ptr->source_corresp.decl_pos_info == NULL &&
           decl_pos_block != NULL) {

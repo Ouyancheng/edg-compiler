@@ -1,5 +1,22 @@
 Version 2.46
 
+2/8/01   Redeclaration of new/delete operators with differing exception
+         specification
+
+Although they are predeclared, the front end allows the explicit declaration
+of operator new and operator delete with an exception specification that is
+different from that of the predeclared type.  However, the explicitly
+declared specification used to be ignored, which could result in surprising
+diagnostics on additional redeclarations.  For example:
+
+  void operator delete(void*);  // OK in strict mode
+  void operator delete(void*);  // Used to cause an error in strict mode:
+                                // conflict with predeclared "throw()"
+                                // specification.
+
+This is now fixed by retaining the throw specification of the first explicit
+declaration.
+
 2/8/01   RECORD_CONSTANT_EXPRESSIONS_IN_IL and IL lowering
 
 The (unusual) combination of RECORD_CONSTANT_EXPRESSIONS_IN_IL and
