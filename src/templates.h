@@ -60,9 +60,6 @@ extern void f_check_for_uninstantiated_template_class(a_type_ptr  type);
 
 extern void f_instantiate_template_class(a_type_ptr  type);
 
-extern void update_template_class_to_fully_instantiated_status
-						       (a_type_ptr class_type);
-
 extern void instantiate_template_function(a_template_instance_ptr  tip);
 
 extern void define_template_static_data_member(a_template_instance_ptr  tip);
@@ -79,6 +76,7 @@ extern void delayed_scan_for_function_template_default_args
 			  a_template_symbol_supplement_ptr tssp);
 
 extern a_symbol_ptr template_declaration(a_boolean  *defines_something);
+extern void add_to_can_instantiate_list(a_type_ptr class_type);
 extern void update_instantiation_required_flag(a_template_instance_ptr tip,
                                                a_boolean               value);
 extern void instantiation_wrapup(void);
@@ -87,42 +85,23 @@ extern void templates_init(void);
 extern void create_or_remove_instantiation_information_file(void);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
-/* If sym is a template class that was instantiated by a can_instantiate
-   pragma then return TRUE otherwise return FALSE. */
-#define was_instantiated_by_can_instantiate_pragma(sym)                 \
-  (sym != NULL &&							\
-   (sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||		\
-    sym->kind == (a_symbol_kind)sk_union_tag) &&			\
-   sym->variant.class_struct_union.extra_info->				\
-                            instantiated_by_can_instantiate_pragma)
-
-
 /* If tp is a class in need of instantiation, instantiate it.  Otherwise,
-   do nothing.  If a class was instantiated as part of a can instantiate
-   pragma update it to reflect a normal instantiation. */
+   do nothing. */
 #define check_for_uninstantiated_template_class(tp)                     \
 {									\
   if (C_dialect == C_dialect_cplusplus) {				\
-    a_symbol_ptr sym = (a_symbol_ptr)tp->source_corresp.assoc_info;	\
     if (is_incomplete_type(tp)) {					\
       f_check_for_uninstantiated_template_class(tp);		        \
-    } else if (was_instantiated_by_can_instantiate_pragma(sym)) {	\
-      update_template_class_to_fully_instantiated_status(tp);		\
     }  /* if */							        \
   }  /* if */							        \
 }
 
 /* tp is a class type.  If it is incomplete, see if it is a template class in
-   need of instantiation and, if so, instantiate it.  If a class was
-   instantiated as part of a can instantiate pragma update it to refelect
-   a normal instantiation. */
+   need of instantiation and, if so, instantiate it. */
 #define instantiate_template_class(tp)                                  \
 {								        \
-  a_symbol_ptr sym = (a_symbol_ptr)tp->source_corresp.assoc_info;	\
   if (is_incomplete_type(tp)) {						\
     f_instantiate_template_class(tp);					\
-  } else if (was_instantiated_by_can_instantiate_pragma(sym)) {		\
-    update_template_class_to_fully_instantiated_status(tp);		\
   }  /* if */							        \
 }
 

@@ -88,6 +88,12 @@ string, and returns true if the two match.
   (len_of_curr_token == sizeof(str)-1 &&                              \
    strncmp(str, start_of_curr_token, size_t_arg(sizeof(str)-1)) == 0)
 
+typedef enum /* a_template_pragma_kind */ {
+  /* The kinds of template instantiation pragmas that are accepted. */
+  tpk_instantiate,
+  tpk_do_not_instantiate,
+  tpk_can_instantiate
+} a_template_pragma_kind;
 
 static a_pp_directive_kind identify_dir_keyword(void)
 /*
@@ -871,10 +877,9 @@ instantiated.
 }  /* can_be_instantiated */
 
 
-static void update_instantiation_flags(a_symbol_ptr	 sym,	
-				       a_boolean	 instantiate,
-                                       a_boolean	 do_not_instantiate,
-				       a_source_position *pos)
+static void update_instantiation_flags(a_symbol_ptr	      sym,
+				       a_template_pragma_kind pragma_kind,
+				       a_source_position      *pos)
 /*
 Given a pointer to either a routine, member function, or static data member
 symbol, set either the instantiation required flag (if instantiate is TRUE)
@@ -894,16 +899,16 @@ or the specific definition flag (if instantiate is FALSE).
   }  /* if */
   if (tip != NULL) {
     a_boolean	instantiation_required_flag;
-    if (instantiate) {
+    if (pragma_kind == tpk_instantiate) {
       instantiation_required_flag = TRUE;
       tip->explicit_instantiation = TRUE;
       tip->explicit_instantiation_pos = *pos;
-    } else if (do_not_instantiate) {
+    } else if (pragma_kind == tpk_do_not_instantiate) {
       instantiation_required_flag = FALSE;
       tip->specific_def = TRUE;
       tip->explicit_instantiation = FALSE;
       tip->explicit_do_not_instantiate = TRUE;
-    } else {
+    } else { /* pragma_kind == tpk_can_instantiate */
       /* For the can_instantiate pragma set the instantiation required
          flag to its current value.  The purpose of this is to ensure
          that the entry is on the instantiations required list. */
@@ -928,10 +933,9 @@ or the specific definition flag (if instantiate is FALSE).
 
 
 static void update_instantiation_flags_for_class
-					(a_symbol_ptr	   sym,
-					 a_boolean	   instantiate,
-					 a_boolean	   do_not_instantiate,
-					 a_source_position *pos)
+					(a_symbol_ptr	        sym,
+					 a_template_pragma_kind pragma_kind,
+					 a_source_position      *pos)
 /*
 Updates the instantiation flags for all of the member functions and static
 data members within a given template class.
@@ -942,35 +946,41 @@ data members within a given template class.
 
   check_assertion(is_template_class_symbol(sym));
   class_type = sym->variant.class_struct_union.type;
-  /* Instantiate the class, if not already done. */
-  check_for_uninstantiated_template_class(class_type);
-  mem_sym = sym->variant.class_struct_union.extra_info->symbols;
-  /* Loop through all the member symbols looking for member functions. */
-  for (; mem_sym != NULL; mem_sym = mem_sym->next_in_scope) {
-    a_symbol_ptr	list_sym;
-    a_boolean		is_list;
-    if (is_member_function_symbol(mem_sym)) {
-      /* If this is an overloaded function, loop through each of the
-	 functions underneath it. */
-      if (mem_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-        list_sym = mem_sym->variant.overloaded_function.symbols;
-        is_list = TRUE;
-      } else {
-	list_sym = mem_sym;
-        is_list = FALSE;
+  if (pragma_kind == tpk_can_instantiate) {
+    /* The can_instantiate pragma is a special case.  Instead of
+       processing the class now we simply put the class on a list
+       of can instantiate pragmas that will be processed during
+       instantiation wrapup. */
+    add_to_can_instantiate_list(class_type);
+  } else {
+    /* Instantiate the class, if not already done. */
+    check_for_uninstantiated_template_class(class_type);
+    mem_sym = sym->variant.class_struct_union.extra_info->symbols;
+    /* Loop through all the member symbols looking for member functions. */
+    for (; mem_sym != NULL; mem_sym = mem_sym->next_in_scope) {
+      a_symbol_ptr	list_sym;
+      a_boolean		is_list;
+     if (is_member_function_symbol(mem_sym)) {
+        /* If this is an overloaded function, loop through each of the
+           functions underneath it. */
+        if (mem_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+          list_sym = mem_sym->variant.overloaded_function.symbols;
+          is_list = TRUE;
+        } else {
+          list_sym = mem_sym;
+          is_list = FALSE;
+        }  /* if */
+        for (; list_sym != NULL; list_sym = is_list ? list_sym->next : NULL) {
+          /* Only set the flags for things that can be instantiated. */
+          if (can_be_instantiated(list_sym, /*issue_errors=*/FALSE)) {
+            update_instantiation_flags(list_sym, pragma_kind, pos);
+         	}  /* if */
+        }  /* for */
+      } else if (mem_sym->kind == (a_symbol_kind)sk_static_data_member) {
+        update_instantiation_flags(mem_sym, pragma_kind, pos);
       }  /* if */
-      for (; list_sym != NULL; list_sym = is_list ? list_sym->next : NULL) {
-        /* Only set the flags for things that can be instantiated. */
-        if (can_be_instantiated(list_sym, /*issue_errors=*/FALSE)) {
-          update_instantiation_flags(list_sym, instantiate,
-                                     do_not_instantiate, pos);
-       	}  /* if */
-      }  /* for */
-    } else if (mem_sym->kind == (a_symbol_kind)sk_static_data_member) {
-      update_instantiation_flags(mem_sym, instantiate,
-                                 do_not_instantiate, pos);
-    }  /* if */
-  }  /* for */
+    }  /* for */
+  }  /* if */
 }  /* update_instantiation_flags_for_class */
 
 
@@ -1072,8 +1082,8 @@ assumed if the return type is omitted.
   a_symbol_ptr		sym;
   a_symbol_ptr		new_sym;
   a_source_position	start_pos;
-  a_boolean		instantiate = FALSE;
-  a_boolean		do_not_instantiate = FALSE;
+  a_template_pragma_kind
+			pragma_kind;
   a_template_instantiation_mode
 			saved_instantiation_mode = instantiation_mode;
 
@@ -1082,16 +1092,17 @@ assumed if the return type is omitted.
      requested as a consequence of scanning the pragma. */
   instantiation_mode = tim_none;
   if (curr_id_is("instantiate")) {
-    instantiate = TRUE;
+    pragma_kind = tpk_instantiate;
   } else if (curr_id_is("do_not_instantiate")) {
-    do_not_instantiate = TRUE;
+    pragma_kind = tpk_do_not_instantiate;
   } else if (curr_id_is("can_instantiate")) {
-    /* Don't set either flag.  Just make sure an entry exists on the
-       instantiations required list.  The special instantiation mode
-       "can_instantiate" is used while processing this pragma.  This
-       causes any entries entered on the instantiations required list
-       to have the instantiation required flag set to FALSE. */
-    instantiation_mode = tim_can_instantiate;
+    if (saved_instantiation_mode == tim_all) {
+      /* In tim_all mode the can_instantiate pragma is treated as an
+         instantiate pragma. */
+      pragma_kind = tpk_instantiate;
+    } else {
+      pragma_kind = tpk_can_instantiate;
+    }  /* if */
   } else {
     unexpected_condition();
   }  /* if */
@@ -1118,18 +1129,15 @@ assumed if the return type is omitted.
         pos_error(ec_invalid_instantiation_pragma_argument, &start_pos);
       } else if (is_template_class_and_not_specific_def_symbol(sym)) {
          /* Process all member functions and static data members. */
-	update_instantiation_flags_for_class(sym, instantiate,
-                                             do_not_instantiate, &start_pos);
+	update_instantiation_flags_for_class(sym, pragma_kind, &start_pos);
       } else if ((new_sym = sym_if_template_class_member_function(sym))
 								 != NULL) {
 	sym = new_sym;
-	update_instantiation_flags(sym, instantiate, do_not_instantiate,
-                                   &start_pos);
+	update_instantiation_flags(sym, pragma_kind, &start_pos);
       } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
                  sym->variant.variable.instance_ptr != NULL) {
 	/* A static data member -- set the instantiation flags. */
-	update_instantiation_flags(sym, instantiate, do_not_instantiate,
-                                   &start_pos);
+	update_instantiation_flags(sym, pragma_kind, &start_pos);
       } else if (sym->kind == (a_symbol_kind)sk_overloaded_function ||
 		 sym->kind == (a_symbol_kind)sk_function_template) {
         /* An overloaded function name or a plain function template name.
@@ -1206,8 +1214,7 @@ assumed if the return type is omitted.
 	err = TRUE;
       } else {
         /* Update the flags for the symbol found. */
-        update_instantiation_flags(sym, instantiate, do_not_instantiate,
-                                   &start_pos);
+        update_instantiation_flags(sym, pragma_kind, &start_pos);
       }  /* if */
     } else {
       /* A regular function name that is expected to represent one or
@@ -1256,8 +1263,7 @@ assumed if the return type is omitted.
 	err = TRUE;
       } else if (!err) {
         /* Update the flags for the symbol found. */
-        update_instantiation_flags(new_sym, instantiate, do_not_instantiate,
-                                   &start_pos);
+        update_instantiation_flags(new_sym, pragma_kind, &start_pos);
       }  /* if */
     }  /* if */
   } else {

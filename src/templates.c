@@ -76,6 +76,25 @@ static a_boolean
 			   by this file.  This is used to determine whether
 			   to create an instantiation information file. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+
+typedef struct a_can_instantiate_entry *a_can_instantiate_entry_ptr;
+typedef struct a_can_instantiate_entry {
+  /* Structure used to build a list of classes that have been used
+     in can_instantiate pragmas.  This is used during instantiation
+     wrapup to instantiate classes that have not been otherwise used.
+     The instantiation needs to be delayed so that any template entities
+     generated as a result of the instantiation of the class can be
+     specially flagged. */
+  a_can_instantiate_entry_ptr
+		next;
+			/* Pointer to the next instance in a given hash
+			   table bucket. */
+  a_type_ptr	class_type;
+			/* Pointer to the template class type to
+			   be instantiated later. */
+} a_can_instantiate_entry;
+
+static a_can_instantiate_entry_ptr can_instantiate_list;
 	
 static a_def_arg_expr_fixup_ptr	curr_default_args;
 			/* Pointer to the default argument entries for
@@ -158,11 +177,9 @@ itself recursively to process classes nested within this class.
         /* Under certain conditions the instance pointer will be NULL.  This
            occurs for compiler generated routines and under some error
            conditions.  Simply skip this routine. */
-        if (!tip->instantiation_required) {
-          update_instantiation_required_flag
+        update_instantiation_required_flag
                                     (tip, instantiation_mode == tim_all ||
                                      sym->variant.routine.ptr->is_virtual);
-        }  /* if */
       }  /* if */
       rout = rout->next;
     }  /* while */
@@ -182,7 +199,7 @@ itself recursively to process classes nested within this class.
          to skip setting the instantiation required flag rather than
          generate a possibly spurious internal error. */
 #endif /* 0 */
-      if (tip != NULL && !tip->instantiation_required) {
+      if (tip != NULL) {
         update_instantiation_required_flag(tip, /*value=*/TRUE);
       }  /* if */
       var = var->next;
@@ -325,12 +342,6 @@ might not be able to if the template itself has not yet been defined.
                                   /*is_local_class=*/FALSE,
                                   /*is_prototype_instantiation=*/FALSE);
       update_instantiation_required_for_template_class_members(class_type);
-      /* If we are currently processing a can_instantiate pragma (as indicated
-         my the instantiation mode) record this in the class symbol supplement.
-         The instantiation required flags for the members of this class will
-         have been set differently that if it were a normal instantiation. */
-      cssp->instantiated_by_can_instantiate_pragma =
-				 instantiation_mode == tim_can_instantiate;
       pop_scope();
       /* In the normal case the current token should be end_of_source,
          which was inserted to mark the end of the cached token stream.
@@ -343,37 +354,6 @@ might not be able to if the template itself has not yet been defined.
   }  /* if */
   db_exit();
 }  /* f_instantiate_template_class */
-
-
-void update_template_class_to_fully_instantiated_status(a_type_ptr class_type)
-/*
-When a class is instantiated while processing a "can_instantiate" pragma
-the instantiation required flags for its members are set to FALSE where
-they might otherwise have been set to TRUE (for static data members,
-for example).  This routine is called when a template class that
-was instantiated by a can_instantiate pragma is used in a context that
-requires a normal full instantiation.  This routine sets the instantiation
-required flags for the members of the class.
-*/
-{
-  a_symbol_ptr                      instance_sym;
-  a_class_symbol_supplement_ptr     cssp;
-
-  db_enter(0, "update_template_class_to_fully_instantiated_status");
-  check_assertion_str(is_class_struct_union_type(class_type),
-                      "utctfis: not a class");
-  if (instantiation_mode != tim_can_instantiate) {
-    /* Only do this if we are not currently in can_instantiate mode. */
-    class_type = skip_typerefs(class_type);
-    instance_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
-    cssp = instance_sym->variant.class_struct_union.extra_info;
-    check_assertion_str(cssp->instantiated_by_can_instantiate_pragma,
-  		      "utcifis: not provisional instantiation");
-    cssp->instantiated_by_can_instantiate_pragma = FALSE;
-    update_instantiation_required_for_template_class_members(class_type);
-  }  /* if */
-  db_exit();
-}  /* update_template_class_to_fully_instantiated_status */
 
 
 static void instantiate_class_template(a_symbol_ptr  template_sym,
@@ -3356,6 +3336,36 @@ entry is pushed on the scope stack.
 }  /* template_declaration */
 
 
+static a_can_instantiate_entry_ptr alloc_can_instantiate_entry(void)
+/*
+Allocate an entry of a can_instantiate list, initialize it, and return
+a pointer to it.
+*/
+{
+  a_can_instantiate_entry_ptr	ciep;
+
+  ciep = (a_can_instantiate_entry_ptr)
+                                alloc_fe(sizeof(a_can_instantiate_entry));
+  ciep->next = NULL;
+  ciep->class_type = NULL;
+  return ciep;
+}  /* alloc_can_instantiate_entry */
+
+
+void add_to_can_instantiate_list(a_type_ptr class_type)
+/*
+Add an entry to the can_instantiate list.
+*/
+{
+  a_can_instantiate_entry_ptr	ciep;
+
+  ciep = alloc_can_instantiate_entry();
+  ciep->class_type = class_type;
+  ciep->next = can_instantiate_list;
+  can_instantiate_list = ciep;
+}  /* add_to_can_instantiate_list */
+
+
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
 static void do_implicit_include_if_needed(a_template_instance_ptr tip)
 /*
@@ -3915,9 +3925,7 @@ The list of instantiations that are to be performed by this compilation is
 read from the instantiation information file.  We then go through the
 instantiations required list and look for names that match the
 instantiations to be done.  When a match is found the instantiation is
-performed.  The routine and variable IL entries contain flags which are used
-to pass information to a link-time instantiation processor.  This routine
-is responsible for setting the appropriate flags.
+performed.
 */
 {
   a_boolean			instantiations_needed;
@@ -3993,6 +4001,25 @@ is responsible for setting the appropriate flags.
       }  /* if */
     }  /* if */
   }  /* for */
+  db_exit();
+}  /* automatic_instantiation */
+
+
+static void update_auto_instantiation_flags(void)
+/*
+This is the main routine that handles automatic instantiation processing.
+The list of instantiations that are to be performed by this compilation is
+read from the instantiation information file.  We then go through the
+instantiations required list and look for names that match the
+instantiations to be done.  When a match is found the instantiation is
+performed.  The routine and variable IL entries contain flags which are used
+to pass information to a link-time instantiation processor.  This routine
+is responsible for setting the appropriate flags.
+*/
+{
+  a_template_instance_ptr	tip;
+
+  db_enter(3, "update_auto_instantiation_flags");
   /* Make a second pass through all of the instantiations to set the
      flags to be passed to the link time instantiation mechanism.
      This needs to be done after all instantiations have been done
@@ -4039,8 +4066,50 @@ is responsible for setting the appropriate flags.
     }  /* if */
   }  /* for */
   db_exit();
-}  /* automatic_instantiation */
+}  /* update_auto_instantiation_flags */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+
+
+static void delayed_processing_of_can_instantiate_class_pragmas(void)
+/*
+The can_instantiate pragma is used to let the instantiation routines
+know that certain functions or static data members can be instantiated
+by a given compilation even if no other references to the entities
+are seen.  This is designed to be used in cases such as a library
+that internally references certain template classes which are not
+used in the external interface of the library (and for which the
+library does not provide instantiations).  Without the can_instantiate
+pragma the instantiator would have no way of knowing how to generate
+the instantiations needed to resolve the references from within the
+library.
+
+#if 0
+There is currently a problem caused by creating a class in
+tim_can_instantiate mode and then referencing the class later.
+
+The current workaround to this problem is to instantiate the
+class in tim_none mode.  This has the undesired effect that
+any static data members or virtual functions will be flagged
+as requiring instantiations.
+#endif
+*/
+{
+  a_can_instantiate_entry_ptr	ciep;
+
+  db_enter(4, "delayed_processing_of_can_instantiate_class_pragmas");
+#if 0
+  /* Temporarily disabled until we solve the problem of classes that
+     are referenced after the instantiation is done. */
+  instantiation_mode = tim_can_instantiate;
+#endif /* 0 */
+  ciep = can_instantiate_list;
+  while (ciep != NULL) {
+    a_type_ptr	class_type = ciep->class_type;
+    check_for_uninstantiated_template_class(class_type);
+    ciep = ciep->next;
+  }  /* while */
+  db_exit();
+}  /* delayed_processing_of_can_instantiate_class_pragmas */
 
 
 void instantiation_wrapup(void)
@@ -4058,6 +4127,11 @@ specific definition that made it unnecessary.
   a_template_instance_ptr           tip;
 
   db_enter(3, "instantiation_wrapup");
+  /* Now that all input has been processed including any instantiations that
+     may be done, process the classes that have been put on the can
+     instantiate list. */
+  delayed_processing_of_can_instantiate_class_pragmas();
+
   /* The in_instantiation_wrapup flag indicates that we are generating
      instantiations that were requested earlier in the compilation.  When
      this flag is TRUE new instantiations are generated on the fly instead
@@ -4090,6 +4164,7 @@ specific definition that made it unnecessary.
       }  /* if */
     }  /* if */
   }  /* for */
+
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (automatic_instantiation_mode) {
     /* Reset the flag that indicates that we are doing instantiation wrapup
@@ -4098,6 +4173,12 @@ specific definition that made it unnecessary.
     in_instantiation_wrapup = FALSE;
     /* Do processing related to automatic instantiation processing. */
     automatic_instantiation();
+  }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  if (automatic_instantiation_mode) {
+    update_auto_instantiation_flags();
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
@@ -4114,6 +4195,7 @@ Initializations for template.
   instantiations_required = NULL;
   instantiations_required_tail = NULL;
   in_instantiation_wrapup = FALSE;
+  can_instantiate_list = NULL;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   any_instantiations_required = FALSE;
   memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
