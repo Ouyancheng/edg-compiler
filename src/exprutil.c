@@ -3248,12 +3248,12 @@ Likewise for operand_2/operand_2_type.
     if (result_fkind != (a_float_kind)fk_last) {
       /* One of the operands had a (possibly complex) floating-point type. */
 #if C99_IL_EXTENSIONS_SUPPORTED
-      if (type_1->kind == (a_type_kind)tk_complex ||
-          type_2->kind == (a_type_kind)tk_complex) {
+      if (is_nonreal_floating_type(type_1) ||
+          is_nonreal_floating_type(type_2)) {
         /* If either operand has a complex type, the domain of the result is
-           also "_Complex".  The "_Imaginary" case requires operator-specific
-           treatment, and is not handled here; see
-           prepare_imaginary_operation. */
+           also "_Complex".  The code here handles the general _Imaginary
+           case also; special cases are handled in
+           determine_imaginary_operation_type. */
         result_type = complex_type(result_fkind);
       } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -3463,15 +3463,11 @@ to this value.
 }  /* make_imaginary_unit_operand */
 
 
-static void promote_operand_for_imaginary_operation(
-                                              an_operand   *operand,
-                                              a_float_kind new_fkind,
-                                              a_boolean    complex_domain)
+static void promote_operand_for_imaginary_operation(an_operand   *operand,
+                                                    a_float_kind new_fkind)
 /*
 Promote the given operand to a floating-point type precision specified by
-new_fkind.  If complex_domain is TRUE, the operand should also be promoted to
-the complex domain; otherwise, the domain of the operand (real or imaginary)
-should be preserved.
+new_fkind.  Preserve the domain (real or imaginary) of the operand.
 */
 {
   a_type_ptr   type = skip_typerefs(operand->type);
@@ -3479,11 +3475,9 @@ should be preserved.
                                                 (a_float_kind)fk_last;
 
   check_assertion(type->kind != (a_type_kind)tk_complex);
-  if (new_fkind != fkind || complex_domain) {
+  if (new_fkind != fkind) {
     a_type_ptr  promoted_type;
-    if (complex_domain) {
-      promoted_type = complex_type(new_fkind);
-    } else if (type->kind == (a_type_kind)tk_imaginary) {
+    if (type->kind == (a_type_kind)tk_imaginary) {
       promoted_type = imaginary_type(new_fkind);
     } else {
       promoted_type = float_type(new_fkind);
@@ -3495,136 +3489,148 @@ should be preserved.
 }  /* promote_operand_for_imaginary_operation */
 
 
-void prepare_imaginary_operation(a_token_kind           op_token,
-                                 an_operand             *operand_1,
-                                 an_operand             *operand_2,
-                                 a_source_position      *operator_position,
-                                 a_type_ptr             *result_type,
-                                 an_expr_operator_kind  *op)
+a_boolean determine_imaginary_operation_type
+                                        (a_token_kind          op_token,
+                                         an_operand            *operand_1,
+                                         an_operand            *operand_2,
+                                         a_type_ptr            *result_type,
+                                         an_expr_operator_kind *op)
 /*
-Operations on imaginary floating-point types are a little peculiar in the
-sense that the result type is not necessarily a type to which both operands
-(operand_1 and operand_2) are promoted.  Instead, one of the operands may be
-promoted and the result type depends on the particular operation (represented
-by op_token).  This routine is called for these unusual cases, i.e., when
-one or both operands have imaginary type and neither operand has complex
-type.  It determines the result type and returns it in *result_type.
-This routine also determines the IL operator that implements the given
-arithmetic operation and returns it in *op.  *operator_position gives
-the operator position, for error messages.
+See whether the operation represented by op_token applied to operand_1
+and operand_2 is one of the special cases involving imaginary types
+that has an operation type different than the one determined by the
+usual arithmetic conversions.  If so, convert the operands to the
+proper operation type, set *result_type to the result type, set *op
+to the IL operator to be used, and return TRUE.  Otherwise, return FALSE.
 */
 {
+  a_boolean     is_special = FALSE;
+  a_boolean     is_imaginary_1, is_imaginary_2;
   a_type_ptr    type_1 = skip_typerefs(operand_1->type),
                 type_2 = skip_typerefs(operand_2->type);
-  a_float_kind  fkind_1 = is_floating_type(type_1) ?
-                           type_1->variant.float_kind : (a_float_kind)fk_last,
-                fkind_2 = is_floating_type(type_2) ?
-                           type_2->variant.float_kind : (a_float_kind)fk_last;
-  a_float_kind  fkind_result = promoted_float_kind(fkind_1, fkind_2);
-  a_boolean     type_1_is_imaginary =
-                                  (type_1->kind == (a_type_kind)tk_imaginary),
-                type_2_is_imaginary =
-                                  (type_2->kind == (a_type_kind)tk_imaginary);
+  a_float_kind  fkind_1, fkind_2;
+  a_float_kind  fkind_result;
+  a_boolean     is_compound_assignment = FALSE;
 
-  check_assertion(type_1_is_imaginary || type_2_is_imaginary);
-  /* Determine the appropriate IL operator and corresponding result type. */
   switch (op_token) {
     case tok_plus:
-      fkind_result = promoted_float_kind(fkind_1, fkind_2);
-      if (type_1_is_imaginary && type_2_is_imaginary) {
-        *op = (an_expr_operator_kind)eok_fadd;
-        *result_type = imaginary_type(fkind_result);
-      } else {
-        *op = (an_expr_operator_kind)eok_xadd;
-        *result_type = complex_type(fkind_result);
-      }  /* if */
-      break;
     case tok_minus:
-      fkind_result = promoted_float_kind(fkind_1, fkind_2);
-      if (type_1_is_imaginary && type_2_is_imaginary) {
-        *op = (an_expr_operator_kind)eok_fsubtract;
+    case tok_plus_assign:
+    case tok_minus_assign:
+      if (is_imaginary_type(type_1) && is_imaginary_type(type_2)) {
+        /* Imaginary + imaginary gives imaginary.  Likewise for -. */
+        is_special = TRUE;
+        fkind_1 = type_1->variant.float_kind;
+        fkind_2 = type_2->variant.float_kind;
+        fkind_result = promoted_float_kind(fkind_1, fkind_2);
         *result_type = imaginary_type(fkind_result);
-      } else {
-        *op = (an_expr_operator_kind)eok_xsubtract;
-        *result_type = complex_type(fkind_result);
+        /* Determine the IL operator to use. */
+        switch (op_token) {
+          case tok_plus:
+            *op = (an_expr_operator_kind)eok_fadd;
+            break;
+          case tok_minus:
+            *op = (an_expr_operator_kind)eok_fsubtract;
+            break;
+          case tok_plus_assign:
+            *op = (an_expr_operator_kind)eok_fadd_assign;
+            is_compound_assignment = TRUE;
+            break;
+          case tok_minus_assign:
+            *op = (an_expr_operator_kind)eok_fsubtract_assign;
+            is_compound_assignment = TRUE;
+            break;
+          default:
+            unexpected_condition();
+        }  /* switch */
       }  /* if */
       break;
     case tok_star:
-      fkind_result = promoted_float_kind(fkind_1, fkind_2);
-      if (type_1_is_imaginary && type_2_is_imaginary) {
-        *op = (an_expr_operator_kind)eok_jmultiply;
-        *result_type = float_type(fkind_result);
-      } else {
-        *op = (an_expr_operator_kind)eok_fmultiply;
-        *result_type = imaginary_type(fkind_result);
-      }  /* if */
-      break;
     case tok_divide:
-      fkind_result = promoted_float_kind(fkind_1, fkind_2);
-      *op = (an_expr_operator_kind)eok_fdivide;
-      if (type_1_is_imaginary && type_2_is_imaginary) {
+    case tok_times_assign:
+    case tok_divide_assign:
+      is_imaginary_1 = is_imaginary_type(type_1);
+      is_imaginary_2 = is_imaginary_type(type_2);
+      if (is_imaginary_1 && is_imaginary_2) {
+        /* Imaginary * imaginary gives real.  Likewise for /. */
+        is_special = TRUE;
+        fkind_1 = type_1->variant.float_kind;
+        fkind_2 = type_2->variant.float_kind;
+        fkind_result = promoted_float_kind(fkind_1, fkind_2);
         *result_type = float_type(fkind_result);
-      } else {
+      } else if ((is_imaginary_1 && is_real_floating_type(type_2)) ||
+                 (is_imaginary_2 && is_real_floating_type(type_1))) {
+        /* Imaginary * real gives imaginary, and likewise for the similar
+           cases. */
+        is_special = TRUE;
+        fkind_1 = type_1->variant.float_kind;
+        fkind_2 = type_2->variant.float_kind;
+        fkind_result = promoted_float_kind(fkind_1, fkind_2);
         *result_type = imaginary_type(fkind_result);
       }  /* if */
-      break;
-    case tok_plus_assign:
-      fkind_result = fkind_1;
-      *op = (an_expr_operator_kind)eok_fadd_assign;
-      if (type_1_is_imaginary && type_2_is_imaginary) {
-        *result_type = type_1;
-      } else {
-        pos_ty2_error(ec_incompatible_operands,
-                      operator_position, type_2, type_1);
-        *result_type = error_type();
-      }  /* if */
-      break;
-    case tok_minus_assign:
-      fkind_result = fkind_1;
-      *op = (an_expr_operator_kind)eok_fsubtract_assign;
-      if (type_1_is_imaginary && type_2_is_imaginary) {
-        *result_type = type_1;
-      } else {
-        pos_ty2_error(ec_incompatible_operands,
-                      operator_position, type_2, type_1);
-        *result_type = error_type();
-      }  /* if */
-      break;
-    case tok_times_assign:
-      fkind_result = fkind_1;
-      *op = (an_expr_operator_kind)eok_fmultiply_assign;
-      if (type_1_is_imaginary && !is_nonreal_floating_type(type_2)) {
-        *result_type = type_1;
-      } else {
-        pos_ty2_error(ec_incompatible_operands,
-                      operator_position, type_2, type_1);
-        *result_type = error_type();
-      }  /* if */
-      break;
-    case tok_divide_assign:
-      fkind_result = fkind_1;
-      *op = (an_expr_operator_kind)eok_fdivide_assign;
-      if (type_1_is_imaginary && !is_nonreal_floating_type(type_2)) {
-        *result_type = type_1;
-      } else {
-        pos_ty2_error(ec_incompatible_operands,
-                      operator_position, type_2, type_1);
-        *result_type = error_type();
+      /* Determine the IL operator to use. */
+      if (is_special) {
+        switch (op_token) {
+          case tok_star:
+            if (is_imaginary_1 && is_imaginary_2) {
+              /* Imaginary * imaginary has a special operator, which is
+                 like a float multiplication followed by a negation. */
+              *op = (an_expr_operator_kind)eok_jmultiply;
+            } else {
+              *op = (an_expr_operator_kind)eok_fmultiply;
+            }  /* if */
+            break;
+          case tok_divide:
+            *op = (an_expr_operator_kind)eok_fdivide;
+            break;
+          case tok_times_assign:
+            if (is_imaginary_1 && is_imaginary_2) {
+              /* Imaginary *= imaginary gives zero, so it's almost
+                 surely wrong. */
+              pos_warning(ec_imaginary_times_assign, &operand_1->position);
+              /* Multiply by zero to get the right result when using a
+                 float *=.  This is a kludge, but we don't want to add
+                 a separate operator for this case that would just produce
+                 zero. */
+              { an_expr_node_ptr node2 = make_node_from_operand(operand_2);
+                a_constant       con;
+                make_zero_of_proper_type(node2->type, &con);
+                node2->next = alloc_node_for_constant(&con);
+                node2 = make_operator_node(
+                                          (an_expr_operator_kind)eok_fmultiply,
+                                          node2->type,
+                                          node2);
+                make_expression_operand(node2, node2->type, operand_2);
+              }
+            }  /* if */
+            *op = (an_expr_operator_kind)eok_fmultiply_assign;
+            is_compound_assignment = TRUE;
+            break;
+          case tok_divide_assign:
+            *op = (an_expr_operator_kind)eok_fdivide_assign;
+            is_compound_assignment = TRUE;
+            break;
+          default:
+            unexpected_condition();
+        }  /* switch */
       }  /* if */
       break;
     default:
-      unexpected_condition_str("Bad operator in prepare_imaginary_operation");
+      /* Nothing special about the other operators. */
+      break;
   }  /* switch */
-  if (!is_error_type(*result_type)) {
-    a_boolean complex_result = is_complex_type(*result_type);
-    promote_operand_for_imaginary_operation(operand_1, fkind_result,
-                                            complex_result);
-    promote_operand_for_imaginary_operation(operand_2, fkind_result,
-                                            complex_result);
+  if (is_special) {
+    /* Convert the operands to the operation type.  For compound assignment
+       operators, convert only the second operand. */
+    if (!is_compound_assignment) {
+      promote_operand_for_imaginary_operation(operand_1, fkind_result);
+    }  /* if */
+    promote_operand_for_imaginary_operation(operand_2, fkind_result);
   } else {
     *op = (an_expr_operator_kind)eok_error;
   }  /* if */
-}  /* prepare_imaginary_operation */
+  return is_special;
+}  /* determine_imaginary_operation_type */
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 

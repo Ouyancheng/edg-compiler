@@ -58,6 +58,7 @@ extern a_boolean is_bool_type(a_type_ptr tp);
 extern a_boolean is_character_type(a_type_ptr tp);
 extern a_boolean is_floating_type(a_type_ptr tp);
 #if C99_IL_EXTENSIONS_SUPPORTED
+extern a_boolean is_real_floating_type(a_type_ptr tp);
 extern a_boolean is_nonreal_floating_type(a_type_ptr tp);
 extern a_boolean is_imaginary_type(a_type_ptr tp);
 extern a_boolean is_complex_type(a_type_ptr tp);

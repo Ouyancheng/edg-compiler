@@ -336,6 +336,20 @@ complex and imaginary types.
 
 #if C99_IL_EXTENSIONS_SUPPORTED
 
+a_boolean is_real_floating_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a real floating type, i.e., not
+complex or imaginary.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_real_floating(tp);
+}  /* is_real_floating_type */
+
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+
+#if C99_IL_EXTENSIONS_SUPPORTED
+
 a_boolean is_nonreal_floating_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a nonreal (imaginary or complex) floating

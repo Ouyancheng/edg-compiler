@@ -732,13 +732,12 @@ extern a_type_ptr usual_arithmetic_conversions(a_type_ptr operand_1_type,
 #if C99_IL_EXTENSIONS_SUPPORTED
 extern void make_imaginary_unit_operand(an_operand  *result);
 
-extern void prepare_imaginary_operation(
-                                     a_token_kind           op_token,
-                                     an_operand             *operand_1,
-                                     an_operand             *operand_2,
-                                     a_source_position      *operator_position,
-                                     a_type_ptr             *result_type,
-                                     an_expr_operator_kind  *op);
+extern a_boolean determine_imaginary_operation_type
+                                        (a_token_kind          op_token,
+                                         an_operand            *operand_1,
+                                         an_operand            *operand_2,
+                                         a_type_ptr            *result_type,
+                                         an_expr_operator_kind *op);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

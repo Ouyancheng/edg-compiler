@@ -8753,20 +8753,6 @@ symmetrical, e.g., "i + l" does not yield an int.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if C99_IL_EXTENSIONS_SUPPORTED
-
-/*
-Macro that returns TRUE if the two operand types given involve
-imaginary types in such a way that prepare_imaginary_operation should
-be called.
-*/
-#define operand_types_require_imaginary_handling(type_1, type_2)      \
-  ((is_imaginary_type(type_1) || is_imaginary_type(type_2)) &&        \
-   !(is_complex_type(type_1) || is_complex_type(type_2)))
-
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-
-
 static void scan_mult_operator(an_operand *operand_1,
                                an_operand *result)
 /*
@@ -8835,12 +8821,11 @@ be of integral type.  See section 3.3.5 of the standard.
       (void)check_arithmetic_or_enum_operand(&operand_2);
     }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
-    if (operand_types_require_imaginary_handling(operand_1->type,
-                                                 operand_2.type) &&
-        save_token != tok_remainder) {
-      prepare_imaginary_operation(save_token, operand_1, &operand_2,
-                                  &operator_position, &result_type, &op);
-    } else
+    /* Check for cases involving imaginary types that do not fall out
+       of the normal usual arithmetic conversion rules. */
+    if (!c99_mode ||
+        !determine_imaginary_operation_type(save_token, operand_1, &operand_2,
+                                            &result_type, &op))
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     /* Do not insert code here. */
     {
@@ -8886,12 +8871,10 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
   a_boolean             operand_1_is_pointer;
   a_boolean             both_operands_are_arithmetic = FALSE;
   a_boolean		pointer_difference           = FALSE;
-#if C99_IL_EXTENSIONS_SUPPORTED
-  a_boolean             imaginary_arithmetic = FALSE;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   a_boolean             err = FALSE, processed = FALSE;
   a_type_ptr            result_type;
   a_type_ptr            operation_type;
+  a_boolean             imaginary_arithmetic = FALSE;
 
   db_enter(4, "scan_add_operator");
 
@@ -9037,17 +9020,21 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
       if (is_arithmetic_or_enum_type(operand_2.type)) {
         /* Arithmetic/enum +- arithmetic/enum. */
 #if C99_IL_EXTENSIONS_SUPPORTED
-        if (operand_types_require_imaginary_handling(operand_1->type,
-                                                     operand_2.type)) {
-          /* Imaginary arithmetic needs special treatment. */
+        /* Check for cases involving imaginary types that do not fall out
+           of the normal usual arithmetic conversion rules. */
+        if (c99_mode &&
+            determine_imaginary_operation_type(save_token,
+                                               operand_1, &operand_2,
+                                               &result_type, &op)) {
           imaginary_arithmetic = TRUE;
+          operation_type = NULL;  /* Not used. */
         } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         /* Do not insert code here. */
         {
           /* Determine the result type based on the 2 operands. */
           adjust_operands_for_microsoft_int_long_bug(operand_1, &operand_2);
-          result_type = operation_type = 
+          result_type = operation_type =
                        determine_arithmetic_conversions(operand_1, &operand_2);
         }  /* if */
         both_operands_are_arithmetic = TRUE;
@@ -9068,24 +9055,19 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
       /* Note that integral promotions are NOT done on the integer in
          "pointer + integer" and "pointer - integer".  This is as
          the standard wants it. */
-#if C99_IL_EXTENSIONS_SUPPORTED
-      if (imaginary_arithmetic) {
-        prepare_imaginary_operation(save_token, operand_1, &operand_2,
-                                    &operator_position, &result_type, &op);
-      } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      /* Do not insert code here. */
-      {
-        if (both_operands_are_arithmetic || pointer_difference) {
+      if (both_operands_are_arithmetic || pointer_difference) {
+        if (!imaginary_arithmetic) {
           change_binary_operand_types(operation_type, operand_1, &operand_2);
         }  /* if */
-        /* Determine the expression operator for this case. */
-        if (pointer_difference) {
-          /* Pointer - pointer is a special case, with its own operator. */
-          op = (an_expr_operator_kind)eok_pdiff;
-        } else {
-          op = which_binary_operator(save_token, operation_type);
-        }  /* if */
+      }  /* if */
+      /* Determine the expression operator for this case. */
+      if (pointer_difference) {
+        /* Pointer - pointer is a special case, with its own operator. */
+        op = (an_expr_operator_kind)eok_pdiff;
+      } else if (imaginary_arithmetic) {
+        /* op is already set. */
+      } else {
+        op = which_binary_operator(save_token, operation_type);
       }  /* if */
       do_binary_operation(op, operand_1, &operand_2,
                           result_type, result, &operator_position);
@@ -10801,6 +10783,7 @@ See section 3.3.16 of the standard.
   an_operand            operand_1_clone;
   a_boolean             operand_1_clone_unused = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean             imaginary_arithmetic = FALSE;
 
   db_enter(4, "scan_compound_assignment_operator");
 
@@ -10916,104 +10899,100 @@ See section 3.3.16 of the standard.
         }  /* if */
       }  /* if */
       do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-#if C99_IL_EXTENSIONS_SUPPORTED
-    if (operand_types_require_imaginary_handling(operand_1->type,
-                                                 operand_2.type) &&
-        (save_token == tok_times_assign ||
-         save_token == tok_divide_assign ||
-         save_token == tok_plus_assign ||
-         save_token == tok_minus_assign)) {
-        an_expr_operator_kind  op;
-        do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-        prepare_imaginary_operation(save_token, operand_1, &operand_2,
-                                    &operator_position, &result_type, &op);
-        build_binary_result_operand(operand_1, &operand_2, op,
-                                    result_type, result);
-      } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      /* Do not insert code here. */
-      {
-        /* Check the operand types. */
-        switch (save_token) {
-          case tok_times_assign:
-          case tok_divide_assign:
-            (void)check_arithmetic_or_enum_operand(operand_1);
+      /* Check the operand types. */
+      switch (save_token) {
+        case tok_times_assign:
+        case tok_divide_assign:
+          (void)check_arithmetic_or_enum_operand(operand_1);
+          (void)check_arithmetic_or_enum_operand(&operand_2);
+          break;
+        case tok_plus_assign:
+        case tok_minus_assign:
+          if (is_arithmetic_or_enum_type(operand_1->type)) {
+            /* If the first operand is arithmetic or enum, the second must
+               be also. */
             (void)check_arithmetic_or_enum_operand(&operand_2);
-            break;
-          case tok_plus_assign:
-          case tok_minus_assign:
-            if (is_arithmetic_or_enum_type(operand_1->type)) {
-              /* If the first operand is arithmetic or enum, the second must
-                 be also. */
-              (void)check_arithmetic_or_enum_operand(&operand_2);
-            } else if (check_object_pointer_operand(
-                                 operand_1,
+          } else if (check_object_pointer_operand(
+                                operand_1,
                                  enum_type_is_integral ?
                                    ec_expr_not_scalar :
                                    ec_expr_not_arithmetic_or_enum_or_pointer)){
-              /* The first operand is a pointer, so the second one must be
-                 integral or enum. */
-              if (check_integral_or_enum_operand(&operand_2)) {
-                pointer_add_sub = TRUE;
-              }  /* if */
+            /* The first operand is a pointer, so the second one must be
+               integral or enum. */
+            if (check_integral_or_enum_operand(&operand_2)) {
+              pointer_add_sub = TRUE;
             }  /* if */
-            break;
-          case tok_remainder_assign:
-          case tok_shift_left_assign:
-          case tok_shift_right_assign:
-          case tok_and_assign:
-          case tok_excl_or_assign:
-          case tok_or_assign:
-            (void)check_integral_or_enum_operand(operand_1);
-            (void)check_integral_or_enum_operand(&operand_2);
-            break;
+          }  /* if */
+          break;
+        case tok_remainder_assign:
+        case tok_shift_left_assign:
+        case tok_shift_right_assign:
+        case tok_and_assign:
+        case tok_excl_or_assign:
+        case tok_or_assign:
+          (void)check_integral_or_enum_operand(operand_1);
+          (void)check_integral_or_enum_operand(&operand_2);
+          break;
 #if CHECKING
-          default:
-            internal_error(
+        default:
+          internal_error(
                  "scan_compound_assignment_operator: bad assignment operator");
 #endif /* CHECKING */
-        }  /* switch */
+      }  /* switch */
 
-        if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
-          make_error_operand(result);
-        } else {
-          orig_result_type = operand_1->type;
-          result_type = rvalue_type(orig_result_type);
-          if (pointer_add_sub) {
-            /* For pointer += or -=, integral promotions are not done, and
-               the operation type is the first operand's type.  This is
-               like the processing for pointer + integer and
-               pointer - integer. */
-            operation_type = operand_1->type;
-          } else if (save_token == tok_shift_left_assign ||
-                     save_token == tok_shift_right_assign) {
-            /* <<= and >>=. */
-            if (C_dialect == C_dialect_pcc) {
-              /* In K&R first edition (see appendix A, section 7.5), the shift
-                 operators << and >> "perform the usual arithmetic conversions
-                 on their operands, each of which must be integral.  Then the
-                 right operand is converted to int; the type of the result is
-                 that of the left operand."  This has the effect that a "long"
-                 shift count will force the shift to be done as long. */
-              operation_type = determine_arithmetic_conversions(operand_1,
-                                                                &operand_2);
-              cast_operand(integer_type((an_integer_kind)ik_int), &operand_2,
-                           /*check_cast_access=*/TRUE,
-                           /*is_implicit_cast=*/TRUE,
-                           /*is_reinterpret_cast=*/FALSE,
-                           /*reinterpret_semantics=*/FALSE);
-            } else {
-              /* Not pcc mode. */
-              /* These operations do integral promotions instead of the usual
-                 arithmetic conversions. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-              if (property_ref_case) promote_operand(operand_1);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-              operation_type = operand_1->type;
-              promote_operand(&operand_2);
-            }  /* if */
+      if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
+        make_error_operand(result);
+      } else {
+        an_expr_operator_kind op;        
+        orig_result_type = operand_1->type;
+        result_type = rvalue_type(orig_result_type);
+        if (pointer_add_sub) {
+          /* For pointer += or -=, integral promotions are not done, and
+             the operation type is the first operand's type.  This is
+             like the processing for pointer + integer and
+             pointer - integer. */
+          operation_type = operand_1->type;
+        } else if (save_token == tok_shift_left_assign ||
+                   save_token == tok_shift_right_assign) {
+          /* <<= and >>=. */
+          if (C_dialect == C_dialect_pcc) {
+            /* In K&R first edition (see appendix A, section 7.5), the shift
+               operators << and >> "perform the usual arithmetic conversions
+               on their operands, each of which must be integral.  Then the
+               right operand is converted to int; the type of the result is
+               that of the left operand."  This has the effect that a "long"
+               shift count will force the shift to be done as long. */
+            operation_type = determine_arithmetic_conversions(operand_1,
+                                                              &operand_2);
+            cast_operand(integer_type((an_integer_kind)ik_int), &operand_2,
+                         /*check_cast_access=*/TRUE,
+                         /*is_implicit_cast=*/TRUE,
+                         /*is_reinterpret_cast=*/FALSE,
+                         /*reinterpret_semantics=*/FALSE);
           } else {
-            /* Normal case. */
+            /* Not pcc mode. */
+            /* These operations do integral promotions instead of the usual
+               arithmetic conversions. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (property_ref_case) promote_operand(operand_1);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            operation_type = operand_1->type;
+            promote_operand(&operand_2);
+          }  /* if */
+        } else {
+          /* Normal case. */
+#if C99_IL_EXTENSIONS_SUPPORTED
+          /* Check for cases involving imaginary types that do not fall out
+             of the normal usual arithmetic conversion rules. */
+          if (c99_mode &&
+              determine_imaginary_operation_type(save_token,
+                                                 operand_1, &operand_2,
+                                                 &operation_type, &op)) {
+            imaginary_arithmetic = TRUE;
+          } else
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+          /* Do not insert code here. */
+          {
             operation_type = determine_arithmetic_conversions(operand_1,
                                                               &operand_2);
             cast_operand(operation_type, &operand_2,
@@ -11022,24 +11001,25 @@ See section 3.3.16 of the standard.
                          /*is_reinterpret_cast=*/FALSE,
                          /*reinterpret_semantics=*/FALSE);
           }  /* if */
+        }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (property_ref_case) {
-            cast_operand(operation_type, operand_1,
-                         /*check_cast_access=*/TRUE,
-                         /*is_implicit_cast=*/TRUE,
-                         /*is_reinterpret_cast=*/FALSE,
-                         /*reinterpret_semantics=*/FALSE);
-          }  /* if */
+        if (property_ref_case) {
+          cast_operand(operation_type, operand_1,
+                       /*check_cast_access=*/TRUE,
+                       /*is_implicit_cast=*/TRUE,
+                       /*is_reinterpret_cast=*/FALSE,
+                       /*reinterpret_semantics=*/FALSE);
+        }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          build_binary_result_operand(operand_1, &operand_2,
-                                      which_binary_operator(operator_token,
-                                                            operation_type),
-                                      result_type, result);
-          if (C_dialect == C_dialect_cplusplus && !property_ref_case) {
-            /* In C++, assignment operators return lvalues. */
-            change_assignment_result_to_lvalue(result, operand_1,
-                                               orig_result_type);
-          }  /* if */
+        if (!imaginary_arithmetic) {
+          op = which_binary_operator(operator_token, operation_type);
+        }  /* if */
+        build_binary_result_operand(operand_1, &operand_2, op,
+                                    result_type, result);
+        if (C_dialect == C_dialect_cplusplus && !property_ref_case) {
+          /* In C++, assignment operators return lvalues. */
+          change_assignment_result_to_lvalue(result, operand_1,
+                                             orig_result_type);
         }  /* if */
       }  /* if */
     }  /* if */
