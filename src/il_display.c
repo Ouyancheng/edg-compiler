@@ -3946,9 +3946,8 @@ Display the indicated dynamic_init structure.
       disp_boolean("is_implicit_copy_for_copy_initialization",
                    (a_boolean)ptr->variant.constructor.
                                     is_implicit_copy_for_copy_initialization);
-      disp_boolean("zero_for_value_initialization",
-                   (a_boolean)ptr->variant.constructor.
-                                    zero_for_value_initialization);
+      disp_boolean("value_initialization",
+                   (a_boolean)ptr->variant.constructor.value_initialization);
       break;
     case dik_nonconstant_aggregate:
       (void)printf("dik_nonconstant_aggregate\n");

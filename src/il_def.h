@@ -1597,10 +1597,10 @@ typedef struct a_dynamic_init {
 			   for the implicit (unelided) copy of a
 			   copy-initialization. */
       a_bit_field
-		zero_for_value_initialization:1;
-			/* TRUE if the object should be zeroed before calling
-			   the constructor (to implement the so-called "value
-			   initialization" semantics). */
+		value_initialization:1;
+			/* TRUE if the object should be value-initialized
+			   instead of default-initialized (can only be TRUE
+			   for default constructor calls). */
       bitfield_to_avoid_codecenter_warnings()
     } constructor;
   } variant;
