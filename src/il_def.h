@@ -6278,7 +6278,7 @@ typedef struct a_routine {
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   struct a_routine_fixup
 		*routine_fixup;
-			/* Used in to process the bodies of friend
+			/* Used to process the bodies of friend
 			   functions defined in class templates only
 			   when they are referenced.  Points to the fixup
 			   entry for the friend function definition.  This
