@@ -2086,7 +2086,7 @@ Microsoft attribute processing.
   memzero((char *)attribute_lookup_table, sizeof(attribute_lookup_table));
   curr_attribute_descr = NULL;
   /* Build the structure used to describe the various attributes. */
-  init_attribute_kinds();
+  if (microsoft_mode) init_attribute_kinds();
 }  /* ms_attrib_init */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
