@@ -139,6 +139,7 @@ associated with it, to their respective available-lists.
 {
   free_def_arg_expr_fixup(rfp->def_arg_expr_fixup_list);
   rfp->def_arg_expr_fixup_list = NULL;
+  done_with_func_info(rfp->func_info);
   rfp->next = avail_routine_fixup;
   avail_routine_fixup = rfp;
 }  /* free_routine_fixup */
@@ -2924,6 +2925,10 @@ of the function, and again overloading is a possibility.
                                     declarator_ssep);
           /* Do throw specification compatibility checking. */
           check_throw_specification(func_info, sym->variant.routine.ptr);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+          set_rout_src_seq_entry_for_default_arg_decl(sym->variant.routine.ptr,
+                                                      func_info);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -3339,6 +3344,9 @@ special function kind (e.g., constructor, destructor), if any.
       if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
       record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                 declarator_ssep);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      set_rout_src_seq_entry_for_default_arg_decl(rtn, func_info);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       if (func_info->is_definition) {
         /* Since this is a definition, record the current lint argsused and
            varargs-count state in the routine type. That will suppress any
@@ -4274,6 +4282,7 @@ routine body is generated at this time.
                              (an_access_specifier)as_public,
                              /*is_virtual=*/FALSE,
                              /*compiler_generated=*/TRUE, sfkind);
+  done_with_func_info(func_info);
   /* It can be that the head of symbols list for the scope has been
      modified (it may have been changed to an sk_overloaded_function, or
      it may have been empty), so update the class symbol supplement, just to
@@ -6172,6 +6181,7 @@ Scan the body of a class definition, including the base classes list.
           add_stop_token(tok_comma);
           add_stop_token(tok_colon);
           unnamed_field = FALSE;
+          clear_func_info(&func_info);
           /* The declarator can be omitted for an unnamed bit-field. */
           set_err_pos_to_curr_token();
           if (curr_token == tok_colon && !local_no_decl_specifiers) {
@@ -6512,14 +6522,13 @@ Scan the body of a class definition, including the base classes list.
                     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
                   }  /* for */
-                  /* Free the list of parameter identifiers -- they're not
-                     needed if there's no definition. */
-                  free_param_id_list(&(func_info.param_id_list));
                 }  /* if */
               }  /* if */
               if (curr_routine_fixup != NULL) {
                 curr_routine_fixup->routine = rout_sym->variant.routine.ptr;
                 curr_routine_fixup->func_info = func_info;
+              } else {
+                done_with_func_info(func_info);
               }  /* if */
               if (function_def_present) {
                 if (!friend_specified) {
