@@ -12,7 +12,7 @@ have the same size and alignment).  For example:
 8/16/99  Position of the start of a function-try-block
 
 The front end now correctly records the start position of a function-try-block
-(it already did so for the the end position of such a construct).
+(it already did so for the end position of such a construct).
 
 8/16/99  Configuration option for floating-point template parameters
 
