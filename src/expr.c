@@ -7265,7 +7265,7 @@ a prior error) just do the scan.
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
             EOPT_NO_OPTIONS | EOPT_DISALLOW_COMMA_OPERATOR);
-  if (ptp != NULL) {
+  if (ptp != NULL && !ptp->type_involves_template_param) {
     /* Convert to the required type. */
     prep_argument_operand(&result, ptp, ec_bad_default_arg_type,
                           (an_expression_kind)ek_normal);
