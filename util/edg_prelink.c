@@ -2479,6 +2479,7 @@ hold the command.
   /* Allocate the command line with twice the space needed to make room
      for added escape characters. */
   if (part3 == NULL) part3 = "";
+  check_assertion(part1 != NULL && part2 != NULL);
   length = (strlen(part1) + strlen(part2) + strlen(part3)) * 2;
   check_assertion(length > 3);
   command = (char *)pl_malloc_with_check(length);
