@@ -1163,6 +1163,20 @@ at_exit cannot throw beyond the exit call.
   __curr_eh_stack_entry = NULL;
 }  /* __eh_exit_processing */
 
+
+EXTERN_C void __suppress_optim_on_vars_in_try(void)
+/*
+Calls of this routine are generated when the C generating back end is
+used.  It is used to make optimizers think that the addresses have been
+taken of any local variables used inside a try block, thus ensuring that
+their values will be saved when calling a routine inside the try block
+that may throw an exception.  The routine is not supposed to actually
+get called.
+*/
+{
+  unexpected_condition();
+} /* __suppress_optim_on_vars_in_try */
+
 #endif /* EXCEPTION_HANDLING */
 
 /******************************************************************************
