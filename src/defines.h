@@ -28,7 +28,6 @@ Flags to be set for any version that uses the C++ generating back end.
 #define BACK_END_IS_C_GEN_BE 0
 #define BACK_END_IS_CP_GEN_BE 1
 #define DO_IL_LOWERING 0
-#define AUTOMATIC_TEMPLATE_INSTANTIATION 0
 #define INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL 0
 #ifdef _WIN32
 /* On NT, don't generate an IL file. */
@@ -42,6 +41,8 @@ Flags to be set for any version that uses the C++ generating back end.
 #define CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS 1
 #define NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS 1
 #define AUTOMATIC_TEMPLATE_INSTANTIATION 1
+#else /* !defined(SSI_VERSION) */
+#define AUTOMATIC_TEMPLATE_INSTANTIATION 0
 #endif /* ifdef SSI_VERSION */
 #endif /* ifdef CP_GEN_BE_VERSION */
 
