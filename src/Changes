@@ -1,5 +1,23 @@
 Version 2.16
 
+4/6/93  Error during nested instantiation
+
+A bug has been fixed that could cause spurious errors, and possibly
+an internal error, when a member function defined inside a class template
+is instantiated while instantiating another member function of the same class
+that was also defined inside the class.  For example,
+
+  template <class T> struct A {
+    void f1(){}
+    virtual void f2()
+    {
+      f1();	// f1 will be instantiated while f2 is being instantiated
+      A<T> xx;
+    }
+  };
+
+  A<int> a;	// Causes virtual inlines to be instantiated
+
 4/5/93  Class template with the same name as a template parameter
 
 An error is now issued if a class template has the same name as a
