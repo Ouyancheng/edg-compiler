@@ -1,5 +1,22 @@
 Version 2.19
 
+8/16/93 Array --> pointer and function --> pointer transformations
+
+The array to pointer and function to pointer implicit transformations
+are now done more accurately.  Formerly, they were never done when
+initializing a reference, and always done otherwise.  This did not
+accommodate some strange cases like the following:
+
+void ff();
+void g(char *const &r);
+void g(float);
+void i(void (*const (&r2))());
+void i(float);
+void m() {
+  g("abc");  // Now okay
+  i(ff);     // Now okay
+}
+
 8/16/93 Guard code around template static data member initializations
 
 A new flag TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE has been added

@@ -723,6 +723,95 @@ constructor call).
 }  /* set_user_conversion_for_class_copy */
 
 
+static a_boolean array_transformation_needed_on_reference_init(
+                                                         a_type_ptr arg_type,
+                                                         a_type_ptr param_type)
+/*
+Return TRUE if when initializing a parameter of type param_type (a reference
+type) from an argument of type arg_type (an array type), the array -->
+pointer transformation should be done.
+*/
+{
+  a_boolean  transform_needed = FALSE;
+  a_type_ptr base_param_type = type_pointed_to(param_type);
+
+  /* The logic here must match conv_array_operand_to_pointer_operand. */
+  /* The array --> pointer transformation is wanted only if initializing
+     a reference to the right pointer type, as in
+       char *const &r = "abc";
+  */
+  if (is_pointer_type(base_param_type)) {
+    base_param_type = type_pointed_to(base_param_type);
+    if (types_are_compatible(f_skip_typerefs(base_param_type),
+                             f_skip_typerefs(array_element_type(arg_type)))) {
+      transform_needed = TRUE;
+    }  /* if */
+  }  /* if */
+  return transform_needed;
+}  /* array_transformation_needed_on_reference_init */
+
+
+static a_boolean function_transformation_needed_on_reference_init(
+                                                         a_type_ptr arg_type,
+                                                         a_type_ptr param_type)
+/*
+Return TRUE if when initializing a parameter of type param_type (a reference
+type) from an argument of type arg_type (a function type), the function -->
+pointer transformation should be done.
+*/
+{
+  a_boolean  transform_needed = FALSE;
+  a_type_ptr base_param_type = type_pointed_to(param_type);
+
+  /* The logic here must match conv_function_designator_to_ptr_to_function. */
+  /* The function --> pointer transformation is wanted only if
+     initializing a reference to the right pointer type, as in
+       void f();
+       void (&r)() = f;
+  */
+  if (is_pointer_type(base_param_type)) {
+    base_param_type = type_pointed_to(base_param_type);
+    if (types_are_compatible(f_skip_typerefs(base_param_type),
+                             f_skip_typerefs(arg_type))) {
+      transform_needed = TRUE;
+    }  /* if */
+  }  /* if */
+  return transform_needed;
+}  /* function_transformation_needed_on_reference_init */
+
+
+static a_type_ptr type_after_function_to_pointer_transformation(
+                                                       a_type_ptr arg_type,
+                                                       an_operand *arg_operand)
+/*
+Determine the type of an argument of type arg_type (a function type) after
+the function --> pointer transformation.  Return the resulting pointer type.
+If arg_operand is non-NULL, it points to an operand for the argument.
+*/
+{
+  a_type_ptr ptr_type;
+
+  if (arg_operand != NULL && is_sym_for_member_operand(arg_operand)) {
+    /* Member function, so the pointer is a pointer to member.
+       This is actually an extension -- the ARM doesn't allow
+       a member function reference to decay to a pointer to
+       member implicitly.  No warning is needed here, even in
+       strict mode; the diagnostic is issued later. */
+    a_symbol_ptr  func_sym = arg_operand->variant.symbol;
+    a_symbol_ptr  fund_sym = fundamental_symbol_of(func_sym);
+    a_routine_ptr rout;
+    check_assertion(fund_sym->kind == (a_symbol_kind)sk_member_function);
+    rout = fund_sym->variant.routine.ptr;
+    ptr_type = ptr_to_member_type(rout->type,
+                                 rout->source_corresp.class_of_which_a_member);
+  } else {
+    /* Nonmember function. */
+   ptr_type = make_pointer_type(arg_type);
+  }  /* if */
+  return ptr_type;
+}  /* type_after_function_to_pointer_transformation */
+
+
 void determine_arg_match_level(an_operand           *arg_operand,
                                a_type_ptr           arg_type,
                                a_type_ptr           param_type,
@@ -740,6 +829,7 @@ User-defined conversions will be attempted only if try_user_conversions
 is TRUE; it must be FALSE if arg_type is non-NULL.
 */
 {
+  an_operand        *orig_arg_operand;
   a_boolean         param_is_reference;
   a_boolean         param_is_class_type, arg_is_class_type;
   a_boolean         ref_type_qualifiers_dropped, ref_type_qualifiers_added;
@@ -769,6 +859,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     }  /* if */
 #endif /* CHECKING */
   }  /* if */
+  orig_arg_operand = arg_operand;
   /* Try an exact match or one involving trivial conversions.  This is
      case [1] in the ARM.  Trivial conversions are
        From:      To:
@@ -793,6 +884,30 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
      conversions, hoping thereby to end up with the arg type. */
   ref_type_qualifiers_dropped = ref_type_qualifiers_added = FALSE;
   param_is_reference = is_reference_type(param_type);
+  /* See if the array --> pointer and function --> pointer transformations
+     should be done. */
+  if (is_array_type(arg_type) &&
+      (!param_is_reference ||
+       array_transformation_needed_on_reference_init(arg_type, param_type))) {
+    /* Simulate the array --> pointer transformation.  After the transformation
+       we have only a type for the argument, and no arg_operand. */
+    arg_type = make_pointer_type(array_element_type(arg_type));
+    arg_operand = NULL;
+  } else if ((arg_operand != NULL ?
+                              (is_a_function_designator(arg_operand) &&
+                               !is_indefinite_function_operand(arg_operand)) :
+                              is_function_type(arg_type)) &&
+             (!param_is_reference ||
+              function_transformation_needed_on_reference_init(arg_type,
+                                                               param_type))) {
+    /* Simulate the function --> pointer transformation.  After the
+       transformation we have only a type for the argument, and no
+       arg_operand. */
+    /* Note that indefinite function designators are left alone. */
+    arg_type = type_after_function_to_pointer_transformation(arg_type,
+                                                             arg_operand);
+    arg_operand = NULL;
+  }  /* if */
   if (param_is_reference) {
     /* The parameter type is a reference.  Drop the reference and remember
        we have one.  This is the "T --> T&" case.  Note that we're dropping any
@@ -822,79 +937,26 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     /* Qualifiers on the parameter type are also not significant when dealing
        with rvalues.  One cannot distinguish f(int) and f(const int). */
     param_type = skip_typerefs(param_type);
-    /* See if any transformations apply (e.g., T[] --> T*). */
-    if (arg_operand != NULL) {
-      /* Note that the cases here simulate transformations handled by
-         do_operand_transformations. */
-      if (is_an_lvalue(arg_operand)) {
-        /* See if the operand is an lvalue for a constant-valued variable.
-           If so, an lvalue --> rvalue transformation might be useful. */
-        a_constant_ptr con_var_value = NULL;
-        if (is_constant_operand(arg_operand)) {
-          a_constant_ptr con = &arg_operand->variant.constant;
-          if (con_is_exact_addr_of_variable(con)) {
-            con_var_value =
-                     var_constant_value(con->variant.address.variant.variable);
-          }  /* if */
-        } else if (is_expression_operand(arg_operand)) {
+    /* See if the operand is an lvalue for a constant-valued variable.
+       If so, an lvalue --> rvalue transformation might be useful. */
+    if (arg_operand != NULL && is_an_lvalue(arg_operand)) {
+      a_constant_ptr con_var_value = NULL;
+      if (is_constant_operand(arg_operand)) {
+        a_constant_ptr con = &arg_operand->variant.constant;
+        if (con_is_exact_addr_of_variable(con)) {
           con_var_value =
+                     var_constant_value(con->variant.address.variant.variable);
+        }  /* if */
+      } else if (is_expression_operand(arg_operand)) {
+        con_var_value =
             value_of_constant_var_lvalue_expr(arg_operand->variant.expression);
-        }  /* if */
-        if (con_var_value != NULL) {
-          /* The operand is an lvalue for a constant-valued variable.
-             Make an operand for the constant value, because it might be
-             that a pointer conversion can convert 0 to a pointer type. */
-          make_constant_operand(con_var_value, &implicit_arg_operand);
-          arg_operand = &implicit_arg_operand;
-        } else if (is_array_type(arg_type)) {
-          /* An array lvalue, or a string literal represented as an lvalue.
-             This is the "T[] --> T*" case.  Make a operand to crudely
-             simulate the operand one would get if one converted the
-             operand to a pointer.  The real operand cannot be made
-             without copying and allocating IL entries that would probably
-             be wasted, and the crude simulation will act like the operand
-             would in the argument match process.  The crude simulation
-             is a NULL pointer constant of the right type. */
-          /* This is a fake version of conv_array_operand_to_pointer_operand.*/
-          arg_type = make_pointer_type(array_element_type(arg_type));
-          clear_operand((an_operand_kind)ok_constant,
-                        &implicit_arg_operand);
-          implicit_arg_operand.position = arg_operand->position;
-          make_zero_of_proper_type(arg_type,
-                                   &implicit_arg_operand.variant.constant);
-          implicit_arg_operand.type = arg_type;
-          arg_operand = &implicit_arg_operand;
-        }  /* if */
-      } else if (is_a_function_designator(arg_operand)) {
-        /* Function designator.  This is the "T(args) --> T(*)(args)" case
-           or the equivalent pointer-to-member case (an extension).
-           Make an operand that is the function converted to an rvalue
-           that's a pointer to the function.  Do not use
-           conv_function_designator_to_ptr_to_function because it
-           can generate errors. */
-        if (is_sym_for_member_operand(arg_operand)) {
-          /* Pointer-to-member case. */
-          a_symbol_ptr func_sym = arg_operand->variant.symbol;
-          a_symbol_ptr fund_sym = fundamental_symbol_of(func_sym);
-          /* Use the flag settings that will suppress errors. */
-          make_ptr_to_member_constant_operand(fund_sym, func_sym,
-                                              &arg_operand->position,
-                                              /*check_protected_access=*/FALSE,
-                                             /*is_operand_of_address_of=*/TRUE,
-                                              &implicit_arg_operand);
-          arg_operand = &implicit_arg_operand;
-          arg_type = arg_operand->type;
-        } else {
-          copy_operand(arg_operand, &implicit_arg_operand);
-          arg_operand = &implicit_arg_operand;
-          /* Watch out for indefinite function designators.  Leave their types
-             unknown. */
-          if (!is_indefinite_function_operand(arg_operand)) {
-            arg_operand->type = arg_type= make_pointer_type(arg_operand->type);
-          }  /* if */
-          arg_operand->state = (an_operand_state)os_rvalue;
-          arg_operand->came_from_reference = FALSE;
-        }  /* if */
+      }  /* if */
+      if (con_var_value != NULL) {
+        /* The operand is an lvalue for a constant-valued variable.
+           Make an operand for the constant value, because it might be
+           that a pointer conversion can convert 0 to a pointer type. */
+        make_constant_operand(con_var_value, &implicit_arg_operand);
+        arg_operand = &implicit_arg_operand;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -924,8 +986,6 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                  is_class_struct_union_type(param_type)) {
         /* The argument and parameter are the same class type, so this
            qualifies as a class copy. */
-        /* arg_operand should be present, because it can be omitted only
-           for "this" parameter operands and they cannot have class type. */
         check_assertion(arg_operand != NULL);
         set_user_conversion_for_class_copy(arg_operand, param_type,
                                            &arg_summary->user_conversion);
@@ -963,7 +1023,9 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
          overloaded function.  It can be converted to an appropriate
          pointer (ARM 13.3) or pointer-to-member type (not mentioned in ARM,
          but sensible).  Note that in the pointer-to-member case standard
-         conversions (to a derived class) may also be required. */
+         conversions (to a derived class) may also be required.  Note
+         that the operand can be either a function designator or a pointer
+         to a function at this point; it doesn't matter. */
       if (find_addr_of_overloaded_function_match(arg_operand->variant.symbol,
                                                  param_type,
                                                  &arg_operand->position,
@@ -1029,6 +1091,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     if (param_is_reference) {
       /* This case falls under the reference standard conversions (ARM 4.7). */
       /* The operand need not be forced to an rvalue. */
+      check_assertion(arg_operand != NULL);
       arg_summary->user_conversion.result_is_an_lvalue =
                                                      is_an_lvalue(arg_operand);
     } else {
@@ -1036,8 +1099,6 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
          or the copy constructor rules (ARM 12.8).  Note that this case
          counts as a standard conversion even if a copy constructor is
          called. */
-      /* arg_operand should be present, because it can be omitted only
-         for "this" parameter operands and they cannot have class type. */
       check_assertion(arg_operand != NULL);
       set_user_conversion_for_class_copy(arg_operand, param_type,
                                          &arg_summary->user_conversion);
@@ -1046,11 +1107,13 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   }  /* if */
   if (try_user_conversions) {
     /* Try a match involving user-defined conversions.  This is case [4]
-       in the ARM. */
-    /* Note that we will not get here if arg_operand is NULL, that is, if we
-       have an argument type but no argument operand. */
+       in the ARM.  Note that we use orig_arg_operand, i.e., the argument
+       before any implicit transformations (like array --> pointer) for
+       these tests, because the user-defined conversion routines may or
+       may not want the transformations we've done. */
+    check_assertion(orig_arg_operand != NULL);
     if (param_is_class_type &&
-        (conversion_to_class_possible(arg_operand, param_type,
+        (conversion_to_class_possible(orig_arg_operand, param_type,
                                       &user_conversion, &ambiguous,
                                       (a_candidate_function_ptr *)NULL) ||
          ambiguous)) {
@@ -1060,7 +1123,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                                           &user_conversion);
       goto have_level;
     } else if (arg_is_class_type &&
-               (conversion_from_class_possible(arg_operand, param_type,
+               (conversion_from_class_possible(orig_arg_operand, param_type,
                                                (a_builtin_type_kind_set)
                                                                       BTK_NONE,
                                                &user_conversion,
@@ -1855,6 +1918,22 @@ evaluated (but not checked to see if the match is good enough).
       type_qualifiers_added = FALSE;
       pointer_case = FALSE;
       param_is_reference = is_reference_type(param_type);
+      /* See if any implicit transformations (e.g., array --> pointer) should
+         be done. */
+      if (is_array_type(arg_type) &&
+          (!param_is_reference ||
+           array_transformation_needed_on_reference_init(arg_type,
+                                                         param_type))) {
+        /* Simulate the array --> pointer transformation.  */
+        arg_type = make_pointer_type(array_element_type(arg_type));
+      } else if (is_a_function_designator(&arg_operand->operand) &&
+                 (!param_is_reference ||
+                  function_transformation_needed_on_reference_init(arg_type,
+                                                                param_type))) {
+        /* Simulate the function --> pointer transformation. */
+        arg_type = type_after_function_to_pointer_transformation(arg_type,
+                                                        &arg_operand->operand);
+      }  /* if */
       if (param_is_reference) {
         /* The parameter has a reference type. */
         /* Drop the reference type. */
@@ -1871,30 +1950,6 @@ evaluated (but not checked to see if the match is good enough).
            important (this is not supported by the ARM, but it matches the
            handling in determine_arg_match_level). */
         param_type = skip_typerefs(param_type);
-        /* Do the array-->pointer and function-->pointer transformations. */
-        if (is_array_type(arg_type)) {
-          arg_type = make_pointer_type(array_element_type(arg_type));
-        } else if (is_function_type(arg_type)) {
-          if (is_sym_for_member_operand(&arg_operand->operand)) {
-            /* Member function, so the pointer is a pointer to member.
-               This is actually an extension -- the ARM doesn't allow
-               a member function reference to decay to a pointer to
-               member implicitly.  No warning is needed here, even in
-               strict mode; the diagnostic is issued later. */
-            a_symbol_ptr  func_sym = arg_operand->operand.variant.symbol;
-            a_symbol_ptr  fund_sym = fundamental_symbol_of(func_sym);
-            a_routine_ptr rout;
-            check_assertion(fund_sym->kind ==
-                                            (a_symbol_kind)sk_member_function);
-            rout = fund_sym->variant.routine.ptr;
-            arg_type = ptr_to_member_type(rout->type,
-                                          rout->source_corresp.
-                                                      class_of_which_a_member);
-          } else {
-            /* Nonmember function. */
-            arg_type = make_pointer_type(arg_type);
-          }  /* if */
-        }  /* if */
       }  /* if */
       if (is_pointer_type(arg_type) && is_pointer_type(param_type)) {
         /* Check for cases where type qualifiers are being added down one
