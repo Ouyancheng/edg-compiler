@@ -722,7 +722,7 @@ unit to the primary one.
   /* Process only scopes that must be merged into their counterparts. */
   if (entry_to_be_merged(scope)) {
     /* Find the corresponding scope. */
-    primary_scope = (a_scope_ptr)checked_trans_unit_corresp_pointer_of(scope);
+    primary_scope = (a_scope_ptr)canonical_il_entry_of(scope);
     /* For the file scope, we will be using and updating the end pointers
        in the pointers block. */
     if (scope->kind == (a_scope_kind)sck_file) {
@@ -1023,6 +1023,7 @@ translation unit to the primary translation unit IL.  Do final processing,
 which includes IL lowering if appropriate.
 */
 {
+  check_assertion(!in_secondary_trans_unit(rout));
 #if MAINTAIN_NEEDED_FLAGS
   if (routine_needed_even_if_unreferenced(rout)) {
     /* Mark an externally-defined routine as "needed". */
@@ -1033,7 +1034,7 @@ which includes IL lowering if appropriate.
   lower_il_memory_region(rout->assoc_scope);
 #endif /* DO_IL_LOWERING */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  { a_scope_ptr rout_scope= il_header.region_scope_entry[rout->assoc_scope];
+  { a_scope_ptr rout_scope = il_header.region_scope_entry[rout->assoc_scope];
     add_scope_orphaned_il_lists(rout_scope);
   }
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
@@ -1055,12 +1056,12 @@ to the primary IL.  This includes lowering if necessary.
     for (routine = scope->routines;
          routine != NULL;
          routine = routine->next) {
-      a_routine_ptr corresp_routine =
-                 (a_routine_ptr)checked_trans_unit_corresp_pointer_of(routine);
-      if (corresp_routine->assoc_scope != NULL_region_number &&
-          corresp_routine->source_corresp.copied_from_secondary_trans_unit) {
+      a_routine_ptr primary_routine =
+                                 (a_routine_ptr)canonical_il_entry_of(routine);
+      if (primary_routine->assoc_scope != NULL_region_number &&
+          primary_routine->source_corresp.copied_from_secondary_trans_unit) {
         /* This routine definition was moved. */
-        wrap_up_moved_function(corresp_routine);
+        wrap_up_moved_function(primary_routine);
       }  /* if */
     }  /* for */
     for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
