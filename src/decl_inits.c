@@ -2990,7 +2990,7 @@ returned set to TRUE.
         a_targ_size_t  num_elems;
         check_assertion(is_array_type(array_type));
         if (!is_array_type(constant.type)) {
-          /* An error occurrent while scanning the initializer constant.
+          /* An error occurred while scanning the initializer constant.
              Set the number of elements to "1" to avoid a second diagnostic
              about creating a variable of incomplete type. */
           check_assertion(is_or_contains_error_type(constant.type) &&
