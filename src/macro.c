@@ -3277,7 +3277,8 @@ Scan and process a #define directive.
           } else {
             /* Remember the position of the identifier in case we need to
                issue an error. */
-            a_source_position err_pos = pos_curr_token;
+            a_source_position err_pos;
+            err_pos = pos_curr_token;
             /* Add the parameter to the list. */
             param_num++;
             pp = alloc_macro_param();
