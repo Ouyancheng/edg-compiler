@@ -175,8 +175,8 @@ extern void reconcile_routine_types(a_routine_ptr  routine_ptr,
                                     a_boolean      preserve_rout_type,
                                     a_boolean      preserve_type_ptr);
 
-extern void add_throw_specification(a_throw_specification_ptr  tsp,
-                                    a_routine_ptr              rp);
+extern void add_throw_specification(a_func_info_block_ptr  func_info,
+                                    a_routine_ptr          rp);
 
 extern void decl_var_or_routine(a_symbol_locator    *locator,
                                 a_storage_class     storage_class,

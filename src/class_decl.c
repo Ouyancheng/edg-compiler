@@ -6245,9 +6245,10 @@ Scan the body of a class definition, including the base classes list.
                   }  /* if */
                 }  /* if */
               }  /* if */
-              add_throw_specification(func_info.throw_specification,
-                                          rout_sym->variant.routine.ptr);
-
+              /* Bind the throw specification to the routine entry.  Do
+                 compatibility checking if this is a redeclaration. */
+              add_throw_specification(&func_info,
+                                      rout_sym->variant.routine.ptr);
               if (!function_def_present) {
                 if (func_info.param_id_list != NULL) {
                   /* Free the list of parameter identifiers -- they're not
