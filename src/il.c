@@ -118,6 +118,9 @@ static unsigned long
 #endif /* DEBUG */
 
 
+/* Forward declaration needed because of mutual recursion. */
+static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr dip);
+
 #if DEBUG
 /* Forward declaration needed because of mutual recursion. */
 void db_type(a_type *tp);
@@ -1760,6 +1763,44 @@ value.  Several fields are cleared or adjusted.
 }  /* alloc_unshared_constant */
 
 
+static a_constant_ptr copy_unshared_constant(a_constant_ptr old_constant)
+/*
+Make a copy of an unshared constant and return pointer to the copy.
+*/
+{
+  a_constant_ptr new_constant, old_aggr_con, new_aggr_con;
+
+  new_constant = alloc_unshared_constant(old_constant);
+  new_constant->next = NULL;
+  if (new_constant->kind == (a_constant_repr_kind)ck_aggregate) {
+    /* For aggregate constants, copy the subtree also. */
+    new_constant->variant.aggregate.first_constant = NULL;
+    new_constant->variant.aggregate.last_constant = NULL;
+    for (old_aggr_con = old_constant->variant.aggregate.first_constant;
+         old_aggr_con != NULL;
+         old_aggr_con = old_aggr_con->next) {
+      new_aggr_con = copy_unshared_constant(old_aggr_con);
+      /* Add the constant to the aggregate list. */
+      if (new_constant->variant.aggregate.first_constant == NULL) {
+        new_constant->variant.aggregate.first_constant = new_aggr_con;
+      } else {
+        new_constant->variant.aggregate.last_constant->next = new_aggr_con;
+      }  /* if */
+      new_constant->variant.aggregate.last_constant = new_aggr_con;
+    }  /* for */
+  } else if (new_constant->kind == (a_constant_repr_kind)ck_init_repeat) {
+    /* For ck_init_repeat constants, copy the subtree also. */
+    new_constant->variant.init_repeat.constant =
+            copy_unshared_constant(old_constant->variant.init_repeat.constant);
+  } else if (new_constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
+    /* For ck_dynamic_init constants, copy the subtree also. */
+    new_constant->variant.dynamic_init =
+                         copy_dynamic_init(old_constant->variant.dynamic_init);
+  }  /* if */
+  return new_constant;
+}  /* copy_unshared_constant */
+
+
 static a_constant_hash_value hash_constant(a_constant *cp)
 /*
 Return the hash value for the indicated constant, which gives the proper
@@ -3395,12 +3436,12 @@ the current scope.
 }  /* add_to_dynamic_inits_list */
 
 
-static a_dynamic_init_ptr copy_temp_init_dynamic_init(a_dynamic_init_ptr dip)
+static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr dip)
 /*
 Make a copy of a dynamic initialization entry and return a pointer to the copy.
 This is not a general-purpose routine -- it is meant to be called from
 copy_expr_tree for the kinds of dynamic initializations done under an
-enk_temp_init node.
+expression node.
 */
 {
   a_dynamic_init_ptr new_dip;
@@ -3417,21 +3458,26 @@ enk_temp_init node.
       new_dip->variant.constructor.args =
                         copy_list_of_expr_trees(dip->variant.constructor.args);
       break;
+    case dik_constant:
+      /* The constant pointed to is unshared and must be copied. */
+      new_dip->variant.constant =
+                                 copy_unshared_constant(dip->variant.constant);
+      break;
+    case dik_nonconstant_aggregate:
+      /* The constant pointed to is unshared and must be copied. */
+      new_dip->variant.aggregate.aggr_const =
+                     copy_unshared_constant(dip->variant.aggregate.aggr_const);
+      break;
 #if CHECKING
     case dik_member_copy:
     case dik_base_class_copy:
-    case dik_constant:
-    case dik_nonconstant_aggregate:
-      /* These kinds are not expected under enk_temp_init nodes. */
-      /* To implement the constant cases, one would have to copy the constants,
-         because they are unshared. */
-      internal_error("set_dynamic_init_kind: unimplemented kind");
+      /* These kinds are not expected under expression nodes. */
     default:
-      internal_error("set_dynamic_init_kind: bad kind");
+      internal_error("copy_dynamic_init: bad kind");
 #endif /* CHECKING */
   }  /* switch */
   return new_dip;
-}  /* copy_temp_init_dynamic_init */
+}  /* copy_dynamic_init */
 
 
 a_variable_ptr alloc_variable(a_storage_class  storage_class)
@@ -3828,8 +3874,9 @@ fields to default values.
       node->variant.field = NULL;
       break;
     case enk_temp_init:
-      node->variant.temp_init.dynamic_init = NULL;
-      node->variant.temp_init.expr         = NULL;
+    case enk_new_init:
+      node->variant.init.dynamic_init = NULL;
+      node->variant.init.expr         = NULL;
       break;
 #if CHECKING
     default:
@@ -4031,12 +4078,12 @@ Make a copy of an expression tree and return a pointer to it.
     /* Copy the operands of the operation. */
     expr_copy->variant.operation.operands =
                      copy_list_of_expr_trees(expr->variant.operation.operands);
-  } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
-    /* Copy the subtree and dynamic init for a temp init. */
-    expr_copy->variant.temp_init.expr =
-                                  copy_expr_tree(expr->variant.temp_init.expr);
-    expr_copy->variant.temp_init.dynamic_init =
-             copy_temp_init_dynamic_init(expr->variant.temp_init.dynamic_init);
+  } else if (expr->kind == (an_expr_node_kind)enk_temp_init ||
+             expr->kind == (an_expr_node_kind)enk_new_init) {
+    /* Copy the subtree and dynamic init for a dynamic initialization. */
+    expr_copy->variant.init.expr = copy_expr_tree(expr->variant.init.expr);
+    expr_copy->variant.init.dynamic_init =
+                            copy_dynamic_init(expr->variant.init.dynamic_init);
   }  /* if */
   return expr_copy;
 }  /* copy_expr_tree */
