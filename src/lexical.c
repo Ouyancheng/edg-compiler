@@ -8322,7 +8322,7 @@ found, but do return TRUE.
   db_exit();
 
   return token_present;
-}  /* required_token */
+}  /* required_token_no_advance */
 
 
 a_boolean loop_token(a_token_kind token)
