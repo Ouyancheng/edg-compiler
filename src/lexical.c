@@ -5323,10 +5323,13 @@ This routine may only be called in C++ mode.
           class_symbol = class_qualified_id_lookup(&locator_for_curr_id,
                                                    class_type,
                                                    IDL_MUST_BE_CLASS);
+          /* If the class lookup fails, and a vacuous destructor is
+	     allowed, do another lookup without the requirement that
+	     a class be found. */
           if (class_symbol == NULL && might_be_vacuous_dtor) {
             class_symbol = class_qualified_id_lookup(&locator_for_curr_id,
                                                      class_type,
-                                                     IDL_MUST_BE_CLASS);
+                                                     IDL_NO_OPTIONS);
             is_vacuous_dtor = TRUE;
             if (class_symbol != NULL && !is_type_symbol(class_symbol)) {
               class_symbol = NULL;
@@ -5633,9 +5636,11 @@ is looked up.  Returns TRUE if identifier is a qualified name.
             }  /* if */
           }  /* if */
         } else {
+	  a_boolean	is_vacuous_dtor =
+			 locator_for_curr_id.is_vacuous_destructor_reference;
           if (class_type == NULL) {
 	    okay = FALSE;
-          } else if (is_incomplete_type(class_type) &&
+          } else if (!is_vacuous_dtor && is_incomplete_type(class_type) &&
                      class_type->variant.class_struct_union.
                                          extra_info->assoc_scope == NULL) {
             /* An error must have occurred while scanning the class
@@ -5655,7 +5660,7 @@ is looked up.  Returns TRUE if identifier is a qualified name.
             }  /* if */
 #endif /* CHECKING */
             /* Don't try to look up a vacuous destructor name. */
-            if (locator_for_curr_id.is_vacuous_destructor_reference) {
+            if (is_vacuous_dtor) {
               /* If class_type is NULL an error occurred while processing
 		 the vacuous destructor.  Treat this the same way we would
 		 a failed lookup. */
