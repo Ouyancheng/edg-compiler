@@ -477,6 +477,7 @@ check_abbreviation()
 --exceptions
 --explicit
 --extended_designators
+--extended_variadic_macros
 --extern_inline
 --far_code_pointers
 --far_data_pointers
@@ -527,6 +528,7 @@ check_abbreviation()
 --no_exceptions
 --no_explicit
 --no_extended_designators
+--no_extended_variadic_macros
 --no_extern_inline
 --no_friend_injection
 --no_guiding_decls
@@ -556,6 +558,7 @@ check_abbreviation()
 --no_typename
 --no_use_before_set_warnings
 --no_using_std
+--no_variadic_macros
 --no_vla
 --no_warnings
 --no_wchar_t_keyword
@@ -612,6 +615,7 @@ check_abbreviation()
 --unsigned_chars
 --use_pch
 --using_std
+--variadic_macros
 --version
 --vla
 --wchar_t_keyword
@@ -1004,6 +1008,10 @@ process_option()
          --no_designators | \
          --extended_designators | \
          --no_extended_designators | \
+         --variadic_macros | \
+         --no_variadic_macros | \
+         --extended_variadic_macros | \
+         --no_extended_variadic_macros | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
