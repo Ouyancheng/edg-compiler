@@ -1171,6 +1171,7 @@ types separated by commas (when single_type_required is FALSE).
   a_boolean	      result = TRUE;
   a_boolean	      is_implicit_template_type;
   a_symbol_ptr	      specific_sym = locator_for_curr_id.specific_symbol;
+  a_token_kind	      next_tok;
 
   db_enter(3, "is_decl_not_expr_full");
   /* Determine whether the current identifier is a synthesized template
@@ -1195,9 +1196,13 @@ types separated by commas (when single_type_required is FALSE).
      to make sure we didn't guess incorrectly about this being a type.
      In Microsoft mode, function-style cases like (unsigned int(x)) are
      allowed.  In normal mode, we assume this to be a cast when the
-     type start is not followed by a "(". */
+     type start is not followed by a "(".  Note 2: Function-style casts can
+     also appear in contexts in which is_cast is not TRUE.  In Microsoft
+     mode we have to check for multi-keyword casts in such cases. */
+  next_tok = next_token();
   if (curr_token == tok_typename ||
-      ((next_token() == tok_lparen ||
+      ((next_tok == tok_lparen ||
+       (microsoft_mode && is_type_keyword(next_tok)) || /* See note 2 above. */
        (is_cast(flags) && /* See note 1 above */
         (is_implicit_template_type || microsoft_mode))) &&
        is_type_start(/*is_expr_context=*/TRUE))) {

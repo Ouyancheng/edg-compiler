@@ -1,5 +1,17 @@
 Version 3.6
 
+11/12/04 Microsoft compatibility: disambiguation of functional notation casts
+
+The C++ standard requires that the type in a functional notation cast be
+a single identifier or keyword.  In Microsoft mode, more than one keyword
+may be used in a functional notation cast.  Such casts were not handled
+properly for disambiguation purposes resulting in spurious errors.  Now
+fixed.
+
+  void f(int t) {
+    if (unsigned long(t) < 5UL);
+  }
+
 11/12/04 Character arrays partially initialized with string literals
 
 The front end now marks as "partially initialized" character array variables
