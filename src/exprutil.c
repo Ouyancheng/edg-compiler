@@ -1876,7 +1876,8 @@ expression; if it were a constant expression, we wouldn't have an
 expression node.  It's also assumed to be an evaluated expression (for
 purposes of error diagnosis).  The caller must have already determined
 that the conversion is allowed, except for casts to ambiguous or
-inaccessible base classes.
+inaccessible base classes.  This routine does not handle user-defined
+conversions.
 */
 {
   a_constant local_constant;
@@ -1937,7 +1938,8 @@ implicit cast rather than an explicit one.  If there are any warnings
 detected on the type change, issue them only if is_implicit_cast is TRUE.
 The operand must be an rvalue or error operand.  The caller must have
 already determined that the conversion is allowed, except for casts to
-ambiguous or inaccessible base classes.
+ambiguous or inaccessible base classes.  This routine does not handle
+user-defined conversions.
 */
 {
   a_boolean         did_not_fold, access_error_reported, ambiguous;
