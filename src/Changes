@@ -1,5 +1,12 @@
 Version 2.17
 
+4/30/93  Bug in enum constant linked list
+
+A bug has been fixed in the construction of the linked list of enum
+constant entries.  In this example an endless loop was created:
+
+  enum E { a, b, c=a };     // Circular linked list eliminated
+
 4/30/93  Improved checking for conversions for operands of built-in operators
 
 The checking for conversions that will convert class type operands of
