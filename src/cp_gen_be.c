@@ -5896,13 +5896,16 @@ Generate code for the indicated statement.
         write_tok_str("__asm ");
         write_code_string(statement->variant.asm_entry->
                                        asm_string->variant.string.value);
+        /* The single-line __asm ends with end of line or a right brace. */
+        end_output_line();
+        suppress_trailing_space = TRUE;
       } else {        
         write_tok_str("asm(");
         gen_constant(statement->variant.asm_entry->asm_string,
                      /*need_parens=*/FALSE);
         write_tok_ch(')');
+        write_tok_ch(';');
       }  /* if */
-      write_tok_ch(';');
       break;
 #if ASM_FUNCTION_ALLOWED
     case stmk_asm_func_body:
