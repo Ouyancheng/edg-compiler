@@ -12719,10 +12719,12 @@ to be acceptable, and *conversion describes it.
                          &source_operand->position, orig_source_type,
                          dest_type);
     }  /* if */
-    /* Cast the operand to the result type. */
-    cast_operand(result_ptr_type, source_operand, /*check_cast_access=*/TRUE,
-                 /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
-                 /*reinterpret_semantics=*/FALSE);
+    if (!identical_types(result_ptr_type, source_operand->type)) {
+      /* Cast the operand to the result type. */
+      cast_operand(result_ptr_type, source_operand, /*check_cast_access=*/TRUE,
+                   /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
+                   /*reinterpret_semantics=*/FALSE);
+    }  /* if */
   } else if (direct_binding_possible &&
              is_a_function_designator(source_operand)) {
     /* The initial value is a function designator of the right type;
