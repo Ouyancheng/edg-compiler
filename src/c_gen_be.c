@@ -4689,10 +4689,10 @@ for the definition of the indicated routine.  scope is the associated scope.
 {
   a_type_ptr           type = rout->type;
 #if MICROSOFT_KEYWORDS_ALLOWED
-  a_type_qualifier_set microsoft_qualifiers;
+  a_type_qualifier_set microsoft_qualifiers = TQ_NONE;
 
   if (type->kind == (a_type_kind)tk_typeref) {
-    /* Microsoft qualifiers can appear above the function even in
+    /* Microsoft qualifiers can appear above the function type even in
        definitions. */
     microsoft_qualifiers = get_type_qualifiers(type);
     check_assertion_str((microsoft_qualifiers & ~TQ_ALL_MICROSOFT_QUALIFIERS)
