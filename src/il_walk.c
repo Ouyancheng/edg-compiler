@@ -515,7 +515,11 @@ translation unit, mark the canonical entry's definition as needed.
     a_routine_ptr canonical_rout =
                          (a_routine_ptr)trans_unit_corresp_of(rout)->canonical;
     if (canonical_rout != rout &&
-        in_secondary_trans_unit(canonical_rout)) {
+        in_secondary_trans_unit(canonical_rout)
+#if ONE_INSTANTIATION_PER_OBJECT
+        && needed_flag_bit_number == 0
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+                                      ) {
       set_routine_definition_needed(canonical_rout);
     }  /* if */
   }  /* if */      
@@ -712,7 +716,11 @@ translation unit, mark the canonical entry's definition as needed.
     a_type_ptr canonical_type =
                             (a_type_ptr)trans_unit_corresp_of(type)->canonical;
     if (canonical_type != type &&
-        in_secondary_trans_unit(canonical_type)) {
+        in_secondary_trans_unit(canonical_type)
+#if ONE_INSTANTIATION_PER_OBJECT
+        && needed_flag_bit_number == 0
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+                                      ) {
       set_class_definition_needed(canonical_type);
     }  /* if */
   }  /* if */      
@@ -776,7 +784,12 @@ with a source correspondence field.
 
   if (scp != NULL && scp->trans_unit_corresp != NULL) {
     char *canonical = scp->trans_unit_corresp->canonical;
-    if (canonical != entry_ptr && in_secondary_trans_unit(canonical)) {
+    if (canonical != entry_ptr &&
+        in_secondary_trans_unit(canonical)
+#if ONE_INSTANTIATION_PER_OBJECT
+        && needed_flag_bit_number == 0
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+                                      ) {
       mark_as_needed(canonical, entry_kind);
     }  /* if */
   }  /* if */    
@@ -1290,7 +1303,11 @@ IL.
     a_routine_ptr canonical_rout =
                          (a_routine_ptr)trans_unit_corresp_of(rout)->canonical;
     if (canonical_rout != rout &&
-        in_secondary_trans_unit(canonical_rout)) {
+        in_secondary_trans_unit(canonical_rout)
+#if ONE_INSTANTIATION_PER_OBJECT
+        && needed_flag_bit_number == 0
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+                                      ) {
       set_routine_keep_definition_in_il(canonical_rout);
     }  /* if */
   }  /* if */      
@@ -1364,7 +1381,11 @@ the IL.
     a_type_ptr canonical_type =
                             (a_type_ptr)trans_unit_corresp_of(type)->canonical;
     if (canonical_type != type &&
-        in_secondary_trans_unit(canonical_type)) {
+        in_secondary_trans_unit(canonical_type)
+#if ONE_INSTANTIATION_PER_OBJECT
+        && needed_flag_bit_number == 0
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+                                      ) {
       set_class_keep_definition_in_il(canonical_type);
     }  /* if */
   }  /* if */      
@@ -1464,7 +1485,12 @@ translation unit, mark the canonical entry to be kept in the IL.
 
   if (scp != NULL && scp->trans_unit_corresp != NULL) {
     char *canonical = scp->trans_unit_corresp->canonical;
-    if (canonical != entry_ptr && in_secondary_trans_unit(canonical)) {
+    if (canonical != entry_ptr &&
+        in_secondary_trans_unit(canonical)
+#if ONE_INSTANTIATION_PER_OBJECT
+        && needed_flag_bit_number == 0
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+                                      ) {
       mark_to_keep_in_il(canonical, entry_kind);
     }  /* if */
   }  /* if */    
