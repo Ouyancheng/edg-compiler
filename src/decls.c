@@ -1901,23 +1901,15 @@ in the file scope).
 */
 {
   a_variable_ptr          vp;
-  a_memory_region_number  region_to_switch_back_to;
-  a_scope_depth           scope_depth;
 
-  /* Allocate the variable at the file scope if requested. */
-  if (at_file_scope) {
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    scope_depth = DEPTH_OF_FILE_SCOPE;
-  } else {
-    scope_depth = decl_scope_level;
-  }  /* if */
-  vp = alloc_variable();
+  /* Allocate the variable at the file scope if requested.  Variables
+     receiving static storage, even if they are not to go on the file scope
+     variables list, should also be allocated in the file scope memory
+     region. */
+  vp = alloc_variable(storage_class);
   vp->type = type_ptr;
-  vp->storage_class = storage_class;
-  add_to_variables_list(vp, scope_depth);
-  if (at_file_scope) {
-    switch_back_to_original_region(region_to_switch_back_to);
-  }  /* if */
+  add_to_variables_list(vp, at_file_scope ? DEPTH_OF_FILE_SCOPE :
+                                            decl_scope_level);
   return vp;
 }  /* make_variable */
 
@@ -1931,12 +1923,10 @@ current scope.
 */
 {
   a_variable_ptr vp;
+  a_boolean      at_file_scope = (decl_scope_level == DEPTH_OF_FILE_SCOPE);
 
-  /* Allocate a variable to represent the anonymous union. */
-  vp = alloc_variable();
-  vp->type = anon_union_type;
   /* Check the storage class.  At file scope, only static is allowed. */
-  if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
+  if (at_file_scope) {
     switch (storage_class) {
       case sc_static:
         /* Okay. */
@@ -1972,13 +1962,33 @@ current scope.
 #endif /* CHECKING */
     }  /* switch */
   }  /* if */
-  vp->storage_class = storage_class;
-  /* Add the variable to the variables list for the current scope. */
-  add_to_variables_list(vp, decl_scope_level);
+  /* Allocate a variable to represent the anonymous union. */
+  vp = make_variable(anon_union_type, storage_class, at_file_scope);
   /* Promote the fields of the anonymous union to the current scope, and do
      some error checking on the anonymous union's members. */
   check_anonymous_union_symbols((a_type_ptr)NULL, (a_field_ptr)NULL, vp);
 }  /* make_anonymous_union_variable */
+
+
+a_variable_ptr make_param_variable(a_type_ptr       type_ptr,
+                                   a_storage_class  storage_class)
+/*
+Allocate a variable entry with type type_ptr.  If type_ptr is NULL (as it
+will be in trying to creating an implicit this paramter for static member
+functions) simply return NULL.
+*/
+{
+  a_variable_ptr vp;
+
+  if (type_ptr == NULL) {
+    vp = NULL;
+  } else {
+    vp = alloc_variable(storage_class);
+    vp->type = type_ptr;
+    vp->is_parameter = TRUE;
+  }  /* if */
+  return(vp);
+}  /* make_param_variable */
 
 
 a_variable_ptr make_parameter(a_type_ptr       type,
@@ -1992,10 +2002,7 @@ symbol sym.
 {
   a_variable_ptr vp;
 
-  vp = alloc_variable();
-  vp->type = type;
-  vp->storage_class = storage_class;
-  vp->is_parameter = TRUE;
+  vp = make_param_variable(type, storage_class);
   /* sym will be NULL when the parameter is unnamed. */
   if (sym != NULL) {
     sym->variant.variable = vp;
@@ -2032,28 +2039,6 @@ param type entry.
 }  /* fixup_parameters */
 
 
-static a_variable_ptr make_this_param_variable(a_type_ptr type_ptr)
-/*
-Allocate a variable entry with type type_ptr that will serve as the
-"this" parameter for a member function.  type_ptr will be NULL for static
-member functions, which have no implicit parameter; simply return NULL in
-this case.
-*/
-{
-  a_variable_ptr vp;
-
-  if (type_ptr == NULL) {
-    vp = NULL;
-  } else {
-    vp = alloc_variable();
-    vp->type = type_ptr;
-    vp->storage_class = (a_storage_class)sc_auto;
-    vp->is_parameter = TRUE;
-  }  /* if */
-  return(vp);
-}  /* make_this_param_variable */
-
-
 static void make_return_value_pointer_variable(a_type_ptr  rout_type,
                                                a_scope_ptr scope_ptr)
 /*
@@ -2061,11 +2046,11 @@ If required, allocate a variable with type pointer-to-function-return-type
 that will point to the storage provided by the caller for returning a
 class object by value, and store the variable in the function's scope
 entry.  The variable is created only when a flag in the routine type
-supplement indicates that it is required.
+supplement indicates that it is required.  The variable is flagged as a
+parameter, but it is added to no list.
 */
 {
   a_type_ptr      return_type;
-  a_variable_ptr  vp;
 
   if (rout_type->variant.routine.extra_info->
                              caller_provides_place_to_put_return_value) {
@@ -2079,13 +2064,11 @@ supplement indicates that it is required.
       internal_error("make_return_value_pointer_variable: not a class type");
     }  /* if */
 #endif /* CHECKING */
-    /* Create the variable.  Its type is pointer to the class type. */
-    vp = alloc_variable();
-    vp->type = make_pointer_type(return_type);
-    vp->storage_class = (a_storage_class)sc_auto;
-    vp->is_parameter = TRUE;
-    /* Record the variable pointer in the routine's IL scope. */
-    scope_ptr->variant.routine.return_value_pointer_variable = vp;
+    /* Create the variable (its type is pointer to the class type) and
+       record it in the routine's IL scope. */
+    scope_ptr->variant.routine.return_value_pointer_variable =
+                          make_param_variable(make_pointer_type(return_type),
+                                              (a_storage_class)sc_auto);
   }  /* if */
 }  /* make_return_value_pointer_variable */
 
@@ -3659,10 +3642,10 @@ a pointer to it in *symbol_ptr.
                            decl_scope_level, suppress_redecl_error);
   /* Create a new type entry and add it to the types list for the current
      scope. */
-  sym->variant.type = tp = alloc_named_type((a_type_kind)tk_typeref);
+  sym->variant.type = tp = alloc_unlinked_type((a_type_kind)tk_typeref);
   tp->variant.typeref.type = type_ptr;
   set_source_corresp(&(tp->source_corresp), sym);
-  add_to_types_list(tp, DEPTH_OF_FILE_SCOPE, in_old_style_param_decl_list);
+  add_to_types_list(tp, decl_scope_level, in_old_style_param_decl_list);
 
 return_point:
   /* Return the type name symbol to the caller. */
@@ -4652,13 +4635,7 @@ to indicate whether an enumeration is actually defined.
   if (tag_sym == NULL) {
     /* Create a new enumerated type.  All enumeration type entries are
        allocated in the file scope memory region. */
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    if (tag_id_present) {
-      enum_type = alloc_named_type((a_type_kind)tk_integer);
-    } else {
-      enum_type = alloc_unlinked_type((a_type_kind)tk_integer);
-    }  /* if */
-    switch_back_to_original_region(region_to_switch_back_to);
+    enum_type = alloc_unlinked_type((a_type_kind)tk_integer);
     /* set_type_size is called later, once the final type is known. */
     /* Set a default representation of "int", which may be adjusted later. */
     enum_type->variant.integer.int_kind = (an_integer_kind)ik_int;
@@ -4676,29 +4653,6 @@ to indicate whether an enumeration is actually defined.
       set_source_corresp(&(enum_type->source_corresp), tag_sym);
       tag_sym->class_of_which_a_member = class_of_which_a_member;
       tag_sym->variant.type = enum_type;
-      if (depth_of_containing_function_scope() != NO_SCOPE_DEPTH &&
-          ssep->kind != (a_scope_kind)sck_class_struct_union) {
-        /* This enumeration is being declared within a function scope, and
-           it is not a declaration nested within a C++ class definition.
-           (In ordinary C decl_scope_level will never refer to a
-           class-struct-union scope.)  Create a type (a "tag typeref") that
-           resides within the current scope (i.e., is allocated in the
-           function scope memory region and is on the function scope's types
-           list) and that points to the enumeration type itself in the file
-           scope. */
-        a_type_ptr tp;
-
-        /* Switch to the function scope region before allocating the "tag
-           typeref" type entry, and switch back afterwards. */
-        switch_to_function_scope_region(&region_to_switch_back_to);
-        tp = alloc_local_scope_type((a_type_kind)tk_typeref,
-                                    effective_decl_level,
-                                    in_old_style_param_decl_list);
-        switch_back_to_original_region(region_to_switch_back_to);
-        tp->variant.typeref.type = enum_type;
-        tp->variant.typeref.is_function_scope_tag = TRUE;
-        set_source_corresp(&(tp->source_corresp), tag_sym);
-      }  /* if */
     }  /* if */
     /* When an enumeration is defined within a class definition, its access
        should be set based on the access recorded in the current scope stack
@@ -4909,8 +4863,8 @@ to indicate whether an enumeration is actually defined.
        type list at the end of the prototype scope, so do not add them
        again. */
     if (!prototype_tag_resolution) {
-      add_to_types_list(enum_type, DEPTH_OF_FILE_SCOPE,
-                        /*in_old_style_param_decl_list=*/FALSE);
+      add_to_types_list(enum_type, effective_decl_level,
+                        in_old_style_param_decl_list);
     }  /* if */
     /* Switch back from the file scope memory region to whatever region
        was current upon entry. */
@@ -6215,61 +6169,6 @@ prototype scope) now that we are in the body of the function.
 }  /* reactivate_prototype_scope_symbols */
 
 
-#if 0
-static void link_param_types_into_file_scope_types_list(
-                                              a_param_type_ptr param_type_list,
-                                              a_scope_ptr      prototype_scope)
-/*
-Link the parameter types on the parameter type list pointed to by
-param_type_list into the file scope, so they will be found on an IL walk
-of the file scope.  This is needed when the types of the old-style parameters
-of a function definition do not match the prototyped type for that function.
-The types of the old-style parameter variables are compatible with, but not
-identical to, the types on the function's param_type_list.  What's worse,
-the types of the parameter variables were allocated at the file scope, but
-since they're not being used in the function type, they won't be found in
-the IL walk of the file scope.  Therefore, they need to be linked into the
-file scope.  Any types that are already linked into the file scope types
-list (e.g., int) are left alone, and any types already linked into the
-prototype_scope types list (e.g., structs/unions/enums) are left on that
-list and not linked into the file scope types list.
-*/
-{
-  a_type_ptr proto_scope_type, param_type;
-
-  for (; param_type_list != NULL; param_type_list = param_type_list->next) {
-    param_type = param_type_list->type;
-    /* See if the type appears on a type list (either file scope or
-       prototype scope) by seeing if it has a non-NULL "next" pointer. */
-    /* The last entry on the file scope types list can also be eliminated. */
-    if (param_type->next != NULL ||
-        scope_stack[DEPTH_OF_FILE_SCOPE].last_type == param_type) {
-      goto done_with_param_type;
-    }  /* if */
-    /* See if the type is on the prototype scope types list.  This is needed
-       only for the last type on the list, since the others were caught
-       above ("next" is non-NULL). */
-    if (prototype_scope != NULL) {
-      for (proto_scope_type = prototype_scope->types;
-           proto_scope_type != NULL;
-           proto_scope_type = proto_scope_type->next) {
-        if (proto_scope_type == param_type) {
-          /* The parameter type is already on the prototype scope types list,
-             so go on to the next parameter type. */
-          goto done_with_param_type;
-        }  /* if */
-      }  /* for */
-    }  /* if */
-    /* The parameter type is not on the file scope or prototype scope types
-       lists, so add it to the file scope types list. */
-    add_to_types_list(param_type, DEPTH_OF_FILE_SCOPE,
-                      /*in_old_style_param_decl_list=*/FALSE);
-done_with_param_type:;
-  }  /* for */
-}  /* link_param_types_into_file_scope_types_list */
-#endif /* if 0 */
-
-
 static void function_definition(
                           a_symbol_locator   *locator,
                           a_type_ptr         rout_type,
@@ -6419,8 +6318,9 @@ explicitly specified (rather than defaulted to "int").
   if (is_member_function_def) {
     a_type_ptr	rtp = skip_typerefs(old_type);
     scope_ptr->variant.routine.this_param_variable =
-	make_this_param_variable(rtp->variant.routine.extra_info->
-						   implicit_this_param_type);
+	make_param_variable(rtp->variant.routine.extra_info->
+						   implicit_this_param_type,
+                            (a_storage_class)sc_auto);
   } else if (storage_class == (a_storage_class)sc_unspecified &&
              routine_ptr->source_corresp.name != NULL &&
              strcmp(routine_ptr->source_corresp.name, "main") == 0) {
@@ -6700,7 +6600,8 @@ processing of function definition.
   if (extra_info->implicit_this_param_type != NULL) {
     /* Routine is a nonstatic member function. */
     scope->variant.routine.this_param_variable =
-                make_this_param_variable(extra_info->implicit_this_param_type);
+                make_param_variable(extra_info->implicit_this_param_type,
+                                    (a_storage_class)sc_auto);
   }  /* if */
   /* If appropriate, set the return value pointer variable in the scope
      entry.  This is a pointer to an implicit parameter specifying the
