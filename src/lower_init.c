@@ -407,7 +407,7 @@ to the "if", and set *else_insert_location to allow insertion in the
 "else".
 */
 {
-  a_statement_ptr  if_stmt, block_stmt = NULL;
+  a_statement_ptr  if_stmt, block_stmt = NULL, else_stmt;
   an_expr_node_ptr question_node, op2_node, op3_node;
 
   if (is_expr_insert_location_kind(insert_location->kind)) {
@@ -440,9 +440,9 @@ to the "if", and set *else_insert_location to allow insertion in the
                                  alloc_statement((a_statement_kind)stmk_block);
     set_block_start_insert_location(block_stmt, then_insert_location);
     if (else_insert_location != NULL) {
-      if_stmt->variant.if_stmt.else_statement = block_stmt =
+      if_stmt->variant.if_stmt.else_statement = else_stmt =
                                  alloc_statement((a_statement_kind)stmk_block);
-      set_block_start_insert_location(block_stmt, else_insert_location);
+      set_block_start_insert_location(else_stmt, else_insert_location);
     }  /* if */
   }  /* if */
   if (p_block_stmt != NULL) *p_block_stmt = block_stmt;

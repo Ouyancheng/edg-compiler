@@ -1,5 +1,12 @@
 Version 2.44
 
+3/3/00   Fix in insert_if_statement in lower_init.c
+
+The logic in insert_if_statement was wrong when the caller passes
+both an else-insert location and an argument in which to return the
+pointer to the "then" block.  That particular combination was not
+used in EDG's code, so this bug had no effect in the standard release.
+
 3/3/00   Small change in lower_il.c for compilation as strict C++
 
 A small change was made in lower_il.c to make the code there compile
