@@ -7686,8 +7686,8 @@ a function expression to which the argument list (including the implicit
 
 
 #if !BACK_END_IS_CP_GEN_BE
-/* ARGSUSED */  /* found_through_adl is only used with the C++-generating
-                   back end.. */
+/*ARGSUSED*/  /* found_through_adl is only used with the C++-generating
+                 back end. */
 #endif /* !BACK_END_IS_CP_GEN_BE */
 static an_expr_node_ptr func_call_expr(
                                    an_expr_node_ptr  function_node,

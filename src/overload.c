@@ -4728,8 +4728,8 @@ lookup should be suppressed.
 
 
 #if !BACK_END_IS_CP_GEN_BE
-/* ARGSUSED */  /* found_through_adl is only used with the C++-generating
-                   back end.. */
+/*ARGSUSED*/  /* found_through_adl is only used with the C++-generating
+                 back end. */
 #endif /* !BACK_END_IS_CP_GEN_BE */
 a_symbol_ptr select_overloaded_function(
                          a_symbol_ptr             overloaded_function_symbol,
@@ -4784,7 +4784,7 @@ the function to be called cannot be determined, return
 *unknown_dependent_function set to TRUE (unknown_dependent_function
 can be NULL if the call cannot be dependent).   If found_through_adl is
 non-NULL and the callee was found only through ADL, *found_through_adl is
-set to TRUE.  If surrogate_function_conv_sym is non-NULL, look for
+returned TRUE.  If surrogate_function_conv_sym is non-NULL, look for
 surrogate functions also.  overloaded_function_symbol may be NULL in that
 case.  If a surrogate function is the best match, return in
 *surrogate_function_conv_sym a pointer to the symbol for the
@@ -4815,6 +4815,7 @@ and return NULL.  This routine is called only in C++ mode.
   if (!have_selector) bound_function_selector = NULL;
   /* candidate_functions will contain the list of viable functions. */
   candidate_functions = NULL;
+  if (found_through_adl != NULL) *found_through_adl = FALSE;
   if (single_function != NULL) *single_function = FALSE;
   /* The "single function" processing is not compatible with trying
      surrogate functions. */
@@ -7203,7 +7204,7 @@ do_arg_dep_lookup is TRUE.  If the call is dependent, and the function
 to be called cannot be determined, return *unknown_dependent_function
 set to TRUE (unknown_dependent_function can be NULL if the call cannot
 be dependent).  If found_through_adl is non-NULL and the callee was found
-only through ADL, *found_through_adl is set to TRUE.  This routine is
+only through ADL, *found_through_adl is returned TRUE.  This routine is
 called only in C++ mode.
 */
 {
