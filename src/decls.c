@@ -1219,15 +1219,252 @@ which elsewhere is confirmed to have type size_t).
 }  /* is_default_operator_new */
 
 
-static
-an_id_linkage_kind id_linkage(a_symbol_locator      *locator,
-                              a_storage_class       *storage_class,
-                              a_type_ptr            type,
-                              a_boolean             is_main_function,
-                              a_func_info_block_ptr func_info,
-                              a_symbol_ptr          *linked_symbol,
-                              a_symbol_ptr          *overload_symbol,
-                              a_scope_depth         *effective_decl_level)
+static a_scope_depth compute_friend_effective_decl_level(a_scope_depth depth)
+/*
+The "effective declaration level" of a friend function declaration is 
+usually the innermost non-class scope.  Starting from the specified scope
+depth, find and return the depth of the containing non-class scope.
+*/
+{
+  db_enter(4, "compute_friend_effective_decl_level");
+  while (scope_stack[depth].kind == (a_scope_kind)sck_class_struct_union) {
+    depth--;
+    if (scope_stack[depth].kind == (a_scope_kind)sck_template_instantiation) {
+      if (scope_stack[depth].in_prototype_instantiation) {
+        /* During prototype instantiation, use the instantiation scope
+           as the effective declaration scope. */
+      } else {
+        depth = depth_innermost_namespace_scope;
+      }  /* if */
+      break;
+    }  /* if */
+  }  /* while */
+  db_exit();
+  return depth;
+}  /* compute_friend_effective_decl_level */
+
+
+static a_scope_depth compute_effective_decl_level(
+                                               a_boolean        is_function,
+                                               a_storage_class  storage_class,
+                                               a_boolean        is_friend_decl)
+/*
+A name is being declared, and the "effective declaration level" identifies
+the scope into which the newly declared symbol will be entered.  Usually
+this is exactly the same as the the current declaration scope, as indicated
+by decl_scope_level.  This routine checks for some special cases and returns
+the appropriate scope depth.
+*/
+{
+  a_scope_depth  depth;
+  db_enter(4, "compute_effective_decl_level");
+
+  /* The normal case is that the effective declaration level is the same
+     as decl_scope_level (which in turn is usually the same as
+     depth_scope_stack). */
+  depth = decl_scope_level;
+  if (C_mode()) {
+    if (C_dialect == C_dialect_pcc &&
+        (is_function || storage_class == (a_storage_class)sc_extern)) {
+      /* In pcc mode, functions and extern variables are always effectively
+         declared at the file scope level. */
+      depth = DEPTH_OF_FILE_SCOPE;
+    } else if (is_function && storage_class == (a_storage_class)sc_static) {
+      /* In C mode, as extension, "static" is accepted on function declarations
+         at function scope.  Such declarations are promoted to file scope. */
+      depth = DEPTH_OF_FILE_SCOPE;
+    }  /* if */
+  } else if (is_friend_decl) {
+    /* Make the appropriate adjustment for a friend declaration. */
+    depth = compute_friend_effective_decl_level(depth);
+#if 0
+  /* ????? */
+  } else if (is_default_operator_new(locator, type)) {
+    /* Default global operator new must always be entered at file scope. */
+    depth = DEPTH_OF_FILE_SCOPE;
+    is_default_global_operator_new = TRUE;
+#endif /* if 0 */
+  }  /* if */
+  db_exit();
+  return depth;
+}  /* compute_effective_decl_level */
+
+
+static a_symbol_ptr find_linked_symbol(a_symbol_locator  *locator,
+                                       a_scope_depth     effective_decl_level,
+                                       a_type_ptr        type,
+                                       a_boolean         is_main,
+                                       a_boolean         is_friend_decl,
+                                       a_boolean         is_function_template,
+                                       a_symbol_ptr      *prior_decl,
+                                       a_symbol_ptr      *overload_symbol)
+/*
+*/
+{
+  a_boolean          decls_at_same_scope;
+  a_boolean          is_list;
+  a_symbol_ptr       other_decl, other_decl_saved;
+  a_symbol_ptr       linked_symbol = NULL;
+  a_boolean          function_template_seen = FALSE;
+
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    /* This must be a block-extern declaration of a function or variable.
+       Find the visible declaration of the same name. */
+    other_decl = normal_id_lookup(locator, IDL_NO_OPTIONS);
+    if (other_decl != NULL &&
+        depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+      if (other_decl->decl_scope >=
+            scope_stack[depth_innermost_namespace_scope].il_scope->number) {
+        /* Okay. */
+      } else {
+        other_decl = NULL;
+      }  /* if */
+    }  /* if */
+  } else {
+    check_assertion(effective_decl_level == depth_innermost_namespace_scope);
+    if (depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
+      other_decl = file_scope_id_lookup(locator, IDL_NO_OPTIONS);
+    } else {
+      a_namespace_ptr  nsp;
+      nsp = scope_stack[depth_innermost_namespace_scope].il_scope->
+                                                 variant.assoc_namespace;
+      other_decl = namespace_qualified_id_lookup(locator, nsp,
+                                                 IDL_NO_OPTIONS);
+    }  /* if */      
+  }  /* if */
+  locator->specific_symbol = NULL;
+  if (other_decl != NULL) {
+    if (other_decl->kind != (a_symbol_kind)sk_variable &&
+        other_decl->kind != (a_symbol_kind)sk_routine &&
+        other_decl->kind != (a_symbol_kind)sk_function_template &&
+        other_decl->kind != (a_symbol_kind)sk_overloaded_function) {
+      other_decl = NULL;
+    }  /* if */
+  }  /* if */
+  if (other_decl != NULL) {
+    /* A match was found in searching the symbol table.  However, in
+       C++ we have to allow for function overloading.  If what we found
+       was an sk_overloaded_function symbol, we need to look for a type
+       match amongst the instances of the name.  Even if it was an
+       sk_routine symbol, we may want to overload the two functions. */
+    decls_at_same_scope = (other_decl->decl_scope ==
+                                  scope_stack[effective_decl_level].number);
+    if (C_dialect == C_dialect_cplusplus && is_function_type(type) &&
+        other_decl->kind != (a_symbol_kind)sk_variable &&
+        !is_main) {
+      /* C++ function -- type compatibility check is required. */
+      if (decls_at_same_scope) {
+        /* *overload_symbol is set for cases in which the current symbol
+           may be added to an overload list.  Note that overloading across
+           scopes is not allowed.  Also, *overload_symbol may end up being
+           cleared latter. */
+        *overload_symbol = other_decl;
+      }  /* if */
+      if (other_decl->kind == (a_symbol_kind)sk_overloaded_function) {
+        other_decl = other_decl->variant.overloaded_function.symbols;
+        is_list = TRUE;
+      } else {
+        is_list = FALSE;
+      }  /* if */
+      other_decl_saved = other_decl;
+      /* Go through the list of functions and look for type compatibility.
+         If types_are_compatible returns TRUE, this is a redeclaration.
+         If no type match is found, this is a candidate for overloading. */
+      for (; other_decl != NULL;
+             other_decl = is_list ? other_decl->next : NULL) {
+        a_type_ptr  tp;
+        if (other_decl->kind == (a_symbol_kind)sk_function_template) {
+          a_template_symbol_supplement_ptr  tssp;
+          tssp = other_decl->variant.template_info;
+          if (is_function_template) {
+            tp = tssp->variant.function.routine->type;
+            if (routine_types_are_compatible(tp, type, TCF_NO_FLAGS)) {
+              /* The other_decl template function matches the current
+                 declaration. */
+              linked_symbol = other_decl;
+              *overload_symbol = NULL;
+              goto done;
+            }
+          } else {
+            /* There may be a match involving an instance of this function
+               template, but we delay searching its list of instantiations
+               until all normally declared functions have been seen. */
+            function_template_seen = TRUE;
+          }  /* if */
+        } else {
+          if (is_function_template) {
+            /* No match. */
+          } else {
+            tp = other_decl->variant.routine.ptr->type;
+            if (routine_types_are_compatible(tp, type, TCF_NO_FLAGS)) {
+              /* Other_decl matches the current declaration.  Null out
+                 *overload_symbol in case it was set. */
+              *overload_symbol = NULL;
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      if (other_decl == NULL && function_template_seen) {
+        /* We didn't find a match, but there was at least one function
+           template.  See if it either provides a match with an
+           existing instance of the template or if a new instance can
+           be created based on the current type. */
+        for (other_decl = other_decl_saved;
+             other_decl != NULL;
+             other_decl = is_list ? other_decl->next : NULL) {
+          if (other_decl->kind == (a_symbol_kind)sk_function_template) {
+            /* Look for a match on the list of instantiations. */
+            a_symbol_ptr sym;
+            sym = matching_template_function(other_decl, type,
+                                             &locator->source_position);
+           if (sym != NULL) {
+              /* Found a match. */
+              linked_symbol = other_decl = sym;
+              if (sym->variant.routine.instance_ptr->specific_decl) {
+                *overload_symbol = NULL;
+              }  /* if */
+              goto done;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
+    if (decls_at_same_scope || is_friend_decl) {
+      /* The function symbol was located in the current scope. If there
+         there was an exact type match of C++ functions, and in general
+         otherwise, this is a redeclaration, and if other_decl has
+         linkage we can return in linked_symbol a pointer to the function
+         or variable it represents. */
+      if (other_decl != NULL) {
+        if (is_function_symbol(other_decl)) {
+          /* Functions always have linkage. */
+          linked_symbol = other_decl;
+        } else if (other_decl->decl_scope == FILE_SCOPE_NUMBER ||
+                   other_decl->variant.variable.ptr->storage_class ==
+                                       (a_storage_class)sc_extern ||
+                   other_decl->variant.variable.ptr->storage_class ==
+                                       (a_storage_class)sc_unspecified) {
+          /* Variables at file scope always have linkage.  Automatic,
+             register, and static variables in local scopes do not. */
+          linked_symbol = other_decl;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+done:
+  *prior_decl = other_decl;
+  return linked_symbol;
+}  /* find_linked_symbol */
+
+
+static an_id_linkage_kind id_linkage(a_symbol_locator   *locator,
+                                     a_storage_class    *storage_class,
+                                     a_scope_depth      effective_decl_level,
+                                     a_type_ptr         type,
+                                     a_func_info_block  *func_info,
+                                     a_symbol_ptr       *linked_symbol,
+                                     a_symbol_ptr       *overload_symbol)
 /*
 An identifier (specified by *locator) of type "type" and storage class
 "storage class" is about to be declared at the current scope level.
@@ -1244,222 +1481,198 @@ be NULL, but we return in *overload_symbol a pointer to the symbol that
 will be involved in overloading.
 */
 {
-  an_id_linkage_kind linkage;
+  an_id_linkage_kind linkage = idl_none;
   a_boolean          is_object, is_function;
-  a_boolean          at_global_scope, decls_at_same_scope;
-  a_boolean          is_list, is_friend_decl = FALSE;
-  a_symbol_ptr       other_decl, sym, other_decl_saved;
-  a_boolean          is_default_global_operator_new = FALSE;
+  a_boolean          at_file_or_namespace_scope;
+  a_boolean          is_friend_decl = FALSE;
+  a_symbol_ptr       other_decl;
   a_storage_class    local_storage_class = *storage_class;
   a_boolean          is_function_template_decl = FALSE;
-  a_boolean          function_template_seen = FALSE;
   a_boolean	     is_template_instance;
 
   db_enter(3, "id_linkage");
   *linked_symbol = NULL;
   *overload_symbol = NULL;
-  if (local_storage_class == (a_storage_class)sc_typedef) {
-    /* A typedef is not an object or function, and has no linkage. */
-    linkage = idl_none;
-  } else if ((sym = locator->specific_symbol) != NULL &&
-             sym->is_class_member) {
-    /* Static data member. */
-    check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
-    *linked_symbol = sym;
-    linkage = idl_external;
-  } else {
-    /* Is this type an object or function, and is it going to be declared
-       at file scope? */
-    is_function = is_function_type(type);
-    is_object = !is_function;
-    /* In pcc mode, functions and extern variables are always effectively
-       declared at the file scope level.  In addition, because we accept
-       static function declarations inside functions as an extension, we
-       must promote static function declarations to file scope. */
-    if ((C_dialect == C_dialect_pcc &&
-         (is_function || local_storage_class == (a_storage_class)sc_extern)) ||
-        (C_dialect != C_dialect_cplusplus &&
-         (is_function && local_storage_class == (a_storage_class)sc_static))) {
-      *effective_decl_level = DEPTH_OF_FILE_SCOPE;
-    } else if (C_dialect == C_dialect_cplusplus &&
-               is_default_operator_new(locator, type)) {
-      /* Default global operator new must always be entered at file scope. */
-      *effective_decl_level = DEPTH_OF_FILE_SCOPE;
-      is_default_global_operator_new = TRUE;
-    } else {
-      *effective_decl_level = decl_scope_level;
-      if (scope_stack[decl_scope_level].kind ==
-                                     (a_scope_kind)sck_template_declaration) {
-        /* Template declaration scopes may appear in the file scope, or
-           for friend declarations, in a class scope.  Skip out to the
-           enclosing scope before continuing. */
-        (*effective_decl_level)--;
-	is_function_template_decl = TRUE;
-      }  /* if */
-      while (scope_stack[*effective_decl_level].kind ==
-                                       (a_scope_kind)sck_class_struct_union) {
-        /* This must be a friend function declaration.  Enter the name at the
-           level of the scope containing the class.  We allow for nested
-           classes by popping out till we find a non-class scope. */
-        (*effective_decl_level)--;
-        is_friend_decl = TRUE;
-        if (scope_stack[*effective_decl_level].kind ==
-                                 (a_scope_kind)sck_template_instantiation) {
-          if (scope_stack[*effective_decl_level].in_prototype_instantiation) {
-            /* During prototype instantiation, use the instantiation scope
-               as the effective declaration scope. */
-          } else {
-            *effective_decl_level = depth_innermost_namespace_scope;
-          }  /* if */
-          break;
-        }  /* if */
-      }  /* while */
+  check_assertion(local_storage_class != (a_storage_class)sc_typedef);
+  check_assertion(locator->specific_symbol == NULL ||
+                  !locator->specific_symbol->is_class_member);
+  /* Is this type an object or function, and is it going to be declared
+     at file scope? */
+  is_function = is_function_type(type);
+  is_object = !is_function;
+  if (!C_mode() && is_function && effective_decl_level != decl_scope_level) {
+    a_scope_depth  depth = decl_scope_level;
+    if (scope_stack[depth].kind == (a_scope_kind)sck_template_declaration) {
+      is_function_template_decl = TRUE;
+      depth--;
     }  /* if */
-    at_global_scope =
-                (*effective_decl_level == depth_innermost_namespace_scope);
-    if (is_error_locator(*locator)) {
-      /* Symbol is compiler-generated as a result of an error, so there are
-         no other declarations of the same symbol. */
-      other_decl = NULL;
-    } else {
-      other_decl = locator->symbol_header->symbol;
-      /* Look for any visible declaration of the identifier. */
-      for (; other_decl != NULL; other_decl = other_decl->next) {
-        if (name_space_for_symbol_kind[(int)other_decl->kind] == nsk_other) {
-          /* Found one.  If it's not a variable or routine (say, if it's
-             a typedef), pretend that there is no visible declaration. */
-          if (other_decl->is_class_member) {
-            /* This is a member of a class scope.  Ignore it and keep looking
-               till a match in an enclosing scope is found. */
-          } else if (is_default_global_operator_new &&
-                     other_decl->decl_scope != FILE_SCOPE_NUMBER) {
-            /* This is a non-default global operator new that was not
-               declared at file scope.  Skip over it and look for a file
-               scope symbol. */
-          } else {
-            if (other_decl->kind != (a_symbol_kind)sk_variable &&
-                other_decl->kind != (a_symbol_kind)sk_routine &&
-                other_decl->kind != (a_symbol_kind)sk_function_template &&
-                other_decl->kind != (a_symbol_kind)sk_overloaded_function) {
-              other_decl = NULL;
-            }  /* if */
-            break;
-          }  /* if */
+    if (scope_stack[depth].kind == (a_scope_kind)sck_class_struct_union) {
+      is_friend_decl = TRUE;
+    }  /* if */
+  }  /* if */
+  at_file_or_namespace_scope =
+                (effective_decl_level == depth_innermost_namespace_scope);
+  if (is_error_locator(*locator)) {
+    /* Symbol is compiler-generated as a result of an error, so there are
+       no other declarations of the same symbol. */
+  } else if (is_object && depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+             local_storage_class != sc_extern) {
+    /* Local variable declaration. */
+  } else {
+    *linked_symbol = find_linked_symbol(locator, effective_decl_level, type,
+                                        func_info == NULL ?
+                                          FALSE : func_info->is_main_function,
+                                        is_friend_decl,
+                                        is_function_template_decl,
+                                        &other_decl, overload_symbol);
+#if 0
+    if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+      /* This must be a block-extern declaration of a function or variable.
+         Find the visible declaration of the same name. */
+      other_decl = normal_id_lookup(locator, IDL_NO_OPTIONS);
+      if (other_decl != NULL &&
+          depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+        if (other_decl->decl_scope >=
+              scope_stack[depth_innermost_namespace_scope].il_scope->number) {
+          /* Okay. */
+        } else {
+          other_decl = NULL;
         }  /* if */
-      }  /* for */
-      if (other_decl != NULL) {
-        /* A match was found in searching the symbol table.  However, in
-           C++ we have to allow for function overloading.  If what we found
-           was an sk_overloaded_function symbol, we need to look for a type
-           match amongst the instances of the name.  Even if it was an
-           sk_routine symbol, we may want to overload the two functions. */
-        decls_at_same_scope = (other_decl->decl_scope ==
-                                    scope_stack[*effective_decl_level].number);
-        if (C_dialect == C_dialect_cplusplus && is_function &&
-            other_decl->kind != (a_symbol_kind)sk_variable &&
-            !is_main_function) {
-          /* C++ function -- type compatibility check is required. */
-          if (decls_at_same_scope) {
-            /* *overload_symbol is set for cases in which the current symbol
-               may be added to an overload list.  Note that overloading across
-               scopes is not allowed.  Also, *overload_symbol may end up being
-               cleared latter. */
-            *overload_symbol = other_decl;
-          }  /* if */
-          if (other_decl->kind == (a_symbol_kind)sk_overloaded_function) {
-            other_decl = other_decl->variant.overloaded_function.symbols;
-            is_list = TRUE;
-          } else {
-            is_list = FALSE;
-          }  /* if */
-          other_decl_saved = other_decl;
-          /* Go through the list of functions and look for type compatibility.
-             If types_are_compatible returns TRUE, this is a redeclaration.
-             If no type match is found, this is a candidate for overloading. */
-          for (; other_decl != NULL;
-                 other_decl = is_list ? other_decl->next : NULL) {
-            a_type_ptr  tp;
+      }  /* if */
+    } else {
+      check_assertion(at_file_or_namespace_scope);
+      if (depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
+        other_decl = file_scope_id_lookup(locator, IDL_NO_OPTIONS);
+      } else {
+        a_namespace_ptr  nsp;
+        nsp = scope_stack[depth_innermost_namespace_scope].il_scope->
+                                                   variant.assoc_namespace;
+        other_decl = namespace_qualified_id_lookup(locator, nsp,
+                                                   IDL_NO_OPTIONS);
+      }  /* if */      
+    }  /* if */
+    locator->specific_symbol = NULL;
+    if (other_decl != NULL) {
+      if (other_decl->kind != (a_symbol_kind)sk_variable &&
+          other_decl->kind != (a_symbol_kind)sk_routine &&
+          other_decl->kind != (a_symbol_kind)sk_function_template &&
+          other_decl->kind != (a_symbol_kind)sk_overloaded_function) {
+        other_decl = NULL;
+      }  /* if */
+    }  /* if */
+    if (other_decl != NULL) {
+      /* A match was found in searching the symbol table.  However, in
+         C++ we have to allow for function overloading.  If what we found
+         was an sk_overloaded_function symbol, we need to look for a type
+         match amongst the instances of the name.  Even if it was an
+         sk_routine symbol, we may want to overload the two functions. */
+      decls_at_same_scope = (other_decl->decl_scope ==
+                                    scope_stack[effective_decl_level].number);
+      if (C_dialect == C_dialect_cplusplus && is_function &&
+          other_decl->kind != (a_symbol_kind)sk_variable &&
+          !func_info->is_main_function) {
+        /* C++ function -- type compatibility check is required. */
+        if (decls_at_same_scope) {
+          /* *overload_symbol is set for cases in which the current symbol
+             may be added to an overload list.  Note that overloading across
+             scopes is not allowed.  Also, *overload_symbol may end up being
+             cleared latter. */
+          *overload_symbol = other_decl;
+        }  /* if */
+        if (other_decl->kind == (a_symbol_kind)sk_overloaded_function) {
+          other_decl = other_decl->variant.overloaded_function.symbols;
+          is_list = TRUE;
+        } else {
+          is_list = FALSE;
+        }  /* if */
+        other_decl_saved = other_decl;
+        /* Go through the list of functions and look for type compatibility.
+           If types_are_compatible returns TRUE, this is a redeclaration.
+           If no type match is found, this is a candidate for overloading. */
+        for (; other_decl != NULL;
+               other_decl = is_list ? other_decl->next : NULL) {
+          a_type_ptr  tp;
 
-            if (other_decl->kind == (a_symbol_kind)sk_function_template) {
-              a_template_symbol_supplement_ptr  tssp;
-              tssp = other_decl->variant.template_info;
-              if (is_function_template_decl) {
-                tp = tssp->variant.function.routine->type;
-                if (routine_types_are_compatible(tp, type, TCF_NO_FLAGS)) {
-                  /* The other_decl template function matches the current
-                     declaration. */
-                  *linked_symbol = other_decl;
-                  *overload_symbol = NULL;
-                  goto determine_linkage;
-                }
-              } else {
-                /* There may be a match involving an instance of this function
-                   template, but we delay searching its list of instantiations
-                   until all normally declared functions have been seen. */
-                function_template_seen = TRUE;
-              }  /* if */
+          if (other_decl->kind == (a_symbol_kind)sk_function_template) {
+            a_template_symbol_supplement_ptr  tssp;
+            tssp = other_decl->variant.template_info;
+            if (is_function_template_decl) {
+              tp = tssp->variant.function.routine->type;
+              if (routine_types_are_compatible(tp, type, TCF_NO_FLAGS)) {
+                /* The other_decl template function matches the current
+                   declaration. */
+                *linked_symbol = other_decl;
+                *overload_symbol = NULL;
+                goto determine_linkage;
+              }
             } else {
-              if (is_function_template_decl) {
-                /* No match. */
-              } else {
-                tp = other_decl->variant.routine.ptr->type;
-                if (routine_types_are_compatible(tp, type, TCF_NO_FLAGS)) {
-                  /* Other_decl matches the current declaration.  Null out
-                     *overload_symbol in case it was set. */
+              /* There may be a match involving an instance of this function
+                 template, but we delay searching its list of instantiations
+                 until all normally declared functions have been seen. */
+              function_template_seen = TRUE;
+            }  /* if */
+          } else {
+            if (is_function_template_decl) {
+              /* No match. */
+            } else {
+              tp = other_decl->variant.routine.ptr->type;
+              if (routine_types_are_compatible(tp, type, TCF_NO_FLAGS)) {
+                /* Other_decl matches the current declaration.  Null out
+                   *overload_symbol in case it was set. */
+                *overload_symbol = NULL;
+                break;
+              }  /* if */
+            }  /* if */
+          }  /* if */
+        }  /* for */
+        if (other_decl == NULL && function_template_seen) {
+          /* We didn't find a match, but there was at least one function
+             template.  See if it either provides a match with an
+             existing instance of the template or if a new instance can
+             be created based on the current type. */
+          for (other_decl = other_decl_saved;
+               other_decl != NULL;
+               other_decl = is_list ? other_decl->next : NULL) {
+            if (other_decl->kind == (a_symbol_kind)sk_function_template) {
+              /* Look for a match on the list of instantiations. */
+              a_symbol_ptr sym;
+              sym = matching_template_function(other_decl, type,
+                                               &locator->source_position);
+             if (sym != NULL) {
+                /* Found a match. */
+                *linked_symbol = other_decl = sym;
+                if (sym->variant.routine.instance_ptr->specific_decl) {
                   *overload_symbol = NULL;
-                  break;
                 }  /* if */
+                goto determine_linkage;
               }  /* if */
             }  /* if */
           }  /* for */
-          if (other_decl == NULL && function_template_seen) {
-            /* We didn't find a match, but there was at least one function
-               template.  See if it either provides a match with an
-               existing instance of the template or if a new instance can
-               be created based on the current type. */
-            for (other_decl = other_decl_saved;
-                 other_decl != NULL;
-                 other_decl = is_list ? other_decl->next : NULL) {
-              if (other_decl->kind == (a_symbol_kind)sk_function_template) {
-                /* Look for a match on the list of instantiations. */
-                a_symbol_ptr sym;
-                sym = matching_template_function(other_decl, type,
-                                                 &locator->source_position);
-                if (sym != NULL) {
-                  /* Found a match. */
-                  *linked_symbol = other_decl = sym;
-                  if (sym->variant.routine.instance_ptr->specific_decl) {
-                    *overload_symbol = NULL;
-                  }  /* if */
-                  goto determine_linkage;
-                }  /* if */
-              }  /* if */
-            }  /* for */
-          }  /* if */
         }  /* if */
-        if (decls_at_same_scope || is_friend_decl) {
-          /* The function symbol was located in the current scope. If there
-             there was an exact type match of C++ functions, and in general
-             otherwise, this is a redeclaration, and if other_decl has
-             linkage we can return in *linked_symbol a pointer to the function
-             or variable it represents. */
-          if (other_decl != NULL) {
-            if (is_function_symbol(other_decl)) {
-              /* Functions always have linkage. */
-              *linked_symbol = other_decl;
-            } else if (other_decl->decl_scope == FILE_SCOPE_NUMBER ||
-                       other_decl->variant.variable.ptr->storage_class ==
-                                           (a_storage_class)sc_extern ||
-                       other_decl->variant.variable.ptr->storage_class ==
-                                           (a_storage_class)sc_unspecified) {
-              /* Variables at file scope always have linkage.  Automatic,
-                 register, and static variables in local scopes do not. */
-              *linked_symbol = other_decl;
-            }  /* if */
+      }  /* if */
+      if (decls_at_same_scope || is_friend_decl) {
+        /* The function symbol was located in the current scope. If there
+           there was an exact type match of C++ functions, and in general
+           otherwise, this is a redeclaration, and if other_decl has
+           linkage we can return in *linked_symbol a pointer to the function
+           or variable it represents. */
+        if (other_decl != NULL) {
+          if (is_function_symbol(other_decl)) {
+            /* Functions always have linkage. */
+            *linked_symbol = other_decl;
+          } else if (other_decl->decl_scope == FILE_SCOPE_NUMBER ||
+                     other_decl->variant.variable.ptr->storage_class ==
+                                         (a_storage_class)sc_extern ||
+                     other_decl->variant.variable.ptr->storage_class ==
+                                         (a_storage_class)sc_unspecified) {
+            /* Variables at file scope always have linkage.  Automatic,
+               register, and static variables in local scopes do not. */
+            *linked_symbol = other_decl;
           }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
+#endif /* if 0 */
 determine_linkage:
     /* Determine the linkage. */
     is_template_instance = (is_function && other_decl != NULL &&
@@ -1491,7 +1704,7 @@ determine_linkage:
       func_info->is_inline = templ_is_inline;
       local_storage_class = templ_storage_class;
     }  /* if */
-    if (!at_global_scope &&
+    if (!at_file_or_namespace_scope &&
         local_storage_class != (a_storage_class)sc_extern) {
       /* A non-file-scope object without extern storage class has no
          linkage.  In C++ a non-file-scope function may be declared --
@@ -1501,7 +1714,7 @@ determine_linkage:
                       (is_friend_decl &&
                        local_storage_class == (a_storage_class)sc_static));
       linkage = idl_none;
-    } else if (at_global_scope &&
+    } else if (at_file_or_namespace_scope &&
                local_storage_class == (a_storage_class)sc_static) {
       /* An object or function at file scope with static storage class
          has internal linkage. */
@@ -1526,7 +1739,7 @@ determine_linkage:
         /* There is a declaration with file scope that is visible from
            here.  Set the flags to describe this identifier, and go
            retry the determination of the linkage. */
-        at_global_scope = TRUE;
+        at_file_or_namespace_scope = TRUE;
         switch (other_decl->kind) {
           case sk_routine:
             if (is_template_instance && func_info->is_definition) {
@@ -1561,7 +1774,7 @@ determine_linkage:
       }  /* if */
       /* No visible declaration found, so the linkage is external. */
       linkage = idl_external;
-    } else if (is_object && at_global_scope &&
+    } else if (is_object && at_file_or_namespace_scope &&
                local_storage_class == (a_storage_class)sc_unspecified) {
       /* An object at file scope with no storage class has external linkage. */
       linkage = idl_external;
@@ -2558,7 +2771,7 @@ describing this declaration.
   a_routine_ptr            routine_ptr = NULL;
   an_id_linkage_kind       linkage;
   a_source_correspondence  *source_corresp_ptr;
-  a_scope_depth            effective_decl_level = decl_scope_level;
+  a_scope_depth            effective_decl_level;
   a_boolean                template_function_specific_decl = FALSE;
   a_boolean                suppress_ext_sym_lookup = FALSE;
   a_boolean                is_main_function = FALSE;
@@ -2595,6 +2808,9 @@ describing this declaration.
   } else {
     if (srk_flags & SRK_DEFINITION) is_variable_def = TRUE;
   }  /* if */
+  effective_decl_level = compute_effective_decl_level(is_function,
+                                                      storage_class,
+                                                      srk_flags & SRK_FRIEND);
   if (is_function && func_info->is_implicit_declaration) {
     check_assertion(srk_flags & SRK_IMPLICIT);
     if (C_dialect != C_dialect_cplusplus) {
@@ -2612,9 +2828,8 @@ describing this declaration.
     sym = *symbol_ptr;
   } else {
     /* Determine the linkage of this symbol. */
-    linkage = id_linkage(locator, &storage_class, type_ptr, is_main_function,
-                         func_info, &linked_symbol, &homonym_symbol,
-                         &effective_decl_level);
+    linkage = id_linkage(locator, &storage_class, effective_decl_level,
+                         type_ptr, func_info, &linked_symbol, &homonym_symbol);
   }  /* if */
   /* at_file_scope will be TRUE if the IL variable or routine must be
      allocated in the file scope memory region.  This is always true
@@ -3470,7 +3685,12 @@ class template.
     /* Default. */
     storage_class = (a_storage_class)sc_extern;
   }  /* if */
-  effective_decl_level = depth_scope_stack;
+  check_assertion(scope_stack[depth_scope_stack].kind ==
+                                (a_scope_kind)sck_template_declaration);
+  /* Compute the effective declaration level.  If this is a friend,
+     the proper adjustment will be made. */
+  effective_decl_level =
+              compute_friend_effective_decl_level(depth_scope_stack - 1);
   if (locator->is_qualified_name && locator->specific_symbol != NULL) {
     /* Member function template. */
     sym = locator->specific_symbol;
@@ -3547,10 +3767,8 @@ class template.
   if (sym == NULL) {
     /* id_linkage will set sym to point to an existing symbol when we have
        a redeclaration of a function template. */
-    (void)id_linkage(locator, &storage_class, type_ptr,
-                     /*is_main_function=*/FALSE, func_info,
-                     &sym, &homonym_symbol,
-                     &effective_decl_level);
+    (void)id_linkage(locator, &storage_class, effective_decl_level, type_ptr,
+                     func_info, &sym, &homonym_symbol);
     if (sym == NULL) {
       /* Not a redeclaration. */
       an_error_code error_code;
@@ -5331,8 +5549,8 @@ block.
         /* A name was found in the current scope. */
         if (ns_sym->kind != (a_symbol_kind)sk_namespace) {
           str_error(ec_id_already_declared, locator.symbol_header->identifier);
+          ns_sym = NULL;
         }  /* if */
-        ns_sym = NULL;
       }  /* if */
     }  /* if */
     if (ns_sym == NULL) {
@@ -5454,7 +5672,7 @@ static void using_directive()
     (void)get_token();
   }  /* if */
   remove_stop_token(tok_semicolon);
-  required_token(tok_semicolon, ec_exp_semicolon);
+  (void)required_token(tok_semicolon, ec_exp_semicolon);
 }  /* using_directive */
 
 
@@ -5476,7 +5694,7 @@ void using_declaration()
     
   }  /* if */
   remove_stop_token(tok_semicolon);
-  required_token(tok_semicolon, ec_exp_semicolon);
+  (void)required_token(tok_semicolon, ec_exp_semicolon);
 }  /* using_declaration */
 
 
