@@ -22,14 +22,16 @@ in with the typedef name if the declaration appears inside a function:
     typedef struct { ... } S;     // unnamed struct has no linkage and so
   }                               //   gets no "name for linkage purposes"
 
-6/11/96 IL lowering: integral promotion on operand of bool cast
+6/11/96 IL lowering: integral promotions on bool rewrites
 
-When IL lowering rewrites a cast to bool as a "!= 0" operation, it now does
-the proper integral promotions on the operand.
+When IL lowering rewrites a bool in a context that requires an int in C,
+it now adds the proper integral promotions on the operand.
 
   main () {
     short i= 0;
-    if (i) {}  // (int)i != 0
+    if (i) {}  // ((int)i) != 0
+    bool b;
+    if (!b) {} // !((int)b)
   }
 
 6/10/96 Internal error while generating operator= when base class operator=
