@@ -1,5 +1,27 @@
 Version 2.28
 
+1/6/94  Use of cfront member function typedefs
+
+When (in cfront mode only) a "member function typedef" is declared -- e.g.,
+MF in the following code fragment:
+
+  class A;
+  typedef void A::MF(int);    // nonstandard typedef declaration
+
+-- we now issue an error if it is used in any context other than to form a
+pointer-to-member type:
+
+  MF* pmf;                    // okay -- same as:  void (A::*pmf)(int);
+  MF mf;                      // error
+  MF a[10];                   // error
+  MF f();                     // error
+  int i = sizeof(MF);         // error
+
+1/6/94  decl_specifiers repackaging
+
+Some of the code in decl_specifiers has been broken out into new
+subroutines combine_type_specifiers and add_type_qualifiers.
+
 1/6/94  Signal handling on old Unix systems without job control
 
 The code that initializes the signal handlers first ensures that
@@ -29,15 +51,14 @@ functions to pointer types should be considered on operands of unary "+".
 Now they are.
 
   struct A {
-      operator int();
-      operator int*();
+    operator int();
+    operator int*();
   };
   A a;
   void m()
   {
-      +a;  // ambiguous
+    +a;  // ambiguous
   }
-
 
 1/4/95  Missing IL casts in pointer difference
 
@@ -48,7 +69,7 @@ a pointer difference to a common type.
   struct D : public B {};
   int f(B *pB, D *pD)
   {
-      return pD-pB;  // Cast of pD to B* now generated
+    return pD-pB;  // Cast of pD to B* now generated
   }
 
 -------------------------------------------------------------------------------
