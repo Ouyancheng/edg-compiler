@@ -2889,28 +2889,45 @@ with a routine.
 {
   sizeof_t mangled_name_length, alloc_length, name_length, routine_name_length;
   char     *mangled_name, *store_at;
-  char     scope_num_buffer[50];
+  char     buffer[50];
+#if IA64_ABI
+  char     buffer2[50];
+#endif /* IA64_ABI */
 
   /* Leave the name alone if the type is unnamed or if the name has
      already been mangled (e.g., for a local nested class). */
   if (scp->name != NULL && !scp->name_has_been_mangled) {
-    /* The encoding is the original name, two underscores, the
-       mangled name of the routine, and "__Lnn" where "nn" is the
-       scope number. */
     name_length = strlen(scp->name);
     if (rout != NULL && has_name(rout)) {
       routine_name_length = strlen(rout->source_corresp.name);
     } else {
       routine_name_length = 0;
     }  /* if */
-    (void)sprintf(scope_num_buffer, "__L%lu", (unsigned long)scope_number);
+#if !IA64_ABI
+    /* Cfront-like ABI: The encoding is the original name, two
+       underscores, the mangled name of the routine, and "__Lnn" where
+       "nn" is the scope number. */
+    (void)sprintf(buffer, "__L%lu", (unsigned long)scope_number);
     mangled_name_length = name_length + 2 + routine_name_length +
-                          strlen(scope_num_buffer);
+                          strlen(buffer);
+#else /* IA64_ABI */
+    /* IA-64 ABI encoding:
+         _Z Z function-mangled-name E name-with-length _ discriminator
+       We don't have an accurate discriminator value, so we use the
+       scope number for that.  The routine name already has the "_Z"
+       at the front. */
+    (void)sprintf(buffer, "E%lu", (unsigned long)name_length);
+    (void)sprintf(buffer2, "_%lu", (unsigned long)scope_number);
+    mangled_name_length = routine_name_length + 1 + strlen(buffer) +
+                          name_length + strlen(buffer2);
+    if (routine_name_length == 0) mangled_name_length += 2;
+#endif /* !IA64_ABI */
     /* Allocate space for the mangled name and build it. */
     alloc_length = mangled_name_length + 1;
     /* This space is not counted under any debug output.  There shouldn't
        be too much of it. */
     mangled_name = alloc_il_for_c_gen_be(alloc_length);
+#if !IA64_ABI
     (void)strcpy(mangled_name, scp->name);
     store_at = mangled_name + name_length;
     *store_at++ = '_';
@@ -2919,7 +2936,21 @@ with a routine.
       (void)strcpy(store_at, rout->source_corresp.name);
       store_at += routine_name_length;
     }  /* if */
-    (void)strcpy(store_at, scope_num_buffer);
+    (void)strcpy(store_at, buffer);
+#else /* IA64_ABI */
+    (void)strcpy(mangled_name, "_ZZ");
+    store_at = mangled_name+3;
+    if (routine_name_length != 0) {
+      check_assertion(routine_name_length >= 5);
+      (void)strcpy(store_at, rout->source_corresp.name+2);
+      store_at += routine_name_length-2;
+    }  /* if */
+    (void)strcpy(store_at, buffer);  /* E plus name length. */
+    store_at += strlen(buffer);
+    (void)strcpy(store_at, scp->name);
+    store_at += name_length;
+    (void)strcpy(store_at, buffer2);  /* _ plus scope number. */
+#endif /* !IA64_ABI */
     /* Put the mangled name into the source correspondence entry. */
     /* The old name is just thrown away. */
     scp->name = mangled_name;
