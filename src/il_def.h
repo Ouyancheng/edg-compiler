@@ -6475,7 +6475,9 @@ typedef struct a_routine {
 			   effective declaration for other purposes is an
 			   extern declaration with no body."  In GNU C mode
 			   this flag is also set for inline functions that
-			   are defined with the keyword "extern". */
+			   are defined with the keyword "extern".  In Microsoft
+			   mode, it is FALSE if the inline function was
+			   declared with an explicit "extern" specifier. */
   a_bit_field	on_inline_function_list:1;
 			/* TRUE if this routine has been added to the inline
 			   function list. */

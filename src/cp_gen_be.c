@@ -9777,7 +9777,18 @@ TRUE if the declaration following this one is such a continuation.
   } else {
     /* A declaration or definition outside of a class (at file scope or
        inside a function). */
-    if (is_definition) {
+    out_of_class_redecl = rout->source_corresp.is_class_member;
+    if (msvc_is_generated_code_target && rout->is_inline &&
+        !out_of_class_redecl &&
+        (storage_class == (a_storage_class)sc_unspecified ||
+         storage_class == (a_storage_class)sc_extern)) {
+      /* When an inline function is explicitly declared "extern", a
+         Microsoft compiler will spill the inline function definition
+         (if it is provided). */
+      storage_class =
+                  rout->suppress_inline_body ? (a_storage_class)sc_unspecified
+                                             : (a_storage_class)sc_extern;
+    } else if (is_definition) {
       /* This is the definition of the function, so by and large the
          storage class from the IL entry applies. */
       if (rout->source_corresp.is_class_member) {
@@ -9786,9 +9797,6 @@ TRUE if the declaration following this one is such a continuation.
       }  /* if */
     } else {
       /* A declaration of a function. */
-      /* Normally, this should not be a member function, but in Microsoft
-         mode it is possible to redeclare a member without defining it. */
-      out_of_class_redecl = rout->source_corresp.is_class_member;
       /* The function is not defined (here), so use "extern" instead of
          no storage class.  Also use "extern" for file-scope static routines
          declared extern inside functions.  Again, Microsoft member
@@ -9796,6 +9804,8 @@ TRUE if the declaration following this one is such a continuation.
          Also out of line declarations of templates, when prototype
          instantiations are preserved in the IL. */
       if (out_of_class_redecl) {
+        /* Normally, this should not be a member function, but in Microsoft
+           mode it is possible to redeclare a member without defining it. */
         check_assertion(microsoft_mode || rout->is_prototype_instantiation);
         storage_class = (a_storage_class)sc_unspecified;
       } else if (storage_class == (a_storage_class)sc_unspecified ||

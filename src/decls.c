@@ -4771,6 +4771,7 @@ declaration.
   an_id_linkage_block      idlb;
   a_boolean                suppress_inline_body = FALSE;
   a_boolean                notify_correspondence_processing = FALSE;
+  a_storage_class          declared_storage_class = storage_class;
 
   db_enter(3, "decl_routine");
   *old_type = NULL;
@@ -4826,6 +4827,14 @@ declaration.
                                    locator);
     report_bad_new_or_delete(locator, storage_class,
                              &invalid_scope_for_new_or_delete);
+    if (microsoft_mode && func_info->is_inline) {
+      /* In Microsoft mode "extern inline" is a request for the inline
+         function body to be spilled.  Without "extern", it is still a
+         function with external linkage, but it need not be spilled unless
+         there is another reason to do so (e.g., its address is taken). */
+      suppress_inline_body =
+                       (declared_storage_class != (a_storage_class)sc_extern);
+    }  /* if */
   } else {
     /* C mode. */
     if (strict_ansi_mode) {
@@ -5706,7 +5715,7 @@ skip_overloading:;
     }  /* if */
   }  /* if */
   if (func_info->is_inline) routine_ptr->is_inline = TRUE;
-  if (c99_mode && !gcc_mode) {
+  if ((c99_mode && !gcc_mode) || microsoft_mode) {
     /* In C99 mode the suppress_inline_body flag is set only if that is
        justified by every declaration of a given inline function. */
     if (redeclaration) {
