@@ -922,7 +922,7 @@ scan the tokens in a Microsoft __asm block.
     }  /* if */
     if (!skip_this_token) {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Count paired tokens within the skip. */
+      /* Count paired tokens within the skip. */ /*lint !e539*/
       if (closing_token == tok_rbrace) {
         /* When looking for a right brace, don't consider any other
            delimiters.  Braces can't be nested inside parens, brackets,
@@ -3843,6 +3843,8 @@ Test a character to see if it is an end-of-file character.
 #define MBC_CHECKING_NEEDED_IN_LINE_READING FALSE
 #endif /* QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
+#else /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+#define MBC_CHECKING_NEEDED_IN_LINE_READING FALSE
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 #if MBC_CHECKING_NEEDED_IN_LINE_READING
