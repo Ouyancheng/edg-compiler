@@ -3329,7 +3329,6 @@ we return without doing anything.  If there is no corresponding source
 file we simply return.
 */
 {
-#if 0
   a_source_position	*decl_position;
   a_line_number		line_number;
   a_boolean		at_end_of_source;
@@ -3343,20 +3342,34 @@ file we simply return.
   sfp = source_file_for_seq(decl_position->seq, &line_number,
                             &at_end_of_source, &nesting_depth,
                             /*physical_line=*/FALSE);
-  /* If we haven't already included the corresponding source file then
-     do so now. */
-  if (sfp != NULL && !sfp->related_file_implicit_include_done) {
-    sfp->related_file_implicit_include_done = TRUE;
-    /* Call a routine to search for a file with an appropriate suffix. */
-    f_source = open_file_for_input(sfp->file_name, incl_search_path,
-				   /*replace_suffix=*/TRUE,
-				   &full_file_name);
-    if (f_source != NULL) {
-      /* If such a file was found include it now. */
-      push_input_stack(f_source, sfp->file_name, full_file_name);
+  if (sfp != NULL && sfp != il_header.primary_source_file) {
+    /* A source file was found and it does not refer to the primary source
+       file. */
+    if (!sfp->related_file_implicit_include_done) {
+      /* If we haven't already included the corresponding source file then
+         do so now. */
+      sfp->related_file_implicit_include_done = TRUE;
+      /* Call a routine to search for a file with an appropriate suffix. */
+      f_source = open_file_for_input(sfp->file_name, incl_search_path,
+				     /*replace_suffix=*/TRUE,
+				     &full_file_name);
+      if (f_source != NULL) {
+        if (strcmp(full_file_name, sfp->full_name) != 0) {
+          /* A related source file was found.  Make sure that the name of the
+             file found is not the same as the file we started with.  This
+             could occur if the user included a .c file that contains a
+             template declaration. */
+          push_input_stack(f_source, full_file_name, full_file_name);
+          scan_implicitly_included_template_definition_file();
+        } else {
+          /* The file name returned by open_file_for_input is the same as
+             the file in which the template was declared.  Just close
+             the file. */
+          (void)fclose(f_source);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
-#endif /* 0 */
 }  /* do_implicit_include_if_needed */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
@@ -3465,7 +3478,7 @@ such as instantiating a template for which no body was supplied.
       specific_def = tip->instance_sym->defined;
       template_def = tip->template_sym->defined;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-      if (!template_def) {
+      if (!template_def && implicit_template_inclusion_mode) {
         /* If a template definition is not present, attempt to include a
            source file that will provide the definition.  Then check
            again to see if a template definition is present. */
@@ -3489,7 +3502,7 @@ such as instantiating a template for which no body was supplied.
       }  /* if */
       template_def = tssp->token_cache.first_token != NULL;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-      if (!template_def) {
+      if (!template_def && implicit_template_inclusion_mode) {
         /* If a template definition is not present, attempt to include a
            source file that will provide the definition.  Then check
            again to see if a template definition is present. */
@@ -3820,7 +3833,7 @@ instantiation of a given template instance.
     specific_def = tip->specific_def;
     template_def = tssp->token_cache.first_token != NULL;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-    if (!template_def) {
+    if (!template_def && implicit_template_inclusion_mode) {
       /* If a template definition is not present, attempt to include a
          source file that will provide the definition.  Then check
          again to see if a template definition is present. */
