@@ -26,6 +26,7 @@ types.c -- Utility routines that check types.
 #if !STANDALONE_UTILITY_PROGRAM
 #include "class_decl.h"
 #include "folding.h"
+#include "symbol_ref.h"
 #include "templates.h"
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
