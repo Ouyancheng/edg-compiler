@@ -322,6 +322,17 @@ typedef struct a_class_symbol_supplement {
 			/* Pointer to an sk_member_function symbol that
 			   identifies the destructor for this class; NULL if
 			   there is none. */
+  a_symbol_ptr	default_constructor;
+			/* Pointer to an sk_member_function symbol that
+			   identifies the default constructor for this class
+			   (i.e., the constructor that can be called with no
+			   arguments); NULL if there is none. */
+  a_symbol_ptr	copy_constructor;
+			/* Pointer to an sk_member_function symbol that
+			   identifies the copy constructor for this class
+			   (i.e., the constructor that can be called with a
+			   single argument of the type of the class);  NULL if
+			   there is none. */
   unsigned int	any_nonpublic_members:1;
 			/* TRUE if the class contains any members declared
 			   private or protected. */
