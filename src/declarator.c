@@ -1374,8 +1374,7 @@ declaration.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Make adjustments on the param source sequence entry before it is
            bound to the param_id entry. */
-        if (!is_top_level_declarator ||
-            scope_stack[depth_scope_stack].in_prototype_instantiation) {
+        if (!is_top_level_declarator || is_template_dependent_context()) {
           /* If a parameter id was specified in a non-top-level function
              declarator, a source sequence entry created for it is useless.
              In certain configurations source sequence entries are put out
