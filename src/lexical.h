@@ -554,7 +554,7 @@ These must not conflict with any characters that can be read from input.
    be no special characters. */
 #if CHAR_MIN < 0
 /* Host has signed characters. */
-#define UNUSED_CHAR_POS (0x81 | ~UCHAR_MAX)
+#define UNUSED_CHAR_POS (0x81 | (int)~UCHAR_MAX)
 #else /* CHAR_MIN < 0 */
 /* Host has unsigned characters. */
 #define UNUSED_CHAR_POS 0x81
