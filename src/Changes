@@ -1,5 +1,18 @@
 Version 2.37
 
+7/25/97   Error on typeid(overloaded-function)
+
+An error is now issued for a use of typeid on an overloaded function
+or function template.  Formerly, the failure to do this check
+resulted in an internal error in mangled_encoding_for_type.
+
+  #include <typeinfo.h>
+  void gg();
+  void gg(int);
+  int main() {
+    const std::type_info *p = &typeid(gg);
+  }
+
 7/24/97   Unnamed template parameters
 
 Unnamed template parameters are now supported.

@@ -4041,13 +4041,18 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
   } else {
     /* Scan an expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+    if (is_indefinite_function_operand(&operand)) {
+      /* typeid(overloaded-function) is not allowed. */
+      pos_sy_error(ec_indeterminate_overloaded_function,
+                   &operand.position, operand.variant.symbol);
+      conv_to_error_operand(&operand);
+    }  /* if */
     typeid_type = operand.type;
     /* *p and p[expr] yielding polymorphic class objects are special cases
        that use runtime typeid determination. */
     if (is_an_lvalue(&operand) &&
         is_expression_operand(&operand) &&
         is_polymorphic_class_type(typeid_type)) {
-#if 0
       /* This processing (checking the complete object type) is not exactly
          what the WP calls for.  The WP singles out the cases *p and p[x],
          though it probably means that p is an arbitrary, and there's a test
@@ -4055,7 +4060,6 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
          Bjarne's paper, N0198=92-0121, voted in at the 3/93 Portland meeting,
          included examples using references.  The present processing seems
          closer to the intent, it's safe, and it's easier to do. */
-#endif /* 0 */
       if (operand_complete_object_type(&operand,
                                        /*call_case=*/FALSE) != NULL) {
         /* The complete object type can be determined, so runtime processing
