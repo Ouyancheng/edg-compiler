@@ -642,6 +642,8 @@ necessary to make it directly accessible in memory.
      blocks). */
   fread_with_check((char *)&old_hdr, sizeof(old_hdr));
   fread_with_check((char *)&old_region_scope_entry, sizeof(a_scope_ptr));
+  il_header.region_scope_entry[region_number] =
+                                           (a_scope_ptr)old_region_scope_entry;
   fread_with_check((char *)&total_bytes, sizeof(total_bytes));
   block_remap_list = NULL;
   any_blocks_at_different_addresses = FALSE;
