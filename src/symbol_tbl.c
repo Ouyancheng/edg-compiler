@@ -3373,8 +3373,7 @@ are also allowed.
        allowed to have the same name as its class, as long as it's not an
        anonymous union field being promoted to a containing class with the
        same name. */
-    if (!strict_ansi_mode &&
-        member_sym->kind == (a_symbol_kind)sk_field &&
+    if (member_sym->kind == (a_symbol_kind)sk_field &&
         class_sym->variant.
                     class_struct_union.extra_info->constructor == NULL &&
         ((fp = member_sym->variant.field.ptr) == NULL ||
@@ -3384,13 +3383,6 @@ are also allowed.
            It is never the case that the field is not yet bound to the symbol
            when an anonymous union member is being promoted, nor will the
            parent classes correspond. */
-      if (class_name_injection_enabled) {
-        /* This C-compatibility feature from the ARM is incompatible with
-           class-name injection, which is part of the current standard, but
-           since this is not strict mode, just issue a warning. */
-        pos_warning(ec_class_and_member_name_conflict,
-                    &member_sym->decl_position);
-      }  /* if */
     } else if (class_sym->header == unnamed_tag_symbol_header) {
       /* This must be a constructor for an unnamed class. */
     } else if (is_injected_class_symbol(member_sym)) {
