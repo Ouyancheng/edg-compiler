@@ -563,7 +563,8 @@ that preserves the identity of the underlying template.  This becomes
 necessary when overloading of function templates and partial specialization
 is supported.  We have changed the name mangling for templates
 accordingly.  The old mangling is available through the command-line
-option --no_distinct_template_signatures, or by setting
+option --no_distinct_template_signatures, by setting
+DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES to FALSE, or by setting
 ABI_COMPATIBILITY_VERSION to something preceding 232.
 
 A few new encodings have been added to the name mangling scheme to
