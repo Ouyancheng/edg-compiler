@@ -594,6 +594,11 @@ typedef struct a_src_seq_secondary_decl {
   a_bit_field	implicit_decl:1;
 			/* TRUE when this declaration is an implicit function
 			   declaration. */
+  a_bit_field	declared_in_func_prototype:1;
+			/* TRUE when the scope of this declaration is a
+			   function prototype scope -- e.g.,
+			     void f(struct A *);
+			   when this is the first declaration of A. */
   bitfield_to_avoid_codecenter_warnings()
 } a_src_seq_secondary_decl;
 

@@ -2219,9 +2219,10 @@ and return a pointer to it.
   sssdp->entity.kind   = (a_byte_il_entry_kind)iek_none;
   sssdp->entity.ptr    = NULL;
   sssdp->declared_type = NULL;
-  sssdp->autonomous_tag_decl  = FALSE;
-  sssdp->friend_decl          = FALSE;
-  sssdp->implicit_decl        = FALSE;
+  sssdp->autonomous_tag_decl        = FALSE;
+  sssdp->friend_decl                = FALSE;
+  sssdp->implicit_decl              = FALSE;
+  sssdp->declared_in_func_prototype = FALSE;
 #if CHECKING
   sssdp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
