@@ -1,5 +1,17 @@
 Version 2.30
 
+10/2/95  Use of qualified name in class member declaration
+
+In a class member declaration within a class definition, a qualified name
+referring to the current class is permitted on the declarator; this
+cfront-compatibility extension was added long ago to deal with code from
+older libraries, and a diagnostic was issued in strict ANSI mode.  We now
+issue a diagnostic in default mode as well.
+
+  class A {
+    A::A() { ... }      // Now a warning in default mode
+  };
+
 10/2/95  C++-generating back end: extern "C" on declarations within functions
 
 The C++-generating back end now suppresses extern "C" on declarations
@@ -28,10 +40,10 @@ lowered and therefore had the wrong number of parameters.  Now fixed.
   void f() {
     void (A::*p)() = &A::h;
   }
-  void A::g() {h();}  // Call pointed to unlowered routine type
+  void A::g() { h(); }     // Call pointed to unlowered routine type
   void A::h() {}
 
-10/2/95  pragma binding with elaborated type specifiers
+10/2/95  Pragma binding with elaborated type specifiers
 
 A bug has been fixed in how a "next-construct" pragma binds when an
 elaborated type specifier appears in the declaration of another entity.

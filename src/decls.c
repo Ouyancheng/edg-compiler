@@ -4998,8 +4998,8 @@ This routine is called in C++ only.
 
 This functionality is provided to deal with declarations of class members
 where a qualified name is used instead of a simple name, e.g., when a
-constructor for class A is declared A::A() rather than A().  The ARM does
-not specifically allow this syntax, but it is supported by cfront.
+constructor for class A is declared A::A() rather than A().  This is
+nonstandard, but it is allowed by cfront.
 */
 {
   a_boolean                is_member_id = FALSE;
@@ -5016,10 +5016,12 @@ not specifically allow this syntax, but it is supported by cfront.
       /* Reset the fields in the locator to make it appear as if the
          qualifier was not present. */
       clear_qualifier_from_locator(&locator_for_curr_id);
-      /* Accepting qualified member names is an extension so issue a
-         diagnostic in strict ANSI mode. */
-      if (strict_ansi_mode) {
-        diagnostic(strict_ansi_error_severity,
+      if (any_cfront_mode()) {
+        /* No diagnostic, to be consistent with cfront's behavior. */
+      } else {
+        /* Accepting qualified member names is an extension -- issue a
+           diagnostic. */
+        diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
                    ec_qualifier_in_member_declaration);
       }  /* if */ 
     }  /* if */
