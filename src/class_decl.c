@@ -6628,6 +6628,7 @@ next_declaration:
 }  /* scan_class_definition */
 
 
+/*ARGSUSED*/ /* <-- because "is_friend_decl" is unused if !CHECKING. */
 a_boolean class_specifier(a_boolean  vacuous_decl_allowed,
                           a_boolean  is_friend_decl,
                           a_boolean  is_ref_within_new_expr,
