@@ -1916,7 +1916,7 @@ examine_children:
       fprintf(f_debug, "  first_seq_number: %lu\n",
                        seq_cache.first_seq_number);
       fprintf(f_debug, "  last_seq_number: %lu\n", seq_cache.last_seq_number);
-      fprintf(f_debug, "  line_offset: %l\n", seq_cache.line_offset);
+      fprintf(f_debug, "  line_offset: %ld\n", seq_cache.line_offset);
       fprintf(f_debug, "  physical_line: %d\n", seq_cache.physical_line);
       fprintf(f_debug, "  seq number requested=%lu\n", seq_number);
     }  /* if */
