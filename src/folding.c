@@ -759,12 +759,6 @@ type.
         !identical_types(new_constant->type, new_type)) {
       implicit_cast(new_constant, new_type);
     }  /* if */
-  } else if (vla_enabled && !is_implicit_cast &&
-             is_directly_variably_modified_type(new_type)) {
-    /* A cast to a variably-modified type where the variable bound appears
-       in the cast (an opposed to inside a typedef declared elsewhere) is
-       a non-constant operation and cannot be folded. */
-    *did_not_fold = TRUE;
   }  /* if */
   /* Do the cast (by calling implicit_cast) unless there was an error or
      the cast has already been handled. */
@@ -1225,6 +1219,14 @@ casts between unrelated classes.
     set_constant_kind(&new_constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&new_constant.variant.integer_value,
                       (a_host_large_integer)!is_false_constant(constant));
+    goto exit;
+  }  /* if */
+  if (vla_enabled && !is_implicit_cast &&
+      is_directly_variably_modified_type(new_type)) {
+    /* A cast to a variably-modified type where the variable bound appears
+       in the cast (an opposed to inside a typedef declared elsewhere) is
+       a non-constant operation and cannot be folded. */
+    *did_not_fold = TRUE;
     goto exit;
   }  /* if */
   if (constant->kind == (a_constant_repr_kind)ck_address) {
