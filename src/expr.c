@@ -8626,6 +8626,12 @@ C-style casts and C++ functional-notation type conversions.
   a_boolean     cast_to_void, cast_to_reference = FALSE, processed = FALSE;
   a_boolean     allow_rvalue_on_rewrite = FALSE;
 
+  /* The bound function test is done first to make sure bound functions
+     cannot wander into the rest of the cases. */
+  if (operand->bound_function) {
+    bound_function_in_cast(type_cast_to, start_position, operand,
+                           bound_function_selector);
+  }  /* if */
   if (err) {
     /* There was a previous error (e.g., the type to cast to is invalid
        regardless of the type of the source).  Do no further checking. */
@@ -8682,12 +8688,6 @@ C-style casts and C++ functional-notation type conversions.
       }  /* if */
       /* Check for different types of casts and do the cast. */
       if (!err && !processed) {
-        /* The bound function test is done first to make sure bound functions
-           cannot wander into the rest of the cases. */
-        if (operand->bound_function) {
-          bound_function_in_cast(type_cast_to, start_position, operand,
-                                 bound_function_selector);
-        }  /* if */
         /* Get the source type after the transformations. */
         source_type = operand->type;
         if (is_indefinite_function_operand(operand)) {
