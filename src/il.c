@@ -4907,6 +4907,7 @@ Initialize a dynamic_init entry of the kind specified.
   dip->inside_conditional_expression = FALSE;
   dip->unordered                     = FALSE;
   dip->is_expr_temp_init             = FALSE;
+  dip->is_constructor_init           = FALSE;
 #if CHECKING
   dip->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

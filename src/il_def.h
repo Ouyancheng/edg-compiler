@@ -912,6 +912,10 @@ typedef struct a_dynamic_init {
   unsigned int	is_expr_temp_init:1;
 			/* TRUE if this entry represents the initialization of
 			   an expression temporary. */
+  unsigned int	is_constructor_init;
+			/* TRUE if this entry is pointed to from a
+			   constructor_init entry in a constructor or
+			   destructor. */
   bitfield_to_avoid_codecenter_warnings();
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */
@@ -5442,7 +5446,7 @@ typedef struct a_scope {
 			/* If non-NULL, points to an object lifetime for
 			   the local static variables declared within the
 			   routine, whether in this scope or a block scope
-			   contained withing it. */
+			   contained within it. */
       a_variable_ptr
                 this_param_variable;
 			/* If the scope is for a C++ nonstatic member

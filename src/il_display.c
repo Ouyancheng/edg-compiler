@@ -2708,6 +2708,9 @@ Display the indicated dynamic_init structure.
   if (ptr->is_expr_temp_init) {
     disp_boolean("is_expr_temp_init", TRUE);
   }  /* if */
+  if (ptr->is_constructor_init) {
+    disp_boolean("is_constructor_init", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case dik_none:
