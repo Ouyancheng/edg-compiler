@@ -5084,7 +5084,7 @@ See also 3.6.6.2.
 
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
-/* ARGSUSED */ /* <-- end_pos is not used in that case. */ */
+/* ARGSUSED */ /* <-- end_pos is not used in that case. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void add_goto_for_break(a_struct_stmt_stack_entry_ptr sssep,
                                a_source_position             *pos,
@@ -5154,7 +5154,7 @@ thus allowing us to continue adding (dead) code following the break.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
                      &sssep->curr_switch_clause->break_end_position
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-                     &null_source_position
+                     (a_stmt_source_position *)NULL
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
                     );
 }  /* make_implicit_break_explicit */
