@@ -1,5 +1,19 @@
 Version 2.43
 
+8/19/99  Fetching value of volatile bit field is a side effect
+
+The operation of fetching the value of a volatile bit field (either
+the bit field type itself is volatile, or the class/struct is volatile)
+should be considered to produce a side effect.  Now, it is.  The
+following example, compiled in C mode, illustrates the issue:
+
+  volatile struct X {          int x:1; } a;
+           struct Y { volatile int x:1; } b;
+  void f(void) {
+    a.x;  // Has side effect
+    b.x;  // Has side effect
+  }
+
 8/19/99  Abort in copy_default_arg_expr
 
 Some changes to default argument processing made in 2.42 could cause

@@ -104,8 +104,21 @@ should be suppressed.
       /* These all cause side effects. */
       has_side_effects = TRUE;
       break;
+    case eok_extract_bit_field:
+      /* A bit field extraction causes a side effect if the bit field is
+         volatile.  This has to be tested separately because the volatile
+         qualifier doesn't appear in the result type (it's an rvalue). */
+      operand = node->variant.operation.operands->next;
+      check_assertion(operand->kind == (an_expr_node_kind)enk_field);
+      if (is_volatile_qualified_type(operand->variant.field->type)) {
+        has_side_effects = TRUE;
+        break;
+      }  /* if */
+      /* Go test whether the struct is volatile. */
+      goto first_op_volatile_test;
     case eok_indirect:
     case eok_subscript:
+first_op_volatile_test:
       /* Causes a side effect if the type of the thing pointed to
          is volatile. */
       /* Note that we test the pointer operand's type, not the node type,
