@@ -222,6 +222,10 @@ typedef int a_decl_flag_set;
 			/* If this bit is set a declarator may be followed
 			   by an initializer using the "(expr-list)"
 			   notation (ARM 8.4). */
+#define DI_DESTRUCTOR_SPECIFIERS 0x20
+			/* If this bit is set decl_specifiers has seen a "~"
+			   and determined that specifiers preceding it, if any,
+			   are consistent with a destructor declaration.  */
 /* Constants defining bits in the output bit vector used in calls to
    declarator. */
 #define DO_NO_OUTPUT_FLAGS 0x0
@@ -304,6 +308,16 @@ typedef int a_decl_flag_set;
                            consist of (1) a keyword class, struct, union, or
                            enum and (2) an identifier (and optionally (3) the
                            keyword friend). */
+#define DSO_CONSTRUCTOR 0x1000
+			/* If this bit is set the declaration is for a
+			   constructor, in which case the type returned from
+			   decl_specifiers is tk_void. */
+#define DSO_DESTRUCTOR 0x2000
+			/* If this bit is set the declaration appears to be
+                           that of a destructor (a "~" was seen, and the
+                           specifiers, if any, are consistent with those
+			   allowed on a destructor declaration), and so a type
+                           of tk_void was returned. */
 
 extern void declarator(a_decl_flag_set   input_flags,
                        a_decl_flag_set   *output_flags,
