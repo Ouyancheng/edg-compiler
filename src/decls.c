@@ -10755,15 +10755,23 @@ a compilation.  The syntax is
 		external-declaration
 		translation-unit external-declaration
 
+In C++, however, the declaration list is optional (3.4):
+
+       translation-union:
+                declaration-seq
+                               opt
 */
 {
   if (get_token() == tok_end_of_source) {
-    /* A translation unit cannot be empty.  Note that this can happen not
-       only for an empty file, but also for a file containing only
-       preprocessing directives.  pcc allows an empty source file.
-       In ANSI mode, it's allowed as an extension. */
-    if (strict_ansi_mode) {
-      diagnostic(strict_ansi_error_severity, ec_empty_translation_unit);
+    /* Empty translation unit -- okay in C++ mode. */
+    if (C_mode()) {
+      /* A translation unit cannot be empty.  Note that this can happen not
+         only for an empty file, but also for a file containing only
+         preprocessing directives.  pcc allows an empty source file.
+         In ANSI mode, it's allowed as an extension. */
+      if (strict_ansi_mode) {
+        diagnostic(strict_ansi_error_severity, ec_empty_translation_unit);
+      }  /* if */
     }  /* if */
   } else {
     do {
