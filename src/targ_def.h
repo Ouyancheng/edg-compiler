@@ -2778,7 +2778,7 @@ involved.
 
 /*
 If TRUE, IL lowering should generate the code that the Cfront
-"patch" program needs for startup initialization.  This invoves a
+"patch" program needs for startup initialization.  This involves a
 generated variable called "__link" that points to the startup
 initialization routine.  This is a mostly-obsolete technique.
 */
