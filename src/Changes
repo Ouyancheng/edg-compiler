@@ -1,5 +1,10 @@
 Version 2.28
 
+1/25/95  Freeing of storage on exception for uninitialized "new"
+
+The freeing_of_storage_on_exception action for a "new" shouldn't
+be filled in when the "new" doesn't have initialization.
+
 1/25/95  Ambiguous member functions in operator overloading
 
 Ambiguity on member functions in operator overloading is now diagnosed

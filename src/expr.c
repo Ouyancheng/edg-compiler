@@ -3917,8 +3917,6 @@ specification allow a variable-sized array as the top type.
   an_arg_match_summary_ptr
                     arg_match_list = NULL;
   a_routine_ptr     new_routine = NULL;
-  a_dynamic_init_ptr
-                    dyn_init_to_free_storage = NULL;
   a_boolean         saved_inside_conditional_expression =
                                      expr_stack->inside_conditional_expression;
 
@@ -4188,28 +4186,6 @@ specification allow a variable-sized array as the top type.
     /* Avoid freeing the lists twice. */
     arg_operand_list = NULL;
     arg_match_list = NULL;
-    /* If exceptions are enabled, record the deletion to be used to
-       undo the allocation if an exception is thrown.  Do not do this for
-       a "placement" new; the storage in that case is not freed automatically
-       when an exception is thrown. */
-    if (exceptions_enabled && new_routine != NULL && !placement_new) {
-      a_routine_ptr delete_routine = select_delete_routine(base_new_type,
-                                                           use_global_new,
-                                                           array_new,
-                                                          &placement_position);
-      /* Mark the routine referenced. */
-      if_evaluating_mark_routine_referenced(delete_routine);
-      /* The deletion is recorded in a dynamic initialization entry.
-         The delete routine is used as the "destructor". */
-      dyn_init_to_free_storage =
-                        alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
-      dyn_init_to_free_storage->destructor = delete_routine;
-      dyn_init_to_free_storage->has_temporary_lifetime = TRUE;
-      dyn_init_to_free_storage->is_freeing_of_storage_on_exception = TRUE;
-      record_end_of_lifetime_destruction(dyn_init_to_free_storage,
-                                         /*static_lifetime=*/FALSE,
-                                         /*block_lifetime=*/FALSE);
-    }  /* if */
   }  /* if */
   /* If the new routine will be called (and not folded into a constructor),
      the initializer expression is actually inside a conditional expression
@@ -4304,7 +4280,6 @@ specification allow a variable-sized array as the top type.
        elements is nonconstant. */
     ndsp->routine = new_routine;
     ndsp->arg = arg_expr_list;
-    ndsp->freeing_of_storage_on_exception = dyn_init_to_free_storage;
     if (needs_initialization) {
       /* The allocated space must be initialized.  A dynamic init entry is
          used. */
@@ -4337,6 +4312,31 @@ specification allow a variable-sized array as the top type.
         dip->variant.expression = init_val_node;
       }  /* if */
       ndsp->dynamic_init = dip;
+      /* If exceptions are enabled, record the deletion to be used to
+         undo the allocation if an exception is thrown.  Do not do this for
+         a "placement" new; the storage in that case is not freed automatically
+         when an exception is thrown. */
+      if (exceptions_enabled && new_routine != NULL && !placement_new) {
+        a_dynamic_init_ptr dyn_init_to_free_storage = NULL;
+        a_routine_ptr      delete_routine =
+                                    select_delete_routine(base_new_type,
+                                                          use_global_new,
+                                                          array_new,
+                                                          &placement_position);
+        /* Mark the routine referenced. */
+        if_evaluating_mark_routine_referenced(delete_routine);
+        /* The deletion is recorded in a dynamic initialization entry.
+           The delete routine is used as the "destructor". */
+        dyn_init_to_free_storage =
+                        alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
+        dyn_init_to_free_storage->destructor = delete_routine;
+        dyn_init_to_free_storage->has_temporary_lifetime = TRUE;
+        dyn_init_to_free_storage->is_freeing_of_storage_on_exception = TRUE;
+        record_end_of_lifetime_destruction(dyn_init_to_free_storage,
+                                           /*static_lifetime=*/FALSE,
+                                           /*block_lifetime=*/FALSE);
+        ndsp->freeing_of_storage_on_exception = dyn_init_to_free_storage;
+      }  /* if */
     }  /* if */
     /* Make an operand for the result. */
     make_expression_operand(new_node, ptr_new_type, result);
