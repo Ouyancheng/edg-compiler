@@ -2083,6 +2083,9 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
     if (!option_kind_used[(int)optk_base_assign_op_is_default]) {
       allow_copy_assignment_op_with_base_class_param = FALSE;
     }  /* if */
+    if (!option_kind_used[(int)optk_exception_handling]) {
+      exceptions_enabled = TRUE;
+    }  /* if */
   }  /* if */
   if (!(option_kind_used[(int)optk_extended_variadic_macros])) {
     /* Support for extended variadic macros is turned off by default in

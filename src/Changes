@@ -1,5 +1,9 @@
 Version 2.45
 
+8/21/00  Exceptions on by default in strict C++ mode
+
+Exceptions are now enabled by default when strict C++ mode is enabled.
+
 8/21/00  Warnings on explicit conversions to qualified types
 
 The front end no longer issues a warning about useless cv-qualifiers in
