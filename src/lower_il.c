@@ -7774,6 +7774,19 @@ not include the function scope memory region, if any.
       routine->storage_class = (a_storage_class)sc_static;
       routine->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
       routine->source_corresp.externalized = FALSE;
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+      /* Make any associated thunks also static. */
+      { a_routine_ptr trout;
+        for (trout = routine->next;
+             trout != NULL &&
+               trout->overriding_function_for_covariant_return_type == routine;
+             trout = trout->next) {
+          trout->storage_class = (a_storage_class)sc_static;
+          trout->source_corresp.name_linkage=(a_name_linkage_kind)nlk_internal;
+          trout->source_corresp.externalized = FALSE;
+        }  /* for */
+      }
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if ONE_INSTANTIATION_PER_OBJECT
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
       if (one_instantiation_per_object) {

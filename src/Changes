@@ -1,5 +1,26 @@
 Version 3.2
 
+2/25/03  Duplicate definition of wrapper routine for virtual function
+         with covariant return, Cfront-like ABI
+
+When the Cfront-like ABI is used and LOWER_EXTERN_INLINE is TRUE,
+the generated wrapper routine (or "thunk", or "surrogate function")
+for an inline virtual function with a covariant return type was
+put out as an external definition.  This could cause a link-time
+error for a duplicate definition if another copy of the same
+function was generated in another compilation.  Such a function
+is now put out properly as a static inline function.
+
+  struct A {
+    virtual A *f() {}
+  };
+  struct AA { int i; };
+  struct B : public AA, public A {
+    virtual void g();
+    virtual B *f() {}
+  };
+  void B::g() {}
+
 2/25/03  IL lowering typeinfo variable handling with GENERATE_EH_TABLES
          set to FALSE
 
