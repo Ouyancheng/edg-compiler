@@ -74,6 +74,10 @@ typedef struct a_decode_control_block {
 			/* If non-zero, the original name was compressed,
 			   and this indicates the length of the uncompressed
 			   (but still mangled) name. */
+#if IA64_ABI
+  unsigned long	suppress_substitution_recording;
+			/* If > 0, suppress recording of substitutions. */
+#endif /* IA64_ABI */
 } a_decode_control_block;
 
 
@@ -91,6 +95,9 @@ Clear a decoding control block.
   dctl->suppress_id_output = 0;
   dctl->end_of_constant = NULL;
   dctl->uncompressed_length = 0;
+#if IA64_ABI
+  dctl->suppress_substitution_recording = 0;
+#endif /* IA64_ABI */
 }  /* clear_control_block */
 
 #if !IA64_ABI
@@ -223,6 +230,9 @@ A bad name mangling has been encountered.  Record an error.
   if (!dctl->err_in_id) {
     dctl->err_in_id = TRUE;
     dctl->suppress_id_output++;
+#if IA64_ABI
+    dctl->suppress_substitution_recording++;
+#endif /* IA64_ABI */
   }  /* if */
 }  /* bad_mangled_name */
 
@@ -2487,6 +2497,56 @@ typedef struct a_func_block {
 } a_func_block;
 
 
+/*
+Information about an entity in the mangled name that may be reused
+by referring back to it by number as a "substitution".
+*/
+/* Code for type of syntactic object substituted for: */
+typedef enum a_substitution_kind {
+  subk_unscoped_template_name,
+			/* An <unscoped-template-name>. */
+  subk_prefix,		/* A <prefix>. */
+  subk_template_prefix,	/* A <template-prefix>. */
+  subk_type,		/* A <type>. */
+  subk_template_template_param
+			/* A <template-template-param>. */
+} a_substitution_kind;
+
+typedef struct a_substitution {
+  char		*start;	/* First character of the encoding of the entity. */
+  a_substitution_kind
+		kind;	/* Kind of entity. */
+  unsigned long	num_levels;
+			/* For subk_prefix and subk_template_prefix, the
+			   number of levels of the prefix included.  That is,
+			   is the substitution A:: or A::B:: or A::B::C::. */
+} a_substitution;
+
+static a_substitution
+		*substitutions = NULL;
+			/* A dynamically allocated array.  substitutions[n]
+			   gives the meaning of the substitution numbered
+			   "n". */
+static unsigned long
+		num_substitutions = 0;
+			/* The number of substitutions currently defined, i.e.,
+			   the number of elements of the array that have
+			   been set. */
+static unsigned long
+		allocated_substitutions = 0;
+			/* The allocated size of the array, as a number of
+			   elements. */
+
+
+static char *demangle_type_first_part(
+                               char                       *ptr,
+                               a_boolean                  under_lhs_declarator,
+                               a_boolean                  need_trailing_space,
+                               a_decode_control_block_ptr dctl);
+static void demangle_type_second_part(
+                               char                       *ptr,
+                               a_boolean                  under_lhs_declarator,
+                               a_decode_control_block_ptr dctl);
 static char *demangle_type(char                       *ptr,
                            a_decode_control_block_ptr dctl);
 static char *demangle_template_args(char                       *ptr,
@@ -2499,6 +2559,22 @@ static char *demangle_expression(char                       *ptr,
 static char *demangle_encoding(char                       *ptr,
                                a_boolean                  include_func_params,
                                a_decode_control_block_ptr dctl);
+static char *demangle_nested_name_components(
+                              char                       *ptr,
+                              unsigned long              num_levels,
+                              a_boolean                  *is_no_return_name,
+                              a_boolean                  *has_templ_arg_list,
+                              char                       **last_component_name,
+                              a_decode_control_block_ptr dctl);
+static char *demangle_unscoped_name(char                       *ptr,
+                                    a_func_block               *func_block,
+                                    a_decode_control_block_ptr dctl);
+static char *demangle_unqualified_name(
+                                 char                       *ptr,
+                                 a_boolean                  *is_no_return_name,
+                                 a_decode_control_block_ptr dctl);
+static char *demangle_template_param(char                       *ptr,
+                                     a_decode_control_block_ptr dctl);
 
 
 static void clear_func_block(a_func_block *func_block)
@@ -2541,8 +2617,53 @@ A negative number is indicated by a leading "n".
 }  /* get_number */
 
 
-static char *demangle_substitution(char                       *ptr,
-                                   a_decode_control_block_ptr dctl)
+static void record_substitutable_entity(char                       *start,
+                                        a_substitution_kind        kind,
+                                        unsigned long              num_levels,
+                                        a_decode_control_block_ptr dctl)
+/*
+Record the entity whose mangled name starts at "start", and whose
+kind (of syntax term) is given by "kind", as a potentially
+substitutable entity, one that can be used again by referencing
+it in a later substitution.  num_levels gives added information
+for the subk_prefix and subk_template_prefix cases.
+*/
+{
+  /* Do not record anything if we are suppressing recording of substitutions.
+     One case in which that is true is when an error has been detected. */
+  if (!dctl->suppress_substitution_recording) {
+    unsigned long  number = num_substitutions++;
+    a_substitution *subp;
+    if (num_substitutions > allocated_substitutions) {
+      /* Need to allocate or extend the substitutions array. */
+      true_size_t new_size;
+      allocated_substitutions += 500;
+      new_size = allocated_substitutions*sizeof(a_substitution);
+      if (substitutions == NULL) {
+        substitutions = malloc(new_size);
+      } else {
+        substitutions = realloc(substitutions, new_size);
+      }  /* if */
+      if (substitutions == NULL) {
+        bad_mangled_name(dctl);
+        return;
+      }  /* if */
+    } /* if */
+    subp = &substitutions[number];
+    subp->start = start;
+    subp->kind = kind;
+    subp->num_levels = num_levels;
+  }  /* if */
+}  /* record_substitutable_entity */
+
+
+static char *demangle_substitution(
+                             char                       *ptr,
+                             int                        type_pass_num,
+                             a_boolean                  under_lhs_declarator,
+                             a_boolean                  need_trailing_space,
+                             char                       **last_component_name,
+                             a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <substitution> and output the demangled form.
 Return a pointer to the character position following what was demangled.
@@ -2564,9 +2685,133 @@ often.  The syntax is:
    <substitution> ::= So # ::std::basic_ostream<char,  std::char_traits<char> >
    <substitution> ::= Sd # ::std::basic_iostream<char, std::char_traits<char> >
 
+When the substitution is a type, type_pass_num indicates whether to
+do the first-part (1) or second-part (2) processing.  under_lhs_declarator
+and need_trailing_space give extra information to be passed through to
+the type demangling routines in that case.  If last_component_name is
+non-NULL, and the substitution decoded is a prefix of a nested name, a
+pointer to the encoding for the last component of the nested name is
+returned in *last_component_name.  It will not be a substitution.
+This is needed for generating the names of constructors and
+destructors.
 */
 {
-  bad_mangled_name(dctl);
+  char ch2 = ptr[1];
+
+  if (last_component_name != NULL) *last_component_name = NULL;
+  if (islower((unsigned char)ch2)) {
+    /* Predefined substitution. */
+    char *last_name = "";
+    if (ch2 == 't') {
+      write_id_str("std::", dctl);
+      last_name = "3std";
+    } else if (ch2 == 'a') {
+      write_id_str("std::allocator", dctl);
+      last_name = "9allocator";
+    } else if (ch2 == 'b') {
+      write_id_str("std::basic_string", dctl);
+      last_name = "12basic_string";
+    } else if (ch2 == 's') {
+      write_id_str(
+      "std::basic_string<char, std::char_traits<char>, std::allocator<char>>",
+      dctl);
+      last_name = "12basic_string";
+    } else if (ch2 == 'i') {
+      write_id_str("std::basic_istream<char, std::char_traits<char>>", dctl);
+      last_name = "13basic_istream";
+    } else if (ch2 == 'o') {
+      write_id_str("std::basic_ostream<char, std::char_traits<char>>", dctl);
+      last_name = "13basic_ostream";
+    } else if (ch2 == 'd') {
+      write_id_str("std::basic_iostream<char, std::char_traits<char>>", dctl);
+      last_name = "13basic_iostream";
+    }  /* if */
+    ptr += 2;
+    if (last_component_name != NULL) *last_component_name = last_name;
+  } else {
+    /* Not a predefined substitution.  Convert the base-36 sequence number. */
+    unsigned long  number = 0;
+    a_substitution *subp;
+    char           *p;
+    ptr++;
+    if (ch2 != '_') {
+      do {
+        static char digits[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        number *= 36;
+        if (*ptr == '\0') {
+          bad_mangled_name(dctl);
+          break;
+        }  /* if */
+        p = strchr(digits, *ptr);
+        if (p == NULL) {
+          bad_mangled_name(dctl);
+          break;
+        }  /* if */
+        number += (p - digits);
+        ptr++;
+      } while (*ptr != '_');
+      number++;
+    }  /* if */
+    if (number >= num_substitutions) {
+      bad_mangled_name(dctl);
+    } else {
+      a_func_block func_block;
+      ptr = advance_past_underscore(ptr, dctl);
+      subp = &substitutions[number];
+      p = subp->start;
+      /* Rescan the encoding for the entity, outputting the demangled form
+         again at the current output position.  Don't record substitutions
+         when rescanning. */
+      dctl->suppress_substitution_recording++;
+      if (type_pass_num == 2 && subp->kind != subk_type) {
+        /* If we're expecting a type, and we want the second-pass
+           processing, and we get something other than a type, ignore it.
+           It's a type specifier, and we don't put those out on the
+           second pass. */
+      } else {
+        switch (subp->kind) {
+          case subk_unscoped_template_name:
+            (void)demangle_unscoped_name(p, &func_block, dctl);
+            break;
+          case subk_prefix:
+          case subk_template_prefix:
+            { a_boolean is_no_return_name, has_templ_arg_list;
+              /* Take the right number of levels of the name.  Note that a
+                 substitution counts as one level even if it represents
+                 several. */
+              p = demangle_nested_name_components(p,
+                                                  subp->num_levels,
+                                                  &is_no_return_name,
+                                                  &has_templ_arg_list,
+                                                  last_component_name,
+                                                  dctl);
+              if (subp->kind == subk_template_prefix) {
+                /* For the template prefix case, take one more
+                   <unqualified-name>. */
+                p = demangle_unqualified_name(p, &is_no_return_name, dctl);
+              }  /* if */
+            }
+            break;
+          case subk_type:
+            if (type_pass_num == 1) {
+              (void)demangle_type_first_part(p,
+                                             under_lhs_declarator,
+                                             need_trailing_space,
+                                             dctl);
+            } else {
+              demangle_type_second_part(p, under_lhs_declarator, dctl);
+            }  /* if */
+            break;
+          case subk_template_template_param:
+            (void)demangle_template_param(p, dctl);
+            break;
+          default:
+            bad_mangled_name(dctl);
+        }  /* switch */
+      }  /* if */
+      dctl->suppress_substitution_recording--;
+    }  /* if */
+  }  /* if */
   return ptr;
 }  /* demangle_substitution */
 
@@ -2596,14 +2841,19 @@ no_return_type is TRUE if the return type is not present.
   if (!no_return_type) {
     /* Skip the return type. */
     dctl->suppress_id_output++;
+    /* Substitutions do get recorded on this scan. */
     ptr = demangle_type(ptr, dctl);
     dctl->suppress_id_output--;
   }  /* if */
   write_id_ch('(', dctl);
-  /* An empty parameter list is encoded as a single void type.
-     Put out just "()" for that case. */
-  if (*ptr == 'v' && end_of_param_list(ptr+1)) {
-    /* Empty parameter list. */
+  if (end_of_param_list(ptr)) {
+    /* Error, there are no parameter types (there's supposed to be at
+       least a "v" for a void parameter list).  This is likely caused
+       by absence of a return type when one is expected. */
+    bad_mangled_name(dctl);
+  } else if (*ptr == 'v' && end_of_param_list(ptr+1)) {
+    /* An empty parameter list is encoded as a single void type.
+       Put out just "()" for that case. */
     ptr++;
   } else {
     for (;;) {
@@ -2725,10 +2975,10 @@ to the character position following what was demangled.  The syntax is:
          ::= <class-enum-type>
          ::= <template-param>
          ::= <template-template-param> <template-args>
-         ::= <substitution>
 
 Other parts of <type> are handled in demangle_type_first_part and
-demangle_type_second_part.
+demangle_type_second_part.  In particular, substitutions are handled
+at that level.
 */
 {
   char *p = ptr, *s;
@@ -2738,23 +2988,22 @@ demangle_type_second_part.
   /* Builtin type encodings are all lower-case.  Names begin with
      a digit or an upper-case letter. */
   if (!islower((unsigned char)*p)) {
-    a_boolean allow_template_args = FALSE;
-    if (*p == 'S') {
-      /* A substitution. */
-      p = demangle_substitution(p, dctl);
-      allow_template_args = TRUE;
-    } else if (*p == 'T') {
-      /* A template parameter. */
+    if (*p == 'T') {
+      /* A template parameter, possibly a template template parameter. */
+      char *tstart = p;
       p = demangle_template_param(p, dctl);
-      allow_template_args = TRUE;
+      if (*p == 'I') {
+        /* A <template-args> list. */
+        /* Record the template template parameter as a potential
+           substitution. */
+        record_substitutable_entity(tstart, subk_template_template_param, 0L,
+                                    dctl);
+        p = demangle_template_args(p, dctl);
+      }  /* if */
     } else {
       /* <class-enum-type>, i.e., <name> */
       a_func_block func_block;
       p = demangle_name(p, &func_block, dctl);
-    }  /* if */
-    if (allow_template_args && *p == 'I') {
-      /* A <template-args> list. */
-      p = demangle_template_args(p, dctl);
     }  /* if */
   } else {
     /* Builtin type. */
@@ -2852,13 +3101,28 @@ at the end of the specifiers part (needed if the declarator part is
 not empty, because it contains a name or a derived type).
 */
 {
-  char *p = ptr, *qualp = p;
-  char kind;
+  char      *p = ptr, *qualp = p, *unqualp;
+  char      kind;
+  a_boolean record_substitution = TRUE;
 
   /* Remove type qualifiers. */
   while (is_immediate_cv_qualifier(p)) p++;
+  unqualp = p;
   kind = *p;
-  if (kind == 'P' || kind == 'R') {
+  if (kind == 'S') {
+    /* A substitution. */
+    p = demangle_substitution(p, 1,
+                              under_lhs_declarator,
+                              need_trailing_space,
+                              (char **)NULL,
+                              dctl);
+    record_substitution = FALSE;
+    if (*p == 'I') {
+      /* A <template-args> list (the substitution must be a template). */
+      p = demangle_template_args(p, dctl);
+      record_substitution = TRUE;
+    }  /* if */
+  } else if (kind == 'P' || kind == 'R') {
     /* Pointer or reference type, P <type> or R <type>. */
     p = demangle_type_first_part(p+1, /*under_lhs_declarator=*/TRUE,
                                  /*need_trailing_space=*/TRUE, dctl);
@@ -2874,13 +3138,16 @@ not empty, because it contains a name or a derived type).
     /* Pointer-to-member type, M <class type> <member type>. */
     char *classp = p+1;
     /* Skip over the class name. */
+    /* Substitutions do get recorded on this scan. */
     dctl->suppress_id_output++;
     p = demangle_type(classp, dctl);
     dctl->suppress_id_output--;
     p = demangle_type_first_part(p, /*under_lhs_declarator=*/TRUE,
                                  /*need_trailing_space=*/TRUE, dctl);
     /* Output Classname::*. */
+    dctl->suppress_substitution_recording++;
     (void)demangle_type(classp, dctl);
+    dctl->suppress_substitution_recording--;
     write_id_str("::*", dctl);
     /* Output the CV-qualifiers on the pointer, if any. */
     (void)demangle_cv_qualifiers(qualp, /*trailing_space=*/TRUE, dctl);
@@ -2892,6 +3159,7 @@ not empty, because it contains a name or a derived type).
     p = demangle_type_first_part(p, /*under_lhs_declarator=*/FALSE,
                                  /*need_trailing_space=*/TRUE, dctl);
     /* Skip over the parameter types without outputting anything. */
+    /* Substitutions do get recorded on this scan. */
     dctl->suppress_id_output++;
     p = demangle_bare_function_type(p, /*no_return_type=*/TRUE, dctl);
     dctl->suppress_id_output--;
@@ -2909,6 +3177,7 @@ not empty, because it contains a name or a derived type).
       if (*p != '_') {
         /* Length is specified by an expression based on template
            parameters.  Ignore the expression. */
+        /* Substitutions do get recorded on this scan. */
         dctl->suppress_id_output++;
         p = demangle_expression(p, dctl);
         dctl->suppress_id_output--;
@@ -2929,6 +3198,21 @@ not empty, because it contains a name or a derived type).
     /* No declarator part to process.  Handle the specifier type. */
     p = demangle_type_specifier(qualp, dctl);
     if (need_trailing_space) write_id_ch(' ', dctl);
+    if (p == unqualp+1) {
+      /* Do not record a substitution for a builtin type.  (Builtin types
+         are the only one-character encodings.) */
+      record_substitution = FALSE;
+    }  /* if */
+  }  /* if */
+  if (record_substitution) {
+    /* Record the non-cv-qualified version of the type as a potential
+       substitution. */
+    record_substitutable_entity(unqualp, subk_type, 0L, dctl);
+  }  /* if */
+  if (qualp != unqualp) {
+    /* The type is cv-qualified, so record another potential substitution
+       for the fully-qualified type. */
+    record_substitutable_entity(qualp, subk_type, 0L, dctl);
   }  /* if */
   return p;
 }  /* demangle_type_first_part */
@@ -2955,14 +3239,25 @@ use of parentheses around parts of the declarator.)
   /* Remove type qualifiers. */
   while (is_immediate_cv_qualifier(p)) p++;
   kind = *p;
-  if (kind == 'P' || kind == 'R') {
+  if (kind == 'S') {
+    /* A substitution. */
+    p = demangle_substitution(p, 2,
+                              under_lhs_declarator,
+                              /*need_trailing_space=*/FALSE,
+                              (char **)NULL,
+                              dctl);
+    /* No need to scan the <template-args> list if there is one -- 
+       that was done by demangle_type_first_part. */
+  } else if (kind == 'P' || kind == 'R') {
     /* Pointer or reference type, P <type> or R <type>. */
     demangle_type_second_part(p+1, /*under_lhs_declarator=*/TRUE, dctl);
   } else if (kind == 'M') {
     /* Pointer-to-member type, M <class type> <member type>. */
     /* Advance over the class name. */
     dctl->suppress_id_output++;
+    dctl->suppress_substitution_recording++;
     p = demangle_type(p+1, dctl);
+    dctl->suppress_substitution_recording--;
     dctl->suppress_id_output--;
     demangle_type_second_part(p, /*under_lhs_declarator=*/TRUE, dctl);
   } else if (kind == 'F') {
@@ -2976,7 +3271,9 @@ use of parentheses around parts of the declarator.)
     /* Put out the parameter types (the return type is skipped and not
        output). */
     returnt = p;
+    dctl->suppress_substitution_recording++;
     p = demangle_bare_function_type(p, /*no_return_type=*/FALSE, dctl);
+    dctl->suppress_substitution_recording--;
     p = advance_past('E', p, dctl);
     /* Put out any cv-qualifiers (member functions). */
     /* Note that such things could come up on nonmember functions in the
@@ -3004,7 +3301,9 @@ use of parentheses around parts of the declarator.)
       if (*p != '_') {
         /* Length is specified by a constant expression based on template
            parameters. */
+        dctl->suppress_substitution_recording++;
         p = demangle_expression(p, dctl);
+        dctl->suppress_substitution_recording--;
       }  /* if */
     } else {
       /* Normal constant number of elements. */
@@ -3264,7 +3563,7 @@ An <unqualified-name> encodes a name that is not qualified, e.g.,
     <identifier> ::= <unqualified source code identifier>
 
 Constructor and destructor names do not get here; see
-demangle_nested_name_component.  *is_no_return_name is returned TRUE
+demangle_nested_name_components.  *is_no_return_name is returned TRUE
 if the name is one that does not get a return type (e.g., a
 conversion function).  is_no_return_name can be NULL if the
 caller does not need the value.
@@ -3438,26 +3737,10 @@ The syntax is:
         write_id_str(":", dctl);
         ptr = demangle_expression(ptr, dctl);
       } else {
-        /* Special cases: call, sizeof(type). */
+        /* Special cases: sizeof(type). */
         if (strcmp(op_str, "sizeof(") == 0) {
           write_id_str(op_str, dctl);
           ptr = demangle_type(ptr, dctl);
-        } else if (strcmp(op_str, "()") == 0) {
-          ptr = demangle_expression(ptr, dctl);
-          write_id_ch('(', dctl);
-          /* The mangling scheme doesn't specify the number of arguments,
-             so take what's there and stop on an "E".  This needs to
-             be corrected when the mangling scheme is changed. */
-          if (*ptr != 'E') {
-            for (;;) {
-              ptr = demangle_expression(ptr, dctl);
-              if (*ptr == 'E') break;
-              /* Stop on an error. */
-              if (dctl->err_in_id) break;
-              write_id_str(", ", dctl);
-            }  /* for */
-          }  /* if */
-          write_id_ch(')', dctl);
         } else {
           bad_mangled_name(dctl);
         }  /* if */
@@ -3513,68 +3796,129 @@ A <template-args> encodes a template argument list.  The syntax is:
 }  /* demangle_template_args */
 
 
-static char *demangle_nested_name_component(
+static char *demangle_nested_name_components(
                               char                       *ptr,
-                              char                       *prev_component_start,
+                              unsigned long              num_levels,
                               a_boolean                  *is_no_return_name,
+                              a_boolean                  *has_templ_arg_list,
+                              char                       **last_component_name,
                               a_decode_control_block_ptr dctl)
 /*
-Demangle one level of an IA-64 <nested-name>, either an unqualified
-name or a substitution (the associated template argument list, if any,
-is left for the caller to process).  prev_component_start points to
-the beginning of the previous component, or NULL if this is the first.
-This is needed for constructor and destructor names, to put out the
-class name again.  *is_no_return_name is returned TRUE if the
-component is a function name of a kind that does not take a return
-type (constructor, destructor, or conversion function).
+Demangle one or more name level components of an IA-64 <nested-name>.
+Each level is either an unqualified name or a substitution, optionally
+followed by a template argument list.  ptr points to the beginning of
+the <nested-name>, after the initial "N" and the <CV-qualifiers> if any.
+If num_levels is zero, scan all components of the nested name, stopping
+on the final "E"; otherwise, scan num_levels levels and then stop.
+Note that a substitution counts as one level even if it represents
+several.  Return a pointer to the character position following what
+was demangled.  *is_no_return_name is returned TRUE if the final
+component scanned is a function name of a kind that does not take a
+return type (constructor, destructor, or conversion function).
+*has_templ_arg_list is returned TRUE if the final component includes a
+template argument list.  If last_component_name is non-NULL,
+*last_component_name will be set to the start position of the encoding
+for the name of the last component.  If the last component is a
+substitution, the name of the last component in the substitution is used.
 */
 {
+  char          *prev_component_name = NULL;
+  char          *first_component_start = ptr;
+  unsigned long level_num = 0;
+
   *is_no_return_name = FALSE;
-  if (*ptr == 'S') {
-    /* A substitution. */
-    ptr = demangle_substitution(ptr, dctl);
-    /* A substitution cannot be the last thing; it must be followed
-       by another name or a template argument list. */
-    if (*ptr == 'E') {
+  *has_templ_arg_list = FALSE;
+  for (;;) {
+    /* Demangle one level of the nested name. */
+    a_boolean is_substitution = FALSE;
+    /* Stop if we've done enough levels. */
+    if (num_levels != 0 && level_num >= num_levels) break;
+    level_num++;
+    *is_no_return_name = FALSE;
+    *has_templ_arg_list = FALSE;
+    if (*ptr == 'E' || *ptr == '\0') {
+      /* Error, unexpected end of nested name. */
       bad_mangled_name(dctl);
-    }  /* if */
-  } else {
-    /* Not a substitution, so an <unqualified-name>. */
-    if (*ptr != 'C' && *ptr != 'D') {
-      /* Normal case, not a constructor or destructor name. */
-      ptr = demangle_unqualified_name(ptr, is_no_return_name, dctl);
-    } else {
-      /* A constructor or destructor name.  Put out the class name again
-         (it's provided by prev_component_start). */
-      a_boolean dummy;
-      *is_no_return_name = TRUE;
-      if (*ptr == 'D') write_id_ch('~', dctl);
-      if (prev_component_start == NULL) {
-        /* The constructor or destructor code is the first thing in the
-           nested name. */
+    } else if (*ptr == 'S') {
+      /* A substitution. */
+      is_substitution = TRUE;
+      ptr = demangle_substitution(ptr, 0,
+                                  /*under_lhs_declarator=*/FALSE,
+                                  /*need_trailing_space=*/FALSE,
+                                  &prev_component_name, dctl);
+      /* A substitution cannot be the last thing; it must be followed
+         by another name or a template argument list. */
+      if (*ptr == 'E') {
         bad_mangled_name(dctl);
+      }  /* if */
+    } else {
+      /* Not a substitution, so an <unqualified-name>. */
+      if (*ptr != 'C' && *ptr != 'D') {
+        /* Normal case, not a constructor or destructor name. */
+        prev_component_name = ptr;
+        ptr = demangle_unqualified_name(ptr, is_no_return_name, dctl);
       } else {
-        (void)demangle_nested_name_component(prev_component_start,
-                                             (char *)NULL,
-                                             &dummy,
-                                             dctl);
-        /* Check that the second character of the constructor/destructor
-           name is a valid digit. */
-        if (ptr[1] == '1' || ptr[1] == '2' ||
-            (ptr[0] == 'C' ? ptr[1] == '3' :
-                             ptr[1] == '0')) {
-          /* Okay. */
-          ptr += 2;
-        } else {
-          /* The second character of the constructor or destructor name
-             encoding is bad. */
+        /* A constructor or destructor name.  Put out the class name again
+           (it's provided by prev_component_name). */
+        *is_no_return_name = TRUE;
+        if (*ptr == 'D') write_id_ch('~', dctl);
+        if (prev_component_name == NULL ||
+            *prev_component_name == 'S') {
+          /* The constructor or destructor code is the first thing in the
+             nested name or the previous name is a substitution (we're
+             supposed to have gotten the name from inside the
+             substitution).  */
           bad_mangled_name(dctl);
+        } else {
+          a_boolean dummy;
+          /* Rescan and output the class name (no template argument list). */
+          (void)demangle_unqualified_name(prev_component_name, &dummy, dctl);
+          /* Check that the second character of the constructor/destructor
+             name is a valid digit. */
+          if (ptr[1] == '1' || ptr[1] == '2' ||
+              (ptr[0] == 'C' ? ptr[1] == '3' :
+                               ptr[1] == '0')) {
+            /* Okay. */
+            ptr += 2;
+          } else {
+            /* The second character of the constructor or destructor name
+               encoding is bad. */
+            bad_mangled_name(dctl);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
-  }  /* if */
+    if (*ptr == 'I') {
+      /* A <template-args> list. */
+      /* Record a potential substitution on the template prefix up to
+         this point, but not if the entire prefix is a substitution. */
+      if (!is_substitution) {
+        record_substitutable_entity(first_component_start,
+                                    subk_template_prefix, level_num-1, dctl);
+      }  /* if */
+      /* Scan the template argument list. */
+      ptr = demangle_template_args(ptr, dctl);
+      *has_templ_arg_list = TRUE;
+      is_substitution = FALSE;
+    }  /* if */
+    /* "E" marks the end of the list. */
+    if (*ptr == 'E') break;
+    if (!is_substitution) {
+      /* Record a potential substitution on the prefix up to this point,
+         but not if the entire prefix is a substitution (without
+         template argument list). */
+      record_substitutable_entity(first_component_start, subk_prefix,
+                                  level_num, dctl);
+    }  /* if */
+    /* Stop on an error. */
+    if (dctl->err_in_id) break;
+    /* Going around again, so the part put out so far is a qualifier and
+       needs to be followed by "::". */
+    if (!is_substitution) write_id_str("::", dctl);
+  }  /* for */
+  if (last_component_name != NULL) *last_component_name = prev_component_name;
   return ptr;
-}  /* demangle_nested_name_component */
+}  /* demangle_nested_name_components */
 
 
 static char *demangle_nested_name(char                       *ptr,
@@ -3598,9 +3942,8 @@ The syntax is:
 For function names, additional information is returned in *func_block.
 */
 {
-  char      *prev_component_start = NULL;
-  a_boolean has_templ_arg_list = FALSE;
-  a_boolean is_no_return_name = FALSE;
+  a_boolean has_templ_arg_list;
+  a_boolean is_no_return_name;
 
   clear_func_block(func_block);
   /* Skip the initial "N". */
@@ -3609,35 +3952,16 @@ For function names, additional information is returned in *func_block.
   if (is_immediate_cv_qualifier(ptr)) {
     /* Pass the cv-qualifiers position back to the caller. */
     func_block->cv_qual = ptr;
-    dctl->suppress_id_output++;
-    ptr = demangle_cv_qualifiers(ptr, /*trailing_space=*/FALSE, dctl);
-    dctl->suppress_id_output--;
+    do {
+      ptr++;
+    } while (is_immediate_cv_qualifier(ptr));
   }  /* if */
-  if (*ptr == 'E') {
-    /* The name sequence cannot be empty. */
-    bad_mangled_name(dctl);
-  }  /* if */
-  for (;;) {
-    /* Demangle one level of the nested name. */
-    char *curr_component_start = ptr;
-    ptr = demangle_nested_name_component(ptr, prev_component_start,
-                                         &is_no_return_name,
-                                         dctl);
-    has_templ_arg_list = FALSE;
-    if (*ptr == 'I') {
-      /* A <template-args> list. */
-      ptr = demangle_template_args(ptr, dctl);
-      has_templ_arg_list = TRUE;
-    }  /* if */
-    /* "E" marks the end of the list. */
-    if (*ptr == 'E') break;
-    /* Stop on an error. */
-    if (dctl->err_in_id) break;
-    /* Going around again, so the part put out so far is a qualifier and
-       needs to be followed by "::". */
-    write_id_str("::", dctl);
-    prev_component_start = curr_component_start;
-  }  /* for */
+  ptr = demangle_nested_name_components(ptr,
+                                        /*num_levels=*/0,
+                                        &is_no_return_name,
+                                        &has_templ_arg_list,
+                                        (char **)NULL,
+                                        dctl);
   ptr = advance_past('E', ptr, dctl);
   /* The function will have no return type if it is not a template. */
   if (!has_templ_arg_list) {
@@ -3759,11 +4083,21 @@ For function names, additional information is returned in *func_block.
     if (*ptr == 'S' && ptr[1] != '\0' && ptr[2] == 'I') {
       /* <substitution> in <unscoped-template-name>, because it's
          followed by the "I" beginning a <template-args>. */
-      ptr = demangle_substitution(ptr, dctl);
+      ptr = demangle_substitution(ptr, 0,
+                                  /*under_lhs_declarator=*/FALSE,
+                                  /*need_trailing_space=*/FALSE,
+                                  (char **)NULL, dctl);
     } else {
       /* An <unscoped-name>, possibly as the whole of an
          <unscoped-template-name>.  */
+      char *start = ptr;
       ptr = demangle_unscoped_name(ptr, func_block, dctl);
+      if (*ptr == 'I') {
+        /* This is a template because it is followed by a template arguments
+           list.  Record the template as a potential substitution. */
+        record_substitutable_entity(start, subk_unscoped_template_name, 0L,
+                                    dctl);
+      }  /* if */
     }  /* if */
     if (*ptr == 'I') {
       /* A <template-args> list. */
@@ -3955,6 +4289,7 @@ length returned the second time will be correct).
   dctl->input_id_len = strlen(id);
   dctl->output_id = output_buffer;
   dctl->output_id_size = output_buffer_size;
+  num_substitutions = 0;
   if (start_of_id_is("_Z", id)) {
     /* A mangled name, beginning with "_Z". */
     end_ptr = demangle_encoding(id+2, /*include_func_params=*/TRUE, dctl);
