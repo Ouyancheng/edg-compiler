@@ -378,7 +378,9 @@ extern void insert_statement(a_statement_ptr        statement,
 extern a_statement_ptr make_call_statement(a_routine_ptr    routine,
                                            an_expr_node_ptr arg_list);
 
-extern a_variable_ptr make_unnamed_local_static_variable(a_type_ptr type);
+extern a_variable_ptr make_unnamed_local_static_variable(
+                                                 a_type_ptr type,
+                                                 a_boolean  in_function_scope);
 
 extern a_variable_ptr make_lowered_variable(char            *var_name,
                                             a_boolean       already_il_name,
