@@ -313,6 +313,20 @@ record_complete_class_type_needed (currently a stub macro in templates.h)
 has been provided to enable an implementation to track uses that require
 a complete class type.
 
+5/31/95  Source sequence lists: "autonomous" flag on enum in degenerate
+         typedef
+
+The source sequence entry for an enum in a degenerate typedef that doesn't
+define a typedef name is now marked as "autonomous".
+
+  typedef enum foobar {foo, bar};
+  class Foo { 
+    foobar a_foobar;
+  };
+
+This affects those using source sequence lists, i.e., primarily those
+using the C++-generating back end.
+
 5/31/95  Linkage name on tagless enum defined in a typedef declaration
 
 A tagless class defined in a typedef declaration receives a "name for
