@@ -692,6 +692,7 @@ ec_cannot_chdir;;"%sq is not a valid directory"
 ec_cannot_build_temp_file_name;;"cannot build temporary file name"
 ec_restrict_not_allowed;;"\"restrict\" is not allowed"
 ec_restrict_pointer_to_function;;"a pointer or reference to function type may not be qualified by \"restrict\""
+ec_bad_declspec_modifier;;"%sq is an invalid __declspec attribute"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
