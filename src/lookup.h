@@ -79,6 +79,8 @@ represented as a bit set:
 				/* Used within normal_id_lookup to create
 				   synthesized namespace projection symbols
 				   for instantiation context lookups. */
+#define IDL_MUST_BE_NAMESPACE 0x400
+				/* The symbol must be a namespace. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*

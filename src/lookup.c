@@ -939,6 +939,9 @@ typedef struct a_lookup_state {
   a_boolean	must_be_tag;
 			/* TRUE if the IDL_MUST_BE_TAG option
 			   was specified for this lookup. */
+  a_boolean	must_be_namespace;
+			/* TRUE if the IDL_MUST_BE_NAMESPACE option
+			   was specified for this lookup. */
   a_boolean	tentative_type_lookup;
 			/* TRUE if the IDL_TENTATIVE_TYPE_LOOKUP option
 			   was specified for this lookup. */
@@ -1027,6 +1030,7 @@ value.
 {
   cleared_lookup_state.must_be_class_or_namespace    = FALSE;
   cleared_lookup_state.must_be_tag                   = FALSE;
+  cleared_lookup_state.must_be_namespace             = FALSE;
   cleared_lookup_state.tentative_type_lookup         = FALSE;
   cleared_lookup_state.is_linkage_lookup             = FALSE;
   cleared_lookup_state.terminate_lookup              = FALSE;
@@ -1061,7 +1065,8 @@ Macro that initializes a lookup state variable.
   ((!(lookup_state).must_be_class_or_namespace ||			\
     symbol_may_precede_qualifier(fund_sym)) &&                          \
    (!(lookup_state).must_be_tag   ||				        \
-    is_tag_or_tag_proxy_symbol(fund_sym)))
+    is_tag_or_tag_proxy_symbol(fund_sym)) &&				\
+   (!(lookup_state).must_be_namespace || is_namespace_symbol(fund_sym)))
 
 
 static a_symbol_ptr do_using_directive_lookup
@@ -1749,6 +1754,7 @@ C and C++.
     lookup_state.must_be_class_or_namespace =
                                (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0;
     lookup_state.must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
+    lookup_state.must_be_namespace = (options & IDL_MUST_BE_NAMESPACE) != 0;
     lookup_state.tentative_type_lookup =
                                     (options & IDL_TENTATIVE_TYPE_LOOKUP) != 0;
     lookup_state.is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP) != 0;

@@ -350,6 +350,7 @@ typedef enum /* an_identifier_lookup_mode */ {
   ilm_ctor_initializer_name,
 			/* Used to look up identifiers in the initializer
 			   list of a constructor declaration. */
+  ilm_namespace,	/* Find only namespace names. */
   ilm_last
 } an_identifier_lookup_mode;
 
