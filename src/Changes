@@ -1,5 +1,18 @@
 Version 2.44
 
+6/8/00   Spurious error on namespace qualified template friend declaration
+
+A spurious error was issued on a template friend declaration in which the
+class or function name was specified with a namespace qualified name
+in which the namespace qualifier named the current namespace.  This has
+been fixed.
+
+  namespace AA {
+    template <class T> class A {
+      template <class T2> friend class AA::A;
+    };
+  }
+
 6/5/00   No warning on undefined special class members in unnamed namespaces
 
 The front end used to warn about unreferenced and undefined class member
