@@ -270,16 +270,24 @@ typedef ptrdiff_t a_ptrdiff;
 #define LONG_MAX ((long)0x7fffffffL)
 #define LONG_MIN ((long)0x80000000L)
 #define ULONG_MAX ((unsigned long)0xffffffffL)
-/* sizeof_t is used instead of size_t within the front end.  It is the same
-   as size_t except on systems where that is too small, e.g., it's 16 bits.
-   true_size_t is the true underlying size_t. 
-   size_t_arg is used to pass standard library arguments that used to be
-   int and are now (in ANSI C) size_t, e.g., the length on fwrite. */
-/* Note that size_t_arg may evaluate its argument more than once. */
+#ifdef __GNUC__
+/* Using gcc without a conforming ANSI/ISO C library or headers.  Assume
+   we have stddef.h anyway. */
+#include <stddef.h>
+typedef size_t true_size_t;
+#else /* !defined(__GNUC__) */
+/* Guess at the size of size_t.  This might have to be configured by hand. */
 typedef unsigned int
 		true_size_t;
+#endif /* ifdef __GNUC__ */
+/* sizeof_t is used instead of size_t within the front end.  It is the same
+   as size_t except on systems where that is too small, e.g., it's 16 bits.
+   true_size_t is the true underlying size_t. */
 typedef true_size_t
 		sizeof_t;
+/* size_t_arg is used to pass standard library arguments that used to be
+   int and are now (in ANSI C) size_t, e.g., the length on fwrite. */
+/* Note that size_t_arg may evaluate its argument more than once. */
 #define size_t_arg(arg) ((int)(arg))
 /* Can't define ptrdiff_t, since it appears in <sys/types.h>, so define
    a_ptrdiff instead. */
