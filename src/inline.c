@@ -611,6 +611,11 @@ separately in assignments to parameter temporaries.)
        vrip = vrip->next) {
     if (vrip->arg_expr != NULL) {
       vrip->arg_expr->next = vrip->arg_expr_next;
+      /* Clear the result_is_not_used flag, which may have been set if
+         the argument expression was evaluated as a statement only to get
+         its side effects, if the parameter is not referenced within the
+         called function. */
+      vrip->arg_expr->result_is_not_used = FALSE;
     }  /* if */
   }  /* for */
 }  /* relink_argument_expressions_on_failure */

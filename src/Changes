@@ -1,5 +1,25 @@
 Version 2.44
 
+1/5/00   result_is_not_used set incorrectly on argument of non-inlined
+         function
+
+The result_is_not_used flag was set to TRUE on an expression node
+whose value is indeed used, when (a) the expression is an argument
+to a call of an inline function, (b) the expression has side effects,
+(c) the corresponding parameter is not referemnced within the called
+function, and (d) the function call could not be inlined for some
+reason (e.g., it contains a switch statement).  This caused an
+internal error in dump_expr if the C-generating back end is used.
+Now fixed.
+
+  inline void f(int a) {
+    switch(1) {}
+  }
+  int g();
+  int main () {
+    f(g()+1);
+  }
+
 1/5/00   Ignoring multiple carriage returns at ends of lines
 
 The change made on 7/2/99 to ignore multiple carriage returns at
