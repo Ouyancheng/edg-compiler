@@ -7243,8 +7243,8 @@ Generate C from the intermediate language.
     needed_flag_bit_number = 1;
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-  /* Do initialization. */
-  c_gen_be_init();
+  /* Do per-file initialization. */
+  c_gen_be_file_init();
   /* Generate the C output file. */
   generate_C_output_file(C_output_file_name);
 
