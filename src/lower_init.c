@@ -4127,14 +4127,22 @@ destructor scope.
       break;
     }  /* if */
   }  /* for */
-  /* Note that there must be at least one statement in the top-level block. */
-  check_assertion(prev_stmt != NULL);
+  /* We will be inserting code before the return or at the end of the top-level
+     statement list.   If there are no statements preceding the return, insert
+     at the start of the block (which is the same thing). */
+  if (prev_stmt == NULL) {
+    set_block_start_insert_location(scope->assoc_block, &insert_location);
+  } else {
+    set_insert_location(prev_stmt, &insert_location);
+  }  /* if */
   if (top_level_stmt == NULL) {
     /* There was no top-level return, so add one at the end of the top-level
        statement list. */
+    an_insert_location saved_insert_location;
     top_level_stmt = alloc_statement((a_statement_kind)stmk_return);
-    set_insert_location(prev_stmt, &insert_location);
+    saved_insert_location = insert_location;
     insert_statement(top_level_stmt, &insert_location);
+    insert_location = saved_insert_location;
     /* Add the return to the return memo list. */
     add_to_return_memo_list(top_level_stmt);
   }  /* if */
@@ -4142,9 +4150,6 @@ destructor scope.
      insert in front of it.  The return statement is pointed to by
      top_level_stmt and by the first entry of the return memo list,
      and prev_stmt points to the statement preceding the return. */
-  /* We will be inserting code before the return or at the end of the top-level
-     statement list. */
-  set_insert_location(prev_stmt, &insert_location);
   /* Leave just the entry for this return on the memo list.  The rest are
      processed and freed. */
   rmp = return_memo_list->next;
