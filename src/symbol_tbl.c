@@ -5410,7 +5410,7 @@ End a name scope by popping an entry off the scope stack.
          apply the anachronism to template classes. */
       if (kind == (a_scope_kind)sck_class_struct_union && allow_anachronisms) {
         a_type_ptr   sym_type;
-        if (((is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type)) &&
+        if ((is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) &&
             (sym_type = type_symbol_type(sym),
              !is_template_class_type(sym_type))) {
           sym->header->any_nested_types_on_inactive_list = TRUE;
