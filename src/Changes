@@ -27,9 +27,9 @@ later defined within another class template.  This has been fixed.
 12/17/96 Default initialization of const variable
 
 A bug has been fixed that was introduced in version 2.33.  Except in -A
-mode we failed to issue an error on the following (which is ill-formed
-because class Derived lacks a user-declared default constructor for the
-default-initialization of const variable d):
+mode we issued no diagnostic on the following (which is ill-formed because
+class Derived lacks a user-declared default constructor for the default
+initialization of const variable d):
 
   struct Base {
     virtual ~Base () { }
@@ -43,9 +43,20 @@ default-initialization of const variable d):
   static void g (const Base& x) { x.f(); };
   int main () { g(d); return 0; }
 
-The side effect in this case was that code to call the compiler-generated
-constructor was not generated; consequently, the virtual function table was
-not initialized and a run-time abort resulted.
+However, no code was put out to call the compiler-generated constructor,
+so that the virtual function table was not initialized and a run-time
+abort occurred.  This part of the problem has been fixed.
+
+Moreover, if in general a const variable is not explicitly initialized and
+its class has an implicitly declared nontrivial default constructor (and
+therefore no user-declared declared default constructor), we have relaxed
+the checking introduced in version 2.33: the front end now issues a
+discretionary error in -A mode, no diagnostic at all in cfront mode, and a
+warning otherwise.
+
+  struct S { virtual ~f(); };
+  const S s;                   // Now an error in -A mode and a warning in
+                               //   non-cfront mode
 
 12/15/96 Enum types are not treated as integral
 
