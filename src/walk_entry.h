@@ -1500,8 +1500,7 @@ do_set_proper_definition_needed_flag:
 #endif /* NEEDED_FLAG_WALK */
 #ifdef CFE
         walk_list(ptr->scopes, a_scope_ptr, iek_scope);
-        walk_needed_on_list(ptr->namespaces, a_namespace_ptr, iek_namespace,
-                            kind);
+        walk_list(ptr->namespaces, a_namespace_ptr, iek_namespace);
         walk_list_not_needed(ptr->using_decls, a_using_decl_ptr,
                              iek_using_decl);
         walk_list(ptr->asm_entries, an_asm_entry_ptr, iek_asm_entry);

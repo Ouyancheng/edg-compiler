@@ -1,5 +1,12 @@
 Version 2.35
 
+12/20/96 Removing unneeded IL entities and namespaces
+
+The processing for removing unneeded IL entities (controlled by
+MAINTAIN_NEEDED_FLAGS at al.) did not work quite right in the presence
+of namespaces, which could cause an IL write/read check internal error.
+This abort only occurred, however, when IL lowering lowering was not done.
+
 12/19/96 IL display program did not set f_debug
 
 The IL display program did not intialize the f_debug variable, causing an
