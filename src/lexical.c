@@ -4349,8 +4349,9 @@ entry_for_expand_buffer:
       if (is_eof_char(ch)) goto partial_final_line;
     } while (ch != '\n');
 #if IGNORE_CARRIAGE_RETURN_IN_SOURCE
-    /* Ignore carriage return right before newline. */
-    if (*(loc_in_line-1) == '\r') {
+    /* Ignore carriage return right before newline.  Ignore several if
+       they are present (there are Microsoft header files that have this). */
+    while (*(loc_in_line-1) == '\r') {
       loc_in_line--;
       curr_column--;
       /* Avoid the line splice test if the line is empty except for the
@@ -4358,7 +4359,7 @@ entry_for_expand_buffer:
       if (curr_column == 0) {
         goto add_newline_and_line_end_and_return;
       }  /* if */
-    }  /* if */
+    }  /* while */
 #endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
     /* Check for backslash indicating line-splice.  Go add trailing newline
        and end-of-line, and then exit, if no backslash is present. */

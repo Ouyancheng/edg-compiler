@@ -1,5 +1,13 @@
 Version 2.44
 
+1/5/00   Ignoring multiple carriage returns at ends of lines
+
+The change made on 7/2/99 to ignore multiple carriage returns at
+the ends of source lines when IGNORE_CARRIAGE_RETURN_IN_SOURCE is
+TRUE was incomplete.  It did not cover cases where the carriage
+returns appeared at the end of a line that contains something
+"unusual" like a trigraph.  Now fixed.
+
 1/5/00   C++-generating back end: enumeration constants put out as
          defining expression instead
 
