@@ -753,7 +753,12 @@ C++-generating back end.
 #endif /* DEBUG */
   old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
                                            IDL_SKIP_CURR_SCOPE);
-  if (old_sym_ptr != NULL) {
+  if (old_sym_ptr == NULL) {
+    /* There is no symbol that may potentially be hidden. */
+  } else if (old_sym_ptr->is_nonreal_member) {
+    /* Ignore members of proxy and nonreal classes: they don't correspond to
+       actual declarations and therefore cannot be hidden. */
+  } else {
     tag_sym = NULL;
     if (is_injected_class_symbol(sym_ptr) &&
         (is_tag_symbol(old_sym_ptr) ||

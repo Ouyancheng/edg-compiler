@@ -1,5 +1,19 @@
 Version 2.46
 
+4/16/01  IL write-read error caused by reference to member qualified with
+         dependent type
+
+When doing nonclass prototype instantiations with a configuration that uses
+the hidden name table, the front end could produce an inconsistent IL tree
+if the declaration of an entity in a class template member had a name that
+was also used with dependent qualifier.  For example:
+
+  template<typename B> struct S: B {
+    S(int x): { B::x = x; }  // name of parameter x is also used with
+  };                         // dependent qualifier "B::".
+
+This could manifest itself as an IL write-read error.  It is now fixed.
+
 4/16/01  Missing parentheses in generated code with "&" (modified version)
 
 The C code generated for certain address expressions was missing
