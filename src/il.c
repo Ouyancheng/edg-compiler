@@ -11169,132 +11169,80 @@ class need not be an immediate base class.
 }  /* base_class_selection_expr */
 
 
-static a_boolean init_con_has_side_effects(a_constant_ptr con,
-                                           a_boolean      *suppress_warning)
+static void examine_constant_for_side_effect(
+                                    a_constant_ptr                      con,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Return TRUE if the indicated constant (part of an initialization)
-has side effects.  Return *suppress_warning TRUE if a warning about
-the expression doing nothing should be suppressed.
+Examine the indicated constant for side effects; called by the expression
+traversal routines.  Set tblock->result to TRUE if the constant has a side
+effect.  Set tblock->suppress_warning to TRUE if a warning about the dynamic
+initialization doing nothing should be suppressed.
 */
 {
-  a_boolean      has_side_effects = FALSE, suppress = FALSE;
-  a_constant_ptr subcon;
-
-  if (con->kind == (a_constant_repr_kind)ck_aggregate) {
-    /* For aggregates, visit the enclosed constants. */
-    for (subcon = con->variant.aggregate.first_constant;
-         subcon != NULL && !has_side_effects;
-         subcon = subcon->next) {
-      a_boolean local_suppress;
-      has_side_effects = init_con_has_side_effects(subcon, &local_suppress);
-      suppress |= local_suppress;
-    }  /* for */
-  } else if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-    /* For dynamic init entries, check the dynamic initialization. */
-    has_side_effects = dynamic_init_has_side_effects(con->variant.dynamic_init,
-                                                     &suppress);
-  } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
-    /* For a repeat, look at the repeated constant. */
-    has_side_effects =
-                   init_con_has_side_effects(con->variant.init_repeat.constant,
-                                             &suppress);
-  } else if (con->kind == (a_constant_repr_kind)ck_error) {
+  if (con->kind == (a_constant_repr_kind)ck_error) {
     /* An error constant could have been anything, including something
        with side effects. */
-    has_side_effects = TRUE;
-    suppress = TRUE;
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
   }  /* if */
-  *suppress_warning = suppress;
-  return has_side_effects;
-}  /* init_con_has_side_effects */
+}  /* examine_constant_for_side_effect */
 
 
-a_boolean dynamic_init_has_side_effects(a_dynamic_init_ptr dip,
-                                        a_boolean          *suppress_warning)
+static void examine_dynamic_init_for_side_effect(
+                                    a_dynamic_init_ptr                  dip,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Return TRUE if the indicated dynamic initialization has side effects,
-i.e., it does something other than just return a value for the initialization.
-Return *suppress_warning TRUE if a warning about the expression doing nothing
-should be suppressed.
+Examine the indicated dynamic initialization for side effects; called by
+the expression traversal routines.  Set tblock->result to TRUE if the
+dynamic initialization has a side effect.  Set tblock->suppress_warning
+to TRUE if a warning about the dynamic initialization doing nothing should
+be suppressed.
 */
 {
-  a_boolean has_side_effects = FALSE, suppress = FALSE;
+  a_boolean has_side_effects = FALSE;
 
   if (dip->destructor != NULL) {
     /* A destructor call causes side effects. */
     has_side_effects = TRUE;
   } else {
     switch (dip->kind) {
-      case dik_none:
-      case dik_zero:
-        /* No side effects. */
-        break;
       case dik_constant:
         if (dip->variant.constant->kind == (a_constant_repr_kind)ck_error) {
           /* An error constant could have been anything, including something
              with side effects. */
           has_side_effects = TRUE;
-          suppress = TRUE;
         }  /* if */
-        break;
-      case dik_expression:
-      case dik_call_returning_class_via_cctor:
-        /* An expression might have side effects.  See if it does. */
-        has_side_effects = node_has_side_effects(dip->variant.expression,
-                                                 &suppress);
         break;
       case dik_constructor:
         /* A constructor call causes side effects. */
         has_side_effects = TRUE;
         break;
-      case dik_nonconstant_aggregate:
-        /* A non-constant aggregate must be examined recursively. */
-        has_side_effects = init_con_has_side_effects(dip->variant.constant,
-                                                     &suppress);
-        break;
-#if CHECKING
-      case dik_bitwise_copy:
       default:
-        internal_error("dynamic_init_has_side_effects: bad dyn init kind");
-#endif /* CHECKING */
+        /* Others have no side effects at this level.  The subtree might still
+           cause side effects. */
+        break;
     }  /* switch */
   }  /* if */
-  *suppress_warning = suppress;
-  return has_side_effects;
-}  /* dynamic_init_has_side_effects */
+  if (has_side_effects) {
+    /* The dynamic initialization has a side effect, even without
+       considering its subtree. */
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* examine_dynamic_init_for_side_effect */
 
 
-a_boolean expr_list_has_side_effects(an_expr_node_ptr expr_list,
-                                     a_boolean        *suppress_warning)
+static a_boolean operation_has_side_effects(
+                                    an_expr_node_ptr                    node,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Return TRUE if the indicated expression list has side effects.  If
-suppress_warning != NULL, return *suppress_warning TRUE if a warning
-about the expression list doing nothing should be suppressed.
+Examine the operation node "node" for side effects; called by the expression
+traversal routines.  Return TRUE if the expression has a side effect, not
+considering any side effects in its operands.  Set tblock->suppress_warning
+to TRUE if a warning about the expression doing nothing should be suppressed.
 */
 {
-  a_boolean        has_side_effects = FALSE, suppress = FALSE;
-  an_expr_node_ptr expr;
-  
-  for (expr = expr_list; expr != NULL; expr = expr->next) {
-    a_boolean local_suppress;
-    has_side_effects = node_has_side_effects(expr, &local_suppress);
-    suppress |= local_suppress;
-    if (has_side_effects) break;
-  }  /* for */
-  if (suppress_warning != NULL) *suppress_warning = suppress;
-  return has_side_effects;
-}  /* expr_list_has_side_effects */
-
-
-static a_boolean operation_has_side_effects(an_expr_node_ptr node,
-                                            a_boolean        *suppress_warning)
-/*
-Return TRUE if the (operation) node has side effects.  Return
-*suppress_warning TRUE if a warning about the expression doing nothing
-should be suppressed.
-*/
-{
-  a_boolean        has_side_effects = FALSE, suppress = FALSE;
+  a_boolean        has_side_effects = FALSE;
   an_expr_node_ptr operand;
   a_type_ptr       operand_type, node_type;
 
@@ -11393,7 +11341,7 @@ first_op_volatile_test:
            p->int::~int();
          is an expression that intentionally does nothing, so suppress
          the warning. */
-      suppress = TRUE;
+      tblock->suppress_warning = TRUE;
       break;
     case eok_dynamic_cast:
       /* A dynamic_cast to a reference to a polymorphic class type can throw
@@ -11408,7 +11356,7 @@ first_op_volatile_test:
     case eok_assume:
       /* __assume(expr) intentionally does nothing, so suppress the
          warning. */
-      suppress = TRUE;
+      tblock->suppress_warning = TRUE;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case eok_cast:
@@ -11454,58 +11402,42 @@ c99_float_operations:
         if (fp_operations_can_cause_side_effects) has_side_effects = TRUE;
       }  /* if */
       break;
-    default:;
+    default:
+      /* Other operations have no side effects at this level.  The operands
+         might still cause side effects. */
+      break;
   }  /* switch */
-
-  /* For the operations that do not cause side effects, check the operands for
-     side effects. */
-  if (!has_side_effects) {
-    a_boolean local_suppress;
-    has_side_effects = expr_list_has_side_effects(
-                                              node->variant.operation.operands,
-                                              &local_suppress);
-    suppress |= local_suppress;
-  }  /* if */
-
-  *suppress_warning = suppress;
   return has_side_effects;
 }  /* operation_has_side_effects */
 
 
-a_boolean node_has_side_effects(an_expr_node_ptr node,
-                                a_boolean        *suppress_warning)
+static void examine_expr_for_side_effect(
+                                    an_expr_node_ptr                    node,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Return TRUE if the expression node has side effects.  Return
-*suppress_warning TRUE if a warning about the expression doing nothing
-should be suppressed.  If suppress_warning == NULL, it is not set.
+Examine node for side effects; called by the expression traversal routines.
+Set tblock->result to TRUE if the expression has a side effect.
+Set tblock->suppress_warning to TRUE if a warning about the expression
+doing nothing should be suppressed.
 */
 {
-  a_boolean has_side_effects = FALSE, suppress = FALSE;
+  a_boolean has_side_effects = FALSE;
 
   switch (node->kind) {
     case enk_error:
-      /* Who knows what an error node might have done -- suppress the
-         warning. */
+      /* Who knows what an error node might have done -- it might have
+         had side effects. */
       has_side_effects = TRUE;
-      suppress = TRUE;
       break;
     case enk_constant:
       if (is_error_constant(node->variant.constant)) {
-        /* An error constant might have been anything -- suppress the
-           warning. */
+        /* An error constant might have been anything -- it might have
+           had side effects. */
         has_side_effects = TRUE;
-        suppress = TRUE;
       }  /* if */
       break;
-    case enk_variable_address:
-    case enk_routine_address:
-    case enk_field:
-    case enk_address_of_ellipsis:
-    case enk_runtime_sizeof:
-      /* No side effects. */
-      break;
     case enk_operation:
-      has_side_effects = operation_has_side_effects(node, &suppress);
+      has_side_effects = operation_has_side_effects(node, tblock);
       break;
     case enk_variable:
       /* Note that we test the variable's type, not the node type, because of
@@ -11516,20 +11448,14 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
       break;
     case enk_temp_init:
       /* At the very least, this has the side effect of initializing
-         something.  It might also call a constructor, etc.  In C99
+         something.  It might also call a constructor, etc.  In C
          mode, enk_temp_init is used for compound literals, which
          can be considered not to be side effects. */
-      if (!c99_mode) {
-        has_side_effects = TRUE;
-      } else {
-        has_side_effects = dynamic_init_has_side_effects(
-                                               node->variant.init.dynamic_init,
-                                               &suppress);
-      }  /* if */
+      if (!C_mode()) has_side_effects = TRUE;
       break;
     case enk_condition:
       /* At the very least, this has the side effect of initializing
-         something.  It might also call a constructor, etc. */
+         something. */
       has_side_effects = TRUE;
       break;
     case enk_new_delete:
@@ -11537,19 +11463,11 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
       has_side_effects = TRUE;
       break;
     case enk_throw:
-      /* A throw always has side effects. */
+      /* A throw always has a side effect. */
       has_side_effects = TRUE;
-      break;
-    case enk_object_lifetime:
-      has_side_effects = node_has_side_effects(
-                                            node->variant.object_lifetime.expr,
-                                            &suppress);
       break;
     case enk_typeid:
       if (node->variant.typeid_info.expr != NULL) {
-        has_side_effects = node_has_side_effects(
-                                            node->variant.typeid_info.expr,
-                                            &suppress);
         /* A typeid applied to an expression that is a pointer to a
            polymorphic class type can throw an exception if the pointer is
            NULL. */
@@ -11560,7 +11478,7 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
-      /* Assume a statement has side effects. */
+      /* Assume a statement expression has side effects. */
       has_side_effects = TRUE;
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -11581,7 +11499,9 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
       break;
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
     default:
-      unexpected_condition_str("node_has_side_effects: bad node kind");
+      /* Others cause no side effects at this level.  The subtree might
+         still cause side effects. */
+      break;
   }  /* switch */
 
   if (!has_side_effects && !C_mode() && in_front_end &&
@@ -11593,9 +11513,77 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
        which would mean a function call. */
     has_side_effects = TRUE;
   }  /* if */
-  if (suppress_warning != NULL) *suppress_warning = suppress;
-  return has_side_effects;
+  if (has_side_effects) {
+    /* The node has a side effect, even without considering its operands. */
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* examine_expr_for_side_effect */
+
+
+static void set_up_side_effect_traversal_block(
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Set up the control block used for the side effect discovery traversal.
+*/
+{
+  clear_expr_or_stmt_traversal_block(tblock);
+  tblock->process_expr = examine_expr_for_side_effect;
+  tblock->process_dynamic_init = examine_dynamic_init_for_side_effect;
+  tblock->process_constant = examine_constant_for_side_effect;
+}  /* set_up_side_effect_traversal_block */
+
+
+a_boolean node_has_side_effects(an_expr_node_ptr node,
+                                a_boolean        *suppress_warning)
+/*
+Return TRUE if the indicated expression node has side effects.  If
+suppress_warning != NULL, return *suppress_warning TRUE if a warning
+about the expression doing nothing should be suppressed.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  set_up_side_effect_traversal_block(&tblock);
+  traverse_expr(node, &tblock);
+  if (suppress_warning != NULL) *suppress_warning = tblock.suppress_warning;
+  return tblock.result;
 }  /* node_has_side_effects */
+
+
+a_boolean expr_list_has_side_effects(an_expr_node_ptr expr_list,
+                                     a_boolean        *suppress_warning)
+/*
+Return TRUE if the indicated expression list has side effects.  If
+suppress_warning != NULL, return *suppress_warning TRUE if a warning
+about the expression list doing nothing should be suppressed.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  set_up_side_effect_traversal_block(&tblock);
+  traverse_expr_list(expr_list, &tblock);
+  if (suppress_warning != NULL) *suppress_warning = tblock.suppress_warning;
+  return tblock.result;
+}  /* expr_list_has_side_effects */
+
+
+a_boolean dynamic_init_has_side_effects(a_dynamic_init_ptr dip,
+                                        a_boolean          *suppress_warning)
+/*
+Return TRUE if the indicated dynamic initialization has side effects,
+i.e., it does something other than just return a value for the initialization.
+If suppress_warning != NULL, return *suppress_warning TRUE if a warning
+about the dynamic initialization doing nothing should be suppressed.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  set_up_side_effect_traversal_block(&tblock);
+  traverse_dynamic_init(dip, &tblock);
+  if (suppress_warning != NULL) *suppress_warning = tblock.suppress_warning;
+  return tblock.result;
+}  /* dynamic_init_has_side_effects */
 
 
 a_boolean is_invariant_expr(an_expr_node_ptr expr,

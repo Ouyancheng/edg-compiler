@@ -288,6 +288,10 @@ typedef struct an_expr_or_stmt_traversal_block {
 		last_relinked_dynamic_init;
 			/* When relink_dynamic_inits is TRUE, this points
 			   to the last processed dynamic initialization. */
+  /* Field used by node_has_side_effects et al.: */
+  a_boolean	suppress_warning;
+			/* TRUE if a warning about an entity having no
+			   side effects should be suppressed. */
 } an_expr_or_stmt_traversal_block;
 
 extern void clear_expr_or_stmt_traversal_block(
@@ -298,6 +302,9 @@ extern void traverse_constant(a_constant_ptr                      constant,
 
 extern void traverse_dynamic_init(a_dynamic_init_ptr                  dip,
                                   an_expr_or_stmt_traversal_block_ptr tblock);
+
+extern void traverse_expr_list(an_expr_node_ptr                    expr_list,
+                               an_expr_or_stmt_traversal_block_ptr tblock);
 
 extern void traverse_expr(an_expr_node_ptr                    expr,
                           an_expr_or_stmt_traversal_block_ptr tblock);

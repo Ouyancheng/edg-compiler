@@ -2477,11 +2477,8 @@ default values.
   tblock->set_unordered_on_dynamic_inits = FALSE;
   tblock->relink_dynamic_inits = FALSE;
   tblock->last_relinked_dynamic_init = NULL;
+  tblock->suppress_warning = FALSE;
 }  /* clear_expr_or_stmt_traversal_block */
-
-
-static void traverse_expr_list(an_expr_node_ptr                    expr_list,
-                               an_expr_or_stmt_traversal_block_ptr tblock);
 
 
 static void traverse_constant_list(
@@ -2604,8 +2601,8 @@ end_of_routine:;
 }  /* traverse_dynamic_init */
 
 
-static void traverse_expr_list(an_expr_node_ptr                    expr_list,
-                               an_expr_or_stmt_traversal_block_ptr tblock)
+void traverse_expr_list(an_expr_node_ptr                    expr_list,
+                        an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 Walk the tree of the given expression list.  Call user-provided routines
 as specified in the control block.

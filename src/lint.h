@@ -304,6 +304,7 @@ extern int fileno(FILE *);
 /*lint -esym(765,type_info_names)*/
 /*lint -esym(759,expr_list_has_side_effects)*/
 /*lint -esym(765,expr_list_has_side_effects)*/
+/*lint -esym(714,expr_list_has_side_effects)*/
 /*lint -esym(759,virtual_function_table_should_be_defined_here)*/
 /*lint -esym(765,virtual_function_table_should_be_defined_here)*/
 /*lint -esym(769,ec_field_uses_tail_padding)*/

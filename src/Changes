@@ -1,5 +1,11 @@
 Version 3.3
 
+7/23/03  Side effect routines now use expression traversal routines
+
+The routines that discover whether expressions and the like have
+side effects, e.g., node_has_side_effects, now use the generalized
+expression traversal routines (See Changes entry of 4/29/03).
+
 7/21/03  Spurious error on local static array of const in C99 inline
 
 In C99, an inline function may not declare a local static variable
