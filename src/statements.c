@@ -1283,7 +1283,8 @@ the associated il statement.
   } else if (kind == ssk_compound) {
     /* Represent this compound statement by adding a block entry to the
        control_flow_descr_list. */
-    add_to_control_flow_descr_list(alloc_control_flow_descr(cfdk_block));
+    add_to_control_flow_descr_list(
+             alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block));
   }  /* if */
   db_exit();
 }  /* push_stmt_stack */
@@ -1410,7 +1411,7 @@ a structured statement has ended.
        block entry was added to the control_flow_descr_list.  Now add an
        end-of-block entry to close the block off. */
     add_to_control_flow_descr_list(
-                          alloc_control_flow_descr(cfdk_end_of_block));
+       alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
   }  /* if */
   /* Pop the stack. */
   depth_stmt_stack--;
@@ -1707,7 +1708,8 @@ See also 3.6.4.2.
   remove_stop_token(tok_rparen);
   /* Scan the dependent statement. */
   dependent_statement();
-  add_to_control_flow_descr_list(alloc_control_flow_descr(cfdk_end_of_block));
+  add_to_control_flow_descr_list(
+      alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
   /* Pop the structured statement stack. */
   pop_stmt_stack();
 
@@ -2755,7 +2757,8 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
     }  /* if */
     /* Represent this case label by adding an entry to the
        control_flow_descr_list. */
-    add_to_control_flow_descr_list(alloc_control_flow_descr(cfdk_case_label));
+    add_to_control_flow_descr_list(
+        alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_case_label));
   }  /* if */
   /* Add the new value to the (new?) current switch clause.  For the
      default case, this just means setting the constant_list to NULL;
