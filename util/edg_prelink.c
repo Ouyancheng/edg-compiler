@@ -666,6 +666,7 @@ typedef enum /*a_pl_error_code*/ {
   pl_ec_cannot_open_temporary_file,
   pl_ec_adopted_by_file,
   pl_ec_out_of_date,
+  pl_ec_corrupted_template_info_file,
   pl_ec_last 	/* must be last */
 } a_pl_error_code;
 
@@ -768,6 +769,9 @@ string.
     break;
   case pl_ec_out_of_date:
     m = "%s: rebuilding %s because %s (used by an exported template file) has changed\n";
+    break;
+  case pl_ec_corrupted_template_info_file:
+    m = "corrupted template information file or instantiation request file";
     break;
   default:
     pl_internal_error("invalid error code");
@@ -2253,6 +2257,16 @@ the names to the symbol table.
 }  /* pl_prelink */
 
 
+static pl_corrupted_template_info_file(void)
+/*
+This routine is called when the information about the compilation command
+to be used is invalid.
+*/
+{
+  pl_error(pl_ec_corrupted_template_info_file, (char*)NULL);
+}  /* pl_corrupted_template_info_file */
+
+
 static char *pl_find_suffix(char	*name)
 /*
 Find the suffix in the file name specified by "name" and return a
@@ -2328,7 +2342,7 @@ that line type.
            instance is to be instantiated. */
         char	*flag_pos;
         flag_pos = strchr(info, ':');
-        if (flag_pos == NULL) pl_internal_error("bad template info file");
+        if (flag_pos == NULL) pl_corrupted_template_info_file();
         /* Replace the ":" with a NULL so that the name is null terminated. */
         *flag_pos++ = '\0';
         sym = alloc_pl_symbol();
@@ -2347,7 +2361,7 @@ that line type.
               sym->referenced = TRUE;
               break;
             default:
-             pl_internal_error("bad template info file");
+             pl_corrupted_template_info_file();
           };
         }  /* for */
         /* Check for the presence of a template name. */
@@ -2437,7 +2451,7 @@ that line type.
         instantiation_dir_length = strlen(pifp->instantiation_directory);
         instantiation_dir_set = TRUE;
       } else {
-        pl_internal_error("invalid template info line type");
+        pl_corrupted_template_info_file();
       }  /* if */
     }  /* while */
     fclose(f_template_info);
@@ -2922,9 +2936,9 @@ created to hold the command.
   if (part2 == NULL) part2 = "";
   if (part3 == NULL) part3 = "";
   if (part4 == NULL) part4 = "";
-  check_assertion(part1 != NULL);
+  if (part1 == NULL) pl_corrupted_template_info_file();
   length = (strlen(part1) + strlen(part2) + strlen(part3) + strlen(part4)) * 2;
-  check_assertion(length > 3);
+  if (length <= 3) pl_corrupted_template_info_file();
   command = (char *)pl_malloc_with_check(length);
   to = command;
   add_to_command_line(&to, part1);
