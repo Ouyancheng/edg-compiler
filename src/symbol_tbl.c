@@ -442,6 +442,9 @@ and indentation is the indentation desired.
       {
         a_template_symbol_supplement_ptr  tssp;
         a_template_param_ptr              tplep;
+        a_symbol_ptr                      inst_sym;
+        int                               inst_count;
+
         tssp = sym->variant.template.extra_info;
         if (tssp->template_body.first_token != NULL) {
           put_string("template body cached");
@@ -455,7 +458,16 @@ and indentation is the indentation desired.
         for (tplep = tssp->parameters; tplep != NULL; tplep = tplep->next) {
           fprintf(f_debug, "%*s", indentation, "");
           db_symbol(tplep->param_symbol, "", indentation + 2);
+          col = 0;
         }  /* for */
+        inst_sym = tssp->variant.class.instantiations;
+        inst_count = 0;
+        while (inst_sym != NULL) {
+          fprintf("%*s Instantiation #%0d:\n", indentation, inst_count++);
+          db_symbol(inst_sym, "", indentation + 2);
+          inst_sym = inst_sym->next;
+        }  /* while */
+        col = 0;
       }
       break;
 #if CHECKING
@@ -5420,6 +5432,9 @@ an instance of the class template.
   /* Set position. */
 
 #if DEBUG
+  if (debug_level >= 5) {
+    db_symbol(template_symbol, "Template symbol: ", 2);
+  }  /* if */
   if (debug_level >= 4) {
     db_symbol(new_sym, "Returning: ", 2);
   }  /* if */
