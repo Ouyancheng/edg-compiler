@@ -4902,8 +4902,7 @@ list.
 
 
 void record_end_of_lifetime_destruction(a_dynamic_init_ptr dip,
-                                        a_boolean          static_lifetime,
-                                        a_boolean          unordered)
+                                        a_boolean          static_lifetime)
 /*
 Add the given dynamic initialization entry to the file-scope dynamic_inits
 list.
@@ -4911,6 +4910,7 @@ list.
 {
   an_object_lifetime_ptr  olp;
 
+  db_enter(4, "record_end_of_lifetime_destruction");
   if (dip->destructor != NULL) {
     if (static_lifetime) {
       olp = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->lifetime;
@@ -4924,7 +4924,13 @@ list.
       dip->next_in_destruction_list = olp->destructions;
       olp->destructions = dip;
     }  /* if */
+#if DEBUG
+    if (debug_level >= 4) {
+      db_pending_destructions(dip, (an_object_lifetime_ptr)NULL);
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
+  db_exit();
 }  /* record_end_of_lifetime_destruction */
 
 
@@ -7080,56 +7086,74 @@ to it.
 
 
 #if DEBUG
+void db_destruction(a_dynamic_init_ptr  dip)
+/*
+*/
+{
+  if (dip->variable != NULL) {
+    fputs("variable: \"", f_debug);
+    db_name(&dip->variable->source_corresp);
+    fputs("\", ", f_debug);
+  }  /* if */
+  db_destructor(dip->destructor);
+}  /* db_destruction */
+
+
+void db_object_lifetime_name(an_object_lifetime_ptr olp)
+/*
+*/
+{
+  if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
+    db_scope((a_scope_ptr)olp->entity.ptr);
+  } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_none) {
+    fputs("<unbound lifetime>", f_debug);
+  } else {
+    fputs(il_entry_kind_names[(int)olp->entity.kind], f_debug);
+    if (olp->entity.kind == (a_byte_il_entry_kind)iek_label) {
+      db_name(&((a_label_ptr)olp->entity.ptr)->source_corresp);
+    }  /* if */
+  }  /* if */
+}  /* db_object_lifetime_name */
+    
+
 void db_object_lifetime(an_object_lifetime_ptr  olp)
 /*
 */
 {
-  char                *str;
   a_dynamic_init_ptr  dip;
 
   if (olp == NULL) {
     fputs("null object lifetime\n", f_debug);
   } else {
-    fputs(il_entry_kind_names[(int)olp->entity.kind], f_debug);
-    switch (olp->entity.kind) {
-      case iek_scope:
-        {
-        a_scope_ptr  scope = (a_scope_ptr)olp->entity.ptr;
-        switch (scope->kind) {
-          case sck_file:      str = "file";     break;
-          case sck_function:  str = "function"; break;
-          case sck_block:     str = "block";    break;
-          default:            str = "???";      break;
-        }  /* switch */
-        }
-        break;
-      case iek_label:
-        str = ((a_label_ptr)olp->entity.ptr)->source_corresp.name;
-        break;
-      default:
-        str = NULL;
-    }  /* switch */
-    if (str != NULL) fprintf(f_debug, " (%s)", str);
-    str = ": ";
-    if (olp->parent_lifetime == NULL) {
-      fprintf(f_debug, "%sno parent", str);
-      str = ", ";
+    db_object_lifetime_name(olp);
+    if (olp->parent_lifetime != NULL) {
+      fprintf(f_debug, "\n  parent_lifetime = ");
+      db_object_lifetime_name(olp->parent_lifetime);
     }  /* if */
-    if (olp->child_lifetime == NULL) {
-      fprintf(f_debug, "%sno children", str);
-      str = ", ";
+    if (olp->child_lifetime != NULL) {
+      an_object_lifetime_ptr  temp = olp->child_lifetime->next;
+      fprintf(f_debug, "\n  child_lifetime = ");
+      db_object_lifetime_name(olp->child_lifetime);
+      for (; temp != NULL; temp = temp->next) {
+        fputs("\n                   ", f_debug);
+        db_object_lifetime_name(temp);
+      }  /* for */
     }  /* if */
-    if (olp->next == NULL) {
-      fprintf(f_debug, "%sno next", str);
-      str = ", ";
+    if (olp->next != NULL) {
+      fprintf(f_debug, "\n  next = ");
+      db_object_lifetime_name(olp->next);
     }  /* if */
     dip = olp->destructions;
-    fprintf(f_debug, "%sdestructions = %s\n", str,
-                     dip == NULL ? "<null>" : "");
-    for (; dip != NULL; dip = dip->next) {
-      fputs("    ", f_debug);
-      db_dynamic_initializer(dip, 4);
+    if (dip != NULL) {
+      fprintf(f_debug, "\n  destructions = ");
+      db_destruction(dip);
+      dip = dip->next_in_destruction_list;
+      for (; dip != NULL; dip = dip->next_in_destruction_list) {
+        fputs("\n                 ", f_debug);
+        db_destruction(dip);
+      }  /* if */
     }  /* if */
+    fputc('\n', f_debug);
   }  /* if */
 }  /* db_object_lifetime */
 
@@ -7144,9 +7168,38 @@ void db_object_lifetime_stack(void)
           "object_lifetime_stack:%s\n", olp == NULL ? " <empty>" : "");
   for (; olp != NULL; olp = olp->parent_lifetime) {
     fputs("  ", f_debug);
-    db_object_lifetime(olp);
+    db_object_lifetime_name(olp);
+    fputc('\n', f_debug);
   }  /* for */
 }  /* db_object_lifetime_stack */
+
+void db_pending_destructions(a_dynamic_init_ptr      dip,
+                             an_object_lifetime_ptr  stop_at)
+/*
+*/
+{
+  an_object_lifetime_ptr  olp;
+
+  if (dip != NULL && dip->lifetime != stop_at) {
+    olp = dip->lifetime;
+    fputs("pending destructions:\n", f_debug);
+    for (; olp != NULL && olp != stop_at; olp = olp->parent_lifetime) {
+      fputs("  --for lifetime associated with ", f_debug);
+      db_object_lifetime_name(olp);
+      fputc(':', f_debug);
+      if (dip == NULL) {
+        fputs(" <none>", f_debug);
+      } else {
+        for (; dip != NULL; dip = dip->next_in_destruction_list) {
+          fputs("\n      ", f_debug);
+          db_destruction(dip);
+        }  /* for */
+      }  /* if */
+      fputc('\n', f_debug);
+      dip = olp->parent_destruction_sublist;
+    }  /* for */
+  }  /* if */
+}  /* db_pending_destructions */
 
 #endif /* DEBUG */
 
@@ -7422,7 +7475,7 @@ void pop_object_lifetime(void)
   db_enter(3, "pop_object_lifetime");
 #if DEBUG
   if (debug_level >= 3) {
-    fputs("curr_object_lifetime =\n  ", f_debug);
+    fputs("curr_object_lifetime = ", f_debug);
     db_object_lifetime(curr_object_lifetime);
   }  /* if */
 #endif /* DEBUG */

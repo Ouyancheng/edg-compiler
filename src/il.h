@@ -304,9 +304,8 @@ extern a_dynamic_init_ptr alloc_dynamic_init(a_dynamic_init_kind kind);
 extern void add_to_dynamic_inits_list(a_dynamic_init_ptr dip);
 
 extern void record_end_of_lifetime_destruction(
-                                           a_dynamic_init_ptr  dip,
-                                           a_boolean           static_lifetime,
-                                           a_boolean           unordered);
+                                         a_dynamic_init_ptr  dip,
+                                         a_boolean           static_lifetime);
 
 extern a_variable_ptr alloc_variable(a_storage_class  storage_class);
 
@@ -680,6 +679,17 @@ extern void db_initializer(a_variable_ptr  var_ptr,
 
 extern void db_scope(a_scope_ptr sp);
 
+extern void db_destruction(a_dynamic_init_ptr  dip);
+
+extern void db_object_lifetime_name(an_object_lifetime_ptr  olp);
+
+extern void db_object_lifetime(an_object_lifetime_ptr  olp);
+
+extern void db_object_lifetime_stack(void);
+
+extern void db_pending_destructions(a_dynamic_init_ptr      dip,
+                                    an_object_lifetime_ptr  stop_at);
+
 extern unsigned long show_il_space_used(void);
 #endif /* DEBUG */
 
@@ -716,9 +726,6 @@ extern void db_source_sequence_entry(a_source_sequence_entry_ptr  ssep);
 extern void db_source_sequence_list(a_source_sequence_entry_ptr  ssep);
 extern void db_ss_list_for_scope(a_scope_ptr  sp);
 extern void dump_ss(a_scope_ptr  sp);
-
-extern void db_object_lifetime(an_object_lifetime_ptr  olp);
-extern void db_object_lifetime_stack(void);
 #endif /* DEBUG */
 
 extern a_src_seq_secondary_decl_ptr alloc_src_seq_secondary_decl(void);
