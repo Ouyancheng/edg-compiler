@@ -1,5 +1,20 @@
 Version 2.44
 
+6/28/00  Sun and Microsoft compatibility: declaration of function or variable
+         made visible with a using-declaration
+
+In Microsoft and Sun modes, a declaration of a variable or function with an
+unqualified name that was previously made visible with a using-declaration
+may be accepted as a redeclaration (or definition) of the imported entity
+provided it was previously declared with C linkage.  For example:
+
+  namespace N {
+    extern "C" void f();
+  }
+  using N::f;
+  void f() {}  // Accepted in Microsoft and Sun modes: the defined function is
+               // N::f and it has C name linkage.  (Error in other modes.)
+
 6/26/00  C++-generating back end: injected base class names hidden by the
          name of the derived class
 
