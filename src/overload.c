@@ -3254,9 +3254,11 @@ Compare two argument match summary entries and return
       /* Ignore routines indicated for copy constructors on class copies. */
       arg_routine1 = arg_routine2 = NULL;
     }  /* if */
-    if (arg_routine1 == arg_routine2) {
+    if (arg_routine1 == arg_routine2 ||
+        (microsoft_bugs && arg_routine1 != NULL && arg_routine2 != NULL)) {
       /* The conversions have the same user-defined conversion (or both
-         have no user-defined conversion). */
+         have no user-defined conversion).  (The MSVC++ 6.0 compiler
+         doesn't care that the user-defined conversions are different.) */
       /* Compare the standard conversions.  The comparisons that are related
          to rank (e.g., promotion versus conversion) need not be done if
          there is no user-defined conversion (because they have been handled

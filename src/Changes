@@ -1,5 +1,25 @@
 Version 2.45
 
+9/1/00   Microsoft compatibility: standard conversion after different
+         user-defined conversions
+
+The MSVC++ 6.0 compiler considers a standard conversion after a user-defined
+conversion as part of deciding which conversion is better in overload
+resolution, even when (contrary to the standard) the user-defined
+conversion routines are different.  This behavior is now emulated
+in Microsoft bugs mode.
+
+  struct A {
+    operator double();
+    operator int();
+  } a;
+  void f(int);
+  void f(float);
+  int main() {
+    f(a);
+    return 0;  // Should be ambiguous; MSVC++ picks f(int)
+  }
+
 8/31/00  Incorrect passing of function call arguments for calls through
          certain template-dependent function pointers
 
