@@ -1190,8 +1190,10 @@ typedef unsigned long an_eh_type_flags_set;
 #define ETS_IS_REFERENCE	0x08
 			/* A reference to an object of the type specified
 			   by typeinfo. */
+#if DO_FULL_PORTABLE_EH_LOWERING
 #define ETS_IS_ELLIPSIS		0x10
 			/* An ellipsis (for a catch clause). */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 #define ETS_LAST		0x20
 			/* TRUE if this is the last type specification in
 			   the array. */
@@ -1309,6 +1311,7 @@ because the caller does not need it.
   return eff_type;
 }  /* eff_type_for_typeinfo */
 
+#if DO_FULL_PORTABLE_EH_LOWERING
 
 static a_variable_ptr typeinfo_var_for_type(
                                            a_type_ptr           type,
@@ -1332,6 +1335,7 @@ type is indicated in the returned value of *flags_value and
   return typeinfo_var;
 }  /* typeinfo_var_for_type */
 
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 static void generate_type_typeinfo_var_if_needed(a_type_ptr type)
 /*
