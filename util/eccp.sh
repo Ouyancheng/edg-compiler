@@ -289,7 +289,6 @@ do
       ;;
     -X)
 #     Collect a list of -X options.
-      instantiation_command_line=$instantiation_command_line" "$1
       shift;
       feoptions=$feoptions" -X"$1;
       used_two_params=1
@@ -438,7 +437,7 @@ do
        $add_to_instantiation_command -eq 1 ] ; then
     # In automatic instantiation mode build a version of the command line
     # that can be used to compile one file.  This is mostly like the
-    # original command without any file names without certain linker
+    # original command without any file names and without certain linker
     # options.
     instantiation_command_line=$instantiation_command_line" "$curr_param
     if [ $used_two_params -eq 1 ] ; then
