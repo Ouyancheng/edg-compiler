@@ -927,8 +927,12 @@ process_option()
 #     Collect a list of .c files.
       if [ "$cfiles" ]; then more_than_one_c_file=1; fi;
       cfiles=$cfiles" "$arg;
-      obj_file_name=`expr //$arg : '.*/\(.*\)\.'`.o  # Get basename.o
-      object_files=$object_files" "$obj_file_name
+      if [ $multi_trans_unit -eq 0 -o $any_c_files -eq 0 ] ; then
+        # In --multi_trans_unit mode only include the first object file
+        # name in the list of object_files.
+        obj_file_name=`expr //$arg : '.*/\(.*\)\.'`.o  # Get basename.o
+        object_files=$object_files" "$obj_file_name
+      fi
       any_c_files=1
       add_to_instantiation_command=0
       ;;
@@ -1511,13 +1515,11 @@ if [ $old_ii_format -ne 0 ] ; then
 fi
 #
 # If we are using --multi_trans_unit mode, change cfiles so that it only
-# contains the first file name.  Change object_files so that it only contains
-# the first object file name.  Set all_files to the complete list.
+# contains the first file name.  Set all_files to the complete list.
 #
 if [ $multi_trans_unit -ne 0 ] ; then
   allfiles=$cfiles
   cfiles=`echo $cfiles | sed -e "s/ .*//"`
-  object_files=`echo $object_files | sed -e "s/ .*//"`
   more_than_one_c_file=0
 fi
 #
