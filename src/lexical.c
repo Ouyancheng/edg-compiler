@@ -8188,6 +8188,7 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(avail_cached_constants),
       pch_saved_var_array_elem(avail_reusable_cache_entries),
       pch_saved_var_array_elem(avail_pending_pragmas),
+      pch_saved_var_array_elem(include_file_history_list),
 #if DEBUG
       pch_saved_var_array_elem(num_orig_line_modifs_allocated),
       pch_saved_var_array_elem(num_source_line_modifs_allocated),
@@ -8238,7 +8239,6 @@ done to determine whether a precompiled header may be used.
   any_initial_get_token_tests_needed = FALSE;
   last_token_sequence_number_used = NO_TOKEN_SEQUENCE_NUMBER;
   curr_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
-  include_file_history_list = NULL;
   any_tokens_fetched_from_curr_input_file = FALSE;
 }  /* lexical_reset */
 
@@ -8266,6 +8266,7 @@ of the front end.
   avail_reusable_cache_entries = NULL;
   avail_pending_pragmas = NULL;
   dollar_in_id_diagnostic_issued = FALSE;
+  include_file_history_list = NULL;
 #if DEBUG
   num_orig_line_modifs_allocated = 0;
   num_source_line_modifs_allocated = 0;
