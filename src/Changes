@@ -1,5 +1,13 @@
 Version 3.4
 
+2/19/04  GNU mode: Diagnostics noreturn attribute
+
+In GNU modes, the front end now issues a warning when it can determine that
+a function declared with the "noreturn" attribute does in fact return.
+For example:
+
+  __attribute__((noreturn)) void f() {}  // Warning: f does return.
+
 2/19/04  GNU mode: Attributes and redeclarations
 
 In GNU modes, the front end lost certain attributes specified on a declaration

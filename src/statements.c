@@ -1764,7 +1764,18 @@ the current statement sequence.
 
   db_enter(5, "add_statement_at_stmt_pos");
   /* Maintain the code reachable flag.  Labels are always reachable. */
-  if (kind == (a_statement_kind)stmk_label) set_reachable(curr_reachability);
+  if (kind == (a_statement_kind)stmk_label) {
+    set_reachable(curr_reachability);
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (kind == (a_statement_kind)stmk_return) {
+    a_routine_ptr  rp = current_routine_entry();
+    if (skip_typerefs(rp->type)->variant.routine.extra_info->does_not_return &&
+        curr_reachability.reachable_considering_hints) {
+      pos_warning(ec_noreturn_function_does_return,
+                  &rp->source_corresp.decl_position);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  }  /* if */
 
   /* Allocate the statement entry. */
   sp = alloc_statement(kind);
@@ -4944,8 +4955,10 @@ GNU allows a syntax similar to Fortran's assigned goto:
     if (curr_token != tok_star) internal_error("goto_statement: expected '*'");
 #endif /* CHECKING */
     (void)get_token();
-    /* Scan the expression following, which must have type (void *). */
-    sp->expr = scan_typed_expression(make_pointer_type(void_type()),
+    /* Scan the expression following, which must be convertible to type
+       "void const*". */
+    sp->expr = scan_typed_expression(
+                 make_pointer_type(make_qualified_type(void_type(), TQ_CONST)),
 				     ec_assigned_goto_requires_void_ptr);
   } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -5433,7 +5446,7 @@ See also 3.6.6.4.
   } else {
     /* Allocate the return statement. */
     sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,
-         &return_pos);
+                                   &return_pos);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     stmt_update_source_sequence_entry(sp, src_seq_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -7066,8 +7079,8 @@ before the fixup can be done for pointers in goto and label statements.
   }  /* if */
 }  /* wrapup_control_flow_processing */
 
-
 #if DEBUG
+
 unsigned long show_statements_space_used(void)
 /*
 Display and return the amount of space used for various statements tables.
@@ -7086,8 +7099,8 @@ Display and return the amount of space used for various statements tables.
 
   return (grand_total);
 }  /* show_statements_space_used */
-#endif /* DEBUG */
 
+#endif /* DEBUG */
 
 void statements_one_time_init(void)
 /*
