@@ -1,5 +1,11 @@
 Version 2.34
 
+11/25/96 Folding of floating-point constant comparisons: unordered and !=
+
+do_fcompare has been changed such that when two floating-point constants
+are unordered with respect to one another and the comparison being
+performed is "not equal", the result is "true".
+
 11/25/96 Routine name linkage on function template instance
 
 When an instance of a function template was first referenced within an
