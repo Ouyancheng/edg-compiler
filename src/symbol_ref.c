@@ -664,7 +664,8 @@ resolve ambiguities caused by a using-directive.  For example:
   old_sym_ptr = locator.specific_symbol;
   if (old_sym_ptr != NULL &&
       old_sym_ptr->synthesized_namespace_projection) {
-    if (!symbols_are_equivalent(old_sym_ptr, sym_ptr)) {
+    if (old_sym_ptr->ambiguous ||
+        old_sym_ptr->kind == (a_symbol_kind)sk_overloaded_function) {
       hidden_class_or_namespace_member = TRUE;
       tag_hidden_by_nontag = FALSE;
       record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
@@ -732,8 +733,7 @@ scopes and for the file scope.
   a_type_ptr                  tp;
   a_symbol_ptr                sym, sym_list;
 
-  db_enter(3, "check_name_hiding_for_curr_scope_declarations");
-  ssep = &scope_stack[depth_scope_stack];
+  db_enter(3, "check_name_hiding_scope");
   if (sp != NULL) {
     /* Check certain nested scopes first. */
     if (!C_mode()) {
@@ -742,9 +742,9 @@ scopes and for the file scope.
          the symbols that were declared in the current scope. */
       for (nsp = sp->namespaces; nsp != NULL; nsp = nsp->next) {
         if (!nsp->is_namespace_alias) {
-          push_namespace_reactivation_scope(nsp);
+          push_namespace_extension_scope(nsp);
           check_name_hiding_for_scope(nsp->variant.assoc_scope);
-          pop_namespace_reactivation_scope();
+          pop_namespace_extension_scope();
         }  /* if */
       }  /* for */
       /* Similarly, do checking for class scopes defined within the current
@@ -765,18 +765,19 @@ scopes and for the file scope.
       }  /* for */
     }  /* if */
     /* Find the list of symbols declared in the current scope. */
-    switch (ssep->kind) {
+    switch (sp->kind) {
       case sck_file:
       case sck_function:
       case sck_block:
+        ssep = &scope_stack[depth_scope_stack];
         sym_list = assoc_pointers_block_of(ssep)->symbols;
         break;
-      case sck_namespace_reactivation:
+      case sck_namespace:
         nsp = sp->variant.assoc_namespace;
         sym_list = symbol_supplement_for_namespace(nsp)->
                                              pointers_block.symbols;
         break;
-      case sck_class_reactivation:
+      case sck_class_struct_union:
         tp = sp->variant.assoc_type;
         sym_list = symbol_supplement_for_class(tp)->symbols;
         break;
