@@ -1815,17 +1815,13 @@ specification in the mangling for lengths of literals.
   if (scp != NULL) {
     /* Unary "&" encoding "ad" followed by scope resolution operator "sr". */
     add_str_to_mangled_name("adsr", mctl);
-    add_to_mangled_name('N', mctl);
     mangled_encoding_for_type(scp->parent.class_type, mctl);
-    if (rout != NULL && 
-        rout->special_kind == (a_special_function_kind)sfk_conversion) {
-      add_str_to_mangled_name(MANGLING_STRING_FOR_CONVERSION_FUNC, mctl);
-      mangled_encoding_for_type(rout->type->variant.routine.return_type,
-                                mctl);
+    if (rout != NULL) {
+      mangled_function_name(rout, /*suppress_param_encoding=*/FALSE,
+                            /*base_name_offset=*/(sizeof_t *)NULL, mctl);
     } else {
       mangled_name_with_length(unmangled_name_of(scp), mctl);
     }  /* if */
-    add_to_mangled_name('E', mctl);
   } else {
     /* We have a NULL pointer-to-member constant.  Although not allowed by the
        standard, some compilers accept this as an extension.  The IA64 ABI
@@ -3937,10 +3933,10 @@ constructors and conversion functions.
 /*ARGSUSED*/ /* <-- base_name_offset is not used in that case. */
 #endif /* !IA64_ABI || !DO_IL_LOWERING */
 static void mangled_function_name(
-                              a_routine_ptr            routine,
-                              a_boolean                suppress_param_encoding,
-                              sizeof_t                 *base_name_offset,
-                              a_mangling_control_block *mctl)
+                             a_routine_ptr            routine,
+                             a_boolean                suppress_param_encoding,
+                             sizeof_t                 *base_name_offset,
+                             a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the name of the function "routine".
 If suppress_param_encoding is TRUE, suppress the information on parameter
