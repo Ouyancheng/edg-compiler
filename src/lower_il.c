@@ -8306,7 +8306,12 @@ used as an lvalue if is_lvalue is TRUE.
 */
 {
   an_expr_node_ptr source_node, question_node, compare_node, plus_node;
-  an_expr_node_ptr offset_node, temp_node, select_i_node;
+  an_expr_node_ptr offset_node, temp_node;
+#if !IA64_ABI
+  an_expr_node_ptr select_i_node;
+#else /* IA64_ABI */
+  an_expr_node_ptr select_f_node, compare2_node;
+#endif /* !IA64_ABI */
   an_expr_node_ptr select_d_node, incr_node, assign_node, comma_node;
   a_constant       offset_constant;
   a_targ_ptrdiff_t offset;
@@ -8330,6 +8335,11 @@ used as an lvalue if is_lvalue is TRUE.
     if (is_or_was_ptr_to_member_function_type(dest_type)) {
       /* Pointer to member function.  Change the node to
            (temp = pmf, (temp.i != 0) ? temp.d += offset : 0, temp)
+         The IA-64 version is
+           (temp = pmf, (temp.f != 0 || temp.d != 0)
+                                      ? temp.d += offset : 0, temp)
+         for the variant of the ABI for architectures where the address
+         of a function might have a low-order bit of 1.
       */
       /* Make sure __mptr (the struct that represents lowered pointers to
          member functions) has been created. */
@@ -8339,16 +8349,38 @@ used as an lvalue if is_lvalue is TRUE.
       /* Make "temp.i != 0". */
       temp_node = var_lvalue_expr(temp_var);
 #if !IA64_ABI
+      /* Make (temp.i != 0). */
       select_i_node = field_rvalue_selection_expr(temp_node, mptr_i_field);
-#else /* IA64_ABI */
-      select_i_node = field_rvalue_selection_expr(temp_node, mptr_f_field);
-#endif /* IA64_ABI */
       select_i_node = integral_promote_node(select_i_node);
       select_i_node->next = node_for_promoted_integer_constant(0L,
                                          TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
       compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
                                         integer_type((an_integer_kind)ik_int),
                                         select_i_node);
+#else /* IA64_ABI */
+      /* Make (temp.f != 0 || temp.d != 0). */
+      select_f_node = field_rvalue_selection_expr(temp_node, mptr_f_field);
+      select_f_node = add_cast(select_f_node,
+                               integer_type(targ_ptrdiff_t_int_kind));
+      select_f_node->next = node_for_integer_constant(0L,
+                                                      targ_ptrdiff_t_int_kind);
+      compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
+                                        integer_type((an_integer_kind)ik_int),
+                                        select_f_node);
+      temp_node = var_lvalue_expr(temp_var);
+      select_d_node = field_rvalue_selection_expr(temp_node, mptr_d_field);
+      select_d_node = add_cast(select_d_node,
+                               integer_type(targ_ptrdiff_t_int_kind));
+      select_d_node->next = node_for_integer_constant(0L,
+                                                      targ_ptrdiff_t_int_kind);
+      compare2_node = make_operator_node((an_expr_operator_kind)eok_ine,
+                                         integer_type((an_integer_kind)ik_int),
+                                         select_d_node);
+      compare_node->next = compare2_node;
+      compare_node = make_operator_node((an_expr_operator_kind)eok_lor,
+                                         integer_type((an_integer_kind)ik_int),
+                                         compare_node);
+#endif /* IA64_ABI */
       /* Make "temp.d += offset". */
       temp_node = var_lvalue_expr(temp_var);
       select_d_node = field_lvalue_selection_expr(temp_node, mptr_d_field);
