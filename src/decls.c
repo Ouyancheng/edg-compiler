@@ -1236,7 +1236,7 @@ operator kinds.  Issue a diagnostic if an error is found.
       ptp = rout_type->variant.routine.extra_info->param_type_list;
       if (!is_nonstatic_member_function) ptp = ptp->next;
       tp = ptp->type;
-      if (!is_error_type(tp)) {
+      if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
         if (!is_integral_type(tp) ||
             skip_typerefs(tp)->variant.integer.int_kind !=
                                                   (an_integer_kind)ik_int) {
@@ -1255,7 +1255,7 @@ operator kinds.  Issue a diagnostic if an error is found.
       } else if (opname == (an_opname_kind)onk_new) {
         ptp = rout_type->variant.routine.extra_info->param_type_list;
         tp = ptp->type;
-        if (!is_error_type(tp)) {
+        if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
           if (!is_integral_type(tp) ||
               skip_typerefs(tp)->variant.integer.int_kind !=
                                   (an_integer_kind)TARG_SIZE_T_INT_KIND) {
@@ -1270,7 +1270,7 @@ operator kinds.  Issue a diagnostic if an error is found.
         error_code = ec_too_few_args_for_operator;
       } else {
         tp = ptp->type;
-        if (!is_error_type(tp)) {
+        if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
           if (!is_pointer_type(tp) || !is_void_type(type_pointed_to(tp))) {
             pos_error(ec_bad_first_arg_type_for_operator_delete,
                       &locator->source_position);
@@ -1287,7 +1287,7 @@ operator kinds.  Issue a diagnostic if an error is found.
           } else {
             /* The second argument must be of type size_t (ARM 12.5). */
             tp = ptp->type;
-            if (!is_error_type(tp)) {
+            if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
               if (!is_integral_type(tp) ||
                   skip_typerefs(tp)->variant.integer.int_kind !=
                                     (an_integer_kind)TARG_SIZE_T_INT_KIND) {
@@ -1321,7 +1321,7 @@ operator kinds.  Issue a diagnostic if an error is found.
          to a class or an object of or reference to a class for which
          operator->() is defined (ARM 13.4.6). */
       tp = rout_type->variant.routine.return_type;
-      if (!is_error_type(tp)) {
+      if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
         a_boolean  local_err;
         if (is_pointer_type(tp)) {
           tp = type_pointed_to(tp);
@@ -1348,7 +1348,7 @@ operator kinds.  Issue a diagnostic if an error is found.
     if (opname == (an_opname_kind)onk_new ||
         opname == (an_opname_kind)onk_delete) {
       tp = rout_type->variant.routine.return_type;
-      if (!is_error_type(tp)) {
+      if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
         if (opname == (an_opname_kind)onk_new) {
           if (!is_pointer_type(tp) || !is_void_type(type_pointed_to(tp))) {
             pos_error(ec_bad_return_type_for_op_new,
