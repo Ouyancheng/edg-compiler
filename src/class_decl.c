@@ -11684,7 +11684,8 @@ bits of information that were acquired while parsing.
          required. */
       report_missing_constructor(tag_sym);
     }  /* if */
-    if (!class_state->is_nonreal_instantiation) {
+    if (!class_state->is_nonreal_instantiation ||
+        class_type->variant.class_struct_union.is_prototype_instantiation) {
       /* Check to see if a remark should be issued on direct base classes
          with nonvirtual destructors. */
       check_base_class_destructors(class_type);
