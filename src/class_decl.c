@@ -5352,8 +5352,8 @@ and "class_type" indicates the class in which the declaration occurs.
      the access_adjustment_made flag is set to TRUE. */
   projection_into_curr_class->variant.projection.access_adjustment_made = TRUE;
   if (access == (an_access_specifier)as_private) {
-    /* Access adjustment may not be appear in the private part of a
-       derived class declaration. */
+    /* Access adjustment may not appear in the private part of a derived
+       class declaration. */
     error(ec_access_adjustment_in_private_section);
   } else {
     sym = fundamental_symbol_of(projection_into_curr_class);
