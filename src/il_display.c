@@ -344,7 +344,7 @@ be written.
         a_type_ptr type = (a_type_ptr)entry_ptr;
         (void)printf(": ");
         if (type->variant.typeref.is_placeholder_for_class_instantiation) {
-          (void)printf("placeholder for file-scope type ");
+          (void)printf("placeholder for instantiation of ");
         }  /* if */
         if (type->variant.typeref.is_placeholder_for_namespace_type) {
           (void)printf("placeholder for namespace type ");
