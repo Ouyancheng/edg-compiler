@@ -1,5 +1,23 @@
 Version 2.22
 
+2/16/94  Separate file for system specific predefined macros and assertions
+
+To simplify the maintenance of versions of the compiler targeted for
+different systems, a file called sys_predef.c has been added.  Code that
+initializes system specific predefined macros and assertions should be
+placed in this file.
+
+2/16/94  Redefinition flag for macros
+
+A flag has been added to the macro entry that specifies whether
+the macro can be redefined.  This provides the ability to
+create predefined macros whose values can later be redefined.
+
+2/16/94  Redefinition of macros on the command line
+
+A bug has been fixed that allowed the -D command line option to
+redefine the value macros.
+
 2/16/94  Return type of function must be complete when function address taken
 
 It's always been the case that the return type of a function must be
