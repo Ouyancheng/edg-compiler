@@ -2269,6 +2269,13 @@ typedef struct a_scope {
                         /* List of parameters of the associated routine,
                            if assoc_routine != NULL.  In declaration order.
                            NULL if no parameters. */
+#ifdef CIL
+  a_variable_ptr
+                this_param_variable;
+			/* If the scope is for a C++ nonstatic member
+			   function, this field points to the implicit "this"
+			   parameter.  It is NULL in all other cases. */
+#endif /* ifdef CIL */
 #ifdef FIL
   a_variable_ptr
                 function_result_var;
