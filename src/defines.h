@@ -37,7 +37,9 @@ the release should contain no defines.
 
 /* Options for Sun test version. */
 #define __BSD__ 1
+#ifndef STANDALONE_IL_DISPLAY
 #define IL_SHOULD_BE_WRITTEN_TO_FILE 1
+#endif /* !defined(STANDALONE_IL_DISPLAY) */
 #define FIL 1
 
 #endif /* !defined(OPTIMIZED_VERSION) */
