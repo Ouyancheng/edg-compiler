@@ -35,7 +35,7 @@ Usage:
 #include "host_envir.h"
 
 #if __ANSIC__ || USING_ISO_C
-/* Get qsort, and exit prototypes. */
+/* Get qsort and exit prototypes. */
 #include <stdlib.h>
 typedef sizeof_t qsort_nmemb_type;
 #else /* !(__ANSIC__ || USING_ISO_C) */
