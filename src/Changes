@@ -51,9 +51,9 @@ Otherwise, the new specification is ignored.
 
 3/9/00   Accessibility of using-declarations for privately inherited member
 
-The front end used to incorrectly deny access to a public member using-
-declaration that is referring to a privately inherited member when that
-access uses an elaborated name.
+A using-declaration adjusting the access of a privately inherited member
+used to be ignored when an elaborated name was used the refer to the 
+inherited member.
 
   struct B { struct S {}; };
   struct D: private B { using B::S; };
