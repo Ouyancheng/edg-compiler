@@ -838,9 +838,9 @@ class_struct_union:
 #endif /* RESTRICT_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         { a_type_qualifier_set qualifiers = tp->variant.typeref.qualifiers;
-          if (qualifiers & TQ_UNALIGNED) fputs("__unaligned ", f_debug);
-          if (qualifiers & TQ_NEAR     ) fputs("__near ", f_debug);
-          if (qualifiers & TQ_FAR      ) fputs("__far ", f_debug);
+          if (qualifiers & TQ_UNALIGNED) fputs("unaligned ", f_debug);
+          if (qualifiers & TQ_NEAR     ) fputs("near ", f_debug);
+          if (qualifiers & TQ_FAR      ) fputs("far ", f_debug);
         }
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
