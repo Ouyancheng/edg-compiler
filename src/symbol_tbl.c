@@ -4116,7 +4116,7 @@ C and C++.
          cfront 2.1 works, but it means that programs that are legal by the
          ARM do not fail to compile or otherwise behave differently because
          the anachronism was invoked. */
-      sym = find_nested_type_symbol(locator);
+      if (allow_anachronisms) sym = find_nested_type_symbol(locator);
       if (sym != NULL) {
         if (is_acceptable_symbol(sym)) {
           locator->is_semivisible_nested_type = TRUE;
@@ -5251,16 +5251,20 @@ End a name scope by popping an entry off the scope stack.
        structure, is a convenient way to get at them again.) */
     unlink_symbol_from_symbol_table(sym);
     /* Put struct/union/class members and template parameters on the
-       inactive list of the proper symbol
-       header. */
-    if (kind == (a_scope_kind)sck_class_struct_union ||
+       inactive list of the proper symbol header. */
+   if (kind == (a_scope_kind)sck_class_struct_union ||
         kind == (a_scope_kind)sck_template_declaration) {
       sym->next = sym->header->inactive_symbols;
       sym->header->inactive_symbols = sym;
       /* Check for nested class/struct/unions on the inactive list.  If
-         there are any, set the flag in the symbol header. */
-      if (kind == (a_scope_kind)sck_class_struct_union) {
-        if (is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) {
+         there are any, set the flag in the symbol header.  This is
+         used to support the nonnested class anachronism.  We do not
+         apply the anachronism to template classes. */
+      if (kind == (a_scope_kind)sck_class_struct_union && allow_anachronisms) {
+        a_type_ptr   sym_type;
+        if ((is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) &&
+            (sym_type = type_symbol_type(sym),
+             !is_template_class_type(sym_type))) {
           sym->header->any_nested_types_on_inactive_list = TRUE;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
           /* Cfront 2.1 implements a special "transitional model" for nested
@@ -5269,13 +5273,9 @@ End a name scope by popping an entry off the scope stack.
              defined.  Subsequent definition of additional nested types with
              the same name is an error.  This code, which simulates the
              cfront behavior, sets a flag for the first nested type with
-             a given name and issues errors on subsequent definitions.
-             Template classes are excluded from this check since they
-             are not supported under cfront 2.1. */
+             a given name and issues errors on subsequent definitions. */
           {
-            a_type_ptr   sym_type = type_symbol_type(sym);
-            if (cfront_compatibility_mode &&
-                !is_template_class_type(sym_type)) {
+            if (cfront_compatibility_mode) {
               /* Only do this if the name is not a type name at file
                  scope. */
               if (!check_for_file_scope_type_with_same_name(sym)) {

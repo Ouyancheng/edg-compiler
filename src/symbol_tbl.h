@@ -908,7 +908,8 @@ typedef struct a_symbol_header {
 			/* TRUE if a symbol for a nested type has been
                            transferred to the inactive list.  This field is
                            used to speed up processing to support the
-                           nested class anachronism (ARM 18.3.5). */
+                           nested class anachronism (ARM 18.3.5) and is
+                           only set when anachronisms are allowed. */
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   unsigned int  has_cfront_transitional_nested_type_mangled_name:1;
                         /* TRUE if a nested type has been flagged for
