@@ -359,15 +359,18 @@ for unions and aggregates at that level).
   local_type = skip_typerefs(*type);
   check_for_opening_brace(&brace_flag);
   if (!brace_flag && C_dialect == C_dialect_cplusplus &&
-      is_class_struct_union_type(local_type)) {
+      is_class_struct_union_type(local_type) &&
+      !(symbol_supplement_for_class(local_type)->is_class_aggregate)) {
 #if CHECKING
-    a_class_symbol_supplement_ptr cssp =
-                                    symbol_supplement_for_class(local_type);
     if (top_level) {
       internal_error("get_initializer: class encountered at top level");
-    } else if (!cssp->has_copy_constructor &&
-               !cssp->construction_by_bitwise_copy_allowed) {
-      internal_error("get_initializer: missing copy constructor");
+    } else {
+      a_class_symbol_supplement_ptr cssp;
+      cssp = symbol_supplement_for_class(local_type);
+      if (!cssp->has_copy_constructor &&
+          !cssp->construction_by_bitwise_copy_allowed) {
+        internal_error("get_initializer: missing copy constructor");
+      }  /* if */
     }  /* if */
 #endif /* CHECKING */
     /* This is an array element that can only be initialized by a
