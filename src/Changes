@@ -90,7 +90,10 @@ instructions are placed in unreachable code to aid in generation of
 arrays that map program locations to cleanup state.  The cleanup state
 instruction put out following the final return of a function is
 now suppressed.  It was unnecessary, and, in the case of a destructor
-with an epilogue, could be confusing to a back end.
+with an epilogue, could be confusing to a back end.  (12/17/98:)
+Also, the reachable_by_fall_through flag is now FALSE on the generated
+label for the epilogue of a destructor when there is no top-level
+return statement, as when the end of the top block is unreachable.
 
 12/9/98   IL write/read problem with zero-length memory blocks
 

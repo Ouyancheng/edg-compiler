@@ -6683,6 +6683,7 @@ destructor scope, and also lower the user code.
   a_source_position      saved_error_position, saved_code_pos;
   a_dynamic_init_ptr     first_epilogue_destruction = NULL;
   a_variable_ptr         destruction_vtbls_var = NULL;
+  a_boolean              added_return = FALSE;
 
   /* The following pseudo-code shows both the processing in this routine
      and the code added to the destructor routine.  Lines enclosed in [...]
@@ -7052,6 +7053,7 @@ destructor scope, and also lower the user code.
     insert_location = saved_insert_location;
     /* Add the return to the return memo list. */
     add_to_return_memo_list(top_level_stmt);
+    added_return = TRUE;
   }  /* if */
   /* Now there is a top-level return statement and insert_location is set to
      insert in front of it.  The return statement is pointed to by
@@ -7067,6 +7069,7 @@ destructor scope, and also lower the user code.
     /* There are other returns.  Add an epilogue label and change the other
        returns to gotos to that label. */
     epilogue_label = insert_temp_label(&insert_location);
+    if (added_return) epilogue_label->reachable_by_fall_through = FALSE;
     if (exceptions_enabled &&
         innermost_function_scope->lifetime != NULL) {
       /* Set the cleanup state to the first destruction in the epilogue, if
