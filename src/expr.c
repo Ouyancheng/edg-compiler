@@ -11966,15 +11966,15 @@ EOPT_DISALLOW_COMMA_OPERATOR).
     if (!processed) {
       /* Non-operator-function cases. */
       simplify_void_operand(operand_1);
-      do_operand_transformations(&operand_2,
-                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
       /* In C++ and GNU C modes, an lvalue in the second operand is preserved.
          In C mode, an lvalue is converted to an rvalue. */
       if (C_dialect == C_dialect_cplusplus || gcc_mode) {
+        do_operand_transformations(&operand_2,
+                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
         result_is_an_lvalue = is_a_cplusplus_lvalue(&operand_2);
       } else {
-        conv_lvalue_to_rvalue(&operand_2);
+        do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
       }  /* if */
       /* The result type is the type of the second operand. */
       operation_type = result_type = operand_2.type;
