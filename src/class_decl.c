@@ -7285,7 +7285,17 @@ completed (C++ only).
                    the current member function symbol to the function
                    template symbol established during prototype
                    instantiation. */
-                if (!is_error_locator(locator)) {
+                a_type_ptr  tp = corresp_prototype_tag_sym->
+                                         variant.class_struct_union.type;
+                if (tp->kind == (a_type_kind)tk_union &&
+                    tp->variant.class_struct_union.
+                          extra_info->anonymous_union_kind !=
+                                         (an_anonymous_union_kind)auk_none) {
+                  /* A member function of an anonymous union is an error
+                     (to be issued later, in check_anonymous_union_symbols).
+                     find_member_function_template should not be called,
+                     since it can't handle this sort of thing. */
+                } else if (!is_error_locator(locator)) {
                   find_member_function_template(rout_sym,
                                                 corresp_prototype_tag_sym);
                 }  /* if */
