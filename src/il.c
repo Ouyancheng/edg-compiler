@@ -848,7 +848,7 @@ static void db_dynamic_initializer(a_dynamic_init_ptr  dip,
       break;
     case dik_expression:
       fputs("expression:\n", f_debug);
-      db_expr_node(dip->variant.expression, level + 2);
+      db_expr_node(dip->variant.expression, level);
       break;
     case dik_aggregate:
       if (dip->variant.aggregate.dynamic_init == NULL) {
@@ -858,7 +858,7 @@ static void db_dynamic_initializer(a_dynamic_init_ptr  dip,
         fputs("aggregate with non-constants:\n", f_debug);
         db_nonconstant_aggregate(dip->variant.aggregate.aggr_const->
                                           variant.aggregate.first_constant,
-                                 level + 2);
+                                 level);
       }  /* if */
       break;
     case dik_constructor:
