@@ -2888,7 +2888,7 @@ a pointer to it.
 
 void free_template_arg_list(a_template_arg_ptr  tap)
 /*
-Return a template arg entry to the available list.
+Return a list of template argument entries to the available list.
 */
 {
   a_template_arg_ptr  next_tap;
