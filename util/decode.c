@@ -831,9 +831,9 @@ Return a pointer to the character position following what was demangled.
   } else {
     any_params = TRUE;
     /* Loop for each parameter. */
-    for (curr_param_num = 1;; curr_param_num++) {
+    curr_param_num = 1;
+    for (;;) {
       if (err_in_id) break;  /* Avoid infinite loops on errors. */
-      if (curr_param_num < 10) param_pos[curr_param_num] = NULL;
       if (*p == 'T' || *p == 'N') {
         /* Tn means repeat the type of parameter "n". */
         /* Nmn means "m" repetitions of the type of parameter "n".  "m"
@@ -859,13 +859,16 @@ Return a pointer to the character position following what was demangled.
         /* Produce "nreps" copies of parameter "param_num". */
         for (; nreps > 0; nreps--) {
           if (err_in_id) break;  /* Avoid infinite loops on errors. */
+          if (curr_param_num < 10) param_pos[curr_param_num] = NULL;
           (void)demangle_type(param_pos[param_num]);
           if (nreps != 1) write_id_str(", ");
+          curr_param_num++;
         }  /* if */
       } else {
         /* A normal parameter. */
         if (curr_param_num < 10) param_pos[curr_param_num] = p;
         p = demangle_type(p);
+        curr_param_num++;
       }  /* if */
       /* Stop after the last parameter. */
       if (*p == '\0' || *p == 'e' || *p == '_') break;
