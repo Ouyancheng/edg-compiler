@@ -3887,13 +3887,13 @@ table.
     sym = enter_local_symbol((a_symbol_kind)sk_static_data_member, locator,
                              decl_scope_level,
                              /*suppress_redecl_error=*/FALSE);
-    /* Set the source correspondence fields of the variable. */
-    set_source_corresp(&var->source_corresp, sym);
   } else {
     sym = make_anonymous_parent_object_symbol(
                                  (a_symbol_kind)sk_static_data_member,
                                  &locator->source_position);
   }  /* if */
+  /* Set the source correspondence fields of the variable. */
+  set_source_corresp(&var->source_corresp, sym);
   sym->class_of_which_a_member = class_type;
   sym->variant.static_data_member.variable = var;
   var->source_corresp.class_of_which_a_member = class_type;
@@ -4160,7 +4160,14 @@ new ones are allocated in scope specified by decl_scope_level.
   check_assertion(decl_scope_level == depth_scope_stack || C_mode());
   for (; sym != NULL; sym = next_sym) {
     next_sym = sym->next_in_scope;
-    if (reuse_symbol) sym->next_in_scope = NULL;
+    if (reuse_symbol) {
+      /* Disjoin the symbol from the list.  It will be added to another
+         list when it is reentered in the symbol table. */
+      sym->next_in_scope = NULL;
+      /* It is no longer treated as a member of the anonymous union but
+         rather it will be a member of the class_type. */
+      sym->class_of_which_a_member = NULL;
+    }  /* if */
     /* Private and protected members are not allowed in an anonymous union
        (ARM 9.5). */
     access = access_for_symbol(sym);
