@@ -1,5 +1,14 @@
 Version 3.3
 
+7/21/03  Spurious error on local static array of const in C99 inline
+
+In C99, an inline function may not declare a local static variable
+that is modifiable.  The check for this did not work correctly for
+arrays with const element type, and such cases were incorrectly
+rejected.  Now fixed.
+
+  inline f() { static const int x[5] = {0}; }  // Accepted now in C99
+
 7/21/03  Microsoft mode: Exception specifications on redeclarations
 
 In Microsoft mode (with exceptions enabled and microsoft_version >= 1300),
