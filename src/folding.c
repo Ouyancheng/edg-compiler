@@ -187,8 +187,8 @@ integral constant in *new_constant, with type as indicated therein.  Return
 *err_code and *err_severity set to indicate any error/warning detected,
 or *err_code == ec_no_error if everything went fine.  If is_implicit_cast
 is FALSE, suppress any warnings.  The old_constant must have kind ==
-ck_integer, and generally it must have integral type, but if
-is_implicit_cast is FALSE, pointer type is okay.
+ck_integer, and generally it must have integral type, but it may be
+an integer cast to a pointer type.
 */
 {
   an_integer_value mask, old_value_copy;
@@ -217,7 +217,12 @@ is_implicit_cast is FALSE, pointer type is okay.
   }  /* if */
   if (is_implicit_cast) {
     /* If the value changed, a warning is in order. */
-    if (cmp_integer_constants(new_constant, old_constant) != 0) {
+    if (cmp_integer_constants(new_constant, old_constant) != 0 &&
+        /* In some modes (e.g., Microsoft C mode), it is possible to
+           implicitly convert a pointer to an integer tpe, so the old
+           constant could be something like (void *)1.  Avoid the
+           checking in such cases. */
+        !is_pointer_type(old_constant->type)) {
       /* The new value is different than the old value.  See if the change
          is a truncation (dropping bits) or a sign change. */
       is_sign_change = FALSE;
