@@ -2032,8 +2032,7 @@ bound with the function in *bound_function_selector.
     /* See if the name following the operator is a C++ qualified name, as
        in "p->A::x". */
     is_qualified_name = coalesce_and_lookup_qualified_name
-                            (GID_DTOR_RECOGNIZED,
-                             (a_class_qualifier_ptr)NULL, &err);
+                            (GID_DTOR_RECOGNIZED, &err);
     /* If the member is something like "A::x", member_position will give
        the position of the "x" and qualified_member_position will give the
        position of the "A". */
@@ -5350,7 +5349,7 @@ standard.
          operand is not a constant. */
     } else {
       /* See if the first operand is a constant. */
-      operand_1_rvalue_conversion_done = FALSE;
+      operand_1_rvalue_conversion_done = TRUE;
       conv_lvalue_to_rvalue(operand_1, expression_kind);
       /* Note that pointer to member constants are tested by
          op_is_false_constant; that's why the is_scalar_type test is needed. */

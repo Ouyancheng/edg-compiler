@@ -200,11 +200,6 @@ static a_reusable_cache_entry_ptr
 			/* List of reusable cache stack entries (allocated
                            in front end storage) freed and available for
                            reuse. */
-static an_access_error_descr_ptr
-		avail_access_error_descrs;
-			/* List of access error description  entries (allocated
-                           in front end storage) freed and available for
-                           reuse. */
 
 static a_reusable_cache_entry_ptr
                 reusable_cache_stack;
@@ -495,7 +490,7 @@ for pp-tokens.
   /* Build an entry for the current token itself. */
   ctp = alloc_cached_token();
   ctp->token = (a_byte_token_kind)curr_token;
-  if (curr_token == tok_identifier) {
+  if (curr_token == tok_identifier || curr_token == tok_ptr_to_member) {
     /* Identifier -- save information about it. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_identifier;
     ctp->variant.locator = locator_for_curr_id;
@@ -507,15 +502,6 @@ for pp-tokens.
        (e.g., a string) has been allocated in the file scope and doesn't
        need to be copied. */
     copy_constant(&const_for_curr_token, ctp->variant.constant);
-  } else if (curr_token == tok_class_qualifier ||
-             curr_token == tok_ptr_to_member) {
-    /* Class qualifier or pointer to member -- save the current class
-       qualifier structure.  Note that the class qualifier contains a pointer
-       to a list of access error descriptors.  We simply retain the original
-       pointer -- these entries will not be freed until the token
-       is rescanned.  This value is not present for tok_ptr_to_member. */
-    ctp->extra_info_kind = (a_token_extra_info_kind)teik_class_qualifier;
-    ctp->variant.class_qualifier = curr_class_qualifier;
   } else {
     /* No extra information needed for this token. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
@@ -772,11 +758,6 @@ an equivalent change.
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(ctp->variant.constant, &const_for_curr_token);
-  } else if (ctp->extra_info_kind ==
-             (a_token_extra_info_kind)teik_class_qualifier) {
-    /* For a class qualifier or pointer to member, restore
-       curr_class_qualifier. */
-    curr_class_qualifier = ctp->variant.class_qualifier;
   }  /* if */
   free_cached_token(ctp);
   db_exit();
@@ -821,11 +802,6 @@ an equivalent change.
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(ctp->variant.constant, &const_for_curr_token);
-  } else if (ctp->extra_info_kind ==
-             (a_token_extra_info_kind)teik_class_qualifier) {
-    /* For a class qualifier or pointer to member, restore
-       curr_class_qualifier. */
-    curr_class_qualifier = ctp->variant.class_qualifier;
   }  /* if */
   /* Check whether we have reached the end of this cache. */
   if (reusable_cache_stack->next_cached_token == NULL) {
@@ -4886,61 +4862,45 @@ Allocate an access error description entry.  Reuse a freed entry if possible.
 }  /* alloc_access_error_descr */
 	
 
-void do_not_issue_qualifier_access_errors(void)
+void do_not_issue_qualifier_access_errors(an_access_error_descr_ptr *aedp_ptr)
 /*
-Free the access error description entries pointed to by curr_class_qualifier
-and clear the pointer in curr_class_qualifier.  Put them on the available
+Free the access error description entries pointed to by aedp_ptr and
+clear the pointer in aepd.  Put the freed entries on the available
 list to be reused.
 */
 {
-  an_access_error_descr_ptr	last_ptr = curr_class_qualifier.access_errors;
+  an_access_error_descr_ptr	last_ptr = *aedp_ptr;
   an_access_error_descr_ptr	next;
   /* Find the last element of the list.  The available list will be linked
      onto the end of the list passed by the caller. */
   if (last_ptr != NULL) {
     while ((next = last_ptr->next) != NULL) last_ptr = next;
     last_ptr->next = avail_access_error_descrs;
-    avail_access_error_descrs = curr_class_qualifier.access_errors;
-    curr_class_qualifier.access_errors = NULL;
+    avail_access_error_descrs = *aedp_ptr;
+    *aedp_ptr = NULL;
   }  /* if */
 }  /* do_not_issue_qualifier_access_errors */
 
 
-void issue_qualifier_access_errors(void)
+void issue_qualifier_access_errors(an_access_error_descr_ptr *aedp_ptr)
 /*
-Loop through the list of access errors, pointed to by curr_class_qualifier,
+Loop through the list of access errors, pointed to by *aedp,
 that were detected while scanning the class qualifier.  Issue the
 errors, free the list, and clear the pointer.
 */
 {
-  an_access_error_descr_ptr	aedp;
+  an_access_error_descr_ptr	aedp = *aedp_ptr;
 
-  aedp = curr_class_qualifier.access_errors;
   while (aedp != NULL) {
     issue_access_error(aedp->sym, &aedp->position);
     aedp = aedp->next;
   }  /* while */
   /* This frees the list of access errors and sets the pointer in
-     curr_class_qualifier to NULL.  The name may seem a odd, but in
-     all other instances, one calls either issue_qualifier_access_error
-     or do_not_issue_qualifier_access_error, so we make do with an
-     odd looking call here. */
-  do_not_issue_qualifier_access_errors();
+     The name may seem a odd, but in all other instances, one calls either
+     issue_qualifier_access_error or do_not_issue_qualifier_access_error,
+     so we make do with an odd looking call here. */
+  do_not_issue_qualifier_access_errors(aedp_ptr);
 }  /* issue_qualifier_access_errors */
-
-
-static void clear_class_qualifier(a_class_qualifier_ptr cqp)
-/*
-Initializes the fields of a class qualifier structure.
-*/
-{
-  cqp->class_type = NULL;
-  cqp->has_global_qualifier = FALSE;
-  cqp->is_file_scope_qualifier = FALSE;
-  cqp->is_identifier = FALSE;
-  cqp->err = FALSE;
-  cqp->access_errors = NULL;
-}
 
 
 
@@ -4995,16 +4955,22 @@ by the options.  Returns TRUE if any errors were diagnosed.
 
 
 
-a_boolean is_generalized_identifier_start(an_identifier_options_set options,
-                                          a_boolean                 *err)
+a_boolean is_generalized_identifier_start(an_identifier_options_set options)
 /*
 Determine whether the current token is the start of a "generalized
 identifier" -- a qualified name, identifier, operator name, conversion
-name, or destructor name.
+name, or destructor name.  If the token does begin an identifier, the
+tokens that make up the identifier are coalesced into a single token.
+This consists of scanning the tokens that make up the identifier,
+retaining the information conveyed by the tokens in the symbol
+locator, setting curr_token to tok_identifier, and setting
+pos_curr_token to the position of the first token in the sequence.
 
-Returns TRUE and sets curr_token to tok_class_qualifier for the
-following cases.  The next get_goken call will get the token
-following the final "::".
+Pointer to members are coalesced into a tok_ptr_to_member.  However,
+we return FALSE for pointer to members.
+
+Returns TRUE and sets curr_token to tok_identifier for the
+following cases:
 	
 	::i
 	X::i
@@ -5015,14 +4981,14 @@ following the final "::".
 	A::operator int
 	A::~A()	
 	A:: ... anything except * ...
-
-Returns TRUE and leaves curr_token unchanged for:
-
 	i
 	operator =
 	operator int
 	~A		When options & GID_DTOR_RECOGNIZED = TRUE
 	A<int>		Template reference will be coalesced
+	operator +	When options & GID_DISALLOW_OPERATOR_NAME = FALSE
+	operator int	When options & GID_DISALLOW_OPERATOR_NAME = FALSE
+	~A		When options & GID_DTOR_RECOGNIZED = TRUE
 
 Returns FALSE and sets curr_token to tok_ptr_to_member for:
 
@@ -5036,24 +5002,12 @@ Returns FALSE and leaves curr_token_unchanged for:
 	~name		When options & GID_DTOR_RECOGNIZED = FALSE
 	anything else
 
-This routine does the actual scan of the optional class qualifier,
-e.g., "A::B::" (note that the final identifier of a qualified name is not
-scanned here; see coalesce_generalized_identifier).  This routine also
-recognizes the unary "::", e.g., "::A::B::" or just "::".
-
-The global variable "curr_class_qualifier" is updated with the results
-of the class qualifier scan.  See the declaration of "a_class_qualifier"
-for more information.
-
 When the GID_TEMPLATE_ARGS_OPTIONAL flag is set in "options" the 
 template argument list (e.g., "<int>") can be omitted.  This flag
 is passed to coalesce_template_class_reference.
 
-Note that there are several GID flags that affect whether class qualifiers
-are allowed and, if so, the types that are allowed.  These flags are not
-checked by this routine because we may not know what is being scanned at
-this point.  The qualifier flags are checked by the higher level routines
-such as coalesce_generalized_identifier.
+The "options" parameter allows the caller to specify the types of
+identifiers to be recognized and/or allowed.
 
 If the token following a class qualifier is not part of a valid identifier
 we still return TRUE so that an appropriate diagnostic can be generated when
@@ -5062,29 +5016,29 @@ an attempt is made to use the thing after the qualifier.
 This routine performs ambiguity and access checking on the components of the
 qualified name.  Only the ambiguity errors are actually issued, however.
 Information about any access errors is accumulated in a list of
-an_access_error_descr entries pointed to by curr_class_qualifier.  It is
-the responsibility of the caller that gets the token following the class
-qualifier to ensure that either issue_qualifier_access_errors or
-do_not_issue_qualifier_access_errors is called to do the appropriate processing
-and free the entries on the list.  This routine issues any access errors
-encountered if the construct scanned is a pointer to member.
+an_access_error_descr entries pointed to by locator_for_curr_id.
 
-Returns *err TRUE if there was an error.  This routine may only be called
-in C++ mode. 
+It is the responsibility of the caller to ensure that either
+issue_qualifier_access_errors or do_not_issue_qualifier_access_errors is
+called to do the appropriate processing and free the entries on the list.
+This routine issues any access errors encountered if the construct
+scanned is a pointer to member.
+
+This routine may only be called in C++ mode. 
 */
 {
   a_type_ptr		class_type = NULL;
-  a_boolean     	is_file_scope_qualifier = FALSE;
-  a_boolean		has_global_qualifier;
-  a_boolean     	is_qualifier = FALSE;
+  a_boolean     	is_file_scope_qualified_name = FALSE;
+  a_boolean		is_global_qualified_name;
+  a_boolean     	is_qualified_name = FALSE;
   a_boolean             is_ptr_to_member = FALSE;
   a_boolean		is_identifier = FALSE;
   a_symbol_ptr		class_symbol;
   a_source_position	start_position;
   a_source_position	orig_error_position;
   a_token_kind		next_tok;
-  a_boolean             local_err;
   a_boolean		result = FALSE;
+  a_boolean		err = FALSE;
   an_access_error_descr_ptr
 			aedp = NULL;
   an_access_error_descr_ptr
@@ -5093,31 +5047,27 @@ in C++ mode.
 			last_aedp = NULL;
 
   db_enter(4, "is_generalized_identifier_start");
-  /* If no error parameter was supplied by the caller, set err to point
-     to a local variable. */
-  if (err == NULL) err = &local_err;
-  *err = FALSE;
-  /* If the current token is a class qualifier or a pointer to member
-     it means that we have already analyzed the current qualifier and
-     shouldn't try to do so again. */
-  if (curr_token == tok_class_qualifier || curr_token == tok_ptr_to_member) {
-    *err = curr_class_qualifier.err;
-    result = curr_class_qualifier.has_qualifier ||
-             curr_class_qualifier.is_identifier;
+  /* If the current token is an identifier, then check the flag in the
+     locator to see if it has already been coalesced.  If so, simply
+     return TRUE with no further processing.  If the current token is a
+     tok_ptr_to_member, return FALSE with no further processing. */
+  if (curr_token == tok_identifier &&
+      locator_for_curr_id.has_been_coalesced) {
+    result = TRUE;
+    goto exit;
+  } else if (curr_token == tok_ptr_to_member) {
+    result = FALSE;
     goto exit;
   }  /* if */
-#if CHECKING
-  if (curr_class_qualifier.access_errors != NULL) {
-    internal_error("is_generalized_identifier_start: access_errors not NULL");
-  }  /* if */
-#endif /* CHECKING */
   start_position = pos_curr_token;
   orig_error_position = error_position;
   /* Look for a leading unary "::".  Don't be fooled by "::new" and
      "::delete". */
-  has_global_qualifier = FALSE;
+  is_global_qualified_name = FALSE;
   if (curr_token == tok_colon_colon && !is_global_new_or_delete()) {
-    has_global_qualifier = is_file_scope_qualifier = is_qualifier = TRUE;
+    is_global_qualified_name = TRUE;
+    is_file_scope_qualified_name = TRUE;
+    is_qualified_name = TRUE;
     (void)get_token();
   }  /* if */
   /* For the next token to be part of the qualifier it must be a class name
@@ -5135,7 +5085,7 @@ in C++ mode.
            A::i = 1;   // The class A is found.
          }
     */
-    if (has_global_qualifier) {
+    if (is_global_qualified_name) {
       /* There was a leading unary "::", so look up the name in the file
          scope. */
       class_symbol = file_scope_id_lookup(&locator_for_curr_id,
@@ -5154,24 +5104,24 @@ in C++ mode.
     }  /* if */
     /* If the class symbol is for a class template, process the argument
        list. */
-    class_symbol = check_for_class_template(class_symbol, options, err);
+    class_symbol = check_for_class_template(class_symbol, options, &err);
     /* See if the identifier is followed by "::".  Note that nex_tok is not
        used because the next token may have changed while scanning a
        template argument list. */
     if (next_token() == tok_colon_colon) {
       a_boolean    first_class = TRUE;
       /* This is a qualifier. */
-      is_qualifier = TRUE;
-      is_file_scope_qualifier = FALSE;
+      is_qualified_name = TRUE;
+      is_file_scope_qualified_name = FALSE;
       for (;;) {
         /* Keep looping while there are more levels of class qualification.
            Exit from loop is in the middle. */
-        if (class_symbol == NULL || *err ||
+        if (class_symbol == NULL || err ||
             class_symbol->kind == (a_symbol_kind)sk_class_template) {
           /* The identifier is followed by a "::" but is not a class symbol. */
-          if (!*err) {
+          if (!err) {
             error(ec_id_must_be_class_name);
-            *err = TRUE;
+            err = TRUE;
           }  /* if */
           class_type = NULL;
         } else {
@@ -5201,7 +5151,7 @@ in C++ mode.
         }  /* if */
         /* There is another level of qualification.  Search for the identifier
            in the given scope. */
-        if (!*err) {
+        if (!err) {
 #if CHECKING
           if (is_template_param_type(class_type)) {
             internal_error("not implemented: class qualifier using template parameter in template declaration");
@@ -5223,7 +5173,7 @@ in C++ mode.
   }  /* if */
   /* Assume we have found an identifier until we discover otherwise. */
   is_identifier = TRUE;
-  if (is_qualifier) {
+  if (is_qualified_name) {
     /* This is a qualifier -- see if it is a pointer to member. */
     if (curr_token == tok_star) {
       /* We have a pointer to member token (i.e, A::*).  Update the current
@@ -5243,216 +5193,118 @@ in C++ mode.
          We don't determine at this point whether this is a legal operator,
          just that it couldn't legally be anything else. */
     } else if (curr_token == tok_compl &&
-               ((options & GID_DTOR_RECOGNIZED) || is_qualifier)) {
+               ((options & GID_DTOR_RECOGNIZED) || is_qualified_name)) {
       /* A destructor name (e.g., ~A or A::~A).  Destructor names are
          always recognized after qualifiers.  If not preceded by a qualifier,
          then they are only recognized when GID_DTOR_RECOGNIZED is TRUE. */
+    } else if (is_qualified_name) {
+      /* A class qualifier followed by something invalid.  Proceed as if
+         it is an identifier and let an error be diagnosed later when we
+         have more information about what is being processed. */
     } else {
       /* Anything else is not the start of an identifier. */
       is_identifier = FALSE;
     }  /* if */
   }  /* if */
-  if (is_qualifier) {
-    /* Unget the token that follows the last "::" (probably an identifier)
-       so that the current token can be made a  tok_class_qualifier or
-       tok_ptr_to_member.  This is not needed when for pointers to members
-       since we can simply discard the "*". */
-    if (is_ptr_to_member) {
-      curr_token = tok_ptr_to_member;
-      /* Pointers to members should not be treated as qualifiers. */
-      is_qualifier = FALSE;
-    } else {
-      unget_token();
-      curr_token = tok_class_qualifier;
-    }  /* if */
-  }  /* if */
-  if (is_qualifier || is_identifier || is_ptr_to_member) {
-    /* Save the results of this qualifier scan.  These values will be returned
-       if another scan is attempted of the same qualifier. */
-    curr_class_qualifier.class_type = class_type;
-    curr_class_qualifier.has_qualifier = is_qualifier;
-    curr_class_qualifier.has_global_qualifier = has_global_qualifier;
-    curr_class_qualifier.is_file_scope_qualifier = is_file_scope_qualifier;
-    curr_class_qualifier.is_identifier = is_identifier;
-    curr_class_qualifier.err = *err;
-    curr_class_qualifier.source_position = start_position;
-    curr_class_qualifier.access_errors = first_aedp;
-    result = is_qualifier || is_identifier;
+  if (is_ptr_to_member) {
+    curr_token = tok_ptr_to_member;
+    /* The qualifier class type is the only field of the locator
+       that is valid when curr_token is tok_ptr_to_member. */
+    locator_for_curr_id.qualifier_class_type = class_type;
     /* For pointer to member, issue any access errors that were detected. */
-    if (is_ptr_to_member && first_aedp != NULL) {
-      issue_qualifier_access_errors();
+    if (first_aedp != NULL) issue_qualifier_access_errors(&first_aedp);
+    /* Since we're returning a pseudo-token, set pos_curr_token. */
+    pos_curr_token = start_position;
+  } else if (is_identifier) {
+    /* A possibly qualified identifier. */
+    result = TRUE;
+    if (is_qualified_name) {
+      /* Issue any access errors detected while scanning the class
+         qualifier.  If access errors are to be suppressed, free the list
+          of access errors. */
+      if (first_aedp != NULL) {
+        if (options & GID_SUPPRESS_ACCESS_ERRORS) {
+          /* Discard the errors. */
+          do_not_issue_qualifier_access_errors(&first_aedp);
+        } else if (options & GID_DEFER_ACCESS_ERRORS) {
+        } else {
+          /* Issue the errors. */
+          issue_qualifier_access_errors(&first_aedp);
+        }  /* if */
+      }  /* if */
+      /* Make sure that the class has been instantiated and is not
+         an incomplete type. */
+      if (!err && class_type != NULL) {
+        check_for_uninstantiated_template_class(class_type);
+        /* Check for an incomplete type.  If the type is incomplete, also
+           check whether the type is currently being defined.  We determine
+           this by checking the assoc_scope field of the class type
+           supplement. */
+        if (is_incomplete_type(class_type) &&
+            class_type->variant.class_struct_union.
+                        extra_info->assoc_scope == NULL) {
+          pos_error(ec_incomplete_type_not_allowed, &start_position);
+          err = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
+    set_err_pos_to_curr_token();
+    /* Process the identifier after the optional qualifier.  Coalesce
+       multi-token identifiers (such as "operator +").  This is done
+       my scanning the tokens of the identifier, updating the locator
+       to reflect what was scanned, and setting curr_token to
+       tok_identifier.  Most of this processing is actually done by
+       get_destructor_name and get_optname.  */
+    /* Check for a destructor name.  Destructor names are always recognized
+       following a class qualifier, but otherwise are only recognized if the
+       GID_DTOR_RECOGNIZED flag is set. */
+    if (((options & GID_DTOR_RECOGNIZED) || (is_qualified_name)) &&
+        !is_file_scope_qualified_name) {
+      a_symbol_header_ptr  class_symbol_header;
+      /* The name can be a destructor name like "~A". */
+      (void)get_destructor_name(&class_symbol_header);
+    }  /* if */
+    /* The name can be an operator name like "operator+". */
+    (void)get_opname();
+    /* The current token must now be the final identifier of the
+       qualified name, e.g., "x" in "A::B::x".  In the destructor and
+       operator name cases, curr_token has been changed to
+       tok_identifier. */
+    if (curr_token != tok_identifier) {
+      /* The final identifier is missing.  Unget the current token and
+         build an error locator. */
+      unget_token();
+      curr_token = tok_identifier;
+      /* syntax_error is deliberately not called. */
+      error(ec_exp_identifier);
+      /* For the error cases, set the current locator to an error locator
+         with specific_symbol pointing to a newly-created error
+         symbol of kind sk_undefined. */
+      make_specific_symbol_error_locator(&locator_for_curr_id);
+    }  /* if */
+    /* Update the locator with information about the qualifier (if any)
+       that was discovered by is_generalized_identifier_start. */
+    locator_for_curr_id.is_qualified_name = is_qualified_name;
+    locator_for_curr_id.is_global_qualified_name = is_global_qualified_name;
+    locator_for_curr_id.is_file_scope_qualified_name =
+						is_file_scope_qualified_name;
+    locator_for_curr_id.qualifier_class_type = class_type;
+    locator_for_curr_id.access_errors = first_aedp;
+    locator_for_curr_id.has_been_coalesced = TRUE;
+    /* Since we're returning a pseudo-token, set pos_curr_token. */
+    pos_curr_token = start_position;
+    /* Perform error checks as specified in "options". */
+    err |= check_for_generalized_identifier_errors(options, &pos_curr_token);
   }  /* if */
-  /* Restore original source position and error position. */
-  pos_curr_token = start_position;
-  error_position = orig_error_position;
+
 exit:
-#if DEBUG
-  if (debug_level >= 4) {
-    fprintf(f_debug, "is_qualifier=%0d, has_global_qualifier=%0d, ",
-            is_qualifier, has_global_qualifier);
-    fprintf(f_debug, "is_file_scope_qualifier=%0d\n",
-            is_file_scope_qualifier);
-    fprintf(f_debug, "is_identifier=%0d\n",
-            curr_class_qualifier.is_identifier);
-    fprintf(f_debug, "type = %s", class_type == NULL ? NULL : "");
-    if (class_type != NULL) db_abbreviated_type(class_type);
-    fprintf(f_debug, "\n");
-  }  /* if */
-#endif /* DEBUG */
   db_exit();
   return result;
 }  /* is_generalized_identifier_start */
 
 
-a_boolean coalesce_generalized_identifier
-              (an_identifier_options_set        options,
-               a_class_qualifier_ptr            cqp,
-               a_boolean                        *err)
-/*
-Scans a generalized identifier but does not attempt to lookup the
-identifier.  This consists of scanning an optional class qualifier,
-scanning the tokens for multi-token identifiers such as "operator +"
-and setting the locator flags to reflect what was scanned.
-
-A generalized identifier is an optional class qualifier followed by:
-
-	i
-	operator +	When options & GID_DISALLOW_OPERATOR_NAME = FALSE
-	operator int	When options & GID_DISALLOW_OPERATOR_NAME = FALSE
-	~A		When options & GID_DTOR_RECOGNIZED = TRUE
-
-Returns TRUE or FALSE under the same conditions as the routine
-is_generalized_identifier_start (see the comments at the beginning of
-is_generalized_identifier_start for more information).
-
-When we return TRUE, the current token will always be tok_identifier.
-If a class qualifier was present, the class qualifier description is
-copied to the address pointed to by "cqp" if "cqp" is not NULL.
-
-The "options" parameter allows the caller to specify the types of
-identifiers to be recognized and/or allowed.  *err will be TRUE
-if an error occurs in this routine or in one of the routines we call,
-otherwise it will be set FALSE.
-*/
-{
-  a_boolean    		return_value = FALSE;
-  a_source_position	start_position;
-  a_class_qualifier     local_class_qualifier;
-  db_enter(4, "coalesce_generalized_identifier");
-  /* We need save the class qualifier structure from
-     is_generalized_identifier_start, so if the pointer passed from the
-     caller is NULL, set it to point to a local qualifier structure. */
-  if (cqp == NULL) cqp = &local_class_qualifier;
-  *err = FALSE;
-  if (C_dialect != C_dialect_cplusplus) goto exit;
-  if (curr_token == tok_identifier &&
-      locator_for_curr_id.specific_symbol != NULL) {
-    /* The current token is already a qualified name or specific symbol. */
-    return_value = TRUE;
-    /* Return a copy of the current class qualifier structure. */
-    *cqp = curr_class_qualifier;
-    goto check_for_errors;
-  }  /* if */
-  start_position = pos_curr_token;
-  /* is_generalized_identifier will scan the qualified name (if any) and
-     determine whether we are the start of some sort of an identifier.
-     If we aren't, we simply return.  Otherwise continue to analyze the
-     identifier. */
-  if (!is_generalized_identifier_start(options, err)) goto exit;
-  return_value = TRUE;
-  /* Return a copy of the current class qualifier structure. */
-  *cqp = curr_class_qualifier;
-  /* The current token will be a class qualifier if one was present. */
-  if (curr_token == tok_class_qualifier) {
-    a_type_ptr   class_type = cqp->class_type;
-    /* Get the position of the start of the qualified name as
-       recorded by is_generalized_identifier_start. */
-    error_position = curr_class_qualifier.source_position;
-    start_position = error_position;
-    /* Issue any access errors detected while scanning the class
-       qualifier.  If access errors are to be suppressed, free the list
-        of access errors. */
-    if (curr_class_qualifier.access_errors != NULL) {
-      if (options & GID_SUPPRESS_ACCESS_ERRORS) {
-        do_not_issue_qualifier_access_errors();
-      } else {
-        issue_qualifier_access_errors();
-      }  /* if */
-    }  /* if */
-    /* Make sure that the class has been instantiated and is not
-       an incomplete type. */
-    if (!*err && class_type != NULL) {
-     check_for_uninstantiated_template_class(class_type);
-      /* Check for an incomplete type.  If the type is incomplete, also
-         check whether the type is currently being defined.  We determine
-         this by checking the assoc_scope field of the class type
-         supplement. */
-      if (is_incomplete_type(class_type) &&
-          class_type->variant.class_struct_union.
-                      extra_info->assoc_scope == NULL) {
-        pos_error(ec_incomplete_type_not_allowed, &start_position);
-        *err = TRUE;
-      }  /* if */
-    }  /* if */
-    /* Get the token following the qualifier. */
-    (void)get_token();
-  }  /* if */
-  set_err_pos_to_curr_token();
-  /* Process the identifier after the optional qualifier.  Coalesce
-     multi-token identifiers (such as "operator +").  This is done
-     my scanning the tokens of the identifier, updating the locator
-     to reflect what was scanned, and setting curr_token to
-     tok_identifier.  Most of this processing is actually done by
-     get_destructor_name and get_optname.  */
-  /* Check for a destructor name.  Destructor names are always recognized
-     following a class qualifier, but otherwise are only recognized if the
-     GID_DTOR_RECOGNIZED flag is set. */
-  if (((options & GID_DTOR_RECOGNIZED) || (cqp->has_qualifier)) &&
-      !cqp->is_file_scope_qualifier) {
-    a_symbol_header_ptr  class_symbol_header;
-    /* The name can be a destructor name like "~A". */
-    (void)get_destructor_name(&class_symbol_header);
-  }  /* if */
-  /* The name can be an operator name like "operator+". */
-  (void)get_opname();
-  /* The current token must now be the final identifier of the
-     qualified name, e.g., "x" in "A::B::x".  In the destructor and
-     operator name cases, curr_token has been changed to
-     tok_identifier. */
-  if (curr_token != tok_identifier) {
-    /* The final identifier is missing.  Unget the current token and
-       build an error locator. */
-    unget_token();
-    curr_token = tok_identifier;
-    /* syntax_error is deliberately not called. */
-    error(ec_exp_identifier);
-    /* For the error cases, set the current locator to an error locator
-       with specific_symbol pointing to a newly-created error
-       symbol of kind sk_undefined. */
-    make_specific_symbol_error_locator(&locator_for_curr_id);
-  }  /* if */
-  /* Update the locator with information about the qualifier (if any)
-     that was discovered by is_generalized_identifier_start. */
-  locator_for_curr_id.is_qualified_name = cqp->has_qualifier;
-  locator_for_curr_id.is_global_qualified_name = cqp->has_global_qualifier;
-  locator_for_curr_id.is_file_scope_qualified_name =
-                                                 cqp->is_file_scope_qualifier;
-  /* Since we're returning a pseudo-token, set pos_curr_token. */
-  pos_curr_token = start_position;
-check_for_errors:
-  /* Perform error checks as specified in "options". */
-  *err |= check_for_generalized_identifier_errors(options, &error_position);
-
-exit:
-  db_exit();
-  return (return_value);
-}  /* coalesce_generalized_identifier */
-
-
 a_boolean coalesce_and_lookup_qualified_name
               (an_identifier_options_set        options,
-               a_class_qualifier_ptr            cqp,
                a_boolean			*err)
 /*
 Coalesces a generalized identifier (see coalase_generalized_identifier).
@@ -5460,24 +5312,19 @@ If the identifier was qualified (e.g., A::x or ::x) the identifier
 is looked up.  Returns TRUE if identifier is a qualified name.
 */
 {
-  a_class_qualifier	local_class_qualifier;
   a_boolean             return_value = FALSE;
   a_boolean		okay = TRUE;
+  a_type_ptr		class_type = NULL;
   db_enter(4, "coalesce_and_lookup_qualified_name");
 
   *err = FALSE;
   if (C_dialect != C_dialect_cplusplus) goto exit;
-  /* We need get the class qualifier structure from
-     coalesce_generalized_identifier, so if the pointer passed from the
-     caller is NULL, set it to point to a local qualifier structure. */
-  if (cqp == NULL) cqp = &local_class_qualifier;
   if (curr_token == tok_identifier &&
       locator_for_curr_id.specific_symbol != NULL) {
     /* The current token is already a qualified name or specific symbol.
        Recheck for qualifier errors since the options specified may be
        different than a previous call. */
     return_value = locator_for_curr_id.is_qualified_name;
-    *cqp = curr_class_qualifier;
     /* Perform error checks as specified in "options". */
     okay = TRUE;
     if (check_for_generalized_identifier_errors(options, &error_position)) {
@@ -5487,15 +5334,17 @@ is looked up.  Returns TRUE if identifier is a qualified name.
   } else {
     /* Mask the error flags out of the options flags to prevent the errors
        from being diagnosed more than once. */
-    if (coalesce_generalized_identifier(options & ~GID_ERROR_FLAGS,
-                                        cqp, err) &&
-        cqp->has_qualifier && curr_token == tok_identifier) {
-      a_type_ptr   class_type = cqp->class_type;
+    if (is_generalized_identifier_start(options & ~GID_ERROR_FLAGS) &&
+        curr_token == tok_identifier &&
+        locator_for_curr_id.is_qualified_name) {
+      a_source_position	identifier_pos;
+      identifier_pos = locator_for_curr_id.source_position;
+      class_type = locator_for_curr_id.qualifier_class_type;
       /* The final identifier is present. */
       return_value = TRUE;
       /* Perform error checks as specified in "options". */
       if (check_for_generalized_identifier_errors(options,
-						  &cqp->source_position)) {
+						  &pos_curr_token)) {
         *err = TRUE;
         okay = FALSE;
       } else if (*err) {
@@ -5503,48 +5352,64 @@ is looked up.  Returns TRUE if identifier is a qualified name.
         okay = FALSE;
       } else {
         /* No errors were diagnosed. */
-        if (cqp->is_file_scope_qualifier) {
+        if (locator_for_curr_id.is_file_scope_qualified_name) {
           /* Look up the id in the file scope. */
           if (file_scope_id_lookup(&locator_for_curr_id,
                                    IDL_NO_OPTIONS) != NULL) {
           } else {
             /* The identifier could not be found in the file scope. */
-            str_error(ec_name_not_found_in_file_scope,
-                      locator_for_curr_id.symbol_header->identifier);
+            pos_st_error(ec_name_not_found_in_file_scope, &identifier_pos,
+                         locator_for_curr_id.symbol_header->identifier);
             okay = FALSE;
           }  /* if */
         } else {
-#if CHECKING
-          if (is_template_param_type(class_type)) {
-           internal_error("not implemented: class qualifier using template parameter in template declaration");
-          }  /* if */
-#endif /* CHECKING */
-          /* Look up the id in the class scope. */
-         if (class_qualified_id_lookup(&locator_for_curr_id,
-                                        class_type, IDL_NO_OPTIONS) != NULL) {
-            /* Ambiguity and access control checking is not done because
-               we don't know yet what kind of reference this is. */
-          } else {
-            /* The identifier could not be found in the class scope. */
-            pos_stsy_error(ec_not_a_member, &error_position,
-                           locator_for_curr_id.symbol_header->identifier,
-                           (a_symbol_ptr)class_type->
-                                              source_corresp.assoc_info);
+          if (class_type == NULL) {
+            /* An error must have occurred while scanning the class
+               qualifier.  Don't try to do the lookup of the identifier
+               following the qualifier. */
             okay = FALSE;
-          }  /* if */
+          } else {
+#if CHECKING
+            if (is_template_param_type(class_type)) {
+             internal_error("not implemented: class qualifier using template parameter in template declaration");
+            }  /* if */
+#endif /* CHECKING */
+            /* Look up the id in the class scope. */
+            if (class_qualified_id_lookup(&locator_for_curr_id, class_type,
+					  IDL_NO_OPTIONS) != NULL) {
+              /* Ambiguity and access control checking is not done because
+                 we don't know yet what kind of reference this is. */
+            } else {
+              /* The identifier could not be found in the class scope. */
+              pos_stsy_error(ec_not_a_member, &identifier_pos,
+                             locator_for_curr_id.symbol_header->identifier,
+                             (a_symbol_ptr)class_type->
+                                                source_corresp.assoc_info);
+              okay = FALSE;
+            }  /* if */
+          }  /* if*/
         }  /* if */ 
       }  /* if */
     }  /* if */
-    /* Set the error position to the beginning of the class qualifier, if
-       present, so that subsequent errors will point to the start of the
-       whole qualifier name. */
-    if (cqp->has_qualifier) {
-      error_position = cqp->source_position;
-    }  /* if */
   }  /*if */
   if (!okay) {
-    /* For the error cases, set the current locator to an error locator. */
+    /* For the error cases, set the current locator to an error locator. 
+       Restore the type of the qualifier so that it can be used for
+       additional error diagnosis.  For example, in an access adjustment
+       such as "A::b" we would like to be able to give an error if "A" is not
+       a base class of the current class even if "b" is not a member of "A". */
     make_specific_symbol_error_locator(&locator_for_curr_id);
+    locator_for_curr_id.qualifier_class_type = class_type;
+  }  /* if */
+  /* Issue access errors if needed. */
+  if (locator_for_curr_id.access_errors != NULL) {
+    if (options & GID_SUPPRESS_ACCESS_ERRORS) {
+      do_not_issue_qualifier_access_errors(&locator_for_curr_id.access_errors);
+    } else if (options & GID_DEFER_ACCESS_ERRORS) {
+      /* Do nothing for the time being. */
+    } else {
+      issue_qualifier_access_errors(&locator_for_curr_id.access_errors);
+    }  /* if */
   }  /* if */
 
 #if DEBUG
@@ -5583,8 +5448,7 @@ is TRUE (specifically, that "::new" or "::delete" is not next).
 
   /* Mask the error flags out of the options flags to prevent the errors
      from being diagnosed more than once. */
-  if (coalesce_and_lookup_qualified_name(options & ~GID_ERROR_FLAGS,
-                                         (a_class_qualifier_ptr)NULL, err)) {
+  if (coalesce_and_lookup_qualified_name(options & ~GID_ERROR_FLAGS,  err)) {
     /* The identifier is a qualified name. */
     symbol = locator_for_curr_id.specific_symbol;
 #if CHECKING
@@ -5713,7 +5577,6 @@ of the front end.
   avail_source_line_modifs = NULL;
   sequence_id_for_source_line_modifs = 0;
   delete_source_from_loc = NULL;
-  clear_class_qualifier(&curr_class_qualifier);
   /* Clear the set of tokens on which to stop a flush following a
      syntax error. */
   clear_stop_tokens();

@@ -147,12 +147,20 @@ is not done.
        projection symbol to be created in the current scope if in fact it
        projects something other than a type name.  It's easier to suppress
        the creation of such gratuitous projections here than to try to ignore
-       them in symbol entry later. */
+       them in symbol entry later.  Defer any access errors that may occur
+       because we may actually be scanning something that is not a type
+       (e.g., a declarator). */
     assoc_symbol = coalesce_and_lookup_generalized_identifier
-                       (GID_DTOR_RECOGNIZED, ilm_tentative_type, &err);
+                       (GID_DTOR_RECOGNIZED | GID_DEFER_ACCESS_ERRORS,
+		        ilm_tentative_type, &err);
     if (assoc_symbol != NULL && !is_type_symbol(assoc_symbol)) {
       /* Symbol was found, but it is not a type name symbol.  Return NULL. */
       assoc_symbol = NULL;
+    }  /* if */
+    /* If a type symbol was found, issue any access errors that may have
+       occurred. */
+    if (assoc_symbol) {
+      issue_qualifier_access_errors(&locator_for_curr_id.access_errors);
     }  /* if */
   }  /* if */
   return assoc_symbol;
@@ -4412,7 +4420,7 @@ Only the first form is accepted in C.
       /* Qualified name followed by "*". */
       /* Upon return from is_ptr_to_member_declarator_start the current
          token is tok_ptr_to_member. */
-      class_type = curr_class_qualifier.class_type;
+      class_type = locator_for_curr_id.qualifier_class_type;
       if (class_type == NULL) {
         /* It looks like a pointer-to-member declarator, but there was some
            error in the class qualifier (e.g., nonclassname::*).  We don't
@@ -4637,7 +4645,6 @@ otherwise it is NULL.  The syntax is:
       }  /* if */
       if (is_qualified_name_start()) {  /* Identifier or "::". */
         a_boolean        	  err;
-        a_class_qualifier	  cq;
         an_identifier_options_set options;
         /* Access checking is suppressed for declarators.  When the
            declarator contains a class qualifier it is defining something
@@ -4648,7 +4655,7 @@ otherwise it is NULL.  The syntax is:
           options |= GID_DISALLOW_QUALIFIED_NAME;
         }  /* if */
         /* The declarator may be a qualified name or a normal name. */
-        if (coalesce_and_lookup_qualified_name(options, &cq, &err)) {
+        if (coalesce_and_lookup_qualified_name(options, &err)) {
           /* See if the name is a qualified name, like "A::x" or "::j". */
           if (input_flags & DI_QUALIFIED_NAME_ALLOWED) {
             a_symbol_ptr sym = locator_for_curr_id.specific_symbol;
@@ -5115,13 +5122,15 @@ caution when modifying this routine.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (curr_token == tok_colon_colon || 
-      curr_token == tok_class_qualifier || next_token() == tok_colon_colon) {
+  if (curr_token == tok_colon_colon ||
+      next_token() == tok_colon_colon ||
+      (curr_token == tok_identifier &&
+       locator_for_curr_id.is_qualified_name)) {
     a_boolean     err;
     /* This looks like a qualified name, which is not allowed here. */
     error(ec_qualified_name_not_allowed);
     (void)coalesce_and_lookup_qualified_name
-                         (GID_NO_OPTIONS, (a_class_qualifier_ptr)NULL, &err);
+                         (GID_NO_OPTIONS, &err);
     set_to_error_locator(*locator);
     tag_sym = NULL;
   } else if (tag_sym != NULL) {

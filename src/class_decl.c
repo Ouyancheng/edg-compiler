@@ -570,24 +570,27 @@ constructor for class A is declared A::A() rather than A().  The ARM does
 not specifically allow this syntax, but it is supported by cfront.
 */
 {
-  a_boolean                err;
   a_boolean                is_member_id = FALSE;
   a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
 
   db_enter(3, "simplify_curr_class_qualified_name");
 
   if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
-      is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL, &err) &&
-      curr_token == tok_class_qualifier) {
-    if (curr_class_qualifier.class_type == ssep->assoc_type &&
-        curr_class_qualifier.has_global_qualifier == FALSE) {
+      is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL) &&
+      locator_for_curr_id.is_qualified_name) {
+    if (locator_for_curr_id.qualifier_class_type == ssep->assoc_type &&
+        locator_for_curr_id.is_global_qualified_name == FALSE) {
       is_member_id = TRUE;
       /* Issue any access errors encountered while scanning the
 	 qualifier -- even though there shouldn't be any for this
 	 case. */
-      issue_qualifier_access_errors();
-      /* Skip to the token after the qualifier (the identifier). */
-      (void)get_token();
+      issue_qualifier_access_errors(&locator_for_curr_id.access_errors);
+      /* Reset the fields in the locator to make it appear as if the
+         qualifier was not present. */
+      locator_for_curr_id.is_qualified_name = FALSE;
+      locator_for_curr_id.is_file_scope_qualified_name = FALSE;
+      locator_for_curr_id.is_global_qualified_name = FALSE;
+      locator_for_curr_id.qualifier_class_type = NULL;
       /* Accepting qualified member names is an extension so issue a
          diagnostic in strict ANSI mode. */
       if (strict_ansi_mode) {
@@ -5177,8 +5180,7 @@ a pointer to it.
 
 
 static void access_adjustment_decl(an_access_specifier   access,
-                                   a_type_ptr            class_type,
-				   a_class_qualifier_ptr cqp)
+                                   a_type_ptr            class_type)
 /*
 The current token is a qualified name and the next token is a semicolon.
 Syntactically, this is an access adjustment declaration.  If the declaration
@@ -5201,12 +5203,12 @@ and "class_type" indicates the class in which the declaration occurs.
 
   db_enter(4, "access_adjustment_decl");
   /* Get the class of which a member.  Normally the pointer from the
-     locator is used, but in the case of an undefined symbol from an
-     error locator, we use the class type value from the class qualifier
-     structure (if not NULL). */
+     specific symbol in the locator is used, but in the case of an
+     undefined symbol from an error locator, we use the qualifier class type
+     value from the locator (if not NULL). */
   if (locator_for_curr_id.specific_symbol->kind ==
                                               (a_symbol_kind)sk_undefined) {
-    local_class_of_which_a_member = cqp->class_type;
+    local_class_of_which_a_member = locator_for_curr_id.qualifier_class_type;
   } else {
     local_class_of_which_a_member = locator_for_curr_id.
                                     specific_symbol->class_of_which_a_member;
@@ -5227,8 +5229,10 @@ and "class_type" indicates the class in which the declaration occurs.
   }  /* for */
   if (bcp == NULL) {
     /* Qualified name must identify a member of a base class of the current
-       class. */
-    error(ec_bad_base_class);
+       class.  Don't issue this error if we don't know the base class.  This
+       can only occur if we have an error locator in which the
+       qualifier_class_type field is NULL. */
+    if (local_class_of_which_a_member != NULL) error(ec_bad_base_class);
     goto done;
   } else if (bcp->ambiguous) {
     type_error(ec_ambiguous_base_class, bcp->type);
@@ -5694,16 +5698,15 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
         if (C_dialect == C_dialect_cplusplus) {
           /* Check for and discard declarations of the form "overload f;". */
           a_boolean		err;
-          a_class_qualifier	cq;
           if (check_for_overload_anachronism()) goto next_declaration;
           if (curr_token == tok_identifier &&
               !simplify_curr_class_qualified_name() &&
               coalesce_and_lookup_qualified_name
-                  (GID_DTOR_RECOGNIZED, &cq, &err) &&
+                  (GID_DTOR_RECOGNIZED, &err) &&
               next_token() == tok_semicolon) {
             /* This looks syntactically like an access adjustment declaration.
                Be sure the semantics are correct. */
-            access_adjustment_decl(access, class_type, &cq);
+            access_adjustment_decl(access, class_type);
             /* Advance to the semicolon and past it. */
             (void)get_token();
             (void)get_token();

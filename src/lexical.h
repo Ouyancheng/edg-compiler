@@ -48,7 +48,6 @@ typedef enum /*a_token_kind*/ {
   tok_pp_number,
   tok_digit_sequence,
   tok_cpp_quote,
-  tok_class_qualifier,	/* C++ only */
   tok_ptr_to_member,	/* C++ only */
   /* Operators (standard, 3.1.5; sizeof appears with keywords): */
   tok_lbracket          /* [ */,    tok_rbracket           /* ] */,
@@ -122,8 +121,7 @@ EXTERN char	*token_names[(int)tok_last+1]
 #if VAR_INITIALIZERS
 = {"identifier", "float constant", "int constant", "char constant",
    "string literal", "end of source", "newline", "header name",
-   "pp number", "digit sequence", "cpp quote", "class qualifier",
-   "ptr to member", 
+   "pp number", "digit sequence", "cpp quote", "ptr to member", 
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==",
    "!=", "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",
@@ -189,6 +187,10 @@ typedef int an_identifier_options_set;
 			/* Causes access errors detected while scanning
 			   the class qualifier portion of the name to be
 			   disregarded. */
+#define GID_DEFER_ACCESS_ERRORS	      0x40
+			/* Causes access errors detected while scanning the
+			   class qualifier to not be issued now but to be
+			   retained for possible use later. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)
@@ -266,7 +268,6 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_pp_number */
    (an_opname_kind)onk_none,          /* tok_digit_sequence */
    (an_opname_kind)onk_none,          /* tok_cpp_quote */
-   (an_opname_kind)onk_none,          /* tok_class_qualifier */
    (an_opname_kind)onk_none,          /* tok_ptr_to_member */
    (an_opname_kind)onk_subscript,     /* operator[] starts with tok_lbrace */
    (an_opname_kind)onk_none,          /* tok_rbrace */
@@ -800,41 +801,11 @@ EXTERN an_error_code
 			   case. */
 
 
-/* Contains a description of a class qualifier or pointer to member. */
-typedef struct a_class_qualifier *a_class_qualifier_ptr;
-typedef struct a_class_qualifier {
-  a_type_ptr    class_type;
-                        /* Points to the class type described by the class
-                           qualifier.  NULL for file scope qualifiers. */
-  unsigned      has_qualifier:1;
-			/* TRUE if there was a qualifier. */
-  unsigned      has_global_qualifier:1;
-                        /* TRUE if the qualifier begins with a unary "::". */
-  unsigned      is_file_scope_qualifier:1;
-                        /* TRUE for file scope qualifiers. */
-  unsigned      is_identifier:1;
-			/* TRUE if the thing that follows the class qualifier
-			   is an identifier including "operator +",
-			   "operator int" and, if GID_DTOR_RECOGNIZED was
-			   specified, destructor names (i.e., ~A). */
-  unsigned      err:1;
-                        /* TRUE if there was an error while scanning the
-                           qualifier. */
-  a_source_position
-                source_position;
-                        /* The position of the start of the qualifier. */
-  an_access_error_descr_ptr
-		access_errors;
-			/* Points to a linked list of access errors that
-			   occurred while scanning the class qualifier. */
-} a_class_qualifier;
-
-
-/*
-Contains information about the current class qualifier.  Valid only when
-the current token is tok_class_qualifier or tok_ptr_to_member.
-*/
-EXTERN a_class_qualifier curr_class_qualifier;
+EXTERN an_access_error_descr_ptr
+		avail_access_error_descrs;
+			/* List of access error description  entries (allocated
+                           in front end storage) freed and available for
+                           reuse. */
 
 /*
 The stop token array: If a syntactic error occurs, flush_tokens
@@ -892,9 +863,7 @@ enum a_token_extra_info_kind_tag {
   teik_none,		/* No extra information, i.e., normal token. */
   teik_identifier,	/* Extra information for an identifier. */
   teik_constant,	/* Extra information for a literal constant. */
-  teik_lint_and_pragma,	/* Extra information for a lint comment or pragma. */
-  teik_class_qualifier	/* Extra information for a class qualifier or
-			   pointer to member. */
+  teik_lint_and_pragma	/* Extra information for a lint comment or pragma. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_token_extra_info_kind;
@@ -926,11 +895,6 @@ typedef struct a_cached_token {
 		constant;
 			/* Pointer to a constant entry (in front end storage)
 			   giving the value for the literal constant. */
-    /* When extra_info_kind == teik_class_qualifier: */
-    a_class_qualifier
-		class_qualifier;
-			/* Information describing a class qualifier or pointer
-			   to member token. */
     /* When extra_info_kind == teik_lint_and_pragma: */
     a_lint_and_pragma_state
 		lint_and_pragma_state;
@@ -1089,9 +1053,10 @@ extern a_symbol_ptr coalesce_template_class_reference
 
 extern an_access_error_descr_ptr alloc_access_error_descr(void);
 
-extern void issue_qualifier_access_errors(void);
+extern void issue_qualifier_access_errors(an_access_error_descr_ptr *adep);
 
-extern void do_not_issue_qualifier_access_errors(void);
+extern void do_not_issue_qualifier_access_errors
+					(an_access_error_descr_ptr *adep);
 
 /* Macro to check prevent calling the error checking function unless some
    error flags have been specified. */
@@ -1103,15 +1068,9 @@ extern a_boolean f_check_for_generalized_identifier_errors
 			(an_identifier_options_set options,
                          a_source_position         *pos);
 extern a_boolean is_generalized_identifier_start
-                     (an_identifier_options_set options,
-                      a_boolean                 *err);
-extern a_boolean coalesce_generalized_identifier
-                     (an_identifier_options_set        options,
-                      a_class_qualifier_ptr            cqp,
-                      a_boolean                        *err);
+                     (an_identifier_options_set options);
 extern a_boolean coalesce_and_lookup_qualified_name
                      (an_identifier_options_set        options,
-                      a_class_qualifier_ptr            cqp,
                       a_boolean			       *err);
 extern a_symbol_ptr coalesce_and_lookup_generalized_identifier
                         (an_identifier_options_set        options,
@@ -1119,21 +1078,16 @@ extern a_symbol_ptr coalesce_and_lookup_generalized_identifier
                          a_boolean                        *err);
 
 /* Return TRUE if the current token might be the start of a C++ qualified
-   name (including a simple identifier).  If the current token is
-   tok_class_qualifier or tok_ptr_to_member we can simply return TRUE.
-   Otherwise call is_generalized_identifier to do a more thorough analysis. */
+   name (including a simple identifier). */
 #define is_qualified_name_start()                                        \
-  (curr_token == tok_class_qualifier || 				 \
-   is_generalized_identifier_start(GID_NO_OPTIONS,			 \
-                                   (a_boolean *)NULL))
+  (is_generalized_identifier_start(GID_DEFER_ACCESS_ERRORS))
 
 /* Same thing for use in switch statements, in the form
      case QUALIFIED_NAME_START_CASE:
    Note that one must check for "::new" and "::delete" separately.
 */
 #define QUALIFIED_NAME_START_CASE tok_identifier:	\
-                             case tok_colon_colon:	\
-                             case tok_class_qualifier
+                             case tok_colon_colon
 
 
 /* Push a file onto the input stack. */
