@@ -1877,25 +1877,6 @@ if the deduction succeeds, FALSE if it fails.
                                                  &arg_type,
                                                  template_sym)) goto done;
   }  /* if */
-  /* See if any implicit transformations (e.g., array --> pointer) should
-     be done. */
-  if (is_array_type(arg_type) &&
-      (!param_is_reference ||
-       array_transformation_needed_on_template_reference_init(
-                   arg_type, param_type,
-                   tssp->variant.function.decl_cache.decl_info->parameters))) {
-    /* Simulate the array --> pointer transformation.  */
-    arg_type = type_after_array_to_pointer_transformation(arg_type);
-  } else if (is_function_type(arg_type) &&
-             (!param_is_reference ||
-              function_transformation_needed_on_template_reference_init(
-                                       arg_type, param_type,
-                                       tssp->variant.function.decl_cache.
-                                                     decl_info->parameters))) {
-    /* Simulate the function --> pointer transformation. */
-    arg_type = type_after_function_to_pointer_transformation(arg_type,
-                                                             arg_operand);
-  }  /* if */
   if (param_is_reference) {
     /* The parameter has a reference type. */
     /* Drop the reference type. */
@@ -1904,6 +1885,16 @@ if the deduction succeeds, FALSE if it fails.
     check_template_arg_type_qualifiers(&arg_type, &param_type);
   } else {
     /* Not a reference. */
+    /* See if any implicit transformations (e.g., array --> pointer) should
+       be done. */
+    if (is_array_type(arg_type)) {
+      /* Simulate the array --> pointer transformation.  */
+      arg_type = type_after_array_to_pointer_transformation(arg_type);
+    } else if (is_function_type(arg_type)) {
+      /* Simulate the function --> pointer transformation. */
+      arg_type = type_after_function_to_pointer_transformation(arg_type,
+                                                               arg_operand);
+    }  /* if */
     /* The argument will be passed by copying it, so its cv-qualifiers
        are not significant. */
     arg_type = skip_typerefs(arg_type);

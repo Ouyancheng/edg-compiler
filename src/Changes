@@ -1,5 +1,15 @@
 Version 2.41
 
+1/25/99   Template argument deduction, arrays passed to references
+
+When an array actual argument is passed to a reference parameter of
+a function template, the argument is now never subjected to the
+array-to-pointer decay before the template argument deduction is done.
+Formerly, it was if the type after decay matched the underlying
+type of the reference.  That made sense to us, and that's what
+we proposed to the standards committee, but it's not what ended
+up in the standard.
+
 1/25/99   Nested class access to enclosing classes in strict mode
 
 Nested classes now have no access to enclosing classes in strict mode.
