@@ -366,7 +366,7 @@ hiding.
         record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
                                       global_hidden_by_nonglobal, sp);
       }  /* for */
-    } else if (scope_depth_of(sym_ptr, &is_local_to_function) !=
+    } else if (scope_depth_of_symbol(sym_ptr, &is_local_to_function) !=
                                                  DEPTH_OF_FILE_SCOPE) {
       /* Not a file scope declaration, and the symbol does not itself belong
          to the file scope, either (e.g., not a friend declaration). */
