@@ -1,5 +1,10 @@
 Version 2.22
 
+2/21/94  __INTADDR__ in not-evaluated expression
+
+Using __INTADDR__(expr) in a not-evaluated context (e.g., sizeof)
+no longer causes an internal error.
+
 2/18/94  Generating makefile dependency information using implicit inclusion
 
 When generating makefile dependency information (using the -M option)
