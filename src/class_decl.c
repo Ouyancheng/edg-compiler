@@ -6045,19 +6045,24 @@ The routine body is not generated until it is known to be needed.
     /* If the user has already defined an assignment operator, neither
        is bitwise copying allowed nor must the compiler generate one. */
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
-  } else if (!cssp->assignment_by_bitwise_copy_allowed) {
-    /* Only try to generate a default assignment operator if bitwise
-       copying is not allowed. */
-    const_okay = default_assignment_of_const_object_okay(class_type);
-    qualifiers = const_okay ? TQ_CONST : TQ_NONE;
-    ptp = alloc_param_type(make_reference_type(
+  } else {
+    /* Generate a copy assignment operator if bitwise copying is not allowed.
+       If bitwise copying *is* allowed, generate it only if an assignment
+       operator was declared by the program -- it's needed, even though it
+       won't actually be called, to complete the overload set. */
+    if (!cssp->assignment_by_bitwise_copy_allowed ||
+        cssp->assignment_operator != NULL) {
+      const_okay = default_assignment_of_const_object_okay(class_type);
+      qualifiers = const_okay ? TQ_CONST : TQ_NONE;
+      ptp = alloc_param_type(make_reference_type(
                                make_qualified_type(class_type, qualifiers)));
-    /* Set a flag in the param type entry if its associated type is or contains
-       a template parameter. */
-    ptp->type_involves_template_param =
+      /* Set a flag in the param type entry if its associated type is or
+         contains a template parameter. */
+      ptp->type_involves_template_param =
                                   is_or_contains_template_param(class_type);
-    generate_special_function(class_type, ptp,
-                              (a_special_function_kind)sfk_operator);
+      generate_special_function(class_type, ptp,
+                                (a_special_function_kind)sfk_operator);
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* check_special_member_functions */
