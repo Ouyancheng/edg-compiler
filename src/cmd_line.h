@@ -494,7 +494,8 @@ EXTERN a_boolean
                                                                            ;
                         /* TRUE if the C++ operator keywords (such as
 			   "and", "or", "not", etc.) and digraphs should
-			   be allowed. */
+			   be allowed.  This flag is automatically set
+			   in strict mode. */
 
 #if MINIMAL_INLINING
 EXTERN a_boolean

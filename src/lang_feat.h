@@ -206,10 +206,12 @@ to be compiled.
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 /*
-Flag that is TRUE if automatic instantiation processing is to be performed
-by default.  This flag does not affect whether code is compiled but
-rather determines whether the automatic instantiation processing is
-to be performed when the compiler is executed.
+Flag that is TRUE if automatic instantiation processing is to be
+performed by default.  This flag does not affect whether code is
+compiled but rather determines whether the automatic instantiation
+processing is to be performed when the compiler is executed.  This is
+the default value for the global flag automatic_instantiation_mode,
+the value of which may be modified using command line options.
 */
 #ifndef DEFAULT_AUTOMATIC_INSTANTIATION_MODE
 #define DEFAULT_AUTOMATIC_INSTANTIATION_MODE TRUE
@@ -233,9 +235,12 @@ inclusion is not performed.
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
 /*
 Flag that is TRUE if implicit inclusion of template definition files
-is to be performed by default.  This flag does not affect whether code is
-compiled but rather determines whether the implicit inclusion processing is
-to be performed when the compiler is executed.
+is to be performed by default.  This flag does not affect whether code
+is compiled but rather determines whether the implicit inclusion
+processing is to be performed when the compiler is executed.  This is
+the default value for the global flag
+implicit_template_inclusion_mode, the value of which may be modified
+using command line options.
 */
 #ifndef DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE
 #define DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE FALSE
@@ -376,7 +381,8 @@ it in performing optimizations.
 
 /*
 Flag that is TRUE if, in C++ mode, wchar_t is a keyword by default.  This is
-the default value for the global flag wchar_t_is_keyword.
+the default value for the global flag wchar_t_is_keyword, the value of
+which may be modified using command line options.
 */
 #ifndef DEFAULT_WCHAR_T_IS_KEYWORD
 #define DEFAULT_WCHAR_T_IS_KEYWORD TRUE
@@ -404,7 +410,8 @@ only used when DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD is TRUE.
 /*
 Flag that is TRUE if, in C++ mode, operator keywords (e.g., bitand, compl)
 and digraphs are recognized.  This is the default value for the global
-flag alternate_tokens_allowed.
+flag alternate_tokens_allowed, the value of which may also be modified
+using command line options.
 */
 #ifndef DEFAULT_ALTERNATE_TOKENS_ALLOWED
 #define DEFAULT_ALTERNATE_TOKENS_ALLOWED FALSE
@@ -432,7 +439,8 @@ ANSI C mode.  (This usage is standard in C++ mode.)
 /*
 Flag that is TRUE if, in ANSI C mode, a set of features found in the
 SVR4 ANSI C compiler should be recognized.  This is the default value
-for the global flag SVR4_C_mode.
+for the global flag SVR4_C_mode, the value of which may be modified using
+command line options.
 */
 #ifndef DEFAULT_SVR4_C_MODE
 #define DEFAULT_SVR4_C_MODE FALSE
