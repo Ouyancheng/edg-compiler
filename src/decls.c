@@ -2654,13 +2654,10 @@ functions) simply return NULL.
 {
   a_variable_ptr vp;
 
-  if (type_ptr == NULL) {
-    vp = NULL;
-  } else {
-    vp = alloc_variable(storage_class);
-    vp->type = type_ptr;
-    vp->is_parameter = TRUE;
-  }  /* if */
+  check_assertion(type_ptr != NULL);
+  vp = alloc_variable(storage_class);
+  vp->type = type_ptr;
+  vp->is_parameter = TRUE;
   return(vp);
 }  /* make_param_variable */
 
@@ -8341,7 +8338,7 @@ and for the instantiation of template functions.
   if (class_type != NULL && rtsp->implicit_this_param_type != NULL) {
     a_variable_ptr  vp = make_param_variable(rtsp->implicit_this_param_type,
                                              (a_storage_class)sc_auto);
-    vp->implicit_this_param = TRUE;
+    vp->is_this_parameter = TRUE;
     scope_ptr->variant.routine.this_param_variable = vp;
   }  /* if */
   if (func_info->function_type_from_typedef) {

@@ -4786,7 +4786,6 @@ empty statement block.
   a_type_ptr                     class_type;
   a_routine_type_supplement_ptr  rtsp;
   a_source_position              *err_pos;
-  a_variable_ptr                 vp;
 
   db_enter(4, "define_special_member_function");
   class_type = rout_ptr->source_corresp.class_of_which_a_member;
@@ -4806,10 +4805,10 @@ empty statement block.
     rout_ptr->assoc_scope = curr_il_region_number;
     rtsp = rout_ptr->type->variant.routine.extra_info;
     rtsp->assoc_routine = rout_ptr;
-    vp = make_param_variable(rtsp->implicit_this_param_type,
-                             (a_storage_class)sc_auto);
-    if (vp != NULL) {
-      vp->implicit_this_param = TRUE;
+    if (rtsp->implicit_this_param_type != NULL) {
+      a_variable_ptr  vp = make_param_variable(rtsp->implicit_this_param_type,
+                                               (a_storage_class)sc_auto);
+      vp->is_this_parameter = TRUE;
       scope->variant.routine.this_param_variable = vp;
     }  /* if */
     /* Enter the constructor and destructor initializers, to record possible
