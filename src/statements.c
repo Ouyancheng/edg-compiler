@@ -2306,9 +2306,9 @@ being created to surround a dependent statement in C++.
     /* This is a dependent statement with no surrounding braces.  Any pragmas
        that are current will bind to the statement (not to the block), so
        don't process them yet. */
-    if (any_cfront_mode()) {
-      /* This is a dependent statement in cfront mode, which is special in
-         that no scope is created for it, but it nevertheless has an
+    if (cfront_2_1_mode) {
+      /* This is a dependent statement in cfront 2.1 mode, which is special
+         in that no scope is created for it, but it nevertheless has an
          associated object lifetime: anything constructed within the statement
          must also be destroyed therein. */
       cfront_dependent_statement = TRUE;
