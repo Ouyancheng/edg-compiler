@@ -3876,13 +3876,17 @@ scope_level.
      The prototype scope is hardly ever needed, and therefore it is not
      allocated by default.  It is allocated in ensure_il_scope_exists. */
   sp = ensure_il_scope_exists(ssep);
-  /* Add the type to the list of types for this scope. */
-  if (sp->types == NULL) {
-    sp->types = type_ptr;
+  if (sp == NULL) {
+    /* May be an error case. */
   } else {
-    ssep->last_type->next = type_ptr;
+    /* Add the type to the list of types for this scope. */
+    if (sp->types == NULL) {
+      sp->types = type_ptr;
+    } else {
+      ssep->last_type->next = type_ptr;
+    }  /* if */
+    ssep->last_type = type_ptr;
   }  /* if */
-  ssep->last_type = type_ptr;
   type_ptr->next = NULL;
 }  /* add_to_types_list */
 
