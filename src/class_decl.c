@@ -6684,7 +6684,8 @@ specific information about the member declaration, respectively.
   if (decl_info->is_anonymous_union) {
     /* Do checking, promote symbols to the current class. */
     check_anonymous_union_symbols(member_sym, class_type,
-                                  decl_info->is_nonstd_anonymous_union);
+                                  (a_boolean)decl_info->
+                                               is_nonstd_anonymous_union);
   }  /* if */
   if (is_aggregate_or_union_type(member_type)) {
     /* If the member's type is class, struct, or union -- or array of class,
