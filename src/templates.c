@@ -4757,7 +4757,8 @@ instantiation.
     /* The is_template_friend flag should already be set.  The exception
        is an error case in which "friend" appears outside of a class. */
     check_assertion(!decl_state->is_member_decl ||
-                    decl_state->is_template_friend);
+                    decl_state->is_template_friend ||
+                    decl_state->decl_scope_err);
     /* Set it, just in case is wasn't already set because of use outside
        of a class.  This permits the error to be diagnosed below. */
     decl_state->is_template_friend = TRUE;
@@ -6916,6 +6917,9 @@ any non-empty template parameter lists that were scanned.
                     curr_token == tok_colon || curr_token == tok_lbrace ||
                     curr_token == tok_semicolon);
     cache_template_declaration(decl_state, /*skip_params=*/TRUE);
+    /* Set the error flag to indicate that we know that some kind of error
+       has occurred. */
+    decl_state->decl_scope_err = TRUE;
   }  /* if */
   /* See if it is a class template declaration.  If it is, scan the tokens
      of the definition (if any) and cache them away of later reference. */
