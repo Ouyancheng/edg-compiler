@@ -711,6 +711,9 @@ and indentation is the indentation desired.
             fprintf(f_debug, "(routine ptr is NULL)");
           }  /* if */
           fprintf(f_debug, "\n");
+	  if (tssp->variant.function.cannot_be_called) {
+            fprintf(f_debug, "%*scannot be called\n", indentation, "");
+	  }  /* if */
           tip = tssp->variant.function.instantiations;
           while (tip != NULL) {
             fprintf(f_debug, "%*sinstantiation", indentation, "");
@@ -1137,6 +1140,10 @@ and return a pointer to it.
       tssp->variant.function.routine = NULL;
       clear_func_info(&tssp->variant.function.func_info);
       tssp->variant.function.def_arg_expr_list = NULL;
+      tssp->variant.function.cannot_be_called = FALSE;
+#if CHECKING
+      tssp->variant.function.dummy = FALSE;
+#endif /* CHECKING */
       break;
     case sk_static_data_member:
       tssp->variant.static_data_member.definitions = NULL;

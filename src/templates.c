@@ -2849,7 +2849,9 @@ entry is pushed on the scope stack.
           } else {
 	    /* Make sure that all template parameters are used by
 	       function parameter types and not just by parameters
-	       with default arguments. */
+	       with default arguments.  If an error occurs set the
+	       cannot_be_called flag to prevent an instantiation from
+	       being attempted with an incomplete set of template arguments. */
 	    a_boolean	only_in_default_args;
 	    a_boolean	param_used;
 	    param_used = template_param_appears_in_param_list
@@ -2857,9 +2859,11 @@ entry is pushed on the scope stack.
 	    if (!param_sym->referenced || !param_used) {
               pos_sy2_error(ec_not_used_in_template_function_params,
                             &param_sym->decl_position, param_sym, sym);
+	      tssp->variant.function.cannot_be_called = TRUE;
 	    } else if (only_in_default_args) {
               pos_sy2_error(ec_template_param_only_used_in_default_args,
                             &param_sym->decl_position, param_sym, sym);
+	      tssp->variant.function.cannot_be_called = TRUE;
             }  /* if */
           }  /* if */
         }  /* for */

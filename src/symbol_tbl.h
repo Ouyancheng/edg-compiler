@@ -808,6 +808,19 @@ typedef struct a_template_symbol_supplement {
 			/* List of entries describing default argument
 			   expressions associated with parameters for
 			   this template declaration. */
+      unsigned int
+		cannot_be_called:1;
+			/* TRUE if this function cannot be called because
+			   not all of the template parameters were used
+			   in function parameter types or were used only
+			   in function parameters that have default values. */
+#if CHECKING
+      unsigned int
+		dummy:2;
+			/* Extra field that can be initialized to prevent
+			   spurious reference to uninitizlized data warnings
+			   from CodeCenter. */
+#endif /* CHECKING */
     } function;
     /* When symbol kind = sk_static_data_member: */
     struct {
