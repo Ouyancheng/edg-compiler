@@ -1673,7 +1673,6 @@ the latter will be NULL for variables.
 {
   a_symbol_header_ptr hdr_ptr;
   a_symbol_ptr        sym_ptr;
-  a_symbol_kind       kind;
 
   db_enter(4, "find_external_symbol");
   /* Start with the external locator the same as the normal locator.  This
@@ -1753,30 +1752,34 @@ the latter will be NULL for variables.
     }  /* if */
     /* See if there is already an external symbol with this name. */
     for (; sym_ptr != NULL; sym_ptr = sym_ptr->next) {
-      kind = sym_ptr->kind;
-      if (kind == (a_symbol_kind)sk_extern_variable) {
+      if (sym_ptr->kind == (a_symbol_kind)sk_extern_variable) {
         break;
-      } else if (kind == (a_symbol_kind)sk_extern_routine) {
+      } else if (sym_ptr->kind == (a_symbol_kind)sk_extern_routine) {
         /* A type compatibility check may also be required for routines. */
-        if (rout_type != NULL && C_dialect == C_dialect_cplusplus) {
-          a_type_ptr  tp = sym_ptr->variant.extern_symbol_descr->type;
-#if CHECKING
-          if (tp->kind != (a_type_kind)tk_routine) {
-            internal_error("find_external_symbol: expected tk_routine");
-          }  /* if */
-#endif /* CHECKING */
-          if (!arg_types_are_compatible(rout_type, tp)) {
-            /* This looks like a C++ overloaded function name.   Continue
-               searching until the type matches as well as the name.  */
-            continue;
+        if (rout_type == NULL || C_dialect != C_dialect_cplusplus) {
+          /* A name match is enough. */
+          break;
+        } else {
+          /* In C++ the function's type signature is effectively part of the
+             name.  Therefore we check for paramter type compatibility (the
+             return type is not decisive, since functions with the same
+             param types and different return types are not allowed).  Since
+             names with extern "C" linkage are not mangled, one would think
+             that param type checking would not be required in that case.
+             However, two functions with extern "C" linkage and different
+             param types are treated not as incompatible declarations of a
+             routine but as an instance of illegal overloading of a routine
+             name.  The error is issued later. */
+          if (param_types_are_compatible(
+                                 rout_type,
+                                 sym_ptr->variant.extern_symbol_descr->type)) {
+            /* Param types are compatible, so we have a match.  */
+            break;
           }  /* if */
         }  /* if */
-        /* This is a case in which the name match is enough or the routine's
-           argument types are compatible.  (Note that if two routines have the
-           same arg types but differ in return type they are not treated as
-           instances of overloading.)  */
-        break;
       }  /* if */
+      /* No match found yet, so keep looking.  If none if found, a NULL
+         sym_ptr is returned to the caller. */
     }  /* for */
   }  /* if */
   /* Make the ext_location source position the same as the original source
