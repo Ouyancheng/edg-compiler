@@ -6827,12 +6827,235 @@ any non-empty template parameter lists that were scanned.
 }  /* template_declaration */
 
 
-static void full_template_specialization(void)
+static a_boolean find_matching_template_function(a_type_ptr        type,
+                                                 a_symbol_locator  *locator,
+                                                 a_symbol_ptr      *new_sym)
 /*
+type is the type declared for a function template instance; *locator
+indicates its name.  Return in new_sym the symbol for the instance.  The
+function returns FALSE if any error was detected.
 */
 {
+  a_symbol_ptr  sym = NULL, orig_sym, lookup_sym;
+  a_boolean     is_list;
+  a_boolean     any_found = FALSE;
+  a_symbol_ptr  sym_found = NULL;
+  a_boolean     err = FALSE;
+
+  *new_sym = NULL;
+  if (is_error_locator(*locator)) {
+    sym = NULL;
+    err = TRUE;
+  } else {
+    sym = locator->specific_symbol;
+    if (sym == NULL) sym = normal_id_lookup(locator, IDL_NO_OPTIONS);
+  }  /* if */
+  if (sym == NULL) {
+    pos_st_error(ec_undefined_identifier, &locator->source_position,
+                 locator->symbol_header->identifier);
+    err = TRUE;
+  } else {
+    orig_sym = sym;
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      sym = sym->variant.overloaded_function.symbols;
+      is_list = TRUE;
+    } else {
+      is_list = FALSE;
+    }  /* if */
+    for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+      /* If this is a function template symbol, use it to find a function
+	 that matches the type we are looking for.  If it is a member
+	 function symbol, get the corresponding function template symbol
+	 from the function instantiation entry. */
+      if (sym->kind == (a_symbol_kind)sk_function_template) {
+        lookup_sym = sym;
+      } else if (sym->kind == (a_symbol_kind)sk_member_function &&
+	         sym->variant.routine.instance_ptr != NULL) {
+        lookup_sym = sym->variant.routine.instance_ptr->template_sym;
+      } else {
+        continue;
+      }  /* if */
+      /* Look for a match on the list of instantiations. */
+      sym_found = matching_template_function(lookup_sym, type);
+      if (sym_found != NULL) {
+        if (any_found) {
+          sym_error(ec_ambiguous_overloaded_function, orig_sym);
+          err = TRUE;
+          break;
+        }  /* if */
+        any_found = TRUE;
+        *new_sym = sym_found;
+      }  /* if */
+    }  /* for */
+    if (!any_found) {
+      sym_error(ec_no_match_for_type_of_overloaded_function, orig_sym);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  return !err;
+}  /* find_matching_template_function */
+
+
+static void full_template_specialization(void)
+/*
+One or more empty template parameter clauses ("template <>") have been
+scanned, and this routine handles the specialization of the template instance
+that follows.
+*/
+{
+  a_storage_class               storage_class;
+  a_type_ptr                    type;
+  a_symbol_locator              locator;
+  a_decl_flag_set               do_flags, dso_flags;
+  a_type_qualifier_set          qualifiers;
+  a_decl_modifier	        decl_modifiers;
+  a_source_sequence_entry_ptr   declarator_ssep;
+  a_symbol_ptr		        sym;
+  a_func_info_block             func_info;
+  a_symbol_reference_kind       srk_flags = SRK_DECLARATION;
+  a_boolean                     is_definition;
+
   db_enter(3, "full_template_instantiation");
-  unexpected_condition_str("new specialization syntax not implemented");
+  /* First scan the decl-specifiers. */
+  (void)decl_specifiers((DSI_IS_TEMPLATE_SPECIALIZATION |
+                         DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
+                         DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER |
+                         DSI_TYPE_SPECIFIER_ALLOWED |
+                         DSI_INLINE_ALLOWED),
+                        &dso_flags, &storage_class, &type, &qualifiers,
+                        &decl_modifiers);
+  if ((dso_flags & (DSO_DEFINES_SOMETHING | DSO_DECLARES_SOMETHING)) &&
+      is_template_class_type(type) &&
+      ((a_symbol_ptr)type->source_corresp.assoc_info)->
+           variant.class_struct_union.extra_info->is_specific_template_def) {
+    /* The template specialization applies to the class. */
+    if (curr_token != tok_semicolon) {
+      /* Issue the missing-semicolon error. */
+      pos_error(ec_exp_semicolon, &pos_curr_token);
+    }  /* if */
+  } else {
+    /* Assume the template specialization applies to the declarator, which
+       should follow. */
+    add_stop_token(tok_semicolon);
+    clear_func_info(&func_info);
+    declarator((DI_REAL_DECLARATOR_ALLOWED |
+                DI_QUALIFIED_NAME_ALLOWED |
+                DI_OPERATOR_NAME_ALLOWED),
+               &do_flags, type, (a_type_ptr)NULL, &locator, &type,
+               &declarator_ssep, &func_info);
+    sym = NULL;
+    if (is_error_locator(locator)) {
+      /* Ignore it. */
+    } else if (is_function_type(type) &&
+               find_matching_template_function(type, &locator, &sym)) {
+      locator.specific_symbol = sym;
+    } else {
+      sym = locator.specific_symbol;
+      if (sym != NULL &&
+          sym->kind == (a_symbol_kind)sk_static_data_member &&
+          sym->variant.static_data_member.instance_ptr != NULL) {
+        /* Okay. */
+      } else {
+        if (sym == NULL) {
+          /* Lookup the symbol for use in the error message. */
+          sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
+        }  /* if */
+        if (sym == NULL) {
+          /* No symbol, which means the lookup failed. */
+          pos_st_error(ec_undefined_identifier, &locator.source_position,
+                       locator.symbol_header->identifier);
+        } else {
+          pos_sy_error(ec_not_instantiatable_entity,
+                       &locator.source_position, sym);
+          sym = NULL;
+        }  /* if */
+        /* Check for the semicolon. */
+        if (curr_token == tok_lbrace) {
+          /* This may have been intended to be a function definition.  Flush
+             tokens to the closing right brace. */
+          flush_until_matching_token();
+        } else {
+          required_token_no_advance(tok_semicolon, ec_exp_semicolon);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (sym != NULL) {
+      check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
+                      sym->kind == (a_symbol_kind)sk_member_function ||
+                      sym->kind == (a_symbol_kind)sk_static_data_member);
+      /* See if this is a declaration or a definition. */
+      if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+        is_definition = (curr_token == tok_assign);
+      } else {
+        is_definition = (curr_token == tok_lbrace ||
+                         (curr_token == tok_colon &&
+                          is_constructor_symbol(sym)));
+      }  /* if */
+      if (is_definition) srk_flags |= SRK_DEFINITION;
+      /* Update cross reference info, etc. */
+      record_symbol_declaration(srk_flags, sym, &locator.source_position,
+                                declarator_ssep);
+
+      if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        /* Do fixup on the source sequence entry that was just created to
+           represent the current declaration. */
+        a_variable_ptr  vp = sym->variant.static_data_member.variable;
+        if (!is_definition) {
+          (void)set_src_seq_secondary_decl_type((char *)vp, type);
+        } else {
+          /* The defining declaration of the variable.  Record the type.  */
+          if (vp->declared_type == NULL) vp->declared_type = type;
+        }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        /* Deal with initializer. */
+        if (is_definition) {
+          a_boolean  incomplete_type_error_reported = FALSE;
+          initializer(sym, &locator.source_position,
+                      (an_id_linkage_kind)idl_external,
+                      /*has_parenthesized_initializer=*/FALSE,
+                      /*is_old_style_param_decl=*/FALSE,
+                      &incomplete_type_error_reported);
+        }  /* if */
+        required_token_no_advance(tok_semicolon, ec_exp_semicolon);
+      } else {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        /* Do fixup on the source sequence entry that was just created to
+           represent the current declaration. */
+        a_routine_ptr  rp = sym->variant.routine.ptr;
+        if (!is_definition) {
+          (void)set_src_seq_secondary_decl_type((char *)rp, type);
+        } else {
+          /* The defining declaration of the routine.  Record the type.  */
+          if (rp->declared_type == NULL) rp->declared_type = type;
+        }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        if (is_definition) {
+          /* This is a defining declaration of the function template. */
+          func_info.is_definition = TRUE;
+          if (func_info.function_type_from_typedef) {
+            /* Just as it is an error when a normal function is defined for
+               the function type to come from a typedef, so too is that an
+               error when a function template is being defined. */
+            error(ec_function_type_must_come_from_declarator);
+            /* Copy the type entry, since the typedef type may not be
+               shared. */
+            type = copy_routine_type_with_param_types(skip_typerefs(type));
+            sym->variant.routine.ptr->type = type;
+          }  /* if */
+          /* Scan the function body. */
+          scan_function_body(sym->variant.routine.ptr, &func_info,
+                             SFB_NO_FLAGS);
+        } else {
+          /* No function body, so there ought to be a semicolon following the
+             declaration. */
+          required_token_no_advance(tok_semicolon, ec_exp_semicolon);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    done_with_func_info(func_info);
+    remove_stop_token(tok_semicolon);
+  }  /* if */
   db_exit();
 }  /* full_template_specialization */
 
@@ -6890,8 +7113,7 @@ differs between function and nonfunction declarations.
 
 
 static void template_or_specialization_declaration(
-                          a_boolean		*defines_something,
-                          a_boolean		no_advance_past_final_token)
+                                      a_boolean  no_advance_past_final_token)
 /*
 Scan a template declaration of a template specialization declaration.
 
@@ -6973,18 +7195,11 @@ are either the specialization of a template or a template declaration.
   scan_template_param_clauses(&decl_state);
   if (decl_state.is_full_specialization) {
     full_template_specialization();
-#if 0
-#else
-    /* A reminder to make sure that defines_something is set properly
-       for specializations. */
-    check_assertion(decl_state.defines_something);
-#endif
   } else {
     /* The entity being declared is a template. */
     template_declaration(&decl_state);
   }  /* if */
   curr_default_args = saved_curr_default_args;
-  *defines_something = decl_state.defines_something;
 }  /* template_or_specialization_declaration */
 
 
@@ -8661,8 +8876,7 @@ access errors that were detected.
 }  /* explicit_instantiation */
 
 
-void template_directive_or_declaration(a_boolean   *defines_something,
-                                       a_boolean   no_advance_past_final_token)
+void template_directive_or_declaration(a_boolean  no_advance_past_final_token)
 /*
 Scan a template declaration of an explicit instantiation.  This routine
 is called to decide whether the current statement is a template
@@ -8674,13 +8888,9 @@ otherwise, it is consumed.
 {
   if (next_token() == tok_lt) {
     /* The template keyword is followed by a template parameter list.
-       This is a template declaration. */
-#if 0
-    /* This could also be a specialization using the new specialization
-       syntax. */
-#endif /* 0 */
-    template_or_specialization_declaration(defines_something,
-                                           no_advance_past_final_token);
+       This is a template declaration or a specialization using the new
+       specialization syntax. */
+    template_or_specialization_declaration(no_advance_past_final_token);
   } else {
     /* There is no template parameter list, this must be an explicit
        instantiation. */
