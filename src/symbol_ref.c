@@ -980,7 +980,7 @@ secondary status.
   if (!source_sequence_entries_disallowed) {
     /* We are in a context in which source sequence entries are being
        generated. */
-    if ((il_entry_ptr = il_entry_for_symbol(sym, &kind)) != NULL) {
+    if ((il_entry_ptr = il_entry_for_symbol_null_okay(sym, &kind)) != NULL) {
       if (pos->seq == 0 ||
           (kind == iek_routine &&
            ((a_routine_ptr)il_entry_ptr)->compiler_generated)) {
