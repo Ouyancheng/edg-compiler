@@ -121,7 +121,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if VAR_INITIALIZERS
 = {
 /* iek_none */				"none",
-/* iek_source_file */			"source file",
+/* iek_source_file */			"source-file",
 /* iek_constant */			"constant",
 /* iek_param_type */			"param-type",
 /* iek_routine_type_supplement */	"routine-type-supplement",
