@@ -263,7 +263,7 @@ following information:
 }  /* __dynamic_cast */
 
 
-void __throw_bad_cast(void)
+static void __throw_bad_cast(void)
 /*
 Throw a bad cast exception.  If exception handling is not supported in
 this version of the runtime, then simply abort.
