@@ -1,5 +1,13 @@
 Version 2.39
 
+7/28/98   C++-generating back end: missing namespace qualifier on function
+          reference
+
+When an overload set of functions was formed to represent the effect of
+a using-directive, a bug in hidden-name processing sometimes caused the
+C++-generating back end to omit a necessary namespace qualifier on a
+reference to a member of that overload set.  Now fixed.
+
 7/28/98   Improvements in inlining
 
 In the processing for minimal inlining, a parameter that is not modified
