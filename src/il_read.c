@@ -657,9 +657,10 @@ necessary to make it directly accessible in memory.
   }  /* if */
 #endif /* DEBUG */
   do {
-    a_mem_block_header old_block_header;
-    sizeof_t           block_size, block_used;
-    char               *new_start_of_block;
+    a_mem_block_header 		old_block_header;
+    sizeof_t           		block_size, block_used;
+    a_mem_block_header_ptr	new_block_header;
+    char			*new_start_of_block;
 
     /* Read a block.  Start by reading the header. */
     fread_with_check((char *)&old_block_header, sizeof(old_block_header));
@@ -692,18 +693,19 @@ necessary to make it directly accessible in memory.
     }  /* if */
 #endif /* CHECKING */
     if (first_block) {
-      /* Create the region on the first block, and make the initial
-         allocation at least as large as the first block. */
-      init_memory_region(region_number, block_size);
+      /* Create the region on the first block.  Don't allocate the
+         first memory block yet.  Below we will try to allocate the
+         blocks at the same address as was used when the blocks were
+         created to eliminate the need to remap the addresses. */
+      init_memory_region_without_initial_allocation(region_number);
       first_block = FALSE;
     }  /* if */
     /* Allocate the space for the block. */
-#if 0
     /* To do allocation at a specific address: */
-    new_start_of_block = alloc_region_block(region_number, block_used,
-                                            old_block_header.start_of_block);
-#endif /* 0 */
-    new_start_of_block = alloc_in_region(region_number, block_used);
+    new_block_header = alloc_mem_block(region_number, block_used,
+                                       old_block_header.start_of_block);
+    new_start_of_block = new_block_header->start_of_block;
+    new_block_header->next_avail_in_block = new_start_of_block + block_used;
     /* Free any extra space allocated at the end of the block. */
     trim_memory_region(region_number);
     /* Read the block into the allocated space. */
@@ -769,8 +771,6 @@ necessary to make it directly accessible in memory.
       walk_file_scope_il((an_entry_process_function_ptr)NULL,
                          (a_string_entry_process_function_ptr)NULL,
                          ptr_remap_function);
-      /* Save the remap list for this region as the file-scope remap list. */
-      fs_block_remap_list = block_remap_list;
     } else {
       /* The memory region is a function scope. */
       walk_routine_scope_il(region_number,
@@ -778,6 +778,10 @@ necessary to make it directly accessible in memory.
                             (a_string_entry_process_function_ptr)NULL,
                             ptr_remap_function);
     }  /* if */
+  }  /* if */
+  if (reading_file_scope_il) {
+    /* Save the remap list for this region as the file-scope remap list. */
+    fs_block_remap_list = block_remap_list;
   }  /* if */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 

@@ -128,8 +128,16 @@ extern void record_mapped_mem_block(a_void_ptr	addr,
 
 /* Allocate a block of memory to be used for memory region storage. */
 extern a_void_ptr alloc_new_mem_block(sizeof_t size);
+/* Allocate an additional memory block for a memory region. */
+extern
+a_mem_block_header_ptr alloc_mem_block(a_memory_region_number region_number,
+                                       sizeof_t               min_size,
+                                       a_void_ptr	      desired_addr);
 /* Create a new memory region. */
 extern a_memory_region_number new_memory_region(void);
+/* Initialize a memory region without allocating the initial block. */
+extern void init_memory_region_without_initial_allocation
+                                      (a_memory_region_number region_number);
 /* Initialize a memory region. */
 extern void init_memory_region(a_memory_region_number region_number,
                                sizeof_t               min_size);

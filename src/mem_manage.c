@@ -473,18 +473,22 @@ precompiled headers is suppressed.
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
  
 
-static a_mem_block_header_ptr alloc_mem_block(
-                                          a_memory_region_number region_number,
-                                          sizeof_t               min_size)
+a_mem_block_header_ptr alloc_mem_block(a_memory_region_number region_number,
+                                       sizeof_t               min_size,
+                                       a_void_ptr	      desired_addr)
 /*
 Add a new memory block to the existing blocks for the indicated region.
 The memory block must have at least "min_size" bytes available in it.
-Return a pointer to the block header.
+If desired_addr is not NULL, look for a memory block for which the
+actual start_of_block is at the specified address.  Return a pointer to
+the block header.
 */
 {
   a_mem_block_header_ptr hdr, prev_hdr;
   sizeof_t               alloc_size, needed_size;
   char                   *alloc_addr;
+  a_mem_block_header_ptr hdr_found = NULL;
+  a_mem_block_header_ptr prev_hdr_found = NULL;
 
   db_enter(5, "alloc_mem_block");
   /* Reuse a previously-allocated piece if possible.  Such a piece was
@@ -498,21 +502,33 @@ Return a pointer to the block header.
       alloc_size = hdr->after_end_of_block - hdr->start_of_block +
                    adjusted_header_size;
       if (alloc_size >= needed_size) {
-        /* The piece is big enough.  Take it out of the list and use it. */
-        if (prev_hdr == NULL) {
-          reusable_blocks_list = hdr->next;
-        } else {
-          prev_hdr->next = hdr->next;
+        if (hdr_found == NULL || hdr->start_of_block == desired_addr) {
+           /* We've found a candidate, or if this is the desired address,
+              we've found a definite match.  Save a pointer to this block */
+           hdr_found = hdr;
+           prev_hdr_found = prev_hdr;
+           if (desired_addr == NULL ||
+               hdr->start_of_block == desired_addr) break;
         }  /* if */
-#if DEBUG
-        if (debug_level >= 5) {
-          fprintf(f_debug, "alloc_mem_block: reusing block, size = %lu\n",
-                           (unsigned long)alloc_size);
-        }  /* if */
-#endif /* DEBUG */
-        goto have_hdr;
       }  /* if */
     }  /* for */
+    if (hdr_found != NULL) {
+      /* We've found an acceptable piece.  Take it out of the list
+         and use it. */
+      if (prev_hdr_found == NULL) {
+        reusable_blocks_list = hdr_found->next;
+      } else {
+        prev_hdr_found->next = hdr_found->next;
+      }  /* if */
+#if DEBUG
+      if (debug_level >= 5) {
+        fprintf(f_debug, "alloc_mem_block: reusing block, size = %lu\n",
+                         (unsigned long)alloc_size);
+      }  /* if */
+#endif /* DEBUG */
+      hdr = hdr_found;
+      goto have_hdr;
+    }  /* if */
   }  /* if */
   /* No piece available for reuse, so allocate a new one.  Use the
      HOST_ALLOCATION_INCREMENT unless the minimum required size is bigger
@@ -752,6 +768,21 @@ the number of entries indicated by region_number.
 }  /* ensure_mem_region_table_space */
 
 
+void init_memory_region_without_initial_allocation
+                        (a_memory_region_number region_number)
+/*
+Initialize the indicated region number.
+*/
+{
+  ensure_mem_region_table_space(region_number);
+  mem_region_table[region_number] = NULL;
+  /* Keep track of the highest memory region number used. */
+  if (region_number > highest_used_region_number) {
+    highest_used_region_number = region_number;
+  }  /* if */
+}  /* init_memory_region_without_initial_allocation */
+
+
 void init_memory_region(a_memory_region_number region_number,
                         sizeof_t               min_size)
 /*
@@ -761,14 +792,9 @@ should be called instead.  init_memory_region is called directly for the
 special "front end" memory region.
 */
 {
-  ensure_mem_region_table_space(region_number);
-  mem_region_table[region_number] = NULL;
+  init_memory_region_without_initial_allocation(region_number);
   /* Allocate the initial memory block. */
-  (void)alloc_mem_block(region_number, min_size);
-  /* Keep track of the highest memory region number used. */
-  if (region_number > highest_used_region_number) {
-    highest_used_region_number = region_number;
-  }  /* if */
+  (void)alloc_mem_block(region_number, min_size, (a_void_ptr)NULL);
 }  /* init_memory_region */
 
 
@@ -831,7 +857,8 @@ is used for allocation of general front end memory (i.e., not IL).
     /* Not enough space remaining in current block.  Free any unused
        space at the end of the current last block, and start a new block. */
     trim_mem_block(hdr);
-    hdr = alloc_mem_block(region_number, size + HOST_ALIGNMENT_REQUIRED);
+    hdr = alloc_mem_block(region_number, size + HOST_ALIGNMENT_REQUIRED,
+                          (a_void_ptr)NULL);
   }  /* for */
 
   /* Take the required space out of the current block. */
