@@ -3875,6 +3875,7 @@ table.
         tip->template_sym = sym;
         tip->template_info = alloc_template_symbol_supplement(
                                        (a_symbol_kind)sk_static_data_member);
+        tip->template_info->token_sequence_number = curr_token_sequence_number;
       } else {
         /* We must be in the midst of a template class instantiation.  We need
            to bind this static data member to the static data member template
@@ -5809,12 +5810,6 @@ a prototype instantiation for A<T> will have been done, and in the process
 symbols for the nested classes A<T>::B and A<T>::B::C will have been created.
 With the real instantiation A<int> the "corresponding prototype instantiations"
 are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
-
-Note that the code for finding a nonnested prototype instantiation is quite
-different from that for finding the corresponding nested class.  For the
-latter case a recursive algorithm is used, since we have to navigate the
-parent chain (e.g., climb up from A<int>::B to A<int>, find A<T>, then climb
-back down to find A<T>::B).
 */
 {
   a_symbol_ptr                   corresp_prototype_tag_sym = NULL;
@@ -5826,14 +5821,17 @@ back down to find A<T>::B).
   if (curr_sym->variant.class_struct_union.extra_info->is_nonreal_class) {
     /* Return NULL. */
   } else if (curr_sym->class_of_which_a_member != NULL) {
-    /* curr_sym represents a nested class.  Find the corresponding prototype
+    /* curr_sym represents a nested class.  Get the corresponding prototype
        tag symbol of its parent class; then find the corresponding nested
        class within it. */
     a_type_ptr      tp = curr_sym->class_of_which_a_member;
-    a_scope_number  decl_scope;
+    a_symbol_ptr    parent_sym;
 
-    sym = find_corresp_prototype_tag_sym(
-                                 (a_symbol_ptr)tp->source_corresp.assoc_info);
+    /* Get the prototype tag symbol of the class of which a member.  This
+       is stored in the parents class symbol supplement. */
+    parent_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+    sym = parent_sym->variant.class_struct_union.extra_info->
+                                                       corresp_prototype_sym;
     if (sym != NULL) {
       /* sym is the corresponding prototype tag symbol of the parent class.
          It represents a prototype instantiation of a class template or a
@@ -5846,20 +5844,18 @@ back down to find A<T>::B).
            Look through the types list associated with the parent class. */
         tp = tp->variant.class_struct_union.extra_info->assoc_scope->types;
         for (; tp != NULL; tp = tp->next) {
-          sym =(a_symbol_ptr)tp->source_corresp.assoc_info;
+          sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
           if (sym != NULL && sym->kind == curr_sym->kind) {
-            if (sym->decl_position.column == curr_sym->decl_position.column &&
-                sym->decl_position.seq == curr_sym->decl_position.seq) {
+            a_class_symbol_supplement_ptr	cssp;
+            cssp = sym->variant.class_struct_union.extra_info;
+            if (cssp->prototype_token_sequence_number ==
+                                                curr_token_sequence_number) {
               corresp_prototype_tag_sym = sym;
               break;
             }  /* if */
           }  /* if */
         }  /* for */
       } else {
-        /* Normal case -- find the symbol with the same header as curr_sym
-           and belonging to the scope that sym established. */
-        decl_scope = 
-               tp->variant.class_struct_union.extra_info->assoc_scope->number;
         if (is_incomplete_type(sym->variant.class_struct_union.type)) {
           /* We must still be in the midst of the prototype instantiation, so
              the symbol is still on the active list. */
@@ -5869,9 +5865,14 @@ back down to find A<T>::B).
           sym = curr_sym->header->inactive_symbols;
         }  /* if */
         for (; sym != NULL; sym = sym->next) {
-          if (sym->decl_scope == decl_scope && sym->kind == curr_sym->kind) {
-            corresp_prototype_tag_sym = sym;
-            break;
+          if (sym->kind == curr_sym->kind) {
+            a_class_symbol_supplement_ptr	cssp;
+            cssp = sym->variant.class_struct_union.extra_info;
+            if (cssp->prototype_token_sequence_number ==
+                                                curr_token_sequence_number) {
+              corresp_prototype_tag_sym = sym;
+              break;
+            }  /* if */
           }  /* if */
         }  /* for */
       }  /* if */
@@ -6041,6 +6042,13 @@ Scan the body of a class definition, including the base classes list.
          instantiation, if any. */
       if (!is_nonreal_instantiation) {
         corresp_prototype_tag_sym = find_corresp_prototype_tag_sym(tag_sym);
+        cssp->corresp_prototype_sym = corresp_prototype_tag_sym;
+      } else if (cssp->is_prototype_instantiation) {
+        /* During the prototype instantiation save the token sequence number
+           associated with this position in the class symbol supplement
+           this will be used during real instantiations to determine which
+           declaration in the real instantiation matches this one. */
+        cssp->prototype_token_sequence_number = curr_token_sequence_number;
       }  /* if */
     }  /* if */
     if (C_dialect == C_dialect_cplusplus && curr_token == tok_rbrace) {
@@ -6691,7 +6699,16 @@ Scan the body of a class definition, including the base classes list.
                                    &func_info, access, virtual_specified,
                                    /*compiler_generated=*/FALSE, spec_kind,
                                    &override_registry);
-                if (corresp_prototype_tag_sym != NULL) {
+                if (cssp->is_prototype_instantiation) {
+                  /* During the prototype instantiation, save the token
+                     sequence number associated with this declaration so that
+                     it can be used for matching purposes during real
+                     instantiations. */
+                  a_template_symbol_supplement_ptr	tssp;
+                  tssp = rout_sym->variant.routine.instance_ptr->template_info;
+                  check_assertion(tssp != NULL);
+                  tssp->token_sequence_number = curr_token_sequence_number;
+                } else if (corresp_prototype_tag_sym != NULL) {
                   /* The class must be the instantiation of a class template
                      (or a class nested within such an instantiation). Bind
                      the current member function symbol to the function

@@ -1,5 +1,22 @@
 Version 2.24
 
+6/7/94  Matching of template member declarations with prototype instantiation
+
+The algorithm used to match declarations found in an instantiation with
+the template information recorded in the prototype instantiation
+could fail if several declarations were included in a single
+macro.  This has been corrected.
+
+  #define THE_PROGRAM template <class T> struct A { \
+      operator int(){return 1;} \
+      operator char(){return 2;} \
+  }; \
+  A<int> ai; \
+  A<char> ac;
+
+  THE_PROGRAM
+
+
 6/6/94  Warning on partial or failed virtual function overriding
 
 There are two "suspicious" cases involving function declarations in a
