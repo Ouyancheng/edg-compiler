@@ -406,7 +406,11 @@ range_check:
   }  /* if */
   if (range_error) {
     conv_line_loc_to_source_pos(*temp_ptr, &error_position);
-    warning(ec_bad_character_value);
+    if (strict_ansi_mode) {
+      diagnostic(strict_ansi_error_severity, ec_bad_character_value);
+    } else {
+      warning(ec_bad_character_value);
+    }  /* if */
     /* Value is truncated by the normal return processing. */
   }  /* if */
   goto return_point;

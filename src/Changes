@@ -1,5 +1,10 @@
 Version 2.11
 
+9/28/92  Error on bad hex/octal character in strict ANSI mode
+
+A too-large hex or octal escape in a character constant or string
+literal now causes an error instead of a warning in -A mode.
+
 9/27/92  Two-argument delete routines
 
 The IL generated now passes the second argument (giving the size) when
