@@ -2371,7 +2371,7 @@ was selected either.
   if (il_header.short_enums) {
     command_line_error(ec_cl_short_enums_requires_gcc_mode);
   }  /* if */
-#endif GNU_EXTENSIONS_ALLOWED
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* exclude_gcc_specific_options */
 
 
