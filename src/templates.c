@@ -5892,6 +5892,12 @@ describing any incompatibilities.
   a_boolean		any_errors = FALSE;
   a_template_param_ptr	prev_new_tpp = NULL;
 
+  if (nesting_depth_of_template_param(old_list) !=
+                                  nesting_depth_of_template_param(new_list)) {
+    /* The nesting depths do not match -- don't check any further. */
+    any_errors = TRUE;
+    goto done;
+  }  /* if */
   old_tpp = old_list;
   new_tpp = new_list;
   while (new_tpp != NULL && old_tpp != NULL) {
@@ -5954,6 +5960,7 @@ describing any incompatibilities.
       pos_error(error_code, pos);
     }  /* if */
   }  /* if */
+done:
   return !any_errors;
 }  /* equiv_template_param_lists */
 
