@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -2028,6 +2028,9 @@ extern a_routine_ptr select_copy_constructor(
                                     a_boolean         evaluated,
                                     a_boolean         suppress_access_check);
 
+extern char *il_entry_for_symbol(a_symbol_ptr      sym,
+                                 an_il_entry_kind  *kind);
+
 extern an_access_specifier compute_access(an_access_specifier access,
                                           an_access_specifier class_access);
 
@@ -2456,6 +2459,6 @@ extern void sym_tbl_init(void);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

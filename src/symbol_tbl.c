@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -3385,8 +3385,8 @@ no access checking is done.
 }  /* select_copy_constructor */
 
 
-static char *il_entry_for_symbol(a_symbol_ptr      sym,
-                                 an_il_entry_kind  *kind)
+char *il_entry_for_symbol(a_symbol_ptr      sym,
+                          an_il_entry_kind  *kind)
 /*
 Return a pointer to the IL entry to which the specified symbol refers.  Also
 return the kind of il entry that is found.  If the symbol is not associated
@@ -9043,6 +9043,6 @@ to avoid an 8-character external name clash with symbol_table.)
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
