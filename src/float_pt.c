@@ -58,13 +58,13 @@ EXTERN_C double strtod(char *, char **);
 #else /* !EDG_WIN32 */
 #ifdef sun
 /* SunOS, Solaris, including Solaris on Intel X86. */
-extern int isnan(double);
+EXTERN_C int isnan(double x);
 #define is_NaN(x) (isnan((double)(x)))
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 /* The "finite" function takes a double argument, so it doesn't work
    for long double (the conversion to double could produce an Infinity
    for a too-large value). */
-extern int finite(double);
+EXTERN_C int finite(double x);
 #define is_finite(x) (finite(x))
 #else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 #define is_finite(x) (long_double_is_finite(x))  /* See definition below. */
@@ -1212,7 +1212,7 @@ be NULL if the corresponding return value is not needed.
     }  /* if */
   } else if (temp == 0.0 &&
              memcmp((char *)&temp, (char *)&zero,
-                    data_size_of_host_fp_value) != 0) {
+                    size_t_arg(data_size_of_host_fp_value)) != 0) {
     /* Special handling to ensure that -0.0 comes out with the leading "-";
        some sprintfs do not process that correctly. */
     (void)strcpy(str, "-0.0");
@@ -1558,7 +1558,6 @@ Initialize static variables related to float_pt.c.
 {
   int		i = 1;
   sizeof_t	size;
-  int		host_fp_mant_dig;
 
   /* Determine whether the host system is big or little endian. */
   /* Suppress the CodeCenter warning that would be issued because we
@@ -1571,13 +1570,12 @@ Initialize static variables related to float_pt.c.
      For example, the Intel long double uses only 10 bytes (80 bits) of
      the 12 bytes of allocated space. */
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-  host_fp_mant_dig = LDBL_MANT_DIG;
-#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-  host_fp_mant_dig = DBL_MANT_DIG;
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-  data_size_of_host_fp_value = (host_fp_mant_dig == 64
-                              ? ((host_fp_mant_dig + 16) / CHAR_BIT)
+  data_size_of_host_fp_value = (LDBL_MANT_DIG == 64
+                              ? ((LDBL_MANT_DIG + 16) / CHAR_BIT)
                               : sizeof(a_host_fp_value));
+#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+  data_size_of_host_fp_value = sizeof(a_host_fp_value);
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
   /* At least on Intel implementations, 80-bit floating-point values do not
      have an implicit mantissa bit. */
