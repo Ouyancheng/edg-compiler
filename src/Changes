@@ -1,5 +1,15 @@
 Version 2.46
 
+2/27/01  Microsoft compatibility: internal error on _asm with macro reference
+
+In version 2.45, an internal error would occur when a Microsoft _asm
+included a reference to a macro.  This has been fixed.
+
+  #define ONE 0x01
+  void f() {
+    _asm int ONE;
+  }
+
 2/27/01  More information in il_to_str output of some constants
 
 The il_to_str routines now put out more information on ck_dynamic_init

@@ -1297,6 +1297,7 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
 */
 {
   a_boolean     save_fetch_pp_tokens = fetch_pp_tokens;
+  a_boolean	save_treat_newline_as_token = treat_newline_as_token;
   a_boolean     any_white_space_skipped;
   unsigned long sequence_id;
   a_source_line_modif_ptr
@@ -1498,7 +1499,7 @@ end_loop:
   main_slmp->is_isolated_text = FALSE;
   fetch_pp_tokens = save_fetch_pp_tokens;
   curr_char_loc = save_curr_char_loc;
-  treat_newline_as_token = FALSE;
+  treat_newline_as_token = save_treat_newline_as_token;
   /* The body of the top-level macro has been expanded.  macro_buffer
      contains the expansion represented by source line modifications,
      and aux_buffer_for_pcc_macros contains the expansion in raw-text form. */
