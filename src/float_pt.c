@@ -15,23 +15,6 @@ The versions in this file are for prototyping only, and should be replaced
 for a production version.
 
 */
-#ifdef FFE
-/*
-Note that in Fortran, the different sizes of floating point must be stored
-differently.  It would not work to have, e.g., reals and double precisions
-stored the same way, because if you set a real to a hexadecimal constant,
-you would not know whether to
-
-(a)  store the hexadecimal bytes in a float, and convert them to a double,
-which would be appropriate if the hex constant was intended to be a real
-constant represented in hex form, or
-(b)  store the hexadecimal bytes in the initial bytes of the double, and
-leave the rest untouched or zeroed, which would be appropriate if the
-hex constant was intended to be character (hollerith) data.
-
-The problem applies to hollerith constants as well.
-*/
-#endif /* ifdef FFE */
 
 /* Header files common to all files. */
 #include "fe_common.h"
@@ -54,6 +37,25 @@ EXTERN_C double strtod(char *, char **);
 /* BSD errno.h doesn't define "errno". */
 EXTERN_C int errno;
 #endif /* __BSD__ */
+
+
+#ifdef FFE
+/*
+Note that in Fortran, the different sizes of floating point must be stored
+differently.  It would not work to have, e.g., reals and double precisions
+stored the same way, because if you set a real to a hexadecimal constant,
+you would not know whether to
+
+(a)  store the hexadecimal bytes in a float, and convert them to a double,
+which would be appropriate if the hex constant was intended to be a real
+constant represented in hex form, or
+(b)  store the hexadecimal bytes in the initial bytes of the double, and
+leave the rest untouched or zeroed, which would be appropriate if the
+hex constant was intended to be character (hollerith) data.
+
+The problem applies to hollerith constants as well.
+*/
+#endif /* ifdef FFE */
 
 
 static void store_double(double                  temp,
