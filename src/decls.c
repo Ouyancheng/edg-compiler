@@ -8175,6 +8175,7 @@ operator function reference.
   a_boolean               class_reactivated = FALSE;
   a_boolean               namespace_reactivated = FALSE;
   a_decl_pos_block        decl_pos_block;
+  a_scope_stack_entry_ptr ssep;
 
   db_enter(3, "scan_conversion_operator");
   /* Push a class or namespace reactivation scope if the class or namespace
@@ -8213,7 +8214,7 @@ operator function reference.
      left hand side in the scope stack entry.  This is needed to do the dual
      lookup of conversion operator names. */
   if (field_sel_type != NULL) {
-    a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+    ssep = &scope_stack[depth_scope_stack];
     ssep->conversion_parent_type = field_sel_type;
     ssep->qualified_conversion_operator = is_class_member && parent != NULL;
   }  /* if */
@@ -8236,6 +8237,11 @@ operator function reference.
       /* Missing type specifier. */
       report_implicit_int(&error_position, specifiers_type);
     }  /* if */
+    /* Reset the conversion parent information in the scope stack in case
+       the type did not involve an identifier. */
+    ssep = &scope_stack[depth_scope_stack];
+    ssep->conversion_parent_type = NULL;
+    ssep->qualified_conversion_operator = FALSE;
     complete_type = pointer_declarator(specifiers_type,
                                        /*reference_allowed=*/TRUE,
                                        (a_call_conv_descr_ptr)NULL,
@@ -8275,7 +8281,7 @@ operator function reference.
     /* Reset the scope stack fields.  This will normally have been done
        already when scanning the type above, but just in case, it is
        reset here. */
-    a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+    ssep = &scope_stack[depth_scope_stack];
     ssep->conversion_parent_type = NULL;
     ssep->qualified_conversion_operator = FALSE;
   }  /* if */
