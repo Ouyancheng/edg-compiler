@@ -321,12 +321,12 @@ type.
 #endif /* ifndef USER_CONTROL_OF_STRUCT_PACKING */
 
 /*
-Flag that is TRUE if "#pragma ident <string>" and "#ident" are recognized.
+Flag that is TRUE if "#pragma ident" and "#ident" are recognized.
 Both are implemented by recording the string in a pragma entry and passing
 it to the back end.
 */
 #ifndef IDENT_DIRECTIVE_AND_PRAGMA
-#define IDENT_DIRECTIVE_AND_PRAGMA FALSE
+#define IDENT_DIRECTIVE_AND_PRAGMA TRUE
 #endif /* ifndef IDENT_DIRECTIVE_AND_PRAGMA */
 
 /*

@@ -20,7 +20,6 @@ the release should contain no defines.
 */
 
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
-#define IDENT_DIRECTIVE_AND_PRAGMA 1
 
 #ifdef CP_GEN_BE_VERSION
 /*
