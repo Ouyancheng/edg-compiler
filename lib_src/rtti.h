@@ -96,6 +96,15 @@ typedef const
 
 #endif /* defined(__EDG_IA64_ABI) */
 
+/*
+Given a pointer to a type_info_impl, return the type_info pointer.
+*/
+#ifdef __EDG_IA64_ABI
+#define type_info_for_impl(impl) (impl)
+#else /* ifndef __EDG_IA64_ABI */
+#define type_info_for_impl(impl) (&((impl)->user_type_info))
+#endif /* ifndef __EDG_IA64_ABI */
+
 #ifndef __EDG_IA64_ABI
 
 /* Describes the base classes of a class.  Pointed to by the type_info

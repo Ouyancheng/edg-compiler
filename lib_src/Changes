@@ -1,5 +1,26 @@
 Version 3.4
 
+10/2/03  dynamic_cast did not handle certain downcasts properly
+
+The runtime did not properly implement certain downcasts.  Formerly, these
+casts would fail (by returning a null pointer or throwing a bad_cast
+exception).  The cast would fail if the source was either an ambiguous
+or non-public base class.  These casts are now supported.
+
+  #include <stdio.h>
+  struct A {
+    virtual void f () {}
+  };
+  struct B : public A { };
+  struct C : public B { };
+  struct D : public B { };
+  struct E : public C, public D { };
+  int main () {
+    E e;
+    A* ap = (C*)&e;
+    printf("%s\n", dynamic_cast <B*> (ap) == 0 ? "fail" : "pass");
+  }
+
 8/6/03   Detect recursive call of terminate()
 
 The runtime now detects an attempt by a user-written terminate routine to

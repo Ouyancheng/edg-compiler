@@ -24,7 +24,66 @@ Run-time type identification.
 #endif /* ABI_CHANGES_FOR_RTTI */
 
 /* Forward declaration. */
+typedef struct a_base_class_traversal_block *a_base_class_traversal_block_ptr;
+
+/*
+The type of the function called to process a base class entry.
+*/
+typedef void a_base_class_process_function(
+		void					*ptr,
+		a_type_info_impl_ptr			class_info,
+		a_base_class_traversal_block_ptr	bctbp,
+		a_base_class_spec_ptr			curr_base_info);
+
+typedef a_base_class_process_function
+			*a_base_class_process_function_ptr;
+
+/*
+Entry used to pass information used during base class traversal.
+*/
+typedef struct a_base_class_traversal_block {
+  a_base_class_process_function_ptr
+		process_function;
+			/* The function to be called for each base class
+			   encountered, before its base classes have been
+			   processed.  May not be NULL. */
+  a_base_class_process_function_ptr
+		process_post_function;
+			/* The function to be called for each base class
+			   encountered, after its base classes have been
+			   processed.  May be NULL. */
+  a_boolean
+		not_direct_only;
+			/* TRUE if all base classes (not just the direct ones)
+			   should be considered.  This has no effect in the
+			   IA-64 ABI. */
+  a_boolean	public_only;
+			/* TRUE if only public base classes should be
+			   visited. */
+  a_boolean	terminate;
+			/* TRUE if the traversal should be discontinued. */
+  /* Fields used by tbc_downcast: */
+  a_type_info_impl_ptr
+		downcast_dest_tiip;
+			/* The result type of the cast. */
+  a_type_info_impl_ptr
+		downcast_source_tiip;
+			/* The source type of the cast. */
+  void		*downcast_source_ptr;
+			/* The pointer to the source subobject. */
+  a_boolean	downcast_dest_found;
+			/* TRUE if we've found an eligible destination class
+			   and should begin looking for a matching source
+			   subobject. */
+  void		*downcast_result;
+			/* The result of the downcast, or NULL if no result
+			   was found. */
+} a_base_class_traversal_block;
+
+
+/* Forward declarations. */
 EXTERN_C void __db_type_info(const STD_NAMESPACE::type_info& info);
+EXTERN_C void __db_type_info_impl(a_type_info_impl_ptr	tiip);
 
 #ifdef __EDG_IA64_ABI
 
@@ -42,6 +101,144 @@ Macros used to test for flags from the __vmi_class_tyupe_info.
 #define non_diamond_repeat(flags) \
   ((flags & abi::__vmi_class_type_info::__non_diamond_repeat_mask) != 0)
 
+#endif /* ifdef __EDG_IA64_ABI */
+
+
+static void clear_base_class_traversal_block(
+				a_base_class_traversal_block_ptr	bctbp)
+/*
+Initialize the fields of a base class traversal block.
+*/
+{
+  bctbp->process_function = NULL;
+  bctbp->process_post_function = NULL;
+  bctbp->not_direct_only = FALSE;
+  bctbp->public_only = FALSE;
+  bctbp->terminate = FALSE;
+  /* Fields used by tbc_downcast. */
+  bctbp->downcast_dest_tiip = NULL;
+  bctbp->downcast_source_tiip = NULL;
+  bctbp->downcast_source_ptr = NULL;
+  bctbp->downcast_dest_found = NULL;
+  bctbp->downcast_result = NULL;
+}  /* clear_base_class_traversal_block */
+
+
+static a_boolean is_virtual(a_base_class_spec_ptr	base_info)
+/*
+Return TRUE if base_info is a base class specification entry for a virtual
+base class.  Note that base_info may be NULL.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (base_info != NULL) {
+#ifdef __EDG_IA64_ABI
+    result = (base_info->__offset_flags & BCS_VIRTUAL) != 0;
+#else /* ifndef __EDG_IA64_ABI */
+    result = (base_info->flags & BCS_VIRTUAL) != 0;
+#endif /* ifdef __EDG_IA64_ABI */
+  }  /* if */
+  return result;
+}  /* is_virtual */
+
+
+static void traverse_base_classes(
+			void					*ptr,
+			a_type_info_impl_ptr			class_info,
+			a_base_class_traversal_block_ptr	bctbp,
+			a_base_class_spec_ptr			curr_base_info)
+/*
+Walk the base classes of the object specified by "ptr" of the type specified
+by "class_info".  Call user-supplied routines as specified in the traversal
+block.  This routine is called for the most derived class and then calls itself
+recursively for all of the base classes.  When called for a base class,
+"curr_base_info" points to the base class specification entry for the current
+base class.  This will be NULL for the most derived class, and may also be NULL
+for certain base classes in the IA-64 ABI.
+*/
+{
+#ifdef __EDG_IA64_ABI
+  /* IA-64 ABI version. */
+  a_base_class_spec_ptr	bcsp;
+  void                  *new_ptr;
+
+  /* Call the processing function on this base class. */
+  bctbp->process_function(ptr, class_info, bctbp, curr_base_info);
+  if (typeid(*class_info) == typeid(abi::__si_class_type_info)) {
+    abi::__si_class_type_info *si_obj_info = 
+                                      (abi::__si_class_type_info *)class_info;
+    /* Call the traversal routine on the base class. */
+    traverse_base_classes(ptr, si_obj_info->__base_type, bctbp,
+                          (a_base_class_spec_ptr)NULL);
+  } else if (typeid(*class_info) == typeid(abi::__vmi_class_type_info)) {
+    abi::__vmi_class_type_info *vmi_obj_info = 
+                                     (abi::__vmi_class_type_info *)class_info;
+    for (bcsp = vmi_obj_info->__base_info;
+         bcsp < vmi_obj_info->__base_info + vmi_obj_info->__base_count;
+         bcsp++) {
+      /* If this base class is not public, skip it if only processing public
+         bases. */
+      if (bctbp->public_only && (bcsp->__offset_flags & BCS_PUBLIC) == 0) {
+        continue;
+      }  /* if */
+      if (bcsp->__offset_flags & BCS_VIRTUAL) {
+        a_vtbl_entry_ptr vtbl, vbase_offset;
+        vtbl = *((a_vtbl_entry_ptr *)ptr);
+        vbase_offset = (a_vtbl_entry_ptr)(((char *)vtbl) + get_offset(bcsp));
+        new_ptr = (void *)(((char *)ptr) + *vbase_offset);
+      } else {
+        new_ptr = (void *)(((char *)ptr) + get_offset(bcsp));
+      }  /* if */
+      /* Call the traversal routine on the base class. */
+      traverse_base_classes(new_ptr, bcsp->__base_type, bctbp, bcsp);
+      /* Stop the traversal if the terminate flag has been set. */
+      if (bctbp->terminate) goto end_of_routine;
+    }  /* for */
+  }  /* if */
+  /* Call the post-processing function on this base class. */
+  if (bctbp->process_post_function != NULL) {
+    bctbp->process_post_function(ptr, class_info, bctbp, curr_base_info);
+  }  /* if */
+end_of_routine:;
+#else /* ifndef __EDG_IA64_ABI */
+  /* Extended cfront ABI version. */
+  a_base_class_spec_ptr	bcsp;
+  void                  *new_ptr;
+  a_boolean		done;
+
+  /* Call the processing function on this base class. */
+  bctbp->process_function(ptr, class_info, bctbp, curr_base_info);
+  for (done = FALSE, bcsp = class_info->base_class_entries;
+       bcsp != NULL && !done; done = (bcsp->flags & BCS_LAST) != 0, bcsp++) {
+    /* Skip this base class if we are only processing direct bases. */
+    if (!bctbp->not_direct_only && (bcsp->flags & BCS_DIRECT) == 0) continue;
+    /* If this base class is not public, skip it if only processing public
+       bases. */
+    if (bctbp->public_only && (bcsp->flags & BCS_PUBLIC) == 0) continue;
+    /* Adjust the pointer by the offset provided in the base class
+       specification. */
+    new_ptr = (void*) (((char *) ptr) + bcsp->offset);
+    if (bcsp->flags & BCS_VIRTUAL) {
+      /* If this is a virtual base class then the offset provides the
+         location of a pointer to the base class.  Dereference the
+         pointer and use that value. */
+      new_ptr = *((void **)new_ptr);
+    }  /* if */
+    traverse_base_classes(new_ptr, bcsp->type_info, bctbp, bcsp);
+    /* Stop the traversal if the terminate flag has been set. */
+    if (bctbp->terminate) goto end_of_routine;
+  }  /* for */
+  /* Call the post-processing function on this base class. */
+  if (bctbp->process_post_function != NULL) {
+    bctbp->process_post_function(ptr, class_info, bctbp, curr_base_info);
+  }  /* if */
+end_of_routine:;
+#endif /* ifdef __EDG_IA64_ABI */
+}  /* traverse_base_classes */
+
+
+#ifdef __EDG_IA64_ABI
 
 static a_boolean derived_to_base_conversion_r(
 				void			*ptr,
@@ -404,16 +601,16 @@ this function is called; it is set to TRUE If the base class is found.
 #endif /* ifndef __EDG_IA64_ABI */
 
   ptr = obj_ptr;
-#ifdef __EDG_IA64_ABI
 #if DEBUG
   if (__debug_level >= 4) {
     fprintf(__f_debug, "find_base_class_at_addr:\n");
     fprintf(__f_debug, "  looking in:\n");
-    __db_type_info(*obj_info);
+    __db_type_info(*(type_info_for_impl(obj_info)));
     fprintf(__f_debug, "  for base class:\n");
-    __db_type_info(*base_info);
+    __db_type_info(*(type_info_for_impl(base_info)));
   }  /* if */
 #endif /* DEBUG */
+#ifdef __EDG_IA64_ABI
   if (typeid(*obj_info) == typeid(abi::__si_class_type_info)) {
     abi::__si_class_type_info *si_obj_info = 
                                       (abi::__si_class_type_info *)obj_info;
@@ -459,7 +656,7 @@ this function is called; it is set to TRUE If the base class is found.
         if (*found) break;
       }  /* if */
     }  /* for */
-  }  /* for */
+  }  /* if */
 #else /* !defined(__EDG_IA64_ABI) */
   for (done = FALSE, bcsp = obj_info->base_class_entries;
        bcsp != NULL && !done; done = (bcsp->flags & BCS_LAST) != 0, bcsp++) {
@@ -495,20 +692,131 @@ this function is called; it is set to TRUE If the base class is found.
 
 #if ABI_CHANGES_FOR_RTTI
 
+static void tbc_downcast(
+		void					*ptr,
+		a_type_info_impl_ptr			class_info,
+		a_base_class_traversal_block_ptr	bctbp,
+		a_base_class_spec_ptr			curr_base_info)
+/*
+This routine is called by traverse_base_classes to perform the functions
+required for try_downcast.  This routine first determines whether we
+are within a portion of the class hierarchy that represents the base
+classes of the destination type of the case.  Once we enter that portion
+of the hierarchy, we search for a public base class subobject that
+matches the type and location of the source of the cast.
+
+See try_downcast for more information.
+*/
+{
+  if (matching_type_info(bctbp->downcast_dest_tiip, class_info)) {
+    /* We have found a matching destination class and should begin looking
+       for the source subobject.  The source subobject must be a public base
+       so only consider public classes. */
+    bctbp->downcast_dest_found = TRUE;
+    bctbp->public_only = TRUE;
+#if DEBUG
+    if (__debug_level >= 4) {
+      fprintf(__f_debug, "Entering matching class %s (%p)\n",
+              type_info_for_impl(class_info)->name(), ptr);
+    }  /* if */
+#endif /* DEBUG */
+  } else if (bctbp->downcast_dest_found && ptr == bctbp->downcast_source_ptr &&
+             matching_type_info(class_info, bctbp->downcast_source_tiip)) {
+    /* We have found the matching subobject. */
+    if (bctbp->downcast_result != NULL) {
+      /* A result has already been found -- this means there is more than one
+         possible conversion.  Reset the result and terminate the search. */
+      bctbp->downcast_result = NULL;
+      bctbp->terminate = TRUE;
+    } else {
+      /* A result has been found (for the first time). */
+      bctbp->downcast_result = ptr;
+      /* If the base class is not virtual, we can terminate the search. */
+      if (!is_virtual(curr_base_info)) bctbp->terminate = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* tbc_downcast */
+
+
+/*ARGSUSED*/ /* <-- curr_base_info is not used. */
+static void tbc_post_downcast(
+		void					*ptr,
+		a_type_info_impl_ptr			class_info,
+		a_base_class_traversal_block_ptr	bctbp,
+		a_base_class_spec_ptr			curr_base_info)
+/*
+This routine is called by traverse_base_classes to perform the functions
+required for try_downcast.  This is the post-process routine that is
+called after all base classes of the class specified by "ptr" and "class_info"
+have been processed.
+*/
+{
+  if (matching_type_info(bctbp->downcast_dest_tiip, class_info)) {
+    /* We're leaving the part of the hierarchy under the destination class.
+       Reset the flags set when we entered the class. */
+    bctbp->downcast_dest_found = FALSE;
+    bctbp->public_only = FALSE;
+#if DEBUG
+    if (__debug_level >= 4) {
+      fprintf(__f_debug, "Leaving matching class %s (%p)\n",
+              type_info_for_impl(class_info)->name(), ptr);
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+}  /* tbc_post_downcast */
+
+
+static void *try_downcast(void			*complete_object_ptr,
+			  a_type_info_impl_ptr	object_tiip,
+			  void			*source_ptr,
+			  a_type_info_impl_ptr	source_tiip,
+			  a_type_info_impl_ptr	dest_tiip)
+/*
+This routine performed the first portion of the dynamic_cast operation
+as described in 5.2.7 paragraph 8:
+
+  If, in the most derived object pointed (referred) to by v, v points
+  (refers) to a public base class sub-object of a T object, and if
+  only one object of type T is derived from the sub-object pointed
+  (referred) to by v, the result is a pointer (an lvalue referring) to
+  that T object.
+
+This is done by walking the base classes of the complete object and
+noting when we are within the derived class specified by "dest_tiip".
+While within that derived class, we see if we encounter the source subobject
+specified by "source_ptr".  If we find a virtual base class, we must keep
+searching for a possible second matching instance.  If one is found, the
+cast cannot be done.
+*/
+{
+  a_base_class_traversal_block	block;
+
+  clear_base_class_traversal_block(&block);
+  block.process_function = tbc_downcast;
+  block.process_post_function = tbc_post_downcast;
+  block.downcast_dest_tiip = dest_tiip;
+  block.downcast_source_tiip = source_tiip;
+  block.downcast_source_ptr = source_ptr;
+  traverse_base_classes(complete_object_ptr, object_tiip, &block,
+                        (a_base_class_spec_ptr)NULL);
+  return block.downcast_result;
+}  /* try_downcast */
+
+
 #ifdef __EDG_IA64_ABI
 /*ARGSUSED*/ /* <-- hint is not used in that case. */
 #endif /* __EDG_IA64_ABI */
 EXTERN_C void *__dynamic_cast(void			*class_ptr,
 #ifndef __EDG_IA64_ABI
 			      a_vtbl_entry_ptr		vtbl_ptr,
-		              a_type_info_impl_ptr	tiip
+		              a_type_info_impl_ptr	dest_tiip
 #if ABI_COMPATIBILITY_VERSION >= 241
 			    , void			*source_ptr,
 			      a_type_info_impl_ptr	source_tiip
 #endif /* ABI_COMPATIBILITY_VERSION >= 241 */
 #else /* defined(__EDG_IA64_ABI) */
                               a_type_info_impl_ptr      source_tiip,
-                              a_type_info_impl_ptr      tiip,
+                              a_type_info_impl_ptr      dest_tiip,
                               __EDG_DELTA_TYPE          hint
 #endif /* defined(__EDG_IA64_ABI) */
                               )
@@ -525,9 +833,9 @@ Runtime support for dynamic_cast operations.  This routine handles
 class_ptr is the source operand of the cast.  If the source is
 an object (and not a pointer) then a pointer to the source operand
 is used.  vtbl_ptr is a pointer to the virtual function table from
-the source operand.  tiip is a pointer to the type_info_impl
+the source operand.  dest_tiip is a pointer to the type_info_impl
 structure associated with the destination type.  If the source
-operand is being cast to void*, tiip will be NULL.
+operand is being cast to void*, dest_tiip will be NULL.
 
 source_ptr is the original pointer being cast.  It is different from
 class_ptr if the original type did not have a virtual function table
@@ -585,12 +893,23 @@ following information:
    /* In the IA-64 ABI, this is stored in the -1 entry of the vtable. */
   object_tiip = (a_type_info_impl_ptr)((*((a_vtbl_entry_ptr *)class_ptr))[-1]);
 #endif /* defined(__EDG_IA64_ABI) */
-  if (tiip == NULL) {
-    /* When tiip is NULL, the pointer is being cast to void*.  This
+  if (dest_tiip == NULL) {
+    /* When dest_tiip is NULL, the pointer is being cast to void*.  This
        means that class_ptr is to be converted to a pointer to the
        complete object type. */
     result = complete_object_ptr;
+#if ABI_COMPATIBILITY_VERSION >= 241
   } else {
+    /* First attempt a downcast from the base class to one of its derived
+       classes. */
+    result = try_downcast(complete_object_ptr, object_tiip,
+                          source_ptr, source_tiip,
+                          dest_tiip);
+#endif /* ABI_COMPATIBILITY_VERSION >= 241 */
+  }  /* if */
+  /* If this was not a cast to void* or a downcast, try the cross-cast
+     processing. */
+  if (result == NULL) {
     a_boolean	access_okay = TRUE;
 #if ABI_COMPATIBILITY_VERSION >= 241
     /* Before doing the conversion, find the base class pointed to by the
@@ -611,7 +930,7 @@ following information:
     }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 241 */
     if (access_okay) {
-      if (matching_type_info(object_tiip, tiip)) {
+      if (matching_type_info(object_tiip, dest_tiip)) {
         /* The object is being cast to the type it actually is.  For example,
            a Base* that actually points to a Derived is being cast to a
            Derived*.  Simply return the complete object pointer. */
@@ -622,7 +941,7 @@ following information:
         void		*new_ptr = NULL;
         conversion_done = __derived_to_base_conversion(
                                &complete_object_ptr, &new_ptr,
-			       object_tiip, tiip,
+			       object_tiip, dest_tiip,
 			       (an_access_flag_string*)NULL,
 			       /*use_access_flags=*/FALSE);
         if (conversion_done) result = new_ptr;
@@ -678,7 +997,7 @@ this version of the runtime, then simply abort.
 
 EXTERN_C void *__dynamic_cast_ref(void                  *class_ptr,
 			          a_vtbl_entry_ptr      vtbl_ptr,
-			          a_type_info_impl_ptr  tiip
+			          a_type_info_impl_ptr  dest_tiip
 #if ABI_COMPATIBILITY_VERSION >= 241
 			        , void			*source_ptr,
 			          a_type_info_impl_ptr	source_tiip
@@ -691,7 +1010,7 @@ __dynamic_cast and throws an exception if the cast failed.
 {
   void*		result;
 
-  result = __dynamic_cast(class_ptr, vtbl_ptr, tiip
+  result = __dynamic_cast(class_ptr, vtbl_ptr, dest_tiip
 #if ABI_COMPATIBILITY_VERSION >= 241
                           , source_ptr, source_tiip
 #endif /* ABI_COMPATIBILITY_VERSION >= 241 */
@@ -810,9 +1129,22 @@ calls __r_db_type_info and supplies a zero indent value.
   __r_db_type_info(info, 0);
   fprintf(__f_debug, "\n");
 }  /* __db_type_info */
+
 #endif /* DEBUG */
 
 #endif /* ifndef IA64_ABI */
+
+#if DEBUG
+
+EXTERN_C void __db_type_info_impl(a_type_info_impl_ptr	tiip)
+/*
+Given a type info impl. entry, display the name for debugging purposes.
+*/
+{
+  fprintf(__f_debug, "%s\n", type_info_for_impl(tiip)->name());
+}  /* __db_type_info_impl */
+
+#endif /* DEBUG */
 
 #endif /* ABI_CHANGES_FOR_RTTI */
 
