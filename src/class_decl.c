@@ -10823,7 +10823,8 @@ the IL, the template header is passed via template_decl.
          implicit "this" parameter type to be created. (Static member
          functions do not have an implicit "this" pointer. The class pointer
          will be ignored for data members.) */
-      declarator(di_flags, &decl_info.do_flags, member_type,
+      declarator(di_flags, &decl_info.do_flags, (a_type_qualifier_set *)NULL,
+                 member_type,
                  friend_specified ? (a_type_ptr)NULL : class_type,
                  &locator, &local_type, &decl_info.declarator_ssep,
                  &func_info, &decl_info.decl_pos_block);

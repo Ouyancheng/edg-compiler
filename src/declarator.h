@@ -208,26 +208,23 @@ abstract or real declarator.
 			   (respectively) a class or namespace member
 			   declaration.  This flag lets the caller know that
 			   the scope needs to be popped. */
-#define DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY ((a_decl_flag_set)0x10)
-			/* If this bit is set, the derived type constructed
-			   during declarator processing is an array type for
-			   which the restrict qualifier was specified.  This
-			   bit will only be set if DI_IS_PARAMETER_DECL was
-			   set and only if restrict_enabled is TRUE. */
-#define DO_IS_CONSTRUCTOR ((a_decl_flag_set)0x20)
-         /* This bit is set if a constructor declarator was scanned.
-            It will certainly be set if the input flag corresponding to
-            DI_IS_CONSTRUCTOR was set, but even when that is not the case
-            --presumably because the declarator was parenthesized--this
-            bit may become set.  When handling nested declarators, this flag
-            may be set for nonconstructors in cases that are not legal in
-            strict mode; e.g., "struct X { int (*X)(); };". */
-#define DO_IS_DESTRUCTOR ((a_decl_flag_set)0x40)
-         /* This bit is set if a destructor declarator was scanned.
-            It will certainly be set if the input flag corresponding to
-            DI_IS_DESTRUCTOR was set, but even when that is not the case
-            --presumably because the declarator was parenthesized--this
-            bit may become set. */
+#define DO_IS_CONSTRUCTOR ((a_decl_flag_set)0x10)
+			/* This bit is set if a constructor declarator was
+			   scanned.  It will certainly be set if the input
+			   flag corresponding to DI_IS_CONSTRUCTOR was set,
+			   but even when that is not the case -- presumably
+			   because the declarator was parenthesized -- this
+			   bit may become set.  When handling nested
+			   declarators, this flag may be set for
+			   nonconstructors in cases that are not legal in
+			   strict mode; e.g., "struct X { int (*X)(); };". */
+#define DO_IS_DESTRUCTOR ((a_decl_flag_set)0x20)
+			/* This bit is set if a destructor declarator was
+			   scanned.  It will certainly be set if the input
+			   flag corresponding to DI_IS_DESTRUCTOR was set,
+			   but even when that is not the case -- presumably
+			   because the declarator was parenthesized -- this
+			   bit may become set. */
 #define DO_LAST DO_IS_DESTRUCTOR
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DO_LAST)*/
@@ -257,6 +254,7 @@ Clear a calling convention description.
 extern
 void declarator(a_decl_flag_set             input_flags,
                 a_decl_flag_set             *output_flags,
+                a_type_qualifier_set        *array_qualifiers,
                 a_type_ptr                  specifiers_type,
                 a_type_ptr                  member_parent_type,
                 a_symbol_locator            *locator,
@@ -275,14 +273,15 @@ a_type_ptr pointer_declarator(
                       a_type_qualifier_set  *unbound_qualifiers,
                       a_decl_pos_block_ptr  decl_pos_block);
 
-extern void array_declarator(a_type_ptr        *new_type_ptr,
-                             a_boolean         nonconstant_dimension_allowed,
-                             a_boolean         vla_allowed,
-                             a_boolean         vla_asterisk_allowed,
-                             a_boolean         top_level_field_decl,
-                             a_boolean         restrict_allowed,
-                             a_boolean         *restrict_seen,
-                             a_decl_pos_block  *decl_pos_block);
+extern
+void array_declarator(a_type_ptr            *new_type_ptr,
+                      a_boolean             nonconstant_dimension_allowed,
+                      a_boolean             vla_allowed,
+                      a_boolean             vla_asterisk_allowed,
+                      a_boolean             top_level_field_decl,
+                      a_boolean             top_level_param_decl,
+                      a_type_qualifier_set  *array_qualifiers,
+                      a_decl_pos_block_ptr  decl_pos_block);
 
 extern a_boolean restrict_qualifier_is_allowed(a_type_ptr         type,
                                                a_source_position  *error_pos);

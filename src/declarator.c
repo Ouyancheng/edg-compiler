@@ -1149,7 +1149,6 @@ declaration.
   a_boolean               bad_first_param_for_copy_constructor = FALSE;
   a_source_position       pos_of_first_param_type;
   a_func_info_block       local_func_info_block;
-  a_boolean               restrict_qualified = FALSE;
   a_token_cache		  decl_token_cache;
   a_boolean               is_top_level_declarator = TRUE;
 
@@ -1286,6 +1285,7 @@ declaration.
       last_param_type = NULL;
       do {
         a_type_qualifier_set qualifiers = TQ_NONE;
+        a_type_qualifier_set array_qualifiers = TQ_NONE;
         a_decl_pos_block     local_decl_pos_block;
         add_stop_token(tok_comma);
         copy_source_position(pos_curr_token, param_type_pos);
@@ -1362,23 +1362,20 @@ declaration.
             /* Permit a variable length array declaration. */
             di_flags |= DI_VLA_ALLOWED | DI_VLA_ASTERISK_ALLOWED;
           }  /* if */
-          declarator(di_flags, &do_flags, param_type_ptr,
+          declarator(di_flags, &do_flags, &array_qualifiers, param_type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL,
                      &param_locator, &param_type_ptr, &param_ssep,
                      (a_func_info_block_ptr)NULL, &local_decl_pos_block);
-          restrict_qualified = 
-                (do_flags & DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY) != 0;
         } else {
           /* No declarator. */
           set_to_error_locator(param_locator);
-          restrict_qualified = FALSE;
         }  /* if */
         /* Save a pointer to the type as it was declared (i.e., before the
            array-to-pointer adjustment, if any). */
         declared_type = param_type_ptr;
         /* Check that the type is legal, and do required adjustments. */
         check_and_adjust_parameter_type(&param_type_ptr, &param_type_pos,
-                                        restrict_qualified);
+                                        array_qualifiers);
         /* Standardize the storage class: unspecified becomes auto. */
         if (param_storage_class == (a_storage_class)sc_unspecified) {
           param_storage_class = (a_storage_class)sc_auto;
@@ -1955,13 +1952,14 @@ declaration.
   db_exit();
 }  /* function_declarator */
 
+
 void array_declarator(a_type_ptr            *new_type_ptr,
                       a_boolean             nonconstant_dimension_allowed,
                       a_boolean             vla_allowed,
                       a_boolean             vla_asterisk_allowed,
                       a_boolean             top_level_field_decl,
-                      a_boolean             restrict_allowed,
-                      a_boolean             *restrict_seen,
+                      a_boolean             top_level_param_decl,
+                      a_type_qualifier_set  *array_qualifiers,
                       a_decl_pos_block_ptr  decl_pos_block)
 /*
 Scan an array declarator (ISO C 6.5.4.2), or an array declarator in an
@@ -1972,10 +1970,12 @@ new type name); that case is indicated by nonconstant_dimension_allowed.  In
 C (when vla_enabled is TRUE), the dimension may be a nonconstant expression
 when vla_allowed is TRUE; and when vla_asterisk_allowed is TRUE, a VLA of
 unknown size can be indicated with the "[*]" syntax in a function prototype.
-restrict_allowed may be TRUE to indicate that this is a function parameter
-declaration for which the special restrict-array syntax is permitted.  If
-"restrict" is seen, set *restrict_seen to TRUE.  top_level_field_decl is TRUE
-to indicate that this is the declaration of nonstatic data member of a class.
+top_level_field_decl is TRUE to indicate that this is the declaration of
+a nonstatic data member of a class.  top_level_param_decl is TRUE to
+indicate that this is a a top-level declarator in a function parameter
+declaration.  If cv-qualifiers appear at the start of the [...] in a
+parameter declaration, return them in *array_qualifiers.  array_qualifiers
+may be NULL if it is not needed.
 */
 {
   a_targ_size_t           num_of_elements;
@@ -1989,7 +1989,7 @@ to indicate that this is the declaration of nonstatic data member of a class.
 
   db_enter(3, "array_declarator");
   copy_source_position(pos_curr_token, start_pos);
-  *restrict_seen = FALSE;
+  if (array_qualifiers != NULL) *array_qualifiers = TQ_NONE;
   /* Pass over the initial left bracket. */
   (void)get_token();
   add_stop_token(tok_rbracket);
@@ -2000,24 +2000,28 @@ to indicate that this is the declaration of nonstatic data member of a class.
      This is allowed only for formal parameter declarations, and
      indicates that the pointer type to which the array type decays
      is restrict-qualified (e.g., "restrict pointer to int" in
-     the first example above.
-  */
+     the first example above.  In C99, cv-qualifiers are also allowed
+     inside the brackets. */
   if (is_type_qualifier_token(curr_token)) {
     a_source_position     qualifier_pos;
     a_type_qualifier_set  qualifiers;
 
     qualifier_pos = pos_curr_token;
     qualifiers = collect_type_qualifiers(decl_pos_block);
-    if (restrict_allowed) {
-      /* This must be a declaration of a function parameter type, and
-         moreover it must be the top level declaration. */
-      *restrict_seen = ((qualifiers & TQ_RESTRICT) != 0);
-      if (qualifiers != TQ_RESTRICT) {
+    if (top_level_param_decl) {
+      /* This is a top-level declaration of a function parameter type. */
+      /* Only C99 mode allows cv-qualifiers.  restrict is allowed in
+         any mode where the keyword is enabled. */
+      if (!c99_mode && ((qualifiers & TQ_RESTRICT) != qualifiers)) {
         pos_error(ec_type_qualifier_not_allowed, &qualifier_pos);
+        qualifiers &= TQ_RESTRICT;
       }  /* if */
+      check_assertion(array_qualifiers != NULL);
+      *array_qualifiers = qualifiers;
     } else {
-      /* Issue an error. */
-      pos_error((qualifiers & TQ_RESTRICT) ?
+      /* This is not a top-level declarator for a parameter, so "restrict"
+         and cv-qualifiers are not allowed.  Issue an error. */
+      pos_error((qualifiers == TQ_RESTRICT) ?
                    ec_restrict_not_allowed : ec_type_qualifier_not_allowed,
                 &qualifier_pos);
     }  /* if */
@@ -3447,6 +3451,7 @@ to FALSE if the entity being declared is not initializable.
 static void r_declarator(
 		  a_decl_flag_set             input_flags,
                   a_decl_flag_set             *output_flags,
+                  a_type_qualifier_set        *array_qualifiers,
                   a_type_ptr                  specifiers_type,
                   a_type_ptr                  member_parent_type,
                   a_symbol_locator            *locator,
@@ -3483,7 +3488,10 @@ type in the declarator derived type list is a function, *func_info is
 filled with extra information about the parameter list, for use if a
 function body follows.  For declarators that may turn out to be member
 functions, member_parent_type is a pointer to the class (or struct or
-union) type of which it is a member; otherwise it is NULL.
+union) type of which it is a member; otherwise it is NULL.  If there
+are any cv-qualifiers inside a top-level array declarator [...] when
+scanning a parameter type, they are returned in *array_qualifiers.
+array_qualifiers may be NULL if it is not needed.
 
 The routine "declarator" is called at the top level, and it calls
 this routine to do the actual work.  This routine can call itself
@@ -3637,7 +3645,8 @@ The syntax is:
        initializers from the input_flags bit vector.  (The other flags are
        passed on in the recursive call.) */
     r_declarator((input_flags & ~DI_PARENTHESIZED_INITIALIZER_ALLOWED),
-                 &local_do_flags, /*specifiers_type=*/(a_type_ptr)NULL,
+                 &local_do_flags, array_qualifiers,
+                 /*specifiers_type=*/(a_type_ptr)NULL,
                  member_parent_type, locator,
                  &derived_type, &bottom_derived_type,
                  is_constructor, is_destructor,
@@ -3673,9 +3682,6 @@ The syntax is:
          member function.  It will have to be deactivated when the scanning
          of the top-level declarator is complete. */
       *output_flags |= DO_SCOPE_DEACTIVATION_REQUIRED;
-    }  /* if */
-    if (local_do_flags & DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY) {
-      *output_flags |= DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY;
     }  /* if */
     /* A nonconstant dimension, if allowed at all, is allowed only on the
        topmost type (an interpretation of the language specification in ARM
@@ -3917,34 +3923,21 @@ function_lparen:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
       /* Left bracket, indicating array declarator. */
-      a_boolean  restrict_seen, restrict_allowed = FALSE;
-      a_boolean  top_level_field_decl;
+      a_boolean  top_level_field_decl, top_level_param_decl;
 
-      if (restrict_enabled) {
-        /* There is no command line option suppressing recognition of
-           "restrict", so we may need to handle the special syntax for
-           declaring restrict-qualified arrays. */
-        if ((input_flags & DI_IS_PARAMETER_DECL) && derived_type == NULL) {
-          /* This is a top-level array declarator -- that is, it will not be
-             embedded in the middle of a derived type.  Moreover, this is
-             a parameter declaration.  That means this array will decay into
-             pointer-to-element-type.  This is the situation in which the
-             special restrict-array syntax is allowed: e.g., x[restrict 10]. */
-          restrict_allowed = TRUE;
-        }  /* if */
-      }  /* if */
       /* This is a top-level declarator if derived_type is NULL; it's a field
          declaration only if the nonstatic member flag is set.  (Note: it
          will be set for fields in C mode as well as in C++ mode.) */
       top_level_field_decl = (input_flags & DI_NONSTATIC_MEMBER) &&
                              derived_type == NULL;
+      /* See whether this is a top-level declarator in a parameter
+         declaration. */
+      top_level_param_decl = (input_flags & DI_IS_PARAMETER_DECL) &&
+                             derived_type == NULL;
       array_declarator(&new_type_ptr, nonconstant_dimension_allowed,
                        vla_allowed, vla_asterisk_allowed,
-                       top_level_field_decl, restrict_allowed,
-                       &restrict_seen, decl_pos_block);
-      if (restrict_seen) {
-        *output_flags |= DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY;
-      }  /* if */
+                       top_level_field_decl, top_level_param_decl,
+                       array_qualifiers, decl_pos_block);
       if (nonconstant_dimension_allowed) {
         /* In C++ a array declarator that appears in an operator new()
            expression may have a nonconstant expression in the first
@@ -4225,6 +4218,7 @@ function_lparen:
 
 void declarator(a_decl_flag_set             input_flags,
                 a_decl_flag_set             *output_flags,
+                a_type_qualifier_set        *array_qualifiers,
                 a_type_ptr                  specifiers_type,
                 a_type_ptr                  member_parent_type,
                 a_symbol_locator            *locator,
@@ -4253,7 +4247,7 @@ the parameters.
     decl_pos_block->declarator_range.end = end_pos_curr_token;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  r_declarator(input_flags, output_flags, specifiers_type,
+  r_declarator(input_flags, output_flags, array_qualifiers, specifiers_type,
                member_parent_type, locator, p_complete_type,
                &bottom_derived_type, &is_constructor, &is_destructor,
                (a_call_conv_descr_ptr)NULL, (a_call_conv_descr_ptr)NULL,

@@ -5886,7 +5886,7 @@ make_new_type:
           if (tp != ptp->type) {
             /* The type is not the one originally pointed to.  Adjust
                the parameter type, if needed. */
-            adjust_parameter_type(&tp, /*restrict_qualified=*/FALSE);
+            adjust_parameter_type(&tp, /*array_qualifiers=*/TQ_NONE);
             if (remove_qualifiers_from_param_types) { /* Strip off
                  top-level type qualifiers.  They are not part of the
                  type signature of a C++ function -- see 8.3.5 para 3.
@@ -6610,7 +6610,7 @@ information.
         qualifiers == TQ_NONE) {
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
-    declarator(di_flags, do_flags, *type,
+    declarator(di_flags, do_flags, (a_type_qualifier_set *)NULL, *type,
                !friend_specified ? parent_class : (a_type_ptr)NULL,
                locator, type,
                &declarator_ssep, func_info, decl_pos_block);
@@ -10137,6 +10137,7 @@ depends on a template parameter type, return TRUE in *template_dependent
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
   a_type_ptr                   tp;
   a_decl_pos_block             decl_pos_block;
+  a_type_qualifier_set         array_qualifiers;
 
   /* Scan the declaration specifiers. */
   param_pos = pos_curr_token;
@@ -10157,7 +10158,7 @@ depends on a template parameter type, return TRUE in *template_dependent
   declarator((DI_REAL_DECLARATOR_ALLOWED |
               DI_ABSTRACT_DECLARATOR_ALLOWED |
               DI_IS_TEMPLATE_PARAM_DECL),
-             &do_flags, *param_type_ptr,
+             &do_flags, &array_qualifiers, *param_type_ptr,
              /*member_parent_type=*/(a_type_ptr)NULL, param_locator,
              param_type_ptr, &declarator_ssep,
              (a_func_info_block_ptr)NULL, &decl_pos_block);
@@ -10180,7 +10181,7 @@ depends on a template parameter type, return TRUE in *template_dependent
   }  /* if */
   /* Adjust the type if necessary (for example, "array of x"
      becomes "pointer to x"). */
-  adjust_parameter_type(param_type_ptr, /*restrict_qualified=*/FALSE);
+  adjust_parameter_type(param_type_ptr, array_qualifiers);
   /* Check for illegal nontype parameter types.  Template parameters of
      void type, class type, and floating point type are not permitted
      by the standard.  Floating point template parameters are still
@@ -13055,7 +13056,8 @@ that follows.
         qualifiers == TQ_NONE) {
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
-    declarator(di_flags, &do_flags, type, decl_state->class_declared_in,
+    declarator(di_flags, &do_flags, (a_type_qualifier_set *)NULL, type,
+               decl_state->class_declared_in,
                &locator, &type, &declarator_ssep, &func_info, &decl_pos_block);
     sym = NULL;
     has_parenthesized_initializer =
@@ -16029,7 +16031,8 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
         qualifiers == TQ_NONE) {
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
-    declarator(di_flags, &do_flags, type, (a_type_ptr)NULL, &locator, &type,
+    declarator(di_flags, &do_flags, (a_type_qualifier_set *)NULL,
+               type, (a_type_ptr)NULL, &locator, &type,
                &declarator_ssep, &func_info, &decl_pos_block);
     record_param_id_list_declarations(&func_info);
     /* Issue diagnostic on an incomplete-type in an exception specification. */

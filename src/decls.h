@@ -239,8 +239,8 @@ a_boolean scan_conversion_operator(
 
 extern a_type_ptr type_keyword(void);
 
-extern void adjust_parameter_type(a_type_ptr *type_ptr,
-                                  a_boolean  restrict_qualified);
+extern void adjust_parameter_type(a_type_ptr           *type_ptr,
+                                  a_type_qualifier_set array_qualifiers);
 
 extern a_boolean is_single_param_operator_new_or_delete(
                                                    a_symbol_locator *locator,
@@ -251,9 +251,9 @@ extern void check_operator_function_params(a_type_ptr        rout_type,
                                            a_symbol_locator  *locator);
 
 extern void check_and_adjust_parameter_type
-                                    (a_type_ptr         *type_ptr,
-                                     a_source_position  *error_pos,
-                                     a_boolean          restrict_qualified);
+                                    (a_type_ptr           *type_ptr,
+                                     a_source_position    *error_pos,
+                                     a_type_qualifier_set array_qualifiers);
 
 void check_old_specialization_allowed(a_symbol_ptr       sym,
                                       a_source_position  *pos);
