@@ -4178,8 +4178,13 @@ or struct definition.  The syntax is
           if (bcp->direct && bcp->is_virtual && !bcp->derivation->direct) {
             /* Add path information about a direct virtual base class of
                new_direct_bcp that was not first in the depth-first
-               left-to-right traversal of the latter's derivation graph. */
-            (void)update_base_class_derivation(new_bcp, path, access);
+               left-to-right traversal of the latter's derivation graph.
+               Look for the matching derivation entry to get the right
+               access. */
+            a_base_class_derivation_ptr  bcdp = bcp->derivation->next;
+
+            while (!bcdp->direct) bcdp = bcdp->next;
+            (void)update_base_class_derivation(new_bcp, path, bcdp->access);
           }  /* if */
           if (bcp->overriding_virtual_functions != NULL) {
 #if DEBUG

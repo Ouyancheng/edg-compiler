@@ -1,5 +1,20 @@
 Version 2.40
 
+10/26/98  Base-class access set incorrectly
+
+The access on one of the derivation paths of D::A was set incorrectly in
+the following example, and as a result no diagnostic was issued in the
+reference to D::i.  Now fixed.
+
+  class A { public: int i; };
+  class B1 : virtual private A { };
+  class B2 : virtual private B1, virtual private A { };       
+  class D : public B2 { };
+  void f() {
+    D d;
+    d.i = 0;              // Accessibility error is now issued
+  }
+
 10/24/98  CALL_BACK_END_EVEN_WITH_ERRORS
 
 A (user-provided) back end can be called even when there are errors
