@@ -264,7 +264,6 @@ EXTERN a_destructible_entity_descr_ptr
 Count of entries allocated, for debugging purposes.
 */
 EXTERN unsigned long
-		num_temporary_list_entries_allocated,
 		num_init_pos_modifiers_allocated,
 		num_destructible_entity_descrs_allocated;
 #endif /* DEBUG */
@@ -351,10 +350,26 @@ typedef struct a_temporary_list_entry {
 			   not reusable at the moment. */
 } a_temporary_list_entry;
 
-EXTERN a_temporary_list_entry_ptr
-		avail_temporary_list_entries;
-			/* List of temporary list entries that have been
-			   freed and are available for reuse. */
+
+/*
+Entry used to make a list of the compound statements with no associated
+scope nested within the current context on the context stack.
+*/
+typedef struct a_scopeless_compound_stmt *a_scopeless_compound_stmt_ptr;
+typedef struct a_scopeless_compound_stmt {
+  a_scopeless_compound_stmt_ptr
+		next;	/* Next entry on the list, i.e., next scope out,
+			   or NULL if this is the last entry. */
+  a_statement_ptr
+		stmt;	/* The compound statement. */
+  a_temporary_list_entry_ptr
+		saved_local_temporaries;
+			/* List of local temporary variables that are
+			   potentially reusable, saved from the current
+			   context stack value when this entry was pushed,
+			   for later restoration. */
+} a_scopeless_compound_stmt;
+
 
 /*
 Entry used to keep track of the context during the lowering operation.
@@ -426,6 +441,13 @@ typedef struct a_context {
 		local_temporaries;
 			/* List of local temporary variables that are
 			   potentially reusable. */
+  a_scopeless_compound_stmt_ptr
+		scopeless_compound_stmts;
+			/* List of compound statements without scopes that
+			   we are currently inside of, in order from
+			   innermost to outermost.  Stops at the scope
+			   or lifetime associated with this context stack
+			   entry. */
 } a_context;
 
 EXTERN a_context_ptr
@@ -635,6 +657,9 @@ extern void make_instantiation_info_var(
 
 extern void add_temporary_to_scope(a_variable_ptr temp,
                                    a_scope_ptr    scope);
+
+extern a_variable_ptr make_temporary(a_type_ptr  temp_type,
+                                     a_boolean   force_static);
 
 extern a_variable_ptr make_temporary_in_scope(a_type_ptr  temp_type,
                                               a_scope_ptr scope,

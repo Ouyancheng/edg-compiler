@@ -483,7 +483,7 @@ as the class type, and use as a base class.
     tptsp->class_type = type;
     /* Set the scope number. */
     cssp = symbol_supplement_for_class(type);
-    cssp->member_decl_scope = next_scope_number++;
+    cssp->member_decl_scope = take_next_scope_number();
     cssp->template_param_for_proxy_class = templ_param_type;
     cssp->is_nonreal_class = TRUE;
   }  /* if */

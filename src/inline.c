@@ -300,9 +300,7 @@ The code is inserted at *insert_location, and *insert_location is updated.
       } else {
         /* A temporary is needed for the parameter.  It is not put into a
            scope yet because we might fail sometime later on the inlining. */
-        temp_var = make_temporary_in_scope(param_var->type,
-                                           (a_scope_ptr)NULL,
-                                           /*force_static=*/FALSE);
+        temp_var = make_temporary(param_var->type, /*force_static=*/FALSE);
         /* Tag the temporary with regard to special attributes related to
            the parameter. */
         if (param_is_constructor_this) {
@@ -339,9 +337,7 @@ The code is inserted at *insert_location, and *insert_location is updated.
        var = var->next) {
     /* We don't need the variable if it's not referenced. */
     if (var->source_corresp.referenced) {
-      temp_var = make_temporary_in_scope(var->type,
-                                         (a_scope_ptr)NULL,
-                                         /*force_static=*/FALSE);
+      temp_var = make_temporary(var->type, /*force_static=*/FALSE);
       vrip = alloc_variable_remapping_for_inlining(var);
       vrip->kind = vrk_temporary;
       vrip->variant.variable = temp_var;
@@ -383,7 +379,7 @@ calling context scope.
        vrip = vrip->next) {
     if (vrip->kind == vrk_temporary) {
       /* A temporary.  Add it to the current scope. */
-      add_temporary_to_scope(vrip->variant.variable, curr_context->scope);
+      add_temporary_to_scope(vrip->variant.variable, (a_scope_ptr)NULL);
     }  /* if */
   }  /* for */
 }  /* finish_variable_remapping_for_inlining */

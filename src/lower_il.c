@@ -225,6 +225,25 @@ static a_return_memo_ptr
 			/* List of return memo entries that have been freed
 			   and are available for reuse. */
 
+static a_temporary_list_entry_ptr
+		avail_temporary_list_entries;
+			/* List of temporary list entries that have been
+			   freed and are available for reuse. */
+
+static a_scopeless_compound_stmt_ptr
+		avail_scopeless_compound_stmts;
+			/* List of scopeless compound statement entries that
+			   have been freed and are available for reuse. */
+
+#if DEBUG
+/*
+Count of entries allocated, for debugging purposes.
+*/
+static unsigned long
+		num_temporary_list_entries_allocated,
+		num_scopeless_compound_stmts_allocated;
+#endif /* DEBUG */
+
 
 /* Declarations needed because of forward references: */
 static void change_node_to_operation(an_expr_node_ptr      node,
@@ -576,11 +595,16 @@ scope, or the lifetime from the parent context, will be used.
   context->try_frame = NULL;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   if (parent_context == NULL || parent_context->scope != curr_context->scope) {
-    /* New scope.  Start new list of local temporaries. */
+    /* New scope.  Start a new list of local temporaries and of
+       scopeless compound statements. */
     curr_context->local_temporaries = NULL;
+    curr_context->scopeless_compound_stmts = NULL;
   } else {
-    /* Same scope as parent.  Use same list of local temporaries. */
+    /* Same scope as parent.  Use the same list of local temporaries and of
+       scopeless compound statements. */
     curr_context->local_temporaries = parent_context->local_temporaries;
+    curr_context->scopeless_compound_stmts =
+                                      parent_context->scopeless_compound_stmts;
   }  /* if */
 }  /* push_context */
 
@@ -625,9 +649,15 @@ Pop an entry off the context stack.
     /* Different scope than parent.  All local temporaries are no longer
        reusable.  Free the list entries. */
     free_temporary_list_entry_list(curr_context->local_temporaries);
+    /* Make sure all the scopeless compound statement entries were popped
+       off. */
+    check_assertion(curr_context->scopeless_compound_stmts == NULL);
   } else {
     /* Same scope as parent.  Update the parent list of local temporaries. */
     parent_context->local_temporaries = curr_context->local_temporaries;
+    /* Update the parent list of scopeless compound statements. */
+    parent_context->scopeless_compound_stmts =
+                                        curr_context->scopeless_compound_stmts;
   }  /* if */
   /* Pop to the surrounding context. */
   curr_context = parent_context;
@@ -1205,12 +1235,48 @@ void add_temporary_to_scope(a_variable_ptr temp,
                             a_scope_ptr    scope)
 /*
 Add the indicated temporary variable to the variables list of the indicated
-scope.
+scope.  If scope is NULL, use the nearest enclosing scope.
 */
 {
   a_scope_stack_entry_ptr ssep;
   a_variable_ptr          *prev_ptr_ptr, *last_ptr_ptr;
 
+  if (scope == NULL) {
+    a_scopeless_compound_stmt_ptr scsp;
+    /* Determine the nearest enclosing scope. */
+    scope = curr_context->scope;
+    /* We may be able to take a scopeless compound statement inside the
+       nearest existing scope and add a scope to it. */
+    scsp = curr_context->scopeless_compound_stmts;
+    if (scsp != NULL) {
+      a_statement_ptr stmt = scsp->stmt;
+      a_block_ptr     block = stmt->variant.block.extra_info;
+      if (block->assoc_scope != NULL) {
+        /* This statement has already had a scope added to it, so use that. */
+        scope = block->assoc_scope;
+      } else {
+        /* If the nearest scope has subscopes we don't try to add a scope,
+           because it's a little difficult to figure out where the new scope
+           should go in the list of subscopes. */
+        if (scope->scopes == NULL) {
+          /* We have a compound statement we can use.  Add the scope. */
+          a_scope_ptr parent_scope = curr_context->scope;
+          scope = alloc_scope((a_scope_kind)sck_block,
+                              take_next_scope_number(),
+                              (a_routine_ptr)NULL);
+          block->assoc_scope = scope;
+          scope->assoc_block = stmt;
+          parent_scope->scopes = scope;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (scope->kind == (a_scope_kind)sck_function ||
+      scope->kind == (a_scope_kind)sck_block ||
+      scope->kind == (a_scope_kind)sck_condition) {
+    /* Mark local variables of functions. */
+    temp->source_corresp.is_local_to_function = TRUE;
+  }  /* if */
   /* See if the scope we are adding to is active on the scope stack.
      If so, we have to maintain the "last" pointer too. */
   ssep = NULL;
@@ -1245,27 +1311,18 @@ scope.
 }  /* add_temporary_to_scope */
 
 
-a_variable_ptr make_temporary_in_scope(a_type_ptr  temp_type,
-                                       a_scope_ptr scope,
-                                       a_boolean   force_static)
+a_variable_ptr make_temporary(a_type_ptr temp_type,
+                              a_boolean  force_static)
 /*
-Make a temporary variable in scope "scope" whose type is "temp_type" and
-whose storage class is static if force_static is TRUE or if the scope
-is the file scope.  Return a pointer to it.  If scope is NULL, make a
-local variable but do not attach it to a scope yet.
+Make a temporary variable whose type is "temp_type" and whose storage
+class is static if force_static is TRUE.  Return a pointer to it.
 */
 {
   a_variable_ptr  temp;
   a_storage_class storage_class;
-  a_boolean       local_to_function =
-                                  (scope == NULL ||
-                                   scope->kind == (a_scope_kind)sck_function ||
-                                   scope->kind == (a_scope_kind)sck_block ||
-                                   scope->kind == (a_scope_kind)sck_condition);
 
-  /* Allocate the variable, using auto storage class in functions and
-     blocks, static elsewhere.  If force_static is TRUE, use static. */
-  if (!force_static && local_to_function) {
+  /* Allocate the variable, using auto storage unless force_static is TRUE. */
+  if (!force_static) {
     storage_class = (a_storage_class)sc_auto;
   } else {
     storage_class = (a_storage_class)sc_static;
@@ -1273,14 +1330,32 @@ local variable but do not attach it to a scope yet.
   temp = alloc_variable(storage_class);
   temp->type = temp_type;
   temp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
-  if (local_to_function) {
-    /* Mark local variables of functions. */
-    temp->source_corresp.is_local_to_function = TRUE;
-  }  /* if */
-  if (scope != NULL) {
-    /* Add the temporary variable to the list of variables for the scope. */
-    add_temporary_to_scope(temp, scope);
-  }  /* if */
+  return temp;
+}  /* make_temporary */
+
+
+a_variable_ptr make_temporary_in_scope(a_type_ptr  temp_type,
+                                       a_scope_ptr scope,
+                                       a_boolean   force_static)
+/*
+Make a temporary variable in scope "scope" whose type is "temp_type" and
+whose storage class is static if force_static is TRUE or if the scope
+is not a function-local scope.  Return a pointer to it.  If scope is
+NULL, use the nearest enclosing scope.
+*/
+{
+  a_variable_ptr  temp;
+  a_boolean       local_to_function =
+                              (scope == NULL) ?
+                                  (innermost_function_scope != NULL) :
+                                  (scope->kind == (a_scope_kind)sck_function ||
+                                   scope->kind == (a_scope_kind)sck_block ||
+                                   scope->kind == (a_scope_kind)sck_condition);
+
+  if (!local_to_function) force_static = TRUE;
+  temp = make_temporary(temp_type, force_static);
+  /* Add the temporary variable to the list of variables for the scope. */
+  add_temporary_to_scope(temp, scope);
   return temp;
 }  /* make_temporary_in_scope */
 
@@ -1288,11 +1363,12 @@ local variable but do not attach it to a scope yet.
 a_variable_ptr make_lowered_temporary(a_type_ptr temp_type)
 /*
 Interface to make_temporary_in_scope for the common case where the
-nearest scope should be used.  Allocates a temporary variable of the
-indicated type and returns a pointer to the variable.
+nearest scope should be used and the temporary need not be static.
+Allocates a temporary variable of the indicated type and returns a
+pointer to the variable.
 */
 {
-  return make_temporary_in_scope(temp_type, curr_context->scope,
+  return make_temporary_in_scope(temp_type, (a_scope_ptr)NULL,
                                  /*force_static=*/FALSE);
 }  /* make_lowered_temporary */
 
@@ -1370,7 +1446,7 @@ instead of the current context (which might be a block scope).
                    "make_unnamed_local_static_variable: curr_context is NULL");
   return make_temporary_in_scope(type,
                                  in_function_scope ? innermost_function_scope :
-                                                     curr_context->scope,
+                                                     (a_scope_ptr)NULL,
                                  /*force_static=*/TRUE);
 }  /* make_unnamed_local_static_variable */
 
@@ -8676,6 +8752,38 @@ Generate any cleanup actions required preceding the indicated goto statement.
 }  /* gen_goto_cleanup_actions */
 
 
+void push_scopeless_compound_stmt(a_statement_ptr stmt)
+/*
+We are entering the indicated statement (a compound statement without
+an associated scope).  Add an entry for it on the front of the list of
+such statements attached to the current entry on the context stack.
+*/
+{
+  a_scopeless_compound_stmt_ptr scsp;
+
+  /* Get an entry to put on the list. */
+  if (avail_scopeless_compound_stmts != NULL) {
+    /* Reuse a freed entry. */
+    scsp = avail_scopeless_compound_stmts;
+    avail_scopeless_compound_stmts = scsp->next;
+  } else {
+    /* Allocate a new entry. */
+    scsp = (a_scopeless_compound_stmt_ptr)
+                                   alloc_fe(sizeof(a_scopeless_compound_stmt));
+#if DEBUG
+    num_scopeless_compound_stmts_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  /* Add the entry to the front of the list. */
+  scsp->next = curr_context->scopeless_compound_stmts;
+  curr_context->scopeless_compound_stmts = scsp;
+  scsp->stmt = stmt;
+  /* Use a new local temporaries list while within this statement. */
+  scsp->saved_local_temporaries = curr_context->local_temporaries;
+  curr_context->local_temporaries = NULL;
+}  /* push_scopeless_compound_stmt */
+
+
 static void push_block_statement_context(
                                   a_statement_ptr    block_statement,
                                   a_context          *context,
@@ -8711,6 +8819,10 @@ is begun.  The value of curr_context->curr_cleanup_state is saved in
     scope = innermost_function_scope;
     lifetime = scope->lifetime;
     *new_lifetime = (lifetime != NULL);
+  } else {
+    /* Keep track of compound statements without scopes that we are inside of,
+       so they can be used to allocate temporaries. */
+    push_scopeless_compound_stmt(block_statement);
   }  /* if */
   if (*new_lifetime) {
     /* A new lifetime was pushed. */
@@ -8721,6 +8833,27 @@ is begun.  The value of curr_context->curr_cleanup_state is saved in
     begin_block_object_lifetime(lifetime, &insert_location);
   }  /* if */
 }  /* push_block_statement_context */
+
+
+static void pop_scopeless_compound_stmt(void)
+/*
+We are leaving a compound statement with no associated scope.  Take its
+entry off the list of such statements attached to the current entry on
+the context stack.
+*/
+{
+  a_scopeless_compound_stmt_ptr scsp = curr_context->scopeless_compound_stmts;
+
+  check_assertion(scsp != NULL);
+  /* Reusable temporaries in this scope can no longer be reused. */
+  free_temporary_list_entry_list(curr_context->local_temporaries);
+  curr_context->local_temporaries = scsp->saved_local_temporaries;
+  /* Remove the entry from the context stack list. */
+  curr_context->scopeless_compound_stmts = scsp->next;
+  /* Put the entry on the available list for potential reuse. */
+  scsp->next = avail_scopeless_compound_stmts;
+  avail_scopeless_compound_stmts = scsp;
+}  /* pop_scopeless_compound_stmt */
 
 
 static void pop_block_statement_context(
@@ -8796,6 +8929,12 @@ curr_context->curr_cleanup_state had at the start of the block.
   if (context_pushed) {
     /* Pop the context pushed by push_block_statement_context. */
     pop_context();
+  } else if (block_statement == innermost_function_scope->assoc_block) {
+    /* This is the top-most block in a function. */
+  } else {
+    /* This is a compound statement with no associated scope (or at least
+       it didn't have one when it was pushed). */
+    pop_scopeless_compound_stmt();
   }  /* if */
 }  /* pop_block_statement_context */
 
@@ -11566,9 +11705,6 @@ Display and return the amount of space used for various IL lowering tables.
   db_space_used_header("IL lowering table use:");
 
   db_space_used("Name strings", allocated_name_string_length, char);
-  db_space_used_lost("temp list entries", avail_temporary_list_entries,
-                     num_temporary_list_entries_allocated,
-                     a_temporary_list_entry);
   db_space_used_lost("init pos modifier", avail_init_pos_modifiers,
                      num_init_pos_modifiers_allocated, an_init_pos_modifier);
   db_space_used_lost("destr. entity descrs", avail_destructible_entity_descrs,
@@ -11576,6 +11712,12 @@ Display and return the amount of space used for various IL lowering tables.
                      a_destructible_entity_descr);
   db_space_used_lost("return memos", avail_return_memos,
                      num_return_memos_allocated, a_return_memo);
+  db_space_used_lost("temp list entries", avail_temporary_list_entries,
+                     num_temporary_list_entries_allocated,
+                     a_temporary_list_entry);
+  db_space_used_lost("scopeless comp stmts", avail_scopeless_compound_stmts,
+                     num_scopeless_compound_stmts_allocated,
+                     a_scopeless_compound_stmt);
 #if MINIMAL_INLINING
   if (inlining_enabled) {
     db_space_used_lost("variable remappings",
@@ -11619,6 +11761,8 @@ are handled in il_lower_init.)
       pch_saved_var_array_elem(avail_init_pos_modifiers),
       pch_saved_var_array_elem(avail_destructible_entity_descrs),
       pch_saved_var_array_elem(avail_return_memos),
+      pch_saved_var_array_elem(avail_temporary_list_entries),
+      pch_saved_var_array_elem(avail_scopeless_compound_stmts),
       pch_saved_var_array_elem(pure_virtual_called_routine),
       pch_saved_var_array_elem(vptp_type),
       pch_saved_var_array_elem(mptr_type),
@@ -11631,6 +11775,7 @@ are handled in il_lower_init.)
 #endif /* ABI_CHANGES_FOR_RTTI */
 #if DEBUG
       pch_saved_var_array_elem(num_temporary_list_entries_allocated),
+      pch_saved_var_array_elem(num_scopeless_compound_stmts_allocated),
       pch_saved_var_array_elem(num_init_pos_modifiers_allocated),
       pch_saved_var_array_elem(num_destructible_entity_descrs_allocated),
       pch_saved_var_array_elem(allocated_name_string_length),
@@ -11680,6 +11825,7 @@ of the front end.
   avail_destructible_entity_descrs = NULL;
 #if DEBUG
   num_temporary_list_entries_allocated = 0;
+  num_scopeless_compound_stmts_allocated = 0;
   num_init_pos_modifiers_allocated = 0;
   num_destructible_entity_descrs_allocated = 0;
 #endif /* DEBUG */
@@ -11687,6 +11833,8 @@ of the front end.
   code_pos_for_lowering = null_source_position;
   /* Static variables in lower_il.c: */
   avail_return_memos = NULL;
+  avail_temporary_list_entries = NULL;
+  avail_scopeless_compound_stmts = NULL;
   pure_virtual_called_routine = NULL;
   vptp_type = NULL;
   mptr_type = NULL;

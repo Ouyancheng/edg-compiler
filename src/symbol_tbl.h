@@ -3147,6 +3147,8 @@ EXTERN unsigned long
 		num_active_using_directives_allocated;
 #endif /* DEBUG */
 
+extern a_scope_number take_next_scope_number(void);
+
 extern void symbol_tbl_one_time_init(void);
 
 extern void symbol_tbl_init(void);

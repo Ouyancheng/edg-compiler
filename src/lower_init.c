@@ -535,7 +535,7 @@ routine later in order to ensure that the "defined" flag is set.
   a_type_ptr             rout_type;
 
   /* Make a new memory region and scope. */
-  scope = new_il_region((a_scope_kind)sck_function, next_scope_number++,
+  scope = new_il_region((a_scope_kind)sck_function, take_next_scope_number(),
                         rout_ptr);
   *il_region = curr_il_region_number;
   /* Link the routine to the scope.  new_il_region did the link in the
@@ -5103,7 +5103,7 @@ Do IL lowering of an enk_temp_init expression node.
   }  /* if */
   /* Create a temporary variable.  Make it static if necessary. */
   dip->variable = make_temporary_in_scope(temp_type,
-                                          curr_context->scope,
+                                          (a_scope_ptr)NULL,
                                           (a_boolean)
                                                expr->variant.init.static_temp);
   /* Change the enk_temp_init to a reference to the value or address

@@ -1,5 +1,14 @@
-
 Version 2.39
+
+1/18/97   IL lowering temporaries allocated in innermost braces
+
+When IL lowering creates temporaries, it puts them in the innermost
+enclosing scope.  To date, this has only considered scopes that were
+otherwise present in the IL.  Now, all brace-enclosed compound
+statements are considered; an IL scope is added to the innermost
+one if necessary.  In some cases, this allows temporaries to be
+allocated over smaller regions, which allows better overlapping of
+temporaries, and a reduction in stack space use.
 
 1/16/98   Missing virtual function definitions
 

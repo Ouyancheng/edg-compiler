@@ -8356,6 +8356,19 @@ Allocate a new function instantiation entry and return a pointer to it.
 }  /* alloc_template_instance */
 
 
+a_scope_number take_next_scope_number(void)
+/*
+Assign the next scope number in sequence, and return it.
+*/
+{
+  if (next_scope_number == MAX_SCOPE_NUMBER) {
+    /* The number of scopes exceeds the size of the scope number field. */
+    catastrophe(ec_program_too_large);
+  }  /* if */
+  return next_scope_number++;
+}  /* take_next_scope_number */
+
+
 #if DEBUG
 unsigned long show_symbol_space_used(void)
 /*
