@@ -5854,7 +5854,7 @@ This routine is called only in C++ mode.
 */
 {
   a_source_position start_position;
-  a_token_kind      token;
+  a_token_kind      token, second_token;
   an_opname_kind    opname;
 
   start_position = pos_curr_token;
@@ -5879,6 +5879,18 @@ This routine is called only in C++ mode.
       } else {
         /* Error case. */
         opname = (an_opname_kind)onk_none;
+      }  /* if */
+    } else if (opname == (an_opname_kind)onk_new ||
+               opname == (an_opname_kind)onk_delete) {
+      /* See if this is really new[] or delete[].  If so, adjust the opname. */
+      if (next_two_tokens(tok_lbracket, &second_token) &&
+          second_token == tok_rbracket) {
+        /* Advance past the two tokens. */
+        (void)get_token();
+        (void)get_token();
+        opname = (opname == (an_opname_kind)onk_new) ?
+                    (an_opname_kind)onk_array_new :
+                    (an_opname_kind)onk_array_delete;
       }  /* if */
     }  /* if */
     if (opname == (an_opname_kind)onk_none ||
@@ -7862,6 +7874,9 @@ are handled in lexical_init.)
         opname_names[opname_kind] = str;
       }  /* if */
     }  /* for */
+    /* new[] and delete[] do not map to a single token. */
+    opname_names[onk_array_new] = "new[]";
+    opname_names[onk_array_delete] = "delete[]";
 #if CHECKING
     /* Make sure all the slots were initialized. */
     for (opname_kind = (int)onk_none+1;
