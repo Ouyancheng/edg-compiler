@@ -1,5 +1,25 @@
 Version 2.33
 
+9/13/96 Compilation speed problem with extremely large switch statements
+
+In the compilation process for case labels of switch statements, the
+front end can exhibit quadratic behavior, which makes for extremely slow
+compilation of cases like
+
+  switch (i) {
+    case 1:
+    case 2:
+    case 3:
+    ... etc.
+    case 30000:
+      break;
+  }
+
+This has been fixed for the usual case of mostly-ascending case labels.
+The quadractic behavior remains for other cases, but since cases this
+large tend to be machine-generated, the mostly-ascending optimization
+probably deals with most real-world cases.
+
 9/12/96 Microsoft compatibility: storage on friend function declaration
 
 In Microsoft-compatibility mode a friend function declaration can now be
