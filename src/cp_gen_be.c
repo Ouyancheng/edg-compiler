@@ -8063,8 +8063,7 @@ TRUE if the declaration following this one is such a continuation.
                                            (a_name_linkage_kind)nlk_external ||
          /* Check whether the function is surrounded by an extern "C" block
             even though it is not itself extern "C". */
-         (is_definition && !decl_within_class &&
-          rout->surrounding_name_linkage_state == 
+         (!decl_within_class && rout->surrounding_name_linkage_state == 
                                          (a_name_linkage_kind)nlk_external)) &&
         /* Don't put it out on "main", however; it's implied there, and it's
            not allowed. */
@@ -8077,21 +8076,22 @@ TRUE if the declaration following this one is such a continuation.
            an extern "C" { ... } wrapped around the function. */
         !decl_within_function) {
       write_tok_str("extern \"C\" ");
+      if (rout->source_corresp.name_linkage ==
+                                           (a_name_linkage_kind)nlk_external) {
+        /* Suppress the storage class if it's extern "C". */
+        storage_class = (a_storage_class)sc_unspecified;
+      }  /* if */
       /* For a definition, use the form
            extern "C" { inline void foo() {} }
          because simply
            extern "C" inline void foo() {}
          is not allowed by some compilers (the combination of a linkage
-         specification and "inline" is not accepted). */
-      if (is_definition) {
+         specification and "inline" is not accepted).  The brace form is
+         also needed for static functions. */
+      if (is_definition || storage_class == (a_storage_class)sc_static) {
         write_tok_str("{ ");
         /* Force matching "}" to be output later */
         need_extern_C_closing_brace = TRUE;
-      }  /* if */
-      if (rout->source_corresp.name_linkage ==
-                                           (a_name_linkage_kind)nlk_external) {
-        /* Suppress the storage class if it's extern "C". */
-        storage_class = (a_storage_class)sc_unspecified;
       }  /* if */
     }  /* if */
     /* Put out the storage class determined above. */
