@@ -3223,7 +3223,15 @@ declaration following this one is such a continuation.
   if (field->is_bit_field) {
     /* A bit field.  Put out the size. */
     write_tok_ch(':');
-    write_unsigned_num((unsigned long)field->bit_size);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    if (field->bit_size_constant != NULL) {
+      gen_constant(field->bit_size_constant, /*need_parens=*/FALSE);
+    } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_... */
+    /* Do not insert code here */
+    {
+      write_unsigned_num((unsigned long)field->bit_size);
+    }  /* if */
   }  /* if */
   /* See if there are comma-separated declarations attached to this one. */
   *another_decl_in_comma_list =
@@ -4185,7 +4193,8 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
     /* In C mode, a temp-init node represents a compound literal. */
     check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant);
     gen_compound_literal(dip->variant.constant);
-  } else if (is_class_struct_union_type(temp_type) &&
+  } else if ((is_class_struct_union_type(temp_type) ||
+              is_template_param_type(temp_type)) &&
              /* Don't use copy-initialization for dik_expression and
              dik_call_returning_class_via_cctor cases. */
       (dip->kind == (a_dynamic_init_kind)dik_constructor ||
@@ -7233,7 +7242,8 @@ TRUE, "()" is put out.
         */
         ctor = dip->variant.constructor.ptr;
         args = dip->variant.constructor.args;
-        if (!parenthesized_init && rout_is_copy_constructor(ctor)) {
+        if (!parenthesized_init &&
+            (ctor == NULL || rout_is_copy_constructor(ctor))) {
           /* This is the copy constructor elision case -- we don't have to
              write the copy constructor because it's implied.  Just write the
              source argument. */
@@ -7252,12 +7262,8 @@ TRUE, "()" is put out.
               gen_type_name(ctor->source_corresp.parent.class_type);
             }  /* if */
             /* Put out the argument list in parentheses. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-            gen_argument_list(args, (ctor == NULL)? NULL : ctor->type,
+            gen_argument_list(args, (ctor == NULL) ? NULL : ctor->type,
                               /*skip_num=*/0);
-#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
-            gen_argument_list(args, ctor->type, /*skip_num=*/0);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           }  /* if */
         }  /* if */
       }

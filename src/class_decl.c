@@ -7963,10 +7963,9 @@ must be unsigned.
 }  /* check_enum_type_for_bit_field */
 
 
-static void scan_bit_field_size(a_boolean         *unnamed_bit_field,
+static void scan_bit_field_size(a_field_ptr       field,
+                                a_boolean         *unnamed_bit_field,
                                 a_type_ptr        *p_base_type,
-                                long              *p_bit_field_size,
-                                a_boolean         *p_is_signed,
                                 a_symbol_locator  *locator)
 /*
 Scan the size in a bit-field declaration:
@@ -7981,12 +7980,12 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
 *p_is_signed is set to indicate whether or not the bit field is signed.
 */
 {
-  unsigned long		bit_field_size, max_size_allowed;
-  a_type_ptr		base_type = *p_base_type;
-  a_boolean		err = FALSE, is_signed = FALSE;
-  a_constant		constant;
-  a_type_ptr		bit_field_type;
-  an_integer_kind  	int_kind;
+  unsigned long    bit_field_size, max_size_allowed;
+  a_type_ptr       base_type = *p_base_type;
+  a_boolean        err = FALSE, is_signed = FALSE;
+  a_constant       constant;
+  a_type_ptr       bit_field_type;
+  an_integer_kind  int_kind;
 
   db_enter(3, "scan_bit_field_size");
   /* ANSI C says the type of a bit-field must be int, unsigned int,
@@ -8004,6 +8003,10 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   (void)get_token();
   /* Scan the integral size in bits of the bit-field. */
   scan_integral_constant_expression(&constant);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  field->bit_size_constant = alloc_constant(constant.kind);
+  copy_constant(&constant, field->bit_size_constant);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_... */
   if (is_error_constant(&constant)) {
     /* Use small value to avoid more errors, but not 1 which is special. */
     bit_field_size = targ_char_bit;
@@ -8151,8 +8154,8 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
     base_type = make_identically_qualified_type(bit_field_type, base_type);
   }  /* if */
   *p_base_type = base_type;
-  *p_bit_field_size = bit_field_size;
-  *p_is_signed = is_signed;
+  field->bit_size = (a_byte)bit_field_size;
+  field->bit_field_is_signed = is_signed;
 
   db_exit();
 }  /* scan_bit_field_size */
@@ -8355,8 +8358,7 @@ specific information about the member declaration, respectively.
   /* A colon next indicates a bit-field. */
   if (curr_token == tok_colon) {
     /* Scan the bit-field size and determine the bit-field type. */
-    scan_bit_field_size(&unnamed_field, &member_type, &bit_field_size,
-                        &bit_field_is_signed, locator);
+    scan_bit_field_size(field, &unnamed_field, &member_type, locator);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_info->decl_pos_block.declarator_range.end =
                                             curr_construct_end_position;
