@@ -1,5 +1,11 @@
 Version 2.44
 
+2/7/00   Abort when defining certain predefined macros
+
+A bug was introduced in version 2.43 that would cause the front end to abort
+when invoked with an option like -D__LINE__=2.  This is now fixed: the
+diagnostic issued by previous releases has been restored.
+
 2/5/00   Allow expression like a.k or p->k, where k is a constant,
          as constant expression in cfront mode
 
