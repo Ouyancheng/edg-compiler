@@ -129,14 +129,29 @@ EXTERN a_boolean
 			/* When we are inside the declaration list for
 			   old-style function parameters, this flag is TRUE. */
 
-EXTERN a_name_linkage_kind
-		def_external_linkage_kind;
-			/* When we are inside the declaration list for a C++
-			   linkage specification, this variable indicates the
-			   linkage (e.g., C++ linkage or C linkage) that
-			   obtains for the declarations.  Its initial setting
-			   is the default linkage for the compilation mode
-			   (i.e., different for C and C++ modes). */
+typedef struct an_extern_linkage *an_extern_linkage_ptr;
+typedef struct an_extern_linkage {
+  a_name_linkage_kind
+		kind;
+			/* The kind of external linkage ("C++" or "C"). */
+  a_boolean	is_explicit;
+			/* TRUE if the external linkage requirement is
+			   explicitly specified in the source; FALSE for the
+			   default set for the translation unit as a whole. */
+} an_extern_linkage;
+
+/* Copy of object of kind an_extern_linkage. */
+#define copy_external_linkage(from, to)                           \
+  { (to).kind = (from).kind; (to).is_explicit = (from).is_explicit; }
+
+EXTERN an_extern_linkage
+		def_external_linkage;
+			/* The default external linkage kind (e.g., "C++" or
+			   "C" name linkage) for a variable or function at a
+			   given point.  For instance, the setting may
+			   change from the translation unit default when
+			   we are inside the declaration list for a C++
+			   linkage specification. */
 
 /* Test whether or not the current token is the start of a type. */
 extern a_boolean is_type_start(void);
@@ -186,17 +201,17 @@ extern void decl_typedef(a_symbol_locator   *locator,
 extern void inline_function_definition(a_routine_ptr     routine_ptr,
                                        a_func_info_block *func_info);
 
-extern void decl_var_or_routine(a_symbol_locator     *locator,
-                                a_storage_class      storage_class,
-                                a_type_ptr           type_ptr,
-                                a_boolean            is_implicit_function,
-                                a_boolean            is_function_def_with_body,
-                                a_boolean            inline_specified,
-                                a_name_linkage_kind  external_linkage_kind,
-                                a_symbol_ptr         *symbol_ptr,
-                                an_id_linkage_kind   *linkage_ptr,
-                                a_type_ptr           *old_type,
-                                a_symbol_ptr         *ext_sym);
+extern void decl_var_or_routine(a_symbol_locator    *locator,
+                                a_storage_class     storage_class,
+                                a_type_ptr          type_ptr,
+                                a_boolean           is_implicit_function,
+                                a_boolean           is_function_def_with_body,
+                                a_boolean           inline_specified,
+                                an_extern_linkage   *extern_linkage,
+                                a_symbol_ptr        *symbol_ptr,
+                                an_id_linkage_kind  *linkage_ptr,
+                                a_type_ptr          *old_type,
+                                a_symbol_ptr        *ext_sym);
 
 /* Bit vector used to pass flags into declarator and into and out of
    decl_specifiers.  Each bit represents a flag. */
@@ -346,7 +361,7 @@ extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 				 a_decl_flag_set      *output_flags,
 				 a_storage_class      *storage_class,
 				 a_type_ptr           *type_ptr,
-                                 a_name_linkage_kind  *linkage_specifier);
+                                 an_extern_linkage    *linkage_specifier);
 
 #endif /* DECLS_H */
 
