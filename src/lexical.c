@@ -5625,12 +5625,13 @@ by the options.  Returns TRUE if any errors were diagnosed.
 static a_boolean qualifier_delimiter_does_not_follow_token(void)
 /*
 Return TRUE if we can tell that the token following the current
-token (usually an identifier) is not a "::" or, in cfront compatibility
-mode, a ".".  These delimiters are used to indicate qualified names,
-e.g., A::B::x. If it is not easy to tell whether a delimiter appears,
-the safe answer of FALSE is returned.  This routine is part of a speed
-optimization: if the token following an identifier is clearly not a
-qualified name delimiter, some expensive processing can be avoided.
+token (usually an identifier) is not a "::", a "<",  or, in cfront
+compatibility mode, a ".".  These delimiters are used to indicate
+qualified names, e.g., A::B::x. If it is not easy to tell whether a
+delimiter appears, the safe answer of FALSE is returned.  This routine
+is part of a speed optimization: if the token following an identifier
+is clearly not a qualified name delimiter, some expensive processing
+can be avoided.
 */
 {
   a_boolean     delim_does_not_follow = FALSE;
@@ -5674,6 +5675,13 @@ qualified name delimiter, some expensive processing can be avoided.
 }  /* qualifier_delimiter_does_not_follow_token */
 
 
+/*
+Macro that calls qualifier_delimiter_does_not_follow_token to determine
+whether the next token may be one of the tokens that
+f_is_generalized_identifier_start needs to inspect and, if so, calls
+next_two_tokens;  Otherwise, second_token is set to tok_error and tok_error
+is returned.
+*/
 #define next_two_tokens_if_qualifier_delimiter(separator, second_token)	\
   (qualifier_delimiter_does_not_follow_token() ?			\
     (*(second_token) = tok_error), tok_error :				\
