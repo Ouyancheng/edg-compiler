@@ -2140,9 +2140,7 @@ static void function_declarator(a_type_ptr        *new_type_ptr,
                                 a_type_ptr        member_function_parent_type,
                                 a_boolean         is_nonstatic_member_function,
                                 a_boolean         is_constructor,
-                                a_boolean         is_destructor,
-                                a_source_sequence_entry_ptr
-                                                   routine_declarator_ssep)
+                                a_boolean         is_destructor)
 /*
 Scan a function declarator (3.5.4.3), or an array declarator in an
 abstract declarator (3.5.5).  Allocate and return in *new_type_ptr an
@@ -2194,8 +2192,8 @@ scope is that of a class definition.
      a "top-level" function declaration.  Use the storage passed in by the
      caller.  But if func_info is NULL, use a local func info block.  This
      is mainly useful for managing param_id entries properly. */
+  clear_func_info(&local_func_info_block);
   if (func_info == NULL) func_info = &local_func_info_block;
-  clear_func_info(func_info);
   last_param_id = NULL;
   *new_type_ptr = alloc_type((a_type_kind)tk_routine);
   extra_info = (*new_type_ptr)->variant.routine.extra_info;
@@ -2497,13 +2495,19 @@ scope is that of a class definition.
             scan_default_arg_expr(ignore_default_arg_expr ?
                                     (a_param_type_ptr)NULL : ptp);
           }  /* if */
-          ptp->has_default_arg = default_arg_expr_allowed;
+          if (default_arg_expr_allowed) {
+            ptp->has_default_arg = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-          if (ptp->has_default_arg && func_info != &local_func_info_block) {
-            ptp->rout_src_seq_entry_for_default_arg_decl =
-                                                     routine_declarator_ssep;
-          }  /* if */
+            if (!is_error_locator(param_locator)) {
+              /* Check to be sure last_param_id is the one for the current
+                 parameter. */
+              check_assertion(last_param_id != NULL &&
+                              last_param_id->source_sequence_entry ==
+                                                              param_ssep);
+              last_param_id->has_default_arg = TRUE;
+            }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+          }  /* if */
         }  /* if */
         if (C_dialect == C_dialect_cplusplus && !default_arg_expr_allowed) {
           if (last_param_type == extra_info->param_type_list) {
@@ -2679,13 +2683,6 @@ scope is that of a class definition.
       /* Keep looping on a comma, stop otherwise. */
     } while (loop_token(tok_comma));
   }  /* if */
-  if (func_info == &local_func_info_block) {
-    if (local_func_info_block.param_id_list != NULL) {
-      /* Free the list of parameter identifiers -- they're not needed
-         if there's no definition. */
-      free_param_id_list(&(local_func_info_block.param_id_list));
-    }  /* if */
-  }  /* if */
   /* Check for closing right parenthesis.  We temporarily clear the stop
      token array values for tok_comma and tok_assign, in order to flush past
      either to the right paren. */
@@ -2777,6 +2774,7 @@ scope is that of a class definition.
 #endif /* if 0 */
     scan_throw_specification(func_info);
   }  /* if */
+  done_with_func_info(local_func_info_block);
   copy_source_position(start_pos, error_position);
   db_exit();
 }  /* function_declarator */
@@ -3902,6 +3900,50 @@ not be TRUE.
   db_exit();
 }  /* reconcile_routine_types */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+void set_rout_src_seq_entry_for_default_arg_decl(a_routine_ptr      rp,
+                                                 a_func_info_block  *func_info)
+/*
+rp is a pointer to a function for which a declaration has just been seen.
+Set the rout_src_seq_entry_for_default_arg_decl pointer in each param-type
+entry for which a default argument was declared in the current function
+declaration.
+*/
+{
+  a_source_sequence_entry_ptr  rout_ssep;
+  a_param_id_ptr               param_id;
+  a_param_type_ptr             ptp;
+
+  if (!source_sequence_entries_disallowed &&
+      rp->source_corresp.source_sequence_entry != NULL) {
+    rout_ssep = NULL;
+    param_id = func_info->param_id_list;
+    ptp = rp->type->variant.routine.extra_info->param_type_list;
+    /* Be sure param-id and param-type lists are in sync. */
+    check_assertion((param_id == NULL) == (ptp == NULL));
+    for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
+      if (param_id->has_default_arg) {
+        check_assertion(ptp->has_default_arg);
+        if (rout_ssep == NULL) {
+          if (func_info->is_definition) {
+            rout_ssep = rp->source_corresp.source_sequence_entry;
+            check_assertion(rout_ssep ==
+                             last_matching_source_sequence_entry((char *)rp));
+          } else {
+            rout_ssep = last_matching_source_sequence_entry((char *)rp);
+          }  /* if */
+          if (rout_ssep == NULL) break;
+        }  /* if */
+        ptp->rout_src_seq_entry_for_default_arg_decl = rout_ssep;
+      }  /* if */
+      /* Be sure param-id and param-type lists are in sync. */
+      check_assertion((param_id->next == NULL) == (ptp->next == NULL));
+    }  /* for */
+  }  /* if */
+}  /* set_rout_src_seq_entry_for_default_arg_decl */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 void decl_var_or_routine(a_symbol_locator             *locator,
                          a_storage_class              storage_class,
@@ -4541,6 +4583,11 @@ skip_overloading:;
      entry. */
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             declarator_ssep);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (is_function) {
+    set_rout_src_seq_entry_for_default_arg_decl(routine_ptr, func_info);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (is_function_def) {
     /* If a lint-style "argsused" or "varargs" comment appeared, record that in
        the function type.  That will suppress any warnings about unused
@@ -5081,6 +5128,7 @@ on a prior declaration.
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                               &locator->source_position,
                               func_info->declarator_ssep);
+    set_rout_src_seq_entry_for_default_arg_decl(rp, func_info);
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
     mark_defined(sym, &locator->source_position);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -5378,6 +5426,7 @@ symbol has already been entered as an undefined symbol.
                       &func_info, (a_source_sequence_entry_ptr)NULL,
                       (SRK_DECLARATION | SRK_IMPLICIT),
                       &symbol_ptr, &linkage, &old_type, &ext_sym);
+  done_with_func_info(func_info);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
   symbol_ptr->variant.routine.ptr->source_corresp.referenced = TRUE;
@@ -5775,7 +5824,6 @@ otherwise it is NULL.  The syntax is:
        function declaration. */
     func_info = NULL;
   }  /* if */
-  if (func_info != NULL) clear_func_info(func_info);
   /* Set the locator to indicate there is no identifier. */
   if (locator != NULL) set_to_error_locator(*locator);
   /* Look for any initial "*" list indicating pointer types. */
@@ -6244,7 +6292,7 @@ function_lparen:
       }  /* if */
       function_declarator(&new_type_ptr, func_info, locator,
                           member_parent_type, is_nonstatic_member_function,
-                          is_constructor, is_destructor, *declarator_ssep);
+                          is_constructor, is_destructor);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (func_info != NULL) {
         /* Record the source sequence entry in func_info even if there was
@@ -9095,8 +9143,6 @@ and for the instantiation of template functions.
       if (func_info->prototype_scope_symbols != NULL) {
         reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
       }  /* if */
-      /* Free the list of parameter ids, now that it is no longer needed. */
-      free_param_id_list(&(func_info->param_id_list));
     }  /* if */
     /* Set the assoc_param_type field in each of the parameter variables. */
     fixup_parameters(scope_ptr->variant.routine.parameters,
@@ -10280,6 +10326,7 @@ continue_with_declaration:
       } else {
         copy_source_position(pos_curr_token, declarator_pos);
       }  /* if */
+      clear_func_info(&func_info);
       declarator(di_flags, &do_flags, type_ptr, 
                  /*member_parent_type=*/(a_type_ptr)NULL, &locator,
                  &local_type_ptr, &bottom_derived_type, &declarator_ssep,
@@ -10437,6 +10484,7 @@ continue_with_declaration:
         asm_function_definition(&locator, local_type_ptr, 
                                 top_declarator_type_is_function,
                                 &func_info, local_storage_class);
+        done_with_func_info(func_info);
         goto return_point;
       }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -10507,6 +10555,7 @@ continue_with_declaration:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         function_definition(&locator, local_type_ptr, &func_info,
                             local_storage_class, has_explicit_type_specifier);
+        done_with_func_info(func_info);
         goto return_point;
       }  /* if */
       /* Not a function definition, must be a declaration. */
@@ -10597,7 +10646,6 @@ continue_with_declaration:
             }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           }  /* for */
-          free_param_id_list(&(func_info.param_id_list));
         }  /* if */
       }  /* if */
       /* Do some checking of storage classes, but not for typedefs. */
@@ -10876,6 +10924,7 @@ continue_with_declaration:
           var_ptr->type = error_type();
         }  /* if */
       }  /* if */
+      done_with_func_info(func_info);
       remove_stop_token(tok_comma);
       need_comma_remove_stop_token = FALSE;
       /* Keep scanning the list of declarators. */
