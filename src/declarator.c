@@ -4342,7 +4342,7 @@ function_lparen:
          was parenthesized in which case decl_specifiers will have though we
          are in an "implicit int" case.  Change it to the constructed type
          (a front end convention that deviates from what is explicitly in the
-         source for a constructor declaration. */
+         source for a constructor declaration). */
       if (!is_unknown_type(specifiers_type) &&
           !(input_flags & DI_NO_TYPE_SPECIFIERS)) {
         pos_error(ec_return_type_on_constructor, &declarator_pos);
