@@ -107,6 +107,10 @@ typedef struct a_struct_stmt_stack_entry {
 			/* Within compound statements (blocks), TRUE if any
 			   executable statement (not declaration) has been
 			   seen. */
+  unsigned int  for_init:1;
+			/* TRUE if the structured statement is a for loop and
+			   the statement currently being processed is a
+			   for-init statement; FALSE otherwise. */
   a_reachability_summary
 		start_reachable;
 			/* Indicates whether or not the start of the structured
