@@ -5331,7 +5331,7 @@ used as an lvalue if is_lvalue is TRUE.
       temp_node = var_lvalue_expr(temp_var);
       temp_node->next = source_node;
       assign_node = make_operator_node((an_expr_operator_kind)eok_sassign,
-                                       temp_node->type, temp_node);
+                                       temp_var->type, temp_node);
       /* Make "(temp = pmf, (temp.i != 0) ? temp.d += offset : 0)". */
       assign_node->next = question_node;
       comma_node = make_operator_node((an_expr_operator_kind)eok_comma,
