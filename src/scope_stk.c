@@ -3031,9 +3031,18 @@ NULL.
       /* Function. */
       rout_ptr = sym->variant.routine.ptr;
       storage_class = rout_ptr->storage_class;
-      if (storage_class == (a_storage_class)sc_unspecified &&
-          (!is_member_of_unnamed_namespace(&rout_ptr->source_corresp) ||
-           rout_ptr->source_corresp.name_linkage ==
+      if (c99_mode && strict_ansi_mode &&
+          storage_class == (a_storage_class)sc_extern &&
+          rout_ptr->is_inline) {
+        /* In C99, an inline function with external linkage must be
+           defined in the current translation unit.  We require this only
+           in strict mode. */
+        pos_sy_diagnostic(strict_ansi_discretionary_severity,
+                          ec_inline_never_defined,
+                          &sym->decl_position, sym);
+      } else if (storage_class == (a_storage_class)sc_unspecified &&
+                 (!is_member_of_unnamed_namespace(&rout_ptr->source_corresp) ||
+                  rout_ptr->source_corresp.name_linkage ==
                                          (a_name_linkage_kind)nlk_external)) {
         /* Regard functions with "unspecified" storage class to be referenced
            somewhere, even if not in the current translation unit. extern
