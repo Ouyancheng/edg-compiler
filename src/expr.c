@@ -4283,6 +4283,10 @@ arithmetic type.  The operand of "~" must have integral type.  See section
 #if FIXED_POINT_ALLOWED
         if (is_fixed_point_type(operand.type)) {
           op = (an_expr_operator_kind)eok_fxnegate;
+          if (f_skip_typerefs(operand.type)->variant.fixed_point.is_unsigned) {
+            /* Warn on negation of an unsigned value. */
+            pos_warning(ec_unsigned_fixed_point_negation, &start_position);
+          }  /* if */
         } else
 #endif /* FIXED_POINT_ALLOWED */
         if (is_floating_type(operand.type)) {

@@ -1,5 +1,12 @@
 Version 3.5
 
+9/27/04  Warning on negation of an unsigned fixed-point value
+
+A warning is now issued on a unary "-" operator applied to an unsigned
+fixed-point value.
+
+  unsigned _Fract f = -1.0ur;
+
 9/27/04  Expression traversal routines and RECORD_CONSTANT_EXPRESSIONS_IN_IL
 
 The expression traversal routines (traverse_expr et al.) now have an
