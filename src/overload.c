@@ -4273,7 +4273,7 @@ gives the type of the routine being called.
 }  /* prep_special_selector_operand */
 
 
-static void adjust_operand_for_built_in_operator(
+static void adjust_operand_for_builtin_operator(
                                    an_operand               *operand,
                                    a_candidate_function_ptr candidate_function,
                                    int                      operand_num,
@@ -4314,7 +4314,7 @@ argument.  Adjust the operand type to match the type requirement.
 #if CHECKING
         if (!processed) {
           internal_error(
-                    "adjust_operand_for_built_in_operator: conversion failed");
+                     "adjust_operand_for_builtin_operator: conversion failed");
         }  /* if */
 #endif /* CHECKING */
       }  /* if */
@@ -4330,7 +4330,7 @@ argument.  Adjust the operand type to match the type requirement.
                               &operand->position);
     }  /* if */
   }  /* if */
-}  /* adjust_operand_for_built_in_operator */
+}  /* adjust_operand_for_builtin_operator */
 
 
 void check_for_operator_overloading(an_opname_kind     kind,
@@ -4533,13 +4533,13 @@ functions could still apply).
             /* *processed is left FALSE so the caller will try the built-in
                meaning. */
             /* Convert the operands to the proper types. */
-            adjust_operand_for_built_in_operator(operand_1,
-                                                 candidate_functions, 1,
-                                                 arg_match);
+            adjust_operand_for_builtin_operator(operand_1,
+                                                candidate_functions, 1,
+                                                arg_match);
             if (!unary_operator) {
-              adjust_operand_for_built_in_operator(operand_2,
-                                                   candidate_functions, 2,
-                                                   arg_match->next);
+              adjust_operand_for_builtin_operator(operand_2,
+                                                  candidate_functions, 2,
+                                                  arg_match->next);
             }  /* if */
           } else {
             /* An operator function was selected. */
