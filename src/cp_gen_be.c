@@ -6256,7 +6256,9 @@ recorded with this particular header.
       /* Set the source position for the name. */
       set_output_position(&param->source_corresp.decl_position);
       /* Write the name. */
-      gen_unqualified_name(&cp->source_corresp, iek_constant);
+      if (has_name(cp)) {
+        gen_unqualified_name(&cp->source_corresp, iek_constant);
+      }  /* if */
       /* Write the second part of the declarator. */
       form_type_second_part_simple(cp->type, /*under_lhs_declarator=*/FALSE,
                                    &octl);
