@@ -26,6 +26,11 @@ inline.h -- Declarations related to inline.c (minimal inlining for IL
 #include "il.h"
 #endif /* ifndef IL_DEF_H */
 
+
+EXTERN a_boolean
+		currently_doing_inlining_of_function_call;
+			/* TRUE if currently doing the expansion of an
+			   inline function call. */
 /*
 Entry used to record information about the remapping to be done on a variable
 while expanding an inline function call.
@@ -54,11 +59,6 @@ typedef struct a_variable_remapping_for_inlining {
   } variant;
 } a_variable_remapping_for_inlining;
 
-
-EXTERN a_variable_remapping_for_inlining_ptr
-		variable_remappings_for_inlining;
-			/* List of remappings of variables to be done while
-			   copying the body of a function being inlined. */
 
 EXTERN a_variable_remapping_for_inlining_ptr
 		avail_variable_remappings_for_inlining;

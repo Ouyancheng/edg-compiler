@@ -41,6 +41,12 @@ IL lowering, does not do inlining of C code.
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
 
 
+static a_variable_remapping_for_inlining_ptr
+		variable_remappings_for_inlining;
+			/* List of remappings of variables to be done while
+			   copying the body of a function being inlined. */
+
+
 static a_scope_ptr
 		routine_scope_being_inlined;
 			/* When non-NULL, a call of the routine associated
@@ -102,7 +108,7 @@ The code is inserted at *insert_location, and *insert_location is updated.
 */
 {
   a_variable_ptr   param_var, var, temp_var;
-  an_expr_node_ptr arg;
+  an_expr_node_ptr arg, arg_next;
   a_variable_remapping_for_inlining_ptr
                    vrip;
 #if DEBUG
@@ -112,9 +118,13 @@ The code is inserted at *insert_location, and *insert_location is updated.
   /* Process the parameters. */
   for (param_var = scope->variant.routine.parameters, arg = arg_expr_list;
        param_var != NULL;
-       param_var = param_var->next, arg = arg->next) {
+       param_var = param_var->next, arg = arg_next) {
     check_assertion_str(arg != NULL,
                         "set_up_variable_remapping_...: too few args");
+    arg_next = arg->next;
+    /* Detach the argument expression from the rest of the list so it can
+       be used by itself. */
+    arg->next = NULL;
     if (!param_var->source_corresp.referenced) {
       /* We don't need the parameter if it's not referenced.  However, if
          the argument has side effects, we need to evaluate it. */
@@ -215,7 +225,6 @@ calling context scope.
     /* Free the entry. */
     free_variable_remapping_for_inlining(vrip);
   }  /* for */
-  variable_remappings_for_inlining = NULL;
 }  /* finish_variable_remapping_for_inlining */
 
 
@@ -601,6 +610,7 @@ statement).
           fprintf(f_debug, ":\n");
         }  /* if */
 #endif /* DEBUG */
+        currently_doing_inlining_of_function_call = TRUE;
         scope = il_header.region_scope_entry[routine->assoc_scope];
         routine_scope_being_inlined = scope;
         /* Set the insert location.  Use a location unattached to the IL
@@ -642,16 +652,24 @@ statement).
                the block statement containing the inlined code. */
             copy_statement(block_stmt, statement);
           } else {
+            an_expr_node_ptr inlined_call_expr = insert_location.variant.expr;
+            check_assertion(inlined_call_expr != NULL);
+            /* Cast the expression to the original type.  This is necessary
+               when the original type was void and insertions have left us
+               with an expression with some other type. */
+            inlined_call_expr = add_cast_if_necessary(inlined_call_expr,
+                                                      expr->type);
             /* Replace the original call node by overwriting it with the
                expression for the inlined call. */
-            check_assertion(insert_location.variant.expr != NULL);
-            overwrite_node(expr, insert_location.variant.expr);
+            overwrite_node(expr, inlined_call_expr);
           }  /* if */
         }  /* if */
+        variable_remappings_for_inlining = NULL;
         /* Put the inlinable flag back on, unless we've discovered that this
            function can never be inlined. */
         routine->inlinable = inlinable;
         routine_scope_being_inlined = NULL;
+        currently_doing_inlining_of_function_call = FALSE;
 #if DEBUG
         if (debug_level >= 4) {
           fprintf(f_debug, "End of inlining of call to ");
@@ -714,9 +732,14 @@ versions of those routines.
   for (routine = il_header.primary_scope->routines;
        routine != NULL;
        routine = routine->next) {
-    if (routine->is_inline && routine->inlinable &&
-        !routine->need_out_of_line_copy) {
-      routine->source_corresp.referenced = FALSE;
+    if (routine->is_inline && routine->inlinable) {
+      /* If the routine's address was taken, an out of line copy is needed. */
+      if (routine->address_taken) routine->need_out_of_line_copy = TRUE;
+      if (!routine->need_out_of_line_copy) {
+        /* We don't need an out-of-line copy, so mark the routine as
+           unreferenced because it's no longer needed. */
+        routine->source_corresp.referenced = FALSE;
+      }  /* if */
     }  /* if */
   }  /* for */
 }  /* mark_inlined_routines_as_unreferenced */
@@ -753,12 +776,13 @@ of the front end.
 */
 {
   /* Variables in inline.h: */
+  currently_doing_inlining_of_function_call = NULL;
   avail_variable_remappings_for_inlining = NULL;
-  variable_remappings_for_inlining = NULL;
 #if DEBUG
   num_variable_remappings_for_inlining = 0;
 #endif /* DEBUG */
   /* Static variables in inline.c: */
+  variable_remappings_for_inlining = NULL;
   routine_scope_being_inlined = NULL;
 }  /* inline_init */
 
