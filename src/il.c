@@ -720,6 +720,17 @@ Dump the contents of the indicated constant, for debug purposes.
       }  /* switch */
       fprintf(f_debug, " + %ld)", cp->variant.address.offset);
       break;
+    case ck_ptr_to_member:
+      /* C++ pointer-to-member. */
+      fprintf(f_debug, "(&-member-of(%s) ", cp->variant.ptr_to_member.
+                                 class_of_which_a_member->source_corresp.name);
+      if (cp->variant.ptr_to_member.is_function_ptr) {
+        db_name(&cp->variant.ptr_to_member.variant.routine->source_corresp);
+      } else {
+        db_name(&cp->variant.ptr_to_member.variant.field->source_corresp);
+      }  /* if */
+      fprintf(f_debug, ")");
+      break;
     case ck_aggregate:
       (void)fputc('{', f_debug);
       cp2 = cp->variant.aggregate.first_constant;
@@ -1516,6 +1527,11 @@ fields to default values.
       cp->variant.address.variant.variable = NULL;
       cp->variant.address.offset = 0;
       break;
+    case ck_ptr_to_member:
+      cp->variant.ptr_to_member.class_of_which_a_member = NULL;
+      cp->variant.ptr_to_member.is_function_ptr         = FALSE;
+      cp->variant.ptr_to_member.variant.field           = NULL;
+      break;
     case ck_dynamic_init:
       cp->variant.dynamic_init = NULL;
       break;
@@ -1686,6 +1702,15 @@ bucket of the shareable_constants_table to use for the constant.
       }  /* switch */
       hash_value += (a_constant_hash_value)(cp->variant.address.offset + 1000);
       break;
+    case ck_ptr_to_member:
+      if (cp->variant.ptr_to_member.is_function_ptr) {
+        hash_value =
+              (a_constant_hash_value)cp->variant.ptr_to_member.variant.routine;
+      } else {
+        hash_value =
+                (a_constant_hash_value)cp->variant.ptr_to_member.variant.field;
+      }  /* if */
+      break;
     default:
       hash_value = (a_constant_hash_value)(200 + cp->kind);
       break;
@@ -1762,6 +1787,22 @@ Return TRUE if the two constants are identical.
           }  /* switch */
         }  /* if */
         break;
+      case ck_ptr_to_member:
+        if (cp1->variant.ptr_to_member.class_of_which_a_member ==
+                          cp2->variant.ptr_to_member.class_of_which_a_member &&
+            cp1->variant.ptr_to_member.base_class ==
+                                       cp2->variant.ptr_to_member.base_class &&
+            cp1->variant.ptr_to_member.is_function_ptr ==
+                                  cp2->variant.ptr_to_member.is_function_ptr) {
+          if (cp1->variant.ptr_to_member.is_function_ptr) {
+            eq = (cp1->variant.ptr_to_member.variant.routine ==
+                  cp2->variant.ptr_to_member.variant.routine);
+          } else {
+            eq = (cp1->variant.ptr_to_member.variant.field ==
+                  cp2->variant.ptr_to_member.variant.field);
+          }  /* if */
+        }  /* if */
+        break;
 #if CHECKING
       default:
         internal_error("eq_constants: bad constant kind");
@@ -1816,6 +1857,10 @@ region).
             internal_error("has_non_file_scope_ref: bad addr constant kind");
 #endif /* CHECKING */
         }  /* switch */
+        break;
+      case ck_ptr_to_member:
+        /* Class types are allocated at the file scope, so they cannot involve
+           non-file-scope references. */
         break;
 #if CHECKING
       case ck_aggregate:

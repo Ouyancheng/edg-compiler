@@ -221,6 +221,7 @@ enum a_constant_repr_kind_tag {
 #endif /* ifdef FIL */
 #ifdef CIL
   ck_address,           /* Address. */
+  ck_ptr_to_member,	/* C++ pointer-to-member (data or function). */
   ck_dynamic_init,	/* Dynamic initialization.  Indicates the location of
 			   a non-constant part of an aggregate initialization,
 			   one that requires code.  Only used in C++. */
@@ -229,7 +230,7 @@ enum a_constant_repr_kind_tag {
   ck_init_repeat,       /* Used to specify a repeated initialization constant
                            in an array. */
 #ifdef CIL
-			/* Only used in C++. */
+			/* Used in C++, not in C. */
 #endif /* ifdef CIL */
 #ifdef FIL
   ck_init_position,     /* Used to specify an explicit initialization position
@@ -482,6 +483,33 @@ typedef struct a_constant {
                 offset;
                         /* Byte offset from the base address. */
     } address;
+    /* When kind == ck_ptr_to_member: */
+    struct {
+      /* A C++ pointer-to-member (data or function). */
+      a_type_ptr
+		class_of_which_a_member;
+			/* Type of the class to which the member pointed to
+			   belongs. */
+      a_base_class_ptr
+		base_class;
+			/* Pointer to the base class entry for the base class
+			   of class_of_which_a_member in which the member
+			   pointed to is defined.  NULL if the member is
+			   defined directly in class_of_which_a_member. */
+      a_byte_boolean
+		is_function_ptr;
+			/* TRUE if the pointer is to a member function,
+			   FALSE if to a data member. */
+      union {
+        /* When is_function_ptr == TRUE: */
+        a_routine_ptr
+		routine;
+			/* The routine for the member function pointed to. */
+        /* When is_function_ptr == FALSE: */
+        a_field_ptr
+		field;	/* The field for the data member pointed to. */
+      } variant;
+    } ptr_to_member;
     /* When kind = ck_dynamic_init: */
     a_dynamic_init_ptr
 		dynamic_init;
