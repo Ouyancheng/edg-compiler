@@ -101,6 +101,24 @@ Record an IL entry to be verified at the end of verification processing.
 }  /* add_verification_entry */
 
 
+static void remove_from_verification_list(char  *il_entry)
+/*
+See if the given entry is on the verification list, and if so clear the
+list entry.
+*/
+{
+  a_verification_entry_ptr  entry = verification_list;
+
+  for (; entry != NULL; entry = entry->next) {
+    if (entry->il_entry == il_entry) {
+      entry->kind = (an_il_entry_kind)iek_none;
+      entry->il_entry = NULL;
+      break;
+    }  /* if */
+  }  /* for */
+}  /* remove_from_verification_list */
+
+
 static void free_verification_entry(a_verification_entry_ptr  entry)
 /*
 Return the given entry to the list of available entries.
@@ -2397,6 +2415,12 @@ type is in fact valid.
               sup = class_info.extra_info,
               corresp_sup = corresp_info.extra_info;
 
+  if (type->variant.class_struct_union.is_template_class) {
+    /* We may have conservatively placed this type on the verification list
+       in set_type_corresp.  To avoid double verification (and double
+       diagnostics), remove it from that list. */
+    remove_from_verification_list((char*)type);
+  }  /* if */
   if (!match) {
     /* An error was already issued. */
   } else if (!is_immediate_class_type(corresp_type)) {
@@ -5258,6 +5282,9 @@ translation unit).
         case iek_variable:
           (void)verify_variable_correspondence(
                                               (a_variable_ptr)entry->il_entry);
+          break;
+        case iek_none:
+          /* The entry was removed. */
           break;
         default:
           unexpected_condition();
