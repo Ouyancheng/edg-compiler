@@ -9245,6 +9245,10 @@ options is a set of name lookup options.
       *copy_error = TRUE;
       break;
   }  /* if */
+  if (*copy_error) {
+    /* Return an error node on a copy error. */
+    expr_copy = error_node();
+  }  /* if */
   return expr_copy;
 }  /* copy_template_param_expr */
 
@@ -9564,7 +9568,6 @@ name lookup options.
             a_constant       sizeof_expr_con;
             a_constant_ptr   alloc_sizeof_expr_con;
 
-            new_type = expr->type;  /* For *copy_error case. */
             expr = copy_template_param_expr(expr,
                                             template_arg_list,
                                             template_param_list,
@@ -9575,18 +9578,16 @@ name lookup options.
                                             copy_error,
                                             &sizeof_expr_con,
                                             &alloc_sizeof_expr_con);
-            if (!*copy_error) {
-              if (expr == NULL) {
-                /* The expression folds to a constant. */
-                if (alloc_sizeof_expr_con != NULL) {
-                  expr = alloc_node_for_allocated_constant(
+            if (expr == NULL) {
+              /* The expression folds to a constant. */
+              if (alloc_sizeof_expr_con != NULL) {
+                expr = alloc_node_for_allocated_constant(
                                                         alloc_sizeof_expr_con);
-                } else {
-                  expr = alloc_node_for_constant(&sizeof_expr_con);
-                }  /* if */
+              } else {
+                expr = alloc_node_for_constant(&sizeof_expr_con);
               }  /* if */
-              new_type = expr->type;
             }  /* if */
+            new_type = expr->type;
           } else {
             /* No associated expression, just a type. */
             new_type = copy_type_with_substitution(con->variant.template_param.
@@ -9697,6 +9698,10 @@ name lookup options.
       default:
         unexpected_condition_str("copy_template_param_con: unexpected kind");
     }  /* switch */
+  }  /* if */
+  if (*copy_error) {
+    /* Return an error constant on a copy error. */
+    con_copy = alloc_error_constant();
   }  /* if */
   return con_copy;
 }  /* copy_template_param_con */
