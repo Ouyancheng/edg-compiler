@@ -437,7 +437,7 @@ that context is one that requires a complete class type.
 The processing for removing unneeded IL entities (controlled by
 MAINTAIN_NEEDED_FLAGS at al.) did not work quite right in the presence
 of namespaces, which could cause an IL write/read check internal error.
-This abort only occurred, however, when IL lowering lowering was not done.
+This abort only occurred, however, when IL lowering was not done.
 
 12/19/96 IL display program did not set f_debug
 
