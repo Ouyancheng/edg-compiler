@@ -7157,19 +7157,40 @@ appears on the command-line).  This is also called from pop_scope.
 #endif /* DEBUG */
 
 
-a_source_sequence_entry_ptr alloc_source_sequence_entry(void)
+static a_source_sequence_entry_ptr alloc_source_sequence_entry(void)
 /*
 Allocate a source sequence entry, initialize its fields, and return a pointer
 to it.
 */
 {
-  a_source_sequence_entry_ptr  ssep;
+  a_source_sequence_entry_ptr  ssep, *avail_list_ptr;
+  a_scope_depth                scope_depth;
 
-  ssep = (a_source_sequence_entry_ptr)
+  /* Use a source sequence entry that is on an available list, if possible;
+     otherwise, allocate a new one. */
+  /* Note that each scope that has a source sequence list (there is one such
+     scope per memory region) also has its own available list. */
+  if (curr_il_region_number == FILE_SCOPE_REGION_NUMBER) {
+    /* Use the file scope. */
+    scope_depth = DEPTH_OF_FILE_SCOPE;
+  } else {
+    /* Use the current function scope. */
+    check_assertion(depth_innermost_ss_list_scope != NO_SCOPE_DEPTH);
+    scope_depth = depth_innermost_ss_list_scope;
+  }  /* if */
+  /* Copy the adderss of the available list. */
+  avail_list_ptr = &scope_stack[scope_depth].source_sequence_avail_list;
+  if (*avail_list_ptr != NULL) {
+    ssep = *avail_list_ptr;
+    *avail_list_ptr = ssep->next;
+  } else {
+    ssep = (a_source_sequence_entry_ptr)
                                    alloc_cil(sizeof(a_source_sequence_entry));
 #if DEBUG
-  num_source_sequence_entries_allocated++;
+    num_source_sequence_entries_allocated++;
 #endif /* DEBUG */
+  }  /* if */
+  /* Initialize the fields. */
   ssep->next        = NULL;
   ssep->prev        = NULL;
   ssep->entity.kind = (a_byte_il_entry_kind)iek_none;
@@ -7201,7 +7222,7 @@ and return a pointer to it.
 }  /* alloc_src_seq_secondary_decl */
 
 
-a_src_seq_end_of_construct_ptr alloc_src_seq_end_of_construct(void)
+static a_src_seq_end_of_construct_ptr alloc_src_seq_end_of_construct(void)
 /*
 Allocate an end-of-construct declaration entry, initialize its fields, and
 return a pointer to it.
