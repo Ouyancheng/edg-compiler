@@ -2431,10 +2431,12 @@ is in fact valid.
       check_for_enumerator_conflicts(type);
     }  /* if */
   } else if (type_sym == NULL) {
-    /* This must be a placeholder type. */
-    check_assertion(is_placeholder_type(type));
-    match = FALSE;
-    set_no_trans_unit_corresp(iek_type, type);
+    /* This must be a placeholder type or a builtin type.  The former has
+       no correspondence; the latter needs no checking. */
+    match = !is_placeholder_type(type);
+    if (!match) {
+      set_no_trans_unit_corresp(iek_type, type);
+    }  /* if */
   } else {
     if (!verify_name_correspondence(type)) {
       match = FALSE;
