@@ -825,7 +825,11 @@ source file's compilation.
   }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   if (C_dialect == C_dialect_cplusplus) {
-    if (namespaces_enabled) {
+    a_boolean need_std = namespaces_enabled;
+#if RUNTIME_USES_NAMESPACES
+    need_std = TRUE;
+#endif /* RUNTIME_USES_NAMESPACES */
+    if (need_std) {
       /* Predeclare namespace "std" and create a symbol for it.  Note that
          the symbol is not actually added to the symbol table until namespace
          "std" is explicitly declared. */

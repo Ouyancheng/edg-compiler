@@ -632,13 +632,6 @@ type, for use in typeinfo implementation constants.
 }  /* make_typeinfo_name_constant */
 
 
-#if RUNTIME_USES_NAMESPACES
-static a_namespace_ptr fake_std_namespace;
-			/* Pointer to a namespace called "std", but not the
-			   real one.  Used as a parent pointer for the vtbl
-			   for type_info when the runtime uses namespaces,
-			   to get the right mangled name.  NULL until set. */
-#endif /* RUNTIME_USES_NAMESPACES */
 #endif /* ABI_CHANGES_FOR_RTTI */
 
 static void define_typeinfo_var(a_type_ptr type,
@@ -719,14 +712,11 @@ have been called on it at some previous point.
          in generating the virtual function table name. */
       char *saved_name = user_type_info_type->source_corresp.name;
 #if RUNTIME_USES_NAMESPACES
-      /* Make a fake "std" namespace and use it as the parent pointer
-         temporarily to get the mangled name right. */
-      if (fake_std_namespace == NULL) {
-        fake_std_namespace = alloc_namespace(/*is_alias=*/FALSE);
-        fake_std_namespace->source_corresp.name = "std";
-      }  /* if */
+      /* Add a parent pointer for the "std" namespace temporarily to get
+         the mangled name right. */
+      check_assertion(symbol_for_namespace_std != NULL);
       user_type_info_type->source_corresp.parent.namespace_ptr =
-                                                            fake_std_namespace;
+                          symbol_for_namespace_std->variant.namespace_info.ptr;
 #endif /* RUNTIME_USES_NAMESPACES */
       user_type_info_type->source_corresp.name = "type_info";
       vtbl_for_type_info =
@@ -4093,9 +4083,6 @@ with each new translation unit are handled in eh_lower_init.)
       pch_saved_var_array_elem(typeinfo_tinfo_field),
       pch_saved_var_array_elem(user_type_info_type),
       pch_saved_var_array_elem(vtbl_for_type_info),
-#if RUNTIME_USES_NAMESPACES
-      pch_saved_var_array_elem(fake_std_namespace),
-#endif /* RUNTIME_USES_NAMESPACES */
       pch_saved_var_array_elem(get_typeid_routine),
 #endif /* ABI_CHANGES_FOR_RTTI */
 #if GENERATE_EH_TABLES
@@ -4158,9 +4145,6 @@ invocation of the front end.
 #if ABI_CHANGES_FOR_RTTI
   typeinfo_tinfo_field = NULL;
   user_type_info_type = NULL;
-#if RUNTIME_USES_NAMESPACES
-  fake_std_namespace = NULL;
-#endif /* RUNTIME_USES_NAMESPACES */
   get_typeid_routine = NULL;
 #endif /* ABI_CHANGES_FOR_RTTI */
 #if GENERATE_EH_TABLES
