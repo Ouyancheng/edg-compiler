@@ -2870,8 +2870,8 @@ statement.  Its form is
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static add_goto_to_continue_label(a_struct_stmt_stack_entry_ptr sssep,
-                                  a_boolean                     is_leave)
+static void add_goto_to_continue_label(a_struct_stmt_stack_entry_ptr sssep,
+                                       a_boolean                     is_leave)
 /*
 Generate a goto to the "continue" label for the indicated structured
 statement.  Generate the label if it has not been generated yet.
