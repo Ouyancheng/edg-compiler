@@ -12705,11 +12705,9 @@ to the expression created.  The variable var must have an associated symbol.
   ref = ref_entry((a_symbol_ptr)var->source_corresp.assoc_info,
                   &var->source_corresp.decl_position);
   make_lvalue_variable_operand(var, &operand, ref);
-  operand.position = var->source_corresp.decl_position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  operand.end_position =
-                       var->source_corresp.decl_pos_info->identifier_range.end;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  set_operand_position(&operand, &var->source_corresp.decl_position,
+                      &var->source_corresp.decl_pos_info->identifier_range.end,
+                       (a_source_position *)NULL);
   do_operand_transformations(&operand, TOPT_NO_OPTIONS);
   if (is_switch_expr) {
     /* A switch condition (must be integral). */
