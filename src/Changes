@@ -1,6 +1,16 @@
 Version 2.30
 
-10/2/95  C++-generating back end: template friends
+10/3/95  C++-generating back end: Non-member anonymous union member names
+
+The C++-generating back end now puts out the names for members of 
+non-member anonymous unions correctly.
+
+  static union {
+    typedef int T;
+  };
+  T x;
+
+10/3/95  C++-generating back end: template friends
 
 The C++-generating back end now deals correctly with template friend
 declarations in classes:
