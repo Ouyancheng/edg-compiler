@@ -2029,10 +2029,13 @@ Add the indicated source line modification to the hash table used to
 optimize calls to nested_source_line_modif.
 */
 {
-  unsigned long hash = hash_value_for_source_line_modif(slmp->line_loc);
+  /* Don't add if line_loc == NULL. */
+  if (slmp->line_loc != NULL) {
+    unsigned long hash = hash_value_for_source_line_modif(slmp->line_loc);
 
-  slmp->next_in_hash_table = source_line_modif_hash_table[hash];
-  source_line_modif_hash_table[hash] = slmp;
+    slmp->next_in_hash_table = source_line_modif_hash_table[hash];
+    source_line_modif_hash_table[hash] = slmp;
+  } /* if */
 }  /* add_source_line_modif_to_hash_table */
 
 
@@ -2042,31 +2045,34 @@ Remove the indicated source line modification from the hash table used to
 optimize calls to nested_source_line_modif.
 */
 {
-  unsigned long           hash =
+  /* Don't remove if line_loc == NULL (the entry wasn't in the hash table). */
+  if (slmp->line_loc != NULL) {
+    unsigned long           hash =
                               hash_value_for_source_line_modif(slmp->line_loc);
-  a_source_line_modif_ptr tslmp, pslmp;
+    a_source_line_modif_ptr tslmp, pslmp;
 
 #if DEBUG
-  num_lookups_in_source_line_modif_hash_table++;
+    num_lookups_in_source_line_modif_hash_table++;
 #endif /* DEBUG */
-  for (pslmp = NULL, tslmp = source_line_modif_hash_table[hash];
-       ;
-       pslmp = tslmp, tslmp = tslmp->next_in_hash_table) {
-    check_assertion_str(tslmp != NULL,
+    for (pslmp = NULL, tslmp = source_line_modif_hash_table[hash];
+         ;
+         pslmp = tslmp, tslmp = tslmp->next_in_hash_table) {
+      check_assertion_str(tslmp != NULL,
              "rem_source_line_modif_from_hash_table: not found in hash table");
 #if DEBUG
-    num_compares_in_source_line_modif_hash_table++;
+      num_compares_in_source_line_modif_hash_table++;
 #endif /* DEBUG */
-    if (tslmp->line_loc == slmp->line_loc) {
-      /* Found the entry.  Unlink it from the hash table. */
-      if (pslmp == NULL) {
-        source_line_modif_hash_table[hash] = tslmp->next_in_hash_table;
-      } else {
-        pslmp->next_in_hash_table = tslmp->next_in_hash_table;
+      if (tslmp->line_loc == slmp->line_loc) {
+        /* Found the entry.  Unlink it from the hash table. */
+        if (pslmp == NULL) {
+          source_line_modif_hash_table[hash] = tslmp->next_in_hash_table;
+        } else {
+          pslmp->next_in_hash_table = tslmp->next_in_hash_table;
+        }  /* if */
+        break;
       }  /* if */
-      break;
-    }  /* if */
-  }  /* for */
+    }  /* for */
+  }  /* if */
 }  /* rem_source_line_modif_from_hash_table */
 
 
@@ -4662,6 +4668,7 @@ for the GNU C multiline string extension.
            line_loc pointer because the text referred to is going away. */
         if (slmp->line_loc != NULL &&
             within_curr_source_line(slmp->line_loc)) {
+          rem_source_line_modif_from_hash_table(slmp);
           slmp->line_loc = NULL;
           slmp->num_chars_to_delete = 0;
         }  /* if */

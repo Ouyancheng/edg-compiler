@@ -1,5 +1,20 @@
 Version 3.5
 
+5/20/04  Abort in preprocessor with macro call continued on next line
+
+Changes made in 3.4 (see Changes entry of 4/29/04) broke cases
+like the following that involve more than one macro call on a line,
+the second one continued to a subsequent line.  The abort was
+an internal error in rem_source_line_modif_from_hash_table
+("not found in hash table").  Now working again.
+
+  #define abs(x) ((x) >= 0 ? (x) : -(x))
+  #define dabs(x) (double)abs(x)
+  int main() {
+    dabs(0) / dabs(
+                   0);
+  }
+
 5/19/04  Microsoft compatibility: "&" applied to trivial construction
 
 In Microsoft mode, the "&" operator can be applied to a functional-
