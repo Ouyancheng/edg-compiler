@@ -5345,14 +5345,6 @@ matches a class type from the parameter list of a template function.
                                   templ_param_list)) {
       match = TRUE;
     }  /* if */
-  } else if (identical_types(type, templ_type)) {
-    /* If the two classes are not instances of the same template, check to
-       see if they are the same types.  This may seem backward, but it
-       is important that if type and templ_type are both A<T>, that the
-       template argument lists are processed by the code above.  This is
-       needed for binding template parameter values when doing partial
-       ordering comparisons. */
-    match = TRUE;
   } else if (templ_primary_template != NULL &&
              templ_primary_template->variant.template_info->
                              variant.class_template.template_template_param) {
@@ -5370,6 +5362,14 @@ matches a class type from the parameter list of a template function.
         match = TRUE;
       }  /* if */
     }  /* if */
+  } else if (identical_types(type, templ_type)) {
+    /* If the two classes are not instances of the same template, check to
+       see if they are the same types.  This may seem backward, but it
+       is important that if type and templ_type are both A<T>, that the
+       template argument lists are processed by the code above.  This is
+       needed for binding template parameter values when doing partial
+       ordering comparisons. */
+    match = TRUE;
   } else if (templ_type->source_corresp.is_class_member) {
     if (nonstandard_qualifier_deduction) {
       /* The parameter type is a class member -- a nested class or enum.  Be

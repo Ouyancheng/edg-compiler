@@ -1,3 +1,23 @@
+Version 3.2
+
+1/27/03  Partial ordering and template template parameters
+
+Use of certain function templates that use template template parameters
+resulted in spurious ambiguity errors when one template should have been
+preferred based on the partial ordering rules.  This has been fixed.
+
+  template<template<class> class TTP, class T> int f(TTP<int>, T) {
+    return 1;
+  }
+  template<template<class> class TTP> int f(TTP<int>, int) {
+    return 2;
+  }
+  template<class T> struct A { };
+  int main() {
+    f(A<int>(),1); 
+  } 
+
+-------------------------------------------------------------------------------
 Version 3.1, January 26, 2003
 
 1/23/03  IL version number changed to 3.1
