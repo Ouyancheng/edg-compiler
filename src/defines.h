@@ -183,7 +183,9 @@ Flags to be set when using the KAI inliner.
 #define GNU_VISIBILITY_ATTRIBUTE_ALLOWED 1
 #define DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ENABLED 1
 #define UPC_EXTENSIONS_ALLOWED 1
+#ifdef SOLARIS
 #define ASM_FUNCTION_ALLOWED 1
+#endif /* ifdef SOLARIS */
 #define REPRESENT_EMPTY_STATEMENTS_IN_IL 1
 #define EXTRA_SOURCE_POSITIONS_IN_IL 1
 /* Use 1 for mmap PCH, 0 for non-mmap PCH. */
