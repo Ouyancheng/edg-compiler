@@ -2760,7 +2760,9 @@ type, that type is ignored by this routine.
                that points to a synthesized namespace projection. */
             sym_to_find = fundamental_symbol_of(rout_sym);
             check_assertion_str2(sym_to_find->kind ==
-                                                     (a_symbol_kind)sk_routine,
+                                                   (a_symbol_kind)sk_routine ||
+                                 sym_to_find->kind ==
+                                           (a_symbol_kind)sk_function_template,
                                  "nonmember_operator_function_lookup:",
                                  "bad symbol kind");
             for (slep = symbol_list; slep != NULL; slep = slep->next) {
@@ -2774,10 +2776,20 @@ type, that type is ignored by this routine.
               }  /* if */
               for (; list_sym != NULL;
                    list_sym = list_is_list ? list_sym->next : NULL) {
-                if (list_sym->variant.routine.ptr ==
+                if (list_sym->kind == sym_to_find->kind) {
+                  if (list_sym->kind == (a_symbol_kind)sk_routine) {
+                    if (list_sym->variant.routine.ptr ==
                                             sym_to_find->variant.routine.ptr) {
-                  /* We've found a match -- exit the loop. */
-                  break;
+                      /* We've found a match -- exit the loop. */
+                      break;
+                    }  /* if */
+                  } else {
+                    if (list_sym->variant.template_info ==
+                                          sym_to_find->variant.template_info) {
+                      /* We've found a match -- exit the loop. */
+                      break;
+                    }  /* if */
+                  }  /* if */
                 }  /* if */
               }  /* for */
               /* If the routine was found in the symbol list of this list
