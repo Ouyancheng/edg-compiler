@@ -1684,6 +1684,9 @@ error code.
     case ec_cfront_global_defined_after_nested_type:
       m = "global %no1 was declared after nested %nod2 (cfront compatibility)";
       break;
+    case ec_template_param_declared_but_not_referenced:
+      m = "template parameter %no declared and never referenced";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -4736,7 +4736,8 @@ called.
 }  /* check_referenced_member_functions */
 
 
-static void report_unreferenced(a_symbol_ptr  sym)
+static void report_unreferenced(a_symbol_ptr  sym,
+                                an_error_code error_code)
 /*
 Issue a warning for an unreferenced entity.  However, demote the warning to
 a remark if the entity is a file-scope entity declared in an include file.
@@ -4744,9 +4745,9 @@ a remark if the entity is a file-scope entity declared in an include file.
 {
   if (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
       seq_is_in_include_file(sym->decl_position.seq)) {
-    pos_sy_remark(ec_declared_but_not_referenced, &sym->decl_position, sym);
+    pos_sy_remark(error_code, &sym->decl_position, sym);
   } else {
-    pos_sy_warning(ec_declared_but_not_referenced, &sym->decl_position, sym);
+    pos_sy_warning(error_code, &sym->decl_position, sym);
   }  /* if */
 }  /* report_unreferenced */
 
@@ -4824,7 +4825,7 @@ NULL.
 #endif /* ASM_FUNCTION_ALLOWED */
           } else {
             /* Unreferenced parameter. */
-            report_unreferenced(sym);
+            report_unreferenced(sym, ec_declared_but_not_referenced);
           }  /* if */
         } else {
           /* A normal variable (not a parameter). */
@@ -4833,7 +4834,7 @@ NULL.
                long-standing C tradition. */
           } else {
             /* An unreferenced variable. */
-            report_unreferenced(sym);
+            report_unreferenced(sym, ec_declared_but_not_referenced);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -4894,7 +4895,7 @@ check_routine:
 #endif /* ASM_FUNCTION_ALLOWED */
             } else {
               /* An unreferenced routine. */
-              report_unreferenced(rout_sym);
+              report_unreferenced(rout_sym, ec_declared_but_not_referenced);
             }  /* if */
           }  /* if */
         }  /* if */
@@ -4937,7 +4938,7 @@ check_routine:
         pos_sy_error(ec_never_defined, &sym->decl_position, sym);
       } else if (!sym->referenced) {
         /* An unreferenced label. */
-        report_unreferenced(sym);
+        report_unreferenced(sym, ec_declared_but_not_referenced);
       }  /* if */
       break;
     case sk_extern_variable:
@@ -5041,7 +5042,8 @@ check_routine:
       tap = tssp->parameters;
       while (tap != NULL) {
         if (!tap->param_symbol->referenced) {
-          report_unreferenced(tap->param_symbol);
+          report_unreferenced(tap->param_symbol,
+                              ec_template_param_declared_but_not_referenced);
         }  /* if */
         tap = tap->next;
       }  /* while */
