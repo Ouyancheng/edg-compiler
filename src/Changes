@@ -860,7 +860,12 @@ The option is off by default, unless the C++-generating back end is selected.
 The C++-generating back end has been modified to use the new expr field when
 it is available and non-null.  This will cause the back end to generate the
 original expression rather than the resulting constant (i.e., "1+2" remains
-"1+2" and does not become "3").
+"1+2" and does not become "3").  For example:
+
+  int a = 3;  // No expression recorded for constant "3".
+  int b = 1+2; // The constant resulting from "1+2" points to a constant
+               // encoding the value "3", but also to a representation of
+               // "1+2".
 
 Some expressions are not currently representable in the IL; this includes
 sizeof and __INTADDR__ operators, as well as expressions for constants
@@ -872,9 +877,9 @@ entities from a function scope memory region.  For example:
     enum { e1 = start+1 };  // "e1" allocated in file scope; "expr" field
   }                         // of associated a_constant is NULL.
 
-Note also that some constant expressions (bit field lengths in particular) are
-not represented using a_constant nodes, and are therefore never recorded in
-the IL.
+Note also that some constant expressions (array and bit field lengths in
+particular) are not represented using a_constant nodes, and are therefore
+never recorded in the IL.
 
 10/15/99 Typedef redeclaration of a type reintroduced with a using-declaration
 
@@ -1087,21 +1092,6 @@ to be created, even though both have the same mangled name (a warning is
 issued).  The C generating back end emits declarations for both entities, but
 a Microsoft compiler will accept these conflicting C declarations of the same
 name with a warning.
-
-10/5/99  Configuration option to record constant expressions
-
-When the new configuration option RECORD_CONSTANT_EXPRESSIONS_IN_IL is set to
-TRUE, the front end will record (for nonliterals) an IL representation of the
-expression that was used to form constants.  The representation is pointed to
-by the new field "expr" of struct a_constant.  For example:
-
-  int a = 3;  // No expression recorded for constant "3".
-  int b = 1+2; // The constant resulting from "1+2" points to a constant
-               // encoding the value "3", but also to a representation of
-               // "1+2".
-
-The C++ generating back end has been modified to use the recorded expressions
-when available.
 
 10/4/99  C++ generating back end: abort on specialization in Microsoft mode
 
