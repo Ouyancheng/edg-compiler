@@ -6284,57 +6284,63 @@ NULL.
            to be referenced from another compilation unit.  The referenced
            flag in the IL entry is set slightly later, in the
            sk_extern_variable processing. */
-      } else if (!sym->referenced) {
-        /* An unreferenced variable or parameter. */
-        if (var_ptr->is_parameter) {
-          /* A parameter.  Warn unless a lint-style "argsused" comment
-             appeared.  Also do not warn for parameters of "main". */
+      } else if (storage_class == (a_storage_class)sc_extern) {
+        /* No warning for unused "extern" variables; this is a long-standing
+           C convention. */
+      } else if (var_ptr->is_parameter && !sym->referenced) {
+        /* An unreferenced parameter.  Warn unless a lint-style "argsused"
+           comment appeared.  Also do not warn for parameters of "main". */
 #if CHECKING
-          if (curr_routine == NULL) {
-            internal_error(
-                 "end_of_scope_symbol_check: parameter with no assoc routine");
-          }  /* if */
-#endif /* CHECKING */
-          /* In C++ a routine type can have type qualifiers above it. */
-          if (skip_typerefs(curr_routine->type)->variant.routine.
-                                              extra_info->lint_argsused_flag) {
-            /* The "argsused" flag was specified, so no warning is issued. */
-          } else if (curr_routine == il_header.main_routine) {
-            /* No warning for arguments of the main program, since
-               they're dictated by the environment. */
-#if ASM_FUNCTION_ALLOWED
-          } else if (curr_routine->storage_class == (a_storage_class)sc_asm) {
-            /* Parameters of "asm" functions are not referenced in the 
-               usual way, so do not issue warnings. */
-#endif /* ASM_FUNCTION_ALLOWED */
-          } else {
-            /* Unreferenced parameter. */
-            report_unreferenced(sym, ec_declared_but_not_referenced,
-                                es_warning);
-          }  /* if */
-        } else {
-          /* A normal variable (not a parameter). */
-          if (storage_class == (a_storage_class)sc_extern) {
-            /* No warning for unused "extern" variables; this is a
-               long-standing C tradition. */
-          } else {
-            /* An unreferenced variable.  Check for a dynamic initialization
-               that has side effects (such as a constructor call).  If
-	       such an initialization exists, issue a remark rather than a
-	       warning. */
-            a_boolean suppress_warning;
-            if (var_ptr->init_kind == (an_init_kind)initk_dynamic &&
-                (dynamic_init_has_side_effects(var_ptr->initializer.dynamic,
-                                               &suppress_warning) ||
-                 suppress_warning)) {
-              report_unreferenced(sym, ec_declared_but_not_referenced,
-				  es_remark);
-            } else {
-              report_unreferenced(sym, ec_declared_but_not_referenced,
-				  es_warning);
-            }  /* if */
-          }  /* if */
+        if (curr_routine == NULL) {
+          internal_error(
+               "end_of_scope_symbol_check: parameter with no assoc routine");
         }  /* if */
+#endif /* CHECKING */
+        /* In C++ a routine type can have type qualifiers above it. */
+        if (skip_typerefs(curr_routine->type)->variant.routine.
+                                            extra_info->lint_argsused_flag) {
+          /* The "argsused" flag was specified, so no warning is issued. */
+        } else if (curr_routine == il_header.main_routine) {
+          /* No warning for arguments of the main program, since
+             they're dictated by the environment. */
+#if ASM_FUNCTION_ALLOWED
+        } else if (curr_routine->storage_class == (a_storage_class)sc_asm) {
+          /* Parameters of "asm" functions are not referenced in the 
+             usual way, so do not issue warnings. */
+#endif /* ASM_FUNCTION_ALLOWED */
+        } else {
+          /* Unreferenced parameter. */
+          report_unreferenced(sym, ec_declared_but_not_referenced,
+                              es_warning);
+        }  /* if */
+      } else if (!sym->referenced ||
+                 (sym->variant.variable.value_has_been_set &&
+                  !sym->variant.variable.used)) {
+        /* An unreferenced or unused variable or an unused parameter. */
+        a_boolean         suppress_warning;
+        an_error_code     error_code;
+        an_error_severity severity;
+
+        /* Check for a dynamic initialization that has side effects (such as
+           a constructor call).  If such an initialization exists, issue a
+           remark rather than a warning. */
+        if (var_ptr->init_kind == (an_init_kind)initk_dynamic &&
+            (dynamic_init_has_side_effects(var_ptr->initializer.dynamic,
+                                           &suppress_warning) ||
+             suppress_warning)) {
+          severity = es_remark;
+        } else {
+          severity = es_warning;
+        }  /* if */
+        /* Issue different warnings depending on whether the variable was
+           completely unreferenced or was set but not used. */
+        if (!sym->referenced) {
+          error_code = ec_declared_but_not_referenced;
+        } else {
+          check_assertion(sym->variant.variable.value_has_been_set);
+          error_code = ec_set_but_not_used;
+        }  /* if */
+        report_unreferenced(sym, error_code, severity);
       }  /* if */
 #if CHECKING
       scp = &var_ptr->source_corresp;
