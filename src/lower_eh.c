@@ -1652,6 +1652,8 @@ typeinfo variable in a COMDAT group.
             class_con->next = base_con;
             aggr_con->variant.aggregate.last_constant = base_con;
           } else {
+            a_base_class_derivation_ptr  derivation;
+            a_base_class_sequence_number next_base = 1;
             /* Setting the flags to this value is conservative: if the
                inheritance is simpler than indicated here the runtime library
                may do more work than it needs to do, but the answers it gets
@@ -1661,11 +1663,22 @@ typeinfo variable in a COMDAT group.
             base_count = 0;
             base_array_con = alloc_constant(
                                          (a_constant_repr_kind)ck_aggregate);
-            for (base = base_classes_of(type);
-                 base != NULL; 
-                 base = base->next) {
-              /* Skip indirect bases. */
-              if (!base->direct) continue;
+            base = base_classes_of(type);
+            for (next_base = 1; ; next_base++) {
+              a_base_class_ptr start = base;
+              /* Look for the base with the next sequence number. */
+              while (base->direct_base_number != next_base) {
+                base = base->next;
+                if (base == NULL) {
+                  base = base_classes_of(type);
+                }  /* if */
+                /* If we get back to the place where we started, then there is
+                   no next base.  */
+                if (base == start) break;
+              }  /* while */
+              /* If there was no base with the next sequence number then we
+                 have reached the end of the list.  */
+              if (base->direct_base_number != next_base) break;
               /* Keep track of how many entries are in the array. */
               ++base_count;
               /* Base field. */
@@ -1692,8 +1705,9 @@ typeinfo variable in a COMDAT group.
               if (base->is_virtual) {
                 base_flags_value |= BCS_VIRTUAL;
               }  /* if */
-              if (base->derivation->access == 
-                  (an_access_specifier)as_public) { 
+              derivation = base->derivation;
+              while (!derivation->direct) derivation = derivation->next;
+              if (derivation->access == (an_access_specifier)as_public) { 
                 base_flags_value |= BCS_PUBLIC;
               }  /* if */
               set_integer_constant(offset_con, (offset<<8) | base_flags_value,
