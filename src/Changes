@@ -1,5 +1,25 @@
 Version 3.1
 
+10/16/02 Microsoft compatibility: instantiating the type of a static data
+         member
+
+The Microsoft compiler instantiates a template class used as the type in
+a static data member declaration even though the type need only be complete
+when the static data member is defined outside of the class.  Whether or not
+the class is instantiated can be important if the class declares friend
+functions that are expected to be visible.  In Microsoft bugs mode we now
+instantiate the type used in a static data member declaration.
+
+  template <class T> struct A {
+    friend void f(T);
+  };
+  struct B {
+    static A<int> ai;
+  };
+  int main() {
+    f(1);  // f visible in Microsoft bugs mode
+  }
+
 10/15/02 Incorrect mangled name for dependent operator name constants
 
 If a pointer-to-member function that refers to a dependent operator name
