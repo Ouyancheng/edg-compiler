@@ -3228,8 +3228,7 @@ Display the indicated template.
   switch (ptr->kind) {
     case templk_class:
     case templk_member_class:
-      disp_ptr("class", (char *)ptr->prototype_instantiation.type,
-               iek_type);
+      disp_ptr("type", (char *)ptr->prototype_instantiation.type, iek_type);
       break;
     case templk_function:
     case templk_member_function:
