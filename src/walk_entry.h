@@ -1877,6 +1877,7 @@ end_sizeof:;
                   iek_ms_attribute_arg);
         remap_next_ptr(ptr->next, an_ms_attribute_ptr, iek_ms_attribute);
         remap_ptr(ptr->next_in_block, an_ms_attribute_ptr, iek_ms_attribute);
+        conditionally_clear_fe_pointer(ptr->kind_descr);
       }
       break;
     case  iek_ms_attribute_arg:

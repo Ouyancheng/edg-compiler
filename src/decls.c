@@ -10694,7 +10694,13 @@ of local variables (and types, etc.) of functions and in blocks.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && curr_token == tok_lbracket) {
     /* A Microsoft attribute of the form "[ ... ]". */
-    (void)scan_microsoft_attributes();
+    an_ms_attribute_ptr	ms_attributes;
+    ms_attributes = scan_microsoft_attributes();
+    if (curr_token == tok_semicolon) {
+      /* This is a standalone attribute block.  Make sure all of the specified
+         attributes are standalone attributes. */
+      verify_standalone_attributes(&ms_attributes);
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {

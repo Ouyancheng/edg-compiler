@@ -31,61 +31,6 @@ ms_attrib.c -- Microsoft attribute processing.
 #include "ms_attrib.h"
 
 
-/*
-Entry used to represent a parameter description for a Microsoft attribute.
-*/
-typedef struct an_ms_attribute_param *an_ms_attribute_param_ptr;
-typedef struct an_ms_attribute_param {
-  an_ms_attribute_param_ptr
-		next;	/* Next entry on a list of parameter entries, or NULL
-			   for the last entry. */
-  char		*name;	/* Name of the parameter.  Present even for "unnamed"
-			   parameters for descriptive purposes in
-			   diagnostics. */
-  char		**values;
-			/* When "kind" is msapk_enumeration, this is an array
-			   of the acceptable values.  The last list entry is
-			   NULL. */
-  an_ms_attribute_arg_kind
-		kind;	/* The kind of parameter (string, integer, etc. ). */
-  a_byte_boolean
-		is_unnamed;
-			/* TRUE if the parameter is unnamed. */
-} an_ms_attribute_param;
-
-
-/*
-Entry used to represent the definition of a particular kind of Microsoft
-attribute.
-*/
-typedef struct an_ms_attribute_kind_descr *an_ms_attribute_kind_descr_ptr;
-typedef struct an_ms_attribute_kind_descr {
-  an_ms_attribute_kind
-		kind;
-			/* The kind of attribute that this represents. */
-  a_byte_boolean
-		initialization_style_arg_allowed;
-			/* TRUE if this attribute supports the "attr=1" form
-			   of argument list. */
-  int		num_params;
-			/* The number of parameters the attribute has. */
-  sizeof_t	name_length;
-			/* The length of the name, not including the null
-			   terminator. */
-  char		*name;
-			/* The name of the attribute.  Null terminated. */
-  an_ms_attribute_kind_descr_ptr
-		next;	/* Pointer to the next entry in a given hash table
-			   bucket of attribute kind description entries. */
-  an_ms_attribute_param_ptr
-		parameters;
-			/* A linked list of attribute parameter entries. */
-  an_ms_attribute_param_ptr
-		parameters_tail;
-			/* Pointer to the last entry on the list of
-			   parameters. */
-} an_ms_attribute_kind_descr;
-
 #if DEBUG
 /*
 Counts of tables allocated, to track total use of memory.
@@ -257,6 +202,7 @@ return a pointer to the entry.
   num_ms_attribute_kind_descrs_allocated++;
 #endif /* DEBUG */
   msakdp->kind = (an_ms_attribute_kind)msak_none;
+  msakdp->target = msat_none;
   msakdp->name = NULL;
   msakdp->name_length = 0;
   msakdp->initialization_style_arg_allowed = FALSE;
@@ -269,7 +215,8 @@ return a pointer to the entry.
 
 
 static void make_attribute_description(an_ms_attribute_kind	kind,
-				       char			*name)
+				       char			*name,
+				       an_ms_attribute_target	target)
 /*
 Create an attribute kind description entry for the specified attribute
 kind, with a name of "name".  If the attribute has a name, enter it into
@@ -282,6 +229,7 @@ when specifying the parameters associated with an attribute.
 
   msakdp = alloc_ms_attribute_kind_descr();
   msakdp->kind = kind;
+  msakdp->target = target;
   if (name != NULL) {
     /* If this is not an unnamed attribute, create a lookup table entry. */
     add_attribute_lookup_table_entry(msakdp, name);
@@ -373,22 +321,22 @@ are accepted.
 */
 {
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             (char*)NULL);
+                             (char*)NULL, msat_none);
   /* Save a pointer to the special "unrecognized" attribute kind. */
   unrecognized_attribute = curr_attribute_descr;
   /* [aggregatable(value)] */
   make_attribute_description((an_ms_attribute_kind)msak_aggregatable,
-			     "aggregatable");
+			     "aggregatable", msat_class);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_enumeration,
                           "value",
                           /*is_unnamed=*/FALSE,
                           "never,allowed,always");
   /* [coclass] */
   make_attribute_description((an_ms_attribute_kind)msak_coclass,
-			     "coclass");
+			     "coclass", msat_class);
   /* [com_interface_entry] */
   make_attribute_description((an_ms_attribute_kind)msak_com_interface_entry,
-			     "com_interface_entry");
+			     "com_interface_entry", msat_class);
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "entry",
@@ -396,7 +344,7 @@ are accepted.
                           NULL);
   /* [emitidl] */
   make_attribute_description((an_ms_attribute_kind)msak_emitidl,
-			     "emitidl");
+			     "emitidl", msat_standalone);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_enumeration,
                           "mode",
                           /*is_unnamed=*/TRUE,
@@ -407,12 +355,12 @@ are accepted.
                           NULL);
   /* [soap_handler] */
   make_attribute_description((an_ms_attribute_kind)msak_soap_handler,
-			     "soap_handler");
+			     "soap_handler", msat_class);
 #if INCLUDE_EDG_TEST_ATTRIBUTES
   /* These are special attributes included for testing purposes. */
   /* [edg_test_1] */
   make_attribute_description((an_ms_attribute_kind)msak_edg_test,
-			     "edg_test_1");
+			     "edg_test_1", msat_standalone);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
                           "arg1", /*is_unnamed=*/FALSE, NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
@@ -425,7 +373,7 @@ are accepted.
                           "arg5", /*is_unnamed=*/FALSE, "a,b,c,aa,bb,cc");
   /* [edg_test_2] */
   make_attribute_description((an_ms_attribute_kind)msak_edg_test,
-			     "edg_test_2");
+			     "edg_test_2", msat_standalone);
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 }  /* init_attribute_kinds */
 
@@ -893,6 +841,8 @@ the attribute.
     attr = alloc_ms_attribute();
     attr->kind = attr_descr->kind;
     attr->name = attr_descr->name;
+    attr->kind_descr = attr_descr;
+    attr->position = start_position;
     /* Look for an argument list.  We do this even for attributes without
        parameters, for error recovery purposes. */
     if (curr_token == tok_assign || curr_token == tok_lparen) {
@@ -999,6 +949,55 @@ is returned.
   return attr_list;
 }  /* scan_microsoft_attributes */
 
+
+void apply_microsoft_attributes(an_ms_attribute_ptr	*attributes,
+				a_source_correspondence	*scp,
+				an_ms_attribute_target	target)
+/*
+This routine is used to indicate that the list of Microsoft attributes
+specified by "attributes" should apply to the entity specified by "scp".
+The attributes must apply to the entity kind specified by "target".
+*/
+{
+  an_ms_attribute_ptr	msap;
+
+  if (scp != NULL) scp->has_associated_attribute = TRUE;
+  /* Check whether the attributes have the appropriate target. */
+  for (msap = *attributes; msap != NULL; msap = msap->next) {
+    if (msap->kind_descr->target != target &&
+        msap->kind_descr->target != msat_none) {
+       if (msap->kind_descr->target == msat_standalone) {
+         pos_st_error(ec_invalid_use_of_standalone_attr, &msap->position,
+                      msap->name);
+       } else {
+         pos_st_error(ec_invalid_use_of_attr, &msap->position, msap->name);
+       }  /* if */
+    }  /* if */
+  }  /* for */
+  /* Clear the attribute list pointer passed by the caller. */
+  *attributes = NULL;
+}  /* apply_microsoft_attributes */
+
+
+void verify_standalone_attributes(an_ms_attribute_ptr	*attributes)
+/*
+This routine is used to verify that the list of Microsoft attributes
+specified by "attributes" contains only standalone attributes.
+*/
+{
+  an_ms_attribute_ptr	msap;
+
+  for (msap = *attributes; msap != NULL; msap = msap->next) {
+    if (msap->kind_descr->target != msat_standalone &&
+        msap->kind_descr->target != msat_none) {
+       pos_st_error(ec_invalid_use_of_attr, &msap->position, msap->name);
+    }  /* if */
+  }  /* for */
+  /* Clear the attribute list pointer passed by the caller. */
+  *attributes = NULL;
+}  /* verify_standalone_attributes */
+
+
 #if DEBUG
 
 unsigned long db_show_ms_attrib_space_used(unsigned long grand_total)
@@ -1043,7 +1042,7 @@ One-time initialization for ms_attrib.c static variables.
   }  /* if */
   /* Register variables that must be saved and restored when switching
      between translation units. */
-}  /* templates_one_time_init */
+}  /* ms_attrib_one_time_init */
 
 
 void ms_attrib_init(void)

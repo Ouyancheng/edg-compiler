@@ -3615,6 +3615,9 @@ and return a pointer to it.
   msap->next_in_block = NULL;
   msap->string = NULL;
   msap->arg_list = NULL;
+  msap->name = NULL;
+  msap->position = null_source_position;
+  msap->kind_descr = NULL;
   return msap;
 }  /* alloc_ms_attribute */
 
@@ -3930,6 +3933,9 @@ in il_alloc_init.)
   def_source_corresp.has_associated_pragma = FALSE;
   def_source_corresp.is_local_to_function = FALSE;
   def_source_corresp.is_class_member = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  def_source_corresp.has_associated_attribute = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEED_NAME_MANGLING
   def_source_corresp.name_has_been_mangled = FALSE;
   def_source_corresp.mangled_name_cannot_be_included_in_other_name = FALSE;

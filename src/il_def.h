@@ -1212,6 +1212,11 @@ typedef struct a_source_correspondence {
 			   also TRUE for fields in C.  (Note: it is set for
 			   anonymous union members even when their names are
 			   promoted to a non-class scope.)  */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	has_associated_attribute:1;
+			/* TRUE if a Microsoft attribute entry that applies to
+			   this entity has been created. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEED_NAME_MANGLING
   a_bit_field	name_has_been_mangled:1;
 			/* TRUE if the name of the entity has been changed
@@ -9821,6 +9826,14 @@ typedef struct an_ms_attribute {
 		arg_list;
 			/* The arguments, if any, specified for this
 			   attribute. */
+  a_source_position
+		position;
+			/* Source position of the attribute name. */
+  struct an_ms_attribute_kind_descr
+		*kind_descr;
+			/* Pointer to an entry that describes the attribute
+			   being used.  Used in the front end only; cannot be
+			   used in back ends. */
   an_ms_attribute_kind
 		kind;	/* The kind of attribute used. */
 } an_ms_attribute;

@@ -21,7 +21,83 @@ ms_attrib.h -- Declarations related to ms_attrib.c (Microsoft attribute
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+/*
+Value that identifies the kind of entity to which a given attribute kind
+applies.
+*/
+typedef enum /* an_ms_attribute_target */ {
+  msat_none,
+  msat_standalone,
+  msat_class,
+} an_ms_attribute_target;
+
+/*
+Entry used to represent a parameter description for a Microsoft attribute.
+*/
+typedef struct an_ms_attribute_param *an_ms_attribute_param_ptr;
+typedef struct an_ms_attribute_param {
+  an_ms_attribute_param_ptr
+		next;	/* Next entry on a list of parameter entries, or NULL
+			   for the last entry. */
+  char		*name;	/* Name of the parameter.  Present even for "unnamed"
+			   parameters for descriptive purposes in
+			   diagnostics. */
+  char		**values;
+			/* When "kind" is msapk_enumeration, this is an array
+			   of the acceptable values.  The last list entry is
+			   NULL. */
+  an_ms_attribute_arg_kind
+		kind;	/* The kind of parameter (string, integer, etc. ). */
+  a_byte_boolean
+		is_unnamed;
+			/* TRUE if the parameter is unnamed. */
+} an_ms_attribute_param;
+
+
+/*
+Entry used to represent the definition of a particular kind of Microsoft
+attribute.
+*/
+typedef struct an_ms_attribute_kind_descr *an_ms_attribute_kind_descr_ptr;
+typedef struct an_ms_attribute_kind_descr {
+  an_ms_attribute_kind
+		kind;
+			/* The kind of attribute that this represents. */
+  an_ms_attribute_target
+		target;
+			/* Identifies the kind of entity to which this
+			   attribute may apply. */
+  a_byte_boolean
+		initialization_style_arg_allowed;
+			/* TRUE if this attribute supports the "attr=1" form
+			   of argument list. */
+  int		num_params;
+			/* The number of parameters the attribute has. */
+  sizeof_t	name_length;
+			/* The length of the name, not including the null
+			   terminator. */
+  char		*name;
+			/* The name of the attribute.  Null terminated. */
+  an_ms_attribute_kind_descr_ptr
+		next;	/* Pointer to the next entry in a given hash table
+			   bucket of attribute kind description entries. */
+  an_ms_attribute_param_ptr
+		parameters;
+			/* A linked list of attribute parameter entries. */
+  an_ms_attribute_param_ptr
+		parameters_tail;
+			/* Pointer to the last entry on the list of
+			   parameters. */
+} an_ms_attribute_kind_descr;
+
 extern an_ms_attribute_ptr scan_microsoft_attributes(void);
+
+extern
+void apply_microsoft_attributes(an_ms_attribute_ptr	*attributes,
+				a_source_correspondence	*scp,
+				an_ms_attribute_target	target);
+
+extern void verify_standalone_attributes(an_ms_attribute_ptr	*attributes);
 
 extern void ms_attrib_one_time_init(void);
 
