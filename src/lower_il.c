@@ -7715,8 +7715,12 @@ context doesn't care what the type is).
                                              /*can_change_type=*/FALSE);
           rewrite_discarded_lvalue_as_rvalue(op1->next->next,
                                              /*can_change_type=*/FALSE);
-        } else if (op == (an_expr_operator_kind)eok_comma) {
+        } else if (op == (an_expr_operator_kind)eok_comma ||
+                   op == (an_expr_operator_kind)eok_points_to_static ||
+                   op == (an_expr_operator_kind)eok_lvalue_dot_static ||
+                   op == (an_expr_operator_kind)eok_rvalue_dot_static) {
           /* "," operator.  Process the second operand. */
+          /* Same processing for static selection. */
           rewrite_discarded_lvalue_as_rvalue(op1->next, can_change_type);
           /* If the type of the operand was changed, propagate that into
              the result type of the comma expression. */
