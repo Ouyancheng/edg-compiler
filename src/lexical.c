@@ -9998,12 +9998,12 @@ are handled in lexical_init.)
   /* Some character sets use some C special characters as letters, e.g.,
      the position that is ASCII "]" is "U umlaut" in German.  Take those
      characters back.  Note that a setlocale call has been done already. */
-  is_id_char['@' - CHAR_MIN] = FALSE;
+  /* "@" and "`" are letters in some European character sets, but they're
+     not used in C so there's no need to take them back. */
   is_id_char['[' - CHAR_MIN] = FALSE;
   is_id_char['\\'- CHAR_MIN] = FALSE;
   is_id_char[']' - CHAR_MIN] = FALSE;
   is_id_char['^' - CHAR_MIN] = FALSE;
-  is_id_char['`' - CHAR_MIN] = FALSE;
   is_id_char['{' - CHAR_MIN] = FALSE;
   is_id_char['|' - CHAR_MIN] = FALSE;
   is_id_char['}' - CHAR_MIN] = FALSE;
