@@ -3121,6 +3121,10 @@ case).  call_position gives the source position of the call.
                                /*elided_reference=*/FALSE,
                                function_operand,
                                &access_error_reported);
+  /* Change the kind of reference to the function from "address taken"
+     to "reference". */
+  change_some_ref_kinds(function_operand->ref_entries_list, srk_address_taken,
+                        srk_reference);
   /* Check whether or not a selector is needed. */
   if (routine_type_is_nonstatic_member_function(
                                        routine_symbol_type(function_symbol))) {
@@ -3326,6 +3330,14 @@ overloaded operator cases.
       /* Advance to the next parameter unless we've run out (additional
          arguments will be processed under an ellipsis). */
       if (param != NULL) param = param->next;
+    }  /* for */
+  } else {
+    /* There was an error.  Change the references on the operand lists to
+       errors. */
+    for (arg_operand = arg_operand_list;
+         arg_operand != NULL;
+         arg_operand = arg_operand->next) {
+      change_operand_refs_to_error(&arg_operand->operand);
     }  /* for */
   }  /* if */
   /* Free the argument match list. */
