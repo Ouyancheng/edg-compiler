@@ -1257,6 +1257,8 @@ created.
   a_boolean                overloaded_function_case;
   a_symbol_ptr             function_symbol;
   a_type_ptr               routine_type;
+  a_routine_type_supplement_ptr
+                           rtsp;
   a_param_type_ptr         param;
   a_boolean                reached_ellipsis;
   an_arg_match_summary_ptr this_match, this_match_next;
@@ -1340,11 +1342,43 @@ created.
          function). */
       routine_type = routine_symbol_type(function_symbol);
     }  /* if */
+    /* Do a quick pass through the lists to eliminate a function with an
+       obviously wrong number of parameters quickly.  This is not just a
+       speed optimization; it avoids recursion loops on constructors
+       that look like
+         struct A { A(A, xxx, yyy); }
+       which look viable as copy constructors on the first argument. */
+    arg_match_list = end_arg_match_list = NULL;
+    rtsp = routine_type->variant.routine.extra_info;
+    param = rtsp->param_type_list;
+    for (arg_operand = arg_operand_list;
+         arg_operand != NULL;
+         arg_operand = arg_operand->next) {
+      /* See if the parameter list is exhausted. */
+      if (param == NULL) {
+        /* More arguments than required.  No match unless there is an
+           ellipsis. */
+        if (rtsp->has_ellipsis) break;
+        goto reject_function;
+      }  /* if */
+      param = param->next;
+    }  /* for */
+    /* Check that the argument and parameter lists ended at the same place. */
+    if (param != NULL) {
+      /* Fewer arguments than required.  No match unless there are default
+         argument values. */
+      if (!param->has_default_arg) goto reject_function;
+#if DEBUG
+      if (debug_level >= 4) {
+        fprintf(f_debug, "try_overloaded_function_match: default arg match\n");
+      }  /* if */
+#endif /* DEBUG */
+    }  /* if */
+    /* The function looks okay from the standpoint of argument count. */
     /* Look at each argument and see whether or not it can match the formal
        parameter, and if so, how well. */
-    param = routine_type->variant.routine.extra_info->param_type_list;
     reached_ellipsis = FALSE;
-    arg_match_list = end_arg_match_list = NULL;
+    param = rtsp->param_type_list;
     for (arg_operand = arg_operand_list;
          arg_operand != NULL;
          arg_operand = arg_operand->next) {
@@ -1365,11 +1399,11 @@ created.
       end_arg_match_list = arg_match;
       /* See if the parameter list is exhausted. */
       if (param == NULL) {
-        /* More arguments than required.  No match unless there is an
-           ellipsis. */
-        reached_ellipsis =
-                        routine_type->variant.routine.extra_info->has_ellipsis;
-        if (!reached_ellipsis) goto reject_function;
+        /* More arguments than required.  Since the function was not rejected
+           in the initial argument-count check, it must have an ellipsis. */
+        check_assertion_str(rtsp->has_ellipsis,
+                         "try_overloaded_function_match: no arg, no ellipsis");
+        reached_ellipsis = TRUE;
         /* There is an ellipsis, so there is a match, but with a low
            desirability. */
         arg_match->match_level = aml_ellipsis;
@@ -1396,17 +1430,10 @@ created.
       /* Go on to the next parameter. */
       if (!reached_ellipsis) param = param->next;
     }  /* for */
-    /* Check that the argument and parameter lists ended at the same place. */
-    if (param != NULL) {
-      /* Fewer arguments than required.  No match unless there are default
-         argument values. */
-      if (!param->has_default_arg) goto reject_function;
-#if DEBUG
-      if (debug_level >= 4) {
-        fprintf(f_debug, "try_overloaded_function_match: default arg match\n");
-      }  /* if */
-#endif /* DEBUG */
-    }  /* if */
+    /* If param != NULL here, there are default arguments (because we
+       got past the argument-count check above). */
+    check_assertion_str(param == NULL || param->has_default_arg,
+                    "try_overloaded_function_match: no param, no default arg");
     /* All the arguments can be made to match the parameters. */
     /* See if the "this" parameter, if any, matches. */
     /* Template functions do not have "this" parameters. */
@@ -1432,11 +1459,9 @@ created.
           if (implicit_selector_type != NULL) {
             /* The selector is an implicit "this->".  See how well it
                matches.  It might not match at all. */
-            a_type_ptr this_param_type = routine_type->variant.routine.
-                                          extra_info->implicit_this_param_type;
             determine_arg_match_level((an_operand *)NULL,
                                       implicit_selector_type,
-                                      this_param_type,
+                                      rtsp->implicit_this_param_type,
                                       /*try_user_conversions=*/FALSE,
                                       this_match);
             /* Set the "next" pointer again, because it is cleared by

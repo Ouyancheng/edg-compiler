@@ -1,5 +1,12 @@
 Version 2.22
 
+2/23/94  Recursion loop in overload resolution fixed
+
+Overload resolution had an infinite recursion loop when a copy constructor
+was sought for a class and the class had more than one constructor, one
+of which is a constructor with more than one argument, with the first
+argument being the class type (e.g., "A(A, int)").  Now fixed.
+
 2/23/94  IL lowering computation of anonymous union pointer-to-member offset
 
 IL lowering now correctly computes the offset for a pointer-to-data-member
