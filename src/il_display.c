@@ -2647,7 +2647,6 @@ do_assoc_type:
       /* Fall through. */
     case sck_function:
     case sck_block:
-    case sck_class_struct_union:
       disp_ptr("using_directives", (char *)ptr->using_directives,
                iek_using_directive);
       break;
