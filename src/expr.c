@@ -6748,11 +6748,15 @@ bound_function_selector to the associated "this" pointer.
           make_sym_constant_operand(sym_ptr, result);
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* In an integral constant expression, check that the constant is
-               integral.  This is needed for nontype template arguments.
+               integral.  This is needed for nontype template arguments
+               (but not during the prototype instantiation).
                It might also be needed for the extension that allows
                definition of constants within a class if that extension
                were to allow non-integral constants. */
-            (void)check_integral_operand(result);
+            if (sym_ptr->variant.constant->kind !=
+                                     (a_constant_repr_kind)ck_template_param) {
+              (void)check_integral_operand(result);
+            }  /* if */
           }  /* if */
           break;
         case sk_variable:
