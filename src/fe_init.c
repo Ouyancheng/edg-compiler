@@ -168,7 +168,7 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_volatile,  "volatile");
   }  /* if */
   /* __ALIGNOF__(type) returns the alignment requirement for a type.
-     __INTADDR__(addr_expr) scans its argument as a initializer
+     __INTADDR__(addr_expr) scans its argument as an initializer
      expression and converts it to integer.  It is used in the
      definition of offsetof. */
   enter_keyword((a_token_kind)tok_alignof,   "__ALIGNOF__");
