@@ -1,5 +1,17 @@
 Version 2.43
 
+10/28/99  Microsoft compatibility: (int)0 is not a null pointer constant
+
+In Microsoft C++ bugs mode, (int)0 is no longer considered a null
+pointer constant.  This duplicates a bug in MSVC++ 6.0 on the following:
+
+  void f(unsigned long);                    
+  void f(char *);                 
+  int main () {                                                              
+    f((int)0);  // MSVC++ 6.0 picks f(unsigned long); should be ambiguous
+    return 0;                      
+  }
+
 10/28/99  Microsoft compatibility: qualifiers in template arguments
 
 In version 2.39, we duplicated a Microsoft bug that ignored qualifiers
