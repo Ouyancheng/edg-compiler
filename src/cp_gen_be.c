@@ -106,6 +106,11 @@ static a_boolean
 			/* TRUE if we are currently generating code inside
 			   a struct in C mode. */
 
+/*
+The following variables indicate state within a function.  They are saved
+and restored by gen_routine_definition to deal with the case of a
+member function nested inside another function.
+*/
 static a_scope_ptr
 		curr_function_scope,
 		curr_scope_within_function;
@@ -115,6 +120,10 @@ static a_statement_ptr
 		curr_switch_statement;
 			/* The current switch statement, or NULL if not
 			   inside a switch statement. */
+static unsigned long
+		num_curr_switch_statements;
+			/* Nesting depth of switch statements currently
+			   being processed. */
 
 /*
 Macro that returns TRUE if an IL entry has a name.  (Applies only to
@@ -2349,8 +2358,8 @@ static a_boolean curr_source_seq_entry_is_for_switch_clause(
                                                       a_switch_clause_ptr *scp)
 /*
 Examine the current source sequence entry for the current function and see
-if it is the beginning of a switch clause.  If so, return TRUE and also
-set *scp to point to the switch clause.
+if it is the beginning of a switch clause for the current switch statement.
+If so, return TRUE and also set *scp to point to the switch clause.
 */
 {
   a_boolean clause_found = FALSE;
@@ -2359,8 +2368,29 @@ set *scp to point to the switch clause.
   if (func_scope_source_sequence_entry != NULL &&
       (an_il_entry_kind)func_scope_source_sequence_entry->entity.kind ==
                                                            iek_switch_clause) {
-    clause_found = TRUE;
+    /* This is a switch clause, but is is a switch clause for the current
+       switch statement?  That matters if we're at the end of an inner
+       switch statement and we are looking at a switch clause for the
+       outer switch clause that is supposed to follow the end of the inner
+       switch clause. */
     *scp = (a_switch_clause_ptr)func_scope_source_sequence_entry->entity.ptr;
+    if (num_curr_switch_statements == 1) {
+      /* No nesting of switch statements, so this switch clause must be for
+         the current switch statement. */
+      clause_found = TRUE;
+    } else {
+      /* There are nested switch statements, so see if this switch clause
+         is on the list for the current switch statement. */
+      a_switch_clause_ptr test_scp;
+      for (test_scp = curr_switch_statement->variant.switch_stmt.clause_list;
+           test_scp != NULL;
+           test_scp = test_scp->next) {
+        if (test_scp == *scp) {
+          clause_found = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   return clause_found;
 }  /* curr_source_seq_entry_is_for_switch_clause */
@@ -2410,6 +2440,7 @@ Generate code for the indicated switch statement.
      that correspond to case labels turn up, the case labels will be
      emitted. */
   curr_switch_statement = statement;
+  num_curr_switch_statements++;
   body_statement = statement->variant.switch_stmt.body_statement;
   if (body_statement != NULL ||
       statement->variant.switch_stmt.clause_list == NULL) {
@@ -2429,6 +2460,7 @@ Generate code for the indicated switch statement.
     }  /* if */
   }  /* if */
   curr_switch_statement = saved_switch_statement;
+  num_curr_switch_statements--;
 }  /* gen_switch_statement */
 
 
@@ -2471,7 +2503,7 @@ on the list, or NULL if the list is empty.
         }  /* if */
         /* Generate the declaration. */
         gen_curr_func_declaration();
-      } else if (curr_switch_statement != NULL &&
+      } else if (num_curr_switch_statements != 0 &&
                  curr_source_seq_entry_is_for_switch_clause(&scp)) {
         /* The next thing on the source sequence list is a switch clause. */
         /* If the current statement is a compiler-generated goto into the
@@ -2599,7 +2631,7 @@ Generate code for the indicated statement.
       if (kind == (a_statement_kind)stmk_label &&
           !has_name(statement->variant.label)) {
         /* The current statement is a compiler-generated label. */
-        if (curr_switch_statement != NULL &&
+        if (num_curr_switch_statements != 0 &&
             curr_source_seq_entry_is_for_switch_clause(&scp) &&
             is_label_for_non_top_level_switch_clause(scp,
                                                    statement->variant.label)) {
@@ -2925,6 +2957,56 @@ for the definition of the indicated routine.  scope is the associated scope.
 }  /* gen_func_definition_type */
 
 
+static void gen_routine_definition(a_routine_ptr rout)
+/*
+Generate the definition of the indicated routine.  The information preceding
+the return type specifier (e.g., storage class) has already been put out
+by gen_routine_decl.
+*/
+{
+  a_scope_ptr            scope;
+  a_memory_region_number scope_region_number;
+  /* Save state variables for functions for the case where a member function
+     is nested inside another function. */
+  a_scope_ptr            saved_curr_function_scope = curr_function_scope;
+  a_scope_ptr            saved_curr_scope_within_function =
+                                                    curr_scope_within_function;
+  a_statement_ptr        saved_curr_switch_statement = curr_switch_statement;
+  unsigned long          saved_num_curr_switch_statements =
+                                                    num_curr_switch_statements;
+
+  scope_region_number = rout->assoc_scope;
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  /* Read the information for the function from the IL file.  This must be
+     read before the interface is generated in order to get the parameter
+     names. */
+  read_memory_region(scope_region_number);
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  scope = il_header.region_scope_entry[scope_region_number];
+  curr_function_scope = scope;
+  curr_scope_within_function = scope;
+  curr_switch_statement = NULL;
+  num_curr_switch_statements = 0;
+  /* Start at the beginning of the source sequence list for the function. */
+  func_scope_source_sequence_entry = scope->source_sequence_list;
+  adv_to_signif_func_scope_source_sequence_entry();
+  /* Generate the routine name and the parameter declarations. */
+  gen_func_definition_type(rout, scope);
+  /* Generate the body statement. */
+  gen_statement(scope->assoc_block);
+  curr_function_scope = NULL;
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  /* Now that we're done with the function, free its IL information. */
+  free_memory_region(scope_region_number);
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  /* Restore function state variables to their states on entry. */
+  curr_function_scope = saved_curr_function_scope;
+  curr_scope_within_function = saved_curr_scope_within_function;
+  curr_switch_statement = saved_curr_switch_statement;
+  num_curr_switch_statements = saved_num_curr_switch_statements;
+}  /* gen_routine_definition */
+
+
 static void gen_routine_decl(a_routine_ptr                rout,
                              a_src_seq_secondary_decl_ptr sec_decl)
 /*
@@ -2933,11 +3015,9 @@ a secondary declaration is wanted, and sec_decl points to an entry giving
 information about the secondary declaration.
 */
 {
-  a_boolean              is_definition = (sec_decl == NULL &&
-                                      rout->assoc_scope != NULL_region_number);
-  a_storage_class        storage_class;
-  a_scope_ptr            scope;
-  a_memory_region_number scope_region_number;
+  a_boolean       is_definition = (sec_decl == NULL &&
+                                   rout->assoc_scope != NULL_region_number);
+  a_storage_class storage_class;
 
   /* Note that compiler-generated routines don't appear on the source sequence
      lists, so they never get here. */
@@ -2968,27 +3048,7 @@ information about the secondary declaration.
     write_str(";");
   } else {
     /* The definition of the routine. */
-    scope_region_number = rout->assoc_scope;
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-    /* Read the information for the function from the IL file.  This must be
-       read before the interface is generated in order to get the parameter
-       names. */
-    read_memory_region(scope_region_number);
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-    scope = il_header.region_scope_entry[scope_region_number];
-    curr_function_scope = scope;
-    /* Start at the beginning of the source sequence list for the function. */
-    func_scope_source_sequence_entry = scope->source_sequence_list;
-    adv_to_signif_func_scope_source_sequence_entry();
-    /* Generate the routine name and the parameter declarations. */
-    gen_func_definition_type(rout, scope);
-    /* Generate the body statement. */
-    gen_statement(scope->assoc_block);
-    curr_function_scope = NULL;
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-    /* Now that we're done with the function, free its IL information. */
-    free_memory_region(scope_region_number);
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+    gen_routine_definition(rout);
   }  /* if */
 }  /* gen_routine_decl */
 
@@ -3182,6 +3242,7 @@ Initialize for the C++/C-generating back end.
   curr_function_scope = NULL;
   curr_scope_within_function = NULL;
   curr_switch_statement = NULL;
+  num_curr_switch_statements = 0;
 }  /* init_cp_gen_be */
 
 
