@@ -1358,6 +1358,7 @@ enum a_pragma_kind_tag {
   pk_test_next_decl,
   pk_test_immediate,
   pk_test_other,
+  pk_test_bind_next_pass,
 #endif /* if 0 */
 
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
@@ -1400,6 +1401,7 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 /* pk_test_next_decl */		"test_next_decl",
 /* pk_test_immediate */		"test_immediate",
 /* pk_test_other */		"test_other",
+/* pk_test_bind_next_pass */	"test_bind_next_pass",
 #endif /* if 0 */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
 /* pk_unrecognized */		"unrecognized",

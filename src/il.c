@@ -6711,6 +6711,7 @@ pointer to it.
     case pk_test_next_decl:
     case pk_test_immediate:
     case pk_test_other:
+    case pk_test_bind_next_pass:
       pp->variant.dummy = 0;
 #endif /* if 0 */
       break;
@@ -6759,8 +6760,21 @@ value of at_file_scope.
   a_scope_stack_entry_ptr  ssep = NULL;
 
   if (depth_scope_stack == DEPTH_OF_FILE_SCOPE && class_type != NULL) {
-    /* Get the scope pointer from the class type supplement. */
+    /* The pragma is bound to a member of a class and the binding is taking
+       place at the file scope.  Get the scope pointer from the class type
+       supplement. */
     sp = class_type->variant.class_struct_union.extra_info->assoc_scope;
+  } else if (class_type != NULL) {
+    /* The pramga is bound to a member of a class and the binding is taking
+       place in another scope.  This is expected to be taking place in the
+       scope in which the member is defined. */ 
+    a_scope_depth	scope_depth;
+    scope_depth = depth_scope_stack;
+    check_assertion_str2(scope_stack[scope_depth].assoc_type == class_type,
+                         "add_to_pragma_list:",
+                         "class scope pragma added to wrong scope");
+    ssep = &scope_stack[scope_depth];
+    sp = ensure_il_scope_exists(ssep);
   } else {
     a_scope_depth	scope_depth;
     scope_depth = at_file_scope ? DEPTH_OF_FILE_SCOPE : depth_scope_stack;

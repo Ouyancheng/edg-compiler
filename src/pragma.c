@@ -271,6 +271,7 @@ possible.
     case pk_test_next_decl:
     case pk_test_immediate:
     case pk_test_other:
+    case pk_test_bind_next_pass:
       break;
 #endif /* if 0 */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
@@ -574,15 +575,19 @@ there is additional processing to be done.
     }  /* if */
   }  /* if */
   add_to_pragma_list(pp, at_file_scope, class_type);
+  if (at_file_scope) switch_back_to_original_region(region_to_switch_back_to);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
       depth_template_declaration_scope == NO_SCOPE_DEPTH) {
     f_update_source_sequence_list((char *)pp, (an_il_entry_kind)iek_pragma,
                                   &pp->decl_position,
                                   ppp->source_sequence_entry);
+    /* The source sequence entry is now attached to the IL pragma entry.
+       Clear the copy of the source_sequence_entry pointer in the pending
+       pragma entry because it is now obsolete. */
+    ppp->source_sequence_entry = NULL;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (at_file_scope) switch_back_to_original_region(region_to_switch_back_to);
   ppp->il_pragma_entry = pp;
 }  /* add_pragma_to_il */
 
@@ -1088,6 +1093,18 @@ Initialize the pragma description table.
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code_in_pragma=*/FALSE,
+		 /*ignore_in_back_end=*/FALSE,
+                 es_error);
+  (void)add_next_construct_pragma_kind_description
+ 		((a_pragma_kind)pk_test_bind_next_pass,
+		 (a_next_construct_pragma_function_ptr)NULL,
+		 /*is_pseudo_pragma=*/FALSE,
+		 /*may_bind_to_decl=*/TRUE,
+		 /*may_bind_to_stmt=*/TRUE,
+                 /*automatically_include_in_il=*/TRUE,
+                 /*make_text_not_tokens=*/TRUE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code_in_pragma=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,

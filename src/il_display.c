@@ -927,6 +927,10 @@ Display the indicated source correspondence entry.
         (void)printf("**BAD NAME LINKAGE KIND**\n");
     }  /* switch */
   }  /* if */
+  if (scp->has_associated_pragma) {
+    disp_boolean("  has_associated_pragma",
+                 (a_boolean)scp->has_associated_pragma);
+  }  /* if */
 #if DO_IL_LOWERING
   /* Do not print out ptr->name_has_been_mangled, which is used only during
      IL lowering. */
@@ -1144,6 +1148,7 @@ Print the name of a pragma kind.
     case pk_test_next_decl:       s = "pk_test_next_decl";      break;
     case pk_test_immediate:       s = "pk_test_immediate";      break;
     case pk_test_other:           s = "pk_test_other";          break;
+    case pk_test_bind_next_pass:  s = "pk_test_bind_next_pass"; break;
 #endif /* if 0 */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
     case pk_unrecognized:         s = "pk_unrecognized";	break;
