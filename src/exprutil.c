@@ -3238,7 +3238,7 @@ value is used).
   an_expr_node_ptr lhs_node, rhs_node;
   a_type_ptr       ptr_type, underlying_type, array_type, element_type;
   a_type_ptr       ptr_element_type;
-  a_constant_ptr   rhs_con;
+  a_constant_ptr   rhs_con, con;
   a_targ_size_t    num_elements;
   int              cmp;
 
@@ -3258,49 +3258,78 @@ value is used).
         if (is_pointer_type(ptr_type)) {
           /* See if we can find the array type "array of x" underneath
              that. */
-          /* An array-type-decay cast must be present.  The node underneath
-             that, if it has pointer-to-array type, gives the proper array
-             type. */
-          if (is_operation_node(lhs_node) &&
-              lhs_node->variant.operation.kind ==
+          underlying_type = NULL;
+          if (is_pointer_type(lhs_node->type)) {
+            if (is_constant_node(lhs_node)) {
+              /* The left-hand operand address is given by a constant.
+                 See if it is the address of a variable or constant
+                 implicitly cast to another type, in which case we may
+                 have an underlying array type. */
+              con = lhs_node->variant.constant;
+              if (con->kind == (a_constant_repr_kind)ck_address &&
+                  con->implicit_cast && con->variant.address.offset == 0) {
+                if (con->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable) {
+                   /* Address of variable. */
+                  underlying_type= con->variant.address.variant.variable->type;
+                } else if (con->variant.address.kind ==
+                                          (an_address_base_kind)abk_constant) {
+                  con = con->variant.address.variant.constant;
+                  if (con->kind == (a_constant_repr_kind)ck_string &&
+                      !con-> implicit_cast) {
+                    /* Address of string literal. */
+                    underlying_type = con->type;
+                  }  /* if */
+                }  /* if */
+              }  /* if */
+            } else if (is_operation_node(lhs_node)) {
+              /* The left-hand operand address is given by an expression.
+                 An array-type-decay cast must be present.  The node underneath
+                 that, if it has pointer-to-array type, gives the proper array
+                 type. */
+              if (lhs_node->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_cast &&
-              lhs_node->variant.operation.compiler_generated) {
-            lhs_node = lhs_node->variant.operation.operands;
-            if (is_pointer_type(lhs_node->type)) {
-              underlying_type = type_pointed_to(lhs_node->type);
-              /* See if the underlying_type is an array type. */
-              /* Note that is_array_type returns TRUE for incomplete array
-                 types.  We can only check the subscript if the array type
-                 is complete. */
-              if (is_array_type(underlying_type) &&
-                  !is_incomplete_type(underlying_type)) {
-                array_type = skip_typerefs(underlying_type);
-                /* See if the element type of the array type matches the
-                   type pointed to by ptr_type. */
-                ptr_element_type = type_pointed_to(ptr_type);
-                ptr_element_type = skip_typerefs(ptr_element_type);
-                element_type = array_element_type(array_type);
-                element_type = skip_typerefs(element_type);
-                if (identical_types(ptr_element_type, element_type)) {
-                  /* Everything's as we want it.  Check the subscript. */
-                  if (sign_of_integer_constant(rhs_con) < 0) {
-                    /* Negative subscript. */
-                    valid = FALSE;
-                  } else {
-                    check_assertion(!array_type->
-                                         variant.array.is_variable_size_array);
-                    num_elements = array_type->
-                                      variant.array.variant.number_of_elements;
-                    /* Do not check subscripts on arrays dimensioned as having
-                       size 1, since that's probably a clue that the programmer
-                       is cheating. */
-                    if (num_elements > 1) {
-                      cmp = cmpulit_integer_constant(rhs_con,
+                  lhs_node->variant.operation.compiler_generated) {
+                lhs_node = lhs_node->variant.operation.operands;
+                if (is_pointer_type(lhs_node->type)) {
+                  underlying_type = type_pointed_to(lhs_node->type);
+                }  /* if */
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          if (underlying_type != NULL) {
+            /* See if the underlying_type is an array type. */
+            /* Note that is_array_type returns TRUE for incomplete array
+               types.  We can only check the subscript if the array type
+               is complete. */
+            if (is_array_type(underlying_type) &&
+                !is_incomplete_type(underlying_type)) {
+              array_type = skip_typerefs(underlying_type);
+              /* See if the element type of the array type matches the
+                 type pointed to by ptr_type. */
+              ptr_element_type = type_pointed_to(ptr_type);
+              ptr_element_type = skip_typerefs(ptr_element_type);
+              element_type = array_element_type(array_type);
+              element_type = skip_typerefs(element_type);
+              if (identical_types(ptr_element_type, element_type)) {
+                /* Everything's as we want it.  Check the subscript. */
+                if (sign_of_integer_constant(rhs_con) < 0) {
+                  /* Negative subscript. */
+                  valid = FALSE;
+                } else {
+                  check_assertion(!array_type->
+                                       variant.array.is_variable_size_array);
+                  num_elements = array_type->
+                                     variant.array.variant.number_of_elements;
+                  /* Do not check subscripts on arrays dimensioned as having
+                     size 1, since that's probably a clue that the programmer
+                     is cheating. */
+                  if (num_elements > 1) {
+                    cmp = cmpulit_integer_constant(rhs_con,
                                                   (unsigned long)num_elements);
-                      valid = (cmp <= 0);  /* Subscript <= num of elements */
-                      *just_past_end = (cmp == 0);
-                                           /* Subscript == num of elements */
-                    }  /* if */
+                    valid = (cmp <= 0);  /* Subscript <= number of elements */
+                    *just_past_end = (cmp == 0);
+                                         /* Subscript == number of elements */
                   }  /* if */
                 }  /* if */
               }  /* if */
