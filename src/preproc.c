@@ -1294,9 +1294,10 @@ Process a cached #pragma ident directive.  The syntax is:
 where <string> is a quoted character string (not wide chars).
 */
 {
-  a_stop_token_array save_stop_tokens_array;
-  a_boolean          err = FALSE;
-  a_constant_ptr     cp;
+  a_stop_token_array      save_stop_tokens_array;
+  a_boolean               err = FALSE;
+  a_constant_ptr          cp;
+  a_memory_region_number  region_to_switch_back_to;
 
   begin_rescan_of_pragma_tokens(ppp, save_stop_tokens_array);
   if (curr_token != tok_string_literal ||
@@ -1306,7 +1307,9 @@ where <string> is a quoted character string (not wide chars).
     error(ec_bad_ident_string);
     err = TRUE;
   } else {
+    switch_to_file_scope_region(&region_to_switch_back_to);
     cp = alloc_unshared_constant(&const_for_curr_token);
+    switch_back_to_original_region(region_to_switch_back_to);
     (void)get_token();
   }  /* if */
   wrapup_rescan_of_pragma_tokens(err, save_stop_tokens_array);
