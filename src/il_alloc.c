@@ -580,6 +580,9 @@ a pointer to it.
   tap->next             = NULL;
   tap->is_type          = is_type_arg;
   tap->is_array_bound_of_unknown_type = FALSE;
+#if CHECKING
+  tap->avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
   if (is_type_arg) {
     tap->variant.type     = NULL;
   } else {
