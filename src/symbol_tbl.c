@@ -602,13 +602,20 @@ and indentation is the indentation desired.
       if (sym->variant.field.ptr == NULL) {
         put_string("<null>");
       } else {
+        a_field_ptr  fp = sym->variant.field.ptr;
         if (C_dialect == C_dialect_cplusplus) {
-          put_access(sym->variant.field.ptr->source_corresp.access);
+          put_access(fp->source_corresp.access);
         }  /* if */
-        (void)sprintf(buffer, "offset = %lu",
-                      (unsigned long)sym->variant.field.ptr->bit_offset);
+        (void)sprintf(buffer, "offset = %lu", (unsigned long)fp->offset);
+        if (fp->is_bit_field) {
+          (void)sprintf(&buffer[strlen(buffer)], "+%d",
+                        (int)fp->offset_bit_remainder);
+          put_string(buffer);
+          (void)sprintf(buffer, "size = %d bit%s", (int)fp->bit_size,
+                        fp->bit_size == 1 ? "" : "s");
+        }  /* if */
         put_string(buffer);
-		 type = sym->variant.field.ptr->type;
+        type = sym->variant.field.ptr->type;
       }  /* if */
       break;
     case sk_label:

@@ -2903,6 +2903,11 @@ typedef struct a_variable {
 /*
 Data structures related to fields (members) of structs and unions:
 */
+typedef unsigned char an_offset_bit_remainder;
+			/* To represent the excess (relative to the byte
+			   offset) in the offset of a bit field. The value
+			   will be >= 0 and < targ_char_bit. */
+
 typedef struct a_field {
   /* Description of a field (member of a class, struct, or union). */
   /* Note that unnamed bit fields do not appear.  They affect the offsets,
@@ -2921,13 +2926,24 @@ typedef struct a_field {
   a_type_ptr    type;
                         /* Type of the field.  For bit fields, this is the
                            base type. */
-  a_targ_size_t bit_offset;
-                        /* Offset of this field from the start of the
-                           struct (in bits).  Zero for members of unions. */
-  a_byte        bit_size;
-                        /* Size of this field (in bits).  Only non-zero
-                           for bit-fields; for the others, the size is
-                           gotten from the type. */
+  a_targ_size_t	offset;
+			/* Offset of this field from the start of the struct
+			   (in bytes).  Zero for members of unions.  If the
+			   field is a bit field, this value is the byte-offset
+			   component of the actual offset. */
+  an_offset_bit_remainder
+		offset_bit_remainder;
+			/* If the field is a bit field, this is the offset of
+			   the start of the bit field within the byte specified
+			   by offset.  Always zero if it is not a bit field;
+			   otherwise always >= 0 and < targ_char_bit.  In
+			   other words, the offset of a bit field within the
+			   struct is the combination of offset (its byte-offset
+			   component) and offset_bit_remainder. */
+  a_byte	bit_size;
+			/* Size of this field (in bits).  Only non-zero for
+			   bit-fields; for the others, the size is gotten from
+			   the type. */
   unsigned int  is_bit_field:1;
 			/* TRUE if the field represents a bit field. */
   unsigned int  bit_field_is_signed:1;

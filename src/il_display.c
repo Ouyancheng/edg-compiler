@@ -1633,10 +1633,12 @@ Display the indicated field.
   disp_source_corresp(&ptr->source_corresp);
   disp_ptr("next", (char *)ptr->next, iek_field);
   disp_ptr("type", (char *)ptr->type, iek_type);
-  disp_unsigned_long("bit_offset", ptr->bit_offset);
-  disp_unsigned_long("bit_size", (unsigned long)ptr->bit_size);
+  disp_unsigned_long("offset", (unsigned long)ptr->offset);
   if (ptr->is_bit_field) {
     disp_boolean("is_bit_field", TRUE);
+    disp_unsigned_long("offset_bit_remainder",
+                       (unsigned long)ptr->offset_bit_remainder);
+    disp_unsigned_long("bit_size", (unsigned long)ptr->bit_size);
     disp_boolean("bit_field_is_signed", (a_boolean)ptr->bit_field_is_signed);
   }  /* if */
 }  /* disp_field */

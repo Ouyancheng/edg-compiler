@@ -389,9 +389,7 @@ static void db_field(a_field *fp,
 Dump a field entry, for debug purposes.
 */
 {
-  a_targ_size_t  byte_offset;
   int            i;
-  long           bit_offset_at_byte;
 
   fputs("\n  ", f_debug);
   if (depth > 0) for (i = depth; i > 0; --i) fputs("  ", f_debug);
@@ -403,18 +401,10 @@ Dump a field entry, for debug purposes.
   db_name(&fp->source_corresp);
   fputs("\", type = ", f_debug);
   db_abbreviated_type(fp->type);
-  byte_offset = fp->bit_offset / targ_char_bit;
-  bit_offset_at_byte = fp->bit_offset - (int)(byte_offset * targ_char_bit);
-  if (bit_offset_at_byte > 0 || fp->bit_size > 0) {
-    fprintf(f_debug, ", bit offset %lu", fp->bit_offset);
-    if (byte_offset > 0) {
-      fprintf(f_debug, " (%lu+%ld)", byte_offset, bit_offset_at_byte);
-    }  /* if */
-    if (fp->bit_size > 0) {
-      fprintf(f_debug, ", bit size %d", fp->bit_size);
-    }  /* if */
-  } else {
-    fprintf(f_debug, ", offset %lu", byte_offset);
+  fprintf(f_debug, ", offset = %lu", (unsigned long)fp->offset);
+  if (fp->is_bit_field) {
+    fprintf(f_debug, "+%d, size = %d bit%s", (int)fp->offset_bit_remainder,
+            (int)fp->bit_size, fp->bit_size == 1 ? "" : "s");
   }  /* if */
 }  /* db_field */
 
@@ -5225,12 +5215,13 @@ to it.
   num_fields_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(fp->source_corresp);
-  fp->next       = NULL;
-  fp->type       = NULL;
-  fp->bit_offset = 0;
-  fp->bit_size   = 0;
-  fp->is_bit_field = FALSE;
-  fp->bit_field_is_signed = FALSE;
+  fp->next                 = NULL;
+  fp->type                 = NULL;
+  fp->offset               = 0;
+  fp->offset_bit_remainder = 0;
+  fp->bit_size             = 0;
+  fp->is_bit_field         = FALSE;
+  fp->bit_field_is_signed  = FALSE;
 
   db_exit();
   return fp;

@@ -1777,8 +1777,10 @@ the same offset, NULL is returned.
         other_field_sym = temp_field_sym;
       } else {
         /* Field after the first.  All the offsets must match. */
-        if (other_field_sym->variant.field.ptr->bit_offset !=
-            temp_field_sym->variant.field.ptr->bit_offset) {
+        if ((other_field_sym->variant.field.ptr->offset !=
+                temp_field_sym->variant.field.ptr->offset) ||
+            (other_field_sym->variant.field.ptr->offset_bit_remainder !=
+                temp_field_sym->variant.field.ptr->offset_bit_remainder)) {
           /* Mismatch, so the field reference cannot be unambiguously
              resolved. */
           other_field_sym = NULL;

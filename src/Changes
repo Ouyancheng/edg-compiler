@@ -1,5 +1,21 @@
 Version 2.24
 
+6/29/94 IL CHANGE: representation of field offset
+
+The field bit_offset in a_field has been replaced with two fields, offset,
+which gives the byte offset of the field, and offset_bit_remainder, which
+gives the additional bit count that is to be reckoned in when the offset
+of a bit field is computed.  The new fields relate to the old one as
+follows:
+
+  offset                = bit_offset / targ_char_bit
+  offset_bit_remainder  = bit_offset % targ_char_bit
+
+and therefore:
+
+  for ordinary fields:  offset_bit_remainder = 0
+  for bit fields:       0 <= offset_bit_remainder < targ_char_bit
+
 6/28/94 Related class casts folded into constants in initializer expressions
 
 In initializer expressions in C++ that can be constant or nonconstant,

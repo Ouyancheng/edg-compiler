@@ -401,28 +401,23 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
 }  /* scan_bit_field_size */
 
 
-static a_boolean increment_field_offsets(a_targ_size_t *byte_offset,
-                                         unsigned int  *bit_offset,
-                                         a_targ_size_t byte_incr,
-                                         unsigned int  bit_incr)
+static a_boolean increment_field_offsets(
+                                     a_targ_size_t               *byte_offset,
+                                     an_unnormalized_bit_offset  *bit_offset,
+                                     a_targ_size_t               byte_incr,
+                                     an_unnormalized_bit_offset  bit_incr)
 /*
 Increment the byte and bit offsets by the indicated amount, checking for
 overflow.  Return TRUE if the update is successful, FALSE if there was an
 overflow error.
 */
 {
-  /* The ULTRIX C compiler has trouble with the type of folded compile-time
-     unsigned expressions, so we use a variable for this value. */
-  a_targ_size_t max_byte_offset = targ_size_t_max / targ_char_bit;
   a_targ_size_t extra_byte_offset;
   a_boolean     overflow = FALSE;
 
   db_enter(4, "increment_field_offsets");
-  /* The offset will eventually go into the field as a bit offset, and
-     therefore the maximum byte offset is somewhat smaller than one might
-     expect. */
-  if (byte_incr >= max_byte_offset ||
-      *byte_offset > (max_byte_offset - byte_incr)) {
+  if (byte_incr >= targ_size_t_max ||
+      *byte_offset > (targ_size_t_max - byte_incr)) {
     overflow = TRUE;
   } else {
     *byte_offset += byte_incr;
@@ -437,7 +432,7 @@ overflow error.
        bit offset over to the byte offset. */
     if (*bit_offset >= targ_char_bit) {
       extra_byte_offset = *bit_offset / targ_char_bit;
-      if (*byte_offset > max_byte_offset-extra_byte_offset) {
+      if (*byte_offset > (targ_size_t_max - extra_byte_offset)) {
         overflow = TRUE;
       } else {
         *byte_offset += extra_byte_offset;
@@ -450,9 +445,9 @@ overflow error.
 }  /* increment_field_offsets */
 
 
-a_boolean do_alignment(a_targ_size_t    *byte_offset,
-                       unsigned int     *bit_offset,
-                       a_targ_alignment alignment)
+a_boolean do_alignment(a_targ_size_t               *byte_offset,
+                       an_unnormalized_bit_offset  *bit_offset,
+                       a_targ_alignment            alignment)
 /*
 Increment the byte and bit offsets to align them with the indicated 
 byte-multiple boundary.  Return TRUE if the update is successful, FALSE if
@@ -483,11 +478,12 @@ there was an overflow error.
 }  /* do_alignment */
 
 
-static a_boolean align_offsets_for_bit_field(int              bit_size,
-                                             a_targ_size_t    *byte_offset,
-                                             unsigned int     *bit_offset,
-					     a_targ_alignment *p_alignment,
-                                             a_type_ptr       base_type)
+static a_boolean align_offsets_for_bit_field(
+                                    int                         bit_size,
+                                    a_targ_size_t               *byte_offset,
+                                    an_unnormalized_bit_offset  *bit_offset,
+                                    a_targ_alignment            *p_alignment,
+                                    a_type_ptr                  base_type)
 /*
 As part of maintaining field offsets while processing fields of a struct
 definition, update *byte_offset and *bit_offset to indicate the position
@@ -655,10 +651,10 @@ aligned according to container_alignment.
    (fp)->source_corresp.assoc_info == (char *)unnamed_field_symbol())
 
 
-a_boolean set_field_size_and_offset(a_field_ptr      field,
-                                    a_targ_size_t    *p_byte_offset,
-                                    unsigned int     *p_bit_offset,
-                                    a_targ_alignment *p_alignment)
+a_boolean set_field_size_and_offset(a_field_ptr                 field,
+                                    a_targ_size_t               *p_byte_offset,
+                                    an_unnormalized_bit_offset  *p_bit_offset,
+                                    a_targ_alignment            *p_alignment)
 /*
 field points to a new field of a structure.  So far in the structure, the
 byte/bit offsets are as given by *p_byte_offset and *p_bit_offset.  Set the
@@ -669,11 +665,11 @@ overflow was detected in computing the byte or bit offset, FALSE is returned;
 if there's no overflow TRUE is returned.
 */
 {
-  a_type_ptr       field_type;
-  a_targ_alignment field_alignment;
-  a_boolean	   overflow;
-  a_targ_size_t    save_byte_offset;
-  unsigned int	   save_bit_offset;
+  a_type_ptr                  field_type;
+  a_targ_alignment            field_alignment;
+  a_boolean	              overflow;
+  a_targ_size_t               save_byte_offset;
+  an_unnormalized_bit_offset  save_bit_offset;
 
   db_enter(4, "set_field_size_and_offset");
   /* Set the size and alignment for the field's type, if necessary. */
@@ -725,8 +721,10 @@ if there's no overflow TRUE is returned.
         /* Now compute the field's bit offset within the struct.  We know the
            sum will fit in the bit_offset field because increment_field_offsets
            did not report overflow. */
-        field->bit_offset =
-                        (save_byte_offset * targ_char_bit) + save_bit_offset;
+        field->offset = save_byte_offset;
+        check_assertion(save_bit_offset >= 0 &&
+                        save_bit_offset < targ_char_bit);
+        field->offset_bit_remainder = (an_offset_bit_remainder)save_bit_offset;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -849,12 +847,12 @@ if fields are grouped by access before being allocated.  The public fields
 will already have been done.
 */
 {
-  a_type_ptr           class_type = lob->class_type;
-  a_field_ptr          field;
-  a_targ_size_t        local_byte_offset;
-  unsigned int         local_bit_offset;
-  int                  count;
-  an_access_specifier  access;
+  a_type_ptr                  class_type = lob->class_type;
+  a_field_ptr                 field;
+  a_targ_size_t               local_byte_offset;
+  an_unnormalized_bit_offset  local_bit_offset;
+  int                         count;
+  an_access_specifier         access;
 
   db_enter(4, "set_offsets_for_remaining_fields");
   /* Make two passes over the field list, one for protected fields and the
