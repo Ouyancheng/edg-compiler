@@ -6459,7 +6459,9 @@ Scan the body of a class definition, including the base classes list.
                   local_type = error_type();
 #endif /* if 0 */
                 } else {
-                  error(ec_incomplete_type_not_allowed);
+                  if (!is_error_locator(locator)) {
+                    error(ec_incomplete_type_not_allowed);
+                  }  /* if */
                   local_type = error_type();
                 }  /* if */
               }  /* if */
