@@ -7389,14 +7389,17 @@ two types.
 
 static void adjust_specific_type_for_previous_operand(
                               a_type_ptr     *specific_type,
+                              a_type_ptr     class_type,
                               an_opname_kind kind,
                               a_type_ptr     previous_class_type_considered,
                               a_type_ptr     previous_specific_type_considered)
 /*
 We are considering the type given by *specific_type as the operation
-type for a built-in operation.  The kind of operation is indicated by
-kind.  If there was a previous operand, the previous class type considered
-and the previous specific type considered are given by the like-named
+type for a built-in operation.  If *specific_type is the result type of a
+conversion function, class_type indicates the class type of the operand;
+otherwise, it is NULL.  The kind of operation is indicated by kind.
+If there was a previous operand, the previous class type considered and
+the previous specific type considered are given by the like-named
 parameters; otherwise, they are NULL.  Adjust *specific_type as necessary
 for the previous operand.
 */
@@ -7425,6 +7428,7 @@ for the previous operand.
           kind == (an_opname_kind)onk_ge ||
           kind == (an_opname_kind)onk_le ||
           kind == (an_opname_kind)onk_minus) {
+        a_type_ptr orig_specific_type = *specific_type;
         /* Add cv-qualifiers from previously-considered pointer types. */
         if (previous_specific_type_considered != NULL) {
           /* The previous operand has a specific type. */
@@ -7434,10 +7438,9 @@ for the previous operand.
         } else {
           /* The first operand has a class type. */
           a_symbol_list_entry_ptr slep;
-          a_type_ptr              class_type =
-                                 skip_typerefs(previous_class_type_considered);
           /* Examine each conversion function from the source class. */
-          for (slep = symbol_supplement_for_class(class_type)->conversion_list;
+          for (slep = symbol_supplement_for_class(
+                              previous_class_type_considered)->conversion_list;
                slep != NULL;
                slep = slep->next) {
             a_symbol_ptr conversion_symbol = slep->symbol;
@@ -7449,6 +7452,18 @@ for the previous operand.
             adjust_specific_type_for_previous_specific_type(specific_type,
                                                             return_type);
           }  /* for */
+        }  /* if */
+        if (*specific_type != orig_specific_type) {
+          /* We came up with a different type.  Make sure we haven't handled
+             this new type previously.  If we have, go back to the original
+             type, because using this new type would repeat a previous analysis
+             and likely result in an apparent ambiguity. */
+          if (specific_type_previously_handled(
+                                          *specific_type, class_type,
+                                          previous_class_type_considered,
+                                          previous_specific_type_considered)) {
+            *specific_type = orig_specific_type;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -7529,7 +7544,7 @@ in some way, e.g., two pointers that must have the same type.
             /* Try matching the operands, with the chosen specific type. */
             any_approp_conversion_function_this_operand = TRUE;
             adjust_specific_type_for_previous_operand(
-                                            &specific_type,
+                                            &specific_type, class_type,
                                             kind,
                                             previous_class_type_considered,
                                             previous_specific_type_considered);
@@ -7596,7 +7611,7 @@ in some way, e.g., two pointers that must have the same type.
                                           previous_class_type_considered,
                                           previous_specific_type_considered)) {
           adjust_specific_type_for_previous_operand(
-                                            &specific_type,
+                                            &specific_type, (a_type_ptr)NULL,
                                             kind,
                                             previous_class_type_considered,
                                             previous_specific_type_considered);
