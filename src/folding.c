@@ -2707,7 +2707,7 @@ static void do_fxshift(a_constant        *constant_1,
 		       an_error_code     *err_code,
 		       an_error_severity *err_severity)
 /*
-Low-level routine to do a left or right shift on an fixed-point value.
+Low-level routine to do a left or right shift on a fixed-point value.
 Shift *constant_1 by *constant_2 (right if shift_right is TRUE, left
 otherwise), and put the result in *result.  *err_code and *err_severity are
 set to indicate any error/warning detected, or *err_code == ec_no_error if
@@ -2758,10 +2758,10 @@ Do the shift right operation on fixed-point values.
 
 
 static void do_fxshiftl(a_constant        *constant_1,
-		      a_constant          *constant_2,
-		      a_constant          *result,
-		      an_error_code       *err_code,
-		      an_error_severity   *err_severity)
+		        a_constant        *constant_2,
+		        a_constant        *result,
+		        an_error_code     *err_code,
+		        an_error_severity *err_severity)
 /*
 Do the shift left operation on fixed-point values.
 */
