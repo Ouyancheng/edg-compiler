@@ -1362,9 +1362,10 @@ exit:
      processing is more or less tracking whether a constant could
      be an integral constant expression, even when it is scanned
      in other modes. */
-  if (microsoft_bugs && !C_mode()) {
-    /* Microsoft C++ mode: any cast makes a constant not a null pointer
-       constant.  In particular, (int)0 is not a null pointer constant. */
+  if (microsoft_bugs && !C_mode() && !is_implicit_cast) {
+    /* Microsoft C++ mode: any explicit cast makes a constant not a null
+       pointer constant.  In particular, (int)0 is not a null pointer
+       constant. */
     new_constant.null_pointer_constant_ruled_out = TRUE;
   } else if (is_integral_or_enum_type(new_type) &&
       is_arithmetic_or_enum_type(constant_type)) {
