@@ -2860,7 +2860,20 @@ have_defined_here:;
        references to the virtual function table (which only occur in
        constructor and destructor wrapper code), so if the referenced flag
        is FALSE the virtual function table is not referenced at all. */
-    if (!ctsp->virtual_function_table_var->source_corresp.referenced) {
+    a_variable_ptr vtbl_var = ctsp->virtual_function_table_var;
+    if (vtbl_var == NULL) {
+      /* The class itself has no virtual function table, so look at the
+         base classes.  At least one of them must have one (otherwise, we
+         wouldn't be asking whether a virtual function table should be
+         defined).  Do the test on the first one found. */
+      a_base_class_ptr bcp;
+      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+        vtbl_var = bcp->virtual_function_table_var;
+        if (vtbl_var != NULL) break;
+      }  /* for */
+    }  /* if */
+    check_assertion(vtbl_var != NULL);
+    if (!vtbl_var->source_corresp.referenced) {
       defined_here = FALSE;
     }  /* if */
   }  /* if */
