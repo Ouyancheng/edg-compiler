@@ -3119,8 +3119,8 @@ is in fact valid.
        scp->access != corresp_scp->access ||
        scp->name_linkage != corresp_scp->name_linkage)) {
     match = FALSE;
-  }  /* if */
-  if (!match) {
+    /* These kinds of mismatches were not reported earlier, so report them
+       now. */
     report_bad_trans_unit_corresp(type);
   }  /* if */
   return match;
