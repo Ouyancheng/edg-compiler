@@ -4666,7 +4666,7 @@ return a pointer to it.
 
 a_type_ptr string_type(a_targ_size_t num_chars)
 /*
-Make or find an entry for a type that is an array of num_char characters,
+Make or find an entry for a type that is an array of num_chars characters,
 and return a pointer to it.
 */
 {
@@ -4698,8 +4698,8 @@ and return a pointer to it.
 
 a_type_ptr wide_string_type(a_targ_size_t num_chars)
 /*
-Make or find an entry for a type that is an array of num_char wchar_t elements,
-and return a pointer to it.
+Make or find an entry for a type that is an array of num_chars wchar_t
+elements, and return a pointer to it.
 */
 {
   a_type_ptr pst;
