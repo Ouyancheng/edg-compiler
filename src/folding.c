@@ -2263,7 +2263,7 @@ If the operation cannot be folded, *did_not_fold is returned TRUE.
     if (offset == 0 && base_object(constant_1) == NULL) {
       /* Preserve a NULL pointer. */
     } else {
-      if (base_class->virtual) {
+      if (base_class->is_virtual) {
         /* Casting to a virtual base class.  This can only be folded if we
            have a whole object of the derived class type. */
         *did_not_fold = TRUE;
@@ -2290,7 +2290,7 @@ If the operation cannot be folded, *did_not_fold is returned TRUE.
            no overflow/object-size checking is needed, since the base class has
            to be within the underlying object. */
         set_pointer_offset(result, offset);
-        implicit_cast(result, make_pointer_type(base_class->class));
+        implicit_cast(result, make_pointer_type(base_class->type));
       }  /* if */
     }  /* if */
   }  /* if */
