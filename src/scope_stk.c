@@ -4000,8 +4000,8 @@ End a name scope by popping an entry off the scope stack.
     a_boolean is_needed = FALSE;
 
     if (curr_routine->storage_class == (a_storage_class)sc_unspecified) {
-       is_needed = (curr_routine->source_corresp.needed ||
-                    routine_needed_even_if_unreferenced(curr_routine));
+      is_needed = (curr_routine->source_corresp.needed ||
+                   routine_needed_even_if_unreferenced(curr_routine));
     }  /* if */
     if (is_needed) {
       /* Note that mark_as_needed is called after IL lowering.  This means
