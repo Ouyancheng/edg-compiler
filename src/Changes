@@ -1,5 +1,16 @@
 Version 3.1
 
+11/21/02  IL write-read error on extern "C" redeclaration
+
+In configurations with IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE, the front
+end sometimes aborted with an IL write-read error if an extern "C" function
+was declared in two different namespaces.  For example:
+
+  namespace N { extern "C" void f(int x) {} }  // Used to trigger an
+  extern "C" void f(int);                      // IL read-write error.
+
+This is now fixed.
+
 11/21/02  Spurious error of template friend declaration
 
 A spurious error could result when a friend declaration referred to

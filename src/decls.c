@@ -2897,7 +2897,12 @@ created; the caller must set it.
           /* There is a routine entry we can reuse. */
           use_existing_il_entry = TRUE;
           preexisting_type = (*routine_ptr)->type;
-          (*routine_ptr)->type = type_ptr;
+          if (skip_typerefs(preexisting_type)
+                        ->variant.routine.extra_info->assoc_routine == NULL) {
+            /* Do not modify the routine type if it is already the type
+               associated with the definition. */
+            (*routine_ptr)->type = type_ptr;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
