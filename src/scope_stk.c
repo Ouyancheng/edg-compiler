@@ -1589,8 +1589,9 @@ Interface to pop_scope that is used for template instantiation scopes.
   referencing_namespace_pushed = ssep->namespace_pushed;
   /* Pop the actual template instantiation scope. */
   pop_scope();
-  /* If the template was defined in a namespace, reactivate the namespace
-     scope before pushing the instantiation scope. */
+  /* If the template was defined in a namespace, pop any namespace
+     extension scopes that were pushed when the template instantiation
+     scope was added. */
   parent_nsp = parent_namespace_for_symbol(template_sym);
   if (parent_nsp != NULL) {
     if (common_nsp != parent_nsp) {
