@@ -5735,6 +5735,27 @@ is TRUE when this is called for a member function definition.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void record_assignment_operator_in_class_symbol(
+                                 a_class_symbol_supplement_ptr  cssp,
+                                 a_symbol_ptr                   sym,
+                                 a_symbol_ptr                   overload_sym)
+/*
+Update the assignment_operator field in the indicated class symbol
+supplement.  sym is an assignment operator symbol.  overload_sym is the
+overload set to which sym belongs; it may be NULL.
+*/
+{
+  if (cssp->assignment_operator == NULL) {
+    cssp->assignment_operator = sym;
+  } else if (cssp->assignment_operator->kind ==
+                                    (a_symbol_kind)sk_overloaded_function) {
+    /* The overloaded function symbol is already registered. */
+  } else {
+    /* The overloaded function symbol was just created. */
+    cssp->assignment_operator = overload_sym;
+  }  /* if */
+}  /* record_assignment_operator_in_class_symbol */
+  
 
 void check_member_decl_is_copy_constructor(
 				a_routine_ptr		rout_ptr,
@@ -6067,15 +6088,7 @@ declared member functions.
       /* If this is an assignment operator, record a pointer to it in the
          symbol -- to facilitate generating default assignment operators. */
       if (rtn->opname_kind == (an_opname_kind)onk_assign) {
-        if (cssp->assignment_operator == NULL) {
-          cssp->assignment_operator = sym;
-        } else if (cssp->assignment_operator->kind ==
-                                    (a_symbol_kind)sk_overloaded_function) {
-          /* The overloaded function symbol is already registered. */
-        } else {
-          /* The overloaded function symbol was just created. */
-          cssp->assignment_operator = overload_sym;
-        }  /* if */
+        record_assignment_operator_in_class_symbol(cssp, sym, overload_sym);
       } else if (rtn->opname_kind == (an_opname_kind)onk_new) {
         cssp->has_operator_new = TRUE;
       } else if (rtn->opname_kind == (an_opname_kind)onk_array_new) {
@@ -6344,15 +6357,7 @@ in-class member function declarations.)
          symbol -- to facilitate generating default assignment operators. */
       switch(rtn->opname_kind) {
         case onk_assign:
-          if (cssp->assignment_operator == NULL) {
-            cssp->assignment_operator = sym;
-          } else if (cssp->assignment_operator->kind ==
-                                    (a_symbol_kind)sk_overloaded_function) {
-            /* The overloaded function symbol is already registered. */
-          } else {
-            /* The overloaded function symbol was just created. */
-            cssp->assignment_operator = overload_sym;
-          }  /* if */
+          record_assignment_operator_in_class_symbol(cssp, sym, overload_sym);
           break;
         case onk_new:
           cssp->has_operator_new = TRUE;
@@ -9117,12 +9122,20 @@ or implicit) controlling the declaration.
         } else if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
           rp = fund_sym->variant.template_info->variant.function.routine;
         }  /* if */
-        if (rp != NULL &&
-            rp ->special_kind == (a_special_function_kind)sfk_conversion) {
-          /* Allocate the new conversion list entry and link it in the
-             list for the current class. */
-          add_to_conversion_list(new_sym,
-                                 symbol_supplement_for_class(class_type));
+        if (rp != NULL) {
+          if (rp ->special_kind == (a_special_function_kind)sfk_conversion) {
+            /* Allocate the new conversion list entry and link it in the
+               list for the current class. */
+            add_to_conversion_list(new_sym, 
+                                   symbol_supplement_for_class(class_type));
+          } else if (rp->special_kind ==
+                                   (a_special_function_kind)sfk_operator &&
+                     rp->opname_kind == (an_opname_kind)onk_assign) {
+            /* Record the assignment operator in the symbol. */
+            record_assignment_operator_in_class_symbol(
+                                     symbol_supplement_for_class(class_type),
+                                     new_sym, other_sym);
+          }  /* if */
         }  /* if */
 #if !RECORD_TEMPLATES_IN_IL
         if (fund_sym->kind == (a_symbol_kind)sk_class_template ||

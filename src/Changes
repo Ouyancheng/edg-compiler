@@ -1,5 +1,19 @@
 Version 2.42
 
+4/9/99   Implicit declaration of copy assignment operator in presence of
+         using declaration
+
+The implicit declaration of a copy assignment operator is no longer
+suppressed by a using declaration with a similar signature.
+
+  struct D;
+  struct B {
+    D& operator=(D&);
+  };
+  struct D : public B {
+    using B::operator=;       // no longer impedes implicit declaration of
+  };                          //   D::operator=(const D&)
+
 4/7/99   Initialization of class members and array elements of aggregate
          class type
 
