@@ -5633,10 +5633,6 @@ and type is the type of the argument to be extracted.
     a_type_ptr  promoted_type = default_argument_promotion(type);
     if (!identical_types(type, promoted_type)) {
       an_error_severity severity = (an_error_severity)es_warning;
-      if (gnu_mode) {
-        severity = (an_error_severity)es_error;
-        err = TRUE;
-      }  /* if */
       /* The type must possibly be obtained after default promotion. */
       pos_ty2_diagnostic(severity, ec_va_arg_would_have_been_promoted,
                          &type_position, type, promoted_type);

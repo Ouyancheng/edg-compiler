@@ -1,5 +1,23 @@
 Version 3.2
 
+4/28/03  GNU mode: Warning instead of error on promotable va-arg types
+
+In GNU modes, the front end used to issue an error if the type passed to
+va_arg would have been promoted to another type when passed through a
+variable argument list (this is for configuration with built-in support for
+va_arg; e.g., when DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE is TRUE).
+This corresponded to the behavior of GNU C/C++ 3.0, but newer versions of the
+GNU C and C++ compilers only issue a warning in such cases.  For example:
+
+  #include <stdarg.h>
+  void g(int n, ...) {
+    va_list  ap;
+    va_arg(ap, char);  // Used to be an error in GNU modes; now a warning.
+  }
+
+The front end now only issues a warning in GNU mode, in accordance with
+newer version of the GNU compilers.  (See also Changes entry of 1/22/02.)
+
 4/25/03  Emulation of GNU layout of overlong bit fields in unions
 
 When DEFAULT_EMULATE_GNU_ABI_BUGS is TRUE, our implementation of the IA-64
