@@ -8195,8 +8195,16 @@ process_class_specifier:
              class A, we simply fall through this test. */
           goto destructor_name;
         }  /* if */
-        if (num_specifiers == 0 &&
-            !(input_flags & DSI_EMPTY_DECL_SPECIFIERS_ALLOWED)) {
+        if (is_error_locator(locator_for_curr_id) &&
+            locator_for_curr_id.is_template_id) {
+          /* An error was detected in scanning a class template id.  Since
+             a template id can only be a type, treat it as an error type. */
+          err = TRUE;
+          basic_type = bt_typedef;
+          *type_ptr = error_type();
+          break;
+        } else if (num_specifiers == 0 &&
+                   !(input_flags & DSI_EMPTY_DECL_SPECIFIERS_ALLOWED)) {
           /* If this is the first specifier, and this identifier is undefined,
              assume that we are dealing with a name that was supposed to be
              declared as a typedef.  Note that we do not get here on
