@@ -3477,6 +3477,10 @@ to the base class become inaccessible to the derived class in every case.
     private      | inaccessible  inaccessible  inaccessible  inaccessible
                  |
     inaccessible | inaccessible  inaccessible  inaccessible  inaccessible
+
+An "inaccessible" derivation is not a single derivation step; it is
+a combination of several steps whose net effect is complete loss of
+accessiblility.
 */
 {
   if (deriv_access == (an_access_specifier)as_inaccessible ||
@@ -3492,6 +3496,48 @@ to the base class become inaccessible to the derived class in every case.
 }  /* compute_access */
 
 
+an_access_specifier r_access_to_end_of_path(
+                                        an_access_specifier    sym_access,
+                                        a_derivation_step_ptr  path,
+                                        a_boolean              virt_derivation)
+/*
+Compute the accessibility (public, protected, private, inaccessible) to an
+entity with access sym_access from the end of the derivation path pointed
+to by "path".  If virt_derivation is TRUE, this path comes from the
+derivation of a virtual base class.  This routine should not be called
+directly -- it exists to handle the recursion for access_to_end_of_path.
+*/
+{
+  a_base_class_ptr bcp;
+
+  if (path != NULL) {
+    /* Use a recursive call to compute the access over all the steps
+       after the first one. */
+    sym_access = access_to_end_of_path(sym_access, path->next);
+    /* Now modify the access to account for the first step. */
+    /* Virtual base classes get special handling, but not when they appear as
+       the last step of their own derivations. */
+    bcp = path->base_class;
+    if (bcp->is_virtual && (!virt_derivation || path->next != NULL)) {
+      /* The first step is a virtual step which may represent several steps,
+         and/or several ways of getting to the virtual base class.
+         Compute the access over the preferred derivation (which has the
+         best access). */
+      check_assertion(bcp->paths_to_virtual_base_class->preferred);
+      path = bcp->paths_to_virtual_base_class->derivation;
+      sym_access = r_access_to_end_of_path(sym_access, path,
+                                           /*virt_derivation=*/TRUE);
+    } else {
+      /* The first step is a nonvirtual step, or it's a virtual step at
+         the end of the derivation for a virtual base class.  Add the
+         effect of this step into the accumulated access. */
+      sym_access = compute_access(sym_access, bcp->access);
+    }  /* if */
+  }  /* if */
+  return sym_access;
+}  /* r_access_to_end_of_path */
+
+
 an_access_specifier access_to_end_of_path(an_access_specifier    sym_access,
                                           a_derivation_step_ptr  path)
 /*
@@ -3500,17 +3546,8 @@ entity with access sym_access from the end of the derivation path pointed
 to by "path".
 */
 {
-  if (path != NULL) {
-    if (path->base_class->is_virtual && path->next != NULL) {
-      check_assertion(path->base_class->
-                                  paths_to_virtual_base_class->preferred);
-      path = path->base_class->paths_to_virtual_base_class->derivation;
-    }  /* if */
-    /* Not at the end of the path -- make a recursive call to find the
-       projected accessibility. */
-    sym_access = compute_access(access_to_end_of_path(sym_access, path->next),
-                                path->base_class->access);
-  }  /* if */
+  sym_access = r_access_to_end_of_path(sym_access, path,
+                                       /*virt_derivation=*/FALSE);
   return sym_access;
 }  /* access_to_end_of_path */
   
