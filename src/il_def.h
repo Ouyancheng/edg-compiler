@@ -5879,6 +5879,7 @@ typedef struct a_vla_dimension {
   a_source_position
 		position;
 			/* Source position of the VLA expression. */
+#if DO_IL_LOWERING
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
   a_variable_ptr
 		total_number_of_elements;
@@ -5891,6 +5892,7 @@ typedef struct a_vla_dimension {
 			   associated stmk_set_vla_size statement has been
 			   lowered. */
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* DO_IL_LOWERING */
 } a_vla_dimension;
 
 #endif /* ifdef CIL */
