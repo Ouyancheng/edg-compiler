@@ -3379,17 +3379,22 @@ typedef struct a_type {
 			   an expression, either at compile time (in the case
 			   of an array bound defined in terms of a template
 			   parameter constant) or at run time (for a new with
-			   a nonconstant first bound or for a variable length
-			   array).  Except for VLAs, this field will never
-			   be TRUE in the IL passed to the back end. */
+			   a nonconstant first bound).  This field will never
+			   be TRUE in the IL passed to the back end.  C++ mode
+			   only. */
+      a_bit_field
+		is_vla:1;
+			/* TRUE if this array is a "variable length array",
+			   one whose dimension is computed at run time.  This
+			   field may be TRUE in the IL passed to the back end.
+			   C mode only. */
       a_bit_field
 		has_assoc_vla_dimension:1;
 			/* TRUE if the variable length array has an associated
 			   vla_dimension entry.  FALSE for cases like [*].
-			   (C mode only, and only when is_variable_size_array
-			   is TRUE.)  */
+			   (C mode only, and only when is_vla is TRUE.)  */
       union {
-        /* When is_variable_size_array is FALSE: */
+        /* When both is_variable_size_array and is_vla are FALSE: */
         a_targ_size_t
                 number_of_elements;
                         /* Number of elements in the array.  0 indicates
@@ -3398,11 +3403,8 @@ typedef struct a_type {
 	an_expr_node_ptr
 		element_count_expr;
 			/* An expression representing the number of elements
-			   in the array.  This field is used only in front-end
-			   processing, and only in C++.  NULL in C mode when
-			   is_variable_size_array is TRUE: the expression that
-			   represents the nonconstant dimension for a VLA
-			   is recorded in a_vla_dimension construct. */
+			   in the array.  Used only in front-end processing,
+			   and only in C++ mode. */
       } variant;
     } array;
     /* When kind == tk_class, tk_struct, or tk_union: */

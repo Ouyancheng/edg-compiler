@@ -856,6 +856,7 @@ to default values.
     case tk_array:
       pte->variant.array.element_type = NULL;
       pte->variant.array.is_variable_size_array = FALSE;
+      pte->variant.array.is_vla = FALSE;
       pte->variant.array.has_assoc_vla_dimension = FALSE;
       pte->variant.array.variant.number_of_elements = 0;
       break;
