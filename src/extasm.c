@@ -491,6 +491,10 @@ even if they are invalid.
       for (c = operand->constraints; c != NULL; c = c->next) {
         if (c->kind == single_register_constraints[i].cons) {
           r = single_register_constraints[i].reg;
+#if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
+          /* Ignore entries for unrecognized registers. */
+          if (r == (a_named_register)anr_unrecognized) continue;
+#endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
           /* Test used == 1 so the error is issued once per register. */
           if (r != (a_named_register)anr_invalid &&
               ((input && regs_used_in[(int)r] == 1) ||
@@ -506,6 +510,10 @@ even if they are invalid.
   }  /* for */
   for (clobber = clobbers; clobber != NULL; clobber = clobber->next) {
     r = clobber->reg;
+#if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
+    /* Ignore entries for unrecognized registers. */
+    if (r == (a_named_register)anr_unrecognized) continue;
+#endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
     /* Test used and not clobbered so the error is issued once per register. */
     if ((regs_used_in[(int)r] || regs_used_out[(int)r]) &&
         !regs_clobbered[(int)r]) {
@@ -519,6 +527,10 @@ even if they are invalid.
   }  /* for */
   for (i = 0; fixed_registers[i] != (a_named_register)anr_last; i++) {
     r = fixed_registers[i];
+#if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
+    /* Ignore entries for unrecognized registers. */
+    if (r == (a_named_register)anr_unrecognized) continue;
+#endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
     if (regs_used_in[(int)r] || regs_used_out[(int)r]) {
       str_error(ec_fixed_register_used, named_register_names[(int)r]);
     } else if (regs_clobbered[(int)r]) {
