@@ -1987,8 +1987,9 @@ do_variable:
       break;
     case enk_condition:
       (void)printf("enk_condition\n");
-      disp_ptr("condition_supplement", (char *)ptr->variant.condition,
-               iek_condition_supplement);
+      if (ptr->variant.condition != NULL) {
+        disp_condition_supplement(ptr->variant.condition);
+      }  /* if */
       break;
     case enk_object_lifetime:
       (void)printf("enk_object_lifetime\n");
@@ -3327,6 +3328,7 @@ This routine is called during IL walking.
     case iek_template_arg:
     case iek_new_delete_supplement:
     case iek_throw_supplement:
+    case iek_condition_supplement:
     case iek_accessible_base_class:
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     case iek_eh_prologue_supplement:
