@@ -8018,6 +8018,14 @@ of the front end.
     internal_error("il_init: incorrect initialization of db_operator_names");
   }  /* if */
 #endif /* DEBUG */
+  /* Variable in il_def.h: */
+  /* Check that the table of pragma ids is correctly initialized.  This guards
+     against someone changing the enumeration a_pragma_kind and forgetting to
+     update pragma_ids. */
+  if (pragma_ids[(int)pk_last] == NULL ||
+      strcmp(pragma_ids[(int)pk_last], "last") != 0) {
+    internal_error("il_init: incorrect initialization of pragma_ids");
+  }  /* if */
 #endif /* CHECKING */
 
   /* Static variables in il.c: */
