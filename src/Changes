@@ -1,5 +1,20 @@
 Version 2.38
 
+1/9/97    Internal error in hidden-name-table support
+
+When RECORD_HIDDEN_NAMES_IN_IL is configured to TRUE (e.g., for the
+C++-generating back end), an internal error could occur when a tag name
+namespace member was hidden by a non-tag namespace member and the namespace
+was specified in a using-directive in a containing scope.  Now fixed.
+
+  namespace N {
+    class A { };
+  }
+  using namespace N;
+  namespace N {
+    void A();         // No longer aborts when updating hidden-name table
+  }
+
 1/8/97    Block generated for dependent statement in C++ mode
 
 In C++ mode when a dependent statement (e.g., for an if-statement) is not

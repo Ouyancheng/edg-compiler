@@ -714,21 +714,23 @@ hiding.
             old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
                                                      IDL_MUST_BE_TAG |
                                                      IDL_SKIP_CURR_SCOPE);
-            if (old_sym_ptr == sym_ptr) {
-              /* This can happen when the scope to which sym_ptr belongs is
-                 an unnamed namespace. */
-            } else if (old_sym_ptr != NULL) {
-              check_assertion(old_sym_ptr->decl_scope !=
-                                               sym_ptr->decl_scope);
-              tag_hidden_by_nontag = TRUE;
-              if (old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
-                  old_sym_ptr->is_class_member ||
-                  old_sym_ptr->parent.namespace_ptr != NULL) {
-                hidden_class_or_namespace_member = TRUE;
-                record_defeatable_name_hiding(old_sym_ptr,
+            if (old_sym_ptr != NULL) {
+              if ((old_sym_ptr == sym_ptr) ||
+                  (old_sym_ptr->decl_scope == sym_ptr->decl_scope)) {
+                /* This can happen when the scope to which sym_ptr belongs is
+                   an unnamed namespace. */
+              } else {
+                tag_hidden_by_nontag = TRUE;
+                if (old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
+                    old_sym_ptr->is_class_member ||
+                    old_sym_ptr->parent.namespace_ptr != NULL) {
+                  hidden_class_or_namespace_member = TRUE;
+                  record_defeatable_name_hiding(
+                                              old_sym_ptr,
                                               tag_hidden_by_nontag,
                                               hidden_class_or_namespace_member,
                                               (a_scope_ptr)NULL);
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
