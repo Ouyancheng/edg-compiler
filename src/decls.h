@@ -165,10 +165,6 @@ extern a_type_ptr type_keyword(void);
 extern void adjust_parameter_type(a_type_ptr *type_ptr,
                                   a_boolean  restrict_qualified);
 
-extern void check_operator_arrow_return_type(a_routine_ptr      rout_ptr,
-                                             a_boolean          is_expr_use,
-                                             a_source_position  *error_pos);
-
 extern a_boolean is_single_param_operator_new_or_delete(
                                                    a_symbol_locator *locator,
                                                    a_type_ptr       type);
