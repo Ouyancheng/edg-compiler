@@ -629,6 +629,7 @@ Return TRUE if the given type is a GNU C transparent union.
   return is_union(tp) && tp->variant.class_struct_union.is_transparent;
 }  /*is_transparent_union_type */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean transparent_union_match(a_type_ptr  tp1,
                                   a_type_ptr  tp2)
@@ -664,6 +665,7 @@ the type of a field in that union.
   return result;
 }  /* transparent_union_match */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       
 a_boolean is_aggregate_or_union_type(a_type_ptr tp)
@@ -1037,6 +1039,29 @@ directly.
 }  /* f_get_upc_block_size */
 
 
+a_upc_access_method get_underlying_upc_access_method(a_type_ptr  tp)
+/*
+Determines the UPC access setting (strict, relaxed, or unspecified) for a
+type.  If the type is an array, return the access setting for the array
+element type.  Note that access cannot be both strict and relaxed.
+*/
+{
+  a_upc_access_method  result = upc_access_unspecified;
+
+  if (tp != NULL && is_array_type(tp)) {
+    tp = underlying_array_element_type(tp);
+  }  /* if */
+  if (tp != NULL) {
+    if (is_strict_qualified_type(tp)) {
+      result = upc_access_strict;
+    } else if (is_relaxed_qualified_type(tp)) {
+      result = upc_access_relaxed;
+    }  /* if */
+  }  /* if */
+  return result;
+} /* get_underlying_upc_access_method */
+
+
 a_boolean is_underlying_shared_qualified_type(a_type_ptr  tp)
 /*
 Return TRUE if this is fundamentally a shared type, i.e. if a pointer to
@@ -1056,6 +1081,27 @@ this object must be a pointer-to-shared.
   return result;
 } /* is_underlying_shared_qualified_type */
 
+
+a_boolean is_shared_void_star_type(a_type_ptr tp)
+/*
+Returns TRUE if the specified type is a shared void*.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_pointer_type(tp)) {
+    tp = type_pointed_to(tp);
+    if (is_underlying_shared_qualified_type(tp)) {
+      tp = skip_typerefs(tp);
+      if (is_void_type(tp)) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_shared_void_star_type */
+
+#if !STANDALONE_UTILITY_PROGRAM
 
 void fixup_upc_block_size(a_type_ptr  tp)
 /*
@@ -1116,29 +1162,6 @@ Convert the specified type to pure block allocation.
     }  /* if */
   }  /* if */
 } /* fixup_upc_block_size */
-
-
-a_upc_access_method get_underlying_upc_access_method(a_type_ptr  tp)
-/*
-Determines the UPC access setting (strict, relaxed, or unspecified) for a
-type.  If the type is an array, return the access setting for the array
-element type.  Note that access cannot be both strict and relaxed.
-*/
-{
-  a_upc_access_method  result = upc_access_unspecified;
-
-  if (tp != NULL && is_array_type(tp)) {
-    tp = underlying_array_element_type(tp);
-  }  /* if */
-  if (tp != NULL) {
-    if (is_strict_qualified_type(tp)) {
-      result = upc_access_strict;
-    } else if (is_relaxed_qualified_type(tp)) {
-      result = upc_access_relaxed;
-    }  /* if */
-  }  /* if */
-  return result;
-} /* get_underlying_upc_access_method */
 
 
 a_boolean is_underlying_threads_dimensioned_array_type(a_type_ptr  tp)
@@ -1231,26 +1254,7 @@ anything else, returns the regular size.
   return length;
 } /* upc_local_type_size */
 
-
-a_boolean is_shared_void_star_type(a_type_ptr tp)
-/*
-Returns TRUE if the specified type is a shared void*.
-*/
-{
-  a_boolean  result = FALSE;
-
-  if (is_pointer_type(tp)) {
-    tp = type_pointed_to(tp);
-    if (is_underlying_shared_qualified_type(tp)) {
-      tp = skip_typerefs(tp);
-      if (is_void_type(tp)) {
-        result = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_shared_void_star_type */
-
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
 #if NEAR_AND_FAR_ALLOWED
