@@ -1,10 +1,23 @@
 Version 2.32
 
+3/21/96   Bug in checking bit-field size
+
+A bug has been fixed in checking the size specified in a bit-field
+declaration.  It used to be that no error was issued for specifying a size
+that exceeded targ_max_bit_field_size but was less than the size of the
+underlying integer type -- for example:
+
+  // Assume an implementation where longs are 32 bits and bit fields may
+  //   only hold 16 bits
+  struct S {
+    long v:20;         // error is now issued
+  };
+
 3/21/96   Typedef name as name "for linkage purposes" of tagless enum
 
-In accord with recent changes to 7.1.3 [dcl.typedef], tagless enums are now
-handled exactly like tagless classes in acquiring a typedef name when they
-appear within a typedef declaration -- for instance:
+In accord with recent changes to 7.1.3 [dcl.typedef], a tagless enum is now
+handled exactly like a tagless class in taking on, for linkage purposes,
+the name from a typedef declaration in which it was defined -- e.g.,
 
   typedef enum { e1, e2, e3 } E;
 
