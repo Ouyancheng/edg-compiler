@@ -635,7 +635,8 @@ information.
      The actual work to build the prefix information is done by special
      processing in preproc.c that is enabled when building_pch_prefix is
      TRUE. */
-  if (get_token() != tok_end_of_source) {
+  (void)get_token();
+  if (curr_ise != NULL) {
     /* If we didn't reach the end of the source file, pop the input stack
        and close the primary input file. */
     pop_input_stack();

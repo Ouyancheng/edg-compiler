@@ -1,5 +1,11 @@
 Version 3.1
 
+8/21/02   Abort using precompiled headers on invalid input file
+
+Certain invalid input files (e.g., a file that contains only the string
+literal "test") would cause the front end to abort when using precompiled
+headers.  This has been fixed.
+
 8/21/02   Spurious error on text in "#if" that looks like hex FP constant
 
 In C99 mode a spurious error was issued on a string that looks like a
