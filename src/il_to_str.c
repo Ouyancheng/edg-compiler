@@ -3954,7 +3954,8 @@ static void form_simple_attribute(
 /*
 Output a simple GNU attribute described by attribute_name in the way
 described by octl.  If *need_leading_space is TRUE, precede the attribute
-with a leading space.  *need_leading_space is set to TRUE in all cases.
+with a leading space.  *need_leading_space is set to TRUE in all cases,
+to indicate that a space will be needed after the attribute.
 */
 {
   if (*need_leading_space) {
@@ -3977,7 +3978,8 @@ Output an attribute that takes a string as an argument.  The attribute_name
 is assumed to have no characters that require escapes, but the argument might
 have characters like "\n" or "\t" that need to be handled specially.
 If *need_leading_space is TRUE, precede the attribute with a leading space.
-*need_leading_space is set to TRUE in all cases.  Do the output in the way
+*need_leading_space is set to TRUE in all cases, to indicate that a
+space will be needed after the attribute.  Do the output in the way
 described by octl.
 */
 {
@@ -4009,7 +4011,8 @@ static void form_unsigned_argument_attribute(
 Output an attribute that takes an unsigned integer as an argument.  The
 attribute_name is assumed to have no characters that require escapes.
 If *need_leading_space is TRUE, precede the attribute with a leading space.
-*need_leading_space is set to TRUE in all cases.  Do the output in the way
+*need_leading_space is set to TRUE in all cases, to indicate that a
+space will be needed after the attribute.  Do the output in the way
 described by octl.
 */
 {
@@ -4033,7 +4036,7 @@ static void form_routine_type_attributes(
 /*
 Output GNU attributes that apply to the indicated type (which must be a
 routine type).  If *need_leading_space is TRUE, precede the attribute with
-a leading space.  If an attribute it output, set *need_leading_space to TRUE.
+a leading space.  If an attribute is output, set *need_leading_space to TRUE.
 Do the output in the way described by octl.
 */
 {
@@ -4127,7 +4130,7 @@ static void form_ELF_visibility_attribute(
 /*
 Output the given visibility as an attribute specification (provided it is
 not evk_unspecified).  If *need_leading_space is TRUE, precede the attribute
-with a leading space.  If an attribute it output, set *need_leading_space to
+with a leading space.  If an attribute is output, set *need_leading_space to
 TRUE.  Do the output in the way described by octl.
 
 */
