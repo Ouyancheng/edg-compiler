@@ -67,14 +67,6 @@ function scope memory region.
   (!lowering_file_scope && in_file_scope((char *)(entry_ptr)))
 
 
-static a_variable_ptr
-		return_value_pointer_variable;
-			/* While processing a routine that returns its
-			   value via a copy constructor, this points to
-			   the parameter variable for the implicit parameter
-			   through which the caller sends the address
-			   at which the result will be stored. */
-
 static a_cleanup_action_ptr
 		avail_cleanup_actions;
 			/* List of cleanup action entries that have been
@@ -4038,6 +4030,17 @@ Do IL lowering of the indicated variable and everything under it.
          indicate that this variable is "really" defined. */
       variable->init_kind = (an_init_kind)initk_zero;
     }  /* if */
+    if (var_is_return_value_variable(variable)) {
+      /* The variable is the return value optimization variable for the
+         function.  All references to it will be rewritten to refer instead
+         to the implicit parameter that gives the return-copy address.
+         Mark the variable as unreferenced.  Also turn off any initialization.
+         If there is initialization, the initialization will be put out as
+         an assignment when the stmk_init for this initialization is
+         processed. */
+      variable->source_corresp.referenced = FALSE;
+      variable->init_kind = (an_init_kind)initk_none;
+    }  /* if */
     switch (variable->init_kind) {
       case initk_none:
       case initk_zero:
@@ -5744,6 +5747,17 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
              The type in the enk_variable node must be changed. */
           var_value->type = make_pointer_type(var_value->type);
         }  /* if */
+      } else if (var_is_return_value_variable(var)) {
+        /* The variable is the return value optimization variable for the
+           current function, so rewrite it as a reference to the implicit
+           parameter through which the return address is passed by the
+           caller. */
+        /* There shouldn't be any enk_variable references to the variable. */
+        check_assertion_str(expr->kind != (an_expr_node_kind)enk_variable,
+                           "lower_expr: enk_variable ref to return value var");
+        /* Rewrite address-of-local-variable as value-of-pointer-parameter. */
+        set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+        expr->variant.variable = return_value_pointer_variable;
       }  /* if */
       break;
     case enk_operation:
@@ -6607,7 +6621,13 @@ Do IL lowering of the indicated statement and everything under it.
         return_statement = statement;
         make_block = TRUE;
         dip = statement->variant.return_dynamic_init;
-        if (dip != NULL) {
+        /* If the routine returns its value via a copy constructor, generate
+           code for the dynamic initialization.  However, if return value
+           optimization applies, just skip the copy constructor call
+           altogether. */
+        if (dip != NULL &&
+            nearest_function_scope->variant.routine.
+                                               return_value_variable == NULL) {
           /* This routine returns its value via a copy constructor.
              The dynamic initialization entry indicates the operation to
              be done. */
@@ -7369,6 +7389,7 @@ Do IL lowering of the indicated scope and everything under it.
     routine_type = routine->type;
     routine_type = skip_typerefs(routine_type);
     rtsp = routine_type->variant.routine.extra_info;
+    return_value_pointer_variable = NULL;
     if (rtsp->value_returned_by_cctor) {
       /* If there is an implicit parameter for the return value address,
          add it as an explicit first parameter.  Note that the variable is
@@ -7522,6 +7543,7 @@ Do IL lowering of the indicated scope and everything under it.
     /* Free any return memos that were not used. */
     free_return_memo_list(return_memo_list);
     return_memo_list = NULL;
+    return_value_pointer_variable = NULL;
   }  /* if */
   pop_context();
   db_exit();
@@ -7697,6 +7719,7 @@ of the front end.
 #if DEBUG
   num_init_pos_modifiers_allocated        = 0;
 #endif /* DEBUG */
+  return_value_pointer_variable = NULL;
   /* Static variables in lower_il.c: */
   avail_cleanup_actions = NULL;
   avail_return_memos = NULL;

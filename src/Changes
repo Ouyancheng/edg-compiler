@@ -1,5 +1,24 @@
 Version 2.23
 
+4/27/94  Return value optimization
+
+The front end now does return value optimization.  That is,
+
+  struct A {
+    A(int);
+    A(const A&);
+  };
+  A f() {
+    A a(1);    // Constructed into temp passed by caller
+    return a;  // No copy needed
+  }
+
+The optimization is done in functions that return a class value using
+a copy constructor, and is possible if all return statements in the
+function return the same nonstatic local variable.  The front end
+proper detects the possibility of doing the optimization, and the
+transformation is done by IL lowering.
+
 4/26/94  Inherited overloaded conversion operators
 
 The front end no longer fails when processing inherited overloaded

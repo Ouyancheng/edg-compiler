@@ -2830,7 +2830,7 @@ invocation of the front end.
     a_targ_alignment align;
     /* Find out how big a field is used for region numbers. */
     get_integer_size_and_alignment(TARG_REGION_NUMBER_INT_KIND, &size, &align);
-    size *= targ_char_bit;
+    size = size * targ_char_bit; /* Not "*=" to avoid CodeCenter bug. */
     /* Make a bit mask "size" bits long. */
     if (size >= sizeof(unsigned long)*CHAR_BIT) {
       max_region_number = ~(unsigned long)0;

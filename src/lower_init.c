@@ -2773,13 +2773,25 @@ do_assignment:;
      termination routine. */
   if (dip->destructor != NULL) {
     a_cleanup_action_ptr cap;
+    a_boolean            applies_on_block_exit = TRUE;
     /* The action applies on block exit except when we are processing the
        wrapper of a constructor (ctor_init != NULL).  In that case the
        destructor part of the initialization is only there for exception
        cleanup.  For the file-scope initialization routine "on block exit"
        gets interpreted as "in the the file-scope termination routine." */
+    if (ctor_init != NULL) {
+      applies_on_block_exit = FALSE;
+    } else if (nearest_function_scope != NULL &&
+               nearest_function_scope->variant.routine.
+                                               return_value_variable != NULL &&
+               ipdp->variable == return_value_pointer_variable) {
+      /* This is the initialization of the parameter substituted for the
+         return value optimization variable.  The destruction doesn't get
+         done on exit from the routine; the caller does it. */
+      applies_on_block_exit = FALSE;
+    }  /* if */
     cap = alloc_destruction_cleanup_action(dip, ipdp,
-                                 /*applies_on_block_exit=*/(ctor_init == NULL),
+                                 applies_on_block_exit,
                                  /*applies_on_exception_cleanup=*/TRUE);
     /* Clear the destructor field in the dynamic init entry to make it legal
        C IL. */
@@ -3887,17 +3899,27 @@ Generate code for a stmk_init (dynamic initialization) statement.
     an_init_pos_descr  ipd;
     a_variable_ptr     conditional_flag_var = NULL;
     a_context          context;
+    a_variable_ptr     var = dip->variable;
 
     set_insert_location(statement, &insert_location);
-    set_var_init_pos_descr(dip->variable, &ipd);
-    /* If the variable is a local static, add a first-time flag and a
-       test. */
-    if (dip->variable->storage_class == (a_storage_class)sc_static) {
-      add_first_time_test(&insert_location, &conditional_flag_var);
-      /* Put a dependent-statement context around the lowering of
-         the initialization so that any cleanup actions for code within
-         the initialization will be emitted within the "if". */
-      push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
+    if (var_is_return_value_variable(var)) {
+      /* The variable being initialized is the return value optimization
+         variable for the function.  Initialize the space provided by the
+         caller instead; its address is given by an implicit parameter. */
+      set_var_indirect_init_pos_descr(return_value_pointer_variable, &ipd);
+      dip->variable = NULL;
+    } else {
+      /* Normal case (not the return value optimization variable). */
+      set_var_init_pos_descr(var, &ipd);
+      /* If the variable is a local static, add a first-time flag and a
+         test. */
+      if (var->storage_class == (a_storage_class)sc_static) {
+        add_first_time_test(&insert_location, &conditional_flag_var);
+        /* Put a dependent-statement context around the lowering of
+           the initialization so that any cleanup actions for code within
+           the initialization will be emitted within the "if". */
+        push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
+      }  /* if */
     }  /* if */
     lower_dynamic_init(dip, &ipd, conditional_flag_var,
                        /*is_expr_temporary=*/FALSE,

@@ -367,7 +367,7 @@ EXTERN a_context_ptr
 EXTERN a_scope_ptr
 		nearest_function_scope;
 			/* Nearest function scope, as pushed by
-			   push_context. */
+			   push_context, or NULL if not inside a function. */
 EXTERN a_context_ptr
 		file_scope_context;
 			/* The context for the file scope. */
@@ -395,12 +395,31 @@ EXTERN a_return_memo_ptr
 			   routine, maintained so that epilogue code can be
 			   added. */
 
+EXTERN a_variable_ptr
+		return_value_pointer_variable;
+			/* While processing a routine that returns its
+			   value via a copy constructor, this points to
+			   the parameter variable for the implicit parameter
+			   through which the caller sends the address
+			   at which the result will be stored; NULL
+			   otherwise. */
+
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 EXTERN sizeof_t	size_mangled_name_buffer /* = 0*/;
 			/* Current allocated size of mangled_name_buffer.
 			   Not per-file.  See lower_name.c for the definition
 			   of mangled_name_buffer. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+
+
+/*
+Return TRUE if the indicated variable is the return value optimization
+variable for the current function.
+*/
+#define var_is_return_value_variable(var)                             \
+  (nearest_function_scope != NULL &&                                  \
+   nearest_function_scope->variant.routine.return_value_variable == (var))
+
 
 #if DEBUG
 /*
