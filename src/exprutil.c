@@ -612,10 +612,16 @@ in a loop).
   if (expr_stack != NULL) {
     /* There is a previous stack entry; set any of the flags that are affected
        by the enclosing stack entry. */
+    /* is_template_arg_expression is not copied down, because it indicates the
+       top level in a template argument expression.
+       in_cctor_elision_initializer is also not copied down; nested expressions
+       in an elision initializer are not subject to the optimization. */
     new_entry->evaluated = expr_stack->evaluated;
     new_entry->potentially_evaluated = expr_stack->potentially_evaluated;
     new_entry->is_default_arg_expression =
                                          expr_stack->is_default_arg_expression;
+    new_entry->inside_conditional_expression =
+                                     expr_stack->inside_conditional_expression;
   }  /* if */
   expr_stack = new_entry;
   /* Do special handling for constant expressions.  This is done late so that
