@@ -435,7 +435,7 @@ ec_no_matching_new_function;;"no instance of overloaded %no matches these operan
 ec_delete_already_declared;;"operator delete() may not be overloaded"
 ec_no_match_for_addr_of_overloaded_function;;"no instance of %n matches the required type"
 ec_delete_count_anachronism;;"delete array size expression ignored (anachronism)"
-ec_bad_return_type_for_op_arrow;;"operator->() requires pointer-to-class return type"
+ec_bad_return_type_for_op_arrow;;"%t is an invalid return type for %no"
 ec_cast_to_abstract_class;;"a cast to an abstract class is not allowed"
 ec_bad_use_of_main;;"function \"main\" may not be called or have its address taken"
 ec_initializer_not_allowed_on_array_new;;"a new-initializer may not be specified for an array"
