@@ -1,5 +1,33 @@
 Version 2.27
 
+10/27/94 Access checking of file scope function declarations and definitions
+
+There are a number of instances in which access checking of names that
+appear in a file scope function declaration, definition, or static 
+data member definition, cannot be done when the name is seen, but must
+instead wait until additional information about the declaration is available.
+
+In this example, the definition of member function A::f should be able to use
+the private return type A::B.  Likewise, the friend declaration should be
+able to make use of the befriending classes private types in its signature.
+The access checking mechanisms have been modified to allow this kind of
+usage.
+
+  class A {
+    class B {};
+    B f();
+    friend B g(B);
+  };
+
+  A::B A::f(){ B b; return b;}
+  A::B g(A::B b){return b;}
+
+Note that the language is unclear as to whether this usage should be
+permitted.  The sentiment of the X3J16/WG21 committee seems to be that
+such usage should be permitted.  Furthermore, because cfront does no
+access checking on types, there is existing code that contains
+this kind of usage.
+
 10/25/94 (int)1.5 in integral constant expression
 
 The change made in version 2.26 to allow additional forms of expressions
