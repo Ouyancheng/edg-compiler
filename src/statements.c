@@ -95,9 +95,13 @@ typedef struct a_struct_stmt_stack_entry {
   a_type_ptr	switch_selector_type;
 			/* The type of the switch selector expression
 			   (int or long). */
-  a_boolean	switch_has_default_clause;
+  a_boolean	switch_has_default_clause:1;
 			/* TRUE if the structured statement is a switch and
 			   it has a default clause. */
+  a_boolean	rout_type_explicitly_specified:1;
+			/* TRUE if the current routine was declared with an
+			   explicit return type.  This flag is set in the
+			   top level statement stack entry only. */
   a_reachability_code
 		start_reachable;
 			/* Indicates whether or not the start of the structured
@@ -111,17 +115,32 @@ typedef struct a_struct_stmt_stack_entry {
 } a_struct_stmt_stack_entry;
 
 static a_struct_stmt_stack_entry_ptr
+		struct_stmt_stack_container = NULL;
+			/* A dynamically allocated array of structured
+			   statement stack entries that is can accommodate
+			   the coexistence of more than one stack.  When a
+                           stack is currently active and a new stack is
+                           required (for member function definitions of
+			   local classes, for instance) an unused segment of
+			   the container is employed; later the inactive
+			   stack can be reactivated.  Because the container
+			   is dynamically allocated, it can be expanded if
+			   necessary.   size_struct_stmt_stack_container
+			   gives the number of elements currently allocated.
+			   Allocation is not per-file.*/
+static sizeof_t	size_struct_stmt_stack_container = 0;
+			/* Size of struct_stmt_stack_container, in terms of
+			   the number of elements. */
+static a_struct_stmt_stack_entry_ptr
 		struct_stmt_stack = NULL;
-			/* The structured statement stack itself.  Current
-			   entry is [depth_stmt_stack].  Entry [0] is for
-			   the main block of the current function, if
-			   we are currently inside a function.  Dynamically
-			   allocated; can be expanded if necessary.
-			   size_struct_stmt_stack gives the number of elements
-			   currently allocated.  Allocation is not per-file. */
-static sizeof_t	size_struct_stmt_stack = 0;
-			/* Allocated size in elements of struct_stmt_stack.
-			   Not per-file. */
+			/* The currently active structured statement stack
+			   itself.  The current entry is [depth_stmt_stack].
+			   Entry [0] is for the main block of the current
+			   function, if we are currently inside a function.
+			   Note that in C++ there can be more than one such
+			   stack, though only one is active at a time.  The
+			   struct_stmt_stack array is actually a subarray of
+			   struct_stmt_stack_container. */
 #define STRUCT_STMT_STACK_INCREMENTAL_ALLOCATION 30
 			/* The number of elements added to struct_stmt_stack
 			   each time it is reallocated; also the initial
@@ -386,6 +405,103 @@ if it has been used.
 }  /* define_continue_label */
 
 
+static void expand_struct_stmt_stack(void)
+/*
+Reallocate the structure statement stack container, copying the contents
+of the present one into the new one.  Also reset static variables defining
+the size and state of the stack:  size_struct_stmt_stack_container,
+struct_stmt_stack_container, and struct_stmt_stack.
+*/
+{
+  sizeof_t  struct_stmt_stack_offset, new_size;
+
+  /* Note that struct_stmt_stack is a pointer into the container.  This
+     allows several stacks to coexist, though only that pointed to by
+     struct_stmt_stack is currently active.  The offset computed is the
+     element count from the start of the container to the start of the
+     currently active stack. */
+  struct_stmt_stack_offset = struct_stmt_stack_container - struct_stmt_stack;
+  /* Recompute the size of the container. */
+  new_size = size_struct_stmt_stack_container +
+                                      STRUCT_STMT_STACK_INCREMENTAL_ALLOCATION;
+  /* Reallocate the container, copying the old to the new. */
+  struct_stmt_stack_container =
+                       (a_struct_stmt_stack_entry_ptr)realloc_general(
+                       (char *)struct_stmt_stack,
+                       (sizeof_t)(size_struct_stmt_stack_container*
+                                            sizeof(a_struct_stmt_stack_entry)),
+                       (sizeof_t)(new_size*sizeof(a_struct_stmt_stack_entry)));
+  /* Record the size of the container. */
+  size_struct_stmt_stack_container = new_size;
+  /* Recompute the address of the struct_stmt_stack.  The offset remains the
+     the same, but the address of the container has changed. */
+  struct_stmt_stack = struct_stmt_stack_container - struct_stmt_stack_offset;
+}  /* expand_struct_stmt_stack */
+
+
+/* Macro to check whether the structured statement stack is large enough to
+   accept one more entry and if it is not to reallocate it to a larger size. */
+#define ensure_struct_stmt_stack_space()                              \
+  if (struct_stmt_stack_container -                                   \
+        struct_stmt_stack + depth_stmt_stack + 1 ==                   \
+                                size_struct_stmt_stack_container) {   \
+    expand_struct_stmt_stack();                                   \
+  }  /* if */
+
+
+void new_struct_stmt_stack(sizeof_t  *saved_container_pos,
+                           sizeof_t  *saved_depth_stmt_stack,
+                           int       *saved_code_reachable)
+/*
+Save the state of the current structured statement stack, returning it to
+the caller, and create a new structured statement stack.  This is used to
+support function definitions nested within function definitions -- a
+possibility in C++ with member functions of local classes.  There is no
+algorithmic limit on the number of levels of nesting supported.
+*/
+{
+#if CHECKING
+  if (struct_stmt_stack_container == NULL) {
+    internal_error("new_struct_stmt_stack: container not allocated yet");
+  } else if (depth_stmt_stack < 0) {
+    internal_error("new_struct_stmt_stack: struct_stmt_stack is empty");
+  }  /* if */
+#endif /* CHECKING */
+  /* Expand the structured statement stack if necessary. */
+  ensure_struct_stmt_stack_space();
+  *saved_container_pos = struct_stmt_stack_container - struct_stmt_stack;
+  *saved_depth_stmt_stack = depth_stmt_stack;
+  struct_stmt_stack = &struct_stmt_stack[depth_stmt_stack+1];
+  depth_stmt_stack = -1;
+  *saved_code_reachable = (int)code_reachable;
+}  /* new_struct_stmt_stack */
+
+
+void restore_struct_stmt_stack(sizeof_t  saved_container_pos,
+                               sizeof_t  saved_depth_stmt_stack,
+                               int       saved_code_reachable)
+/*
+Using state values returned from new_struct_stmt_stack, restore the original
+statement stack.
+*/
+{
+#if CHECKING
+  if (saved_container_pos < 0 ||
+      saved_container_pos > size_struct_stmt_stack_container) {
+    internal_error(
+              "restore_struct_stmt_stack: saved_container_pos out of range");
+  } else if (saved_container_pos + saved_depth_stmt_stack >
+                                          size_struct_stmt_stack_container) {
+    internal_error(
+          "restore_struct_stmt_stack: saved_depth_stmt_stack out of range");
+  }  /* if */
+#endif /* CHECKING */  
+  struct_stmt_stack = &struct_stmt_stack_container[saved_container_pos];
+  depth_stmt_stack = saved_depth_stmt_stack;
+  code_reachable = (a_reachability_code)saved_code_reachable;
+}  /* restore_struct_stmt_stack */
+
+
 static void push_stmt_stack(a_struct_stmt_kind kind,
                             a_statement_ptr    sp)
 /*
@@ -397,17 +513,8 @@ the associated il statement.
   register a_struct_stmt_stack_entry_ptr sssep;
 
   db_enter(4, "push_stmt_stack");
-  if (depth_stmt_stack+1 == size_struct_stmt_stack) {
-    /* Stack is full; expand it. */
-    sizeof_t new_size = size_struct_stmt_stack +
-                                      STRUCT_STMT_STACK_INCREMENTAL_ALLOCATION;
-    struct_stmt_stack = (a_struct_stmt_stack_entry_ptr)realloc_general(
-                       (char *)struct_stmt_stack,
-                       (sizeof_t)(size_struct_stmt_stack*
-                                            sizeof(a_struct_stmt_stack_entry)),
-                       (sizeof_t)(new_size*sizeof(a_struct_stmt_stack_entry)));
-    size_struct_stmt_stack = new_size;
-  }  /* if */
+  /* Expand the structured statement stack if necessary. */
+  ensure_struct_stmt_stack_space();
   /* Push the stack and initialize the new entry. */
   sssep = &struct_stmt_stack[++depth_stmt_stack];
   sssep->kind                 = kind;
@@ -419,6 +526,8 @@ the associated il statement.
   sssep->continue_label       = NULL;
   sssep->switch_selector_type = NULL;
   sssep->switch_has_default_clause
+                              = FALSE;
+  sssep->rout_type_explicitly_specified
                               = FALSE;
   sssep->start_reachable      = code_reachable;
   sssep->end_reachable        = rc_unreachable;  /* So far. */
@@ -1138,7 +1247,7 @@ the current routine.
        the main program, or if the declaration of the function did not
        have an explicit type specifier (omitting the specifier implies
        "int", but may have been intended to mean "void" in old-style C). */
-    if (!curr_rout_type_explicitly_specified) {
+    if (struct_stmt_stack->rout_type_explicitly_specified) {
       /* No warning if the routine's type was not explicitly specified. */
     } else if (rout == il_header.main_routine) {
       /* No warning for "main". */
@@ -1543,7 +1652,8 @@ rescan_statement:
       break;
     case tok_lbrace:
       /* Compound statement (3.6.2). */
-      (void)compound_statement(/*at_function_level=*/FALSE);
+      (void)compound_statement(/*at_function_level=*/FALSE,
+                               /*explicit_return_type=*/FALSE);
       break;
     case tok_if:
       /* If statement (3.6.4). */
@@ -1677,7 +1787,8 @@ expr_statement:
 }  /* statement */
 
 
-a_statement_ptr compound_statement(a_boolean at_function_level)
+a_statement_ptr compound_statement(a_boolean at_function_level,
+                                   a_boolean explicit_return_type)
 /*
 Scan a compound-statement.  The syntax is
 
@@ -1730,6 +1841,11 @@ come out on the closing "}".
   }  /* if */
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_compound, block);
+  /* When at the function level, record in the current statement stack entry
+     whether the routine was declared with an explicit return type. */
+  if (at_function_level && explicit_return_type) {
+    struct_stmt_stack->rout_type_explicitly_specified = TRUE;
+  }  /* if */
   /* Skip over the opening brace.  Note that this is NOT an internal error
      check; when a compound statement is the body of a function, it's
      required. */
