@@ -6732,8 +6732,7 @@ done_with_operation_after_parens:
           gen_compound_literal((a_constant_ptr)NULL, dip, temp_type);
         } else {
           /* Address of temp-init in C++.  This can come up if it is allowed
-             to cast a class rvalue to a reference type. */
-          check_assertion(is_class_struct_union_type(temp_type));
+             to cast an rvalue to a reference type. */
           write_tok_ch('(');
           gen_type(temp_type);
           write_tok_str(" &)");
@@ -8426,6 +8425,8 @@ Note that the destructor, if any, is implicit and need not be put out.
           (cexpr->next == NULL || cexpr->next->generated_default_arg)) {
         has_one_argument = TRUE;
       }  /* if */
+    } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+      has_one_argument = TRUE;
     }  /* if */
     parenthesized_init = TRUE;
     force_parens = TRUE;
