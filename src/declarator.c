@@ -2287,13 +2287,18 @@ function_lparen:
       a_boolean  restrict_seen, restrict_allowed = FALSE;
 
 #if RESTRICT_ALLOWED
-      if ((input_flags & DI_IS_PARAMETER_DECL) && derived_type == NULL) {
-        /* This is a top-level array declarator -- that is, it will not be
-           embedded in the middle of a derived type.  Moreover, this is
-           a parameter declaration.  That means this array will decay into
-           pointer-to-element-type.  This is the situation in which the
-           special restrict-array syntax is allowed: e.g., x[restrict 10]. */
-        restrict_allowed = TRUE;
+      if (restrict_recognized) {
+        /* There is no command line option suppressing recognition of
+           "restrict", so we may need to handle the special syntax for
+           declaring restrict-qualified arrays. */
+        if ((input_flags & DI_IS_PARAMETER_DECL) && derived_type == NULL) {
+          /* This is a top-level array declarator -- that is, it will not be
+             embedded in the middle of a derived type.  Moreover, this is
+             a parameter declaration.  That means this array will decay into
+             pointer-to-element-type.  This is the situation in which the
+             special restrict-array syntax is allowed: e.g., x[restrict 10]. */
+          restrict_allowed = TRUE;
+        }  /* if */
       }  /* if */
 #endif /* RESTRICT_ALLOWED */
       array_declarator(&new_type_ptr, nonconstant_dimension_allowed,
