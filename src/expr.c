@@ -8304,9 +8304,6 @@ Also scans C9X compound literals:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     } else {
       /* Normal cast (not a compound literal). */
-#if DO_C99_IL_LOWERING
-      a_type_ptr  src_type;
-#endif /* DO_C99_IL_LOWERING */
       /* Check the type to see if it is valid in general terms. */
       error_position = type_position;
       err = cast_type_pre_check(&type_cast_to, explicit_cv_qualifiers);
@@ -8314,9 +8311,6 @@ Also scans C9X compound literals:
       /* Scan the expression to be cast. */
       scan_cast_expression(type_cast_to, /*allow_comma=*/TRUE, PREC_CAST,
                            result, &local_bound_function_selector);
-#if DO_C99_IL_LOWERING
-      src_type = result->type;
-#endif /* DO_C99_IL_LOWERING */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = result->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
