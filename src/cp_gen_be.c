@@ -5181,7 +5181,7 @@ TRUE, "()" is put out.
             }  /* if */
             /* Put out the argument list in parentheses. */
             gen_argument_list(args, ctor->type, /*skip_num=*/0);
-          }
+          }  /* if */
         }  /* if */
       }
       break;
