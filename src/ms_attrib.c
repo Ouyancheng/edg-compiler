@@ -353,15 +353,57 @@ are accepted.
                           "defaultimports",
                           /*is_unnamed=*/FALSE,
                           NULL);
+  /* [export] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "export", msat_standalone);
+  /* [id] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "id", msat_method);
+  set_initialization_style_arg_allowed();
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
+                          "id", /*is_unnamed=*/FALSE, NULL);
   /* [in] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "in", msat_parameter);
   /* [out] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "out", msat_parameter);
+  /* [retval] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "retval", msat_parameter);
+  /* [provider] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "provider", msat_standalone);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "name", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
+                          "uuid", /*is_unnamed=*/FALSE, NULL);
+  /* [request_handler] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "request_handler", msat_class);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "name", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "sdl", /*is_unnamed=*/FALSE, NULL);
   /* [soap_handler] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "soap_handler", msat_class);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "name", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "namespace", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "protocol", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "style", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "use", /*is_unnamed=*/FALSE, NULL);
+  /* [uuid] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "uuid", msat_class);
+  set_initialization_style_arg_allowed();
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
+                          "uuid", /*is_unnamed=*/FALSE, NULL);
 #if INCLUDE_EDG_TEST_ATTRIBUTES
   /* These are special attributes included for testing purposes. */
   /* [edg_test_1] */
@@ -451,7 +493,7 @@ Look up the identifier that names the attribute to be processed.
       /* An unknown attribute -- issue a diagnostic.  This is only a warning
          if we accept unrecognized attributes. */
       pos_st_diagnostic(accept_unrecognized_attributes ? es_warning : es_error,
-                        ec_unrecognized_attribute, &pos_curr_token,
+                        ec_unrecognized_ms_attribute, &pos_curr_token,
                         sym_hdr->identifier);
     }  /* if */
     /* Bypass the identifier. */
@@ -816,9 +858,13 @@ until the end of the attribute is found.
 */
 {
   /* The stop tokens should be set appropriately so that this will flush
-     to the "," that separates attributes, or to the closing "]" of the
-     attribute block. */
-  flush_tokens();
+     to the "," that separates attributes, or to the closing "]" of
+     the attribute block.  The normal flush_tokens_with_stop_tokens
+     sometimes issues a warning based on the number of tokens skipped.
+     This should not be done in this case because the flush is not
+     being done for error recovery. */
+  flush_tokens_with_stop_tokens_and_warning_flag(
+          curr_stop_token_stack_entry->stop_tokens, /*suppress_warning=*/TRUE);
 }  /* scan_unrecognized_ms_attribute_arg_list */
 
 
@@ -1069,7 +1115,7 @@ The per-compilation unit initialization routine for variables related to
 Microsoft attribute processing.
 */
 {
-  accept_unrecognized_attributes = TRUE;
+  accept_unrecognized_attributes = FALSE;
   unrecognized_attribute = NULL;
   ms_attr_buffer = NULL;
 #if DEBUG
