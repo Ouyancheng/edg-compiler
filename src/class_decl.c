@@ -2836,16 +2836,6 @@ table.
   a_variable        *var;
 
   db_enter(3, "decl_static_data_member");
-  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-    /* The class declaration is local to a function definition.  Static
-       data members are allowed only in global classes. */
-    pos_error(ec_static_member_in_local_class, &locator->source_position);
-    /* Set the type this invalid static member to error_type.  This will
-       assure "proper" (or unobtrusive) behavior later, if a definition is
-       encountered.  It also eliminates semi-spurious error messages if
-       there are references to it. */
-    member_type = error_type();
-  }  /* if */
   /* Enter a new symbol in the symbol table. */
   sym = enter_local_symbol((a_symbol_kind)sk_static_data_member,
                            locator, decl_scope_level,
@@ -5211,6 +5201,7 @@ class/struct/union is actually defined.
   a_decl_flag_set         dso_flags;
   a_type_ptr              local_type;
   a_type_ptr              bottom_derived_type;
+  a_boolean               is_local_class = FALSE;
   a_boolean               unnamed_field;
   a_boolean               tag_resolution = FALSE;
   a_boolean               first_declarator;
@@ -5246,6 +5237,21 @@ class/struct/union is actually defined.
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
   *defines_something = FALSE;
+  /* Determine whether this is a local class (one being declared within a
+     function scope). */
+  if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
+    if (depth_innermost_function_scope != DEPTH_OF_FILE_SCOPE) {
+      is_local_class = TRUE;
+    } else {
+      a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
+      for (; ssep != scope_stack; --ssep) {
+        if (ssep->kind == (a_scope_kind)sck_function) {
+          is_local_class = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
   if (curr_token != tok_identifier) {
     /* Skip over "class", "struct", or "union", remembering which appears. */
 #if CHECKING
@@ -5387,7 +5393,7 @@ class/struct/union is actually defined.
       tag_sym = enter_local_symbol(tag_kind, &locator, effective_decl_level,
                                    /*suppress_redecl_error=*/FALSE);
       set_source_corresp(&(class_type->source_corresp), tag_sym);
-      if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+      if (is_local_class &&
           scope_stack[decl_scope_level].kind !=
                                      (a_scope_kind)sck_class_struct_union) {
         /* This class is being declared within a function scope, and it is not
@@ -5835,8 +5841,7 @@ class/struct/union is actually defined.
                 goto next_declaration;
               } else {
                 /* Not a function definition. */
-                if (!friend_specified &&
-                    depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+                if (!friend_specified && is_local_class) {
                   /* A member function declared in a local class definition
                      (which is the current case) must be defined within the
                      class definition (ARM 9.8). */
@@ -5920,10 +5925,16 @@ class/struct/union is actually defined.
             if (member_storage_class == (a_storage_class)sc_static) {
               /* Static data member. */
               if (is_union_type(class_type)) {
-                /* Issue the error on static member in a union (ARM 9.5) here
-                   rather than in the subroutine so that decl_start_pos can
-                   be used as the error position. */
                 pos_error(ec_static_member_in_union, &decl_start_pos);
+              }  /* if */
+              if (is_local_class) {
+                /* Static data members are not allowed in local classes. */
+                pos_error(ec_static_member_in_local_class, &decl_start_pos);
+                /* Set the type for this invalid static member to error_type.
+                   This will assure "proper" (or unobtrusive) behavior later,
+                   if a definition is encountered.  It also eliminates semi-
+                   spurious error messages if there are references to it. */
+                local_type = error_type();
               }  /* if */
               decl_static_data_member(&locator, class_type,
                                       local_type, access);
