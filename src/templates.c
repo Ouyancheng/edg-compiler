@@ -1446,12 +1446,10 @@ included in the search.
                                             template_arg_list = *new_list;
     set_source_corresp(&(class_type->source_corresp), sym);
     set_membership_in_source_corresp(&(class_type->source_corresp), sym);
-    /* All template instantiations have C++ external linkage, but mark it as
-       internally linked for now.  The name linkage will be fixed up later,
-       along with nontemplate classes.  This assures uniform processing of
-       members. */
+    /* A template instantiation will have the same name-linkage (C++ or
+       internal) as the template itself has. */
     class_type->source_corresp.name_linkage =
-                                        (a_name_linkage_kind)nlk_internal;
+                             tssp->variant.class_template.name_linkage;
     if (sym->variant.class_struct_union.extra_info->is_nonreal_class) {
       class_type->size = 1;
       class_type->alignment = 1;
@@ -3797,15 +3795,28 @@ that make up the declaration and do a prototype instantiation.
       if (sym == NULL) {
 	/* Enter the symbol at the scope indicated by effective_decl_level. */
         a_scope_stack_entry_ptr	ssep = &scope_stack[effective_decl_level];
-	sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
-			   effective_decl_level, suppress_redecl_error);
+        sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
+                           effective_decl_level, suppress_redecl_error);
         if (ssep->kind == (a_scope_kind)sck_namespace ||
             ssep->kind == (a_scope_kind)sck_namespace_extension) {
           set_namespace_membership(sym, (a_source_correspondence *)NULL,
                                    ssep->il_scope->variant.assoc_namespace);
         }  /* if */
-	tssp = sym->variant.template_info;
-	is_redecl = FALSE;
+        tssp = sym->variant.template_info;
+        /* Set the name-linkage for this template -- it will be propagated
+           into the instances. */
+        if (ssep->within_unnamed_namespace ||
+            instantiation_mode == tim_local) {
+          /* Templates declared inside an unnamed namespace have internal
+             linkage -- as do all templates in "local instantiation mode". */
+          tssp->variant.class_template.name_linkage =
+                                           (a_name_linkage_kind)nlk_internal;
+        } else {
+          /* Normally, a template has C++ linkage. */
+          tssp->variant.class_template.name_linkage =
+                                  (a_name_linkage_kind)nlk_cplusplus_external;
+        }  /* if */
+        is_redecl = FALSE;
       }	/* if */
       if (is_definition || !is_redecl) {
 	/* Either this is the first declaration of the template class or a
@@ -3851,8 +3862,10 @@ that make up the declaration and do a prototype instantiation.
         set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
         set_membership_in_source_corresp(&(prototype_type->source_corresp),
                                          prototype_sym);
+        /* Use the name linkage saved at the point of the original template
+           declaration. */
         prototype_type->source_corresp.name_linkage =
-                                           (a_name_linkage_kind)nlk_internal;
+                                   tssp->variant.class_template.name_linkage;
         prototype_sym->defined = TRUE;
         /* Build the template argument list for the prototype instantiation
            of this template.  Loop through the template parameters and
