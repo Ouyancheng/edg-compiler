@@ -7197,8 +7197,8 @@ typedef struct an_object_lifetime {
 		     entries during IL lowering)
 	olk_try_block
 		<==> iek_try_supplement
-		<==> iek_block (as a result of rewriting rewriting a try block
-		     into a block statement during IL lowering)
+		<==> iek_block (as a result of rewriting a try block into
+		     a block statement during IL lowering)
   */
   an_object_lifetime_kind
 		kind;
