@@ -9244,12 +9244,10 @@ C++ to C, so that a C back end can handle it without change.
       }  /* if */
 #endif /* MINIMAL_INLINING */
     }  /* if */
-#if GENERATE_EH_TABLES
     /* Add definitions for any typeinfo variables generated for classes.
        This must be done late so that all the required typeinfo variables
        will have been created already. */
     define_scope_class_typeinfo_vars(scope);
-#endif /* GENERATE_EH_TABLES */
     /* Pop the file-scope context. */
     pop_context();
     initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
