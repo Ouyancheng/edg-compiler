@@ -11740,6 +11740,7 @@ The overriding function must have a definition in the current compilation.
   a_type_ptr             overriding_return_type, overridden_return_type;
 #if IA64_ABI
   a_variable_ptr         this_param = NULL;
+  an_insert_location     insert_location;
 #endif /* IA64_ABI */
 
   /* The routine type must be already lowered so that, among other things,
@@ -11816,6 +11817,15 @@ The overriding function must have a definition in the current compilation.
   return_stmt = scope->assoc_block->variant.block.statements;
   check_assertion(return_stmt != NULL &&
                   return_stmt->kind == (a_statement_kind)stmk_return);
+#if IA64_ABI
+  if (is_void_type(overriding_return_type)) {
+    /* For a void thunk, make the enk_result_of_overriding_function a
+       separate expression statement preceding the return. */
+    set_block_start_insert_location(scope->assoc_block, &insert_location);
+    (void)insert_expr_statement(expr, &insert_location);
+    expr = NULL;
+  }  /* if */
+#endif /* IA64_ABI */
   return_stmt->expr = expr;
 #if IA64_ABI
   if (overriding_function->use_comdat) {
@@ -11827,7 +11837,6 @@ The overriding function must have a definition in the current compilation.
   if (routine->delta != 0 || routine->vcall_index != 0) {
     an_expr_node_ptr   this_adjustment = NULL, delta_expr, vcall_expr;
     an_expr_node_ptr   index_expr, this_expr;
-    an_insert_location insert_location;
     if (routine->delta != 0) {
       /* Add the "delta". */
       /* Cast the "this" parameter to "char *" to suppress scaling on the 

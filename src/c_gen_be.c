@@ -7820,16 +7820,27 @@ by dump_routine_decl.
        of the definition of the wrapper. */
     a_statement_ptr stmt = scope->assoc_block->variant.block.statements;
     check_assertion(stmt != NULL);
-    if (stmt->kind == (a_statement_kind)stmk_expr) {
+    if (stmt->kind == (a_statement_kind)stmk_expr &&
+        stmt->expr->kind !=
+                        (an_expr_node_kind)enk_result_of_overriding_function) {
       /* Sometimes there is an adjustment to the "this" pointer before the
          return statement, e.g., for an IA-64 ABI thunk. */
       this_adjustment_stmt = stmt;
       stmt = stmt->next;
       check_assertion(stmt != NULL);
     }  /* if */
+    if (stmt->kind == (a_statement_kind)stmk_expr &&
+        stmt->expr->kind ==
+                        (an_expr_node_kind)enk_result_of_overriding_function) {
+      /* For a void thunk, the enk_result_of_overriding_function is a
+         separate statement because the return cannot have an expression. */
+      stmt = stmt->next;
+      check_assertion(stmt != NULL);
+    }  /* if */
     check_assertion(stmt->kind == (a_statement_kind)stmk_return);
     covariant_return_expr = stmt->expr;
-    if (covariant_return_expr->kind ==
+    if (covariant_return_expr != NULL &&
+        covariant_return_expr->kind ==
                         (an_expr_node_kind)enk_result_of_overriding_function) {
       /* Optimization -- if the return isn't actually covariant, i.e.,
          the purpose of the thunk is only to adjust "this", don't
