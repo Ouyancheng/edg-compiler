@@ -1,5 +1,23 @@
 Version 3.4
 
+10/21/03 Microsoft compatibility: diagnostic on use of constructor name
+
+In general, a name like A::A refers to the constructor of A, but in
+Microsoft mode it sometimes refers to the injected class name of A.
+We treated A::A as an injected class name in some cases where the
+Microsoft compiler treated it as a constructor.  This did not affect
+any valid programs (as far as we know), but did affect the nature of
+the diagnostic message produced for certain error cases.  We have now
+refined this feature to more accurately emulate the behavior of the
+Microsoft compiler.  Note that the example below results in an error
+both with our front end and the Microsoft compiler.
+
+  struct A { A(); };
+  void f(void (A::*)());
+  int main() {
+    f(A::A);
+  }
+
 10/21/03 GNU mode: Unused parameters
 
 The front end now no longer issues a remark for unused parameters of a

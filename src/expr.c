@@ -12974,7 +12974,8 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
     }  /* if */
   } else {
     /* The symbol is defined. */
-    if (microsoft_mode && is_constructor_symbol(sym_ptr)) {
+    if (microsoft_mode && is_constructor_symbol(sym_ptr) &&
+        next_token() == tok_lparen) {
       /* In Microsoft mode, treat the name of a constructor as the name
          of the class, so that something like "C::C()" is seen as a
          functional-notation type conversion. */
