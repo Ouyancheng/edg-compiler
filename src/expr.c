@@ -658,7 +658,6 @@ after_precision:;
 #if LONG_LONG_ALLOWED
       if (fmt_string[1] == 'l') {
         /* "ll" for long long.  This is nonstandard. */
-        if (strict_ansi_mode) goto default_case;
         ll_size = TRUE;
         fmt_string += 2;
       } else
@@ -691,6 +690,11 @@ after_precision:;
 #if LONG_LONG_ALLOWED
         } else if (ll_size) {
           required_type = integer_type((an_integer_kind)ik_long_long);
+          if (strict_ansi_mode) {
+            diagnostic(strict_ansi_error_severity < es_warning ?
+                         strict_ansi_error_severity : es_warning,
+                       ec_nonstd_printf_format_string);
+          }  /* if */
 #endif /* LONG_LONG_ALLOWED */
         } else if (h_size && is_scanf) {
           required_type = integer_type((an_integer_kind)ik_short);
@@ -715,6 +719,11 @@ after_precision:;
 #if LONG_LONG_ALLOWED
         } else if (ll_size) {
           required_type = integer_type((an_integer_kind)ik_unsigned_long_long);
+          if (strict_ansi_mode) {
+            diagnostic(strict_ansi_error_severity < es_warning ?
+                         strict_ansi_error_severity : es_warning,
+                       ec_nonstd_printf_format_string);
+          }  /* if */
 #endif /* LONG_LONG_ALLOWED */
         } else if (h_size && is_scanf) {
           required_type = integer_type((an_integer_kind)ik_unsigned_short);

@@ -768,6 +768,7 @@ ec_bad_const_cast_type;;"the type in a const_cast must be a pointer, reference, 
 ec_bad_const_cast;;"a const_cast can only adjust type qualifiers; it cannot change the underlying type"
 ec_mutable_not_allowed;;"mutable is not allowed"
 ec_cannot_change_access;;"redeclaration of %n may not alter its access"
+ec_nonstd_printf_format_string;;"nonstandard format string conversion"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
