@@ -1438,6 +1438,16 @@ not compared.
     if (!list1_prototyped && !list2_prototyped) {
       /* Both parameter lists are old-style, so they are compatible. */
       compatible = TRUE;
+    } else if (C_dialect == C_dialect_cplusplus &&
+               list1_prototyped != list2_prototyped) {
+      /* In C++ mode, consider an unprototyped function not to be
+         compatible with a prototyped function.  That is not something
+         that is spelled out by the ARM, since unprototyped functions
+         are an anachronism, but it seems sensible. */
+      /* Note that there is some code later in this routine that is
+         made useless by the test here, but it seems safer to keep it in
+         in case the code here is taken back out. */
+      compatible = FALSE;
     } else {
       /* At least one of the function types has a prototyped parameter list. */
       list1 = rtsp1->param_type_list;
@@ -2943,7 +2953,6 @@ Only callable in C++ mode.  See ARM 13.
   a_routine_type_supplement_ptr
                    old_extra_info, new_extra_info;
   a_type_ptr       old_this_param_type, new_this_param_type;
-  a_type_ptr       old_param_type, new_param_type;
   a_boolean        old_this_qualified, new_this_qualified;
 
   db_enter(5, "overload_distinguishable");
@@ -3011,21 +3020,10 @@ Only callable in C++ mode.  See ARM 13.
         goto distinguishable_determined;
       } else {
         /* See if the types are distinguishable. */
-        old_param_type = old_param->type;
-        new_param_type = new_param->type;
-        /* If either function is an old-style unprototyped function (an
-           anachronism), do default argument promotion on its type.
-           This makes
-             void f(short) {}
-             void f(a) short a; {}
-           indistinguishable under overload resolution. */
-        if (!old_extra_info->prototyped) {
-          old_param_type = default_argument_promotion(old_param_type);
-        }  /* if */
-        if (!new_extra_info->prototyped) {
-          new_param_type = default_argument_promotion(new_param_type);
-        }  /* if */
-        if (types_distinguishable(old_param_type, new_param_type,
+        /* Note that we do NOT do default argument promotions on old-style
+           (unprototyped) function parameter types, because in overload
+           resolution the unprototyped type is used. */
+        if (types_distinguishable(old_param->type, new_param->type,
                                   &params_all_compatible)) {
           distinguishable = TRUE;
           goto distinguishable_determined;
@@ -3033,7 +3031,10 @@ Only callable in C++ mode.  See ARM 13.
       }  /* if */
     }  /* for */
     /* All the parameters are indistinguishable. */
-    if (params_all_compatible) {
+    /* If one function is an old-style unprototyped function and the
+       other isn't, go with the "normal" message. */
+    if (params_all_compatible &&
+        old_extra_info->prototyped == new_extra_info->prototyped) {
       /* The parameter types are not just indistinguishable, they are
          compatible.  This suggests that the user is trying to distinguish
          the function on the basis of the return type, which is not
