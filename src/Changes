@@ -1,5 +1,22 @@
 Version 2.33
 
+7/24/96 Source-sequence entry for nonstandard anonymous union
+
+In Microsoft C mode a source-sequence entry was sometimes not being
+put out for a nonstandard anonymous struct declaration.  Now fixed.
+
+  // -m --microsoft
+  struct S {
+    int i;
+  };
+  struct S2 {
+    struct S;      // Source sequence entry is now put out for S (which
+  };               //   is a "nonstandard anonymous union")
+  ... S2.i ...     // Equivalent to S2.<unnamed-field>.i
+
+(This bug appeared only when both ALLOW_NONSTANDARD_ANONYMOUS_UNIONS and
+GENERATE_SOURCE_SEQUENCE_LISTS were configured to TRUE.)
+
 7/19/96 Abort on invalid redeclaration
 
 A bug has been fixed that resulted in an internal error on the following
