@@ -8724,6 +8724,9 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->partial_instantiation       = NULL;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  tip->routine_fixup = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
   return tip;
 }  /* alloc_template_instance */
