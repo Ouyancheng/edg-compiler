@@ -8339,6 +8339,7 @@ of the declaration can be completed for the dependent types, too.
               } else {
                 /* An array of elements of the (now complete) class type.  The
                    array's size can be computed. */
+                error_position = dtfp->decl_position;
                 set_type_size(tp);
               }  /* if */
             }  /* if */
