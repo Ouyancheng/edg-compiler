@@ -3114,6 +3114,8 @@ without it.
   /* Go through the symbol list and look for an instance in which the
      types are compatible with the current type. */
   for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
+    /* Ignore projection symbols. */
+    if (sym->kind == (a_symbol_kind)sk_projection) continue;
     orig_type = sym->variant.routine.ptr->type;
     orig_rts = (skip_typerefs(orig_type))->variant.routine.extra_info;
     orig_this_type = orig_rts->implicit_this_param_type;
@@ -3364,7 +3366,8 @@ Return TRUE is sym is a symbol for an operator delete() function.
   a_routine_ptr  rp;
   a_boolean      is_operator_delete;
 
-  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+  if (sym->kind == (a_symbol_kind)sk_overloaded_function ||
+      sym->kind == (a_symbol_kind)sk_projection) {
     is_operator_delete = FALSE;
   } else {
     if (sym->kind == (a_symbol_kind)sk_function_template) {
@@ -3416,6 +3419,11 @@ function symbols.
         if (sym->kind == (a_symbol_kind)sk_member_function ||
             sym->kind == (a_symbol_kind)sk_overloaded_function) {
           /* Remember sym -- it represents a member function. */
+        } else if (sym->kind == (a_symbol_kind)sk_projection &&
+                   sym->variant.projection.access_adjustment_made &&
+                   is_function_symbol(fundamental_symbol_of(sym))) {
+          /* This function symbol has been through a using-declaration.  It
+             should be joined with the current symbol in an overload set. */
         } else {
           /* Found the name in the current class, but it is not a member
              function.  The error will be detected again and reported in
@@ -3928,13 +3936,14 @@ special function kind (e.g., constructor, destructor), if any.
       check_assertion(sym ==
                         overload_sym->variant.overloaded_function.symbols);
       check_assertion(other_sym != NULL &&
-                      other_sym->kind == (a_symbol_kind)sk_member_function);
+                      fundamental_symbol_of(other_sym)->kind ==
+                                    (a_symbol_kind)sk_member_function);
       /* Set a flag in overload_sym if the instances of an overloaded function
          are a mixture of static and nonstatic member functions. */
       if (!overload_sym->variant.overloaded_function.mixed_static_nonstatic) {
         if (routine_type_is_nonstatic_member_function(member_type) !=
             routine_type_is_nonstatic_member_function(
-                                          routine_symbol_type(other_sym))) {
+                     routine_symbol_type(fundamental_symbol_of(other_sym)))) {
           overload_sym->
                    variant.overloaded_function.mixed_static_nonstatic = TRUE;
         }  /* if */
@@ -5793,230 +5802,185 @@ a pointer to it.
 }  /* new_access_adjustment */
 
 
-static void access_adjustment_decl(an_access_specifier   access,
-                                   a_type_ptr            class_type)
+static void member_using_declaration(a_type_ptr           class_type,
+                                     an_access_specifier  access)
 /*
-The current token is a qualified name and the next token is a semicolon.
-Syntactically, this is an access adjustment declaration.  If the declaration
-is semantically sound, update the data base appropriately.  "access" is the
-the access (explicitly specified or implicit) controlling the declaration,
-and "class_type" indicates the class in which the declaration occurs.
+Scan what is either a using-declaration (if tok_using is the current token)
+or a deprecated access-adjustment declaration.  The semantics and
+representation are identical.  class_type is the class in which the
+declaration appears, and access is the current access (explicitly specified
+or implicit) controlling the declaration.
 */
 {
-  an_access_specifier          progenitor_access;
-  a_symbol_ptr                 projection_into_curr_class;
-  a_symbol_ptr                 immediate_progenitor_sym;
-  a_base_class_ptr             bcp;
-  a_symbol_locator             locator;
-  an_access_adjustment_ptr     aap;
-  a_class_type_supplement_ptr  ctsp;
-  a_boolean                    is_overloaded_function;
-  a_symbol_ptr                 sym;
-  a_type_ptr                   local_parent_class;
+  a_symbol_ptr              sym, declared_sym, new_sym, other_sym;
+  a_base_class_ptr          bcp;
+  a_boolean                 err = FALSE;
+  a_boolean                 is_overloaded;
+  a_symbol_locator          locator;
+  an_access_adjustment_ptr  aap;
 
-  db_enter(4, "access_adjustment_decl");
-  if (symbol_supplement_for_class(class_type)->any_nonreal_base_classes) {
-    /* We must be in the midst of a prototype instantiation.  The entity
-       specified for access adjustment may be a member of a nonreal base
-       class (or of a base class of a nonreal base class).  We can't be sure
-       about specializations of nonreal base classes at this point, nor is
-       there any point in recording the access adjustment, so just bail out. */
-    goto done;
-  }  /* if */
-  /* Get the class of which a member.  Normally the pointer from the
-     specific symbol in the locator is used, but in the case of an
-     undefined symbol from an error locator, we use the qualifier class type
-     value from the locator (if not NULL). */
-  if (locator_for_curr_id.specific_symbol->kind ==
-                                              (a_symbol_kind)sk_undefined) {
-    local_parent_class = qualifier_class_type(locator_for_curr_id);
-  } else {
-    /* In processing a qualified name the specific_symbol field of the locator
-       will have been filled in. */
-    check_assertion(locator_for_curr_id.specific_symbol->is_class_member);
-    local_parent_class = locator_for_curr_id.
-                                    specific_symbol->parent.class_type;
-  }  /* if */
-  /* Be sure the class in the qualified name is one from which the current
-     class is derived. */
-  ctsp = class_type->variant.class_struct_union.extra_info;
-  for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-    if (bcp->type == local_parent_class) break;
-  }  /* for */
-  if (bcp == NULL) {
-    /* Qualified name must identify a member of a base class of the current
-       class.  Don't issue this error if we don't know the base class.  This
-       can only occur if we have an error locator in which the
-       parent.class_type field is NULL. */
-    if (local_parent_class != NULL) error(ec_bad_base_class);
-    goto done;
-  } else if (bcp->ambiguous) {
-    type_error(ec_ambiguous_base_class, bcp->type);
-    set_to_error_locator(locator_for_curr_id);
-    goto done;
-  }  /* if */
-  if (locator_for_curr_id.specific_symbol->kind ==
-                                              (a_symbol_kind)sk_undefined) {
-    /* Not a valid member of what may or may not be a valid base class. No
-       further processing can be done. */
-    goto done;
-  }  /* if */
-  /* Look up the name without class qualification.  This will show whether
-     the name has already been declared and if not give us the projection
-     of the name into the current class. */
-  clear_locator(&locator, &locator_for_curr_id.source_position);
-  locator.symbol_header = locator_for_curr_id.symbol_header;
-  (void)normal_id_lookup(&locator, IDL_NO_OPTIONS);
-  if (locator.specific_symbol->kind == (a_symbol_kind)sk_projection) {
-    projection_into_curr_class = locator.specific_symbol;
-    if (projection_into_curr_class->
-                           variant.projection.access_adjustment_made) {
-      /* Name has already been declared in an access declaration. */
-      pos_st_error(ec_id_already_declared,
-                   &locator_for_curr_id.source_position,
-                   locator_for_curr_id.symbol_header->identifier);
+  db_enter(3, "member_using_declaration");
+  add_stop_token(tok_semicolon);
+  if (curr_token == tok_using) {
+    /* This is a using declaration.  Bypass "using" and scan the
+       identifier. */
+    (void)get_token();
+    if (!is_qualified_name_start()) {
+      syntax_error(ec_exp_identifier);
       goto done;
     }  /* if */
   } else {
-    /* Name has already been declared in this scope.  Since tag names and
-       nontag names can coexist in the same scope, check for this condition. */
-    a_symbol_ptr  insert_sym = NULL;
-    if (symbols_may_coexist_in_curr_scope(locator.specific_symbol,
-                                          locator_for_curr_id.specific_symbol,
-                                          &insert_sym,
-                                          /*supress_error=*/FALSE)) {
-      clear_locator(&locator, &locator_for_curr_id.source_position);
-      locator.symbol_header = locator_for_curr_id.symbol_header;
-      (void)find_projected_symbol(class_type, &locator, /*must_be_tag=*/FALSE,
-                                  /*must_be_type_name=*/FALSE,
-                                  /*add_to_active_list=*/TRUE, insert_sym,
-                                  &projection_into_curr_class);
+    /* This is an old-style access adjustment declaration (described in the
+       ARM but now deprecated with the addition of using-declarations to the
+       language). */
+  }  /* if */
+  /* Coalesce the identifier, which should be a qualified name with a class
+     qualifier where the class is a base class of the current class (as
+     indicated by class_type). */
+  (void)coalesce_and_lookup_generalized_identifier(GID_DTOR_RECOGNIZED,
+                                                   ilm_normal, &err);
+  if (!err) {
+    /* The identifier should be a qualified name, with the qualifier a base
+       class of the current class. */
+    if (!locator_for_curr_id.is_class_member) {
+      error(ec_bad_name_in_using_decl);
+      err = TRUE;
     } else {
-      /* Name has already been declared in the current scope and cannot
-         appear in an access adjustment. */
-      pos_st_error(ec_id_already_declared,
-                   &locator_for_curr_id.source_position,
-                   locator_for_curr_id.symbol_header->identifier);
-      goto done;
-    }  /* if */
-  }  /* if */
-  /* If the projection of the unqualified name into the current class is
-     ambiguous, issue an error -- an ambiguity cannot be resolved by an
-     an access declaration. */
-  check_assertion(projection_into_curr_class != NULL);
-  if (projection_into_curr_class->ambiguous) {
-#if 0
-    /* Note that the ARM does not require this error, though cfront does
-       something similar and it *seems* appropriate. */
-#endif /* if 0 */
-    str_error(ec_bad_access_decl_ambiguous_name,
-              projection_into_curr_class->header->identifier);
-    goto done;
-  }  /* if */
-  /* The projection of the unqualified name in the current class and the
-     qualified names as originally declared must refer to the same object.
-     This might not happen if the qualified name tried to "jump over" a
-     redeclaration in the immediate base class. */
-  if (fundamental_symbol_of(locator_for_curr_id.specific_symbol) !=
-       fundamental_symbol_of(projection_into_curr_class)) {
-#if 0
-    /* Again, this error is not required (but it should be, we think). */
-#endif /* if 0 */
-    pos_sy2_error(ec_bad_access_decl_name_is_hidden, &error_position,
-                  fundamental_symbol_of(locator_for_curr_id.specific_symbol),
-                  fundamental_symbol_of(projection_into_curr_class));
-    goto done;
-  }  /* if */
-  /* From here on out errors are treated differently -- in spite of the error
-     the access_adjustment_made flag is set to TRUE. */
-  projection_into_curr_class->variant.projection.access_adjustment_made = TRUE;
-  if (access == (an_access_specifier)as_private) {
-    /* Access adjustment may not appear in the private part of a derived
-       class declaration. */
-    error(ec_access_adjustment_in_private_section);
-  } else {
-    sym = fundamental_symbol_of(projection_into_curr_class);
-    /* Find the immediate progenitor of projection_into_curr_class.  If the
-       symbol originally specified in the source is a member of an indirect
-       base class, look for its projection in a direct base class. */
-    if (bcp->direct) {
-      immediate_progenitor_sym = locator_for_curr_id.specific_symbol;
-    } else {
-      /* Use the first base class on the derivation path.  Use the preferred
-         derivation, since that will give the best access possible. */
-      do {
-        bcp = preferred_derivation_of(bcp)->path->base_class;
-      } while (!bcp->direct);
-      clear_locator(&locator, &locator_for_curr_id.source_position);
-      locator.symbol_header = locator_for_curr_id.symbol_header;
-      (void)class_qualified_id_lookup(&locator, bcp->type, IDL_NO_OPTIONS);
-      immediate_progenitor_sym = locator.specific_symbol;
-    }  /* if */
-    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      /* Check for uniform access on overloaded functions (requirement
-         inferred from ARM 11.3, bottom of p. 246). */
-      if (!uniform_access_of_overloaded_function(sym)) {
-        /* Functions overloading this name were not all declared with the
-           same access. */
-        sym_error(ec_bad_access_adjustment_with_overloading, sym);
-        goto done;
-      }  /* if */
-      if (immediate_progenitor_sym->kind == (a_symbol_kind)sk_projection) {
-        /* Indirectly inherited, so use the access from the projection
-           symbol. */
-        progenitor_access =
-                   immediate_progenitor_sym->variant.projection.access;
+      for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+        if (bcp->type == locator_for_curr_id.parent.class_type) {
+          /* The qualifier is a base class of the current class. */
+          break;
+        }  /* if */
+      }  /* for */
+      if (bcp == NULL) {
+        error(ec_bad_base_class);
+        err = TRUE;
+      } else if (bcp->ambiguous) {
+        type_error(ec_ambiguous_base_class, bcp->type);
+        err = TRUE;
       } else {
-        /* Directly inherited name so we just want the access of the
-           functions.  (We already know they're all the same.) */
-        progenitor_access =
-                   access_for_symbol(sym->variant.overloaded_function.symbols);
+        declared_sym = locator_for_curr_id.specific_symbol;
+        /* Look up the name in the scope of the current class. */
+        clear_locator(&locator, &locator_for_curr_id.source_position);
+        locator.symbol_header = locator_for_curr_id.symbol_header;
+        (void)curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+        if (locator.specific_symbol != NULL) {
+          /* Except to introduce function names into an overload set, a
+             using declaration cannot usually coexist with another declaration
+             with the same name. */
+          if (!is_function_symbol(fundamental_symbol_of(declared_sym)) ||
+              !is_function_symbol(
+                           fundamental_symbol_of(locator.specific_symbol))) {
+            /* Name has already been declared. */
+            pos_st_error(ec_id_already_declared,
+                         &locator_for_curr_id.source_position,
+                         locator_for_curr_id.symbol_header->identifier);
+            err = TRUE;
+          } else {
+            /* The name appearing in the using declaration and the name that
+               has already been declared in this class both represent
+               member functions.  They can be merged into an overload set,
+               unless this is a duplicate using declaration. */
+            sym = fundamental_symbol_of(locator.specific_symbol);
+            is_overloaded = FALSE;
+            if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+              is_overloaded = TRUE;
+              sym = sym->variant.overloaded_function.symbols;
+            }  /* if */
+            for (; sym != NULL; sym = sym->next) {
+              if (sym->parent.class_type == bcp->type) {
+                pos_sy_error(ec_member_function_redeclaration,
+                             &locator_for_curr_id.source_position,
+                             declared_sym);
+                err = TRUE;
+                break;
+              }  /* if */
+              if (!is_overloaded) break;
+            }  /* for */
+          }  /* if */
+        }  /* if */
       }  /* if */
-      is_overloaded_function = TRUE;
-    } else {
-      progenitor_access = access_for_symbol(immediate_progenitor_sym);
-      is_overloaded_function = FALSE;
     }  /* if */
-    if (access != progenitor_access) {
-      if (is_more_accessible(progenitor_access, access)) {
-        /* Restricting access beyond what public derivation of its class
-           would have produced is not allowed. */
-        error(ec_restricting_access_not_allowed);
+  }  /* if */
+  if (!err) {
+    /* Issue diagnostics on pragmas that are trying to bind to a using
+       declaration or an access declaration. */
+    cannot_bind_to_curr_construct();
+  } else {
+    discard_curr_construct_pragmas();
+  }  /* if */
+  if (!err) {
+    /* No error so far, so enter the using-declaration symbol. */
+    other_sym = NULL;
+    sym = declared_sym;
+    is_overloaded = FALSE;
+    if (is_function_symbol(fundamental_symbol_of(declared_sym))) {
+      /* Member function. */
+      if (locator.specific_symbol != NULL) {
+        /* If other_sym is non-NULL, we have to deal with overloading. */
+        other_sym = fundamental_symbol_of(locator.specific_symbol);
+      }  /* if */
+      if (declared_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+        /* The using-declaration specifies a base-class member function
+           overload set. */
+        is_overloaded = TRUE;
+        sym = sym->variant.overloaded_function.symbols;
+      }  /* if */
+    }  /* if */
+    /* This is a loop in case the using-declaration specifies an overload
+       set -- each member of the overload set is projected independently. */
+    do {
+      if (!have_access_to_symbol(sym)) {
+        /* The specified symbol is inaccessible.  Issue an error instead of
+           creating the projection symbol. */
+        pos_sy_error(ec_no_access_to_name,
+                     &locator_for_curr_id.source_position, sym);
       } else {
-        /* Enabling greater access than what public derivation of its class
-           would have produced is not allowed. */
-        error(ec_increasing_access_not_allowed);
-      }  /* if */
-      goto done;
-    }  /* if */
-    /* This is a valid access adjustment. */
-    projection_into_curr_class->variant.projection.access = access;
-    if (is_overloaded_function) {
-      sym = sym->variant.overloaded_function.symbols;
-    }  /* if */
-    if (sym->kind == (a_symbol_kind)sk_member_function &&
-        sym->variant.routine.ptr->special_kind ==
+        /* Create the projection symbol. */
+        new_sym = make_projection_symbol(sym, class_type, bcp,
+                                         (a_derivation_step_ptr)NULL,
+                                         /*ambiguous=*/FALSE);
+        new_sym->variant.projection.access_adjustment_made = TRUE;
+        new_sym->variant.projection.access = access;
+        if (!is_overloaded || other_sym == NULL) {
+          /* Just enter it, since no overloading is involved. */
+          reenter_symbol(new_sym, depth_scope_stack,
+                         /*suppress_error=*/TRUE);
+          other_sym = new_sym;
+        } else {
+          other_sym = add_symbol_to_overload_list(new_sym, other_sym);
+        }  /* if */
+        if (sym->kind == (a_symbol_kind)sk_member_function &&
+            sym->variant.routine.ptr->special_kind ==
                                  (a_special_function_kind)sfk_conversion) {
-      /* Allocate the new conversion list entry and link it in the
-         list for the current class. */
-      add_to_conversion_list(projection_into_curr_class,
-                             symbol_supplement_for_class(class_type));
-    }  /* if */
-    for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-      /* Create an access-adjustment entry to represent this declaration in
-         the IL. */
-      aap = new_access_adjustment(sym, access);
-      /* Attach it the class type entry. */
-      aap->next = ctsp->access_adjustments;
-      ctsp->access_adjustments = aap;
-      /* Update cross-reference and source sequence info, if required. */
-      record_access_adjustment(aap, sym, &locator_for_curr_id.source_position);
-    }  /* for */
+          /* Allocate the new conversion list entry and link it in the
+             list for the current class. */
+          add_to_conversion_list(new_sym,
+                                 symbol_supplement_for_class(class_type));
+        }  /* if */
+        /* Create an access-adjustment entry to represent this declaration in
+           the IL. */
+        aap = new_access_adjustment(sym, access);
+        /* Attach it the class type entry. */
+        aap->next = class_type->variant.class_struct_union.
+                                           extra_info->access_adjustments;
+        class_type->variant.class_struct_union.extra_info->
+                                                 access_adjustments = aap;
+        /* Update cross-reference and source sequence info, if required. */
+        record_access_adjustment(aap, sym,
+                                 &locator_for_curr_id.source_position);
+      }  /* if */
+      if (!is_overloaded) break;
+      sym = sym->next;
+    } while (sym != NULL);
   }  /* if */
-
-done:
+  /* Bypass the identifier. */
+  (void)get_token();
+done:;
+  remove_stop_token(tok_semicolon);
+  (void)required_token(tok_semicolon, ec_exp_semicolon);
   db_exit();
-}  /* access_adjustment_decl */
+}  /* member_using_declaration */
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -6436,6 +6400,11 @@ support is enabled).
             (void)required_token(tok_semicolon, ec_exp_semicolon);
             goto next_declaration;
           }  /* if */
+          /* Check for a using declaration. */
+          if (curr_token == tok_using) {
+            member_using_declaration(class_type, access);
+            goto next_declaration;
+          }  /* if */
           /* Check for access adjustment declaration. */
           if (is_qualified_name_start() &&
               qualifier_class_type(locator_for_curr_id) != class_type &&
@@ -6443,22 +6412,9 @@ support is enabled).
               locator_for_curr_id.is_qualified_name &&
               next_token() == tok_semicolon) {
             /* This looks syntactically like an access adjustment declaration.
-               Be sure the semantics are correct. */
-            a_boolean  err;
-
-            (void)coalesce_and_lookup_qualified_name(GID_DTOR_RECOGNIZED,
-                                                     ilm_normal, &err);
-            if (!err) {
-              /* Issue diagnostics on pragmas that are trying to bind to
-                 an access declaration. */
-              cannot_bind_to_curr_construct();
-            } else {
-              discard_curr_construct_pragmas();
-            }  /* if */
-            access_adjustment_decl(access, class_type);
-            /* Advance to the semicolon and past it. */
-            (void)get_token();
-            (void)get_token();
+               Be sure the semantics are correct.  Its semantics are the same
+               as a using-declaration. */
+            member_using_declaration(class_type, access);
             goto next_declaration;
           }  /* if */
           /* Check for template declaration. */
