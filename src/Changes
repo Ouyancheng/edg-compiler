@@ -1,5 +1,13 @@
 Version 2.46
 
+1/25/01  C++-generating back end: missing throw specifications
+
+In some cases, the C++-generating back end did not put out throw
+specifications that were present in the source.  Now fixed.
+
+  void f() throw(int) {}
+  void (*pf)() throw(int)=f;  // throw-specification here was dropped
+
 1/25/01  Error recovery problem: call of member function on volatile
          rvalue of class with bitwise copy constructor
 

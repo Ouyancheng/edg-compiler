@@ -2690,6 +2690,30 @@ parameter.
 }  /* gen_default_arg_expr */
 
 
+static void gen_exception_specification(an_exception_specification_ptr esp)
+/*
+Generate an exception throw specification, which indicates the exceptions
+that a function might throw.
+*/
+{
+  an_exception_specification_type_ptr estp;
+
+  write_tok_str(" throw(");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (esp->throw_any) {
+    write_tok_str("...");
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  for (estp = esp->exception_specification_type_list;
+       estp != NULL;
+       estp = estp->next) {
+    gen_type(estp->type);
+    if (estp->next != NULL) write_tok_str(", ");
+  }  /* for */
+  write_tok_ch(')');
+}  /* gen_exception_specification */
+
+
 static void gen_function_declarator_with_scope(a_type_ptr   type,
                                                a_scope_ptr  scope,
                                                a_boolean    top_level_decl,
@@ -2848,6 +2872,10 @@ default arguments should be suppressed (needed for template specializations).
     write_space();
     form_type_qualifier(rtsp->qualifiers, /*need_trailing_space=*/FALSE,
                         &octl);
+  }  /* if */
+  /* Output a throw specification, if there is one. */
+  if (rtsp->exception_specification != NULL) {
+    gen_exception_specification(rtsp->exception_specification);
   }  /* if */
 }  /* gen_function_declarator_with_scope */
 
@@ -8122,30 +8150,6 @@ function.
 }  /* gen_old_style_parameter_decls */
 
 
-static void gen_exception_specification(an_exception_specification_ptr esp)
-/*
-Generate an exception throw specification, which indicates the exceptions
-that a function might throw.
-*/
-{
-  an_exception_specification_type_ptr estp;
-
-  write_tok_str(" throw(");
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (esp->throw_any) {
-    write_tok_str("...");
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  for (estp = esp->exception_specification_type_list;
-       estp != NULL;
-       estp = estp->next) {
-    gen_type(estp->type);
-    if (estp->next != NULL) write_tok_str(", ");
-  }  /* for */
-  write_tok_ch(')');
-}  /* gen_exception_specification */
-
-
 static void gen_ctor_initializers(a_constructor_init_ptr ctor_init)
 /*
 Generate the list of constructor initializers in the definition of
@@ -8278,8 +8282,6 @@ list for the function definition.
 */
 {
   a_type_ptr qual_rout_type = rout_type;
-  a_routine_type_supplement_ptr
-             rtsp = f_skip_typerefs(rout_type)->variant.routine.extra_info;
 
   *context_pop_needed = FALSE;
   /* Determine the effective routine type by starting from the routine
@@ -8358,11 +8360,6 @@ list for the function definition.
                                            !rout->is_prototype_instantiation &&
                                            !rout->is_specialized &&
                                            !decl_within_class));
-    /* If the function has a throw specification, put it out here after the
-       function declarator. */
-    if (rtsp->exception_specification != NULL) {
-      gen_exception_specification(rtsp->exception_specification);
-    }  /* if */
     if (return_type_needed) {
       form_type_second_part_simple(rout_type->variant.routine.return_type,
                                    /*under_lhs_declarator=*/FALSE, &octl);
