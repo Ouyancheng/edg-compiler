@@ -364,7 +364,7 @@ ec_function_qualifier_not_allowed;;"type qualifier is not allowed on this functi
 ec_virtual_static_not_allowed;;"only nonstatic member functions may be virtual"
 ec_unqual_function_with_qual_object;;"the object has type qualifiers that are not compatible with the member function"
 ec_too_many_virtual_functions;;"program too large to compile (too many virtual functions)"
-ec_bad_return_type_on_virtual_function_override;;"type differs from base class virtual function by return type alone"
+ec_bad_return_type_on_virtual_function_override;;"return type is not identical to nor covariant with return type %t of overridden virtual function %n"
 ec_ambiguous_virtual_function_override;;"override of virtual %n is ambiguous"
 ec_pure_specifier_on_nonvirtual_function;;"pure specifier (\"= 0\") allowed only on virtual functions"
 ec_bad_pure_specifier;;"badly-formed pure specifier (only \"= 0\" is allowed)"

@@ -1994,10 +1994,12 @@ routine entry and return TRUE; otherwise return FALSE.
                                                (a_symbol_ptr)NULL, bcp);
                     }  /* if */
                   } else {
-                    /* Error -- cannot differ in return type only
-                       (ARM 10.2). */
-                    pos_error(ec_bad_return_type_on_virtual_function_override,
-                              source_pos);
+                    /* Error -- return type must be identical to or convariant
+                       with that of the overridden function. */
+                    pos_syty_error(
+                         ec_bad_return_type_on_virtual_function_override,
+                         source_pos, sym,
+                         skip_typerefs(rp->type)->variant.routine.return_type);
                   }  /* if */
                   goto next_base_class;                                       
                 }  /* if */
