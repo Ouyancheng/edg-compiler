@@ -326,7 +326,7 @@ are accepted.
   unrecognized_attribute = curr_attribute_descr;
   /* [aggregatable] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "aggregatable", MSAT_CLASS);
+			     "aggregatable", MSAT_CLASS | MSAT_STRUCT);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_enumeration,
                           "value", /*is_unnamed=*/FALSE,
                           "never,allowed,always");
@@ -335,21 +335,15 @@ are accepted.
      "variable_name", but this does not actually seem to be accepted
      by the Microsoft compiler (7.1). */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "aggregates", MSAT_CLASS);
-#if 0
+			     "aggregates", MSAT_CLASS | MSAT_STRUCT);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
                           "clsid", /*is_unnamed=*/FALSE, NULL);
-#else
-  /* FIXME - workaround __uuidof operator problem. */
-  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
-                          "clsid", /*is_unnamed=*/FALSE, NULL);
-#endif
   /* [coclass] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "coclass", MSAT_CLASS);
+			     "coclass", MSAT_CLASS | MSAT_STRUCT);
   /* [com_interface_entry] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "com_interface_entry", MSAT_CLASS);
+			     "com_interface_entry", MSAT_CLASS | MSAT_STRUCT);
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "entry",
@@ -379,14 +373,8 @@ are accepted.
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "implements_category", MSAT_METHOD);
   set_initialization_style_arg_allowed();
-#if 0
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
                           "implements_category", /*is_unnamed=*/FALSE, NULL);
-#else
-  /* FIXME - workaround __uuidof operator problem. */
-  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
-                          "implements_category", /*is_unnamed=*/FALSE, NULL);
-#endif
   /* [in] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "in", MSAT_PARAMETER);
@@ -431,7 +419,7 @@ are accepted.
 			     "out", MSAT_PARAMETER);
   /* [perfmon] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "perfmon", MSAT_CLASS);
+			     "perfmon", MSAT_CLASS | MSAT_STRUCT);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "name", /*is_unnamed=*/FALSE, NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
@@ -457,7 +445,7 @@ are accepted.
                           "detail", /*is_unnamed=*/FALSE, NULL);
   /* [perf_object] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "perf_object", MSAT_CLASS);
+			     "perf_object", MSAT_CLASS | MSAT_STRUCT);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
                           "name_res", /*is_unnamed=*/FALSE, NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
@@ -552,7 +540,8 @@ are accepted.
 			     "synchronize", MSAT_METHOD | MSAT_ROUTINE);
   /* [uuid] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "uuid", MSAT_CLASS | MSAT_INTERFACE);
+			     "uuid",
+                             MSAT_CLASS | MSAT_STRUCT | MSAT_INTERFACE);
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
                           "uuid", /*is_unnamed=*/FALSE, NULL);
@@ -754,7 +743,7 @@ TRUE.  Note that "err" is not TRUE for an unexpected token kind.
     char	*str = locator_for_curr_id.symbol_header->identifier;
     /* Add space for the null terminator. */
     length = strlen(str) + 1;
-    clear_constant(&constant, ck_string);
+    clear_constant(&constant, (a_constant_repr_kind)ck_string);
     constant.type = string_type(length);
     constant.variant.string.length = length;
     constant.variant.string.value =
@@ -928,16 +917,42 @@ significant.
   return result;
 }  /* scan_ms_attribute_enum_arg */
 
-#if 0
 
-static char *scan_ms_attribute_uuid_arg(void)
+static char *scan_ms_attribute_uuid_arg(an_ms_attribute_param_ptr	param)
 /*
+Scan an argument of UUID type.  Such arguments are either a UUID string
+or a __uuidof operator.  The UUID string is returned.  A NULL pointer is
+returned for invalid arguments.
 */
 {
-  return NULL;
-}  /* scan_ms_attribute_uuid_arg */
+  char			*result = NULL;
+  a_source_position	arg_pos = pos_curr_token;
 
-#endif
+  if (curr_token == tok_string_literal) {
+    /* A string literal.  Scan it as a GUID string. */
+    result = scan_GUID_string();
+  } else {
+    /* Something else.  The only other valid argument is a a __uuidof operator.
+       Keywords are not recognized within attributes, so check for an
+       identifier named __uuidof. */
+    a_boolean	is_uuidof = FALSE;
+    if (curr_token == tok_identifier) {
+      char	*identifier;
+      a_boolean	err;
+      identifier = get_string_value_for_token(&err);
+      is_uuidof = identifier != NULL && strcmp(identifier, "__uuidof") == 0;
+    }  /* if */
+    if (!is_uuidof) {
+      /* An invalid value.  Issue a diagnostic. */
+      pos_st_error(ec_invalid_ms_attr_uuid_value, &arg_pos, param->name);
+      flush_tokens();
+    } else {
+      /* Scan the __uuidof operator.  It is of the form __uuidof(operand). */
+      result = scan_uuidof_operand();
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* scan_ms_attribute_uuid_arg */
 
 
 static an_ms_attribute_arg_ptr scan_ms_attribute_arg(
@@ -956,7 +971,7 @@ is the parameter description for the parameter associated with the argument.
   switch (param->kind) {
     case msaak_uuid:
       /* A GUID string. */
-      arg->variant.uuid_string = scan_GUID_string();
+      arg->variant.uuid_string = scan_ms_attribute_uuid_arg(param);
       break;
     case msaak_integer:
       /* An integer constant. */
