@@ -1903,8 +1903,8 @@ bound with the function in *bound_function_selector.
           if (!is_same_class_or_base_class_thereof(class_struct_union_type,
                                                    projection_member_sym->
                                                     class_of_which_a_member)) {
-            pos_sy_error(ec_name_not_member_of_class_or_base_classes,
-                         &qualified_member_position, projection_member_sym);
+            pos_ty_error(ec_name_not_member_of_class_or_base_classes,
+                         &qualified_member_position, class_struct_union_type);
             err = TRUE;
           }  /* if */
         }  /* if */

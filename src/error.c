@@ -930,7 +930,7 @@ error code.
       m = "class or struct definition is missing";
       break;
     case ec_name_not_member_of_class_or_base_classes:
-      m = "%no is not in the left operand's class or base classes";
+      m = "qualified name is not a member of class %t or its base classes";
       break;
     case ec_member_ref_requires_object:
       m = "a nonstatic member reference must be relative to a specific object";
