@@ -4732,7 +4732,7 @@ C-style casts and C++ functional-notation type conversions.
   a_type_ptr       source_type;
   an_error_code    warning_suggested;
   a_boolean        cast_to_reference = FALSE, processed = FALSE, failed;
-  a_conv_descr     conversion;
+  a_conv_descr     conversion, ctor_arg_conversion;
   an_expr_node_ptr func_ptr_node, object_node;
 
   if (err) {
@@ -4765,7 +4765,8 @@ C-style casts and C++ functional-notation type conversions.
                                            &conversion, &ambiguous,
                                            (a_candidate_function_ptr *)NULL)) {
               /* A user-defined conversion can be done. */
-              user_convert_operand(operand, eff_type_cast_to, &conversion);
+              user_convert_operand(operand, eff_type_cast_to, &conversion,
+                                   (a_conv_descr *)NULL);
               processed = TRUE;
             } else if (ambiguous) {
               /* The conversion is ambiguous.  Do the analysis again to get
@@ -4778,6 +4779,7 @@ C-style casts and C++ functional-notation type conversions.
                                               /*need_lvalue_result=*/TRUE,
                                               /*is_explicit_cast=*/TRUE,
                                               &conversion,
+                                              (a_conv_descr *)NULL,
                                               &failed);
             }  /* if */
           }  /* if */
@@ -4793,9 +4795,11 @@ C-style casts and C++ functional-notation type conversions.
                                                  /*need_lvalue_result=*/FALSE,
                                                  /*is_explicit_cast=*/TRUE,
                                                  &conversion,
+                                                 &ctor_arg_conversion,
                                                  &failed)) {
               /* A user-defined conversion can be done. */
-              user_convert_operand(operand, type_cast_to, &conversion);
+              user_convert_operand(operand, type_cast_to, &conversion,
+                                   &ctor_arg_conversion);
               processed = TRUE;
             } else if (failed) {
               /* A user-defined conversion was our only hope, and it failed.

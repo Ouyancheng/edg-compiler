@@ -34,14 +34,15 @@ static void prep_conversion_operand(an_operand        *source_operand,
                                     an_error_code     incompatible_err,
                                     a_source_position *err_pos);
 static a_boolean conversion_to_class_possible(
-                                  an_operand               *source_operand,
-                                  a_type_ptr               dest_type,
-                                  a_boolean                is_initialization,
-                                  a_boolean                try_bitwise_copy,
-                                  a_boolean                is_explicit_cast,
-                                  a_conv_descr             *conversion,
-                                  a_boolean                *ambiguous,
-                                  a_candidate_function_ptr *ambiguity_list);
+                                 an_operand               *source_operand,
+                                 a_type_ptr               dest_type,
+                                 a_boolean                is_initialization,
+                                 a_boolean                try_bitwise_copy,
+                                 a_boolean                is_explicit_cast,
+                                 a_conv_descr             *conversion,
+                                 a_conv_descr             *ctor_arg_conversion,
+                                 a_boolean                *ambiguous,
+                                 a_candidate_function_ptr *ambiguity_list);
 
 
 static void clear_conv_descr(a_conv_descr_ptr conv)
@@ -699,7 +700,8 @@ already set, with a value of NULL indicating a same-class copy.
                                      /*is_initialization=*/TRUE,
                                      /*try_bitwise_copy=*/TRUE,
                                      /*is_explicit_cast=*/FALSE,
-                                     conversion, &ambiguous,
+                                     conversion, (a_conv_descr *)NULL,
+                                     &ambiguous,
                                      (a_candidate_function_ptr *)NULL) ||
         ambiguous) {
       /* Conversion is okay. */
@@ -1081,7 +1083,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                                       /*is_initialization=*/TRUE,
                                       /*try_bitwise_copy=*/FALSE,
                                       /*is_explicit_cast=*/FALSE,
-                                      &conversion, &ambiguous,
+                                      &conversion, (a_conv_descr *)NULL,
+                                      &ambiguous,
                                       (a_candidate_function_ptr *)NULL) ||
          ambiguous)) {
       /* There is a constructor or conversion function (or several) that
@@ -4308,7 +4311,7 @@ argument.  Adjust the operand type to match the type requirement.
         /* The conversion is usable.  Do it. */
         prep_for_known_possible_conversion(operand, &arg_match->conversion);
         user_convert_operand(operand, /*dest_type=*/(a_type_ptr)NULL,
-                             &arg_match->conversion);
+                             &arg_match->conversion, (a_conv_descr *)NULL);
       } else {
         /* The conversion is not usable, e.g., because the conversion
            is ambiguous.  Redo the analysis of the conversion to get
@@ -4651,14 +4654,15 @@ set *ambiguous to TRUE.  Always set symbol to its fundamental symbol.
 
 
 static a_boolean conversion_to_class_possible(
-                                  an_operand               *source_operand,
-                                  a_type_ptr               dest_type,
-                                  a_boolean                is_initialization,
-                                  a_boolean                try_bitwise_copy,
-                                  a_boolean                is_explicit_cast,
-                                  a_conv_descr             *conversion,
-                                  a_boolean                *ambiguous,
-                                  a_candidate_function_ptr *ambiguity_list)
+                                 an_operand               *source_operand,
+                                 a_type_ptr               dest_type,
+                                 a_boolean                is_initialization,
+                                 a_boolean                try_bitwise_copy,
+                                 a_boolean                is_explicit_cast,
+                                 a_conv_descr             *conversion,
+                                 a_conv_descr             *ctor_arg_conversion,
+                                 a_boolean                *ambiguous,
+                                 a_candidate_function_ptr *ambiguity_list)
 /*
 If source_operand can be converted to the class type dest_type (via a
 constructor, conversion function, or bitwise copy) set *conversion
@@ -4667,11 +4671,9 @@ If is_initialization is TRUE, this conversion is for an initialization;
 otherwise, it's for an assignment.  The result is always an rvalue.
 Bitwise copies are considered if try_bitwise_copy is TRUE.
 If is_explicit_cast is TRUE, this conversion is an explicit cast;
-allow user-defined conversions on constructor arguments, and convert
-source_operand to the argument type of the constructor before returning
-(because of that, this routine cannot be called experimentally in
-that mode -- it should only be called when one knows that the conversion
-is to be done; also, no conversion is done for bitwise copies).  If
+allow user-defined conversions on constructor arguments.  If
+ctor_arg_conversion is non-NULL, return a description of the conversion
+to be done on the constructor argument in *ctor_arg_conversion.  If
 more than one function matches, set *ambiguous to TRUE and return
 FALSE.  If ambiguity_list is non-NULL in that case, it is set to point
 to a list describing the set of ambiguous functions; the caller must
@@ -4689,6 +4691,7 @@ C++ mode.
   a_class_symbol_supplement_ptr cssp;
   an_arg_operand_ptr            arg_operand_list;
   a_boolean                     undecidable_because_of_error;
+  a_boolean                     ctor_arg_conversion_set = FALSE;
   a_base_class_ptr              bcp;
 
   db_enter(4, "conversion_to_class_possible");
@@ -4799,31 +4802,16 @@ C++ mode.
           okay = TRUE;
           /* Return information on how the conversion is to be done. */
           *conversion = candidate_functions->conversion;
-          /* In the explicit cast case, do any required conversions on the
-             argument of a constructor call, since there may be user-defined
-             conversions involved. */
-          if (is_explicit_cast &&
+          /* If this is a constructor call and the caller wants it, return
+             also information on any conversion required for the argument
+             (it might involve a user-defined conversion in the explicit
+             cast case). */
+          if (ctor_arg_conversion != NULL &&
               candidate_functions->conversion.routine->special_kind ==
                                     (a_special_function_kind)sfk_constructor) {
-            an_expr_node_ptr arg_expr;
-            an_operand       orig_operand;
-            adjust_overloaded_function_call_arguments(conversion_symbol,
-                                                      /*have_selector=*/FALSE,
-                                                      (an_operand *)NULL,
-                                                      arg_operand_list,
-                                                      candidate_functions->
-                                                                   arg_matches,
-                                                      &arg_expr);
-            /* arg_operand_list is freed by adjust_overloaded_..., so clear
-               it so it will not be freed again. */
-            arg_operand_list = NULL;
-            /* Likewise the argument match list attached to the candidate
-               function entry. */
-            candidate_functions->arg_matches = NULL;
-            /* Rebuild source_operand from the converted argument. */
-            orig_operand = *source_operand;
-            make_expression_operand(arg_expr, arg_expr->type, source_operand);
-            restore_operand_details(source_operand, &orig_operand);
+            *ctor_arg_conversion =
+                                  candidate_functions->arg_matches->conversion;
+            ctor_arg_conversion_set = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -4838,6 +4826,9 @@ C++ mode.
   } else {
     /* Free the candidate functions list. */
     free_candidate_function_list(candidate_functions);
+  }  /* if */
+  if (ctor_arg_conversion != NULL && !ctor_arg_conversion_set) {
+    clear_conv_descr(ctor_arg_conversion);
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
@@ -4973,7 +4964,7 @@ set *processed to TRUE if the conversion is ambiguous.
       /* Force the result to be an rvalue. */
       conversion.result_is_an_lvalue = FALSE;
       user_convert_operand(operand, /*dest_type=*/(a_type_ptr)NULL,
-                           &conversion);
+                           &conversion, (a_conv_descr *)NULL);
       *processed = TRUE;
     } else if (ambiguous) {
       /* There is more than one possible conversion to a built-in type. */
@@ -4998,6 +4989,7 @@ a_boolean user_defined_conversion_possible(an_operand   *source_operand,
                                            a_boolean    need_lvalue_result,
                                            a_boolean    is_explicit_cast,
                                            a_conv_descr *conversion,
+                                           a_conv_descr *ctor_arg_conversion,
                                            a_boolean    *failed)
 /*
 Check whether or not the source operand can be converted to the
@@ -5012,8 +5004,9 @@ source_operand to an error operand, set *failed to TRUE, and return
 FALSE.  need_lvalue_result is TRUE if the result is required to be
 an lvalue; otherwise, the result can be an lvalue or an rvalue.
 If is_explicit_cast is TRUE, the conversion is an explicit cast;
-allow user-defined conversions on constructor arguments, and convert
-source_operand to the argument type of the constructor before returning.
+allow user-defined conversions on constructor arguments.  If
+ctor_arg_conversion is non-NULL, return a description of the conversion
+to be done on the constructor argument in *ctor_arg_conversion.
 Note that this routine should only be called when the conversion must
 be done, not when we're just wondering if it can be done, because it
 issues errors.  See 12.3 in the ARM.  This routine is only called in
@@ -5043,8 +5036,8 @@ caller should have rewritten that case).
                                      is_initialization,
                                      /*try_bitwise_copy=*/TRUE,
                                      is_explicit_cast,
-                                     conversion, &ambiguous,
-                                     &ambiguity_list)) {
+                                     conversion, ctor_arg_conversion,
+                                     &ambiguous, &ambiguity_list)) {
       /* A user-defined conversion (constructor or conversion function) or
          bitwise copy is available to convert to the destination type. */
       okay = TRUE;
@@ -5159,7 +5152,8 @@ in error messages.
                                        is_initialization,
                                        /*need_lvalue_result=*/FALSE,
                                        /*is_explicit_cast=*/FALSE,
-                                       conversion, &failed)) {
+                                       conversion, (a_conv_descr *)NULL,
+                                       &failed)) {
     /* A user-defined conversion can be done. */
     okay = TRUE;
   } else if (!failed) {
@@ -5340,6 +5334,7 @@ is used only in C++ mode.
 
 static void set_up_for_constructor_call(an_operand       *operand,
                                         a_routine_ptr    ctor_routine,
+                                        a_conv_descr     *ctor_arg_conversion,
                                         an_expr_node_ptr *arg_expr_list)
 /*
 Prepare for generating a call of a one-argument constructor (i.e.,
@@ -5347,8 +5342,9 @@ a copy constructor or a constructor used as a conversion function),
 but do not actually create the call.  *operand is the argument for
 the call.  Check accessibility of the routine and adjust the
 operand type if necessary so that it will be appropriate for the call.
-Return an argument list for the call in *arg_expr_list.  This routine
-is used only in C++ mode.
+If ctor_arg_conversion is non-NULL, it points to the conversion to be
+used for the constructor argument.  Return an argument list for the
+call in *arg_expr_list.  This routine is used only in C++ mode.
 */
 {
   a_symbol_ptr     ctor_symbol;
@@ -5378,10 +5374,9 @@ is used only in C++ mode.
 #endif  /* CHECKING */
   /* Convert the argument to the right type.  We don't expect an error
      here, since presumably we've chosen the proper function to call
-     through overload resolution.  We know that no user-defined conversion
-     is going to be required; at most a normal cast is needed. */
+     through overload resolution. */
   prep_possible_ellipsis_argument_operand(operand, param_list,
-                                          (a_conv_descr_ptr)NULL);
+                                          ctor_arg_conversion);
   /* Make an expression for the argument. */
   *arg_expr_list = make_node_from_operand(operand);
   /* If the constructor has default arguments after the first, add
@@ -5434,11 +5429,15 @@ been adjusted, etc.).
 
 void user_convert_operand(an_operand   *operand,
                           a_type_ptr   dest_type,
-                          a_conv_descr *conversion)
+                          a_conv_descr *conversion,
+                          a_conv_descr *ctor_arg_conversion)
 /*
 Do the user-defined conversion indicated by *conversion to convert
 *operand to dest_type.  dest_type may be NULL to indicate that
 no additional conversion is needed after the conversion function is called.
+If ctor_arg_conversion is non-NULL, it describes the conversion to be done
+on the argument of the user-defined conversion, which in that case will
+be a constructor call.
 */
 {
   an_expr_node_ptr  rout_node, arg_expr_list;
@@ -5493,7 +5492,8 @@ no additional conversion is needed after the conversion function is called.
     /* Constructor. */
     /* Make a constructor dynamic init into a temporary, and an operand for
        the value it produces. */
-    set_up_for_constructor_call(operand, conversion_routine, &arg_expr_list);
+    set_up_for_constructor_call(operand, conversion_routine,
+                                ctor_arg_conversion, &arg_expr_list);
     make_constructor_dynamic_init(conversion_routine, arg_expr_list,
                                   /*result_is_addr=*/FALSE,
                                   &orig_operand.position, operand);
@@ -5520,7 +5520,8 @@ conversion (which might involve a user-defined conversion).
 #endif /* CHECKING */
   if (!is_null_user_conv_descr(conversion)) {
     /* Call a user-defined conversion routine. */
-    user_convert_operand(source_operand, dest_type, conversion);
+    user_convert_operand(source_operand, dest_type, conversion,
+                         (a_conv_descr *)NULL);
   } else {
     /* Cast the operand to the result type. */
     cast_operand(dest_type, source_operand, /*is_implicit_cast=*/TRUE);
@@ -5832,7 +5833,7 @@ happen only in C++ mode.
          try to find a copy constructor that can copy the result of the
          conversion for the caller. */
       user_convert_operand(source_operand, /*dest_type=*/(a_type_ptr)NULL,
-                           conversion);
+                           conversion, (a_conv_descr *)NULL);
       /* See if the result of the conversion is already in a temporary. */
       if (is_temp_init_usable_in_optimization(source_operand,
                                               initializing_return_value,
@@ -5873,7 +5874,7 @@ happen only in C++ mode.
   } else if (conversion_routine != NULL) {
     /* conversion_routine is a constructor (copy or other). */
     set_up_for_constructor_call(source_operand, conversion_routine,
-                                &arg_expr_list);
+                                (a_conv_descr *)NULL, &arg_expr_list);
     /* Use a dik_constructor entry to call the constructor. */
     dip = alloc_dynamic_init_possibly_with_dtor(
                                           (a_dynamic_init_kind)dik_constructor,
@@ -5990,7 +5991,8 @@ of the temporary.  Only used in C++ mode.
       } else {
         /* Make the dynamic init call the copy constructor. */
         cctor_case = TRUE;
-        set_up_for_constructor_call(operand, cctor_routine, &cctor_arg);
+        set_up_for_constructor_call(operand, cctor_routine,
+                                    (a_conv_descr *)NULL, &cctor_arg);
         make_constructor_dynamic_init(cctor_routine, cctor_arg,
                                       /*result_is_addr=*/TRUE,
                                       &orig_operand.position,

@@ -373,11 +373,13 @@ extern a_boolean user_defined_conversion_possible(
                                             a_boolean    need_lvalue_result,
                                             a_boolean    is_explicit_cast,
                                             a_conv_descr *conversion,
+                                            a_conv_descr *ctor_arg_conversion,
                                             a_boolean    *failed);
 
 extern void user_convert_operand(an_operand   *operand,
                                  a_type_ptr   dest_type,
-                                 a_conv_descr *conversion);
+                                 a_conv_descr *conversion,
+                                 a_conv_descr *ctor_arg_conversion);
 
 extern void prep_elision_initializer_operand(
                                             an_operand         *source_operand,
