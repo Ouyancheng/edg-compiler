@@ -249,6 +249,13 @@ error -- IL lowering must be done for the C-generating back end.
 #endif /* BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING */
 
 /*
+Default temporary file directory.
+*/
+#ifndef DEFAULT_TMPDIR
+#define DEFAULT_TMPDIR "/usr/tmp"
+#endif /* ifndef DEFAULT_TMPDIR */
+
+/*
 Default system include directory.
 */
 #ifndef DEFAULT_USR_INCLUDE
