@@ -1,5 +1,19 @@
 Version 2.36
 
+4/14/97   Internal error on default argument not at end of parameter list
+          in a member function declaration
+
+In 2.34, a change was made that eliminated the diagnostic when a default
+argument appeared in a member function declaration, but not at the end
+of the parameter list.  This could result in an internal error in IL
+lowering when processing an invalid call.  This has been fixed.
+
+  struct B {
+    int f(int, int = 1, int);
+  };
+  B b;
+  int i = b.f(1);
+
 4/11/97   Internal error when a template that is member of the current class
           is declared as a friend
 

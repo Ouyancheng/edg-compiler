@@ -844,11 +844,11 @@ routine recursively for each nested class.
           for (; daefp != NULL; daefp = daefp->next) {
             /* It's a default arg expression that needs to be rescanned. */
             /* Let get_token know about the cache.  Default argument errors
-               are not checked here because they will have been checked by
-               decl_routine. */
+               are not checked here for friend declarations because they
+               will have been checked by decl_routine. */
             rescan_cached_tokens(&daefp->cache.tokens);
             delayed_scan_of_default_arg_expr(daefp->param_type,
-                                            /*check_for_errors=*/FALSE);
+                                            /*check_for_errors=*/!is_friend);
           }  /* for */
           /* Restore the prototype scope symbols pointer in the func info
              block. It shouldn't have changed, but we do it to be safe. */
