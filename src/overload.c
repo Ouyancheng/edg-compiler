@@ -9004,6 +9004,16 @@ in some way, e.g., two pointers that must have the same type.
       operand_type = do_implicit_type_transformations(operand_type,
                                                       &arg_operand->operand);
       operand_type = skip_typerefs(operand_type);
+      if (microsoft_bugs &&
+          arg_operand->operand.is_simple_string_literal &&
+          string_literals_are_const) {
+        /* MSVC++ 7.1 and 8.0 (which have const string literals) seem
+           to generate built-in operators as if the strings are not const.
+           Note that the array-to-pointer decay has already been done. */
+        operand_type = type_pointed_to(operand_type);
+        operand_type = skip_typerefs(operand_type);
+        operand_type = make_pointer_type(operand_type);
+      }  /* if */
       if (type_matches_type_code(operand_type, *type_pattern_position)) {
         /* The operand has an appropriate type. */
         specific_type = operand_type;

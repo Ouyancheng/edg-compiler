@@ -1,4 +1,34 @@
 Version 3.6
+ 
+2/6/04   Microsoft 7.1 compatibility: string as argument to built-in ==
+
+The emulation for MSVC++ 7.1 (microsoft_version=1310) now gives
+no ambiguity for a case like the one below where a string (which
+has a const type as of MSVC++ 7.1) is an operand of a comparison
+operator and the other operand is a class that has a conversion
+function to "char *" (not const char *).
+
+  struct C {
+    C();
+    operator char *();
+  };
+  int main() {
+    C cs;
+    cs == "x";
+  }
+
+A similar case with a user-written operator== function also no
+longer gets an ambiguity in Microsoft 7.1 mode.
+
+  struct C {
+    C();
+    bool operator==(char *);
+    operator char *();
+  };
+  int main() {
+    C cs;
+    cs == "x";
+  }
 
 2/6/05   Microsoft compatibility: bool and pointer as operands of "?"
 
@@ -32,23 +62,6 @@ addresses a Microsoft compatibility issue.
   template <class T, class U> T f(U) {return T();}
   int main() {
     f<int>(1);
-  }
- 
-2/4/04   Microsoft 7.1 compatibility: string as argument to built-in ==
-
-The emulation for MSVC++ 7.1 (microsoft_version=1310) now gives
-no ambiguity for a case like the one below where a string (which
-has a const type as of MSVC++ 7.1) is an operand of a comparison
-operator and the other operand is a class that has a conversion
-function to "char *" (not const char *).
-
-  struct C {
-    C() {}
-    operator char *();
-  };
-  int main() {
-    C cs;
-    cs == "x";
   }
 
 2/4/04   Microsoft compatibility: __asm directives in template strings
