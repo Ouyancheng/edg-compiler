@@ -8037,7 +8037,7 @@ prep_elision_initializer_operand.
   a_type_ptr base_dest_type, base_source_type;
   a_type_ptr unqual_dest_type, unqual_source_type;
   a_boolean  type_is_correct_or_derived, err = FALSE, dropping_qualifiers;
-  a_boolean  conversion_to_temp_done, ref_to_nonconst;
+  a_boolean  conversion_to_temp_done, ref_to_nonconst, warn = FALSE;
   an_operand orig_operand;
 
   orig_operand = *source_operand;
@@ -8162,13 +8162,18 @@ prep_elision_initializer_operand.
             pos_diagnostic(anachronism_error_severity,
                            ec_nonconst_ref_init_anachronism,
                            &source_operand->position);
+            if (anachronism_error_severity == es_error) {
+              err = TRUE;
+            } else {
+              warn = TRUE;
+            }  /* if */
           } else {
             /* Anachronism is not allowed. */
             error_in_operand(ec_bad_nonconst_ref_init, source_operand);
+            err = TRUE;
           }  /* if */
-          err = TRUE;
         }  /* if */
-        if (initializing_return_value) {
+        if (!err && initializing_return_value) {
           /* A temporary should not be created to return a value, since
              what would happen immediately is that the address of the
              (stack-based) temporary would be returned to the caller. */
@@ -8176,7 +8181,7 @@ prep_elision_initializer_operand.
                     &source_operand->position);
           err = TRUE;
         }  /* if */
-        if (!err && conversion_to_temp_done) {
+        if (!err && !warn && conversion_to_temp_done) {
           /* Let the user know a temp was used. */
           pos_remark(ec_temp_used_for_ref_init, &source_operand->position);
         }  /* if */
