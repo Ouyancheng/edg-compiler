@@ -2228,7 +2228,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
            way instead of by putting the instances on the hidden name list
            to avoid performance problems with huge hidden name lists when
            there are many instances, with the injected class name of each
-           instance hiding all the other instances. */
+           instance hiding all the other instances.) */
         if (!(options & GN_NO_TEMPLATE_ARGS)) {
           /* If we are suppressing template arguments (which happens in a
              prototype instantiation), we must not qualify the name --
