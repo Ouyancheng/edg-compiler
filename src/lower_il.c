@@ -4303,10 +4303,13 @@ Do IL lowering of the indicated asm entry and everything under it.
 }  /* lower_asm_entry */
 
 
-static void lower_full_expr(an_expr_node_ptr expr)
+static void lower_full_expr(an_expr_node_ptr expr,
+                            a_boolean        is_bool_controlling_expr)
 /*
 Lower a "full" expression, i.e., one that is not part of some
 larger expression tree.  The expression is not an lvalue.
+If is_bool_controlling_expr is TRUE, this expression is a boolean
+controlling expression (e.g., the expression in an "if").
 */
 {
   a_context          context;
@@ -4349,6 +4352,32 @@ larger expression tree.  The expression is not an lvalue.
       /* Not keeping object lifetime information, so eliminate this node. */
       unbind_object_lifetime(expr->variant.object_lifetime.ptr);
       overwrite_node(expr, expr_to_lower);
+      expr_to_lower = expr;
+    }  /* if */
+  }  /* if */
+  if (is_bool_controlling_expr) {
+    /* This expression is a boolean controlling expression, which is supposed
+       to have a "!= 0" on top if the expression doesn't guarantee a 0/1
+       value.  If the rewriting has disturbed that, add a "!= 0" test. */
+    check_assertion(is_integral_type(expr_to_lower->type));
+    if (is_constant_node(expr_to_lower)) {
+      /* A constant here ought to be okay already. */
+    } else if (is_operation_node(expr) &&
+               is_operator_returning_bool(expr->variant.operation.kind)) {
+      /* The top of the expression is an operator that returns a boolean
+         value, so it's okay. */
+    } else {
+      /* A variable (e.g., a generated temporary), or an operator that is
+         not guaranteed to return a boolean value.  Add a "!= 0". */
+      an_expr_node_ptr copy_expr_to_lower = copy_node(expr_to_lower);
+      a_constant       zero_constant;
+      an_expr_node_ptr zero_node;
+
+      make_zero_of_proper_type(expr_to_lower->type, &zero_constant);
+      zero_node = alloc_node_for_constant(&zero_constant);
+      copy_expr_to_lower->next = zero_node;
+      change_node_to_operation(expr_to_lower, (an_expr_operator_kind)eok_ine,
+                               copy_expr_to_lower->type, copy_expr_to_lower);
     }  /* if */
   }  /* if */
 }  /* lower_full_expr */
@@ -6799,7 +6828,7 @@ Do IL lowering of the indicated statement and everything under it.
     }  /* if */
     switch (statement->kind) {
       case stmk_expr:
-        lower_full_expr(statement->expr);
+        lower_full_expr(statement->expr, /*is_bool_controlling_expr=*/FALSE);
         break;
       case stmk_asm:
         /* No processing required. */
@@ -6839,7 +6868,7 @@ Do IL lowering of the indicated statement and everything under it.
       case stmk_return:
         return_expr = statement->expr;
         if (return_expr != NULL) {
-          lower_full_expr(return_expr);
+          lower_full_expr(return_expr, /*is_bool_controlling_expr=*/FALSE);
         }  /* if */
         /* Keep track of whether or not we have already turned the return
            statement into a block.  We haven't so far. */
@@ -6915,16 +6944,16 @@ Do IL lowering of the indicated statement and everything under it.
         add_to_return_memo_list(return_statement);
         break;
       case stmk_if:
-        lower_full_expr(statement->expr);
+        lower_full_expr(statement->expr, /*is_bool_controlling_expr=*/TRUE);
         lower_statement(statement->variant.if_stmt.then_statement);
         lower_statement(statement->variant.if_stmt.else_statement);
         break;
       case stmk_while:
-        lower_full_expr(statement->expr);
+        lower_full_expr(statement->expr, /*is_bool_controlling_expr=*/TRUE);
         lower_statement(statement->variant.loop_statement);
         break;
       case stmk_end_test_while:
-        lower_full_expr(statement->expr);
+        lower_full_expr(statement->expr, /*is_bool_controlling_expr=*/TRUE);
         lower_statement(statement->variant.loop_statement);
         break;
       case stmk_for:
@@ -6944,11 +6973,13 @@ Do IL lowering of the indicated statement and everything under it.
             }  /* if */
           }  /* if */
           if (statement->expr != NULL) {
-            lower_full_expr(statement->expr);
+            lower_full_expr(statement->expr,
+                            /*is_bool_controlling_expr=*/TRUE);
           }  /* if */
           lower_statement(statement->variant.for_loop.statement);
           if (extra_info->increment != NULL) {
-            lower_full_expr(extra_info->increment);
+            lower_full_expr(extra_info->increment,
+                            /*is_bool_controlling_expr=*/FALSE);
           }  /* if */
         }
         break;
@@ -6997,7 +7028,7 @@ Do IL lowering of the indicated statement and everything under it.
         }  /* if */
         break;
       case stmk_switch:
-        lower_full_expr(statement->expr);
+        lower_full_expr(statement->expr, /*is_bool_controlling_expr=*/FALSE);
         /* If there is a body statement and it has a scope, push it as
            context around the processing of the switch clauses. */
         scope = NULL;
