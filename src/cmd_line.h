@@ -195,7 +195,10 @@ EXTERN a_boolean
 typedef enum /*a_template_instantiation_mode*/ {
   /* Defines the methods of handling template instantiation.  Used to
      determine which template functions and member functions of
-     template classes should be instantiated. */
+     template classes should be instantiated.  This specifies a general
+     mode that is used for all templates.  This can be overridden by
+     pragmas that can cause specific templates to be instantiated or
+     to not be instantiated. */
   tim_none,	/* No instantiation should be done. */
   tim_all,	/* Instantiate template functions that have been
 		   referenced and all member functions of template classes
@@ -212,7 +215,7 @@ typedef enum /*a_template_instantiation_mode*/ {
 EXTERN a_template_instantiation_mode
                 instantiation_mode
 #if VAR_INITIALIZERS
-			          = tim_local
+			          = tim_none
 #endif /* VAR_INITIALIZERS */
                                              ;
                         /* The default template instantiation mode. */
