@@ -31,6 +31,8 @@ class_decl.h -- Declarations related to class_decl.c (having to do with
 
 extern void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp);
 
+extern a_boolean is_surrogate_direct_base_class(a_base_class_ptr  bcp);
+
 extern a_boolean scan_class_definition(
                                    a_type_ptr     class_type,
                                    a_scope_depth  effective_decl_level,
