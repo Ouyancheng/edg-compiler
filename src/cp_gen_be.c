@@ -612,9 +612,6 @@ file to the proper location, which may involve a #line directive, etc.
   /* Do nothing for unknown positions. */
   if (seq != 0) {
     /* Find the file in which this sequence number lies. */
-#if 0
-    /* This should be optimized. */
-#endif /* 0 */
     a_line_number line_number;
     a_boolean     at_end_of_source;
     unsigned long nesting_depth;
