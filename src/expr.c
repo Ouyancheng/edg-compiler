@@ -450,8 +450,9 @@ static void f_set_operand_position(an_operand        *result,
 Record the source position in an_operand at the end of scanning
 an expression.  result is the result operand.  start_pos and end_pos
 give the beginning and ending source positions.  operator_pos gives
-the operator position.  Global variables error_position and
-curr_construct_end_position are set appropriately.
+the operator position; the pointer can be NULL if there is no operator
+position.  Global variables error_position and curr_construct_end_position
+are set appropriately.
 */
 {
   error_position = result->position = *start_pos;
@@ -462,7 +463,7 @@ curr_construct_end_position are set appropriately.
     an_expr_node_ptr expr = result->variant.expression;
     expr->expr_range.start = *start_pos;
     expr->expr_range.end = *end_pos;
-    expr->operator_position = *operator_pos;
+    if (operator_pos != NULL) expr->operator_position = *operator_pos;
   }  /* if */
 }  /* f_set_operand_position */
 
@@ -2310,11 +2311,16 @@ bound with the function in *bound_function_selector.
                         gid_flags;
   a_type_ptr            dtor_type;
   a_boolean             pcc_mode_integral_pointer_case = FALSE;
+  a_source_position     operator_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position     end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_enter(4, "scan_field_selection_operator");
 
   /* Remember if this was an arrow or a dot selector. */
   is_arrow_operator = (curr_token == tok_arrow);
+  operator_position = pos_curr_token;
 
   if (curr_expr_kind_is(ek_pp)) {
     /* Field selection not allowed in preprocessor expression. */
@@ -2871,16 +2877,28 @@ nonstatic_member_function:
   if (found_id) {
     /* The identifier was present; advance past it.  This is done late
        in order not to disturb locator_for_curr_id while it's still needed. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  } else {
+    end_position = operator_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
 
-  /* The position of the operand is the start position of the selection
+  /* The position of the operand is the position of the selection
      except when the operand is a bound function, in which case it's the
-     position of the function name. */
+     position of the function name (because the selector has its own
+     operand). */
   if (result->bound_function) {
-    result->position = member_position;
+    set_operand_position(result, &member_position, &end_position,
+                         (a_source_position *)NULL);
   } else {
-    result->position = operand_1->position;
+    /* Not a bound function; the operand position reflects the entire
+       selection. */
+    set_operand_position(result, &operand_1->position, &end_position,
+                         &operator_position);
   }  /* if */
 
   if (allow_integral_constant_selection) {
@@ -3116,8 +3134,19 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
       }  /* if */
     }  /* if */
   }  /* if */
-  copy_source_position(operand_1->position, error_position);
-  copy_source_position(operand_1->position, result->position);
+  /* The position of the operand is the position of the selection
+     except when the operand is a bound function, in which case it's the
+     position of the second operand (because the selector has its own
+     operand). */
+  if (result->bound_function) {
+    set_operand_position(result, &operand_2.position,
+                         &operand_2.end_position, (a_source_position *)NULL);
+  } else {
+    /* Not a bound function; the operand position reflects the entire
+       selection. */
+    set_operand_position(result, &operand_1->position,
+                         &operand_2.end_position, &operator_position);
+  }  /* if */
   db_exit();
 }  /* scan_ptr_to_member_operator */
 
@@ -3631,8 +3660,8 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
     operand_will_not_be_used_because_of_error(&operand_clone);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  copy_source_position(start_position, error_position);
-  copy_source_position(start_position, result->position);
+  set_operand_position(result, &start_position, &operand.end_position,
+                       &start_position);
 
   db_exit();
 }  /* scan_prefix_incr_decr */

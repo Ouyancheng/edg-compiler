@@ -1,5 +1,13 @@
 Version 2.39
 
+1/31/98   Extra source position information on prefix incr/decr and
+          field selection
+
+The extra source position information (controlled by
+EXTRA_SOURCE_POSITIONS_IN_IL) was wrong for expressions for prefix
+increment and decrement (e.g., --x), member selection (e.g., a.b),
+and pointer-to-member selection (e.g., a.*b).
+
 1/31/98   Temporary destroyed more than once on break from loop with
           long lifetime temporaries
 
