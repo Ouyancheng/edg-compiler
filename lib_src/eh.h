@@ -35,7 +35,7 @@ typedef long an_element_count;
 			/* Type used to represent a count of the number of
 			   elements in an array.  Must be signed because
 			   -1 is used to represent an array whose size is
-			   only known an run time. */
+			   only known at run time. */
 
 typedef int	a_conditional_flag;
 			/* Type of a flag used for conditional region
