@@ -755,6 +755,23 @@ references.
 #define SVR4_TRAP_NULL_POINTER_REFERENCES FALSE
 #endif /* ifndef SVR4_TRAP_NULL_POINTER_REFERENCES */
 
+/*
+TRUE if the Kuck & Associates inliner is being used.  This is not
+part of the EDG provided source product, but is a separate product
+available from Kuck & Associates that can be linked with the EDG
+front end.
+*/
+#ifndef USING_KAI_INLINER
+#define USING_KAI_INLINER FALSE
+#endif /* ifndef USING_KAI_INLINER */
+
+#if USING_KAI_INLINER
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+ #error -- IL_SHOULD_BE_WRITTEN_TO_FILE must be FALSE when \
+           USING_KAI_INLINER is set.
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+#endif /* USING_KAI_INLINER */
+
 
 /*
 The flags HOSTID and HOSTID2 can be set to host id numbers if the
