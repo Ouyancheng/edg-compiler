@@ -892,7 +892,7 @@ in the way described by octl.
 #if !ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C
         } else if (octl->gen_compilable_code &&
                    (octl->c_generating_back_end ||
-                    il_header.source_language == sl_C) {
+                    il_header.source_language == sl_C)) {
           /* For the C-generating back end (or the C++-generating back end
              when it is producing C code), we put out the ellipsis by itself
              only if it can be handled.  Otherwise, "(...)" is rendered by
