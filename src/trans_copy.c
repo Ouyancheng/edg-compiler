@@ -542,7 +542,7 @@ set to TRUE if the body of a routine is eliminated.
                !typeref_is_typedef(type)) {
       /* This is a placeholder typeref, used to give guidance to IL lowering
          on the order of types promoted out of classes and namespaces.
-         Keep the placeholder only if the type pointed is being kept. */
+         Keep the placeholder only if the type pointed to is being kept. */
       a_type_ptr ref_type = type->variant.typeref.type;
       keep_on_list = entry_to_be_copied(ref_type);
     }  /* if */
