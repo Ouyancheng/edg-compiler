@@ -2807,6 +2807,18 @@ symbol supplement.
   templ_sym = primary_template_if_template_symbol(templ_sym);
   tssp = template_supplement_for_symbol(templ_sym);
   templ = tssp->il_template_entry;
+  if (correspondence_checking_done &&
+      templ->source_corresp.is_class_member &&
+      checked_trans_unit_corresp_pointer_of(templ) == NULL) {
+    /* This is a member template whose correspondence has not been established
+       yet, but we are in a phase where normal correspondence checking is
+       done.  Presumably, the parent class is still in the process of being
+       instantiated and hence establish_class_instantiation_corresp has not
+       been called yet to determine the correspondences of its members
+       (including that of this member template).  Go ahead and establish the
+       correspondence of the template now. */
+    find_template_correspondence(templ, /*parent_found=*/FALSE);
+  }  /* if */
   corresp_templ = canonical_template_entry_of(templ);
   /* Note that the call to canonical_template_entry_of may have resulted in a
      correspondence value being set already. */
@@ -4017,7 +4029,7 @@ does not set either return value.
            and one for non-templates. */
         if (sym_to_find->kind == (a_symbol_kind)sk_function_template) {
           *symbol_list = cssp->conversion_template_list;
-         } else {
+        } else {
           *symbol_list = cssp->conversion_list;
         }  /* if */
         break;
