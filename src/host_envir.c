@@ -2131,7 +2131,14 @@ page size.
       /* An extra byte is added to the size to stop CodeCenter from complaining
          about the after_end_of_block comparison in mem_manage.c. */
 #if USE_FIXED_ADDRESS_FOR_MMAP
+      /* Suppress the CodeCenter that would be issued because we
+         builds an address that is not yet valid. */
+      /*SUPPRESS 25 */
+      /*SUPPRESS 26 */
       map_address = ((char *)FIXED_ADDRESS_FOR_MMAP) + curr_size;
+      /* Suppress the CodeCenter warning that an invalid pointer is being
+         passed. */
+      /*SUPPRESS 71 */
       addr = (a_void_ptr)mmap(map_address,
                               incremental_size,
                               PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_FIXED,

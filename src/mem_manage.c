@@ -511,6 +511,10 @@ the block header.
          hdr != NULL;
          prev_hdr = hdr, hdr = hdr->next) {
       /* See if the area is big enough (it almost always will be). */
+      /* Suppress the CodeCenter warning caused because after_end_of_block
+         may be point to memory that is not allocated, or is part of a
+         different allocation. */
+      /*SUPPRESS 22*/
       alloc_size = hdr->after_end_of_block - hdr->start_of_block +
                    adjusted_header_size;
       if (alloc_size >= needed_size) {
@@ -637,6 +641,10 @@ Free the storage associated with the indicated memory block.
     for (prev_hdr = NULL, test_hdr = reusable_blocks_list;
          test_hdr != NULL;
          test_hdr = test_hdr->next) {
+      /* Suppress the CodeCenter warning caused because after_end_of_block
+         may be point to memory that is not allocated, or is part of a
+         different allocation. */
+      /*SUPPRESS 29*/
       if ((test_hdr->after_end_of_block == (char *)hdr &&
            hdr->malloc_size == 0) ||
           (hdr->after_end_of_block == (char *)test_hdr &&
@@ -872,6 +880,10 @@ is used for allocation of general front end memory (i.e., not IL).
      some systems this can cause memory faults by system routines that
      seem to make the assumption that this won't occur. */
   hdr = mem_region_table[region_number];
+  /* Suppress the CodeCenter warning caused because after_end_of_block
+     may be point to memory that is not allocated, or is part of a
+     different allocation. */
+  /*SUPPRESS 22*/
   if ((size + HOST_ALIGNMENT_REQUIRED) >
       (sizeof_t)(hdr->after_end_of_block - hdr->next_avail_in_block)) {
     /* Not enough space remaining in current block.  Free any unused
