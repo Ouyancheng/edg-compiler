@@ -11786,7 +11786,7 @@ first_op_volatile_test:
       node_type = node->type;
       operand_type = node->variant.operation.operands->type;
       if (is_reference_type(node_type) &&
-          is_pointer_type(operand_type) &&
+          is_ptr_or_ref_type(operand_type) &&
           is_polymorphic_class_type(type_pointed_to(operand_type))) {
         has_side_effects = TRUE;
       }  /* if */
