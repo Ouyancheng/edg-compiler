@@ -13,10 +13,10 @@ With this change a declaration entry is now put out for the "i" that
 appears between the parentheses (along with the definition entry for the
 other occurrence of "i").
 
-3/18/98   Abort on error recovery after bad "else"
+3/18/98   Abort on error recovery after bad "else" in C mode
 
 The following case provoked an internal error in if_statement after
-a (correct) error diagnostic.  Now fixed.
+a (correct) error diagnostic, when compiled in C mode.  Now fixed.
 
   void f() {
     if (1) {
