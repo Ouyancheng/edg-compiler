@@ -3291,6 +3291,10 @@ typedef struct a_new_delete_supplement {
 			/* If non-NULL, points to a dynamic initialization
 			   entry that indicates the initialization (new) or
 			   destruction (delete) to be done. */
+  a_routine_ptr	delete_routine;
+			/* For a "new" when exceptions are enabled, points
+			   to the delete routine to be used to undo the
+			   allocation if an exception is thrown. */
 } a_new_delete_supplement;
 
 

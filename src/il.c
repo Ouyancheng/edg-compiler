@@ -5113,6 +5113,7 @@ fields to default values.
       ndsp->routine      = NULL;
       ndsp->arg          = NULL;
       ndsp->dynamic_init = NULL;
+      ndsp->delete_routine = NULL;
       break;
     case enk_throw:
       /* Allocate the supplement for a throw. */

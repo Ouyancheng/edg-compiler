@@ -1201,6 +1201,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->routine, a_routine_ptr, iek_routine);
         walk_ptr(ptr->arg, an_expr_node_ptr, iek_expr_node);
         walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
+        walk_ptr(ptr->delete_routine, a_routine_ptr, iek_routine);
       }
       break;
     case iek_throw_supplement:

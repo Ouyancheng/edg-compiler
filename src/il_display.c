@@ -2026,6 +2026,7 @@ Display the indicated new/delete supplement to an expression node.
   disp_ptr("routine", (char *)ndsp->routine, iek_routine);
   disp_ptr("arg", (char *)ndsp->arg, iek_expr_node);
   disp_ptr("dynamic_init", (char *)ndsp->dynamic_init, iek_dynamic_init);
+  disp_ptr("delete_routine", (char *)ndsp->delete_routine, iek_routine);
 }  /* disp_new_delete_supplement */
 
 
