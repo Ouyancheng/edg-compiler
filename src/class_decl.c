@@ -4839,14 +4839,15 @@ the current class (class_type).
         }  /* if */
       }  /* for */
       /* No duplication was detected. */
-      clep = alloc_list_entry_for_class();
+      clep = alloc_list_entry_for_class_full(
+                                           &friend_class_type->source_corresp);
       clep->class_type = class_type;
       clep->next = ctsp->befriending_classes;
       ctsp->befriending_classes = clep;
       /* Now add the friend_class_type to the friends list for the current
          class. */
       ctsp = class_type->variant.class_struct_union.extra_info;
-      clep = alloc_list_entry_for_class();
+      clep = alloc_list_entry_for_class_full(&class_type->source_corresp);
       clep->class_type = friend_class_type;
       clep->next = ctsp->friend_classes;
       ctsp->friend_classes = clep;
@@ -5078,7 +5079,7 @@ that the routine indicated by rout_ptr is a friend.
     } /* if */
   } /* for */
   /* Add a friend declaration to the befriending_classes list. */
-  clep = alloc_list_entry_for_class();
+  clep = alloc_list_entry_for_class_full(&rout_ptr->source_corresp);
   clep->class_type = class_type;
   clep->next = rout_ptr->befriending_classes;
   rout_ptr->befriending_classes = clep;

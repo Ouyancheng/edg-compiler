@@ -64,6 +64,9 @@ extern void free_template_arg_list(a_template_arg_ptr  tap);
 
 extern a_base_class_ptr alloc_base_class(void);
 
+extern a_class_list_entry_ptr alloc_list_entry_for_class_full(
+                                                 a_source_correspondence *scp);
+
 extern a_class_list_entry_ptr alloc_list_entry_for_class(void);
 
 extern a_routine_list_entry_ptr alloc_list_entry_for_routine(void);

@@ -342,13 +342,36 @@ of the primary translation unit.
   char *ptr;
   a_boolean saved_is_primary_translation_unit = is_primary_translation_unit;
   is_primary_translation_unit = TRUE;
+  if (!saved_is_primary_translation_unit) compute_il_prefix_size();
   do_fs_alloc(ptr, size, FILE_SCOPE_REGION_NUMBER);
   is_primary_translation_unit = saved_is_primary_translation_unit;
+  if (!saved_is_primary_translation_unit) compute_il_prefix_size();
 #ifdef TRACE_ALLOC
   trace_alloc_check(ptr);
 #endif /* TRACE_ALLOC */
   return ptr;
 }  /* alloc_primary_file_scope_il */
+
+
+static char *alloc_secondary_file_scope_il(sizeof_t               size,
+                                           a_translation_unit_ptr tup)
+/*
+Allocate and return "size" bytes of storage in the file scope memory region
+of the secondary translation unit identified by tup.
+*/
+{
+  char *ptr;
+  a_boolean saved_is_primary_translation_unit = is_primary_translation_unit;
+  is_primary_translation_unit = FALSE;
+  if (saved_is_primary_translation_unit) compute_il_prefix_size();
+  do_fs_alloc(ptr, size, tup->file_scope_region_number);
+  is_primary_translation_unit = saved_is_primary_translation_unit;
+  if (saved_is_primary_translation_unit) compute_il_prefix_size();
+#ifdef TRACE_ALLOC
+  trace_alloc_check(ptr);
+#endif /* TRACE_ALLOC */
+  return ptr;
+}  /* alloc_secondary_file_scope_il */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -955,14 +978,32 @@ to it.
 }  /* alloc_base_class */
 
 
-a_class_list_entry_ptr alloc_list_entry_for_class(void)
+a_class_list_entry_ptr alloc_list_entry_for_class_full(
+                                                  a_source_correspondence *scp)
 /*
 Allocate a class-list-entry, initialize its fields, and return a pointer to it.
+If scp is non-NULL, allocate the entry in the same memory region as scp;
+otherwise, allocate it in the current file-scope memory region.
 */
 {
   a_class_list_entry_ptr clep;
 
-  clep = (a_class_list_entry_ptr)alloc_il(sizeof(a_class_list_entry));
+  if (scp == NULL) {
+    clep = (a_class_list_entry_ptr)alloc_il(sizeof(a_class_list_entry));
+  } else if (!in_secondary_trans_unit(scp)) {
+    clep = (a_class_list_entry_ptr)
+                alloc_primary_file_scope_il(sizeof(a_class_list_entry));
+  } else {
+    /* Allocate in some secondary translation unit's file scope memory
+       region. */
+    a_translation_unit_ptr tup;
+    a_symbol_ptr           sym = (a_symbol_ptr)(scp->assoc_info);
+    check_assertion(sym != NULL);
+    tup = trans_unit_for_symbol(sym);
+    clep = (a_class_list_entry_ptr)
+                      alloc_secondary_file_scope_il(sizeof(a_class_list_entry),
+                      tup);
+  }  /* if */
 #if DEBUG
   num_class_list_entries_allocated++;
 #endif /* DEBUG */
@@ -970,6 +1011,15 @@ Allocate a class-list-entry, initialize its fields, and return a pointer to it.
   clep->class_type = NULL;
 
   return clep;
+}  /* alloc_list_entry_for_class_full */
+
+
+a_class_list_entry_ptr alloc_list_entry_for_class(void)
+/*
+Allocate a class-list-entry, initialize its fields, and return a pointer to it.
+*/
+{
+  return alloc_list_entry_for_class_full((a_source_correspondence *)NULL);
 }  /* alloc_list_entry_for_class */
 
 
