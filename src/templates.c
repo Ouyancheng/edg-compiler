@@ -235,6 +235,14 @@ static FILE	*f_template_info;
 			/* File variable associated with the template
 			   information file. */
 
+static a_boolean
+		remove_exported_template_file;
+			/* TRUE if the exported template file is should
+			   be removed when it is closed.  This is used
+			   in the case where a "default.et" file is
+			   created when the input comes from standard
+			   input. */
+
 static FILE	*f_exported_template;
 			/* File variable associated with the exported
 			   template file. */
@@ -785,6 +793,7 @@ request file if names were not provided on the command line.
          supplied by the driver, so this is only intended for testing
          purposes. */
       exported_template_file_name = "default.et";
+      remove_exported_template_file = TRUE;
     }  /* if */
   }  /* if */
   /* The name of the instantiation request file can be specified on the
@@ -890,7 +899,8 @@ have already existed.
       str_catastrophe(ec_file_write_error, "exported template file");
     }  /* if */
   }  /* if */
-  if (f_exported_template == NULL || total_errors != 0) {
+  if (f_exported_template == NULL || total_errors != 0 ||
+      remove_exported_template_file) {
     /* If there were no entries written to the exported template file,
        delete any old version of the file.  The file is also deleted if any
        errors occurred during this compilation. */
@@ -14824,7 +14834,8 @@ data member specified by tip.
     pop_translation_unit_stack();
     /* If the instantiation was successful, copy the already_instantiated
        flag to the template instance entry of the primary translation unit. */
-    if (tip->already_instantiated) orig_tip->already_instantiated = TRUE;
+    if (tip != NULL &&
+        tip->already_instantiated) orig_tip->already_instantiated = TRUE;
   }  /* if */
   error_position = saved_error_position;
   pos_curr_token = saved_pos_curr_token;
@@ -17558,6 +17569,8 @@ given translation unit.
   instantiation_request_file_name = NULL;
   f_instantiation_request = NULL;
   f_template_info = NULL;
+  f_exported_template = NULL;
+  remove_exported_template_file = FALSE;
   memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
   any_instantiated_entities_added_to_request_file = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
