@@ -7279,10 +7279,11 @@ Generate C for a statement.
         startline(seq_number_from_stmt_source_position(statement->position));
         /* Note that K&R/pcc compilers do not provide a separate name space
            for labels. */
-        (void)fprintf(f_C_output, "_L_%s:;",
+        (void)fprintf(f_C_output, "_L_%s:",
                           get_name(&statement->variant.label->source_corresp));
         end_unreferenced_bracket(&statement->variant.label->source_corresp);
       }  /* if */
+      (void)fputs(";", f_C_output);
       break;
     case stmk_return:
 #ifdef FFE

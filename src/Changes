@@ -1,5 +1,15 @@
 Version 2.22
 
+2/2/94   C-generating back end generation of unreferenced labels
+
+The C-generating back end now puts out a ";" at the point where the
+definition of an unreferenced label is suppressed.  That avoids
+bad generated C for the following:
+
+  main () {
+    for (;;) lab:;
+  }
+
 2/1/94   IL change: new flag in a_field
 
 A new flag, is_bit_field, has been added to a_field.  It was necessitated
