@@ -36,8 +36,8 @@ static void prep_conversion_operand(an_operand        *source_operand,
 static a_boolean conversion_to_class_possible(
                             an_operand               *source_operand,
                             a_type_ptr               dest_type,
-                            a_boolean                is_copy_initialization,
                             a_boolean                try_bitwise_copy,
+                            a_boolean                is_copy_initialization,
                             a_boolean                is_reference_binding,
                             a_conv_descr             *conversion,
                             a_conv_descr             *ctor_arg_conversion,
@@ -989,8 +989,8 @@ arg_match->match_level to aml_none.
        bitwise copy. */
     a_boolean ambiguous;
     if (conversion_to_class_possible(arg_operand, param_type,
-                                     /*is_copy_initialization=*/TRUE,
                                      /*try_bitwise_copy=*/TRUE,
+                                     /*is_copy_initialization=*/TRUE,
                                      /*is_reference_binding=*/FALSE,
                                      &arg_match->conversion,
                                      (a_conv_descr *)NULL,
@@ -1421,8 +1421,8 @@ is TRUE.
            a reference would be allowed by here after we've gone to the
            trouble of rejecting them above. */
         (conversion_to_class_possible(orig_arg_operand, param_type,
-                                      /*is_copy_initialization=*/TRUE,
                                       /*try_bitwise_copy=*/FALSE,
+                                      /*is_copy_initialization=*/TRUE,
                                       /*is_reference_binding=*/FALSE,
                                       &conversion, (a_conv_descr *)NULL,
                                       &ambiguous,
@@ -4884,8 +4884,8 @@ the target type to be used).
         } else if (conversion_to_class_possible(
                                          &arg_operand->operand,
                                          specific_type,
-                                         /*is_copy_initialization=*/TRUE,
                                          /*try_bitwise_copy=*/FALSE,
+                                         /*is_copy_initialization=*/TRUE,
                                          /*is_reference_binding=*/FALSE,
                                          &conversion,
                                          (a_conv_descr *)NULL,
@@ -5856,8 +5856,8 @@ functions could still apply).
 static a_boolean conversion_to_class_possible(
                             an_operand               *source_operand,
                             a_type_ptr               dest_type,
-                            a_boolean                is_copy_initialization,
                             a_boolean                try_bitwise_copy,
+                            a_boolean                is_copy_initialization,
                             a_boolean                is_reference_binding,
                             a_conv_descr             *conversion,
                             a_conv_descr             *ctor_arg_conversion,
@@ -5867,21 +5867,21 @@ static a_boolean conversion_to_class_possible(
 If source_operand can be converted to the class type dest_type (via a
 constructor, conversion function, or bitwise copy) set *conversion
 to describe the conversion and return TRUE.  Otherwise, return FALSE.
-If is_copy_initialization is TRUE, the initialization is
-copy-initialization ("="-form initialization); if FALSE, it's
-direct-initialization ("()"-form initialization).  User-defined
-conversions on constructor arguments are considered only for
-direct-initialization.  The result is always an rvalue.  Bitwise copies
-are considered if try_bitwise_copy is TRUE.  If is_reference_binding is
-TRUE, the result will be bound to a reference, so also consider
-conversions to derived classes of dest_type.  If ctor_arg_conversion is
-non-NULL, return a description of the conversion to be done on the
-constructor argument in *ctor_arg_conversion.  If more than one function
-matches, set *ambiguous to TRUE and return FALSE.  If ambiguity_list is
+The result is always an rvalue.  Bitwise copies are considered if
+try_bitwise_copy is TRUE.  If is_copy_initialization is TRUE, the
+initialization is copy-initialization ("="-form initialization); if
+FALSE, it's direct-initialization ("()"-form initialization).
+User-defined conversions on constructor arguments are considered only
+for direct-initialization.  If is_reference_binding is TRUE, the
+result will be bound to a reference, so also consider conversions to
+derived classes of dest_type.  If ctor_arg_conversion is non-NULL,
+return a description of the conversion to be done on the constructor
+argument in *ctor_arg_conversion.  If more than one function matches,
+set *ambiguous to TRUE and return FALSE.  If ambiguity_list is
 non-NULL in that case, it is set to point to a list describing the set
-of ambiguous functions; the caller must free that list.  *ambiguity_list
-is set to NULL to indicate a case that is undecidable because of an
-error.  This routine is used only in C++ mode.
+of ambiguous functions; the caller must free that list.
+*ambiguity_list is set to NULL to indicate a case that is undecidable
+because of an error.  This routine is used only in C++ mode.
 */
 {
   a_boolean                     okay, bitwise_copy_okay;
@@ -6222,8 +6222,8 @@ set *processed to TRUE if the conversion is ambiguous.
 a_boolean user_defined_conversion_possible(
                                         an_operand   *source_operand,
                                         a_type_ptr   dest_type,
-                                        a_boolean    is_copy_initialization,
                                         a_boolean    need_lvalue_result,
+                                        a_boolean    is_copy_initialization,
                                         a_boolean    is_reference_binding,
                                         a_conv_descr *conversion,
                                         a_conv_descr *ctor_arg_conversion,
@@ -6237,12 +6237,12 @@ a user-defined conversion is the only hope of converting the source
 operand to the destination type (i.e., one or the other has a class
 type), and no conversion was found, issue an error, change
 source_operand to an error operand, set *failed to TRUE, and return
-FALSE.  If is_copy_initialization is TRUE, this is copy-initialization
+FALSE.  need_lvalue_result is TRUE if the result is required to be
+an lvalue; otherwise, the result can be an lvalue or an rvalue.
+If is_copy_initialization is TRUE, this is copy-initialization
 ("="-form initialization); if FALSE, it's direct-initialization
 ("()"-form initialization).  User-defined conversions on constructor
-arguments are considered only for direct-initialization.
-need_lvalue_result is TRUE if the result is required to be an lvalue;
-otherwise, the result can be an lvalue or an rvalue.  If
+arguments are considered only for direct-initialization.  If
 is_reference_binding is TRUE, the result will be bound to a reference,
 so also consider conversions to derived classes of dest_type.  If
 ctor_arg_conversion is non-NULL, return a description of the
@@ -6274,8 +6274,8 @@ a reference type (the caller should have rewritten that case).
        don't yield lvalues.  If a conversion function applies it will
        be picked up below. */
     if (conversion_to_class_possible(source_operand, dest_type,
-                                     is_copy_initialization,
                                      /*try_bitwise_copy=*/TRUE,
+                                     is_copy_initialization,
                                      is_reference_binding,
                                      conversion, ctor_arg_conversion,
                                      &ambiguous, &ambiguity_list)) {
@@ -6424,8 +6424,8 @@ rewritten) for use in error messages.
 #endif /* CHECKING */
   if (C_dialect == C_dialect_cplusplus && try_user_conversions &&
       user_defined_conversion_possible(source_operand, dest_type,
-                                       is_copy_initialization,
                                        need_lvalue_result,
+                                       is_copy_initialization,
                                        is_reference_binding,
                                        conversion, (a_conv_descr *)NULL,
                                        &failed)) {

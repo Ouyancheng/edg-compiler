@@ -5348,8 +5348,8 @@ error with that, set *err TRUE as well.
           *processed = TRUE;
           (void)user_defined_conversion_possible(
                                             operand, eff_type_cast_to,
-                                            /*is_copy_initialization=*/FALSE,
                                             /*need_lvalue_result=*/TRUE,
+                                            /*is_copy_initialization=*/FALSE,
                                             /*is_reference_binding=*/TRUE,
                                             &conversion,
                                             (a_conv_descr *)NULL,
@@ -5364,8 +5364,8 @@ error with that, set *err TRUE as well.
       if (!is_void_type(type_cast_to) &&
           !is_template_param_type(type_cast_to)) {
         if (user_defined_conversion_possible(operand, type_cast_to,
-                                             /*is_copy_initialization=*/FALSE,
                                              /*need_lvalue_result=*/FALSE,
+                                             /*is_copy_initialization=*/FALSE,
                                              /*is_reference_binding=*/FALSE,
                                              &conversion,
                                              &ctor_arg_conversion,
