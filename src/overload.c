@@ -538,7 +538,7 @@ Type codes used in type patterns that describe built-in operators
 for overload resolution.
 */
 #define INTEGRAL_TYPE_CODE 'I'
-#define FLOATING_TYPE_CODE 'F'
+#define ARITH_TYPE_CODE 'F'
 #define POINTER_TYPE_CODE 'P'
 #define CORRESP_POINTER_TYPE_CODE 'C'
 #define PTR_TO_MEMBER_TYPE_CODE 'M'
@@ -553,8 +553,8 @@ Return a printable string describing a type code.
 
   if (type_code == INTEGRAL_TYPE_CODE) {
     str = "integer";
-  } else if (type_code == FLOATING_TYPE_CODE) {
-    str = "floating-point";
+  } else if (type_code == ARITH_TYPE_CODE) {
+    str = "arithmetic";
   } else if (type_code == POINTER_TYPE_CODE ||
              type_code == CORRESP_POINTER_TYPE_CODE) {
     str = "pointer";
@@ -3414,16 +3414,16 @@ static char *operand_type_pattern_for_operator(an_opname_kind kind,
 Return a string describing the argument type patterns permitted for the
 indicated operator (the unary version if unary_operator is TRUE).
 The argument string contains one or more possible patterns separated
-by semicolons, e.g., "II;FF;PI;IP"; each pattern has one letter (for
+by semicolons, e.g., "AA;PI;IP"; each pattern has one letter (for
 unary operators) or two letters (for binary operators) giving the type
 code for the associated operand:
   I  Integral
-  F  Floating
+  A  Arithmetic
   P  Pointer
   C  Corresponding pointer, when two pointer operands must match in type
   M  Pointer to member
 The first character of the overall string is "L" if the operator requires
-an lvalue as its first operand, e.g., "LII;FF;PI;IP".
+an lvalue as its first operand, e.g., "LAA;PI;IP".
 */
 {
   char *operand_type_pattern;
@@ -3433,11 +3433,11 @@ an lvalue as its first operand, e.g., "LII;FF;PI;IP".
       case onk_plus:
       case onk_minus:
         /* Unary "+" and "-" take an arithmetic operand. */
-        operand_type_pattern = "I;F";
+        operand_type_pattern = "A";
         break;
       case onk_not:
         /* "!" takes an arithmetic, pointer, or pointer-to-member operand. */
-        operand_type_pattern = "I;F;P;M";
+        operand_type_pattern = "A;P;M";
         break;
       case onk_compl:
         /* "~" takes an integral operand. */
@@ -3451,7 +3451,7 @@ an lvalue as its first operand, e.g., "LII;FF;PI;IP".
       case onk_minus_minus:
         /* "++" and "--" (prefix) take an arithmetic or pointer lvalue.
            See below for postfix (which shows up as a two-operand operator). */
-        operand_type_pattern = "LI;F;P";
+        operand_type_pattern = "LA;P";
         break;
 #if CHECKING
       default:
@@ -3464,7 +3464,7 @@ an lvalue as its first operand, e.g., "LII;FF;PI;IP".
       case onk_star:
       case onk_divide:
         /* "*" and "/" take arithmetic operands. */
-        operand_type_pattern = "II;FF";
+        operand_type_pattern = "AA";
         break;
       case onk_remainder:
       case onk_shift_left:
@@ -3477,36 +3477,35 @@ an lvalue as its first operand, e.g., "LII;FF;PI;IP".
         break;
       case onk_plus:
         /* "+" takes arith+arith, pointer+int, or int+pointer. */
-        operand_type_pattern = "II;FF;PI;IP";
+        operand_type_pattern = "AA;PI;IP";
         break;
       case onk_minus:
         /* "-" takes arith-arith, pointer-int, or pointer-pointer. */
-        operand_type_pattern = "II;FF;PI;CC";
+        operand_type_pattern = "AA;PI;CC";
         break;
       case onk_lt:
       case onk_le:
       case onk_gt:
       case onk_ge:
         /* Relational operators take arithmetic or pointer operands. */
-        operand_type_pattern = "II;FF;CC";
+        operand_type_pattern = "AA;CC";
         break;
       case onk_eq:
       case onk_ne:
         /* Equality operators take arithmetic, pointer, or pointer-to-member
            operands. */
-        operand_type_pattern = "II;FF;CC;MM";
+        operand_type_pattern = "AA;CC;MM";
         break;
       case onk_and_and:
       case onk_or_or:
         /* "&&" and "||" take arithmetic, pointer, or pointer-to-member
            operands, but they can be mixed. */
-        operand_type_pattern =
-                             "II;FI;PI;MI;IF;FF;PF;MF;IP;FP;PP;MP;IM;FM;PM;MM";
+        operand_type_pattern = "AA;AP;AM;PA;PP;PM;MA;MP;MM";
         break;
       case onk_times_assign:
       case onk_divide_assign:
         /* "*=" and "/=" take arithmetic operands, the first an lvalue. */
-        operand_type_pattern = "LII;FF";
+        operand_type_pattern = "LAA";
         break;
       case onk_remainder_assign:
       case onk_shift_left_assign:
@@ -3520,11 +3519,11 @@ an lvalue as its first operand, e.g., "LII;FF;PI;IP".
         break;
       case onk_plus_assign:
         /* "+=" takes arith+arith or pointer+int, the first an lvalue. */
-        operand_type_pattern = "LII;FF;PI";
+        operand_type_pattern = "LAA;PI";
         break;
       case onk_minus_assign:
         /* "-=" takes arith-arith or pointer-int, the first an lvalue. */
-        operand_type_pattern = "LII;FF;PI";
+        operand_type_pattern = "LAA;PI";
         break;
       case onk_subscript:
         /* "[]" takes pointer[int] or int[pointer]. */
@@ -3535,14 +3534,14 @@ an lvalue as its first operand, e.g., "LII;FF;PI;IP".
         /* "++" and "--" (postfix, which show up as two-operand operators)
            take an arithmetic or pointer lvalue.  A second implied
            operand is integer. */
-        operand_type_pattern = "LII;FI;PI";
+        operand_type_pattern = "LAI;PI";
         break;
       case onk_question:
         /* "?" (which shows up here as a two-operand operator) takes
            two operands (really the second and third) of arithmetic or
            pointer type (the void and class cases are handled outside of
            this routine). */
-        operand_type_pattern = "II;FF;CC";
+        operand_type_pattern = "AA;CC";
         break;
 #if CHECKING
       default:
@@ -3565,8 +3564,8 @@ type_code.
   if (type_code == INTEGRAL_TYPE_CODE) {
     builtin_types_allowed |= BTK_INTEGRAL;
   }  /* if */
-  if (type_code == FLOATING_TYPE_CODE) {
-    builtin_types_allowed |= BTK_FLOATING;
+  if (type_code == ARITH_TYPE_CODE) {
+    builtin_types_allowed |= BTK_INTEGRAL | BTK_FLOATING;
   }  /* if */
   /* Note that this routine is never called with CORRESP_POINTER_TYPE_CODE. */
   check_assertion(type_code != CORRESP_POINTER_TYPE_CODE);
@@ -3654,10 +3653,8 @@ pointer type).
       end_arg_match_list->next = arg_match;
     }  /* if */
     end_arg_match_list = arg_match;
-    /* See if the operand type matches the type code.  Any match that
-       does not require a conversion function is considered an exact match
-       or a standard conversion.
-       This is different than for function argument matching.  The ARM
+    /* See if the operand type matches the type code. */
+    /* This is different than for function argument matching.  The ARM
        is not very explicit about this.  13.2, page 314: "It follows that
        the binary operands for built-in types do not obey these ambiguity
        rules ... The problem with the (C and C++) rules for conversion of
@@ -3693,21 +3690,18 @@ pointer type).
 #endif
         if ((type_code == INTEGRAL_TYPE_CODE && 
                                              is_integral_type(operand_type)) ||
-            (type_code == FLOATING_TYPE_CODE && 
-                                             is_floating_type(operand_type)) ||
+            (type_code == ARITH_TYPE_CODE && 
+                                           is_arithmetic_type(operand_type)) ||
             (type_code == POINTER_TYPE_CODE &&
                                               is_pointer_type(operand_type)) ||
             (type_code == PTR_TO_MEMBER_TYPE_CODE &&
                                         is_ptr_to_member_type(operand_type))) {
-          /* No conversion required.  Note that this includes cases that
-             really require a promotion or standard conversion between two
-             precisions (e.g., int --> long).  This area is completely
-             unspecified in the ARM. */
-          arg_match->match_level = aml_exact;
-        } else if ((type_code == INTEGRAL_TYPE_CODE ||
-                    type_code == FLOATING_TYPE_CODE) &&
-                                            is_arithmetic_type(operand_type)) {
-          /* Arithmetic types are interconvertible. */
+          /* The type is correct, within the range allowed by a standard
+             conversion.  We count the cost as a standard conversion even if
+             it might be more properly considered an exact match or
+             promotion.  This is unspecified by the ARM.  cfront 2.1, Borland
+             3.1, and Zortech 3.1 seem to do it this way.  cfront 3.0.1 and
+             Microsoft do it differently. */
           arg_match->match_level = aml_std_conversion;
         }  /* if */
       }  /* if */
