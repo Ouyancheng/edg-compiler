@@ -451,9 +451,14 @@ extern void cast_operand(a_type_ptr         new_type,
                          an_expression_kind expression_kind,
 		         a_boolean          is_implicit_cast);
 
+extern void conv_selector_to_object_pointer(
+                                     an_operand         *operand,
+                                     a_boolean          *is_arrow_operator,
+                                     an_expression_kind expression_kind);
+
 extern void base_class_cast_operand(an_operand         *operand_1,
                                     a_base_class_ptr   bcp,
-                                    a_boolean          is_arrow_operator,
+                                    a_boolean          *is_arrow_operator,
                                     a_boolean          check_cast_access,
                                     an_expression_kind expression_kind);
 
