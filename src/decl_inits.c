@@ -1030,7 +1030,7 @@ the default constructor (if one exists) is called.
   a_variable_ptr                 var;
   a_type_ptr                     var_type, tp;
   a_class_symbol_supplement_ptr  cssp;
-  a_dynamic_init                 local_di, *ctor_dip;
+  a_dynamic_init                 local_di;
   a_routine_ptr                  rp;
   int                            count;
 
@@ -1069,9 +1069,16 @@ the default constructor (if one exists) is called.
           local_di.variant.constructor.args = NULL;
           local_di.destructor = select_destructor(tp);
           if (var_type != tp) {
+            /* The variable for which initialization is done is an array, so
+               we need to generate the repeat construct so that the constructor
+               (and destructor) can be called once for each element. */
+            a_dynamic_init  *ctor_dip;
+
+            /* Copy the dynamic init entry. */
             ctor_dip =
                     alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
             *ctor_dip = local_di;
+            /* Compute the repeat count. */
             if (var_type->size == 0) {
               count = 1;
             } else {
@@ -1079,6 +1086,7 @@ the default constructor (if one exists) is called.
             }  /* if */
             repeat_constructor_init(ctor_dip, &local_di, count);
           }  /* if */
+          /* Build the repeat construct. */
           gen_dynamic_initialization(var, &local_di);
           def_init_performed = TRUE;
 #if DEBUG
@@ -1096,6 +1104,22 @@ the default constructor (if one exists) is called.
            of the destructor can be duly recorded. */
         clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_none);
         local_di.destructor = rp;
+        if (var_type != tp) {
+          /* The object has an array type. */
+          a_dynamic_init  *dtor_dip;
+
+          /* Copy the dynamic init entry. */
+          dtor_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+          *dtor_dip = local_di;
+          /* Compute the repeat count. */
+          if (var_type->size == 0) {
+            count = 1;
+          } else {
+            count = (int)(var_type->size / tp->size);
+          }  /* if */
+          /* Build the repeat construct. */
+          repeat_constructor_init(dtor_dip, &local_di, count);
+        }  /* if */
         gen_dynamic_initialization(var, &local_di);
         /* Don't set def_init_performed.  A dik_none dynamic initialization
            doesn't count as initialization. */
