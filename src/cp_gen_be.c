@@ -1868,7 +1868,11 @@ operation.
 */
 {
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-  if (constant->expr != NULL) {
+  /* Put out the expression for constants that come from constant expressions.
+     Don't be fooled by enumeration constants, which also have a non-NULL
+     expression pointer if they were given an explicit value in their
+     definitions, but shouldn't be put out in expression form. */
+  if (constant->expr != NULL && !is_enum_constant(constant)) {
     gen_expr(constant->expr, need_parens);
   } else {
     form_constant(constant, need_parens, &octl);

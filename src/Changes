@@ -1,5 +1,21 @@
 Version 2.44
 
+1/5/00   C++-generating back end: enumeration constants put out as
+         defining expression instead
+
+Due to a bug in the changes made in 2.43 to record the expression form for
+constant expressions (see Changes entry of 10/18/99), the C++-generating
+back end put out enumeration constants incorrectly in some cases.
+Enumeration constants defined with the "name = value" form were put
+out as the "value" expression, which doesn't usually have the correct
+type (it's integral instead of the enum type).  Now fixed.
+
+  enum E { a, b = a+1 };
+  void f(E);
+  int main () {
+    f(b);  // Was put out as f(a+1)
+  }
+
 1/3/00   Internal error on use of invalid partial specialization
 
 The type of a nontype template parameter in a partial specialization is not
