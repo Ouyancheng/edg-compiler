@@ -874,6 +874,7 @@ or the specific definition flag (if instantiate is FALSE).
       } else {
         fiep->specific_def = TRUE;
         fiep->instantiation_required = FALSE;
+	fiep->explicit_instantiation = FALSE;
       }  /* if */
     }  /* if */
   } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
