@@ -1098,6 +1098,47 @@ is called.
 }  /* f_mark_to_merge */
 
 
+static void transfer_type_details(a_type_ptr type,
+                                  a_type_ptr corresp_type)
+/*
+The type identified by "type" is about to be eliminated.
+If there is any useful minor information in that type, e.g.,
+about use in exceptions, merge it into corresp_type, which is
+not being eliminated.
+*/
+{
+  if (type->used_in_exception_or_rtti) {
+    corresp_type->used_in_exception_or_rtti = TRUE;
+  }  /* if */
+  if (is_immediate_class_type(type)) {
+    a_class_type_supplement_ptr ctsp, corresp_ctsp;
+    ctsp = type->variant.class_struct_union.extra_info;
+    check_assertion(is_immediate_class_type(corresp_type));
+    corresp_ctsp = corresp_type->variant.class_struct_union.extra_info;
+    if (ctsp != NULL && corresp_ctsp != NULL) {
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+      if (corresp_ctsp->assoc_operator_new_routine == NULL &&
+          ctsp->assoc_operator_new_routine != NULL) {
+        corresp_ctsp->assoc_operator_new_routine =
+                              (a_routine_ptr)primary_il_entry_of(
+                                      (char *)ctsp->assoc_operator_new_routine,
+                                      iek_routine);
+      }  /* if */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
+      if (corresp_ctsp->assoc_operator_delete_routine == NULL &&
+          ctsp->assoc_operator_delete_routine) {
+        corresp_ctsp->assoc_operator_delete_routine =
+                           (a_routine_ptr)primary_il_entry_of(
+                                   (char *)ctsp->assoc_operator_delete_routine,
+                                   iek_routine);
+      }  /* if */
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
+    }  /* if */
+  }  /* if */
+}  /* transfer_type_details */
+
+
 static void transfer_routine_flags(a_routine_ptr routine,
                                    a_routine_ptr corresp_routine)
 /*
@@ -1330,19 +1371,6 @@ to the secondary translation unit.
       /* The type is a duplicate of one elsewhere and should be discarded. */
       keep_on_list = FALSE;
     }  /* if */
-    /* If the entry is being discarded or it will be merged into another
-       entry, preserve/merge any information in the used_in_exception_or_rtti
-       flag. */
-    if (type->used_in_exception_or_rtti &&
-        (!keep_on_list || entry_to_be_merged(type))) {
-      a_type_ptr corresp_type;
-      if (entry_should_overwrite_primary_entry(type)) {
-        corresp_type = (a_type_ptr)transitive_copy_address_of(type);
-      } else {
-        corresp_type = (a_type_ptr)canonical_il_entry_of(type);
-      }  /* if */
-      corresp_type->used_in_exception_or_rtti = TRUE;
-    }  /* if */
 #if DEBUG
     if (db_trace("trans_copy", trace_type, iek_type)) {
       fprintf(f_debug, "prepare_for_trans_unit_copy, ");
@@ -1367,6 +1395,10 @@ to the secondary translation unit.
       } else {
         prev_type->next = type->next;
       }  /* if */
+      /* Transfer any minor information that would otherwise be lost. */
+      { a_type_ptr corresp_type = (a_type_ptr)canonical_il_entry_of(type);
+        transfer_type_details(type, corresp_type);
+      }
     }  /* if */
   }  /* for */
   if (pointers_block != NULL) pointers_block->last_type = prev_type;
@@ -1774,8 +1806,6 @@ the secondary translation unit IL).
   a_class_type_supplement_ptr primary_ctsp;
   a_symbol_ptr                sym =
                                (a_symbol_ptr)(type->source_corresp.assoc_info);
-  a_boolean                   saved_used_in_exception_or_rtti =
-                                       primary_type->used_in_exception_or_rtti;
   do_saves_for_overwrite(primary_type, a_type_ptr);
   if (is_class) {
     primary_ctsp = primary_type->variant.class_struct_union.extra_info;
@@ -1788,6 +1818,7 @@ the secondary translation unit IL).
                     primary_type->variant.class_struct_union.definition_needed;
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
+  transfer_type_details(primary_type, type);
   *primary_type = *type;
   do_restores_for_overwrite(primary_type, type);
   if (is_class) {
@@ -1800,9 +1831,6 @@ the secondary translation unit IL).
                                                        saved_definition_needed;
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
-  /* Note that used_in_exception_or_rtti was previously updated in the
-     primary type, so we just save the value determined. */
-  primary_type->used_in_exception_or_rtti = saved_used_in_exception_or_rtti;
   establish_as_canonical(&primary_type->source_corresp);
   if (sym != NULL) {
     /* Make the symbol (in a secondary translation unit) point to the
@@ -1994,6 +2022,7 @@ unit set to the primary translation unit.
           /* No overwriting is needed, so we're done.  This happens,
              for example, when the only reason the class is marked to be
              merged is that some of its members need to be merged. */
+          transfer_type_details(corresp_type, primary_type);
         } else {
           /* Copy this type and its definition, overwriting the
              existing primary type.  Move the primary IL type
@@ -2198,6 +2227,7 @@ unit set to the primary translation unit.
         add_to_list = FALSE;
         if (!entry_should_overwrite_primary_entry(routine)) {
           /* No overwriting is needed, so we're done. */
+          transfer_routine_flags(corresp_routine, primary_routine);
         } else {
           /* Copy this routine and its definition, overwriting the
              existing primary routine.  Move the primary IL routine
