@@ -3629,8 +3629,11 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
   object_expr = skip_implicit_ptr_type_qualifier_adjustment_cast(object_expr);
   /* Remove unnecessary base class casts. */
   object_expr = optimized_expr_for_selection(object_expr, &naming_class);
-  if (is_variable_node(object_expr)) {
-    /* Use a pointer and "->". */
+  if (is_variable_node(object_expr) &&
+      !object_expr->implicit_reference_indirection) {
+    /* Use a pointer and "->".  Don't do it when there's an implicit
+       reference indirection on the object, because that will add a "&"
+       that may mean the wrong thing if operator& is overloaded. */
     gen_expr_with_parens(object_expr);
     write_tok_str("->");
   } else {
