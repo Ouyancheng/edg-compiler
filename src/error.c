@@ -838,7 +838,7 @@ error code.
       m = "invalid redeclaration of type name";
       break;
     case ec_missing_initializer_on_const:
-      m = "internally-linked const variable requires an initializer";
+      m = "initializer for const variable is missing";
       break;
     case ec_this_used_incorrectly:
       m = "\"this\" may only be used inside a nonstatic member function";
