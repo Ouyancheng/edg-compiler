@@ -11097,7 +11097,7 @@ eliminate_unneeded_scope_orphaned_list_entries).
 }  /* clear_function_body */
 
 
-void unlink_from_child_lifetime_list(an_object_lifetime_ptr  olp)
+void detach_from_object_lifetime_tree(an_object_lifetime_ptr  olp)
 /*
 Unlink the object lifetime entry pointed to by olp from the child-lifetime
 list of its parent.
@@ -11120,7 +11120,15 @@ list of its parent.
   } else {
     prev_child->next = olp->next;
   }  /* if */
-}  /* unlink_from_child_lifetime_list */
+  olp->parent_lifetime = NULL;
+#if DEBUG
+  if (debug_level >= 4) {
+    fputs("lifetime unlinked:\n", f_debug);
+    db_object_lifetime(olp);
+    db_object_lifetime(parent);
+  }  /* if */
+#endif /* DEBUG */
+}  /* detach_from_object_lifetime_tree */
 
 #if MAINTAIN_NEEDED_FLAGS
 
@@ -11280,7 +11288,7 @@ lifetimes created for its default arguments have been removed, too.
           def_arg_expr->kind == (an_expr_node_kind)enk_object_lifetime) {
         olp = def_arg_expr->variant.object_lifetime.ptr;
         check_assertion(olp != NULL);
-        unlink_from_child_lifetime_list(olp);
+        detach_from_object_lifetime_tree(olp);
 #if DEBUG
         if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
           fputs("Unlinking default arg object lifetime\n", f_debug);

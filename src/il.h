@@ -1137,7 +1137,7 @@ extern void add_scope_orphaned_il_lists(a_scope_ptr scope);
 
 extern void clear_function_body(a_scope_ptr sp);
 
-void unlink_from_child_lifetime_list(an_object_lifetime_ptr  olp);
+void detach_from_object_lifetime_tree(an_object_lifetime_ptr olp);
 
 #if MAINTAIN_NEEDED_FLAGS
 extern void eliminate_bodies_of_unneeded_functions(void);

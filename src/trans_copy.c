@@ -386,7 +386,7 @@ Also remove any nested object lifetimes.
   if (dip->init_expr_lifetime) {
     /* There is a nested object lifetime.  Eliminate it and everything in
        it. */
-    unlink_from_child_lifetime_list(dip->init_expr_lifetime);
+    detach_from_object_lifetime_tree(dip->init_expr_lifetime);
     dip->init_expr_lifetime = NULL;
   }  /* if */
   remove_from_destruction_list(dip);

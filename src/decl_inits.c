@@ -3408,49 +3408,6 @@ of curr_object_lifetime (which is assumed to be its former parent).
 }  /* add_as_child_of_curr_object_lifetime */
 
 
-static void detach_from_object_lifetime_tree(an_object_lifetime_ptr  olp)
-/*
-Detach the object lifetime *olp from the object lifetime tree, leaving it
-otherwise intact.  It will be restored later -- but possibly in a different
-position on the child_lifetime list of its parent.  Note: this routine
-assumes that the parent lifetime of *olp is the lifetime currently on top
-of the object lifetime stack.
-*/
-{
-  db_enter(4, "detach_from_object_lifetime_tree");
-  if (olp != NULL) {
-    check_assertion_str2(olp->parent_lifetime == curr_object_lifetime,
-                         "detach_from_object_lifetime_tree:",
-                         "parent is not curr_object_lifetime");
-    check_assertion_str2(curr_object_lifetime->child_lifetime != NULL,
-                         "detach_from_object_lifetime_tree:",
-                         "parent has NULL child_lifetime");
-    if (olp == curr_object_lifetime->child_lifetime) {
-      curr_object_lifetime->child_lifetime = olp->next;
-    } else {
-      an_object_lifetime_ptr  prev_sibling;
-
-      for (prev_sibling = curr_object_lifetime->child_lifetime;
-           prev_sibling != NULL && prev_sibling->next != olp;
-           prev_sibling = prev_sibling->next) { }
-      check_assertion_str2(prev_sibling != NULL,
-                           "detach_from_object_lifetime_tree:",
-                           "not on child_lifetime list of parent");
-      prev_sibling->next = olp->next;
-    }  /* if */
-    olp->parent_lifetime = NULL;
-#if DEBUG
-    if (debug_level >= 4) {
-      fputs("after detaching:\n", f_debug);
-      db_object_lifetime(olp);
-      db_object_lifetime(curr_object_lifetime);
-    }  /* if */
-#endif /* DEBUG */
-  }  /* if */
-  db_exit();
-}  /* detach_from_object_lifetime_tree */
-
-
 static an_object_lifetime_ptr init_expr_lifetime_of(a_dynamic_init_ptr  dip)
 /*
 Given a dynamic init entry, return a (possibly NULL) pointer to an object
