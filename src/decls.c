@@ -1996,20 +1996,19 @@ current scope.
 }  /* make_anonymous_union_variable */
 
 
-a_variable_ptr make_parameter(a_param_type_ptr ptp,
+a_variable_ptr make_parameter(a_type_ptr       type,
                               a_storage_class  storage_class,
                               a_symbol_ptr     sym)
 /*
-Allocate an entry for the variable to be associated with param type entry
-*ptp, and return a pointer to it.  The variable is a function parameter.
-The parameter is linked to/from its associated symbol sym.
+Allocate a parameter variable with the specified type and storage class
+and return a pointer to it. The parameter is linked to/from its associated
+symbol sym.
 */
 {
   a_variable_ptr vp;
 
   vp = alloc_variable();
-  vp->type = ptp->type;
-  vp->assoc_param_type = ptp;
+  vp->type = type;
   vp->storage_class = storage_class;
   vp->is_parameter = TRUE;
   /* sym will be NULL when the parameter is unnamed. */
@@ -2020,6 +2019,34 @@ The parameter is linked to/from its associated symbol sym.
   add_to_parameters_list(vp);
   return(vp);
 }  /* make_parameter */
+
+
+static void fixup_parameters(a_variable_ptr    param_list,
+                             a_param_type_ptr  param_type_list)
+/*
+Set each variable in a linked list of parameters to point to the corresponding
+param type entry.
+*/
+{
+  a_variable_ptr    vp = param_list;
+  a_param_type_ptr  ptp = param_type_list;
+
+  for (; vp != NULL; vp = vp->next, ptp = ptp->next) {
+#if CHECKING
+    if (ptp == NULL) {
+      internal_error("fixup_parameters: too few param type entries");
+    } else if (!types_are_compatible(vp->type, ptp->type)) {
+      internal_error("fixup_parameters: types not compatible");
+    }  /* if */
+#endif /* CHECKING */
+    vp->assoc_param_type = ptp;
+  }  /* for */
+#if CHECKING
+  if (ptp != NULL) {
+    internal_error("fixup_parameters: too many param type entries");
+  }  /* if */
+#endif /* CHECKING */
+}  /* fixup_parameters */
 
 
 static a_variable_ptr make_this_param_variable(a_type_ptr type_ptr)
@@ -6469,7 +6496,8 @@ explicitly specified (rather than defaulted to "int").
            list rather than the order in which they appear in the
            declarations.  Note that the variable entry is allocated
            in the current (function) scope, not at the file scope. */
-        (void)make_parameter(ptp, param_id->storage_class, param_id->symbol);
+        (void)make_parameter(param_id->type, param_id->storage_class,
+                             param_id->symbol);
         /* Now build the list of parameter types that is attached to the 
            routine type (needed for checking type compatibility -- see
            types_are_compatible). */
@@ -6559,7 +6587,8 @@ explicitly specified (rather than defaulted to "int").
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
       decl_parameter(&(param_id->locator), &param_symbol_ptr);
-      (void)make_parameter(ptp, param_id->storage_class, param_symbol_ptr);
+      (void)make_parameter(ptp->type, param_id->storage_class,
+                           param_symbol_ptr);
 #if CHECKING
       if ((param_id->next == NULL) != (ptp->next == NULL)) {
         internal_error("function_definion: param_id and ptp out of sync");
@@ -6569,6 +6598,9 @@ explicitly specified (rather than defaulted to "int").
   }  /* if */
   /* Free the list of parameter ids, now that it is no longer needed. */
   free_param_id_list(&(func_info->param_id_list));
+  /* Set the assoc_param_type field in each of the parameter variables. */
+  fixup_parameters(scope_ptr->variant.routine.parameters,
+                   extra_info->param_type_list);
   /* Enter the constructor initializers.  If the current token is a ":",
      explicit initialization for the constructor follows, but even without
      an explicit initializer, any implicit initializers should be recorded. */
@@ -6698,7 +6730,7 @@ processing of function definition.
     /* Declare each parameter identifier to have the associated type
        from the parameter type list. */
     decl_parameter(&(param_id->locator), &param_symbol_ptr);
-    (void)make_parameter(ptp, param_id->storage_class, param_symbol_ptr);
+    (void)make_parameter(ptp->type, param_id->storage_class, param_symbol_ptr);
 #if CHECKING
     if ((param_id->next == NULL) != (ptp->next == NULL)) {
       internal_error("inline_function_definion: param_id and ptp out of sync");
@@ -6707,6 +6739,9 @@ processing of function definition.
   }  /* for */
   /* Free the list of parameter ids, now that it is no longer needed. */
   free_param_id_list(&(func_info->param_id_list));
+  /* Set the assoc_param_type field in each of the parameter variables. */
+  fixup_parameters(scope->variant.routine.parameters,
+                   extra_info->param_type_list);
   /* Special processing for constructors and destructors. */
   switch (rout_ptr->special_kind) {
     case sfk_constructor:
