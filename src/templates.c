@@ -1843,14 +1843,18 @@ the function instantiation entry and set all the pointers.
 */
 {
   a_symbol_ptr                      sym;
-  a_template_symbol_supplement_ptr  tssp;
+  a_template_symbol_supplement_ptr  tssp = NULL;
   a_template_instance_ptr           tip;
   a_type_ptr                        tp;
   a_template_arg_ptr                templ_arg_list;
 
   db_enter(3, "record_predeclared_template_function");
-  if (rout_sym->variant.routine.instance_ptr != NULL) {
+  tip = rout_sym->variant.routine.instance_ptr;
+  if (tip != NULL) {
     /* Symbol is already marked as an instantiation. */
+    if (tip->template_sym != templ_sym) {
+      tssp = templ_sym->variant.template_info;
+    }  /* if */
   } else {
     tp = skip_typerefs(rout_sym->variant.routine.ptr->type);
     if (is_match_for_function_template(templ_sym, tp, &templ_arg_list, &sym)) {
@@ -1874,11 +1878,6 @@ the function instantiation entry and set all the pointers.
       tip->arg_list = templ_arg_list;
       /* Mark this function as a "specialization". */
       tip->specific_decl = TRUE;
-      if (rout_sym->defined) {
-        /* User-defined, so no instantiation is required. */
-        tip->specific_def = TRUE;
-        rout_sym->variant.routine.ptr->specific_def = TRUE;
-      }  /* if */
       tssp = templ_sym->variant.template_info;
       tip->next = tssp->variant.function.instantiations;
       tssp->variant.function.instantiations = tip;
@@ -1887,6 +1886,39 @@ the function instantiation entry and set all the pointers.
       tip->instance_sym = rout_sym;
       rout_sym->variant.routine.instance_ptr = tip;
       rout_sym->variant.routine.ptr->is_template_function = TRUE;
+    }  /* if */
+  }  /* if */
+  if (tssp != NULL) {
+    if (rout_sym->defined) {
+      /* User-defined, so no instantiation is required. */
+      tip->specific_def = TRUE;
+      rout_sym->variant.routine.ptr->specific_def = TRUE;
+    } else {
+      /* Not defined by the user, so still a candidate for instantiation
+         based on the template. */
+      a_routine_ptr  rp = rout_sym->variant.routine.ptr;
+      a_routine_ptr  templ_rp = tssp->variant.function.routine;
+      if (templ_rp->storage_class == (a_storage_class)sc_static) {
+        if (rp->storage_class != (a_storage_class)sc_static) {
+          sym_warning(ec_template_and_instance_linkage_conflict, rout_sym);
+          rp->storage_class = (a_storage_class)sc_static;
+          rp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+        }  /* if */
+        if (templ_rp->is_inline) {
+          if (rp->called) {
+            sym_error(ec_called_function_redeclared_inline, rout_sym);
+          }  /* if */
+          rp->is_inline = TRUE;
+        }  /* if */
+      } else {
+        if (rp->storage_class == (a_storage_class)sc_static) {
+          sym_warning(ec_template_and_instance_linkage_conflict, rout_sym);
+          rp->storage_class = (a_storage_class)sc_unspecified;
+          rp->source_corresp.name_linkage =
+                                (a_name_linkage_kind)nlk_cplusplus_external;
+          rp->is_inline = FALSE;
+        }  /* if */
+      }  /* if */
       /* Normally, function instantiation entries are not marked for actual
          instantiation (that is, for generation of the function body) until
          there is an invocation of the function.  This is partly under user

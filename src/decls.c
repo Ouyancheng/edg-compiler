@@ -4338,8 +4338,10 @@ class template.
         record_predeclared_template_function(sym, rout_sym);
       }  /* if */
     }  /* for */
-  }  /* if */
-  if (changed_to_inline) {
+  } else if (changed_to_inline) {
+    /* An existing template function has been redeclared and this time it's
+       inline.  Be sure that "inline" and storage class are propagated
+       through the instances. */
     a_template_instance_ptr  tip = tssp->variant.function.instantiations;
     for (; tip != NULL; tip = tip->next) {
       a_routine_ptr  rp = tip->instance_sym->variant.routine.ptr;
@@ -4349,11 +4351,16 @@ class template.
            template be consistent with that of the template? */
 #endif /* if 0 */
       } else {
+        if (rp->storage_class != (a_storage_class)sc_static) {
+          sym_warning(ec_template_and_instance_linkage_conflict,
+                      tip->instance_sym);
+          rp->storage_class = (a_storage_class)sc_static;
+          rp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+        }  /* if */
         /* Issue a diagnostic is the function has already been called. */
-        check_assertion(!rp->is_inline)
-        if (rp->called) {
-          pos_sy_error(ec_called_function_redeclared_inline,
-                       &locator->source_position, tip->instance_sym);
+        if (!rp->is_inline && rp->called) {
+          sym_error(ec_called_function_redeclared_inline,
+                    tip->instance_sym);
         }  /* if */
         rp->is_inline = TRUE;
       }  /* if */
