@@ -69,6 +69,7 @@ extern a_symbol_ptr function_definition(
                            a_storage_class             storage_class,
                            a_boolean                   has_explicit_type_spec,
                            a_decl_modifiers_block_ptr  decl_modifiers,
+			   an_attribute_ptr            attributes,
                            a_decl_pos_block_ptr        decl_pos_block);
 
 extern void force_definition_of_compiler_generated_routine(a_routine_ptr rp);

@@ -10598,9 +10598,9 @@ continue_with_declaration:
             curr_token != tok_comma &&
             curr_token != tok_assign &&
 #if GNU_EXTENSIONS_ALLOWED
-	    /* Attributes and asm names are only allowed on function
-	       declarations, not on function definitions. */
-	    curr_token != tok_attribute &&
+            /* Attributes and asm names are only allowed on function
+               declarations, not on function definitions. */
+            curr_token != tok_attribute &&
             curr_token != tok_asm &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
             curr_token != tok_end_of_source) {
@@ -10638,8 +10638,9 @@ continue_with_declaration:
             report_exception_spec_errors(&func_info);
           }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-          /* GNU C does not allow "void f() __attribute((...)) {}". */
-          if (prefix_attributes != NULL) {
+          /* GCC does not allow "void f() __attribute((...)) {}".  It
+             does, however, allow "void __attribute((...)) f() {}". */
+          if (attributes != NULL) {
             pos_error(ec_attributes_in_rout_defn, &locator.source_position); 
           }  /* if */
           /* GNU C doesn't allow "void f() asm("bar") {}". */
@@ -10653,7 +10654,8 @@ continue_with_declaration:
           (void)function_definition(&locator, local_type_ptr,
                                     &func_info, local_storage_class,
                                     has_explicit_type_specifier,
-                                    &decl_modifiers, &decl_pos_block);
+                                    &decl_modifiers, prefix_attributes,
+                                    &decl_pos_block);
           done_with_func_info(func_info);
           if (is_function_try_block) {
             /* Checking for the closing brace will already have been done. */

@@ -1446,6 +1446,7 @@ a_symbol_ptr function_definition(
                         a_storage_class            storage_class,
                         a_boolean                  has_explicit_type_specifier,
                         a_decl_modifiers_block_ptr decl_modifiers,
+                        an_attribute_ptr           attributes,
                         a_decl_pos_block_ptr       decl_pos_block)
 /*
 Scan a function definition.  The declarator has already been scanned; the
@@ -1660,7 +1661,7 @@ member declaration (allowed in Microsoft mode only).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     decl_routine(locator, storage_class, rout_type, func_info,
                  declarator_ssep, (SRK_DECLARATION | SRK_DEFINITION),
-                 decl_modifiers, (an_attribute_ptr)NULL, (char *)NULL,
+                 decl_modifiers, attributes, (char *)NULL,
 		 &symbol_ptr, &linkage, &old_type, &ext_sym, 
 		 decl_pos_block);
   }  /* if */
