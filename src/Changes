@@ -1,5 +1,14 @@
 Version 3.5
 
+6/16/04  C++-generating back end: Address expression not treated as constant
+         by Microsoft C compiler
+
+The C++-generating back end previous rendered an expression of the form
+"&((X*)0)->i" as "&(*((X*)0)).i".  However, MSVC++ 6.0 does not treat the
+latter as a constant (in its C language mode) whereas it does so treat the
+former.  To avoid this issue, the C++-generating back end now generates the
+first form (even when the target is not MSVC++).
+
 6/15/04  Missing diagnostic on empty initializer for array variable
 
 The front end sometimes failed to diagnose an empty initializer on an array

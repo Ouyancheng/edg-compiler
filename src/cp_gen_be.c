@@ -5103,6 +5103,13 @@ this selection.
        that may mean the wrong thing if operator& is overloaded. */
     gen_expression(object_expr);
     write_tok_str("->");
+  } else if (is_constant_node(object_expr)) {
+    /* An expression like "((X*)0)->i" should not be rendered as "(*((X*)0)).i"
+       because some Microsoft C compilers treat the two differently (they allow
+       the former in address constant-expressions, but not the latter; the
+       Microsoft C++ compilers do not make that distinction). */
+    gen_expr_with_parens(object_expr);
+    write_tok_str("->");
   } else if (object_expr->kind == (an_expr_node_kind)enk_variable_address &&
              object_expr->variant.variable->is_anonymous_parent_object) {
     /* For an anonymous union variable, do not put out the variable or "."
