@@ -4260,7 +4260,7 @@ symbol entry is returned.
     pos.seq = 0;
     pos.column = SP_COL_UNKNOWN;
     make_il_macro_entry(sym_ptr, &pos);
-  }
+  }  /* if */
 #endif /* RECORD_MACROS_IN_IL */
   return(sym_ptr);
 }  /* enter_predef_macro */
