@@ -2972,17 +2972,20 @@ class_type if any are needed.
     }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (ctsp->template_arg_list != NULL && any_vtbl_ref &&
-        first_virtual != NULL) {
+        first_virtual != NULL && first_virtual->is_instantiation) {
       /* Automatic template instantiation is being done.  The class is a
          template class with virtual functions, and the decision on whether
          or not to put out the virtual function table is based on the function
-         first_virtual.  There was a reference to some virtual function table
-         related to the class (e.g., a reference from a constructor) in this
-         compilation, which means that the virtual function table needs to
-         be generated somewhere in the program.  Therefore, somewhere in
-         the program there needs to be an instance of first_virtual (so that
-         the virtual function table will be generated at that point). */
-      if (first_virtual->is_instantiation) {
+         first_virtual, which can be generated from a template.  There was
+         a reference to some virtual function table related to the class
+         (e.g., a reference from a constructor) in this compilation, which
+         means that the virtual function table needs to be generated
+         somewhere in the program.  Therefore, somewhere in the program
+         there needs to be an instance of first_virtual (so that
+         the virtual function table will be generated at that point).  Set
+         the instance_required flag unless there is a body for first_virtual
+         in this compilation. */
+      if (first_virtual->assoc_scope == NULL_region_number) {
         first_virtual->instance_required = TRUE;
       }  /* if */
     }  /* if */
