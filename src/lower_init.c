@@ -1051,14 +1051,14 @@ for the source parameter of the copy constructor.
   a_type_ptr       class_type;
   a_base_class_ptr bcp;
 
-  curr_routine = nearest_function_scope->variant.routine.ptr;
+  curr_routine = innermost_function_scope->variant.routine.ptr;
 #if CHECKING
   if (curr_routine->special_kind != (a_special_function_kind)sfk_constructor) {
     internal_error(
              "var_for_copy_constructor_source: curr routine not constructor");
   }  /* if */
 #endif /* CHECKING */
-  source_param_var = nearest_function_scope->variant.routine.parameters->next;
+  source_param_var= innermost_function_scope->variant.routine.parameters->next;
 #if CHECKING
   if (source_param_var == NULL) {
     internal_error("var_for_copy_constructor_source: source param missing");
@@ -1563,7 +1563,7 @@ typedef struct a_generated_routine_context {
   a_scope_depth	depth_innermost_function_scope;
   a_cleanup_region_number
 		curr_cleanup_region_number;
-  a_scope_ptr	nearest_function_scope;
+  a_scope_ptr	innermost_function_scope;
 } a_generated_routine_context;
 
 
@@ -1586,8 +1586,8 @@ grcontext is a local variable used to save state for later restoration.
   grcontext->depth_innermost_function_scope = depth_innermost_function_scope;
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
   grcontext->curr_cleanup_region_number = curr_cleanup_region_number;
-  grcontext->nearest_function_scope = nearest_function_scope;
-  nearest_function_scope = scope;
+  grcontext->innermost_function_scope = innermost_function_scope;
+  innermost_function_scope = scope;
   { an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
     curr_object_lifetime = il_header.primary_scope->lifetime;
     push_object_lifetime(iek_scope, (char *)(scope),
@@ -1615,7 +1615,7 @@ Pop function corresponding to push_generated_routine_context.
     curr_object_lifetime = saved_curr_object_lifetime;
   }
   clean_up_all_object_lifetimes(scope);
-  nearest_function_scope = grcontext->nearest_function_scope;
+  innermost_function_scope = grcontext->innermost_function_scope;
   curr_cleanup_region_number = grcontext->curr_cleanup_region_number;
   depth_innermost_function_scope = grcontext->depth_innermost_function_scope;
   done_with_memory_region(region_number);
@@ -2766,7 +2766,7 @@ be kept, FALSE if it should be deleted.
          lifetime is in the file scope but we need it in the function scope,
          so make a copy. */
       an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
-      curr_object_lifetime = nearest_function_scope->lifetime;
+      curr_object_lifetime = innermost_function_scope->lifetime;
       push_object_lifetime(iek_none, (char *)NULL, init_expr_lifetime->kind);
       /* The file-scope lifetime won't be used, so unbind it. */
       unbind_object_lifetime(init_expr_lifetime);

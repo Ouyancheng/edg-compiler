@@ -1169,7 +1169,7 @@ scope.  Return a pointer to the variable.
 {
   a_variable_ptr temp_var;
 
-  temp_var = make_temporary_in_scope(temp_type, nearest_function_scope,
+  temp_var = make_temporary_in_scope(temp_type, innermost_function_scope,
                                      /*force_static=*/FALSE);
   return temp_var;
 }  /* make_function_scope_temporary */
@@ -1186,7 +1186,7 @@ instead of the current context (which might be a block scope).
   check_assertion_str(curr_context != NULL,
                    "make_unnamed_local_static_variable: curr_context is NULL");
   return make_temporary_in_scope(type,
-                                 in_function_scope ? nearest_function_scope :
+                                 in_function_scope ? innermost_function_scope :
                                                      curr_context->scope,
                                  /*force_static=*/TRUE);
 }  /* make_unnamed_local_static_variable */
@@ -1865,8 +1865,8 @@ The safe return value is FALSE.
   } else if (expr->kind == (an_expr_node_kind)enk_variable) {
     /* If the expression if the "this" variable for the current function,
        it cannot be null. */
-    if (nearest_function_scope != NULL &&
-        nearest_function_scope->variant.routine.this_param_variable ==
+    if (innermost_function_scope != NULL &&
+        innermost_function_scope->variant.routine.this_param_variable ==
                                                       expr->variant.variable) {
       cannot_be = TRUE;
     }  /* if */
@@ -2426,7 +2426,7 @@ the constant.
            a local-static-variable-init entry (to avoid memory region
            problems). */
         (void)alloc_local_static_variable_init(assoc_var, 
-                                               nearest_function_scope,
+                                               innermost_function_scope,
                                                (an_init_kind)initk_static,
                                                constant,
                                                (a_dynamic_init_ptr)NULL);
@@ -5848,13 +5848,13 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
 #if ASSIGNMENT_TO_THIS_ALLOWED
           case eok_passign:
             /* Check for assignment to "this" in a constructor. */
-            if (nearest_function_scope != NULL) {
+            if (innermost_function_scope != NULL) {
               a_routine_ptr curr_routine =
-                                   nearest_function_scope->variant.routine.ptr;
+                                 innermost_function_scope->variant.routine.ptr;
               if (curr_routine->special_kind ==
                                     (a_special_function_kind)sfk_constructor) {
                 a_variable_ptr this_param_var =
-                            nearest_function_scope->variant.routine.parameters;
+                          innermost_function_scope->variant.routine.parameters;
 
                 if (operand_node->kind ==
                                      (an_expr_node_kind)enk_variable_address &&
@@ -5899,7 +5899,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                   set_expr_insert_location(new_expr, &insert_location);
                   /* The insert location now specifies insertion before the
                      final expression.  Add the wrapper code there. */
-                  add_constructor_wrapper_code(nearest_function_scope,
+                  add_constructor_wrapper_code(innermost_function_scope,
                                                &insert_location);
                 }  /* if */
               }  /* if */
@@ -6755,12 +6755,12 @@ is begun.
     *context_pushed = TRUE;
     *new_lifetime = curr_context->new_lifetime;
     if (scope != NULL) lifetime = scope->lifetime;
-  } else if (block_statement == nearest_function_scope->assoc_block) {
+  } else if (block_statement == innermost_function_scope->assoc_block) {
     /* For the topmost block in a function, assoc_scope is NULL, so
        no push_context is done.  That's correct, because the caller has
        done the push_context already.  A new lifetime may begin here,
        however. */
-    scope = nearest_function_scope;
+    scope = innermost_function_scope;
     lifetime = scope->lifetime;
     *new_lifetime = (lifetime != NULL);
   }  /* if */
@@ -6802,8 +6802,8 @@ Any cleanup code inserted is placed after the last statement.
        why we can't just use curr_context->lifetime here.)   Note also
        that for the topmost block in a function, we end the lifetime
        here but do not pop the context. */
-    if (block_statement == nearest_function_scope->assoc_block) {
-      scope = nearest_function_scope;
+    if (block_statement == innermost_function_scope->assoc_block) {
+      scope = innermost_function_scope;
     }  /* if */
     if (scope != NULL) lifetime = scope->lifetime;
     /* Insert any cleanup actions after the last statement in the block
@@ -6894,7 +6894,7 @@ Do IL lowering of the indicated statement and everything under it.
            optimization applies, just skip the copy constructor call
            altogether. */
         if (dip != NULL &&
-            nearest_function_scope->variant.routine.
+            innermost_function_scope->variant.routine.
                                                return_value_variable == NULL) {
           /* This routine returns its value via a copy constructor.
              The dynamic initialization entry indicates the operation to
@@ -6915,9 +6915,10 @@ Do IL lowering of the indicated statement and everything under it.
           check_assertion(!keep_dynamic_init);
         }  /* if */
         any_cleanup_on_return =
-                         any_cleanup_actions(nearest_function_scope->lifetime);
+                       any_cleanup_actions(innermost_function_scope->lifetime);
         if (any_cleanup_on_return ||
-            (exceptions_enabled && nearest_function_scope->lifetime != NULL)) {
+            (exceptions_enabled &&
+             innermost_function_scope->lifetime != NULL)) {
           /* Some code will have to be inserted on return, either for
              cleanup or to pop the exception handling stack entry.  It has
              to be inserted after the evaluation of the return expression,
@@ -6930,7 +6931,7 @@ Do IL lowering of the indicated statement and everything under it.
              in a constructor (it's "return this;").
           */
           if (return_expr != NULL && !is_constant_node(return_expr) &&
-              nearest_function_scope->variant.routine.ptr->special_kind !=
+              innermost_function_scope->variant.routine.ptr->special_kind !=
                                     (a_special_function_kind)sfk_constructor) {
             /* There is a nonconstant return expression, so use a temporary.
                Note that the return type cannot call for a copy constructor,
@@ -6964,7 +6965,7 @@ Do IL lowering of the indicated statement and everything under it.
             turn_branch_into_block(statement, &insert_location,
                                    &return_statement);
           }  /* if */
-          gen_cleanup_actions(nearest_function_scope->lifetime,
+          gen_cleanup_actions(innermost_function_scope->lifetime,
                               &insert_location);
         }  /* if */
         /* Maintain a list of all returns in the routine so that epilogue code
@@ -7859,7 +7860,6 @@ Do IL lowering of the indicated scope and everything under it.
   }  /* if */
   if (scope_kind == (a_scope_kind)sck_function) {
     /* The scope is for a function. */
-    nearest_function_scope = scope;
     routine = scope->variant.routine.ptr;
 #if DEBUG
     if (debug_level >= 1) {
@@ -8048,7 +8048,6 @@ Do IL lowering of the indicated scope and everything under it.
     free_return_memo_list(return_memo_list);
     return_memo_list = NULL;
     return_value_pointer_variable = NULL;
-    nearest_function_scope = NULL;
   }  /* if */
   if (scope_kind != (a_scope_kind)sck_file) pop_context();
   db_exit();
@@ -8116,6 +8115,7 @@ C++ to C, so that a C back end can handle it without change.
   /* Save/restore curr_object_lifetime in this routine. */
   an_object_lifetime_ptr
               saved_curr_object_lifetime = curr_object_lifetime;
+  a_scope_ptr saved_innermost_function_scope = innermost_function_scope;
 
   db_enter(1, "lower_il_memory_region");
   /* The lowering is only needed if the source language is C++, if the
@@ -8128,7 +8128,7 @@ C++ to C, so that a C back end can handle it without change.
     }  /* if */
 #endif /* DEBUG */
     curr_context = file_scope_context = NULL;
-    nearest_function_scope = NULL;
+    innermost_function_scope = NULL;
     curr_object_lifetime = il_header.primary_scope->lifetime;
     switch_il_region(region_number);
     /* Mark entries created during this traversal as having already been
@@ -8146,7 +8146,8 @@ C++ to C, so that a C back end can handle it without change.
     } else {
       /* A function scope. */
       lowering_file_scope = FALSE;
-      scope = il_header.region_scope_entry[region_number];
+      innermost_function_scope = scope =
+                                   il_header.region_scope_entry[region_number];
     }  /* if */
     /* Put the file-scope context on the context stack.  This is also done
        for function scope memory regions so there will be a file-scope
@@ -8184,6 +8185,7 @@ C++ to C, so that a C back end can handle it without change.
     initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
   }  /* if */
   curr_object_lifetime = saved_curr_object_lifetime;
+  innermost_function_scope = saved_innermost_function_scope;
   db_exit();
 }  /* lower_il_memory_region */
 

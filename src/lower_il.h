@@ -318,10 +318,6 @@ typedef struct a_context {
 EXTERN a_context_ptr
 		curr_context;
 			/* Current (bottom) end of the context chain. */
-EXTERN a_scope_ptr
-		nearest_function_scope;
-			/* Nearest function scope, as pushed by
-			   push_context, or NULL if not inside a function. */
 EXTERN a_context_ptr
 		file_scope_context;
 			/* The context for the file scope. */
@@ -346,8 +342,8 @@ Return TRUE if the indicated variable is the return value optimization
 variable for the current function.
 */
 #define var_is_return_value_variable(var)                             \
-  (nearest_function_scope != NULL &&                                  \
-   nearest_function_scope->variant.routine.return_value_variable == (var))
+  (innermost_function_scope != NULL &&                                \
+   innermost_function_scope->variant.routine.return_value_variable == (var))
 
 
 EXTERN a_source_position

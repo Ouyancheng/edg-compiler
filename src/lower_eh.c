@@ -260,7 +260,7 @@ scope (which might be a block scope).
   /* Use a local-static-variable-init entry to indicate the initialization. */
   (void)alloc_local_static_variable_init(var, 
                                          in_function_scope ?
-                                              nearest_function_scope :
+                                              innermost_function_scope :
                                               curr_context->scope,
                                          (an_init_kind)initk_static,
                                          *aggr_con, (a_dynamic_init_ptr)NULL);
