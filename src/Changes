@@ -1,5 +1,12 @@
 Version 2.43
 
+8/16/99  Warn about "used before set" in initializers
+
+The front end now warns about an initializer that uses the value of the
+variable that it is initializing.  For example:
+
+  int main() { int x = x; }  // Warning: "x" is used before it is set.
+
 8/13/99  Microsoft compatibility: checking of array property types
 
 Microsoft compilers do not require any sizes to be specified for multi-
