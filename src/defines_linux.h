@@ -46,6 +46,9 @@ This is the version for Linux.
 #define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 0
 #define IGNORE_CARRIAGE_RETURN_IN_SOURCE 1
 #define GNU_EXTENSIONS_ALLOWED 1
+#if defined(__GNUC__) && !defined(GNU_INIT_PRIORITY_ALLOWED)
+#define GNU_INIT_PRIORITY_ALLOWED 1
+#endif /* defined(__GNUC__) && !defined(GNU_INIT_PRIORITY_ALLOWED) */
 #define DEFAULT_GNU_COMPATIBILITY 0
 #ifndef IA64_ABI
 #define IA64_ABI 1

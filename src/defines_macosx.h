@@ -40,6 +40,9 @@
 
 /* Language extensions. */
 #define GNU_EXTENSIONS_ALLOWED 1
+#if defined(__GNUC__) && !defined(GNU_INIT_PRIORITY_ALLOWED)
+#define GNU_INIT_PRIORITY_ALLOWED 1
+#endif /* defined(__GNUC__) && !defined(GNU_INIT_PRIORITY_ALLOWED) */
 #define DEFAULT_GNU_COMPATIBILITY 0
 #define C99_IL_EXTENSIONS_SUPPORTED 1
 #define MICROSOFT_EXTENSIONS_ALLOWED 0
