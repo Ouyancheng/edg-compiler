@@ -1066,6 +1066,9 @@ Initialize a dynamic_init entry of the kind specified.
   dip->has_temporary_lifetime        = FALSE;
   dip->is_constructor_init           = FALSE;
   dip->is_freeing_of_storage_on_exception = FALSE;
+#if DO_IL_LOWERING
+  dip->is_guard_var_for_local_static_var_init = FALSE;
+#endif /* DO_IL_LOWERING */
 #if CHECKING
   dip->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

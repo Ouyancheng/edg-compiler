@@ -1440,6 +1440,11 @@ by the EDG-supplied runtime.
 #define RDF_BASE_CLASS_SUBOBJECT	0x40
 			/* TRUE if the object is a base class of some other
 			   object and therefore is not a complete object. */
+#define RDF_GUARD_VAR_FOR_LOCAL_STATIC	0x80
+			/* TRUE if the object is the guard variable associated
+			   with the initialization of a local static variable.
+			   The cleanup action is to set the variable back
+			   to zero. */
 
 
 /* Type used to carry information about the location of an entity in the
@@ -1920,28 +1925,33 @@ the aggregate constant.
 
 
 static a_constant_ptr make_region_table_entry(
-                              an_init_pos_descr_ptr   ipdp,
-                              a_routine_ptr           routine,
-                              a_boolean               is_delete,
-                              a_variable_ptr          conditional_flag_var,
-                              a_handle                *conditional_flag_handle,
-                              a_cleanup_region_number next_region_number,
-                              a_cleanup_region_number *region_number,
-                              an_insert_location      *insert_location)
+                             an_init_pos_descr_ptr   ipdp,
+                             a_routine_ptr           routine,
+                             a_boolean               is_delete,
+                             a_boolean               is_local_static_guard_var,
+                             a_variable_ptr          conditional_flag_var,
+                             a_handle                *conditional_flag_handle,
+                             a_cleanup_region_number next_region_number,
+                             a_cleanup_region_number *region_number,
+                             an_insert_location      *insert_location)
 /*
 Add an entry to the region table (which describes destructible objects)
 related to the object whose position is given by ipdp.  routine is
 a destructor (is_delete == FALSE) or a delete routine (is_delete ==
-TRUE) to be called to do cleanup on the object.  conditional_flag_var,
-if non-NULL, points to a conditional flag variable that is non-zero to
-indicate that the destruction or deletion should be done.  In that case,
+TRUE) to be called to do cleanup on the object.  is_local_static_guard_var
+is TRUE if the object is the guard variable for a local static variable
+initialization, and the region entry should indicate that the guard variable
+is to be reset to zero (that's the "destruction" associated with
+the guard variable).  conditional_flag_var, if non-NULL, points to a
+conditional flag variable that is non-zero to indicate that the
+destruction or deletion should be done.  In that case,
 conditional_flag_handle gives the handle for the address for the
 conditional flag.  next_region_number is used as the
 next-region-table-entry number for the new entry.  The region table
 entry number for the new entry is returned in *region_number.  Any
-initialization code required will be inserted at *insert_location.
-The region table variable is created if necessary.  Return a pointer
-to the aggregate constant for the region table entry.
+initialization code required will be inserted at *insert_location.  The
+region table variable is created if necessary.  Return a pointer to the
+aggregate constant for the region table entry.
 */
 {
   a_handle        handle;
@@ -1973,6 +1983,9 @@ to the aggregate constant for the region table entry.
     make_array_table_entry(ipdp, &handle);
     /* Set the flag that indicates this object is an array. */
     flags_value |= RDF_ARRAY;
+  }  /* if */
+  if (is_local_static_guard_var) {
+    flags_value |= RDF_GUARD_VAR_FOR_LOCAL_STATIC;
   }  /* if */
   if (conditional_flag_var != NULL) {
     /* This entry needs a conditional flag.  More on this below. */
@@ -2105,6 +2118,8 @@ The region table variable is created if necessary.
                                      dip->destructor,
                                      (a_boolean)dip->
                                             is_freeing_of_storage_on_exception,
+                                     (a_boolean)dip->
+                                        is_guard_var_for_local_static_var_init,
                                      dedp->conditional_flag_var,
                                      &conditional_flag_handle,
                                      next_region_number,

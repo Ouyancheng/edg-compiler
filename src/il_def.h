@@ -1137,6 +1137,15 @@ typedef struct a_dynamic_init {
 			   a call of a delete routine to free the storage
 			   allocated in a new if an exception is thrown before
 			   the storage is initialized. */
+#if DO_IL_LOWERING
+  a_bit_field	is_guard_var_for_local_static_var_init:1;
+			/* TRUE if this entry represents the conditional flag
+			   variable that guards a local static variable
+			   initialization.  The flag variable must be cleared
+			   to zero if an exception is thrown before the
+			   initialization is completed.  The entry has
+			   a NULL destructor pointer. */
+#endif /* DO_IL_LOWERING */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */

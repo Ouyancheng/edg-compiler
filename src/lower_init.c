@@ -799,7 +799,7 @@ and return a pointer to it.
   dedp->next_in_region_table = NULL;
 #endif /* GENERATE_EH_TABLES */
   return dedp;
-}  /* alloc_destructible_entity_descr_copy */
+}  /* alloc_destructible_entity_descr */
 
 
 void free_destructible_entity_descr(a_destructible_entity_descr_ptr dedp)
@@ -3010,7 +3010,8 @@ code for the dynamic initialization.
 
 
 static void add_first_time_test(an_insert_location_ptr insert_location,
-                                a_statement_ptr        *block_stmt)
+                                a_statement_ptr        *block_stmt,
+                                a_variable_ptr         *test_var)
 /*
 Add a first-time test sequence that will surround the initialization of a
 local static variable.  In effect:
@@ -3026,19 +3027,19 @@ local static variable.  In effect:
 The sequence is inserted at *insert_location.  *insert_location is updated
 for further insertion after the assignment statement.  *block_stmt is
 set to point at the block statement inserted, in the statement insert case.
+A pointer to the conditional variable is returned in *test_var.
 */
 {
-  a_variable_ptr     test_var;
   an_expr_node_ptr   test_var_node, compare_node;
   an_insert_location insert_location2;
   a_type_ptr         int_type;
 
   /* Make the static first-time-test variable in the current scope. */
   int_type = integer_type((an_integer_kind)ik_int);
-  test_var = make_unnamed_local_static_variable(int_type,
-                                                /*in_function_scope=*/FALSE);
+  *test_var = make_unnamed_local_static_variable(int_type,
+                                                 /*in_function_scope=*/FALSE);
   /* Make "test_var == 0". */
-  test_var_node = var_rvalue_expr(test_var);
+  test_var_node = var_rvalue_expr(*test_var);
   test_var_node->next = node_for_integer_constant(0L, (an_integer_kind)ik_int);
   compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
                                     int_type, test_var_node);
@@ -3048,12 +3049,71 @@ set to point at the block statement inserted, in the statement insert case.
   /* Further inserts are done at the start of the block. */
   *insert_location = insert_location2;
   /* Make "test_var = 1" and insert it inside the "if" statement. */
-  (void)insert_var_assignment_statement(test_var,
+  (void)insert_var_assignment_statement(*test_var,
                                         (an_expr_operator_kind)eok_iassign,
                                         node_for_integer_constant(1L,
                                                       (an_integer_kind)ik_int),
                                         insert_location);
 }  /* add_first_time_test */
+
+
+static void add_local_static_guard_var_cleanup(
+                                 a_variable_ptr         local_static_guard_var,
+                                 an_object_lifetime_ptr local_static_lifetime,
+                                 an_insert_location_ptr insert_location)
+/*
+local_static_guard_var is the guard variable associated with the initialization
+of a local static variable.  local_static_lifetime is the object lifetime
+that surrounds the complete initialization.  Add a dynamic initialization
+entry and associated region table entry to indicate to the runtime that
+the guard variable must be reset to zero if an exception is thrown before
+the initialization of the local static variable is completed.  If any
+code is needed, insert it at *insert_location.
+*/
+{
+  a_dynamic_init_ptr dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+  a_destructible_entity_descr_ptr
+                     dedp;
+  an_init_pos_descr  ipd;
+
+  dip->variable = local_static_guard_var;
+  dip->has_temporary_lifetime = TRUE;
+  dip->is_guard_var_for_local_static_var_init = TRUE;
+  add_to_end_of_destructions_list(dip, local_static_lifetime);
+  dip->destructible_entity_descr = dedp = alloc_destructible_entity_descr();
+  dedp->cleanup_state_to_set_when_starting_destruction = curr_cleanup_state;
+  set_var_init_pos_descr(local_static_guard_var, &ipd);
+  copy_init_pos_descr(&ipd, &dedp->init_pos_descr);
+#if GENERATE_EH_TABLES
+  /* Add the cleanup region table entry. */
+  make_dyn_init_region_table_entry(dip,
+                                   curr_context->latest_initialization,
+                                   insert_location);
+#endif /* GENERATE_EH_TABLES */
+  /* Set the cleanup state to the cleanup entry. */
+  set_curr_cleanup_state(dip, insert_location);
+  curr_context->latest_initialization = dip;
+}  /* add_local_static_guard_var_cleanup */
+
+
+static void remove_local_static_guard_var_cleanup(
+                                  an_object_lifetime_ptr local_static_lifetime,
+                                  an_insert_location_ptr insert_location)
+/*
+Remove the region table entry for the clearing of the guard variable for
+a local static initialization from the cleanup list.  See
+add_local_static_guard_var_cleanup.  local_static_lifetime is the
+object lifetime that surrounds the initialization.  If any code is needed,
+it is inserted at *insert_location.
+*/
+{
+  a_dynamic_init_ptr dip = local_static_lifetime->destructions;
+
+  check_assertion(dip != NULL && dip->next == NULL);
+  set_curr_cleanup_state(dip->destructible_entity_descr->
+                                cleanup_state_to_set_when_starting_destruction,
+                         insert_location);
+}  /* remove_local_static_guard_var_cleanup */
 
 
 /*
@@ -3124,6 +3184,7 @@ in this routine must be FALSE in that case.
   a_context_ptr      eff_context = curr_context;
   a_boolean          expr_is_lvalue, local_keep_dynamic_init = FALSE;
   a_boolean          constructor_array_init = FALSE;
+  a_variable_ptr     local_static_guard_var;
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
@@ -3157,7 +3218,7 @@ in this routine must be FALSE in that case.
                                               )) {
     /* The variable is a local static. */
     /* Add a first-time flag and a test. */
-    add_first_time_test(insert_location, &block_stmt);
+    add_first_time_test(insert_location, &block_stmt, &local_static_guard_var);
     /* Find the local-static-variable-init entry that describes the
        initialization. */
     if (variable->init_kind == (an_init_kind)initk_function_local) {
@@ -3214,6 +3275,15 @@ in this routine must be FALSE in that case.
       if (keep_object_lifetime_info_in_lowered_il) {
         bind_object_lifetime(local_static_lifetime, iek_block,
                              (char *)block_stmt->variant.block.extra_info);
+      }  /* if */
+      if (exceptions_enabled) {
+        /* Add a dynamic init entry to represent the conditional flag.  This
+           is turned into a region table entry that indicates that the
+           conditional flag must be cleared if an exception is thrown before
+           the initialization is completed. */
+        add_local_static_guard_var_cleanup(local_static_guard_var,
+                                           local_static_lifetime,
+                                           insert_location);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3442,6 +3512,10 @@ do_assignment:;
   /* If this is the initialization of a local static variable and a lifetime
      surrounds that, pop the lifetime. */
   if (local_static_lifetime != NULL) {
+    if (exceptions_enabled) {
+      remove_local_static_guard_var_cleanup(local_static_lifetime,
+                                            eff_insert_location);
+    }  /* if */
     gen_cleanup_actions(local_static_lifetime, eff_insert_location);
     pop_context();
   }  /* if */
