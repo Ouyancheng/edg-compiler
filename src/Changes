@@ -1,5 +1,25 @@
 Version 2.45
 
+8/28/00  C++-generating back end: regenerating a cast sequence on an
+         overloaded function
+
+The C++-generating back end failed to regenerate a sequence of more than one
+cast operation applied to the name of an overloaded function.  The problem was
+due to the incorrect recording of constant expressions when
+RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE.  For example:
+
+  int f(int) { return 3; } 
+  int f(char) { return 4; } 
+  int (*p)() = (int (*)())(int (*)(char))f; 
+
+was regenerated as follows (leaving out #line directives):
+
+  int f(int) { return 3; } 
+  int f(char) { return 4; } 
+  int (*p)() = (int (*)())f; 
+
+This is now fixed.
+
 8/28/00  C++-generating back end: internal error on Microsoft-mode namespace-
          qualified variable declaration
 

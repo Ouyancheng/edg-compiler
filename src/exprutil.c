@@ -2595,7 +2595,12 @@ user-defined conversions.
               an_error_severity  saved_error_threshold = error_threshold;
 
               error_threshold = es_catastrophe;
-              local_constant.expr = make_node_from_operand(operand);
+              if (local_constant.expr == NULL) {
+                /* The cast is applied to a simple constant that contains no
+                   operations.  Create an expression node to which the cast
+                   history can be attached. */
+                local_constant.expr = make_node_from_operand(operand);
+              }  /* if */
               add_cast_to_node(&local_constant.expr, new_type,
                                check_cast_access, is_implicit_cast,
                                is_reinterpret_cast, reinterpret_semantics,
