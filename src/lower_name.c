@@ -30,6 +30,9 @@ lower_name.c -- Do name mangling for IL lowering.
 /* Only include this code if it is needed: */
 #if NEED_NAME_MANGLING
 #include "il_walk.h"
+#if IA64_ABI
+#include "templates.h"
+#endif /* IA64_ABI */
 
 #if IA64_ABI
 /* IA-64 name mangling codes. */
@@ -674,6 +677,8 @@ of which type is an instance.  Return NULL otherwise.
        nested class within a template class. */
     template_sym = class_template_for_type(type);
     if (template_sym != NULL) {
+      /* For a partial specialization, go to the primary template. */
+      template_sym = primary_template_of(template_sym);
       tssp = template_sym->variant.template_info;
       class_template = tssp->il_template_entry;
     }  /* if */
