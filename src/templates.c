@@ -104,6 +104,8 @@ typedef enum /* a_template_info_line_type */ {
   /* The Instantiation file name is only used when one instantiation per
      object mode is used. */
   /*lint -esym(749,tilt_instantiation_file_name)*/
+  /* Entry points are only used in INSTANTIATE_EXTERN_INLINE mode. */
+  /*lint -esym(749,tilt_entry_point)*/
 } a_template_info_line_type;
 
 /*
