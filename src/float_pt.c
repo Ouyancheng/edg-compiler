@@ -1212,7 +1212,7 @@ adjusted to make the implicit bit explicit.
   if (kind == (a_float_kind)fk_float) {
     memcpy((char*)&val, (char*)float_value, sizeof(val));
     mp->parts[0] = (val & 0x07ffffff) << 9;
-    *exponent = (long)((val & 0x7f800000) >> 23) - 127;
+    *exponent = (long)((val & 0xff800000) >> 23) - 127;
     *is_negative = (val & 0x80000000) != 0;
     if ((val & 0x7fffffff) != 0) is_zero = FALSE;
   } else if (kind == (a_float_kind)fk_double ||
