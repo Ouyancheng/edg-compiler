@@ -7238,6 +7238,29 @@ NULL.
 #if CHECKING
       scp = &var_ptr->source_corresp;
 #endif /* CHECKING */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Do fixup on the source sequence entry for a tentative definition. */
+      if (C_mode() && depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+          sym->defined) {
+        a_source_sequence_entry_ptr   ssep;
+        a_src_seq_secondary_decl_ptr  sssdp;
+
+        ssep = var_ptr->source_corresp.source_sequence_entry;
+        if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+          /* This source sequence entry must represent a tentative definition
+             of the variable (the first, if there were more than one) -- turn
+             it into a primary declaration. */
+          sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+#if CHECKING
+          check_assertion(sssdp->decl_position.seq == scp->decl_position.seq &&
+                          sssdp->decl_position.column ==
+                                                  scp->decl_position.column);
+#endif /* CHECKING */
+          ssep->entity.kind = (a_byte_il_entry_kind)iek_variable;
+          ssep->entity.ptr = (char *)var_ptr;
+        }  /* if */
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       break;
     case sk_overloaded_function:
       /* For each function or function template symbol on the overload list
@@ -8129,86 +8152,31 @@ secondary status.
         /* Don't put out source sequence information on compiler generated
            functions. */
       } else {
-        /* If this is a definition that follows a previous declaration, the
-           latter should be recorded as a secondary. */
-        if (is_primary_decl) {
-          /* See if the IL entry already points to a source sequence entry. */
-          scp = &((a_constant_ptr)il_entry_ptr)->source_corresp;
-          ssep = scp->source_sequence_entry;
-          if (ssep != NULL) {
-            /* A source sequence entry has been located. */
-            /* An IL entry's source-sequence pointer should never point to
-               a secondary declaration entry or to an entry that in turn points
-               to another source sequence entry. */
-            check_assertion(ssep->entity.kind !=
-                             (a_byte_il_entry_kind)iek_source_sequence_entry &&
-                            ssep->entity.kind !=
-                             (a_byte_il_entry_kind)iek_src_seq_secondary_decl);
-            /* Create a "secondary declaration" entry for the previous
-               declaration and point the existing source sequence entry to it.
-
-                 Current:               Change to:
-
-                   entity                       entity
-                      ^                           ^
-                      |                           |
-                      |         ==>       src-seq-secondary-decl
-                      |                           ^
-                      v                           |
-                 src-seq-entry             src-seq-entry
-
-               which eventually will look like this:
-
-                                      entity
-                                       ^   ^
-                                       |   |
-                    src-seq-secondary-decl |
-                            ^              |
-                            |              v
-                   src-seq-entry ... src-seq-entry
-
-               where the second source-sequence-entry in the new construct
-               (the one at which the entity will point back) has not yet been
-               created at this point in the processing. */
-            if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
-                in_file_scope(ssep)) {
-              force_alloc_in_filescope = TRUE;
-              switch_to_file_scope_region(&region_to_switch_back_to);
-            } else {
-              force_alloc_in_filescope = FALSE;
-            }  /* if */
-            sssdp = alloc_src_seq_secondary_decl();
-            if (force_alloc_in_filescope) {
-              switch_back_to_original_region(region_to_switch_back_to);
-            }  /* if */
-            sssdp->decl_position = scp->decl_position;
-            sssdp->entity = ssep->entity;
-            if (kind == (an_il_entry_kind)iek_type) {
-              a_type_ptr  tp = (a_type_ptr)sssdp->entity.ptr;
-              if (tp->autonomous_primary_tag_decl) {
-                /* The current declaration is the primary declaration of a
-                   class or enum (its definition, namely) and the previous
-                   declaration, originally listed as the primary declaration,
-                   is being demoted to a secondary declaration.  The
-                   "autonomous tag decl" setting is transferred to the
-                   secondary declaration entry, and the flag in the type
-                   entry is cleared. */
-                sssdp->autonomous_tag_decl = TRUE;
-                tp->autonomous_primary_tag_decl = FALSE;
-              }  /* if */
-            }  /* if */
-            /* Update the tagged-pointer of the current source sequence entry
-               to refer to the secondary-decl entry. */
-            ssep->entity.kind =
-                            (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
-            ssep->entity.ptr = (char *)sssdp;
-            /* Note that there is no back pointer from the entity to the
-               secondary-decl entry.   When the new source sequence entry is
-               created, the back pointer will refer to it. */
-            scp->source_sequence_entry = NULL;
+        if (!is_primary_decl) {
+          /* This is not a primary declaration, so put out an entry for a
+             secondary declaration. */
+          /* Switch to the file scope memory region to allocate the new entry
+             if necessary. */
+          if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
+              in_file_scope(il_entry_ptr)) {
+            force_alloc_in_filescope = TRUE;
+            switch_to_file_scope_region(&region_to_switch_back_to);
+          } else {
+            force_alloc_in_filescope = FALSE;
           }  /* if */
+          sssdp = alloc_src_seq_secondary_decl();
+          if (force_alloc_in_filescope) {
+            switch_back_to_original_region(region_to_switch_back_to);
+          }  /* if */
+          /* Set the fields. */
+          sssdp->decl_position = *pos;
+          sssdp->entity.kind = (a_byte_il_entry_kind)kind;
+          sssdp->entity.ptr = il_entry_ptr;
+          /* Change the parameter values accordingly. */
+          kind = iek_src_seq_secondary_decl;
+          il_entry_ptr = (char *)sssdp;
         }  /* if */
-        f_update_source_sequence_list(il_entry_ptr, kind, pos, old_ssep);
+        f_update_source_sequence_list(il_entry_ptr, kind, old_ssep);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -8235,7 +8203,8 @@ created for this entity; otherwise, it is NULL.
 */
 {
   a_boolean                is_definition = srk_flags & SRK_DEFINITION;
-  a_boolean                is_primary_decl;
+  a_boolean                is_tentative_def = srk_flags & SRK_TENTATIVE_DEF;
+  a_boolean                is_primary_decl = FALSE;
   a_source_correspondence  *scptr;
 
   if (is_definition) {
@@ -8251,19 +8220,18 @@ created for this entity; otherwise, it is NULL.
         /* A definition is ordinarily the primary declaration, but if it was
            previously defined and this is just a redefinition, this should be
            recorded as a secondary declaration. */
-        is_primary_decl = FALSE;
+        is_definition = FALSE;
       }  /* if */
     } else {
-      is_primary_decl = TRUE;
+      is_primary_decl = !is_tentative_def;
       sym_ptr->defined = TRUE;
-    }  /* if */
-    if (is_primary_decl) {
-      /* Put the source position in the symbol (since this is the definition);
-         the symbol is marked "defined" later. */
       sym_ptr->decl_position = *source_position;
     }  /* if */
-  } else {
-    is_primary_decl = FALSE;
+    if (is_definition) {
+      sym_ptr->decl_position = *source_position;
+      scptr = source_corresp_entry_for_symbol(sym_ptr);
+      if (scptr != NULL) scptr->decl_position = *source_position;
+    }  /* if */
   }  /* if */
   /* Set declaration sequence numbers based on the first declaration of the
      name, regardless of whether it is the primary declaration or not. */
@@ -8279,17 +8247,17 @@ created for this entity; otherwise, it is NULL.
      label is always defined by an stmk_label statement, for which a source
      sequence entry will be put out.  Putting out both would be redundant. */
   if (sym_ptr->kind != (a_symbol_kind)sk_label) {
+    if (is_definition) {
+      /* If this is a primary declaration (or a tentative definition that
+         is the first definition of the variable), erase the previous
+         source sequence entry bound to this entity (if any). */
+      sym_ptr->variant.variable.ptr->
+                        source_corresp.source_sequence_entry = NULL;
+    }  /* if */
     sym_update_source_sequence_list(sym_ptr, source_position,
                                     is_primary_decl, ssep);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (is_primary_decl) {
-    /* The source position in the IL entry is updated only after the source
-       sequence list is updated to assure that a secondary declaration entry
-       gets the right source position in the case of a redeclaration. */
-    scptr = source_corresp_entry_for_symbol(sym_ptr);
-    if (scptr != NULL) scptr->decl_position = *source_position;
-  }  /* if */
 #if RECORD_HIDDEN_NAMES_IN_IL
 #if 0
 /* The following can be improved (but made more fragile, with only a little
@@ -8596,7 +8564,7 @@ update the cross reference and source sequence output.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   update_source_sequence_list((char *)aap,
                               (an_il_entry_kind)iek_access_adjustment,
-                              pos, (a_source_sequence_entry_ptr)NULL);
+                              (a_source_sequence_entry_ptr)NULL);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* record_access_adjustment */
 

@@ -3924,6 +3924,26 @@ declaration.
   }  /* if */
 }  /* set_rout_src_seq_entry_for_default_arg_decl */
 
+
+void set_src_seq_secondary_decl_entity_type(char        *il_entry_ptr,
+                                            a_type_ptr  type)
+/*
+*/
+{
+  a_source_sequence_entry_ptr  ssep;
+
+  if (source_sequence_entries_disallowed) {
+    /* We are in a context in which source sequence entries are not being
+       created.  No further action is required. */
+  } else {
+    ssep = last_matching_source_sequence_entry(il_entry_ptr);
+    if (ssep != NULL) {
+      check_assertion(ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
+      ((a_src_seq_secondary_decl_ptr)ssep->entity.ptr)->entity_type = type;
+    }  /* if */
+  }  /* if */
+}  /* set_src_seq_secondary_decl_entity_type */
+
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 void decl_var_or_routine(a_symbol_locator             *locator,
@@ -3986,6 +4006,9 @@ generating cross-reference output describing this declaration.
   a_boolean                is_function_def = FALSE;
   a_boolean                changed_to_inline = FALSE;
   a_boolean                is_variable_def = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_type_ptr               declared_type = type_ptr;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "decl_var_or_routine");
   *old_type = NULL;
@@ -4592,8 +4615,27 @@ skip_overloading:;
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (is_function && !C_mode()) {
-    set_rout_src_seq_entry_for_default_arg_decl(routine_ptr, func_info);
+  /* Do fixup on the source sequence entry that was just created to
+     represent the current declaration.  Note that declaration_ssep is not
+     used, since it may have been replaced (e.g., when a file scope entity
+     is declared in a local scope and a sublist is generated). */
+  if (is_function) {
+    if (!is_function_def) {
+      /* A function declaration but not a definition.  Set the type in the
+         secondary declaration entry. */
+      set_src_seq_secondary_decl_entity_type((char *)routine_ptr,
+                                             declared_type);
+    }  /* if */
+    if (!C_mode()) {
+      /* Check for default arguments, which require special handling. */
+      set_rout_src_seq_entry_for_default_arg_decl(routine_ptr, func_info);
+    }  /* if */
+  } else {
+    if (!is_variable_def || (srk_flags & SRK_TENTATIVE_DEF)) {
+      /* A function declaration but not a definition. */
+      set_src_seq_secondary_decl_entity_type((char *)variable_ptr,
+                                             declared_type);
+    }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (is_function_def) {
@@ -5345,7 +5387,6 @@ a new symbol is created and entered in the symbol table.
     }  /* if */
 #endif /* CHECKING */
     update_source_sequence_list((char *)vp, (an_il_entry_kind)iek_variable,
-                                &param_id->type_pos,
                                 param_id->source_sequence_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else {
@@ -6925,7 +6966,6 @@ to indicate whether an enumeration is actually defined.
          the subroutine directly. */
       update_source_sequence_list((char *)enum_type,
                                   (an_il_entry_kind)iek_type,
-                                  &pos_curr_token,
                                   (a_source_sequence_entry_ptr)NULL);
 #endif  /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* set_source_corresp and mark_defined are not called, so copy in
@@ -9970,7 +10010,7 @@ an asm "declaration" is actually treated as an executable statement.
       /* There's no name or symbol for the asm declaration, so call
          update_source_sequence_list directly. */
       update_source_sequence_list((char *)ap, (an_il_entry_kind)iek_asm_entry,
-                                  &asm_pos, (a_source_sequence_entry_ptr)NULL);
+                                  (a_source_sequence_entry_ptr)NULL);
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */

@@ -7076,6 +7076,8 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       a_symbol_ptr            sym;
       a_boolean               lparen_printed = FALSE;
       a_boolean               autonomous = FALSE;
+      a_type_ptr              entity_type = NULL;
+      a_boolean               is_secondary_decl = FALSE;
 
       if (ssep->entity.ptr == NULL) {
         fputs(" <null entity ptr>", f_debug);
@@ -7086,6 +7088,8 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           scp = &((a_variable_ptr)sssdp->entity.ptr)->source_corresp;
           pos = &sssdp->decl_position;
           if (sssdp->autonomous_tag_decl) autonomous = TRUE;
+          is_secondary_decl = TRUE;
+          entity_type = sssdp->entity_type;
         } else {
           scp = &((a_variable_ptr)ssep->entity.ptr)->source_corresp;
           pos = &scp->decl_position;
@@ -7123,6 +7127,32 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           db_name(scp);
         }  /* if */
         fputc('"', f_debug);
+        if (is_secondary_decl) {
+          if (entity_type == NULL) {
+            if (is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) {
+              /* Don't report a NULL type -- that's what's expected. */
+            } else {
+              fprintf(f_debug, ", type = ***NULL***");
+            }  /* if */
+          } else if ((sym->kind == (a_symbol_kind)sk_routine ||
+                      sym->kind == (a_symbol_kind)sk_member_function) &&
+                     identical_types(routine_symbol_type(sym), entity_type)) {
+            /* Don't bother displaying the type. */
+          } else if ((sym->kind == (a_symbol_kind)sk_variable ||
+                      sym->kind == (a_symbol_kind)sk_static_data_member) &&
+                     identical_types(sym->variant.variable.ptr->type,
+                                     entity_type)) {
+            /* Don't bother displaying the type. */
+          } else {            
+            fprintf(f_debug, ", type = \"");
+            if (entity_type->source_corresp.name != NULL) {
+              db_type_name(entity_type);
+            } else {
+              db_abbreviated_type(entity_type);
+            }  /* if */
+            fputc('"', f_debug);
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
     fputc('\n', f_debug);
@@ -7258,6 +7288,7 @@ and return a pointer to it.
   sssdp->decl_position = null_source_position;
   sssdp->entity.kind   = (a_byte_il_entry_kind)iek_none;
   sssdp->entity.ptr    = NULL;
+  sssdp->entity_type   = NULL;
   sssdp->autonomous_tag_decl = FALSE;
 
   return sssdp;
@@ -7455,17 +7486,13 @@ will go on a sublist if it was allocated in the file-scope memory region.
 }  /* add_to_source_sequence_list */
 
 
-void f_update_source_sequence_list(char                        *entity_ptr,
-                                   an_il_entry_kind            kind,
-                                   a_source_position           *pos,
+void f_update_source_sequence_list(char                         *entity_ptr,
+                                   an_il_entry_kind             kind,
                                    a_source_sequence_entry_ptr  old_ssep)
 /*
 Allocate a source sequence entry for the entity and add it to the list for
-the current scope.  pos is the source position, for use in cases where this
-call records a secondary declaration; for entities for which that
-concept does not apply, pos can be NULL.  If old_ssep is non-NULL, it points
-to a source sequence entry that has already been created and linked in for
-this entity.
+the current scope.  If old_ssep is non-NULL, it points to a source sequence
+entry that has already been created and linked in for this entity.
 */
 {
   a_source_sequence_entry_ptr   ssep, new_ssep;
@@ -7497,17 +7524,9 @@ this entity.
        allocate a new one.  It will be filled out later. */
     new_ssep = alloc_source_sequence_entry();
   } else {
-    /* A "reusable" source sequence entry should be either empty or point to
-       a param type. */
-#if 0
-    check_assertion((ss_entry_kind(old_ssep) == (an_il_entry_kind)iek_none &&
-                     old_ssep->entity.ptr == NULL) ||
-                    ss_entry_kind(old_ssep) ==
-                                          (an_il_entry_kind)iek_param_type);
-#else /* if !0 */
+    /* A "reusable" source sequence entry should be empty. */
     check_assertion((ss_entry_kind(old_ssep) == (an_il_entry_kind)iek_none &&
                      old_ssep->entity.ptr == NULL));
-#endif /* if 0 */
     if (in_file_scope(old_ssep) || !force_alloc_in_filescope) {
       /* Either old_ssep is already allocated in the file scope or it's
          okay as is.  We'll just reuse it. */
@@ -7631,8 +7650,18 @@ this entity.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Set the pointer in the IL entity to point back to the source sequence
-     entry. */
+  if (force_alloc_in_filescope) {
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
+  /* Point the source sequence entry at the entity. */
+  new_ssep->entity.kind = (a_byte_il_entry_kind)kind;
+  new_ssep->entity.ptr = entity_ptr;
+  /* Then point the entity back to the source sequence entry. */
+  if (kind == (an_il_entry_kind)iek_src_seq_secondary_decl) {
+    sssdp = (a_src_seq_secondary_decl_ptr)entity_ptr;
+    kind = (an_il_entry_kind)sssdp->entity.kind;
+    entity_ptr = sssdp->entity.ptr;
+  }  /* if */
   switch (kind) {
     case iek_statement:
       /* Statement. */
@@ -7651,17 +7680,6 @@ this entity.
            because a prior declaration was turned into a secondary declaration
            -- e.g., a forward reference to a function -- see mark_declared. */
         scp->source_sequence_entry = new_ssep;
-      } else {
-        /* There was a prior declaration, and this one is the secondary
-           declaration.  Create a source sequence entry to represent a
-           secondary declaration. */
-        sssdp = alloc_src_seq_secondary_decl();
-        sssdp->decl_position = *pos;
-        sssdp->entity.kind = (a_byte_il_entry_kind)kind;
-        sssdp->entity.ptr = entity_ptr;
-        /* Change the parameter values accordingly. */
-        kind = iek_src_seq_secondary_decl;
-        entity_ptr = (char *)sssdp;
       }  /* if */
       break;
     case iek_pragma:
@@ -7670,11 +7688,6 @@ this entity.
     default:;
       /* No pointer back to the source source sequence entry. */
   }  /* switch */
-  new_ssep->entity.kind = (a_byte_il_entry_kind)kind;
-  new_ssep->entity.ptr = entity_ptr;
-  if (force_alloc_in_filescope) {
-    switch_back_to_original_region(region_to_switch_back_to);
-  }  /* if */
   if (old_ssep == NULL) {
     add_to_source_sequence_list(new_ssep);
   } else {
