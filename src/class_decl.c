@@ -6107,7 +6107,7 @@ Scan the body of a class definition, including the base classes list.
           unnamed_field = FALSE;
           /* The declarator can be omitted for an unnamed bit-field. */
           set_err_pos_to_curr_token();
-          if (curr_token == tok_colon) {
+          if (type_explicitly_specified && curr_token == tok_colon) {
             /* Unnamed bit-field. */
             unnamed_field = TRUE;
             local_type = member_type;
@@ -6116,6 +6116,16 @@ Scan the body of a class definition, including the base classes list.
             /* There is no declarator. */
             local_type = member_type;
             set_to_error_locator(locator);
+          } else if (local_no_decl_specifiers && !is_constructor &&
+                     !is_destructor && !is_declarator_start()) {
+            remove_stop_token(tok_comma);
+            remove_stop_token(tok_colon);
+            syntax_error(ec_exp_declaration);
+            if (curr_token == tok_semicolon) {
+              /* Advance past the semicolon. */
+              (void)get_token();
+            }  /* if */
+            goto next_declaration;
           } else {
             /* Named member -- we need to call declarator. */
             a_decl_flag_set    declarator_input_flags, declarator_output_flags;
