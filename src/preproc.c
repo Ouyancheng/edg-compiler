@@ -855,8 +855,9 @@ instantiated.
 }  /* can_be_instantiated */
 
 
-static void update_instantiation_flags(a_symbol_ptr	sym,	
-				       a_boolean	instantiate)
+static void update_instantiation_flags(a_symbol_ptr	 sym,	
+				       a_boolean	 instantiate,
+				       a_source_position *pos)
 /*
 Given a pointer to either a routine, member function, or static data member
 symbol, set either the instantiation required flag (if instantiate is TRUE)
@@ -876,8 +877,9 @@ or the specific definition flag (if instantiate is FALSE).
   }  /* if */
   if (tip != NULL) {
     if (instantiate) {
-      tip->explicit_instantiation = TRUE;
       update_instantiation_required_flag(tip, TRUE);
+      tip->explicit_instantiation = TRUE;
+      tip->explicit_instantiation_pos = *pos;
     } else {
       tip->specific_def = TRUE;
       tip->instantiation_required = FALSE;
@@ -899,16 +901,21 @@ or the specific definition flag (if instantiate is FALSE).
 }  /* update_instantiation_flags */
 
 
-static void update_instantiation_flags_for_class(a_symbol_ptr	sym,
-						 a_boolean	instantiate)
+static void update_instantiation_flags_for_class(a_symbol_ptr	   sym,
+						 a_boolean	   instantiate,
+						 a_source_position *pos)
 /*
 Updates the instantiation flags for all of the member functions and static
 data members within a given template class.
 */
 {
   a_symbol_ptr	mem_sym;
+  a_type_ptr	class_type;
 
   check_assertion(is_template_class_symbol(sym));
+  class_type = sym->variant.class_struct_union.type;
+  /* Instantiate the class, if not already done. */
+  check_for_uninstantiated_template_class(class_type);
   mem_sym = sym->variant.class_struct_union.extra_info->symbols;
   /* Loop through all the member symbols looking for member functions. */
   for (; mem_sym != NULL; mem_sym = mem_sym->next_in_scope) {
@@ -927,11 +934,11 @@ data members within a given template class.
       for (; list_sym != NULL; list_sym = is_list ? list_sym->next : NULL) {
         /* Only set the flags for things that can be instantiated. */
         if (can_be_instantiated(list_sym, /*issue_errors=*/FALSE)) {
-          update_instantiation_flags(list_sym, instantiate);
+          update_instantiation_flags(list_sym, instantiate, pos);
        	}  /* if */
       }  /* for */
     } else if (mem_sym->kind == (a_symbol_kind)sk_static_data_member) {
-      update_instantiation_flags(mem_sym, instantiate);
+      update_instantiation_flags(mem_sym, instantiate, pos);
     }  /* if */
   }  /* for */
 }  /* update_instantiation_flags_for_class */
@@ -1049,15 +1056,15 @@ assumed if the return type is omitted.
     if (sym != NULL && !err) {
       if (is_template_class_symbol(sym)) {
          /* Process all member functions and static data members. */
-	update_instantiation_flags_for_class(sym, instantiate);
+	update_instantiation_flags_for_class(sym, instantiate, &start_pos);
       } else if ((new_sym = sym_if_template_class_member_function(sym))
 								 != NULL) {
 	sym = new_sym;
-	update_instantiation_flags(sym, instantiate);
+	update_instantiation_flags(sym, instantiate, &start_pos);
       } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
                  sym->variant.variable.instance_ptr != NULL) {
 	/* A static data member -- set the instantiation flags. */
-	update_instantiation_flags(sym, instantiate);
+	update_instantiation_flags(sym, instantiate, &start_pos);
       } else if (sym->kind == (a_symbol_kind)sk_overloaded_function ||
 		 sym->kind == (a_symbol_kind)sk_function_template) {
         /* An overloaded function name or a plain function template name.
@@ -1122,7 +1129,7 @@ assumed if the return type is omitted.
       err = TRUE;
     } else if (!is_function_symbol(sym)) {
       /* Not a function symbol -- issue an error. */
-      sym_error(ec_not_instantiatable_entity, sym);
+      pos_error(ec_invalid_instantiation_pragma_argument, &start_pos);
       err = TRUE;
     } else if (is_member_function_symbol(sym)) {
       /* A member function symbol, find the member function that matches
@@ -1133,7 +1140,7 @@ assumed if the return type is omitted.
 	err = TRUE;
       } else {
         /* Update the flags for the symbol found. */
-        update_instantiation_flags(sym, instantiate);
+        update_instantiation_flags(sym, instantiate, &start_pos);
       }  /* if */
     } else {
       /* A regular function name that is expected to represent one or
@@ -1180,7 +1187,7 @@ assumed if the return type is omitted.
 	err = TRUE;
       } else if (!err) {
         /* Update the flags for the symbol found. */
-        update_instantiation_flags(sym, instantiate);
+        update_instantiation_flags(sym, instantiate, &start_pos);
       }  /* if */
     }  /* if */
   } else {
