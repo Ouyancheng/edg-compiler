@@ -48,6 +48,11 @@ static unsigned long
 			   that have not been revisited to determine whether
 			   they need definitions.  Used to cut short the
 			   final pass that finds and defines the variables. */
+static a_boolean
+		any_try_blocks_in_function;
+			/* TRUE if there are any try blocks in the current
+			   function. */
+
 
 /*
 Pointer to the typeinfo struct type (used to represent runtime type
@@ -1837,29 +1842,31 @@ is given by "scope".  Called only if exceptions are enabled.
                                       spec_array_node,
                                       &insert_location);
   }  /* if */
-  if (region_table_var != NULL) {
+  if (region_table_var != NULL || any_try_blocks_in_function) {
     /* The function contains destructible objects, so we need to push a
-       stack entry for the function itself. */
+       stack entry for the function itself.  Or, it contains try blocks. */
     /* Generate code to push an entry on the EH stack. */
     push_eh_stack_frame(ehsek_function, &func_frame, &insert_location);
     need_function_epilogue = TRUE;
     /* Finish off the various arrays and put pointers to them into the
        stack. */
-    finish_array_var(region_table_var);
-    /* Make an expression for throw_frame.variant.function.regions */
-    func_frame_function_regions = 
+    if (region_table_var != NULL) {
+      finish_array_var(region_table_var);
+      /* Make an expression for throw_frame.variant.function.regions */
+      func_frame_function_regions = 
                   field_lvalue_selection_expr(
                     field_lvalue_selection_expr(
                       field_lvalue_selection_expr(var_lvalue_expr(func_frame),
                                                   ehse_variant_field),
                       ehse_function_field),
                     ehse_function_regions_field);
-    /* Assign the region table address to
-       func_frame.variant.function.regions */
-    (void)insert_assignment_statement(func_frame_function_regions,
-                                      (an_expr_operator_kind)eok_passign,
-                                      array_var_lvalue_expr(region_table_var),
-                                      &insert_location);
+      /* Assign the region table address to
+         func_frame.variant.function.regions */
+      (void)insert_assignment_statement(func_frame_function_regions,
+                                        (an_expr_operator_kind)eok_passign,
+                                       array_var_lvalue_expr(region_table_var),
+                                        &insert_location);
+    }  /* if */
     if (object_addr_table_var != NULL) {
       finish_array_var(object_addr_table_var);
       /* Make an expression for throw_frame.variant.function.obj_table */
@@ -2079,6 +2086,7 @@ Do IL lowering for an stmk_try_block statement.
   a_cleanup_region_number
                      region_number;
 
+  any_try_blocks_in_function = TRUE;
   /* Change the stmk_try_block statement into a block, and prepare to insert
      code at the start of the block. */
   turn_statement_into_block(statement);
@@ -2241,6 +2249,7 @@ IL lowering for exceptions.
   array_table_var = NULL;
   region_table_var = NULL;
   next_region_number = 0;
+  any_try_blocks_in_function = FALSE;
 }  /* eh_function_lower_init */
 
 
