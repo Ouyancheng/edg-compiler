@@ -2779,9 +2779,9 @@ initialized.  These are addressed in the course of the processing.
    is added. */
 #endif /* if 0 */
           /* If no symbol was returned from the lookup, or if the symbol
-             returned was not a member of the current class, see if the
-             name (if it was unqualified) matches the name of a base class.
-             This can be necessary in cases like this:
+             returned was not a base class or member of the current class,
+             see if the name (if it was unqualified) matches the name of a
+             base class. This can be necessary in cases like this:
                namespace N {
                  class A { A(int); ... };
                }
@@ -2794,23 +2794,39 @@ initialized.  These are addressed in the course of the processing.
              but the differences will be manifested as slightly different
              diagnostics, and then only in rather obscure cases.
           */
-          if (!locator_for_curr_id.is_qualified_name &&
-              (member_or_base_sym == NULL ||
-               !member_or_base_sym->is_class_member ||
-               member_or_base_sym->parent.class_type != class_type)) {
+          if (!locator_for_curr_id.is_qualified_name) {
+            a_boolean     check_base_classes;
             a_symbol_ptr  sym;
-            for (bcp = base_classes_of(class_type);
-                 bcp != NULL;
-                 bcp = bcp->next) {
-              if (bcp->direct || bcp->is_virtual ||
-                  member_or_base_sym == NULL) {
-                sym = (a_symbol_ptr)bcp->type->source_corresp.assoc_info;
-                if (locator_for_curr_id.symbol_header == sym->header) {
-                  member_or_base_sym = sym;
-                  break;
+
+            if (member_or_base_sym == NULL) {
+              check_base_classes = TRUE;
+            } else if (is_class_symbol(member_or_base_sym) &&
+                       find_base_class_of(class_type,
+                                          type_symbol_type(
+                                                 member_or_base_sym))) {
+              /* A class that's on the base-classes list. */
+              check_base_classes = FALSE;
+            } else if (is_class_symbol(member_or_base_sym) &&
+                       member_or_base_sym->parent.class_type == class_type) {
+              /* A member of the current class. */
+              check_base_classes = FALSE;
+            } else {
+              check_base_classes = TRUE;
+            }  /* if */
+            if (check_base_classes) {
+              for (bcp = base_classes_of(class_type);
+                   bcp != NULL;
+                   bcp = bcp->next) {
+                if (bcp->direct || bcp->is_virtual ||
+                    member_or_base_sym == NULL) {
+                  sym = (a_symbol_ptr)bcp->type->source_corresp.assoc_info;
+                  if (locator_for_curr_id.symbol_header == sym->header) {
+                    member_or_base_sym = sym;
+                    break;
+                  }  /* if */
                 }  /* if */
-              }  /* if */
-            }  /* for */
+              }  /* for */
+            }  /* if */
           }  /* if */
         }
         if (member_or_base_sym == NULL ||
