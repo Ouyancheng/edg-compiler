@@ -548,6 +548,7 @@ check_abbreviation()
 --pch_mem
 --pch_messages
 --pch_test_mode
+--pending_instantiations
 --pic
 --prelink_copy_if_nonlocal
 --prelink_local_only
@@ -1007,6 +1008,7 @@ process_option()
          --diag_error | \
          --microsoft_version | \
 	 --definition_list_file | \
+         --pending_instantiations | \
          --pack_alignment)
       feoptions=$feoptions" $curr_arg $curr_param"
       used_two_params=1
@@ -1064,6 +1066,7 @@ process_option()
           --diag_warning=* | \
           --diag_error=* | \
           --microsoft_version=* | \
+          --pending_instantiations=* | \
           --definition_list_file=* | \
           --pack_alignment=*)
       feoptions=$feoptions" $curr_arg"
