@@ -1095,6 +1095,8 @@ extern a_scope_ptr push_scope(a_scope_kind       kind,
 
 extern void push_file_scope(a_boolean	is_reactivation);
 
+extern void push_block_scope_with_lifetime(an_object_lifetime_ptr olp);
+
 extern
 void push_template_declaration_scope(a_template_decl_info_ptr decl_info);
 

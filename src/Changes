@@ -1,5 +1,21 @@
 Version 3.4
 
+11/26/03 Exception handling cleanup in constructor/destructor function
+         try blocks
+
+The cleanup code invoked for a thrown exception inside a function
+try block of a constructor or destructor did not correctly
+destroy the members and bases of the class.  Now fixed.
+
+  struct A { A(); ~A(); };
+  struct B {
+    A a;
+    B() try : a() {
+      A a;
+      throw 0;  // Member "a" was not destroyed on throw
+    } catch (...) {
+    }
+  };
 
 11/26/03 Microsoft mode: Spurious class type correspondence error
 

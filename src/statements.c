@@ -3171,14 +3171,18 @@ found:
 }  /* find_enclosing_struct_stmt */
 
 
-static a_statement_ptr start_block_statement(a_boolean generated_statement,
-                                             a_boolean is_statement_expr)
+static a_statement_ptr start_block_statement(
+                                  a_boolean              generated_statement,
+                                  a_boolean              is_statement_expr,
+                                  an_object_lifetime_ptr function_try_lifetime)
 /*
 Do processing to begin a block or compound statement.  Return a pointer
 to the block statement.  generated_statement is TRUE if the block is
 generated, e.g., to surround a dependent statement in C++ or C99.
 is_statement_expr is TRUE if the statement is the top of a GNU
-statement expression, ({ ... }).
+statement expression, ({ ... }).  If function_try_lifetime is
+non-NULL, it points to an object lifetime preallocated for the
+block under the "try" in a function try block.
 */
 {
   a_struct_stmt_kind      kind;
@@ -3218,8 +3222,7 @@ statement expression, ({ ... }).
                          (an_object_lifetime_kind)olk_block);
   } else {
     /* Push an associated scope.  This does not allocate the IL scope yet. */
-    (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
-                     (a_type_ptr)NULL, (a_routine_ptr)NULL);
+    push_block_scope_with_lifetime(function_try_lifetime);
     /* Set appropriate flags in the scope stack entry. */
     kind = struct_stmt_stack[depth_stmt_stack].kind;
     if (kind == ssk_while || kind == ssk_do || kind == ssk_for) {
@@ -3297,7 +3300,8 @@ a local scope.
     /* Normal case (in C++ and C99): add a block and potential scope.
        In cfront mode, the block is added but not the scope. */
     block = start_block_statement(/*generated_statement=*/TRUE,
-                                  /*is_statement_expr=*/FALSE);
+                                  /*is_statement_expr=*/FALSE,
+                                  (an_object_lifetime_ptr)NULL);
     block_added = TRUE;
   }  /* if */
   /* Now process the dependent statement itself. */
@@ -3421,7 +3425,8 @@ and pushes a generated block statement.
 {
   if (c99_mode) {
     (void)start_block_statement(/*generated_statement=*/TRUE,
-                                /*is_statement_expr=*/FALSE);
+                                /*is_statement_expr=*/FALSE,
+                                (an_object_lifetime_ptr)NULL);
     /* Move any pragmas for the statement (previously selected in
        "statement") to the new level in the scope stack. */
     scope_stack[depth_scope_stack].curr_construct_pragmas =
@@ -6631,6 +6636,7 @@ e.g., ({ ... }).
   a_boolean                  any_statements = FALSE;
   a_token_set_array_element  old_else_stop_token_value;
   a_boolean                  is_function_try_block = FALSE;
+  an_object_lifetime_ptr     function_try_lifetime = NULL;
 
   db_enter (3, "compound_statement");
 
@@ -6668,12 +6674,31 @@ e.g., ({ ... }).
          In most ways this has to be treated just like an ordinary top-level
          block of a function. */
       is_function_try_block = TRUE;
+      if (current_routine_entry()->special_kind ==
+                                    (a_special_function_kind)sfk_constructor ||
+          current_routine_entry()->special_kind ==
+                                    (a_special_function_kind)sfk_destructor) {
+        /* A function-try-block in a constructor or destructor.  An object
+           lifetime was previously pushed to capture any destructions in
+           the members or base classes.  Remove it from the object lifetime
+           stack (but don't use pop_object_lifetime because that decides
+           whether or not it's useless, and we want to wait until the
+           end of the block to decide that). */
+        function_try_lifetime = curr_object_lifetime;
+        check_assertion(function_try_lifetime->kind ==
+                                           (an_object_lifetime_kind)olk_block);
+        curr_object_lifetime = function_try_lifetime->parent_lifetime;
+        check_assertion(curr_object_lifetime != NULL &&
+                        curr_object_lifetime->kind ==
+                                       (an_object_lifetime_kind)olk_try_block);
+      }  /* if */
     }  /* if */
     /* Note that there is no check for unreachable code.  It's probably too
        draconian to warn about an unreachable open brace if (say) there
        is a label right afterwards. */
     block = start_block_statement(/*generated_statement=*/FALSE,
-                                  is_statement_expr);
+                                  is_statement_expr,
+                                  function_try_lifetime);
   }  /* if */
   /* Record in the statement stack entry whether the routine was declared
      with an explicit return type. */
@@ -6945,6 +6970,18 @@ function try block has to have been established first.
   stmt_update_source_sequence_list(sp);
   /* Do additional initialization generic to scanning a try statement. */
   start_of_try_block(sp);
+  if (current_routine_entry()->special_kind ==
+                                    (a_special_function_kind)sfk_constructor ||
+      current_routine_entry()->special_kind ==
+                                    (a_special_function_kind)sfk_destructor) {
+    /* For a constructor or destructor, push a block object lifetime
+       inside the try-block lifetime to capture any destructions in
+       the ctor-initializer list.  Those get done on exit from the main
+       statement, before any catch clause is entered. */
+    push_object_lifetime((an_il_entry_kind)iek_none,
+                         (char *)NULL,
+                         (an_object_lifetime_kind)olk_block);
+  }  /* if */
   db_exit();
 }  /* start_of_function_try_block */
 

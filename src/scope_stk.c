@@ -1514,6 +1514,7 @@ static a_scope_ptr push_scope_full(
 			       a_symbol_ptr             template_sym,
 			       a_template_arg_ptr       template_arg_list,
                                a_template_decl_info_ptr template_decl_info,
+			       an_object_lifetime_ptr   lifetime,
 			       a_push_scope_options_set	options)
 /*
 Begin a new name scope by pushing an entry on the scope stack.  kind indicates
@@ -1540,6 +1541,8 @@ instantiation scopes, and describes the context being created by the
 instantiation scope (the template parameters to be used, etc.).
 template_decl_info is also used for template declaration scopes and points
 to the declaration information for the template declaration scope being pushed.
+lifetime, if non-NULL, is a previously allocated object lifetime to be
+used for the scope.
 
 options is a bit set of option flags that specify additional information about
 the scope being pushed.
@@ -2202,7 +2205,11 @@ the scope being pushed.
       curr_object_lifetime =
                    scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
     }  /* if */
-    if (kind == (a_scope_kind)sck_file) {
+    if (lifetime != NULL) {
+      /* A lifetime was previously allocated and should be reused. */
+      curr_object_lifetime = lifetime;
+      ssep->curr_scope_object_lifetime = curr_object_lifetime;
+    } else if (kind == (a_scope_kind)sck_file) {
       /* Push an object lifetime for the file scope, or reuse one if this
          is a reactivation. */
       curr_object_lifetime = sp->lifetime;
@@ -2249,7 +2256,9 @@ instantiation scopes.
                           assoc_routine, (a_namespace_ptr)NULL,
                           (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                           (a_template_arg_ptr)NULL,
-                          (a_template_decl_info_ptr)NULL, PS_NO_OPTIONS);
+                          (a_template_decl_info_ptr)NULL,
+                          (an_object_lifetime_ptr)NULL,
+                          PS_NO_OPTIONS);
   return scope;
 }  /* push_scope */
 
@@ -2268,13 +2277,32 @@ scope.
                         (a_type_ptr)NULL, (a_routine_ptr)NULL,
                         (a_namespace_ptr)NULL, (a_symbol_ptr)NULL,
                         (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL,
-                        (a_template_decl_info_ptr)NULL, ps_options);
+                        (a_template_decl_info_ptr)NULL,
+                        (an_object_lifetime_ptr)NULL,
+                        ps_options);
   /* Add active using directives for the namespaces that should be
      visible because of the transitivity of using directives. */
   add_active_using_directives_for_scope(curr_translation_unit->primary_scope,
                                         &scope_stack[depth_scope_stack],
 					NO_DECL_SEQUENCE_NUMBER);
 }  /* push_file_scope */
+
+
+void push_block_scope_with_lifetime(an_object_lifetime_ptr olp)
+/*
+Push a block scope for which the indicated object lifetime was
+previously allocated.  olp can be NULL, in which case the normal
+processing is done.
+*/
+{
+  (void)push_scope_full((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
+                        (a_type_ptr)NULL, (a_routine_ptr)NULL,
+                        (a_namespace_ptr)NULL,
+                        (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                        (a_template_arg_ptr)NULL,
+                        (a_template_decl_info_ptr)NULL,
+                        olp, PS_NO_OPTIONS);
+}  /* push_block_scope_with_lifetime */
 
 
 a_scope_ptr push_for_init_scope(void)
@@ -2322,7 +2350,9 @@ template defined in a namespace.
                           (a_routine_ptr)NULL, assoc_namespace,
                           (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                           (a_template_arg_ptr)NULL,
-                          (a_template_decl_info_ptr)NULL, PS_NO_OPTIONS);
+                          (a_template_decl_info_ptr)NULL,
+                          (an_object_lifetime_ptr)NULL,
+                          PS_NO_OPTIONS);
   /* Add active using directives for the namespaces that should be
      visible because of the transitivity of using directives. */
   add_active_using_directives_for_scope(assoc_namespace->variant.assoc_scope,
@@ -2733,7 +2763,9 @@ are non-NULL when they should be used for the outermost instantiation scope.
                           decl_info->declaration_scope, assoc_type,
                           assoc_routine, (a_namespace_ptr)NULL,
                           instance_sym, template_sym, template_arg_list,
-                          decl_info, ps_options);
+                          decl_info,
+                          (an_object_lifetime_ptr)NULL,
+                          ps_options);
     }  /* if */
   }  /* if */
   /* Reactivate the enclosing class scope. */
@@ -3016,7 +3048,9 @@ scopes.
  (void)push_scope_full((a_scope_kind)sck_template_instantiation,
                         decl_info->declaration_scope, assoc_type,
                         assoc_routine, (a_namespace_ptr)NULL, instance_sym,
-                        template_sym, template_arg_list, decl_info, options);
+                        template_sym, template_arg_list, decl_info,
+                        (an_object_lifetime_ptr)NULL,
+                        options);
   ssep = scope_stack_entry_for(depth_scope_stack);
   /* Template instantiation scopes need to record the scope depth before
      the set of scopes that represent the instantiation is pushed.
@@ -3235,7 +3269,9 @@ is pushed here, and popped when the instantiation scope is popped.
     (void)push_scope_full((a_scope_kind)sck_template_instantiation,
                           decl_info->declaration_scope, assoc_type,
                           assoc_routine, (a_namespace_ptr)NULL, instance_sym,
-                          template_sym, template_arg_list, decl_info, options);
+                          template_sym, template_arg_list, decl_info,
+                          (an_object_lifetime_ptr)NULL,
+                          options);
   }  /* if */
   if (!nested_in_prototype_instantiation) {
     a_scope_stack_entry_ptr	ssep;
@@ -3348,7 +3384,9 @@ Push a template declaration scope.
                         (a_type_ptr)NULL, (a_routine_ptr)NULL,
                         (a_namespace_ptr)NULL, (a_symbol_ptr)NULL,
                         (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL,
-                        decl_info, PS_NO_OPTIONS);
+                        decl_info,
+                        (an_object_lifetime_ptr)NULL,
+                        PS_NO_OPTIONS);
 }  /* push_template_declaration_scope */
 
 

@@ -620,6 +620,12 @@ insert_dtor_member_and_base_destructions.
 typedef struct a_destructor_wrapper_info_block
 		*a_destructor_wrapper_info_block_ptr;
 typedef struct a_destructor_wrapper_info_block {
+  a_statement_ptr
+		epilogue_block;
+			/* Block containing destructions, and initially
+			   unattached to the IL tree.  Set by
+			   gen_dtor_member_and_base_destructions.  NULL
+			   if there are no destructions. */
   a_dynamic_init_ptr
 		first_epilogue_destruction;
 			/* First destruction to be done in the epilogue.
@@ -1033,6 +1039,12 @@ extern void lower_asm_statement(a_statement_ptr statement);
 
 extern void lower_statement_list(a_statement_ptr statement_list,
                                  a_statement_ptr *last_statement);
+
+extern void lower_block_statement(
+                      a_statement_ptr                 statement,
+                      a_boolean                       is_block_of_function_try,
+                      a_destructor_wrapper_info_block *dtor_info,
+                      a_statement_ptr                 *last_statement);
 
 extern void lower_statement(a_statement_ptr statement);
 

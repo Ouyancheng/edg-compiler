@@ -13118,6 +13118,66 @@ curr_context->curr_cleanup_state had at the start of the block.
 }  /* pop_block_statement_context */
 
 
+void lower_block_statement(
+                      a_statement_ptr                 statement,
+                      a_boolean                       is_block_of_function_try,
+                      a_destructor_wrapper_info_block *dtor_info,
+                      a_statement_ptr                 *p_last_statement)
+/*
+Lower an stmk_block statement.  is_block_of_function_try is TRUE if the
+block is the dependent block of a function-try-block in a constructor
+or destructor.  *dtor_info provides extra information for the
+destructor case; dtor_info is NULL otherwise.  If p_last_statement
+is non-NULL, *p_last_statement is set to point to the last statement
+in the block, or NULL if there are no statements in the block.
+*/
+{
+  a_statement_ptr    statement_list, last_statement;
+  a_boolean          context_pushed, new_lifetime;
+  a_dynamic_init_ptr saved_curr_cleanup_state;
+  a_block_ptr        block;
+  a_context          context;
+  a_scope_ptr        scope;
+
+  set_position_from_stmt_source_position(code_pos_for_lowering,
+                                         statement->position);
+  error_position = code_pos_for_lowering;
+  /* Save the statement list pointer early in case code is inserted
+     to initialize conditional flags or the catch handler parameter. */
+  statement_list = statement->variant.block.statements;
+  /* Push a context around the processing of the block if it has a scope
+     or an object lifetime. */
+  push_block_statement_context(statement, &context,
+                               &context_pushed, &new_lifetime,
+                               &saved_curr_cleanup_state);
+  block = statement->variant.block.extra_info;
+  scope = block->assoc_scope;
+  if (scope != NULL) {
+    if (scope->variant.assoc_handler != NULL) {
+      /* This statement is the dependent statement of a catch handler.
+         Generate code to start the catch clause. */
+      begin_catch_clause(scope->variant.assoc_handler);
+    }  /* if */
+  }  /* if */
+  if (is_block_of_function_try) {
+    add_function_try_wrapper_code(statement, dtor_info);
+  }  /* if */
+  lower_statement_list(statement_list, &last_statement);
+  /* Generate any cleanup actions and pop the context. */
+  pop_block_statement_context(statement, last_statement,
+                              context_pushed, new_lifetime,
+                              saved_curr_cleanup_state);
+  if (p_last_statement != NULL) {
+    /* Return a pointer to the last statement to the caller.  Advance
+       if necessary in case pop_block_statement_context added some
+       statements. */
+    while (last_statement != NULL &&
+           last_statement->next != NULL) last_statement = last_statement->next;
+    *p_last_statement = last_statement;
+  }  /* if */
+}  /* lower_block_statement */
+
+
 static void lower_return_statement(a_statement_ptr statement)
 /*
 Lower an stmk_return statement.
@@ -13684,16 +13744,9 @@ void lower_statement(a_statement_ptr statement)
 Do IL lowering of the indicated statement and everything under it.
 */
 {
-  a_context            context;
-  a_scope_ptr          scope;
-  an_insert_location   insert_location;
-  a_statement_ptr      statement_list;
-  a_statement_ptr      last_statement;
-  an_expr_node_ptr     stmt_expr;
-  a_source_position    saved_error_position, saved_code_pos;
-  a_block_ptr          block;
-  a_boolean            context_pushed, new_lifetime;
-  a_dynamic_init_ptr   saved_curr_cleanup_state;
+  an_insert_location insert_location;
+  an_expr_node_ptr   stmt_expr;
+  a_source_position  saved_error_position, saved_code_pos;
 
   if (statement != NULL) {
     a_statement_ptr saved_temp_init_statements = temp_init_statements;
@@ -13757,28 +13810,10 @@ Do IL lowering of the indicated statement and everything under it.
         lower_for_statement(statement);
         break;
       case stmk_block:
-        /* Save the statement list pointer early in case code is inserted
-           to initialize conditional flags or the catch handler parameter. */
-        statement_list = statement->variant.block.statements;
-        /* Push a context around the processing of the block if it has a scope
-           or an object lifetime. */
-        push_block_statement_context(statement, &context,
-                                     &context_pushed, &new_lifetime,
-                                     &saved_curr_cleanup_state);
-        block = statement->variant.block.extra_info;
-        scope = block->assoc_scope;
-        if (scope != NULL) {
-          if (scope->variant.assoc_handler != NULL) {
-            /* This statement is the dependent statement of a catch handler.
-               Generate code to start the catch clause. */
-            begin_catch_clause(scope->variant.assoc_handler);
-          }  /* if */
-        }  /* if */
-        lower_statement_list(statement_list, &last_statement);
-        /* Generate any cleanup actions and pop the context. */
-        pop_block_statement_context(statement, last_statement,
-                                    context_pushed, new_lifetime,
-                                    saved_curr_cleanup_state);
+        lower_block_statement(statement,
+                              /*is_block_of_function_try=*/FALSE,
+                              (a_destructor_wrapper_info_block_ptr)NULL,
+                              (a_statement_ptr *)NULL);
         break;
       case stmk_switch:
         lower_condition(statement);
@@ -13788,7 +13823,6 @@ Do IL lowering of the indicated statement and everything under it.
         break;
       case stmk_try_block:
         lower_try_block(statement, /*is_function_try_block=*/FALSE,
-                        (a_statement_ptr)NULL,
                         (a_destructor_wrapper_info_block_ptr)NULL);
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED

@@ -97,7 +97,6 @@ extern void cleanup_on_exit_from_catch(a_handler_ptr      handler,
 extern void lower_try_block(
                          a_statement_ptr                 statement,
                          a_boolean                       is_function_try_block,
-                         a_statement_ptr                 wrapper_code,
                          a_destructor_wrapper_info_block *dtor_info);
 
 extern an_expr_node_ptr make_internal_try_expr(an_expr_node_ptr try_expr,

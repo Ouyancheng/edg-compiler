@@ -4796,13 +4796,11 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
 
 void lower_try_block(a_statement_ptr                 statement,
                      a_boolean                       is_function_try_block,
-                     a_statement_ptr                 wrapper_code,
                      a_destructor_wrapper_info_block *dtor_info)
 /*
 Do IL lowering for an stmk_try_block statement.  If is_function_try_block
 is TRUE, this is a function-try-block of a constructor or destructor,
-and wrapper_code (if non-NULL) points to wrapper code (to construct or
-destroy members and bases) that has been generated and should be inserted
+and wrapper code to construct or destroy members and bases will be inserted
 in the dependent statement of the "try".  For the destructor case,
 dtor_info points to a block that provides additional information to
 be passed down.
@@ -4810,9 +4808,8 @@ be passed down.
 {
   a_try_supplement_ptr
                      tsp = statement->variant.try_block;
-  a_statement_ptr    stmt_to_try = tsp->statement;
-  a_statement_ptr    orig_stmt, orig_stmt_to_try, dependent_stmt;
-  an_insert_location wrapper_insert_location;
+  a_statement_ptr    dependent_stmt = tsp->statement, last_statement;
+  a_statement_ptr    orig_stmt;
   a_handler_ptr      handlers = tsp->handlers, handler;
   an_insert_location insert_location;
   a_context          try_context;
@@ -4834,13 +4831,11 @@ be passed down.
   turn_statement_into_block(statement, &insert_location, &orig_stmt);
   /* Generate code to push a stack frame. */
   push_eh_stack_frame(ehsek_try_block, &try_frame, &insert_location);
-  orig_stmt_to_try = stmt_to_try;
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* In the non-portable schemes, we keep the original "try" statement. */
   orig_stmt = statement;
-  turn_statement_into_block(stmt_to_try, &insert_location, &orig_stmt_to_try);
+  turn_statement_into_block(dependent_stmt, &insert_location, &dependent_stmt);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
-  dependent_stmt = orig_stmt_to_try;
   /* Push a context around the try and catch.  This is needed to ensure that
      the "try" stack frame is popped on a goto out of the try or catch. */
   lifetime = tsp->lifetime;
@@ -4869,39 +4864,18 @@ be passed down.
   /* The dependent statement is the statement under the "try". */
   orig_stmt->variant.if_stmt.then_statement = dependent_stmt;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
-  if (is_function_try_block) {
-    /* This is a function-try-block in a constructor or destructor. */
-    turn_statement_into_block(dependent_stmt, &wrapper_insert_location,
-                              &orig_stmt_to_try);
-    if (dtor_info == NULL) {
-      check_assertion(innermost_function_scope->variant.routine.ptr->
-                     special_kind == (a_special_function_kind)sfk_constructor);
-      /* Function try block in a constructor.  Insert constructor wrapper
-         code before the dependent statement. */
-      if (wrapper_code != NULL) {
-        insert_statement(wrapper_code, &wrapper_insert_location);
-      }  /* if */
-    } else {
-      check_assertion(innermost_function_scope->variant.routine.ptr->
-                      special_kind == (a_special_function_kind)sfk_destructor);
-      /* Function try block in a destructor.  Set the cleanup state
-         appropriately for entry to the dependent statement. */
-      if (wrapper_code != NULL) {
-        set_cleanup_state_before_destructor_user_code(&wrapper_insert_location,
-                                                      dtor_info);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  /* Lower the dependent statement of the try. */
-  lower_statement(orig_stmt_to_try);
+  lower_block_statement(dependent_stmt,
+                        is_function_try_block,
+                        dtor_info,
+                        &last_statement);
   if (is_function_try_block && dtor_info != NULL) {
     /* Function try block in a destructor.  Insert destructor wrapper code
-       after the dependent statement. */
+       at the end of the dependent statement. */
     a_statement_ptr    insert_stmt, return_stmt;
     an_insert_location epilogue_insert_location;
-    set_insert_location(orig_stmt_to_try, &epilogue_insert_location);
-    insert_dtor_member_and_base_destructions(wrapper_code,
-                                             &epilogue_insert_location,
+    check_assertion(last_statement != NULL);
+    set_insert_location(last_statement, &epilogue_insert_location);
+    insert_dtor_member_and_base_destructions(&epilogue_insert_location,
                                              dependent_stmt,
                                              dtor_info);
     /* Eliminate the return at the end of the try block and fall through
