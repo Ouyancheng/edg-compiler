@@ -2424,6 +2424,9 @@ Push the indicated file onto the input stack.
   curr_ise->saved_any_tokens_fetched =
 				      any_tokens_fetched_from_curr_input_file;
   any_tokens_fetched_from_curr_input_file = FALSE;
+#if CHECKING
+  curr_ise->dummy = 0;
+#endif /* CHECKING */
   /* Create an intermediate file record describing this file.  It is
      useful later in converting sequence numbers into file name/line
      information. */

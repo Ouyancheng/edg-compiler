@@ -583,6 +583,13 @@ typedef struct an_input_stack_entry {
   unsigned int	saved_any_tokens_fetched:1;
 			/* Used to save and restore the value of the global
 			   variable any_tokens_fetched_from_curr_input_file. */
+#if CHECKING
+      unsigned int
+		dummy:2;
+			/* Extra field that can be initialized to prevent
+			   spurious reference to uninitialized data warnings
+			   from CodeCenter. */
+#endif /* CHECKING */
   a_byte        ifg_state;
 			/* Include file guard state information used to
                            determine whether subsequent inclusions of this
