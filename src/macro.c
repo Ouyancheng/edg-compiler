@@ -954,7 +954,7 @@ on return.
          that will produce a value of 0. */
       assoc_symbol = find_defined_macro(assoc_symbol);
       if (assoc_symbol != NULL) {
-        mark_used(assoc_symbol, &locator_for_curr_id.source_position);
+        mark_referenced(assoc_symbol, &locator_for_curr_id.source_position);
       }  /* if */
       ctoken = make_pp_int_constant((long)(assoc_symbol != NULL));
       /* Set the token position to the start of the keyword "defined". */
@@ -2091,7 +2091,7 @@ return_point:
     /* Record the reference to the macro for cross-reference purposes.
        This is not done for cases where the identifier turned out not to be
        a macro. */
-    mark_used(macro_symbol, &start_pos);
+    mark_referenced(macro_symbol, &start_pos);
   }  /* if */
   /* Free any allocated macro buffers.  Note that this includes
      special_macro_arg as well as any normal arguments.  Also note that

@@ -2419,7 +2419,7 @@ or struct definition.  The syntax is
         goto skip_base_class;
       }  /* if */
       /* Record the symbol as referenced. */
-      mark_used(sym, &pos_curr_token);
+      mark_referenced(sym, &pos_curr_token);
       /* Do ambiguity and access control checking for the symbol. */
       check_ambiguity_and_verify_access(&locator_for_curr_id);
       /* Get the type entry for the base class name. */
@@ -7053,7 +7053,7 @@ skip_tag_scan:
          default member access. */
       class_type->kind = type_kind;
     } else {
-      mark_used(tag_sym, &locator.source_position);
+      mark_referenced(tag_sym, &locator.source_position);
     }  /* if */
   }  /* if */
   if (is_class_definition) {

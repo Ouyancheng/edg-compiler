@@ -4935,7 +4935,7 @@ is_definition is TRUE if the label is being scanned as part of a label.
       /* Set the declaration sequence number. */
       set_decl_sequence_number(label_sym);
     } else {
-      mark_used(label_sym, &pos_curr_token);
+      mark_referenced(label_sym, &pos_curr_token);
       /* Set the decl_position in case no declaration shows up, so we
          have the location of the use. */
       if (label_sym->decl_position.seq == 0 &&
@@ -6185,7 +6185,7 @@ to indicate whether an enumeration is actually defined.
       mark_declared(tag_sym, &locator.source_position,
                     /*save_as_decl_position=*/TRUE);
     } else {
-      mark_used(tag_sym, &locator.source_position);
+      mark_referenced(tag_sym, &locator.source_position);
     }  /* if */
   }  /* if */
   if (curr_token == tok_lbrace) {
@@ -7153,7 +7153,7 @@ process_class_specifier:
              symbol. */
           reduce_projection_symbol_to_fundamental_symbol(
                                                       curr_token_type_symbol);
-          mark_used(curr_token_type_symbol, &pos_curr_token);
+          mark_referenced(curr_token_type_symbol, &pos_curr_token);
           if (!type_specifier_allowed) {
             error(ec_type_specifier_not_allowed);
             err = TRUE;

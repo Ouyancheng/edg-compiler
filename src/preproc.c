@@ -541,7 +541,7 @@ FALSE, respectively).
     assoc_symbol = find_defined_macro(assoc_symbol);
     if (assoc_symbol != NULL) {
       condition = TRUE;
-      mark_used(assoc_symbol, &pos_curr_token);
+      mark_referenced(assoc_symbol, &pos_curr_token);
     }  /* if */
     if (!is_ifdef) condition = !condition;
     /* Move past the identifier. */
@@ -580,7 +580,7 @@ Scan and process an #undef directive.
     } else {
       /* Remove the macro's definition.  The a_macro_def entry pointed to
          by the symbol is not freed, and is therefore just lost.  */
-      mark_used(assoc_symbol, &pos_curr_token);
+      mark_referenced(assoc_symbol, &pos_curr_token);
       remove_symbol(assoc_symbol);
     }  /* if */
     /* Move past the identifier. */
