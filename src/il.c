@@ -6446,11 +6446,12 @@ static a_type_ptr find_and_eliminate_invalid_placeholder_in_file_scope(
                                                       a_scope_ptr  file_scope,
                                                       a_type_ptr   type)
 /*
-Find the placeholder typeref (which must be marked as invalid) for the given
+Find the placeholder typeref (which must be marked as invalid; i.e., the type
+it refers to must have first_placeholder_invalid set to TRUE) for the given
 type on the types list of the given file scope.  All invalid placeholders
 encountered during the traversal (including the one found for the given type)
 are removed.  If type is NULL, this routine eliminates all the invalid
-placeholders typerefs in the given file scope and NULL is returned.  Otherwise,
+placeholder typerefs in the given file scope and NULL is returned.  Otherwise,
 the invalid placeholder corresponding to type is returned.
 */
 {
