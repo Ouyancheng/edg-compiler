@@ -2349,6 +2349,48 @@ Dump a Fortran substring operation length.
 
 #endif /* ifdef FFE */
 
+static void dump_field_from_second_operand(an_expr_node_ptr node)
+/*
+Dump the name of the field from the second operand under node (a field
+selection operation).
+*/
+{
+  an_expr_node_ptr second_operand = node->variant.operation.operands->next;
+  a_field_ptr      field;
+
+#if CHECKING
+  if (second_operand->kind != (an_expr_node_kind)enk_field) {
+    internal_error("dump_field_from_second_operand: operand 2 not enk_field");
+  }  /* if */
+#endif /* CHECKING */
+  field = second_operand->variant.field;
+#if CHECKING
+  { a_type_ptr field_class = field->source_corresp.class_of_which_a_member;
+    a_type_ptr struct_class = node->variant.operation.operands->type;
+    an_expr_operator_kind op;
+    if (field_class == NULL) {
+      internal_error("dump_field_from_second_operand: field class is NULL");
+    }  /* if */
+    /* Check that the field comes from the struct indicated by the first
+       operand.  The first operand is an lvalue except in a few cases. */
+    op = node->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_value_field ||
+        op == (an_expr_operator_kind)eok_value_bit_field) {
+      /* These operators take an rvalue as first operand. */
+    } else {
+      /* The other operators take an lvalue, so drop a "pointer-to" from the
+         type. */
+      struct_class = type_pointed_to(struct_class);
+    }  /* if */
+    if (struct_class != field_class) {
+      internal_error("dump_field_from_second_operand: wrong field class");
+    }  /* if */
+  }
+#endif /* CHECKING */
+  fputs(field_name(field), f_C_output);
+}  /* dump_field_from_second_operand */
+
+
 static void dump_adding_indirection(an_expr_node_ptr node)
 /*
 Dump the indicated expression with an additional indirection on the front
@@ -2392,8 +2434,7 @@ of an assignment).  It's also used for a normal "*" for indirection.
     fputc('(', f_C_output);
     dump_lvalue(node->variant.operation.operands);
     fputs(".", f_C_output);
-    dump_expression(node->variant.operation.operands->next,
-                    /*need_parens=*/TRUE);
+    dump_field_from_second_operand(node);
     fputc(')', f_C_output);
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -3425,13 +3466,13 @@ char_compare:
       fputc('(', f_C_output);
       dump_lvalue(operand_1);
       fputs(".", f_C_output);
-      dump_expression(operand_2, /*need_parens=*/TRUE);
+      dump_field_from_second_operand(expr);
       fputc(')', f_C_output);
       break;
     case eok_value_field:
       dump_expression(operand_1, /*need_parens=*/TRUE);
       fputc('.', f_C_output);
-      dump_expression(operand_2, /*need_parens=*/TRUE);
+      dump_field_from_second_operand(expr);
       break;
 #if CHECKING
     case eok_bit_field:
@@ -3459,7 +3500,7 @@ char_compare:
         dump_expression(operand_1, /*need_parens=*/TRUE);
       }  /* if */
       fputs(".", f_C_output);
-      dump_expression(operand_2, /*need_parens=*/TRUE);
+      dump_field_from_second_operand(expr);
       if (is_signed) {
         (void)fprintf(f_C_output, ",%d))", field->bit_size);
       }  /* if */
@@ -4064,11 +4105,6 @@ Dump out an expression tree.
       dump_rout_name(expr->variant.routine);
       if (need_parens) fputc(')', f_C_output);
       break;
-#ifdef CFE
-    case enk_field:
-      fputs(field_name(expr->variant.field), f_C_output);
-      break;
-#endif /* ifdef CFE */
 #ifdef FFE
     case enk_char_variable_length:
       dump_char_var_length(expr->variant.variable);
@@ -4089,6 +4125,11 @@ Dump out an expression tree.
       break;
 #endif /* ifdef FFE */
 #if CHECKING
+#ifdef CFE
+    case enk_field:
+      /* enk_field entries are supposed to be handled before this. */
+      internal_error("dump_expression: enk_field");
+#endif /* ifdef CFE */
     default:
       internal_error("dump_expression: bad expr node kind");
 #endif /* CHECKING */
