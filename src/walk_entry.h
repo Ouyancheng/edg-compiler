@@ -1829,8 +1829,9 @@ handle_non_autonomous_tag:
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #endif /* ifdef CFE */
-#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     case iek_source_sequence_entry:
+#if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
       {
         a_source_sequence_entry_ptr ptr =
                                        (a_source_sequence_entry_ptr)entry_ptr;
@@ -1858,7 +1859,9 @@ handle_non_autonomous_tag:
           remap_ptr(ptr->entity.ptr, a_char_ptr, kind);
         }  /* if */
       }
+#endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
       break;
+#if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
     case iek_src_seq_secondary_decl:
       {
         a_src_seq_secondary_decl_ptr ptr =
@@ -1900,12 +1903,13 @@ handle_non_autonomous_tag:
                   iek_source_sequence_entry);
       }
       break;
+#endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
     case iek_comment:
       /* No pointers. */
       break;
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     case iek_scope_orphaned_list_header:
       {
         a_scope_orphaned_list_header_ptr ptr =
