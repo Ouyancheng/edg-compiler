@@ -8408,7 +8408,7 @@ diagnostics can be inhibited by setting diagnose to FALSE.
            will be caught downstream. */
         goto done;
     }  /* switch */
-    get_token();
+    (void)get_token();
   }  /* for */
 done:;
 }  /* skip_illegal_class_template_decl_specifiers */
