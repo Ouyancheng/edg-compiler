@@ -2762,28 +2762,33 @@ ANSI C), copy the struct to a temp and select the field from the temp.
 
 #ifdef CFE
 
-static void adjust_bit_field_value(an_expr_node_ptr operand)
+static void adjust_bit_field_value(an_expr_node_ptr node)
 /*
-operand is the lvalue operand of an operation that returns an rvalue
-(e.g., an assignment).  If operand indicates a bit field, generate
-code to truncate and sign-extend the result of the operation to match
-the bit field size and signedness.
+node is an operation that returns an rvalue (e.g., an assignment).
+If its first operand is a bit field, generate code to truncate and
+sign-extend the result of the operation to match the bit field size
+and signedness.
 */
 {
-  a_field_ptr dest_field;
+  an_expr_node_ptr operand;
+  a_field_ptr      dest_field;
 
-  /* See if the lvalue operand is a bit field. */
-  if (operand->kind == (an_expr_node_kind)enk_operation &&
-      operand->variant.operation.kind ==
+  /* No need to add this code if the result of the operation is not used. */
+  if (!node->result_is_not_used) {
+    /* See if the lvalue operand is a bit field. */
+    operand = node->variant.operation.operands;
+    if (operand->kind == (an_expr_node_kind)enk_operation &&
+        operand->variant.operation.kind ==
                                         (an_expr_operator_kind)eok_bit_field) {
-    /* For this case, we need to truncate the result of the assignment
-       because pcc does not do it.  For a signed bit field, use __sexten;
-       for an unsigned bit field, use __trunc. */
-    dest_field = operand->variant.operation.operands->next->variant.field;
-    if (dest_field->bit_field_is_signed) {
-      fputs("(__sexten((", f_C_output);
-    } else {
-      fputs("(__trunc((", f_C_output);
+      /* For this case, we need to truncate the result of the assignment
+         because pcc does not do it.  For a signed bit field, use __sexten;
+         for an unsigned bit field, use __trunc. */
+      dest_field = operand->variant.operation.operands->next->variant.field;
+      if (dest_field->bit_field_is_signed) {
+        fputs("(__sexten((", f_C_output);
+      } else {
+        fputs("(__trunc((", f_C_output);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* adjust_bit_field_value */
@@ -2791,20 +2796,25 @@ the bit field size and signedness.
 #endif /* ifdef CFE */
 #ifdef CFE
 
-static void end_adjust_bit_field_value(an_expr_node_ptr operand)
+static void end_adjust_bit_field_value(an_expr_node_ptr node)
 /*
 Second half of the job begun in adjust_bit_field_lvalue; puts out the
 closing parentheses needed if any code was generated there.
 */
 {
-  a_field_ptr dest_field;
+  an_expr_node_ptr operand;
+  a_field_ptr      dest_field;
 
-  /* See if the lvalue operand is a bit field. */
-  if (operand->kind == (an_expr_node_kind)enk_operation &&
-      operand->variant.operation.kind ==
+  /* No need to add this code if the result of the operation is not used. */
+  if (!node->result_is_not_used) {
+    /* See if the lvalue operand is a bit field. */
+    operand = node->variant.operation.operands;
+    if (operand->kind == (an_expr_node_kind)enk_operation &&
+        operand->variant.operation.kind ==
                                         (an_expr_operator_kind)eok_bit_field) {
-    dest_field = operand->variant.operation.operands->next->variant.field;
-    (void)fprintf(f_C_output, "),%d))", dest_field->bit_size);
+      dest_field = operand->variant.operation.operands->next->variant.field;
+      (void)fprintf(f_C_output, "),%d))", dest_field->bit_size);
+    }  /* if */
   }  /* if */
 }  /* end_adjust_bit_field_value */
 
@@ -2812,24 +2822,28 @@ closing parentheses needed if any code was generated there.
 #ifndef CFE
 /*ARGSUSED*/ /* <-- op is used only if CFE is defined. */
 #endif /* ifndef CFE */
-static void dump_assign(an_expr_node_ptr      operand_1,
-                        an_expr_operator_kind op,
-                        an_expr_node_ptr      operand_2)
+static void dump_assign(an_expr_node_ptr assign_node)
 /*
-Dump an assignment, "operand_1 op operand_2".  This is a special case
-because the left operand is an lvalue.
+Dump an assignment.  This is a special case because the left operand is
+an lvalue.
 */
 {
+  an_expr_node_ptr      operand_1, operand_2;
+  an_expr_operator_kind op;
 #ifdef CFE
-  a_type_ptr  operand_1_type;
-  a_boolean   simple_assignment = FALSE, remainder_special_case = FALSE;
+  a_type_ptr            operand_1_type;
+  a_boolean             simple_assignment = FALSE;
+  a_boolean             remainder_special_case = FALSE;
 #endif /* ifdef CFE */
-  char        *operation_string;
+  char                  *operation_string;
 
+  operand_1 = assign_node->variant.operation.operands;
+  operand_2 = operand_1->next;
+  op = assign_node->variant.operation.kind;
 #ifdef CFE
   /* If the field being assigned to is a bit field, generate code to
      truncate/adjust the result of the assignment. */
-  adjust_bit_field_value(operand_1);
+  adjust_bit_field_value(assign_node);
 #endif /* ifdef CFE */
   switch (op) {
     case eok_iassign:
@@ -2942,7 +2956,7 @@ because the left operand is an lvalue.
 #ifdef CFE
   /* If the destination is a bit field, finish off the sign-extend/truncation
      call started earlier. */
-  end_adjust_bit_field_value(operand_1);
+  end_adjust_bit_field_value(assign_node);
 #endif /* ifdef CFE */
 }  /* dump_assign */
 
@@ -3417,10 +3431,10 @@ expression, then the "right" side with the operator in between.
       /* Post increment operators. */
       /* If the field being incremented is a bit field, generate code to
          truncate/adjust the result of the assignment. */
-      adjust_bit_field_value(operand_1);
+      adjust_bit_field_value(expr);
       dump_lvalue(operand_1);
       fputs("++", f_C_output);
-      end_adjust_bit_field_value(operand_1);
+      end_adjust_bit_field_value(expr);
       break;
     case eok_ipre_incr:
     case eok_fpre_incr:
@@ -3428,10 +3442,10 @@ expression, then the "right" side with the operator in between.
       /* Pre increment operators. */
       /* If the field being incremented is a bit field, generate code to
          truncate/adjust the result of the assignment. */
-      adjust_bit_field_value(operand_1);
+      adjust_bit_field_value(expr);
       fputs("++", f_C_output);
       dump_lvalue(operand_1);
-      end_adjust_bit_field_value(operand_1);
+      end_adjust_bit_field_value(expr);
       break;
     case eok_fpost_decr:
       /* There is a bug in the SUN cc with post-decrement of a float value.
@@ -3448,10 +3462,10 @@ expression, then the "right" side with the operator in between.
       /* Post decrement operators. */
       /* If the field being incremented is a bit field, generate code to
          truncate/adjust the result of the assignment. */
-      adjust_bit_field_value(operand_1);
+      adjust_bit_field_value(expr);
       dump_lvalue(operand_1);
       fputs("--", f_C_output);
-      end_adjust_bit_field_value(operand_1);
+      end_adjust_bit_field_value(expr);
       break;
     case eok_ipre_decr:
     case eok_fpre_decr:
@@ -3459,10 +3473,10 @@ expression, then the "right" side with the operator in between.
       /* Pre decrement operators. */
       /* If the field being incremented is a bit field, generate code to
          truncate/adjust the result of the assignment. */
-      adjust_bit_field_value(operand_1);
+      adjust_bit_field_value(expr);
       fputs("--", f_C_output);
       dump_lvalue(operand_1);
-      end_adjust_bit_field_value(operand_1);
+      end_adjust_bit_field_value(expr);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -3731,7 +3745,7 @@ char_compare:
 #ifdef FFE
     case eok_xassign:
 #endif /* ifdef FFE */
-      dump_assign(operand_1, expr->variant.operation.kind, operand_2);
+      dump_assign(expr);
       break;
 #ifdef CFE
     case eok_bassign:
