@@ -55,6 +55,10 @@ typedef char *a_realloc_arg;
 typedef a_void_ptr a_realloc_arg;
 #endif /* defined(__cplusplus) && __defined(__SUNPRO_CC) && __BSD__ */
 
+#if !AUTOMATIC_TEMPLATE_INSTANTIATION
+ #error -- AUTOMATIC_TEMPLATE_INSTANTIATION must be TRUE when using edg_prelink
+#endif /* !AUTOMATIC_TEMPLATE_INSTANTIATION */
+
 /*
 The getopt.h include file will provide either the declarations needed
 to use the system getopt routine or, if no system version is available,

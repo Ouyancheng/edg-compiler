@@ -1,5 +1,11 @@
 Version 3.1
 
+1/2/03   Prelinker: diagnose attempt to build without automatic instantiation
+
+The prelinker requires that AUTOMATIC_TEMPLATE_INSTANTIATION be TRUE in
+order to build properly.  A preprocessor check and #error directive have
+been added to enforce this requirement.
+
 12/05/02 eccp: .ii/.ti file options when not using automatic instantiation
 
 In some cases the eccp script would pass the --ii_file and/or
