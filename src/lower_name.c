@@ -1904,7 +1904,10 @@ Add to the mangled name the encoding for the type "type".
     /* The type is not named, so develop a description string. */
     switch (type->kind) {
       case tk_error:
-        /* This might come up in mangling names for template instantiation. */
+      case tk_unknown:
+        /* This might come up in mangling names for template instantiation
+           after errors have been detected. */
+        check_assertion(total_errors != 0);
         s = "?";
         break;
       case tk_void:
