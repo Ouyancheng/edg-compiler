@@ -765,8 +765,8 @@ return the length of the name.
 }  /* mangled_template_arguments */
 
 
-sizeof_t mangled_basic_class_name(a_type_ptr type,
-                                  char       *store_at)
+static sizeof_t mangled_basic_class_name(a_type_ptr type,
+                                         char       *store_at)
 /*
 Determine the mangled form of the basic name of the class "type".  This is
 not the version that contains a leading count of the number of characters
