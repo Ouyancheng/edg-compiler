@@ -1,5 +1,11 @@
 Version 2.16
 
+4/6/93  Diagnostic on storage class with class/enum declaration
+
+The default is now to issue a warning when a storage class is declared
+with a class, struct, union, or enum declaration.  An error is still
+issued in -A mode.
+
 4/6/93  Rounding mode hooks for IEEE floating point
 
 The floating-point folding routines have been given a parameter
