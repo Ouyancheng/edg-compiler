@@ -4431,13 +4431,6 @@ of local variables (and types, etc.) of functions and in blocks.
 
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, decl_start_pos);
-  if (function_definition_allowed) {
-    /* This is a file scope or namespace scope declaration.  Indicate
-       that access checking should be deferred until the declarator has
-       been scanned. */
-    begin_deferral_of_access_checks();
-    access_checks_deferred = TRUE;
-  }  /* if */
   if (extern_implied) {
     /* Called in the midst of an ``extern "C"'' declaration, so
        select_curr_construct_pragmas has already been called. */
@@ -4494,6 +4487,13 @@ of local variables (and types, etc.) of functions and in blocks.
 #endif /* ASM_FUNCTION_ALLOWED */
   }  /* if */
 
+  if (function_definition_allowed) {
+    /* This is a file scope or namespace scope declaration.  Indicate
+       that access checking should be deferred until the declarator has
+       been scanned. */
+    begin_deferral_of_access_checks();
+    access_checks_deferred = TRUE;
+  }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     /* Check for and discard declarations of the form "overload f;". */
     if (check_for_overload_anachronism()) {
@@ -5383,6 +5383,13 @@ check_for_semicolon:
   /* Check for a final semicolon. */
   if (required_token_no_advance(tok_semicolon, ec_exp_semicolon)) {
 advance_past_final_token:
+    if (access_checks_deferred) {
+      /* We are processing a declaration for which access checks were
+         deferred.  Normally, any deferred checks will have already been
+         performed.  In error cases, they may not have been.  If any
+         remain, do them now. */
+      end_deferral_of_access_checks();
+    }  /* if */
     if (curr_token == tok_semicolon || curr_token == tok_rbrace) {
       /* Advance past the final token of the declaration (which should be a
          ';' or '}').  However, if the current declaration is a top-level
@@ -5394,13 +5401,6 @@ advance_past_final_token:
     }  /* if */
   }  /* if */
 return_point:
-  if (access_checks_deferred) {
-    /* We are processing a declaration for which access checks were
-       deferred.  Normally, any deferred checks will have already been
-       performed.  In error cases, they may not have been.  If any
-       remain, do them now. */
-    end_deferral_of_access_checks();
-  }  /* if */
   /* Do necessary remove_stop_tokens.  Even when there is no error, this
      does the remove_stop_token for tok_semicolon. */
   remove_all_local_stop_tokens();
