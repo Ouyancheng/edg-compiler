@@ -253,6 +253,9 @@ secondary translation units will have already been copied over.
          inline functions similarly to templates. */
       update_inline_function_flags();
     }  /* if */
+    /* Do any special processing needed to wrapup the automatic instantiation
+       process at the end of the compilation. */
+    wrapup_auto_instantiation_information();
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   } else {
     /* Copy IL from the secondary translation units to the primary IL.
@@ -373,13 +376,6 @@ and before the back end (if any) is executed.
       str_catastrophe(ec_file_write_error, "preprocessing output");
     }  /* if */
   }  /* if */
-
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-  /* Do any special processing needed to wrapup the automatic instantiation
-     process at the end of the translation unit. */
-  wrapup_auto_instantiation_information();
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-
 
   /* Close the raw listing file if one is being generated. */
   if (f_raw_listing != NULL) {
