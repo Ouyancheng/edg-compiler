@@ -37,6 +37,8 @@ incorporated:
     mem_tables.h
     src_seq.h
     symbol_tbl.h
+    trans_corresp.h
+    trans_unit.h
     types.h
     targ_def.h
     target.h
@@ -99,6 +101,7 @@ incorporated:
 
 /* Translation unit data structures. */
 #include "trans_unit.h"
+#include "trans_corresp.h"
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 /* Source sequence list management */
