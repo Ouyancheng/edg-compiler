@@ -88,7 +88,7 @@ that are references are displayed properly, i.e., as something like
 9/14/94  --force_vtbl option
 
 A --force_vtbl option has been added.  It's the complement of the
---suppress_vtbl or -V option, and the quivalent of the cfront +e1 option.
+--suppress_vtbl or -V option, and the equivalent of the cfront +e1 option.
 
 9/14/94  Additional constant expressions allowed in integral constant
          expressions
