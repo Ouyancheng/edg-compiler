@@ -6955,7 +6955,7 @@ member declaration, respectively.
     if ((is_const_qualified_type(member_type) &&
          is_integral_or_enum_type(member_type)) ||
         (class_state->is_nonreal_instantiation &&
-         is_or_contains_template_param(member_type))) {
+         is_template_param_type(member_type))) {
       /* A const integral or const enumeration type may be initialized inside
          the class definition (9.5.2).   This makes the static data member
          usable as a member constant.  Note that the variable entry will
