@@ -2646,11 +2646,12 @@ that do normal id lookup processing.
           kind == (a_scope_kind)sck_namespace_extension) break;
     } else if (lookup_state->is_friend_lookup) {
       /* When doing a friend lookup, stop when we encounter the first
-         namespace scope (except for tag names in Microsoft and Sun modes)
-         or (except in cfront mode) the first function/block scope. */
+         namespace scope (except for tag names in Microsoft, GNU, and Sun
+         modes) or (except in cfront mode) the first function/block scope. */
       if (((kind == (a_scope_kind)sck_namespace ||
             kind == (a_scope_kind)sck_namespace_extension) &&
-           !(lookup_state->must_be_tag && (sun_mode || microsoft_mode))) ||
+           !(lookup_state->must_be_tag &&
+            (gpp_mode || sun_mode || microsoft_mode))) ||
           (!any_cfront_mode() && (kind == (a_scope_kind)sck_function ||
                                   kind == (a_scope_kind)sck_block))) {
         break;

@@ -1,5 +1,19 @@
 Version 3.5
 
+4/5/00   GNU C++ compatibility: friend class lookup
+
+When looking up an unqualified name in a friend class declaration, g++
+does not stop at the nearest enclosing namespace scope as required by
+the C++ standard.  We now emulate this behavior in g++ mode.
+
+  struct A {};
+  namespace N {
+    struct B {
+      friend struct A;
+    };
+    A a;  // Accepted in g++ mode ("A" is incomplete in default mode)
+  }
+
 11/01/04 Microsoft compatibility: abort in strip_local_and_nonreal_typedefs
 
 An abort (in strip_local_and_nonreal_typedefs) could occur in Microsoft
