@@ -346,7 +346,9 @@ If this flag is TRUE, overflows on signed integer operations do
 not cause errors (only warnings).  Usually this would be set to
 match the target machine behavior on integer operations in C.
 */
+#ifndef TARG_NO_ERROR_ON_INTEGER_OVERFLOW
 #define TARG_NO_ERROR_ON_INTEGER_OVERFLOW TRUE
+#endif /* ifndef TARG_NO_ERROR_ON_INTEGER_OVERFLOW */
 
 /*
 If this flag is TRUE, integer types with the same representation
@@ -371,9 +373,11 @@ errors are still generated for type mismatches.
 
 /* Maximum size of a bit-field.  Must not be larger than the size of a
    long (or a long long, if they are allowed). */
+#ifndef TARG_MAX_BIT_FIELD_SIZE
 #define TARG_MAX_BIT_FIELD_SIZE (TARG_SIZEOF_INT*TARG_CHAR_BIT)
 			/* Default value, used to initialize global variable
 			   targ_max_bit_field_size. */
+#endif /* ifndef TARG_MAX_BIT_FIELD_SIZE */
 
 /* Check the value: */
 #if TARG_MAX_BIT_FIELD_SIZE > (TARG_SIZEOF_LARGEST_INTEGER*TARG_CHAR_BIT)
@@ -388,17 +392,21 @@ errors are still generated for type mismatches.
    size in bytes of one of the integral types.  0 means "use the smallest
    integral type into which the field will fit".  < 0 means "use the
    base type given in the declaration". */
+#ifndef TARG_BIT_FIELD_CONTAINER_SIZE
 #define TARG_BIT_FIELD_CONTAINER_SIZE 0
 			/* Default value, used to initialize global variable
 			   targ_bit_field_container_size. */
+#endif /* ifndef TARG_BIT_FIELD_CONTAINER_SIZE */
 
 /* How plain "int" bit fields are to be treated (signed or unsigned).  Note
    that 1-bit fields are made unsigned regardless of this switch. This flag
    also controls how plain "short", "long", and "long long" are treated as
    bit field types. */
+#ifndef TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED
 #define TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED (!TARG_HAS_SIGNED_CHARS)
 			/* Default value, used to initialize global variable
 			   targ_plain_int_bit_field_is_unsigned. */
+#endif /* ifndef TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED */
 
 /* Signedness for enum bit fields (an extension): if TRUE, enum bit fields
    are always unsigned.  If FALSE, the rules are: (a) if the enum contains
@@ -406,15 +414,18 @@ errors are still generated for type mismatches.
    values large enough that they won't fit if one bit is allocated for a
    sign, the field is unsigned; otherwise (c) the signedness is as
    indicated by TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED. */
+#ifndef TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
 #define TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED TRUE
 			/* Default value, used to initialize global variable
 			   targ_enum_bit_fields_are_always_unsigned. */
+#endif /* ifndef TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED */
 
 /* Alignment adjustment to be made when a zero-width (unnamed) bit field is
    declared.  If > 0 it is the alignment to be used (typically the alignment
    of one of the integral types).  A value of zero means "use the minimal
    alignment", which is single-byte alignment.  Any value less than zero
    means "use the alignment of the base type given in the declaration". */
+#ifndef TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT TARG_ALIGNOF_INT
 #else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
@@ -422,6 +433,7 @@ errors are still generated for type mismatches.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 			/* Default value, used to initialize global variable
 			   targ_zero_width_bit_field_alignment. */
+#endif /* ifndef TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT */
 
 /*
 Wide character constant type (wchar_t, see stddef.h and stdlib.h).
@@ -456,7 +468,9 @@ Pointer types:
 #endif /* !defined(TARG_ALIGNOF_POINTER) */
 
 /* Indication of whether NULL pointer is like integer zero. */
+#ifndef TARG_NULL_IS_ALL_BITS_ZERO
 #define TARG_NULL_IS_ALL_BITS_ZERO TRUE
+#endif /* ifndef TARG_NULL_IS_ALL_BITS_ZERO */
 
 /* Integer type for the difference of two pointer types (ptrdiff_t).
    This type must be signed.  See 3.3.6 in the standard and the header
@@ -481,6 +495,7 @@ typedef long a_targ_ptrdiff_t;  /* Must be host "long". */
 
 /* Pick a typical representation for ptrdiff_t: the smaller of int or long
    that can hold a pointer value. */
+#ifndef TARG_PTRDIFF_T_INT_KIND
 #if TARG_SIZEOF_POINTER <= TARG_SIZEOF_INT
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_int)
 #else /* TARG_SIZEOF_POINTER > TARG_SIZEOF_INT */
@@ -488,6 +503,7 @@ typedef long a_targ_ptrdiff_t;  /* Must be host "long". */
 #endif /* TARG_SIZEOF_POINTER <= TARG_SIZEOF_INT */
 			/* Default value, used to initialize global variable
 			   targ_ptrdiff_t_int_kind. */
+#endif /* ifndef TARG_PTRDIFF_T_INT_KIND */
 
 /* size_t, used for size of arrays, offsets in fields, type of sizeof, etc.
    This type must be unsigned.  See 3.3.3.4 in the standard and the header
@@ -498,9 +514,11 @@ typedef unsigned long a_targ_size_t;  /* Must be host "unsigned long". */
    of size_t constants; the range it defines can be equal to or smaller
    than the integer size implied by TARG_SIZE_T_INT_KIND.  Except when
    the target size_t is smaller than the host long, it should be ULONG_MAX. */
+#ifndef TARG_SIZE_T_MAX
 #define TARG_SIZE_T_MAX ((a_targ_size_t)ULONG_MAX)
 			/* Default value, used to initialize global variable
 			   targ_size_t_max. */
+#endif /* ifndef TARG_SIZE_T_MAX */
 
 #ifndef TARG_SIZE_T_INT_KIND
 /* Pick a typical representation for size_t: the smaller of unsigned int or
@@ -618,7 +636,9 @@ class is assigned a unique number which can (for instance) be used to
 define a virtual function table index value.
 */
 typedef unsigned short a_virtual_function_number;
+#ifndef MAX_VIRTUAL_FUNCTIONS_PER_CLASS
 #define MAX_VIRTUAL_FUNCTIONS_PER_CLASS USHRT_MAX
+#endif /* ifndef MAX_VIRTUAL_FUNCTIONS_PER_CLASS */
 
 /*
 Control over whether or not C++ "new" and "delete" operations are allowed
@@ -696,13 +716,17 @@ to zero.  It should in any case be set to a reasonably small value (not, for
 instance, to the maximum integer size) since an array of this many
 characters may be allocated (see find_external_symbol in symbol_tbl.c).
 */
+#ifndef TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME
 #define TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME 0
+#endif /* ifndef TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME */
 
 /*
 Flag that is TRUE if external names are case sensitive (in which case, e.g.,
 the object language would distinguish routines XXX and xxx).
 */
+#ifndef TARG_CASE_SENSITIVE_EXTERNAL_NAMES
 #define TARG_CASE_SENSITIVE_EXTERNAL_NAMES TRUE
+#endif /* ifndef TARG_CASE_SENSITIVE_EXTERNAL_NAMES */
 
 /*
 Flag that is TRUE if external names begin with an added underscore.
@@ -722,7 +746,9 @@ public) and offsets are assigned within each group in declaration order.
 both approaches described in the embedded annotation in section 11.1 are
 supported.)
 */
+#ifndef TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
 #define TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE TRUE
+#endif /* ifndef TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
 
 /*
 The minimum alignment required for class/struct/union objects in the target
@@ -963,13 +989,17 @@ this processing.
 Integer kind to use for an offset into a class.  Its size must match
 TARG_SIZEOF_PTR_TO_DATA_MEMBER.
 */
+#ifndef TARG_DELTA_INT_KIND
 #define TARG_DELTA_INT_KIND ((an_integer_kind)ik_short)
+#endif /* ifndef TARG_DELTA_INT_KIND */
 
 /*
 Integer kind to use for an index into a virtual function table.  Must be
 no smaller than the size of a_virtual_function_number.
 */
+#ifndef TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND
 #define TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND ((an_integer_kind)ik_short)
+#endif /* ifndef TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND */
 
 /*
 This switch controls whether or not operations with
@@ -1037,14 +1067,23 @@ type.
 The integral kind to be used for a cleanup region number with exception
 processing.
 */
+#ifndef TARG_REGION_NUMBER_INT_KIND
 #define TARG_REGION_NUMBER_INT_KIND ((an_integer_kind)ik_unsigned_short)
+#endif /* ifndef TARG_REGION_NUMBER_INT_KIND */
 
 /*
 The integral kind to be used for a local variable identifier in exception
 processing.  In the portable scheme, this is an index into the object
-address table.
+address table.  In the partial-lowering scheme, it is an offset in the
+stack.
 */
+#ifndef TARG_VAR_HANDLE_INT_KIND
+#if DO_FULL_PORTABLE_EH_LOWERING
 #define TARG_VAR_HANDLE_INT_KIND ((an_integer_kind)ik_unsigned_short)
+#else /* !DO_FULL_PORTABLE_EH_LOWERING */
+#define TARG_VAR_HANDLE_INT_KIND TARG_SIZE_T_INT_KIND
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* ifndef TARG_VAR_HANDLE_INT_KIND */
 #endif /* GENERATE_EH_TABLES */
 
 #endif /* DO_IL_LOWERING */
