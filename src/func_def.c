@@ -161,8 +161,10 @@ Require definitions for the virtual functions of the indicated class.
 #endif /* IA64_ABI && DO_IL_LOWERING */
         /* The function could be called, so mark it to be instantiated. */
         sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
-        /* Set the instantiation_required flag for the virtual function. */
-        set_instance_required(sym, /*value=*/TRUE, SIR_DEFER_INLINE);
+        /* Set the instantiation_required flag for the virtual function.
+           In g++ mode force inline virtuals to be instantiated early. */
+        set_instance_required(sym, /*value=*/TRUE,
+                              gpp_mode ? SIR_GPP_FORCE_INLINE : SIR_NONE);
 #if DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS
         /* Force the class definition to be kept, because if it is removed the
            virtual function table variable will be detached, and later the

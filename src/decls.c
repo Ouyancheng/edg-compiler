@@ -11631,8 +11631,16 @@ continue_with_declaration:
                  var_ptr->init_kind == (an_init_kind)initk_none) {
         /* Uninitialized variable or static data member is being defined, but
            no explicit initializer was provided.  Do default initialization
-           if appropriate (e.g., if a default constructor exists). */
-        if (def_initializer(symbol_ptr, &locator.source_position)) {
+           if appropriate (e.g., if a default constructor exists).  In
+           g++ mode, the variable being initialized should not be visible
+           during the generation of the default initializer.  In particular,
+           the variable should not be visible to any instantiations that
+           might result from the processing of the initializer. */
+        a_boolean	def_init_okay;
+        if (gpp_mode) symbol_ptr->is_invisible = TRUE;
+        def_init_okay = def_initializer(symbol_ptr, &locator.source_position);
+        if (gpp_mode) symbol_ptr->is_invisible = FALSE;
+        if (def_init_okay) {
           /* Default initialization was successful. */
           if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
             /* Unless this variable has non-static storage duration and
