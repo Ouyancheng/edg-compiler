@@ -439,8 +439,30 @@ to an array of abstract class objects.
       case tk_class:
       case tk_struct:
       case tk_union:
-        if (tp->variant.class_struct_union.abstract) {
-          is_abstract = !array_type_required;
+        if (!array_type_required) {
+          if (tp->variant.class_struct_union.abstract) {
+            is_abstract = TRUE;
+          } else if (is_incomplete(tp) &&
+                     tp->variant.class_struct_union.extra_info->
+                                                template_arg_list != NULL) {
+            /* This is an uninstantiated template class.  If the template
+               is abstract, then so will this instance of it be. */
+            a_class_symbol_supplement_ptr  cssp =
+                                              symbol_supplement_for_class(tp);
+            if (!cssp->is_specific_template_def) {
+              /* This is not a specific definition, so this instance will
+                 be based on the template.  To get from here to the type
+                 created for the prototype instantiation indirect through
+                 the template symbol to its supplement to the symbol
+                 representing the prototype instantiation to the type. */
+              if (cssp->class_template->variant.template_info->
+                             variant.class_template.prototype_instantiation->
+                             variant.class_struct_union.type->
+                             variant.class_struct_union.abstract) {
+                is_abstract = TRUE;
+              }  /* if */
+            }  /* if */
+          }  /* if */
         }  /* if */
       default:
         goto done;
