@@ -104,6 +104,13 @@ Destructor for type_info.  This should never actually be called.
 }  /* type_info::~type_info */
 
 
+#if EXCEPTION_HANDLING
+
+/*
+The bad_cast class is only supplied when the runtime supports exception
+handling.
+*/
+
 bad_cast::bad_cast() THROW_NOTHING()
 /*
 Constructor for bad_cast.
@@ -192,6 +199,8 @@ no additional information is available.
 {
   return "";
 }  /* bad_typeid::~bad_typeid */
+
+#endif /* EXCEPTION_HANDLING */
 
 
 /*

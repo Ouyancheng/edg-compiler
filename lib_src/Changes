@@ -1,5 +1,14 @@
 Version 2.31
 
+11/29/95 Building runtime with RTTI enabled but not exception handling
+
+When building the runtime with RTTI enabled and exception handling
+disabled, the member functions of bad_cast were incorrectly being
+included in the library.  This could result in either compilation
+errors when building the runtime or link time failures when linking
+a program that uses dynamic_cast depending on whether or not the
+runtime was built with --exceptions enabled.  This has been fixed.
+
 11/27/95 Destructors for virtual bases called more than once
 
 When calling destructors, the EH runtime was always passing the
