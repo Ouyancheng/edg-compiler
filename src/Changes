@@ -1,5 +1,19 @@
 Version 2.27
 
+10/29/94 Bug in synthesizing an implicitly declared copy constructor
+
+When we were generating the body of a copy constructor in ctor_initializer,
+the call to select_copy_constructor was not properly taking into account
+the qualifiers on the subobject.  Consequently, in this case:
+
+  struct A { A(A&); A(); };          // No A::A(const A&) exists
+  struct B { const A a; B(); };      // B::B(B&) is implicitly declared
+  B x, y(x);
+
+we not only failed to issue an error while synthesizing B::B(B&), but
+we also generated a call to A::A(A&) to copy B::a.  This has now been
+fixed.
+
 10/28/94 IL CHANGE: try block and goto/label
 
 A supplement has been added to stmk_try_block.  You can fix the affected
