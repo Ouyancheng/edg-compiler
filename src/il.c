@@ -9449,6 +9449,10 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
                                                specialized_with_old_syntax) {
               new_specialization = TRUE;
             }  /* if */
+            if (type_entry_type->kind == (a_type_kind)tk_typeref) {
+              declared_type = type_entry_type->variant.typeref.type;
+              print_type = TRUE;
+            }  /* if */
           } else if (kind == (an_il_entry_kind)iek_routine) {
             a_routine_ptr  rp = (a_routine_ptr)ssep->entity.ptr;
             if (rp->defined_in_friend_decl) is_friend = TRUE;
@@ -9456,12 +9460,16 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
             if (rp->is_specialized && !rp->specialized_with_old_syntax) {
               new_specialization = TRUE;
             }  /* if */
+            declared_type = rp->declared_type;
+            print_type = TRUE;
           } else if (kind == (an_il_entry_kind)iek_variable) {
             a_variable_ptr  vp = (a_variable_ptr)ssep->entity.ptr;
             if (vp->is_anonymous_parent_object) is_anon_union_parent = TRUE;
             if (vp->is_specialized && !vp->specialized_with_old_syntax) {
               new_specialization = TRUE;
             }  /* if */
+            declared_type = vp->declared_type;
+            print_type = TRUE;
           }  /* if */
         }  /* if */
         sym = (a_symbol_ptr)scp->assoc_info;
@@ -9546,14 +9554,6 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
               print_type = TRUE;
             }  /* if */
           }  /* if */
-        } else if (kind == (an_il_entry_kind)iek_variable ||
-                   kind == (an_il_entry_kind)iek_routine) {
-          if (kind == (an_il_entry_kind)iek_variable) {
-            declared_type = ((a_variable_ptr)ssep->entity.ptr)->declared_type;
-          } else {
-            declared_type = ((a_routine_ptr)ssep->entity.ptr)->declared_type;
-          }  /* if */
-          print_type = TRUE;
         }  /* if */
         if (print_type) {
           fprintf(f_debug, " (");
