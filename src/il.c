@@ -1900,14 +1900,14 @@ the dump (this one counts as the first).
           } else {
             fprintf(f_debug, "__finally");
           }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL && FULL_SOURCE_POS_IN_IL_STATEMENT
+#if EXTRA_SOURCE_POSITIONS_IN_IL
           if (sp->variant.microsoft_try->except_or_finally_position.seq != 0) {
             fprintf(f_debug, ", at %lu/%lu",
                     sp->variant.microsoft_try->except_or_finally_position.seq,
                     (unsigned long)sp->variant.microsoft_try->
                                            except_or_finally_position.column);
           }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL && FULL_SOURCE_POS_IN_IL_STATEMENT */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           fputc('\n', f_debug);
           db_statement_list(sp->variant.microsoft_try->cleanup_statement,
                             indent+2, "", how_deep-1);
