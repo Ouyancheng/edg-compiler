@@ -568,14 +568,24 @@ mark_routine_referenced.
 
 
 void push_expr_stack(an_expression_kind      expression_kind,
-                     an_expr_stack_entry_ptr new_entry)
+                     an_expr_stack_entry_ptr new_entry,
+                     a_boolean               new_object_lifetime)
 /*
 Push a new entry on the top of the expr_stack.  expression_kind indicates
 the kind of the expression.  new_entry is used as the new top-of-stack
 entry (the entries are local variables on the stack).  This is done
-at the start of a major expression.
+at the start of a major expression.  An object lifetime is pushed
+if necessary (e.g., for a full expression); that's forced by
+new_object_lifetime TRUE (used to say that even if temporaries
+have lifetime to end-of-scope, this expression's temporaries need to be
+destroyed at the end of the expression, e.g., because it's an expression
+repeated in a loop).
 */
 {
+  /* A "full expression" is one not inside another expression.  That's
+     significant for the lifetime of temporaries. */
+  a_boolean full_expr = (expr_stack == NULL);
+
   new_entry->prev = expr_stack;
   new_entry->expression_kind = expression_kind;
   new_entry->old_ref_entries_list = curr_expr_ref_entries;
@@ -586,8 +596,10 @@ at the start of a major expression.
   new_entry->is_template_arg_expression = FALSE;
   new_entry->in_return_by_cctor_expression = FALSE;
   new_entry->fold_constant_addr_exprs = FALSE;
+  new_entry->inside_conditional_expression = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
+  new_entry->lifetime = NULL;
   if (expr_stack != NULL) {
     /* There is a previous stack entry; set any of the flags that are affected
        by the enclosing stack entry. */
@@ -608,6 +620,15 @@ at the start of a major expression.
        the 1+1 must be evaluated. */
     expr_stack->evaluated = TRUE;
     expr_stack->potentially_evaluated = TRUE;
+  } else if (!C_mode() &&
+             (new_object_lifetime ||
+              (full_expr && !long_lifetime_temps))) {
+    /* Start an object lifetime for this expression if it is a full expression
+       and the lifetime of temporaries ends at end of full expression,
+       or if asked to explicitly.  Note that this isn't done for constant
+       expressions. */
+    push_object_lifetime(iek_none, (char *)NULL, /*ctor_init=*/FALSE);
+    expr_stack->lifetime = curr_object_lifetime;
   }  /* if */
 }  /* push_expr_stack */
 
@@ -618,6 +639,11 @@ Pop the top entry off the expr_stack.  This is done at the end of a
 major expression.
 */
 {
+  if (expr_stack->lifetime != NULL) {
+    /* An object lifetime was pushed for the expression, so it must be
+       popped now. */
+    pop_object_lifetime();
+  }  /* if */
   /* Flush the reference entries list for the current expression. */
   flush_ref_entries_list();
   /* Restore the old reference entries list, if any. */
@@ -625,6 +651,50 @@ major expression.
   /* Pop the stack. */
   expr_stack = expr_stack->prev;
 }  /* pop_expr_stack */
+
+
+an_expr_node_ptr add_object_lifetime_node_if_needed(an_expr_node_ptr expr)
+/*
+We're about to do a pop_expr_stack.  If the current stack entry indicates
+that an object lifetime is needed around the current expression, allocate
+an enk_object_lifetime node with "expr" under it, and return a pointer
+to it.  This will be the top node in the final expression.
+*/
+{
+  an_object_lifetime_ptr lifetime = expr_stack->lifetime;
+
+  if (lifetime != NULL) {
+    /* Check to see if the object lifetime has anything in it.  If not,
+       there is no need to add the enk_object_lifetime node. */
+    if (!is_useless_object_lifetime(lifetime)) {
+      /* An error node stays the same. */
+      if (is_error_node(expr)) {
+        make_object_lifetime_useless(lifetime);
+      } else {
+        an_expr_node_ptr orig_expr = expr;
+        expr = alloc_expr_node((an_expr_node_kind)enk_object_lifetime);
+        expr->variant.object_lifetime.expr = orig_expr;
+        /* expr->variant.object_lifetime.ptr is set by the bind call. */
+        expr->type = orig_expr->type;
+        bind_object_lifetime(lifetime, iek_expr_node, (char *)expr,
+                             /*ctor_init=*/FALSE);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return expr;
+}  /* add_object_lifetime_node_if_needed */
+
+
+void discard_curr_expr_object_lifetime(void)
+/*
+If the current expression stack entry has an associated object lifetime,
+mark it so it will be discarded later.  This is done for errors.
+*/
+{
+  an_object_lifetime_ptr lifetime = expr_stack->lifetime;
+
+  if (lifetime != NULL) make_object_lifetime_useless(lifetime);
+}  /* discard_curr_expr_object_lifetime */
 
 
 void set_operand_kind(an_operand      *operand,
