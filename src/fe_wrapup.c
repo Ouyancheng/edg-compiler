@@ -61,7 +61,8 @@ Show the amount of memory allocated.
 
 void fe_wrapup(void)
 /*
-Do any processing required at the end of execution of the front end.
+Do any processing required at the end of execution of the front end,
+and before the back end (if any) is executed.
 */
 {
   db_enter(1, "fe_wrapup");
@@ -154,6 +155,31 @@ Do any processing required at the end of execution of the front end.
 
   db_exit();
 }  /* fe_wrapup */
+
+
+void fe_wrapup_part_2(void)
+/*
+Do any processing required at the end of execution of the front end,
+and after the back end (if any) is executed.
+*/
+{
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  /* Close the IL output file, be it a temporary or actual file. */
+  close_il_output_file();
+#else /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
+  /* Free the file-scope IL and all function scope IL. */
+  { a_memory_region_number region_number;
+    for (region_number = highest_used_region_number;
+         region_number != NULL_region_number;
+         region_number--) {
+      free_memory_region(region_number);
+    }  /* for */
+  }
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+
+    /* Write a signoff message (with count of errors) if necessary. */
+    write_signoff();
+}  /* fe_wrapup_part_2 */
 
 
 /******************************************************************************

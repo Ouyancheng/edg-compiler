@@ -26,10 +26,6 @@ Enhanced to support C++ by J. Stephen Adamczyk and R. Michael Anderson,
 #include "host_envir.h"
 #include "decls.h"
 
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-#include "il_write.h"
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-
 #if BACK_END_IS_C_GEN_BE
 #include "c_gen_be.h"
 #endif /* BACK_END_IS_C_GEN_BE */
@@ -72,7 +68,7 @@ int main(int argc, char *argv[])
       /* Compiler is to do preprocessing and compilation. */
       translation_unit();
     }  /* if */
-    /* Do wrap-up processing for the front end. */
+    /* Do wrap-up processing for the front end (before the back end). */
     fe_wrapup();
     if (display_compilation_time) {
       /* Get the back end starting time. */
@@ -94,13 +90,8 @@ int main(int argc, char *argv[])
     }  /* if */
 #endif /* BACK_END_SHOULD_BE_CALLED */
 
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-    /* Close the IL output file, be it a temporary or actual file. */
-    close_il_output_file();
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-
-    /* Write a signoff message (with count of errors) if necessary. */
-    write_signoff();
+    /* Do wrap-up processing for the front end (after the back end). */
+    fe_wrapup_part_2();
 
     /* Determine the most severe diagnostic encountered.  Catastrophic
        errors do not get here and therefore need not be checked for.

@@ -1,5 +1,12 @@
 Version 2.25
 
+8/2/94   Freeing of IL memory when multiple source files are compiled
+
+When COMPILE_MULTIPLE_SOURCE_FILES is enabled, and no IL file is
+used (i.e., the IL is passed in memory to the back end), the front end
+had not been freeing the IL for function scopes between compilations.
+It does now.
+
 8/1/94   rvalue . field when rvalue requires a base-class adjustment
 
 "rvalue . field", where "rvalue" is a class rvalue of a derived class
