@@ -1446,6 +1446,13 @@ typedef struct a_scope_stack_entry {
 			   function scope or if the scope of a local class or
 			   template instantiation intervenes between the
 			   current scope and the containing function scope. */
+  a_template_param_ptr
+		template_param_list;
+                        /* If the current scope is the first scope that
+			   affects the declarative level after a template
+			   instantiation scope this field contains a pointer
+			   to the parameter list for the template.  This is
+			   used to prevent reuse of a parameter name. */
 } a_scope_stack_entry;
 
 
@@ -1968,6 +1975,21 @@ which is_class_struct_union_type is TRUE.
    a routine definition). */
 #define current_routine_entry()                                       \
   (scope_stack[depth_innermost_function_scope].il_scope->variant.routine.ptr)
+
+/* Return a pointer to the template symbol supplement for a given
+   symbol.  Return NULL for symbols of the wrong kind. */
+#define template_supplement_for_symbol(sym)				\
+  /* if */ ((sym)->kind == (a_symbol_kind)sk_class_template ||		\
+            (sym)->kind == (a_symbol_kind)sk_function_template) ? /* { */ \
+    (sym)->variant.template_info :					\
+  /* } else if */ (sym)->kind == (a_symbol_kind)sk_member_function ? /* { */ \
+    (sym)->variant.routine.instance_ptr->template_info :		\
+  /* } else if */ (sym)->kind ==					\
+			 (a_symbol_kind)sk_static_data_member ? /* { */	\
+    (sym)->variant.variable.instance_ptr->template_info :		\
+  /* } else { */							\
+    NULL								\
+  /* } */
 
 
 #if DEBUG
