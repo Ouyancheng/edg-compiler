@@ -3374,7 +3374,7 @@ diagnostic if the parameter type is an abstract class.
                is being copied for some reason.  Issue no diagnostic in
                such cases. */
           } else {
-            pos_error(ec_abstract_class_object_not_allowed, err_pos);
+            pos_error(ec_abstract_class_param_type, err_pos);
           }  /* if */
         }  /* if */
       }  /* if */
