@@ -6314,17 +6314,24 @@ as the current token; otherwise, it is consumed.
     }  /* if */
 #endif /* RECORD_TEMPLATES_IN_IL */
   } else {
+    /* Not a class template declaration.  Check for a function template
+       declaration or a static data member template definition. */
     /* Determine whether the thing being declared is a member of a
        class template.  This is needed to know how references to the
        parent class should be processed.  This must be done before 
        is_decl_start is called, as is_decl_start will cause the initial
        identifier (typically the return type) to be coalesced. */
     prescan_nonclass_template_declaration(&decl_token_cache);
-    if (is_decl_start(/*expr_context=*/FALSE,
-                      /*real_declarator_allowed=*/TRUE) ||
-                      is_declarator_start()) {
-      /* Not a class template declaration.  Check for a function template
-         declaration or a static data member template definition. */
+    if (!is_decl_start(/*expr_context=*/FALSE,
+                       /*real_declarator_allowed=*/TRUE) &&
+        !is_declarator_start()) {
+      /* Template parameters are declared, but the declaration is missing. */
+      pos_error(ec_exp_declaration, &pos_curr_token);
+#if 0
+    } else if (is_member_decl && !is_template_friend) {
+      /* A member template declaration. */
+#endif /* if 0 */
+    } else {
       a_type_ptr         type;
       a_symbol_locator   locator;
       a_decl_flag_set    do_flags;
@@ -6390,9 +6397,6 @@ as the current token; otherwise, it is consumed.
         }  /* if */
       }  /* if */
       done_with_func_info(func_info);
-    } else {
-      /* Template parameters are declared, but the declaration is missing. */
-      pos_error(ec_exp_declaration, &pos_curr_token);
     }  /* if */
   }  /* if */
   /* Check and/or advance past the terminating token of the declaration. */
