@@ -85,9 +85,6 @@ extern void free_derivation_step(a_derivation_step_ptr  step);
 extern a_boolean congruent_paths(a_derivation_step_ptr  dsp1,
                                  a_derivation_step_ptr  dsp2);
 
-extern a_boolean equivalent_paths(a_derivation_step_ptr  path1,
-                                  a_derivation_step_ptr  path2);
-
 extern void check_class_linkage(void);
 
 extern void class_decl_init(void);
