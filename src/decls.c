@@ -4016,11 +4016,13 @@ skip_overloading:;
                         &locator->source_position, /*update_il_entry=*/FALSE);
   }  /* if */
   if (!is_function && is_volatile_qualified_type(type_ptr)) {
-    /* A variable with a volatile type is considered to be referenced
+    /* A variable with a volatile type is considered to be used and modified
        from "elsewhere".  Note that this must be done after set_source_corresp
        because the latter clears the IL referenced flag. */
     source_corresp_ptr->referenced = TRUE;
     sym->referenced = TRUE;
+    sym->variant.variable.used = TRUE;
+    sym->variant.variable.value_has_been_set = TRUE;
   }  /* if */
   if (linkage == idl_external) {
     /* Indicate in the IL entry that the name is externally visible by
