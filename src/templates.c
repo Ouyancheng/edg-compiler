@@ -9706,12 +9706,6 @@ returned to the caller.
     pos_sy_error(ec_not_compatible_with_previous_decl,
 		 &locator->source_position, sym);
     err = TRUE;
-  } else if ((is_ptr_or_ref_type(type) &&
-              is_function_type(type_pointed_to(type))) ||
-             (is_ptr_to_member_type(type) &&
-              is_function_type(pm_member_type(type)))) {
-    check_exception_specification(type, sym, &locator->source_position,
-                                  /*is_redecl=*/TRUE);
   } else {
     /* This is a template definition of a static data member of a
        class template. */
@@ -9726,7 +9720,15 @@ returned to the caller.
     if (!member_template_param_list_matches_class
                               (decl_state->decl_info, sym, &error_position)) {
       err = TRUE;
-    } /* if */
+    } else if ((is_ptr_or_ref_type(type) &&
+                is_function_type(type_pointed_to(type))) ||
+               (is_ptr_to_member_type(type) &&
+                is_function_type(pm_member_type(type)))) {
+      /* Check that any exception specifications match with those declared
+         in the class. */
+      check_exception_specification(type, sym, &locator->source_position,
+                                    /*is_redecl=*/TRUE);
+    }  /* if */
   }  /* if */
   /* Scan the initializer expression, if any, and cache its tokens.
      The initializer may be of the form "= ...;" or "(...);".
