@@ -4281,10 +4281,11 @@ assignment operator.
 {
   a_symbol_ptr    sym, opass_sym = NULL;
   a_boolean       is_overloaded_function;
-  a_type_ptr      arg_type, tp;
+  a_type_ptr      tp;
   a_boolean       const_object_okay, volatile_object_okay, ambiguous = FALSE;
   a_boolean       sym_matches_exactly, opass_sym_matches_exactly = FALSE;
   a_routine_ptr   opass_routine;
+  a_boolean       is_ref_arg;
 
   db_enter(4, "select_assignment_operator");
   sym = symbol_supplement_for_class(class_type)->assignment_operator;
@@ -4299,34 +4300,50 @@ assignment operator.
   /* Find an assignment operator whose argument is ref-class (pass by
      reference) or class (pass_by_value). */
   for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-    arg_type = routine_symbol_type(sym)->
+    /* Get the parameter type of the first (and only) parameter. */
+    tp = routine_symbol_type(sym)->
                           variant.routine.extra_info->param_type_list->type;
-    tp = arg_type;
-    if (is_reference_type(tp)) tp = type_pointed_to(tp);
+    /* Reference types and non-reference types are treated differently. */
+    if (is_reference_type(tp)) {
+      tp = type_pointed_to(tp);
+      is_ref_arg = TRUE;
+    } else {
+      is_ref_arg = FALSE;
+    }  /* if */
     if (skip_typerefs(tp) != class_type) {
       /* No match -- keep looking. */
+      continue;
+    }  /* if */
+    if (!is_ref_arg) {
+      /* Not a reference type, so qualifiers are ignored. */
+      sym_matches_exactly = TRUE;
     } else {
+      /* Reference type.  See if its const or volatile qualified. */
       const_object_okay = is_const_qualified_type(tp);
       volatile_object_okay = is_volatile_qualified_type(tp);
       if ((const_object_required && !const_object_okay) ||
           (volatile_object_required && !volatile_object_okay)) {
         /* No match -- keep looking. */
+        continue;
+      } else if (const_object_okay == const_object_required &&
+                 volatile_object_okay == volatile_object_required) {
+        /* It's an exact match. */
+        sym_matches_exactly = TRUE;
       } else {
-        sym_matches_exactly =
-                           (const_object_okay == const_object_required &&
-                            volatile_object_okay == volatile_object_required);
-        if (!sym_matches_exactly && opass_sym != NULL) {
-          /* A suitable default assignment operator had already been found,
-             but we'll use the one that provides the exact match. */
-          if (!opass_sym_matches_exactly) ambiguous = TRUE;
-        } else {
-          opass_sym = sym;
-          opass_sym_matches_exactly = sym_matches_exactly;
-          ambiguous = FALSE;
-          *pass_by_value = (tp == arg_type);
-        }  /* if */
+        /* It's not quite an exact match. */
+        sym_matches_exactly = FALSE;
       }  /* if */
     }  /* if */
+    if (opass_sym != NULL) {
+      /* We have a match on this symbol, but we've already had one before
+         as well.  If one but not the other is an exact match, take the
+         one that matches.  Otherwise it's an ambiguity.  */
+      ambiguous = (sym_matches_exactly == opass_sym_matches_exactly);
+      if (!sym_matches_exactly) continue;
+    }  /* if */
+    opass_sym = sym;
+    opass_sym_matches_exactly = sym_matches_exactly;
+    *pass_by_value = !is_ref_arg;
   }  /* for */
   opass_routine = NULL;
   if (opass_sym == NULL) {
@@ -4338,13 +4355,15 @@ assignment operator.
       /* Unusual case: volatile or const-volatile expected. */
       pos_ty_error(ec_no_suitable_assignment_operator, err_pos, class_type);
     }  /* if */
-  } else if (ambiguous) {
-    /* More than one applicable assignment operator function. */
-    pos_ty_error(ec_ambiguous_assignment_operator, err_pos, class_type);
   } else {
-    /* Exactly one assignment operator function is best. */
-    /* Check that the function is accessible and mark it referenced. */
-    reference_to_implicitly_invoked_function(opass_sym, err_pos);
+    if (ambiguous) {
+      /* More than one applicable assignment operator function. */
+      pos_ty_error(ec_ambiguous_assignment_operator, err_pos, class_type);
+    } else {
+      /* Exactly one assignment operator function is best. */
+      /* Check that the function is accessible and mark it referenced. */
+      reference_to_implicitly_invoked_function(opass_sym, err_pos);
+    }  /* if */
     opass_routine = opass_sym->variant.routine;
   }  /* if */
   db_exit();
