@@ -302,7 +302,7 @@ Dump a virtual function override entry, for debug purposes.
   db_name(&ovfp->overriding_function->source_corresp);
   fputs(", type =\n  ", f_debug);
   db_type(ovfp->overriding_function->type);
-  fputc('\n', f_debug);
+  (void)fputc('\n', f_debug);
 }  /* db_virtual_function_override */
 
 
@@ -369,7 +369,7 @@ ambiguity.
                 bcp->type->source_corresp.name,
                 class_type->source_corresp.name);
         db_virtual_function_number_sequence(bcp);
-        fputc('\n', f_debug);
+        (void)fputc('\n', f_debug);
       }  /* if */
     }  /* if */
 #endif /* DEBUG */
@@ -398,7 +398,7 @@ ambiguity.
         if (debug_level >= 4) {
           fputs("  vfnum sequence after pruning: ", f_debug);
           db_virtual_function_number_sequence(bcp);
-          fputc('\n', f_debug);
+          (void)fputc('\n', f_debug);
         }  /* if */
 #endif /* DEBUG */
       }  /* if */
@@ -520,7 +520,7 @@ for the class to which they belong.
     db_name(&base_class->type->source_corresp);
     fputs(": ", f_debug);
     db_virtual_function_number_sequence(base_class);
-    fputc('\n', f_debug);
+    (void)fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
@@ -892,7 +892,7 @@ void db_base_class(a_base_class_ptr  bcp,
 Dump a base class entry, for debug purposes.
 */
 {
-  fputc('"', f_debug);
+  (void)fputc('"', f_debug);
   db_name(&bcp->type->source_corresp);
   fputs("\": ", f_debug);
   if (show_offset) {
@@ -913,7 +913,7 @@ Dump a base class entry, for debug purposes.
   if (bcp->ambiguous) fputs(", ambig", f_debug);
   fputs(", deriv = ", f_debug);
   db_path(bcp->derivation, show_offset);
-  fputc('\n', f_debug);
+  (void)fputc('\n', f_debug);
 }  /* db_base_class */
 
 
@@ -964,7 +964,7 @@ path entries are also on the base classes list of class_type.
     db_name(&base_class->type->source_corresp);
     fputs("\", path ", f_debug);
     db_path(base_class->derivation, /*show_offset=*/FALSE);
-    fputc('\n', f_debug);
+    (void)fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
   ctsp = class_type->variant.class_struct_union.extra_info;
@@ -1095,7 +1095,7 @@ contrary.
     db_path(path1, /*show_offset=*/FALSE);
     fputs(" and ", f_debug);
     db_path(path2, /*show_offset=*/FALSE);
-    fputc('\n', f_debug);
+    (void)fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
   /* Traverse each path to find the terminal entry of each as well as the
@@ -1397,7 +1397,7 @@ other instance of the base class.
     db_access_control(new_access);
     fputs(", new path = ", f_debug);
     db_path(path, /*show_offset=*/FALSE);
-    fputc('\n', f_debug);
+    (void)fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
   base_class_access = normal_access_to_end_of_path(base_class->derivation);
@@ -3313,8 +3313,9 @@ offsets and alignments, *any_overflow is set and returned to the caller.
       if (*p_alignment < TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO) {
         *p_alignment = TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO;
       }  /* if */
-      if (!increment_field_offsets(p_byte_offset, p_bit_offset,
-                                   TARG_SIZEOF_VIRTUAL_FUNCTION_INFO, 0)) {
+      if (!increment_field_offsets(
+                        p_byte_offset, p_bit_offset,
+                        (a_targ_size_t)TARG_SIZEOF_VIRTUAL_FUNCTION_INFO, 0)) {
         error(ec_struct_too_large);
         *any_overflow = TRUE;
       }  /* if */
@@ -3773,7 +3774,7 @@ routine body is generated at this time.
   }  /* if */
   /* Create a locator for the symbol that will be created. */
   if (sfkind == (a_special_function_kind)sfk_operator) {
-    make_opname_locator(tok_assign, onk_assign, &locator,
+    make_opname_locator(tok_assign, (an_opname_kind)onk_assign, &locator,
                         &class_type->source_corresp.decl_position);
   } else {
     make_locator_for_symbol(
@@ -4180,8 +4181,7 @@ function is accessible and mark the routine entry referenced.  Also, if the
 routine is compiler generated, it may still need to be defined, since the
 definition may have been put off until an actual reference occurred (e.g.,
 ARM 12.8).  This function deals with implicitly called constructors,
-destructors, and assignment operators; implicitly called conversions are
-handled separately.
+destructors, assignment operators, and conversion functions.
 */
 {
   a_routine_ptr  rp = sym->variant.routine;
