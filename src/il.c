@@ -2496,6 +2496,7 @@ in_old_style_param_decl_list is TRUE.
   a_type_ptr              routine_type;
   a_type_ptr              last_type_ptr;
   a_type_ptr              *last_type_ptr_ptr;
+  a_memory_region_number  region_to_switch_back_to;
 
   /* Get a pointer to the current or file scope entry. */
   ssep = &scope_stack[scope_level];
@@ -2561,9 +2562,13 @@ in_old_style_param_decl_list is TRUE.
   }  /* if */
   if (sp == NULL) {
     /* A prototype scope must be allocated.  add_to_scopes_list is not
-       called because this is not a scope for a statement block. */
+       called because this is not a scope for a statement block.  It is
+       allocated in the file scope memory region because it is pointed to
+       from the routine type supplement, which is always at file scope. */
+    switch_to_file_scope_region(&region_to_switch_back_to);
     sp = alloc_scope((a_scope_kind)sck_func_prototype, ssep->number,
                      (a_routine_ptr)NULL);
+    switch_back_to_original_region(region_to_switch_back_to);
     if (!in_old_style_param_decl_list) {
       /* Function prototype scope. */
       ssep->il_scope = sp;
@@ -2608,7 +2613,7 @@ types list.
   clear_type(tp, kind);
   db_exit();
   return (tp);
-}  /* alloc_type */
+}  /* alloc_unlinked_type */
 
 
 a_type_ptr alloc_type(a_type_kind kind)
@@ -2620,7 +2625,6 @@ types list for the file scope.
 */
 {
   a_type_ptr tp;
-  a_memory_region_number region_to_switch_back_to;
 
   tp = alloc_unlinked_type(kind);
   if (kind != (a_type_kind)tk_error) {
