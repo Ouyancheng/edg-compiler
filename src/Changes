@@ -1,5 +1,13 @@
 Version 3.6
 
+12/13/04 Implicit inclusion: suppressing re-inclusion of primary source file
+
+A change made in version 3.1 could result in the primary source file being
+included in an attempt to provide the definition of a template when using
+implicit inclusion.  An additional change has now been made to insure that
+the primary source file will never be included by the implicit inclusion
+mechanism.
+
 12/10/04 GNU IA-64 ABI: Attributes "packed" and "aligned" and bit fields
 
 Some changes were made to the class layout algorithm when emulating the GNU
