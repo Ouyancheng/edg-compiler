@@ -1,5 +1,25 @@
 Version 2.06
 
+5/5/92   Improve ambiguity checking
+
+This change fixes a bug where a static data member (or a member type or a
+member constant) was considered ambiguous by virtue of belonging to two
+distinct base classes -- this even though only a single object, type, or
+enumeration was involved.  (See the example at bottom of p. 203 of the ARM.)
+
+Consider for instance:
+  struct A { /* ... */ };            //       A       A
+  struct B : A { /* ... */ };        //        \     /
+  struct C : A { /* ... */ };        //         B   C
+  struct D : B, C { /* ... */ };     //          \ /
+                                     //           D
+a reference to a static data member of A within the context of class D
+is not considered ambiguous.
+
+The code now treats static member functions the same way, though there is
+some doubt about this.  The ARM does not clearly require it, nor does it
+prohibit it.
+
 5/5/92   Added symbols for ::operator new and ::operator delete to symbol
          table as part of initialization
 
