@@ -2,9 +2,10 @@ Version 2.34
 
 12/17/96 Default initialization of const variable
 
-Except in -A mode we failed to issue an error on the following (which is
-ill-formed because class Derived lacks a user-declared default constructor
-for the default-initialization of const variable d):
+A bug has been fixed that was introduced in version 2.33.  Except in -A
+mode we failed to issue an error on the following (which is ill-formed
+because class Derived lacks a user-declared default constructor for the
+default-initialization of const variable d):
 
   struct Base {
     virtual ~Base () { }
@@ -19,8 +20,7 @@ for the default-initialization of const variable d):
   int main () { g(d); return 0; }
 
 The side effect in this case was that the virtual function table was not
-defined and an abort occurred at run time.  This has been fixed: the error
-is now issued by default.
+defined and an abort occurred at run time.
 
 12/15/96 Enum types are not treated as integral
 
