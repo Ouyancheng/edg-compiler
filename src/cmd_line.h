@@ -242,7 +242,7 @@ EXTERN a_template_instantiation_mode
 #if VAR_INITIALIZERS
 			          = tim_none
 #endif /* VAR_INITIALIZERS */
-                                             ;
+                                            ;
                         /* The default template instantiation mode. */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
@@ -251,7 +251,7 @@ EXTERN a_boolean
 #if VAR_INITIALIZERS
                           = DEFAULT_AUTOMATIC_INSTANTIATION_MODE
 #endif /* VAR_INITIALIZERS */
-                                                      ;
+                                                                ;
                         /* Should automatic instantiation processing be
 			   performed.  This includes both the generation of
  			   the instantiation flags and the processing of the
@@ -261,7 +261,7 @@ EXTERN a_boolean	process_instantiation_list_file
 #if VAR_INITIALIZERS
 			          = FALSE
 #endif /* VAR_INITIALIZERS */
-                                             ;
+                                         ;
                         /* When automatic_instantiation_mode is TRUE this
 			   flag indicates whether there is an instantiation
 			   list file to be read.  When this flag is FALSE
@@ -275,7 +275,7 @@ EXTERN char	*instantiation_list_filename
 #if VAR_INITIALIZERS
 			          = NULL
 #endif /* VAR_INITIALIZERS */
-                                             ;
+                                        ;
                         /* The name of a file containing a list of names
 			   of template functions and static data members to
 			   be instantiated.  Intended to be used for linker
@@ -287,6 +287,18 @@ EXTERN FILE	*f_instantiation_information /* = NULL */;
 			   read.  Only valid when do_auto_instantiation is
 			   TRUE. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+EXTERN a_boolean
+                implicit_template_inclusion_mode
+#if VAR_INITIALIZERS
+                          = DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE
+#endif /* VAR_INITIALIZERS */
+                                                                    ;
+                        /* Should the front end attempt to implicitly include
+			   a source file (e.g., .c file) to find the
+			   definition of a template. */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 
 /* Process the command line arguments. */

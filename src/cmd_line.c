@@ -255,7 +255,7 @@ Process the arguments on the command line that invoked the compiler.
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
   /* Scan the command-line options. */
-#define COMMAND_LIST "ACEHKMNOPTabnsuvwxrmpV$I:D:U:e:L:X:S:o:i:d:t:F:"
+#define COMMAND_LIST "ABCEHKMNOPTabnsuvwxrmpV$I:D:U:e:L:X:S:o:i:d:t:F:"
   while ((optchar = getopt(argc, argv, COMMAND_LIST)) != EOF) {
     switch (optchar) {
       case 'A':
@@ -376,6 +376,18 @@ Process the arguments on the command line that invoked the compiler.
         goto unknown_option;
 #define DID_GOTO_UNKNOWN_OPTION
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+      case 'B':
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+        /* Enable or disable implicit inclusion of template definition source
+           files. */
+        implicit_template_inclusion_mode =
+				 !DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE;
+        break;
+#else /* !INSTANTIATION_BY_IMPLICIT_INCLUSION */
+	optarg = "-B";
+        goto unknown_option;
+#define DID_GOTO_UNKNOWN_OPTION
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
       case 'F':
         {
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
@@ -585,6 +597,12 @@ unknown_option:
       "automatic instantiation mode (-T) can only be used when compiling C++");
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+    if (automatic_instantiation_mode != DEFAULT_AUTOMATIC_INSTANTIATION_MODE) {
+      command_line_error(
+      "implicit template inclusion mode (-B) can only be used when compiling C++");
+    }  /* if */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     if (exceptions_disabled != DEFAULT_EXCEPTIONS_DISABLED) {
       if (exceptions_disabled) {
         command_line_error(
