@@ -152,7 +152,13 @@ Require definitions for the virtual functions of the indicated class.
     a_routine_ptr rp = class_type->variant.class_struct_union.extra_info->
                                                          assoc_scope->routines;
     for (; rp != NULL; rp = rp->next) {
-      if (rp->is_virtual && !rp->pure_virtual) {
+      if (rp->is_virtual && !rp->pure_virtual
+#if IA64_ABI
+          /* Ignore secondary entry points of constructors and destructors.
+             They are not instantiated separately. */
+          && rp->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none
+#endif /* IA64_ABI */
+                                             ) {
         a_symbol_ptr sym;
         /* The function could be called, so mark it to be instantiated. */
         sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
