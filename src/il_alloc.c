@@ -2523,7 +2523,7 @@ fields, and return a pointer to it.
   hnp->next                             = NULL;
   hnp->entity.kind                      = (a_byte_il_entry_kind)iek_none;
   hnp->entity.ptr                       = NULL;
-  hnp->global_qualification_needed      = FALSE;
+  hnp->qualification_needed             = FALSE;
   hnp->elaborated_type_specifier_needed = FALSE;
 #if CHECKING
   hnp->avoid_codecenter_warnings        = 0;
@@ -2773,7 +2773,7 @@ in il_init.)
   def_source_corresp.nested_type_mangling_has_been_done = FALSE;
 #endif /* NEED_NAME_MANGLING */
 #if BACK_END_IS_CP_GEN_BE
-  def_source_corresp.global_qualification_needed = FALSE;
+  def_source_corresp.qualification_needed = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if ONE_INSTANTIATION_PER_OBJECT
   def_source_corresp.static_used_by_instantiation = FALSE;

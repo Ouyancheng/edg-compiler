@@ -2663,8 +2663,8 @@ Display the indicated hidden-name entry.
   disp_ptr("next", (char *)ptr->next, iek_hidden_name);
   disp_ptr("entity", (char *)ptr->entity.ptr,
            (an_il_entry_kind)ptr->entity.kind);
-  disp_boolean("global_qualification_needed",
-               ptr->global_qualification_needed);
+  disp_boolean("qualification_needed",
+               ptr->qualification_needed);
   disp_boolean("elaborated_type_specifier_needed",
                ptr->elaborated_type_specifier_needed);
 }  /* disp_hidden_name */

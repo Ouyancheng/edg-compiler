@@ -951,9 +951,10 @@ typedef struct a_source_correspondence {
 			   in the front end. */
 #endif /* NEED_NAME_MANGLING */
 #if BACK_END_IS_CP_GEN_BE
-  a_bit_field	global_qualification_needed:1;
-			/* A leading "::" is needed when referring to this
-			   entity.  Used within the C++-generating back end. */
+  a_bit_field	qualification_needed:1;
+			/* A qualified name should be used when referring to
+			   this entity.  Used within the C++-generating back
+			   end. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if ONE_INSTANTIATION_PER_OBJECT
   a_bit_field	static_used_by_instantiation:1;
@@ -6655,9 +6656,8 @@ typedef struct a_scope_orphaned_list_header {
 #if RECORD_HIDDEN_NAMES_IN_IL
 /*
 An entry identifying an entity whose name is hidden by another declaration
-but where the hiding can be defeated either by using global qualification (a
-preceding "::") and/or by using an elaborated type specifier.  This is used
-in C++ only.
+but where the hiding can be defeated either by using a qualified name and/or
+by using an elaborated type specifier.  This is used in C++ only.
 */
 typedef struct a_hidden_name *a_hidden_name_ptr;
 typedef struct a_hidden_name {
@@ -6669,10 +6669,12 @@ typedef struct a_hidden_name {
 		entity;
 			/* The entity that is hidden by another use of the
 			   same name. */
-  a_bit_field	global_qualification_needed:1;
-			/* TRUE if entity is a file scope entity hidden by a
-			   local scope declaration, so that the hiding can be
-			   defeated by using global qualification. */
+  a_bit_field	qualification_needed:1;
+			/* TRUE if entity is a member of a namespace or class
+			   scope that is hidden by a declaration in a enclosed
+			   scope but for which the hiding can be defeated by
+			   using a qualified name (i.e., by prepending "::"
+			   or "<class>::" or "<namespace>::". */
   a_bit_field	elaborated_type_specifier_needed:1;
 			/* TRUE if entity identifies a tagged type but its
 			   name is redeclared by a nontype declaration in the
