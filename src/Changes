@@ -853,8 +853,9 @@ comparison:
   void f() {
     int A::*pa = &A::j;
     int B::*pb = &B::k;
-    (void)(pa == pb);    // Accepted
-    int B::*px = pa;     // Gets "sorry, not implemented"
+    (void)(pa == pb);    // Accepted by cfront, and now by EDG in cfront mode
+    int B::*px = pa;     // Gets "sorry, not implemented" from cfront,
+                         //   error from EDG
   }
 
 Of course, since it does no adjustment, it sometimes gets the comparison
