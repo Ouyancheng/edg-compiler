@@ -3522,6 +3522,9 @@ branching into it is disallowed).
      to be the closing brace. */
   set_stmt_source_position(block->variant.block.extra_info->final_position,
                            pos_curr_token);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  add_end_of_block_source_sequence_entry(block);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Check for the closing "}".  Note that for a function, the "}" is left
      for the caller (function_definition) to handle. */
   if (!at_function_level) (void)required_token(tok_rbrace, ec_exp_rbrace);
