@@ -10514,6 +10514,13 @@ this is the template parameter list of a template template parameter.
       if (default_arg_constant->kind ==
                                      (a_constant_repr_kind)ck_template_param) {
         def_arg_involves_template_param = TRUE;
+      } else {
+        /* Make sure the constant does not use a local or nonexternal
+           variable, etc. */
+        if (constant_references_non_external_entity(default_arg_constant)) {
+          error(ec_nonexternal_entity_in_template_arg);
+          set_error_constant(default_arg_constant);
+        }  /* if */
       }  /* if */
       /* Save the scanned value of the default argument.  This is saved even
          if we also decide to save the cache.  This value will be used if
@@ -10870,6 +10877,7 @@ resulting constant is stored in the pointer pointed to by "constant".
         *constant = alloc_error_constant();
       } else {
         a_template_cache_ptr		tcp;
+        a_source_position		arg_pos;
         /* Increment the count of pending default argument instantiations.
            This is used to detect infinite recursion. */
         ++pending_instantiations;
@@ -10884,8 +10892,15 @@ resulting constant is stored in the pointer pointed to by "constant".
                                           /*push_stop_tokens=*/TRUE,
 					  ps_options);
         rescan_reusable_cache(&tcp->tokens);
+        arg_pos = pos_curr_token;
         *constant = fs_constant((a_constant_repr_kind)ck_error);
         delayed_scan_of_template_default_arg_expr(constant_type, *constant);
+        /* Make sure the constant does not use a local or nonexternal
+           variable, etc. */
+        if (constant_references_non_external_entity(*constant)) {
+          pos_error(ec_nonexternal_entity_in_template_arg, &arg_pos);
+          set_error_constant(*constant);
+        }  /* if */
         /* Pop the template instantiation scope. */
         pop_template_instantiation_scope();
         --pending_instantiations;

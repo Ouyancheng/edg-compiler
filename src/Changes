@@ -1,5 +1,14 @@
 Version 2.46
 
+3/9/01   Missing error check on default nontype template argument
+
+A nontype template argument may not reference an external entity.  This
+test was omitted when the value came from a default template argument.
+This could result in an internal error.  Now fixed.
+
+  template <char *p = "xxx"> struct A { } ; 
+  A<> a;
+
 3/9/01   Error recovery problem: abort in type_pointed_to after error
          on cast to virtual base
 
