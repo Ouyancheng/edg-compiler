@@ -7359,13 +7359,11 @@ skip_tag_scan:
                                          (a_name_linkage_kind)nlk_internal;
       }  /* if */
     }  /* if */
-    if (tag_id_present) {
-      srk_flags = SRK_DECLARATION;
-      if (is_class_definition) srk_flags |= SRK_DEFINITION;
-      if (is_friend_decl) srk_flags |= SRK_FRIEND;
-      record_symbol_declaration(srk_flags, tag_sym, &locator.source_position,
-                                (a_source_sequence_entry_ptr)NULL);
-    }  /* if */
+    srk_flags = SRK_DECLARATION;
+    if (is_class_definition) srk_flags |= SRK_DEFINITION;
+    if (is_friend_decl) srk_flags |= SRK_FRIEND;
+    record_symbol_declaration(srk_flags, tag_sym, &locator.source_position,
+                              (a_source_sequence_entry_ptr)NULL);
   } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
     if (tag_sym->variant.type->kind == (a_type_kind)tk_template_param) {
       /* Use of template parameter name as a proxy tag name during a
