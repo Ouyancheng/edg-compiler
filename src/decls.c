@@ -420,9 +420,14 @@ we keep scanning till the end of the declarator and return leaving both
         *may_be_decl = FALSE;
         goto done;
       } else if (curr_token == tok_identifier &&
-                 locator_for_curr_id.is_qualified_name &&
+                 locator_for_curr_id.is_global_qualified_name &&
                  next_token() == tok_rparen) {
-        /* Looks like a cast expression -- int(::x) or int(*A::p). */
+        /* Looks like a cast expression -- int(::x).  Note that global
+           qualifiers are not allowed (by the syntax) to be used in
+           declarators.  Other qualifiers are allowed by the syntax but
+           are not valid in most declarations.  Only global qualifiers,
+           however, are sufficient to conclude that this cannot be a
+           declaration. */
         *may_be_decl = FALSE;
         goto done;
       }  /* if */
