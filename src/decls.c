@@ -4822,32 +4822,32 @@ return a pointer to it in *symbol_ptr.
     }  /* if */
   } else if (C_dialect == C_dialect_cplusplus && !is_error_locator(*locator)) {
     /* No symbol by this name.  See if this is a tagless type for which the
-       typedef name will serve as the "name for linkage purposes" (ARM 7.1.3).
-       If so, set the name pointer in the type entry to point to the same
-       name as the current typedef name. */
+       typedef name will serve as the "name for linkage purposes" (WP 7.1.3
+       [dcl.typedef]).  If so, set the name pointer in the type entry to
+       point to the same name as the current typedef name. */
     tp = NULL;
-    if (is_immediate_class_type(type_ptr)) {
+    if (is_immediate_class_type(type_ptr) ||
+        is_immediate_enum_type(type_ptr)) {
       if (type_ptr->source_corresp.name == NULL) {
-        /* A class/struct/union type with no name. */
+        /* A class/struct/union or enum type with no name. */
         tp = type_ptr;
       }  /* if */
 #if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
     } else {
       /* Normally, inferring a linkage name from a typedef name is allowed
-         only for unqualified class/struct/union types.  However, in
-         cfront's name mangling scheme it is done for enum types, too --
-         and it is even done when there is a type qualifier on top of
-         the tagless class or enum:
+         only for unqualified class/struct/union and enum types.  However, in
+         cfront's name mangling scheme it is also done when there is a type
+         qualifier on top of the tagless class or enum:
            typedef struct { ... } A;         // linkage name "A" (all modes)
            typedef const struct { ... } B;   // linkage name "B" (cfront mode)
-           typedef enum { ... } C;           // linkage name "C" (cfront mode)
+           typedef enum { ... } C;           // linkage name "C" (all modes)
            typedef const enum { ... } D;     // linkage name "D" (cfront mode)
       */
       if (is_class_struct_union_type(type_ptr) || is_enum_type(type_ptr)) {
         if (skip_typedefs(type_ptr) == type_ptr &&
             skip_typerefs(type_ptr)->source_corresp.name == NULL) {
-          /* A possibly qualified class or enum type with no name.  Get at
-             the underlying type. */
+          /* A possibly qualified class or enum type with no name.  Get at the
+             underlying type. */
           tp = skip_typerefs(type_ptr);
         }  /* if */
       }  /* if */
@@ -4874,11 +4874,11 @@ return a pointer to it in *symbol_ptr.
            the X3J16 working paper, and so the restrictions specified in
            ARM 9.2 do not apply. */
       } else {
-        /* The typedef name is the name of the class "for linkage purposes".
-           That means the typedef name should be recorded in the source
-           correspondence field for the type.  However, we won't reenter
-           the symbol into the symbol table; this keeps the typedef name
-           from being used in an elaborated type specifier (7.1.3 para 5,
+        /* The typedef name is the name of the class or enum "for linkage
+           purposes".  That means the typedef name should be recorded in the
+           source correspondence field for the type.  However, we won't
+           reenter the symbol into the symbol table; this keeps the typedef
+           name from being used in an elaborated type specifier (7.1.3 para 5,
            9.1 para 5). */
         tp->source_corresp.name = locator->symbol_header->identifier;
       }  /* if */
