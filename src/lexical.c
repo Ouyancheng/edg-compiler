@@ -7647,7 +7647,9 @@ are handled in lexical_init.)
 #endif /* CHECKING */
   }
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
+#if DEBUG
   num_file_suffixes_allocated = 0;
+#endif /* DEBUG */
   /* Create the instantiation file suffix list. */
   add_list_of_suffixes_to_instantiation_file_suffix_list
                                     (DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST);
