@@ -6327,7 +6327,6 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if DO_IL_LOWERING
 
 /*
 An enumeration of the different kinds of constructor and destructor entry
@@ -6351,7 +6350,6 @@ enum a_ctor_or_dtor_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_ctor_or_dtor_kind;
 
-#endif /* DO_IL_LOWERING */
 
 /*
 Data structures related to routines:
