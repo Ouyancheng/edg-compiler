@@ -1,5 +1,18 @@
 Version 2.39
 
+5/9/98    Spurious error on inline class template member function in
+          strict mode
+
+A spurious "inline function was never defined" error was issued in
+strict mode under certain conditions.  The error would occur for
+virtual functions that are explicitly declared inline.  This has been
+fixed.
+
+  template<class T> struct A {
+    inline virtual ~A(){}
+  };
+  struct B: public A<int> { };
+
 5/5/98    Strange problems with default arguments on constructors with
           exceptions enabled
 

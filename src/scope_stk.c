@@ -2407,6 +2407,33 @@ type support.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 
 
+static a_boolean routine_defined(a_routine_ptr	rp)
+/*
+Return TRUE if a definition has been supplied for the routine pointed to
+by "rp".  If "rp" is a template instance that has not been explicitly
+specialized, return TRUE if a definition has been supplied for the
+associated template.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (rp->is_template_function &&
+      !rp->is_specialized && !rp->compiler_generated) {
+    a_template_symbol_supplement_ptr	tssp;
+    a_symbol_ptr			sym;
+    a_symbol_ptr			template_sym;
+    sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+    check_assertion(sym != NULL);
+    template_sym = sym->variant.routine.instance_ptr->template_sym;
+    tssp = template_supplement_for_symbol(template_sym);
+    result = cache_for_template(tssp)->tokens.first_token != NULL;
+  } else {
+    result = rp->assoc_scope != NULL_region_number;
+  }  /* if */
+  return result;
+}  /* routine_defined */
+
+
 static void check_referenced_member_functions(a_scope_ptr scope,
                                               a_boolean   is_function_local,
                                               a_boolean   within_unnamed_class)
@@ -2446,7 +2473,7 @@ body.  Only called in C++ mode.
   if (scope->kind == (a_scope_kind)sck_class_struct_union) {
     /* Now go though each routine entry for the current class. */
     for (rp = scope->routines; rp != NULL; rp = rp->next) {
-      if (rp->assoc_scope == NULL_region_number && !rp->compiler_generated) {
+      if (!routine_defined(rp) && !rp->compiler_generated) {
         /* An undefined member function. */
         is_inline_virtual =
                     (rp->is_inline && rp->is_virtual && !rp->pure_virtual);
