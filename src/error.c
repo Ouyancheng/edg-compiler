@@ -765,6 +765,15 @@ error code.
     case ec_dupl_decl_specifier:
       m = "duplicate specifier in declaration";
       break;
+    case ec_base_class_not_allowed_for_union:
+      m = "a union is not allowed to have a base class";
+      break;
+    case ec_access_already_specified:
+      m = "multiple access control specifiers are not allowed";
+      break;
+    case ec_missing_class_definition:
+      m = "class or struct definition is missing";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

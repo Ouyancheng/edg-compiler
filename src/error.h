@@ -285,7 +285,10 @@ typedef enum /*an_error_code*/ {
   ec_address_of_void,
   ec_bad_param_specifier,
   ec_bad_specifier_outside_class_decl,
-  ec_dupl_decl_specifier
+  ec_dupl_decl_specifier,
+  ec_base_class_not_allowed_for_union,
+  ec_access_already_specified,
+  ec_missing_class_definition
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
