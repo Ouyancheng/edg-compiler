@@ -9254,7 +9254,7 @@ Set the specific symbol to the associated nonfundamental symbol.
      instantiation. */
   if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     if (normal_sym != NULL && class_sym != NULL) {
-      if (class_sym->is_nonreal_member) {
+      if (class_fund_sym->is_nonreal_member) {
         class_sym = NULL;
       }  /* if */
     }  /* if */
