@@ -1198,13 +1198,15 @@ typedef struct a_constant {
 			/* TRUE if the original version of this constant
 			   was simply "0".  This is significant for the
 			   case of a virtual function pure specifier in C++. */
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING || BACK_END_IS_C_GEN_BE
   a_bit_field	assoc_var_assigned:1;
 			/* If TRUE, an associated variable has been assigned
 			   by IL lowering, and source_corresp.assoc_info
 			   points to it.  Used for pointer-to-member
-			   constants. */
-#endif /* DO_IL_LOWERING */
+			   constants.  Also used in the C-generating back
+			   end, for wide string literal constants that are
+			   rewritten to refer to a variable. */
+#endif /* DO_IL_LOWERING || BACK_END_IS_C_GEN_BE */
   a_bit_field	null_pointer_constant_ruled_out:1;
 			/* If TRUE, this constant has been subjected to casts
 			   or other operations that rule it out as a null

@@ -250,6 +250,12 @@ static a_scope_ptr
 			/* Points to the scope being processed currently
 			   (file, function, or block). */
 
+static a_constant_ptr
+		wide_string_constants_to_unbind_at_end_of_scope;
+			/* List of wide string literal constants whose bindings
+			   to variables must be broken at the end of the
+			   current scope. */
+
 static an_il_to_str_output_control_block
 		octl;	/* Output control block for interface to il_to_str
 			   routines. */
@@ -3872,8 +3878,8 @@ wide string constant given by constant.  Wide string constants are put
 out in this way to guarantee their alignment.
 */
 {
-  /* The string pointer is set to NULL once the variable has been put out. */
-  if (constant->variant.string.value != NULL) {
+  /* If we've already generated the variable, don't do it again. */
+  if (!constant->assoc_var_assigned) {
     set_output_position(&constant->source_corresp.decl_position);
     write_tok_str("static ");
     dump_general_declaration_using_type(constant->type, NO_NAME,
@@ -3882,10 +3888,35 @@ out in this way to guarantee their alignment.
     write_tok_str(" = {");
     dump_exploded_wide_string(constant);
     write_tok_str("};");
-    /* Mark the constant as having been put out. */
-    constant->variant.string.value = NULL;
+    /* Mark the constant as having an associated variable for this scope. */
+    constant->assoc_var_assigned = TRUE;
+    /* Put the constant on a list of constants to unbind at the end of the
+       scope.  Use the assoc_info field as a next pointer in order not to
+       disturb the "next" field. */
+    constant->source_corresp.assoc_info =
+                       (char *)wide_string_constants_to_unbind_at_end_of_scope;
+    wide_string_constants_to_unbind_at_end_of_scope = constant;
   }  /* if */
 }  /* dump_var_for_wide_string_constant */
+
+
+static void unbind_wide_string_constants(a_constant_ptr saved_list)
+/*
+We are at the end of a function or block scope.  Visit the list of constants
+headed by wide_string_constants_to_unbind_at_end_of_scope and unbind each
+wide string literal constant thereon from the variable associated for it
+in the current scope.  Then set wide_string_constants_to_unbind_at_end_of_scope
+to saved_list, the saved value from the scope surrounding the current one.
+*/
+{
+  a_constant_ptr con = wide_string_constants_to_unbind_at_end_of_scope;
+
+  /* The constant entries are linked using the assoc_info field. */
+  for (; con != NULL; con = (a_constant_ptr)(con->source_corresp.assoc_info)) {
+    con->assoc_var_assigned = FALSE;
+  }  /* for */
+  wide_string_constants_to_unbind_at_end_of_scope = saved_list;
+}  /* unbind_wide_string_constants */
 
 
 static void dump_initializer_part(a_variable_ptr        variable,
@@ -4519,11 +4550,16 @@ Dump out the contents of a block (but not the surrounding { and }).
 {
   /* curr_scope is saved and restored by this routine.  It is set to the
      new scope by dump_block_declararations, if appropriate. */
-  a_scope_ptr saved_curr_scope = curr_scope;
+  a_scope_ptr    saved_curr_scope = curr_scope;
+  a_constant_ptr saved_wide_string_constants_to_unbind_at_end_of_scope =
+                               wide_string_constants_to_unbind_at_end_of_scope;
 
+  wide_string_constants_to_unbind_at_end_of_scope = NULL;
   dump_block_declarations(statement);
   dump_statement_list(statement->variant.block.statements);
   curr_scope = saved_curr_scope;
+  unbind_wide_string_constants(
+                        saved_wide_string_constants_to_unbind_at_end_of_scope);
 }  /* dump_block */
 
 #if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -4561,7 +4597,10 @@ Generate the code for a switch statement.
   a_switch_clause_ptr switch_clause;
   /* curr_scope is saved here because dump_block_declarations may change it. */
   a_scope_ptr         saved_curr_scope = curr_scope;
+  a_constant_ptr      saved_wide_string_constants_to_unbind_at_end_of_scope =
+                               wide_string_constants_to_unbind_at_end_of_scope;
 
+  wide_string_constants_to_unbind_at_end_of_scope = NULL;
   write_tok_str("switch (");
   dump_expression(statement->expr);
   write_tok_str(") {");
@@ -4653,6 +4692,8 @@ position_set:;
     indent -= 4;
   }  /* for */
   curr_scope = saved_curr_scope;
+  unbind_wide_string_constants(
+                        saved_wide_string_constants_to_unbind_at_end_of_scope);
   write_tok_ch('}');
 }  /* dump_switch_statement */
 
@@ -5731,6 +5772,7 @@ Initialize for the C-generating back end.
   output_initializer_code_directly = FALSE;
   curr_function_scope = NULL;
   curr_scope = NULL;
+  wide_string_constants_to_unbind_at_end_of_scope = NULL;
   /* Set out the output control block used for interface with the il_to_str
      routines. */
   clear_il_to_str_output_control_block(&octl);

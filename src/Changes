@@ -1,5 +1,22 @@
 Version 2.30
 
+8/21/95  C-generating back end: wide string literal constants
+
+The C-generating back end rewrites references to the addresses of wide
+string literals as references to variables initialized with the
+proper string literal values.  This rewrite process generated bad
+C code when the same wide string literal was referenced in more than
+one function, because the variable was put out as a local static
+in the first function and then used again in the second.  Now fixed.
+
+  void f(wchar_t *);
+  void g() {
+    f(L"abc");
+  }
+  void h() {
+    f(L"abc");
+  }
+
 8/21/95  Object id variable double name mangling for nested classes fixed
 
 In certain cases the object id variable (pointed to from the typeinfo

@@ -1760,14 +1760,13 @@ confusion.  Do the output in the way described by octl.
         char          *str = constant->variant.string.value;
         a_targ_size_t len = constant->variant.string.length;
 
-        if (str == NULL) {
+        if (octl->c_generating_back_end && constant->assoc_var_assigned) {
           /* The C-generating back end transforms wide string literals: it
              creates a variable initialized with the string value and then
              uses the variable instead of the string.  This ensures proper
-             alignment for the string.  The string.value pointer is cleared
-             to NULL as an indication that the transformation has occurred. */
-          check_assertion_str(octl->c_generating_back_end,
-                              "form_constant: null string pointer");
+             alignment for the string.  The temp name for the variable is
+             derived from the address of the constant; there is no actual
+             variable entry. */
           output_temp_name((char *)constant, octl);
         } else if (is_wide_string_constant(constant)) {
           /* Wide string literal, e.g., L"abc". */

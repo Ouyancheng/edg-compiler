@@ -533,10 +533,10 @@ Display the indicated constant entry.
   if (ptr->is_simple_zero) {
     disp_boolean("is_simple_zero", TRUE);
   }  /* if */
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING || BACK_END_IS_C_GEN_BE
   /* Do not print out ptr->assoc_var_assigned, which is used only during IL
-     lowering. */
-#endif /* DO_IL_LOWERING */
+     lowering and the C-generating back end. */
+#endif /* DO_IL_LOWERING || BACK_END_IS_C_GEN_BE */
   if (ptr->null_pointer_constant_ruled_out) {
     disp_boolean("null_pointer_constant_ruled_out", TRUE);
   }  /* if */

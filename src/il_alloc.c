@@ -408,9 +408,9 @@ associated variant fields to default values.
   cp->implicit_cast  = FALSE;
   cp->non_arithmetic = FALSE;
   cp->is_simple_zero = FALSE;
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING || BACK_END_IS_C_GEN_BE
   cp->assoc_var_assigned = FALSE;
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING || BACK_END_IS_C_GEN_BE */
   cp->null_pointer_constant_ruled_out = FALSE;
 #if CHECKING
   cp->avoid_codecenter_warnings = 0;
