@@ -292,6 +292,7 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_friend,    "friend");
     enter_keyword((a_token_kind)tok_inline,    "inline");
     enter_keyword((a_token_kind)tok_mutable,   "mutable");
+    enter_keyword((a_token_kind)tok_namespace, "namespace");
     enter_keyword((a_token_kind)tok_new,       "new");
     enter_keyword((a_token_kind)tok_operator,  "operator");
     enter_keyword((a_token_kind)tok_private,   "private");
@@ -347,7 +348,6 @@ Install the keywords in the symbol table.
       enter_unimplemented_keyword("typeid",       ec_unimplemented_keyword);
     }  /* if */
     /* Enter keywords for things that are not yet implemented. */
-    enter_unimplemented_keyword("namespace", ec_unimplemented_keyword);
     enter_unimplemented_keyword("using",     ec_unimplemented_keyword);
   }  /* if */
   db_exit();
