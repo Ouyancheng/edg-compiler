@@ -6883,7 +6883,7 @@ this routine is called.
                          &operand->position);
           err = (strict_ansi_error_severity == es_error);
         }  /* if */
-      } else if (is_arithmetic_or_enum_type(source_type)) {
+      } else if (is_template_param_type(source_type)) {
         /* Casting from an unknown template parameter type is okay. */
       } else {
         /* Non-arithmetic --> arithmetic or enum. */

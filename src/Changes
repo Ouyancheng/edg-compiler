@@ -1,5 +1,14 @@
 Version 2.45
 
+10/29/00 Nit in cast_is_valid_in_current_expression_kind
+
+One test in cast_is_valid_in_current_expression_kind was incorrect.
+It tested for an arithmetic or enum type when it should have tested
+for a template parameter type (as indicated by the comment).  This
+is now corrected.  The code is in the section related to initializer
+expressions, which are not really used in C++, and therefore this
+problem was not visible in unmodified versions.
+
 10/12/00 Inconsistent source sequence entry list for prototype instantiation
          of a class template
 
