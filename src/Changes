@@ -1,11 +1,11 @@
 Version 2.32
 
 6/10/96 Internal error while generating operator= when base class operator=
-        is strange
+        returns value via copy constructor
 
 An internal error, that came up on generation of the operator= function
 for a derived class when the base class has an operator= that returns a
-class by value, has been fixed.
+class via a copy constructor, has been fixed.
 
   struct A {
     A(const A&);
