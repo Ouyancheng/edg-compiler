@@ -2609,13 +2609,17 @@ invalid, set *error to TRUE if error is non-NULL, and return 1.
 #else /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
   /* Use a standard C library routine to do the multibyte character
      sequence to wide character conversion. */
-  numch = mbtowc(wc, mb, MB_CUR_MAX);
-  if (numch < 0) {
-    /* Invalid multibyte character sequence. */
-    numch = 1;
-    *wc = 0;
-    local_error = TRUE;
-  }  /* if */
+  { wchar_t wchar;
+    numch = mbtowc(&wchar, mb, MB_CUR_MAX);
+    if (numch < 0) {
+      /* Invalid multibyte character sequence. */
+      numch = 1;
+      *wc = 0;
+      local_error = TRUE;
+    } else {
+      *wc = wchar;
+    }  /* if */
+  }
 #endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
   if (error != NULL) *error = local_error;
   return numch;
