@@ -15,6 +15,9 @@ C++ functions to support exception handling.
 
 #include <stdlib.h>
 #include "basics.h"
+#include "config.h"
+
+#if EXCEPTION_HANDLING
 #include "eh.h"
 
 void terminate()
@@ -80,6 +83,8 @@ and return the old value.
   __default_unexpected_routine = new_func;
   return old_func;
 }  /* set_unexpected */
+
+#endif /* EXCEPTION_HANDLING */
 
 /******************************************************************************
 *                                                             \  ___  /       *

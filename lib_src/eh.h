@@ -13,6 +13,10 @@ Declarations for exception handling.
 
 */
 
+#include "config.h"
+
+#if EXCEPTION_HANDLING
+
 #ifndef NULL
 #define NULL (0)
 #endif /* NULL */
@@ -359,6 +363,8 @@ extern a_void_function_ptr set_unexpected(a_void_function_ptr);
 EXTERN a_void_function_ptr
 		__default_unexpected_routine initial_value(unexpected);
 			/* Pointer to the unexpected routine to be used. */
+
+#endif /* EXCEPTION_HANDLING */
 
 
 /******************************************************************************

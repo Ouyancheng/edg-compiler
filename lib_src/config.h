@@ -45,7 +45,16 @@ USE_ATEXIT indicates that the atexit function should be used.
 #endif /* ifndef sun */
 #endif /* ifndef USE_ATEXIT */
 
+/*
+Should the components of the runtime system that implement
+exception handling be included.
+*/
+#ifndef EXCEPTION_HANDLING
+#define EXCEPTION_HANDLING TRUE
+#endif /* ifndef EXCEPTION_HANDLING */
 
+
+#if EXCEPTION_HANDLING
 /*
 The EH runtime allocates a static block of memory to be used for purposes
 of tracking pending exceptions, making a copy of the thrown object, etc.
@@ -79,6 +88,7 @@ The mangled name of the typeinfo record for a void * type.
 #ifndef MANGLED_NAME_OF_PTR_TO_VOID
 #define MANGLED_NAME_OF_PTR_TO_VOID __T_v
 #endif /* ifndef MANGLED_NAME_OF_PTR_TO_VOID */
+#endif /* EXCEPTION_HANDLING */
 
 #endif /* CONFIG_H */
 

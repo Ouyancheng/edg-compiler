@@ -16,6 +16,9 @@ Throw processing for exception handling.
 #include <malloc.h>
 #include "basics.h"
 #include "config.h"
+
+#if EXCEPTION_HANDLING
+
 #include "eh.h"
 
 
@@ -955,6 +958,8 @@ the completion of a catch clause.
     }  /* if */
   }  /* while */
 }  /* __free_thrown_object */
+
+#endif /* EXCEPTION_HANDLING */
 
 /******************************************************************************
 *                                                             \  ___  /       *
