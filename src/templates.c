@@ -14388,11 +14388,11 @@ specified by "tip" depend on a template parameter.
 
 #endif /* EXPENSIVE_CHECKING */
 
-
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
 /* Forward declaration. */
 static void check_if_entity_should_be_automatically_instantiated(
 					a_template_instance_ptr tip);
-
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 void add_to_instantiations_required_list(a_template_instance_ptr  tip)
 /*
@@ -14420,12 +14420,14 @@ list.
       instantiations_required_tail->next_in_instantiation_list = tip;
     }  /* if */
     instantiations_required_tail = tip;
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (in_instantiation_wrapup) {
       /* This entity is being added after we've already gone through the
          instantiations list to look for entities that must be instantiated.
          Do the check for this entity now. */
       check_if_entity_should_be_automatically_instantiated(tip);
     }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if EXPENSIVE_CHECKING
     /* Make sure none of the template arguments depend on template
        parameters. */
