@@ -3022,14 +3022,18 @@ to FALSE if the entity being declared is not initializable.
     }  /* if */
     if (locator_for_curr_id.is_qualified_name) {
       if (locator_for_curr_id.is_class_member) {
-        if (!(input_flags & DI_IS_FRIEND_DECL)) {
+        if (!(input_flags & DI_IS_FRIEND_DECL) || microsoft_bugs) {
           /* If this declaration appears in the immediate context of a class
              definition and the current token is an identifier representing
              the name of the current class, see if this is a qualified name
              and if so change it into a simple name (e.g., A::x becomes x,
              its equivalent in A's scope).  This needs to be done after the
              check for the cfront member typedef processing that is done
-             above. */
+             above.  Ordinarily, this does not apply to the declarator of a
+             friend declaration (i.e., "friend void A::f();" is an error in
+             class A if f had not been declared yet), but Microsoft compilers
+             perform the transformation anyway (thereby creating ::f instead
+             of A::f(!!)). */
           (void)simplify_curr_class_qualified_name();
         }  /* if */
       } else {

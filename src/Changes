@@ -1,5 +1,17 @@
 Version 2.42
 
+7/2/99  Microsoft compatibility: ignore self qualification
+
+In Microsoft bugs mode, the qualifier "C::" in the declarator of a member
+or friend declaration that appears in the definition of class C is ignored.
+In the case of a friend declaration, this may cause the friend entity to be
+in namespace scope.  For example,
+
+  struct S {
+    void S::f(); // No warning with --microsoft_bugs
+    friend void S::g(); // No warning or error with --microsoft_bugs
+  };                    // but the friend is ::g (!)
+
 7/2/99  Multiple carriage returns ignored before newline
 
 When IGNORE_CARRIAGE_RETURN_IN_SOURCE is TRUE, all carriage returns that

@@ -6351,8 +6351,12 @@ nonstandard, but it is allowed by cfront.
       /* Reset the fields in the locator to make it appear as if the
          qualifier was not present. */
       clear_qualifier_from_locator(&locator_for_curr_id);
-      if (any_cfront_mode()) {
-        /* No diagnostic, to be consistent with cfront's behavior. */
+      if (any_cfront_mode() || microsoft_bugs) {
+        /* No diagnostic, to be consistent with cfront's and Microsoft's
+           behavior.  In the Microsoft case, we may also end up here for
+           friend declarations ("struct S { friend void S::f(); };") and
+           dropping the qualifier may result in the injection of the name
+           in namespace scope. */
       } else {
         /* Accepting qualified member names is an extension -- issue a
            diagnostic. */
