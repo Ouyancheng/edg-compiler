@@ -169,7 +169,7 @@ Now, the extra qualifier is also accepted (with a warning) for member
 template declarations in GNU C++ mode.  For example:
 
   struct X {
-    template<typename T> void S::f() {}  // Accepted in GNU C++ mode.
+    template<typename T> void X::f() {}  // Accepted in GNU C++ mode.
   };
 
 1/25/05  Temporary destroyed wrong in generated operator= function
