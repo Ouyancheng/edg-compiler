@@ -1261,6 +1261,8 @@ extern void push_input_stack (FILE      		*new_input_file,
 			      a_boolean                  is_system_include,
 			      a_file_inclusion_state_ptr fstate);
 
+extern void pop_input_stack(void);
+
 /* Set the error position to the current token position. */
 #define set_err_pos_to_curr_token()                                   \
 { copy_source_position(pos_curr_token, error_position);}
@@ -1286,6 +1288,7 @@ extern void flush_until_matching_token(void);
 /* Flush tokens on error, to a token in the stop token set. */
 extern void flush_tokens(void);
 /* Initialize the lexical routines. */
+extern void lexical_reset(void);
 extern void lexical_init(void);
 /* Flush until the tok_end_of_source terminating a token cache is found. */
 #define flush_past_token_cache_terminator()			\

@@ -28,24 +28,7 @@ preproc.c -- Preprocessing directives.
 #include "symbol_ref.h"
 #include "macro.h"
 #include "const_ints.h"
-
-#ifndef ALIAS_DIRECTIVE
-#define ALIAS_DIRECTIVE 0
-#endif /* ifndef ALIAS_DIRECTIVE */
- 
-typedef enum /*a_pp_directive_kind*/ {
-  /* Enumeration of preprocessing directives. */
-  ppd_if, ppd_ifdef, ppd_ifndef, ppd_elif, ppd_else,
-  ppd_endif, ppd_include, ppd_define, ppd_undef, ppd_line,
-  ppd_error, ppd_pragma, ppd_null, ppd_linedef, ppd_ident,
-#if ALIAS_DIRECTIVE
-  ppd_alias,
-#endif /* ALIAS_DIRECTIVE */
-#if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
-  ppd_assert, ppd_unassert,
-#endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
-  ppd_not_valid
-} a_pp_directive_kind;
+#include "pch.h"
 
 typedef struct a_pp_if_stack_entry *a_pp_if_stack_entry_ptr;
 typedef struct a_pp_if_stack_entry {
@@ -905,69 +888,105 @@ generate_pp_output is TRUE.
 
 
 /*
-Dynamically allocated buffer used to contain transient pragma directives
+Dynamically allocated buffer used to contain preprocessing directives
 that are being recorded as character strings.
 */
-static char	*pragma_string_buffer = NULL;
+static char	*pp_dir_string_buffer = NULL;
 			/* Not allocated on a per-file basis. */
-#define PRAGMA_STRING_BUFFER_INITIAL_ALLOCATION 300
-#define PRAGMA_STRING_BUFFER_INCREMENTAL_ALLOCATION 300
+
+static sizeof_t	pp_directive_string_length;
+			/* Size of the string in the pp_directive buffer,
+                           not including any null terminator. */
+
+#define PP_DIR_STRING_BUFFER_INITIAL_ALLOCATION 300
+#define PP_DIR_STRING_BUFFER_INCREMENTAL_ALLOCATION 300
 			/* Initial and incremental allocation sizes for
-			   pragma_string_buffer.  The initial allocation
+			   pp_dir_string_buffer.  The initial allocation
 			   should be such that almost all cases can be
 			   accepted (so that the realloc is hardly ever
 			   needed). */
 
 
-static void expand_pragma_string_buffer(sizeof_t size_needed)
+static void expand_pp_dir_string_buffer(sizeof_t size_needed)
 /*
-Expand the pragma_string_buffer by reallocating it, so that its total size
-is at least size_needed.  Called by ensure_pragma_string_buffer_space.
+Expand the pp_dir_string_buffer by reallocating it, so that its total
+size is at least size_needed.  Called by ensure_pp_dir_string_buffer_space.
 */
 {
   sizeof_t new_size;
 
-  new_size = size_pragma_string_buffer +
-             PRAGMA_STRING_BUFFER_INCREMENTAL_ALLOCATION;
+  new_size = size_pp_dir_string_buffer +
+             PP_DIR_STRING_BUFFER_INCREMENTAL_ALLOCATION;
   if (new_size < size_needed) new_size  = size_needed;
-  pragma_string_buffer = realloc_general(pragma_string_buffer,
-                                        size_pragma_string_buffer, new_size);
-  size_pragma_string_buffer = new_size;
-}  /* expand_pragma_string_buffer */
+  pp_dir_string_buffer = realloc_general(pp_dir_string_buffer,
+                                        size_pp_dir_string_buffer, new_size);
+  size_pp_dir_string_buffer = new_size;
+}  /* expand_pp_dir_string_buffer */
 
 
 /*
-Ensure that pragma_string_buffer has at least size_needed bytes in it.
-If not, expand pragma_string_buffer by reallocating it.
+Ensure that pp_dir_string_buffer has at least size_needed bytes in it.
+If not, expand pp_dir_string_buffer by reallocating it.
 */
-#define ensure_pragma_string_buffer_space(size_needed)                 \
-{ if (size_pragma_string_buffer < size_needed) {                       \
-    expand_pragma_string_buffer((sizeof_t)(size_needed));              \
+#define ensure_pp_dir_string_buffer_space(size_needed)                 \
+{ if (size_pp_dir_string_buffer < size_needed) {                       \
+    expand_pp_dir_string_buffer((sizeof_t)(size_needed));              \
   }  /* if */                                                          \
-}  /* ensure_pragma_string_buffer_space */
+}  /* ensure_pp_dir_string_buffer_space */
+
+
+static void convert_pp_directive_to_string(void)
+/*
+Scans the tokens that make up a preprocessing directive and converts them into
+a single null terminated character string.  The string is constructed in
+a dedicated buffer which is enlarged as needed to be able to contain
+the entire string.  The tokens are scanned as preprocessing tokens.
+*/
+{
+  a_boolean	any_white_space_skipped = FALSE;
+  sizeof_t	pos_in_buffer = 0;
+
+  db_enter(4, "convert_pp_directive_to_string");
+  /* The current token is the identifier that indicates the pragma kind.
+     This should be included in the generated string. */
+  do {
+    /* The +1 in the following call is to make sure there is space for
+       a null terminator to be added. */
+    ensure_pp_dir_string_buffer_space(pos_in_buffer + len_of_curr_token +
+                                      any_white_space_skipped + 1);
+    if (any_white_space_skipped) pp_dir_string_buffer[pos_in_buffer++] = ' ';
+    (void)memcpy(&pp_dir_string_buffer[pos_in_buffer], start_of_curr_token,
+                 size_t_arg(len_of_curr_token));
+    pos_in_buffer += len_of_curr_token;
+    /* Skip any white space and record whether any was skipped.  Any white
+       space will be replaced by a single blank. */
+    skip_white_space();
+    any_white_space_skipped = (kind_of_white_space_skipped != 0);
+    (void)get_token();
+  } while (curr_token != tok_newline);
+  /* Add a null terminator.  We made sure there was room for it earlier. */
+  pp_dir_string_buffer[pos_in_buffer] = '\0';
+  pp_directive_string_length = pos_in_buffer;
+  db_exit();
+}  /* convert_pp_directive_to_string */
 
 
 static void convert_pragma_to_string(a_pending_pragma_ptr          ppp,
 				     a_pragma_kind_description_ptr pkdp)
 /*
-Scans the tokens that make up a pragma directive and converts them into
-a single null terminated character string.  The string is constructed in
-a dedicated buffer which is enlarged as needed to be able to contain
-the entire pragma.  The tokens are scanned as preprocessing tokens.
-Once the entire pragma has been scanned, a buffer of the appropriate
-size is allocated in the file scope IL memory region and the pragma
-string is copied there.
+Scans the tokens that make up a pragma directive and converts them
+into a single null terminated character string.  Once the entire
+pragma has been scanned, a buffer of the appropriate size is allocated
+in the file scope IL memory region and the pragma string is copied
+there.
 */
 {
   a_boolean	save_expand_macros;
   a_boolean	save_processing_C_code_in_pragma;
   a_boolean	save_do_string_literal_concatenation;
   a_boolean	save_fetch_pp_tokens;
-  a_boolean	any_white_space_skipped = FALSE;
-  sizeof_t	pos_in_buffer = 0;
   char		*il_string;
 
-  db_enter(4, "convert_pragma_to_string");
   /* Save the current value of the lexical scanning mode flags. */
   save_expand_macros = expand_macros;
   save_processing_C_code_in_pragma = processing_C_code_in_pragma;
@@ -977,38 +996,25 @@ string is copied there.
   expand_macros = pkdp->expand_macros;
   processing_C_code_in_pragma = pkdp->processing_C_code_in_pragma;
   do_string_literal_concatenation = processing_C_code_in_pragma;
-  /* We expect expand_macros and processing_C_code_in_pragma to be FALSE when
-     building a string representation of the pragma. */
-  check_assertion_str2(!expand_macros && !processing_C_code_in_pragma,
-		       "convert_pragma_to_string:",
-		       "invalid token scanning mode");
-  fetch_pp_tokens = TRUE;
-  /* The current token is the identifier that indicates the pragma kind.
-     This should be included in the generated string. */
-  do {
-    ensure_pragma_string_buffer_space(pos_in_buffer + len_of_curr_token +
-                                      any_white_space_skipped);
-    if (any_white_space_skipped) pragma_string_buffer[pos_in_buffer++] = ' ';
-    (void)memcpy(&pragma_string_buffer[pos_in_buffer], start_of_curr_token,
-                 size_t_arg(len_of_curr_token));
-    pos_in_buffer += len_of_curr_token;
-    /* Skip any white space and record whether any was skipped.  Any white
-       space will be replaced by a single blank. */
-    skip_white_space();
-    any_white_space_skipped = (kind_of_white_space_skipped != 0);
-    (void)get_token();
-  } while (curr_token != tok_newline);
   /* Restore the previous values. */
   expand_macros = save_expand_macros;
   processing_C_code_in_pragma = save_processing_C_code_in_pragma;
   do_string_literal_concatenation = save_do_string_literal_concatenation;
   fetch_pp_tokens = save_fetch_pp_tokens;
+  /* We expect expand_macros and processing_C_code_in_pragma to be FALSE when
+     building a string representation of the pragma. */
+  check_assertion_str2(!expand_macros && !processing_C_code_in_pragma,
+		       "convert_pp_directive_to_string:",
+		       "invalid token scanning mode");
+  fetch_pp_tokens = TRUE;
+  convert_pp_directive_to_string();
   /* Allocate a block of file scope IL memory into which the string may
      be copied. */
-  il_string = (char *)alloc_il(pos_in_buffer + 1);
-  (void)memcpy(il_string, pragma_string_buffer, size_t_arg(pos_in_buffer));
+  il_string = (char *)alloc_il(pp_directive_string_length + 1);
+  (void)memcpy(il_string, pp_dir_string_buffer,
+               size_t_arg(pp_directive_string_length));
   /* Add a null terminator. */
-  il_string[pos_in_buffer] = '\0';
+  il_string[pp_directive_string_length] = '\0';
   ppp->pragma_text = il_string;
 #if DEBUG
   if (debug_level >= 5) {
@@ -1186,6 +1192,32 @@ Scan and process a #alias directive.
 #endif /* ALIAS_DIRECTIVE */
 
 
+static void pch_prefix_processing_for_pp_directive(a_pp_directive_kind kind,
+                                                   a_source_position   *pos)
+/*
+Create a precompiled header prefix event for a preprocessing directive.
+This is done by converting the tokens that follow the preprocessing
+directive into a character string and calling the routine to add a
+pch event.
+*/
+{
+  /* Bypass the directive keyword. */
+  (void)get_token();
+  convert_pp_directive_to_string();
+  if (kind == ppd_include) {
+    /* Add a sequence point marker before and after include directives. */
+    add_pch_event(pchek_sequence_marker, ppd_not_valid, (char *)NULL,
+                  &null_source_position);
+  }  /* if */
+  add_pch_event(pchek_pp_directive, kind, pp_dir_string_buffer, pos);
+  if (kind == ppd_include) {
+    /* Add a sequence point marker before and after include directives. */
+    add_pch_event(pchek_sequence_marker, ppd_not_valid, (char *)NULL,
+                  &null_source_position);
+  }  /* if */
+}  /* pch_prefix_processing_for_pp_directive */
+
+
 void pp_directive(void)
 /*
 The "#" of a preprocessor directive is the current character.  Scan and
@@ -1220,104 +1252,111 @@ execute the preprocessor directive.
   add_stop_token(tok_newline);
   /* Identify the keyword and go to the right processing routine. */
   dir_kind = identify_dir_keyword();
-  switch ((int)dir_kind) {
-    case ppd_not_valid:
-      error(ec_bad_pp_directive_keyword);
-      some_error_in_curr_directive = TRUE;
-      break;
-    case ppd_if:
-      proc_if();
-      break;
-    case ppd_ifdef:
-      proc_ifdef(/*is_ifdef=*/TRUE);
-      break;
-    case ppd_ifndef:
-      proc_ifdef(/*is_ifdef=*/FALSE);
-      break;
-    case ppd_elif:
-      proc_elif(/*perform_elif=*/TRUE);
-      break;
-    case ppd_else:
-      proc_else(/*perform_else=*/TRUE);
-      break;
-    case ppd_endif:
-      proc_endif();
-      break;
-    case ppd_include:
-      proc_include();
-      break;
-    case ppd_define:
-      proc_define();
-      break;
-    case ppd_undef:
-      proc_undef();
-      break;
-    case ppd_line:
-      proc_line(/*cpp_output_form=*/FALSE);
-      break;
-    case ppd_error:
-      proc_error();
-      break;
-    case ppd_pragma:
-      proc_pragma(&start_of_dir_position);
-      break;
-    case ppd_ident:
-      nonstandard_pp_directive();
-      proc_ident();
-      break;
+  if (!building_pch_prefix) {
+    switch ((int)dir_kind) {
+      case ppd_not_valid:
+        error(ec_bad_pp_directive_keyword);
+        some_error_in_curr_directive = TRUE;
+        break;
+      case ppd_if:
+        proc_if();
+        break;
+      case ppd_ifdef:
+        proc_ifdef(/*is_ifdef=*/TRUE);
+        break;
+      case ppd_ifndef:
+        proc_ifdef(/*is_ifdef=*/FALSE);
+        break;
+      case ppd_elif:
+        proc_elif(/*perform_elif=*/TRUE);
+        break;
+      case ppd_else:
+        proc_else(/*perform_else=*/TRUE);
+        break;
+      case ppd_endif:
+        proc_endif();
+        break;
+      case ppd_include:
+        proc_include();
+        break;
+      case ppd_define:
+        proc_define();
+        break;
+      case ppd_undef:
+        proc_undef();
+        break;
+      case ppd_line:
+        proc_line(/*cpp_output_form=*/FALSE);
+        break;
+      case ppd_error:
+        proc_error();
+        break;
+      case ppd_pragma:
+        proc_pragma(&start_of_dir_position);
+        break;
+      case ppd_ident:
+        nonstandard_pp_directive();
+        proc_ident();
+        break;
 #if ALIAS_DIRECTIVE
-    case ppd_alias:
-      nonstandard_pp_directive();
-      proc_alias();
-      break;
+      case ppd_alias:
+        nonstandard_pp_directive();
+        proc_alias();
+        break;
 #endif /* ALIAS_DIRECTIVE */
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
-    case ppd_assert:
-      nonstandard_pp_directive();
-      proc_assert();
-      break;
-    case ppd_unassert:
-      nonstandard_pp_directive();
-      proc_unassert();
-      break;
+      case ppd_assert:
+        nonstandard_pp_directive();
+        proc_assert();
+        break;
+      case ppd_unassert:
+        nonstandard_pp_directive();
+        proc_unassert();
+        break;
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
-    case ppd_null:
-      /* Null directive -- ignore. */
-      break;
-    case ppd_linedef:
-      /* A line-identifying directive (output from cpp); this is similar
-         to a #line directive, but not exactly the same. */
-      nonstandard_pp_directive();
-      proc_line(/*cpp_output_form=*/TRUE);
-      break;
+      case ppd_null:
+        /* Null directive -- ignore. */
+        break;
+      case ppd_linedef:
+        /* A line-identifying directive (output from cpp); this is similar
+           to a #line directive, but not exactly the same. */
+        nonstandard_pp_directive();
+        proc_line(/*cpp_output_form=*/TRUE);
+        break;
 #if CHECKING
-    default:
-      internal_error("pp_directive: bad pp directive code");
-      break;
+      default:
+        internal_error("pp_directive: bad pp directive code");
+        break;
 #endif /* CHECKING */
-  }  /* switch */
-  /* If some other preprocessing directive is seen outside of the
-     #ifndef/#endif guard code of the current file then it is not a
-     candidate for suppression of a subsequent include. */
-  switch (dir_kind) {
-    case ppd_ifdef:
-    case ppd_ifndef:
-    case ppd_else:
-    case ppd_endif:
-    case ppd_include:
-      /* Processing for these directives is done in the specific routines
-         called above. */
-      break;
-    default:
-      {
-        a_byte	ifg_state = get_ifg_state();
-        if (ifg_state < IFG_STATE_FAIL)
-          ifg_state = IFG_STATE_FAIL;
-        }  /* if */
-      break;
-  }  /* switch */
-  /* Check that all of the text of the directive was taken. */
-  end_of_directive_processing();
+    }  /* switch */
+    /* If some other preprocessing directive is seen outside of the
+       #ifndef/#endif guard code of the current file then it is not a
+       candidate for suppression of a subsequent include. */
+    switch (dir_kind) {
+      case ppd_ifdef:
+      case ppd_ifndef:
+      case ppd_else:
+      case ppd_endif:
+      case ppd_include:
+        /* Processing for these directives is done in the specific routines
+           called above. */
+        break;
+      default:
+        {
+          a_byte	ifg_state = get_ifg_state();
+          if (ifg_state < IFG_STATE_FAIL)
+            ifg_state = IFG_STATE_FAIL;
+          }  /* if */
+        break;
+    }  /* switch */
+    /* Check that all of the text of the directive was taken. */
+    end_of_directive_processing();
+  } else {
+    /* We are building the precompiled header prefix information.  Simply
+       record information about the preprocessing directive that was
+       encountered. */
+   pch_prefix_processing_for_pp_directive(dir_kind, &start_of_dir_position);
+  }  /* if */
   /* Restore the stop token set as at entry. */
   copy_stop_tokens(save_stop_token_array, stop_token_array);
   in_preprocessing_directive = FALSE;

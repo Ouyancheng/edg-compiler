@@ -26,6 +26,62 @@ preproc.h -- Declarations related to preproc.c (having to do with
 #include "lexical.h"
 #endif /* ifndef LEXICAL_H */
 
+#ifndef ALIAS_DIRECTIVE
+#define ALIAS_DIRECTIVE 0
+#endif /* ifndef ALIAS_DIRECTIVE */
+
+/*
+If this list is updated, be sure to change pp_directive_kind_names below.
+*/
+typedef enum /*a_pp_directive_kind*/ {
+  /* Enumeration of preprocessing directives. */
+  ppd_if, ppd_ifdef, ppd_ifndef, ppd_elif, ppd_else,
+  ppd_endif, ppd_include, ppd_define, ppd_undef, ppd_line,
+  ppd_error, ppd_pragma, ppd_null, ppd_linedef, ppd_ident,
+#if ALIAS_DIRECTIVE
+  ppd_alias,
+#endif /* ALIAS_DIRECTIVE */
+#if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
+  ppd_assert, ppd_unassert,
+#endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
+  ppd_not_valid
+} a_pp_directive_kind;
+
+#if DEBUG
+/*
+Table of names of PCH event kinds.
+*/
+char		*pp_directive_kind_names[(int)ppd_not_valid+1]
+#if VAR_INITIALIZERS
+= { "if",
+    "ifdef",
+    "ifndef",
+    "elif",
+    "else",
+    "endif",
+    "include",
+    "define",
+    "undef",
+    "line",
+    "error",
+    "pragma",
+    "null",
+    "linedef",
+    "ident",
+#if ALIAS_DIRECTIVE
+    "alias",
+#endif /* ALIAS_DIRECTIVE */
+#if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
+    "assert",
+    "unassert",
+#endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
+    "not_valid"
+  }
+#endif /* VAR_INITIALIZERS */
+;
+#endif /* DEBUG */
+
+
 /*
 Preprocessor state variables.  These all have valid values at all times
 (not just when other variables would indicate that it is sensible for them
@@ -139,10 +195,11 @@ EXTERN long	base_pp_if_stack_depth;
 			   each #if must be closed within the file in
 			   which it was opened.  In pcc mode, always -1. */
 
-EXTERN sizeof_t	size_pragma_string_buffer /* = 0*/;
-			/* Current allocated size of pragma_string_buffer.
-			   Not per-file.  See preproc.c for the definition
-			   of pragma_string_buffer. */
+EXTERN sizeof_t	size_pp_dir_string_buffer /* = 0*/;
+			/* Current allocated size of
+                           pp_dir_string_buffer.  Not per-file.
+                           See preproc.c for the definition of
+			   pp_dir_string_buffer. */
 
 /* Scan a preprocessing directive. */
 extern void pp_directive(void);

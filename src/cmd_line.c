@@ -98,6 +98,9 @@ typedef enum /*an_option_kind*/ {
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   optk_gen_c_file_name,
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+  optk_create_pch,
+  optk_use_pch,
+  optk_pch,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -152,7 +155,15 @@ static void add_option_description(an_option_kind	kind,
 				   a_boolean		value,
 				   a_boolean		arg_required)
 /*
-Add an entry to the linked list of option descriptions.
+Add an entry to the linked list of option descriptions.  "keyword" is
+the string to be used as the keyword form of the option and may be
+NULL if there is no keyword version of the option.  "letter" is the
+option letter to be used for letter style options.  It may be
+the null character (\0) if no letter form of the option exists.
+"value" indicates whether this option is used to turn the option
+on (TRUE) or off (FALSE).  "arg_required" indicates whether an
+option must be followed by an argument.  Note that optional arguments
+are not supported.
 */
 {
   an_option_description_ptr	odp;
@@ -305,6 +316,12 @@ Initialize the option information table.
   add_option_description(optk_gen_c_file_name, "gen_c_file_name",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE);
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+  add_option_description(optk_create_pch, "create_pch",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(optk_use_pch, "use_pch",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE);
+  add_option_description(optk_pch, "pch",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE);
 }  /* initialize_option_descriptions */
 
 
@@ -823,7 +840,7 @@ Process the arguments on the command line that invoked the compiler.
         /* Control generation of a virtual function table if unable to
 	   determine absolute means to avoid duplicate virtual function 
 	   table entries in separate compilations.  --force_vtbl gives
-           opt_value TRUE; __suppress_vtbl gives opt_value FALSE. */
+           opt_value TRUE; --suppress_vtbl gives opt_value FALSE. */
         virtual_function_table_definition =
                                           opt_value ? vfd_force : vfd_suppress;
 	break;
@@ -988,6 +1005,26 @@ Process the arguments on the command line that invoked the compiler.
         gen_c_file_name = optarg;
         break;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+      case optk_create_pch:
+        /* Create precompiled header file as part of this compilation. */
+        check_assertion(opt_value == TRUE);
+        create_precompiled_header = TRUE;
+        precompiled_header_processing_required = TRUE;
+        break;
+      case optk_use_pch:
+        /* Use a precompiled header file as part of this compilation. */
+        check_assertion(opt_value == TRUE);
+        use_precompiled_header = TRUE;
+        precompiled_header_to_use = optarg;
+        precompiled_header_processing_required = TRUE;
+        break;
+      case optk_pch:
+        /* Do automatic precompiled header processing as part of this
+           compilation. */
+        check_assertion(opt_value == TRUE);
+        automatic_pch_processing = TRUE;
+        precompiled_header_processing_required = TRUE;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();

@@ -56,6 +56,7 @@ in the include files will become external definitions for the symbols.
 #include "macro.h"
 #include "mem_manage.h"
 #include "overload.h"
+#include "pch.h"
 #include "pragma.h"
 #include "preproc.h"
 #include "statements.h"
@@ -714,9 +715,12 @@ unit, in case multiple source files are allowed.
 }  /* fe_one_time_init */
 
 
-void fe_init(void)
+void fe_init_part_1(void)
 /*
-Initialize everything that has to do with the front end.
+Do the first phase of front end initialization.  This part initializes
+everything except the IL data structures.  This is the initialization
+that occurs before determining whether a precompiled header can be used
+to replace the initial portion of this compilation.
 */
 {
 #if DEBUG
@@ -754,6 +758,7 @@ Initialize everything that has to do with the front end.
   expr_init();
   macro_proc_init();
   statements_init();
+  pch_init();
   pragma_init();
   /* preproc_init must be called after keyword initialization so that
      macros have priority over keywords.  It also must be called after
@@ -765,6 +770,25 @@ Initialize everything that has to do with the front end.
   /* const_ints_init must be called after target_init so that
      int_kind_is_signed is properly initialized. */
   const_ints_init();
+#if COMPILE_MULTIPLE_SOURCE_FILES
+  /* If more than one source file is being compiled, identify each
+     source file as compilation starts. */
+  identify_source_file();
+#endif /* COMPILE_MULTIPLE_SOURCE_FILES */
+#if DEBUG
+  /* Establish the initial debug level (from the command line, or 0 by
+     default) at this point so that the first line will be read with the
+     same debug level as the other lines.  This avoids the confusion of
+     not seeing the debug output for the first source line when all the
+     other lines appear. */
+  save_debug_level = debug_level;
+  if (init_debug_level > debug_level) debug_level = init_debug_level;
+#endif /* DEBUG */
+#if DEBUG
+  /* Restore the debug level fe_init is supposed to have (0 unless
+     there's a command-line request to change the debug level in fe_init). */
+  debug_level = save_debug_level;
+#endif /* DEBUG */
 #if DO_IL_LOWERING
   if (!suppress_il_lowering) {
     il_lower_init();
@@ -841,39 +865,9 @@ Initialize everything that has to do with the front end.
   /* The following (source file initialization) is done last so that any
      initialization errors or uses of source position will correctly
      identify the position as before the start of source. */
-#if COMPILE_MULTIPLE_SOURCE_FILES
-  /* If more than one source file is being compiled, identify each
-     source file as compilation starts. */
-  identify_source_file();
-#endif /* COMPILE_MULTIPLE_SOURCE_FILES */
   /* Push the primary source input file onto the input stack.  Make
      a copy of the file name in IL storage. */
   il_header.primary_source_file = NULL;
-  open_file_and_push_input_stack(
-               strcpy(alloc_il((sizeof_t)(strlen(primary_source_file_name)+1)),
-                      primary_source_file_name),
-               (a_directory_name_entry_ptr)NULL,
-               /*is_include_file=*/FALSE,
-               /*is_system_include=*/FALSE);
-  /* Read the first line. */
-#if DEBUG
-  /* Establish the initial debug level (from the command line, or 0 by
-     default) at this point so that the first line will be read with the
-     same debug level as the other lines.  This avoids the confusion of
-     not seeing the debug output for the first source line when all the
-     other lines appear. */
-  save_debug_level = debug_level;
-  if (init_debug_level > debug_level) debug_level = init_debug_level;
-#endif /* DEBUG */
-  (void)read_logical_source_line(TRUE);
-  /* The initial get_token call is not done yet because we may be doing
-     preprocessing only, and the proper mode flags (like fetch_pp_tokens)
-     are not yet set. */
-#if DEBUG
-  /* Restore the debug level fe_init is supposed to have (0 unless
-     there's a command-line request to change the debug level in fe_init). */
-  debug_level = save_debug_level;
-#endif /* DEBUG */
 
   db_exit();
 #if DEBUG
@@ -881,7 +875,49 @@ Initialize everything that has to do with the front end.
      default). */
   debug_level = init_debug_level;
 #endif /* DEBUG */
-}  /* fe_init */
+}  /* fe_init_part_1 */
+
+
+static void open_primary_source_file(void)
+/*
+Open the primary source file, push the input stack, and get the
+first line of the file.
+*/
+{
+  open_file_and_push_input_stack(
+               strcpy(alloc_il((sizeof_t)(strlen(primary_source_file_name)+1)),
+                      primary_source_file_name),
+               (a_directory_name_entry_ptr)NULL,
+               /*is_include_file=*/FALSE,
+               /*is_system_include=*/FALSE);
+  /* Read the first line. */
+  (void)read_logical_source_line(TRUE);
+}  /* open_primary_source_file */
+
+
+void fe_init_for_pch_prefix_scan(void)
+/*
+Do initialization that is only required when precompiled header processing
+is being done.  This is called prior to the initial scan of the
+file prefix done by the precompiled header processing routines.
+*/
+{
+  open_primary_source_file();
+}  /* fe_init_for_pch_prefix_scan */
+
+
+void fe_init_part_2(void)
+/*
+Do the second phase of front end initialization.  This part initializes
+the IL data structures and opens the primary source file to do the actual
+compilation.
+*/
+{
+  open_primary_source_file();
+  /* The initial get_token call is not done yet because we may be doing
+     preprocessing only, and the proper mode flags (like fetch_pp_tokens)
+     are not yet set. */
+}  /* fe_init_part_2 */
 
 
 /******************************************************************************

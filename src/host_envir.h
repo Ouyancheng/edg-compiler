@@ -75,6 +75,20 @@ concatenation).
 #endif /* ifndef HOST_ALLOCATION_INCREMENT */
 
 /*
+The routines that determine whether an existing precompiled header may be
+used must preallocate a certain amount of memory in order to ensure that
+the memory allocated for the memory regions can be allocated in the space
+expected by the precompiled header.
+*/
+#ifndef MEM_ALLOCATED_FOR_PCH_ANALYSIS
+#if __MSDOS__
+#define MEM_ALLOCATED_FOR_PCH_ANALYSIS 16384
+#else /* !__MSDOS__ */
+#define MEM_ALLOCATED_FOR_PCH_ANALYSIS 262144  /* 256 * 1024 */
+#endif /* __MSDOS__ */
+#endif /* ifndef MEM_ALLOCATED_FOR_PCH_ANALYSIS */
+
+/*
 The number of include files that may be opened at any given time.
 After include nesting gets this deep, the same file will be re-opened
 for all other include files.  The primary source file is not included

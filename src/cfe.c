@@ -25,6 +25,7 @@ Enhanced to support C++ by J. Stephen Adamczyk and R. Michael Anderson,
 #include "error.h"
 #include "host_envir.h"
 #include "decls.h"
+#include "pch.h"
 
 #if BACK_END_IS_C_GEN_BE
 #include "c_gen_be.h"
@@ -60,12 +61,18 @@ int main(int argc, char *argv[])
     /* Get the front end starting time. */
     if (display_compilation_time) get_timer(&fe_start_time);
     /* Initialize the front end. */
-    fe_init();
+    fe_init_part_1();
     if (do_preprocessing_only) {
       /* Compiler is to operate like cpp, and do just preprocessing. */
+      fe_init_part_2();
       cpp_driver();
     } else {
       /* Compiler is to do preprocessing and compilation. */
+      if (precompiled_header_processing_required) {
+        fe_init_for_pch_prefix_scan();
+        precompiled_header_processing();
+      }  /* if */
+      fe_init_part_2();
       translation_unit();
     }  /* if */
     /* Do wrap-up processing for the front end (before the back end). */

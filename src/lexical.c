@@ -34,6 +34,7 @@ and parsing of them into tokens.
 #include "decls.h"
 #include "templates.h"
 #include "pragma.h"
+#include "pch.h"
 
 #if ASM_FUNCTION_ALLOWED
 #include "asm_func.h"
@@ -2528,7 +2529,7 @@ Push the indicated file onto the input stack.
 }  /* push_input_stack */
 
 
-static void pop_input_stack(void)
+void pop_input_stack(void)
 /*
 Pop the input stack, and correctly prepare for input from the file
 at the next level down.
@@ -3022,7 +3023,7 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
        has started. */
     eof_read_on_curr_input_stream = TRUE;
     at_end_of_source_file = TRUE;
-    if (!do_pop_on_end_of_file) {
+    if (!do_pop_on_end_of_file || building_pch_prefix) {
       /* We're asked not to do the pop, so just return things as they
          are (at_end_of_source_file is TRUE). */
       goto simple_return;
@@ -7447,9 +7448,9 @@ Display and return the amount of space used for various lexical tables.
 
   total = after_end_of_curr_source_line - curr_source_line;
   db_space_used_general_buffer("curr_source_line", total);
-  if (size_pragma_string_buffer != 0) {
-    db_space_used_general_buffer("pragma string",
-                                 ((unsigned long)size_pragma_string_buffer));
+  if (size_pp_dir_string_buffer != 0) {
+    db_space_used_general_buffer
+          ("pragma string", ((unsigned long)size_pp_dir_string_buffer));
   }  /* if */
 
   if (after_end_of_raw_listing_buffer != NULL) {
@@ -7464,6 +7465,42 @@ Display and return the amount of space used for various lexical tables.
 #endif /* DEBUG */
 
 
+void lexical_reset(void)
+/*
+Initialize variables that are used to record the state of the lexical
+routines.  These routines are reset after the initial scan that is
+done to determine whether a precompiled header may be used.
+*/
+{
+  /* Variables in lexical.h: */
+  depth_input_stack = -1;
+  curr_ise = NULL;
+  seq_number_last_read = 0;
+  curr_seq_number = 0;
+  orig_line_modif_list = NULL;
+  end_orig_line_modif_list = NULL;
+  source_line_modif_list = NULL;
+  line_start_source_line_modif = NULL;
+  sequence_id_for_source_line_modifs = 0;
+  delete_source_from_loc = NULL;
+  curr_token_pragmas = NULL;
+  /* Static variables in lexical.c: */
+  curr_input_stream = NULL;
+  eof_read_on_curr_input_stream = FALSE;
+  at_end_of_source_file = FALSE;
+  after_end_of_all_source = FALSE;
+  init_do_not_put_curr_line_in_pp_output = TRUE;
+  curr_raw_listing_line_code = '\0';
+  cached_token_rescan_list = NULL;
+  reusable_cache_stack = NULL;
+  any_initial_get_token_tests_needed = FALSE;
+  last_token_sequence_number_used = NO_TOKEN_SEQUENCE_NUMBER;
+  curr_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
+  include_file_history_list = NULL;
+  any_tokens_fetched_from_curr_input_file = FALSE;
+}  /* lexical_reset */
+
+
 void lexical_init(void)
 /*
 Initialize static variables related to the lexical routines.  This is done
@@ -7474,42 +7511,21 @@ of the front end.
 {
   register int c;  /* Has to be "int" so "for" loop will work. */
 
+  lexical_reset();
   /* Variables in lexical.h: */
-  depth_input_stack = -1;
-  curr_ise = NULL;
-  seq_number_last_read = 0;
-  curr_seq_number = 0;
-  orig_line_modif_list = NULL;
-  end_orig_line_modif_list = NULL;
   avail_orig_line_modifs = NULL;
-  source_line_modif_list = NULL;
-  line_start_source_line_modif = NULL;
   avail_source_line_modifs = NULL;
   sequence_id_for_source_line_modifs = 0;
   delete_source_from_loc = NULL;
   /* Clear the set of tokens on which to stop a flush following a
      syntax error. */
   clear_stop_tokens();
-  curr_token_pragmas = NULL;
   /* Static variables in lexical.c: */
-  curr_input_stream = NULL;
-  eof_read_on_curr_input_stream = FALSE;
-  at_end_of_source_file = FALSE;
-  after_end_of_all_source = FALSE;
-  init_do_not_put_curr_line_in_pp_output = TRUE;
-  curr_raw_listing_line_code = '\0';
-  cached_token_rescan_list = NULL;
   avail_cached_tokens = NULL;
   avail_cached_constants = NULL;
   avail_reusable_cache_entries = NULL;
   avail_pending_pragmas = NULL;
-  reusable_cache_stack = NULL;
   dollar_in_id_diagnostic_issued = FALSE;
-  any_initial_get_token_tests_needed = FALSE;
-  last_token_sequence_number_used = NO_TOKEN_SEQUENCE_NUMBER;
-  curr_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
-  include_file_history_list = NULL;
-  any_tokens_fetched_from_curr_input_file = FALSE;
 #if DEBUG
   num_orig_line_modifs_allocated = 0;
   num_source_line_modifs_allocated = 0;

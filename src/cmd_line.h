@@ -295,6 +295,32 @@ EXTERN char	*gen_c_file_name /* = NULL */;
 			   will generate a name if this string is NULL. */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
+EXTERN a_boolean
+		precompiled_header_processing_required /* = FALSE */;
+			/* TRUE if any kind of precompiled header
+			   processing is required by this compilation. */
+
+EXTERN a_boolean
+		create_precompiled_header /* = FALSE */;
+			/* TRUE if this compilation should create a
+			   precompiled header file. */
+
+EXTERN a_boolean
+		use_precompiled_header /* = FALSE */;
+			/* TRUE if this compilation should use a specified
+			   precompiled header file. */
+
+EXTERN char	*precompiled_header_to_use;
+			/* When use_precompiled_header is TRUE, this specifies
+			   the name of the precompiled header file to be
+			   used. */
+
+EXTERN a_boolean
+		automatic_pch_processing /* = FALSE */;
+			/* TRUE if the compiler should automatically
+			   determine whether to build and/or use a
+			   precompiled header file. */
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

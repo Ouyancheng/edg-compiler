@@ -25,7 +25,9 @@ fe_init.h -- Declarations relating to fe_init.c (having to do with
 
 /* Initialize front end: */
 extern void fe_one_time_init(void);
-extern void fe_init(void);
+extern void fe_init_part_1(void);
+extern void fe_init_for_pch_prefix_scan(void);
+extern void fe_init_part_2(void);
 
 extern a_symbol_ptr enter_predef_macro(char      *repl_text,
 			               char      *macro_name,
