@@ -282,6 +282,10 @@ could not be recorded.
 static inline size_t get_array_size(void*	array_ptr,
 			 	    size_t	element_size)
 /*
+Return the array size saved when the array was allocated.  The size is
+stored either in a prefix allocated immediately before the array or in
+a separate data structure.  array_ptr points to the start of the array
+whose size is to be determined.  element_size is the size of each element.
 */
 {
 #if USE_PREFIX_FOR_ARRAY_ALLOC_INFO
