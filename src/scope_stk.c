@@ -4404,6 +4404,11 @@ the scope kind, and P is the previous scope for name lookup purposes.
   0 file (none)           0 file (none)          0 file (none)
 
 initial_depth is the depth of the template declaration scope.
+
+This routine is also used when a template instantiation scope is
+pushed for a Microsoft template specialization scope.  This is done
+to make template parameters from a template declaration scope visible
+inside of the instantiation scope pushed for the specialization.
 */
 {
   a_scope_stack_entry_ptr	initial_ssep = &scope_stack[initial_depth];
@@ -4415,7 +4420,7 @@ initial_depth is the depth of the template declaration scope.
        point to the previous scope of the template declaration scope. */
     curr_ssep->previous_scope = initial_ssep->previous_scope;
   } else {
-    /* Subsequence reactivation scopes will have their previous scope entry
+    /* Subsequent reactivation scopes will have their previous scope entry
        set to point to the template declaration scope.  Reset the previous
        pointer to point to the previous namespace reactivation. */
     curr_ssep->previous_scope = depth_scope_stack-1;
@@ -4632,9 +4637,12 @@ reactivation or extension scope is pushed (depending on the value of
 extend_namespace).
 */
 {
-  a_boolean	is_template;
+  a_boolean	is_template = FALSE;
   a_symbol_ptr	class_sym;
   a_scope_depth	orig_depth = depth_scope_stack;
+  a_scope_depth	initial_depth = depth_scope_stack;
+  a_boolean	is_microsoft_specialization_scope = FALSE;
+  a_boolean	initial_scope_is_template_decl = FALSE;
 
   /* Get the symbol associated with the class. */
   class_sym = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
@@ -4646,15 +4654,33 @@ extend_namespace).
      specialized classes.  But in Microsoft mode, an instantiation scope
      is pushed because the template parameters are visible, even in
      specializations. */
-  is_template = is_template_instance_class_symbol(class_sym) &&
-                ((!is_template_instance_specific_def_symbol(class_sym) &&
-                  reactivate_template_params) ||
-                 microsoft_mode);
+  if (is_template_instance_class_symbol(class_sym)) {
+    is_template = ((!is_template_instance_specific_def_symbol(class_sym) &&
+                  reactivate_template_params));
+    if (microsoft_mode) {
+      /* Determine whether the instantiation scope is being pushed only
+         because we are in Microsoft mode. */
+      is_microsoft_specialization_scope = !is_template;
+      is_template = TRUE;
+    }  /* if */
+    if (is_microsoft_specialization_scope) {
+      a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+      initial_scope_is_template_decl = ssep->kind ==
+                                        (a_scope_kind)sck_template_declaration;
+    }  /* if */
+  }  /* if */
   if (is_template) {
     /* The push of the template instantiation scope will not reactivate the
        class type (that it thinks is being instantiated).  Reactivate it
        now. */
     push_instantiation_scope_for_class(class_type);
+    if (initial_scope_is_template_decl) {
+      /* In Microsoft mode, if a specialization instantiation scope is
+         pushed inside a template declaration scope, the previous pointers
+         need to be updated in order for name lookup to consider the
+         template declaration scope at the appropriate time. */
+      set_template_decl_lookup_sequence(initial_depth);
+    }  /* if */
     push_single_class_reactivation_scope(class_type);
     /* Indicate that a template instantiation scope was pushed so that,
        when popping the class and template reactivation, we know how the
