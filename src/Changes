@@ -30,7 +30,7 @@ expression is now preserved.
 
 3/3/04   GNU C++ compatibility: call returning class treated as lvalue
 
-IN GNU C++ mode, a function call returning a class value is now
+In GNU C++ mode, a function call returning a class value is now
 treated as an lvalue in some cases.  Also, a warning is now issued
 on taking the address of a temporary in any mode that allows it
 (e.g., GNU C++, Microsoft C++).
