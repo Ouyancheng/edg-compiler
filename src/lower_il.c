@@ -6275,6 +6275,7 @@ needs to be lowered if lower_source is TRUE.
   an_expr_node_ptr result_node;
   a_targ_size_t    derived_class_cast_offset;
   a_boolean        complete_object;
+  a_boolean        is_derived_cast = FALSE;
 
   /* Use a recursive routine to pick up a sequence of base-class or
      derived-class casts and generate the code for it.  Using a recursive
@@ -6301,6 +6302,7 @@ needs to be lowered if lower_source is TRUE.
        subtracted from the pointer to the base class to get a pointer to the
        derived class.  Generate a pointer subtraction to actually adjust
        the pointer.  The cast back from "char *" is yet to be done below. */
+    is_derived_cast = TRUE;
     result_node = add_decr_code_to_pointer_node(result_node,
                                                 derived_class_cast_offset);
   }  /* if */
@@ -6332,7 +6334,9 @@ needs to be lowered if lower_source is TRUE.
     a_boolean saved_compiler_generated =
                                     node->variant.operation.compiler_generated;
     change_to_cast(node, result_node, node->type);
-    node->variant.operation.compiler_generated = saved_compiler_generated;
+    if (is_derived_cast) {
+      node->variant.operation.compiler_generated = saved_compiler_generated;
+    }  /* if */
   }  /* if */
 }  /* lower_related_class_cast */
 
