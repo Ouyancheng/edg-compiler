@@ -10270,14 +10270,11 @@ handled).
                        (a_constant **)NULL);
     /* Lower the value expression. */
     value_expr = csp->expr;
-    if (bool_is_keyword && !is_switch_stmt) {
-      /* For boolean cases (i.e., not switch), adjust the result types of
-         boolean operations. */
-      a_boolean adjusted;
-      adjust_bool_operation_types(value_expr, &adjusted,
-                                  /*see_if_possible=*/FALSE);
+    if (is_switch_stmt) {
+      lower_full_expr(value_expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
+    } else {
+      lower_boolean_controlling_expr(value_expr, /*is_full_expr=*/TRUE);
     }  /* if */
-    lower_full_expr(value_expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
     /* Here, the condition initialization has been lowered and placed at the
        beginning of the created block statement.  insert_location gives the
        insert position following that code.  The value expression for the

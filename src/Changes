@@ -1,5 +1,22 @@
 Version 2.44
 
+3/10/00  Lowering of condition declarations: missing "!= 0" test
+
+Boolean controlling expressions in the IL are supposed to be normalized,
+i.e., they are supposed to have an operator that returns 0/1 on top, or
+they are constants 0/1.  In one case -- lowering of condition declarations --
+the lowered code was not normalized.  Now fixed (a "!= 0" test has
+been added).
+
+  struct Foo {
+    operator bool();
+    Foo();
+  };
+  void Bar() {
+      if (Foo f = Foo()) {  // Now has "!= 0" test on top of call
+      }
+  }
+
 3/10/00  Internal error on local incompatible redeclaration of ::main
 
 In C++ mode, the front end used to abort processing when encountering a local
