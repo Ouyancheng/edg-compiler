@@ -32,7 +32,7 @@ A warning is issued and the default from the initial declaration is used.
          LOWER_EXTERN_INLINE
 
 In some very complicated cases using export, in a configuration
-with LOWER_EXTERN_INLINE set to TRUE, the definition of a extern
+with LOWER_EXTERN_INLINE set to TRUE, the definition of an extern
 inline member function of a template might be missing (resulting
 in an unsatisfied external at link time).  This was due to a problem
 in the copy process for multiple translation unit IL, now fixed.
