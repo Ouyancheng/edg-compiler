@@ -7897,7 +7897,8 @@ process_class_specifier:
              symbol. */
           reduce_projection_symbol_to_fundamental_symbol(
                                                       curr_token_type_symbol);
-          mark_referenced(curr_token_type_symbol, &pos_curr_token);
+          mark_referenced(curr_token_type_symbol,
+                          &locator_for_curr_id.source_position);
           if (!type_specifier_allowed) {
             error(ec_type_specifier_not_allowed);
             err = TRUE;
