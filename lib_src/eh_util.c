@@ -52,7 +52,7 @@ The default terminate routine, which is just a wrapup around abort().
 }  /* __default_terminate */
 
 
-a_void_function_ptr set_terminate(a_void_function_ptr new_func)
+a_void_function_ptr set_terminate(a_void_function_ptr new_func) THROW_NOTHING()
 /*
 Set the terminate routine pointer to the value passed by the caller
 and return the old value.
@@ -75,6 +75,7 @@ The default unexpected routine.  This routine calls terminate.
 
 
 a_void_function_ptr set_unexpected(a_void_function_ptr new_func)
+THROW_NOTHING()
 /*
 Set the unexpected routine pointer to the value passed by the caller
 and return the old value.

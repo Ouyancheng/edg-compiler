@@ -30,7 +30,7 @@ the std namespace.
 namespace std {
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
-new_handler set_new_handler(new_handler handler)
+new_handler set_new_handler(new_handler handler) THROW_NOTHING()
 /*
 Set _new_handler to the new function pointer provided and return the
 previous value of _new_handler.
