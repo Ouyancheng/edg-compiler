@@ -900,7 +900,8 @@ Return TRUE if the type pointed to by tp is a class type with a default
 constructor (or an array thereof).  This function is called in C++ mode only.
 */
 {
-  a_boolean  has_default_ctor = FALSE;
+  a_boolean                      has_default_ctor = FALSE;
+  a_class_symbol_supplement_ptr  cssp;
 
   if (is_array_type(tp)) {
     tp = underlying_array_element_type(tp);
@@ -908,7 +909,15 @@ constructor (or an array thereof).  This function is called in C++ mode only.
   tp = skip_typerefs(tp);
   if (is_immediate_class_type(tp)) {
     /* It's a class type or an array of class type. */
-    if (symbol_supplement_for_class(tp)->has_default_constructor) {
+    cssp = symbol_supplement_for_class(tp);
+    if (cssp->has_default_constructor) {
+      /* The class actually has a user-defined or implicitly-declared
+         nontrivial default constructor. */
+      has_default_ctor = TRUE;
+    } else if (cssp->constructor == NULL && !cssp->is_POD) {
+      /* The class has a trivial default constructor that should be treated
+         as if it were callable, even though no symbol was actually created
+         for it. */
       has_default_ctor = TRUE;
     }  /* if */
   }  /* if */
