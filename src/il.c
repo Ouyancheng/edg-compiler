@@ -5598,6 +5598,7 @@ Make a copy of an expression tree and return a pointer to it.
         expr_copy->variant.typeid_info.expr =
                            copy_expr_tree(expr->variant.typeid_info.expr);
       }  /* if */
+      break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     case enk_lowered_eh_construct:
       /* Nothing to copy. */
