@@ -13,8 +13,7 @@ host_envir.c -- Host-environment-dependent routines.
 
 (These have to do with operating system and file name differences.)
 
-This version for UNIX (UNIX is a trademark of Unix System Laboratories),
-MS-DOS, or VAX/VMS.
+This version for UNIX, MS-DOS, VAX/VMS, and Windows NT.
 
 */
 
@@ -1697,11 +1696,13 @@ succeeded.
 
 /* Header comment for get_file_name_from_dir. */
 /*
-Get the name of the next file in the current directory.  If first
-is TRUE, then this is the first call.  Returns a pointer to the file
-name string.  The value returned is only valid until the next call of
-this routine.  A NULL pointer is returned when there are no more directory
-entries.
+Get the name of the next file in the current directory that has the
+indicated suffix.  If first is TRUE, then this is the first call.
+Returns a pointer to the file name string.  The value returned is
+only valid until the next call of this routine.  A NULL pointer is
+returned when there are no more directory entries.  dir_name indicates
+the directory in which to search (or NULL for the current directory),
+and curr_dir_name is the current directory name.
 */
 #if __WIN32__
 /*
@@ -1766,6 +1767,9 @@ char *get_file_name_from_dir(a_boolean	first,
 			     char	*dir_name,
 			     char	*suffix,
 			     char	*curr_dir_name)
+/*
+See comment above.
+*/
 {
   static struct _find_t	fileinfo;
   char			*result;
@@ -1776,7 +1780,7 @@ char *get_file_name_from_dir(a_boolean	first,
   }  /* if */
   if (first) {
     /* Convert the suffix (e.g., ".xxx" into a pattern for use by the
-       Windows-NT routine (e.g., "*.xxx"). */
+       find-first routine (e.g., "*.xxx"). */
     check_assertion(strlen(suffix) <= 8);
     sprintf(pattern, "*%s", suffix);
     /* On the first call, use the _dos_findfirst call that specifies which
