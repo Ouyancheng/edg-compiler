@@ -7593,7 +7593,6 @@ Output the initializer, if any, for the indicated variable.
            nothing. */
         break;
       }  /* if */
-      check_assertion(dip->kind != (a_dynamic_init_kind)dik_zero);
       parenthesized_init = var->has_parenthesized_initializer;
       if (!parenthesized_init) {
         write_tok_str(" = ");
