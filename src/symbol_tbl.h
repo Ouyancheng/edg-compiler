@@ -92,6 +92,10 @@ typedef int an_id_lookup_options_set;
 				   at the first namespace scope and suppresses
 				   some of the special lookups (such as
 				   the using directive lookup). */
+#define IDL_MUST_BE_SYNTH_NAMESPACE_PROJ 0x80
+				/* Must be a synthesized namespace projection
+				   symbol.  These are usually ignored by
+				   lookups. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*
@@ -1477,6 +1481,15 @@ typedef struct a_symbol {
 			   as a result of a lookup that found one or more
 			   symbols that are visible as a result of
 			   using directives. */
+  unsigned int
+		ambiguous:1;
+			/* TRUE if the symbol name is ambiguous in
+			   the current scope, i.e., another symbol with the
+			   same name is visible, and there is no reason to
+			   prefer one over the other.  This is used for
+			   sk_projection, sk_namespace_projection, and
+			   sk_overloaded_function symbols that are
+			   synthesized namespace projection symbols. */
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
@@ -1599,12 +1612,6 @@ typedef struct a_symbol {
 			   class.  This may differ from the access with
 			   which it was originally declared in its base
 			   class. */
-      unsigned int
-		ambiguous:1;
-			/* TRUE if the symbol name is ambiguous in
-			   the current scope, i.e., another symbol with the
-			   same name is visible, and there is no reason to
-			   prefer one over the other. */
       unsigned int
 		access_adjustment_made:1;
 			/* If TRUE an access declaration has been made for

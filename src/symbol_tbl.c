@@ -633,7 +633,6 @@ do_variable:
       break;
     case sk_projection:
       put_access(sym->variant.projection.access);
-      if (sym->variant.projection.ambiguous) put_string("ambig");
       if (sym->variant.projection.access_adjustment_made) {
         put_string("access decl");
       }  /* if */
@@ -821,6 +820,7 @@ do_variable:
       break;
 #endif /* CHECKING */
   }  /* switch */
+  if (sym->ambiguous) put_string("ambig");
   if (sym->synthesized_namespace_projection) {
     put_string("synth_namespace_proj");
   }  /* if */
@@ -945,15 +945,9 @@ Dump the entire scope stack (for debugging).
         if (ssep->template_sym == NULL) {
           fputs("<null template symbol>", f_debug);
         } else {
-          char* s;
-          switch (ssep->template_sym->kind) {
-            case sk_class_template:      s = "<class-template>";    break;
-            case sk_function_template:   s = "<function-template>"; break;
-            case sk_static_data_member:  s = "<static-data-member-template>";
-                                                                    break;
-            default:                     s = "<BAD SYMBOL KIND>";   break;
-          }  /* switch */
-          fprintf(f_debug, "%s %s", s, ssep->template_sym->header->identifier);
+          char* s = symbol_kind_names[(int)ssep->template_sym->kind];
+          fprintf(f_debug, "<%s> %s", s,
+                  ssep->template_sym->header->identifier);
         }  /* if */
         break;
       case sck_template_declaration:
@@ -1724,7 +1718,6 @@ state.
         pdp->fundamental_base_class = NULL;
         sym_ptr->variant.projection.extra_info= pdp;
         sym_ptr->variant.projection.access    = (an_access_specifier)as_public;
-        sym_ptr->variant.projection.ambiguous = FALSE;
         sym_ptr->variant.projection.access_adjustment_made = FALSE;
         sym_ptr->variant.projection.intervening_access_adjustment = FALSE;
       }
@@ -2901,7 +2894,7 @@ progenitor_sym is a member) if ambiguous is TRUE.
   set_class_membership(sym, (a_source_correspondence *)NULL, class_ptr);
   sym->decl_scope = class_ptr->variant.class_struct_union.
                                     extra_info->assoc_scope->number;
-  sym->variant.projection.ambiguous = ambiguous;
+  sym->ambiguous = ambiguous;
   pdp = sym->variant.projection.extra_info;
   if (progenitor_sym->kind == (a_symbol_kind)sk_projection) {
     /* The "progenitor" of this new projection symbol is itself a projection
@@ -3224,6 +3217,44 @@ table.
   sym->decl_scope = scope_stack[depth_scope_stack].number;
   return sym;
 }  /* make_unnamed_namespace_symbol */
+
+
+static
+a_symbol_ptr make_synth_namespace_projection_symbol(a_symbol_ptr     fund_sym,
+                                                    a_symbol_locator *locator)
+/*
+Create a synthesized namespace projection symbol and set it to point
+to fund_sym.
+*/
+{
+  a_symbol_ptr	sym;
+
+  sym = alloc_symbol((a_symbol_kind)sk_namespace_projection,
+                     fund_sym->header, &locator->source_position);
+  sym->variant.namespace_projection.fundamental_symbol = fund_sym;
+  sym->decl_scope = scope_stack[decl_scope_level].number;
+  sym->synthesized_namespace_projection = TRUE;
+  return sym;
+}  /* make_namespace_projection_symbol */
+
+
+static
+a_symbol_ptr enter_synth_namespace_projection_symbol(a_symbol_ptr     fund_sym,
+                                                     a_symbol_locator *locator)
+/*
+Create a synthesized namespace projection symbol, set it to point to fund_sym,
+and enter it in the symbol table.
+*/
+{
+  a_symbol_ptr	sym;
+
+  sym = enter_symbol((a_symbol_kind)sk_namespace_projection, locator,
+                     decl_scope_level, /*suppress_redecl_error=*/FALSE);
+  sym->variant.namespace_projection.fundamental_symbol = fund_sym;
+  sym->decl_scope = scope_stack[decl_scope_level].number;
+  sym->synthesized_namespace_projection = TRUE;
+  return sym;
+}  /* enter_namespace_projection_symbol */
 
 
 a_symbol_ptr make_anonymous_parent_object_symbol(a_symbol_kind      kind,
@@ -4980,8 +5011,7 @@ the error is issued immediately.
   /* Issue an error if the symbol is ambiguous.  Only a symbol projected
      into a derived class by inheritance can be ambiguous.  Ambiguity checking
      must precede access control (ARM, 10.1.1). */
-  if (sym->kind == (a_symbol_kind)sk_projection &&
-      sym->variant.projection.ambiguous) {
+  if (sym->kind == (a_symbol_kind)sk_projection && sym->ambiguous) {
     pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
     set_to_error_locator(*locator);
   } else if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
@@ -5188,7 +5218,7 @@ a projection symbol pointing to that sk_overloaded_function symbol.
        into a derived class by inheritance can be ambiguous.  Ambiguity
        checking must precede access control (ARM, 10.1.1). */
     if (overloaded_symbol->kind == (a_symbol_kind)sk_projection &&
-        overloaded_symbol->variant.projection.ambiguous) {
+        overloaded_symbol->ambiguous) {
       pos_sy_error(ec_ambiguous_name, &locator->source_position,
                    overloaded_symbol);
       set_to_error_locator(*locator);
@@ -5532,7 +5562,7 @@ symbol.
       local_access = max_access_of_overloaded_function(sym);
     } else if (sym->kind == (a_symbol_kind)sk_projection) {
       local_access = sym->variant.projection.access;
-      if (sym->variant.projection.ambiguous) *ambiguous = TRUE;
+      if (sym->ambiguous) *ambiguous = TRUE;
       /* Retrurn a flag indicating whether there are any intervening access
          declarations in the inheritance path. */
       if (sym->variant.projection.access_adjustment_made ||
@@ -6156,19 +6186,19 @@ must a tag.  Projection symbols are not considered in the lookup.
   a_symbol_ptr			sym;
   a_scope_number		scope_number;
   a_boolean			must_be_tag = (options & IDL_MUST_BE_TAG);
+  a_boolean			must_be_synth_ns_proj =
+                                  (options & IDL_MUST_BE_SYNTH_NAMESPACE_PROJ);
   a_scope_stack_entry_ptr	ssep;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym)                                       \
    ((!must_be_tag || is_tag_symbol(sym)) &&				\
     sym->kind != (a_symbol_kind)sk_projection &&			\
-    !sym->synthesized_namespace_projection)
+    (!must_be_synth_ns_proj || sym->synthesized_namespace_projection))
 
-#if CHECKING
-  if ((options & ~IDL_MUST_BE_TAG) != 0) {
-    internal_error("curr_scope_id_lookup: invalid option");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion_str2((options & ~(IDL_MUST_BE_TAG |
+                                    IDL_MUST_BE_SYNTH_NAMESPACE_PROJ)) == 0,
+                       "curr_scope_id_lookup:", "invalid_option");
   sym = locator->specific_symbol;
   if (is_error_locator(*locator)) {
     /* The locator is an error locator, so return NULL (i.e., no symbol
@@ -6624,24 +6654,147 @@ such pointer is found, NULL is returned.
 }  /* find_out_of_scope_declaration */
 
 
-static a_symbol_ptr add_symbol_to_lookup_set(a_symbol_ptr curr_sym,
-                                             a_symbol_ptr new_sym,
-                                             a_boolean    *err)
+static a_boolean already_in_lookup_set(a_symbol_ptr curr_sym,
+                                       a_symbol_ptr new_sym)
+/*
+See if new_sym is already in the lookup set represented by curr_sym.
+curr_sym could point to a single namespace projection symbol or
+an sk_overloaded_function symbol that points to a set of namespace
+projections symbols.  curr_sym is the fundamental symbol to be compared
+with the fundamental symbols pointed to by the namespace projection
+symbol(s) in curr_sym.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (curr_sym == NULL) {
+    /* No current list -- return FALSE. */
+  } else if (curr_sym->kind == (a_symbol_kind)sk_namespace_projection) {
+    result = new_sym == fundamental_symbol_of(curr_sym);
+  } else {
+    /* Look through the overload set for a fundamental symbol that matches
+       new_sym. */
+    a_symbol_ptr	sym;
+    check_assertion(curr_sym->kind == (a_symbol_kind)sk_overloaded_function);
+    for (sym = curr_sym->variant.overloaded_function.symbols;
+         sym != NULL; sym = sym->next) {
+      if (curr_sym == fundamental_symbol_of(sym)) break;
+    }  /* for */
+    if (sym != NULL) result = TRUE;
+  }  /* if */
+  return result;
+}  /* already_in_lookup_set */
+
+
+static
+a_symbol_ptr merge_function_into_lookup_set(a_symbol_ptr     curr_sym,
+                                            a_symbol_ptr     new_sym,
+                                            a_symbol_locator *locator)
+/*
+curr_sym is a pointer to a the current lookup set, and may be NULL,
+a pointer to a single namespace projection symbol, or an
+sk_overloaded_function symbol that points to a number of namespace
+projection symbols.  Add the function(s) pointed to by new_sym
+creating a new overload set.
+*/
+{
+  /* The set is currently empty.  If the initial member is a single
+     routine, create a namespace projection that points to it.  If
+     it is an overload set, make a new overload set containing
+     namespace projections that point to its members. */
+  if (new_sym->kind != (a_symbol_kind)sk_overloaded_function) {
+    /* The new symbol is a simple function.  Make a namespace
+       projection that points to it. */
+    if (curr_sym == NULL) {
+      curr_sym = enter_synth_namespace_projection_symbol(new_sym, locator);
+    } else {
+      /* If new_sym is not already in the lookup set, add it. */
+      if (!already_in_lookup_set(curr_sym, new_sym)) {
+        new_sym = make_synth_namespace_projection_symbol(new_sym, locator);
+        curr_sym = add_symbol_to_overload_list(new_sym, curr_sym);
+      }  /* if */
+    }  /* if */
+  } else {
+    /* The new symbol is an overload set. */
+    a_symbol_ptr	rout_sym;
+    a_symbol_ptr	new_rout_sym;
+    rout_sym = new_sym->variant.overloaded_function.symbols;
+    if (curr_sym == NULL) {
+      /* If the current symbol is NULL, take the first member of the
+         overload set and create a projection symbol to it.  Later
+         we will add the remaining members and create a new overload set. */
+      curr_sym = enter_synth_namespace_projection_symbol(rout_sym, locator);
+      rout_sym = rout_sym->next;
+    }  /* if */
+    for (; rout_sym != NULL; rout_sym = rout_sym->next) {
+      /* If rout_sym is not already in the lookup set, add it. */
+      if (!already_in_lookup_set(curr_sym, rout_sym)) {
+        new_rout_sym = make_synth_namespace_projection_symbol(rout_sym,
+                                                              locator);
+        curr_sym = add_symbol_to_overload_list(new_rout_sym, curr_sym);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return curr_sym;
+}  /* merge_function_into_lookup_set */
+
+
+static
+a_symbol_ptr add_symbol_to_lookup_set(a_symbol_ptr     curr_sym,
+                                      a_symbol_ptr     new_sym,
+                                      a_symbol_locator *locator,
+                                      a_boolean        *any_errors)
 /*
 Reconcile the results of a lookup in which more than one symbol is found
 in scopes that are considered equivalent.  This occurs when using
 directives cause symbols from multiple namespaces (possibly including
 the global namespace) to be found as the result of a lookup.
+
+When the first symbol is found, create an sk_namespace_projection
+symbol that points to it.  If a second symbol is found, and both
+the old and new symbols are functions, create an sk_overloaded_function
+symbol that points to two sk_namespace_projection symbols.  Continue
+adding new sk_namespace_projections as long as all of the symbols
+found are functions.  If, at any point, there are both functions and
+nonfunctions, or more than one nonfunction, set the any_errors flag.
 */
 {
-#if 0
-#else
-  /* Temporary version. */
-  sym_error(ec_ambiguous_name, curr_sym);
-  curr_sym = new_sym;  /* Just to suppress unused warning. */
-  *err = TRUE;
+  a_symbol_ptr	fund_curr_sym;
+  a_boolean	err = FALSE;
+
+  if (curr_sym == NULL) {
+    if (is_function_symbol(new_sym)) {
+      curr_sym = merge_function_into_lookup_set((a_symbol_ptr)NULL,
+                                                new_sym, locator);
+    } else {
+      curr_sym = enter_synth_namespace_projection_symbol(new_sym, locator);
+    }  /* if */
+  } else if (already_in_lookup_set(curr_sym, new_sym)) {
+    /* The symbol is already present -- nothing more to do. */
+  } else {
+    fund_curr_sym = fundamental_symbol_of(curr_sym);
+    if (!is_function_symbol(new_sym) || !is_function_symbol(fund_curr_sym)) {
+    /* There is more than one symbol, and they are not all functions.
+       This is an error. */
+    err = TRUE;
+    } else {
+      /* Both symbols are functions. */
+      curr_sym = merge_function_into_lookup_set(curr_sym, new_sym, locator);
+    }  /* if */
+  }  /* if */
+  /* This will be set earlier for sk_namespace_projection symbols, but
+     may not be set yet for sk_overloaded_function symbols. */
+  curr_sym->synthesized_namespace_projection = TRUE;
+  if (err) {
+    *any_errors = TRUE;
+    curr_sym->ambiguous = TRUE;
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("lookup_set")) {
+    db_symbol(curr_sym, "add_symbol_to_lookup_set:", 0);
+  }  /* if */
+#endif /* DEBUG */
   return curr_sym;
-#endif
 }  /* add_symbol_to_lookup_set */
 
 
@@ -6986,7 +7139,9 @@ check_for_using_directives:
            scope, look for symbols that are visible as a result of
            using directives. */
         if (sym == NULL || found_at_file_scope) {
+          a_symbol_ptr		synth_sym = NULL;
           a_symbol_ptr			new_sym;
+
           /* Look through the inactive symbols for any symbols associated with
              one of the marked namespaces. */
           new_sym = inactive_symbol_list;
@@ -7002,17 +7157,29 @@ check_for_using_directives:
             ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
             if (ns_sym->variant.namespace_info.extra_info->
                                                         on_active_using_list) {
-              if (sym == NULL) {
-                /* There was no previous symbol. */
-                sym = new_sym;
-              } else {
-                /* Merge the information about this symbol, with that
-                   of any previous symbol that was found. */
-                a_boolean	err;
-                sym = add_symbol_to_lookup_set(sym, new_sym, &err);
-                /* If an error occurred while trying to reconcile the two
-                   symbols, don't look for any additional matches. */
-                if (err) break;
+              a_boolean	any_errors = FALSE;
+              if (synth_sym == NULL) {
+                /* Look for a previous synthesized namespace projection symbol
+                   for this scope. */
+                synth_sym = curr_scope_id_lookup
+                                           (locator,
+                                            IDL_MUST_BE_SYNTH_NAMESPACE_PROJ);
+                if (sym != NULL) {
+                  /* The lookup from this scope did find a symbol.  Put it in
+                     the lookup set. */
+                  synth_sym = add_symbol_to_lookup_set(synth_sym, sym,
+                                                       locator, &any_errors);
+                }  /* if */
+                sym = synth_sym;
+              }  /* if */
+              /* Merge the information about this symbol, with that
+                 of any previous symbol that was found. */
+              sym = add_symbol_to_lookup_set(sym, new_sym, locator,
+                                             &any_errors);
+              /* If an error occurred while trying to reconcile the two
+                 symbols, don't look for any additional matches. */
+              if (any_errors) {
+                break;
               }  /* if */
             }  /* if */
           }  /* for */
@@ -10332,6 +10499,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.template_param_not_visible       = FALSE;
   cleared_symbol.force_external_linkage           = FALSE;
   cleared_symbol.synthesized_namespace_projection = FALSE;
+  cleared_symbol.ambiguous                        = FALSE;
   /* Save variables from symbol_tbl.h and symbol_tbl.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
