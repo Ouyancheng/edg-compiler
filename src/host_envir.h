@@ -244,41 +244,6 @@ command-line option.
 #endif /* ifndef DEFAULT_BRIEF_DIAGNOSTICS */
 
 /*
-Is the C-generating back end being used as the back end?
-See also C_GEN_BE_GENERATES_ANSI_C et al. in targ_def.h.
-*/
-#ifndef BACK_END_IS_C_GEN_BE
-#define BACK_END_IS_C_GEN_BE TRUE  /* You can change this. */
-#endif /* ifndef BACK_END_IS_C_GEN_BE */
-
-/*
-Is the C++-generating back end being used as the back end?
-*/
-#ifndef BACK_END_IS_CP_GEN_BE
-#define BACK_END_IS_CP_GEN_BE FALSE  /* You can change this. */
-#endif /* ifndef BACK_END_IS_CP_GEN_BE */
-
-#if BACK_END_IS_C_GEN_BE && BACK_END_IS_CP_GEN_BE
- #error -- BACK_END_IS_C_GEN_BE and BACK_END_IS_CP_GEN_BE cannot both be TRUE.
-#endif /* BACK_END_IS_C_GEN_BE && BACK_END_IS_CP_GEN_BE */
-
-/*
-When the C-generating back end (c_gen_be) or C++/C-generating back end
-(cp_gen_be) is run, this is the suffix appended to the base of the primary
-source file to get the name of the generated C output file.
-*/
-#ifndef GEN_C_FILE_SUFFIX
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-#if EDG_MSDOS
-/* File names under MSDOS cannot have multiple periods. */
-#define GEN_C_FILE_SUFFIX ".ic"
-#else /* !EDG_MSDOS */
-#define GEN_C_FILE_SUFFIX ".int.c"
-#endif /* if EDG_MSDOS */
-#endif /* BACK_END_IS_C_GEN_BE || ... */
-#endif /* ifndef GEN_C_FILE_SUFFIX */
-
-/*
 The flag STANDALONE_IL_DISPLAY is set to TRUE when compiling the standalone
 IL display utility.  It should be set on the command line if needed;
 the code here should not be changed.
@@ -319,6 +284,45 @@ or STANDALONE_CP_GEN_BE is TRUE.
 #define STANDALONE_UTILITY_PROGRAM FALSE  /* Do not change this. */
 #endif /* ifndef STANDALONE_UTILITY_PROGRAM */
 #endif /* STANDALONE_IL_DISPLAY || STANDALONE_C_GEN_BE || ... */
+
+/*
+Is the C++-generating back end being used as the back end?
+*/
+#ifndef BACK_END_IS_CP_GEN_BE
+#define BACK_END_IS_CP_GEN_BE FALSE  /* You can change this. */
+#endif /* ifndef BACK_END_IS_CP_GEN_BE */
+
+/*
+Is the C-generating back end being used as the back end?
+See also C_GEN_BE_GENERATES_ANSI_C et al. in targ_def.h.
+*/
+#ifndef BACK_END_IS_C_GEN_BE
+#if STANDALONE_IL_DISPLAY || BACK_END_IS_CP_GEN_BE
+#define BACK_END_IS_C_GEN_BE FALSE
+#else /* !(STANDALONE_IL_DISPLAY || BACK_END_IS_CP_GEN_BE) */
+#define BACK_END_IS_C_GEN_BE TRUE
+#endif /* STANDALONE_IL_DISPLAY || BACK_END_IS_CP_GEN_BE */
+#endif /* ifndef BACK_END_IS_C_GEN_BE */
+
+#if BACK_END_IS_C_GEN_BE && BACK_END_IS_CP_GEN_BE
+ #error -- BACK_END_IS_C_GEN_BE and BACK_END_IS_CP_GEN_BE cannot both be TRUE.
+#endif /* BACK_END_IS_C_GEN_BE && BACK_END_IS_CP_GEN_BE */
+
+/*
+When the C-generating back end (c_gen_be) or C++/C-generating back end
+(cp_gen_be) is run, this is the suffix appended to the base of the primary
+source file to get the name of the generated C output file.
+*/
+#ifndef GEN_C_FILE_SUFFIX
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+#if EDG_MSDOS
+/* File names under MSDOS cannot have multiple periods. */
+#define GEN_C_FILE_SUFFIX ".ic"
+#else /* !EDG_MSDOS */
+#define GEN_C_FILE_SUFFIX ".int.c"
+#endif /* if EDG_MSDOS */
+#endif /* BACK_END_IS_C_GEN_BE || ... */
+#endif /* ifndef GEN_C_FILE_SUFFIX */
 
 /*
 Flag that is TRUE if the code necessary to display the IL in a readable
