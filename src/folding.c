@@ -1507,7 +1507,19 @@ a template parameter constant that might be a null pointer constant.
     a_type_ptr type = skip_typerefs(constant->type);
     if (type->kind == (a_type_kind)tk_integer ||
         type->kind == (a_type_kind)tk_template_param) {
+      a_constant_ptr eff_constant = constant;
       might_be_null_pointer = TRUE;
+      /* Drop casts to get to the underlying constant. */
+      while (eff_constant->variant.template_param.kind ==
+                                   (a_template_param_constant_kind)tpck_cast) {
+        eff_constant  = eff_constant->variant.template_param.variant.constant;
+      }  /* while */
+      if (eff_constant->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_sizeof) {
+        /* A sizeof constant never has a value of zero, and therefore is
+           never a null pointer constant. */
+        might_be_null_pointer = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return might_be_null_pointer;
