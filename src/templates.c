@@ -14630,6 +14630,8 @@ that follows.
                so body_cache should not be discarded here. */
             add_routine_fixup_for_specialization(decl_state->class_declared_in,
                                                  sym, &func_info, &body_cache);
+            /* An in-class specialization in implicitly inline. */
+            rp->is_inline = TRUE;
             /* The param_id_list is needed because the func_info information
                is on the routine fixup list.  Don't discard it below. */
             keep_func_info = TRUE;
