@@ -1392,6 +1392,9 @@ internal linkage).
                idlbp->func_info->is_main_function) {
       /* In C++ "main" gets C++ linkage. */
       idlbp->name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
+    } else if (idlbp->is_function_template) {
+      /* Function templates with external linkage get C++ linkage. */
+      idlbp->name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
     } else if (ssep->name_linkage_is_explicit) {
       /* Use the explicitly specified name-linkage even when there is a
          prior declaration with different linkage. */
@@ -1411,6 +1414,7 @@ internal linkage).
                      (prior_decl->kind == (a_symbol_kind)sk_variable)) {
        /* Use the linkage specifier from the prior declaration. */
         scp = source_corresp_entry_for_symbol(prior_decl);
+        check_assertion(scp != NULL);
         idlbp->name_linkage = scp->name_linkage;
       } else {
         /* Use the default. */
@@ -3639,7 +3643,7 @@ cross-reference output describing this declaration.
                              redecl_error_already_issued);
   }  /* if */
   *ext_sym = NULL;
-  if (linkage != idl_none && linked_symbol == NULL) {
+  if (linkage != idl_none && !redeclaration) {
     /* The symbol has external or internal linkage.  Find or create an
        external symbol entry for the identifier name, to check that the
        current declaration is compatible with any previous and future
@@ -4568,7 +4572,7 @@ skip_overloading:;
     }  /* if */
   }  /* if */
   *ext_sym = NULL;
-  if (linkage != idl_none && linked_symbol == NULL) {
+  if (linkage != idl_none && !redeclaration) {
     a_variable_ptr  dummy_vp;
     *ext_sym = 
         create_external_symbol_for_linked_entity(locator, type_ptr,
