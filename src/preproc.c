@@ -724,19 +724,12 @@ as a pseudo-token.  If the next token is not a header name, return
 FALSE.
 */
 {
-  char              *p;
-  a_source_position saved_pos_curr_token;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position saved_end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-
   skip_white_space();
   if (*curr_char_loc == '<') {
-    /* The next token appears to be a system header name.  Scan it as a
-       single header name token.  Note that this is done only when the
-       <...> appears at the top level, not when it appears within a
-       macro invocation (in those cases, individual pp-tokens are scanned
-       and then assembled into a header name token; see below). */
+    /* The next token appears to be a system header name.  Scan it as a single
+       header name token.  Note that this works only when the <...> appears at
+       the top level, not when it appears within a macro invocation (in those
+       cases, exp_system_header_name is set by macro_invocation). */
     exp_system_header_name = TRUE;
   }  /* if */
   /* Try to expand macros to get one of the normal forms. */
@@ -746,47 +739,6 @@ FALSE.
   (void)get_token();
   exp_header_name = FALSE;
   exp_system_header_name = FALSE;
-  if (curr_token == tok_lt) {
-    /* For <xxx.h> form header names that come from macro expansions,
-       fetch the rest of the pp-tokens in the header name and make up a
-       pseudo-token for the overall name. */
-    saved_pos_curr_token = pos_curr_token;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    saved_end_pos_curr_token = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    pos_in_temp_text_buffer = 0;
-    put_str_to_temp_text_buffer("<");
-    /* Fetch tokens until ">" and put the text for them into the
-       temp_text_buffer. */
-    while (get_token() != tok_gt) {
-      if (curr_token == tok_newline) {
-        /* Missing closing ">". */
-        curr_token = tok_error;
-        pos_in_temp_text_buffer = 0;
-        goto end_of_header_name;
-      }  /* if */
-      for (p = start_of_curr_token; p <= end_of_curr_token; p++) {
-        put_ch_to_temp_text_buffer(*p);
-      }  /* for */
-    }  /* while */
-    put_str_to_temp_text_buffer(">");
-    if (pos_in_temp_text_buffer == 2) {
-      /* Error: empty <> is not valid. */
-      curr_token = tok_error;
-      pos_in_temp_text_buffer = 0;
-      goto end_of_header_name;
-    }  /* if */
-    curr_token = tok_header_name;
-end_of_header_name:
-    start_of_curr_token = temp_text_buffer;
-    len_of_curr_token = pos_in_temp_text_buffer;
-    end_of_curr_token = start_of_curr_token+len_of_curr_token-1;
-    pos_curr_token = saved_pos_curr_token;
-    error_position = pos_curr_token;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_pos_curr_token = saved_end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  }  /* if */
   return (curr_token == tok_header_name);
 }  /* get_header_name */
 
