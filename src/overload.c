@@ -4033,7 +4033,7 @@ ptr_to_member_case is TRUE for the pointer to member case.
         if (pointer_type_pattern_position == type_pattern_position ||
             /* Otherwise, see if we can convert the type we have to the
                pointer or pointer to member type we want. */
-            ptr_to_member_case ?
+            (ptr_to_member_case ?
               impl_ptr_to_member_conversion(
                                     operand_type,
                                     source_is_constant,
@@ -4049,7 +4049,7 @@ ptr_to_member_case is TRUE for the pointer to member case.
                                     /*check_as_operands_not_conversion=*/TRUE,
                                     /*suppress_extensions=*/TRUE,
                                     ec_no_error, /* arbitrary */
-                                    &std_conv)) {
+                                    &std_conv))) {
           /* The conversion can be done. */
           /* As noted above, any match here is considered a standard
              conversion. */
