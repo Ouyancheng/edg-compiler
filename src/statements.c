@@ -3265,8 +3265,7 @@ rescan_statement:
      If we have already scanned a label, any pragmas between the label and
      the statement may be added to the existing list.  Otherwise, the
      list is expected to have been cleared. */
-  if (select_curr_construct_pragmas(/*is_decl=*/FALSE,
-                                    /*add_to_list=*/prev_was_label)) {
+  if (select_curr_construct_pragmas(/*add_to_list=*/prev_was_label)) {
     /* If a lint-style "notreached" comment was detected, suppress the
        warning on unreachable code. */
     check_lint_notreached_state();
@@ -3522,6 +3521,7 @@ branching into it is disallowed).
              statement. */
           if (at_function_level && pos_curr_token.column == 1) break;
         }  /* if */
+        (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
         decl_statement();
       } else {
         wrapup_decl_statement();
@@ -3550,8 +3550,7 @@ branching into it is disallowed).
       /* Move cached #pragma declarations (if any) to the current scope stack
          entry so they can be examined and acted upon in processing the
          implicit return. */
-      if (select_curr_construct_pragmas(/*is_decl=*/FALSE,
-				        /*add_to_list=*/FALSE)) {
+      if (select_curr_construct_pragmas(/*add_to_list=*/FALSE)) {
         /* Check for a lint-style "notreached" comment -- it will affect
            diagnostics in check_void_return_okay. */
         check_lint_notreached_state();
@@ -3564,6 +3563,15 @@ branching into it is disallowed).
       sp = add_statement((a_statement_kind)stmk_return);
       /* Insert an implied return value if there is one. */
       sp->expr = return_expr;
+#if 0
+/* This should probably just be a call to a routine to complain about
+   bind-to-next pragmas in this location.  And it should be added after the
+   check_lint_notreached_state call. */
+#else
+      /* Do processing required for any pragmas that are bound to the current
+         statement. */
+      process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
+#endif
     }  /* if */
     /* Pop the statement stack. */
     pop_stmt_stack();

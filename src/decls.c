@@ -9962,13 +9962,16 @@ of local variables (and types, etc.) of functions and in blocks.
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, decl_start_pos);
   if (extern_implied) {
-    /* Called in the midst of an ``extern "C"'' declaration. */
+    /* Called in the midst of an ``extern "C"'' declaration, so
+       select_curr_construct_pragmas has already been called. */
+  } else if (!function_definition_allowed) {
+    /* Called while processing a routine -- select_curr_construct_pragmas
+       will already have been called. */
   } else {
     /* Move cached #pragma declarations (if any) to the current scope stack
        entry so they can be examined and acted upon in subsequent
        processing. */
-    (void)select_curr_construct_pragmas(/*is_decl=*/TRUE,
-                                        /*add_to_list=*/FALSE);
+    (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     if (curr_token == tok_extern && next_token() == tok_string_literal) {
