@@ -1,5 +1,21 @@
 Version 2.46
 
+1/30/02  Template deduction and ambiguous base class deduction
+
+Template argument deduction can deduce T in Base<T> from a derived
+class that has a Base base class.  The standard requires that deduction
+succeeds if there is only one such conversion possible.  The front end
+failed to detect this ambiguity and would choose one of the possible
+template argument values.  This has been fixed.
+
+  template<class T> class A {};
+  class B : public A<int>, public A<char> { };
+  template<class T> void f(A<T>) { }
+  int main(void) {
+    B b;
+    f(b);  // now ambiguous
+  }
+
 1/30/02  Template arguments and abstract classes
 
 When evaluating explicit template arguments, an attempt to create an

@@ -5519,6 +5519,7 @@ points to the template parameter list.
                                                        templ_param_list);
           if (!match && (flags & MTT_ALLOW_CONVERSION) != 0) {
             a_base_class_ptr	bcp;
+            a_boolean           base_match = FALSE;
             /* See if the type matches a base class type of actual argument
                type.  This is allows a Derived<T> to be passed to a function
                expecting a Base<T> as an argument. */
@@ -5529,7 +5530,15 @@ points to the template parameter list.
                                                            templ_type,
                                                            templ_arg_list,
                                                            templ_param_list);
-              if (match) break;
+              /* If we have already found one match, a second match should
+                 cause deduction to fail. */
+              if (base_match) {
+                match = FALSE;
+                break;
+              }  /* if */
+              /* This is the first match.  Keep searching in case the
+                 conversion is ambiguous. */
+              base_match = match = TRUE;
               bcp = bcp->next;
             }  /* while */
           }  /* if */
