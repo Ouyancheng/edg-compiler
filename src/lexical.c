@@ -9179,6 +9179,17 @@ Set the specific symbol to the associated nonfundamental symbol.
   a_symbol_ptr	result_sym;
   a_symbol_ptr	specific_symbol;
 
+  /* In a prototype instantiation, if the name found is a template
+     parameter and we also found a normal symbol, disregard the
+     class symbol because there may not actually be one in a real
+     instantiation. */
+  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+    if (normal_sym != NULL && class_sym != NULL) {
+      if (class_sym->is_nonreal_member) {
+        class_sym = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   /* This implements the special handling in 3.4.5 (basic.lookup.classref)
      of possible template names in class member access expressions
      (e.g., "p->f<...").  If the name is found in the class, the class
@@ -9202,19 +9213,6 @@ Set the specific symbol to the associated nonfundamental symbol.
       /* The name is a member of the class that is not a template.  Use that
          name and ignore the normal lookup name. */
       normal_sym = NULL;
-    }  /* if */
-  }  /* if */
-  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
-    if (normal_sym != NULL && class_sym != NULL) {
-      /* In a prototype instantiation, if the name found is a template
-         parameter and we also found a normal symbol, disregard the
-         class symbol because there may not actually be one in a real
-         instantiation. */
-      if (class_sym->kind == (a_symbol_kind)sk_type &&
-          class_sym->variant.type.ptr->kind ==
-                                              (a_type_kind)tk_template_param) {
-        class_sym = NULL;
-      }  /* if */
     }  /* if */
   }  /* if */
   if (normal_sym != NULL && class_sym != NULL) {

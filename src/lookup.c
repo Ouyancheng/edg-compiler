@@ -666,6 +666,7 @@ routine.
      will be the scope depth of the class plus one. */
   cssp = symbol_supplement_for_class(class_type);
   sym->decl_scope = cssp->member_decl_scope;
+  sym->is_nonreal_member = TRUE;
 #if RECORD_SCOPE_DEPTH_IN_IL
   depth = class_type->source_corresp.scope_depth;
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
