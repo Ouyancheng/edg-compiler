@@ -263,7 +263,11 @@ abort in define_scope_class_typeinfo_vars.  Now fixed.
 
 6/24/99  Microsoft compatibility: multiple initializers for scalars
 
-In Microsoft bugs mode, the following is accepted and prints "f(0)123".
+In Microsoft bugs mode, multiple brace-enclosed initializers may be provided
+for scalar variables.  The extraneous expressions must also be enclosed in
+braces.  The rules that determine which value is preserved are somewhat arcane
+but they match the bahavior of the Microsoft compilers.  For example, the
+following is accepted and prints "f(0)123".
 
   extern "C" int printf(char const*, ...);
   int f(int i) { printf("f(%d)", i); }
