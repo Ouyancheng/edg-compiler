@@ -669,7 +669,7 @@ class, too, and thus must be flagged as requiring qualification.
   a_scope_ptr       base_scope =
                 base_class->variant.class_struct_union.extra_info->assoc_scope;
 
-  for (base_hnp = base_scope->hidden_names;
+  for (base_hnp = (base_scope != NULL) ? base_scope->hidden_names : NULL;
        base_hnp != NULL;
        base_hnp = base_hnp->next) {
     if (base_hnp->is_class_member) {
@@ -793,17 +793,15 @@ hidden name checking on its own members, too.
         a_boolean             ambiguous;
         a_boolean             any_using_decl;
         a_boolean             unambiguous_injected_template;
-        a_symbol_ptr          progenitor_sym;
 
         clear_locator(&locator, &sym_ptr->decl_position);
         locator.symbol_header = sym_ptr->header;
-        progenitor_sym = 
-                       find_progenitor_symbol(sp->variant.assoc_type,
-                                              &locator, IDL_NO_OPTIONS,
-                                              /*look_in_dependent_bases=*/TRUE,
-                                              &path, &access, &ambiguous,
-                                              &any_using_decl,
-                                              &unambiguous_injected_template);
+        (void)find_progenitor_symbol(sp->variant.assoc_type, &locator,
+                                     IDL_NO_OPTIONS,
+                                     /*look_in_dependent_bases=*/TRUE,
+                                     &path, &access, &ambiguous,
+                                     &any_using_decl,
+                                     &unambiguous_injected_template);
         if (ambiguous || access == (an_access_specifier)as_inaccessible) {
           /* This symbol is either ambiguous or inaccessible in the class
              whose scope we are processing -- mark it as hidden to force
