@@ -125,7 +125,7 @@ declarator (3.5.5).
   (curr_token == tok_star || curr_token == tok_lbracket ||            \
    curr_token == tok_lparen ||                                        \
    (C_dialect == C_dialect_cplusplus &&                               \
-    ((curr_token == tok_identifier &&                                 \
+    ((is_qualified_name_start() &&                                    \
       is_ptr_to_member_declarator_start()) ||                         \
      curr_token == tok_ampersand)))
 
@@ -352,9 +352,13 @@ static a_boolean prescan_ptr_operator(a_token_cache  *token_cache_ptr)
       (void)get_token();
       ptr_operator_found = TRUE;
       /* Keep looping. */
-    } else if (curr_token == tok_identifier &&
+    } else if (is_qualified_name_start() &&
                is_ptr_to_member_declarator_start()) {
       /* Cache the entire ptr_to_member construct. */
+      if (curr_token == tok_colon_colon) {
+        cache_curr_token(token_cache_ptr);
+        (void)get_token();
+      }  /* if */
       while (curr_token == tok_identifier) {
         cache_curr_token(token_cache_ptr);
         /* Advance to the "::" and cache it, too. */
