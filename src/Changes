@@ -1,5 +1,17 @@
 Version 2.31
 
+12/1/95   Friend class declaration using typedef name (cfront mode)
+
+A bug has been fixed to allow (in cfront-compatibility mode) using a
+typedef name in the elaborated type specifier of a friend class
+declaration.  This case now works appropriately in cfront mode:
+
+  class A;
+  class B {
+    typedef class A T;
+    friend class T;           // No longer aborts here
+  };
+
 12/1/95   Reference to template class no longer causes instantiation
 
 Defining a variable with type reference-to-template-class used to force
