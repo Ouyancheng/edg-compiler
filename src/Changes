@@ -1,5 +1,13 @@
 Version 2.22
 
+2/14/94  Setting "can be instantiated" flag for static data members
+
+In implicit inclusion mode the template definition file was not
+being implicitly read to determine whether a template static data
+member could be instantiated.  This could cause the automatic
+instantiation mechanism to fail to instantiate a static data member
+resulting in a link error.  This has been fixed.
+
 2/11/94  Name mangling change to avoid Tn with n > 9
 
 Name mangling in IL lowering has been changed so that it will never
