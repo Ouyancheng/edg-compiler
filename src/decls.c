@@ -9924,6 +9924,11 @@ an asm "declaration" is actually treated as an executable statement.
   if (!asm_decl_allowed) {
     /* An asm declaration is not allowed in the current scope. */
     error(ec_asm_not_allowed);
+    discard_curr_construct_pragmas;
+  } else {
+    /* Issue diagnostics on pragmas that are trying to bind to an asm
+       declaration. */
+    cannot_bind_to_curr_construct();
   }  /* if */
   copy_source_position(pos_curr_token, asm_pos);
   /* Skip past the "asm". */
@@ -10126,7 +10131,12 @@ of local variables (and types, etc.) of functions and in blocks.
 
   if (C_dialect == C_dialect_cplusplus) {
     /* Check for and discard declarations of the form "overload f;". */
-    if (check_for_overload_anachronism()) goto return_point;
+    if (check_for_overload_anachronism()) {
+      /* Issue diagnostics on pragmas that are trying to bind to an overload
+         declaration. */
+      cannot_bind_to_curr_construct();
+      goto return_point;
+    }  /* if */
   }  /* if */
   /* Set the flags for calling decl_specifiers. */
   decl_start = is_decl_start(/*expr_context=*/FALSE,

@@ -1682,9 +1682,7 @@ asm ( "string" ) ;
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_asm);
   stmt_update_source_sequence_list(sp);
-  /* Do processing required for any pragmas that are bound to the current
-     statement. */
-  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
+  /* Note: process_curr_construct_pragmas is intentionally not called. */
   sp->variant.asm_entry = asm_declaration(/*asm_decl_allowed=*/TRUE,
                                           /*is_asm_statement=*/TRUE);
   db_exit();
