@@ -3913,12 +3913,15 @@ Display the IL for the file scope in human-readable form.
   disp_ptr("macros", (char *)il_header.macros, iek_macro);
 #endif /* RECORD_MACROS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  disp_boolean("microsoft_mode",
+               (a_boolean)il_header.microsoft_mode);
   disp_boolean("microsoft_16_mode",
                (a_boolean)il_header.microsoft_16_mode);
   disp_boolean("far_data_pointers",
                (a_boolean)il_header.far_data_pointers);
   disp_boolean("far_code_pointers",
                (a_boolean)il_header.far_code_pointers);
+  disp_long("microsoft_version", (a_boolean)il_header.microsoft_version);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   walk_file_scope_il(disp_entry, (a_string_entry_process_function_ptr)NULL,

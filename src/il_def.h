@@ -7194,6 +7194,10 @@ EXTERN struct il_header_tag {
 #endif /* RECORD_MACROS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_byte_boolean
+		microsoft_mode;
+			/* TRUE if Microsoft extensions are accepted;
+			   corresponds to global variable microsoft_mode. */
+  a_byte_boolean
 		microsoft_16_mode;
 			/* TRUE if Microsoft 16-bit extensions are to be
 			   accepted.  This is a sub-mode of microsoft_mode. */
@@ -7205,6 +7209,11 @@ EXTERN struct il_header_tag {
 		far_code_pointers;
 			/* Default size (near/far) to be used for code
 			   pointers in 16-bit Microsoft mode. */
+  long		microsoft_version;
+			/* When microsoft_mode is TRUE, the version of the
+			   Microsoft compiler with which compatibility is
+			   desired; corresponds to global variable
+			   microsoft_version. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } il_header;
 

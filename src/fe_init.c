@@ -797,6 +797,8 @@ source file's compilation.
   il_header.macros = NULL;
 #endif /* RECORD_MACROS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  il_header.microsoft_mode = microsoft_mode;
+  il_header.microsoft_version = microsoft_version;
   /* microsoft_16_mode, far_data_pointers, and far_code_pointers are
      initialized in fe_early_init and changed if necessary in cmd_line.c. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

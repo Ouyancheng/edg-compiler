@@ -924,6 +924,11 @@ build the in-memory version.
   /* Also set enum_type_is_integral.  This affects how is_integral_type
      and related routines regard enum types. */
   enum_type_is_integral = il_header.enum_type_is_integral;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Also set global variables relating to Microsoft compatibility mode. */
+  microsoft_mode = il_header.microsoft_mode;
+  microsoft_version = il_header.microsoft_version;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
   /* Read the orphaned_file_scope_il_entries array. */
   fread_with_check((char *)orphaned_file_scope_il_entries,
