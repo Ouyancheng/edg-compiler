@@ -7505,7 +7505,7 @@ TRUE if an error was reported while the decl-specifiers were scanned.
         if (is_qualified_type(type_ptr)) {
           severity = (C_dialect == C_dialect_cplusplus && strict_ansi_mode) ?
                        strict_ansi_error_severity : es_warning;
-          pos_diagnostic(severity, ec_type_qualifier_not_allowed,
+          pos_diagnostic(severity, ec_useless_type_qualifiers,
                          decl_start_pos);
         }  /* if */
         /* Inline can only be specified for a function (ARM 7.1.2). */
