@@ -7947,6 +7947,24 @@ End a name scope by popping an entry off the scope stack.
     /* Issue diagnostics on any pragmas that are still on the pending list. */
     end_of_scope_pragma_processing(ssep->pending_pragmas);
   }  /* if */
+  if (!C_mode()) {
+    /* Do management related to the object lifetime stack.  Don't pop the
+       file scope object lifetime yet, though, because we need it in IL
+       lowering; see below */
+    if (kind == (a_scope_kind)sck_block) {
+      pop_object_lifetimes_until(ssep->saved_curr_object_lifetime);
+    } else if (kind == (a_scope_kind)sck_function ||
+               kind == (a_scope_kind)sck_pragma ||
+               kind == (a_scope_kind)sck_func_prototype) {
+      pop_object_lifetimes_until(scope_stack[DEPTH_OF_FILE_SCOPE].
+                                                  curr_scope_object_lifetime);
+      curr_object_lifetime = ssep->saved_curr_object_lifetime;
+    } else if (kind == (a_scope_kind)sck_template_instantiation) {
+      check_assertion(curr_object_lifetime == scope_stack[DEPTH_OF_FILE_SCOPE].
+                                                   curr_scope_object_lifetime);
+      curr_object_lifetime = ssep->saved_curr_object_lifetime;
+    }  /* if */
+  }  /* if */      
   check_assertion_str2(ssep->defer_access_checks == FALSE &&
                        ssep->deferred_access_checks == NULL,
                        "pop_scope:", "deferred access checks still on list");
@@ -8027,24 +8045,22 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
   }  /* if */
   if (!C_mode()) {
-    /* Do management related to the object lifetime stack.  This must be done
-       after IL lowering, so things can be added to lifetimes in IL
+    /* Pop the file scope object lifetime.  This must be done after IL
        lowering. */
-    if (kind == (a_scope_kind)sck_file ||
-        kind == (a_scope_kind)sck_block) {
-      pop_object_lifetimes_until(ssep->saved_curr_object_lifetime);
-    } else if (kind == (a_scope_kind)sck_function ||
-               kind == (a_scope_kind)sck_pragma ||
-               kind == (a_scope_kind)sck_func_prototype) {
-      pop_object_lifetimes_until(scope_stack[DEPTH_OF_FILE_SCOPE].
-                                                  curr_scope_object_lifetime);
-      curr_object_lifetime = ssep->saved_curr_object_lifetime;
-    } else if (kind == (a_scope_kind)sck_template_instantiation) {
-      check_assertion(curr_object_lifetime == scope_stack[DEPTH_OF_FILE_SCOPE].
-                                                   curr_scope_object_lifetime);
-      curr_object_lifetime = ssep->saved_curr_object_lifetime;
+    if (kind == (a_scope_kind)sck_file) {
+      check_assertion(curr_object_lifetime ==
+                      ssep->curr_scope_object_lifetime);
+      pop_object_lifetime();
+#if DO_IL_LOWERING
+      if (!keep_object_lifetime_info_in_lowered_il) {
+        /* We're not supposed to pass object lifetime information to the back
+           end, so unlink all object lifetimes from the IL tree.  This has to
+           be done after the file scope object lifetime has been popped. */
+        eliminate_all_object_lifetimes(il_scope);
+      }  /* if */
+#endif /* DO_IL_LOWERING */
     }  /* if */
-  }  /* if */      
+  }  /* if */
   /* The IL scope, if any, is no longer on the stack.  This must occur
      after IL lowering and before done_with_memory_region. */
   if (il_scope != NULL) {
