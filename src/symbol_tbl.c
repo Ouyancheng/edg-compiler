@@ -2225,7 +2225,7 @@ void relink_unnamed_class_symbol(a_symbol_ptr      sym,
                                  a_symbol_locator  *locator)
 /*
 A name is belatedly specified for a class, and so the tag symbol originally
-created for it most be modified to bear the new name.  Give the symbol
+created for it must be modified to bear the new name.  Give the symbol
 the new name and relink it into the symbol table under the new header.
 */
 {

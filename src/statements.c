@@ -1128,7 +1128,7 @@ initializing declarations.
         case cfdk_case_label:
           if (check_for_branch_into_try_or_catch_block(
                                   new_cfdp, (a_control_flow_descr_ptr)NULL)) {
-            /* Case label is within a hander or try block and the switch
+            /* Case label is within a handler or try block and the switch
                statement with which it is associated is outside.  The error
                has already been issued. */
             free_control_flow_descr(new_cfdp);
