@@ -1045,9 +1045,10 @@ memory or with an IL file.
   db_enter(5, "check_for_done_with_memory_region");
 #if DEBUG
   if (debug_level >= 1) {
-    fprintf(f_debug, "check_done_with_memory_region: region %lu, size = %lu\n",
-                     (unsigned long)region_number,
-                     (unsigned long)allocated_in_region[region_number]);
+    fprintf(f_debug,
+            "check_for_done_with_memory_region: region %lu, size = %lu\n",
+            (unsigned long)region_number,
+            (unsigned long)allocated_in_region[region_number]);
   }  /* if */
 #endif /* DEBUG */
 #if STANDALONE_UTILITY_PROGRAM
