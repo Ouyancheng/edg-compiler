@@ -12016,7 +12016,11 @@ in a switch statement if is_switch_expr is TRUE.
   if (!processed) {
     /* Non-class (i.e., normal) case. */
     do_operand_transformations(operand, TOPT_NO_OPTIONS);
-    (void)check_integral_or_enum_operand(operand);
+    /* Can't check the type of a template parameter in a prototype
+       instantiation. */
+    if (!is_template_param_type(operand->type)) {
+      (void)check_integral_or_enum_operand(operand);
+    }  /* if */
   }  /* if */
   if (is_switch_expr) {
     /* A switch expression gets special processing. */
