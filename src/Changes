@@ -1,5 +1,16 @@
 Version 2.30
 
+9/26/95  Mixing static and nonstatic members in overload set
+
+Except in cfront mode, an error is now issued if two member functions,
+one static, the other nonstatic with a function qualifier, have the same
+parameter types:
+
+  class A {
+    void f(int) const;
+    static void f(int);    // Okay in cfront mode, error otherwise
+  };
+
 9/24/95  "explicit" recognized as an unimplemented keyword
 
 A diagnostic is now issued in strict mode if "explicit" is used
