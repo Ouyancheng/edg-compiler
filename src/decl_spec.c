@@ -132,10 +132,10 @@ keyword (or a memory attribute keyword).
             }  /* if */
             (void)get_token();
           }  /* while */
-          /* Check for the closing right paren. */
-          if (curr_token != tok_rparen) error(ec_exp_rparen);
         }  /* if */
         remove_stop_token(tok_rparen);
+        /* Check for the closing right paren. */
+        (void)required_token(tok_rparen, ec_exp_rparen);
       }  /* if */
     } else {
       /* Not __declspec or a memory attribute -- exit the loop. */
@@ -797,9 +797,6 @@ the template.
              scan_microsoft_extended_decl_modifiers(/*is_class_decl=*/TRUE,
                                                     &class_qualifiers,
                                                     &local_err);
-      /* Bypass the closing paren -- if it's missing a diagnostic will already
-         have been issued. */
-      if (curr_token == tok_rparen) (void)get_token();
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* If there is an identifier next, it is a tag.  It can be the declaration
@@ -2880,6 +2877,7 @@ Returns TRUE if there is an error in the specifiers.
         {
           a_decl_modifier	new_modifiers;
           a_source_position	specifier_start_pos;
+          a_boolean             is_declspec = FALSE;
 
           specifier_start_pos = pos_curr_token;
           /* A Microsoft storage class modifier.  If this is a __declspec,
@@ -2891,6 +2889,7 @@ Returns TRUE if there is an error in the specifiers.
                                                (a_type_qualifier_set *)NULL,
                                                &err);
               decl_specifiers_seen |= DS_DECLSPEC;
+              is_declspec = TRUE;
               break;
             case tok_microsoft_inline:
 	      new_modifiers = DM_MICROSOFT_INLINE;
@@ -2914,6 +2913,10 @@ Returns TRUE if there is an error in the specifiers.
               /* For parameters, warn if a storage class modifier is used. */
               pos_warning(ec_bad_param_storage_class, &specifier_start_pos);
             }  /* if */
+          }  /* if */
+          if (is_declspec) {
+            /* Closing rparen of "__declspec(...)" has already been taken. */
+            goto no_get_token;
           }  /* if */
         }
         break;

@@ -2036,9 +2036,6 @@ encountered, they are scanned and thrown away with a warning.
       (void)scan_microsoft_extended_decl_modifiers(/*is_class_decl=*/FALSE,
                                                     &local_qualifiers,
                                                     &local_err);
-      /* Bypass the closing paren -- if it's missing a diagnostic will already
-         have been issued. */
-      if (curr_token == tok_rparen) (void)get_token();
     } else {
       /* Something else; exit the loop. */
       break;
