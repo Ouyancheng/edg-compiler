@@ -1247,6 +1247,12 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
                          &nothing_taken);
     if (cp->kind == (a_constant_repr_kind)ck_error) {
       err = TRUE;
+      if (is_incomplete_type(vp_type) && is_array_type(vp_type)) {
+        /* Initialization of an incomplete array failed and some appropriate
+           error has been reported.  Suppress further errors on this failed
+           initialization. */
+        *incomplete_type_error_reported = TRUE;
+      }  /* if */
     } else {
 #if CHECKING
       if (cp->kind != (a_constant_repr_kind)ck_aggregate &&
