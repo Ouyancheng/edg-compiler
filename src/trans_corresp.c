@@ -1756,12 +1756,19 @@ symbols are listed under the same header).
        in those cases, the associated symbol entry should be examined.
        */
     a_source_correspondence_ptr  scp1 = (a_source_correspondence_ptr)entity1;
+    a_source_correspondence_ptr  scp2 = (a_source_correspondence_ptr)entity2;
     if (scp1->is_class_member) {
       if (!C_mode()) {
         /* In C mode, two structs with the same name (and file scope) but with
            incompatible fields can coexist.  The correspondence will be cleared
            in that case, but no diagnostic should be produced. */
-        report_bad_trans_unit_corresp(scp1->parent.class_type);
+        a_type_ptr  parent_to_diagnose = scp1->parent.class_type;
+        if (parent_to_diagnose ==
+                       (a_type_ptr)canonical_il_entry_of(parent_to_diagnose) &&
+            scp2->is_class_member) {
+          parent_to_diagnose = scp2->parent.class_type;
+        }  /* if */
+        report_bad_trans_unit_corresp(parent_to_diagnose);
       }  /* if */
     } else {
       /* Normally, this happens only for certain template entries that
@@ -1769,6 +1776,7 @@ symbols are listed under the same header).
          diagnostic is issued here, because one will be issued on the
          prototype instantiation. */
       a_symbol_ptr  sym1 = (a_symbol_ptr)scp1->assoc_info;
+      a_symbol_ptr  sym2 = (a_symbol_ptr)scp2->assoc_info;
       check_assertion(sym1->is_class_member ||
                       sym1->kind == (a_symbol_kind)sk_member_function ||
                       (sym1->kind == (a_symbol_kind)sk_routine &&
@@ -1777,7 +1785,13 @@ symbols are listed under the same header).
       if (sym1->is_class_member &&
           sym1->kind == (a_symbol_kind)sk_member_function &&
           sym1->variant.routine.ptr->is_prototype_instantiation) {
-        report_bad_trans_unit_corresp(sym1->parent.class_type);
+        a_type_ptr  parent_to_diagnose = sym1->parent.class_type;
+        if (parent_to_diagnose ==
+                       (a_type_ptr)canonical_il_entry_of(parent_to_diagnose) &&
+            sym2->is_class_member) {
+          parent_to_diagnose = sym2->parent.class_type;
+        }  /* if */
+        report_bad_trans_unit_corresp(parent_to_diagnose);
       } else {
         expect_error();
       }  /* if */
@@ -2879,7 +2893,7 @@ translation unit correspondence pointer for each of them.
     if (has_name(nsp)) {
       if (!verify_namespace_correspondence(nsp)) {
         /* Some error occurred---clear the association. */
-        set_no_trans_unit_corresp(iek_type, nsp);
+        set_no_trans_unit_corresp(iek_namespace, nsp);
       } else if (!nsp->is_namespace_alias) {
         /* Verify correspondences for nested namespaces. */
         verify_trans_unit_correspondences_for_scope(nsp->variant.assoc_scope);
@@ -4577,7 +4591,7 @@ way, determine to which other IL entry this might correspond.
     a_type_ptr  root = NULL;
     /* Class members usually have their correspondence set when their parent
        type is processed.  In those cases we look for the outermost parent
-       type. */
+       type without a correspondence. */
     if (scp->is_class_member) {
       root = scp->parent.class_type;
       if (kind == (an_il_entry_kind)iek_type &&
@@ -4588,9 +4602,13 @@ way, determine to which other IL entry this might correspond.
         root = NULL;
       } else {
         while (root->source_corresp.is_class_member &&
-               trans_unit_corresp_of(root) == NULL &&
                !type_is_top_level_prototype_instantiation(root)) {
-          root = root->source_corresp.parent.class_type;
+          a_type_ptr  next_out = root->source_corresp.parent.class_type;
+          if (trans_unit_corresp_of(next_out) == NULL) {
+            root = next_out;
+          } else {
+            break;
+          }  /* if */
         }  /* while */
       }  /* if */
     }  /* if */
