@@ -743,6 +743,72 @@ operand.
 }  /* operator_takes_lvalue_operand */
 
 
+static a_base_class_ptr find_direct_base_class_of(a_type_ptr derived_class,
+                                                  a_type_ptr base_class)
+/*
+derived_class and base_class are both class types, and base_class is a
+direct base class of derived_class.  Find the corresponding base class
+entry and return a pointer to it.
+*/
+{
+  a_base_class_ptr bcp;
+
+#if CHECKING
+  if (!is_immediate_class_type(derived_class)) {
+    internal_error("find_direct_base_class_of: bad derived_class type");
+  }  /* if */
+  if (!is_immediate_class_type(base_class)) {
+    internal_error("find_direct_base_class_of: bad base_class type");
+  }  /* if */
+#endif /* CHECKING */
+  for (bcp = derived_class->variant.class_struct_union.extra_info->
+                                                                  base_classes;
+       ;
+       bcp = bcp->next) {
+#if CHECKING
+    if (bcp == NULL) {
+      internal_error("find_direct_base_class: virtual base class not found");
+    }  /* if */
+#endif /* CHECKING */
+    if (bcp->direct && bcp->type == base_class) break;
+  }  /* for */
+  return bcp;
+}  /* find_direct_base_class_of */
+
+
+static a_base_class_ptr find_virtual_base_class_of(a_type_ptr derived_class,
+                                                   a_type_ptr virt_base_class)
+/*
+Find the base class entry of derived_type that corresponds to the
+virtual base class virt_base_class (not necessarily a direct base class)
+and return a pointer to the base class entry.  It must be found.
+*/
+{
+  a_base_class_ptr virt_bcp;
+
+#if CHECKING
+  if (!is_immediate_class_type(derived_class)) {
+    internal_error("find_virtual_base_class_of: bad derived_class type");
+  }  /* if */
+  if (!is_immediate_class_type(virt_base_class)) {
+    internal_error("find_virtual_base_class_of: bad virt_base_class type");
+  }  /* if */
+#endif /* CHECKING */
+  for (virt_bcp = derived_class->variant.class_struct_union.
+                                                      extra_info->base_classes;
+       ;
+       virt_bcp = virt_bcp->next) {
+#if CHECKING
+    if (virt_bcp == NULL) {
+      internal_error("find_virtual_base_class: virtual base class not found");
+    }  /* if */
+#endif /* CHECKING */
+    if (virt_bcp->type == virt_base_class && virt_bcp->is_virtual) break;
+  }  /* for */
+  return virt_bcp;
+} /* find_virtual_base_class */
+
+
 a_targ_ptrdiff_t related_class_offset(a_type_ptr class_1,
                                       a_type_ptr class_2)
 /*
@@ -1633,7 +1699,7 @@ assume that node points to a complete object.
     step_bcp = derivation_bcp = dsp->base_class;
     /* For the first step the information is already correct. */
     if (dsp != bcp->derivation) {
-      step_bcp = find_base_class_of(step_class_type, step_bcp->type);
+      step_bcp = find_direct_base_class_of(step_class_type, step_bcp->type);
 #if CHECKING
       if (step_bcp == NULL) {
         internal_error("make_base_class_lvalue: step base class missing");
@@ -4004,6 +4070,14 @@ number after the last one filled.
        class that is on the path to the base class that contains the shared
        pointer. */
     imm_bcp = sharing_bcp->derivation->base_class;
+    if (bcp != NULL) {
+      /* When doing this processing for a base class, we have to find the
+         corresponding base class under class_type.  The base class we
+         have was extracted from class_whose_vtbl_is_being_made. */
+      imm_bcp = corresponding_base_class(imm_bcp,
+                                         class_whose_vtbl_is_being_made,
+                                         class_type);
+    }  /* if */
     fill_virtual_function_table(aggr_con, class_type, imm_bcp, &entry_number);
     /* Now continue to fill the rest of the table, the unshared part, which
        contains the functions declared in class_type that do not appear
@@ -6735,9 +6809,9 @@ more than once.
   /* Find the base class entry that relates the source_class to the
      dest_class. */
   if (!derived) {
-    bcp = find_base_class_of(source_class, dest_class);
+    bcp = find_direct_base_class_of(source_class, dest_class);
   } else {
-    bcp = find_base_class_of(dest_class, source_class);
+    bcp = find_direct_base_class_of(dest_class, source_class);
   }  /* if */
 #if CHECKING
   if (bcp == NULL) {
@@ -6804,18 +6878,8 @@ more than once.
            because we specifically want an entry with is_virtual TRUE --
            there might be others if the base class appears as both a virtual
            and a non-virtual base class. */
-        for (virt_bcp = source_class->variant.class_struct_union.
-                                                      extra_info->base_classes;
-             ;
-             virt_bcp = virt_bcp->next) {
-#if CHECKING
-          if (virt_bcp == NULL) {
-            internal_error("related_class_cast_step: virt_bcp not found");
-          }  /* if */
-#endif /* CHECKING */
-          if (virt_bcp->type == virtual_step_class &&
-              virt_bcp->is_virtual) break;
-        }  /* for */
+        virt_bcp = find_virtual_base_class_of(source_class,
+                                              virtual_step_class);
         /* virt_bcp is now the base class entry that gets us from the
            original type (source_class) to the desired virtual base class
            (virtual_step_class).  Pass it back up to the invocation that
@@ -7009,7 +7073,7 @@ class to the class of node in *offset.
   if (node->variant.operation.kind ==
                                (an_expr_operator_kind)eok_pm_base_class_cast) {
     /* Casting from a derived class to a base class. */
-    bcp = find_base_class_of(source_class, dest_class);
+    bcp = find_direct_base_class_of(source_class, dest_class);
 #if CHECKING
     if (bcp == NULL) {
       internal_error("compute_pm_cast_offset: base class not found");
@@ -7021,7 +7085,7 @@ class to the class of node in *offset.
          prohibit casts like this, because they cannot be implemented with a
          simple offset. */
       source_class = pm_class_type((*underlying_node)->type);
-      bcp = find_base_class_of(source_class, dest_class);
+      bcp = find_virtual_base_class_of(source_class, dest_class);
 #if CHECKING
       if (bcp == NULL) {
         internal_error("compute_pm_cast_offset: virtual base class not found");
@@ -7035,7 +7099,7 @@ class to the class of node in *offset.
     }  /* if */
   } else {
     /* Casting from a base class to a derived class. */
-    bcp = find_base_class_of(dest_class, source_class);
+    bcp = find_direct_base_class_of(dest_class, source_class);
 #if CHECKING
     if (bcp == NULL) {
       internal_error("compute_pm_cast_offset: derived class not found");
