@@ -1,5 +1,10 @@
 Version 2.20
 
+10/02/93 IL CHANGE -- an_accessible_base_class
+
+Entries of type an_accessible_base_class are created as part of exception
+handling support.
+
 11/02/93 Name mangling for pointers to member functions
 
 The name mangling done by IL lowering for pointers to member functions
@@ -10,33 +15,56 @@ that was not indicated in the encoding.
   void f(void (A::*pmf1)(double));       // f__FM1AFd_v
   void g(void (A::*pmf2)(double) const); // g__FM1ACFd_v (was missing "C")
 
+11/01/93 Error on defining a friend function in a local class
+
+An error is issued on an attempt to define a nonmember friend function
+within the definition of a local class -- for example:
+
+  void f() {
+    class A {
+      void g() { };  // Error -- wrong scope in which to define a function
+    };
+  }
+
+11/01/93 Storage class checking for function templates
+
+Some bugs have been fixed in the how storage class and linkage consistency
+is enforced between a function template and its instances.  For example:
+
+  extern int f(double);
+  template <class T> inline int f(T) { return 0; }
+
+where a warning is now issued to the effect that f(double), an instance
+of an inline template function (and therefore requiring static storage
+class), was declared extern.  (Note: X3J16 is reviewing the whether
+"inline" and "extern" are incompatible attributes of a function -- the
+resolution of this question may invalidate the current behavior.)
 
 11/01/93 Error handling in vec_new
 
 If vec_new is unable to obtain memory for either the requested storage
-or for its own book keeping purposes it will now return NULL.  Previously
+or for its own book keeping purposes it will now return NULL.  Previously  
 the return value was unpredictable.
 
 10/29/93 Destruction of expression temporaries after simple switch
 
-A bug in IL lowering has been fixed.  The bug involved missing
-destructor calls for temporaries created in expressions when a
-switch statement with no associated scope appeared between the
-creation of the temporary and the end of the scope.  For example:
+A bug in IL lowering has been fixed.  The bug involved missing destructor
+calls for temporaries created in expressions when a switch statement with
+no associated scope appeared between the creation of the temporary and the
+end of the scope.  For example:
 
   struct A {
-	A(int);
-	~A();
-	operator int();
+    A(int);
+    ~A();
+    operator int();
   };
   void f()
   {
-	switch (A(87)) {  // Temporary never destroyed
-		default:
-			break;
-	}
+    switch (A(87)) {  // Temporary never destroyed
+      default:
+        break;
+    }
   }
-
 
 10/28/93 Include file search order -- new default behavior
 
