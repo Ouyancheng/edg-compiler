@@ -1279,12 +1279,15 @@ associated global variables will also have been set).
   a_boolean       is_macro_call = TRUE;  /* Assume. */
   a_source_position
                   start_pos;
+  char            *file_name, *full_name;
+  a_line_number   line_number;
+  a_boolean       at_end_of_source;
   a_macro_arg_ptr map, prev_end_of_macro_arg_list = end_of_macro_arg_list;
 #define ARG_VALUES_SIZE 50
 			/* For parameter values in the normal range, the
 			   arg_values array provides quick look-up.  For
 			   parameters beyond that, a slow linear search
-			   in used. */
+			   is used. */
   a_macro_arg_ptr arg_values[ARG_VALUES_SIZE];
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
@@ -1431,15 +1434,20 @@ keep_testing:;
       if (macro_symbol == line_macro_symbol) {
         /* __LINE__.  Make and return the string for a decimal integer
            indicating the current line number. */
+        /* Convert the sequence number to a line number. */
+        conv_seq_to_file_and_line(start_pos.seq, &file_name, &full_name,
+                                  &line_number, &at_end_of_source);
         /* We assume we don't need to call ensure_arg_raw_text_space. */
-        (void)sprintf(repl_text, "%lu", curr_ise->line_number);
+        (void)sprintf(repl_text, "%lu", line_number);
       } else if (macro_symbol == file_macro_symbol) {
         /* __FILE__.  Make and return a string for a string literal 
-          indicating the current file name.  "+3" in the following is
-          for the two quotes and the null. */
-        ensure_arg_raw_text_space(strlen(curr_ise->file_name)+3,
-                                  special_macro_arg);
-        (void)sprintf(repl_text, "\"%s\"", curr_ise->file_name);
+          indicating the current file name. */
+        /* Convert the sequence number to a file name. */
+        conv_seq_to_file_and_line(start_pos.seq, &file_name, &full_name,
+                                  &line_number, &at_end_of_source);
+        /* "+3" in the following is for the two quotes and the null. */
+        ensure_arg_raw_text_space(strlen(file_name)+3, special_macro_arg);
+        (void)sprintf(repl_text, "\"%s\"", file_name);
       } else if (macro_symbol == defined_macro_symbol) {
         /* "defined".  This is not, strictly speaking, a macro -- it's
            an operator allowed only in #if expressions.  However, it is
