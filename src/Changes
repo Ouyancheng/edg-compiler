@@ -1,5 +1,16 @@
 Version 2.31
 
+1/10/96   Adding cv-qualifiers to typedef in C mode
+
+The following is permitted in C++ (the redundant const in the second line is
+ignored) but not in ANSI C:
+
+  typedef const int CI;
+  const CI x;           /* An error no longer issued in default C mode. */
+
+This used to always elicit an error in C mode.  Now a remark is issued by
+default; only in strict-ANSI mode is an error (-A) or warning (-a) put out.
+
 1/10/96   ISO C Normative Addendum 1
 
 The following features from ISO C Normative Addendum 1 have been added:
