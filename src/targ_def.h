@@ -1957,7 +1957,10 @@ whole process.
 
 /*
 This switch controls whether designated initializers (a C9X feature)
-are lowered to standard C.
+are lowered to standard C.  Well, almost standard C: a designated
+initializer allows initialization of a member other than the first in
+a union.  For that case, a ck_designator is left in the IL tree
+(but only one, and only for members other than the first).
 */
 #ifndef LOWER_DESIGNATED_INITIALIZERS
 #define LOWER_DESIGNATED_INITIALIZERS TRUE

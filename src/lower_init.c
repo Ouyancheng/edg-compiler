@@ -5533,8 +5533,6 @@ typedef struct an_aggregate_position {
   a_boolean	array_init;
 			/* TRUE if the aggregate is an array, FALSE for
 			   a struct/union. */
-  a_boolean	union_init;
-			/* TRUE if the entity being initialized is a union. */
   a_field_ptr	curr_field;
 			/* Current field, when array_init == FALSE. */
   a_targ_size_t	curr_elem;
@@ -5569,7 +5567,6 @@ position of the first member of the aggregate constant aggr_con.
                   aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
   aggr_type = f_skip_typerefs(aggr_con->type);
   aggr_pos->array_init = (aggr_type->kind == (a_type_kind)tk_array);
-  aggr_pos->union_init = (aggr_type->kind == (a_type_kind)tk_union);
   aggr_pos->curr_field = NULL;
   aggr_pos->curr_elem = 0;
   aggr_pos->member_type = NULL;
@@ -5660,7 +5657,8 @@ the constants following, and set *previous_con to the constant after which
 to insert (or NULL for insertion at the beginning of the aggregate).
 If the new constants will overwrite earlier initialization constants,
 set *earlier_con to point to the first of the constants being
-overwritten; otherwise, set it to NULL.
+overwritten; otherwise, set it to NULL.  This routine is not called
+for union initializations.
 */
 {
   an_aggregate_position aggr_pos;
@@ -5673,7 +5671,7 @@ overwritten; otherwise, set it to NULL.
   prev_con = NULL;
   /* Find the right insert point. */
   while (!same_aggregate_member(&aggr_pos, desig_con)) {
-    if (con == NULL && !aggr_pos.union_init) {
+    if (con == NULL) {
       /* Inserting after the end of the aggregate constant list.
          Add a zero constant for a skipped member. */
       a_constant_ptr zero_con = make_init_zero_constant(aggr_pos.member_type);
@@ -5686,7 +5684,7 @@ overwritten; otherwise, set it to NULL.
     }  /* if */
     prev_con = con;
     advance_aggregate_position_to_next_member(&aggr_pos);
-    if (!aggr_pos.union_init) con = con->next;
+    con = con->next;
   }  /* while */
   *previous_con = prev_con;
   *earlier_con = con;
@@ -5705,10 +5703,22 @@ have already had their designated initializers lowered.
 */
 {
   a_constant_ptr con = aggr_con->variant.aggregate.first_constant;
-  a_constant_ptr prev_con, earlier_con;
+  a_constant_ptr prev_con, earlier_con, union_designator = NULL;
+  a_type_ptr     aggr_type = skip_typerefs(aggr_con->type);
+  a_boolean      union_init = is_union_type(aggr_type);
 
   if (earlier_aggr_con != NULL) {
+    /* There is an earlier list of constants, being overwritten. */
     earlier_con = earlier_aggr_con->variant.aggregate.first_constant;
+    if (union_init) {
+      /* For a union, previous processing may have left a ck_designator.
+         Put it off to the side. */
+      if (earlier_con != NULL &&
+          earlier_con->kind == (a_constant_repr_kind)ck_designator) {
+        union_designator = earlier_con;
+        earlier_con = earlier_con->next;
+      }  /* if */
+    }  /* if */
   } else {
     earlier_con = NULL;
   }  /* if */
@@ -5730,8 +5740,7 @@ have already had their designated initializers lowered.
         /* Non-aggregate constant. */
         if (earlier_con != NULL) {
           /* con overwrites an earlier initialization at the same location,
-             given by earlier_con.  The following call will combine the two
-             initializers into *con. */
+             given by earlier_con.  Combine the two initializers into *con. */
           combine_initializer_constants(earlier_con, con);
         }  /* if */
       }  /* if */
@@ -5769,8 +5778,26 @@ have already had their designated initializers lowered.
     check_assertion(con->kind == (a_constant_repr_kind)ck_designator);
     /* A ck_designator constant indicates a skip to a new initialization
        position within the aggregate. */
-    /* Find the right point to insert the constants after the designator. */
-    find_designator_insert_point(con, aggr_con, &prev_con, &earlier_con);
+    if (union_init) {
+      /* When initializing a union, always insert at the beginning, and
+         keep the ck_designator for later re-insertion if it requests
+         initialization of a member other than the first. */
+      prev_con = NULL;
+      earlier_con = aggr_con->variant.aggregate.first_constant;
+      if (con->variant.designator.field ==
+                  next_initializable_field(
+                           aggr_type->variant.class_struct_union.field_list)) {
+        /* The ck_designator is not needed when initializing the first
+           field. */
+        union_designator = NULL;
+      } else {
+        union_designator = con;
+      }  /* if */
+    } else {
+      /* Array or struct initialization. */
+      /* Find the right point to insert the constants after the designator. */
+      find_designator_insert_point(con, aggr_con, &prev_con, &earlier_con);
+    }  /* if */
     /* Advance to the constant following the ck_designator. */
     con = con->next;
     check_assertion(con != NULL &&
@@ -5783,6 +5810,13 @@ have already had their designated initializers lowered.
       prev_con->next = con;
     }  /* if */
   }  /* for */
+  /* For a union initialization, re-insert a ck_designator if the field
+     initialized is not the first field. */
+  if (union_designator != NULL) {
+    union_designator->next = aggr_con->variant.aggregate.first_constant;
+    aggr_con->variant.aggregate.first_constant = union_designator;
+    check_assertion(union_designator->next != NULL);
+  }  /* if */
 #if EXPENSIVE_CHECKING
   for (con = aggr_con->variant.aggregate.first_constant;
        con != NULL && con->next != NULL;

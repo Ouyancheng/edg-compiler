@@ -4501,6 +4501,29 @@ to saved_list, the saved value from the scope surrounding the current one.
 }  /* unbind_wide_string_constants */
 
 
+static void dump_designator(a_constant_ptr con,
+                            a_field_ptr    *field)
+/*
+Generate code for a ck_designator constant, i.e., a designator in a
+designated initializer.  If the designator is for a field, set *field to
+the field.
+*/
+{
+  *field = con->variant.designator.field;
+  if (*field != NULL) {
+    /* Field designator. */
+    write_tok_ch('.');
+    dump_field_name(*field);
+  } else {
+    /* Array element designator. */
+    write_tok_ch('[');
+    write_unsigned_num((unsigned long)con->variant.designator.array_element);
+    write_tok_ch(']');
+  }  /* if */
+  write_tok_str(" = ");
+}  /* dump_designator */
+
+
 static void dump_initializer_part(a_variable_ptr           variable,
                                   a_type_ptr               type,
                                   a_constant_ptr           constant,
@@ -4648,8 +4671,16 @@ temporary file (see start_initializer_assignments).
          through the type until a non-aggregate is found, and initialize
          it to zero. */
       for (;;) {
-        if (annotate && !*gen_assignments &&
-            type->kind == (a_type_kind)tk_array) {
+        if (elem_con != NULL &&
+            elem_con->kind == (a_constant_repr_kind)ck_designator) {
+          /* Put out the introduction for a designated initializer. */
+          if (!*gen_assignments) start_initializer_constants();
+          dump_designator(elem_con, &ipdp->curr_field);
+          elem_con = elem_con->next;
+          check_assertion(elem_con != NULL &&
+                          elem_con->kind!=(a_constant_repr_kind)ck_designator);
+        } else if (annotate && !*gen_assignments &&
+                   type->kind == (a_type_kind)tk_array) {
           /* Display element numbers in arrays. */
           continue_on_new_line();
           start_comment();
@@ -4657,6 +4688,12 @@ temporary file (see start_initializer_assignments).
           write_unsigned_num((unsigned long)ipdp->curr_elem);
           write_tok_str("]: ");
           end_comment();
+        }  /* if */
+        if (type->kind != (a_type_kind)tk_array) {
+          /* Get the current field type. */
+          check_assertion_str(ipdp->curr_field != NULL,
+                              "dump_initializer_part: ran out of fields");
+          elem_type = ipdp->curr_field->type;
         }  /* if */
         dump_initializer_part(variable, elem_type, elem_con, gen_assignments,
                               ipdp);
@@ -4668,19 +4705,20 @@ temporary file (see start_initializer_assignments).
         /* Put out a comma between constants. */
         if (!*gen_assignments) write_tok_ch(',');
         /* Advance to the next element in the aggregate. */
-        /* Only the first field of a union is initialized, so there shouldn't
-           be more than one constant on the aggregate list for a union. */
-        check_assertion_str(type->kind != (a_type_kind)tk_union,
-                            "dump_initializer_part: > 1 constant for union");
-        if (type->kind == (a_type_kind)tk_array) {
-          (ipdp->curr_elem)++;
+        if (elem_con->kind == (a_constant_repr_kind)ck_designator) {
+          /* Don't advance if a ck_designator is next. */
         } else {
-          check_assertion_str(type->kind == (a_type_kind)tk_struct,
-                              "dump_initializer_part: bad entity kind (2)");
-          ipdp->curr_field = next_initializable_field(ipdp->curr_field->next);
-          check_assertion_str(ipdp->curr_field != NULL,
-                              "dump_initializer_part: bad next field");
-          elem_type = ipdp->curr_field->type;
+          /* Only the first field of a union is initialized, so there shouldn't
+             be more than one constant on the aggregate list for a union. */
+          check_assertion_str(type->kind != (a_type_kind)tk_union,
+                              "dump_initializer_part: > 1 constant for union");
+          if (type->kind == (a_type_kind)tk_array) {
+            (ipdp->curr_elem)++;
+          } else {
+            check_assertion_str(type->kind == (a_type_kind)tk_struct,
+                                "dump_initializer_part: bad entity kind (2)");
+            ipdp->curr_field= next_initializable_field(ipdp->curr_field->next);
+          }  /* if */
         }  /* if */
       }  /* for */
     }  /* if */
