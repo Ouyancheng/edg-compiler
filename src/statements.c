@@ -596,10 +596,10 @@ a structured statement has ended.
 }  /* pop_stmt_stack */
 
 
-#if ASM_STATEMENT_ALLOWED
 static void asm_statement(void)
 /*
-Scan an asm statement.  This is a non-ANSI construct.  Its form is
+Scan an asm statement.  This is a non-ANSI construct but it is defined in
+C++.  Its form is
 
 asm ( "string" ) ;
 
@@ -613,34 +613,10 @@ asm ( "string" ) ;
   check_for_unreachable_code();
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_asm);
-  /* Ignore the initial "asm". */
-#if CHECKING
-  if (curr_token != tok_identifier) {
-    internal_error("asm_statement: expected asm");
-  }  /* if */
-#endif  /* CHECKING */
-  (void)get_token();
-  /* Check for and skip the opening parenthesis. */
-  (void)required_token(tok_lparen, ec_exp_lparen);
-  add_stop_token(tok_rparen);
-  /* Scan the enclosed string. */
-  if (curr_token != tok_string_literal) {
-    syntax_error(ec_exp_asm_string);
-    set_error_constant(&asm_string);
-  } else {
-    copy_constant(&const_for_curr_token, &asm_string);
-    (void)get_token();
-  }  /* if */
-  sp->variant.asm_string = alloc_unshared_constant(&asm_string);
-  /* Check for and skip the closing parenthesis. */
-  (void)required_token(tok_rparen, ec_exp_rparen);
-  remove_stop_token(tok_rparen);
-  /* Check for and skip the semicolon. */
-  (void)required_token(tok_semicolon, ec_exp_semicolon);
+  sp->variant.asm_entry = asm_declaration(/*asm_decl_allowed=*/TRUE);
 
   db_exit();
 }  /* asm_statement */
-#endif /* ASM_STATEMENT_ALLOWED */
 
 
 static a_struct_stmt_stack_entry_ptr find_enclosing_struct_stmt(
@@ -1727,6 +1703,10 @@ rescan_statement:
       /* Return statement (3.6.6). */
       return_statement();
       break;
+    case tok_asm:
+      /* Asm "declaration" (ARM 7.3). */
+      asm_statement();
+      break;
     case tok_case:
       /* Case label (3.6.1). */
       case_label();
@@ -1765,28 +1745,6 @@ rescan_statement:
         prev_was_label = TRUE;
         goto rescan_statement;
       }  /* if */
-#if ASM_STATEMENT_ALLOWED
-      if (!strict_ansi_mode) {
-        char         *id_name;
-        a_symbol_ptr sym_ptr;
-
-        /* Check for "asm" statement.  "asm" is not a keyword, so we check
-           for an identifier "asm" that is not defined in any way that's
-           meaningful here. */
-        id_name = locator_for_curr_id.symbol_header->identifier;
-        if (*id_name == 'a' && strcmp(id_name, "asm") == 0) {
-          /* Identifier is "asm" -- check for definition. */
-          sym_ptr = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
-          if (sym_ptr == NULL) {
-            /* The identifier is not defined as a variable, function,
-               constant, or type.  Therefore, this is considered to be an
-               asm statement. */
-            asm_statement();
-            break;  /* out of switch */
-          }  /* if */
-        }  /* if */
-      }  /* if */
-#endif /* ASM_STATEMENT_ALLOWED */
       /* Other cases are expression statements. */
       goto expr_statement;
     default:
