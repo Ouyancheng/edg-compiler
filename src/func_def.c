@@ -2210,12 +2210,11 @@ empty statement block.
        instantiation of a template class. */
   } else {
     a_scope_depth	saved_innermost_scope_that_affects_access;
-    a_scope_ptr  class_scope = class_type->variant.
-                                    class_struct_union.extra_info->assoc_scope;
     a_symbol_ptr rout_sym;
     a_boolean    trans_unit_pushed;
     rout_sym = (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
-    check_assertion(class_scope != NULL);
+    check_assertion(class_type->variant.class_struct_union.extra_info
+                              ->assoc_scope != NULL);
     /* Switch translation units if necessary. */
     trans_unit_pushed = push_translation_unit_if_needed(rout_sym);
     /* Reset the innermost scope that affects access control so that any
