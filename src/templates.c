@@ -3426,7 +3426,9 @@ is static or inline (i.e., is not an external function).
 {
   a_boolean     result = FALSE;
 
-  if (is_inline_template_function(tip)) {
+  if (!is_function_symbol(tip->instance_sym)) {
+    /* Must be a static data member. */
+  } else if (is_inline_template_function(tip)) {
     result = TRUE;
   } else if (tip->instance_sym->kind != (a_symbol_kind)sk_member_function) {
     /* Only check the storage class of nonmember functions.  The linkage
@@ -3843,6 +3845,8 @@ is responsible for setting the appropriate flags.
     a_boolean				can_instantiate;
     an_instance_lookup_entry_ptr	ilp = NULL;
 
+    /* Skip non-external function. */
+    if (is_static_or_inline_template_function(tip)) continue;
     /* Get a pointer to the IL entry to be processed. */
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
       is_static_data_member = TRUE;
@@ -3851,9 +3855,6 @@ is responsible for setting the appropriate flags.
       is_static_data_member = FALSE;
       routine = instance_sym->variant.routine.ptr;
     }  /* if */
-    /* Skip non-external function. */
-    if (is_static_data_member ||
-        is_static_or_inline_template_function(tip)) continue;
 #if DEBUG
     if (debug_level >= 4) {
       fprintf(f_debug, "Automatic instantiation processing for:\n");
@@ -3903,6 +3904,8 @@ is responsible for setting the appropriate flags.
     a_boolean				can_instantiate;
     a_boolean				is_static_data_member;
 
+    /* Skip non-external function. */
+    if (is_static_or_inline_template_function(tip)) continue;
     /* Get a pointer to the IL entry to be processed. */
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
       is_static_data_member = TRUE;
@@ -3911,9 +3914,6 @@ is responsible for setting the appropriate flags.
       is_static_data_member = FALSE;
       routine = instance_sym->variant.routine.ptr;
     }  /* if */
-    /* Skip non-external function. */
-    if (is_static_data_member ||
-        is_static_or_inline_template_function(tip)) continue;
     can_instantiate = can_be_instantiated(tip);
 #if DEBUG
     if (debug_level >= 4) {
