@@ -459,7 +459,7 @@ ec_bad_constructor_param;;"copy constructor for class %t may not have a paramete
 ec_incomplete_function_return_type;;"function return type is incomplete"
 ec_protected_access_problem;;"protected %n is not accessible through a %t pointer or object"
 ec_param_not_allowed;;"a parameter is not allowed"
-ec_asm_not_allowed;;"an \"asm\" declaration is not allowed at this point"
+ec_asm_decl_not_allowed;;"an \"asm\" declaration is not allowed here"
 ec_no_conversion_function;;"no suitable conversion function from %t1 to %t2 exists"
 ec_delete_of_incomplete_class;;"delete of pointer to incomplete class"
 ec_no_constructor_for_conversion;;"no suitable constructor exists to convert from %t1 to %t2"
@@ -712,6 +712,8 @@ ec_exp_int_constant;;"expected an integer constant"
 ec_call_of_pure_virtual;;"call of pure virtual function"
 ec_bad_ident_string;;"invalid source file identifier string"
 ec_template_friend_definition_not_allowed;;"a template cannot be defined in a friend declaration"
+ec_asm_not_allowed;;"\"asm\" is not allowed"
+ec_bad_asm_function_def;;"\"asm\" must be used with a function definition"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
