@@ -2113,14 +2113,12 @@ for the class to which they belong.
 static void copy_virtual_function_override_list(
                                               a_base_class_ptr  old_bcp,
                                               a_base_class_ptr  new_bcp,
-                                              a_base_class_ptr  new_direct_bcp,
-                                              a_type_ptr        new_class)
+                                              a_base_class_ptr  new_direct_bcp)
 /*
 Copy the list of overriding virtual functions associated with old_bcp and add
 each of the copies to the list belonging to new_bcp.  The entries are
-being copied from a base class of new_direct_bcp to a base class of new_class.
-new_bcp is the base class being created in new_class under the direct base
-new_direct_bcp.
+being copied from a base class of new_direct_bcp->type to a base class of
+new_direct_bcp->derived_class.
 */
 {
   an_overriding_virtual_function_ptr  ovfp_to_copy, new_ovfp;
@@ -2472,7 +2470,7 @@ Return the base of bcp that would be the primary base if bcp were the complete
 object.  Return NULL if bcp->type has no primary base.
 */
 {
-  a_base_class_ptr            primary, disambiguator;
+  a_base_class_ptr            primary;
   a_class_type_supplement_ptr ctsp;
 
   ctsp = bcp->type->variant.class_struct_union.extra_info;
@@ -4335,7 +4333,7 @@ of type_ptr should be added.  *end_of_list points to the end of the preorder
 list.  Returns a pointer to the new end of the list.
 */
 {
-  a_base_class_ptr first_base, bcp, disambiguator, new_base, old_base;
+  a_base_class_ptr first_base, bcp, new_base, old_base;
   a_base_class_sequence_number next_base;
 
   first_base = base_classes_of((base == NULL) ? type_ptr : base->type);
@@ -4941,8 +4939,7 @@ or struct definition.  The syntax is
                on the base classes list for base_class_type) to the
                corresponding copied base class new_bcp (which is on the base
                classes list for type_ptr). */
-            copy_virtual_function_override_list(bcp, new_bcp,
-                                                new_direct_bcp, type_ptr);
+            copy_virtual_function_override_list(bcp, new_bcp, new_direct_bcp);
 #if DEBUG
             if (debug_level >= 4) {
               fputs("new base class ", f_debug);
