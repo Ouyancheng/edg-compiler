@@ -4223,7 +4223,6 @@ Do IL lowering of the indicated type and everything under it.
         /* Change the type to a pure typeref to the new (lowered) type. */
         type_next = type->next;
         set_type_kind(type, (a_type_kind)tk_typeref);
-        type->size = type->alignment = 0;
         type->next = type_next;
         type->variant.typeref.type = new_type;
         /* Point to a copy of the original pointer-to-member type.  This
