@@ -853,6 +853,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr_not_needed(ptr->assoc_param_type, a_param_type_ptr,
                              iek_param_type);
         walk_initializer(ptr->init_kind, ptr->initializer);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+        walk_ptr(ptr->template_decl, a_template_decl_ptr, iek_template_decl);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -942,6 +945,9 @@ the file scope, do not process it (but record an orphan in the latter case).
 #ifdef CFE
         walk_list(ptr->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+        walk_ptr(ptr->template_decl, a_template_decl_ptr, iek_template_decl);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* Note that we do not test "defined" here because defined gets cleared
            before some calls to walk the IL. */
@@ -1515,6 +1521,44 @@ do_set_proper_definition_needed_flag:
       break;
 #endif /* !NEEDED_FLAG_WALK */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+    case iek_template_parameter:
+      {
+        a_template_parameter_ptr ptr = (a_template_parameter_ptr)entry_ptr;
+        walk_source_corresp(ptr->source_corresp);
+        remap_next_ptr(ptr->next, a_template_parameter_ptr,
+                       iek_template_parameter);
+        switch (ptr->kind) {
+          case tpk_error:
+            break;
+          case tpk_type:
+            walk_ptr(ptr->variant.type.ptr, a_type_ptr, iek_type);
+            walk_ptr(ptr->variant.type.default_arg_type, a_type_ptr,
+                     iek_type);
+            break;
+          case tpk_nontype:
+            walk_ptr(ptr->variant.nontype.constant, a_constant_ptr,
+                     iek_constant);
+            walk_ptr(ptr->variant.nontype.default_arg_constant,
+                     a_constant_ptr, iek_constant);
+            break;
+          case tpk_template:
+            walk_ptr(ptr->variant.templ.class_template, a_type_ptr, iek_type);
+            walk_ptr(ptr->variant.templ.default_arg_template, a_type_ptr,
+                     iek_type);
+            break;
+          default:
+            internal_error("unexpected template parameter kind");
+        }  /* switch */
+      }
+      break;
+    case iek_template_decl:
+      {
+        a_template_decl_ptr ptr = (a_template_decl_ptr)entry_ptr;
+        walk_ptr(ptr->parent, a_template_decl_ptr, iek_template_decl);
+        walk_list(ptr->param_list, a_template_parameter_ptr,
+                  iek_template_parameter);
+      }
+      break;
     case iek_template:
       {
         a_template_ptr ptr = (a_template_ptr)entry_ptr;
@@ -2117,6 +2161,9 @@ after_entry_from_class:
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
         /* Fields to be processed even if the definition of the class is
            not to be processed: */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+        walk_ptr(ptr->template_decl, a_template_decl_ptr, iek_template_decl);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         walk_list(ptr->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2626,6 +2673,10 @@ of each kind.
                                         iek_eh_prologue_supplement);
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #endif /* ifdef CFE */
+  walk_orphan_entry_list_for_entry_kind(a_template_parameter_ptr,
+                                        iek_template_parameter);
+  walk_orphan_entry_list_for_entry_kind(a_template_decl_ptr,
+                                        iek_template_decl);
   /* Note that no orphan list walking is needed for iek_source_sequence_entry
      nor for its subordinate entries like iek_src_seq_secondary_decl
      and iek_src_seq_end_of_construct, since such entries will

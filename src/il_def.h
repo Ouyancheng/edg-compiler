@@ -449,6 +449,9 @@ typedef enum /*an_il_entry_kind*/ {
   iek_switch_case_entry,
 			/* a_switch_case_entry */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  iek_template_decl,	/* a_template_decl */
+  iek_template_parameter,
+			/* a_template_parameter */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -565,6 +568,8 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_decl_position_supplement */	"decl-position-supplement",
 /* iek_switch_case_entry */		"switch-case-entry",
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+/* iek_template_decl */			"template-decl",
+/* iek_template_parameter */		"template-parameter",
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -3443,6 +3448,13 @@ typedef struct a_class_type_supplement {
 			   within the scope of the class, including nested
 			   classes.  This pointer is NULL when the class
 			   has been declared but not defined. */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  a_template_decl_ptr
+		template_decl;
+			/* For template entities this points to information
+			   describing the template parameterization of that
+			   entity; otherwise, this is NULL. */
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   a_template_arg_ptr
 		template_arg_list;
 			/* For classes that are instantiations of a class
@@ -4618,6 +4630,13 @@ typedef struct a_variable {
 		initializer;
 			/* Union discriminated by init_kind and indicating the
 			   initializer. */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  a_template_decl_ptr
+		template_decl;
+			/* For template entities this points to information
+			   describing the template parameterization of that
+			   entity; otherwise, this is NULL. */
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range
 		initializer_range;
@@ -5180,6 +5199,13 @@ typedef struct a_routine {
 			   templates and member function templates (i.e.,
 			   this pointer is NULL for member functions of
 			   class templates and other nontemplate functions). */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  a_template_decl_ptr
+		template_decl;
+			/* For template entities this points to information
+			   describing the template parameterization of that
+			   entity; otherwise, this is NULL. */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
@@ -7345,6 +7371,91 @@ typedef struct a_hidden_name {
   bitfield_to_avoid_codecenter_warnings()
 } a_hidden_name;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+
+/* Kind of template parameter. */
+enum a_template_parameter_kind_tag {
+  tpk_error,
+  tpk_type,
+  tpk_nontype,
+  tpk_template
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_template_parameter_kind;
+
+
+typedef struct a_template_parameter *a_template_parameter_ptr;
+typedef struct a_template_parameter {
+  /* Description of a template parameter (type, nontype or template).  A list
+     of such items can be assembled through the "next" pointers and should
+     normally be header by a_template_decl entry. */
+  /* The source_corresp field must be first. */
+  a_source_correspondence
+		source_corresp;
+			/* Information on the source entity that corresponds
+			   to this entity. */
+  a_template_parameter_ptr
+		next;
+			/* Next parameter in this template declaration. */
+  union {
+    /* When kind == tpk_type: */
+    struct {
+      a_type_ptr
+		ptr;
+			/* The placeholder type representing the parameter. */
+      a_type_ptr
+		default_arg_type;
+			/* The prototype instantiation of the default argument
+			   (or NULL if none) for this type parameter. */
+    } type;
+    /* When kind == tpk_nontype: */
+    struct {
+      a_constant_ptr
+		constant;
+			/* The placeholder constant representing the
+			    parameter. */
+      a_constant_ptr
+		default_arg_constant;
+			/* The prototype instantiation of the default argument
+			   (or NULL if none) for this nontype parameter. */
+    } nontype;
+    /* When kind == tpk_template: */
+    struct {
+      a_type_ptr
+		class_template;
+			/* The placeholder constant representing the
+			    parameter. */
+      a_type_ptr
+		default_arg_template;
+			/* The prototype instantiation of the default argument
+			   (or NULL if none) for this template parameter. */
+    } templ;
+  } variant;
+  a_template_parameter_kind
+		kind;
+			/* The kind of parameter: type, nontype or template. */
+} a_template_parameter;
+
+typedef struct a_template_decl *a_template_decl_ptr;
+typedef struct a_template_decl {
+  /* The description of the template parameterization of a declaration.  The
+     declarative entity (routine, variable or class supplement) points to an
+     entry of this type, and the nesting structure (for nested templates) is
+     maintained through a parent pointer.
+  */
+  a_template_decl_ptr
+		parent;
+			/* The enclosing template information, or NULL if
+			   this is not a nested template. */
+  a_template_parameter_ptr
+		param_list;
+			/* The list of template parameters for this template
+			   entity (not including enclosing parameters). */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		template_pos;
+			/* The position of the "template" keyword. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+} a_template_decl;
 
 
 /*

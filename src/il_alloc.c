@@ -109,6 +109,10 @@ static unsigned long
 		num_hidden_names_allocated;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 static unsigned long
+		num_template_decls_allocated;
+static unsigned long
+		num_template_parameters_allocated;
+static unsigned long
 		num_templates_allocated;
 #if RECORD_MACROS_IN_IL
 static unsigned long
@@ -229,6 +233,20 @@ file-scope and normal allocation methods as necessary).
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
 
+void *trace_alloc_ptr = NULL;
+
+void alloc_intercept()
+/*
+Also called from mem_manage.c.
+*/
+{
+  fprintf(f_debug, "Created node at %x.\n", (unsigned)trace_alloc_ptr);
+}  /* alloc_intercept */
+
+
+#define trace_alloc_check(ptr)    \
+   { if (ptr == trace_alloc_ptr) alloc_intercept(); }
+
 char *alloc_il(sizeof_t size)
 /*
 Allocate and return "size" bytes of storage in the file scope memory region.
@@ -236,6 +254,7 @@ Allocate and return "size" bytes of storage in the file scope memory region.
 {
   char *ptr;
   do_fs_alloc(ptr, size);
+  trace_alloc_check(ptr);
   return ptr;
 }  /* alloc_il */
 
@@ -248,6 +267,7 @@ Allocate and return "size" bytes of storage in the current IL memory region.
 {
   char *ptr;
   do_any_alloc(ptr, curr_il_region_number, size);
+  trace_alloc_check(ptr);
   return ptr;
 }  /* alloc_cil */
 
@@ -2675,6 +2695,48 @@ fields, and return a pointer to it.
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
+a_template_parameter_ptr alloc_template_parameter(void)
+/*
+Allocate a template parameter entry in the file-scope memory region,
+initialize its fields, and return a pointer to it.
+*/
+{
+  a_template_parameter_ptr  tpp;
+
+  tpp = (a_template_parameter_ptr)alloc_il(sizeof(a_template_parameter));
+#if DEBUG
+  num_template_parameters_allocated++;
+#endif /* DEBUG */
+  set_default_source_corresp(tpp->source_corresp);
+  tpp->next = NULL;
+  tpp->kind = tpk_error;
+
+  return tpp; 
+}  /* alloc_template_parameter */
+
+
+a_template_decl_ptr alloc_template_decl(void)
+/*
+Allocate a template declaration entry in the file-scope memory region,
+initialize its fields, and return a pointer to it.
+*/
+{
+  a_template_decl_ptr  tdp;
+
+  tdp = (a_template_decl_ptr)alloc_il(sizeof(a_template_decl));
+#if DEBUG
+  num_template_decls_allocated++;
+#endif /* DEBUG */
+  tdp->parent       = NULL;
+  tdp->param_list   = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  tdp->template_pos = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+  return tdp; 
+}  /* alloc_template_decl */
+
+
 a_template_ptr alloc_template(void)
 /*
 Allocate a template entry in the file-scope memory region, initialize its
@@ -2879,6 +2941,10 @@ Display and return the amount of space used for various IL tables.
 #if RECORD_HIDDEN_NAMES_IN_IL
   db_space_used("hidden names", num_hidden_names_allocated, a_hidden_name);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+  db_space_used("template_parameters", num_template_parameters_allocated,
+                a_template_parameter);
+  db_space_used("template_decls", num_template_decls_allocated,
+                a_template_decl);
   db_space_used("templates", num_templates_allocated, a_template);
 #if RECORD_MACROS_IN_IL
   db_space_used("macros", num_macros_allocated, a_macro);
@@ -3059,6 +3125,8 @@ in il_init.)
 #if RECORD_HIDDEN_NAMES_IN_IL
       pch_saved_var_array_elem(num_hidden_names_allocated),
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+      pch_saved_var_array_elem(num_template_parameters_allocated),
+      pch_saved_var_array_elem(num_template_decls_allocated),
       pch_saved_var_array_elem(num_templates_allocated),
 #if RECORD_MACROS_IN_IL
       pch_saved_var_array_elem(num_macros_allocated),
@@ -3168,6 +3236,8 @@ of the front end.
 #if RECORD_HIDDEN_NAMES_IN_IL
   num_hidden_names_allocated             = 0;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+  num_template_parameters_allocated      = 0;
+  num_template_decls_allocated           = 0;
   num_templates_allocated                = 0;
 #if RECORD_MACROS_IN_IL
   num_macros_allocated                   = 0;

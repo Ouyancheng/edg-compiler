@@ -316,6 +316,7 @@ be written.
 #ifdef FFE
       case iek_namelist_group:
 #endif /* ifdef FFE */
+      case iek_template_parameter:
         /* Entry has a source correspondence field. */
         name = ((a_constant_ptr)entry_ptr)->source_corresp.name;
         break;
@@ -1533,6 +1534,9 @@ Display the indicated variable.
     disp_boolean("is_parameter", TRUE);
   }  /* if */
   disp_initializer(ptr->init_kind, &ptr->initializer);
+  if (ptr->template_decl != NULL) {
+    disp_template_decl("template_decl", ptr->template_decl);
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("initializer_range", &ptr->initializer_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -3053,9 +3057,70 @@ Display the indicated hidden-name entry.
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
+static void disp_template_parameter(a_template_parameter_ptr  ptr)
+/*
+Display the indicated template parameter.
+*/
+{
+  disp_source_corresp(&ptr->source_corresp, /*is_enumerator=*/FALSE);
+  if (ptr->next != NULL) {
+    disp_ptr("next", (char*)ptr->next, iek_template_parameter);
+  }  /* if */
+  disp_name("kind");
+  switch (ptr->kind) {
+    case tpk_error:
+      (void)printf("tpk_error\n");
+      break;
+    case tpk_type:
+      (void)printf("tpk_type\n");
+      disp_ptr("ptr", (char*)ptr->variant.type.ptr, iek_type);
+      if (ptr->variant.type.default_arg_type != NULL) {
+        disp_ptr("default_arg_type",
+                 (char*)ptr->variant.type.default_arg_type, iek_type);
+      }  /* if */
+      break;
+    case tpk_nontype:
+      (void)printf("tpk_nontype\n");
+      disp_ptr("constant", (char*)ptr->variant.nontype.constant, iek_constant);
+      if (ptr->variant.nontype.default_arg_constant != NULL) {
+        disp_ptr("default_arg_constant",
+                 (char*)ptr->variant.nontype.default_arg_constant,
+                 iek_constant);
+      }  /* if */
+      break;
+    case tpk_template:
+      (void)printf("tpk_template\n");
+      disp_ptr("class_template", (char*)ptr->variant.templ.class_template,
+               iek_type);
+      if (ptr->variant.templ.default_arg_template) {
+        disp_ptr("default_arg_template",
+                 (char*)ptr->variant.templ.default_arg_template, iek_type);
+      }  /* if */
+      break;
+      default:
+        internal_error("unexpected template parameter kind");
+  }  /* switch */
+}  /* disp_template_parameter */
+
+
+static void disp_template_decl(a_template_decl_ptr  ptr)
+/*
+Display the indicated template declaration information.
+*/
+{
+  if (ptr->parent != NULL) {
+    disp_ptr("parent", (char*)ptr->parent, iek_template_decl);
+  }  /* if */
+  disp_ptr("param_list", (char*)ptr->param_list, iek_template_parameter);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_source_position("template_pos", &ptr->template_pos);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* disp_template_decl */
+
+
 static void disp_template(a_template_ptr  ptr)
 /*
-Display the indicated hidden-name entry.
+Display the indicated template.
 */
 {
   disp_source_corresp(&ptr->source_corresp, /*is_enumerator=*/FALSE);
@@ -3917,12 +3982,18 @@ Display the indicated class type supplement entry.
     disp_class_list("friend_classes", ptr->friend_classes);
   }  /* if */
   disp_ptr("assoc_scope", (char * )ptr->assoc_scope, iek_scope);
+  if (ptr->template_decl != NULL) {
+    disp_template_decl("template_decl", ptr->template_decl);
+  }  /* if */
   if (ptr->template_arg_list != NULL) {
     disp_template_arg_list("template_arg_list", ptr->template_arg_list);
   }  /* if */
   if (ptr->partial_spec_template_arg_list != NULL) {
     disp_template_arg_list("partial_spec_template_arg_list",
                            ptr->template_arg_list);
+  }  /* if */
+  if (ptr->template_decl != NULL) {
+    disp_template_decl("template_decl", ptr->template_decl);
   }  /* if */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
   disp_ptr("assoc_operator_new_routine",
@@ -4230,6 +4301,12 @@ This routine is called during IL walking.
           disp_hidden_name((a_hidden_name_ptr)entry_ptr);
           break;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+        case iek_template_parameter:
+          disp_template_parameter((a_template_parameter_ptr)entry_ptr);
+          break;
+        case iek_template_decl:
+          disp_template_decl((a_template_decl_ptr)entry_ptr);
+          break;
         case iek_template:
           disp_template((a_template_ptr)entry_ptr);
           break;

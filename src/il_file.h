@@ -153,6 +153,8 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   sizeof(a_decl_position_supplement),
   sizeof(a_switch_case_entry),
+  sizeof(a_template_decl),
+  sizeof(a_template_parameter),
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
