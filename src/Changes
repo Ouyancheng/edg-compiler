@@ -1,5 +1,13 @@
 Version 2.32
 
+4/22/96 IL CHANGE: elimination of class-instantiation placeholder for
+        "partially instantiated" template class
+
+A class-instantiation placeholder (that is, a tk_typeref type entry for
+which is_placeholder_for_class_instantiation is TRUE and which points to a
+template class) is now put out only if the template class is fully
+instantiated.
+
 4/22/96 Loop on nested throw
 
 A front end loop on processing nested throw expressions has been fixed.
