@@ -2440,12 +2440,18 @@ current source position and severity or restore the previously saved settings.
 static a_boolean include_in_context_output
 			(a_scope_stack_entry_ptr ssep,
 			 a_symbol_ptr	         *context_sym,
-			 an_error_code		 *context_error_code)
+			 an_error_code		 *context_error_code,
+			 a_boolean               add_detected_prefix)
 /*
 Return TRUE if this scope stack entry has context information that should
 be processed, otherwise return FALSE.  When TRUE is returned *context_sym
 is set to point to a symbol that provides the context information and
-*context_error_code is set to the appropriate error code.
+*context_error_code is set to the appropriate error code.  When
+add_detected_prefix is TRUE, the error code returned will refer to
+a message that includes the text (e.g., "detected during ") that is
+used when only a single line of context information is being supplied.
+When multiple context lines are being displayed, the "detected during"
+message appears by itself on a separate line.
 */
 {
   a_boolean	result = FALSE;
@@ -2460,18 +2466,26 @@ is set to point to a symbol that provides the context information and
     if (sym == NULL) {
       sym = ssep->template_sym;
       if (sym->kind == (a_symbol_kind)sk_function_template) {
-        error_code = ec_template_function_declaration_context;
+        error_code = add_detected_prefix ? 
+                          ec_det_during_template_function_declaration_context :
+                          ec_template_function_declaration_context;
       } else if (sym->kind == (a_symbol_kind)sk_class_template) {
-        error_code = ec_template_class_argument_list_context;
+        error_code = add_detected_prefix ?
+                           ec_det_during_template_class_argument_list_context :
+                           ec_template_class_argument_list_context;
       } else {
         unexpected_condition();
       }  /* if */
       result = TRUE;
     } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
       result = TRUE;
-      error_code = ec_implicit_static_data_member_definition;
+      error_code = add_detected_prefix ?
+                      ec_det_during_implicit_static_data_member_definition :
+                      ec_implicit_static_data_member_definition;
     } else {
-      error_code = ec_template_instantiation_context;
+      error_code = add_detected_prefix ?
+                               ec_det_during_template_instantiation_context :
+                               ec_template_instantiation_context;
       if (is_class_symbol(sym)) {
         result = !sym->variant.class_struct_union.extra_info->is_nonreal_class;
       } else {
@@ -2483,7 +2497,9 @@ is set to point to a symbol that provides the context information and
     if (ssep->assoc_routine->compiler_generated) {
       sym = (a_symbol_ptr)ssep->assoc_routine->source_corresp.assoc_info;
       result = TRUE;
-      error_code = ec_compiler_generated_function_context;
+      error_code = add_detected_prefix ?
+                            ec_det_during_compiler_generated_function_context :
+                            ec_compiler_generated_function_context;
     }  /* if */
   }  /* if */
   if (result) {
@@ -2639,7 +2655,8 @@ and doing any required expansions, the diagnostic is written.
       a_scope_depth	sd;
       for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; --sd) {
         if (include_in_context_output(&scope_stack[sd], &sym,
-                                      &context_error_code)) {
+                                      &context_error_code,
+				      /*add_detected_prefix=*/FALSE)) {
           num_of_contexts++;
         }  /* if */
       }  /* for */
@@ -2650,7 +2667,6 @@ and doing any required expansions, the diagnostic is written.
       /* Loop through the scope stack and output context information. */
       if (num_of_contexts > 0) {
         a_diagnostic_category_kind	context_diag_kind;
-        char				*prefix_string;
         if (num_of_contexts != 1) {
           /* If there is more than one line of context we output an
 	     initial header line. */
@@ -2662,21 +2678,20 @@ and doing any required expansions, the diagnostic is written.
           a_scope_stack_entry_ptr ssep = &scope_stack[sd];
           a_symbol_ptr		  sym;
           if (!include_in_context_output(ssep, &sym,
-                                         &context_error_code)) continue;
+                                         &context_error_code,
+					 /*add_detected_prefix=*/
+					     num_of_contexts == 1)) continue;
           /* If only one line of context is being issued, then it is
-	     considered the "primary" context line and is prefixed with
-	     the string "detected during".  Otherwise a header was issued
-	     above and the context lines are handled as list elements. */
+	     considered the "primary" context line.  Otherwise a header
+	     was issued above and the context lines are handled as list
+	     elements. */
           if (num_of_contexts == 1) {
  	    context_diag_kind = dck_context_primary;
-	    prefix_string = "detected during ";
           } else {
  	    context_diag_kind = dck_list;
-	    prefix_string = "";
           }  /* if */
           init_error_params();
           error_msg_syms[1] = sym;
-	  error_msg_strings[1] = prefix_string;
 	  error_msg_positions[1] = &ssep->source_position;
           error_msg_scopes[1] = ssep;
           diag_message(context_error_code,

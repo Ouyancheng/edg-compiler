@@ -1,5 +1,12 @@
 Version 2.29
 
+4/3/95   Handling of "detected during" prefix in error context messages
+
+Formerly, the "detected during" prefix was hard-coded in error.c.
+Now, separate versions of the context messages are supplied: one that
+includes the prefix and one that does not.  This was done to simplify
+the use of message catalogs for error messages.
+
 4/3/95   IL lowering: conditional flag initialization for expressions
          tested in loops
 
