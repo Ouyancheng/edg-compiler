@@ -2162,7 +2162,7 @@ type is in fact valid.
         a_class_list_entry_ptr  corresp_cle = corresp_sup->friend_classes;
         for (; cle != NULL && corresp_cle != NULL;
              cle = cle->next, corresp_cle = corresp_cle->next) {
-          if (corresponding_types(cle->class_type, corresp_cle->class_type)) {
+          if (!seek_type_corresp(cle->class_type, corresp_cle->class_type)) {
             match = FALSE;
             report_error = TRUE;
             goto done;
