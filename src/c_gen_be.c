@@ -3381,15 +3381,15 @@ char_compare:
 #if __BSD__
       /* BSD UNIX -- use bcopy. */
       fputs("bcopy(", f_C_output);
-      dump_lvalue(operand_2);
+      dump_expression(operand_2, /*need_parens=*/TRUE);
       fputc(',', f_C_output);
-      dump_lvalue(operand_1);
+      dump_expression(operand_1, /*need_parens=*/TRUE);
 #else
       /* System V or ANSI -- use memcpy. */
       fputs("memcpy(", f_C_output);
-      dump_lvalue(operand_1);
+      dump_expression(operand_1, /*need_parens=*/TRUE);
       fputc(',', f_C_output);
-      dump_lvalue(operand_2);
+      dump_expression(operand_2, /*need_parens=*/TRUE);
 #endif /* __BSD__ */
       /* Add the length of the move. */
       { a_type_ptr operand_1_type = type_pointed_to(operand_1->type);
