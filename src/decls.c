@@ -1489,8 +1489,6 @@ declaration scope will have been pushed).
     check_assertion(!C_mode());
     idlbp->is_friend_decl = TRUE;
   }  /* if */
-  /* The effective declaration level is usually the current scope -- but not
-     always (e.g., friend declarations). */
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
     /* A declaration inside a function. */
     if (idlbp->func_info != NULL ||
@@ -1500,6 +1498,8 @@ declaration scope will have been pushed).
       idlbp->is_block_extern_decl = TRUE;
     }  /* if */
   }  /* if */
+  /* The effective declaration level is usually the current scope -- but not
+     always (e.g., friend declarations). */
   compute_effective_decl_level(idlbp, orig_decl_level);
   if (!C_mode()) {
     a_scope_depth  depth;
