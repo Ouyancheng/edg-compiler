@@ -483,20 +483,38 @@ and indentation is the indentation desired.
         if (sym->kind == sk_class_template) {
           inst_sym = tssp->variant.class.instantiations;
           while (inst_sym != NULL) {
-            fprintf(f_debug, "%*sInstantiation:\n", indentation, "");
+            fprintf(f_debug, "%*sinstantiation:\n", indentation, "");
             fprintf(f_debug, "%*s", indentation + 2, "");
             db_symbol(inst_sym, "", indentation + 4);
             inst_sym = inst_sym->next;
           }  /* while */
         } else {
           a_routine_ptr  routine = tssp->variant.function.routine;
-          fprintf(f_debug, "%*sRoutine type: ", indentation, "");
+          a_function_instantiation_entry_ptr fiep;
+          fprintf(f_debug, "%*sroutine type: ", indentation, "");
           if (routine != NULL) {
             db_type(tssp->variant.function.routine->type);
           } else {
             fprintf(f_debug, "(routine ptr is NULL)");
           }  /* if */
           fprintf(f_debug, "\n");
+          fiep = tssp->variant.function.instantiations;
+          while (fiep != NULL) {
+            fprintf(f_debug, "%*sinstantiation", indentation, "");
+            if (fiep->instantiation_required || fiep->specialization_seen) {
+              fputs(" (", f_debug);
+              if (fiep->instantiation_required) {
+                fprintf(f_debug, "body req'd%s",
+                                 fiep->specialization_seen ? ", " : "");
+              }  /* if */
+              if (fiep->specialization_seen) fputs("specialization", f_debug);
+              fputc(')', f_debug);
+            }  /* if */
+            fputs(":\n", f_debug);
+            fprintf(f_debug, "%*s", indentation + 2, "");
+            db_symbol(fiep->routine_sym, "", indentation + 4);
+            fiep = fiep->next;
+          }  /* while */
         }  /* if */
         col = 0;
         suppress_newline = TRUE;
@@ -1475,59 +1493,50 @@ the new name and relink it into the symbol table under the new header.
 }  /* relink_unnamed_class_symbol */
 
 
-a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
-                                     a_symbol_locator *location,
-                                     a_symbol_ptr     other_sym,
-                                     a_symbol_ptr     *overload_sym)
+a_symbol_ptr add_symbol_to_overload_list(a_symbol_ptr  new_sym,
+                                         a_symbol_ptr  other_sym)
 /*
-Enter a new symbol that is an overloading of the existing symbol other_sym.
-other_sym may be either a simple function or an sk_overloaded_function.
-The kind of symbol is sym_kind (some function kind).  *location gives
-a locator for the new symbol.  Return a pointer to the new symbol.
+new_sym is a newly created function (or funtion template) symbol that
+shares a name with other_sym, which is either an overloaded function symbol
+or another function or function template symbol.  If necessary, create an
+overloaded function symbol and add other_sym to its list.  Add new_sym to
+the new or existing list of overloaded functions, and return a pointer to
+the overloaded function symbol.
 */
 {
-  a_symbol_ptr        sym_ptr, overload_symbol, prev_sym_ptr;
+  a_symbol_ptr        overload_sym, prev_sym_ptr;
   a_symbol_header_ptr hdr_ptr;
   a_scope_stack_entry *ssep;
-
-  sym_ptr = alloc_symbol(sym_kind, location->symbol_header,
-                         &location->source_position);
-  sym_ptr->decl_scope = other_sym->decl_scope;
-  mark_declared(sym_ptr, &location->source_position,
-                /*save_as_decl_position=*/FALSE);  /* FALSE because done by
-                                                      alloc_symbol. */
-  /* Set the locator to point to the symbol entered. */
-  location->specific_symbol = sym_ptr;
-  location->is_qualified_name = FALSE;
+  
   if (other_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    overload_symbol = other_sym;
-    other_sym = overload_symbol->variant.overloaded_function.symbols;
+    overload_sym = other_sym;
+    other_sym = overload_sym->variant.overloaded_function.symbols;
   } else {
     /* The existing symbol is not an sk_overloaded_function symbol
        (i.e., it's a simple function symbol of some kind). */
     /* Create an sk_overloaded_function symbol and attach the old
        function symbol to it. */
     hdr_ptr = other_sym->header;
-    overload_symbol = alloc_symbol((a_symbol_kind)sk_overloaded_function,
+    overload_sym = alloc_symbol((a_symbol_kind)sk_overloaded_function,
                                    hdr_ptr, &(other_sym->decl_position));
-    overload_symbol->decl_scope = other_sym->decl_scope;
-    overload_symbol->class_of_which_a_member =
+    overload_sym->decl_scope = other_sym->decl_scope;
+    overload_sym->class_of_which_a_member =
                                        other_sym->class_of_which_a_member;
-    /* Put overload_symbol into the primary list in place of other_sym. */
+    /* Put overload_sym into the primary list in place of other_sym. */
     /* Find the symbol preceding other_sym on its list. */
     prev_sym_ptr = hdr_ptr->symbol;
     if (prev_sym_ptr == other_sym) {
       /* The entry is the first on the header list. */
-      hdr_ptr->symbol = overload_symbol;
+      hdr_ptr->symbol = overload_sym;
     } else {
       while (prev_sym_ptr->next != other_sym) {
         prev_sym_ptr = prev_sym_ptr->next;
       }  /* while */
-      prev_sym_ptr->next = overload_symbol;
+      prev_sym_ptr->next = overload_sym;
     }  /* if */
-    overload_symbol->next = other_sym->next;
+    overload_sym->next = other_sym->next;
     other_sym->next = NULL;
-    /* Also put overload_symbol into the scope list in place of other_sym. */
+    /* Also put overload_sym into the scope list in place of other_sym. */
     ssep = &scope_stack[decl_scope_level];
     /* If the scope stack entry for the overloaded function is not that of
        the current scope (e.g., when a friend declaration refers to a function
@@ -1543,25 +1552,52 @@ a locator for the new symbol.  Return a pointer to the new symbol.
     prev_sym_ptr = ssep->symbols;
     if (prev_sym_ptr == other_sym) {
        /* The entry is the first on the scope's symbol list. */
-       ssep->symbols = overload_symbol;
+       ssep->symbols = overload_sym;
     } else {
        while (prev_sym_ptr->next_in_scope != other_sym) {
          prev_sym_ptr = prev_sym_ptr->next_in_scope;
        }  /* while */
-       prev_sym_ptr->next_in_scope = overload_symbol;
+       prev_sym_ptr->next_in_scope = overload_sym;
     }  /* if */
-    overload_symbol->next_in_scope = other_sym->next_in_scope;
+    overload_sym->next_in_scope = other_sym->next_in_scope;
     other_sym->next_in_scope = NULL;
-    if (ssep->last_symbol == other_sym) ssep->last_symbol = overload_symbol;
+    if (ssep->last_symbol == other_sym) ssep->last_symbol = overload_sym;
     /* Attach the old symbol under the overloaded symbol. */
-    overload_symbol->variant.overloaded_function.symbols = other_sym;
+    overload_sym->variant.overloaded_function.symbols = other_sym;
   }  /* if */
   /* Attach the new symbol to the front of the list under the overloaded
      symbol. */
-  sym_ptr->next = overload_symbol->variant.overloaded_function.symbols;
-  overload_symbol->variant.overloaded_function.symbols = sym_ptr;
+  new_sym->next = overload_sym->variant.overloaded_function.symbols;
+  overload_sym->variant.overloaded_function.symbols = new_sym;
   /* Return a pointer to the sk_overloaded_function symbol. */
-  *overload_sym = overload_symbol;
+  return overload_sym;
+}  /* add_symbol_to_overload_list */
+
+
+a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
+                                     a_symbol_locator *location,
+                                     a_symbol_ptr     other_sym,
+                                     a_symbol_ptr     *overload_sym)
+/*
+Enter a new symbol that is an overloading of the existing symbol other_sym.
+other_sym may be either a simple function or an sk_overloaded_function.
+The kind of symbol is sym_kind (some function kind).  *location gives
+a locator for the new symbol.  Return a pointer to the new symbol.
+*/
+{
+  a_symbol_ptr        sym_ptr;
+
+  sym_ptr = alloc_symbol(sym_kind, location->symbol_header,
+                         &location->source_position);
+  sym_ptr->decl_scope = other_sym->decl_scope;
+  mark_declared(sym_ptr, &location->source_position,
+                /*save_as_decl_position=*/FALSE);  /* FALSE because done by
+                                                      alloc_symbol. */
+  /* Set the locator to point to the symbol entered. */
+  location->specific_symbol = sym_ptr;
+  location->is_qualified_name = FALSE;
+  /* Add the symbol to the overloaded function list. */
+  *overload_sym = add_symbol_to_overload_list(sym_ptr, other_sym);
   /* Return a pointer to the newly created symbol as well. */
   return sym_ptr;
 }  /* enter_overloaded_symbol */
@@ -4804,8 +4840,6 @@ NULL.
   a_type_ptr      var_type, type_ptr;
   a_variable_ptr  var_ptr;
   a_routine_ptr   rout_ptr;
-  a_symbol_ptr    rout_sym;
-  a_boolean       is_overloaded;
 #if CHECKING
   a_source_correspondence  *scp = NULL;
 #endif /* CHECKING */
@@ -4865,70 +4899,66 @@ NULL.
 #endif /* CHECKING */
       break;
     case sk_overloaded_function:
-      rout_sym = sym->variant.overloaded_function.symbols;
-      is_overloaded = TRUE;
-      goto check_routine;
+      /* For each function or function template symbol on the overload list
+         do the check. */
+      for (sym = sym->variant.overloaded_function.symbols;
+           sym != NULL;
+           sym = sym->next) {
+        end_of_scope_symbol_check(sym, curr_routine);
+      }  /* for */
+      break;
 #if CHECKING
     case sk_member_function:
+      rout_ptr = sym->variant.routine.ptr;
+      scp = &rout_ptr->source_corresp;
+      break;
 #endif /* CHECKING */
     case sk_routine:
       /* Function. */
-      rout_sym = sym;
-      is_overloaded = FALSE;
-check_routine:
-      for (; rout_sym != NULL;
-             rout_sym = (is_overloaded ? rout_sym->next : NULL)) {
-        rout_ptr = rout_sym->variant.routine.ptr;
-        if (rout_sym->kind != (a_symbol_kind)sk_member_function) {
-          if (rout_sym->referenced) {
-            /* Referenced function. */
-            if (rout_ptr->storage_class == (a_storage_class)sc_static &&
-                depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
-                rout_ptr->assoc_scope == NULL_region_number) {
-              /* A non-external routine that is referenced was never given
-                 a body (3.7, constraints).  This is checked only at the file
-                 scope because there can be symbols with linkage defined in
-                 inner scopes, but only the file scope declaration can have
-                 a body. */
-              if (C_dialect == C_dialect_pcc) {
-                /* In pcc mode, just change the routine to extern. */
-                rout_ptr->storage_class = (a_storage_class)sc_extern;
-                rout_ptr->source_corresp.name_linkage =
-                                             (a_name_linkage_kind)nlk_external;
-              } else {
-                pos_sy_error(ec_never_defined,
-                             &rout_sym->decl_position, rout_sym);
-              }  /* if */
-            }  /* if */
+      rout_ptr = sym->variant.routine.ptr;
+      if (sym->referenced) {
+        /* Referenced function. */
+        if (rout_ptr->storage_class == (a_storage_class)sc_static &&
+            depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+            rout_ptr->assoc_scope == NULL_region_number) {
+          /* A non-external routine that is referenced was never given
+             a body (3.7, constraints).  This is checked only at the file
+             scope because there can be symbols with linkage defined in
+             inner scopes, but only the file scope declaration can have
+             a body. */
+          if (C_dialect == C_dialect_pcc) {
+            /* In pcc mode, just change the routine to extern. */
+            rout_ptr->storage_class = (a_storage_class)sc_extern;
+            rout_ptr->source_corresp.name_linkage =
+                                         (a_name_linkage_kind)nlk_external;
           } else {
-            /* Unreferenced function. */
-            storage_class = rout_ptr->storage_class;
-            if (storage_class == (a_storage_class)sc_unspecified) {
-              /* Externally-visible function.  Assume a reference from some
-                 other compilation unit. */
-              rout_ptr->source_corresp.referenced = TRUE;
-            } else if (storage_class == (a_storage_class)sc_extern) {
-              /* No warning on unused "extern" routines; this is a
-                 long-standing C tradition. */
-#if ASM_FUNCTION_ALLOWED
-            } else if (storage_class == (a_storage_class)sc_asm) {
-              /* "asm" functions don't generate any code unless referenced,
-                 and may appear in header files, so no warning is generated. */
-#endif /* ASM_FUNCTION_ALLOWED */
-            } else {
-              /* An unreferenced routine. */
-              report_unreferenced(rout_sym, ec_declared_but_not_referenced);
-            }  /* if */
+            pos_sy_error(ec_never_defined,
+                         &sym->decl_position, sym);
           }  /* if */
         }  /* if */
-#if CHECKING
-        if (rout_sym->class_of_which_a_member !=
-                        rout_ptr->source_corresp.class_of_which_a_member) {
-          internal_error(
-            "end_of_scope_symbol_check: bad class_of_which_a_member for rout");
+      } else {
+        /* Unreferenced function. */
+        storage_class = rout_ptr->storage_class;
+        if (storage_class == (a_storage_class)sc_unspecified) {
+          /* Externally-visible function.  Assume a reference from some
+             other compilation unit. */
+          rout_ptr->source_corresp.referenced = TRUE;
+        } else if (storage_class == (a_storage_class)sc_extern) {
+          /* No warning on unused "extern" routines; this is a
+             long-standing C tradition. */
+#if ASM_FUNCTION_ALLOWED
+        } else if (storage_class == (a_storage_class)sc_asm) {
+          /* "asm" functions don't generate any code unless referenced,
+             and may appear in header files, so no warning is generated. */
+#endif /* ASM_FUNCTION_ALLOWED */
+        } else {
+          /* An unreferenced routine. */
+          report_unreferenced(sym, ec_declared_but_not_referenced);
         }  /* if */
+      }  /* if */
+#if CHECKING
+      scp = &rout_ptr->source_corresp;
 #endif /* CHECKING */
-      }  /* for */
       break;
     case sk_class_or_struct_tag:
     case sk_union_tag:
@@ -5071,6 +5101,19 @@ check_routine:
       }  /* while */
       }
       break;
+    case sk_function_template:
+      {
+      a_function_instantiation_entry_ptr fiep;
+      fiep = sym->variant.template.extra_info->variant.function.instantiations;
+      for (; fiep != NULL; fiep = fiep->next) {
+        if (fiep->specialization_seen) {
+          /* A user declaration was provided, so the associated symbol should
+             be on the overload list -- ignore it here. */
+        } else {
+          end_of_scope_symbol_check(fiep->routine_sym, curr_routine);
+        }  /* if */
+      }  /* for */
+      }
     default:
       /* No processing for other kinds. */
       break;
