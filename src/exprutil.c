@@ -4707,7 +4707,10 @@ if possible.  operator_position indicates the operator position.
       an_operand  result_expr;
       build_binary_result_operand(operand_1, operand_2, op,
                                   result_type, &result_expr);
-      result->variant.constant.expr = result_expr.variant.expression;
+      if (!is_error_operand(&result_expr)) {
+        check_assertion(is_expression_operand(&result_expr));
+        result->variant.constant.expr = result_expr.variant.expression;
+      }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
   }  /* if */
