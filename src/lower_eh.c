@@ -830,6 +830,16 @@ have been called on it at some previous point.
     aggr_con->variant.aggregate.last_constant = bc_con;
     typeinfo_var->init_kind = (an_init_kind)initk_static;
     typeinfo_var->initializer.constant = aggr_con;
+#if MAINTAIN_NEEDED_FLAGS
+    if (typeinfo_var->storage_class == (a_storage_class)sc_unspecified ||
+        typeinfo_var->source_corresp.needed) {
+      /* If the variable is external, or static and previously marked as
+         needed, mark it as needed.  Clear the flag first to ensure that
+         the new definition subtree is visited. */
+      typeinfo_var->source_corresp.needed = FALSE;
+      mark_as_needed((char *)typeinfo_var, iek_variable);
+    }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
     /* Return to the memory region that was current when this routine was
        entered. */
     switch_back_to_original_region(region_to_switch_back_to);
