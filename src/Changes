@@ -1,5 +1,15 @@
 Version 2.33
 
+7/1/96  Microsoft compatibility: void/scalar as operands of "?"
+
+In Microsoft mode, the "?" operator now allows a scalar and a void operand
+as the second and third operand.  A warning is issued.
+
+  void f0();
+  void f(int i) {
+    i ? i : f0();  // Accepted, with a warning
+  }
+
 7/1/96  Microsoft compatibility: pointer conversions
 
 In Microsoft C mode, conversions between pointers to different (non-pointer)

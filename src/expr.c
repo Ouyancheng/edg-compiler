@@ -7583,6 +7583,38 @@ on the next_operand_ref field.
   return merged_list;
 }  /* merge_ref_lists */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void adjust_void_operand_for_microsoft_void_vs_scalar_conditional(
+                                                        an_operand *operand,
+                                                        a_type_ptr result_type)
+/*
+Microsoft mode allows a void and a scalar operand to be supplied as the
+second and third operands of the "?" operator.  "operand" is the void
+operand of such a case, and result_type is the type of the other operand.
+Turn "operand" into "(operand, (result_type)0)" so it will match the other
+operand.
+*/
+{
+  an_operand       orig_operand;
+  a_constant       zero_constant;
+  an_expr_node_ptr zero_node, void_node, comma_node;
+
+  /* Save the operand's source position, etc. */
+  orig_operand = *operand;
+  /* Turn the void operand into (operand, (type)0) so its type matches
+     that of the other operand. */
+  make_zero_of_proper_type(result_type, &zero_constant);
+  zero_node = alloc_node_for_constant(&zero_constant);
+  void_node = make_node_from_operand(operand);
+  void_node->next = zero_node;
+  comma_node = make_operator_node((an_expr_operator_kind)eok_comma,
+                                  result_type, void_node);
+  make_expression_operand(comma_node, result_type, operand);
+  restore_operand_details(operand, &orig_operand);
+}  /* adjust_void_operand_for_microsoft_void_vs_scalar_conditional */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void scan_conditional_operator(an_operand *operand_1,
                                       an_operand *result)
@@ -7762,6 +7794,31 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       /* The third operand is a throw expression and the second is not,
          so use the type of the second. */
       /* result_type = operand_2.type; -- already set. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode && !curr_expr_kind_is_const() &&
+               is_void_type(operand_2.type) &&
+               is_scalar_type(operand_3.type)) {
+      /* Microsoft mode allows void operands mixed with scalar.
+         The second operand is a void expression and the third is not
+         (because if they both were, they would have the same types),
+         so use the type of the third. */
+      result_type = operand_3.type;
+      pos_ty2_warning(ec_incompatible_operands, &operator_position,
+                      operand_2.type, operand_3.type);
+      adjust_void_operand_for_microsoft_void_vs_scalar_conditional(&operand_2,
+                                                                  result_type);
+    } else if (microsoft_mode && !curr_expr_kind_is_const() &&
+               is_void_type(operand_3.type) &&
+               is_scalar_type(operand_2.type)) {
+      /* Microsoft mode allows void operands mixed with scalar.
+         The third operand is a void expression and the second is not,
+         so use the type of the second. */
+      /* result_type = operand_2.type; -- already set. */
+      pos_ty2_warning(ec_incompatible_operands, &operator_position,
+                      operand_2.type, operand_3.type);
+      adjust_void_operand_for_microsoft_void_vs_scalar_conditional(&operand_3,
+                                                                  result_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       operand_2_is_pointer = is_pointer_type(operand_2.type);
       operand_3_is_pointer = is_pointer_type(operand_3.type);
@@ -7824,7 +7881,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
             result_type = make_pointer_type(ptr_result_type);
           }  /* if */
         }  else {
-          /* The operands are incompatible. */
+          /* The operands are incompatible.  (An error has already been
+             issued.) */
           err = TRUE;
         }  /* if */
       } else if (operand_2_is_ptr_to_member || operand_3_is_ptr_to_member) {
