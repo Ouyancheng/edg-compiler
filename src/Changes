@@ -1,5 +1,21 @@
 Version 3.4
 
+1/28/04  Exception specification mismatch on generated member functions
+
+In some cases involving multiple inheritance, the exception specifications
+for generated virtual member functions (e.g., destructors) may be incompatible
+with the exception specifications of the corresponding members in the base
+classes.  For example:
+
+  struct B1 { virtual ~B1() throw (char) {} };
+  struct B2 { virtual ~B2() throw (long) {} };
+  struct D: B1, B2 {};  // D::~D() has exception specification
+                        // "throw(char, long)" which is incompatible with
+                        // B1::~B1() and B2::~B2().
+
+Previously this triggered a warning in all modes.  Now a discretionary
+error is issued in strict modes.
+
 1/23/04  Incorrect type deduced from cv-qualified array type
 
 When a type "const T" was deduced from a cv-qualified array type such

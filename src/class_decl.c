@@ -2890,10 +2890,13 @@ restrictive.  Issue an appropriate diagnostic at the given position.
 */
 {
   if (overrider->variant.routine.ptr->compiler_generated) {
-    /* Issue a warning on a compiler-generated constructor, destructor, or
-       assignment operator. */
-    pos_sy2_warning(ec_generated_exception_spec_override_incompat,
-                    source_pos, overrider, overridden);
+    /* In non-strict modes, issue a warning on a compiler-generated
+       constructor, destructor, or assignment operator.  In strict
+       modes, an error should be issued by default (discretionary). */
+    pos_sy2_diagnostic(strict_ansi_mode ?
+                              strict_ansi_discretionary_severity : es_warning,
+                       ec_generated_exception_spec_override_incompat,
+                       source_pos, overrider, overridden);
   } else {
     /* Microsoft compilers don't diagnose this (and in fact, they don't do
        much with exception specifications at all). */
