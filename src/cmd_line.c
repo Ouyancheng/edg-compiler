@@ -260,14 +260,10 @@ Process the arguments on the command line that invoked the compiler.
   while ((optchar = getopt(argc, argv, COMMAND_LIST)) != EOF) {
     switch (optchar) {
       case 'A':
-        /* Warn on non-ANSI features, disable features (asm) that conflict
-           with ANSI C. */
+        /* Warn on non-ANSI features, disable features that conflict
+           with ANSI.  Note that "ANSI" means ANSI C or ANSI C++, depending
+           on the C_dialect setting. */
         strict_ansi_mode = TRUE;
-        C_dialect = C_dialect_ANSI;
-        if ((int)error_threshold > (int)es_warning) {
-          /* Make sure warnings come out. */
-          error_threshold = es_warning;
-        }  /* if */
         break;
       case 'E':
         /* Do preprocessing only, output to stdout, with #line information. */
@@ -458,6 +454,16 @@ unknown_option:
         str_command_line_error("invalid option: ", optarg);
     }  /* switch */
   }  /* while */
+  if (strict_ansi_mode) {
+    /* Strict ANSI mode is incompatible with K&R/pcc mode. */
+    if (C_dialect == C_dialect_pcc) {
+      command_line_error("strict ANSI mode is incompatible with K&R mode");
+    }  /* if */
+    if ((int)error_threshold > (int)es_warning) {
+      /* Make sure warnings come out. */
+      error_threshold = es_warning;
+    }  /* if */
+  }  /* if */
   /* Add the default directories to the end of the include search path.
      The list is then any -I directories, in the order they were specified,
      and the default directories at the end. */
