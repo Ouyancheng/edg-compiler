@@ -1123,6 +1123,40 @@ them up one level.
 }  /* remove_from_inactive_symbols_list */
 
 
+a_boolean symbols_may_coexist_in_curr_scope(a_symbol_ptr  old_sym,
+                                            a_symbol_ptr  new_sym,
+                                            a_symbol_ptr  *insert_sym)
+/*
+A tag symbol and a nontype symbol may coexist on the symbol list for a
+scope.  old_sym is a symbol that is already on the list.  new_sym is
+a newly created symbol that is about to be added or a symbol for which
+a projection symbol will be created and added.  The tag symbol should
+follow the other in the list, so if the new symbol is a tag symbol, it
+must be inserted after the old.
+*/
+{
+  a_boolean  err = TRUE;
+
+  if (is_tag_symbol(fundamental_symbol_of(new_sym))) {
+    /* New symbol is a tag symbol. */
+    if (!is_type_symbol(fundamental_symbol_of(old_sym))) {
+      /* The old symbol is a non-type name.  Be sure the new symbol
+         inserted into the list after the old one. */
+      err = FALSE;
+      *insert_sym = old_sym;
+    }  /* if */
+  } else if (is_tag_symbol(fundamental_symbol_of(old_sym))) {
+    /* The old symbol is a tag symbol. */
+    if (!is_type_symbol(fundamental_symbol_of(new_sym))) {
+      /* The new one is a non-type symbol.  It will be placed at
+         the front of the list automatically. */
+      err = FALSE;
+    }  /* if */
+  }  /* if */
+  return !err;
+}  /* symbols_may_coexist_in_curr_scope */
+
+
 static void link_symbol_into_symbol_table(a_symbol_ptr  sym_ptr,
                                           a_scope_depth scope_depth,
                                           a_boolean     suppress_error)
@@ -1187,25 +1221,12 @@ the proper insert location.
         if (name_space_for_symbol_kind[(int)old_sym_ptr->kind] ==
                                                          sym_name_space_kind) {
           /* Two declarations in the same name space in the same scope:
-             in most cases, this is an error. */
-          /* In C++, one is allowed to define a tag name and a non-type
-             name in the same scope (see ARM 3.2, 3.1c, and 7.1.3). */
-          if (C_dialect == C_dialect_cplusplus &&
-              ((is_tag_symbol(sym_ptr) && !is_type_symbol(old_sym_ptr)) ||
-               (is_tag_symbol(old_sym_ptr) && !is_type_symbol(sym_ptr))) &&
-               !is_access_adjustment_symbol(sym_ptr) &&
-               !is_access_adjustment_symbol(old_sym_ptr)) {
-            /* One symbol is a tag name (class, struct, union, or enum)
-               and the other is a non-type name, so they can coexist in
-               the same scope.  If the new symbol is a tag, put it
-               behind the other (non-type) symbol, so the non-type symbol
-               will be found on a normal id lookup. */
-            if (is_tag_symbol(sym_ptr)) {
-              /* Put the new (tag) symbol in back of the existing (non-tag)
-                 symbol. */
-              insert_after = old_sym_ptr;
-            }  /* if */
-          } else {
+             in most cases, this is an error, but in C++, one is allowed to
+             define a tag name and a non-type name in the same scope (see ARM
+             3.2, 3.1c, and 7.1.3). */
+          if (C_dialect != C_dialect_cplusplus ||
+              !symbols_may_coexist_in_curr_scope(old_sym_ptr, sym_ptr,
+                                                 &insert_after)) {
             /* Error, this identifier has already been declared. */
             if (!suppress_error) {
               /* Issue a redeclaration error.  A special version of the message
@@ -3055,7 +3076,7 @@ is found, update *path (the derivation path, starting from the current base
 class) and the access specification *access.
 */
 {
-  a_symbol_ptr     sym;
+  a_symbol_ptr     sym, tag_sym;
   a_scope_number   scope_number;
 
   db_enter(4, "symbol_projected_from_base_class");
@@ -3076,23 +3097,36 @@ class) and the access specification *access.
   scope_number = base_class->type->
                     variant.class_struct_union.extra_info->assoc_scope->number;
   sym = inactive_symbol_list_from_locator(*locator);
+  tag_sym = NULL;
   for (; sym != NULL; sym = sym->next) {
     if (sym->decl_scope == scope_number) {
-      if (must_be_tag && !is_tag_symbol(fundamental_symbol_of(sym))) {
-        /* Tag symbol is required and this (or the symbol of which it is the
-           projection) isn't one.  Keep looking. */
-      } else {
-        /* Found it. */
-#if CHECKING
-        if (name_space_for_symbol_kind[(int)sym->kind] != nsk_other) {
-          internal_error(
-               "symbol_projected_from_base_class: unexpected name space kind");
+      if (is_tag_symbol(fundamental_symbol_of(sym))) {
+        if (must_be_tag) {
+          /* Tag symbol is required and that's what we have. */
+          break;
+        } else {
+          /* Tag and nontag symbols can coexist in the same scope, and the
+             latter are preferred, so keep looking -- but remember the tag
+             symbol in case no other is found. */
+          tag_sym = sym;
         }  /* if */
+      } else {
+        if (must_be_tag) {
+          /* A tag symbol is required but this isn't one.  Keep looking. */
+        } else {
+          /* Found a match. */
+#if CHECKING
+          if (name_space_for_symbol_kind[(int)sym->kind] != nsk_other) {
+            internal_error(
+               "symbol_projected_from_base_class: unexpected name space kind");
+          }  /* if */
 #endif /* CHECKING */
-        break;
+          break;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
+  if (sym == NULL) sym = tag_sym;
   if (sym != NULL) {
     /* Found in the base class itself. */
 #if DEBUG
