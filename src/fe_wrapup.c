@@ -76,8 +76,6 @@ Do any processing that is required at the end of a translation unit
 (primary or secondary).
 */
 {
-  a_scope_ptr  file_scope;
-
   db_enter(1, "translation_unit_wrapup");
 
 #if CHECKING
@@ -101,9 +99,10 @@ Do any processing that is required at the end of a translation unit
   pop_scope();
 
   /* If this is a secondary translation unit, establish any IL
-     correspondences. */
-  file_scope = curr_translation_unit->primary_scope;
-  if (il_entry_prefix_of(file_scope).secondary_trans_unit) {
+     correspondences.  (If there were errors, the IL may be too
+     damaged for reasonable results.) */
+  if (!is_primary_translation_unit && total_errors == 0) {
+    a_scope_ptr  file_scope = curr_translation_unit->primary_scope;
     establish_trans_unit_correspondences_for_scope(file_scope);
     verify_trans_unit_correspondences_for_scope(file_scope);
   }  /* if */

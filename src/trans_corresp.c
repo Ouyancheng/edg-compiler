@@ -196,6 +196,7 @@ need to be determined.
   switch (sym->kind) {
     case sk_class_or_struct_tag:
     case sk_class_template:
+    case sk_constant:
     case sk_enum_tag:
     case sk_field:
     case sk_function_template:
@@ -206,9 +207,14 @@ need to be determined.
     case sk_union_tag:
       result = TRUE;
       break;
+    case sk_extern_routine:
+    case sk_extern_variable:
     case sk_keyword:
     case sk_label:
     case sk_macro:
+    case sk_projection:
+    case sk_namespace_projection:
+    case sk_undefined:
       result = FALSE;
       break;
     case sk_routine:
@@ -307,61 +313,61 @@ static void clear_class_type_correspondence(a_type_ptr  type)
 Clear the correspondence pointers in the substructure of an enum type.
 */
 {
-  a_scope_ptr  scope = type->
-                           variant.class_struct_union.extra_info->assoc_scope;
-
   if (!is_incomplete_type(type)) {
-    /* Traverse fields: */
-    {
-      a_field_ptr  field = type->variant.class_struct_union.field_list;
-      for (; field != NULL; field = field->next) {
-        clear_trans_unit_corresp(field);
-      }  /* for */
-    }
+    /* Traverse fields: (both C and C++) */
+    a_field_ptr  field = type->variant.class_struct_union.field_list;
+    for (; field != NULL; field = field->next) {
+      clear_trans_unit_corresp(field);
+    }  /* for */
   
-    /* Traverse member templates: */
-    {
-      a_template_ptr  templ = scope->templates;
-      for (; templ != NULL; templ = templ->next) {
-        clear_trans_unit_corresp(templ);
-      }  /* for */
-    }
-  
-    /* Traverse member types: */
-    {
-      a_type_ptr  mem_type = scope->types;
-      for (; mem_type != NULL; mem_type = mem_type->next) {
-        if (is_immediate_enum_type(mem_type)) {
-          clear_enum_type_correspondence(mem_type);
-        } else if (is_immediate_class_type(mem_type)) {
-          clear_class_type_correspondence(mem_type);
-        }  /* if */
-        clear_trans_unit_corresp(mem_type);
-      }  /* for */
-    }
-    /* Traverse member routines: */
-    {
-      a_routine_ptr  routine = scope->routines;
-      for (;routine != NULL; routine = routine->next) {
-        clear_trans_unit_corresp(routine);
-      }  /* for */
-    }
-  
-    /* Traverse static data members: */
-    {
-      a_variable_ptr  variable = scope->variables;
-      for (; variable != NULL; variable = variable->next) {
-        clear_trans_unit_corresp(variable);
-      }  /* for */
-    }
-  
-    /* Traverse member constants: */
-    {
-      a_constant_ptr  constant = scope->constants;
-      for (; constant != NULL; constant = constant->next) {
-        clear_trans_unit_corresp(constant);
-      }  /* for */
-    }
+    if (!C_mode()) {
+      /* Traverse entities only available in C++ mode. */
+      a_scope_ptr  scope = type->
+                           variant.class_struct_union.extra_info->assoc_scope;
+      /* Traverse member templates: */
+      {
+        a_template_ptr  templ = scope->templates;
+        for (; templ != NULL; templ = templ->next) {
+          clear_trans_unit_corresp(templ);
+        }  /* for */
+      }
+    
+      /* Traverse member types: */
+      {
+        a_type_ptr  mem_type = scope->types;
+        for (; mem_type != NULL; mem_type = mem_type->next) {
+          if (is_immediate_enum_type(mem_type)) {
+            clear_enum_type_correspondence(mem_type);
+          } else if (is_immediate_class_type(mem_type)) {
+            clear_class_type_correspondence(mem_type);
+          }  /* if */
+          clear_trans_unit_corresp(mem_type);
+        }  /* for */
+      }
+      /* Traverse member routines: */
+      {
+        a_routine_ptr  routine = scope->routines;
+        for (;routine != NULL; routine = routine->next) {
+          clear_trans_unit_corresp(routine);
+        }  /* for */
+      }
+    
+      /* Traverse static data members: */
+      {
+        a_variable_ptr  variable = scope->variables;
+        for (; variable != NULL; variable = variable->next) {
+          clear_trans_unit_corresp(variable);
+        }  /* for */
+      }
+    
+      /* Traverse member constants: */
+      {
+        a_constant_ptr  constant = scope->constants;
+        for (; constant != NULL; constant = constant->next) {
+          clear_trans_unit_corresp(constant);
+        }  /* for */
+      }
+    }  /* if */
   }  /* if */
 }  /* clear_class_type_correspondence */
 
@@ -529,33 +535,33 @@ type is in fact valid.
   } else if (is_incomplete_type(type) || is_incomplete_type(corresp_type)) {
     /* The types are matching since at least one is incomplete and therefore
        has no inner structure to conflict with. */
-  } else {
-    if (corresp_type != NULL && is_immediate_class_type(corresp_type)) {
+  } else if (corresp_type != NULL && is_immediate_class_type(corresp_type)) {
+    /* Traverse fields: (both C and C++) */
+    a_field_ptr  field = skip_generated_field(
+                                 type->variant.class_struct_union.field_list);
+    a_field_ptr  corresp_field = skip_generated_field(corresp_type->
+                                       variant.class_struct_union.field_list);
+    for (; field != NULL && corresp_field != NULL;
+         field = skip_generated_field(field->next),
+           corresp_field = skip_generated_field(corresp_field->next)) {
+      if (!verify_field_correspondence(field)) {
+        match = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+    if ((field != NULL && corresp_field == NULL) ||
+        (corresp_field != NULL && field == NULL)) {
+      report_error = TRUE;
+      match = FALSE;
+    }  /* if */
+
+    if (!C_mode()) {
+      /* Traverse entities only available in C++ mode. */
       a_scope_ptr  scope = type->
                            variant.class_struct_union.extra_info->assoc_scope;
       a_scope_ptr  corresp_scope = corresp_type->
                            variant.class_struct_union.extra_info->assoc_scope;
   
-      /* Traverse fields: */
-      {
-        a_field_ptr  field = skip_generated_field(
-                                 type->variant.class_struct_union.field_list);
-        a_field_ptr  corresp_field = skip_generated_field(corresp_type->
-                                       variant.class_struct_union.field_list);
-        for (; field != NULL && corresp_field != NULL;
-             field = skip_generated_field(field->next),
-               corresp_field = skip_generated_field(corresp_field->next)) {
-          if (!verify_field_correspondence(field)) {
-            match = FALSE;
-            break;
-          }  /* if */
-        }  /* for */
-        if ((field != NULL && corresp_field == NULL) ||
-            (corresp_field != NULL && field == NULL)) {
-          report_error = TRUE;
-          match = FALSE;
-        }  /* if */
-      }
       /* Traverse member templates: */
       {
         a_template_ptr  templ = scope->templates;
@@ -830,11 +836,6 @@ are not checked.
 
   if (corresp_type != NULL && is_immediate_class_type(corresp_type) &&
       !is_incomplete_type(type) && !is_incomplete_type(corresp_type)) {
-    a_scope_ptr  scope = type->
-                           variant.class_struct_union.extra_info->assoc_scope;
-    a_scope_ptr  corresp_scope = corresp_type->
-                           variant.class_struct_union.extra_info->assoc_scope;
-  
     /* Traverse fields: */
     {
       a_field_ptr  field = skip_generated_field(
@@ -847,34 +848,76 @@ are not checked.
         record_trans_unit_corresp(field, corresp_field);
       }  /* for */
     }
-    /* Traverse member templates: */
-    {
-      a_template_ptr  templ = scope->templates;
-      a_template_ptr  corresp_templ = corresp_scope->templates;
-      for (; templ != NULL && corresp_templ != NULL;
-           templ = templ->next, corresp_templ = corresp_templ->next) {
-        record_trans_unit_corresp(templ, corresp_templ);
-      }  /* for */
-    }
-    /* Traverse member types: */
-    {
-      a_type_ptr  mem_type = scope->types;
-      a_type_ptr  corresp_mem_type = corresp_scope->types;
-      for (; mem_type != NULL && corresp_mem_type != NULL;
-           mem_type = mem_type->next,
+
+    if (!C_mode()) {
+      /* Traverse entities only available in C++ mode. */
+      a_scope_ptr  scope = type->
+                           variant.class_struct_union.extra_info->assoc_scope;
+      a_scope_ptr  corresp_scope = corresp_type->
+                           variant.class_struct_union.extra_info->assoc_scope;
+    
+      /* Traverse member templates: */
+      {
+        a_template_ptr  templ = scope->templates;
+        a_template_ptr  corresp_templ = corresp_scope->templates;
+        for (; templ != NULL && corresp_templ != NULL;
+             templ = templ->next, corresp_templ = corresp_templ->next) {
+          record_trans_unit_corresp(templ, corresp_templ);
+        }  /* for */
+      }
+      /* Traverse member types: */
+      {
+        a_type_ptr  mem_type = scope->types;
+        a_type_ptr  corresp_mem_type = corresp_scope->types;
+        for (; mem_type != NULL && corresp_mem_type != NULL;
+             mem_type = mem_type->next,
                                   corresp_mem_type = corresp_mem_type->next) {
-        record_trans_unit_corresp(mem_type, corresp_mem_type);
-        if (is_immediate_class_type(mem_type)) {
-          establish_trans_unit_correspondences_for_class(mem_type);
+          record_trans_unit_corresp(mem_type, corresp_mem_type);
+          if (is_immediate_class_type(mem_type)) {
+            establish_trans_unit_correspondences_for_class(mem_type);
+            /* This could be a member of a template class.  If we're dealing
+               with a prototype instantiation, this is a good opportunity to
+               get to any a_template entry associated with an out-of-class
+               definition of the nested class. */
+            if (mem_type
+                    ->variant.class_struct_union.is_prototype_instantiation) {
+              a_symbol_ptr  sym = (a_symbol_ptr)mem_type
+                                                  ->source_corresp.assoc_info;
+              a_symbol_ptr  corresp_sym = (a_symbol_ptr)corresp_mem_type
+                                                  ->source_corresp.assoc_info;
+              a_template_symbol_supplement_ptr
+                            tssp = template_supplement_for_symbol(sym),
+                            corresp_tssp =
+                                  template_supplement_for_symbol(corresp_sym);
+              if (tssp != NULL && corresp_tssp != NULL &&
+                  tssp->il_template_entry != NULL &&
+                  corresp_tssp->il_template_entry != NULL) {
+                record_trans_unit_corresp(tssp->il_template_entry,
+                                          corresp_tssp->il_template_entry);
+              }  /* if */
+            }  /* if */
+          } else if (is_immediate_enum_type(mem_type)) {
+            establish_trans_unit_correspondences_for_enum(mem_type);
+          }  /* if */
+        }  /* for */
+      }
+      /* Traverse member routines: */
+      {
+        a_routine_ptr  routine = scope->routines;
+        a_routine_ptr  corresp_routine = corresp_scope->routines;
+        for (; routine != NULL && corresp_routine != NULL;
+             routine = routine->next,
+                                    corresp_routine = corresp_routine->next) {
+          record_trans_unit_corresp(routine, corresp_routine);
           /* This could be a member of a template class.  If we're dealing
              with a prototype instantiation, this is a good opportunity to
              get to any a_template entry associated with an out-of-class
-             definition of the nested class. */
-          if (mem_type
-                    ->variant.class_struct_union.is_prototype_instantiation) {
-            a_symbol_ptr  sym = (a_symbol_ptr)mem_type
-                                                  ->source_corresp.assoc_info;
-            a_symbol_ptr  corresp_sym = (a_symbol_ptr)corresp_mem_type
+             definition of the member function. */
+          if (routine->is_prototype_instantiation &&
+              corresp_routine->is_prototype_instantiation) {
+            a_symbol_ptr  sym = (a_symbol_ptr)routine
+                                                  ->source_corresp.assoc_info,
+                          corresp_sym = (a_symbol_ptr)corresp_routine
                                                   ->source_corresp.assoc_info;
             a_template_symbol_supplement_ptr
                           tssp = template_supplement_for_symbol(sym),
@@ -887,76 +930,43 @@ are not checked.
                                         corresp_tssp->il_template_entry);
             }  /* if */
           }  /* if */
-        } else if (is_immediate_enum_type(mem_type)) {
-          establish_trans_unit_correspondences_for_enum(mem_type);
-        }  /* if */
-      }  /* for */
-    }
-    /* Traverse member routines: */
-    {
-      a_routine_ptr  routine = scope->routines;
-      a_routine_ptr  corresp_routine = corresp_scope->routines;
-      for (; routine != NULL && corresp_routine != NULL;
-           routine = routine->next,
-                                    corresp_routine = corresp_routine->next) {
-        record_trans_unit_corresp(routine, corresp_routine);
-        /* This could be a member of a template class.  If we're dealing
-           with a prototype instantiation, this is a good opportunity to
-           get to any a_template entry associated with an out-of-class
-           definition of the member function. */
-        if (routine->is_prototype_instantiation &&
-            corresp_routine->is_prototype_instantiation) {
-          a_symbol_ptr  sym = (a_symbol_ptr)routine->source_corresp.assoc_info,
-                        corresp_sym = (a_symbol_ptr)corresp_routine
+        }  /* for */
+      }
+      /* Traverse static data members: */
+      {
+        a_variable_ptr  var = scope->variables;
+        a_variable_ptr  corresp_var = corresp_scope->variables;
+        for (; var != NULL && corresp_var != NULL;
+             var = var->next, corresp_var = corresp_var->next) {
+          record_trans_unit_corresp(var, corresp_var);
+          if (type->variant.class_struct_union.is_prototype_instantiation) {
+            a_symbol_ptr  sym = (a_symbol_ptr)var->source_corresp.assoc_info;
+            a_symbol_ptr  corresp_sym = (a_symbol_ptr)corresp_var
                                                   ->source_corresp.assoc_info;
-          a_template_symbol_supplement_ptr
-                        tssp = template_supplement_for_symbol(sym),
-                        corresp_tssp =
+            a_template_symbol_supplement_ptr
+                          tssp = template_supplement_for_symbol(sym),
+                          corresp_tssp =
                                   template_supplement_for_symbol(corresp_sym);
-          if (tssp != NULL && corresp_tssp != NULL &&
-              tssp->il_template_entry != NULL &&
-              corresp_tssp->il_template_entry != NULL) {
-            record_trans_unit_corresp(tssp->il_template_entry,
-                                      corresp_tssp->il_template_entry);
+            if (tssp != NULL && corresp_tssp != NULL &&
+                tssp->il_template_entry != NULL &&
+                corresp_tssp->il_template_entry != NULL) {
+              record_trans_unit_corresp(tssp->il_template_entry,
+                                        corresp_tssp->il_template_entry);
+            }  /* if */
           }  /* if */
-        }  /* if */
-      }  /* for */
-    }
-    /* Traverse static data members: */
-    {
-      a_variable_ptr  var = scope->variables;
-      a_variable_ptr  corresp_var = corresp_scope->variables;
-      for (; var != NULL && corresp_var != NULL;
-           var = var->next, corresp_var = corresp_var->next) {
-        record_trans_unit_corresp(var, corresp_var);
-        if (type->variant.class_struct_union.is_prototype_instantiation) {
-          a_symbol_ptr  sym = (a_symbol_ptr)var->source_corresp.assoc_info;
-          a_symbol_ptr  corresp_sym = (a_symbol_ptr)corresp_var
-                                                  ->source_corresp.assoc_info;
-          a_template_symbol_supplement_ptr
-                        tssp = template_supplement_for_symbol(sym),
-                        corresp_tssp =
-                                  template_supplement_for_symbol(corresp_sym);
-          if (tssp != NULL && corresp_tssp != NULL &&
-              tssp->il_template_entry != NULL &&
-              corresp_tssp->il_template_entry != NULL) {
-            record_trans_unit_corresp(tssp->il_template_entry,
-                                      corresp_tssp->il_template_entry);
-          }  /* if */
-  
-        }  /* if */
-      }  /* for */
-    }
-    /* Traverse member constants: */
-    {
-      a_constant_ptr  constant = scope->constants;
-      a_constant_ptr  corresp_constant = corresp_scope->constants;
-      for (; constant != NULL && corresp_constant != NULL;
-           constant = constant->next,
+        }  /* for */
+      }
+      /* Traverse member constants: */
+      {
+        a_constant_ptr  constant = scope->constants;
+        a_constant_ptr  corresp_constant = corresp_scope->constants;
+        for (; constant != NULL && corresp_constant != NULL;
+             constant = constant->next,
                                   corresp_constant = corresp_constant->next) {
-        record_trans_unit_corresp(constant, corresp_constant);
-      }  /* for */
-    }
+          record_trans_unit_corresp(constant, corresp_constant);
+        }  /* for */
+      }
+    }  /* if */
   }  /* if */
 }  /* establish_trans_unit_correspondences_for_class */
 
