@@ -5440,6 +5440,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   a_boolean             operand_2_is_pointer, operand_3_is_pointer;
   a_type_ptr            type_pointed_to_2, type_pointed_to_3;
   a_type_ptr            unqual_type_pointed_to_2, unqual_type_pointed_to_3;
+  a_boolean             operand_2_is_ptr_to_member, operand_3_is_ptr_to_member;
 
   db_enter(4, "scan_conditional_operator");
 
@@ -5544,6 +5545,12 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       conv_lvalue_to_rvalue(&operand_3, expr3_kind);
       operand_2_is_pointer = is_pointer_type(operand_2.type);
       operand_3_is_pointer = is_pointer_type(operand_3.type);
+      if (C_dialect == C_dialect_cplusplus) {
+        operand_2_is_ptr_to_member = is_ptr_to_member_type(operand_2.type);
+        operand_3_is_ptr_to_member = is_ptr_to_member_type(operand_3.type);
+      } else {
+        operand_2_is_ptr_to_member = operand_3_is_ptr_to_member = FALSE;
+      }  /* if */
       if (operand_2_is_pointer || operand_3_is_pointer) {
         /* At least one of the operands is a pointer.  See if the operands are
            compatible.  In C, the operands must be pointers to qualified or
@@ -5558,9 +5565,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                            /*mixed_object_and_incomplete_standard_in_C=*/TRUE,
                            &operation_type)) {
           /* The operands are compatible.  Determine the result type.  Usually,
-            it's the operation type just determined, but it can be a different
-            type (a composite) if the two operands are pointers to compatible
-            but not identical types. */
+             it's the operation type just determined, but it can be a different
+             type (a composite) if the two operands are pointers to compatible
+             but not identical types. */
           if (!operand_2_is_pointer || !operand_3_is_pointer) {
             /* One of the operands is not a pointer (e.g., it's a null pointer
                constant).  Use the operation type. */
@@ -5595,6 +5602,47 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
             /* The result type is an unqualified pointer to the
                properly-qualified underlying type. */
             result_type = make_pointer_type(ptr_result_type);
+          }  /* if */
+        }  else {
+          /* The operands are incompatible. */
+          err = TRUE;
+        }  /* if */
+      } else if (operand_2_is_ptr_to_member || operand_3_is_ptr_to_member) {
+        /* At least one of the operands is a pointer-to-member.  See if the
+           operands are compatible. */
+        if (check_ptr_to_member_operands_for_compatibility(
+                                    &operand_2, &operand_3, &operator_position,
+                                    &operation_type)) {
+          /* The operands are compatible.  Determine the result type.  Usually,
+             it's the operation type just determined, but it can be a different
+             type (a composite) if the two operands are pointers to compatible
+             but not identical types. */
+          if (!operand_2_is_ptr_to_member || !operand_3_is_ptr_to_member) {
+            /* One of the operands is not a pointer-to-member (e.g., it's a
+               null pointer constant).  Use the operation type. */
+            result_type = operation_type;
+          } else {
+            /* Both operands are pointers-to-members, of compatible underlying
+               type if you ignore the type qualifiers.  (There is no
+               equivalent of "void *" for pointers-to-members.) */
+            type_pointed_to_2 = pm_member_type(operand_2.type);
+            unqual_type_pointed_to_2 = skip_typerefs(type_pointed_to_2);
+            type_pointed_to_3 = pm_member_type(operand_3.type);
+            unqual_type_pointed_to_3 = skip_typerefs(type_pointed_to_3);
+            ptr_result_type = composite_type(unqual_type_pointed_to_2,
+                                             unqual_type_pointed_to_3);
+            /* Add to the type pointed to any qualifiers present on either of
+               the operand types pointed to. */
+            ptr_result_type =
+                      type_plus_qualifiers_from_second_type(ptr_result_type,
+                                                            type_pointed_to_2);
+            ptr_result_type =
+                      type_plus_qualifiers_from_second_type(ptr_result_type,
+                                                            type_pointed_to_3);
+            /* The result type is an unqualified pointer-to-member to the
+               properly-qualified underlying type. */
+            result_type = ptr_to_member_type(ptr_result_type,
+                                             pm_class_type(operation_type));
           }  /* if */
         }  else {
           /* The operands are incompatible. */
