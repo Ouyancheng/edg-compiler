@@ -2043,7 +2043,13 @@ scope is that of a class definition.
       } else if (is_constructor || is_destructor) {
         /* A qualifier appearing on a constructor or destructor is not
            allowed (ARM 9.3.1). */
-        qualifier_err = TRUE;
+        if (cfront_compatibility_mode) {
+          /* Cfront 2.1 issues no diagnostic for a qualifier on a constructor
+             or destructor. */
+          pos_warning(ec_function_qualifier_not_allowed, &qualifier_pos);
+        } else {
+          qualifier_err = TRUE;
+        }  /* if */
         this_param_type = member_function_parent_type;
       } else {
         this_param_type =
