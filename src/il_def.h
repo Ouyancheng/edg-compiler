@@ -3488,16 +3488,12 @@ enum an_expr_operator_kind_tag {
                            operand is the routine and the rest are its
                            arguments. */
 #ifdef CIL
-			/* Compiler-generated arguments for the object address
-			   (for member functions) and/or for a temporary (if
-			   the return type is a class that has a copy
-			   constructor or a destructor) follow the first
+			/* For member functions, a compiler-generated argument
+			   for the object address follows the first
 			   argument. */
   eok_virtual_call,	/* A call of a C++ virtual function.  The first operand
 			   is the routine, the second is the object address,
-			   and the rest are the other arguments.  A temporary
-			   address may also be added after the object address
-			   argument, if required. */
+			   and the rest are the other arguments. */
   eok_pm_call,		/* A C++ call of a function identified by a pointer
 			   to member.  The first operand is the pointer to
 			   member (function); the second is the "this" pointer;
