@@ -1118,7 +1118,6 @@ assumed if the return type is omitted.
     a_decl_flag_set    do_flags, dso_flags;
     a_func_info_block  func_info;
     a_type_ptr         bottom_derived_type = NULL;
-    an_expr_node_ptr   dim_expr_ptr;
     a_symbol_ptr       orig_sym;
     a_symbol_ptr       new_sym;
 
@@ -1133,7 +1132,7 @@ assumed if the return type is omitted.
       declarator((DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED |
                   DI_OPERATOR_NAME_ALLOWED),
                  &do_flags, type, (a_type_ptr)NULL, &locator, &type,
-                 &bottom_derived_type, &func_info, &dim_expr_ptr);
+                 &bottom_derived_type, &func_info);
     }  /* if */
     remove_stop_token(tok_newline);
     /* Look up the identifier scanned in the declarator.  If the
