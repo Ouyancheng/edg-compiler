@@ -6108,6 +6108,10 @@ we have scanned the entire function declarator.
        be done after the specific function is determined. */
   } else if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
     /* Likewise treat templates as sets of overloaded functions. */
+  } else if (microsoft_mode && !locator->is_qualified_name &&
+             is_type_symbol(fund_sym)) {
+    /* The Microsoft compiler allows access to private types in base
+       classes as long as they are named by the inherited name. */
   } else if (!have_access_to_symbol(sym)) {
     /* The symbol is not accessible. */
     a_boolean			defer_access_checks = FALSE;
