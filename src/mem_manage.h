@@ -32,6 +32,72 @@ mem_manage.h -- Declarations relating to mem_manage.c (having to do with
 #endif /* ifndef IL_H */
 
 
+/*
+Determine (if possible) the number of low-order zero bits required in
+aligned addresses on the host.  This allows use of masking instead of
+a remainder operation.
+*/
+#if HOST_ALIGNMENT_REQUIRED == 1
+#define ALIGNMENT_BITS 0
+#else
+#if HOST_ALIGNMENT_REQUIRED == 2
+#define ALIGNMENT_BITS 0x1
+#else
+#if HOST_ALIGNMENT_REQUIRED == 4
+#define ALIGNMENT_BITS 0x3
+#else
+#if HOST_ALIGNMENT_REQUIRED == 8
+#define ALIGNMENT_BITS 0x7
+#else
+#if HOST_ALIGNMENT_REQUIRED == 16
+#define ALIGNMENT_BITS 0xf
+#else
+#if HOST_ALIGNMENT_REQUIRED == 32
+#define ALIGNMENT_BITS 0x1f
+#else
+/* Alignment will have to be established with "%". */
+#define ALIGNMENT_BITS (-1)
+#endif /* == 32 */
+#endif /* == 16 */
+#endif /* == 8 */
+#endif /* == 4 */
+#endif /* == 2 */
+#endif /* == 1 */
+
+#if ALIGNMENT_BITS == 0
+/* No alignment required. */
+#define align_expr(value) 0
+#else /* ALIGNMENT_BITS != 0 */
+#if ALIGNMENT_BITS == -1
+/* Alignment requirement is not a recognized small power of two.  Use "%". */
+#define align_expr(value) ((value) % HOST_ALIGNMENT_REQUIRED)
+#else /* ALIGNMENT_BITS >= 0 */
+/* Alignment requirement is a recognized small power of two.  Use masking. */
+#define align_expr(value) ((value) & ALIGNMENT_BITS)
+#endif /* ALIGNMENT_BITS == -1 */
+#endif /* ALIGNMENT_BITS == 0 */
+
+
+/*
+Macro that will round up its argument -- if required -- to make it evenly
+divisible by HOST_ALIGNMENT_REQUIRED.
+*/
+#if ALIGNMENT_BITS == 0
+
+#define do_host_alignment(value) /* Nothing -- no alignment required. */
+
+#else /* ALIGNMENT_BITS != 0 */
+
+#define do_host_alignment(value)                                      \
+{ register int excess_bytes = align_expr(value);                      \
+  if (excess_bytes != 0) {                                            \
+    value += HOST_ALIGNMENT_REQUIRED - excess_bytes;                  \
+  }  /* if */                                                         \
+}  /* do_host_alignment */
+
+#endif /* ALIGNMENT_BITS == 0 */
+
+
 /* Allocate space in "front end" storage. */
 extern char *alloc_fe(sizeof_t size);
 #ifdef FFE

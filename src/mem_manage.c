@@ -93,70 +93,6 @@ static a_memory_region_number
 #endif /* DEBUG */
 
 
-/*
-Determine (if possible) the number of low-order zero bits required in
-aligned addresses on the host.  This allows use of masking instead of
-a remainder operation.
-*/
-#if HOST_ALIGNMENT_REQUIRED == 1
-#define ALIGNMENT_BITS 0
-#else
-#if HOST_ALIGNMENT_REQUIRED == 2
-#define ALIGNMENT_BITS 0x1
-#else
-#if HOST_ALIGNMENT_REQUIRED == 4
-#define ALIGNMENT_BITS 0x3
-#else
-#if HOST_ALIGNMENT_REQUIRED == 8
-#define ALIGNMENT_BITS 0x7
-#else
-#if HOST_ALIGNMENT_REQUIRED == 16
-#define ALIGNMENT_BITS 0xf
-#else
-#if HOST_ALIGNMENT_REQUIRED == 32
-#define ALIGNMENT_BITS 0x1f
-#else
-/* Alignment will have to be established with "%". */
-#define ALIGNMENT_BITS (-1)
-#endif /* == 32 */
-#endif /* == 16 */
-#endif /* == 8 */
-#endif /* == 4 */
-#endif /* == 2 */
-#endif /* == 1 */
-
-#if ALIGNMENT_BITS == 0
-/* No alignment required. */
-#define align_expr(value) 0
-#else /* ALIGNMENT_BITS != 0 */
-#if ALIGNMENT_BITS == -1
-/* Alignment requirement is not a recognized small power of two.  Use "%". */
-#define align_expr(value) ((value) % HOST_ALIGNMENT_REQUIRED)
-#else /* ALIGNMENT_BITS >= 0 */
-/* Alignment requirement is a recognized small power of two.  Use masking. */
-#define align_expr(value) ((value) & ALIGNMENT_BITS)
-#endif /* ALIGNMENT_BITS == -1 */
-#endif /* ALIGNMENT_BITS == 0 */
-
-
-/*
-Macro that will round up its argument -- if required -- to make it evenly
-divisible by HOST_ALIGNMENT_REQUIRED.
-*/
-#if ALIGNMENT_BITS == 0
-
-#define do_align(value) /* Nothing -- no alignment required. */
-
-#else /* ALIGNMENT_BITS != 0 */
-
-#define do_align(value)                                               \
-{ register int excess_bytes = align_expr(value);                      \
-  if (excess_bytes != 0) {                                            \
-    value += HOST_ALIGNMENT_REQUIRED - excess_bytes;                  \
-  }  /* if */                                                         \
-}  /* do_align */
-
-#endif /* ALIGNMENT_BITS == 0 */
 
 
 #if DEBUG
@@ -295,7 +231,7 @@ Return a pointer to the block header.
   /* Make sure the block size preserves alignment of the end (this is
      just so that we're not allocating space at the end that can hardly 
      ever be used). */
-  do_align(alloc_size);
+  do_host_alignment(alloc_size);
   alloc_addr = malloc_with_check(alloc_size);
   /* Fill in the block header. */
   hdr = (a_mem_block_header_ptr)alloc_addr;
@@ -556,7 +492,7 @@ is used for allocation of general front end memory (i.e., not IL).
      aside from keeping the data correctly aligned, this also keeps the
      next available address properly aligned, which is important in
      trim_mem_block. */
-  do_align(size);
+  do_host_alignment(size);
 
   /* See if enough space remains in the current block.  If not, get
      a new block. */
