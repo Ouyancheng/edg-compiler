@@ -58,7 +58,7 @@ routine to do lookahead, etc.
 #define is_decl_not_expr(flags)						\
   /* if */ ((C_dialect == C_dialect_cplusplus) /* { */ ?          	\
     /* if */ (is_decl_start(IDS_EXPR_CONTEXT |				\
-                            ((((flags) & DFS_REAL_DECLARATOR_ALLOWED) != 0) \
+/*lint --e(506)*/           ((((flags) & DFS_REAL_DECLARATOR_ALLOWED) != 0) \
                             ? IDS_REAL_DECLARATOR_ALLOWED		\
                             : IDS_NO_OPTIONS))/* { */ ?			\
       f_is_decl_not_expr(flags)						\
@@ -67,7 +67,7 @@ routine to do lookahead, etc.
     /* } */)								\
   /* } else { */ :            						\
     is_decl_start(IDS_EXPR_CONTEXT |					\
-		  ((((flags) & DFS_REAL_DECLARATOR_ALLOWED) != 0)	\
+/*lint --e(506)*/ ((((flags) & DFS_REAL_DECLARATOR_ALLOWED) != 0)	\
                   ? IDS_REAL_DECLARATOR_ALLOWED				\
                   : IDS_NO_OPTIONS))					\
   /* } */ )
