@@ -6240,6 +6240,7 @@ Scan a default case label definition.  The syntax is:
   if (sssep != NULL) {
     a_boolean  already_diagnosed = FALSE;
     /* Found the proper enclosing switch statement. */
+    sssep->after_break_in_switch = FALSE;
     sssep->switch_has_default_clause = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     add_switch_clause(sssep, (a_constant_ptr)NULL, (a_constant_ptr)NULL,
