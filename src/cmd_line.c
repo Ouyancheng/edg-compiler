@@ -2009,12 +2009,6 @@ enable_microsoft_mode:
       address_of_ellipsis_allowed = TRUE;
       allow_ellipsis_only_param_in_C_mode = TRUE;
     }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    /* Turn on features implied by Microsoft mode. */
-    if (microsoft_mode) {
-      set_microsoft_mode_flags();
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Turn off language features that must not be on in C mode, in case
        the default value is on. */
     exceptions_enabled = FALSE;
@@ -2253,6 +2247,8 @@ enable_microsoft_mode:
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
+    /* Turn on features implied by Microsoft mode. */
+    set_microsoft_mode_flags();
     /* cfront mode is incompatible with Microsoft mode. */
     if (any_cfront_mode()) {
       command_line_error(ec_cl_cfront_incompatible_with_microsoft);
