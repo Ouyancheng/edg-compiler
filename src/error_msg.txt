@@ -1396,7 +1396,7 @@ ec_bad_initializer_for_array_with_unspecified_bound;;"an empty initializer is in
 ec_incomplete_class_return_type;;"function returns incomplete class type %t"
 ec_out_of_class_initializer_ignored;;"%n has already been initialized; the out-of-class initializer will be ignored"
 ec_local_variable_hidden;;"declaration hides %nd"
-ec_named_address_space_for_parameter;;"parameters cannot be allocated in a named address space"
+ec_named_address_space_for_parameter;;"a parameter cannot be allocated in a named address space"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
