@@ -1765,6 +1765,7 @@ whose address is the same as entity_ptr.  If none is found, return NULL.
   return ssep;
 }  /* find_src_seq_secondary_decl_entry */
 
+#if MAINTAIN_NEEDED_FLAGS
 
 static a_source_sequence_entry_ptr drop_tag_def_from_src_seq_list(
                                      a_source_sequence_entry_ptr  ssep,
@@ -1969,6 +1970,7 @@ may do fixup on entities pointed to by source-sequence entries it removes.
   return ssep->next;
 }  /* drop_tag_def_from_src_seq_list */
 
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 static a_source_sequence_entry_ptr drop_from_fs_src_seq_list(
                                              a_source_sequence_entry_ptr  ssep)
@@ -1987,9 +1989,13 @@ the source sequence entry that follows the entry or entries removed.
   if (ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
       (is_immediate_class_type((a_type_ptr)ssep->entity.ptr) ||
        is_immediate_enum_type((a_type_ptr)ssep->entity.ptr))) {
+#if MAINTAIN_NEEDED_FLAGS
     /* It's a class or enum definition.  Remove everything from here through
        to the end-of-construct entry. */
     next_ssep = drop_tag_def_from_src_seq_list(ssep, /*retain_first=*/FALSE);
+#else /* !MAINTAIN_NEEDED_FLAGS */
+    unexpected_condition();
+#endif /* MAINTAIN_NEEDED_FLAGS */
   } else {
     /* Link around ssep and return its successor in the list. */
     file_scope = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
@@ -2098,6 +2104,7 @@ associate with the indicated sck_function scope.
         a_src_seq_sublist_ptr        sublist = sp->src_seq_sublist_list;
         a_source_sequence_entry_ptr  insert_ssep = ssep;
         a_source_sequence_entry_ptr  sublist_ssep, next_sublist_ssep;
+        a_boolean                    remove_from_sublist;
 
         for (; sublist != NULL; sublist = sublist->next) {
           for (sublist_ssep = sublist->source_sequence_list;
@@ -2122,12 +2129,24 @@ associate with the indicated sck_function scope.
             if (!sssdp->declared_in_func_prototype) {
               goto done_with_func_prototype_decls;
             }  /* if */
+            remove_from_sublist = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (microsoft_mode && (rp->decl_modifiers & DM_DLLIMPORT)) {
+              remove_from_sublist = TRUE;
+            }  /* if */
+#endif /* if MICROSOFT_EXTENSIONS_ALLOWED */
+#if MAINTAIN_NEEDED_FLAGS
             if (il_entry_prefix_of(sssdp->entity.ptr).keep_in_il) {
               /* Be sure the keep-in-IL flags are set on the source
                  sequence information that's being promoted to the file
                  scope list. */
               il_entry_prefix_of(sublist_ssep).keep_in_il = TRUE;
               il_entry_prefix_of(sssdp).keep_in_il = TRUE;
+              check_assertion(remove_from_sublist == FALSE);
+              remove_from_sublist = TRUE;
+            }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
+            if (remove_from_sublist) {
               /* Remove the source sequence entry from the list in the
                  function scope. */
               if (sublist_ssep->prev == NULL) {
@@ -2143,6 +2162,16 @@ associate with the indicated sck_function scope.
               sublist_ssep->next = insert_ssep->next;
               if (insert_ssep->next != NULL) {
                 insert_ssep->next->prev = sublist_ssep;
+              } else {
+                a_scope_stack_entry_ptr  scope_stack_ptr;
+                scope_stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
+                if (scope_stack_ptr->il_scope->source_sequence_list == NULL) {
+                  scope_stack_ptr =
+                           &scope_stack[depth_innermost_namespace_scope];
+                  check_assertion(scope_stack_ptr->
+                                   end_of_source_sequence_list == insert_ssep);
+                  scope_stack_ptr->end_of_source_sequence_list = sublist_ssep;
+                }  /* if */
               }  /* if */
               insert_ssep->next = sublist_ssep;
               sublist_ssep->prev = insert_ssep;
