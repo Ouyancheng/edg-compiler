@@ -4764,6 +4764,8 @@ class/struct/union is actually defined.
   a_symbol_ptr            rout_sym;
   a_memory_region_number  region_to_switch_back_to;
   an_extern_linkage       dummy_linkage;
+  a_class_symbol_supplement_ptr
+                          cssp;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -5431,21 +5433,30 @@ next_declaration:
     /* Wrap up field allocation. */
     finish_laying_out_class(class_type, byte_offset, bit_offset, alignment,
                             any_overflow);
-    if (C_dialect == C_dialect_cplusplus) {
-      /* Create compiler-generated default constructor, copy constructor, and
-         destructor, if any is needed. */
-      check_special_member_functions(class_type);
-      /* Check for inherited conversion functions.  This must be done before
-         rescanning inline function definitions. */
-      project_base_class_conversion_functions(class_type);
-    }  /* if */
     /* Save a pointer to the list of member symbols in the tag symbol.  Note
        that there may be symbols even if there there were no declarations,
        since symbols may be inherited. */
-    tag_sym->variant.class_struct_union.extra_info->symbols =
-                                 scope_stack[depth_scope_stack].symbols;
+    cssp = tag_sym->variant.class_struct_union.extra_info;
+    cssp->symbols = scope_stack[depth_scope_stack].symbols;
     if (C_dialect == C_dialect_cplusplus) {
       a_delayed_scan_fixup_ptr  dsfp, next_dsfp;
+      /* Create compiler-generated default constructor, copy constructor,
+         destructor, and assignment operator, if any is needed. */
+      check_special_member_functions(class_type);
+      /* Since check_special_member_functions can have added new symbols,
+         update the symbols list attached to the class if it is empty. */
+      if (cssp->symbols == NULL) {
+        cssp->symbols = scope_stack[depth_scope_stack].symbols;
+      }  /* if */
+      /* Check for inherited conversion functions.  This must be done before
+         rescanning inline function definitions. */
+      project_base_class_conversion_functions(class_type);
+      /* Since project_base_class_conversion_functions can have added new
+         symbols, update the symbols list attached to the class if it is
+         empty. */
+      if (cssp->symbols == NULL) {
+        cssp->symbols = scope_stack[depth_scope_stack].symbols;
+      }  /* if */
       /* Report errors in virtual function declarations that result from
          the failure to redeclare a virtual function originally declared in
          a virtual base class. */
