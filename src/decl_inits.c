@@ -141,7 +141,7 @@ typedef struct an_aggregate_init_context {
 			   requires dynamic initialization.  This information
 			   percolates back up when returning from recursive
 			   calls to get_initializer. */
-  a_byte
+  unsigned long
 		pending_init_levels;
 			/* When pending_init_con is non-NULL, the number of
 			   levels down at which to find the member to be
@@ -881,7 +881,7 @@ only if *dip_ptr is NULL.  If the initializer is nonconstant or
 }  /* scan_initializer_of_simple_object */
 
 
-static a_boolean designator_coming()
+static a_boolean designator_coming(void)
 /*
 A proposed ANSI C extension allows aggregate initializers to be preceded by
 a "designation" that indicates which field or element is initialized. The
