@@ -6436,19 +6436,37 @@ a set of options for the copy.
           }  /* if */
         }  /* if */
 #endif /* MINIMAL_INLINING */
-        check_assertion_str(expr->variant.object_lifetime.ptr != NULL,
-                      "copy_expr_tree: enk_object_lifetime has NULL lifetime");
-        push_object_lifetime(iek_none, (char *)NULL,
-                             expr->variant.object_lifetime.ptr->kind);
-        expr_copy->variant.object_lifetime.expr =
-                             copy_expr_tree(expr->variant.object_lifetime.expr,
-                                            options);
-        expr_copy->variant.object_lifetime.ptr = NULL;
         check_assertion_str(curr_object_lifetime != NULL,
                             "copy_expr_tree: curr_object_lifetime is NULL");
-        bind_object_lifetime(curr_object_lifetime, iek_expr_node,
-                             (char *)expr_copy);
-        (void)pop_object_lifetime();
+        check_assertion_str(expr->variant.object_lifetime.ptr != NULL,
+                      "copy_expr_tree: enk_object_lifetime has NULL lifetime");
+        if (curr_object_lifetime->kind ==
+                                 (an_object_lifetime_kind)olk_expr_temporary) {
+          check_assertion(expr->variant.object_lifetime.ptr->kind ==
+                                 (an_object_lifetime_kind)olk_expr_temporary);
+          /* We're already inside an expr temporary lifetime and we would
+             be pushing another.  Ignore this inner lifetime.  This can come
+             up with inlining. */
+          expr_copy = copy_expr_tree(expr->variant.object_lifetime.expr,
+                                     options);
+        } else {
+          push_object_lifetime(iek_none, (char *)NULL,
+                               expr->variant.object_lifetime.ptr->kind);
+          expr_copy->variant.object_lifetime.expr =
+                             copy_expr_tree(expr->variant.object_lifetime.expr,
+                                            options);
+          expr_copy->variant.object_lifetime.ptr = NULL;
+          bind_object_lifetime(curr_object_lifetime, iek_expr_node,
+                               (char *)expr_copy);
+          (void)pop_object_lifetime();
+          if (expr_copy->variant.object_lifetime.ptr == NULL) {
+            /* The copied lifetime was useless and was deleted.  This can
+               happen when the source lifetime contains no destructions, which
+               comes up when placement delete is lowered.  Eliminate the
+               enk_object_lifetime node in the copy. */
+            expr_copy = expr_copy->variant.object_lifetime.expr;
+          }  /* if */
+        }  /* if */
 #if MINIMAL_INLINING
         if (need_to_pop_function_lifetime) (void)pop_object_lifetime();
       }
