@@ -1351,6 +1351,7 @@ ec_bad_strong_using_scope;;"a strong using-directive may only appear in a namesp
 ec_probable_guiding_friend;;"%nf declares a non-template function -- add <> to refer to a template instance"
 ec_operation_may_not_fit_in_fixed_point_result;;"operation may cause fixed-point overflow"
 ec_expr_not_integral_or_enum_or_fixed_point;;"expression must have integral, enum, or fixed-point type"
+ec_expr_not_integral_or_fixed_point;;"expression must have integral or fixed-point type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

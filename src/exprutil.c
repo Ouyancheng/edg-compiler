@@ -4599,10 +4599,16 @@ to an error operand.
     /* Fixed-point types are acceptable. */
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   } else if (!is_integral_or_enum_type(operand->type)) {
-    error_in_operand(fixed_point_allowed ?
-                                   ec_expr_not_integral_or_enum_or_fixed_point
-                                 : ec_expr_not_integral_or_enum,
-                     operand);
+    an_error_code  error_code;
+    if (fixed_point_allowed) {
+      error_code =
+          enum_type_is_integral ? ec_expr_not_integral_or_fixed_point
+                                : ec_expr_not_integral_or_enum_or_fixed_point;
+    } else {
+      error_code = enum_type_is_integral ? ec_expr_not_integral
+                                         : ec_expr_not_integral_or_enum;
+    }  /* if */
+    error_in_operand(error_code, operand);
     okay = FALSE;
   }  /* if */
 
