@@ -781,7 +781,8 @@ Write the indicated memory region to the file f_il_output.
       for (hdr = mem_region_table[region_number];
            hdr != NULL;
            hdr = hdr->next) {
-        total_bytes += hdr->next_avail_in_block - (char *)hdr;
+        total_bytes += hdr->next_avail_in_block - hdr->start_of_block +
+                       sizeof(a_mem_block_header);
       }  /* for */
       hdr = mem_region_table[region_number];
       /* Write the original address of the first block, the original address
@@ -793,8 +794,11 @@ Write the indicated memory region to the file f_il_output.
       (void)fwrite((char *)&total_bytes, sizeof(total_bytes), 1, f_il_output);
       /* Write the blocks. */
       for (; hdr != NULL; hdr = hdr->next) {
-        if (fwrite((char *)hdr, (int)(hdr->next_avail_in_block - (char *)hdr),
-                   1, f_il_output) != 1) {
+        if ((fwrite((char *)hdr, sizeof(a_mem_block_header),
+                    1, f_il_output) != 1) ||
+            (fwrite(hdr->start_of_block,
+                    size_t_arg(hdr->next_avail_in_block - hdr->start_of_block),
+                    1, f_il_output) != 1)) {
           /* Error on write.  This check supplements the check done when the
              file is closed. */
           str_catastrophe(ec_file_write_error, "intermediate language");
@@ -836,9 +840,6 @@ Write the indicated memory region to the file f_il_output.
       walk_remap_func = remap_ptr_to_entry_number;
       remap_il_header_pointers();
 #endif /* ALTERNATE_IL_FILE_FORMAT */
-      /* The region_scope_entry pointer must be reconstructed on the other
-         end.  Clear it to NULL to avoid confusion. */
-      il_header.region_scope_entry = NULL;
       (void)fwrite((char *)&il_header, sizeof(il_header), 1, f_il_output);
       /* Restore il_header. */
       (void)memcpy((char *)&il_header, il_header_copy, sizeof(il_header));
