@@ -1656,7 +1656,7 @@ typeinfo variable in a COMDAT group.
 	      offset_con = alloc_constant((a_constant_repr_kind)ck_integer);
               if (base->is_virtual) {
                 offset = (a_host_large_integer)(base->vbase_offset_index *
-                                                make_vtbl_entry_type()->size);
+                          (a_virtual_table_index)make_vtbl_entry_type()->size);
               } else {
                 offset = (a_host_large_integer)base->offset;
               }  /* if*/
