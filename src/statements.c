@@ -3357,8 +3357,9 @@ of the front end.
   control_flow_descr_list = NULL;
   end_of_control_flow_descr_list = NULL;
   avail_control_flow_descrs = NULL;
-
+#if DEBUG
   num_control_flow_descrs_allocated = 0;
+#endif /* DEBUG */
 }  /* statements_init */
 
 
