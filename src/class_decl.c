@@ -3873,10 +3873,6 @@ table.
   a_variable        *var;
 
   db_enter(3, "decl_static_data_member");
-  /* Enter a new symbol in the symbol table. */
-  sym = enter_local_symbol((a_symbol_kind)sk_static_data_member, locator,
-                           decl_scope_level, /*suppress_redecl_error=*/FALSE);
-  sym->class_of_which_a_member = class_type;
   /* Create the variable entry for the static data member. */
   /* The storage class of static data members is sc_static until they are
      promoted to external linkage, at which time the storage class will
@@ -3886,6 +3882,19 @@ table.
      current class. */
   var = make_variable(member_type, (a_storage_class)sc_static,
                       /*at_file_scope=*/FALSE);
+  if (!is_anonymous_union) {
+    /* Enter a new symbol in the symbol table. */
+    sym = enter_local_symbol((a_symbol_kind)sk_static_data_member, locator,
+                             decl_scope_level,
+                             /*suppress_redecl_error=*/FALSE);
+    /* Set the source correspondence fields of the variable. */
+    set_source_corresp(&var->source_corresp, sym);
+  } else {
+    sym = make_anonymous_parent_object_symbol(
+                                 (a_symbol_kind)sk_static_data_member,
+                                 &locator->source_position);
+  }  /* if */
+  sym->class_of_which_a_member = class_type;
   sym->variant.static_data_member.variable = var;
   var->source_corresp.class_of_which_a_member = class_type;
   /* Static data members will have the same name linkage as the class of
@@ -3894,8 +3903,12 @@ table.
      data members will also be changed. */
   var->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
   var->source_corresp.access = access;
-  /* Set the source correspondence fields of the variable. */
-  set_source_corresp(&var->source_corresp, sym);
+  if (is_anonymous_union) {
+    /* A static data member is not allowed to be an anonymous union.  An error
+       will have been issued already, but promote the fields anyway. */
+    var->is_anonymous_parent_object = TRUE;
+    check_anonymous_union_symbols(sym);
+  }  /* if */
   /* This is entered as a declaration rather than a definition, since the
      definition must appear outside the class definition. */
   record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
@@ -3906,17 +3919,6 @@ table.
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
-  if (is_anonymous_union) {
-    /* A static data member is not allowed to be an anonymous union.  An error
-       will have been issued already, but promote the fields anyway. */
-    a_symbol_ptr  assoc_object_sym;
-
-    assoc_object_sym = make_anonymous_parent_object_symbol(
-                                                  (a_symbol_kind)sk_variable,
-                                                  &locator->source_position);
-    assoc_object_sym->variant.variable.ptr = var;
-    check_anonymous_union_symbols(assoc_object_sym);
-  }  /* if */
   /* Special processing for static data members of template classes. */
   if (corresp_prototype_tag_sym != NULL || is_nonreal_class) {
     /* A nonnull instance_ptr marks this static data member as a member of
@@ -4419,14 +4421,21 @@ class, struct, or union.
     update_source_sequence_list((char *)field, (an_il_entry_kind)iek_field,
                                 ssep);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  } else if (!is_anonymous_union) {
+  } else {
     /* Create the field symbol. */
-    member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
-                                    depth_scope_stack,
-                                    /*suppress_redecl_error=*/FALSE);
+    if (is_anonymous_union) {
+      member_sym = make_anonymous_parent_object_symbol(
+                                              (a_symbol_kind)sk_field,
+                                              &locator->source_position);
+      field->is_anonymous_parent_object = TRUE;
+    } else {
+      member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
+                                      depth_scope_stack,
+                                      /*suppress_redecl_error=*/FALSE);
+      set_source_corresp(&(field->source_corresp), member_sym);
+    }  /* if */
     member_sym->class_of_which_a_member = class_type;
     member_sym->variant.field.ptr = field;
-    set_source_corresp(&(field->source_corresp), member_sym);
   }  /* if */
   field->source_corresp.class_of_which_a_member = class_type;
   field->source_corresp.access = access;
@@ -4476,6 +4485,10 @@ class, struct, or union.
       cssp->assignment_by_bitwise_copy_allowed = FALSE;
     }  /* if */
   }  /* if */
+  if (is_anonymous_union) {
+    /* Do checking, promote symbols to the current class. */
+    check_anonymous_union_symbols(member_sym);
+  }  /* if */
   if (is_aggregate_or_union_type(*member_type)) {
     /* If the member's type is class, struct, or union -- or array of class,
        struct, or union -- there is additional checking to be done. */
@@ -4496,28 +4509,16 @@ class, struct, or union.
         /* If the member type has any members of ref type, propagate the
            flag to the parent type. */
         if (member_cssp->any_ref_member) cssp->any_ref_member = TRUE;
-        if (is_anonymous_union) {
-          /* Constructor and destructor are not allowed, but other checking
-             is required. */
-          a_symbol_ptr  assoc_object_sym;
-
-          assoc_object_sym = make_anonymous_parent_object_symbol(
-                                              (a_symbol_kind)sk_field,
-                                              &locator->source_position);
-          assoc_object_sym->variant.field.ptr = field;
-          check_anonymous_union_symbols(assoc_object_sym);
-        } else {
-          /* If a nonstatic data member of a class is itself a class object
-             (or an array whose elements are class objects) and the subobject
-             has a constructor and/or destructor, the containing class itself
-             is required to have a constructor and/or destructor.  Do the
-             check at this time, and record the requirement, if any. */
-          if (member_cssp->constructor != NULL) {
-            cssp->constructor_required = TRUE;
-          }  /* if */
-          if (member_cssp->destructor != NULL) {
-            cssp->destructor_required = TRUE;
-          }  /* if */
+        /* If a nonstatic data member of a class is itself a class object
+           (or an array whose elements are class objects) and the subobject
+           has a constructor and/or destructor, the containing class is
+           also required to have a constructor and/or destructor.  Do the
+           check at this time, and record the requirement, if any. */
+        if (member_cssp->constructor != NULL) {
+          cssp->constructor_required = TRUE;
+        }  /* if */
+        if (member_cssp->destructor != NULL) {
+          cssp->destructor_required = TRUE;
         }  /* if */
         /* The parent class cannot be copy-constructed or assigned by bitwise
            copying if the member class does not allow it. */
