@@ -15885,6 +15885,35 @@ file.
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
+static void generate_exported_template_file(void)
+/*
+Create the file containing information about exported templates.
+*/
+{
+  a_symbol_list_entry_ptr	slep;
+
+  for (slep = exported_templates_list; slep != NULL; slep = slep->next) {
+    a_symbol_ptr	sym;
+    char		*mangled_name;
+    sym = slep->symbol;
+    /* Get the signature for the template that is defined. */
+    mangled_name = get_mangled_name_for_symbol(sym);
+    /* Write an entry to the exported template file. */
+    write_to_exported_template_file(etlt_template_name, mangled_name);
+  }  /* for */
+  /* Only write the other information to the exported template file if
+     some template names were written above. */
+  if (f_exported_template != NULL) {
+    /* Output the file name. */
+    write_to_exported_template_file(etlt_file_name, primary_source_file_name);
+  }  /* if */
+#if MODULE_ID_NEEDED
+  /* Write the module ID. */
+  write_to_exported_template_file(etlt_module_id, make_module_id());
+#endif /* MODULE_ID_NEEDED */
+}  /* generate_exported_template_file */
+
+
 void update_auto_instantiation_flags(void)
 /*
 Go through the instantiations_required list and set the fields in the
@@ -16014,41 +16043,17 @@ and "do not instantiate" flags are set here.
        errors occurred. */
     add_entities_to_request_file();
   }  /* if */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  /* Output information about exported templates defined in this
+     translation unit. */
+  if (export_template_allowed) {
+    generate_exported_template_file();
+  }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   db_exit();
 }  /* update_auto_instantiation_flags */
 
-
-static void generate_exported_template_file(void)
-/*
-Create the file containing information about exported templates.
-*/
-{
-  a_symbol_list_entry_ptr	slep;
-
-  for (slep = exported_templates_list; slep != NULL; slep = slep->next) {
-    a_symbol_ptr	sym;
-    char		*mangled_name;
-    sym = slep->symbol;
-    /* Get the signature for the template that is defined. */
-    mangled_name = get_mangled_name_for_symbol(sym);
-    /* Write an entry to the exported template file. */
-    write_to_exported_template_file(etlt_template_name, mangled_name);
-  }  /* for */
-  /* Only write the other information to the exported template file if
-     some template names were written above. */
-  if (f_exported_template != NULL) {
-    /* Output the file name. */
-    write_to_exported_template_file(etlt_file_name, primary_source_file_name);
-  }  /* if */
-#if MODULE_ID_NEEDED
-  /* Write the module ID. */
-  write_to_exported_template_file(etlt_module_id, make_module_id());
-#endif /* MODULE_ID_NEEDED */
-}  /* generate_exported_template_file */
-
-
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-
 
 static void delayed_processing_of_can_instantiate_class_pragmas(void)
 /*
@@ -16223,13 +16228,6 @@ specific definition that made it unnecessary.
   check_assertion_str2(!any_friend_state_changed || total_errors != 0,
                        "instantiation_wrapup:",
                        "silent change in friend state");
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-  /* Output information about exported templates defined in this
-     translation unit. */
-  if (export_template_allowed) {
-    generate_exported_template_file();
-  }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if CHECKING
   after_instantiation_wrapup = TRUE;
 #endif /* CHECKING */
