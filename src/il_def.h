@@ -1302,10 +1302,12 @@ typedef struct a_source_correspondence {
 			   GNU keyword __extension__.  (For other declarations
 			   a similar flag is present in the corresponding
 			   secondary source sequence entry.) */
+#endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
   a_bit_field   has_gnu_deprecated_attribute:1;
 			/* TRUE if this entity was declared with the GNU
 			   "deprecated" attribute. */
-#endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   a_bit_field	externalized:1;
 			/* TRUE if this is a variable or routine that was
 			   originally static and has been made external, e.g.,
