@@ -778,6 +778,7 @@ Initialize the option information table.
                          "no_nonstd_using_decl",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
   add_option_description(optk_designators,
                          "designators",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -794,6 +795,7 @@ Initialize the option information table.
                          "no_extended_designators",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
   add_option_description(optk_system_include_dir, "sys_include", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);

@@ -518,7 +518,12 @@ EXTERN a_boolean
 EXTERN a_boolean
 		extended_designators_allowed
 #if VAR_INITIALIZERS
-                                        = DEFAULT_EXTENDED_DESIGNATORS_ALLOWED
+                                        =
+#if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
+                                          DEFAULT_EXTENDED_DESIGNATORS_ALLOWED
+#else /* !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+                                          FALSE
+#endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
 #endif /* VAR_INITIALIZERS */
                                                                               ;
 		 /* TRUE if 'x:' and '[expr ... expr]' designators should be accepted. */
@@ -526,7 +531,12 @@ EXTERN a_boolean
 EXTERN a_boolean
 		designators_allowed
 #if VAR_INITIALIZERS
-                                             = DEFAULT_DESIGNATORS_ALLOWED
+                                             =
+#if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
+                                               DEFAULT_DESIGNATORS_ALLOWED
+#else /* !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+                                               FALSE
+#endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
 #endif /* VAR_INITIALIZERS */
                                                                               ;
 			       /* TRUE if '.x' and '[expr]' designators should be accepted. */
