@@ -438,6 +438,9 @@ Display the indicated source correspondence entry.
   }  /* if */
 #endif /* ifdef CFE */
   disp_boolean("  referenced", (a_boolean)scp->referenced);
+#if MAINTAIN_NEEDED_FLAGS
+  disp_boolean("  needed", (a_boolean)scp->needed);
+#endif /* MAINTAIN_NEEDED_FLAGS */
   if (scp->is_local_to_function) {
     disp_boolean("  is_local_to_function", TRUE);
   }  /* if */
@@ -998,6 +1001,10 @@ do_struct_union:
       if (ptr->variant.class_struct_union.originally_unnamed) {
         disp_boolean("originally_unnamed", TRUE);
       }  /* if */
+#if MAINTAIN_NEEDED_FLAGS
+      disp_boolean("definition_needed",
+                   ptr->variant.class_struct_union.definition_needed);
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #if USER_CONTROL_OF_STRUCT_PACKING
       if (ptr->variant.class_struct_union.max_member_alignment != 0) {
         disp_unsigned_long("max_member_alignment",

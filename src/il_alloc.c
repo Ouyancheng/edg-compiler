@@ -862,6 +862,9 @@ to default values.
       pte->variant.class_struct_union.
                  nested_class_defined_outside_of_parent = FALSE;
       pte->variant.class_struct_union.originally_unnamed = FALSE;
+#if MAINTAIN_NEEDED_FLAGS
+      pte->variant.class_struct_union.definition_needed = FALSE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
       /* The class type supplement is only allocated in C++ mode. */
       pte->variant.class_struct_union.extra_info = 
                                            (C_dialect == C_dialect_cplusplus) ?
@@ -2525,6 +2528,9 @@ in il_init.)
      the flag to FALSE for associated entities, for which the flag is then
      set to TRUE (for an actual reference) by record_symbol_reference. */
   def_source_corresp.referenced = TRUE;
+#if MAINTAIN_NEEDED_FLAGS
+  def_source_corresp.needed = FALSE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
   def_source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
   def_source_corresp.has_associated_pragma = FALSE;
   def_source_corresp.is_local_to_function = FALSE;

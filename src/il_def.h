@@ -757,6 +757,18 @@ typedef struct a_source_correspondence {
                            that are dynamically initialized.  Also differs
                            from the flag in the symbol entry in that more
                            than one symbol can point to the same IL entry. */
+#if MAINTAIN_NEEDED_FLAGS
+  a_bit_field	needed:1;
+			/* TRUE to indicate that an entity is referenced (or
+			   potentially referenced) in such a way that it is
+			   "really needed" -- e.g., it is a function with
+			   external linkage (which must be assumed to be
+			   called), an entity (including another function)
+			   referenced in the declaration or body of a function
+			   that is "needed", etc.  This flag is an aid to
+			   optimization -- if it is FALSE, the entity is a
+			   candidate to be optimized away. */
+#endif /* MAINTAIN_NEEDED_FLAGS */
   a_bit_field /* a_name_linkage_kind */
 		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* Kind of linkage for the name, e.g., is it
@@ -3128,6 +3140,14 @@ typedef struct a_type {
 			   C++ may be TRUE even when the source-corresp name
 			   pointer is non-NULL, since a name may be acquired
 			   from a typedef name (ARM 7.1.3). */
+#if MAINTAIN_NEEDED_FLAGS
+      a_bit_field
+		definition_needed:1;
+			/* TRUE if this class is "needed" (see the flag by
+			   that name in the source_corresp field), but not
+			   merely as a declaration -- a definition of the
+			   class is needed in the current translation unit. */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #if USER_CONTROL_OF_STRUCT_PACKING
       a_targ_alignment
 		max_member_alignment;
