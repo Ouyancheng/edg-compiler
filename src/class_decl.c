@@ -37,13 +37,6 @@ class_decl.c -- Scanning of class declarations.
 #include "asm_func.h"
 #endif /* ASM_FUNCTION_ALLOWED */
 
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-/*
-Dummy variable to support a cfront anomaly -- see set_data_section_base_class.
-*/
-static a_base_class data_section_base_class_blocked;
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
-
 /*
 Structure for keeping track of token cache representing a default argument
 expression, prescanned during a member function declaration within a class
@@ -1299,44 +1292,38 @@ void db_base_class(a_base_class_ptr  bcp,
 Dump a base class entry, for debug purposes.
 */
 {
-  if (bcp == &data_section_base_class_blocked) {
-    fputs("<data-section-base-class-blocked>");
-  } else {
-    (void)fputc('"', f_debug);
-    db_name(&bcp->type->source_corresp);
-    fputs("\": ", f_debug);
-    if (show_offset) {
-      fprintf(f_debug, "(%ld bytes): offset = %ld",
-                       bcp->type->size, bcp->offset);
+  (void)fputc('"', f_debug);
+  db_name(&bcp->type->source_corresp);
+  fputs("\": ", f_debug);
+  if (show_offset) {
+    fprintf(f_debug, "(%ld bytes): offset = %ld",
+                     bcp->type->size, bcp->offset);
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-      if (bcp->data_section_base_class != NULL ||
-          bcp->data_section_base_class == &data_section_base_class_blocked) {
-        fputs(", in ", f_debug);
-        db_name(&bcp->data_section_base_class->type->source_corresp);
-      }  /* if */
+    if (bcp->data_section_base_class != NULL) {
+      fputs(", in ", f_debug);
+      db_name(&bcp->data_section_base_class->type->source_corresp);
+    }  /* if */
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
-      fputs(", ", f_debug);
-    }  /* if */
-    fprintf(f_debug, "%sdirect, ",
-                       bcp->direct ? "" : "in");
-    db_access_control(bcp->access);
-    if (bcp->is_virtual) {
-      fputs(", virtual", f_debug);
-      if (show_offset) {
-        fprintf(f_debug, " (ptr offset = %ld", bcp->pointer_offset);
-        if (bcp->pointer_base_class != NULL) {
-          fputs(", in ", f_debug);
-          db_name(&bcp->pointer_base_class->type->source_corresp);
-        }  /* if */
-        fputc(')', f_debug);
-      }  /* if */
-    } else if (bcp->any_virtual_steps_in_derivation) {
-      fputs(", vsteps", f_debug);
-    }  /* if */
-    if (bcp->ambiguous) fputs(", ambig", f_debug);
-    fputs(", deriv = ", f_debug);
-    db_path(bcp->derivation, show_offset);
+    fputs(", ", f_debug);
   }  /* if */
+  fprintf(f_debug, "%sdirect, ", bcp->direct ? "" : "in");
+  db_access_control(bcp->access);
+  if (bcp->is_virtual) {
+    fputs(", virtual", f_debug);
+    if (show_offset) {
+      fprintf(f_debug, " (ptr offset = %ld", bcp->pointer_offset);
+      if (bcp->pointer_base_class != NULL) {
+        fputs(", in ", f_debug);
+        db_name(&bcp->pointer_base_class->type->source_corresp);
+      }  /* if */
+      fputc(')', f_debug);
+    }  /* if */
+  } else if (bcp->any_virtual_steps_in_derivation) {
+    fputs(", vsteps", f_debug);
+  }  /* if */
+  if (bcp->ambiguous) fputs(", ambig", f_debug);
+  fputs(", deriv = ", f_debug);
+  db_path(bcp->derivation, show_offset);
   (void)fputc('\n', f_debug);
 }  /* db_base_class */
 
@@ -2134,27 +2121,6 @@ subobject (e.g., C).
           break;
         }  /* if */
       }  /* for */
-    } else if (path->next != NULL) {
-      /* Indirect virtual base class that are base classes of an incomplete
-         subobject base class are put out at the derived class even if they
-         are embedded in some other direct base class.  This seems to be
-         an anomaly in cfront's algorithm. */
-      base_class->data_section_base_class = &data_section_base_class_blocked;
-    }  /* if */
-  } else if (base_class->data_section_base_class ==
-                                      &data_section_base_class_blocked) {
-    bcp = path->base_class;
-    if (!bcp->is_virtual && bcp->complete_subobject) {
-      for (dsp = path;; dsp = dsp->next) {
-        if (dsp->next == NULL || dsp->next->base_class->is_virtual) break;
-        bcp = corresponding_base_class(base_class, (a_type_ptr)NULL,
-                                       dsp->base_class->type);
-        if (bcp->data_section_base_class == NULL) {
-          base_class->data_section_base_class = dsp->base_class;
-          updated = TRUE;
-          break;
-        }  /* if */
-      }  /* for */
     }  /* if */
   }  /* if */
   db_exit();
@@ -2175,16 +2141,10 @@ void fixup_embedded_virtual_base_classes(a_base_class_ptr base_class,
       if (bcp->is_virtual && bcp->data_section_base_class == NULL) {
         embedded_base_class = corresponding_base_class(bcp, (a_type_ptr)NULL,
                                                        class_type);
-        if (embedded_base_class->data_section_base_class == NULL
-#if 0
-            /* I`m not sure about this: */
-            || embedded_base_class->data_section_base_class ==
-                                            &data_section_base_class_blocked
-#endif /* if 0 */
-                                                                ) {
+        if (embedded_base_class->data_section_base_class == NULL) {
           embedded_base_class->data_section_base_class = base_class;
+          fixup_embedded_virtual_base_classes(embedded_base_class, class_type);
         }  /* if */
-        fixup_embedded_virtual_base_classes(embedded_base_class, class_type);
       }  /* for */
     }  /* for */
   }  /* for */
@@ -2653,16 +2613,6 @@ skip_base_class:
        specifier. */
     remove_stop_token(tok_comma);
   } while (loop_token(tok_comma));
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-  if (type_ptr->variant.class_struct_union.any_virtual_base_classes) {
-    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-      if (bcp->is_virtual &&
-          bcp->data_section_base_class == &data_section_base_class_blocked) {
-        bcp->data_section_base_class = NULL;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
 #if CHECKING
   if (type_ptr->kind != (a_type_kind)tk_union) {
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
