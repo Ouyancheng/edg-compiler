@@ -5072,7 +5072,7 @@ See also 3.6.6.4.
                out first as a freestanding expression statement.  This feature
                is standard in C++, and the rewrite in that case is handled by
                IL lowering. */
-            check_assertion(is_void_return_type(return_type));
+            check_assertion(is_void_type(return_type));
             warning(ec_value_returned_in_void_function);
             microsoft_C_mode_void_return = TRUE;
           } else {
