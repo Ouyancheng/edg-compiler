@@ -8454,7 +8454,7 @@ respectively.
               &prev_field->source_corresp.decl_position);
     prev_field->type = error_type();
     class_state->last_field_is_incomplete_array = FALSE;
-  } else if (microsoft_mode || gcc_mode) {
+  } else if (microsoft_mode || gcc_mode || (c99_mode && !strict_ansi_mode)) {
     /* In Microsoft and GNU C modes a class or struct may include a member
        whose type contains a final field that is an unknown-size array, but
        only if the member with such a type is the last field.  If the previous
@@ -8575,10 +8575,11 @@ respectively.
          use in C99 mode. */
       class_type->variant.class_struct_union.
                                   contains_flexible_array_member = TRUE;
-    } else if (microsoft_mode || gcc_mode) {
+    } else if (microsoft_mode || gcc_mode || (c99_mode && !strict_ansi_mode)) {
       /* In Microsoft and GNU C modes the error is issued only if the struct
          containing a flexible array member is not the last member.  Just
-         set the flag for now and do the check later. */
+         set the flag for now and do the check later.  (This is also supported
+         as an extension in default C99 mode.) */
       class_type->variant.class_struct_union.
                                   contains_flexible_array_member = TRUE;
     } else {

@@ -1,5 +1,18 @@
 Version 2.46
 
+1/14/02  Indirect flexible array members in C99 mode
+
+The default C99 mode of the front end now accepts structure definitions whose
+last field has a struct type containing a flexible array member.  For example:
+
+  struct F { int i; int a[]; };
+  struct S {
+    int n;
+    struct F f;  /* Now accepted in default C99 mode. */
+  };
+
+This is still an error in strict C99 mode.
+
 1/14/02  Microsoft compatibility: type definitions in function return types
 
 In Microsoft C++ mode, the front end now accepts type definitions in function
