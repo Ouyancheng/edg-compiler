@@ -2131,6 +2131,61 @@ It cannot be used for checking access (see have_access_to_symbol).
   }  /* if */
   return access;
 }  /* access_for_symbol */
+
+
+an_access_specifier compute_access(an_access_specifier sym_access,
+                                   an_access_specifier deriv_access)
+/*
+Compute the access for a symbol projected from a base class, where sym_access
+is its accessibility in the base class and deriv_access describes the class
+derivation from the base class.
+
+If the derivation access for the class is "public", the access of public
+and protected members stays as it is; if it is "protected", public
+members become protected and protected members are unaffected; if it is
+"private", public and protected symbols become private.  Members private
+to the base class become inaccessible to the derived class in every case.
+(ARM 11.2).  The following table summarizes the transformations:
+
+                derivation:
+                         private        protected      public
+   symbol:            -------------------------------------------------
+         public       |  private        protected      public
+                      |
+         protected    |  private        protected      protected
+                      |
+         private      |  inaccessible   inaccessible   inaccessible
+                      |
+         inaccessible |  inaccessible   inaccessible   inaccessible
+*/
+{
+  if (!is_more_accessible(sym_access, as_private)) {
+    sym_access = (an_access_specifier)as_inaccessible;
+  } else if (deriv_access == (an_access_specifier)as_private) {
+    sym_access = (an_access_specifier)as_private;
+  } else if (sym_access != deriv_access) {
+    sym_access = (an_access_specifier)as_protected;
+  }  /* if */
+  /* Return the (possibly altered) symbol access specifier. */
+  return sym_access;
+}  /* compute_access */
+
+
+an_access_specifier access_to_end_of_path(an_access_specifier    sym_access,
+                                          a_derivation_step_ptr  path)
+/*
+Compute the accessibility (public, protected, private, inaccessible) to the
+base class represented by the end of the derivation path pointed to by "path".
+*/
+{
+  if (path != NULL) {
+    /* Not at the end of the path -- make a recursive call to find the
+       projected accessibility. */
+    sym_access = compute_access(access_to_end_of_path(sym_access, path->next),
+                                path->base_class->access);
+  }  /* if */
+  return sym_access;
+}  /* access_to_end_of_path */
   
 
 static a_boolean on_befriending_list(a_class_list_entry_ptr befriending_list,

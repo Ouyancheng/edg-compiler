@@ -1035,6 +1035,16 @@ extern a_symbol_ptr global_operator_new_or_delete_symbol(
                                           a_source_position  *pos,
                                           a_boolean          make_default_new);
 
+extern an_access_specifier compute_access(an_access_specifier access,
+                                          an_access_specifier class_access);
+
+extern an_access_specifier access_to_end_of_path
+                                         (an_access_specifier    sym_access,
+                                          a_derivation_step_ptr  path);
+
+#define normal_access_to_end_of_path(path)                                \
+  access_to_end_of_path((an_access_specifier)as_public, (path))
+
 extern an_access_specifier access_for_symbol(a_symbol_ptr sym_ptr);
 
 extern a_boolean have_member_access_privilege(a_type_ptr class_type);
