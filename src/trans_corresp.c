@@ -2110,9 +2110,9 @@ unit correspondence pointer if one is found.
   a_symbol_ptr  sym;
 
   check_assertion(templ_sym != NULL);
-  if (is_template_symbol(templ_sym)) {
+  if (is_template_symbol(templ_sym) && !templ_sym->is_template_param) {
     /* Template definitions for nontemplate members of class templates should
-       not get here. */
+       not get here.  Nor should template template parameters. */
     sym = templ_sym->header->inactive_symbols;
     for (; sym != NULL; sym = sym->next) {
       if (sym->decl_scope != templ_sym->decl_scope &&
