@@ -266,6 +266,74 @@ fxp_descr describes the format of the value being stored.
   }  /* if */
 }  /* store_hex_fxp_value */
 
+#if 0
+
+static void load_hex_fxp_value(a_fixed_point_value	*value,
+			       a_mantissa_ptr			mp,
+			       a_fixed_point_type_descr	*fxp_descr,
+			       a_fixed_point_value		*value)
+/*
+Store the value represented by mp in the fixed point value "value".
+fxp_descr describes the format of the value being stored.
+*/
+{
+  int			parts_to_copy;
+  int			source_size;
+  int			part_offset;
+
+  /* Zero the memory so that all of the space occupied by "value"
+     is cleared, even if we are not storing all of the bytes of the
+     value. */
+  memzero((char *)value, sizeof(a_fixed_point_value));
+  source_size = sizeof_fixed_point(fxp_descr);
+  parts_to_copy = (source_size + sizeof(an_fp_value_part) - 1) /
+                   sizeof(an_fp_value_part);
+  /* In most cases, an entire fp_value_part is copied.  If the target is just
+     a 1 or 2 byte value, however, only the high-order bytes of the source
+     fp_value_part are copied. */
+  part_offset = source_size < sizeof(an_fp_value_part)
+                                     ? source_size  : sizeof(an_fp_value_part);
+  part_offset = sizeof(an_fp_value_part) - part_offset;
+  /* The source value is in the upper source_size bytes of the mantissa.
+     This needs to be copied to the low order bytes of the fixed point
+     value. */
+  if (host_little_endian) {
+    /* For a typical system where an_fp_value_part is 4 bytes and an
+       integer value is 8 bytes, a short value is copied:
+         from 2 to 0
+         from 3 to 1
+       A 64 bit value is copied:
+         from 4 to 0
+         from 5 to 1
+         from 6 to 2
+         from 7 to 3
+         from 0 to 4
+         from 1 to 5
+         from 2 to 6
+         from 3 to 7
+    */
+    int i;
+    for (i = 0; i < source_size; ++i) {
+      char	*source;
+      char	*dest;
+      int	source_part;
+      int	source_byte;
+      dest = &((char*)value)[i];
+      source_part = (parts_to_copy - 1) - (i / sizeof(an_fp_value_part));
+      source_byte = (i % sizeof(an_fp_value_part)) + part_offset;
+      source = (char*)&(mp->parts[source_part]) + source_byte;
+      *dest = *source;
+    }  /* for */
+  } else {
+    /* Copy the value from the mantissa to the low order bytes of the
+       fixed point value. */
+    memcpy((char*)value + sizeof(a_fixed_point_value) - source_size,
+           (char*)&mp->parts[0], size_t_arg(source_size));
+  }  /* if */
+}  /* load_hex_fxp_value */
+
+#endif
+
 
 static void make_mantissa_from_integer_value(
 				an_integer_value		*value,
@@ -647,6 +715,26 @@ an_integer_value and may produce slightly inaccurate results.)
   return str;
 #undef BUF_LENGTH
 }  /* fxp_to_string */
+
+#if 0
+
+void fxp_add(a_fixed_point_value      *value_1,
+             a_fixed_point_type_descr *fxp_descr_1,
+             a_fixed_point_value      *value_2,
+             a_fixed_point_type_descr *fxp_descr_2,
+             a_fixed_point_value      *result,
+             a_fixed_point_type_descr *fxp_descr_result,
+             a_boolean                *err)
+/*
+Add the fixed-point values value_1 and value_2 and store the value in
+result.  fxp_descr_1, fxp_descr_2, and fxp_descr_result describe the
+format of the fixed-point values of value_1, value_2, and result.
+If an error occurs (e.g., overflow), err is set to TRUE.
+*/
+{
+}  /* fxp_add */
+
+#endif
 
 
 unsigned int fxp_hash(a_fixed_point_value  *value)

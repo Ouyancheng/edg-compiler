@@ -50,8 +50,6 @@ extern void shift_left_mantissa(a_mantissa_ptr	mp,
 extern void shift_right_mantissa(a_mantissa_ptr	mp,
 				 int			bits);
 
-extern a_boolean mantissa_is_zero(a_mantissa_ptr	mp);
-
 extern int number_of_bits_in_mantissa(a_mantissa_ptr	mp);
 
 extern void round_hex_fp_value(a_mantissa_ptr	mp,
@@ -71,6 +69,8 @@ extern void conv_hex_string_to_mantissa_and_exponent(
 				a_boolean		*exponent_overflow);
 
 #if FIXED_POINT_EXTENSIONS_ALLOWED
+
+extern a_boolean mantissa_is_zero(a_mantissa_ptr	mp);
 
 extern void load_hex_fp_value(an_internal_float_value	*float_value,
 			      a_float_kind		kind,

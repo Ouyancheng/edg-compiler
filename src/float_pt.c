@@ -974,6 +974,7 @@ value.
   return bits;
 }  /* number_of_bits_in_mantissa */
 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
 
 a_boolean mantissa_is_zero(a_mantissa_ptr	mp)
 /*
@@ -992,6 +993,7 @@ Return TRUE if the mantissa is zero.
   return result;
 }  /* mantissa_is_zero */
 
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 
 static void check_and_denormalize_hex_fp_value(
 			  a_mantissa_ptr		mp,

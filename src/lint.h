@@ -349,6 +349,27 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_bad_fixed_point_value)*/
 /*lint -esym(769,ec_inexact_fxp_conversion)*/
 /*lint -esym(769,ec_operation_may_not_fit_in_fixed_point_result)*/
+/*lint -esym(769,ec_fixed_template_parameter)*/
+/*lint -esym(769,ec_float_to_fixed_conversion)*/
+/*lint -esym(769,ec_inexact_fixed_conversion)*/
+/*lint -esym(769,ec_fixed_sign_change)*/
+/*lint -esym(769,ec_integer_to_fixed_conversion)*/
+/*lint -esym(759,number_of_bits_in_mantissa)*/
+/*lint -esym(765,number_of_bits_in_mantissa)*/
+/*lint -esym(759,init_mantissa)*/
+/*lint -esym(765,init_mantissa)*/
+/*lint -esym(759,round_hex_fp_value)*/
+/*lint -esym(765,round_hex_fp_value)*/
+/*lint -esym(759,conv_hex_string_to_mantissa_and_exponent)*/
+/*lint -esym(765,conv_hex_string_to_mantissa_and_exponent)*/
+/*lint -esym(759,shift_left_mantissa)*/
+/*lint -esym(765,shift_left_mantissa)*/
+/*lint -esym(759,shift_right_mantissa)*/
+/*lint -esym(765,shift_right_mantissa)*/
+/*lint -esym(759,get_integer_attributes)*/
+/*lint -esym(765,get_integer_attributes)*/
+/*lint -esym(759,mantissa_is_zero)*/
+/*lint -esym(765,mantissa_is_zero)*/
 #endif /* !FIXED_POINT_EXTENSIONS_ALLOWED */
 #if !NAMED_MEMORY_REGIONS_ALLOWED
 /*lint -esym(759,named_memory_regions_allowed)*/
