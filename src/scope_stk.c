@@ -1808,7 +1808,7 @@ The following fixups need to be performed:
      should have the "exclude from context output" flag set so that
      only the context information associated with the innermost scope
      will be included in error output. */
-  for (depth = depth_scope_stack; depth >= orig_depth; depth--) {
+  for (depth = depth_scope_stack; depth > orig_depth; depth--) {
     if (scope_stack[depth].kind == (a_scope_kind)sck_template_instantiation) {
       a_scope_stack_entry_ptr	ssep = scope_stack_entry_for(depth);
       primary_instantiation_depth = depth;
