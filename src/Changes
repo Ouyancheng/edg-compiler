@@ -1,5 +1,18 @@
 Version 3.4
 
+8/18/03  GNU C++ mode: injected template class name as template template
+         argument
+
+According to the standard, an injected class name of a class template
+may only be used as a type template argument.  g++ also allows such a
+name to be used as a template template argument.  We now emulate this
+behavior on g++ mode.
+
+  template <template <class> class T> struct A {};
+  template <class T> struct B {
+    A<B> a;  // accepted in g++ mode
+  };
+
 8/18/03  Compilation problem in il_to_str.c with BACK_END_IS_C_GEN_BE FALSE
 
 il_to_str.c did not compile correctly when both BACK_END_IS_C_GEN_BE

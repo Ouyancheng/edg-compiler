@@ -9333,6 +9333,11 @@ err_pos is the position to be used to report any errors.
   if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL)) {
     sym = coalesce_and_lookup_generalized_identifier(
                                  GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
+    /* In g++ mode, if the symbol found is an injected template symbol,
+       replace it with the template that it represents. */
+    if (gpp_mode && sym != NULL && is_injected_template_symbol(sym)) {
+      sym = class_template_for_injected_template_symbol(sym);
+    }  /* if */
     /* Make sure the symbol found is accessible and unambiguous. */
     check_ambiguity_and_verify_access(&locator_for_curr_id);
     if (err || (sym != NULL && sym->ambiguous)) {
