@@ -502,10 +502,16 @@ return FALSE.
       }  /* while */
     }  /* if */
   } else {
+    if (list_start != NULL && total_errors != 0) {
+      /* There should be no items remaining on the list.  If any errors
+         occurred, the list items may be a result of the errors.  Discard
+         the items on the list.  If no errors have been issued, an internal
+         error will be issued below. */
+      free_pending_pragma_list(list_start);
+      list_start = NULL;
+    }  /* if */
     check_assertion_str2(list_start == NULL, "select_curr_construct_pragmas:",
                          "previous list not NULL");
-    /* Clear the existing list if checking code is not enabled. */
-    free_pending_pragma_list(list_start);
     list_start = NULL;
     list_end = NULL;
   }  /* if */
@@ -1042,16 +1048,17 @@ the pragmas may be applied to each instance of a template.
   *scope_list_addr = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   while (ppp != NULL) {
-    /* If this source sequence entry was never bound to another IL entry,
-       remove it from the source sequence list. */
-    a_src_seq_sublist_ptr  sublist = NULL;
-    check_assertion_str2(ppp->source_sequence_entry != NULL &&
-                         ppp->source_sequence_entry->entity.kind ==
+    if (ppp->source_sequence_entry != NULL) {
+      /* If this source sequence entry was never bound to another IL entry,
+         remove it from the source sequence list. */
+      a_src_seq_sublist_ptr  sublist = NULL;
+      check_assertion_str2(ppp->source_sequence_entry->entity.kind ==
                                              (a_byte_il_entry_kind)iek_none,
-                         "extract_curr_construct_pragmas:",
-                         "source sequence entry already in use");
-    remove_from_source_sequence_list(ppp->source_sequence_entry, &sublist);
-    ppp->source_sequence_entry = NULL;
+                           "extract_curr_construct_pragmas:",
+                           "source sequence entry already in use");
+      remove_from_source_sequence_list(ppp->source_sequence_entry, &sublist);
+      ppp->source_sequence_entry = NULL;
+    }  /* if */
     ppp = ppp->next;
   }  /* while */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
