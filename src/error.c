@@ -1856,6 +1856,9 @@ error code.
     case ec_cfront_name_lookup_bug:
       m = "global %n used instead of %n2 (cfront compatibility)";
       break;
+    case ec_redeclaration_of_template_param_name:
+      m = "template parameter %sq may not be redeclared in this scope";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

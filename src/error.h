@@ -536,7 +536,8 @@ typedef enum /*an_error_code*/ {
   ec_template_param_only_used_in_default_args,
   ec_no_match_for_type_of_overloaded_function,
   ec_nonstd_void_param_list,
-  ec_cfront_name_lookup_bug
+  ec_cfront_name_lookup_bug,
+  ec_redeclaration_of_template_param_name
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -1,5 +1,35 @@
 Version 2.15
 
+2/24/93  Redeclaration of template parameters
+
+An error is issued if a template parameter name is redeclared in
+a class template or function template.  This is only considered
+to be an error if the redeclaration occurs in the outermost scope
+of the template.
+
+Note that a redeclaration in a member function inside the template
+definition gives an error so that functions are treated consistently
+whether the body appears in the class definition or outside the class
+definition.
+  template <class T> struct A {
+    int T;	// error
+    void f() { int T;}	// error
+    void g();
+    struct B {
+      int T;	// OK
+    };
+  };
+
+  template <class T> void g() { int T;}	// error
+
+  template <class T> void f(T)
+  {
+    int  T;	// error
+    {
+      int T;	// OK
+    }
+  }
+
 2/24/93  Dynamic-init entries appear only at file scope
 
 add_to_dynamic_inits_list has been modified to add a dynamic-init entry

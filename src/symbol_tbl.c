@@ -1597,6 +1597,30 @@ be issued by the caller.
 }  /* symbols_may_coexist_in_curr_scope */
 
 
+static a_boolean is_redeclared_template_param(a_scope_depth  scope_depth,
+					      a_symbol_ptr   sym)
+/*
+Look through the template parameters associated with the scope indicated
+by scope depth for a symbol whose header matches the header of sym.
+Return TRUE if a match is found.
+*/
+{
+  a_template_param_ptr	tpp;
+  a_boolean		result = FALSE;
+
+  tpp = scope_stack[scope_depth].template_param_list;
+  check_assertion(tpp != NULL);
+  while (tpp != NULL && !result) {
+    a_symbol_ptr  param_symbol = tpp->param_symbol;
+    if (param_symbol->header == sym->header) {
+      result = TRUE;
+    }  /* if */
+    tpp = tpp->next;
+  }  /* while */
+  return result;
+}  /* is_redeclared_template_param */
+
+
 static void link_symbol_into_symbol_table(a_symbol_ptr  sym_ptr,
                                           a_scope_depth scope_depth,
                                           a_boolean     suppress_error)
@@ -1646,48 +1670,61 @@ the proper insert location.
           old_sym_ptr = old_sym_ptr->next;
         }  /* while */
       }  /* for */
-      /* See if there is already a definition of this identifier in the same
-         scope and name space.  (For name spaces, see C standard, 3.1.2.3.)
-         Because of the code above and because the active list is ordered,
-         if there are any symbols in the same scope they will be at the
-         front of the list.  Note that this test must be done even if
-         suppress_error is TRUE, because tag names must still be entered
-         behind existing non-tag names in C++.  suppress_error is only TRUE
-         when there has already been an error issued, so in practical terms
-         the extra check costs nothing. */
-      sym_name_space_kind = name_space_for_symbol_kind[(int)sym_ptr->kind];
-      for (; old_sym_ptr != NULL && old_sym_ptr->decl_scope == scope_number;
-           old_sym_ptr = old_sym_ptr->next) {
-        if (name_space_for_symbol_kind[(int)old_sym_ptr->kind] ==
+      if (!suppress_error &&
+          scope_stack[scope_depth].template_param_list != NULL &&
+          is_redeclared_template_param(scope_depth, sym_ptr)) {
+        /* A template parameter name has been reused in the first scope
+	   associated with the instantiation that affects the declarative
+           level.  Note that we pass the identifier string to the error
+           routine rather than using the standard symbol name fill-in. 
+           This is done because the variable pointer may not have been
+           filled in at the time the symbol is entered. */
+        pos_st_error(ec_redeclaration_of_template_param_name,
+                     &(sym_ptr->decl_position), sym_ptr->header->identifier);
+      } else {
+        /* See if there is already a definition of this identifier in the same
+           scope and name space.  (For name spaces, see C standard, 3.1.2.3.)
+           Because of the code above and because the active list is ordered,
+           if there are any symbols in the same scope they will be at the
+           front of the list.  Note that this test must be done even if
+           suppress_error is TRUE, because tag names must still be entered
+           behind existing non-tag names in C++.  suppress_error is only TRUE
+           when there has already been an error issued, so in practical terms
+           the extra check costs nothing. */
+        sym_name_space_kind = name_space_for_symbol_kind[(int)sym_ptr->kind];
+        for (; old_sym_ptr != NULL && old_sym_ptr->decl_scope == scope_number;
+             old_sym_ptr = old_sym_ptr->next) {
+          if (name_space_for_symbol_kind[(int)old_sym_ptr->kind] ==
                                                          sym_name_space_kind) {
-          /* Two declarations in the same name space in the same scope:
-             in most cases, this is an error, but in C++, one is allowed to
-             define a tag name and a non-type name in the same scope (see ARM
-             3.2, 3.1c, and 7.1.3).  In cfront and pcc modes a variable is
-	     allowed to hide a function parameter. */
-          if (!symbols_may_coexist_in_curr_scope(old_sym_ptr, sym_ptr,
-                                                 &insert_after,
-						 suppress_error)) {
-            /* Error, this identifier has already been declared. */
-            if (!suppress_error) {
-	      /* Note that we pass the identifier string to the error routine
+            /* Two declarations in the same name space in the same scope:
+               in most cases, this is an error, but in C++, one is allowed to
+               define a tag name and a non-type name in the same scope (see ARM
+               3.2, 3.1c, and 7.1.3).  In cfront and pcc modes a variable is
+  	     allowed to hide a function parameter. */
+            if (!symbols_may_coexist_in_curr_scope(old_sym_ptr, sym_ptr,
+                                                   &insert_after,
+  						 suppress_error)) {
+              /* Error, this identifier has already been declared. */
+              if (!suppress_error) {
+  	      /* Note that we pass the identifier string to the error routine
                  rather than using the standard symbol name fill-in. 
                  This is done because the variable pointer may not have been
-		 filled in at the time the symbol is entered. */
-              pos_st_error((is_type_symbol(sym_ptr) &&
-                            is_type_symbol(old_sym_ptr) &&
-                            C_dialect == C_dialect_cplusplus) ?
+  		 filled in at the time the symbol is entered. */
+                pos_st_error((is_type_symbol(sym_ptr) &&
+                              is_type_symbol(old_sym_ptr) &&
+                              C_dialect == C_dialect_cplusplus) ?
                                                ec_bad_type_name_redeclaration :
                                                ec_id_already_declared,
-                           &(sym_ptr->decl_position),
-                           sym_ptr->header->identifier);
+                             &(sym_ptr->decl_position),
+                             sym_ptr->header->identifier);
+              }  /* if */
             }  /* if */
+            /* Go ahead and enter the symbol anyway.  Both symbols will be
+               in the symbol table. */
+            break;
           }  /* if */
-          /* Go ahead and enter the symbol anyway.  Both symbols will be
-             in the symbol table. */
-          break;
-        }  /* if */
-      }  /* for */
+        }  /* for */
+      }  /* if */
     }  /* if */
     if (insert_after == NULL) {
       /* Link the symbol onto the front of the list in the symbol header.
@@ -5402,6 +5439,7 @@ of the template.
 {
   a_scope_stack_entry_ptr ssep;
   a_scope_ptr             sp = NULL;
+  a_boolean		  reactivate_template_params = FALSE;
 
   db_enter(3, "push_scope");
   if (depth_scope_stack+1 == size_scope_stack) {
@@ -5494,6 +5532,7 @@ of the template.
   ssep->template_arg_list        = template_arg_list;
   ssep->source_position          = pos_curr_token;
   ssep->depth_of_innermost_function_scope = depth_innermost_function_scope;
+  ssep->template_param_list      = NULL;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
@@ -5504,6 +5543,15 @@ of the template.
      scope.  In C++, struct/union/class scopes are real scopes; however,
      class reactivations are not real scopes. */
   if (is_scope_kind_that_affects_declarative_level(kind)) {
+    if (decl_scope_level < depth_innermost_instantiation_scope) {
+      if (scope_stack[depth_innermost_instantiation_scope].
+		template_sym->kind != (a_symbol_kind)sk_static_data_member) {
+        /* Template parameters are considered part of the next scope that
+           affects the declarative level -- except for static data member
+           instantiations for which no such scope exists. */
+        reactivate_template_params = TRUE;
+      }  /* if */
+    }  /* if */
     decl_scope_level = depth_scope_stack;
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
@@ -5536,22 +5584,8 @@ of the template.
     if (kind == (a_scope_kind)sck_template_instantiation) {
       a_template_symbol_supplement_ptr  tssp;
 
-      switch (template_sym->kind) {
-        case sk_class_template:
-        case sk_function_template:
-          tssp = template_sym->variant.template_info;
-          break;
-        case sk_member_function:
-          tssp = template_sym->variant.routine.instance_ptr->template_info;
-          break;
-        case sk_static_data_member:
-          tssp = template_sym->variant.variable.instance_ptr->template_info;
-          break;
-#if CHECKING
-        default:
-          internal_error("push_scope: bad template symbol kind");
-#endif /* CHECKING */
-      }  /* switch */
+      tssp = template_supplement_for_symbol(template_sym);
+      check_assertion(tssp != NULL);
       /* Save the depth of the innermost instantiation scope. */
       depth_innermost_instantiation_scope = depth_scope_stack;
       /* Update the symbols of the template parameters to represent the
@@ -5572,6 +5606,27 @@ of the template.
       inside_local_class = ssep->inside_local_class = FALSE;
       depth_innermost_function_scope =
               ssep->depth_of_innermost_function_scope = NO_SCOPE_DEPTH;
+      if (template_sym->kind == (a_symbol_kind)sk_static_data_member) {
+        /* Static data members don't have their own scope so the
+           template parameters are added at the instantiation scope. */
+        reactivate_template_params = TRUE;
+      }  /* if */
+    }  /* if */
+    if (reactivate_template_params) {
+      /* We want to ensure that the first declarative scope following
+         an instantiation scope does not allow the redeclaration of a
+         template parameter name.  This is done by saving a pointer to
+         the template parameter list in the scope stack entry associated
+         with the scope for which this test must be done.  For template
+         classes and template functions the scope is the next scope
+         that affects the declarative level.  For static data members
+         there is no such scope, but we attach the parameter list to
+         the instantiation scope for consistency. */
+      a_template_symbol_supplement_ptr  tssp;
+      a_symbol_ptr			sym;
+      sym = scope_stack[depth_innermost_instantiation_scope].template_sym;
+      tssp = template_supplement_for_symbol(sym);
+      ssep->template_param_list = tssp->parameters;
     }  /* if */
   }  /* if */
   /* Maintain the depth of the innermost function scope. */
@@ -6292,23 +6347,8 @@ End a name scope by popping an entry off the scope stack.
     a_scope_depth                     prev_depth;
     a_template_symbol_supplement_ptr  tssp;
 
-    switch (ssep->template_sym->kind) {
-      case sk_class_template:
-      case sk_function_template:
-        tssp = ssep->template_sym->variant.template_info;
-        break;
-      case sk_member_function:
-        tssp = ssep->template_sym->variant.routine.instance_ptr->template_info;
-        break;
-      case sk_static_data_member:
-        tssp = ssep->template_sym->
-                         variant.variable.instance_ptr->template_info;
-        break;
-#if CHECKING
-      default:
-        internal_error("pop_scope: bad template symbol kind");
-#endif /* CHECKING */
-    }  /* switch */
+    tssp = template_supplement_for_symbol(ssep->template_sym);
+    check_assertion(tssp != NULL);
     prev_depth = ssep->depth_of_previous_instantiation;
     if (prev_depth == NO_SCOPE_DEPTH) {
       /* Restore the default values of the parameters. */
