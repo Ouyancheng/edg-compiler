@@ -997,7 +997,7 @@ file.  See write_a_memory_region for more information.
       unexpected_condition_str("read_a_memory_region: map failed");
     }  /* if */
     /* Seek past the area just mapped. */
-    if (fseek(f_pch_input, offset + size, SEEK_SET) != 0) {
+    if (fseek(f_pch_input, (long)(offset + size), SEEK_SET) != 0) {
       unexpected_condition_str("read_a_memory_region: fseek error");
     }  /* if */
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */

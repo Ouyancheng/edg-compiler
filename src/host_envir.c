@@ -1959,7 +1959,7 @@ current file position.
 
   curr_pos = (sizeof_t)ftell(file);
   curr_pos = do_page_alignment(curr_pos);
-  if (fseek(file, curr_pos, SEEK_SET) != 0) {
+  if (fseek(file, (long)curr_pos, SEEK_SET) != 0) {
     unexpected_condition_str("seek_to_page_alignment: fseek error");
   }  /* if */
   return curr_pos;

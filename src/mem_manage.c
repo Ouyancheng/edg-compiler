@@ -496,7 +496,7 @@ Free any unallocated space remaining in the indicated memory block.
      host page size. */
   {
     sizeof_t	space_used;
-    a_void_ptr	new_next_avail;
+    char	*new_next_avail;
     space_used = hdr->next_avail_in_block - (char *)hdr;
     space_used = do_page_alignment(space_used);
     new_next_avail = (char *)hdr + space_used;
