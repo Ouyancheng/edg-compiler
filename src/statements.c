@@ -892,6 +892,19 @@ Return a pointer to the nearest enclosing compound statement.
 }  /* nearest_enclosing_compound_statement */
 
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+/*
+Allocate a source sequence entry for statement sp and add it to the list for
+the current function scope.
+*/
+#define stmt_update_source_sequence_list(sp)                     \
+   update_source_sequence_list((char *)(sp), iek_statement,      \
+                               (a_source_position *)NULL);
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+#define stmt_update_source_sequence_list(sp) /* Nothing */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+
 a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
                                           a_source_position  *stmt_pos)
 /*
@@ -1459,6 +1472,7 @@ asm ( "string" ) ;
   check_for_unreachable_code();
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_asm);
+  stmt_update_source_sequence_list(sp);
   sp->variant.asm_entry = asm_declaration(/*asm_decl_allowed=*/TRUE);
 
   db_exit();
@@ -1623,6 +1637,7 @@ See also 3.6.4.1.
   check_for_unreachable_code();
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_if);
+  stmt_update_source_sequence_list(sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_if, sp);
   /* Ignore the initial "if". */
@@ -1680,6 +1695,7 @@ See also 3.6.4.2.
   check_for_unreachable_code();
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_switch);
+  stmt_update_source_sequence_list(sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_switch, sp);
   /* Add a switch block entry to the control_flow_descr_list.  The
@@ -1757,6 +1773,7 @@ See also 3.6.5.1.
   check_loop_unreachable_code();
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_while);
+  stmt_update_source_sequence_list(sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_while, sp);
   /* Ignore the initial "while". */
@@ -1803,6 +1820,7 @@ See also 3.6.5.2.
   check_loop_unreachable_code();
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_end_test_while);
+  stmt_update_source_sequence_list(sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_do, sp);
   /* Ignore the initial "do". */
@@ -1855,6 +1873,7 @@ where handler-seq is a sequence of one or more handlers of the form
   check_for_unreachable_code();
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_try_block);
+  stmt_update_source_sequence_list(sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_try_block, sp);
 #if CHECKING
@@ -1906,6 +1925,7 @@ Scan an expression statement.
   if (expr != NULL) {
     sp = add_statement_at_stmt_pos((a_statement_kind)stmk_expr,
                                    &start_position);
+    stmt_update_source_sequence_list(sp);
     sp->expr = expr;
   }  /* if */
 }  /* expression_statement */
@@ -1964,6 +1984,7 @@ either an expression statement or a declaration statement.
   check_loop_unreachable_code();
   /* Allocate the for statement. */
   sp = add_statement((a_statement_kind)stmk_for);
+  stmt_update_source_sequence_list(sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_for, sp);
   /* Ignore the initial "for". */
@@ -2354,6 +2375,7 @@ See also 3.6.6.1.
   check_for_unreachable_code();
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_goto);
+  stmt_update_source_sequence_list(sp);
   goto_pos = pos_curr_token;
   /* Ignore the initial "goto". */
 #if CHECKING
@@ -2408,6 +2430,7 @@ See also 3.6.6.2.
     }  /* if */
     /* Allocate the goto statement. */
     sp = add_statement((a_statement_kind)stmk_goto);
+    stmt_update_source_sequence_list(sp);
     /* Put the destination label into the goto. */
     sp->variant.label = dest_label;
   }  /* if */
@@ -2476,6 +2499,7 @@ See also 3.6.6.3.
     }  /* if */
     /* Allocate the goto statement. */
     sp = add_statement((a_statement_kind)stmk_goto);
+    stmt_update_source_sequence_list(sp);
     /* Put the destination label into the goto. */
     sp->variant.label = dest_label;
 break_handled:;
@@ -2653,6 +2677,7 @@ See also 3.6.6.4.
   }  /* if */
   /* Allocate the return statement. */
   sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return, &return_pos);
+  stmt_update_source_sequence_list(sp);
   sp->expr = return_expr;
   sp->variant.dynamic_init = dip;
   /* Check for and ignore the final semicolon. */
@@ -3085,6 +3110,7 @@ rescan_statement:
           /* The label has not previously been declared, so put out the
              definition. */
           define_label(label);
+          stmt_update_source_sequence_list(label->variant.exec_stmt);
           /* If there have been forward gotos referencing this label, check
              whether any have jumped over initializing declarations. */
           check_for_jump_over_initialization(label->variant.exec_stmt,
