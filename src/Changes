@@ -1,5 +1,12 @@
 Version 2.33
 
+7/1/96  Microsoft compatibility: [0] in C mode
+
+In Microsoft mode, [0] is allowed as an alternative to the usual [] as
+part of the extension that allows a member that is an incomplete array
+as the last member of a struct.  The [0] syntax was previously allowed
+only in C++ mode; now it is also allowed in C mode.
+
 7/1/96  Microsoft compatibility: void/scalar as operands of "?"
 
 In Microsoft mode, the "?" operator now allows a scalar and a void operand
