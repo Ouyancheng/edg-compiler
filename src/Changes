@@ -1,5 +1,15 @@
 Version 2.19
 
+6/18/93  Modified IL for exception handling support
+
+The following have been added to the intermediate language:
+  - statement kind stmk_try_block,
+  - expression node kind enk_throw,
+  - new data structures a_handler and an_exception_specification
+  - in a_type: new flag used_in_exception
+  - in a_routine: new pointer exception_specifications
+  - in a_scope: new variant field (for sck_block) parameter
+
 -------------------------------------------------------------------------------
 Version 2.18, June 18, 1993
 
