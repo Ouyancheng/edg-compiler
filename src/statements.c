@@ -5483,6 +5483,14 @@ Scan a case label definition.  The syntax is:
        can cause an error if the selector type is "int" and the case
        label value is in the "long" range. */
     if (sssep != NULL) {
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      an_expr_node_ptr expr = NULL;
+      if (!identical_types(constant.type, sssep->switch_selector_type)) {
+        /* Record the original constant as the expression the converted
+           constant came from. */
+        expr = alloc_node_for_constant(&constant);
+      }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       type_change_constant(&constant, sssep->switch_selector_type,
                            /*is_implicit_cast=*/TRUE,
                            /*constant_context=*/TRUE,
@@ -5491,6 +5499,10 @@ Scan a case label definition.  The syntax is:
                            /*is_reinterpret_cast=*/FALSE,
                            /*maintain_expression=*/TRUE,
                            &did_not_fold, &error_position);
+      check_assertion(!did_not_fold);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      constant.expr = expr;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
     /* Allocate a copy of the case constant. */
     constant_ptr = alloc_unshared_constant(&constant);

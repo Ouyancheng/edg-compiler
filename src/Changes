@@ -1,5 +1,11 @@
 Version 2.46
 
+3/1/01   RECORD_CONSTANT_EXPRESSIONS_IN_IL: switch case constants
+
+When RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, switch case constants
+that are implicitly converted to the switch expression type now have
+a recorded expression that gives the original unconverted constant.
+
 3/1/01   C-generating back end: VLA declarations in middle of blocks
 
 The C-generating back end now puts out an extra set of braces around
