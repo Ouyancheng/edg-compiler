@@ -1,5 +1,12 @@
 Version 3.5
 
+5/28/04  Embedded C: diagnostic on conversion of negative zero to fixed-point
+
+A diagnostic was issued if a floating-point negative zero was converted to
+an unsigned fixed-point type.  Now fixed.
+
+  unsigned _Fract f = -0.0;
+
 5/27/04  Embedded C: spurious loss of precision warning
 
 The conversion of a floating-point zero to fixed-point could result in

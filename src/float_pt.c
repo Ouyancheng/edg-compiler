@@ -1231,8 +1231,9 @@ adjusted to make the implicit bit explicit.
     unexpected_condition_str("load_hex_fp_value: bad float kind");
   }  /* if */
   if (mantissa_is_zero(mp)) {
-    /* Reset the exponent if the value is zero. */
+    /* Reset the exponent and the is_negative flag if the value is zero. */
     *exponent = 0;
+    *is_negative = FALSE;
   } else {
     if (restore_implicit_bit &&
         (kind != (a_float_kind)fk_long_double ||
