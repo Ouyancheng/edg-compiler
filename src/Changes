@@ -1,5 +1,11 @@
 Version 2.44
 
+3/3/00   Small change in lower_il.c for compilation as strict C++
+
+A small change was made in lower_il.c to make the code there compile
+as strict C++.  The code in question is only included when
+ONE_INSTANTIATION_PER_OBJECT is defined.
+
 3/2/00   Microsoft compatibility: multiple initializations of anonymous
          union members
 

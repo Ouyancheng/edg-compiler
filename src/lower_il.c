@@ -12440,7 +12440,7 @@ files can reference it.
 */
 {
   sizeof_t name_len, prefix_len, module_id_len;
-  char     *prefix = (is_variable ? "__STV__" : "__STF__");
+  char     *prefix = (is_variable ? (char *)"__STV__" : (char *)"__STF__");
   char     *module_id = make_module_id();
   char     *name, *new_name, *ptr;
   char     buffer[50];
