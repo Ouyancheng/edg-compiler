@@ -6106,6 +6106,14 @@ Scan the body of a class definition, including the base classes list.
             /* Don't just skip on to the next declaration --
                decl_nonstatic_data_member needs to be called. */
           } else {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+            if (local_declares_something) {
+              /* This is a free-standing declaration of a class, struct,
+                 union, or enum. */
+              set_autonomous_tag_decl_flag(member_type,
+                                           local_defines_something);
+            }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
             /* The lint "argsused" and "varargs" flags last only one
                declaration; clear them before consuming the semicolon. */
             clear_decl_lint_and_pragma_globals();
@@ -7309,7 +7317,14 @@ skip_tag_scan:
          default member access. */
       class_type->kind = type_kind;
     } else {
-      mark_referenced(tag_sym, &locator.source_position);
+      if (curr_token == tok_semicolon) {
+        /* A declaration of the form "class A;", when A has already been
+           declared, is treated as a redeclaration. */
+        mark_declared(tag_sym, &locator.source_position);
+      } else {
+        mark_referenced(tag_sym, &locator.source_position);
+        *declares_something = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (is_class_definition) {
