@@ -34,7 +34,11 @@ Enter the macros that are needed when running the front end on
 Linux using the gcc/g++ header files.
 */
 {
-  (void)enter_predef_macro("1", "unix", /*cannot_be_redefined=*/TRUE,
+  if (!strict_ansi_mode) {
+    (void)enter_predef_macro("1", "unix", /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
+  (void)enter_predef_macro("1", "__unix__", /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
   (void)enter_predef_macro("int", "__PTRDIFF_TYPE__",
                            /*cannot_be_redefined=*/TRUE,
@@ -66,12 +70,14 @@ static void enter_sparc_predefined_macros(void)
 Enter the standard predefined macros for a SPARC system.
 */
 {
-  (void)enter_predef_macro("1", "unix", /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
-  (void)enter_predef_macro("1", "sun", /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
-  (void)enter_predef_macro("1", "sparc", /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+  if (!strict_ansi_mode) {
+    (void)enter_predef_macro("1", "unix", /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    (void)enter_predef_macro("1", "sun", /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    (void)enter_predef_macro("1", "sparc", /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
 }  /* enter_sparc_predefined_macros */
 
 #endif /* ifdef sparc */

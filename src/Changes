@@ -1,5 +1,10 @@
 Version 2.45
 
+11/16/00 On Linux, __unix__ predefined instead of unix
+
+When the front end is compiled on a Linux system, the macro __unix__
+is now defined.
+
 11/15/00 Predefined macros on SPARC systems
 
 When the front end is compiled on a SPARC system, the macros
