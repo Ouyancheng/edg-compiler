@@ -7453,7 +7453,7 @@ for the previous operand.
                                                             return_type);
           }  /* for */
         }  /* if */
-        if (*specific_type != orig_specific_type) {
+        if (!identical_types(*specific_type, orig_specific_type)) {
           /* We came up with a different type.  Make sure we haven't handled
              this new type previously.  If we have, go back to the original
              type, because using this new type would repeat a previous analysis
