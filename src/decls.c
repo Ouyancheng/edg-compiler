@@ -2626,7 +2626,8 @@ void update_routine_decl_modifiers(a_routine_ptr               routine,
                                    a_decl_modifiers_block_ptr  new_modifiers,
                                    a_source_position           *position,
                                    a_boolean                   is_redecl,
-                                   a_boolean                   is_definition)
+                                   a_boolean                   is_definition,
+                                   a_boolean                   is_inline)
 /*
 Update the decl_modifiers field of the routine entry to reflect the
 modifiers specified in new_modifiers.  If this is a redeclaration or
@@ -2639,30 +2640,53 @@ diagnostics.
   a_boolean        any_invalid_redecl, invalid_modifier, invalid_redecl;
   int              bit_number;
   a_decl_modifier  modifier_value;
+  a_boolean        implicit_dllexport;
 
   /* Loop through the bits in the new_modifiers bit vector and process the
      modifiers associated with the bits that are set. */
-  if (new_modifiers->flags != DM_NONE) {
+  if (routine->is_inline) is_inline = TRUE;
+  implicit_dllexport = is_definition && is_redecl && !is_inline &&
+                       routine->decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT);
+  if (new_modifiers->flags != DM_NONE || implicit_dllexport) {
     any_invalid_redecl = FALSE;
     for (bit_number = 0; bit_number < (int)dmt_last; ++bit_number) {
       modifier_value = (1 << bit_number);
-      if ((new_modifiers->flags & modifier_value) != 0) {
-        /* This bit is set. */
+      if ((new_modifiers->flags & modifier_value) != 0 ||
+          (implicit_dllexport && bit_number == (int)dmt_dllexport)) {
+        /* This bit is set -- or, if this is a non-inline function definition,
+           pretend the dllexport bit is set. */
         invalid_modifier = FALSE;
         invalid_redecl = FALSE;
         switch (bit_number) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
           case dmt_dllimport:
+            if (is_definition && !is_inline) {
+              /* This is an error.  A function with dllimport specified on its
+                 definition has to be inline. */
+              invalid_modifier = TRUE;
+              break;
+            }  /* if */
+            /*FALLTHROUGH*/
           case dmt_dllexport:
-            /* Any previous declaration must have been declared
-               with either dllimport or dllexport. */
-            if (is_redecl &&
-                !(routine->decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT))) {
-              invalid_redecl = TRUE;
+            if (is_redecl) {
+              if (!(routine->decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT))) {
+                /* Any previous declaration should have been declared
+                   with either dllimport or dllexport.  Issue a warning. */
+                invalid_redecl = TRUE;
+              } else if (!((DM_DLLIMPORT | DM_DLLEXPORT) &
+                           routine->decl_modifiers &
+                           new_modifiers->flags)) {
+                /* The current declaration is inconsistent with a previous
+                   declaration.  Issue a warning. */
+                invalid_redecl = TRUE;
+              }  /* if */
             }  /* if */
             break;
           case dmt_naked:
-            if (!is_definition) invalid_modifier = TRUE;
+            if (!is_definition) {
+              invalid_modifier = TRUE;
+              new_modifiers->flags &= (~modifier_value);
+            }  /* if */
             break;
           case dmt_microsoft_inline:
           case dmt_forceinline:
@@ -2672,12 +2696,9 @@ diagnostics.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           default:
             invalid_modifier = TRUE;
+            new_modifiers->flags &= (~modifier_value);
             break;
         }  /* switch */
-        /* If this modifier is invalid, reset the bit in the new modifiers. */
-        if (invalid_modifier || invalid_redecl) {
-          new_modifiers->flags &= (~modifier_value);
-        }  /* if */
         if (invalid_modifier) {
           pos_st_diagnostic(es_discretionary_error,
                             ec_decl_modifiers_invalid_for_this_decl,
@@ -2687,9 +2708,7 @@ diagnostics.
       }  /* if */
     }  /* for */
     if (any_invalid_redecl) {
-      pos_diagnostic(es_discretionary_error,
-                     ec_decl_modifiers_incompatible_with_previous_decl,
-                     position);
+      pos_warning(ec_decl_modifiers_incompatible_with_previous_decl, position);
     }  /* if */
     /* Update the routine entry with any valid modifiers that were found. */
     routine->decl_modifiers |= new_modifiers->flags;
@@ -4835,7 +4854,8 @@ skip_overloading:;
   source_corresp_ptr = &routine_ptr->source_corresp;
   update_routine_decl_modifiers(routine_ptr, decl_modifiers,
                                 &locator->source_position, redeclaration,
-                                is_function_def);
+                                is_function_def,
+                                (a_boolean)func_info->is_inline);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && func_info->is_main_function) {
     /* main should use __cdecl calling convention.  If that's not the default
@@ -5471,7 +5491,8 @@ is not a template declaration scope.
   }  /* if */
   update_routine_decl_modifiers(rout_ptr, decl_modifiers,
                                 &locator->source_position, redeclaration,
-                                (a_boolean)func_info->is_definition);
+                                (a_boolean)func_info->is_definition,
+                                (a_boolean)func_info->is_inline);
   if (overload_symbol != NULL && guiding_decls_allowed) {
     /* A new symbol was added to an overload list which may have included
        functions that were specific declarations of the current template.

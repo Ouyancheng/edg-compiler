@@ -372,7 +372,8 @@ void update_routine_decl_modifiers(a_routine_ptr               routine,
                                    a_decl_modifiers_block_ptr  new_modifiers,
                                    a_source_position           *position,
                                    a_boolean                   is_redecl,
-                                   a_boolean                   is_definition);
+                                   a_boolean                   is_definition,
+                                   a_boolean                   is_inline);
 
 extern
 void update_variable_decl_modifiers(a_variable_ptr              variable,
@@ -381,7 +382,7 @@ void update_variable_decl_modifiers(a_variable_ptr              variable,
                                     a_boolean                   is_redecl);
 #else /* !DECL_MODIFIERS_IN_USE */
 /* Define these as macros that expand to nothing. */
-#define update_routine_decl_modifiers(a,b,c,d,e) /* nothing */
+#define update_routine_decl_modifiers(a,b,c,d,e,f) /* nothing */
 #define update_variable_decl_modifiers(a,b,c,d) /* nothing */
 #endif /* !DECL_MODIFIERS_IN_USE */
 

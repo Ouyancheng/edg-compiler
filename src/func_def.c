@@ -1500,7 +1500,8 @@ on a prior declaration.
     }  /* if */
     update_routine_decl_modifiers(rp, decl_modifiers,
                                   &locator->source_position,
-                                  /*is_redecl=*/TRUE, /*is_definition=*/TRUE);
+                                  /*is_redecl=*/TRUE, /*is_definition=*/TRUE,
+                                  (a_boolean)func_info->is_inline);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Mark the routine to indicate that, though really belonging to the
        scope of its parent class, it is defined elsewhere. */
@@ -1810,14 +1811,6 @@ associated with the function is returned.
   if (!has_explicit_type_specifier) {
     flags |= SFB_IMPLICITLY_DECLARED_RETURN_TYPE;
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  /* A function declared __declspec(dllimport) cannot be defined unless it
-     is "inline". */
-  if (!routine_ptr->is_inline &&
-      (routine_ptr->decl_modifiers & DM_DLLIMPORT)) {
-    pos_error(ec_cannot_define_dllimport_function, &pos_curr_token);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   scan_function_body(routine_ptr, func_info, flags);
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
   /* Save the symbol associated with the most recent constructor or

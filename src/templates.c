@@ -5809,7 +5809,8 @@ type based on the template argument list and the template parameter list
     clear_decl_modifiers_block(&decl_modifiers);
     decl_modifiers.flags = templ_rout->decl_modifiers;
     update_routine_decl_modifiers(rp, &decl_modifiers, &locator_position,
-                                  /*is_redecl=*/FALSE, /*is_definition=*/TRUE);
+                                  /*is_redecl=*/FALSE, /*is_definition=*/TRUE,
+                                  (a_boolean)rp->is_inline);
     }
 #endif /* DECL_MODIFIERS_IN_USE */
     /* Add it to the routines list of the appropriate scope; NO_SCOPE_DEPTH
@@ -13496,7 +13497,9 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
         update_routine_decl_modifiers(
                              new_sym->variant.routine.ptr, &decl_modifiers,
                              &locator.source_position, /*is_redecl=*/FALSE,
-                             (kind != (a_pragma_kind)pk_do_not_instantiate));
+                             (kind != (a_pragma_kind)pk_do_not_instantiate),
+                             (a_boolean)new_sym->
+                                          variant.routine.ptr->is_inline);
 #endif /* DECL_MODIFIERS_IN_USE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (!is_pragma) {

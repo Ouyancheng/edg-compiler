@@ -5929,7 +5929,8 @@ declared member functions.
     update_routine_decl_modifiers(rtn, &decl_info->decl_modifiers,
                                   &locator->source_position,
                                   /*is_redecl=*/FALSE,
-                                  (a_boolean)func_info->is_definition);
+                                  (a_boolean)func_info->is_definition,
+                                  (a_boolean)func_info->is_inline);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!compiler_generated) {
@@ -6403,7 +6404,8 @@ in-class member function declarations.)
     update_routine_decl_modifiers(rtn, &decl_info->decl_modifiers,
                                   &locator->source_position,
                                   /*is_redecl=*/FALSE,
-                                  (a_boolean)func_info->is_definition);
+                                  (a_boolean)func_info->is_definition,
+                                  (a_boolean)func_info->is_inline);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   decl_info->member_sym = sym;
