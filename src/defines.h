@@ -63,9 +63,6 @@ Flags to be set for any version that uses the C++ generating back end.
 #define INCLUDE_EDG_TEST_PRAGMAS 1
 #define RECORD_HIDDEN_NAMES_IN_IL 1
 #define RECORD_TEMPLATES_IN_IL 1
-#ifndef BACK_END_IS_CP_GEN_BE
-#define RECORD_MACROS_IN_IL 1
-#endif /* ifndef BACK_END_IS_CP_GEN_BE */
 #define KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED TRUE
 #define MICROSOFT_EXTENSIONS_ALLOWED 1
 /* Use 1 for mmap PCH, 0 for non-mmap PCH. */
