@@ -649,12 +649,12 @@ null-terminated, the null-terminator will be included in "size".
 */
 typedef struct a_text_buffer *a_text_buffer_ptr;
 typedef struct a_text_buffer {
-  size_t	allocated_size;
+  sizeof_t	allocated_size;
 			/* The size in bytes of the memory allocated for the
 			   buffer. */
-  size_t	size;
+  sizeof_t	size;
 			/* The number of characters currently in the buffer. */
-  size_t	allocation_increment;
+  sizeof_t	allocation_increment;
 			/* Initially, this is the size of the initial memory
 			   allocation for the buffer.  Each time the buffer
 			   is reallocated, this size is doubled. */
@@ -1832,7 +1832,7 @@ If not, expand the buffer by reallocating it.
 */
 #define ensure_text_buffer_space(buf, length)			\
 { if ((length) > (buf)->allocated_size) {				\
-    expand_text_buffer(buf, length);					\
+    expand_text_buffer(buf, (sizeof_t)(length));			\
   }  /* if */							\
 }  /* ensure_text_buffer_space */
 

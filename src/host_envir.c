@@ -2855,7 +2855,7 @@ Add "dir_name" to the end of the directory name specified by "buf".
         add_char_to_text_buffer(buf, DIRECTORY_SEPARATOR);
       }  /* if */
       /* Add the directory name to the buffer. */
-      add_to_text_buffer(buf, dir_start, length);
+      add_to_text_buffer(buf, dir_start, (sizeof_t)(length));
     }  /* if */
   }   /* while */
 }  /* append_dir_name */
