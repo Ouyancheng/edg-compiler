@@ -256,7 +256,7 @@ created for this entity; otherwise, it is NULL.
       /* This is a redefinition -- allowed for C variables at file scope, for
          macros, and for C++ typedefs. */
       if (C_mode() && sym_ptr->kind == (a_symbol_kind)sk_variable &&
-          !(srk_flags & SRK_TENTATIVE_DEF)) {
+          !is_tentative_def) {
         /* This must be an initializing definition following a tentative
            definition. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
