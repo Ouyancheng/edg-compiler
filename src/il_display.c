@@ -1952,6 +1952,7 @@ Display the indicated variable.
                        (unsigned long)ptr->instantiation_needed_bit_number);
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  /* remapping_for_inlining is a front-end-only field. */
 #ifdef FFE
   if (ptr->storage_class == (a_storage_class)sc_associated ||
       ptr->storage_class == (a_storage_class)sc_pointer_based) {

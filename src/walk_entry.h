@@ -959,6 +959,9 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_string_ptr(ptr->allocate_segname, iek_other_text, 0);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MINIMAL_INLINING
+        conditionally_clear_fe_pointer(ptr->remapping_for_inlining);
+#endif /* MINIMAL_INLINING */
 #ifdef FFE
         remap_ptr(ptr->base_var, a_variable_ptr, iek_variable);
         remap_ptr(ptr->function_result_var_function, a_routine_ptr,

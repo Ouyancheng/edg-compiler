@@ -108,6 +108,7 @@ the last entry is not known; it is updated on return.
   vrip->next = NULL;
   *p_last_remap = vrip;
   vrip->orig_variable = var;
+  var->remapping_for_inlining = vrip;
   vrip->kind = vrk_none;
   vrip->arg_expr = NULL;
   vrip->orig_temporary = NULL;
@@ -134,6 +135,7 @@ the available list.
     vrip_next = vrip->next;
     vrip->next = avail_variable_remappings_for_inlining;
     avail_variable_remappings_for_inlining = vrip;
+    vrip->orig_variable->remapping_for_inlining = NULL;
   }  /* for */
   variable_remappings_for_inlining = NULL;
 }  /* free_variable_remappings_for_inlining */
@@ -669,15 +671,11 @@ If so, return a pointer to the remapping entry.  If not, return NULL.
 {
   a_variable_remapping_for_inlining_ptr vrip;
 
-  /* Look at each variable remapping on the list. */
-  for (vrip = variable_remappings_for_inlining;
-       vrip != NULL;
-       vrip = vrip->next) {
-    if (vrip->kind != vrk_none && vrip->orig_variable == var) {
-      /* Found the remapping. */
-      break;
-    }  /* if */
-  }  /* for */
+  vrip = var->remapping_for_inlining;
+  if (vrip != NULL) {
+    check_assertion(vrip->orig_variable == var);
+    if (vrip->kind == vrk_none) vrip = NULL;
+  }  /* if */
   return vrip;
 }  /* get_var_remapping_for_inlining */
 

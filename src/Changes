@@ -1,5 +1,11 @@
 Version 3.0
 
+3/24/02  Performance problem with inlining
+
+Some performance problems with inlining have been resolved.  They
+involved constructor calls in exceedingly deep class hierarchies
+(e.g., depth > 100).
+
 3/21/02  C++-generating back end, casts to dependent types in prototype
          instantiations
 

@@ -1674,6 +1674,9 @@ to it.
 #if ONE_INSTANTIATION_PER_OBJECT
   vp->instantiation_needed_bit_number = 0;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if MINIMAL_INLINING
+  vp->remapping_for_inlining      = NULL;
+#endif /* MINIMAL_INLINING */
 #ifdef FIL
   vp->by_address                  = FALSE;
   vp->base_var                    = NULL;

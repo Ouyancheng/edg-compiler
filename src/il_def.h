@@ -82,6 +82,10 @@ typedef struct a_namespace   *a_namespace_ptr;
 typedef struct a_scope       *a_scope_ptr;
 typedef struct a_routine_fixup
                              a_routine_fixup_dummy_typedef;
+#if MINIMAL_INLINING
+typedef struct a_variable_remapping_for_inlining
+			     a_variable_remapping_for_inlining_dummy_typedef;
+#endif /* MINIMAL_INLINING */
 typedef struct a_template_decl *a_template_decl_ptr;
 typedef struct a_template *a_template_ptr;
 #if DO_IL_LOWERING
@@ -5468,6 +5472,13 @@ typedef struct a_variable {
 			   associated with this (static data member) variable.
 			   0 if there is no associated bit. */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if MINIMAL_INLINING
+  struct a_variable_remapping_for_inlining
+		*remapping_for_inlining;
+			/* If non-NULL, points to information about remapping
+			   that currently applies to this variable for copies
+			   done for inlining.  Front end only. */
+#endif /* MINIMAL_INLINING */
 #ifdef FIL
   a_variable_ptr
                 base_var;
