@@ -2561,8 +2561,10 @@ check_next_ssep:
     } else {
       /* See what kind of entity follows the tag definition; get the type
          with which it was declared. */
+      a_type_ptr  bottom_of_tp;
       tp = type_from_src_seq_declaration(next_ssep);
-      if (tp == NULL || !same_entities(find_bottom_of_type(tp), tag_type)) {
+      bottom_of_tp = find_bottom_of_type(tp);
+      if (tp == NULL || !same_entities(bottom_of_tp, tag_type)) {
         /* This is not an entity that was declared with the tag; the tag
            should be marked as autonomous.  Sometimes this will not be
            quite right -- some weird cases in C mode, such as

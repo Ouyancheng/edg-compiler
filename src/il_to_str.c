@@ -2204,11 +2204,14 @@ and standalone utility programs.
     /* Continue at the next level for pointers. */
     types_match = types_match_ignoring_qualifiers(type_pointed_to(type_1),
                                                   type_pointed_to(type_2));
-  } else if (type_1->kind == (a_type_kind)tk_ptr_to_member &&
-             same_entities(pm_class_type(type_1), pm_class_type(type_2))) {
-    /* Continue at the next level for pointers to members. */
-    types_match = types_match_ignoring_qualifiers(pm_member_type(type_1),
-                                                  pm_member_type(type_2));
+  } else if (type_1->kind == (a_type_kind)tk_ptr_to_member) {
+    a_type_ptr  class_type_1 = pm_class_type(type_1);
+    a_type_ptr  class_type_2 = pm_class_type(type_2);
+    if (same_entities(type_1, type_2)) {
+      /* Continue at the next level for pointers to members. */
+      types_match = types_match_ignoring_qualifiers(pm_member_type(type_1),
+                                                    pm_member_type(type_2));
+    }  /* if */
   } else if (!C_mode() &&
              type_1->kind == (a_type_kind)tk_array &&
              !has_unknown_specified_bound(type_1) &&
@@ -2642,6 +2645,7 @@ precedence confusion.  Do the output in the way described by octl.
 {
   a_type_ptr       orig_type = constant->type;
   a_type_ptr       con_type, desired_type, achieved_type;
+  a_type_ptr       direct_desired_type, direct_achieved_type;
   a_targ_ptrdiff_t offset, dummy_offset;
   a_boolean        cast_to_nonpointer = FALSE, type_decay_used;
   a_boolean        need_ampersand_paren = FALSE;
@@ -2724,9 +2728,10 @@ precedence confusion.  Do the output in the way described by octl.
     if (need_char_star_cast) final_cast_needed = TRUE;
   }  /* if */
   /* See if we need a final cast to the desired type. */
+  direct_achieved_type = skip_typedefs(achieved_type);
+  direct_desired_type = skip_typedefs(desired_type);
   if (desired_type == NULL ||
-      !same_entities(skip_typedefs(achieved_type),
-                     skip_typedefs(desired_type))) {
+      !same_entities(direct_achieved_type, direct_desired_type)) {
     if (!constant->implicit_cast &&
         constant->variant.address.kind == (an_address_base_kind)abk_routine) {
       /* Function declarators don't get shared, so a pointer equality test
@@ -3661,6 +3666,7 @@ there's any possibility of precedence confusion.  Do the output in the
 way described by octl.
 */
 {
+  a_type_ptr  object_type, element_type;
   if (constant->kind == (a_constant_repr_kind)ck_address &&
       /* Suppress this special processing on something like *"abcd", because
          gcc 2.95.2 issues a warning on storing into "abcd"[0] but not on
@@ -3674,10 +3680,10 @@ way described by octl.
                                              (a_constant_repr_kind)ck_string &&
         constant->variant.address.offset == 0 &&
         is_pointer_type(constant->type) &&
-        same_entities(
-                type_pointed_to(constant->type),
-                array_element_type(
-                         constant->variant.address.variant.constant->type)))) {
+        (object_type = type_pointed_to(constant->type),
+         element_type = array_element_type(
+                            constant->variant.address.variant.constant->type),
+         same_entities(object_type, element_type)))) {
     /* An address constant (the usual case).  Drop one level of "&". */
     form_address_constant(constant, /*form_lvalue=*/TRUE, need_parens, octl);
   } else if (constant->kind == (a_constant_repr_kind)ck_template_param &&

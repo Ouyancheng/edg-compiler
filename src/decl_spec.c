@@ -3546,16 +3546,18 @@ is a that of a constructor.
          constructor declaration.  The syntax looks like a constructor
          declaration, so do a lookup to see if it's a typedef name for the
          current class. */
+      a_type_ptr  sym_type = NULL;
       sym = normal_id_lookup(&locator_for_curr_id,
                              IDL_TENTATIVE_TYPE_LOOKUP |
                              IDL_DO_NOT_ADD_TO_NONREAL_CLASS |
                              IDL_DO_NOT_CREATE_PROJ_SYM);
       if (sym != NULL && sym->kind == (a_symbol_kind)sk_type &&
-          same_entities(skip_typerefs(sym->variant.type.ptr), class_type) &&
           !sym->ambiguous) {
+        sym_type = skip_typerefs(sym->variant.type.ptr);
+      }  /* if */
+      if (sym_type != NULL && same_entities(sym_type, class_type)) {
         /* Note that qualifiers on the typedef name are ignored -- this
            corresponds to MSVC++ behavior. */
-        /* name_match = TRUE; */
       } else {
         is_constructor = FALSE;
       }  /* if */
@@ -3575,11 +3577,12 @@ is a that of a constructor.
            the class symbol.  This might be okay, but it has to be checked
            carefully. */
         if (sym != NULL) {
+          a_type_ptr  sym_type;
           if (is_constructor_symbol(sym)) {
             /* Okay. */
           } else if (sym->kind == (a_symbol_kind)sk_type &&
-                     same_entities(f_skip_typerefs(sym->variant.type.ptr),
-                                   class_type)) {
+                     (sym_type = f_skip_typerefs(sym->variant.type.ptr),
+                      same_entities(sym_type, class_type))) {
             /* There is a typedef for the class type with the same name as
                the class.  It was found instead of the class on the lookup.
                That's okay. */
@@ -5547,18 +5550,19 @@ process_class_specifier:
             /* This identifier appears to specify a constructor. */
             a_type_ptr    tp = type_symbol_type(curr_token_type_symbol);
             a_symbol_ptr  sym = symbol_supplement_for_class(tp)->constructor;
-
-            if (sym != NULL &&
-                same_entities(
-                  skip_typerefs(locator_for_curr_id.parent.class_type), tp)) {
-              *output_flags |= DSO_CONSTRUCTOR;
-              if (!any_decl_specifiers_seen) {
-                *output_flags |= DSO_NO_DECL_SPECIFIERS;
+            if (sym != NULL) {
+              a_type_ptr  curr_id_parent = skip_typerefs(
+			               locator_for_curr_id.parent.class_type);
+              if (same_entities(curr_id_parent, tp)) {
+                *output_flags |= DSO_CONSTRUCTOR;
+                if (!any_decl_specifiers_seen) {
+                  *output_flags |= DSO_NO_DECL_SPECIFIERS;
+                }  /* if */
+                basic_type = bt_no_type;
+                locator_for_curr_id.specific_symbol = sym;
+                locator_for_curr_id.symbol_header = sym->header;
+                goto exit_loop;
               }  /* if */
-              basic_type = bt_no_type;
-              locator_for_curr_id.specific_symbol = sym;
-              locator_for_curr_id.symbol_header = sym->header;
-              goto exit_loop;
             }  /* if */
           }  /* if */
           if (sign != sign_none || size != size_none) {

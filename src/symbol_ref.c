@@ -689,10 +689,12 @@ type specifier when put out by the C++-generating back end.
   if (old_sym_ptr != NULL) {
     /* old_sym_ptr is a tag with the same name as sym_ptr and in the
        same or a containing scope. */
+    a_type_ptr  sym_type;
     if (sym_ptr->kind == (a_symbol_kind)sk_type &&
         typeref_is_typedef(sym_ptr->variant.type.ptr) &&
-        same_entities(skip_typerefs(sym_ptr->variant.type.ptr),
-                      old_sym_ptr->variant.class_struct_union.type)) {
+        (sym_type = skip_typerefs(sym_ptr->variant.type.ptr),
+         same_entities(sym_type,
+                       old_sym_ptr->variant.class_struct_union.type))) {
       /* sym_ptr is a typedef that refers the type represented by
          old_sym_ptr -- something like "typedef struct S { ... } S;"
          There's no need to generate hidden-name info for this common

@@ -6954,7 +6954,6 @@ declaration rather than a constructor reference.
 */
 {
   a_param_type_ptr  ptp;
-  a_type_ptr        tp;
   a_boolean         is_cctor = FALSE;
 
   /* A constructor is deemed a copy constructor if (1) the type of the first
@@ -6970,8 +6969,9 @@ declaration rather than a constructor reference.
      for. */
   if (ptp != NULL && is_reference_type(ptp->type) &&
       (ptp->next == NULL || ptp->next->has_default_arg)) {
-    tp = type_pointed_to(ptp->type);
-    if (same_entities(skip_typerefs(tp), class_of_which_a_member)) {
+    a_type_ptr  tp = type_pointed_to(ptp->type);
+    a_type_ptr  unqualified_tp = skip_typerefs(tp);
+    if (same_entities(unqualified_tp, class_of_which_a_member)) {
       /* It is probably a copy constructor. */
       is_cctor = TRUE;
       if (!is_declarative_context) {
