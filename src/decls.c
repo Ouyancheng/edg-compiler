@@ -107,7 +107,7 @@ might result from class template names that are missing argument lists.
         /* Symbol was found, but it is not a type name symbol.  Return NULL. */
         assoc_symbol = NULL;
         /* Clear the specific_symbol pointer in the locator, to avoid
-           biasing subseqent lookup of this identifier. */
+           biasing subsequent lookup of this identifier. */
         clear_specific_symbol(locator_for_curr_id);
       }  /* if */
     }  /* if */
@@ -1571,7 +1571,8 @@ by id_linkage.
           }  /* if */
         }  /* if */
       }  /* for */
-      if (other_decl == NULL && function_template_seen) {
+      if (other_decl == NULL && function_template_seen &&
+          (guiding_decls_allowed || is_friend_decl)) {
         /* We didn't find a match, but there was at least one function
            template.  See if it either provides a match with an
            existing instance of the template or if a new instance can
@@ -4624,7 +4625,7 @@ is not a template declaration scope.
   update_routine_decl_modifiers(rout_ptr, decl_modifiers,
                                 &locator->source_position, redeclaration,
                                 (a_boolean)func_info->is_definition);
-  if (overload_symbol != NULL) {
+  if (overload_symbol != NULL && guiding_decls_allowed) {
     /* A new symbol was added to an overload list which may have included
        functions that were specific declarations of the current template.
        For instance,
@@ -4644,7 +4645,8 @@ is not a template declaration scope.
         record_predeclared_template_function(sym, rout_sym, templ_param_list);
       }  /* if */
     }  /* for */
-  } else if (changed_to_inline) {
+  }  /* if */
+  if (changed_to_inline) {
     /* An existing template function has been redeclared and this time it's
        inline.  Be sure that "inline" and storage class are propagated
        through the instances. */
@@ -4676,7 +4678,7 @@ is not a template declaration scope.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (!sym->is_class_member) {
+  if (!sym->is_class_member && guiding_decls_allowed) {
     /* The overload list for the current scope has been searched for previous
        declarations that now appear to be instances of the template, but we
        also need to check for block-extern declarations that fall into the
