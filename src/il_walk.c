@@ -67,6 +67,7 @@ static unsigned int
 typedef char	*a_char_ptr;
 			/* Useful to indicate "char *" as a type in calling
 			   remap_ptr or walk_ptr. */
+			/*lint -esym(751,a_char_ptr)*/
 
 /*
 Structure used to save/restore global state information for the IL walk
@@ -1438,6 +1439,7 @@ or redeclaration).
 
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
 
+#if IL_SHOULD_BE_WRITTEN_TO_FILE || REMAP_ONLY_ROUTINES_NEEDED
 /*
 Macro to remap an orphan IL entry pointer from an "old" value to a "new"
 value.  This macro is similar to remap_ptr, but all pointers are processed
@@ -1449,6 +1451,7 @@ pointed to.
     (ptr) = (char *)walk_remap_func((char *)(ptr), (entry_kind)); \
   }  /* if */ \
 }  /* remap_orphan_ptr */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || REMAP_ONLY_ROUTINES_NEEDED */
 
 #if REMAP_ONLY_ROUTINES_NEEDED
 
