@@ -100,10 +100,10 @@ static an_error_code
 			/* An error code that specifies why a given
 			   precompiled header file could not be used. */
 
-static a_source_file_ptr
-		primary_source_file_from_pch;
-			/* The pointer to the primary source file as
-			   restored from the PCH file. */
+static struct il_header
+		il_header_from_pch;
+			/* Copy of the IL header from the compilation that
+			   generated the PCH file. */
 
 static a_seq_number
 		saved_curr_seq_number;
@@ -1106,8 +1106,8 @@ header information about the memory regions such as the memory_region_table.
     }  /* for */
   }
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-  /* Write a copy of the primary source file pointer. */
-  pch_write_value(il_header.primary_source_file);
+  /* Write a copy of the IL header. */
+  pch_write_value(il_header);
   db_exit();
 }  /* write_memory_regions */
 
@@ -1158,8 +1158,8 @@ header information about the memory regions such as the memory_region_table.
     }  /* for */
   }
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-  /* Read the copy of the primary source file pointer. */
-  pch_read_value(primary_source_file_from_pch);
+  /* Read the copy of the IL header. */
+  pch_read_value(il_header_from_pch);
   db_exit();
 }  /* read_memory_regions */
 
@@ -1718,11 +1718,20 @@ the source file being compiled.
   building_pch_prefix = FALSE;
   next_event_resumes_compilation = FALSE;
   sfp = il_header.primary_source_file;
-  orig_sfp = primary_source_file_from_pch;
+  orig_sfp = il_header_from_pch.primary_source_file;
   sfp->first_child_file = orig_sfp->first_child_file;
   sfp->last_child_file = orig_sfp->last_child_file;
   curr_seq_number = saved_curr_seq_number;
   seq_number_last_read = saved_seq_number_last_read;
+  il_header.primary_scope = il_header_from_pch.primary_scope;
+  il_header.main_routine = il_header_from_pch.main_routine;
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  il_header.scope_orphaned_list_headers =
+                              il_header_from_pch.scope_orphaned_list_headers;
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#if RECORD_MACROS_IN_IL
+  il_header.macros = il_header_from_pch.macros;
+#endif /* RECORD_MACROS_IN_IL */
   db_exit();
 }  /* pch_fixup_for_curr_source_file */
 
