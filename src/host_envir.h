@@ -440,11 +440,11 @@ language to C intermediate language, allowing the C++ front end to be used
 with a C back end.
 */
 #ifndef DO_IL_LOWERING
-#if BACK_END_IF_CP_GEN_BE
+#if BACK_END_IS_CP_GEN_BE
 #define DO_IL_LOWERING FALSE /* Do not change this. */
-#else /* !BACK_END_IF_CP_GEN_BE */
+#else /* !BACK_END_IS_CP_GEN_BE */
 #define DO_IL_LOWERING TRUE /* You can change this. */
-#endif /* BACK_END_IF_CP_GEN_BE */
+#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* ifndef DO_IL_LOWERING */
 #if BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING
  #error -- IL lowering must be done for the C-generating back end.
