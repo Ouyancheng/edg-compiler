@@ -41,7 +41,7 @@ extern char *realloc(char *ptr, unsigned size);
 #include "il_walk.h"
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
-#if USING_PURIFY
+#ifdef USING_PURIFY
 #include "purify.h"
 
 static a_boolean
@@ -50,17 +50,6 @@ static a_boolean
 			   is being used.  This causes the memory allocation
 			   routines to allocate the memory in a way that
 			   can be tracked by Purify. */
-
-/* Used to keep track of memory that is being thrown away so that purify
-   won't complain. */
-typedef struct a_discarded_memory_record *a_discarded_memory_record_ptr;
-typedef struct a_discarded_memory_record {
-  a_discarded_memory_record_ptr
-		next;
-			/* Pointer to the next entry in the list. */
-  char		*memory;
-			/* Pointer to the discarded memory. */
-} a_discarded_memory_record;
 #endif /* USING_PURIFY */
 
 
@@ -249,7 +238,7 @@ Return a pointer to the block header.
      than that (that's possible for incredibly large string literals
      formed by token concatenation). */
   alloc_size = min_size + adjusted_header_size;
-#if USING_PURIFY
+#ifdef USING_PURIFY
   if (!purify_is_active) {
     /* Don't use the HOST_ALLOCATION_INCREMENT when using purify.  Just
        allocate a block of the proper size. */
@@ -257,7 +246,7 @@ Return a pointer to the block header.
     if (alloc_size < HOST_ALLOCATION_INCREMENT) {
       alloc_size = HOST_ALLOCATION_INCREMENT;
     }  /* if */
-#if USING_PURIFY
+#ifdef USING_PURIFY
   }  /* if */
 #endif /* USING_PURIFY */
   /* Make sure the block size preserves alignment of the end (this is
@@ -593,24 +582,6 @@ if the back end is executed in the same program.
 }  /* alloc_general */
 
 
-#if USING_PURIFY
-void discard_memory(char *ptr)
-/*
-Throw away a block of memory in a way that Purify won't complain about.
-*/
-{
-  a_discarded_memory_record_ptr	dmrp;
-  static a_discarded_memory_record_ptr	discarded_memory = NULL;
-
-  dmrp = (a_discarded_memory_record_ptr)
-              alloc_general(sizeof(a_discarded_memory_record));
-  dmrp->next = discarded_memory;
-  dmrp->memory = ptr;
-  discarded_memory = dmrp;
-}  /* discard_memory */
-#endif /* USING_PURIFY */
-
-
 char *realloc_general(char     *old_ptr,
                       sizeof_t old_size,
                       sizeof_t new_size)
@@ -746,7 +717,7 @@ of the front end.
 {
   /* Variables in mem_tables.h: */
   highest_used_region_number = NULL_region_number;
-#if USING_PURIFY
+#ifdef USING_PURIFY
   /* Call the Purify runtime routine to determine whether this executable
      has been processed using Purify. */
   purify_is_active = purify_is_running();

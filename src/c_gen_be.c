@@ -8890,7 +8890,7 @@ Generate old-style (K&R/pcc) C from the intermediate language.
       str_command_line_error("cannot open C output file ", C_output_file_name);
     }  /* if */
     /* Make Purify happy. */
-    discard_memory(C_output_file_name);
+    purify_discard_memory(C_output_file_name);
   }  /* if */
 
   indent = 0;
