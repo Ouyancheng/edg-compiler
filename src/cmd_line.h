@@ -1485,8 +1485,9 @@ EXTERN a_boolean
 			= TARG_REUSE_TAIL_PADDING
 #endif /* VAR_INITIALIZERS */
 			                         ;
-			/* TRUE if tail-padding from base classes can be
-			   reused for other subobjects of the derived class. */
+			/* TRUE if the IA-64 ABI can reuse tail-padding from
+			   base classes for other subobjects of the derived
+			   class. */
 #endif /* IA64_ABI */
 
 EXTERN a_boolean
