@@ -2427,7 +2427,9 @@ will be changed to an aggregate constant for the constant parts and
   if (constant_to_keep != NULL) {
     /* There's a constant part of the initialization that needs to be
        kept.  Replace the ck_dynamic_init constant with that constant. */
+    a_constant_ptr con_ptr_next = con_ptr->next;
     copy_constant(constant_to_keep, con_ptr);
+    con_ptr->next = con_ptr_next;
     *keep_constant = TRUE;
   } else {
     /* Overwrite the constant with a harmless constant of the right kind.

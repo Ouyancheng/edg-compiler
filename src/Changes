@@ -229,7 +229,7 @@ When exceptions are enabled, there were cases where a constant part
 of a nonconstant aggregate initialization would be dropped.  These cases
 involve brace-enclosed initialization of the members of a class that has
 a destructor, inside some containing aggregate such as an array.
-Now fixed.
+Now fixed.  (5/31/98: additional small fix.)
 
   struct S {
     S(const char *);
