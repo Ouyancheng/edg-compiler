@@ -1211,6 +1211,7 @@ operator kinds.  Issue a diagnostic if an error is found.
   a_boolean         err = FALSE;
 
   db_enter(4, "check_operator_function_params");
+  rout_type = skip_typerefs(rout_type);
   if (is_error_locator(*locator)) {
     /* Nothing to do. */
   } else if (locator->is_conversion_name) {
@@ -2402,7 +2403,7 @@ which elsewhere is confirmed to have type size_t).
       internal_error("is_default_operator_new: bad type");
     }  /* if */
 #endif /* CHECKING */
-    ptp = type->variant.routine.extra_info->param_type_list;
+    ptp = (skip_typerefs(type))->variant.routine.extra_info->param_type_list;
     if (ptp != NULL && ptp->next == NULL) {
       match = TRUE;
     }  /* if */
@@ -5108,7 +5109,6 @@ otherwise it is NULL.  The syntax is:
             set_to_error_locator(*locator);
           }  /* if */
         }  /* if */
-        if (required_token(tok_lparen, ec_exp_lparen)) goto function_lparen;
       } else if (locator->is_conversion_name) {
         if (!is_unknown_type(complete_type)) {
           pos_error(ec_return_type_on_conversion_function, &declarator_pos);
