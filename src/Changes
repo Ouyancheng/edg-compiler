@@ -1,12 +1,30 @@
 Version 2.18
 
+5/26/93 Elaborated-type-specifier using template param name (again)
+
+The use of a template parameter in an elaborated type specifier is once
+again permitted, as long as the kind (class, struct, union, or enum)
+matches that of the template argument.  This reverses a change of 4/22
+and restores previous behavior.  For instance,
+
+  template <class T> class A {
+    struct T t;     // Error no longer issued
+  };
+  A<int> a2;        // Error (as before) -- "struct int"
+  struct B {};
+  A<B> a1;          // Error no longer issued -- "struct B"
+
+(The ARM is not clear about this, but it now appears that the standards
+committee will endorse using template parameters in elaborated types, at
+least in some contexts, since support for "friend class T;" is important.)
+
 5/26/93 Fixed bug in detecting parenthesized initializer
 
 The code that distinguishes a parenthesized intializer in a variable
 declaration from a parameter list in a function declaration has been
 modified to handle this case correctly:
 
-  void (*pf)()(0);        // same as:  void (*pf)() = 0;
+  void (*pf)() (0);        // same as:  void (*pf)() = 0;
 
 5/23/93 Abort fixed in vacuous destructor handling
 
