@@ -1,9 +1,37 @@
 Version 2.27
 
+12/10/94 IL CHANGE: Added an_object_lifetime
+
+A new structure, an_object_lifetime (used only in C++ mode), has been added
+to the IL to represent the lifetimes of variables and temporaries.  They
+are bound to various IL entities including:
+  -- a_scope, to indicate the lifetimes of variables declared in a given
+     file, function, or block scope.  (Lifetime entries for static local
+     variables require special handling -- see the new field in a_scope,
+     lifetime_of_local_static_vars.)
+  -- an_expr_node (of kind enk_expr_lifetime), for temporaries whose
+     lifetime is that of a full expression.
+  -- a_dynamic_init, for temporaries created in dynamic initializations
+     involving constructor calls (only when exception handling support is
+     enabled).
+(This is a partial list; for additional details, please refer to references
+in il_def.h.)
+
+The object lifetime's destructions field is a pointer to a linked list of
+dynamic init entries; the latter are linked by the next_in_destructions_list
+pointer (a new field in a_dynamic_init).  The entries on the destructions
+list identify destructions that should be done when the lifetime terminates.
+
+No object lifetimes survive IL lowering, so this change will be transparent
+to implementations that only make use of lowered IL.  It has been added to
+the high-level IL especially for implementations that need to write their
+own code to deal with object cleanup in exception handling.
+
 12/10/94 Setting virtual_function_info_base_class with ambiguous base class
 
 A bug has been fixed in setting virtual_info_base_class when the base class
-in question is ambiguous.  For example:
+in question is ambiguous and one of the derivations involves a virtual
+base class.  For example:
 
   struct A { virtual void f(); };
   struct B : public A { void f(); };
@@ -13,6 +41,18 @@ in question is ambiguous.  For example:
 The virtual_info_base_class pointer in D had been set point to the A whose
 path is ==>C==>B==>A; now it is correctly set to the A whose path is
 through D's first direct nonvirtual base class, namely, ==>B==>A.
+
+12/9/94  IL CHANGE: Added implied_break_at_end to a_switch_clause
+
+A new flag, implied_break_at_end, has been added to a_switch_clause to
+identify switch clauses that do not terminate in an explicit branch but
+implicitly branch to the first statement following the switch statement.
+
+12/7/94  IL_CHANGE: Added is_constructor_init to a_dynamic_init
+
+This new flag is set to TRUE if the dynamic init entry is connected to an
+entity in a ctor-initializer or dtor-initializer list (i.e., if the dynamic
+init entry is pointed to by an entry of type a_constructor_init.).
 
 12/7/94  Template instance required flag set incorrectly
 
@@ -45,7 +85,6 @@ have been found).
     T::X tx;
   };
 
-
 12/1/94  Spurious error when comma is missing before ellipsis
 
 In contexts in which the evaluation of default arguments must
@@ -64,6 +103,11 @@ In the case where an lvalue-returning "?" or "," operator is under
 a cast (e.g., one that adjusts const at some level), the type of the
 rewritten "?" or "," was incorrect (it was the type before the adjustment
 done by the cast).  Now fixed.
+
+11/30/94 IL_CHANGE: Added is_expr_temp_init to a_dynamic_init
+
+This new flag is set to TRUE if the dynamic init entry represents the
+initialization of an expression temporary.
 
 11/30/94 Top-level operations in boolean controlling expressions
 
@@ -303,7 +347,7 @@ substitution:
   variant.label --> variant.label.ptr
 
 Note, however, that this change should probably be done manually because
-the string may come up in other cases (in does in our code: the symbol table
+the string may come up in other cases (it does in our code: the symbol table
 has a variant label field, and the flow description entry does too).
 
 These changes were made to make room for a pointer to an object lifetime
