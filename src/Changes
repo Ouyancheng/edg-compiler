@@ -28,7 +28,7 @@ and references to template classes has been improved.  For example:
    to them in template declarations; however, references in prototype
    instantiations (like references to other symbols) are not reported.
 -  During template instantiation a reference to a template parameter that
-   in turn refers to a named type is now reported in the, cross-reference
+   in turn refers to a named type is now reported in the cross-reference
    listing as a reference to the named type; see the new symbol reference
    kind SRK_IMPLICIT_TEMPLATE_ARG.
 
