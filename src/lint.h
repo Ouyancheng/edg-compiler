@@ -55,6 +55,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,crc_32)*/
 /*lint -esym(714,db_format_integer_value)*/
 /*lint -esym(714,db_sym)*/
+/*lint -esym(714,db_stop_tokens)*/
 /*lint -esym(714,db_text_buffer)*/
 /*lint -esym(759,int_kind_name_full)*/
 /*lint -esym(765,int_kind_name_full)*/
