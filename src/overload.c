@@ -182,11 +182,6 @@ reference.  See ARM 13.3, "Address of Overloaded Function".
                                                     source_pos);
           if (instance_sym != NULL) {
             /* Template match. */
-#if 0
-            /* When member templates are allowed, we're going to want to
-               have some kind of projection symbol for the template instance
-               so access checking can be done. */
-#endif /* 0 */
             match_sym = instance_sym;
             *match_level = aml_exact;
             number_of_matches++;
