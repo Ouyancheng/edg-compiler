@@ -6951,6 +6951,35 @@ its source correspondence entry, if any, has been put out.)
                                    &il_template_entry->source_corresp,
                                    sym->parent.namespace_ptr);
         }  /* if */
+        if (p_template_body_cache != NULL) {
+          a_cached_token_ptr	first_token;
+          first_token = p_template_body_cache->first_token;
+          /* Skip over any pragmas that precede the first token of the body. */
+          while (first_token != NULL &&
+                 first_token->extra_info_kind ==
+                                       (a_token_extra_info_kind)teik_pragma) {
+            first_token = first_token->next;
+          }  /* while */
+          if (first_token != NULL &&
+              first_token->token == (a_token_kind)tok_colon) {
+            /* There can sometimes be an overlap between the template
+               declaration cache and the template body cache.  Such an
+               overlap does not cause problems for the normal
+               processing, but must be eliminated when template
+               strings are created.  Split the declaration cache at
+               the first token of the body cache and discard the
+               duplicated tokens. */
+            a_token_cache		dummy_cache;
+            a_token_sequence_number	tsn_to_split;
+            tsn_to_split = first_token->token_sequence_number;
+            clear_token_cache(&dummy_cache, /*reusable=*/TRUE);
+            split_token_cache(decl_token_cache, &dummy_cache,
+                              tsn_to_split,
+                              /*include_prev_token=*/FALSE,
+                             /*okay_if_not_found=*/FALSE);
+            discard_token_cache(&dummy_cache);
+          } /* if */
+        }  /* if */
 	/* Create the string that represents the template declaration. */
 	make_template_string(il_template_entry, template_param_list_cache,
 			     decl_token_cache, p_template_body_cache);
