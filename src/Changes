@@ -1,5 +1,14 @@
 Version 2.43
 
+11/3/99  Diagnostic for storage class on class declaration
+
+The error issued when a storage class is specified on a class declaration is
+now discretionary (i.e., its severity can be weakened through the command
+line).
+
+  extern class C;  // --diag_suppress=storage_class_not_allowed suppresses
+                   // the usual diagnostic.
+
 11/2/99  Pointer conversions not allowed on nontype template argument
 
 Inplicit null pointer conversions, related-class conversions, and

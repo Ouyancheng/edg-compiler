@@ -8694,7 +8694,7 @@ TRUE if an error was reported while the decl-specifiers were scanned.
            (ARM 7.1.1). */
         if (storage_class != (a_storage_class)sc_unspecified) {
           severity = (C_mode() || any_cfront_mode() || microsoft_mode) ?
-                       es_warning : es_error;
+                       es_warning : es_discretionary_error;
           diagnostic(severity, ec_storage_class_not_allowed);
         }  /* if */
         /* ARM 7.1.6 implies that the absence of an object in this declaration
