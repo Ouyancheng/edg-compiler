@@ -5066,6 +5066,11 @@ existing type entry.
   a_type_ptr                     tp;
 
   class_type = skip_typerefs(class_type);
+  if (is_template_param_type(class_type)) {
+    /* The class type is a template parameter.  Substitute the template
+       parameter's proxy class. */
+    class_type = proxy_class_for_template_param(class_type);
+  }  /* if */
   if (member_type != NULL && is_function_type(member_type)) {
     /* This is a pointer-to-member-function type.  Be sure the implicit this
        parameter is set.  If not, create it based on class_type. */

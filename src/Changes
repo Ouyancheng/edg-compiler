@@ -1,5 +1,15 @@
 Version 2.42
 
+6/19/99  Abort on use of a template parameter in a pointer-to-member type
+
+The front end did not correctly handle pointer-to-member types in which
+the class type is actually a template parameter type.  This could result
+in an abort or other undefined behavior.  Now fixed.
+
+  template <class T> struct A {
+    void f(int T :: *);
+  };
+
 6/9/99   Obsolete nonstandard destructor diagnostic eliminated
 
 Because of a Working Paper error, the following usage was not permitted by
