@@ -7405,8 +7405,7 @@ be the last in the anonymous-union-parent chain.
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym,
-                                   a_type_ptr    class_type,
-                                   a_boolean     is_nonstd)
+                                   a_type_ptr    class_type)
 /*
 assoc_object_sym is a symbol for an unnamed field or variable that is the
 object associated with an anonymous union.  The type of the field or
@@ -8555,9 +8554,7 @@ specific information about the member declaration, respectively.
   }  /* if */
   if (decl_info->is_anonymous_union) {
     /* Do checking, promote symbols to the current class. */
-    check_anonymous_union_symbols(member_sym, class_type,
-                                  (a_boolean)decl_info->
-                                               is_nonstd_anonymous_union);
+    check_anonymous_union_symbols(member_sym, class_type);
   }  /* if */
   if (is_aggregate_or_union_type(member_type)) {
     /* If the member's type is class, struct, or union -- or array of class,
