@@ -5669,6 +5669,16 @@ its parameters?).
                 status = TRUE;
                 break;
               }  /* if */
+            } else if (!tap->is_array_bound_of_unknown_type &&
+                       !tap->constant_is_an_arg_operand) {
+              /* Nontype template argument.  Check the type of the constant. */
+              if (!(flags & TTT_DEDUCED_CONTEXTS_ONLY)) {
+                tp = tap->variant.constant->type;
+                if (traverse_type_tree(tp, func, flags)) {
+                  status = TRUE;
+                  break;
+                }  /* if */
+              }  /* if */
             }  /* if */
           }  /* for */
           if (!status && type_ptr->source_corresp.is_class_member) {
@@ -5774,6 +5784,7 @@ or is a type tree containing such a type.
                                                TTT_THIS_PARAM_TYPE |
                                                TTT_PARAM_TYPES |
                                                TTT_SKIP_TYPEREFS |
+                                               TTT_TEMPLATE_ARGS |
                                                TTT_EXCEPTION_SPECS);
 
   result = traverse_type_tree(type_ptr, ttt_is_error_type, ttt_flags);
