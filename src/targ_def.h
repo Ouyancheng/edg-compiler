@@ -690,12 +690,20 @@ match the target machine behavior on integer operations in C.
    bit-fields to int or unsigned int. */
 #define TARG_BIT_FIELD_CONTAINER_SIZE TARG_SIZEOF_INT
 #else /* !CFRONT_OBJECT_CODE_COMPATIBILITY... */
+#if IA64_ABI
+#define TARG_BIT_FIELD_CONTAINER_SIZE (-1)
+#else /* !IA64_ABI */
 #define TARG_BIT_FIELD_CONTAINER_SIZE 0
+#endif /* IA64_ABI */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY... */
 #endif /* TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
 			/* Default value, used to initialize global variable
 			   targ_bit_field_container_size. */
 #endif /* ifndef TARG_BIT_FIELD_CONTAINER_SIZE */
+#if TARG_MICROSOFT_BIT_FIELD_ALLOCATION && TARG_BIT_FIELD_CONTAINER_SIZE != -1
+ #error -- TARG_BIT_FIELD_CONTAINER_SIZE must be -1 when \
+           TARG_MICROSOFT_BIT_FIELD_ALLOCATION is TRUE
+#endif /* TARG_MICROSOFT_BIT_FIELD_ALLOCATION && ... */
 
 /* How plain "int" bit fields are to be treated (signed or unsigned).  Note
    that 1-bit fields are made unsigned regardless of this switch. This flag
@@ -752,7 +760,11 @@ match the target machine behavior on integer operations in C.
    but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT TARG_ALIGNOF_INT
 #else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
+#if IA64_ABI
+#define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT (-1)
+#else /* !IA64_ABI */
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT 0
+#endif /* IA64_ABI */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #endif /* TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
 			/* Default value, used to initialize global variable
