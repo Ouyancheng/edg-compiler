@@ -2839,7 +2839,9 @@ given by tap.
 {
   a_template_ptr temp = tap->variant.templ.ptr;
 
-  if (temp->kind == (a_template_kind)templk_template_template_param) {
+  if (temp->template_info != NULL && temp->template_info->is_error) {
+    /* Don't get confused on error cases. */
+  } else if (temp->kind == (a_template_kind)templk_template_template_param) {
     /* The value of the argument is itself a template template parameter. */
     mangled_encoding_for_template_parameter(
                                      &temp->coordinates,
