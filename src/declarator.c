@@ -2930,6 +2930,17 @@ The syntax is:
          to the routine type. */
       member_parent_type = qualifier_class_type(*locator);
       check_assertion(member_parent_type != NULL);
+    } else if ((*is_constructor || *is_destructor) &&
+               member_parent_type == NULL) {
+      /* In certain error cases (involving parenthesized declarators) the
+         declaration can me marked as a constructor or destructor but
+         member_parent_type will be NULL.  Update it from the locator. */
+      if (is_error_locator(*locator)) {
+        *is_constructor = *is_destructor = FALSE;
+      } else {
+        member_parent_type = qualifier_class_type(*locator);
+        check_assertion(member_parent_type != NULL);
+      }  /* if */
     }  /* if */
     if (local_do_flags & DO_SCOPE_DEACTIVATION_REQUIRED) {
       /* A class scope was reactivated to scan a static data member or a
