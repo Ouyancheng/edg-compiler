@@ -427,7 +427,6 @@ do
     -X* | --xref=* | \
           --list=* | \
           --error_output=* | \
-          --error_output=* | \
           --diag_suppress=* | \
           --diag_remark=* | \
           --diag_warning=* | \
