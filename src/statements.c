@@ -1065,7 +1065,7 @@ Scan the initializing expression or, in C++, declaration of a for statement.
 */
 {
   if (C_dialect == C_dialect_cplusplus &&
-      is_declaration_not_expression(/*abstract_declarator_allowed=*/FALSE)) {
+      is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE)) {
     /* Scan a declaration (C++ only). */
     local_declaration();
   } else {
@@ -1877,8 +1877,7 @@ expr_statement:
           remove_stop_token(tok_semicolon);
         }  /* if */
       } else if (C_dialect == C_dialect_cplusplus &&
-                 is_declaration_not_expression(
-                               /*abstract_declarator_allowed=*/FALSE)) {
+                 is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE)) {
         /* Scan a declaration (C++ only). */
         local_declaration();
       } else {
