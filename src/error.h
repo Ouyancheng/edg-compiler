@@ -521,7 +521,8 @@ typedef enum /*an_error_code*/ {
   ec_base_class_with_no_default_ctor,
   ec_destructor_name_mismatch,
   ec_destructor_type_mismatch,
-  ec_called_member_function_redeclared_inline
+  ec_called_member_function_redeclared_inline,
+  ec_vacuous_destructor_name_mismatch
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

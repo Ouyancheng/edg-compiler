@@ -1810,6 +1810,9 @@ error code.
     case ec_called_member_function_redeclared_inline:
       m = "%n may not be redeclared \"inline\" after being called";
       break;
+    case ec_vacuous_destructor_name_mismatch:
+      m = "destructor name does not match left operand of \"->\" or \".\"";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
