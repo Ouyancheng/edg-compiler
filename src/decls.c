@@ -5024,7 +5024,8 @@ return a pointer to it in *symbol_ptr.
     /* "size_t" declared at file scope or in namespace "std". */
     if (!is_integral_type(type_ptr) ||
         skip_typerefs(type_ptr)->variant.integer.int_kind !=
-                                                targ_size_t_int_kind) {
+                                                targ_size_t_int_kind ||
+        is_qualified_type(type_ptr)) {
       pos_ty_warning(ec_unexpected_type_for_size_t, &locator->source_position,
                      integer_type(targ_size_t_int_kind));
     }  /* if */
