@@ -1468,20 +1468,9 @@ not return.
   /*NOTREACHED*/
 }  /* term_compilation */
 
-/*
-The Sun C++ compiler requires a ... as the second parameter of the
-signal handler function.
-*/
-#ifdef __SUNPRO_CC
-#define SIGNAL_FUNCTION_ELLIPSIS , ...
-#else /* ifndef __SUNPRO_CC */
-#define SIGNAL_FUNCTION_ELLIPSIS /* nothing */
-#endif /* ifdef __SUNPRO_CC */
-
 
 /*ARGSUSED*/ /* <-- Because "sig" is not used. */
-static a_signal_handler_return_value term_on_signal(int sig
-                                                    SIGNAL_FUNCTION_ELLIPSIS)
+static a_signal_handler_return_value term_on_signal(int sig)
 /*
 Routine set up as a signal handler, called to terminate compilation on
 receipt of a signal.
@@ -1496,6 +1485,18 @@ receipt of a signal.
 }  /* term_on_signal */
 
 
+/*
+The Sun C++ compiler requires a ... as the second parameter of the
+signal handler function.  Define a type to which the real signal handler
+function pointer will be cast.
+*/
+#ifdef __SUNPRO_CC
+typedef a_signal_handler_return_value a_signal_handler(int, ...);
+#else /* ifndef __SUNPRO_CC */
+/* Standard type for a signal handler. */
+typedef a_signal_handler_return_value a_signal_handler(int);
+#endif /* ifdef __SUNPRO_CC */
+
 void set_signal_handlers(void)
 /*
 Enable any signal handlers necessary to catch signals that may come up during
@@ -1507,9 +1508,9 @@ execution of the front end (for example, SIGINT).
        to prevent a compilation in the background from being terminated by
        an interrupt intended for the foreground process on older Unix
        systems that lack job control. */
-    (void)signal(SIGINT, term_on_signal);
+    (void)signal(SIGINT, (a_signal_handler *)term_on_signal);
   }  /* if */
-  (void)signal(SIGTERM, term_on_signal);
+  (void)signal(SIGTERM, (a_signal_handler *)term_on_signal);
 #ifdef SIGXFSZ
   /* On SVR4 systems, ignore the signal sent when the file size limit
      is exceeded.  Note that the write operation will still fail, so the
