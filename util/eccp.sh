@@ -413,15 +413,8 @@ do
       any_l_or_o_files=1
       add_to_instantiation_command=0
       ;;
-    *\.c)
+    *\.c | *\.C | *\.cc | *\.cpp | *\.CPP | *\.cxx | *\.CXX)
 #     Collect a list of .c files.
-      if [ "$cfiles" ]; then more_than_one_c_file=1; fi;
-      cfiles=$cfiles" "$1;
-      any_c_files=1
-      add_to_instantiation_command=0
-      ;;
-    *\.C)
-#     Collect a list of .C files.
       if [ "$cfiles" ]; then more_than_one_c_file=1; fi;
       cfiles=$cfiles" "$1;
       any_c_files=1
@@ -507,6 +500,21 @@ do
       ;;
     *\.C)
     basefile=`basename $cfile .C`
+      ;;
+    *\.cc)
+    basefile=`basename $cfile .cc`
+      ;;
+    *\.cpp)
+    basefile=`basename $cfile .cpp`
+      ;;
+    *\.CPP)
+    basefile=`basename $cfile .CPP`
+      ;;
+    *\.cxx)
+    basefile=`basename $cfile .cxx`
+      ;;
+    *\.CXX)
+    basefile=`basename $cfile .CXX`
       ;;
   esac
   if [ $more_than_one_c_file -ne 0 ]
