@@ -1963,8 +1963,8 @@ templates being ordered are class template partial specializations.
       curr_is_more_specialized = result == -1;
     }  /* if */
 #if DEBUG
-    if (db_flag_is_set("atpocl")) {
-      fprintf(f_debug, "atpocl: comparing\n  sym_1:");
+    if (db_flag_is_set("partial_ord")) {
+      fprintf(f_debug, "atpoc: comparing\n  sym_1:");
       db_symbol_name(fund_curr_sym);
       if (fund_curr_sym->kind == (a_symbol_kind)sk_class_template) {
         db_template_arg_list(fund_curr_sym->variant.template_info->
@@ -2118,6 +2118,12 @@ with that partial specialization; otherwise return NULL.
                                         &ctsp->partial_spec_template_arg_list,
                                         (a_boolean*)NULL);
   }  /* if */
+#if DEBUG
+  if (db_flag_is_set("partial_ord") && matching_sym != NULL) {
+    fprintf(f_debug, "Partial specialization result is: \n");
+    db_symbol(matching_sym, "", 2);
+  }  /* if */
+#endif /* DEBUG */
   db_exit();
   return matching_sym;
 }  /* check_partial_specializations */
