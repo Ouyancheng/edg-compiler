@@ -79,15 +79,13 @@ type symbol for the typedef, for use in diagnostics.
   *rout_type = NULL;
   *sym = NULL;
   if (type_ptr->kind == (a_type_kind)tk_typeref &&
-      typeref_is_typedef(type_ptr) && is_function_type(type_ptr)) {
+      is_function_type(type_ptr)) {
     *rout_type = skip_typerefs(type_ptr);
-    if (*rout_type != type_ptr) {
-      tp = (*rout_type)->variant.routine.extra_info->implicit_this_param_type;
-      if (tp != NULL) {
-        is_member_function_typedef = TRUE;
-        *class_type = type_pointed_to(tp);
-        *sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
-      }  /* if */
+    tp = (*rout_type)->variant.routine.extra_info->implicit_this_param_type;
+    if (tp != NULL) {
+      is_member_function_typedef = TRUE;
+      *class_type = type_pointed_to(tp);
+      *sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
     }  /* if */
   }  /* if */
   return is_member_function_typedef;
