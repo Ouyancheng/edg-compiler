@@ -1219,47 +1219,58 @@ Output the indicated constant.  Do the output in the way described by octl.
       break;
     case ck_string:
       /* String constant. */
-      set_partial_token_output_mode(octl);
-      if (is_wide_string_constant(constant)) {
-        /* Wide string literal, e.g., L"abc". */
-        /* The processing here must invert the processing done in
-           conv_single_wide_char.  Do something that's right for the default
-           (simple-minded) implementation, which maps one input character
-           to one wide character. */
-        a_targ_size_t a;
+      { a_targ_size_t a;
         char          ch;
         char          *str = constant->variant.string.value;
-        octl->output_str("L\"");
-        for (a = 0;
-             a < constant->variant.string.length;
-             a += targ_sizeof_wchar_t) {
-          if (targ_little_endian) {
+        a_targ_size_t len = constant->variant.string.length;
+
+        set_partial_token_output_mode(octl);
+        if (is_wide_string_constant(constant)) {
+          /* Wide string literal, e.g., L"abc". */
+          /* The processing here must invert the processing done in
+             conv_single_wide_char.  Do something that's right for the default
+             (simple-minded) implementation, which maps one input character
+             to one wide character. */
+          octl->output_str("L\"");
+          for (a = 0; a < len; a += targ_sizeof_wchar_t) {
+            /* When generating output for humans to read, abbreviate
+               long strings. */
+            if (!octl->gen_compilable_code && a > 20*targ_sizeof_wchar_t &&
+                len > 25*targ_sizeof_wchar_t) {
+              octl->output_str("...");
+              break;
+            }  /* if */
+            if (targ_little_endian) {
+              ch = str[a];
+            } else {
+              ch = str[a + targ_sizeof_wchar_t - 1];
+            }  /* if */
+            /* Suppress the last character if it is a null. */
+            if (a != (len - targ_sizeof_wchar_t) || ch != '\0') {
+              form_char(ch, octl);
+            }  /* if */
+          }  /* for */
+          octl->output_str("\"");
+        } else {
+          /* Normal (non-wide) string. */
+          octl->output_str("\"");
+          for (a = 0; a < len; a++) {
+            /* When generating output for humans to read, abbreviate
+               long strings. */
+            if (!octl->gen_compilable_code && a > 20 && len > 25) {
+              octl->output_str("...");
+              break;
+            }  /* if */
             ch = str[a];
-          } else {
-            ch = str[a + targ_sizeof_wchar_t - 1];
-          }  /* if */
-          /* Suppress the last character if it is a null. */
-          if (a != (constant->variant.string.length - targ_sizeof_wchar_t) ||
-              ch != '\0') {
-            form_char(ch, octl);
-          }  /* if */
-        }  /* for */
-        octl->output_str("\"");
-      } else {
-        /* Normal (non-wide) string. */
-        a_targ_size_t a;
-        char          ch;
-        octl->output_str("\"");
-        for (a = 0; a < constant->variant.string.length; a++) {
-          ch = constant->variant.string.value[a];
-          /* Suppress the last character if it is a null. */
-          if (a != (constant->variant.string.length - 1) || ch != '\0') {
-            form_char(ch, octl);
-          }  /* if */
-        }  /* for */
-        octl->output_str("\"");
-      }  /* if */
-      set_complete_token_output_mode(octl);
+            /* Suppress the last character if it is a null. */
+            if (a != (len - 1) || ch != '\0') {
+              form_char(ch, octl);
+            }  /* if */
+          }  /* for */
+          octl->output_str("\"");
+        }  /* if */
+        set_complete_token_output_mode(octl);
+      }
       break;
     case ck_float:
       /* Floating-point constant. */
