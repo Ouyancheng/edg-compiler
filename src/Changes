@@ -16,12 +16,18 @@ now violates the C++ grammar, so we modified the text of the diagnostic
 and issue an error in strict ANSI mode.  Undiagnosed by cfront, it is still
 accepted with a warning in default mode.
 
-8/17/94  Diagnostic on missing initializer in a new-expression
+8/17/94  Diagnostic severity on missing initializer
 
-If a new-expression produces an uninitialized const object or object with
-const members, a warning is issued by default, but in strict ANSI mode
-strict_ansi_discretionary_error is used -- meaning that severity of the
-diagnostic issued in -A mode may be reduced by a command line option.
+A diagnostic of severity es_discretionary_error is now issued for the
+following cases in which an initializer is missing:
+  o  a variable of class (or array-of-class) type where there are const
+     and/or ref members (used to be es_error)
+  o  an object this is created by a new expression with a type that is
+       --  const qualified (used to be es_warning)
+       --  a class (or array of class) where there are const and/or ref
+           members (used to be es_error)
+Now the cases are handled consistently, but the severities may be reduced
+by a command line option.
 
 8/17/94  Diagnostic on "const" or "volatile" in new-expression
 
