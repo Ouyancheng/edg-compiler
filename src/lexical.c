@@ -4363,6 +4363,8 @@ tokens should be rescanned.
   /* Look for a leading unary "::". */
   /* Don't be fooled by "::new" and "::delete". */
   *has_global_qualifier = FALSE;
+  /* Clear the token cache, if necessary. */
+  if (cache != NULL) clear_token_cache(cache);
   if (curr_token == tok_colon_colon && !is_global_new_or_delete()) {
     *has_global_qualifier = *is_file_scope_qualifier = is_qualifier = TRUE;
     (void)get_token();
@@ -4390,8 +4392,6 @@ tokens should be rescanned.
       /* Usual case (no leading "::"). */
       class_symbol = normal_id_lookup(&locator_for_curr_id, IDL_MUST_BE_CLASS);
     }  /* if */
-    /* Clear the token cache, if necessary. */
-    if (cache != NULL) clear_token_cache(cache);
     for (;;) {
       /* Keep looping while there are more levels of class qualification.
          Exit from loop is in the middle. */
@@ -4455,15 +4455,13 @@ The flag IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR, if present, suppresses
 the error on the final identifier not being found on lookup.
 */
 {
-  a_boolean	is_qualified_name = FALSE, qualifier_err, okay;
-  a_boolean	is_file_scope_qualifier, has_global_qualifier;
-  a_type_ptr	class_type;
-  a_source_position
-		start_position;
-  an_error_code	err_code;
-  a_symbol_header_ptr
-		class_symbol_header;
-  a_token_cache token_cache, *cache_ptr;
+  a_boolean            is_qualified_name = FALSE, qualifier_err, okay;
+  a_boolean            is_file_scope_qualifier, has_global_qualifier;
+  a_type_ptr           class_type;
+  a_source_position    start_position;
+  an_error_code        err_code;
+  a_symbol_header_ptr  class_symbol_header;
+  a_token_cache        token_cache;
 
 #if CHECKING
   if (options & IDL_CONSTRAINTS) {
@@ -4491,10 +4489,11 @@ the error on the final identifier not being found on lookup.
                                 &has_global_qualifier, &qualifier_err)) {
           /* A class qualifier is present. */
           if ((options & IDL_PTR_TO_MEMBER_ALLOWED) &&
-              curr_token == tok_star) {
+              curr_token == tok_star && !qualifier_err &&
+              !is_file_scope_qualifier) {
             /* This looks like a pointer-to-member declarator.  Back up to the
                start of the class qualifier and return directly. */
-            rescan_cached_tokens(cache_ptr);
+            rescan_cached_tokens(&token_cache);
             goto done;
           }  /* if */
           /* This is a qualified name. */

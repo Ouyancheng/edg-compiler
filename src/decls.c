@@ -225,7 +225,7 @@ specifier if the name has been declared.  Called only in C++.
   char         *id_name;
   a_boolean    is_overload = FALSE;
 
-  if (curr_token == tok_identifier) {
+  if (curr_token == tok_identifier && !is_error_locator(locator_for_curr_id)) {
     id_name = locator_for_curr_id.symbol_header->identifier;
     if (*id_name == 'o' && strcmp(id_name, "overload") == 0) {
       /* Identifier is "overload" -- check for definition. */
@@ -3390,7 +3390,6 @@ Only the first form is accepted in C.
   a_boolean      err;
   a_type_ptr     class_type;
   a_boolean      is_file_scope_qualifier, has_global_qualifier;
-  a_boolean      qualifier_err;
   a_token_cache  token_cache;
 
 
@@ -3457,14 +3456,7 @@ Only the first form is accepted in C.
                                    &has_global_qualifier, &err)) {
       /* A class qualifier is present.  This is a pointer-to-member
          declarator if the current token is a "*". */
-      if (curr_token == tok_star) {
-#if 0
-        if (is_file_scope_qualifier) {
-          error(ec...);
-          err = TRUE;
-          complete_type = error_type();
-        }  /* if */
-#endif /* if 0 */
+      if (curr_token == tok_star && !is_file_scope_qualifier) {
         /* It is a pointer-to-member declarator.  Construct the type entry. */
         complete_type = ptr_to_member_type(complete_type, class_type);
       } else {
@@ -5005,6 +4997,16 @@ process_class_specifier:
             *type_ptr = error_type();
             break;
           }  /* if */
+        } else if (num_specifiers == 0 &&
+                   is_error_locator(locator_for_curr_id) &&
+                   locator_for_curr_id.is_global_qualified_name) {
+          /* An error was detected in scanning a qualified name that started
+             with "::".  Since declarators may not start with "::" we assume
+             this to be like an unidentified type name. */
+          err = TRUE;
+          basic_type = bt_typedef;
+          *type_ptr = error_type();
+          break;
         } else if (num_specifiers == 0 ||
                    (num_specifiers == 1 && (*output_flags & DSO_INLINE))) {
           a_symbol_ptr  sym = locator_for_curr_id.specific_symbol;
@@ -6812,7 +6814,7 @@ continue_with_declaration:
              level. */
           symbol_ptr->defined = TRUE;
         }  /* if */
-      } else if (!is_parameter) {
+      } else if (!is_parameter && !is_error_locator(locator)) {
         /* Determine whether a default initializer should be generated for
            this symbol, and if so do it.  The function returns TRUE if default
            initialization was performed (or if it was attempted but an error
