@@ -2260,7 +2260,6 @@ generating cross-reference output describing this declaration.
         if (old_decl_has_body) {
           routine_ptr->specific_def = TRUE;
           sym->variant.routine.instance_ptr->specific_def = TRUE;
-          sym->variant.routine.instance_ptr->instantiation_required = FALSE;
           if (is_function_def) {
             check_assertion(routine_ptr->is_inline && routine_ptr->called);
             /* This is a case where an inline function template has been

@@ -1,5 +1,13 @@
 Version 2.25
 
+8/9/94   Automatic instantiation bug
+
+A bug has been fixed that could cause the automatic instantiation
+mechanism to fail.  The problem occurs when a specific declaration
+of a template function occurs after the function has already been
+instantiated.  This could occur if a subsequent instantiation results
+in the instantiation of a class that declares the function as a friend.
+
 8/9/94   Class layout processing
 
 This is just a repackaging of the same functionality: now instead of
