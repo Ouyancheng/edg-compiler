@@ -2923,6 +2923,7 @@ otherwise, set *ext_sym to NULL.
                   /*save_as_decl_position=*/is_function_def_with_body);
   }  /* if */
   if (is_function && storage_class == (a_storage_class)sc_unspecified &&
+      !is_error_locator(*locator) &&
       (strcmp(locator->symbol_header->identifier, "main") == 0)) {
     is_main_function = TRUE;
     /* This is "main", which is always given "C" linkage. */
