@@ -664,7 +664,7 @@ requires cleanup.
       flag_addr = (a_conditional_flag*)*(obj_addr_array + (ehrdp + 1)->handle);
 #if DEBUG
     if (__debug_level >= 2) {
-      fprintf(__f_debug, "Conditional flag=%0d\n", *flag_addr);
+      fprintf(__f_debug, "  Conditional flag=%0d\n", *flag_addr);
     }  /* if */
 #endif /* DEBUG */
       /* Skip processing of this entry if the flag is not set. */
