@@ -775,7 +775,7 @@ If tp is a routine type, dump the function parameters, for debug purposes.
 }  /* db_function_param_list */
 
 
-void db_qualifiers(a_type_qualifier_set  qualifiers)
+static void db_qualifiers(a_type_qualifier_set  qualifiers)
 /*
 Print the given qualifiers in human readable form.
 */
