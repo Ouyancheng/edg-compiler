@@ -1152,7 +1152,7 @@ extern void open_file_and_push_input_stack(
                                       a_directory_name_entry_ptr search_path);
 extern FILE *open_file_for_input(char                       *file_name,
                                  a_directory_name_entry_ptr search_path,
-                                 char                       *suffixes,
+                                 a_boolean                  replace_suffix,
                                  char                       **full_file_name);
 extern void push_input_stack (FILE  *new_input_file,
                               char  *file_name,
