@@ -273,6 +273,7 @@ to output to the indicated buffer.
   clear_il_to_str_output_control_block(&octl);
   octl.output_str = put_str_into_db_symbol_buffer;
   octl.gen_pcc_code = (C_dialect == C_dialect_pcc);
+  octl.debug_output = TRUE;
   db_symbol_buffer_pointer = buffer;
 }  /* set_up_for_output_to_buffer */
 

@@ -909,6 +909,7 @@ Dump the contents of the indicated constant, for debug purposes.
   clear_il_to_str_output_control_block(&octl);
   octl.output_str = put_str_to_f_debug;
   octl.gen_pcc_code = (C_dialect == C_dialect_pcc);
+  octl.debug_output = TRUE;
 
   /* Output the constant. */
   form_constant(cp, /*need_parens=*/FALSE, &octl);
