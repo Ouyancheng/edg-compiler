@@ -1,10 +1,22 @@
 Version 2.32
 
+3/22/96   Bug in setting source-sequence entry for stmk_decl statement
+
+When GENERATE_SOURCE_SEQUENCE_LISTS and RECORD_MACROS_IN_IL were TRUE,
+there was a bug in setting the source-sequence pointer in an stmk_decl
+statement if a macro appeared in the source.  It is now fixed -- here's a
+case that used to be handled incorrectly:
+
+  void f() {
+  #define ZERO 0
+    static int i = ZERO;
+  }
+
 3/22/96   const function call anachronism accepted in Microsoft mode
 
-The anachronism of calling a non-const member function for a const
-object is now accepted as an anachronism in Microsoft mode.  (It was
-formerly accepted only in cfront 2.1 mode.)
+The anachronism of calling a non-const member function for a const object
+is now accepted as an anachronism in Microsoft mode.  (It was formerly
+accepted only in cfront 2.1 mode.)
 
 3/21/96   Bug in checking bit-field size
 
