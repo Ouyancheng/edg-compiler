@@ -1,5 +1,18 @@
 Version 3.4
 
+1/29/04  Module IDs in files containing only namespace and/or class members
+
+Module IDs are used to generate unique names for entities such as members
+of unnamed namespaces.  When possible, the module ID is based on the name
+of an external entity defined in the translation unit.  The module ID routine
+sometimes failed to find an external entity to use as the basis for the module
+ID in translation units containing only namespace and/or class members.
+Now fixed.
+
+  struct S { int f(); };
+  int S::f() { return 0; }
+  namespace { int i; }
+
 1/28/04  Pragmas on explicit specializations
 
 Next-construct pragmas on explicit specializations did not get bound to

@@ -2206,6 +2206,21 @@ definition whose name can be used as part of the module ID.
       if (unmangled_name_of(&nsp->source_corresp) == NULL) continue;
       /* Look for an external name in this namespace. */
       name = find_external_name_in_scope(nsp->variant.assoc_scope);
+      if (name != NULL) break;
+    }  /* for */
+  }  /* if */
+  if (name == NULL) {
+    /* We have still not found a name.  Look through any class scopes. */
+    a_type_ptr tp;
+    for (tp = scope->types; tp != NULL; tp = tp->next) {
+      if (is_immediate_class_type(tp)) {
+        a_scope_ptr	sp =
+                        tp->variant.class_struct_union.extra_info->assoc_scope;
+        if (sp != NULL) {
+          name = find_external_name_in_scope(sp);
+          if (name != NULL) break;
+        }  /* if */
+      }  /* if */
     }  /* for */
   }  /* if */
   return name;
