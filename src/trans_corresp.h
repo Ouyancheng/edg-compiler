@@ -220,6 +220,10 @@ extern void corresp_trans_unit_init(void);
 
 extern void corresp_init(void);
 
+extern a_routine_ptr canonical_routine_entry_of(a_routine_ptr  routine);
+
+extern a_variable_ptr canonical_variable_entry_of(a_variable_ptr  var);
+
 extern a_type_ptr canonical_type_entry_of(a_type_ptr type);
 
 extern a_template_ptr canonical_template_entry_of(a_template_ptr templ);

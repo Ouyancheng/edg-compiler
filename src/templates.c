@@ -17033,14 +17033,15 @@ Assign a master instance entry for the template instance "tip".
   /* Look for an existing master instance by going to the symbol associated
      with the canonical entry. */
   il_entry = il_entry_for_symbol(sym, (an_il_entry_kind*)NULL);
-  il_entry = canonical_il_entry_of(il_entry);
   if (sym->kind == (a_symbol_kind)sk_static_data_member) {
     a_variable_ptr	vp = (a_variable_ptr)il_entry;
+    vp = canonical_variable_entry_of(vp);
     canonical_sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
     check_assertion(canonical_sym != NULL);
     canonical_tip = canonical_sym->variant.static_data_member.instance_ptr;
   } else {
     a_routine_ptr	rp = (a_routine_ptr)il_entry;
+    rp = canonical_routine_entry_of(rp);
     canonical_sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
     check_assertion(canonical_sym != NULL);
     canonical_tip = canonical_sym->variant.routine.instance_ptr;

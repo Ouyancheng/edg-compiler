@@ -4924,7 +4924,7 @@ entry.
 }  /* canonical_field_entry_of */
 
 
-static a_routine_ptr canonical_routine_entry_of(a_routine_ptr  routine)
+a_routine_ptr canonical_routine_entry_of(a_routine_ptr  routine)
 /*
 If the given routine entry has not yet been examined for a corresponding entry
 in another translation unit, do so now.  Then return the established canonical
@@ -4943,7 +4943,7 @@ entry.
 }  /* canonical_routine_entry_of */
 
 
-static a_variable_ptr canonical_variable_entry_of(a_variable_ptr  var)
+a_variable_ptr canonical_variable_entry_of(a_variable_ptr  var)
 /*
 If the given variable entry has not yet been examined for a corresponding entry
 in another translation unit, do so now.  Then return the established canonical
