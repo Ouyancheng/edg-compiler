@@ -1,5 +1,16 @@
 Version 2.42
 
+3/13/99  Microsoft compatibility: spurious error on inheritance kind for
+         deep single inheritance
+
+In microsoft compatibility mode a spurious error was issued on when an
+inheritance kind of __single_inheritance was specified for a class with
+single inheritance more than one level deep.  Now fixed.
+
+  struct A { };
+  struct B : A { };
+  struct __single_inheritance C : B { };    // spurious error eliminated
+
 3/12/99  Class template copy constructor problem with default argument
 
 A problem was introduced when the new rules for the instantiation of

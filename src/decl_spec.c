@@ -526,6 +526,31 @@ end_of_uuid_string:
 }  /* scan_declspec_attributes */
 
 
+static a_boolean any_multiple_inheritance(a_type_ptr  class_type)
+/*
+Return TRUE if the specified class type or any of its base classes was
+declared with more than one base class.
+*/
+{
+  a_boolean                    multiple = FALSE;
+  a_base_class_ptr             bcp;
+  a_class_type_supplement_ptr  ctsp;
+
+  bcp = base_classes_of(class_type);
+  if (bcp != NULL) {
+    /* Find the first direct base class. */
+    while (!bcp->direct) bcp = bcp->next;
+    if (bcp->next != NULL || any_multiple_inheritance(bcp->type)) {
+      /* If there's a next pointer, there must be another direct base
+         class.  Otherwise, it depends on the inheritance of the
+         associated class type. */
+      multiple = TRUE;
+    }  /* if */
+  }  /* if */
+  return multiple;
+}  /* any_multiple_inheritance */
+
+
 void check_inheritance_kind(a_type_ptr           class_type,
                             an_inheritance_kind  inheritance_kind,
                             a_source_position    *err_pos)
@@ -536,20 +561,16 @@ is insufficient for the actual characteristics of the class.  *err_pos
 indicates the source position at which the error should be put out.
 */
 {
-  an_inheritance_kind         minimum_inheritance_kind;
-  a_class_type_supplement_ptr ctsp;
+  a_boolean  err;
 
   if (inheritance_kind != (an_inheritance_kind)ihk_none) {
-    ctsp = class_type->variant.class_struct_union.extra_info;
+    err = FALSE;
     if (class_type->variant.class_struct_union.any_virtual_base_classes) {
-      minimum_inheritance_kind = (an_inheritance_kind)ihk_virtual;
-    } else if (ctsp->base_classes != NULL &&
-               ctsp->base_classes->next != NULL) {
-      minimum_inheritance_kind = (an_inheritance_kind)ihk_multiple;
-    } else {
-      minimum_inheritance_kind = (an_inheritance_kind)ihk_single;
+      err = inheritance_kind < (an_inheritance_kind)ihk_virtual;
+    } else if (any_multiple_inheritance(class_type)) {
+      err = inheritance_kind < (an_inheritance_kind)ihk_multiple;
     }  /* if */
-    if (inheritance_kind < minimum_inheritance_kind) {
+    if (err) {
       pos_stsy_error(ec_invalid_inheritance_kind_for_class, err_pos,
                      inheritance_kind_names[(int)inheritance_kind],
                      (a_symbol_ptr)class_type->source_corresp.assoc_info);
