@@ -899,6 +899,9 @@ source file's compilation.
   il_header.microsoft_mode = microsoft_mode;
   il_header.microsoft_version = microsoft_version;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  il_header.gcc_mode = gcc_mode;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   /* near_and_far_enabled, far_data_pointers, and far_code_pointers are
      initialized in fe_early_init and changed if necessary in cmd_line.c. */

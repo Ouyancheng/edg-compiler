@@ -4402,35 +4402,40 @@ this one is such a continuation.
         gen_type_name(type);
       } else if (type->is_builtin_va_list) {
         /* This is the declaration of the builtin va_list, from <stdarg.h>. */
-#if GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS
-        /* This is the intrinsic GNU C type __builtin_va_list.  No declaration
-           should be generated for it. */
-#else /* !(GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
-        /* The va_list type was automatically generated when
-           "#include <stdarg.h>" was seen (without parsing the header file).
-           Put out the #include directive at this point. */
-        type->typedef_definition_has_been_put_out = TRUE;
-        suppress_closing_punct = TRUE;
-        adv_curr_source_sequence_entry();
-        /* If the guard macros were defined already, put out #defines so that
-           the expansion of <stdarg.h> does not define va_list again. */
+#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
+    GCC_BUILTIN_VARARGS
+        if (il_header.gcc_mode) {
+          /* This is the intrinsic GNU C type __builtin_va_list.  No
+             declaration should be generated for it. */
+        } else
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
+        /* Do not insert code here. */
+        {
+            /* The va_list type was automatically generated when
+             "#include <stdarg.h>" was seen (without parsing the header file).
+             Put out the #include directive at this point. */
+          type->typedef_definition_has_been_put_out = TRUE;
+          suppress_closing_punct = TRUE;
+          adv_curr_source_sequence_entry();
+          /* If the guard macros were defined already, put out #defines so that
+             the expansion of <stdarg.h> does not define va_list again. */
 #ifdef GUARD_MACRO_FOR_VA_LIST
-        if (type->va_list_guard_macro_was_defined) {
-          begin_pp_directive("#define ");
-          write_str(GUARD_MACRO_FOR_VA_LIST);
-          end_pp_directive();
-        }  /* if */
+          if (type->va_list_guard_macro_was_defined) {
+            begin_pp_directive("#define ");
+            write_str(GUARD_MACRO_FOR_VA_LIST);
+            end_pp_directive();
+          }  /* if */
 #endif /* ifdef GUARD_MACRO_FOR_VA_LIST */
 #ifdef GUARD_MACRO2_FOR_VA_LIST
-        if (type->va_list_guard_macro2_was_defined) {
-          begin_pp_directive("#define ");
-          write_str(GUARD_MACRO2_FOR_VA_LIST);
+          if (type->va_list_guard_macro2_was_defined) {
+            begin_pp_directive("#define ");
+            write_str(GUARD_MACRO2_FOR_VA_LIST);
+            end_pp_directive();
+          }  /* if */
+#endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
+          begin_pp_directive("#include <stdarg.h>");
           end_pp_directive();
         }  /* if */
-#endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
-        begin_pp_directive("#include <stdarg.h>");
-        end_pp_directive();
-#endif /* GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
       } else {
         /* A typedef definition. */
         if (!C_mode() &&

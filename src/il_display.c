@@ -5176,10 +5176,12 @@ Display the IL for the file scope in human-readable form.
   disp_ptr("macros", (char *)il_header.macros, iek_macro);
 #endif /* RECORD_MACROS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  disp_boolean("microsoft_mode",
-               (a_boolean)il_header.microsoft_mode);
+  disp_boolean("microsoft_mode", (a_boolean)il_header.microsoft_mode);
   disp_long("microsoft_version", (a_boolean)il_header.microsoft_version);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  disp_boolean("gcc_mode", (a_boolean)il_header.gcc_mode);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   disp_boolean("near_and_far_are_enabled",
                (a_boolean)il_header.near_and_far_are_enabled);

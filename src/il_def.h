@@ -9403,6 +9403,12 @@ typedef struct an_il_header {
 			   desired; corresponds to global variable
 			   microsoft_version. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  a_byte_boolean
+		gcc_mode;
+			/* TRUE if the source program was compiled in
+			   GNU C mode. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   a_byte_boolean
 		near_and_far_are_enabled;
