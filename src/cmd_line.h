@@ -500,7 +500,7 @@ EXTERN a_boolean
 EXTERN a_boolean
 		inlining_enabled
 #if VAR_INITIALIZERS
-                                 = TRUE
+                                 = FALSE
 #endif /* VAR_INITIALIZERS */
                                        ;
 			/* TRUE if minimal inlining should be done by IL
