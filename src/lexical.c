@@ -563,8 +563,7 @@ memory.
 void cache_curr_token(a_token_cache *cache)
 /*
 Save the current token on the end of the list of tokens saved in *cache.
-This is used to save tokens for later rescanning.  This may not be used
-for pp-tokens.
+This is used to save tokens for later rescanning.
 */
 {
   a_cached_token_ptr	ctp;
@@ -2701,7 +2700,7 @@ code that makes it possible to suppress subsequent re-inclusions.
     assoc_symbol = find_defined_macro(assoc_symbol);
     /* If the macro is undefined, then an #ifdef NAME guard would cause the
        included file to be ignored, so we should return TRUE (meaning it is
-       OK to suppress the inclusion. */
+       OK to suppress the inclusion). */
     result = assoc_symbol == NULL;
     /* If this is an #ifndef instead of an #ifdef, negate the current value
        of result. */
@@ -9097,9 +9096,9 @@ of characters added.
   }  /* if */
   /* Now put out the characters representing the token. */
   if (token == tok_newline) {
-    /* Ignore tok_newline.  It only comes up in pragma token caches, and
-       when the sequence number changes the required number of newline
-       characters will be added to the cache anyway. */
+    /* Ignore tok_newline.  It only comes up in Microsoft asm blocks.
+       The required number of newline characters will be added when the
+       sequence number changes. */
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token) {
     /* A token that was saved as a pp-token.  This token should be added to
        the string using the start of token pointer.  Note that the
