@@ -71,17 +71,17 @@ This is now fixed.
 
 7/23/04  Useless return type qualifiers in template instantiations
 
-In nontemplate code, the front end issues a warning if the return type of
-a function is nonclass type qualified with "const" or "volatile".  In (real)
-template instantiations, this diagnostic was previously weakened to a
-remark because the template writer has little control over whether the
-return type will be instantiated to be a class or nonclass type.  Even so,
-the remark has proven to be more distracting than useful, and as a result
-we no longer issue it.  Note however that we still issue a warning during
-prototype instantiation if we can determine at that time that the qualified
-type is a nonclass type.  This approach also avoid issuing the same
-diagnostic twice (once as a warning and once as a remark) for nondependent
-return types in templates.  For example:
+In nontemplate code, the front end issues a warning if the return type of a
+function is a nonclass type qualified with "const" or "volatile".  In (real)
+template instantiations, this diagnostic was previously weakened to a remark
+because the template writer has little control over whether the return type
+will be instantiated to be a class or nonclass type.  Even so, the remark has
+proven to be more distracting than useful, and as a result we no longer issue
+it.  Note however that we still issue a warning during prototype instantiation
+if we can determine at that time that the qualified type is a nonclass type.
+This approach also avoids issuing the same diagnostic twice (once as a warning
+and once as a remark) for nondependent return types in templates.
+For example:
 
   template<typename T> struct S {
     int const f();  // Previously both a warning (during prototype
