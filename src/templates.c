@@ -5187,7 +5187,7 @@ type based on the template argument list and the template parameter list
        (it has no routine type).  Using a partially constructed symbol could
        cause problems if errors occur while rescanning the declaration. */
     tcp = &tssp->variant.function.decl_cache;
-    /* Increment the count of pending instantiations of this temnplate. */
+    /* Increment the count of pending instantiations of this template. */
     ++(tssp->pending_instantiations);
     (void)push_template_instantiation_scope(tcp->decl_info,
 					    (a_type_ptr)NULL,
@@ -5344,7 +5344,7 @@ type based on the template argument list and the template parameter list
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Pop the template instantiation scope. */
   pop_template_instantiation_scope();
-  /* Decrement the count of pending instantiations of this temnplate. */
+  /* Decrement the count of pending instantiations of this template. */
   --(tssp->pending_instantiations);
   switch_back_to_original_region(region_to_switch_back_to);
   /* Function instantiation entries are not marked for actual instantiation
