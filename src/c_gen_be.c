@@ -2393,6 +2393,71 @@ done:;
 }  /* dump_enum_definition */
 
 
+static void dump_bit_field_base_type_name(a_field_ptr field)
+/*
+Output the name of the type to be used as the base type of the indicated
+bit field in the generated code.
+*/
+{
+  char *type_str;
+
+  /* Note that "const" is dropped; that's important so that
+     initialization code rewritten as executable code by IL lowering
+     can assign to this member and the overall struct. */
+#if ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C
+  /* We're not limited to the standard "int" and "unsigned int", so
+     put out the underlying integer type for the bit field as
+     written. */
+  /* Note, however, that we do not put out enum types; for those,
+     we put out the underlying integer type.  Typedefs are
+     dropped too, but that's just what falls out. */
+  { a_type_ptr      base_type = skip_typerefs(field->type);
+    an_integer_kind base_ikind;
+
+    check_assertion(base_type->kind == (a_type_kind)tk_integer);
+    base_ikind = base_type->variant.integer.int_kind;
+#if !C_GEN_BE_GENERATES_ANSI_C
+    if (base_ikind == (an_integer_kind)ik_signed_char) {
+      /* For old-style C, use "char" for "signed char". */
+      base_ikind = (an_integer_kind)ik_char;
+    }  /* if */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+    /* Get the type name. */
+    type_str = int_kind_name_full(base_ikind,
+                                  /*for_generated_code=*/TRUE);
+#if C_GEN_BE_GENERATES_ANSI_C
+    /* If the kind does not make the signedness explicit,
+       put it out explicitly.  For example, instead of "int" put
+       out "signed int" or "unsigned int" depending on the signedness
+       chosen for the bit field. */
+    if (type_str[0] == 's' && type_str[1] == 'i' && type_str[2] == 'g') {
+      /* "signed", so already explicitly signed. */
+    } else if (type_str[0] == 'u' && type_str[1] == 'n' &&
+               type_str[2] == 's') {
+      /* "unsigned", so already explicitly unsigned. */
+    } else {
+      /* The type is not explicitly signed, so put out a signedness
+         indication. */
+      write_tok_str(field->bit_field_is_signed ? "signed " : "unsigned ");
+    }  /* if */
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
+  }
+#else /* !ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
+  /* Use only standard "int" or "unsigned int" base types. */
+#if C_GEN_BE_GENERATES_ANSI_C
+  /* If the field is signed, make that explicit, so the choice is
+     not left to the underlying C compiler. */
+  type_str = (char *)(field->bit_field_is_signed ? "signed int"
+                                                 : "unsigned int");
+#else /* !C_GEN_BE_GENERATES_ANSI_C */
+  type_str = (char *)(field->bit_field_is_signed ? "int"
+                                                 : "unsigned int");
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
+#endif /* ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
+  write_tok_str(type_str);
+}  /* dump_bit_field_base_type_name */
+
+
 static void dump_bit_field_padding(a_field_ptr field)
 /*
 Dump out declarations to describe padding after the indicated bit field,
@@ -2551,10 +2616,6 @@ final semicolon if output_final_semi is TRUE.
         /* Don't insert code here -- this is the "else" of an "if". */
         {
           /* Put out a bit field declaration. */
-          /* Note that "const" is dropped; that's important so that
-             initialization code rewritten as executable code by IL lowering
-             can assign to this member and the overall struct. */
-          char *type_str;
           if (field->bit_field_alignment_type != NULL) {
             /* Put out an alignment indication for a field that was declared
                larger than the underlying base type. */
@@ -2568,45 +2629,7 @@ final semicolon if output_final_semi is TRUE.
               write_space();
             }  /* if */
           }  /* if */
-#if C_GEN_BE_GENERATES_ANSI_C
-          /* If the field is signed, make that explicit, so the choice is
-             not left to the underlying C compiler. */
-          if (field->bit_field_is_signed) write_tok_str("signed ");
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
-#if ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C
-          /* We're not limited to the standard "int" and "unsigned int", so
-             put out the underlying integer type for the bit field as
-             written. */
-          /* Note, however, that we do not put out enum types; for those,
-             we put out the underlying integer type. */
-          { a_type_ptr      base_type = skip_typerefs(field->type);
-            an_integer_kind base_ikind;
-
-            check_assertion(base_type->kind == (a_type_kind)tk_integer);
-            base_ikind = base_type->variant.integer.int_kind;
-            /* If the bit field is supposed to be unsigned, but the
-               integer kind doesn't force that, make it explicit. */
-            if (base_ikind == (an_integer_kind)ik_char &&
-                !field->bit_field_is_signed) {
-              base_ikind = (an_integer_kind)ik_unsigned_char;
-            } else if (base_ikind == (an_integer_kind)ik_int &&
-                       !field->bit_field_is_signed) {
-              base_ikind = (an_integer_kind)ik_unsigned_int;
-            } else if (base_ikind == (an_integer_kind)ik_signed_char) {
-              /* Use plain "char" for "signed char".  If "signed" is
-                 appropriate, it was put out above. */
-              base_ikind = (an_integer_kind)ik_char;
-            }  /* if */
-            type_str = int_kind_name_full(base_ikind,
-                                          /*for_generated_code=*/TRUE);
-          }
-#else /* !ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
-          /* Use only standard "int" or "unsigned int" base types.
-             ("signed" was put out above if appropriate.) */
-          type_str = (char *)(field->bit_field_is_signed ? "int"
-                                                         : "unsigned int");
-#endif /* ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
-          write_tok_str(type_str);
+          dump_bit_field_base_type_name(field);
           /* Write the name if the field is named. */
           if (has_name(field)) {
             write_space();
@@ -2658,12 +2681,6 @@ final semicolon if output_final_semi is TRUE.
     if (union_alignment_needed) {
       /* Put out extra fields to force alignment for the struct when
          there are fields that did not fit in their base types. */
-      char *bf_type;
-#if ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C
-      bf_type = "char";
-#else /* !ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
-      bf_type = "int";
-#endif /* ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
       for (field = type->variant.class_struct_union.field_list;
            field != NULL;
            field = field->next) {
@@ -2685,7 +2702,7 @@ final semicolon if output_final_semi is TRUE.
              declared field. */
           write_space();
           write_tok_str("struct { ");
-          write_tok_str(bf_type);
+          dump_bit_field_base_type_name(field);
           write_tok_str(":");
           write_unsigned_num((a_host_large_unsigned)field->bit_size);
           write_tok_ch(';');
