@@ -3512,6 +3512,18 @@ done_with_operation:
       /* Definition of object lifetime (for temporaries).  Ignored. */
       gen_expr(expr->variant.object_lifetime.expr, need_parens);
       break;
+    case enk_typeid:
+      /* C++ typeid operator. */
+      write_tok_str("typeid(");
+      if (expr->variant.typeid_info.expr == NULL) {
+        /* Use type. */
+        gen_type(expr->variant.typeid_info.type);
+      } else {
+        /* Use expression. */
+        gen_lvalue(expr->variant.typeid_info.expr);
+      }  /* if */
+      write_tok_str(")");
+      break;
     case enk_address_of_ellipsis:
       write_tok_str("&...");
       break;
