@@ -1251,6 +1251,7 @@ Mangle the name of the indicated function, if necessary.
   }  /* if */
 }  /* mangle_function_name */
 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 char *get_mangled_function_name(a_routine_ptr routine)
 /*
@@ -1290,6 +1291,7 @@ name in the routine entry.
   return mangled_name;
 }  /* get_mangled_function_name */
 
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 static sizeof_t mangled_static_data_member_name(a_variable_ptr variable,
                                                 char           *store_at)
@@ -1362,6 +1364,7 @@ Mangle the name of the indicated static data member.
   variable->source_corresp.name_has_been_mangled = TRUE;
 }  /* mangle_static_data_member_name */
 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 char *get_mangled_static_data_member_name(a_variable_ptr variable)
 /*
@@ -1396,6 +1399,7 @@ name in the variable entry.
   return mangled_name;
 }  /* get_mangled_static_data_member_name */
 
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 static void mangle_class_name(a_type_ptr class_type)
 /*

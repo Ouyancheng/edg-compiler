@@ -363,6 +363,25 @@ DO_IL_LOWERING or IL_WALK_NEEDED is TRUE.
 #endif /* DO_IL_LOWERING || IL_WALK_NEEDED */
 
 /*
+Flag that is TRUE to enable automatic instantiation support for templates.
+*/
+#ifndef AUTOMATIC_TEMPLATE_INSTANTIATION
+#define AUTOMATIC_TEMPLATE_INSTANTIATION TRUE
+#endif /* ifndef AUTOMATIC_TEMPLATE_INSTANTIATION */
+
+/*
+If automatic instantiation of templates is supported, there are two
+different modes: AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION TRUE
+means that it's assumed that any file that references a given entity
+could also generate a definition of that entity if the .c file
+corresponding to the .h file in which the entity is declared were
+included.  FALSE means no such assumption is made.
+*/
+#ifndef AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION
+#define AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION TRUE
+#endif /* ifndef AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION */
+
+/*
 Flag that is TRUE to specify that source files should be read in
 binary mode under MS-DOS.  In this mode, carriage return and control-Z
 are handled by the front end instead of the host C runtime library.
