@@ -1,5 +1,20 @@
 Version 2.37
 
+10/16/97  Internal error in eliminating unneeded nested template class
+          specialization
+
+If (1) unneeded entities were being removed from the IL, (2) source
+sequence entries were being generated, and (3) IL lowering was not being
+done, then an internal error could occur when an unneeded nested template
+class specialization was encountered; now fixed.  Here's an example:
+
+  class A {
+    template <class T> class N { ... };
+  };
+  template<> class A::N<int> { ... };      // Unreferenced, so definition
+                                           //   of A::N<int> is eliminated
+                                           //   from the IL
+
 10/15/97  Source-sequence representation for class template instantiation
           with dependency on member of class being defined
 

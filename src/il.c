@@ -11238,7 +11238,8 @@ entry into one representing a nondefining declaration.
   ssep = class_type->source_corresp.source_sequence_entry;
   if (ssep != NULL) {
     if (class_type->variant.class_struct_union.
-                         nested_class_defined_outside_of_parent) {
+                         nested_class_defined_outside_of_parent &&
+        !class_type->variant.class_struct_union.is_template_class) {
       /* This is a nested class defined outside the definition of its parent
          class.  Remove from the file-scope source-sequence list the entries
          representing the definition. */
