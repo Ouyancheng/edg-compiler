@@ -1,5 +1,11 @@
 Version 2.30
 
+10/5/95  C++-generating back end: pragmas on dependent statements
+
+A problem in the C++-generating back end has been corrected.  It caused
+an abort on handling a pragma bound to the dependent statement of an
+if, while, do-while, or for.
+
 10/5/95  Diagnostics on variables of empty-class type
 
 Some diagnostics complaining about uninitialized variables of empty-class
