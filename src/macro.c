@@ -465,6 +465,21 @@ to it.
 }  /* alloc_macro_param */
 
 
+static void clear_macro_def(a_macro_def_ptr mdp)
+/*
+Clear a macro definition entry to default values.
+*/
+{
+  mdp->object_like                         = TRUE;
+  mdp->try_to_scan_and_save_constant_value = FALSE;
+  mdp->is_manifest_constant                = FALSE;
+  mdp->param_list                          = NULL;
+  mdp->repl_text                           = NULL;
+  mdp->constant_token_kind                 = tok_error;
+  mdp->constant_value                      = NULL;
+}  /* clear_macro_def */
+
+
 a_macro_def_ptr alloc_macro_def(void)
 /*
 Allocate a macro definition entry (used for preprocessor macros), clear it
@@ -477,13 +492,7 @@ to default values, and return a pointer to it.
 #if DEBUG
   num_macro_defs_allocated++;
 #endif /* DEBUG */
-  mdp->object_like                         = TRUE;
-  mdp->try_to_scan_and_save_constant_value = FALSE;
-  mdp->is_manifest_constant                = FALSE;
-  mdp->param_list                          = NULL;
-  mdp->repl_text                           = NULL;
-  mdp->constant_token_kind                 = tok_error;
-  mdp->constant_value                      = NULL;
+  clear_macro_def(mdp);
   return (mdp);
 }  /* alloc_macro_def */
 
@@ -2656,7 +2665,13 @@ redef_error:
     memcpy(repl_text, macro_buffer, (int)repl_text_len);
     repl_text[repl_text_len] = '\0';
     /* Allocate and fill the macro definition block. */
-    if (mdp == NULL) mdp = alloc_macro_def();
+    if (mdp == NULL) {
+      mdp = alloc_macro_def();
+    } else {
+      /* Reuse an existing macro definition on a non-benign redefinition.
+         This clears the is_manifest_constant flag, for one thing. */
+      clear_macro_def(mdp);
+    }  /* if */
     mdp->object_like    = object_like;
     mdp->try_to_scan_and_save_constant_value
                         = try_to_scan_and_save_constant_value;
