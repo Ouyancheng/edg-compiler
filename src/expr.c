@@ -4284,8 +4284,7 @@ functional-notation type conversions.
                               make_pointer_type(type_pointed_to(type_cast_to));
     } else if (is_ptr_to_member_type(type_cast_to)) {
       /* In C++, a cast to a pointer-to-member type is allowed. */
-    } else if (C_dialect == C_dialect_cplusplus && cfront_compatibility_mode &&
-               is_array_type(type_cast_to)) {
+    } else if (cfront_compatibility_mode && is_array_type(type_cast_to)) {
       /* In C++, treat a cast to an array type as a cast to a pointer to
          the array element type.  This is an extension to match cfront 2.1
          and is only accepted in cfront compatibility mode.   A warning is
@@ -4295,8 +4294,8 @@ functional-notation type conversions.
                            make_pointer_type(array_element_type(type_cast_to));
       type_warning(ec_nonstd_array_cast, type_cast_to);
     } else {
-      /* Invalid cast. */
-      error(ec_cast_not_scalar_or_void);
+      /* Invalid destination type for cast. */
+      type_error(ec_cast_to_bad_type, type_cast_to);
       err = TRUE;
     }  /* if */
   }  /* if */
@@ -4815,10 +4814,18 @@ type is passed in as type_cast_to.  The result is returned in *result.
     add_matching_stop_token(tok_rparen);
     if (curr_token == tok_rparen) {
       /* Empty parentheses. */
-      if (is_class_struct_union_type(type_cast_to)) {
+      if (err) {
+        /* Some previous error. */
+        make_error_operand(result);
+      } else if (is_class_struct_union_type(type_cast_to)) {
         /* A class with no constructor, followed by (), e.g., "A()" --
            this is an error. */
         pos_ty_error(ec_no_constructor, &lparen_pos, type_cast_to);
+        make_error_operand(result);
+      } else if (cast_to_reference) {
+        /* Disallow a cast to a reference type; this may or may not turn
+           out to be allowed by the standard for C++. */
+        pos_error(ec_bad_cast, &lparen_pos);
         make_error_operand(result);
       } else {
         /* A non-class type followed by (); generate an "undefined" value
