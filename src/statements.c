@@ -676,9 +676,9 @@ to the block statement in *block.
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_compound, *block);
   /* Push an associated scope.  This does not allocate the IL scope yet. */
-  (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
-                   (a_type_ptr)NULL, (a_routine_ptr)NULL,
-                   (a_function_instantiation_entry_ptr)NULL);
+  (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER, (a_type_ptr)NULL,
+                   (a_routine_ptr)NULL, (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                   (a_template_arg_ptr)NULL);
 }  /* start_block_statement */
 
 

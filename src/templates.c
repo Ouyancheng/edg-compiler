@@ -79,10 +79,11 @@ out to be a template type, this routine attempts to instantiate it; it
 might not be able to if the template itself has not yet been defined.
 */
 {
-  a_symbol_ptr                      template_sym;
+  a_symbol_ptr                      instance_sym, template_sym;
   a_template_symbol_supplement_ptr  tssp;
   a_token_cache                     *p_token_cache;
   a_class_symbol_supplement_ptr     cssp;
+  a_template_arg_ptr                template_arg_list;
 
   db_enter(3, "f_instantiate_template_class");
 #if CHECKING
@@ -91,7 +92,8 @@ might not be able to if the template itself has not yet been defined.
   }  /* if */
 #endif /* CHECKING */
   class_type = skip_typerefs(class_type);
-  cssp = symbol_supplement_for_class(class_type);
+  instance_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+  cssp = instance_sym->variant.class_struct_union.extra_info;
   template_sym = cssp->class_template;
   if (template_sym == NULL) {
     /* Not a class based on a class template. */
@@ -144,10 +146,12 @@ might not be able to if the template itself has not yet been defined.
       /* Push a template instantiation scope.  The real values of the
          the template arguments will be associated with the template
          parameter names. */
+      template_arg_list = class_type->variant.class_struct_union.extra_info->
+                                                             template_arg_list;
       (void)push_scope((a_scope_kind)sck_template_instantiation,
                        tssp->declaration_scope, class_type,
-                       (a_routine_ptr)NULL,
-                       (a_function_instantiation_entry_ptr)NULL);
+                       (a_routine_ptr)NULL, instance_sym, template_sym,
+                       template_arg_list);
       /* The tokens of the template definition have been cached away.
          Activate the cache so that they can be rescanned in light of
          the new values associated with the template parameters. */
@@ -193,6 +197,8 @@ encountered.
 {
   a_template_symbol_supplement_ptr  tssp;
   a_token_cache                     *p_token_cache;
+  a_symbol_ptr                      instance_sym;
+  a_template_arg_ptr                template_arg_list;
 
   db_enter(3, "instantiate_class_template");
   tssp = template_sym->variant.template_info;
@@ -211,10 +217,13 @@ encountered.
     db_symbol(template_sym, "prototype instantiation of: ", 2);
   }  /* if */
 #endif /* DEBUG */
+  instance_sym = (a_symbol_ptr)prototype_type->source_corresp.assoc_info;
+  template_arg_list = prototype_type->variant.class_struct_union.extra_info->
+                                                             template_arg_list;
   (void)push_scope((a_scope_kind)sck_template_instantiation,
                    tssp->declaration_scope, prototype_type,
-                   (a_routine_ptr)NULL,
-                   (a_function_instantiation_entry_ptr)NULL);
+                   (a_routine_ptr)NULL, instance_sym, template_sym,
+                   template_arg_list);
   rescan_reusable_cache(p_token_cache);
 #if CHECKING
   if (curr_token != tok_lbrace && curr_token != tok_colon) {
@@ -283,7 +292,8 @@ Instantiate the body of the template function associated with fiep.
   rout_ptr->is_inline = tssp->variant.function.routine->is_inline;
   /* Push the template instantiation scope. */
   (void)push_scope((a_scope_kind)sck_template_instantiation,
-                  tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr, fiep);
+                   tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr,
+                   rout_sym, fiep->template_sym, fiep->arg_list);
   rescan_reusable_cache(&tssp->token_cache);
 
 #if 0
@@ -300,8 +310,8 @@ Instantiate the body of the template function associated with fiep.
   }  /* if */
   /* Push the name scope for the routine body. */
   scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
-                     (a_type_ptr)NULL, rout_ptr,
-                     (a_function_instantiation_entry_ptr)NULL);
+                     (a_type_ptr)NULL, rout_ptr, (a_symbol_ptr)NULL,
+                     (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
   /* Associate the scope to the routine entry and the routine entry to its
      type entry. */
   rout_ptr->assoc_scope = curr_il_region_number;
@@ -456,8 +466,9 @@ void define_template_static_data_member(a_static_data_member_def_ptr  sdmdp)
        is this correct? */
 #endif /* if 0 */
     (void)push_scope((a_scope_kind)sck_template_instantiation,
-                     tssp->declaration_scope, tp, (a_routine_ptr)NULL,
-                     (a_function_instantiation_entry_ptr)NULL);
+                     tssp->declaration_scope, (a_type_ptr)NULL,
+                     (a_routine_ptr)NULL, static_data_member_sym,
+                     sdmdp->template_sym, sdmdp->arg_list);
     push_class_reactivation_scope(static_data_member_sym->
                                                   class_of_which_a_member);
     
@@ -2376,8 +2387,8 @@ entry is pushed on the scope stack.
     error(ec_nonglobal_template_declaration);
   }  /* if */
   (void)push_scope((a_scope_kind)sck_template_declaration, NO_SCOPE_NUMBER,
-                   (a_type_ptr)NULL, (a_routine_ptr)NULL,
-                   (a_function_instantiation_entry_ptr)NULL);
+                   (a_type_ptr)NULL, (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
+                   (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
   add_stop_token(tok_semicolon);
   add_stop_token(tok_lbrace);
   /* Bypass "template".  The next token should be "<". */
