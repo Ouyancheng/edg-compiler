@@ -3920,9 +3920,8 @@ after_check:
       curr_reachability = save_reachability;
       merge_reachability(&prev_reachability, &curr_reachability);
     }  /* if */
-    if (!C_mode() && long_lifetime_temps) {
-      /* Create a block-after-label lifetime to deal with long lifetime
-         temporaries. */
+    if (!C_mode()) {
+      /* Create a block-after-label lifetime. */
       char              *entity_ptr;
       an_il_entry_kind  entity_kind;
 
