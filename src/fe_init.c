@@ -578,6 +578,9 @@ to replace the initial portion of this compilation.
 #if RECORD_MACROS_IN_IL
   il_header.macros = NULL;
 #endif /* RECORD_MACROS_IN_IL */
+#if USER_CONTROL_OF_STRUCT_PACKING
+  il_header.default_max_member_alignment = default_max_member_alignment;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   if (do_preprocessing_only) {
     /* Open the preprocessing output file. */
     open_pp_output_file();
