@@ -531,21 +531,14 @@ Return TRUE if the given type is a template parameter type.
 a_boolean is_template_class_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a template class type -- an instance
-of a class template that has been created.  This is determined by first
-making sure that the type represents a class, struct, or union, then
-making sure that it has a class type supplement, and finally looking for a
-non-null template argument list.
+of a class template that has been created, or a nested class of a
+class template.
 */
 {
   register a_boolean                    result = FALSE;
-  register a_class_type_supplement_ptr  ctsp;
   tp = skip_typerefs(tp);
-  if (tp->kind == (a_type_kind)tk_class ||
-      tp->kind == (a_type_kind)tk_struct ||
-      tp->kind == (a_type_kind)tk_union) {
-    if ((ctsp = tp->variant.class_struct_union.extra_info) != NULL) {
-      if (ctsp->template_arg_list != NULL) result = TRUE;
-    }  /* if */
+  if (is_immediate_class_type(tp)) {
+    result = tp->variant.class_struct_union.is_template_class;
   }  /* if */
   return result;
 }  /* is_template_class_type */

@@ -1335,6 +1335,9 @@ typedef struct a_lookup_state {
 			/* TRUE for class and class reactivation scopes if
 			   the lookup should attempt to find a projection
 			   symbol that meets the lookup criteria. */
+  a_boolean	look_in_dependent_bases;
+			/* TRUE if the lookup can consider dependent base
+			   classes generated from class templates. */
   a_boolean	add_to_active_list;
 			/* TRUE if look_for_projected_symbol is TRUE and
 			   the resulting projection symbol (if any) should be
@@ -1405,6 +1408,7 @@ value.
   cleared_lookup_state.check_for_nonreal_bases       = FALSE;
   cleared_lookup_state.any_nonreal_bases             = FALSE;
   cleared_lookup_state.look_for_projected_symbol     = FALSE;
+  cleared_lookup_state.look_in_dependent_bases       = FALSE;
   cleared_lookup_state.add_to_active_list            = FALSE;
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
   cleared_lookup_state.projection_symbol_found       = FALSE;
@@ -1625,8 +1629,11 @@ lookup processing.
        kind == (a_scope_kind)sck_class_reactivation)) {
     /* For class scopes, look for a symbol projected (inherited)
        into the class scope if a symbol was not found in the class
-       itself. */
+       itself.  Don't look in dependent base classes for classes that
+       are generated from templates. */
     lookup_state->look_for_projected_symbol = TRUE;
+    lookup_state->look_in_dependent_bases =
+                             is_unspecialized_template_class(ssep->assoc_type);
     lookup_state->add_to_active_list = TRUE;
     lookup_state->insert_sym = prev_active_sym;
   }  /* if */
@@ -1734,8 +1741,12 @@ that do normal id lookup processing.
       }  /* if */
       if (sym == NULL && kind == (a_scope_kind)sck_class_reactivation) {
         /* There is no inactive symbol that is in this class. */
-        /* Look for a symbol projected (inherited) into this class. */
+        /* Look for a symbol projected (inherited) into this class.
+           Don't look in dependent base classes if the associated scope is
+           a generated template class. */
         lookup_state->look_for_projected_symbol = TRUE;
+        lookup_state->look_in_dependent_bases =
+                             is_unspecialized_template_class(ssep->assoc_type);
         lookup_state->add_to_active_list = FALSE;
         lookup_state->insert_sym = NULL;
       }  /* if */
@@ -1774,7 +1785,7 @@ that do normal id lookup processing.
 
   if (find_projected_symbol(ssep->assoc_type, locator,
                             lookup_state->options,
-                            /*qualified_lookup=*/FALSE,
+                            lookup_state->look_in_dependent_bases,
                             lookup_state->tentative_type_lookup,
                             lookup_state->tentative_template_lookup,
                             lookup_state->hidden_name_lookup ||
@@ -2893,7 +2904,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                                                    &insert_sym);
         (void)find_projected_symbol(
                                  class_type, locator, options,
-                                 /*qualified_lookup=*/TRUE,
+                                 /*look_in_dependent_bases=*/TRUE,
                                  /*tentative_type_lookup=*/FALSE,
                                  /*tentative_template_lookup=*/FALSE,
                                  (options & IDL_HIDDEN_NAME_LOOKUP) != 0 ||
