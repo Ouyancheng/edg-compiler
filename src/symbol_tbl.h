@@ -435,10 +435,13 @@ typedef enum /*a_repl_text_seq_kind*/ {
   rt_text,		/* Raw text.  Followed by 3 bytes containing a
 			   character count, and then that many characters
 			   of raw text. */
-  rt_raw_argument,
+  rt_left_raw_argument,
+  rt_right_raw_argument,
 			/* Raw string for argument.  Followed by 3 bytes
 			   containing the argument number (first argument is
-			   numbered 1). */
+			   numbered 1).  "left" argument is one to the left
+			   of "##", "right" argument is one to the right
+			   of "##". */
   rt_stringized_raw_argument,
 			/* Same as rt_raw_argument, but argument raw string is
 			   turned into a string literal (see standard,
