@@ -397,7 +397,7 @@ a %s, insertion_string must not be NULL.
   exit (RC_ERROR);
 }
 
-static char *pl_malloc_with_check(sizeof_t size)
+static a_void_ptr pl_malloc_with_check(sizeof_t size)
 /*
 Interface to malloc that allocates "size" bytes.  Checks for failure of 
 allocation and generates a catastrophic error.
@@ -405,7 +405,7 @@ allocation and generates a catastrophic error.
 {
   char *ptr;
 
-  if ((ptr = (char *)malloc(size)) == NULL) {
+  if ((ptr = (a_void_ptr)malloc(size)) == NULL) {
     pl_error(pl_ec_out_of_memory, (char *)NULL);
   } /* if */
   return (ptr);
@@ -841,8 +841,8 @@ processed further.
   /* On the first call allocate a buffer that can be used to store the
      archive name. */
   if (name1_buffer == NULL) {
-    name1_buffer = pl_malloc_with_check(PL_INPUT_LINE_SIZE);
-    name2_buffer = pl_malloc_with_check(PL_INPUT_LINE_SIZE);
+    name1_buffer = pl_malloc_with_check(size_t_arg(PL_INPUT_LINE_SIZE));
+    name2_buffer = pl_malloc_with_check(size_t_arg(PL_INPUT_LINE_SIZE));
   }  /* if */
   /* Clear the pointers to the returned values. */
   *name1 = *name2 = *symbol_name = NULL;
@@ -1759,7 +1759,7 @@ Execute the command to recompile a file.
 */
 {
   static char	*shell_format_string = "%s";
-  int		length;
+  sizeof_t	length;
   char		*command;
   int		result;
 
@@ -2000,8 +2000,8 @@ int main(int argc, char *argv[])
   char		*filename;
   char		*command;
   int		arg;
-  int		cmd_line_size = 0;
-  int		longest_filename = 0;
+  sizeof_t	cmd_line_size = 0;
+  sizeof_t	longest_filename = 0;
   int		return_status = 0;
   a_boolean	done = FALSE;
   a_boolean	any_ii_files = FALSE;

@@ -93,15 +93,15 @@ exit status.
 }
 
 
-static char *malloc_with_check(sizeof_t size)
+static a_void_ptr malloc_with_check(sizeof_t size)
 /*
 Interface to malloc that allocates "size" bytes.  Checks for failure of 
 allocation and generates a catastrophic error.
 */
 {
-  char *ptr;
+  a_void_ptr ptr;
 
-  if ((ptr = (char *)malloc(size)) == NULL) {
+  if ((ptr = (a_void_ptr)malloc(size)) == NULL) {
     error_util("out of memory");
   } /* if */
   return (ptr);
@@ -293,7 +293,7 @@ int main(int argc, char *argv[])
     if (line_size == 0) continue;
     if (check_type_and_get_name(&name_pos, &name_length, &is_ctor)) {
       /* Make a copy of the routine name. */
-      name_string = malloc_with_check(name_length + 1);
+      name_string = malloc_with_check(size_t_arg(name_length + 1));
       strncpy(name_string, name_pos, name_length);
       /* Add null to name string. */
       name_string[name_length] = '\0';
