@@ -5119,6 +5119,7 @@ Return a pointer to the variable that is declared.
   record_symbol_declaration(srk_flags, sym, &sym->decl_position,
                             declarator_ssep);
   if (missing_declarator) {
+    /* Now issue the error for the missing declarator. */
     syntax_error(ec_exp_declarator_in_condition_decl);
   } else {
     /* The syntax for condition (see WP [stmt.select]) explicitly requires the
@@ -5126,9 +5127,18 @@ Return a pointer to the variable that is declared.
        are disallowed, as is implicit initialization of objects with default
        constructors). */
     (void)required_token(tok_assign, ec_exp_assign);
-    initializer(sym, &locator.source_position, (an_id_linkage_kind)idl_none,
-                /*parenthesized_initializer=*/FALSE, /*is_parameter=*/FALSE,
-                &incomplete_type_error_reported);
+    if (curr_token == tok_lbrace) {
+      /* The syntax does not permit initialization with a brace enclosed
+         initializer list. */
+      error_position = pos_curr_token;
+      syntax_error(ec_exp_primary_expr);
+    } else {
+      initializer(sym, &locator.source_position, (an_id_linkage_kind)idl_none,
+                  /*parenthesized_initializer=*/FALSE, /*is_parameter=*/FALSE,
+                  &incomplete_type_error_reported);
+    }  /* if */
+    /* Reset the error position to the source position of the declarator. */
+    error_position = locator.source_position;
   }  /* if */
   db_exit();
   /* Return a pointer to the variable. */
