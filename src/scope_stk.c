@@ -2465,6 +2465,13 @@ associated template.
 
 
 static a_boolean in_unnamed_namespace(a_source_correspondence *scp)
+/*
+Returns TRUE if and only if the given source correspondence entry *scp is
+for an entity that is a direct or indirect member of an unnamed namespace.
+Note that while parsing such an entity this can be determined more quickly
+from the scope stack, but when the scope stack has been popped this function
+may be useful.
+*/
 {
   a_boolean result = FALSE;
   while (scp) {
