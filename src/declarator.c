@@ -121,9 +121,11 @@ token is a qualifier).
                         &qualifiers, &dummy_decl_modifiers,
                         &local_decl_pos_block);
   check_assertion(qualifiers != TQ_NONE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (qualifiers & TQ_INLINE) {
     warning(ec_inline_qualifier_ignored);
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     check_assertion(local_decl_pos_block.specifiers_range.end.seq != 0);
@@ -1084,7 +1086,6 @@ issue an error if a default argument expression is encountered.
   a_storage_class         param_storage_class;
   a_type_ptr              param_type_ptr, declared_type, tp;
   a_decl_flag_set         dso_flags;
-  a_type_qualifier_set    qualifiers;
   a_boolean               qualifier_err = FALSE;
   a_decl_modifiers_block  decl_modifiers;
   a_param_type_ptr        last_param_type;
@@ -1240,7 +1241,8 @@ issue an error if a default argument expression is encountered.
     if (any_params) {
       last_param_type = NULL;
       do {
-        a_decl_pos_block  local_decl_pos_block;
+        a_type_qualifier_set qualifiers = TQ_NONE;
+        a_decl_pos_block     local_decl_pos_block;
         add_stop_token(tok_comma);
         copy_source_position(pos_curr_token, param_type_pos);
         clear_decl_pos_block(&local_decl_pos_block);
@@ -1785,6 +1787,7 @@ issue an error if a default argument expression is encountered.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
     a_type_ptr            this_param_type = NULL;
+    a_type_qualifier_set    qualifiers = TQ_NONE;
 
     /* Create a pointer to the implicit "this" parameter.  This can be done
        for nonstatic function declarations within a class definition or
@@ -1813,10 +1816,14 @@ issue an error if a default argument expression is encountered.
          to member function are permitted.  Also, in microsoft mode the
          keyword "inline" is always accepted as a qualifier (a warning that
          it is ignored will have been issued earlier). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode && qualifiers == TQ_INLINE && !restrict_qualified) {
         /* No diagnostic and no need to adjust the type of this or *this. */
         qualifiers = qualifiers & ~TQ_INLINE;
-      } else if (locator != NULL && locator->is_operator_name &&
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      if (locator != NULL && locator->is_operator_name &&
           (is_new_operator(locator->variant.opname) ||
            is_delete_operator(locator->variant.opname))) {
         /* Operator new and delete can never be qualified. */
@@ -1851,8 +1858,13 @@ issue an error if a default argument expression is encountered.
         }  /* if */
         this_param_type = member_function_parent_type;
       } else {
+#if MICROSOFT_EXTENSIONS_ALLOWED
         this_param_type = make_qualified_type(member_function_parent_type,
                                               qualifiers & ~TQ_INLINE);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+        this_param_type = make_qualified_type(member_function_parent_type,
+                                              qualifiers);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       if (qualifier_err) {
         pos_error(ec_function_qualifier_not_allowed, &qualifier_pos);
