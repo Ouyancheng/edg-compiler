@@ -3086,7 +3086,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
          int * const x;
     */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-   if (microsoft_mode or_near_and_far_enabled()) {
+    if (microsoft_mode or_near_and_far_enabled()) {
       /* Microsoft mode allows several kinds of qualifiers. */
       collect_pointer_declarator_extended_qualifiers(&qualifiers,
                                                      &pending_qualifiers_pos,
