@@ -47,16 +47,16 @@ a copy is made and modified.
 }  /* set_initialized_array_size */
 
 
-static void check_constant_initializer (a_constant *constant,
-                                        a_type_ptr *type,
-                                        a_boolean  *err)
+static void check_string_constant_initializer(a_constant *constant,
+                                              a_type_ptr *type,
+                                              a_boolean  *err)
 /*
-Check that the given constant is acceptable as an initial value of an object
-of the given type.  Change the constant's type, or remove the final null
-from a string literal, if necessary.  If type is an incomplete array of
-char or wchar_t type, and *constant is a string, change the number of elements
-in the incomplete array type by copying and modifying the type.  *err is
-returned TRUE if there was an error of some kind.
+Check that the given string constant is acceptable as an initial value
+for the string type *type.  Change the constant's type, or remove the
+final null from a string literal, if necessary.  If *type is an incomplete
+type, change it to reflect the actual size of the string literal.
+(Note the extra level of indirection that allows that.)  Issue an error
+and return *err TRUE if there is an error of some kind.
 */
 {
   a_type_ptr    array_type;
@@ -71,7 +71,6 @@ returned TRUE if there was an error of some kind.
     is_wide_string = !is_char_array_type(*type);
     if (constant->kind != (a_constant_repr_kind)ck_string) {
       /* The constant is not a string. */
-      error(ec_bad_initializer_type);
       *err = TRUE;
     } else if (char_int_kind_from_string_type(*type) !=
                char_int_kind_from_string_type(constant->type)) {
@@ -79,7 +78,6 @@ returned TRUE if there was an error of some kind.
          element type; it must be that one is a wide string and the other
          a normal string.  Note that there is no mismatch in that case if
          wchar_t is char. */
-      error(ec_bad_initializer_type);
       *err = TRUE;
     } else {
       /* The constant is a string. */
@@ -118,19 +116,18 @@ returned TRUE if there was an error of some kind.
           } else {
             /* The initializer string is too long for the array being
                initialized. */
-            error(ec_bad_initializer_type);
             *err = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
-  } else {
-    /* All types other than string.  Use the assignment compatibility
-       rules.  Change the type of the constant if necessary (this is
-       effectively a cast to the type of the object being initialized). */
-    constant_prepare_assignment(constant, *type, ec_bad_initializer_type, err);
+    if (*err) {
+      /* There was an error of some kind. */
+      error(ec_bad_initializer_type);
+      set_error_constant(constant);  
+    }  /* if */
   }  /* if */
-}  /* check_constant_initializer */
+}  /* check_string_constant_initializer */
 
 
 static void check_for_opening_brace(a_boolean *flag)
@@ -181,64 +178,46 @@ that routine.  This routine ignores a closing brace if that is appropriate.
 }  /* check_for_matching_closing_brace */
 
 
-static void scan_initializer_of_simple_object(
-                                       a_boolean       nonconst_allowed,
-                                       a_boolean       convert_array_to_ptr,
-                                       a_type_ptr      *type,
-                                       a_dynamic_init  *dip,
-                                       a_boolean       *err)
+static void scan_initializer_of_simple_object(a_boolean       nonconst_allowed,
+                                              a_type_ptr      type,
+                                              a_dynamic_init  *dip)
 /*
 Scan a initializer for a non-aggregate object (i.e., not an array and not
 a class/struct/union object).  If nonconst_allowed is TRUE (always the case
 in C++, sometimes otherwise) a nonconstant expression is allowed; if not,
-a constant is required.  convert_array_to_ptr is passed to the expression
-scanning routine to control whether an array should be represented as a
-pointer to the first element.  *type is the data type of the object being
+a constant is required.  type is the data type of the object being
 initialized.  *dip is the dynamic init entry to be updated, even in the case
-of constant initializers.  *err is returned TRUE when an error was detected
-in scanning the initializer or converting it to the required type.
+of constant initializers.
 */
 {
-  an_expr_node_ptr    expression;
-  a_boolean           is_constant;
-  a_constant          constant;
+  an_expr_node_ptr expression;
+  a_boolean        is_constant;
+  a_constant       constant;
 
   if (nonconst_allowed) {
     /* Scan a potentially non-constant initializer expression.  The result
        of the scan is a constant if the expression is constant, and an
        expression node if not. */
-    scan_initializer_expression(convert_array_to_ptr, &is_constant,
-                                &expression, &constant, err);
+    scan_initializer_expression(type, &is_constant, &expression, &constant);
   } else {
     /* Non-constant is not allowed. */
-    scan_constant_initializer_expression(convert_array_to_ptr, &constant, err);
+    scan_constant_initializer_expression(type, &constant);
     is_constant = TRUE;
   }  /* if */
-  if (!*err) {
-    /* See if the scanned expression was constant or not. */
-    if (is_constant) {
-      /* Constant.  Check the constant type to see if it is legal,
-         change the constant type if necessary. */
-      check_constant_initializer(&constant, type, err);
-      if (!*err) {
-        /* Set the dynamic init entry to represent constant initialization.
-           (A local dynamic init entry is used only for convenience --
-           dynamic initialization is not presumed.) */
-        clear_dynamic_init(dip, (a_dynamic_init_kind)dik_constant);
-        dip->variant.constant = alloc_unshared_constant(&constant);
-      }  /* if */
-    } else {
-      /* Non-constant.  Check the type by assignment rules and cast the
-         node if necessary. */
-      node_prepare_assignment(&expression, *type, ec_bad_initializer_type,
-                              err);
-      if (!*err) {
-        /* Set the dynamic init entry to represent non-constant assignment
-           initialization. */
-        clear_dynamic_init(dip, (a_dynamic_init_kind)dik_expression);
-        dip->variant.expression = expression;
-      }  /* if */
-    }  /* if */
+  /* See if the scanned expression was constant or not. */
+  if (is_constant) {
+    /* Constant. */
+    /* Set the dynamic init entry to represent constant initialization.
+       (A local dynamic init entry is used only for convenience --
+       dynamic initialization is not presumed.) */
+    clear_dynamic_init(dip, (a_dynamic_init_kind)dik_constant);
+    dip->variant.constant = alloc_unshared_constant(&constant);
+  } else {
+    /* Non-constant. */
+    /* Set the dynamic init entry to represent non-constant assignment
+       initialization. */
+    clear_dynamic_init(dip, (a_dynamic_init_kind)dik_expression);
+    dip->variant.expression = expression;
   }  /* if */
 }  /* scan_initializer_of_simple_object */
 
@@ -391,7 +370,6 @@ for unions and aggregates at that level).
   a_boolean           brace_flag;
   a_constant_ptr      con_list, end_con_list;
   a_constant_ptr      member_con;
-  a_constant          constant;
   a_targ_size_t       curr_array_element;
   a_field_ptr         curr_field;
   a_boolean           done, no_more_members;
@@ -468,20 +446,16 @@ for unions and aggregates at that level).
     if (curr_token == tok_string_literal && is_string_type(local_type)) {
       /* The object being initialized has type array of char or wchar_t, and
          is being initialized with a string.  Handle this case specially. */
-      scan_constant_initializer_expression(/*convert_array_to_pointer=*/FALSE,
-                                           &constant, &err);
+      check_string_constant_initializer(&const_for_curr_token, &local_type,
+                                        &err);
       if (!err) {
-        /* Check the type of the string against the type of the object
-           being initialized, adjust one or the other if necessary. */
-        check_constant_initializer(&constant, &local_type, &err);
-        if (!err) {
-          /* Allocate the string constant. */
-          init_con = alloc_unshared_constant(&constant);
-          /* Pass the type back to the caller; the array size is now
-             known if it was incomplete. */
-          *type = local_type;
-        }  /* if */
+        /* Allocate the string constant. */
+        init_con = alloc_unshared_constant(&const_for_curr_token);
+        /* Pass the type back to the caller; the array size is now
+           known if it was incomplete. */
+        *type = local_type;
       }  /* if */
+      (void)get_token();
     } else {
       /* Normal case, not array of char.  Could be an array, a struct,
          or a union, or an error type.  Note that local_type has already
@@ -661,31 +635,28 @@ for unions and aggregates at that level).
     check_for_opening_brace(&brace_flag);
     scan_initializer_of_simple_object(/*nonconst_allowed=*/
                                             (C_dialect == C_dialect_cplusplus),
-                                      /*convert_array_to_pointer=*/TRUE,
-                                      &local_type, &local_di, &err);
-    if (!err) {
-      switch (local_di.kind) {
-        case dik_constant:
-          init_con = local_di.variant.constant;
-          break;
-        case dik_expression:
-          init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-          init_con->variant.dynamic_init = dip =
+                                      local_type, &local_di);
+    switch (local_di.kind) {
+      case dik_constant:
+        init_con = local_di.variant.constant;
+        break;
+      case dik_expression:
+        init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+        init_con->variant.dynamic_init = dip =
                        alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
-          dip->variant.expression = local_di.variant.expression;
-          if (*di_list == NULL) {
-            *di_list = dip;
-          } else {
-            (*end_of_di_list)->next = dip;
-          }  /* if */
-          *end_of_di_list = dip;
-          break;
+        dip->variant.expression = local_di.variant.expression;
+        if (*di_list == NULL) {
+          *di_list = dip;
+        } else {
+          (*end_of_di_list)->next = dip;
+        }  /* if */
+        *end_of_di_list = dip;
+        break;
 #if CHECKING
-        default:
-          internal_error("get_initializer: bad dynamic init kind");
+      default:
+        internal_error("get_initializer: bad dynamic init kind");
 #endif /* CHECKING */
-      }  /* switch */
-    }  /* if */
+    }  /* switch */
     /* If there was an initial opening brace, check for and skip the
        closing brace now. */
     check_for_matching_closing_brace(brace_flag);
@@ -1069,8 +1040,7 @@ The syntax is:
     scan_initializer_of_simple_object(
            /*nonconst_allowed=*/(C_dialect == C_dialect_cplusplus ||
               (vp != NULL && !has_static_storage_duration(vp->storage_class))),
-           /*convert_array_to_pointer=*/!is_string_type(vp_type),
-           &vp_type, &local_di, &err);
+           vp_type, &local_di);
     if (local_di.kind == (a_dynamic_init_kind)dik_expression) {
       initialization_is_dynamic = TRUE;
     }  /* if */
@@ -1670,8 +1640,7 @@ scan_paren:
                  dik_none for now.  It will be adjusted after the scan. */
               dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
               scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
-                                                /*convert_array_to_ptr=*/TRUE,
-                                                &init_type, dip, &err);
+                                                init_type, dip);
               new_cip->initializer = dip;
             }  /* if */
             remove_stop_token(tok_rparen);
