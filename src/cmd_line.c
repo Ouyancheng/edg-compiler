@@ -1507,6 +1507,7 @@ Process the arguments on the command line that invoked the compiler.
     }  /* if */
     /* Set features implied by Microsoft compatibility. */
     targ_enum_types_can_be_smaller_than_int = FALSE;
+    stack_referenced_include_directories = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
