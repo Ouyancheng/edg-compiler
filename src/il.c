@@ -7043,18 +7043,31 @@ placed but whose scope has since been popped from the scope stack.
     avail_list_ptr = &scope_stack_ptr->source_sequence_avail_list;
   }  /* if */
 #if CHECKING
+#if DEBUG
   /* Be sure the source sequence entry is actually on the list it's supposed
-     to be on. */
+     to be on.  This can be a costly test, so it's only done when debugging
+     is done. */
+#if 0
+  if (debug_level >= 0)
+#endif /* if 0 */
   {
-  a_source_sequence_entry_ptr tmp;
+    a_source_sequence_entry_ptr tmp;
 
-  for (tmp = sp->source_sequence_list; tmp != NULL; tmp = tmp->next) {
-    if (tmp == ssep) break;
-  }  /* for */
-  if (tmp == NULL) {
-    internal_error("remove_from_source_sequence_list: bad scope depth");
+    if (scope_stack_ptr != NULL) {
+      /* Search from the end of the list -- it's probably quicker. */
+      tmp = scope_stack_ptr->last_source_sequence_entry;
+      for (; tmp != NULL; tmp = tmp->prev) if (tmp == ssep) break;
+    } else {
+      /* There no pointer to the end of the list -- nor is it likely to be
+         faster, anyway. */
+      tmp = sp->source_sequence_list;
+      for (; tmp != NULL; tmp = tmp->next) if (tmp == ssep) break;
+    }  /* if */
+    if (tmp == NULL) {
+      internal_error("remove_from_source_sequence_list: bad scope depth");
+    }  /* if */
   }  /* if */
-  }
+#endif /* if DEBUG */
 #endif /* if CHECKING */
   /* Modify the precedessor on the list (or the list pointer itself) to
      point to ssep's successor. */
