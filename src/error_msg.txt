@@ -771,6 +771,8 @@ ec_cannot_change_access;;"redeclaration of %n may not alter its access"
 ec_nonstd_printf_format_string;;"nonstandard format string conversion"
 ec_probable_inadvertent_lbracket_digraph;;"use of alternative token \"<:\" appears to be unintended"
 ec_probable_inadvertent_sharp_digraph;;"use of alternative token \"%%:\" appears to be unintended"
+ec_namespace_decl_not_allowed;;"namespace declaration is not allowed"
+ec_missing_namespace_name;;"namespace name is required"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
