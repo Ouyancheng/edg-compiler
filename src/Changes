@@ -1,5 +1,12 @@
 Version 2.19
 
+6/21/93  FULL_SOURCE_POS_IN_IL_STATEMENT
+
+A new configuration flag FULL_SOURCE_POS_IN_IL_STATEMENT has been added
+to host_envir.h.  When it is TRUE, each IL statement contains a full
+source position (sequence number and column number) instead of just
+a sequence number.  The default is FALSE.
+
 6/18/93  Modified IL for exception handling support
 
 The following have been added to the intermediate language:

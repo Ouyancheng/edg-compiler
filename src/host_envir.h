@@ -313,6 +313,15 @@ is more compact since there is one fewer field in IL entries.
 #endif /* ifndef RECORD_SCOPE_DEPTH_IN_IL */
 
 /*
+Flag that is TRUE to cause the IL entry for a statement to contain a
+full source position (sequence number, column number) instead of just
+a sequence number.
+*/
+#ifndef FULL_SOURCE_POS_IN_IL_STATEMENT
+#define FULL_SOURCE_POS_IN_IL_STATEMENT TRUE
+#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+
+/*
 Flag that is TRUE to cause IL lowering to be done, to lower C++ IL
 to C IL, allowing the C++ front end to be used with a C back end.
 */

@@ -2044,7 +2044,14 @@ Display the indicated switch clause.
   disp_ptr("next", (char *)ptr->next, iek_switch_clause);
   disp_ptr("constant_list", (char *)ptr->constant_list, iek_constant);
   disp_ptr("statements", (char *)ptr->statements, iek_statement);
+#if FULL_SOURCE_POS_IN_IL_STATEMENT
+  disp_unsigned_long("break_position.seq",
+                     (unsigned long)ptr->break_position.seq);
+  disp_unsigned_long("break_position.column",
+                     (unsigned long)ptr->break_position.column);
+#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
   disp_unsigned_long("break_seq_number", (unsigned long)ptr->break_seq_number);
+#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 }  /* disp_switch_clause */
 
 
@@ -2074,7 +2081,14 @@ static void disp_block(a_block_ptr ptr)
 Display the indicated block.
 */
 {
+#if FULL_SOURCE_POS_IN_IL_STATEMENT
+  disp_unsigned_long("final_position.seq",
+                     (unsigned long)ptr->final_position.seq);
+  disp_unsigned_long("final_position.column",
+                     (unsigned long)ptr->final_position.column);
+#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
   disp_unsigned_long("final_seq_number", (unsigned long)ptr->final_seq_number);
+#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 #ifdef CFE
   disp_ptr("assoc_scope", (char *)ptr->assoc_scope, iek_scope);
   disp_ptr("parent_block", (char *)ptr->parent_block, iek_statement);
@@ -2089,7 +2103,12 @@ static void disp_statement(a_statement_ptr ptr)
 Display the indicated statement.
 */
 {
+#if FULL_SOURCE_POS_IN_IL_STATEMENT
+  disp_unsigned_long("position.seq", (unsigned long)ptr->position.seq);
+  disp_unsigned_long("position.column", (unsigned long)ptr->position.column);
+#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
   disp_unsigned_long("seq_number", (unsigned long)ptr->seq_number);
+#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
   disp_ptr("next", (char *)ptr->next, iek_statement);
   if (ptr->dependent_statement) {
     disp_boolean("dependent_statement", (a_boolean)ptr->dependent_statement);

@@ -2974,9 +2974,14 @@ typedef struct a_switch_clause {
                            a "break").  Any other action (including
                            fall-through to the next clause) is indicated by
                            an explicit goto as the last statement. */
+#if FULL_SOURCE_POS_IN_IL_STATEMENT
+  a_source_position
+		break_position;
+#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
   a_seq_number	break_seq_number;
+#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 			/* If the clause ends with a break statement, this
-			   gives the break statement's sequence number.
+			   gives the break statement's source position.
 			   Otherwise, zero. */
 } a_switch_clause;
 
@@ -2984,9 +2989,14 @@ typedef struct a_switch_clause {
 /* Extra information about a statement of kind stmk_block (block statement). */
 typedef struct a_block *a_block_ptr;
 typedef struct a_block {
+#if FULL_SOURCE_POS_IN_IL_STATEMENT
+  a_source_position
+		final_position;
+#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
   a_seq_number  final_seq_number;
-                        /* Source sequence number of the end of the block,
-                           for symbolic debug purposes. */
+#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+                        /* Source position of the end of the block, for
+			   symbolic debug purposes. */
 #ifdef CIL
   a_scope_ptr   assoc_scope;
                         /* Pointer to the associated scope, or NULL if there
@@ -3298,8 +3308,13 @@ typedef struct an_input_output_description {
 #endif /* ifdef FIL */
 typedef struct a_statement {
   /* Definition of an executable statement. */
+#if FULL_SOURCE_POS_IN_IL_STATEMENT
+  a_source_position
+		position;
+#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
   a_seq_number  seq_number;
-                        /* Source sequence number from which this statement
+#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+                        /* Source position from which this statement
                            came.  0 if no direct correspondence. */
   a_statement_ptr
                 next;

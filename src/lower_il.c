@@ -1204,7 +1204,7 @@ class type.
   /* It may be necessary to come up with a faster way of doing this, such
      as storing two field pointers in the base class entry and a pointer to
      the virtual function table pointer field in the class type supplement. */
-#endif
+#endif /* 0 */
   for (field_ptr = class_type->variant.class_struct_union.field_list;
        ;
        field_ptr = field_ptr->next) {
@@ -2975,7 +2975,7 @@ this routine to do a relatively simple copy of the all the fields.
     /* Ideally, the referenced flag would not be set if the class type is
        not referenced.  However, the class type might not be referenced now
        (part-way through the compilation) and then be referenced later. */
-#endif
+#endif /* 0 */
     subobject_type->source_corresp.referenced = TRUE;
     /* Put the struct type on the file-scope types list right after the
        associated type.  This is done instead of calling add_to_types_list
@@ -2987,7 +2987,7 @@ this routine to do a relatively simple copy of the all the fields.
          ones being tracked in the scope stack. */
 #if 0
       /* Improve this? */
-#endif
+#endif /* 0 */
       for (scope_depth = depth_scope_stack; scope_depth >= 0; scope_depth--) {
         if (class_type == scope_stack[scope_depth].last_type) {
           /* Found the list.  Add the subobject type to its end. */
@@ -3028,7 +3028,7 @@ added_to_list:;
     /* The subobject type has no virtual base classes and is therefore its
        own type as subobject. */
     subobject_ctsp->type_as_subobject = subobject_type;
-#endif
+#endif /* 0 */
   }  /* if */
   ctsp->type_as_subobject = subobject_type;
 }  /* make_subobject_class_type */
@@ -4223,7 +4223,7 @@ is_lvalue is TRUE.
 #if 0
     /* There's some reason for concern about that, since this is the most
        common case. */
-#endif
+#endif /* 0 */
     overwrite_node(node, result_node);
   } else {
     /* A final cast is needed, so change the original node into the proper
@@ -5392,7 +5392,12 @@ original statement under it.
   /* Turn the statement into a block statement. */
   set_statement_kind(statement, (a_statement_kind)stmk_block);
   statement->variant.block.statements = copy_statement;
+#if FULL_SOURCE_POS_IN_IL_STATEMENT
+  statement->position.seq    = 0;
+  statement->position.column = SP_COL_UNKNOWN;
+#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
   statement->seq_number = 0;
+#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 }  /* turn_statement_into_block */
 
 
@@ -5687,8 +5692,12 @@ Do IL lowering of the indicated statement and everything under it.
 
   if (statement != NULL) {
     /* Track the source position for internal errors. */
+#if FULL_SOURCE_POS_IN_IL_STATEMENT
+    error_position = statement->position;
+#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
     error_position.seq = statement->seq_number;
-    error_position.column = 0;
+    error_position.column = SP_COL_UNKNOWN;
+#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
     if (statement->dependent_statement) {
       /* In cfront compatibility mode, it is possible for a dependent statement
          to not have an associated scope.  However, it is still required that

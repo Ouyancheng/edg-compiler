@@ -974,7 +974,11 @@ unreachable code).
        initialization statement and add it to the statement block. */
     check_assertion(vp->source_corresp.class_of_which_a_member == NULL);
     init_stmt = add_statement((a_statement_kind)stmk_init);
+#if FULL_SOURCE_POS_IN_IL_STATEMENT
+    init_stmt->position = vp->source_corresp.decl_position;
+#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
     init_stmt->seq_number = vp->source_corresp.decl_position.seq;
+#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
     init_stmt->variant.dynamic_init = new_dip;
   } else {
     /* A dynamic file-scope initialization (possible only in C++) has

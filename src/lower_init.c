@@ -59,11 +59,19 @@ static a_required_destructor_call_ptr
 /*
 If variable != NULL, transfer the sequence number from it into stmt.
 */
-#define transfer_seq_from_var_to_statement(variable, stmt)            \
+#if FULL_SOURCE_POS_IN_IL_STATEMENT
+#define transfer_pos_from_var_to_statement(variable, stmt)            \
+{ if ((variable) != NULL && (stmt) != NULL) {                         \
+    (stmt)->position = (variable)->source_corresp.decl_position;      \
+  }  /* if */                                                         \
+}  /* transfer_pos_from_var_to_statement */
+#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
+#define transfer_pos_from_var_to_statement(variable, stmt)            \
 { if ((variable) != NULL && (stmt) != NULL) {                         \
     (stmt)->seq_number = (variable)->source_corresp.decl_position.seq;\
   }  /* if */                                                         \
-}  /* transfer_seq_from_var_to_statement */
+}  /* transfer_pos_from_var_to_statement */
+#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
 
 static a_type_ptr void_star_type(void)
@@ -893,7 +901,7 @@ pointed to by dip is lowered.
                                             insert_location);
   /* If the initialization is for a whole variable, the position is available
      from the variable. */
-  transfer_seq_from_var_to_statement(dip->variable, assign_stmt);
+  transfer_pos_from_var_to_statement(dip->variable, assign_stmt);
 }  /* add_init_assignment */
 
 
@@ -1018,7 +1026,7 @@ dip->variant.constructor.args has already been lowered.
   call_stmt = make_call_statement(constr_routine, entity_node);
   /* If the initialization is for a whole variable, the position is available
      from the variable. */
-  transfer_seq_from_var_to_statement(dip->variable, call_stmt);
+  transfer_pos_from_var_to_statement(dip->variable, call_stmt);
   /* Insert the statement at the right place. */
   insert_statement(call_stmt, insert_location);
 }  /* add_constructor_call */
@@ -1478,7 +1486,7 @@ not a virtual call even if the destructor is virtual.
   call_stmt = make_call_statement(destr_routine, entity_node);
   /* If the destruction is for a whole variable, the position is available
      from the variable. */
-  transfer_seq_from_var_to_statement(dip->variable, call_stmt);
+  transfer_pos_from_var_to_statement(dip->variable, call_stmt);
   /* Insert the statement at the right place. */
   insert_statement(call_stmt, insert_location);
 }  /* add_destructor_call */
@@ -2213,7 +2221,7 @@ do_assignment:;
       }  /* if */
       expr_stmt = insert_expr_statement(dip->variant.expression,
                                         insert_location);
-      transfer_seq_from_var_to_statement(variable, expr_stmt);
+      transfer_pos_from_var_to_statement(variable, expr_stmt);
       break;
     case dik_constructor:
       /* Initialize the entity by calling a constructor. */
