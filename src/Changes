@@ -1,5 +1,12 @@
 Version 2.46
 
+1/17/01  #ident/#pragma ident string incorrectly rendered by C/C++-generating
+         back ends
+
+The C- and C++-generating back ends used to replace tab characters in
+#ident/#pragma ident directives by their escaped form ('\t').
+This is now fixed.
+
 1/16/01  Lowering of an aggregate initializer containing a complex expression
 
 When DO_C99_IL_LOWERING is TRUE, the front end failed to entirely remove
@@ -221,13 +228,6 @@ recognize variadic macros.
 
 In strict C99 mode, an error (instead of a warning) is issued on an
 invalid STDC pragma.
-
-1/10/01  #ident/#pragma ident string incorrectly rendered by C/C++-generating
-         back ends
-
-The C- and C++-generating back ends used to replace special (e.g., tab)
-characters in #ident/#pragma ident directives by their escaped form
-(e.g., '\t').  This is now fixed.
 
 1/9/01   Internal error when initializing a block extern variable length array
 
