@@ -80,7 +80,7 @@ scanned are coalesced prior to analysis.
 }  /* get_token_and_coalesce_if_identifier */
 
 
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 static void prescan_microsoft_extended_decl_modifiers(void)
 /*
 Prescan the Microsoft __declspec specifier:
@@ -104,7 +104,7 @@ keyword.
     if (curr_token == tok_rparen) get_token_and_coalesce_if_identifier();
   }  /* if */
 }  /* prescan_microsoft_extended_decl_modifiers */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 static void prescan_decl_specifiers(a_token_cache  *token_cache_ptr,
@@ -128,10 +128,10 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       /* Mutable keyword is not yet implemented. */
       case tok_mutable:
 #endif /* 0 */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
       /* The Microsoft __inline keyword is treated as a storage class. */
       case tok_microsoft_inline:
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Function specifiers. */
       case tok_inline:
       case tok_virtual:
@@ -139,11 +139,11 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_friend:
       case tok_typedef:
         break;
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_declspec:
         prescan_microsoft_extended_decl_modifiers();
         break;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Type specifier - identifier that may be a simple type name.
          If we haven't yet seen a type specifier, then this identifier,
          if it is a type, is the type specifier.  Otherwise, this is
@@ -192,12 +192,12 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
 #if RESTRICT_ALLOWED
       case tok_restrict:
 #endif /* RESTRICT_ALLOWED */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
       /* Microsoft type qualifiers. */
       case tok_cdecl:
       case tok_fastcall:
       case tok_stdcall:
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         break;
       case tok_class:
       case tok_struct:

@@ -31,13 +31,13 @@ decls.c -- Scanning of declarations.
 Macro that is TRUE if the current token is a Microsoft storage class
 specifier.
 */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_microsoft_storage_class()					\
   (curr_token == tok_declspec || curr_token == tok_microsoft_inline)
-#else /* !MICROSOFT_KEYWORDS_ALLOWED */
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 /* When Microsoft keywords are not allowed, simply return FALSE. */
 #define is_microsoft_storage_class() (FALSE)
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 /*
@@ -2117,12 +2117,12 @@ not be TRUE.
   a_type_ptr        rout_type = routine_ptr->type;
   a_type_ptr        comp_type;
   a_param_type_ptr  rout_type_ptp, comp_type_ptp, next_rout_type_ptp;
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_calling_convention
                     orig_calling_convention =
                          skip_typerefs(rout_type)->variant.routine.extra_info->
                                                             calling_convention;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "reconcile_routine_types");
   if (rout_type != type_ptr) {
@@ -2214,7 +2214,7 @@ not be TRUE.
            -- this will have been verified in types_are_compatible. */
       }  /* if */
     }  /* if */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
     /* The Microsoft Visual C++ compiler always uses the calling convention
        from the declaration of a member function, even if the calling
        convention on the definition is different. */
@@ -2222,7 +2222,7 @@ not be TRUE.
       skip_typerefs(routine_ptr->type)->variant.routine.extra_info->
                                   calling_convention = orig_calling_convention;
     }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   db_exit();
 }  /* reconcile_routine_types */
@@ -2494,13 +2494,13 @@ describing this declaration.
              checked that the routine types are the same.  "main" cannot
              be overloaded, so it was not checked. */
           routines_compat = TRUE;
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
           /* Check that the calling conventions are compatible. */
           if (!calling_conventions_are_compatible(routine_ptr->type,
                                                   type_ptr)) {
             routines_compat = FALSE;
           }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           /* When overloading is not allowed (e.g., in C mode), check that
              the types are compatible. */
