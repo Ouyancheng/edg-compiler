@@ -6418,7 +6418,7 @@ the expression.
     if (con->kind == (a_constant_repr_kind)ck_template_param &&
         con->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_member) {
-      /* The value of a a member of a nonreal class.  Change it to the
+      /* The value of a member of a nonreal class.  Change it to the
          address of the member. */
       possible = TRUE;
       if (!see_if_possible) {
