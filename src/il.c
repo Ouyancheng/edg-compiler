@@ -2830,13 +2830,29 @@ an existing entry if possible.  The qualifiers are added only if
 they are not already present.
 */
 {
-  register a_type_ptr ptr;
-  a_based_type_kind   kind;
+  a_type_ptr        orig_base_type, ptr, prev_new_array, top_new_array;
+  a_type_ptr        old_array, new_array;
+  a_based_type_kind kind;
+  a_boolean         base_type_const_qualified, base_type_volatile_qualified;
+  a_boolean         set_const_qualified, set_volatile_qualified;
 
-  /* Add only qualifiers not present already in the type. */
-  is_const = is_const && !is_const_qualified_type(base_type);
-  is_volatile = is_volatile && !is_volatile_qualified_type(base_type);
-  if (is_const || is_volatile) {
+  orig_base_type = base_type;
+  /* According to ANSI C 3.5.3: "If the specification of an array type
+     includes any type qualifiers, the element type is so-qualified,
+     not the array type.", and this is interpreted recursively
+     for arrays of arrays.  The type qualifiers therefore apply
+     to the ultimate element type.  This can only happen with typedefs,
+     as in "typedef int A[2][3]; const A a;", which makes "a" an
+     array of array of const int. */
+  while (is_array_type(base_type)) {
+    base_type = array_element_type(base_type);
+  }  /* while */
+  base_type_const_qualified    = is_const_qualified_type(base_type);
+  base_type_volatile_qualified = is_volatile_qualified_type(base_type);
+  set_const_qualified  = is_const && !base_type_const_qualified;
+  set_volatile_qualified = is_volatile && !base_type_volatile_qualified;
+  if (set_const_qualified || set_volatile_qualified) {
+    /* Some qualifiers need to be added. */
     /* Type qualifiers are added by adding a typeref entry which includes
        the type qualifiers.  The original type is not modified. */
     /* See if a typeref for the base type has already been allocated.
@@ -2869,9 +2885,38 @@ they are not already present.
          to it in the based_types list. */
       add_based_type_list_member(base_type, kind, ptr);
     }  /* if */
+    /* For the strange array case, the array type entries must be
+       copied in order to avoid changing the typedef type. */
+    if (base_type != orig_base_type) {
+      prev_new_array = NULL;
+      for (old_array = orig_base_type;
+           old_array != base_type;
+           old_array = old_array->variant.array.element_type) {
+        /* Drop typedefs; there shouldn't be any typerefs. */
+        old_array = skip_typerefs(old_array);
+#if CHECKING
+        if (old_array->kind != (a_type_kind)tk_array) {
+          internal_error("make_qualified_type: not array in loop");
+        }  /* if */
+#endif /* CHECKING */
+        new_array = alloc_type((a_type_kind)tk_array);
+        copy_type(old_array, new_array);
+        set_default_source_corresp(&new_array->source_corresp);
+        if (prev_new_array == NULL) {
+          top_new_array = new_array;
+        } else {
+          prev_new_array->variant.array.element_type = new_array;
+        }  /* if */
+        prev_new_array = new_array;
+      }  /* for */
+      /* The new qualified type is attached to the bottom of the new chain
+         of array types. */
+      prev_new_array->variant.array.element_type = ptr;
+      ptr = top_new_array;
+    }  /* if */
   } else {
     /* No qualifiers to add, so return the original type. */
-    ptr = base_type;
+    ptr = orig_base_type;
   }  /* if */
 
   return ptr;

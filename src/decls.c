@@ -4381,11 +4381,7 @@ Returns TRUE if there is an error in the specifiers.
 	       ikind;
   a_float_kind fkind;
   a_type_ptr   temp_type;
-  a_boolean    base_type_const_qualified;
-  a_boolean    base_type_volatile_qualified;
-  a_type_ptr   base_type, *ptr_ptr;
-  a_boolean    set_const_qualified;
-  a_boolean    set_volatile_qualified;
+  a_type_ptr   base_type;
   a_boolean    explicitly_signed;
 
   a_boolean    is_const_qualified    = FALSE;
@@ -5297,7 +5293,6 @@ exit_loop:
     }  /* if */
     /* Add any type qualifiers (const or volatile) to the type. */
     if (is_const_qualified || is_volatile_qualified) {
-      base_type = *type_ptr;
       /* According to 3.5.3: "If the specification of an array type
          includes any type qualifiers, the element type is so-qualified,
          not the array type.", and this is interpreted recursively
@@ -5305,43 +5300,22 @@ exit_loop:
          to the ultimate element type.  This can only happen with typedefs,
          as in "typedef int A[2][3]; const A a;", which makes "a" an
          array of array of const int. */
+      base_type = *type_ptr;
       while (is_array_type(base_type)) {
         base_type = array_element_type(base_type);
       }  /* while */
-      base_type_const_qualified    = is_const_qualified_type(base_type);
-      base_type_volatile_qualified = is_volatile_qualified_type(base_type);
-      if ((is_const_qualified && base_type_const_qualified) ||
-          (is_volatile_qualified && base_type_volatile_qualified)) {
+      if ((is_const_qualified && is_const_qualified_type(base_type)) ||
+          (is_volatile_qualified && is_volatile_qualified_type(base_type))) {
         /* Duplication of type qualifier (probably because of a typedef
            that is already qualified). */
         error(ec_dupl_type_qualifier);
         err = TRUE;
       }  /* if */
-      set_const_qualified  = is_const_qualified && !base_type_const_qualified;
-      set_volatile_qualified = is_volatile_qualified &&
-                               !base_type_volatile_qualified;
-      if (set_const_qualified || set_volatile_qualified) {
-        /* Some qualifiers need to be added.  For the strange array case,
-           the array type entries must be copied in order to avoid changing
-           the typedef type. */
-        ptr_ptr = type_ptr;
-        for (; *ptr_ptr != base_type;
-             ptr_ptr = &(temp_type->variant.array.element_type)) {
-          *ptr_ptr = skip_typerefs(*ptr_ptr);
-#if CHECKING
-          if ((*ptr_ptr)->kind != (a_type_kind)tk_array) {
-            internal_error("decl_specifiers: not array in loop");
-          }  /* if */
-#endif /* CHECKING */
-          temp_type = alloc_type((a_type_kind)tk_array);
-          copy_type(*ptr_ptr, temp_type);
-          set_default_source_corresp(&temp_type->source_corresp);
-          *ptr_ptr = temp_type;
-        }  /* for */
-        *ptr_ptr = make_qualified_type(base_type,
-                                       set_const_qualified,
-                                       set_volatile_qualified);
-      }  /* if */
+      /* Add the qualifiers if necessary.  make_qualified_type understands the
+         strange array case too. */
+      *type_ptr = make_qualified_type(*type_ptr,
+                                      is_const_qualified,
+                                      is_volatile_qualified);
     }  /* if */
   }  /* if */
   /* If there was an error, assume something was declared.  Who knows what the
