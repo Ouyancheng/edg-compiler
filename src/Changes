@@ -1,5 +1,25 @@
 Version 2.37
 
+10/17/97  Failure to destroy local variable once label encountered
+
+In cases where a local variable of a destructible class type is
+initialized from the return value of a function call, and a label
+declaration appears after the declaration, the local variable was
+not destroyed where necessary in code following the label.
+
+  struct B {
+    B();
+    B(const B&);
+    ~B();
+  };
+  B g(int);
+  void f() {
+    B st = g(0);
+  label:
+    g(0);
+    // st not destroyed here.
+  }	
+
 10/17/97  Use of template keyword in qualified names and class member accesses
 
 The template keyword is now accepted in contexts in which it is used

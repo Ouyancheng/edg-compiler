@@ -7507,7 +7507,7 @@ for a return, because the caller will do the destruction).
        list at that level. */
     remove_from_destruction_list(dip);
     temp_init_node->variant.init.static_temp = FALSE;
-    dip->has_temporary_lifetime = TRUE;
+    dip->has_temporary_lifetime = FALSE;
     if (suppress_dtor && dip->destructor != NULL) {
       /* We don't want destruction indicated here (because someone else
          will take care of the destruction), so clear the destructor pointer.

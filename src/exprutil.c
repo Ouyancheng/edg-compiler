@@ -4362,6 +4362,7 @@ requires a later destruction, put it into the current object lifetime.
        lifetime. */
     record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
                                        /*block_lifetime=*/FALSE);
+    dip->has_temporary_lifetime = TRUE;
     /* If the lifetime happens to turn out to be static (e.g., when
        long lifetime temps are enabled), mark the temp init as requiring
        a static temporary. */
@@ -4408,7 +4409,6 @@ the value) of the temporary if result_is_addr is TRUE.
     (void)ensure_il_scope_exists(ssep);
   }  /* if */
   temp_init_node->variant.init.dynamic_init = dip;
-  dip->has_temporary_lifetime = TRUE;
   /* Put the dynamic initialization on a destruction list if appropriate. */
   set_temp_init_dynamic_init_lifetime(temp_init_node);
   return temp_init_node;
