@@ -3453,7 +3453,7 @@ specification allow a variable-sized array as the top type.
   a_boolean         err = FALSE;
   a_source_position start_position, new_position, type_position;
   a_source_position placement_position;
-  a_type_ptr        new_type, base_new_type;
+  a_type_ptr        new_type, base_new_type, ptr_new_type;
   a_type_ptr        unqual_new_type;
   an_expr_node_ptr  new_array_dimension, sizeof_node;
   an_operand        sizeof_operand;
@@ -3531,10 +3531,19 @@ specification allow a variable-sized array as the top type.
   copy_source_position(pos_curr_token, type_position);
   /* Scan the new-type-name or ( type-name ). */
   new_type_name(trapped_left_paren, &new_type, &new_array_dimension);
-  base_new_type = new_type;
   unqual_new_type = skip_typerefs(new_type);
   /* Instantiate the type if it is a template class. */
   check_for_uninstantiated_template_class(new_type);
+  /* Determine the type of pointer returned from "new". */
+  base_new_type = new_type;
+  if (is_array_type(new_type)) {
+    /* A "new" of an array returns a pointer to the initial element.
+      Note that this is only done for one level, e.g., new int [i][10]
+      returns int (*)[10] not int * (ARM 5.3.3). */
+    base_new_type = array_element_type(new_type);
+    array_new = TRUE;
+  }  /* if */
+  ptr_new_type = make_pointer_type(base_new_type);
   /* The operand of a new must be an object type. */
   if (!is_object_type(new_type) &&
       (!is_array_type(new_type) || new_array_dimension == NULL)) {
@@ -3554,14 +3563,6 @@ specification allow a variable-sized array as the top type.
     err = TRUE;
   } else {
     /* Valid type. */
-    /* Determine the type of pointer returned from "new". */
-    if (is_array_type(new_type)) {
-      /* A "new" of an array returns a pointer to the initial element.
-        Note that this is only done for one level, e.g., new int [i][10]
-        returns int (*)[10] not int * (ARM 5.3.3). */
-      base_new_type = array_element_type(new_type);
-      array_new = TRUE;
-    }  /* if */
     /* Compute the allocation size in bytes. */
     if (new_array_dimension != NULL) {
       a_type_ptr element_type = skip_typerefs(base_new_type);
@@ -3733,11 +3734,9 @@ specification allow a variable-sized array as the top type.
     a_dynamic_init_ptr          dip;
     a_routine_ptr               new_routine;
     a_boolean                   access_error_reported;
-    a_type_ptr                  ptr_new_type;
 
     /* Use an enk_new_delete node to represent the "new". */
     new_node = alloc_expr_node((an_expr_node_kind)enk_new_delete);
-    ptr_new_type = make_pointer_type(base_new_type);
     new_node->type = ptr_new_type;
     ndsp = new_node->variant.new_delete;
     ndsp->is_new = TRUE;
