@@ -3684,9 +3684,8 @@ pointers to members).
          are compatible. */
       if (okay && exceptions_enabled && !check_as_operands_not_conversion &&
           is_function_type(dest_type_pointed_to) &&
-          exception_spec_is_less_restrictive(
-                           skip_typerefs(source_type_pointed_to),
-                           skip_typerefs(dest_type_pointed_to))) {
+          exception_spec_is_less_restrictive(source_type_pointed_to,
+                                             dest_type_pointed_to)) {
         okay = FALSE;
         clear_std_conv_descr(std_conv);
         std_conv->conv_failed_because_of_exception_specifications = TRUE;
