@@ -1015,7 +1015,9 @@ initializing declarations.
         free_control_flow_descr(new_cfdp);
         goto done;
       }  /* if */
-      fixup_curr_block_labels_and_gotos(prev_parent);
+      if (!prev_parent->variant.block.is_switch_block) {
+        fixup_curr_block_labels_and_gotos(prev_parent);
+      }  /* if */
       /* No initialization remains "exposed" after the block is closed. */
       prev_parent->variant.block.exposed_init_in_switch = FALSE;
       /* Set the association between the end-of-block and the block -- they
@@ -3647,8 +3649,6 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
   a_boolean           can_add_to_curr_clause;
   a_boolean           label_directly_in_switch;
   a_statement_ptr     clause_stmts;
-  a_label_ptr         label;
-  a_statement_ptr     goto_stmt;
   a_reachability_summary
                       prev_reachability, save_reachability;
   a_struct_stmt_stack_entry_ptr
@@ -3760,10 +3760,6 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
     update_source_sequence_list((char *)scp, iek_switch_clause,
                                 (a_source_sequence_entry_ptr)NULL);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    /* Represent this case label by adding an entry to the
-       control_flow_descr_list. */
-    add_to_control_flow_descr_list(
-        alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_case_label));
   }  /* if */
   /* Add the new value to the (new?) current switch clause.  For the
      default case, this just means setting the constant_list to NULL;
@@ -3796,33 +3792,43 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
        have nothing further to do. */
   } else {
     /* Start a new clause. */
-    label = NULL;
-    if (label_directly_in_switch) {
-      /* Normal case: the clause statements will be attached to the
-         switch clause directly.  If there was a previous switch clause that
-         flows into this one, generate a goto from there. */
-      if (curr_reachability.reachable) {
-        label = alloc_temp_label();
-        goto_stmt = add_statement((a_statement_kind)stmk_goto);
-        goto_stmt->variant.label.ptr = label;
-      }  /* if */
-    } else {
-      /* When the destination is inside a structured statement nested within
-         the switch, we create a goto that is the switch clause and
-         transfers control to the proper point in the nested statement. */
+    a_label_ptr               label = NULL;
+    a_statement_ptr           goto_stmt;
+    a_control_flow_descr_ptr  goto_cfdp = NULL;
+
+    if (!label_directly_in_switch || curr_reachability.reachable) {
+      /* If label_directly_in_switch is FALSE, i.e., when the destination is
+         inside a structured statement nested within the switch, we create a
+         goto that is the switch clause and transfers control to the proper
+         point in the nested statement. */
+      /* If label_directly_in_switch is TRUE, this is the normal case: the
+         clause statements will be attached to the switch clause directly.
+         Since the clause is reachable, there was a previous switch clause
+         that flows into this one, so generate a goto from there. */
       label = alloc_temp_label();
       goto_stmt = alloc_statement((a_statement_kind)stmk_goto);
       goto_stmt->variant.label.ptr = label;
-      scp->statements = goto_stmt;
+      if (!C_mode()) {
+        /* Set the object lifetime for the goto statement. */
+        goto_stmt->variant.label.lifetime =
+                      innermost_block_object_lifetime(curr_object_lifetime);
+        /* Create a control flow entry for this goto statement.  Note that it
+           isn't needed in C mode, since it's only used for tracking and
+           promoting object lifetimes. */
+        goto_cfdp =
+               alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_goto);
+        goto_cfdp->source_pos = pos_curr_token;
+        goto_cfdp->variant.goto_statement.ptr = goto_stmt;
+        add_to_control_flow_descr_list(goto_cfdp);
+      }  /* if */
+      if (!label_directly_in_switch) scp->statements = goto_stmt;
+      /* Save reachability information on the flow-in. */
+      prev_reachability = curr_reachability;
     }  /* if */
     /* Note that it is not appropriate to terminate the previous
        switch clause, if any, by calling term_stmt_clause.  Only a
        break really terminates a switch clause; other cases are
        flow-ins. */
-    if (label != NULL) {
-      /* Save reachability information on the flow-in. */
-      prev_reachability = curr_reachability;
-    }  /* if */
     /* Activate the new switch clause.  If the case label is directly in the
        switch, also change curr_switch_clause in the switch entry so that code
        will be added there. */
@@ -3831,14 +3837,18 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
       sssep->curr_switch_clause = scp;
       end_stmt_sequence(sssep);
     }  /* if */
+    /* Represent this case label by adding an entry to the
+       control_flow_descr_list. */
+    add_to_control_flow_descr_list(
+        alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_case_label));
     /* Start a new clause. */
     start_stmt_clause(sssep);
     if (label != NULL) {
-      /* Define the label for one of the gotos above, if necessary.
-         Since we generated this label, we can do a better job of maintaining
-         the reachability than is done by the low-level routines. */
+      /* Define the label if a goto was generated above.  Since we generated
+         this label, we can do a better job of maintaining the reachability
+         than is done by the low-level routines. */
       save_reachability = curr_reachability;
-      define_label(label);
+      define_implicit_label(label, goto_cfdp);
       curr_reachability = save_reachability;
       merge_reachability(&prev_reachability, &curr_reachability);
     }  /* if */
