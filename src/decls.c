@@ -1848,6 +1848,33 @@ done:;
 }  /* find_linked_symbol */
 
 
+static a_boolean has_linkage_within_innermost_namespace_scope(a_symbol *sym)
+/*
+Given the symbol *sym representing a declaration found by find_linked_symbol,
+this function returns TRUE if that prior symbol's linkage should be applied
+to a newly processed symbol of the same name and type.  Called from id_linkage
+only.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (sym->decl_scope ==
+                    scope_stack[depth_innermost_namespace_scope].number) {
+    /* The symbol was found in namespace scope, so it should have linkage. */
+    result = TRUE;
+  } else if (sym->decl_scope >
+                    scope_stack[depth_innermost_namespace_scope].number &&
+             !(sym->kind == (a_symbol_kind)sk_variable &&
+               sym->variant.variable.ptr
+                                    ->source_corresp.is_local_to_function)) {
+    /* The symbol was found inside the innermost namespace scope, and it is
+       not a local static variable.  So it should have linkage. */
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_linkage_within_innermost_namespace_scope */
+
+
 static void id_linkage(an_id_linkage_block  *idlbp)
 /*
 Determine the linkage (internal, external, or none) of the current variable,
@@ -2001,8 +2028,7 @@ specified id-linkage block.
              with no storage class, has the same linkage as any visible
              declaration of this identifier within the enclosing namespace
              scope. */
-          if (prior_decl->decl_scope >=
-                    scope_stack[depth_innermost_namespace_scope].number) {
+          if (has_linkage_within_innermost_namespace_scope(prior_decl)) {
             /* There is a prior declaration in or inside the innermost
                namespace scope that is visible from here. */
             switch (prior_decl->kind) {
