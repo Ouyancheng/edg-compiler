@@ -809,7 +809,7 @@ do any necessary processing, e.g., externalizing it if it is static.
         check_assertion(routine->is_inline);
         routine->storage_class = (a_storage_class)sc_unspecified;
 #if INSTANTIATE_EXTERN_INLINE
-        routine->suppress_inline_body = TRUE;
+        if (instantiate_extern_inline) routine->suppress_inline_body = TRUE;
 #endif /* INSTANTIATE_EXTERN_INLINE */
       }  /* if */
     }  /* if */
@@ -1305,8 +1305,10 @@ to the secondary translation unit.
                       (corresp_routine->is_template_function &&
                        corresp_routine->assoc_scope == NULL_region_number));
 #if INSTANTIATE_EXTERN_INLINE
-      corresp_routine->inline_instance_required |=
+      if (instantiate_extern_inline) {
+        corresp_routine->inline_instance_required |=
                                              routine->inline_instance_required;
+      }  /* if */
 #endif /* INSTANTIATE_EXTERN_INLINE */
       /* Note that suppress_inline_body is meaningful only when the routine
          has a body, and the interesting value -- the one that sticks --
@@ -1644,6 +1646,7 @@ the secondary translation unit IL).
 {
   a_boolean                   is_class = is_immediate_class_type(type);
   a_class_list_entry_ptr      saved_befriending_classes;
+  a_boolean                   saved_definition_needed;
   a_class_type_supplement_ptr primary_ctsp;
   a_symbol_ptr                sym =
                                (a_symbol_ptr)(type->source_corresp.assoc_info);
@@ -1651,12 +1654,16 @@ the secondary translation unit IL).
   if (is_class) {
     primary_ctsp = primary_type->variant.class_struct_union.extra_info;
     saved_befriending_classes = primary_ctsp->befriending_classes;
+    saved_definition_needed =
+                    primary_type->variant.class_struct_union.definition_needed;
   }  /* if */
   *primary_type = *type;
   do_restores_for_overwrite(primary_type, type);
   if (is_class) {
     primary_ctsp = primary_type->variant.class_struct_union.extra_info;
     primary_ctsp->befriending_classes = saved_befriending_classes;
+    primary_type->variant.class_struct_union.definition_needed =
+                                                       saved_definition_needed;
   }  /* if */
   establish_as_canonical(&primary_type->source_corresp);
   if (sym != NULL) {
@@ -1744,6 +1751,7 @@ the secondary translation unit IL).
                                              primary_rout->befriending_classes;
   a_boolean saved_on_inline_function_list =
                                          primary_rout->on_inline_function_list;
+  a_boolean saved_definition_needed = primary_rout->definition_needed;
   a_symbol_ptr sym = (a_symbol_ptr)(rout->source_corresp.assoc_info);
   do_saves_for_overwrite(primary_rout, a_routine_ptr);
   *primary_rout = *rout;
@@ -1760,6 +1768,7 @@ the secondary translation unit IL).
   primary_rout->suppress_inline_body = saved_suppress_inline_body;
   primary_rout->befriending_classes = saved_befriending_classes;
   primary_rout->on_inline_function_list = saved_on_inline_function_list;
+  primary_rout->definition_needed = saved_definition_needed;
   establish_as_canonical(&primary_rout->source_corresp);
   if (sym != NULL) {
     /* Make the symbol (in a secondary translation unit) point to the
@@ -2301,6 +2310,9 @@ into the primary translation unit il_header.
 }  /* merge_il_headers */
 
 
+#if !INSTANTIATE_EXTERN_INLINE
+/*ARGSUSED*/  /* <-- routine is not used in that case. */
+#endif /* !INSTANTIATE_EXTERN_INLINE */
 static void ensure_routine_is_on_inline_list(a_routine_ptr routine)
 /*
 The indicated routine has been copied or merged from the secondary
@@ -2311,6 +2323,7 @@ Update the "instantiation" lists for extern inline functions, if appropriate.
 {
   /* This routine runs while switched to the primary translation unit. */
   check_assertion(is_primary_translation_unit);
+#if INSTANTIATE_EXTERN_INLINE
   if (instantiate_extern_inline) {
     a_routine_ptr primary_routine;
     if (in_secondary_trans_unit(routine)) {
@@ -2343,6 +2356,7 @@ Update the "instantiation" lists for extern inline functions, if appropriate.
       }  /* if */
     }  /* if */
   }  /* if */
+#endif /* INSTANTIATE_EXTERN_INLINE */
 }  /* ensure_routine_is_on_inline_list */
 
 
@@ -2657,7 +2671,10 @@ from a primary IL entry.
   /* If the entity is a class type with a definition, mark its definition
      as needed as well.  We don't actually know whether it is needed,
      so we have to assume it is.  For routines, marking the entry as
-     needed automatically marks the definition as needed. */
+     needed automatically marks the definition as needed (except for
+     inline functions, but extern inline functions will have definitions
+     in all cases when they are referenced, so the primary IL copy will
+     be selected as the canonical entry and we won't get here). */
   if (kind == iek_type) {
     a_type_ptr type = (a_type_ptr)ptr;
     if (is_immediate_class_type(type) &&
