@@ -401,10 +401,20 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_type_ptr ptr = (a_type_ptr)entry_ptr;
         walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, a_type_ptr, iek_type);
-#if !NEEDED_FLAG_WALK
+#if NEEDED_FLAG_WALK
+        /* When walking to set "needed" flags, the based types list in
+           general is not walked, but if there is a based type entry for the
+           unqualified version of an array type, walk it. */
+        { a_type_ptr unqual_array_type;
+          if (ptr->kind == (a_type_kind)tk_array &&
+              is_qualified_version_of_array_typedef(ptr, &unqual_array_type)) {
+            walk_ptr(unqual_array_type, a_type_ptr, iek_type);
+          }  /* if */
+        }
+#else /* !NEEDED_FLAG_WALK */
         walk_list(ptr->based_types, a_based_type_list_member_ptr,
                   iek_based_type_list_member);
-#endif /* !NEEDED_FLAG_WALK */
+#endif /* NEEDED_FLAG_WALK */
 #if DO_IL_LOWERING
         remap_ptr(ptr->typeinfo_var, a_variable_ptr, iek_variable);
 #endif /* DO_IL_LOWERING */
