@@ -1297,8 +1297,7 @@ class is static if force_static is TRUE.  Return a pointer to it.
   } else {
     storage_class = (a_storage_class)sc_static;
   }  /* if */
-  temp = alloc_variable(storage_class);
-  temp->type = temp_type;
+  temp = make_variable(temp_type, storage_class, NO_SCOPE_DEPTH);
   temp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
   return temp;
 }  /* make_temporary */
@@ -1478,14 +1477,13 @@ already_il_name is TRUE.
 
   /* Allocate the variable.  Note that the subroutine allocates the variable
      in the file scope if the storage class is static. */
-  var = alloc_variable(var_storage_class);
+  var = make_variable(var_type, var_storage_class, DEPTH_OF_FILE_SCOPE);
   if (!already_il_name) {
     /* Copy the name to the IL region. */
     alloc_length = strlen(var_name)+1;
     var_name = strcpy(alloc_lowered_name_string(alloc_length), var_name);
   }  /* if */
   var->source_corresp.name = var_name;
-  var->type = var_type;
   var->source_corresp.name_linkage =
         (var_storage_class == (a_storage_class)sc_unspecified ||
          var_storage_class == (a_storage_class)sc_extern) ?
@@ -1502,8 +1500,6 @@ already_il_name is TRUE.
                 "make_lowered_variable: bad storage class for file scope var");
   }  /* if */
 #endif /* CHECKING */
-  /* Add the variable to the file scope list. */
-  add_to_variables_list(var, DEPTH_OF_FILE_SCOPE);
   return var;
 }  /* make_lowered_variable */
 
@@ -1516,8 +1512,7 @@ it.  The variable has no name.
 {
   a_variable_ptr param_var;
 
-  param_var = alloc_variable((a_storage_class)sc_auto);
-  param_var->type = type;
+  param_var = make_variable(type, (a_storage_class)sc_auto, NO_SCOPE_DEPTH);
   param_var->is_parameter = TRUE;
   param_var->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
   return param_var;

@@ -6968,8 +6968,7 @@ member declaration, respectively.
      definition is provided).  All static data member variables are allocated
      in the file scope memory region and put on the variables list for the
      current class. */
-  var = alloc_variable((a_storage_class)sc_static);
-  var->type = member_type;
+  var = make_variable(member_type, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
   /* If this is a member template declaration, don't add it to the variables
      list (in part to avoid problems caused by an invalid scope). */
   if (!decl_info->is_member_template) {

@@ -6711,8 +6711,8 @@ a_variable_ptr make_variable(a_type_ptr      type_ptr,
                              a_scope_depth   scope_depth)
 /*
 Allocate an entry for a variable with type type_ptr and storage class
-storage_class, and return a pointer to it.  Add the variable to the
-scope indicated by scope_depth.
+storage_class, and return a pointer to it.  Unless scope_depth equals
+NO_SCOPE_DEPTH, add the variable to the indicated scope.
 */
 {
   a_variable_ptr          vp;
@@ -6723,7 +6723,9 @@ scope indicated by scope_depth.
      region. */
   vp = alloc_variable(storage_class);
   vp->type = type_ptr;
-  add_to_variables_list(vp, scope_depth);
+  if (scope_depth != NO_SCOPE_DEPTH) {
+    add_to_variables_list(vp, scope_depth);
+  }  /* if */
   return vp;
 }  /* make_variable */
 

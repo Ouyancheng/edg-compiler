@@ -1,5 +1,13 @@
 Version 2.44
 
+6/21/00  Use of make_variable instead of alloc_variable
+
+To ease the type-dependent customization of a_variable nodes, every allocation
+of such nodes is now done through the make_variable function (i.e., no other
+function calls alloc_variable directly anymore).  The make_variable function
+was modified to prevent the created variable from being added to a scope list
+if the indicated scope depth is NO_SCOPE_DEPTH.
+
 6/21/00  IL file read abort due to bad pointer-to-member type
 
 A mistake in building up related types for pointer-to-member casts

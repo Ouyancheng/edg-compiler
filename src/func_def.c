@@ -383,8 +383,7 @@ return a pointer to it.
   a_variable_ptr vp;
 
   check_assertion(type_ptr != NULL);
-  vp = alloc_variable(storage_class);
-  vp->type = type_ptr;
+  vp = make_variable(type_ptr, storage_class, NO_SCOPE_DEPTH);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   vp->declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

@@ -11359,8 +11359,9 @@ overloaded_function:
                as the parameter, if it hasn't been created yet. */
             var_ptr = sym_ptr->variant.param_id->dummy_vla_variable;
             if (var_ptr == NULL) {
-              var_ptr = alloc_variable((a_storage_class)sc_auto);
-              var_ptr->type = sym_ptr->variant.param_id->type;
+              var_ptr = make_variable(sym_ptr->variant.param_id->type, 
+                                      (a_storage_class)sc_auto,
+                                      NO_SCOPE_DEPTH);
               var_ptr->source_corresp.assoc_info = (char *)sym_ptr;
               sym_ptr->variant.param_id->dummy_vla_variable = var_ptr;
             }  /* if */
