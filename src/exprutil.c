@@ -4704,7 +4704,8 @@ a_constant_ptr var_constant_value(a_variable_ptr var)
 /*
 If the variable var has a constant initial value, return a pointer to it;
 otherwise, return NULL.  A variable with an aggregate initial value is
-considered to have no initial value.
+considered to have no initial value.  Also, a variable with an address-
+constant initial value is treated as having a nonconstant initial value.
 */
 {
   a_constant_ptr con_val = NULL;
@@ -4727,8 +4728,10 @@ considered to have no initial value.
       }  /* if */
     }  /* if */
     if (con_val != NULL) {
-      if (con_val->kind == (a_constant_repr_kind)ck_aggregate) {
-        /* An aggregate cannot be considered a value. */
+      if (con_val->kind == (a_constant_repr_kind)ck_aggregate ||
+          con_val->kind == (a_constant_repr_kind)ck_address) {
+        /* An aggregate or the address of a variable cannot be considered a
+           constant value. */
         con_val = NULL;
       }  /* if */
     }  /* if */

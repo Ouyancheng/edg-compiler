@@ -12494,7 +12494,12 @@ FALSE and a pointer to the expression tree in *expression.
       /* Constant.  The constant must be non-negative.  If it is zero,
          it is rendered as an expression. */
       copy_constant(&result.variant.constant, constant);
-      if (!is_error_constant(constant)) {
+      if (constant->kind == (a_constant_repr_kind)ck_address) {
+        /* This case can occur with expressions like (int)&x which are
+           represented as constants but aren't known until link time. */
+        *expression = alloc_node_for_constant(constant);
+        *is_constant = FALSE;
+      } else if (!is_error_constant(constant)) {
 #if CHECKING
         if (constant->kind != (a_constant_repr_kind)ck_integer) {
           internal_error(
