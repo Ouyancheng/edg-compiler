@@ -1,5 +1,21 @@
 Version 3.3
 
+7/15/03  Demangling fixes, Cfront-like ABI: not falling off end of items
+         with lengths
+
+The name mangling scheme for the Cfront-like ABI uses lengths preceding
+certain items.  In some cases, the demangler did not properly stop
+scanning a subitem at the end of the number of characters indicated
+in the length, and because of that failed to demangle a name
+properly.  This happened in particular when a type or list of types
+appeared at the end of the subitem.  Now fixed.
+
+   __nw__18X__L0__main__FiPPcSFUi
+
+This involved a fairly large set of changes to decode.c, though for
+the most part they are mechanical.  The demangling for the IA-64 ABI
+was not affected (it does not use lengths).
+
 7/10/03  Demangling fixes, Cfront-like ABI: virtual function table names,
          function-local entities
 
