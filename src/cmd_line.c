@@ -3081,6 +3081,9 @@ Process the arguments on the command line that invoked the compiler.
   }
 #endif /* ifdef HOSTID */
 
+  /* Some messages have their severity overridden by default.  Set those
+     values now. */
+  set_default_message_severities();
   /* Start with empty include file search paths.  Entries may be added
      because of command line options, and others will be added as defaults. */
   incl_search_path = end_incl_search_path = sys_incl_search_path = NULL;
@@ -4456,9 +4459,6 @@ enable_microsoft_mode:
      generating back end is tied to the source language selection. */
   select_cp_gen_be_target_dialect();
 #endif /* BACK_END_IS_CP_GEN_BE */
-  /* Some messages have their severity overridden by default.  Set those
-     values now. */
-  set_default_message_severities();
 }  /* proc_command_line */
 
 #if COMPILE_MULTIPLE_TRANSLATION_UNITS
