@@ -2797,6 +2797,27 @@ enum an_anonymous_union_kind_tag {
 typedef a_byte an_anonymous_union_kind;
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+enum an_inheritance_kind_tag {
+  ihk_none,		/* No inheritance kind specified. */
+  ihk_single,		/* Single inheritance specified. */
+  ihk_multiple,		/* Multiple inheritance specified. */
+  ihk_virtual		/* Virtual inheritance specified. */
+};
+typedef a_byte an_inheritance_kind;
+
+EXTERN an_inheritance_kind
+		default_inheritance_kind
+#if VAR_INITIALIZERS
+                                         = (an_inheritance_kind)ihk_single
+#endif /* VAR_INITIALIZERS */
+                                                                          ;
+			/* Default to which the inheritance_kind field for
+			   class is set in the absence of an explicit
+			   specification. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 /* Entry containing additional information about a class type (tk_class,
    tk_struct, or tk_union).  The list of nonstatic data members (i.e.,
    "fields") is kept in the type entry. */
@@ -2867,6 +2888,16 @@ typedef struct a_class_type_supplement {
 		qualifiers;
 			/* Qualifiers that apply to the class as a whole,
 			   as in "class __far A {}". */
+  an_inheritance_kind
+		inheritance_kind;
+			/* Inheritance kind (single, multiple, virtual) that
+			   was specified for the class (either explicitly or
+			   as a result of a pointer-to-member declaration that
+			   involves the class).  May be used to control the
+			   implementation of pointer-to-member objects for
+			   Microsoft ABI compatibility.  An inheritance kind
+			   of ihk_none means no specific inheritance kind
+			   has been set. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_anonymous_union_kind
 		anonymous_union_kind;

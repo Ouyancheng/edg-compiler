@@ -3306,6 +3306,15 @@ Display the indicated class type supplement entry.
   if (ptr->qualifiers != TQ_NONE) {
     disp_type_qualifiers(ptr->qualifiers);
   }  /* if */
+  if (ptr->inheritance_kind != (an_inheritance_kind)ihk_none) {
+    disp_name("inheritance_kind");
+    switch (ptr->inheritance_kind) {
+      case ihk_single:    (void)printf("ihk_single\n"); break;
+      case ihk_multilple: (void)printf("ihk_multiple\n"); break;
+      case ihk_virtual:   (void)printf("ihk_virtual\n"); break;
+      default:            (void)printf("***UNEXPECTED INHERITANCE KIND***\n");
+    }  /* switch */
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
     disp_name("anonymous_union_kind");
