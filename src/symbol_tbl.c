@@ -826,7 +826,6 @@ state.
         cssp->assignment_operator = NULL;
         cssp->conversion_list = NULL;
         cssp->delayed_scan_fixup_list = NULL;
-        cssp->any_nonpublic_members = FALSE;
         cssp->constructor_required = FALSE;
         cssp->destructor_required = FALSE;
         cssp->has_default_constructor = FALSE;
