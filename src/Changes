@@ -1,5 +1,11 @@
 Version 2.26
 
+9/14/94  Display of nontype template arguments that are references
+
+The il_to_str routines have been changed so that nontype template arguments
+that are references are displayed properly, i.e., as something like
+"A<i>" instead of "A<&i>".
+
 9/14/94  --force_vtbl option
 
 A --force_vtbl option has been added.  It's the complement of the
