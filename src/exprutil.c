@@ -4531,6 +4531,9 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
        type_change_constant, because this conversion might be highly
        invalid. */
     do_generic_operand_transformations(operand);
+    if (is_an_lvalue(operand)) {
+      conv_lvalue_to_rvalue(operand);
+    }  /* if */
     check_assertion_str(is_constant_operand(operand),
                         "generic_cast_operand: non-const operand");
     if (!il_identical_types(operand->type, dest_type)) {
@@ -6490,6 +6493,18 @@ not an lvalue, it is left alone.
             qualifiers_dropped = TRUE;
             make_expression_operand(node, node->type, operand);
           }  /* if */
+        } else if (con->kind == (a_constant_repr_kind)ck_template_param &&
+                   con->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_address) {
+          /* The constant is the address of a member of a nonreal class.
+             The rvalue is the value of the member. */
+          a_constant_ptr memcon = con->variant.template_param.variant.constant;
+          check_assertion(memcon->kind ==
+                                     (a_constant_repr_kind)ck_template_param &&
+                          memcon->variant.template_param.kind ==
+                                  (a_template_param_constant_kind)tpck_member);
+          make_constant_operand(memcon, operand);
+          constant_case = TRUE;
         } else {
           /* Not the address of a variable.  Check for something like
              "abc"[2]. */
