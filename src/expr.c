@@ -13504,6 +13504,15 @@ see expr.h).
   if (local_options & EOPT_TRAPPED_LEFT_PAREN) goto handle_trapped_left_paren;
   switch ((int)curr_token) {
     case tok_colon_colon:
+      if (curr_expr_kind_is(ek_pp)) {
+        /* "::" means nothing in a preprocessing expression, since there
+           are no identifiers. */
+        set_err_pos_to_curr_token();
+        error(ec_bad_pp_operator);
+        (void)get_token();
+        make_error_operand(&local_result);
+        break;
+      }  /* if */
       ntoken = next_token();
       /* Check for ":: new". */
       if (ntoken == tok_new) goto scan_new;
