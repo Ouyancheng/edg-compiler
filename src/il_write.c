@@ -91,7 +91,13 @@ static a_memory_region_number
 			   to record the memory region number currently
 			   being written. */
 
-static void trace_entry_assignment()
+static void trace_entry_assignment(void)
+/*
+This routine is called the IL entry designated by the variables
+trace_entry_number, trace_memory_region_number and trace_entry_kind is
+assigned its entry number.  It is often useful to set a debugger breakpoint
+on this routine.
+*/
 {
 #ifdef __CENTERLINE__
   centerline_stop();
@@ -99,7 +105,8 @@ static void trace_entry_assignment()
   (void)fprintf(f_debug,
                 "Entry number %ld in region %ld (kind = %ld: %s).\n",
                 (long)trace_entry_number, (long)trace_memory_region_number,
-                (long)trace_entry_kind, il_entry_kind_names[trace_entry_kind]);
+                (long)trace_entry_kind,
+                il_entry_kind_names[(long)trace_entry_kind]);
 #endif /* ifdef __CENTERLINE__ */
 }  /* trace_entry_assignment */
 
