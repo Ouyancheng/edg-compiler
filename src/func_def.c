@@ -59,7 +59,7 @@ Comments in asm functions are saved along with the normal tokens.
   reset_asm_buffer();
   /* Initialize global variables used by lexical routines. */
   in_asm_function_body = TRUE;
-  in_asm_block_or_function = TRUE;
+  treat_newline_as_token = TRUE;
   fetch_pp_tokens = TRUE;
   /* Advance past the opening brace. */
   (void)get_token();
@@ -84,7 +84,7 @@ Comments in asm functions are saved along with the normal tokens.
   }  /* while */
   fetch_pp_tokens = FALSE;
   in_asm_function_body = FALSE;
-  in_asm_block_or_function = FALSE;
+  treat_newline_as_token = FALSE;
   /* Allocate a block of the current IL memory region (the one established
      for the asm function) -- the asm buffer will be copied into it, along
      with a trailing null character. */

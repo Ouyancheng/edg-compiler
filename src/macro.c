@@ -1279,24 +1279,21 @@ In such cases, charize is TRUE.
 }  /* stringized_arg */
 
 
-static void expand_top_level_pcc_macro(
-                                a_source_line_modif_ptr main_slmp,
-                                a_boolean               *token_pasting_off_end)
+static void expand_top_level_pcc_macro(a_source_line_modif_ptr main_slmp)
 /*
 We are in pcc mode, and a top-level macro has just been expanded.  main_slmp
 points to the source modification that inserts the body of the macro
 into the primary source line.  In order to more closely approximate the
 token-pasting behavior of pcc, macro-expand the text in the body of
 the macro, then make a copy of the macro-expanded version as one long
-string.  If the rest of the primary source line looks like it could
-be token-pasted with the last token in the macro expansion, add it to the end
-of the macro expansion (and effectively remove it from the primary source
-line) and return *token_pasting_off_end TRUE.  Note that after the first
-call of this routine that returns *token_pasting_off_end TRUE on a line, any
-subsequent calls of this routine for that line will see the tacked-on text
-rather than the primary source line (e.g., main_slmp will be a modification
-of that text).  Also used in Microsoft mode; in that case, token pasting
-off the end is not allowed.
+string.  If some of the rest of the primary source line looks like
+it could be token-pasted with the last token in the macro expansion, add
+it to the end of the macro expansion (and effectively remove it from the
+primary source line).  Note that after the first call of this routine
+that pastes on the end of the line, any subsequent calls of this routine
+for that line will see the tacked-on text rather than the primary source
+line (e.g., main_slmp will be a modification of that text).  Also used
+in Microsoft mode; in that case, token pasting off the end is not allowed.
 */
 {
   a_boolean     save_fetch_pp_tokens = fetch_pp_tokens;
@@ -1307,8 +1304,6 @@ off the end is not allowed.
                 slmp2;
   sizeof_t      len_new;
   a_token_kind  last_token_of_expansion;
-  char          last_char_of_expansion;
-  a_byte        cat_last_char, cat_next_char;
   a_boolean     aux_buffer_modified = FALSE;
   sizeof_t      num_chars_added_from_source_line = 0;
 
@@ -1338,7 +1333,6 @@ off the end is not allowed.
      in an auxiliary buffer.  At the end, copy the text in the auxiliary
      buffer back into macro_buffer, replacing the original (now macro-expanded)
      body of the macro. */
-  *token_pasting_off_end = FALSE;
   /* Fetch the tokens as pp tokens. */
   save_fetch_pp_tokens = fetch_pp_tokens;
   fetch_pp_tokens = TRUE;
@@ -1346,16 +1340,52 @@ off the end is not allowed.
   curr_char_loc = pos_in_macro_buffer = main_slmp->inserted_text;
   delete_source_from_loc = NULL;
   expand_macros = TRUE;
-  /* Make sure the scan will stop at the end of the macro body rather than
-     continuing into the surrounding source line. */
-  main_slmp->is_isolated_text = TRUE;
+  /* Turn on some special processing at the end of the macro insertion
+     to decide whether we need to continue into the primary line. */
+  main_slmp->being_rescanned_for_token_pasting = TRUE;
+  /* Make sure we don't run off the current line if we do need to run
+     off the end of the macro. */
+  treat_newline_as_token = TRUE;
   sequence_id = main_slmp->sequence_id;
   check_assertion(aux_buffer_for_pcc_macros != NULL);
   pos_in_aux_buffer = aux_buffer_for_pcc_macros;
   last_token_of_expansion = tok_end_of_source;
-  while (arg_get_token(&any_white_space_skipped) != tok_end_of_source) {
-    a_boolean need_inert_macro_indication = (!pcc_preprocessing_mode &&
-                                             curr_token_is_inert_macro);
+  /* Fetch pp-tokens while doing macro expansion, and store the token
+     text in the aux_buffer_for_pcc_macros.  Stop at the end of the
+     top-level modification (usually). */
+  for (;;) {
+    a_boolean need_inert_macro_indication;
+    if (!main_slmp->being_rescanned_for_token_pasting) {
+      /* We've run off the end of the top-level macro, because a macro call
+         begins in the top-level modification and continues into the text
+         in the primary source line.  (The lexical routines turn off the
+         flag to indicate this case.) Once we reach the text following the
+         call, exit the loop. */
+      if (macro_depth == 1) {
+        check_assertion(!within_curr_source_line(curr_char_loc));
+        /* See whether we're about to leave a macro insertion and return to
+           the primary source line.  After the first substitution on a
+           line in pcc mode, we may be returning to text created by
+           a previous expansion by this routine. */
+        while (curr_char_loc[0] == LE_ESCAPE &&
+               curr_char_loc[1] == LE_END_OF_INSERTION) {
+          slmp = assoc_source_line_modif(curr_char_loc);
+          leave_insertion(slmp, curr_char_loc);
+          if (slmp == main_slmp ||
+              parent_source_line_modif(slmp) ==
+              parent_source_line_modif(main_slmp)) goto end_loop;
+        }  /* while */
+      }  /* if */
+    }  /* if */        
+    /* We get back tok_end_of_source at the end of the top-level macro, or
+       tok_newline if we ran to the end of the primary source line
+       because we were in the parentheses of a macro invocation when
+       we ran off the modification (an error would have been issued already
+       in that case). */
+    if (arg_get_token(&any_white_space_skipped) == tok_end_of_source ||
+        curr_token == tok_newline) break;
+    need_inert_macro_indication = (!pcc_preprocessing_mode &&
+                                   curr_token_is_inert_macro);
     /* Make enough room in the aux. buffer for the token text. */
     ensure_aux_buffer_for_pcc_macros_space(len_of_curr_token +
                                            any_white_space_skipped +
@@ -1376,87 +1406,103 @@ off the end is not allowed.
     pos_in_aux_buffer += len_of_curr_token;
     last_token_of_expansion = curr_token;
   }  /* while */
-  /* Special trick to deal with cases like
-       #define x(a) "a
-       char *y = x(1)23";
-     i.e., token pasting across the end of a top-level macro call.
-     If the macro expansion ends with tok_error (which may indicate an
-     unclosed string), or if the final character of the expansion looks like
-     it could be pasted with the first character following the expansion,
-     tack the rest of the primary source line onto the end of the aux.
-     buffer. */
-  /* Use pp_lexical_category to see if the last character and next character
-     could appear together in a token.  If they're singletons, they always
-     stand alone and therefore could not appear next to one another.
-     Otherwise, if they have the same category, they might appear next to one
-     another in a token. */
-  if (pos_in_aux_buffer != aux_buffer_for_pcc_macros) {
-    last_char_of_expansion = pos_in_aux_buffer[-1];
-  } else {
-    last_char_of_expansion = '\n';
+end_loop:
+  /* Determine the location in the primary source line that immediately
+     follows the end of the accumulated text. */
+  if (curr_token == tok_end_of_source) {
+    leave_insertion(main_slmp, curr_char_loc);
+  } else if (curr_token == tok_newline) {
+    /* Back up to keep the newline escape. */
+    curr_char_loc -= LE_ESCAPE_LEN;
+    check_assertion(curr_char_loc[0] == LE_ESCAPE &&
+                    curr_char_loc[1] == LE_NEWLINE);
   }  /* if */
-  cat_last_char = pp_lexical_category[last_char_of_expansion-CHAR_MIN];
-  /* Determine the location in the primary source line that immediately follows
-     the end of the macro expansion.  Note that for a top-level
-     macro call after the first on a line for which this pasting is done,
-     the loc_following_insertion will actually be in the text inserted
-     the first time, not the primary source line. */
-  leave_insertion(main_slmp, loc_following_insertion);
-  cat_next_char = pp_lexical_category[*loc_following_insertion-CHAR_MIN];
-  if (!microsoft_mode &&
-      (last_token_of_expansion == tok_error ||
-       (cat_last_char != PLC_SINGLETON && cat_last_char == cat_next_char))) {
-    /* The categories indicate that token pasting might be possible.
-       Tack the rest of the primary source line onto the end of the expansion
-       buffer so that the macro and what follows have a chance to be pasted
-       together. */
-    /* Find the end of the primary source line. */
-    { char *temp;  /* Not registered, not kept long. */
-      for (num_chars_added_from_source_line = 0,
-             temp = loc_following_insertion;
-           ;
-           num_chars_added_from_source_line++,
-             temp++) {
-        if (*temp == LE_ESCAPE) {
-          if (temp[1] == LE_END_OF_LINE ||
-              temp[1] == LE_END_OF_INSERTION) break;
-          num_chars_added_from_source_line++;
-          temp++;
+  loc_following_insertion = curr_char_loc;
+  if (!main_slmp->being_rescanned_for_token_pasting) {
+    /* We went off the end of the modification because of an open
+       macro argument list.  Adjust the line modification so that the
+       additional text in the primary source line is also deleted. */
+    main_slmp->num_chars_to_delete = loc_following_insertion -
+                                     main_slmp->line_loc;
+  }  /* if */
+  if (pcc_preprocessing_mode) {
+    /* Special trick to deal with cases like
+         #define x(a) "a
+         char *y = x(1)23";
+       i.e., token pasting across the end of a top-level macro call.
+       If the macro expansion ends with tok_error (which may indicate an
+       unclosed string), or if the final character of the expansion looks like
+       it could be pasted with the first character following the expansion,
+       tack the rest of the primary source line onto the end of the aux.
+       buffer. */
+    /* Use pp_lexical_category to see if the last character and next character
+       could appear together in a token.  If they're singletons, they always
+       stand alone and therefore could not appear next to one another.
+       Otherwise, if they have the same category, they might appear next to one
+       another in a token. */
+    char   last_char_of_expansion;
+    a_byte cat_last_char, cat_next_char;
+    if (pos_in_aux_buffer != aux_buffer_for_pcc_macros) {
+      last_char_of_expansion = pos_in_aux_buffer[-1];
+    } else {
+      last_char_of_expansion = '\n';
+    }  /* if */
+    cat_last_char = pp_lexical_category[last_char_of_expansion-CHAR_MIN];
+    cat_next_char = pp_lexical_category[*loc_following_insertion-CHAR_MIN];
+    if (last_token_of_expansion == tok_error ||
+        cat_last_char != PLC_SINGLETON && cat_last_char == cat_next_char) {
+      /* The categories indicate that token pasting might be possible.
+         Tack the rest of the primary source line onto the end of the expansion
+         buffer so that the macro and what follows have a chance to be pasted
+         together. */
+      /* Find the end of the primary source line. */
+      { char *temp;  /* Not registered, not kept long. */
+        for (num_chars_added_from_source_line = 0,
+               temp = loc_following_insertion;
+             ;
+             num_chars_added_from_source_line++,
+               temp++) {
+          if (*temp == LE_ESCAPE) {
+            if (temp[1] == LE_END_OF_LINE ||
+                temp[1] == LE_END_OF_INSERTION) break;
+            num_chars_added_from_source_line++;
+            temp++;
+          }  /* if */
+        }  /* for */
+        aux_buffer_modified = TRUE;
+        /* Do not take the newline from the primary source line. */
+        if (num_chars_added_from_source_line >= LE_ESCAPE_LEN &&
+            temp[-LE_ESCAPE_LEN] == LE_ESCAPE &&
+            temp[-1]             == LE_NEWLINE) {
+          num_chars_added_from_source_line -= LE_ESCAPE_LEN;
         }  /* if */
-      }  /* for */
-      aux_buffer_modified = TRUE;
-      *token_pasting_off_end = TRUE;
-      /* Do not take the newline from the primary source line. */
-      if (num_chars_added_from_source_line >= LE_ESCAPE_LEN &&
-          temp[-LE_ESCAPE_LEN] == LE_ESCAPE &&
-          temp[-1]             == LE_NEWLINE) {
-        num_chars_added_from_source_line -= LE_ESCAPE_LEN;
-      }  /* if */
-    }
+      }
 #if DEBUG
-    if (debug_level >= 3) {
-      fprintf(f_debug,
+      if (debug_level >= 3) {
+        fprintf(f_debug,
               "Tacking rest of containing line onto macro expansion:\n%.*s\n",
               (int)num_chars_added_from_source_line, loc_following_insertion);
-    }  /* if */
+      }  /* if */
 #endif /* DEBUG */
-    ensure_aux_buffer_for_pcc_macros_space(num_chars_added_from_source_line,
-                                           pos_in_aux_buffer);
-    (void)memcpy(pos_in_aux_buffer, loc_following_insertion,
-                 size_t_arg(num_chars_added_from_source_line));
-    pos_in_aux_buffer += num_chars_added_from_source_line;
-    /* Adjust the line modification so that the additional text in the
-       primary source line is also deleted. */
-    main_slmp->num_chars_to_delete += num_chars_added_from_source_line;
+      ensure_aux_buffer_for_pcc_macros_space(num_chars_added_from_source_line,
+                                             pos_in_aux_buffer);
+      (void)memcpy(pos_in_aux_buffer, loc_following_insertion,
+                   size_t_arg(num_chars_added_from_source_line));
+      pos_in_aux_buffer += num_chars_added_from_source_line;
+      /* Adjust the line modification so that the additional text in the
+         primary source line is also deleted. */
+      main_slmp->num_chars_to_delete += num_chars_added_from_source_line;
+    }  /* if */
   }  /* if */
   /* Put an end-of-insertion lexical escape at the end of the aux. buffer. */
   ensure_aux_buffer_for_pcc_macros_space(LE_ESCAPE_LEN, pos_in_aux_buffer);
   *pos_in_aux_buffer++ = LE_ESCAPE;
   *pos_in_aux_buffer++ = LE_END_OF_INSERTION;
   /* Restore the flags that were changed before the scan. */
-  main_slmp->is_isolated_text = FALSE;
+  main_slmp->being_rescanned_for_token_pasting = FALSE;
   fetch_pp_tokens = save_fetch_pp_tokens;
   curr_char_loc = save_curr_char_loc;
+  treat_newline_as_token = FALSE;
   /* The body of the top-level macro has been expanded.  macro_buffer
      contains the expansion represented by source line modifications,
      and aux_buffer_for_pcc_macros contains the expansion in raw-text form. */
@@ -1781,7 +1827,6 @@ associated global variables will also have been set).
   a_line_number   line_number;
   a_boolean       at_end_of_source;
   a_boolean       delete_source_from_loc_was_set_on_entry = FALSE;
-  a_boolean       token_pasting_off_end;
   a_boolean       too_many_args_diag_given = FALSE;
   a_macro_arg_ptr map, prev_end_of_macro_arg_list = end_of_macro_arg_list;
   /* The following is used by various macros.  It is therefore important to
@@ -2511,7 +2556,6 @@ copy_done:;
      particular, the modification from which the macro identifier came may
      not be the right one in the case of a multi-line macro call or when
      the macro identifier (only) was generated by a macro expansion. */
-  token_pasting_off_end = FALSE;
   if ((pcc_preprocessing_mode ||
        /* Avoid a problem with a missing parenthesis on a "defined"
           operator. */
@@ -2525,7 +2569,7 @@ copy_done:;
     /* Free any allocated macro buffers now, to make their space available
        in the macro expansions about to be done. */
     free_macro_arg_entries(prev_end_of_macro_arg_list);
-    expand_top_level_pcc_macro(slmp, &token_pasting_off_end);
+    expand_top_level_pcc_macro(slmp);
   }  /* if */
   if (!*rescan) {
     /* Here, we have a case where we have changed the source line because

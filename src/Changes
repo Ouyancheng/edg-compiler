@@ -1,5 +1,20 @@
 Version 2.45
 
+11/23/00 pcc and Microsoft mode preprocessing: strange parentheses in macro
+
+pcc and Microsoft mode preprocessing does special processing to
+support old-style (nonstandard) token pasting.  This special
+processing broke down for macros that expand to the beginning
+of a macro call, which is then completed in the source line text
+following the original macro call.  Formerly, such cases (which
+are standard-conforming) got the error "Improperly terminated macro
+invocation" in pcc and Microsoft mode.  Now, they are correctly
+expanded.
+
+  #define Y(a, b) a = b
+  #define X(a) Y(a,
+  float X(x)1.5);  /* Expands to float x = 1.5; now */
+
 11/22/00 Duplicate const/volatile qualifiers in C99 mode
 
 In C99 const and volatile type qualifiers can be repeated (they are

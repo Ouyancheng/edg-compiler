@@ -1935,6 +1935,8 @@ invocations.
   slmp->is_for_comment      = FALSE;
   slmp->parent_modif_determined
                             = FALSE;
+  slmp->being_rescanned_for_token_pasting
+                            = FALSE;
   slmp->inserted_text       = inserted_text;
   slmp->end_inserted_text   = end_inserted_text;
   slmp->assoc_macro         = (a_macro_def_ptr)NULL;
@@ -4327,7 +4329,7 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
               *(local_loc_in_line-1) == '?') {
             /* On reasonable suspicion of a trigraph, exit to more expensive
                processing code.  Note that this is done before the second
-               "? is stored, so that we do not ever store more characters
+               "?" is stored, so that we do not ever store more characters
                than ultimately required, and therefore avoid spurious
                buffer overflows on trigraphs at the ends of very long lines. */
             ch = local_ch;
@@ -4859,11 +4861,9 @@ white_space_loop:
       if (ch == LE_NEWLINE) {
         /* Newline is white space ordinarily, but a token to be returned if
            in a preprocessing directive. */
-        if (in_preprocessing_directive) goto end_skip;
-#if ASM_SUPPORT_NEEDED
         /* Newline is also a token in asm functions. */
-        if (in_asm_block_or_function) goto end_skip;
-#endif /* ASM_SUPPORT_NEEDED */
+        if (in_preprocessing_directive ||
+            treat_newline_as_token) goto end_skip;
         /* The newline character is white space, and is being thrown away. */
         kind_skipped |= WHITE_SPACE_OTHER;
         curr_char_loc += LE_ESCAPE_LEN;
@@ -4910,6 +4910,21 @@ white_space_loop:
              isolation from the rest of the source file (see 3.8.3.1).
              In that case, the end-of-insertion is returned to the caller. */
           if (slmp->is_isolated_text) goto end_skip;
+          if (slmp->being_rescanned_for_token_pasting) {
+            /* We're rescanning a macro expansion in order to do old-style
+               token pasting (e.g., in pcc mode).  We've reached the end of
+               the top-level macro.  See whether we should continue
+               into the surrounding line, which is true if we're inside
+               the argument list for a macro call. */
+            if (macro_depth <= 1) {
+              /* Do not continue into the primary source line;
+                 a tok_end_of_source will be returned eventually. */
+              goto end_skip;
+            }  /* if */
+            /* Continue into the primary source line.  Clear the flag to
+               indicate that we went off the end. */
+            slmp->being_rescanned_for_token_pasting = FALSE;
+          }  /* if */
           /* Normal case; continue with the text following the macro
              invocation. */
           leave_insertion(slmp, curr_char_loc);
@@ -5013,7 +5028,8 @@ white_space_loop:
                  This is disallowed partly because you get in trouble with
                  copy_modif_list later if you allow it (the modification
                  entries are in the wrong order). */
-              if (slmp->is_isolated_text) goto end_skip;
+              if (slmp->is_isolated_text ||
+                  slmp->being_rescanned_for_token_pasting) goto end_skip;
               leave_insertion(slmp, curr_char_loc);
             } while (!within_curr_source_line(curr_char_loc));
             if (need_to_delete_comment()) {
@@ -6256,7 +6272,7 @@ mechanism.  This routine scans and builds the asm string.
   reset_asm_buffer();
   /* Initialize global variables used by lexical routines. */
   in_asm_function_body = TRUE;
-  in_asm_block_or_function = TRUE;
+  treat_newline_as_token = TRUE;
   fetch_pp_tokens = TRUE;
   is_asm_block = curr_token == tok_lbrace;
   if (is_asm_block) {
@@ -6320,7 +6336,7 @@ mechanism.  This routine scans and builds the asm string.
   }  /* if */
   fetch_pp_tokens = FALSE;
   in_asm_function_body = FALSE;
-  in_asm_block_or_function = FALSE;
+  treat_newline_as_token = FALSE;
   if (save_token) {
     /* The current token is not part of the asm string.  Cache it so that
        it can will be rescanned after the tok_microsoft_asm is fetched. */
@@ -6583,6 +6599,8 @@ If exp_digit_sequence is TRUE, then a string of decimal digits will be
 scanned as a tok_digit_sequence (used in the #line directive).  Other tokens
 will be processed normally.
 
+If treat_newline_as_token is TRUE, return tok_newline for ends of lines.
+
 If cached_token_rescan_list is non-NULL, it points to a list of cached
 tokens which are to be rescanned; the first token on that list is removed
 and returned.  Otherwise, if reusable_cache_stack is non-NULL, it points
@@ -6598,11 +6616,6 @@ This routine is called an enormous number of times, and therefore has
 been written to be as fast as possible.  Structure has been sacrificed
 to speed in some cases.
 */
-#if ASM_SUPPORT_NEEDED
-/*
-If in_asm_block_or_function is TRUE, return tok_newline for ends of lines.
-*/
-#endif /* ASM_SUPPORT_NEEDED */
 {
   register a_token_kind ctoken;
   register char         ch;
@@ -6708,13 +6721,8 @@ start_of_token_scan:  /* Restart here after scanning white space. */
         goto end_of_token_scan_b;
       } else if (ch == LE_NEWLINE) {
         /* Newline.  Is white space ordinarily, but a token within
-           preprocessing directives. */
-        if (in_preprocessing_directive
-#if ASM_SUPPORT_NEEDED
-            /* ... or if inside an asm function body. */
-            || in_asm_block_or_function
-#endif /* ASM_SUPPORT_NEEDED */
-                                       ) {
+           preprocessing directives and inside an asm function body. */
+        if (in_preprocessing_directive || treat_newline_as_token) {
           ctoken = tok_newline;
           curr_char_loc += LE_ESCAPE_LEN;
           goto save_end_position;
@@ -7634,9 +7642,8 @@ to skip tokens for some purpose other than error recovery.
     }  /* if */
     /* Always stop the flush on:
        1)  End of source;
-       2)  A newline, if in a preprocessing directive. */
-    if (curr_token == tok_end_of_source ||
-        (in_preprocessing_directive && curr_token == tok_newline)) break;
+       2)  A newline, e.g., in a preprocessing directive. */
+    if (curr_token == tok_end_of_source || curr_token == tok_newline) break;
     /* None of the conditions was satisfied, so keep flushing tokens. */
     prev_token = curr_token;
     (void)get_token();
@@ -12302,6 +12309,7 @@ done to determine whether a precompiled header may be used.
   cached_token_rescan_list = NULL;
   reusable_cache_stack = NULL;
   any_initial_get_token_tests_needed = FALSE;
+  treat_newline_as_token = FALSE;
   last_token_sequence_number_used = NO_TOKEN_SEQUENCE_NUMBER;
   curr_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   any_tokens_fetched_from_curr_input_file = FALSE;

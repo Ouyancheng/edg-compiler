@@ -1075,6 +1075,10 @@ typedef struct a_source_line_modif {
   a_bit_field	parent_modif_determined:1;
 			/* TRUE if a value has been determined for
 			   parent_modif. */
+  a_bit_field	being_rescanned_for_token_pasting:1;
+			/* TRUE if this modification is for a macro expansion
+			   that is currently being rescanned in order to
+			   do old-style token pasting. */
   char		orig_char;
 			/* The character that was in the source line at
 			   position line_loc (provided so that the original
@@ -1245,6 +1249,11 @@ EXTERN a_boolean
 			   from a cache or when there are pragmas that
 			   are associated with the current token. */
 
+EXTERN a_boolean
+		treat_newline_as_token;
+			/* TRUE if ends-of-lines should be returned as
+			   tok_newline instead of skipped as white space. */
+
 EXTERN char	*curr_token_asm_string;
 			/* When curr_token == tok_microsoft_asm, this points
 			   to the associated asm string. */
@@ -1256,12 +1265,6 @@ EXTERN a_boolean
 		in_asm_function_body;
 			/* TRUE if processing takes place during the scan of
 			   an asm function body. */
-
-EXTERN a_boolean
-		in_asm_block_or_function;
-			/* TRUE if processing takes place during the scan of
-			   an asm function body or a Microsoft-style asm
-			   block. */
 
 EXTERN sizeof_t pos_in_asm_func_body_buffer;
 			/* The number of characters that have been added to
