@@ -1160,7 +1160,6 @@ Output the indicated constant.
 */
 {
   a_constant_repr_kind kind = constant->kind;
-  an_integer_kind      ikind;
   a_float_kind         fkind;
   a_type_ptr           con_type = NULL, orig_type;
   a_boolean            need_cast_close_paren = FALSE, need_close_paren;
@@ -1218,24 +1217,33 @@ Output the indicated constant.
         }  /* if */
         /* Write the literal form of the constant. */
         m_write_str(str_for_integer_constant(constant));
-        ikind = con_type->variant.integer.int_kind;
-        /* Put out a suffix if needed. */
+        if (con_type->kind == (a_type_kind)tk_integer) {
+          /* Add suffixes if appropriate. */
+          an_integer_kind ikind = con_type->variant.integer.int_kind;
+          /* Put out a suffix if needed. */
 #if C_GEN_BE_GENERATES_ANSI_C
-        /* Unsigned suffix is only valid in ANSI C.  When generating K&R C,
-           a prefix cast is used (see above). */
-        if (!int_kind_is_signed[(int)ikind]) {
-          /* Unsigned constant. */
-          m_write_ch('U');
-        }  /* if */
+          /* Unsigned suffix is only valid in ANSI C.  When generating K&R C,
+             a prefix cast is used (see above). */
+          if (!int_kind_is_signed[(int)ikind]) {
+            /* Unsigned constant. */
+            m_write_ch('U');
+          }  /* if */
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
-        if (ikind == (an_integer_kind)ik_long           ||
-            ikind == (an_integer_kind)ik_unsigned_long) {
-          m_write_ch('L');
+          if (ikind == (an_integer_kind)ik_long           ||
+              ikind == (an_integer_kind)ik_unsigned_long) {
+            m_write_ch('L');
 #if LONG_LONG_ALLOWED
-       } else if (ikind == (an_integer_kind)ik_long_long ||
-                  ikind == (an_integer_kind)ik_unsigned_long_long) {
-          write_str("LL");
+         } else if (ikind == (an_integer_kind)ik_long_long ||
+                    ikind == (an_integer_kind)ik_unsigned_long_long) {
+            write_str("LL");
 #endif /* LONG_LONG_ALLOWED */
+          }  /* if */
+        } else {
+          /* An integer value cast to a non-integral type, e.g., (char *)0. */
+#if C_GEN_BE_GENERATES_ANSI_C
+          /* Treat as an unsigned constant. */
+          m_write_ch('U');
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
         }  /* if */
         if (need_close_paren) write_tok_ch(')');
       }  /* if */
