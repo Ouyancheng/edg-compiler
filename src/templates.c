@@ -11266,55 +11266,66 @@ static a_boolean sym_can_be_instantiated(a_symbol_ptr	sym,
                                          a_boolean	is_pragma,
 					 a_pragma_kind	pragma_kind)
 /*
-Determine whether the template function specified by sym can be instantiated.
-Inline functions and compiler generated routines (which also happen to be
-inline) cannot be instantiated.  Pure virtual functions cannot be
-instantiated.
+Determine whether the template function or static data member
+specified by sym can be instantiated.  Inline functions and compiler
+generated routines (which also happen to be inline) cannot be
+instantiated.  Pure virtual functions cannot be instantiated.
 */
 {
   a_boolean			result = TRUE;
   a_routine_ptr			routine;
   a_template_instance_ptr	tip = NULL;
 
-  check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
-		  sym->kind == (a_symbol_kind)sk_member_function);
-  routine = sym->variant.routine.ptr;
-  tip = sym->variant.routine.instance_ptr;
-  if (routine->compiler_generated) {
-    result = FALSE;
-    if (issue_errors) {
-      sym_diagnostic(is_pragma ? es_error : es_discretionary_error,
-                     ec_compiler_generated_function_cannot_be_instantiated,
-                     sym);
+  if (sym->kind == (a_symbol_kind)sk_routine ||
+      sym->kind == (a_symbol_kind)sk_member_function) {
+    routine = sym->variant.routine.ptr;
+    tip = sym->variant.routine.instance_ptr;
+    if (routine->compiler_generated) {
+      result = FALSE;
+      if (issue_errors) {
+        sym_diagnostic(is_pragma ? es_error : es_discretionary_error,
+                       ec_compiler_generated_function_cannot_be_instantiated,
+                       sym);
+      }  /* if */
+    } else if (sym->variant.routine.instance_ptr == NULL) {
+      /* Not a template function. */
+      result = FALSE;
+      if (issue_errors) {
+        sym_error(ec_not_instantiatable_entity, sym);
+      }  /* if */
+    } else if (sym->variant.routine.ptr->is_specialized &&
+               pragma_kind != (a_pragma_kind)pk_do_not_instantiate) {
+      /* A specialization declaration has been supplied. */
+      result = FALSE;
+      if (issue_errors) {
+        sym_error(ec_instantiation_requested_and_specialized, sym);
+      }  /* if */
+    } else if (is_inline_template_function(tip)) {
+      /* An inline function is allowed in an explicit instantiation, but not
+         in a pragma. */
+      result = !is_pragma;
+      if (issue_errors) {
+        sym_diagnostic(is_pragma ? es_error : es_remark,
+                       ec_inline_function_cannot_be_instantiated,
+                       sym);
+      }  /* if */
+    } else if (routine->pure_virtual) {
+      result = FALSE;
+      if (issue_errors) {
+        sym_diagnostic(is_pragma ? es_error : es_discretionary_error,
+                       ec_pure_virtual_function_cannot_be_instantiated,
+                       sym);
+      }  /* if */
     }  /* if */
-  } else if (sym->variant.routine.instance_ptr == NULL) {
-    /* Not a template function. */
-    result = FALSE;
-    if (issue_errors) {
-      sym_error(ec_not_instantiatable_entity, sym);
-    }  /* if */
-  } else if (sym->variant.routine.ptr->is_specialized &&
-             pragma_kind != (a_pragma_kind)pk_do_not_instantiate) {
-    /* A specialization declaration has been supplied. */
-    result = FALSE;
-    if (issue_errors) {
-      sym_error(ec_instantiation_requested_and_specialized, sym);
-    }  /* if */
-  } else if (is_inline_template_function(tip)) {
-    /* An inline function is allowed in an explicit instantiation, but not
-       in a pragma. */
-    result = !is_pragma;
-    if (issue_errors) {
-      sym_diagnostic(is_pragma ? es_error : es_remark,
-                     ec_inline_function_cannot_be_instantiated,
-                     sym);
-    }  /* if */
-  } else if (routine->pure_virtual) {
-    result = FALSE;
-    if (issue_errors) {
-      sym_diagnostic(is_pragma ? es_error : es_discretionary_error,
-                     ec_pure_virtual_function_cannot_be_instantiated,
-                     sym);
+  } else {
+    check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
+    if (sym->variant.static_data_member.variable->is_specialized &&
+        pragma_kind != (a_pragma_kind)pk_do_not_instantiate) {
+      /* A specialization declaration has been supplied. */
+      result = FALSE;
+      if (issue_errors) {
+        sym_error(ec_instantiation_requested_and_specialized, sym);
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -11494,9 +11505,12 @@ is a recursive call for a class nested within the template class.
            	}  /* if */
           }  /* for */
         } else if (mem_sym->kind == (a_symbol_kind)sk_static_data_member) {
-          update_instantiation_flags(mem_sym, pragma_kind, pos,
-                                     /*is_class_instantiation=*/TRUE,
-                                     is_pragma);
+          if (sym_can_be_instantiated(mem_sym, /*issue_errors=*/FALSE,
+                                      is_pragma, pragma_kind)) {
+            update_instantiation_flags(mem_sym, pragma_kind, pos,
+                                       /*is_class_instantiation=*/TRUE,
+                                       is_pragma);
+          }  /* if */
         } else if (mem_sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
                    mem_sym->kind == (a_symbol_kind)sk_union_tag) {
           /* Instantiate the members of any nested classes. */

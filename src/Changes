@@ -1,5 +1,17 @@
 Version 2.37
 
+8/20/97   Spurious error on instantiation of class with specialized
+          static data member
+
+A spurious error was issued if a class containing a specialized static
+data member was explicitly instantiated.  Now fixed.
+
+  template <class T> struct A {
+    static int i;
+  };
+  template <> int A<char>::i = 2;
+  template class A<char>;
+
 8/20/97   Microsoft compatibility: friend declaration treated as guiding
           declaration
 
