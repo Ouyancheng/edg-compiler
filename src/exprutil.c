@@ -3707,8 +3707,8 @@ issue an error.
                    ec_nonstd_member_function_address, position);
   }  /* if */
   /* Protected members of a base class can only be accessed through an
-     object of a derived class (ARM 11.5).  It is not very clear how
-     this should affect address of member processing.  We allow the
+     object of a derived class (ARM 11.5).  Post-ARM revisions have made
+     it clear this applies also to pointers to members.  We allow the
      address of a protected member to be taken as a member of the
      derived class but not as a member of the base class.  For example:
        class A { protected: int i; };
@@ -3718,8 +3718,8 @@ issue an error.
          int B::* pmj = &B::i;	// OK
        }
      Cfront does not do this checking, so we omit it in cfront mode.
-     Also skip this check if an access control error has already been
-     issued for the identifier. */
+     Also skip this check if it shouldn't be done (e.g., because 
+     an access control error has already been issued for the identifier). */
   if (!any_cfront_mode() && check_protected_access) {
     check_protected_member_access(member_sym, position,
                                   member_proj_sym->parent.class_type);
