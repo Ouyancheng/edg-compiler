@@ -160,10 +160,10 @@ within another function.  This has been fixed.
   }
 
 4/14/97   Internal error on end-of-source in template static data
-          member perenthesized intiailizer
+          member parenthesized initializer
 
 An internal error would occur if an end-of-source immediately followed
-the opening perenthsis of a template static data member definition.
+the opening parenthesis of a template static data member definition.
 This has been fixed.
 
   template <class T> struct A {
@@ -174,7 +174,7 @@ This has been fixed.
 4/14/97   Internal error while issuing variable-used-before-set warning
 
 An internal error is no longer issued on the following, in which a default
-argument references an undefined variable that is a member of an unnamed
+argument references an unset variable that is a member of an unnamed
 namespace:
 
   namespace {
