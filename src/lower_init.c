@@ -2136,21 +2136,8 @@ because of the make_destruction_routine case.
     array_element_count = ipdp->array_element_count;
   } else if (is_array_type(entity_type)) {
     /* Destruction of whole array. */
-    a_type_ptr array_type = entity_type;
-
     is_array = TRUE;
-    /* Determine the number of elements (loop for a multi-dimensional
-       array). */
-    array_element_count = 1;
-    do {
-      a_targ_ptrdiff_t elems_this_level;
-      array_type = skip_typerefs(array_type);
-      check_assertion(!array_type->variant.array.is_variable_size_array);
-      elems_this_level = array_type->variant.array.variant.number_of_elements;
-      check_assertion(elems_this_level > 0);
-      array_element_count *= elems_this_level;
-      array_type = array_type->variant.array.element_type;
-    } while (is_array_type(array_type));
+    array_element_count = num_array_elements(entity_type);
   }  /* if */
   /* Generate code for the destructor call. */
   if (is_array) {

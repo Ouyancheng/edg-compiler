@@ -557,6 +557,30 @@ Return the underlying element type of the given array type.
 }  /* underlying_array_element_type */
 
 
+a_targ_size_t num_array_elements(a_type_ptr array_type)
+/*
+Compute and return the number of elements in an array.  For multi-dimensional
+arrays, give the total number of elements.
+*/
+{
+  a_targ_size_t num_elements = 1, elems_this_level;
+
+  array_type = skip_typerefs(array_type);
+  check_assertion_str(array_type->kind == (a_type_kind)tk_array,
+                      "num_array_elements: type not array");
+  for (;;) {
+    check_assertion(!array_type->variant.array.is_variable_size_array);
+    elems_this_level = array_type->variant.array.variant.number_of_elements;
+    check_assertion(elems_this_level > 0);
+    num_elements *= elems_this_level;
+    array_type = array_type->variant.array.element_type;
+    array_type = skip_typerefs(array_type);
+    if (!is_array(array_type)) break;
+  }  /* for */
+  return num_elements;
+}  /* num_array_elements */
+
+
 a_type_ptr find_bottom_of_type(a_type_ptr type)
 /*
 Find the bottom type of a derived type.

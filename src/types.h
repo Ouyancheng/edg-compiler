@@ -74,6 +74,7 @@ extern a_boolean type_has_default_constructor(a_type_ptr tp);
 
 extern a_type_ptr array_element_type(a_type_ptr array_type);
 extern a_type_ptr underlying_array_element_type(a_type_ptr array_type);
+extern a_targ_size_t num_array_elements(a_type_ptr array_type);
 extern a_type_ptr find_bottom_of_type(a_type_ptr type);
 extern a_type_ptr type_pointed_to(a_type_ptr pointer_type);
 extern a_type_ptr pm_member_type(a_type_ptr pm_type);
