@@ -774,6 +774,8 @@ extern a_symbol_ptr find_symbol(char             *identifier,
 extern void make_locator_for_symbol(a_symbol_ptr     sym_ptr,
                                     a_symbol_locator *location);
 
+extern void make_specific_symbol_error_locator(a_symbol_locator *locator);
+
 extern a_symbol_ptr enter_symbol(a_symbol_kind    sym_kind,
 				 a_symbol_locator *location,
                                  a_scope_depth    scope_depth,
@@ -802,6 +804,8 @@ extern a_symbol_ptr find_external_symbol(a_symbol_locator *location,
 extern a_derivation_node_ptr alloc_derivation_node(void);
 
 extern an_access_specifier access_for_symbol(a_symbol_ptr sym_ptr);
+
+extern a_boolean have_member_access_privilege(a_type_ptr class_type);
 
 extern void member_check_ambiguity_and_verify_access(
                                                     a_symbol_locator *locator);
@@ -840,8 +844,8 @@ to by the projection.
 }  /* reduce_projection_symbol_to_original_symbol */
 
 
-extern a_symbol_ptr projection_in_class(a_symbol_ptr orig_sym,
-                                        a_type_ptr   class_type);
+extern a_symbol_ptr project_into_class(a_symbol_ptr orig_sym,
+                                       a_type_ptr   class_type);
 
 extern a_symbol_ptr scope_qualified_id_lookup(
                                          a_symbol_locator         *locator,
