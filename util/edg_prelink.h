@@ -55,8 +55,8 @@ static char		*pl_predefined_names[] = {
 				"end",
 				"_DYNAMIC",
 				"_GLOBAL_OFFSET_TABLE",
-				NULL
 #endif /* sparc */
+				NULL
 };
 
 
