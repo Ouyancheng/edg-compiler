@@ -9585,10 +9585,23 @@ This includes symbols for overload sets of block extern declarations.
 {
   a_boolean is_block_extern = FALSE;
 
-  if (is_local_symbol(sym) &&
-      /* Rule out using-declarations. */
-      sym->kind != (a_symbol_kind)sk_namespace_projection) {
-    is_block_extern = TRUE;
+  if (is_local_symbol(sym)) {
+    /* Rule out using-declarations. */
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      /* For an overload set, return TRUE if the set contains at least
+         one block extern declaration. */
+      a_symbol_ptr sym2;
+      for (sym2 = sym->variant.overloaded_function.symbols;
+           sym2 != NULL;
+           sym2 = sym2->next) {
+        if (sym2->kind != (a_symbol_kind)sk_namespace_projection) {
+          is_block_extern = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    } else if (sym->kind != (a_symbol_kind)sk_namespace_projection) {
+      is_block_extern = TRUE;
+    }  /* if */
   }  /* if */
   return is_block_extern;
 }  /* is_block_extern_symbol */
