@@ -1,5 +1,13 @@
 Version 2.13
 
+12/14/92  Integral promotions on enum types
+
+When they undergo integral promotions, C++ enum types now lose their
+enum identity, i.e., they end up being a normal integral type (typically,
+"int") rather than that type tagged as being an "enum".  This was
+always a problem, but is more visible now that the default enum layout
+has been changed to "int" rather than smaller integral sizes.
+
 12/11/92  Better handling of errors in old-style parameter declarations
 
 Several changes were made to improve error reporting in old-style param
