@@ -1,5 +1,15 @@
 Version 2.26
 
+9/28/94  Initial #line directives -- C and C++-generating back ends
+
+When the front end is compiling a source file that contains #line
+directives, the effective primary source file is something other
+than the actual source file.  The C and C++-generating back ends
+now begin their output with only a #line for the effective primary
+source file.  Formerly, they generated a #line for the actual primary
+source file followed immediately by a #line for the effective
+primary source file.
+
 9/27/94  Internal error when suppressing a multi-line diagnostic
 
 If a command line option was used to change the severity of

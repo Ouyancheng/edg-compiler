@@ -4908,9 +4908,18 @@ Generate C from the intermediate language.
   /* Other initialization code. */
   dump_header_code();
 
-  /* Start with a #line directive that identifies the primary file. */
+  /* Start with a #line directive that identifies the primary file.  If the
+     source file contains #line directives, start with the file indicated
+     therein as the primary file. */
   pos.seq = 1;
   pos.column = SP_COL_UNKNOWN;
+  if (eff_primary_source_file() != il_header.primary_source_file) {
+    /* There is an effective source file other than the actual one.  Sequence
+       number 2 gets
+         #line 1 "file.c"
+       for the effective primary source file. */
+    pos.seq = 2;
+  }  /* if */
   set_output_position(&pos);
 
   /* Dump all of the declarative information at the top-most (file) level. */
