@@ -26,6 +26,7 @@ decl_inits.c -- Scanning of initializers in declarations.
 
 /* Additional header files. */
 #include "expr.h"
+#include "folding.h"
 #include "statements.h"
 #if DO_IL_LOWERING
 #if MICROSOFT_EXTENSIONS_ALLOWED && LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
@@ -1545,6 +1546,7 @@ subaggregate. The function returns a pointer to IL a_constant entity.
     }  /* if */
     context->pending_init_con = NULL;
   } else {
+    a_type_ptr  required_type = context->type;
     if (!C_mode()) {
       nonconst_allowed = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -1557,12 +1559,21 @@ subaggregate. The function returns a pointer to IL a_constant entity.
     } else {
       nonconst_allowed = FALSE;
     }  /* if */
+    if (microsoft_mode &&
+        context->prev_context != NULL &&
+        context->prev_context->field != NULL &&
+        context->prev_context->field->is_bit_field) {
+      /* Microsoft compilers allow bit fields of enumeration types to be
+         initialized by integer values. */
+      required_type = integer_type(skip_typerefs(context->type)
+                                                  ->variant.integer.int_kind);
+    }  /* if */
     constant = scan_initializer_of_simple_object(
                                      nonconst_allowed,
                                      (a_boolean)init_info->static_lifetime,
                                      /*force_object_lifetime=*/FALSE,
                                      /*is_copy_initialization=*/TRUE,
-                                     context->type, &dip);
+                                     required_type, &dip);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     init_info->init_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -1573,6 +1584,23 @@ subaggregate. The function returns a pointer to IL a_constant entity.
       constant = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       constant->variant.dynamic_init = dip;
       constant->type = context->type;
+    }  /* if */
+    if (context->type != required_type) {
+      /* The initialization of an enum bit field in Microsoft mode.  We
+         scanned as if an integer bit field was being initialized, but the
+         destination type is an enumeration. */
+      a_boolean  did_not_fold = FALSE;
+      check_assertion(microsoft_mode &&
+                      context->prev_context != NULL &&
+                      context->prev_context->field != NULL &&
+                      context->prev_context->field->is_bit_field);
+      type_change_constant(constant, context->type, /*is_implicit_cast=*/TRUE,
+                           /*constant_context=*/FALSE,
+                           /*evaluated_context=*/TRUE,
+                           /*fold_constant_addr_exprs=*/FALSE,
+                           /*is_reinterpret_cast=*/FALSE,
+                           /*maintain_expression=*/TRUE,
+                           &did_not_fold, &pos_curr_token);
     }  /* if */
   }  /* if */
   if (dip != NULL) {

@@ -1,5 +1,16 @@
 Version 2.45
 
+10/30/00 Microsoft compatibility: initialization of enum bit fields
+
+The change that enabled the initialization of any enum entity with a value of
+integer type has been undone (Changes entry of 1/21/00).  Instead, in
+Microsoft mode, bit fields of enumeration type can now be initialized with
+integer values in aggregate initialization constructs.
+
+  enum E { e1, e2 };
+  struct X { E i: 2; E j; } x = { 1,   // Accepted in Microsoft mode
+                                  2 }; // Error (not a bit field)
+
 10/29/00 Nit in cast_is_valid_in_current_expression_kind
 
 One test in cast_is_valid_in_current_expression_kind was incorrect.
