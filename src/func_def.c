@@ -1140,6 +1140,20 @@ associated with the function is returned.
 }  /* function_definition */
 
 
+static a_variable_ptr implicitly_generated_param_variable(a_type_ptr  type)
+/*
+Allocate a parameter variable of the specified type and return a pointer
+to it.
+*/
+{
+  a_variable_ptr vp;
+
+  vp = make_param_variable(type, (a_storage_class)sc_auto);
+  add_to_parameters_list(vp);
+  return(vp);
+}  /* implicitly_generated_param_variable */
+
+
 static void make_default_constructor_body(a_scope_ptr  scope)
 /*
 Create the body for a default constructor or a default copy constructor.  It
@@ -1158,8 +1172,7 @@ will return a pointer to the constructed object.
   rtsp = (skip_typerefs(rp->type))->variant.routine.extra_info;
   ptp = rtsp->param_type_list;
   if (ptp != NULL) {
-    vp = make_parameter(ptp->type, (a_storage_class)sc_auto,
-                        (a_symbol_ptr)NULL);
+    vp = implicitly_generated_param_variable(ptp->type);
     vp->assoc_param_type = ptp;
   }  /* if */    
   /* Create entries describing constructions to be done in the wrapper code. */
@@ -1400,8 +1413,7 @@ operator routine or do bitwise assignment.
   rtsp = (skip_typerefs(scope->variant.routine.ptr->type))->
                                                   variant.routine.extra_info;
   ptp = rtsp->param_type_list;
-  source_var = make_parameter(ptp->type, (a_storage_class)sc_auto,
-                              (a_symbol_ptr)NULL);
+  source_var = implicitly_generated_param_variable(ptp->type);
   source_var->assoc_param_type = ptp;
   class_type =
           type_pointed_to(scope->variant.routine.this_param_variable->type);
