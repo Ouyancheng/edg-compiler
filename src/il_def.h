@@ -4220,11 +4220,14 @@ typedef struct an_expr_node {
     /* When kind == enk_temp_init: */
     /* C++ only. */
     struct {
-      a_byte_boolean
-		result_is_addr;
+      unsigned int
+		result_is_addr:1;
 			/* If TRUE, the value of the enk_temp_init node
 			   is the address of the temporary.  If FALSE, the
 			   value is the value of the temporary. */
+      unsigned int
+		static_temp:1;
+			/* If TRUE, the temporary must be static. */
       a_dynamic_init_ptr
 		dynamic_init;
 			/* Dynamic initialization entry that does the

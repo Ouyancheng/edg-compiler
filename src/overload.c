@@ -6176,6 +6176,7 @@ so it will last as long as the reference.  This is needed for cases like
       node = node->variant.operation.operands;
     }  /* while */
     if (node->kind == (an_expr_node_kind)enk_temp_init) {
+      node->variant.init.static_temp = TRUE;
       dip = node->variant.init.dynamic_init;
       lifetime = dip->lifetime;
       /* The "lifetime != NULL" test here deals with initializations that

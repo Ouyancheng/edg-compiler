@@ -1848,6 +1848,8 @@ do_variable:
       (void)printf("enk_temp_init\n");
       disp_boolean("result_is_addr",
                    (a_boolean)ptr->variant.init.result_is_addr);
+      disp_boolean("static_temp",
+                   (a_boolean)ptr->variant.init.static_temp);
       disp_ptr("dynamic_init", (char *)ptr->variant.init.dynamic_init,
                iek_dynamic_init);
       break;
