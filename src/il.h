@@ -96,6 +96,15 @@ EXTERN a_boolean
 			   of the front end (e.g., when the C++-generating
 			   back end is used).  */
 
+EXTERN unsigned long
+		number_of_external_nonclass_template_entities;
+			/* The number of externally linked template functions
+			   and template static data members that were generated
+			   by this translation unit.  This is used when
+			   generating one instantiation per object file to
+			   determine the amount of space that must be reserved
+			   to compute the needed flags for each of the
+			   instances. */
 
 /*
 Macro that generates a unique unsigned long identifier from an IL pointer.

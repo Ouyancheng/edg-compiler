@@ -310,16 +310,6 @@ EXTERN unsigned long
 			   deferred when pending_class_definitions is
 			   nonzero. */
 
-EXTERN unsigned long
-		number_of_external_nonclass_template_entities;
-			/* The number of externally linked template functions
-			   and template static data members that were generated
-			   by this translation unit.  This is used when
-			   generating one instantiation per object file to
-			   determine the amount of space that must be reserved
-			   to compute the needed flags for each of the
-			   instances. */
-
 /* tp is a class type.  If it is incomplete, see if it is a template class in
    need of instantiation and, if so, instantiate it. */
 #define instantiate_template_class(tp)                                  \
