@@ -3499,23 +3499,23 @@ Make a temporary variable whose type is temp_type.  Return a pointer to it.
 */
 {
   a_variable_ptr   temp_var;
-  a_scope_kind     scope_kind;
   a_boolean        at_file_scope;
   a_storage_class  storage_class;
 
-  /* Use auto storage class in functions, static elsewhere. */
-  scope_kind = scope_stack[decl_scope_level].kind;
-  if (scope_kind == (a_scope_kind)sck_function ||
-      scope_kind == (a_scope_kind)sck_block) {
+  /* Typically, a temporary variable will be have automatic storage class,
+     since it will appear in an expression in a function or block scope.
+     However, if the temp is involved in an expression at file scope (within
+     a class scope, for instance, or a default argument expression), it
+     should be static and be allocated in file scope memory region. */
+  if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
     storage_class = (a_storage_class)sc_auto;
     at_file_scope = FALSE;
   } else {
-    /* If not inside a function, use the file scope.  This is important
-       when inside a class -- the class goes into the file scope, so the
-       temporary must also. */
     storage_class = (a_storage_class)sc_static;
     at_file_scope = TRUE;
   }  /* if */
+  /* alloc_variable uses the appropriate memory region, based on storage
+     class.*/
   temp_var = alloc_variable(storage_class);
   temp_var->type = temp_type;
   /* Name linkage stays nlk_none. */
