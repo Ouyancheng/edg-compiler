@@ -210,6 +210,11 @@ extern void il_alloc_one_time_init(void);
 
 extern void il_alloc_init(void);
 
+#ifdef TRACE_ALLOC
+void trace_alloc_check(void *ptr);
+#endif /* TRACE_ALLOC */
+
+
 #endif /* ifndef IL_ALLOC_H */
 
 /******************************************************************************

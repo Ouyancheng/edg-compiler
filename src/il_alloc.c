@@ -234,6 +234,42 @@ file-scope and normal allocation methods as necessary).
            ((region_number) == FILE_SCOPE_REGION_NUMBER), (size))
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
+#ifdef TRACE_ALLOC
+/*
+If a problem is found with a node allocated at address A, it is often useful
+to find where that node was created.  The following simple facility allows
+this to be traced as follows:
+   (a) determine the suspect node address A in a debugger
+   (b) set a breakpoint on main() and on alloc_intercept()
+   (c) rerun the same binary with the same options and input
+   (d) when the breakpoint on main() is hit, set trace_alloc_ptr to A
+           (e.g., "p trace_alloc_ptr=0x123456" in gdb)
+   (e) continue execution: the breakpoint on alloc_intercept() will be hit
+       when the suspect node is created
+*/
+static void *trace_alloc_ptr = NULL;
+
+static void alloc_intercept(void)
+/*
+This routine's main purpose is to have a breakpoint set on it from a symbolic
+debugger.  The routine is called if memory is allocated at the address pointed
+to by trace_alloc_ptr.
+*/
+{
+  fprintf(f_debug, "Created node at %x.\n", (unsigned)trace_alloc_ptr);
+}  /* alloc_intercept */
+
+
+void trace_alloc_check(void *ptr)
+/*
+Check if the given pointer ptr matches the address stored in trace_alloc_ptr.
+If so, call alloc_intercept.
+*/
+{
+  if (ptr == trace_alloc_ptr) alloc_intercept();
+}  /* trace_alloc_check */
+
+#endif /* TRACE_ALLOC */
 
 char *alloc_il(sizeof_t size)
 /*
@@ -242,6 +278,9 @@ Allocate and return "size" bytes of storage in the file scope memory region.
 {
   char *ptr;
   do_fs_alloc(ptr, size);
+#ifdef TRACE_ALLOC
+  trace_alloc_check(ptr);
+#endif /* TRACE_ALLOC */
   return ptr;
 }  /* alloc_il */
 
@@ -254,6 +293,9 @@ Allocate and return "size" bytes of storage in the current IL memory region.
 {
   char *ptr;
   do_any_alloc(ptr, curr_il_region_number, size);
+#ifdef TRACE_ALLOC
+  trace_alloc_check(ptr);
+#endif /* TRACE_ALLOC */
   return ptr;
 }  /* alloc_cil */
 

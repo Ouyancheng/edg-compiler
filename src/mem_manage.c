@@ -929,6 +929,9 @@ is used for allocation of general front end memory (i.e., not IL).
      set when command line processing is done. */
   allocated_in_region[region_number] += size;
 #endif /* DEBUG */
+#ifdef TRACE_ALLOC
+  trace_alloc_check(temp_ptr);
+#endif /* TRACE_ALLOC */
   return temp_ptr;
 }  /* alloc_in_region */
 
