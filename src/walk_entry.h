@@ -2742,9 +2742,11 @@ of each kind.
      are not maintained on an orphan list.  String types at the file
      scope that are referenced from a function scope are written in that
      function scope region. */
-#ifdef FFE
+#if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED
   walk_orphan_entry_list_for_entry_kind(an_internal_complex_value_ptr,
                                         iek_internal_complex_value);
+#endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED */
+#ifdef FFE
   walk_orphan_entry_list_for_entry_kind(a_bound_info_entry_ptr,
                                         iek_bound_info_entry);
   walk_orphan_entry_list_for_entry_kind(a_do_loop_ptr, iek_do_loop);
