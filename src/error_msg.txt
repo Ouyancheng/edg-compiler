@@ -1096,6 +1096,7 @@ ec_invalid_designator_kind;;"invalid designator kind"
 ec_inexact_fp_conversion;;"floating-point value cannot be represented exactly"
 ec_bad_complex_operation_result;;"complex floating-point operation result is out of range"
 ec_real_imaginary_conversion;;"conversion between real and imaginary yields zero"
+ec_cannot_initialize_flexible_array_member;;"an initializer can not be specified for a flexible array member"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -1509,8 +1509,9 @@ error NULL is returned.  If a field designator was scanned, *designator_scanned
 is set to TRUE; otherwise it is set to FALSE.
 */
 {
-  a_field_ptr designated_field = *field;
-  a_type_ptr  member_type;
+  a_field_ptr        designated_field = *field;
+  a_type_ptr         member_type;
+  a_source_position  error_pos = pos_curr_token;
 
   if (init_info->designation_state != ds_complete_designation &&
       scan_field_init_designator(context->type, &designated_field)) {
@@ -1551,7 +1552,6 @@ is set to TRUE; otherwise it is set to FALSE.
       fputc('\n', f_debug);
     }  /* if */
 #endif /* DEBUG */
-#if CHECKING
     if (is_incomplete_type(member_type)) {
       /* Members of unions or aggregates cannot be incomplete. */
       a_boolean top_level = (context->prev_context == NULL);
@@ -1562,13 +1562,13 @@ is set to TRUE; otherwise it is set to FALSE.
            (See also: check_field_type.)  Only in Microsoft mode can such
            a field be initialized. */
         if (!microsoft_mode) {
-          error(ec_too_many_initializer_values);
+          pos_error(ec_cannot_initialize_flexible_array_member, &error_pos);
         }  /* if */
       } else {
-        internal_error("get_field_init_info: can't init 0-size member");
+        unexpected_condition_str(
+                              "get_field_init_info: can't init 0-size member");
       }  /* if */
     }  /* if */
-#endif /* CHECKING */
   }  /* if */
   return member_type;
 }  /* get_field_init_info */
