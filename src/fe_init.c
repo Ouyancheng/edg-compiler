@@ -381,7 +381,13 @@ Initialize things related to preprocessing.
      or if we are compiling C++ (ARM 16.10: "Whether __STDC__ is defined
      and, if so, what its value is are implementation dependent."),
      left undefined otherwise. */
-  if (C_dialect == C_dialect_ANSI || C_dialect == C_dialect_cplusplus) {
+  if (C_dialect == C_dialect_ANSI || C_dialect == C_dialect_cplusplus
+#if OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE
+      /* If configured to use old-style preprocessing in cfront
+         compatibility mode, do not define __STDC__ in that mode. */
+      && !cfront_compatibility_mode
+#endif /* OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
+                                                                      ) {
     (void)enter_predef_macro("1", "__STDC__");
   }  /* if */
   /* __cplusplus is defined as 1 if we are compiling C++, left undefined

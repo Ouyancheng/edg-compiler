@@ -562,6 +562,13 @@ unknown_option:
   /* Determine the appropriate error level for anachronism messages based
      on whether anachronisms are to be allowed. */
   anachronism_error_severity = allow_anachronisms ? es_warning : es_error;
+  /* Choose the style of preprocessing. */
+  pcc_preprocessing_mode = (C_dialect == C_dialect_pcc);
+#if OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE
+  /* When configured that way, use old-style preprocessing for cfront
+     compatibility mode. */
+  if (cfront_compatibility_mode) pcc_preprocessing_mode = TRUE;
+#endif /* OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
   /* Add the default directories to the end of the include search path.
      The list is then any -I directories, in the order they were specified,
      and the default directories at the end. */

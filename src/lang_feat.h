@@ -144,6 +144,16 @@ feature is used.
 
 #endif /* ifndef LANG_FEAT_H */
 
+/*
+TRUE if pcc-style preprocessing should be done when compiling C++
+in cfront compatibility mode.  This is sensible when the version of
+cfront with which compatibility is desired uses an old-style Reiser
+preprocessor.  Also suppresses definition of __STDC__.
+*/
+#ifndef OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE
+#define OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE FALSE
+#endif /* ifndef OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *

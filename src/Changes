@@ -1,5 +1,12 @@
 Version 2.17
 
+4/29/93  OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE
+
+A new flag OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE has been added to
+lang_feat.h.  When TRUE, it forces old-style preprocessing when
+compiling C++ in cfront compatibility mode.  The default is FALSE,
+which is the previous behavior.
+
 4/29/93  Pointers to virtual base class data sections
 
 In a_base_class the field pointer_offset is now defined for all virtual

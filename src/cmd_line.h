@@ -52,6 +52,10 @@ EXTERN a_boolean
                         /* -b option:  accept language features supported
                             by cfront release 2.1. */
 EXTERN a_boolean
+		pcc_preprocessing_mode /* = FALSE */;
+			/* TRUE if old-style (Reiser cpp) preprocessing
+			   should be done. */
+EXTERN a_boolean
                 allow_anachronisms
 #if VAR_INITIALIZERS
                           = DEFAULT_ALLOW_ANACHRONISMS

@@ -1287,7 +1287,7 @@ only be called when generate_pp_output is TRUE.
        is not always wanted (the SUN cc generates it, but not all pcc-based
        compilers do); the flag GEN_EXTRA_LINE_ID_INFO controls whether or
        not it is generated. */
-    if (C_dialect != C_dialect_pcc) {
+    if (!pcc_preprocessing_mode) {
       /* ANSI version. */
       fprintf(f_pp_output, "#line %lu \"%s\"",
                            (a_line_number)(curr_ise->line_number+increment),
@@ -1337,7 +1337,7 @@ token and not part of another, then no space is needed.
 { a_byte cat_ch, cat_prev_ch;                                         \
   if (token_start) {                                                  \
     token_start = FALSE;                                              \
-    if (C_dialect != C_dialect_pcc) {                                 \
+    if (!pcc_preprocessing_mode) {                                    \
       if ((cat_prev_ch = pp_lexical_category[prev_ch-CHAR_MIN]) ==    \
                                                          PLC_SINGLETON || \
           (cat_ch = pp_lexical_category[ch-CHAR_MIN]) == PLC_SINGLETON) { \
@@ -2830,7 +2830,7 @@ Also tests for "//" in C++ mode.
   ((*(curr_char_loc+1) == '*' ||                                      \
     (C_dialect == C_dialect_cplusplus && *(curr_char_loc+1) == '/')) && \
    (within_curr_source_line(curr_char_loc) ||                         \
-    (C_dialect == C_dialect_pcc && !in_pcc_mode_half_comment)))
+    (pcc_preprocessing_mode && !in_pcc_mode_half_comment)))
 
 
 void skip_white_space(void)
@@ -3006,7 +3006,7 @@ white_space_loop:
          (Or another "/" in C++ mode.) */
       if (!start_of_comment()) goto end_skip;
       /* This is the start of a comment. */
-      if (C_dialect == C_dialect_pcc &&
+      if (pcc_preprocessing_mode &&
           !within_curr_source_line(curr_char_loc)) {
         /* We're in pcc mode, and the token opening characters came from
            token pasting inside a macro.  They are considered to start a
@@ -3201,7 +3201,7 @@ normal_comment:
              Under pcc rules, the comment is always deleted entirely.
              The deletion here is suppressed if we are deleting everything 
              up to this point anyway (delete_source_from_loc != NULL). */
-          if (C_dialect == C_dialect_pcc) {
+          if (pcc_preprocessing_mode) {
             /* pcc mode; delete the comment entirely. */
             add_deletion_source_line_modif(comment_start_loc,
                                    (sizeof_t)(curr_char_loc-comment_start_loc),
@@ -4280,7 +4280,7 @@ end_id_scan:
         goto end_of_token_scan;
       }  /* if */
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
-      if (C_dialect != C_dialect_pcc && in_preprocessing_directive &&
+      if (!pcc_preprocessing_mode && in_preprocessing_directive &&
 	  !processing_C_code_in_pragma) {
         /* We recognize and return these preprocessing tokens even if
            we do not know that we are in the body of a #define; this
