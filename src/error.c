@@ -2182,7 +2182,7 @@ error code.
       m = "this kind of pragma may not be used here";
       break;
     case ec_nonoverriding_function_decl:
-      m = "%nf matches no base class virtual function -- override intended?";
+      m = "%nf1 does not match %no2 -- virtual function override intended?";
       break;
     case ec_partial_override:
       m =
