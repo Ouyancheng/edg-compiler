@@ -1,5 +1,11 @@
 Version 2.31
 
+12/20/95  C++-generating back end: Only "="-form initializers for conditions
+
+Condition declarations in C++ are limited to using the "=" form of
+initialization.  The C++-generating back end now avoids generating
+"()"-form initializers for conditions.
+
 12/20/95  C++-generating back end: class qualifier on suppressed-virtual call
 
 When a virtual function is called with a qualified name to suppress
