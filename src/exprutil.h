@@ -433,6 +433,16 @@ extern a_symbol_ptr select_overloaded_function(
                            a_boolean                have_selector,
                            an_operand               *bound_function_selector,
                            an_arg_operand_ptr       arg_operand_list,
+                           an_error_code            err_none_applies,
+                           an_error_code            err_ambiguous,
+                           a_source_position        *call_position,
+                           an_arg_match_summary_ptr *arg_match_list);
+
+extern a_symbol_ptr select_and_prepare_to_call_overloaded_function(
+                           a_symbol_ptr             overloaded_function_symbol,
+                           a_boolean                have_selector,
+                           an_operand               *bound_function_selector,
+                           an_arg_operand_ptr       arg_operand_list,
                            a_boolean                is_qualified_name,
                            an_expression_kind       expression_kind,
                            an_error_code            err_none_applies,

@@ -1295,7 +1295,8 @@ remove it later, as this routine takes care of that.
     /* The constructors are overloaded.  Select the proper one. */
     /* Note that a special case allows passing have_selector == TRUE and
        NULL for the selector operand when dealing with constructors. */
-    constructor_sym = select_overloaded_function(constructor_sym,
+    constructor_sym = select_and_prepare_to_call_overloaded_function(
+                                                 constructor_sym,
                                                  /*have_selector=*/TRUE,
                                                  (an_operand *)NULL,
                                                  arg_operand_list,
@@ -1600,7 +1601,7 @@ Syntax:
   if (overloaded_function_case) {
     /* Choose the proper function out of a set of overloaded functions based
        on the argument types. */
-    function_symbol = select_overloaded_function(
+    function_symbol = select_and_prepare_to_call_overloaded_function(
                                             overloaded_function_symbol,
                                             (a_boolean)operand->bound_function,
                                             bound_function_selector,
@@ -3608,7 +3609,7 @@ specification allow a variable-sized array as the top type.
     }  /* if */
     /* Select the proper "new" function if there are several; even if there
        is only one, check the argument types. */
-    operator_new_symbol = select_overloaded_function(
+    operator_new_symbol = select_and_prepare_to_call_overloaded_function(
                                               operator_new_symbol,
                                               /*have_selector=*/FALSE,
                                               (an_operand *)NULL,
