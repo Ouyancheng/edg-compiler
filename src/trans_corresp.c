@@ -3223,7 +3223,7 @@ given type.
     check_assertion(total_errors != 0);
   } else {
     a_type_ptr  canon = (a_type_ptr)canonical_il_entry_of(type);
-    a_boolean   new_canon = FALSE;
+    a_boolean   new_canon = FALSE, match;
     if (canon == type) {
       /* This is presumably the first class body instantiation. */
       clear_class_type_correspondence(type, /*visited=*/TRUE);
@@ -3250,13 +3250,18 @@ given type.
       /* Find correspondences for any instances that might have been
          discovered. */
       process_pending_instantiations();
-      if (new_canon) {
+      if (new_canon || correspondence_checking_done) {
+        /* Force the verification of the previous canonical entry against the
+           new one if (a) the given type is a new canonical type and hence it
+           will not be compared against the old canonical entry in a later
+           stage, or (b) the normal verification pass has been completed
+           already. */
+        match = verify_class_type_correspondence(type);
+      }  /* if */
+      if (new_canon && match) {
         /* Since the canonical entry has changed, extra actions may be needed.
-           Force the verification of the previous canonical entry against the
-           new one. */
-        a_boolean  match = verify_class_type_correspondence(type);
-        if (type->variant.class_struct_union.extra_info->assoc_scope != NULL &&
-            match) {
+           */
+        if (type->variant.class_struct_union.extra_info->assoc_scope != NULL) {
           /* The master instance is found using the canonical entry.  We are
              creating a new canonical entry, so we must make sure its master
              instance pointer is set for the class members. */
