@@ -290,15 +290,20 @@ address taken, and if not issue an error.
      static data members (they cannot be "register"). */
   if (sym->kind == (a_symbol_kind)sk_variable) {
     a_variable_ptr var = sym->variant.variable.ptr;
-    if (C_dialect != C_dialect_cplusplus &&
+    if (C_mode() &&
         var->storage_class == (a_storage_class)sc_register) {
-      /* Error -- cannot take the address of a register variable.
-         (This is allowed in C++.) */
-      pos_error(ec_address_of_register_variable, &rep->position);
-      /* Turn the reference into an error reference so that the error will
-         be issued only once. */
-      rep->kind = (rep->kind & SRK_ALL_REFERENCES) | SRK_ERROR;
-      rep->already_recorded = FALSE;
+      /* Cannot take the address of a register variable in C. 
+         This is allowed in C++, and is allowed (with a warning) in
+	 SVR4 C compatibility mode. */
+      if (SVR4_C_mode) {
+	pos_warning(ec_address_of_register_variable, &rep->position);
+      } else {
+	pos_error(ec_address_of_register_variable, &rep->position);
+	/* Turn the reference into an error reference so that the error will
+	   be issued only once. */
+	rep->kind = (rep->kind & SRK_ALL_REFERENCES) | SRK_ERROR;
+	rep->already_recorded = FALSE;
+      }  /* if */
     } else {
       /* Indicate that the address of the variable has been taken.  Setting
          the flag here means it is set even for cases where an address
@@ -2732,6 +2737,15 @@ lvalue.  If there is an error, change the operand to an error operand.
   if (is_an_lvalue(operand) &&
       !is_const_qualified_type(type) &&
       !is_incomplete_type(type)) {
+    /* In SVR4 C compatibility mode, this routine can be called for an
+       lvalue cast that would normally be illegal.  Issue a warning. */
+    if (SVR4_C_mode && !is_error_operand(operand) &&
+	operand->kind == ok_expression &&
+	operand->variant.expression->kind == enk_operation &&
+	operand->variant.expression->variant.operation.kind ==
+                                                            eok_lvalue_cast) {
+      pos_warning(ec_expr_not_a_modifiable_lvalue, &operand->position);
+    }  /* if */
     okay = TRUE;
     if (is_class_struct_union_type(type)) {
       type = skip_typerefs(type);
@@ -4835,13 +4849,14 @@ not an lvalue, it is left alone.
         /* The lvalue address is represented by some kind of expression
            node. */
         node = operand->variant.expression;
-        if (C_dialect == C_dialect_pcc && is_operation_node(node) &&
+        if ((C_dialect == C_dialect_pcc || SVR4_C_mode) &&
+	    is_operation_node(node) &&
             node->variant.operation.kind ==
                                       (an_expr_operator_kind)eok_lvalue_cast) {
-          /* In pcc mode, lvalues cast to a same-sized type can stay
-             lvalues.  This is indicated by casting the lvalue address
-             to pointer-to-new-type.  Here, turn such a case back into an
-             ordinary cast on the rvalue. */
+          /* In pcc mode and in SVR4 C compatibility mode, lvalues cast to
+	     a same-sized type can stay lvalues.  This is indicated by
+	     casting the lvalue address to pointer-to-new-type.  Here, turn
+	     such a case back into an ordinary cast on the rvalue. */
           cast_node = node;
           operand_node = cast_node->variant.operation.operands;
           cast_orig_type = type_pointed_to(cast_node->type);
