@@ -5354,12 +5354,12 @@ skip_overloading:;
       if ((!suppress_inline_body || !routine_ptr->suppress_inline_body) &&
           routine_ptr->storage_class == (a_storage_class)sc_unspecified) {
         /* The definition should not be discarded if it was preceded or
-           succeeded by an extern declaration.  (If the current definition
+           followed by an extern declaration.  (If the current definition
            has an inline specifier and routine->suppress_inline_body is FALSE,
            the previous declaration did not have an "inline" specifier.
            If the previous declaration was an inline definition and the
            current declaration has no inline specifier, then
-           suppress_inline_body will be FALSE. */
+           suppress_inline_body will be FALSE.) */
         mark_as_needed((char *)routine_ptr, (an_il_entry_kind)iek_routine);
       }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
