@@ -1100,6 +1100,29 @@ current name context).
 }  /* gen_name */
 
 
+static void gen_decl_name(a_source_correspondence *scp,
+                          a_type_ptr              type)
+/*
+Output the name of the entity whose source correspondence information
+is given by scp.  This name is being declared in this use.  If the
+entity is a type (or, at least, a class type that might be a template),
+"type" points to it; otherwise, "type" is NULL.  If the entity is
+unnamed, generate a name.  If the entity is a class member, generate
+a qualified name (if required in the current name context).
+*/
+{
+  /* Write the name. */
+  if (scp->class_of_which_a_member == NULL) {
+    /* For a non class member, don't go through gen_name because we
+       don't want a leading "::" on the name. */
+    gen_unqualified_name(scp, type);
+  } else {
+    /* Class member. */
+    gen_name(scp, type);
+  }  /* if */
+}  /* gen_decl_name */
+
+
 static void gen_qualified_name(a_source_correspondence *scp,
                                a_type_ptr              type)
 /*
@@ -1916,7 +1939,7 @@ or enum.
        have been given compiler-generated names so they can be referred to. */
     write_tok_str(tag_kind(type->kind));
     write_space();
-    gen_type_name(type);
+    gen_decl_name(&type->source_corresp, type);
   }  /* if */
 }  /* gen_tag_reference */
 
@@ -2174,7 +2197,7 @@ is non-NULL, in which case that is the function scope.
       /* This is the definition, so put out the parameter names. */
       if (param_var != NULL) {
         for (;;) {
-          gen_variable_name(param_var);
+          gen_decl_name(&param_var->source_corresp, NO_TYPE);
           /* Stop after the last parameter. */
           param_var = param_var->next;
           if (param_var == NULL) break;
@@ -2380,10 +2403,10 @@ declaration.
     /* Set the source position for the name. */
     set_decl_position(scp, sec_decl);
     /* Write the name. */
-    /* Note that we may be passing NULL here even though the thing being
+    /* Note that we may be using NO_TYPE here even though the thing being
        named is a type, but that's okay, because it can't be a template
        class (you can't declare one with the normal declaration syntax). */
-    gen_name(scp, NO_TYPE);
+    gen_decl_name(scp, NO_TYPE);
   }  /* if */
   /* Write the second part of the declarator. */
   gen_type_second_part(type, /*under_lhs_declarator=*/FALSE);
@@ -2414,7 +2437,7 @@ is the one associated with the definition of the enum.
   /* (Note that a name will be generated for an unnamed enum.  That's
      necessary in C mode to allow the necessary casts of enumerator
      constants, and it's not a bad thing in general.) */
-  gen_type_name(type);
+  gen_decl_name(&type->source_corresp, type);
   enum_con = type->variant.integer.enum_info.constant_list;
   write_tok_str(" {");
   /* Output the enumeration constants. */
@@ -2427,7 +2450,7 @@ is the one associated with the definition of the enum.
                                enum_con->source_corresp.source_sequence_entry);
     set_output_position(&enum_con->source_corresp.decl_position);
     /* Output the constant's name. */
-    gen_constant_name(enum_con);
+    gen_decl_name(&enum_con->source_corresp, NO_TYPE);
     /* Output the value if it's not the next value in sequence. */
     if (cmp_integer_constants(enum_con, &next_enum_value) != 0) {
       write_tok_str(" = ");
@@ -2539,7 +2562,7 @@ source sequence entry is the one associated with the constant.
   /* Set the source position for the name. */
   set_output_position(&constant->source_corresp.decl_position);
   /* Write the name. */
-  gen_constant_name(constant);
+  gen_decl_name(&constant->source_corresp, NO_TYPE);
   /* Write the second part of the declarator. */
   gen_type_second_part(constant->type, /*under_lhs_declarator=*/FALSE);
   write_tok_str(" = ");
@@ -2655,7 +2678,7 @@ is the one associated with the definition of the class.
   if (ctsp == NULL ||
       ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_none) {
     write_space();
-    gen_type_name(type);
+    gen_decl_name(&type->source_corresp, type);
   }  /* if */
   /* Put out the class definition. */
   if (il_header.source_language == sl_Cplusplus) {
@@ -4575,14 +4598,14 @@ Generate code for the indicated statement.
       write_tok_str("goto ");
       /* Labels for "break" and "continue" are compiler-generated and may
          be unnamed. */
-      gen_name(&statement->variant.label->source_corresp, NO_TYPE);
+      gen_unqualified_name(&statement->variant.label->source_corresp, NO_TYPE);
       write_tok_ch(';');
       break;
     case stmk_label:
       /* Label statement: generate "name:;". */
       /* Labels for "break" and "continue" are compiler-generated and may be
          unnamed. */
-      gen_name(&statement->variant.label->source_corresp, NO_TYPE);
+      gen_unqualified_name(&statement->variant.label->source_corresp, NO_TYPE);
       write_tok_str(":;");
       break;
     case stmk_return:
@@ -4804,6 +4827,13 @@ TRUE, "()" is put out.
       if (parenthesized_init) write_tok_ch('(');
       gen_initializer_expr(dip->variant.expression, init_entity_type,
                            /*need_parens=*/!parenthesized_init);
+      if (parenthesized_init) write_tok_ch(')');
+      break;
+    case dik_call_returning_class_via_cctor:
+      /* Used for function calls that return a value via a copy constructor,
+         only under enk_temp_init nodes. */
+      if (parenthesized_init) write_tok_ch('(');
+      gen_expression(dip->variant.expression);
       if (parenthesized_init) write_tok_ch(')');
       break;
     case dik_constructor:
@@ -5249,7 +5279,7 @@ declaration or definition.
     /* Position the output file to the declaration position (again). */
     set_decl_position(&rout->source_corresp, sec_decl);
     /* Write the routine name. */
-    gen_routine_name(rout);
+    gen_decl_name(&rout->source_corresp, NO_TYPE);
     if (is_definition) {
       /* For a definition, push a name context for the function. */
       push_name_context(&context, scope);
