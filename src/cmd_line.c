@@ -504,8 +504,9 @@ unknown_option:
         ("Anachronism option (-O) can only be used when compiling C++");
     }  /* if */
     if (suppress_virtual_function_table_definition) {
-      command_line_error
-        ("Suppress vtbl option (-V) can only be used when compiling C++");
+      command_line_error(
+      "Virtual function tables can only be suppressed (-V) when compiling C++"
+                         );
     }  /* if */
   }  /* if */
   if (strict_ansi_mode) {
