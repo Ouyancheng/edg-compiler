@@ -1002,8 +1002,10 @@ on a prior declaration.
                         &locator->source_position, sym);
     }  /* if */
     sym->variant.routine.ptr->is_inline = TRUE;
-  }  /* if */
-  if (rp->storage_class == (a_storage_class)sc_extern) {
+    /* Reset the storage class and name linkage. */
+    rp->storage_class = (a_storage_class)sc_static;
+    rp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+  } else if (rp->storage_class == (a_storage_class)sc_extern) {
     /* If the routine was given a storage class of sc_extern when it was
        originally declared, change it to sc_unspecified now that the
        definition has been seen.  Also set the referenced flag, assuming
