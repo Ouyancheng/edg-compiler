@@ -4049,12 +4049,8 @@ Do IL lowering of the indicated variable and everything under it.
     } else if (variable->storage_class == (a_storage_class)sc_unspecified &&
                variable->init_kind == (an_init_kind)initk_none) {
       /* In C++, there are no tentative definitions.  Use initk_zero to
-         indicate that this variable is "really" defined.  Don't do this
-         for arrays, though, because that can blow up the size of
-         executables. */
-      if (!is_array_type(variable->type)) {
-        variable->init_kind = (an_init_kind)initk_zero;
-      }  /* if */
+         indicate that this variable is "really" defined. */
+      variable->init_kind = (an_init_kind)initk_zero;
     }  /* if */
     switch (variable->init_kind) {
       case initk_none:
