@@ -1474,6 +1474,7 @@ fields, and return a pointer to it.
   tdip->declaration_scope = NO_SCOPE_NUMBER;
   tdip->enclosing_scope = NULL;
   tdip->enclosing_template_decl = NULL;
+  tdip->name_linkage = (a_name_linkage_kind)nlk_none;
 #if DEBUG
   num_template_decl_info_allocated++;
 #endif /* DEBUG */

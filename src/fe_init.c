@@ -801,13 +801,6 @@ source file's compilation.
     start_il_file();
   }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-  /* Set the default name linkage kind for externally linked objects and
-     functions.  In C++ this can be overridden by a linkage specification
-     (ARM 7.4). */
-  def_external_linkage.kind = (C_dialect == C_dialect_cplusplus) ?
-                                (a_name_linkage_kind)nlk_cplusplus_external :
-                                (a_name_linkage_kind)nlk_external;
-  def_external_linkage.is_explicit = FALSE;
   if (C_dialect == C_dialect_cplusplus) {
     /* Add symbols for ::operator new and ::operator delete to the symbol
        table.  This is delayed till now (rather than done with other symbol

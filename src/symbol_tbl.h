@@ -922,6 +922,11 @@ typedef struct a_template_decl_info {
                    (i.e., the "template <...>" to the left of the current
 		   one in the declaration).  Contains NULL for the leftmost
 		   "template <...>" clause in a declaration. */
+  a_name_linkage_kind
+		name_linkage;
+		/* The default name linkage at the point of the declaration.
+		   This is "reactivated" as the default when a template is
+		   instantiated. */
 } a_template_decl_info;
 
 

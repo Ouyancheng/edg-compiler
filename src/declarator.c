@@ -936,14 +936,15 @@ issue an error if a default argument expression is encountered.
   /* Copy the current name linkage into the routine type.  It will not
      necessarily correspond to the name linkage of the routine (if any) with
      which this type is associated. */
+  extra_info->routine_name_linkage =
+                          scope_stack[depth_scope_stack].default_name_linkage;
 #if CHECKING
-  if (def_external_linkage.kind == (a_name_linkage_kind)nlk_internal ||
-      def_external_linkage.kind == (a_name_linkage_kind)nlk_none) {
+  if (extra_info->routine_name_linkage == (a_name_linkage_kind)nlk_none ||
+      extra_info->routine_name_linkage == (a_name_linkage_kind)nlk_internal) {
     unexpected_condition_str2("function_declarator:",
                               "bad default name linkage kind");
   }  /* if */
 #endif /* CHECKING */
-  extra_info->routine_name_linkage = def_external_linkage.kind;
   if (curr_token == tok_rparen) {
     if (C_dialect == C_dialect_cplusplus) {
       /* In C++ f() is equivalent to f(void).  Leave param_type_list empty. */

@@ -1478,7 +1478,7 @@ write out the precompiled header file.
   } else if (total_errors > 0) {
     /* Nor if there have been errors. */
     db_cannot_generate_reason("there have been errors");
-  } else if (def_external_linkage.is_explicit) {
+  } else if (scope_stack[DEPTH_OF_FILE_SCOPE].name_linkage_is_explicit) {
     /* Nor if we are in the middle of a linkage specifier block. */
     db_cannot_generate_reason("in a linkage block");
   } else {

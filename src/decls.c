@@ -2204,7 +2204,7 @@ created; the caller must set it.
              (is_function && func_info->is_main_function)) {
     name_linkage = (a_name_linkage_kind)nlk_external;
   } else {
-    name_linkage = def_external_linkage.kind;
+    name_linkage = scope_stack[depth_scope_stack].default_name_linkage;
   }  /* if */
   if (suppress_ext_sym_lookup) {
     /* Ignore the presence of an external symbol with which the current
@@ -2885,7 +2885,9 @@ sk_overloaded_function that represents the set.  *error_pos is the source
 position of the identifier.
 */
 {
-  a_boolean  is_function = (sym->kind == (a_symbol_kind)sk_routine);
+  a_boolean                is_function =
+                                   (sym->kind == (a_symbol_kind)sk_routine);
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
 
   if (linkage == idl_external) {
     /* Indicate in the IL entry that the name is externally visible by
@@ -2898,11 +2900,11 @@ position of the identifier.
       sym->explicit_linkage_specifier = FALSE;
     } else if (scp->name_linkage == (a_name_linkage_kind)nlk_none) {
       /* No prior declaration, so there's no conflict. */
-      scp->name_linkage = def_external_linkage.kind;
-      sym->explicit_linkage_specifier = def_external_linkage.is_explicit;
-      ext_sym->explicit_linkage_specifier = def_external_linkage.is_explicit;
+      scp->name_linkage = ssep->default_name_linkage;
+      sym->explicit_linkage_specifier = ssep->name_linkage_is_explicit;
+      ext_sym->explicit_linkage_specifier = ssep->name_linkage_is_explicit;
       if (overload_sym != NULL &&
-          def_external_linkage.kind == (a_name_linkage_kind)nlk_external) {
+          ssep->default_name_linkage == (a_name_linkage_kind)nlk_external) {
         /* "At most one of a set of overloaded functions . . . can have
            C linkage" (ARM 7.4).  Search for conflicts. */
         a_symbol_ptr  sp;
@@ -2924,11 +2926,11 @@ position of the identifier.
          override the previous specification, but we need to be sure the
          current one is consistent with it. */
       a_boolean  err = FALSE;
-      if (scp->name_linkage == def_external_linkage.kind) {
+      if (scp->name_linkage == ssep->default_name_linkage) {
         /* The linkage kinds (C or C++) are the same; however, the ARM states,
            "A function declaration without a linkage specification may not
            precede the first linkage specification for that function." */
-        if (def_external_linkage.is_explicit) {
+        if (ssep->name_linkage_is_explicit) {
           err = (scp->name_linkage !=
                         (a_name_linkage_kind)nlk_cplusplus_external &&
                  !sym->explicit_linkage_specifier &&
@@ -2941,7 +2943,7 @@ position of the identifier.
       } else {
         /* Linkage is not the same, but it's no error as long as the current
            specification is implicit. */
-        err = def_external_linkage.is_explicit;
+        err = ssep->name_linkage_is_explicit;
       }  /* if */
       if (err) {
         /* Neither functions nor variables are supposed to have inconsistent
@@ -5778,10 +5780,11 @@ variable, the declaration(s) are processed, and then the original linkage
 specifier is restored.
 */
 {
-  an_extern_linkage   saved_linkage;
-  char                *str;
-  a_boolean           err = FALSE;
-  a_name_linkage_kind kind;
+  a_name_linkage_kind      kind, saved_name_linkage;
+  a_boolean                saved_name_linkage_is_explicit;
+  char                     *str;
+  a_boolean                err = FALSE;
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
 
   db_enter(3, "linkage_specification");
   if (decl_scope_level != depth_innermost_namespace_scope) {
@@ -5797,7 +5800,8 @@ specifier is restored.
      or "FORTRAN".  If changes are made here to support other strings, be
      sure to update the name linkage kind enumeration. */
   /* Save the current default linkage. */
-  saved_linkage = def_external_linkage;
+  saved_name_linkage = ssep->default_name_linkage;
+  saved_name_linkage_is_explicit = ssep->name_linkage_is_explicit;
   if (str == NULL) {
     /* There must have been an error in scanning the string literal (e.g.,
        no closing '"'. */
@@ -5814,11 +5818,11 @@ specifier is restored.
     if (kind != (a_name_linkage_kind)nlk_last) {
       /* A valid linkage kind was found. */ 
       if (!err) {
-        def_external_linkage.kind = kind;
-        def_external_linkage.is_explicit = TRUE;
+        ssep->default_name_linkage = kind;
+        ssep->name_linkage_is_explicit = TRUE;
       }  /* if */
     } else {
-      /* Bad linkage kind.  Leave def_external_linkage unmodified. */
+      /* Bad linkage kind.  Leave the default name linkage unmodified. */
       error(ec_bad_linkage_specifier);
     }  /* if */
   }  /* if */
@@ -5842,9 +5846,10 @@ specifier is restored.
     /* Restore the default linkage to the value it had before the declaration
        (or declaration list) was processed.  Note that this must be done
        before advancing past the closing brace -- there is a dependency in
-       precompiled header processing on the state maintained in
-       def_external_linage. */
-    def_external_linkage = saved_linkage;
+       precompiled header processing on the state maintained in the scope
+       stack entry. */
+    ssep->default_name_linkage = saved_name_linkage;
+    ssep->name_linkage_is_explicit = saved_name_linkage_is_explicit;
     /* Check for the final right brace of the linkage specification block,
        but don't advance past it -- that is handled in translation_unit. */
     remove_stop_token(tok_rbrace);
@@ -5875,7 +5880,8 @@ specifier is restored.
     }  /* if */
     /* Restore the default linkage to the value it had before the
        declaration was processed. */
-    def_external_linkage = saved_linkage;
+    ssep->default_name_linkage = saved_name_linkage;
+    ssep->name_linkage_is_explicit = saved_name_linkage_is_explicit;
   }  /* if */
 
   db_exit();
@@ -7564,7 +7570,7 @@ continue_with_declaration:
 
             func_info.is_main_function = is_main_function = TRUE;
             /* Perform some error checking that is specific to C++. */
-            if (def_external_linkage.is_explicit) {
+            if (scope_stack[depth_scope_stack].name_linkage_is_explicit) {
               pos_warning(ec_linkage_specifier_not_allowed, &declarator_pos);
             }  /* if */
             rtsp = skip_typerefs(local_type_ptr)->variant.routine.extra_info;

@@ -1143,6 +1143,25 @@ to the declaration information for the template declaration scope being pushed.
             ssep->depth_innermost_function_scope = NO_SCOPE_DEPTH;
     innermost_function_scope = NULL;
   }  /* if */
+  /* Set the default language linkage for the current scope. */
+  if (C_dialect == C_dialect_cplusplus) {
+    if (kind == (a_scope_kind)sck_file) {
+      /* File scope has extern "C++" linkage by default. */
+      ssep->default_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
+      ssep->name_linkage_is_explicit = FALSE;
+    } else if (kind == (a_scope_kind)sck_template_instantiation) {
+      /* For template instantiations use the linkage of the template
+         declaration. */
+      ssep->default_name_linkage = template_decl_info->name_linkage;
+      ssep->name_linkage_is_explicit = FALSE;
+    } else {
+      ssep->default_name_linkage = (ssep-1)->default_name_linkage;
+      ssep->name_linkage_is_explicit = (ssep-1)->name_linkage_is_explicit;
+    }  /* if */
+  } else {
+    ssep->default_name_linkage = (a_name_linkage_kind)nlk_external;
+    ssep->name_linkage_is_explicit = FALSE;
+  }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     /* Maintain the depth of the innermost stack entry that affects access
        control.  Special handing for template instantiation scopes is done

@@ -41,26 +41,6 @@ typedef enum /*an_id_linkage_kind*/ {
 			   the same program */
 } an_id_linkage_kind;
 
-typedef struct an_extern_linkage *an_extern_linkage_ptr;
-typedef struct an_extern_linkage {
-  a_name_linkage_kind
-		kind;
-			/* The kind of external linkage ("C++" or "C"). */
-  a_byte_boolean
-		is_explicit;
-			/* TRUE if the external linkage requirement is
-			   explicitly specified in the source; FALSE for the
-			   default set for the translation unit as a whole. */
-} an_extern_linkage;
-
-EXTERN an_extern_linkage
-		def_external_linkage;
-			/* The default external linkage kind (e.g., "C++" or
-			   "C" name linkage) for a variable or function at a
-			   given point.  For instance, the setting may
-			   change from the translation unit default when
-			   we are inside the declaration list for a C++
-			   linkage specification. */
 
 /* Return the symbol if the current token is a type name identifier. */
 a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,

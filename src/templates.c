@@ -684,7 +684,6 @@ might not be able to if the template itself has not yet been defined.
   a_template_symbol_supplement_ptr  tssp_of_prototype;
   a_class_symbol_supplement_ptr     cssp;
   a_template_arg_ptr                template_arg_list;
-  an_extern_linkage                 saved_linkage;
   a_boolean			    is_class_member;
 
   db_enter(3, "f_instantiate_template_class");
@@ -787,11 +786,6 @@ might not be able to if the template itself has not yet been defined.
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
       reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
-      /* Set the default name linkage to extern C++.  It will be
-         active while the function body is scanned and then restored. */
-      saved_linkage = def_external_linkage;
-      def_external_linkage.kind = (a_name_linkage_kind)nlk_cplusplus_external;
-      def_external_linkage.is_explicit = FALSE;
       /* The tokens of the template definition have been cached away.
          Activate the cache so that they can be rescanned in light of
          the new values associated with the template parameters. */
@@ -821,8 +815,6 @@ might not be able to if the template itself has not yet been defined.
          in the declaration of another entity. */
       set_autonomous_tag_decl_flag(class_type, /*is_definition=*/TRUE);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      /* Restore the default name linkage. */
-      def_external_linkage = saved_linkage;
       /* Process any pragmas that are to be bound to this instance. */
       process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
       pop_template_instantiation_scope();
@@ -1432,7 +1424,6 @@ Instantiate the body of the template function associated with tip.
   a_symbol_ptr                      rout_sym;
   a_routine_ptr                     rout_ptr;
   a_template_symbol_supplement_ptr  tssp;
-  an_extern_linkage                 saved_linkage;
   a_symbol_ptr			    template_sym;
   a_template_cache_ptr		    tcp;
   a_func_info_block		    *func_info_ptr;
@@ -1569,11 +1560,6 @@ Instantiate the body of the template function associated with tip.
     pos_error(ec_no_exception_support,
               &func_info_ptr->throw_position);
   }  /* if */
-  /* Set the default routine linkage to extern C++.  It will be active while
-     the function body is scanned and then restored. */
-  saved_linkage = def_external_linkage;
-  def_external_linkage.kind = (a_name_linkage_kind)nlk_cplusplus_external;
-  def_external_linkage.is_explicit = FALSE;
   /* Reactivate the tokens comprising the function body and scan them. */
   rescan_reusable_cache(&tcp->tokens);
   scan_function_body(rout_ptr, func_info_ptr,
@@ -1581,8 +1567,6 @@ Instantiate the body of the template function associated with tip.
                       SFB_IS_INSTANTIATION));
   /* scan_function_body does not scan past the right brace. */
   if (curr_token == tok_rbrace) (void)get_token();
-  /* Restore the default name linkage. */
-  def_external_linkage = saved_linkage;
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(rout_sym, (a_statement_ptr)NULL);
   /* Pop the template instantiation scope. */
@@ -3260,7 +3244,6 @@ type based on the template argument list and the template parameter list
        processing. */
     a_source_position    saved_pos_curr_token;
     a_source_position    saved_error_position;
-    an_extern_linkage    saved_linkage;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_source_position	 locator_position;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3280,11 +3263,6 @@ type based on the template argument list and the template parameter list
     /* Reactivate any pragmas that should be bound to the generated
        instance. */
     reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
-    /* Set the default name linkage to extern C++.  It will be active while
-       the function declaration is scanned and then restored. */
-    saved_linkage = def_external_linkage;
-    def_external_linkage.kind = (a_name_linkage_kind)nlk_cplusplus_external;
-    def_external_linkage.is_explicit = FALSE;
     /* Rescan the tokens of the function declaration. */
     saved_pos_curr_token = pos_curr_token;
     saved_error_position = error_position;
@@ -3330,8 +3308,6 @@ type based on the template argument list and the template parameter list
     }  /* if */
     error_position = saved_error_position;
     pos_curr_token = saved_pos_curr_token;
-    /* Restore the default name linkage. */
-    def_external_linkage = saved_linkage;
     /* Allocate the template function symbol.  Note that it is not entered
        into the symbol table -- it will appear on a function instantiation
        list under the function template symbol and, optionally, in the overload
@@ -6761,6 +6737,9 @@ lists must by non-empty.
            declaration that preceded the current one. */
         template_decl_info->enclosing_template_decl = prev_template_decl_info;
         prev_template_decl_info = template_decl_info;
+        /* Record the default name linkage at the point of declaration. */
+        template_decl_info->name_linkage =
+                         scope_stack[depth_scope_stack].default_name_linkage;
         push_template_declaration_scope(template_decl_info);
         check_assertion(!decl_state->is_full_specialization);
         decl_state->number_of_template_decl_scopes++;
@@ -9502,8 +9481,6 @@ caller.  For diagnostics, the kind of token expected (semicolon or right
 brace) is returned in *final_token.
 */
 {
-  an_extern_linkage   saved_linkage;
-
   db_enter(3, "template_directive_or_declaration");
   /* Caller should have initialized *final_token; it is changed to tok_rbrace
      if appropriate. */
@@ -9512,19 +9489,27 @@ brace) is returned in *final_token.
     /* The template keyword is followed by a template parameter list.
        This is a template declaration or a specialization using the new
        specialization syntax. */
-    /* Save the current default linkage. */
-    saved_linkage = def_external_linkage;
+    a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+    a_name_linkage_kind      saved_name_linkage;
+    a_boolean                err = FALSE, saved_name_linkage_is_explicit;
+
     /* Issue an error if this declaration has C linkage. */
-    if (def_external_linkage.kind !=
-                        (a_name_linkage_kind)nlk_cplusplus_external) {
+    if (ssep->default_name_linkage == (a_name_linkage_kind)nlk_external) {
       pos_error(ec_bad_linkage_for_decl, &pos_curr_token);
-      def_external_linkage.kind = (a_name_linkage_kind)nlk_cplusplus_external;
-      def_external_linkage.is_explicit = FALSE;
+      err = TRUE;
+      /* Save the current default linkage. */
+      saved_name_linkage = ssep->default_name_linkage;
+      saved_name_linkage_is_explicit = ssep->name_linkage_is_explicit;
+      ssep->default_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
+      ssep->name_linkage_is_explicit = FALSE;
     }  /* if */
     /* Scan the declaration. */
     template_or_specialization_declaration(final_token);
-    /* Restore the linkage. */
-    def_external_linkage = saved_linkage;
+    if (err) {
+      /* Restore the linkage. */
+      ssep->default_name_linkage = saved_name_linkage;
+      ssep->name_linkage_is_explicit = saved_name_linkage_is_explicit;
+    }  /* if */
   } else {
     /* There is no template parameter list, this must be an explicit
        instantiation. */

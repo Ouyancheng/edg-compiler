@@ -255,6 +255,20 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if, when pushing a class and template
 			   reactivation scope that a template instantiation
 			   scope was pushed. */
+  a_bit_field /* a_name_linkage_kind */
+		default_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
+			/* The default language linkage (e.g., extern "C++" or
+			   extern "C") for declarations in the current scope
+			   (used in C++ mode only).  In general, when a scope
+			   is pushed, the setting in copied from the enclosing
+			   scope; it may then be modified and later restored
+			   when a linkage specification is seen.  However,
+			   template instantiation scopes take the setting for
+			   the template declaration. */
+  a_bit_field	name_linkage_is_explicit:1;
+			/* TRUE if the default name linkage was explicitly
+			   specified in the source; FALSE for the default
+			   setting for the translation unit as a whole. */
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
 			/* Pointer to a scope pointer block that should be
