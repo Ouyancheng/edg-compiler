@@ -1276,7 +1276,7 @@ Syntax:
     } else if (!C_mode() &&
                is_template_dependent_context() &&
                is_template_dependent_type(operand->type)) {
-      /* A call in a prototype instantiation. */
+      /* A call of a dependent expression in a prototype instantiation. */
       routine_type = NULL;
       prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
       unknown_dependent_function = TRUE;
@@ -1365,8 +1365,11 @@ Syntax:
       /* The routine to be called cannot be determined because one or more
          of the arguments has a template-dependent type.  Use a generic
          function of the right name. */
-      make_unknown_dependent_function_operand(overloaded_function_symbol,
-                                              operand);
+      make_unknown_dependent_function_operand(
+                                            overloaded_function_symbol,
+                                            (a_boolean)operand->is_template_id,
+                                            operand->template_arg_list,
+                                            operand);
     } else if (routine_type == NULL) {
       /* None of the overloaded functions matches the argument list. */
       make_error_operand(operand);
@@ -6920,7 +6923,10 @@ to select one of the functions in the overload set.  See [over.over].
   } else if (unknown_dependent_function) {
     /* The cast occurs in a prototype instantiation and it is not possible
        to determine which function to use. */
-    make_unknown_dependent_function_operand(operand->variant.symbol, operand);
+    make_unknown_dependent_function_operand(operand->variant.symbol,
+                                            (a_boolean)operand->is_template_id,
+                                            operand->template_arg_list,
+                                            operand);
   } else {
     /* The cast doesn't select one of the overloaded functions, so it's
        an error. */
@@ -13523,8 +13529,8 @@ is used for testing nontype template arguments in determining whether
 a template argument list is dependent.  Nontype template arguments that are
 not yet associated with a template parameter, as in explicit template
 argument lists on functions (e.g., f<int,1>(x)), are represented as
-a_template_arg IL entries with constant_is_an_arg_operand set, which point
-to an arg_operand entry.
+a_template_arg IL entries with the field arg_operand pointing to an
+arg_operand entry.
 */
 {
   a_boolean  contains_template_param = FALSE;

@@ -611,8 +611,11 @@ the file scope, do not process it (but record an orphan in the latter case).
                          an_expr_node_ptr, iek_expr_node);
                 break;
               case tpck_unknown_function:
-                walk_ptr(ptr->variant.template_param.variant.conversion_type,
+                walk_ptr(ptr->variant.template_param.variant.unknown_function.
+                                                               conversion_type,
                          a_type_ptr, iek_type);
+                clear_pointer_if_remapping(ptr->variant.template_param.
+                                              variant.unknown_function.symbol);
                 break;
               case tpck_cast:
               case tpck_address:
@@ -2369,14 +2372,14 @@ after_entry_from_class:
         if (is_type_templ_arg(ptr)) {
           walk_ptr(ptr->variant.type, a_type_ptr, iek_type);
         } else if (is_nontype_templ_arg(ptr)) {
-          if (!ptr->is_array_bound_of_unknown_type &&
-              !ptr->constant_is_an_arg_operand) {
+          if (!ptr->is_array_bound_of_unknown_type) {
             walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
           }  /* if */
         } else {
           /* A template template argument. */
           walk_ptr(ptr->variant.templ, a_template_ptr, iek_template);
         }  /* if */
+        clear_pointer_if_remapping(ptr->arg_operand);
       }
       break;
     case iek_new_delete_supplement:

@@ -48,6 +48,12 @@ typedef struct a_mangling_control_block {
 
 static void mangled_encoding_for_type(a_type_ptr               type,
                                       a_mangling_control_block *mctl);
+static void mangled_function_base_name(
+                                      a_source_correspondence  *scp,
+                                      a_special_function_kind  special_kind,
+                                      an_opname_kind           opname_kind,
+                                      a_type_ptr               conversion_type,
+                                      a_mangling_control_block *mctl);
 static void mangled_function_name(
                               a_routine_ptr            routine,
                               a_boolean                suppress_param_encoding,
@@ -831,6 +837,49 @@ specification in the mangling for lengths of literals.
 }  /* mangled_encoding_for_ptr_to_member_constant */
 
 
+static void mangled_encoding_for_unknown_function(
+                                    a_constant_ptr           con,
+                                    a_boolean                has_template_args,
+                                    a_template_arg_ptr       template_arg_list,
+                                    a_mangling_control_block *mctl)
+/*
+Add to the mangled name the encoding for the constant con, which is
+a ck_template_param/tpck_unknown_function constant.  This is used
+to encode unknown functions that appear in template argument lists
+of prototype instantiations.  If has_template_args is TRUE, the function
+has an explicit template argument list, given by template_arg_list.
+*/
+{
+  a_type_ptr              conversion_type =
+                                         con->variant.template_param.variant.
+                                              unknown_function.conversion_type;
+  a_special_function_kind special_kind = (a_special_function_kind)sfk_none;
+
+  /* This routine is a simplified version of mangled_function_name. */
+  if (conversion_type != NULL) {
+    special_kind = (a_special_function_kind)sfk_conversion;
+  }  /* if */
+  mangled_function_base_name(&con->source_corresp,
+                             special_kind,
+                             (an_opname_kind)onk_none,
+                             conversion_type,
+                             mctl);
+  if (has_template_args) {
+    /* Put out the template argument list. */
+    mangled_template_arguments(template_arg_list,
+                               /*partial_spec=*/FALSE,
+                               /*old_form=*/FALSE,
+                               mctl);
+  }  /* if */
+  if (con->source_corresp.is_class_member ||
+      con->source_corresp.parent.namespace_ptr != NULL) {
+    /* Add a parent qualifier for a member. */
+    add_str_to_mangled_name("__", mctl);
+    mangled_parent_qualifier(&con->source_corresp, mctl);
+  }  /* if */
+}  /* mangled_encoding_for_unknown_function */
+
+
 static void literal_representation(a_constant_ptr           con,
                                    a_boolean                old_form,
                                    a_mangling_control_block *mctl)
@@ -841,8 +890,11 @@ template classes.  If old_form is TRUE, use the old form of length
 specification in the mangling for lengths of literals.
 */
 {
-  sizeof_t str_length;
-  char     *str;
+  sizeof_t            str_length;
+  char                *str;
+  a_boolean           has_template_args;
+  a_template_arg_ptr  template_arg_list;
+  a_constant_ptr      unk_func_con;
 
   switch (con->kind) {
     case ck_error:
@@ -894,6 +946,41 @@ specification in the mangling for lengths of literals.
                                       con->variant.template_param.variant.expr,
                                       mctl);
           break;
+        case tpck_template_ref:
+          /* An unknown function template with a list of explicit template
+             arguments.  The template is given by an underlying
+             tpck_unknown_function constant. */
+          has_template_args = TRUE;
+          template_arg_list = con->variant.template_param.variant.
+                                                         template_ref.arg_list;
+          unk_func_con = con->variant.template_param.variant.template_ref.con;
+          check_assertion(unk_func_con->kind ==
+                                     (a_constant_repr_kind)ck_template_param &&
+                          unk_func_con->variant.template_param.kind ==
+                        (a_template_param_constant_kind)tpck_unknown_function);
+          goto do_unknown_function;
+        case tpck_unknown_function:
+          /* An unknown function, which may be a member of a class or
+             namespace, and may be a conversion function (if conversion_type
+             is non-NULL). */
+          has_template_args = FALSE;
+          template_arg_list = NULL;
+          unk_func_con = con;
+do_unknown_function:
+          { a_mangling_control_block sctl;
+            /* Do the mangling once to get the length, then again for real. */
+            set_control_block_for_suppression(&sctl, mctl);
+            mangled_encoding_for_unknown_function(unk_func_con,
+                                                  has_template_args,
+                                                  template_arg_list,
+                                                  &sctl);
+            add_number_to_mangled_name((unsigned long)sctl.slength, mctl);
+          }
+          mangled_encoding_for_unknown_function(unk_func_con,
+                                                has_template_args,
+                                                template_arg_list,
+                                                mctl);
+          break;
         case tpck_member:
           /* A member of a template parameter type, e.g., T::x. */
           { a_mangling_control_block sctl;
@@ -926,8 +1013,6 @@ specification in the mangling for lengths of literals.
                                       con->variant.template_param.kind,
                                       mctl);
           break;
-        case tpck_unknown_function:
-        case tpck_template_ref:
         default:
           unexpected_condition_str(
                             "literal_representation: bad template param kind");
@@ -2247,6 +2332,62 @@ expressions on nontype template parameters in function signatures.
 }  /* mangled_expr_operator_name */
 
 
+static void mangled_function_base_name(
+                                      a_source_correspondence  *scp,
+                                      a_special_function_kind  special_kind,
+                                      an_opname_kind           opname_kind,
+                                      a_type_ptr               conversion_type,
+                                      a_mangling_control_block *mctl)
+/*
+Add to the mangled name the encoding for the base name of the function
+indicated by scp.  special_kind, opname_kind, and conversion_type give
+additional information for special functions like constructors and
+conversion functions.
+*/
+{
+  char      *name;
+  a_boolean add_leading_underscores = FALSE;
+
+  if (special_kind == (a_special_function_kind)sfk_none) {
+    /* Normal name. */
+    name = unmangled_name_of(scp);
+    check_assertion_str(name != NULL,
+                        "mangled_function_base_name: unnamed routine");
+  } else {
+    /* Use a special name for the routine. */
+    add_leading_underscores = TRUE;
+    switch (special_kind) {
+      case sfk_constructor:
+        name = "ct";
+        break;
+      case sfk_destructor:
+        name = "dt";
+        break;
+      case sfk_conversion:
+        name = "op";
+        /* Type signature is put out below. */
+        break;
+      case sfk_operator:
+        name = mangled_operator_name(opname_kind);
+        break;
+      default:
+        unexpected_condition_str(
+                               "mangled_function_base_name: bad special kind");
+    }  /* switch */
+  }  /* if */
+  if (add_leading_underscores) {
+    add_str_to_mangled_name("__", mctl);
+  }  /* if */
+  /* Copy the name. */
+  add_str_to_mangled_name(name, mctl);
+  /* For a conversion function, add the type signature. */
+  if (special_kind == (a_special_function_kind)sfk_conversion) {
+    check_assertion(conversion_type != NULL);
+    mangled_encoding_for_type(conversion_type, mctl);
+  }  /* if */
+}  /* mangled_function_base_name */
+
+
 static void mangled_function_name(
                               a_routine_ptr            routine,
                               a_boolean                suppress_param_encoding,
@@ -2257,9 +2398,8 @@ If suppress_param_encoding is TRUE, suppress the information on parameter
 types; just put out the base encoded name.
 */
 {
-  char       *name;
   a_type_ptr conversion_type, routine_type;
-  a_boolean  is_member, mangle_as_template, add_leading_underscores = FALSE;
+  a_boolean  is_member, mangle_as_template;
   a_boolean  is_specialization = FALSE, is_template_specialization = FALSE;
 
   /* Most of the processing is done in mangled_encoding_for_function_type,
@@ -2310,45 +2450,13 @@ types; just put out the base encoded name.
       is_specialization = TRUE;
     }  /* if */
   }  /* if */
-  /* Put out the name of the function. */
-  if (routine->special_kind == (a_special_function_kind)sfk_none) {
-    /* Normal name. */
-    name = unmangled_name_of(&routine->source_corresp);
-    check_assertion_str(name != NULL,
-                        "mangled_function_name: unnamed routine");
-  } else {
-    /* Use a special name for the routine. */
-    add_leading_underscores = TRUE;
-    switch (routine->special_kind) {
-      case sfk_constructor:
-        name = "ct";
-        break;
-      case sfk_destructor:
-        name = "dt";
-        break;
-      case sfk_conversion:
-        name = "op";
-        /* Type signature is put out below. */
-        break;
-      case sfk_operator:
-        name = mangled_operator_name(routine->opname_kind);
-        break;
-#if CHECKING
-      default:
-        internal_error("mangled_function_name: bad special kind");
-#endif /* CHECKING */
-    }  /* switch */
-  }  /* if */
-  if (add_leading_underscores) {
-    add_str_to_mangled_name("__", mctl);
-  }  /* if */
-  /* Copy the name. */
-  add_str_to_mangled_name(name, mctl);
-  /* For a conversion function, add the type signature. */
+  /* Put out the base name of the function. */
+  conversion_type = NULL;
   if (routine->special_kind == (a_special_function_kind)sfk_conversion) {
     conversion_type = routine_type->variant.routine.return_type;
-    mangled_encoding_for_type(conversion_type, mctl);
   }  /* if */
+  mangled_function_base_name(&routine->source_corresp, routine->special_kind,
+                             routine->opname_kind, conversion_type, mctl);
   if (mangle_as_template) {
     if (is_template_specialization) {
       /* Put out an indication of the fact the template from which this

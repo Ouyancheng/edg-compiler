@@ -659,8 +659,10 @@ Display a ck_template_param constant.
     case tpck_unknown_function:
       (void)printf("tpck_unknown_function\n");
       disp_ptr("conversion_type",
-               (char *)ptr->variant.template_param.variant.conversion_type,
+               (char *)ptr->variant.template_param.variant.unknown_function.
+                                                               conversion_type,
                iek_type);
+      /* unknown_function.symbol is front-end-only and is not printed. */
       break;
     case tpck_cast:
       (void)printf("tpck_cast\n");
@@ -1906,9 +1908,7 @@ Display the indicated name and template arg list.
         disp_ptr("  type", (char *)ptr->variant.type, iek_type);
       } else if (is_nontype_templ_arg(ptr)) {
         if (ptr->is_array_bound_of_unknown_type) {
-          printf("Error: is_array_bound_of_unknown_type");
-        } else if (ptr->constant_is_an_arg_operand) {
-          printf("Error: constant_is_an_arg_operand");
+          printf("**BAD is_array_bound_of_unknown_type**");
         } else {
           disp_ptr("  constant", (char *)ptr->variant.constant, iek_constant);
         }  /* if */

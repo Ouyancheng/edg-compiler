@@ -230,10 +230,15 @@ Dump a list of template arguments, enclosed by angle brackets.
       } else if (tap->is_array_bound_of_unknown_type) {
         fprintf(f_debug, "array-bound=%lu",
                 (unsigned long)tap->variant.integer_value);
-      } else if (tap->constant_is_an_arg_operand) {
-        fprintf(f_debug, "<arg-operand>");
       } else {
-        db_constant(tap->variant.constant);
+        if (tap->arg_operand != NULL) {
+          fprintf(f_debug, "<arg-operand> ");
+        }  /* if */
+        if (tap->variant.constant == NULL) {
+          fprintf(f_debug, "<NULL constant>");
+        } else {
+          db_constant(tap->variant.constant);
+        }  /* if */
       }  /* if */
       tap = tap->next;
       if (tap != NULL) fputs(",", f_debug);
@@ -3579,6 +3584,19 @@ nonidentical.
               eq = identical_types(cp1->variant.template_param.variant.type,
                                    cp2->variant.template_param.variant.type);
               break;
+            case tpck_template_ref:
+               eq = compare_constants(cp1->variant.template_param.variant.
+                                                              template_ref.con,
+                                      cp2->variant.template_param.variant.
+                                                              template_ref.con,
+                                      strictly_identical) &&
+                    equiv_template_arg_lists(
+                                      cp1->variant.template_param.variant.
+                                                         template_ref.arg_list,
+                                      cp2->variant.template_param.variant.
+                                                         template_ref.arg_list,
+                                      ETA_NO_OPTIONS);
+              break;
 #if CHECKING
             default:
               internal_error("compare_constants: bad templ param const kind");
@@ -3787,6 +3805,7 @@ region).
         case tpck_sizeof:
         case tpck_alignof:
         case tpck_uuidof:
+        case tpck_template_ref:
           break;
         case tpck_expression:
           has_nfs_ref= !in_file_scope(cp->variant.template_param.variant.expr);
@@ -7659,27 +7678,33 @@ return NULL.
 }  /* copy_template_param_expr */
 
 
-static a_constant_ptr copy_template_param_member_con(
+static a_constant_ptr copy_template_param_unknown_entity_con(
                                   a_constant_ptr           con,
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_nesting_depth depth,
                                   a_type_ptr               guide_type,
                                   a_boolean                is_address,
+                                  a_boolean                is_template_ref,
+                                  a_template_arg_ptr       ref_arg_list,
                                   a_source_position        *source_pos,
                                   a_boolean                *copy_error,
                                   a_constant_ptr           constant)
 /*
-Copy a ck_template_param/tpck_member constant, replacing any occurrences of
-template parameters at depth "depth" with the corresponding values from
-the template argument list template_arg_list, and return a pointer to
-the copy after substitution.  If there is no allocated instance of the
-constant, set *constant to the constant value and return NULL.
-If guide_type is non-NULL, it is a "guide" type for the constant,
-either the type of the template parameter or the destination type
-of a cast above this constant.  is_address is TRUE if the constant
-produced should be for the address of the member rather than the
-value (i.e., there is a tpck_address constant over this constant).
-source_pos provides the source position for any calls of
+Copy a ck_template_param/tpck_member or ck_template_param/tpck_unknown_function
+constant, replacing any occurrences of template parameters at depth
+"depth" with the corresponding values from the template argument list
+template_arg_list, and return a pointer to the copy after
+substitution.  If there is no allocated instance of the constant, set
+*constant to the constant value and return NULL.  If guide_type is
+non-NULL, it is a "guide" type for the constant, either the type of
+the template parameter or the destination type of a cast above this
+constant.  is_address is TRUE if the constant produced should be for
+the address of the member rather than the value (e.g., there is a
+tpck_address constant over this constant).  is_template_ref is TRUE if
+the constant produced should be for a function template followed by
+explicit arguments (i.e., there is a tpck_template_ref over this
+constant); ref_arg_list provides the explicit argument list in that
+case.  source_pos provides the source position for any calls of
 copy_type_with_substitution.  If there is an error in the copying
 (specifically, if there is an error in doing substitution on a type),
 set *copy_error to TRUE.
@@ -7689,25 +7714,36 @@ set *copy_error to TRUE.
   a_symbol_ptr   sym, orig_sym;
   a_type_ptr     parent_type;
   a_boolean      err = FALSE, type_check_needed = (guide_type != NULL);
+  a_boolean      unhandled_template_args = is_template_ref;
 
   check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
                   (con->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_member ||
                    con->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_unknown_function));
-  /* This occurs for member constants specified in forms such as A<T>::x.
-     Do substitution on the parent type and then look up the name in the
-     updated class to see what the member is. */
   con_copy = con;
-  orig_sym = (a_symbol_ptr)con->source_corresp.assoc_info;
-  check_assertion(orig_sym != NULL && con->source_corresp.is_class_member);
-  parent_type = con->source_corresp.parent.class_type;
-  sym = copy_parent_type_with_substitution(orig_sym, parent_type,
-                                           template_arg_list, depth,
-                                           source_pos,
-                                           /*is_type=*/FALSE,
-                                           CTWS_NO_OPTIONS,
-                                           copy_error);
+  if (!con->source_corresp.is_class_member) {
+    check_assertion(con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function);
+    /* For a non-member unknown function, the original symbol (probably
+       an overload set) was saved when this constant was created. */
+    sym = con->variant.template_param.variant.unknown_function.symbol;
+    check_assertion(sym != NULL);
+  } else {
+    /* Member constant (normal case). */
+    /* This occurs for member constants specified in forms such as A<T>::x.
+       Do substitution on the parent type and then look up the name in the
+       updated class to see what the member is. */
+    orig_sym = (a_symbol_ptr)con->source_corresp.assoc_info;
+    check_assertion(orig_sym != NULL && con->source_corresp.is_class_member);
+    parent_type = con->source_corresp.parent.class_type;
+    sym = copy_parent_type_with_substitution(orig_sym, parent_type,
+                                             template_arg_list, depth,
+                                             source_pos,
+                                             /*is_type=*/FALSE,
+                                             CTWS_NO_OPTIONS,
+                                             copy_error);
+  }  /* if */
   if (sym == NULL) {
     /* The substituted parent class has no member of the specified name. */
     err = TRUE;
@@ -7737,7 +7773,10 @@ set *copy_error to TRUE.
              guide_type != NULL && is_address) {
     /* A member function is acceptable as a pointer or pointer-to-member.
        Choose a function from the overload set based on the guide type. */
-    choose_function_and_make_address_constant(sym, guide_type, constant, &err);
+    choose_function_and_make_address_constant(sym,
+                                              is_template_ref, ref_arg_list,
+                                              guide_type, constant, &err);
+    unhandled_template_args = FALSE;
     con_copy = NULL;
     type_check_needed = FALSE;
   } else {
@@ -7763,7 +7802,8 @@ set *copy_error to TRUE.
         err = TRUE;
       }  /* if */
     }  /* if */
-  }  /* if */    
+  }  /* if */
+  if (unhandled_template_args) err = TRUE;
   if (err) {
     /* The constant was specified as something like A<T>::B, but the
        substituted "A<T>" does not contain a B, or the B found is not
@@ -7772,7 +7812,7 @@ set *copy_error to TRUE.
     con_copy = alloc_error_constant();
   }  /* if */
   return con_copy;
-}  /* copy_template_param_member_con */
+}  /* copy_template_param_unknown_entity_con */
 
 
 static a_constant_ptr copy_template_param_con(
@@ -7814,8 +7854,7 @@ on a type), set *copy_error to TRUE.
                                             con->variant.template_param.
                                                  variant.coordinates.position);
           check_assertion(is_nontype_templ_arg(tap) &&
-                          !tap->is_array_bound_of_unknown_type &&
-                          !tap->constant_is_an_arg_operand);
+                          !tap->is_array_bound_of_unknown_type);
           if (tap->variant.constant != NULL) {
             /* Only use the template argument value if one was specified. */
             con_copy = tap->variant.constant;
@@ -7823,12 +7862,24 @@ on a type), set *copy_error to TRUE.
         }  /* if */
         break;
       case tpck_member:
-      case tpck_unknown_function:
-        /* A member constant or an unknown function, e.g., for a case
-           like A<T>::x. */
-        con_copy = copy_template_param_member_con(con, template_arg_list,
+        /* A member constant, e.g., for a case like A<T>::x. */
+        con_copy = copy_template_param_unknown_entity_con(
+                                                  con, template_arg_list,
                                                   depth, guide_type,
                                                   /*is_address=*/FALSE,
+                                                  /*is_template_ref=*/FALSE,
+                                                  (a_template_arg_ptr)NULL,
+                                                  source_pos, copy_error,
+                                                  constant);
+        break;
+      case tpck_unknown_function:
+        /* An unknown function. */
+        con_copy = copy_template_param_unknown_entity_con(
+                                                  con, template_arg_list,
+                                                  depth, guide_type,
+                                                  /*is_address=*/TRUE,
+                                                  /*is_template_ref=*/FALSE,
+                                                  (a_template_arg_ptr)NULL,
                                                   source_pos, copy_error,
                                                   constant);
         break;
@@ -7881,11 +7932,13 @@ on a type), set *copy_error to TRUE.
            Process the underlying tpck_member constant as an address, and
            use the result of that in place of both the tpck_address and
            the tpck_member. */
-        con_copy = copy_template_param_member_con(
+        con_copy = copy_template_param_unknown_entity_con(
                                  con->variant.template_param.variant.constant,
                                  template_arg_list,
                                  depth, guide_type,
                                  /*is_address=*/TRUE,
+                                 /*is_template_ref=*/FALSE,
+                                 (a_template_arg_ptr)NULL,
                                  source_pos, copy_error,
                                  constant);
         break;
@@ -7936,6 +7989,35 @@ on a type), set *copy_error to TRUE.
             con_copy = NULL;
           }  /* if */
         }  /* if */
+        break;
+      case tpck_template_ref:
+        /* The template param constant represents a function template with
+           a list of explicit template arguments.  Process the underlying
+           tpck_unknown_function constant with the explicit arguments. */
+        { a_constant_ptr templ_con =
+                          con->variant.template_param.variant.template_ref.con;
+          a_template_arg_ptr arg_list = con->variant.template_param.variant.
+                                                         template_ref.arg_list;
+          /* Do substitution on the template argument list. */
+          arg_list = copy_template_arg_list_with_substitution(
+                                                    arg_list,
+                                                    (a_template_param_ptr)NULL,
+                                                    template_arg_list,
+                                                    depth,
+                                                    source_pos,
+                                                    CTWS_NO_OPTIONS,
+                                                    copy_error);
+          /* Apply the template argument list to the template. */
+          con_copy = copy_template_param_unknown_entity_con(
+                                 templ_con,
+                                 template_arg_list,
+                                 depth, guide_type,
+                                 /*is_address=*/TRUE,
+                                 /*is_template_ref=*/TRUE,
+                                 arg_list,
+                                 source_pos, copy_error,
+                                 constant);
+        }
         break;
       case tpck_expression:
         /* The template param represents an expression that involves

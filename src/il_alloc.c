@@ -432,7 +432,9 @@ ck_template_param constant.
     case tpck_member:
       break;
     case tpck_unknown_function:
-      cp->variant.template_param.variant.conversion_type = NULL;
+      cp->variant.template_param.variant.unknown_function.conversion_type =
+                                                                          NULL;
+      cp->variant.template_param.variant.unknown_function.symbol = NULL;
       break;
     case tpck_cast:
     case tpck_address:
@@ -731,25 +733,28 @@ allocated.
   tap->next = NULL;
   tap->kind = kind;
   tap->is_array_bound_of_unknown_type = FALSE;
-  tap->constant_is_an_arg_operand = FALSE;
   tap->explicitly_specified = FALSE;
 #if CHECKING
   tap->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
   switch (kind) {
-    case tak_type: tap->variant.type = NULL; break;
-    case tak_template: tap->variant.templ = NULL; break;
+    case tak_type:
+      tap->variant.type = NULL;
+      break;
+    case tak_template:
+      tap->variant.templ = NULL;
+      break;
     case tak_nontype:
       /* It is not really necessary to initialize all of these fields, but
          this can be important in certain debugging modes. */
       tap->variant.constant = NULL;
       tap->variant.integer_value = 0;
-      tap->variant.arg_operand = NULL;
       break;
     default:
       unexpected_condition_str2("alloc_template_arg:", "bad kind");
       break;
   }  /* switch */
+  tap->arg_operand = NULL;
   return tap;
 }  /* alloc_template_arg */
 

@@ -6327,7 +6327,7 @@ its parameters?).
                   status = traverse_type_tree(tp, func, flags);
                 }  /* if */      
               } else if (!tap->is_array_bound_of_unknown_type &&
-                         !tap->constant_is_an_arg_operand) {
+                         tap->variant.constant != NULL) {
                 /* Nontype template argument.  Check the type of the
                    constant. */
                 if (!(flags & TTT_DEDUCED_CONTEXTS_ONLY)) {

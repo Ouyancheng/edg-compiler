@@ -1882,7 +1882,7 @@ symbol is a function, an rvalue otherwise.
 
 
 void make_template_param_expr_constant_operand(an_expr_node_ptr node,
-                                               an_operand        *result)
+                                               an_operand       *result)
 /*
 Build an operand for a ck_template_param constant for the expression
 "node".  This makes a constant of subkind tpck_expression.  Return the
@@ -2381,19 +2381,81 @@ conversions.
 }  /* cast_node */
 
 
-void make_unknown_dependent_function_operand(a_symbol_ptr sym,
-                                             an_operand   *operand)
+static void prep_generic_template_argument_list(
+                                          a_template_arg_ptr template_arg_list)
+/*
+The template argument list pointed to by template_arg_list is going to be
+saved as the template argument list for an unknown function template in
+a prototype instantiation.  Go through it and add constants for any
+arg_operand entries so it can go into the IL.
+*/
+{
+  a_template_arg_ptr tap;
+
+  for (tap = template_arg_list; tap != NULL; tap = tap->next) {
+    if (tap->arg_operand != NULL) {
+      /* A template argument in arg_operand form. */
+      an_operand             *operand = &tap->arg_operand->operand;
+      a_constant             constant;
+      a_memory_region_number region_to_switch_back_to;
+
+      prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
+      if ((is_constant_operand(operand) && is_an_rvalue(operand)) ||
+          is_error_operand(operand)) {
+        /* The operand is a constant rvalue or an error, which we can use
+           directly. */
+      } else {
+        /* The argument is something more complicated, e.g., an expression.
+           Make an expression and put it under a tpck_expression constant. */
+        an_expr_node_ptr expr = make_node_from_operand(operand);
+        make_template_param_expr_constant_operand(expr, operand);
+      }  /* if */
+      /* Fetch the constant and use it as the template argument. */
+      extract_constant_from_operand(operand, &constant);
+      switch_to_file_scope_region(&region_to_switch_back_to);
+      tap->variant.constant = alloc_shareable_constant(&constant);
+      switch_back_to_original_region(region_to_switch_back_to);
+    }  /* if */
+  }  /* if */
+}  /* prep_generic_template_argument_list */
+
+
+void make_unknown_dependent_function_operand(
+                                          a_symbol_ptr       sym,
+                                          a_boolean          is_template_id,
+                                          a_template_arg_ptr template_arg_list,
+                                          an_operand         *operand)
 /*
 Make an operand for the address of an unknown function from the set
 of overloaded functions indicated by sym.  This is used in prototype
-instantiations when the function to be selected is not known.
+instantiations when the function to be selected is not known.  If the
+function name is followed by a list of explicit template arguments,
+is_template_id is TRUE and template_arg_list gives the argument list.
 */
 {
   a_symbol_ptr unk_sym = find_unknown_function_symbol(sym);
 
-  /* The symbol is a constant whose value is the "address" of the
-     unknown function. */
-  make_sym_constant_operand(unk_sym, operand);
+  if (!is_template_id) {
+    /* The symbol is a constant whose value is the "address" of the
+       unknown function. */
+    make_sym_constant_operand(unk_sym, operand);
+  } else {
+    /* The function name has an explicit template argument list.  Record
+       it in a tpck_template_ref constant that points to the constant for
+       the template (from sym). */
+    a_constant con;
+    clear_constant(&con, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(&con,
+                            (a_template_param_constant_kind)tpck_template_ref);
+    check_assertion(unk_sym->kind == (a_symbol_kind)sk_constant &&
+                    in_file_scope(unk_sym->variant.constant));
+    con.variant.template_param.variant.template_ref.con =
+                                                     unk_sym->variant.constant;
+    con.variant.template_param.variant.template_ref.arg_list=template_arg_list;
+    con.type = type_of_unknown_templ_param_nontype;
+    prep_generic_template_argument_list(template_arg_list);
+    make_constant_operand(&con, operand);
+  }  /* if */
 }  /* make_unknown_dependent_function_operand */
 
 
@@ -2538,6 +2600,9 @@ user-defined conversions.
           /* The cast is in a prototype instantiation, and we don't know
              which function is selected. */
           make_unknown_dependent_function_operand(overloaded_function_symbol,
+                                                  (a_boolean)operand->
+                                                                is_template_id,
+                                                  operand->template_arg_list,
                                                   operand);
         } else {
 #if CHECKING
@@ -4654,7 +4719,10 @@ what will be done with the operand.
   if (is_indefinite_function_operand(operand)) {
     /* Replace an indefinite function by the address of an unknown
        function in the set.  The result is always an rvalue. */
-    make_unknown_dependent_function_operand(operand->variant.symbol, operand);
+    make_unknown_dependent_function_operand(operand->variant.symbol,
+                                            (a_boolean)operand->is_template_id,
+                                            operand->template_arg_list,
+                                            operand);
   } else if (is_sym_for_member_operand(operand)) {
     /* Replace a symbol-for-member operand by a pointer-to-member. */
     conv_sym_for_member_operand_to_ptr_to_member(operand);
@@ -6277,8 +6345,10 @@ to (or a function designator).
         (is_constant_operand(operand) &&
          operand->variant.constant.kind ==
                                      (a_constant_repr_kind)ck_template_param &&
-         operand->variant.constant.variant.template_param.kind ==
-                      (a_template_param_constant_kind)tpck_unknown_function)) {
+         (operand->variant.constant.variant.template_param.kind ==
+                      (a_template_param_constant_kind)tpck_unknown_function ||
+          operand->variant.constant.variant.template_param.kind ==
+                      (a_template_param_constant_kind)tpck_template_ref))) {
       operand->state = (an_operand_state)os_function_designator;
     } else {
       operand->state = (an_operand_state)os_lvalue;

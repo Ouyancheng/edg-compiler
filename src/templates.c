@@ -1154,11 +1154,9 @@ for each parameter.
          filled in. */
       arg_okay = tap->variant.type != NULL;
     } else if (is_nontype_templ_arg(tap)) {
-      /* A nontype argument -- the argument is okay if the constant is not
-         in the form of an operand, has been filled in, or if it is an array
-         bound of unknown type. */
-      arg_okay = !tap->constant_is_an_arg_operand &&
-                 (tap->is_array_bound_of_unknown_type ||
+      /* A nontype argument -- the argument is okay if the constant has
+         been filled in or if it is an array bound of unknown type. */
+      arg_okay = (tap->is_array_bound_of_unknown_type ||
                   tap->variant.constant != NULL);
     } else {
       /* A template template argument -- the argument is okay if the template
@@ -1248,7 +1246,7 @@ values, and the handling of array bounds of unknown type.
         /* The template argument has a deduced value with a type.  The
            type must match the declared type.  This test is only needed if
            the type involves a template parameter. */
-        check_assertion(!tap->constant_is_an_arg_operand);
+        check_assertion(tap->variant.constant != NULL);
         if (tpp->variant.constant.type_involves_template_param) {
           check_assertion(rout_templ_sym != NULL);
           match = identical_types(constant_type, tap->variant.constant->type);
@@ -3449,8 +3447,7 @@ the same constant.
       check_assertion(!arg1->is_array_bound_of_unknown_type &&
                       !arg2->is_array_bound_of_unknown_type);
       /* Argument in the form of an operand cannot be compared. */
-      check_assertion(!arg1->constant_is_an_arg_operand &&
-                      !arg2->constant_is_an_arg_operand);
+      check_assertion(arg1->arg_operand == NULL && arg2->arg_operand == NULL);
       if (ignore_unknown_arg_values &&
           (con1 == NULL || con2 == NULL)) {
         /* An argument with no specified value.  Treat this as a match. */
@@ -3540,10 +3537,10 @@ a template parameter.
   if (is_type_templ_arg(tap)) {
     template_param_found = is_or_contains_template_param(tap->variant.type);
   } else if (is_nontype_templ_arg(tap)) {
-    if (tap->constant_is_an_arg_operand) {
+    if (tap->arg_operand != NULL) {
       /* The constant is still in arg_operand form. */
       template_param_found = arg_operand_contains_template_param(
-                                            tap->variant.arg_operand);
+                                                             tap->arg_operand);
     } else if (tap->is_array_bound_of_unknown_type) {
       /* Such arguments should be sufficiently short-lived that they should
          never get here. */
@@ -3551,6 +3548,7 @@ a template parameter.
       unexpected_condition();
     } else {
       /* A normal nontype parameter represented as a constant. */
+      check_assertion(tap->variant.constant != NULL);
       template_param_found = (tap->variant.constant->kind ==
                                    (a_constant_repr_kind)ck_template_param);
     }  /* if */
@@ -3986,7 +3984,7 @@ another template parameter.
           a_type_ptr		constant_type;
           a_constant_ptr	constant;
           a_boolean		copy_error = FALSE;
-          check_assertion(specified_tap->constant_is_an_arg_operand);
+          check_assertion(specified_tap->arg_operand != NULL);
           constant = fs_constant((a_constant_repr_kind)ck_error);
           constant_type = tpp->param_symbol->variant.constant->type;
           constant_type = copy_type_with_substitution(
@@ -4001,13 +3999,13 @@ another template parameter.
           /* Verify that the constant value can be converted to the type of the
              corresponding template parameter. */
           if (!nontype_template_arg_is_compatible_with_param_type(
-                         specified_tap->variant.arg_operand, constant_type)) {
+                                  specified_tap->arg_operand, constant_type)) {
             arg_kind_mismatch = TRUE;
             break;
           }  /* if */
           conv_nontype_template_arg_to_param_type(
-                  specified_tap->variant.arg_operand, constant_type, constant);
-          tap->constant_is_an_arg_operand = FALSE;
+                          specified_tap->arg_operand, constant_type, constant);
+          tap->arg_operand = NULL;
           tap->variant.constant = constant;
         }  /* if */
       }  /* if */
@@ -4281,7 +4279,7 @@ list of a template function.  Returns TRUE if a match is found.
           }  /* if */
         }  /* if */
       } else {
-        check_assertion(!tap->constant_is_an_arg_operand);
+        check_assertion(tap->arg_operand == NULL);
         if (tap->variant.constant == NULL) {
           /* No constant has been bound to this template argument yet, so
              just use "constant".  This counts as a match. */
@@ -4439,7 +4437,7 @@ of types after all of the function arguments have been processed.
     } else {
       /* A constant value has already been deduced for this argument. */
       a_constant_ptr	cp = tap->variant.constant;
-      check_assertion(!tap->constant_is_an_arg_operand);
+      check_assertion(cp != NULL);
       if (is_integral_type(cp->type)) {
         /* An array bound can only match an integral value.  We have
            a match if the number of elements matches the previously
@@ -5138,6 +5136,102 @@ Otherwise, return the original template.
 }  /* copy_template_with_substitution */
 
 
+a_template_arg_ptr copy_template_arg_list_with_substitution(
+			a_template_arg_ptr		template_arg_list,
+			a_template_param_ptr		template_param_list,
+			a_template_arg_ptr		subst_arg_list,
+			a_template_nesting_depth	depth,
+			a_source_position		*source_pos,
+			a_ctws_options_set		options,
+			a_boolean			*copy_error)
+/*
+Copy the template argument list template_arg_list, and return a pointer
+to the copy.  In the process of copying, replace any template parameters at
+depth "depth" with the corresponding values from the template argument list
+subst_arg_list.  template_param_list gives the corresponding template
+parameter list, or is NULL if the parameter list is not known (e.g., for
+a nonreal instantiation).  source_pos indicates the source position of
+the argument list.  options is a set of bit flags used to control how
+names are looked up, if needed.  If there is an error in the copying,
+set *copy_error to TRUE.
+*/
+{
+  a_template_arg_ptr	tap;
+  a_template_arg_ptr	new_list;
+  a_template_arg_ptr	new_tap;
+  a_template_arg_ptr	prev_new_tap;
+  a_template_param_ptr	tpp;
+  a_boolean		have_params = (template_param_list != NULL);
+
+  prev_new_tap = new_list = NULL;
+  for (tap = template_arg_list, tpp = template_param_list;
+       tap != NULL;
+       tap = tap->next, tpp = have_params ? tpp->next : NULL) {
+    new_tap = alloc_template_arg(tap->kind);
+    /* If there are too few parameters, the copy should fail. */
+    if (have_params && tpp == NULL) {
+      *copy_error = TRUE;
+      break;
+    }  /* if */
+    /* Make sure that the template argument kind matches the parameter
+       kind. */
+    if (have_params) {
+      a_symbol_kind	param_sym_kind;
+      param_sym_kind = tpp->param_symbol->kind;
+      if (templ_arg_kind_for_symbol_kind(param_sym_kind) != tap->kind) {
+        /* The argument kinds do not match. */
+        *copy_error = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+    if (is_type_templ_arg(tap)) {
+      new_tap->variant.type =
+               copy_type_with_substitution(tap->variant.type,
+                                           subst_arg_list, depth, source_pos,
+                                           options, copy_error);
+    } else if (is_nontype_templ_arg(tap)) {
+      /* Perform the substitution on the type of the constant. */
+      a_type_ptr	const_type;
+      a_type_ptr	new_const_type;
+      /* Pass in the expected type of the constant, i.e., the type of
+         the template parameter after substitution.  A NULL pointer is
+         passed if we do not know the parameter type. */
+      new_const_type = NULL;
+      if (have_params) {
+        const_type = tpp->param_symbol->variant.constant->type;
+        new_const_type = copy_type_with_substitution(const_type,
+                                                     subst_arg_list, depth,
+                                                     source_pos, options,
+                                                     copy_error);
+      }  /* if */
+      new_tap->variant.constant =
+         copy_template_param_con_with_substitution(tap->variant.constant,
+                                                   subst_arg_list,
+                                                   depth,
+						   new_const_type,
+                                                   source_pos,
+                                                   copy_error);
+    } else {
+      /* A template template argument. */
+      new_tap->variant.templ = copy_template_with_substitution(
+                                    tap->variant.templ, subst_arg_list, depth,
+                                    source_pos, options, copy_error);
+    }  /* if */
+    if (new_list == NULL) {
+      new_list = new_tap;
+    } else {
+      prev_new_tap->next = new_tap;
+    }  /* if */
+    prev_new_tap = new_tap;
+  }  /* for */
+  /* If there are too many parameters, the copy should fail. */
+  if (have_params && tpp != NULL) {
+    *copy_error = TRUE;
+  }  /* if */
+  return new_list;
+}  /* copy_template_arg_list_with_substitution */
+
+
 static a_symbol_ptr copy_template_class_reference_with_substitution(
 				a_symbol_ptr			template_sym,
 				a_type_ptr			orig_type,
@@ -5149,13 +5243,11 @@ static a_symbol_ptr copy_template_class_reference_with_substitution(
 /*
 Copy, with substitution, the template argument list from orig_type and
 find the corresponding instance of the template indicated by
-template_sym.  options is a set of big flags used to control how names
+template_sym.  options is a set of bit flags used to control how names
 are looked up, if needed.  The symbol of the new instance is returned.
 */
 {
   a_template_arg_ptr			new_list;
-  a_template_arg_ptr			new_tap;
-  a_template_arg_ptr			prev_new_tap;
   a_symbol_ptr				new_sym;
   a_template_arg_ptr			tap;
   a_template_param_ptr			tpp = NULL;
@@ -5181,67 +5273,10 @@ are looked up, if needed.  The symbol of the new instance is returned.
        list. */
     tpp = tssp->cache.decl_info->parameters;
   }  /* if */
-  prev_new_tap = new_list = NULL;
-  for (; tap != NULL;
-       tap = tap->next, tpp = is_nonreal_template ? NULL : tpp->next) {
-    new_tap = alloc_template_arg(tap->kind);
-    /* If there are too few parameters, the copy should fail. */
-    if (!is_nonreal_template && tpp == NULL) {
-      *copy_error = TRUE;
-      break;
-    }  /* if */
-    /* Make sure that the template argument kind matches the parameter
-       kind. */
-    if (!is_nonreal_template) {
-      a_symbol_kind	param_sym_kind;
-      param_sym_kind = tpp->param_symbol->kind;
-      if (templ_arg_kind_for_symbol_kind(param_sym_kind) != tap->kind) {
-        /* The argument kinds do not match. */
-        *copy_error = TRUE;
-        break;
-      }  /* if */
-    }  /* if */
-    if (is_type_templ_arg(tap)) {
-      new_tap->variant.type =
-               copy_type_with_substitution(tap->variant.type,
-                                           templ_arg_list, depth, source_pos,
-                                           options, copy_error);
-    } else if (is_nontype_templ_arg(tap)) {
-      /* Perform the substitution on the type of the constant. */
-      a_type_ptr	const_type;
-      a_type_ptr	new_const_type;
-      /* Pass in the expected type of the constant.  A NULL pointer is
-         passed for a nonreal template. */
-      const_type = is_nonreal_template
-                           ? NULL : tpp->param_symbol->variant.constant->type;
-      new_const_type = copy_type_with_substitution(const_type,
-                                                   templ_arg_list, depth,
-                                                   source_pos, options,
-                                                   copy_error);
-      new_tap->variant.constant =
-         copy_template_param_con_with_substitution(tap->variant.constant,
-                                                   templ_arg_list,
-                                                   depth,
-						   new_const_type,
-                                                   source_pos,
-                                                   copy_error);
-    } else {
-      /* A template template argument. */
-      new_tap->variant.templ = copy_template_with_substitution(
-                                    tap->variant.templ, templ_arg_list, depth,
-                                    source_pos, options, copy_error);
-    }  /* if */
-    if (new_list == NULL) {
-      new_list = new_tap;
-    } else {
-      prev_new_tap->next = new_tap;
-    }  /* if */
-    prev_new_tap = new_tap;
-  }  /* for */
-  /* If there are too many parameters, the copy should fail. */
-  if (!is_nonreal_template && tpp != NULL) {
-    *copy_error = TRUE;
-  }  /* if */
+  /* Make a copy of the template argument list, doing substitution. */
+  new_list = copy_template_arg_list_with_substitution(
+                                           tap, tpp, templ_arg_list, depth, 
+                                           source_pos, options, copy_error);
   if (*copy_error) {
     /* If an error occurred earlier, and in particular while creating one
        of the template arguments, don't try to find a matching template
@@ -5363,7 +5398,7 @@ and the corresponding member is looked up in the updated parent type.
 The symbol associated with the corresponding member is returned.  A
 NULL symbol is returned if the updated parent type does not contain
 the specified member.  If it involves no template-parameter type,
-simply return "type".  options is a set of big flags used to control
+simply return "type".  options is a set of bit flags used to control
 how names are looked up, if needed.  is_type is TRUE if the child
 entity is known to be a type.
 */
@@ -5449,7 +5484,7 @@ If "type", a pointer to a type entry, is a template-parameter type, return
 the corresponding real type, based on the template argument list.  If "type"
 contains a template-parameter type, return a copy with the substitution made.
 If it involves no template-parameter type, simply return "type".
-options is a set of big flags used to control how names are looked up,
+options is a set of bit flags used to control how names are looked up,
 if needed.  *copy_error is set to TRUE if the substitution would have
 created an invalid type.  A NULL type is also returned in such cases.
 An invalid type can result from a type such as A<T>::B, if, for a
@@ -10996,8 +11031,8 @@ set, and its source sequence entry, if any, has been put out.)
       }  /* switch */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
       if (!err && prototype_instantiations_in_il) {
-        /* Make the a_template IL entry point to the prototype instantiation.
-           */
+        /* Make the a_template IL entry point to the prototype
+           instantiation. */
         a_symbol_ptr proto_sym = prototype_template_of(sym);
         a_template_symbol_supplement_ptr tssp =
                                     template_supplement_for_symbol(proto_sym);

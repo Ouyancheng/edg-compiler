@@ -8225,8 +8225,8 @@ done using the disambiguation routines.
         /* Scan the expression, but retain it in the form of an operand so
            that the necessary conversions can be done later when the parameter
            type is known. */
-        arg_ptr->constant_is_an_arg_operand = TRUE;
-        arg_ptr->variant.arg_operand = scan_nontype_template_argument();
+        arg_ptr->variant.constant = NULL;
+        arg_ptr->arg_operand = scan_nontype_template_argument();
       }  /* if */
     } else {
       /* A template template argument. */

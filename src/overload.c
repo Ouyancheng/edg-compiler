@@ -341,15 +341,19 @@ is_ambiguous:
 }  /* find_addr_of_overloaded_function_match */
 
 
-void choose_function_and_make_address_constant(a_symbol_ptr   sym,
-                                               a_type_ptr     guide_type,
-                                               a_constant_ptr constant,
-                                               a_boolean      *err)
+void choose_function_and_make_address_constant(
+                                             a_symbol_ptr   sym,
+                                             a_boolean      is_template_id,
+                                             a_template_arg *template_arg_list,
+                                             a_type_ptr     guide_type,
+                                             a_constant_ptr constant,
+                                             a_boolean      *err)
 /*
 As part of template argument substitution, select the instance of sym
 that will produce a pointer or pointer to member that matches guide_type.
 If that can be done, return a constant for the address of that
-function in *constant.  Otherwise, return *err TRUE.
+function in *constant.  Otherwise, return *err TRUE.  If is_template_id
+is TRUE, template_arg_list is a set of explicit template arguments for sym.
 */
 {
   a_symbol_ptr       func_sym;
@@ -359,8 +363,8 @@ function in *constant.  Otherwise, return *err TRUE.
 
   func_sym = find_addr_of_overloaded_function_match(
                                                    sym,
-                                                   /*is_template_id=*/FALSE,
-                                                   (a_template_arg_ptr)NULL,
+                                                   is_template_id,
+                                                   template_arg_list,
                                                    guide_type,
                                                    /*is_cast=*/FALSE,
                                                    &match_level,
@@ -2628,7 +2632,7 @@ TRUE if the call is a template-dependent call.
     } else {
       routine = function_symbol->variant.routine.ptr;
     }  /* if */
-    routine_type = skip_typerefs(routine->type);      
+    routine_type = skip_typerefs(routine->type);
     if (routine_type_is_nonstatic_member_function(routine_type)) {
       some_function_needs_selector = TRUE;
     }  /* if */
@@ -8919,8 +8923,7 @@ rewritten) for use in error messages.
       /* The source is an indefinite function, i.e., the address of an
          overloaded function.  It can be converted to an appropriate
          pointer or pointer-to-member type (WP [over.over], ARM 13.3). */
-      a_std_conv_descr std_conversion;
-      a_boolean        unknown_dependent_function;
+      a_boolean unknown_dependent_function;
 
       if (find_addr_of_overloaded_function_match(
                                            source_operand->variant.symbol,
@@ -8930,11 +8933,13 @@ rewritten) for use in error messages.
                                            dest_type,
                                            /*is_cast=*/FALSE,
                                            &match_level,
-                                           &std_conversion,
+                                           &conversion->std,
                                            &unknown_dependent_function,
-                                           &ambiguous) != NULL ||
-          unknown_dependent_function) {
+                                           &ambiguous) != NULL) {
         okay = TRUE;
+      } else if (unknown_dependent_function) {
+        okay = TRUE;
+        conversion->unknown_dependent_conversion = TRUE;
       } else if (ambiguous) {
         /* More than one function matches. */
         pos_sy_error(ec_ambiguous_ptr_to_overloaded_function, err_pos,

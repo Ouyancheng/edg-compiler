@@ -1894,11 +1894,22 @@ typedef struct a_constant {
         /* When template param constant kind == tpck_member, no variant
            fields. */
         /* When template param constant kind == tpck_unknown_function: */
-        a_type_ptr
+        struct {
+          a_type_ptr
 		conversion_type;
 			/* If the unknown function represents a conversion
 			   function, this is the result type; NULL
 			   otherwise. */
+          struct a_symbol
+		*symbol;
+			/* The symbol for the overload set of which the
+			   unknown function must be a member.  Can be a
+			   simple symbol for the sake of generality.
+			   Can be NULL for unknown member functions, as
+			   the name can be looked up in the parent class.
+			   Used in the front end only; cannot be used
+			   in back ends. */
+        } unknown_function;
         /* When template param constant kind == tpck_cast or tpck_address: */
         a_constant_ptr
 		constant;
@@ -2842,21 +2853,6 @@ typedef struct a_template_arg {
   a_bit_field	is_array_bound_of_unknown_type:1;
 			/* TRUE if the template argument is a deduced array
 			   bound whose type is not yet known. */
-  a_bit_field	constant_is_an_arg_operand:1;
-			/* When an explicit function template argument list
-			   is scanned, the corresponding parameter type is
-			   not yet known.  Consequently, the argument cannot
-			   be converted to its eventual type, nor can a member
-			   of an overload set be selected.  Instead, the
-			   argument must be retained in a form that permits
-			   such operations to be performed later when the
-			   parameter type (or potential parameter type) is
-			   known.  The argument is represented by the
-			   type "an_arg_operand", which is used within the
-			   expression processing routines.  This flag should
-			   never be set for template arguments that are
-			   part of the IL.  This field will never be
-			   TRUE when is_array_bound_of_unknown_type is TRUE. */
   a_bit_field	explicitly_specified:1;
 			/* TRUE, for a function template argument list, if the
 			   argument was explicitly specified.  When a reference
@@ -2873,7 +2869,14 @@ typedef struct a_template_arg {
     /* When kind == tak_nontype and is_array_bound_of_unknown_type == FALSE. */
     a_constant_ptr
                 constant;
-                        /* The constant supplied as the argument. */
+			/* The constant supplied as the argument.  Note that
+			   when arg_operand (below) is non-NULL, this field
+			   may be NULL.  If both are set, this field points
+			   to the version that stays in the IL, which has less
+			   information than the arg_operand form.  Also
+			   NULL for an unspecified template argument at
+			   the end of a list that begins with explicit template
+			   arguments. */
     /* When kind == tak_nontype and is_array_bound_of_unknown_type == TRUE. */
     a_targ_size_t
 		integer_value;
@@ -2883,19 +2886,28 @@ typedef struct a_template_arg {
                            parameter being deduced is known and this value
                            is converted into a normal constant parameter.
                            Contains zero if no value has been deduced yet. */
-    /* When kind == tak_nontype and constant_is_an_arg_operand is TRUE. */
-    an_arg_operand_ptr
-		arg_operand;
-			/* The internal form of a template argument that has
-			   been scanned, but not yet converted to the
-			   type of the corresponding template parameter.
-			   See the comment on constant_is_an_arg_operand for
-			   more information. */
     /* When kind == tak_template */
     a_template_ptr
 		templ;
 			/* The template supplied as the argument. */
   } variant;
+  an_arg_operand_ptr
+		arg_operand;
+			/* When an explicit function template argument list
+			   is scanned, the corresponding parameter type is
+			   not yet known.  Consequently, the argument cannot
+			   be converted to its eventual type, nor can a member
+			   of an overload set be selected.  Instead, the
+			   argument must be retained in a form that permits
+			   such operations to be performed later when the
+			   parameter type (or potential parameter type) is
+			   known.  The argument is represented by the
+			   type "an_arg_operand", which is used within the
+			   expression processing routines.  NULL for cases
+			   other than the above, and meaningful only within
+			   the front end proper.  Used only in the same
+			   cases as the "constant" field above, i.e., for
+			   nontype parameters. */
 } a_template_arg;
 
 
@@ -7574,8 +7586,9 @@ parameter) declaration in the source.  It can contain the text of such a
 declaration (the front end maintains comparable information as a token cache).
 If prototype instantiations are not recorded in the IL, then these entries are
 pointed to by source sequence entries for templates.  Otherwise, the source
-sequence entries point to the prototype instantiations.
-(C++ only.)
+sequence entries point to the prototype instantiations.  Note that there
+can be multiple a_template entries for a single template; each declaration
+or definition produces one entry.  (C++ only.)
 */
 typedef struct a_template {
   /* The source_corresp field must be first. */
@@ -7616,24 +7629,24 @@ typedef struct a_template {
 			   template template parameters, and is used to
 			   determine if two such templates are equivalent. */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
+  /* Information about the prototype instantiation of this template: */
   union {
-	/* When kind == templk_function or templk_member_function: */
-	a_routine_ptr
+    /* When kind == templk_function or templk_member_function: */
+    a_routine_ptr
 		routine;
 			/* A pointer to the prototype instantiation of the
 			   function or member function template. */
-	/* When kind == templk_class or templk_member_class: */
-	a_type_ptr
-		type;
+    /* When kind == templk_class or templk_member_class: */
+    a_type_ptr	type;
 			/* A pointer to the prototype instantiation of the
 			   class or member class template. */
-	/* When kind == templk_static_data_member: */
-	a_variable_ptr
+    /* When kind == templk_static_data_member: */
+    a_variable_ptr
 		variable;
 			/* A pointer to the prototype instantiation of the
 			   static data member definition of a class template */
-	/* When kind == templk_template_template_param: */
-        a_template_decl_ptr
+    /* When kind == templk_template_template_param: */
+    a_template_decl_ptr
 		template_decl;
 			/* A pointer to the parameterization of a template
 			   template parameter. */

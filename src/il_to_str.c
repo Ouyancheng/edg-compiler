@@ -156,25 +156,30 @@ Output the indicated template argument in the way described by octl.
       break;
     case tak_nontype:
       /* Nontype argument. */
-      if (tap->constant_is_an_arg_operand) {
-        /* The template argument is given by an expression operand (front end
-           only). */
-        check_assertion(!octl->gen_compilable_code);
-        octl->output_str("<expr>");
-      } else if (tap->is_array_bound_of_unknown_type) {
+      if (tap->is_array_bound_of_unknown_type) {
         /* The template argument is a deduced array bound whose type is not
-           yet known. */
+           yet known (we know its value, but we don't yet know its type). */
         check_assertion(!octl->gen_compilable_code);
-        octl->output_str("<deduced-array-bound>");
+        octl->output_str("array-bound=");
+        form_unsigned_num((a_host_large_unsigned)tap->variant.integer_value,
+                          octl);
       } else {
         a_constant_ptr con = tap->variant.constant;
-        if (is_reference_type(con->type)) {
-          /* A reference parameter.  Display specially -- one level of
-             indirection must be removed. */
-          form_lvalue_address_constant(con, /*need_parens=*/FALSE, octl);
+        if (tap->arg_operand != NULL && con == NULL) {
+          /* The template argument is given by an expression operand (front
+             end only). */
+          check_assertion(!octl->gen_compilable_code);
+          octl->output_str(" <expr> ");
         } else {
-          /* Normal (non-reference) case. */
-          form_constant(con, /*need_parens=*/FALSE, octl);
+          check_assertion(con != NULL);
+          if (is_reference_type(con->type)) {
+            /* A reference parameter.  Display specially -- one level of
+               indirection must be removed. */
+            form_lvalue_address_constant(con, /*need_parens=*/FALSE, octl);
+          } else {
+            /* Normal (non-reference) case. */
+            form_constant(con, /*need_parens=*/FALSE, octl);
+          }  /* if */
         }  /* if */
       }
       break;
@@ -3097,11 +3102,16 @@ precedence confusion.  Do the output in the way described by octl.
                       prototype_instantiations_in_il);
       switch (constant->variant.template_param.kind) {
         case tpck_unknown_function:
-          if (constant->variant.template_param.variant.conversion_type!=NULL) {
+          if (constant->variant.template_param.variant.unknown_function.
+                                                     conversion_type != NULL) {
             /* The associated function is a conversion function.  Generate
                its name from the type. */
+            check_assertion(constant->source_corresp.is_class_member);
+            form_class_qualifier(constant->source_corresp.parent.class_type,
+                                 octl);
             octl->output_str("operator ");
-            form_type(constant->variant.template_param.variant.conversion_type,
+            form_type(constant->variant.template_param.variant.
+                                              unknown_function.conversion_type,
                       octl);
             break;
           }  /* if */
@@ -3172,6 +3182,8 @@ name_cases:
           form_template_args(constant->variant.template_param.variant.
                                                          template_ref.arg_list,
                              octl);
+          /* Avoid the ">>" problem. */
+          octl->output_str(" ");
           break;
         default:
           octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**");

@@ -596,6 +596,7 @@ of the symbol header.
     a_symbol_header_ptr		hdr;
     a_type_ptr			parent_class = NULL;
     a_namespace_ptr		parent_namespace = NULL;
+    a_constant_ptr		con;
     if (orig_sym->is_class_member) {
       parent_class = orig_sym->parent.class_type;
     } else {
@@ -603,6 +604,14 @@ of the symbol header.
     }  /* if */
     sym = create_unknown_function_symbol(orig_sym->header, parent_class,
                                          parent_namespace);
+    check_assertion(sym->kind == (a_symbol_kind)sk_constant);
+    con = sym->variant.constant;
+    check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
+                    con->variant.template_param.kind ==
+                        (a_template_param_constant_kind)tpck_unknown_function);
+    /* Save the original symbol (probably an overload set) for use later
+       in copy_type_with_substitution. */
+    con->variant.template_param.variant.unknown_function.symbol = orig_sym;
     hdr = sym->header;
     /* Link this symbol onto the other symbols list. */
     sym->next = hdr->other_symbols;
@@ -2116,7 +2125,8 @@ symbol header information from the locator.  Return the symbol created.
   constant = sym->variant.constant;
   conv_result = locator->variant.conversion_result_type;
   check_assertion(conv_result != NULL);
-  constant->variant.template_param.variant.conversion_type = conv_result;
+  constant->variant.template_param.variant.unknown_function.conversion_type =
+                                                                   conv_result;
   return sym;
 }  /* create_unknown_conversion_symbol */
 
