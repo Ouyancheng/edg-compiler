@@ -54,10 +54,6 @@ extern a_variable_ptr make_caught_object_address_var(void);
 
 extern a_cleanup_region_number cleanup_region_number(a_dynamic_init_ptr dip);
 
-extern void set_curr_cleanup_region_number(
-                                    a_cleanup_region_number region_number,
-                                    an_insert_location      *insert_location);
-
 extern void set_curr_cleanup_state(a_dynamic_init_ptr cleanup_state,
                                    an_insert_location *insert_location);
 

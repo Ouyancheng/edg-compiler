@@ -1599,22 +1599,6 @@ updated.
 }  /* assign_to_eh_curr_region */
 
 
-void set_curr_cleanup_region_number(a_cleanup_region_number region_number,
-                                    an_insert_location      *insert_location)
-/*
-Generate code at *insert_location to record the fact that the current
-cleanup region number is region_number.  set_curr_cleanup_state should
-usually be called rather than calling this routine directly.
-*/
-{
-  an_expr_node_ptr node;
-
-  node = node_for_integer_constant((long)region_number,
-                                   TARG_REGION_NUMBER_INT_KIND);
-  assign_to_eh_curr_region(node, insert_location);
-}  /* set_curr_cleanup_region_number */
-
-
 void set_curr_cleanup_state(a_dynamic_init_ptr cleanup_state,
                             an_insert_location *insert_location)
 /*
@@ -1623,9 +1607,12 @@ location in the program) to cleanup_state, and generate code at
 *insert_location to record that information.
 */
 {
+  an_expr_node_ptr node;
+
   curr_cleanup_state = cleanup_state;
-  set_curr_cleanup_region_number(cleanup_region_number(cleanup_state),
-                                 insert_location);
+  node = node_for_integer_constant((long)cleanup_region_number(cleanup_state),
+                                   TARG_REGION_NUMBER_INT_KIND);
+  assign_to_eh_curr_region(node, insert_location);
 }  /* set_curr_cleanup_state */
 
 
