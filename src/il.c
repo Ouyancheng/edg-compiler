@@ -5858,6 +5858,7 @@ fields to default values.
     case stmk_try_block:
       sp->variant.try_block.statement = NULL;
       sp->variant.try_block.handlers  = NULL;
+      break;
 #if CHECKING
     default:
       internal_error("set_statement_kind: bad kind");
