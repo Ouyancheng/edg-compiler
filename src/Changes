@@ -1,5 +1,13 @@
 Version 2.46
 
+2/7/01   Extra position information on explicit declaration of size_t in
+         Microsoft mode
+
+The front end used to not record extra position information (available when
+EXTRA_SOURCE_POSITIONS_IN_IL is configured TRUE) for explicit declarations
+of the size_t typedef in Microsoft mode (in that mode, size_t is predeclared).
+This is now fixed.
+
 2/6/01   Microsoft compatibility: spurious error on in-class specialization
 
 A spurious error would result when a Microsoft in-class specialization

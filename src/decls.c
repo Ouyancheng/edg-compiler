@@ -6545,13 +6545,20 @@ return a pointer to it in *symbol_ptr.
           }  /* if */
           record_symbol_declaration(ref_kind, sym, &locator->source_position,
                                     declarator_ssep);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
           if (!(ref_kind & SRK_DEFINITION)) {  /*lint !e774*/
+#if GENERATE_SOURCE_SEQUENCE_LISTS
             (void)update_src_seq_secondary_decl((char *)sym->variant.type.ptr,
                                                 type_ptr, SSSD_NO_FLAGS,
                                                 decl_pos_block);
-          }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+          } else {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+            /* The first explicit declaration of size_t in Microsoft mode
+               (see above).  Set the extended position information. */
+            update_decl_pos_info(&sym->variant.type.ptr->source_corresp,
+                                 decl_pos_block);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+          }  /* if */
           goto return_point;
         } else {
           /* C++ only.  Must be a tag symbol. */
