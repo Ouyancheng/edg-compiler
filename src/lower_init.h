@@ -106,6 +106,8 @@ extern void add_constructor_wrapper_code(a_scope_ptr        scope,
 
 extern void lower_constructor_code(a_scope_ptr scope);
 
+extern a_label_ptr insert_temp_label(an_insert_location *insert_location);
+
 extern void lower_destructor_code(a_scope_ptr scope);
 
 extern void lower_stmk_init(a_statement_ptr statement);

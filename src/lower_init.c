@@ -4778,6 +4778,27 @@ is inserted at *insert_location.
 
 #endif /* GENERATE_EH_TABLES */
 
+
+a_label_ptr insert_temp_label(an_insert_location *insert_location)
+/*
+Create a new temporary label and return a pointer to it.  Also create a
+statement for the label and insert it at *insert_location.
+*/
+{
+  a_label_ptr     temp_label = alloc_label();
+  a_statement_ptr label_stmt;
+
+  label_stmt = alloc_statement((a_statement_kind)stmk_label);
+  label_stmt->variant.label.ptr = temp_label;
+  temp_label->variant.exec_stmt = label_stmt;
+  temp_label->source_corresp.referenced = TRUE;
+  add_to_labels_list(temp_label);
+  label_stmt->variant.label.lifetime = curr_context->lifetime;
+  insert_statement(label_stmt, insert_location);
+  return temp_label;
+}  /* insert_temp_label */
+
+
 void lower_destructor_code(a_scope_ptr scope)
 /*
 Insert destructor wrapper code around the user code in the indicated
@@ -4793,7 +4814,7 @@ destructor scope, and also lower the user code.
   an_insert_location     insert_location, insert_location2;
   an_insert_location     prologue_insert_location;
   a_statement_ptr        user_code_stmts, epilogue_block;
-  a_statement_ptr        top_level_stmt, prev_stmt, label_stmt;
+  a_statement_ptr        top_level_stmt, prev_stmt;
   an_expr_node_ptr       zero_constant_node, complete_obj_param_node;
   an_expr_node_ptr       compare_node;
   an_expr_node_ptr       vtbl_addr_node, vptr_node;
@@ -5087,13 +5108,7 @@ destructor scope, and also lower the user code.
   } else {
     /* There are other returns.  Add an epilogue label and change the other
        returns to gotos to that label. */
-    epilogue_label = alloc_label();
-    label_stmt = alloc_statement((a_statement_kind)stmk_label);
-    label_stmt->variant.label.ptr = epilogue_label;
-    epilogue_label->variant.exec_stmt = label_stmt;
-    epilogue_label->source_corresp.referenced = TRUE;
-    add_to_labels_list(epilogue_label);
-    insert_statement(label_stmt, &insert_location);
+    epilogue_label = insert_temp_label(&insert_location);
     /* Change the other returns to gotos. */
     for (; rmp != NULL; rmp = rmp_next) {
       a_statement_ptr stmt = rmp->stmt;
