@@ -5246,7 +5246,6 @@ and "class_type" indicates the class in which the declaration occurs.
   a_class_type_supplement_ptr  ctsp;
   a_boolean                    is_overloaded_function;
   a_symbol_ptr                 sym;
-  an_access_specifier          function_access;
   a_type_ptr		       local_class_of_which_a_member;
 
   db_enter(4, "access_adjustment_decl");
@@ -5392,7 +5391,7 @@ and "class_type" indicates the class in which the declaration occurs.
     if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
       /* Check for uniform access on overloaded functions (requirement
          inferred from ARM 11.3, bottom of p. 246). */
-      if (!max_access_of_overloaded_function(sym, &function_access)) {
+      if (!uniform_access_of_overloaded_function(sym)) {
         /* Functions overloading this name were not all declared with the
            same access. */
         sym_error(ec_bad_access_adjustment_with_overloading, sym);
@@ -5402,11 +5401,12 @@ and "class_type" indicates the class in which the declaration occurs.
         /* Indirectly inherited, so use the access from the projection
            symbol. */
         progenitor_access =
-                     immediate_progenitor_sym->variant.projection.access;
+                   immediate_progenitor_sym->variant.projection.access;
       } else {
         /* Directly inherited name so we just want the access of the
-           functions -- each of which has an access of function_access. */
-        progenitor_access = function_access;
+           functions.  (We already know they're all the same.) */
+        progenitor_access =
+                   access_for_symbol(sym->variant.overloaded_function.symbols);
       }  /* if */
       is_overloaded_function = TRUE;
     } else {

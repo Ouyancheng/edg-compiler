@@ -1914,9 +1914,7 @@ Return TRUE if access1 represents greater accessibility than access2.
 #define is_more_accessible(access1, access2)    \
     ((int)(access1) < (int)(access2))
 
-extern a_boolean max_access_of_overloaded_function(
-                                             a_symbol_ptr        sym,
-                                             an_access_specifier *max_access);
+extern a_boolean uniform_access_of_overloaded_function(a_symbol_ptr  sym);
 
 extern void f_check_protected_member_access(a_symbol_ptr      sym,
 				            a_source_position *err_pos,
