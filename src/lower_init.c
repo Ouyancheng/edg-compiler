@@ -2475,11 +2475,13 @@ will be changed to an aggregate constant for the constant parts and
     } else {
       /* Not an aggregate: a zero of the right type will be fine. */
       next_con = con_ptr->next;
+#if DO_C99_IL_LOWERING
       if (is_imaginary_type(desired_type)) {
         /* In C99, create a float constant for an imaginary type. */
         desired_type = skip_typerefs(desired_type);
         desired_type = float_type(desired_type->variant.float_kind);
       }  /* if */
+#endif /* DO_C99_IL_LOWERING */
       make_zero_of_proper_type(desired_type, con_ptr);
       con_ptr->next = next_con;
     }  /* if */
