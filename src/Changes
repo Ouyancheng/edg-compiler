@@ -18,16 +18,16 @@ An internal error occurred when a template initially declared in
 a template friend declaration within a namespace was instantiated.
 This has been fixed.
 
-namespace N {
-  template <class T> struct A {
-    template <class T2> friend void f(T2) { }
-  };
-  A<int> a;
-  void g()
-  {
-    f(1);
+  namespace N {
+    template <class T> struct A {
+      template <class T2> friend void f(T2) { }
+    };
+    A<int> a;
+    void g()
+    {
+      f(1);
+    }
   }
-}
 
 10/13/95  IL CHANGE: "needed" flags
 
@@ -44,6 +44,7 @@ called.
 The configuration flag used to indicate that the front end is being
 compiled on Linux has been changed to __linux__, which is automatically
 set by the version of gcc that comes with Linux.
+
 -------------------------------------------------------------------------------
 Version 2.30, October 10, 1995
 
