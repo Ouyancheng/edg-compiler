@@ -2234,6 +2234,8 @@ bucket of the shareable_constants_table to use for the constant.
       hash_value = (a_constant_hash_value)(200 + cp->kind);
       break;
   }  /* switch */
+  /* Work the type into the hash. */
+  hash_value += (a_constant_hash_value)cp->type;
   /* Reduce the value modulo the table size. */
   hash_value %= SIZE_SHAREABLE_CONSTANTS_TABLE;
 #if DEBUG
