@@ -241,8 +241,8 @@ need to be determined.
       {
         an_il_entry_kind             kind;
         a_source_correspondence_ptr  scp;
-        scp = (a_source_correspondence_ptr)il_entry_for_symbol_null_okay(sym,
-                                                                         &kind);
+        scp = (a_source_correspondence_ptr)il_entry_for_symbol_null_okay(
+                                                                   sym, &kind);
         if (scp != NULL &&
             (scp->name_linkage == (a_name_linkage_kind)nlk_external ||
              scp->name_linkage ==
@@ -267,7 +267,8 @@ need to be determined.
       {
         a_type_ptr  type = type_symbol_type(sym);
         result = FALSE;
-        if (type->kind == (a_type_kind)tk_typeref && typeref_is_typedef(type)) {
+        if (type->kind == (a_type_kind)tk_typeref &&
+            typeref_is_typedef(type)) {
           /* A typedef of an unnamed class has linkage. */
           type = skip_typerefs(type);
           result = is_immediate_class_type(type) &&
@@ -581,11 +582,11 @@ type is in fact valid.
   a_type_ptr      corresp_type = (a_type_ptr)canonical_il_entry_of(type);
   a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list;
   a_constant_ptr  corresp_enumerator = 
-                          corresp_type->variant.integer.enum_info.constant_list;
+                         corresp_type->variant.integer.enum_info.constant_list;
   
   for (; enumerator != NULL && corresp_enumerator != NULL;
        enumerator = enumerator->next,
-                                corresp_enumerator = corresp_enumerator->next) {
+                               corresp_enumerator = corresp_enumerator->next) {
     if (!verify_constant_correspondence(enumerator)) {
       match = FALSE;
       break;
@@ -838,7 +839,8 @@ is in fact valid.
     set_no_trans_unit_corresp(type);
   } else {
     a_type_ptr  corresp_type = (a_type_ptr)canonical_il_entry_of(type);
-    if (type->kind != corresp_type->kind || !verify_name_correspondence(type)) {
+    if (type->kind != corresp_type->kind ||
+        !verify_name_correspondence(type)) {
       match = FALSE;
       process_bad_trans_unit_corresp(type);
     } else if (is_immediate_class_type(type)) {

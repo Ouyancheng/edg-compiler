@@ -1109,7 +1109,7 @@ ec_cl_export_template_option_only_in_cplusplus;;"option \"export_template\" can 
 ec_cl_export_template_requires_dep_name;;"option \"export_template\" cannot be used with \"no_dep_name\""
 ec_cl_export_template_requires_no_implicit_include;;"option \"export_template\" cannot be used with \"implicit_include\""
 ec_corresp_decl_incompatible;;"declaration of %n is incompatible with a declaration in another translation unit"
-ec_corresp_decl_at;;"the other declaration was %p"
+ec_corresp_decl_at;;"the other declaration is %p"
 ec_det_during_compilation_of_secondary_trans_unit;INTERNAL;"detected during compilation of secondary translation unit %sq"
 ec_compilation_of_secondary_trans_unit_context;INTERNAL;"compilation of secondary translation unit %sq"
 ec_field_cannot_involve_vla_type;;"a field declaration cannot have a type involving a variable length array"
