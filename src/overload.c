@@ -6177,14 +6177,17 @@ user-defined conversion part (if any) of any required conversion.
         /* Initializing a reference to NULL, which is not allowed:
              int &p = *(int *)0;
         */
-        error_in_operand(ec_null_reference, source_operand);
-      } else {
-        /* Use a pointer type instead of a reference type on the
-           destination. */
-        dest_type = make_pointer_type(base_dest_type);
-        /* Cast the operand to the result type. */
-        cast_operand(dest_type, source_operand, /*is_implicit_cast=*/TRUE);
+        if (cfront_compatibility_mode) {
+          pos_warning(ec_null_reference, &source_operand->position);
+        } else {
+          error_in_operand(ec_null_reference, source_operand);
+        }  /* if */
       }  /* if */
+      /* Use a pointer type instead of a reference type on the
+         destination. */
+      dest_type = make_pointer_type(base_dest_type);
+      /* Cast the operand to the result type. */
+      cast_operand(dest_type, source_operand, /*is_implicit_cast=*/TRUE);
     } else if (type_is_correct_or_derived &&
                is_a_function_designator(source_operand)) {
       /* The initial value is a function designator of the right type;
