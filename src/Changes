@@ -1,5 +1,16 @@
 Version 3.5
 
+6/16/04  long long bit field promotion rules in gcc mode
+
+It turns out the promotion rules for long long bit fields used
+by gcc differ from those used by g++.  Specifically, while g++
+promotes all long long bit fields to long long regardless of
+size, and all likewise all unsigned long long bit fields promote
+to unsigned long long, gcc apparently uses those rules only
+for bit fields larger than long; for smaller ones, the standard
+rules apply (and therefore the promoted type is int, unsigned
+int, long, or unsigned long).  This is now emulated in gcc mode.
+
 6/16/04  Abort in Microsoft mode, rvalue field selection with cv-qualified
          type used in "?" operation
 
