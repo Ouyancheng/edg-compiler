@@ -460,35 +460,42 @@ Pop the top entry off the name context stack.
 }  /* pop_name_context */
 
 
-static void push_class_reactivation_name_context(a_type_ptr class_type)
+static void push_class_name_context_if_member(a_source_correspondence *scp)
 /*
-Push the indicated class onto the name context stack.  If the class is
-a nested class, also push the containing classes.
+If the entity with the given source correspondence information is a class
+member, push the class onto the name context stack.  If the class is a
+nested class, also push the containing classes.
 */
 {
-  if (class_type->source_corresp.class_of_which_a_member != NULL) {
+  a_type_ptr class_type = scp->class_of_which_a_member;
+
+  if (class_type != NULL) {
+    /* The entity is a class member. */
     /* Push the surrounding class(es) for a nested class. */
-    push_class_reactivation_name_context(
-                           class_type->source_corresp.class_of_which_a_member);
-  }  /* if */
-  push_name_context(class_type->variant.class_struct_union.extra_info->
+    push_class_name_context_if_member(&class_type->source_corresp);
+    /* Push the class. */
+    push_name_context(class_type->variant.class_struct_union.extra_info->
                                                                   assoc_scope);
-}  /* push_class_reactivation_name_context */
+  }  /* if */
+}  /* push_class_name_context_if_member */
 
 
-static void pop_class_reactivation_name_context(a_type_ptr class_type)
+static void pop_class_name_context_if_member(a_source_correspondence *scp)
 /*
-Pop the indicated class off the name context stack.  If the class is
-a nested class, also pop the containing classes.
+If the entity with the given source correspondence information is a class
+member, pop the class from the name context stack.  If the class is a
+nested class, also pop the containing classes.
 */
 {
-  pop_name_context();
-  if (class_type->source_corresp.class_of_which_a_member != NULL) {
+  a_type_ptr class_type = scp->class_of_which_a_member;
+
+  if (class_type != NULL) {
+    /* The entity is a class member. */
+    pop_name_context();
     /* Pop the surrounding class(es) for a nested class. */
-    pop_class_reactivation_name_context(
-                           class_type->source_corresp.class_of_which_a_member);
+    pop_class_name_context_if_member(&class_type->source_corresp);
   }  /* if */
-}  /* pop_class_reactivation_name_context */
+}  /* pop_class_name_context_if_member */
 
 
 static void adv_to_signif_source_sequence_entry(void)
@@ -2701,9 +2708,13 @@ secondary declaration.
     set_decl_position(scp, sec_decl);
     /* Write the name. */
     gen_decl_name(scp, entry_kind);
+    /* Push the name context class(es) for a class member. */
+    push_class_name_context_if_member(scp);
   }  /* if */
   /* Write the second part of the declarator. */
   gen_type_second_part(type, /*under_lhs_declarator=*/FALSE);
+  /* Pop the name context class(es) for a class member. */
+  if (scp != NULL) pop_class_name_context_if_member(scp);
 }  /* gen_declaration_using_type */
 
 
@@ -5251,6 +5262,8 @@ Output the initializer, if any, for the indicated variable.
   a_boolean          parenthesized_init;
   a_dynamic_init_ptr dip;
 
+  /* Push the name context class(es) for a class member. */
+  push_class_name_context_if_member(&var->source_corresp);
   switch (var->init_kind) {
     case initk_none:
       /* No initializer. */
@@ -5290,6 +5303,8 @@ Output the initializer, if any, for the indicated variable.
     default:
       unexpected_condition_str("gen_initializer: bad init kind");
   }  /* switch */
+  /* Pop the name context class(es) for a class member. */
+  pop_class_name_context_if_member(&var->source_corresp);
 }  /* gen_initializer */
 
 
@@ -5521,6 +5536,7 @@ declaration or definition.
   a_src_seq_secondary_decl_ptr  sec_decl;
   a_boolean                     is_definition = FALSE;
   a_boolean                     decl_within_class = FALSE;
+  a_boolean                     class_pop_needed = FALSE;
   a_storage_class               storage_class;
   a_scope_ptr                   scope = NULL;
   a_memory_region_number        scope_region_number;
@@ -5672,14 +5688,10 @@ declaration or definition.
     set_decl_position(&rout->source_corresp, sec_decl);
     /* Write the routine name. */
     gen_decl_name(&rout->source_corresp, iek_routine);
+    /* Push the name context class(es) for a member function. */
+    push_class_name_context_if_member(&rout->source_corresp);
+    class_pop_needed = TRUE;
     if (is_definition) {
-      /* For a definition, push a name context for the function. */
-      if (rout->source_corresp.class_of_which_a_member != NULL) {
-        /* Push the class(es) for a member function. */
-        push_class_reactivation_name_context(
-                                 rout->source_corresp.class_of_which_a_member);
-      }  /* if */
-      push_name_context(scope);
       /* Follow the source sequence list for the function. */
       saved_curr_source_sequence_entry = curr_source_sequence_entry;
       saved_sublist_parent_source_sequence_entry =
@@ -5708,6 +5720,8 @@ declaration or definition.
     write_space();
   } else {
     /* The definition of the routine. */
+    /* Push a name context for the function. */
+    push_name_context(scope);
     /* For an old-style function, declare the parameters. */
     /* Note that this does not use rtsp->prototyped, which is inaccurate
        when there is a prototyped declaration and an old-style definition. */
@@ -5723,11 +5737,6 @@ declaration or definition.
     gen_function_definition(scope);
     /* Pop the name context for the function. */
     pop_name_context();
-    if (rout->source_corresp.class_of_which_a_member != NULL) {
-      /* Pop the class(es) for a member function. */
-      pop_class_reactivation_name_context(
-                                 rout->source_corresp.class_of_which_a_member);
-    }  /* if */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
     /* Now that we're done with the function, free its IL information. */
     free_memory_region(scope_region_number);
@@ -5735,6 +5744,10 @@ declaration or definition.
     curr_source_sequence_entry = saved_curr_source_sequence_entry;
     sublist_parent_source_sequence_entry =
                                     saved_sublist_parent_source_sequence_entry;
+  }  /* if */
+  /* Pop the name context class(es) for a member function. */
+  if (class_pop_needed) {
+    pop_class_name_context_if_member(&rout->source_corresp);
   }  /* if */
 }  /* gen_routine_decl */
 
