@@ -3037,37 +3037,87 @@ the same access, the function returns FALSE.
 
 
 void f_check_protected_member_access(a_symbol_locator *locator,
-                                     a_type_ptr       class_type)
+                                     a_type_ptr       access_class)
 /*
 This routine implements the access control check mandated by ARM 11.5, which
 requires that a protected member be accessed only through a pointer or
-object of a type to which we have member access.  locator is a locator
-for the member symbol being referenced.  class_type is the class of the
-pointer or object through which the member is being accessed.
-class_type is NULL if we don't know the object type (which will cause an
-error).  class_type may also be an error type (which will cause no error).
-*err_pos is the source position for an error.  See the macro
-check_protected_member_access for a convenient way to invoke this
+object of a type to which we have member access (or a derived type thereof).
+locator is a locator for the member symbol being referenced.  access_class
+is the class of the pointer or object through which the member is being
+accessed.  access_class is NULL if we don't know the object type (which
+will cause an error).  access_class may also be an error type (which will
+cause no error).  *err_pos is the source position for an error.  See the
+macro check_protected_member_access for a convenient way to invoke this
 function.
 */
 {
-  a_boolean err;
+  a_boolean             have_access;
+  a_symbol_ptr          sym = fundamental_symbol_of(locator->specific_symbol);
+  a_type_ptr            base_class, class_type;
+  a_base_class_ptr      bcp;
+  a_derivation_step_ptr dsp;
 
-  if (class_type == NULL) {
+  if (access_class == NULL) {
     /* Class is unknown; error. */
-    err = TRUE;
-  } else if (is_error_type(class_type)) {
+    have_access = FALSE;
+  } else if (is_error_type(access_class)) {
     /* Class is an error type; no error. */
-    err = FALSE;
-  } else if (have_member_access_privilege(class_type)) {
-    /* Have member access to class, so no error. */
-    err = FALSE;
+    have_access = TRUE;
   } else {
-    err = TRUE;
+    /* Get the class of the symbol being referenced. */
+    base_class = fundamental_symbol_of(sym)->class_of_which_a_member;
+    /* Try to find a class class_type such that
+         (1)  class_type is on the derivation list between base_class
+              and access_class.  That is,
+                base_class is a base class of
+                    ^
+                    |
+                class_type, which is a base class of
+                    ^
+                    |
+                access_class.
+              class_type can be the same as either of the other
+              classes.  In fact, all three can be the same.
+              It is already known that base_class is a base class of
+              access_class or is the same class.
+         (2)  We have member access to class_type.
+    */
+    if (access_class == base_class) {
+      dsp = NULL;
+    } else {
+      bcp = find_base_class_of(access_class, base_class);
+#if CHECKING
+      if (bcp == NULL) {
+        internal_error(
+                      "f_check_protected_member_access: base class not found");
+      }  /* if */
+#endif /* CHECKING */
+      dsp = bcp->derivation;
+    }  /* if */
+    /* Here, dsp points to the derivation from access_class to base_class,
+       or NULL if they are the same class.  Step through the derivation
+       and check each class on the way. */
+    class_type = access_class;
+    for (;;) {
+      if (have_member_access_privilege(class_type)) {
+        /* Found a class_type that satisfies our requirements, so we
+           have access. */
+        have_access = TRUE;
+        break;
+      }  /* if */
+      /* Stop after we've checked the base class. */
+      if (dsp == NULL) {
+        /* We did not find a suitable class, so we do not have access. */
+        have_access = FALSE;
+        break;
+      }  /* if */
+      /* Keep going down the derivation looking for a suitable class. */
+      class_type = dsp->base_class->type;
+      dsp = dsp->next;
+    }  /* for */
   }  /* if */
-  if (err) {
-    pos_sy_error(ec_protected_access_problem, &locator->source_position,
-                 locator->specific_symbol);
+  if (!have_access) {
+    pos_sy_error(ec_protected_access_problem, &locator->source_position, sym);
   }  /* if */
 }  /* f_check_protected_member_access */
 
