@@ -5738,7 +5738,7 @@ static a_routine_ptr
 
 static void lower_dynamic_cast(an_expr_node_ptr expr)
 /*
-Lower an eok_dynamic_init expression.  The subtree has already been lowered.
+Lower an eok_dynamic_cast expression.  The subtree has already been lowered.
 */
 {
   an_expr_node_ptr src = expr->variant.operation.operands, src_copy;
