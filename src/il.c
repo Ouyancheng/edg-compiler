@@ -3199,7 +3199,9 @@ are tied to a particular source occurrence.
   sc->name                  = NULL;
   sc->trans_unit_corresp    = NULL;
   sc->is_class_member       = FALSE;
+  /* Clear both parents for union-as-struct testsing. */
   sc->parent.class_type     = NULL;
+  sc->parent.namespace_ptr  = NULL;
   sc->access                = (an_access_specifier)as_public;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sc->source_sequence_entry = NULL;
