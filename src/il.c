@@ -4940,6 +4940,7 @@ to it.
   vp->is_handler_param            = FALSE;
   vp->is_this_parameter           = FALSE;
   vp->is_partially_initialized    = FALSE;
+  vp->is_anonymous_parent_object  = FALSE;
 #if DO_IL_LOWERING
   vp->initialization_rewritten_as_assignment = FALSE;
 #endif /* DO_IL_LOWERING */
@@ -5176,6 +5177,7 @@ to it.
   fp->bit_size             = 0;
   fp->is_bit_field         = FALSE;
   fp->bit_field_is_signed  = FALSE;
+  fp->is_anonymous_parent_object = FALSE;
 #if CHECKING
   fp->avoid_codecenter_warnings = 0;
 #endif /*CHECKING */

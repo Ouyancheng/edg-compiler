@@ -2848,6 +2848,14 @@ typedef struct a_variable {
 			   but only partially -- i.e., one or more array
 			   elements or fields remains uninitialized (or
 			   partially uninitialized). */
+  unsigned int	is_anonymous_parent_object:1;
+			/* TRUE if type is the type of an anonymous union --
+			   this variable is the "parent object" of which the
+			   anonymous union members are subobjects.  For
+			   example, given
+			     union { int i, j };
+			   the IL to represent the source construct "i" is
+			   "<anonymous-parent-object>.i". */
 #if DO_IL_LOWERING
   unsigned int  initialization_rewritten_as_assignment:1;
 			/* TRUE if IL lowering has rewritten some part of
@@ -2967,6 +2975,14 @@ typedef struct a_field {
 			/* TRUE if the field represents a bit field. */
   unsigned int  bit_field_is_signed:1;
 			/* TRUE if the field is a signed bit field. */
+  unsigned int	is_anonymous_parent_object:1;
+			/* TRUE if type is the type of an anonymous union --
+			   this field is the "parent object" of which the
+			   anonymous union members are subobjects.  For
+			   example, given
+			     class A { union { int i, j }; } x;
+			   the IL to represent the source construct "x.i" is
+			   "x.<anonymous-parent-object>.i". */
   bitfield_to_avoid_codecenter_warnings();
 } a_field;
 
