@@ -642,8 +642,11 @@ range_check:
     if ((targ_ch & ~centity_mask) != 0) range_error = TRUE;
   }  /* if */
   if (range_error) {
+    /* A range error is allowed to be an error in C, but not in C++.  So,
+       in C we issue a strict-ANSI diagnostic, while in C++ we always issue
+       a warning. */
     conv_line_loc_to_source_pos(*temp_ptr, &error_position);
-    if (strict_ansi_mode) {
+    if (C_mode() && strict_ansi_mode) {
       diagnostic(strict_ansi_error_severity, ec_bad_character_value);
     } else {
       warning(ec_bad_character_value);
