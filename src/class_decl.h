@@ -92,6 +92,11 @@ extern void class_decl_init(void);
 #if DEBUG
 extern unsigned long db_show_routine_fixups_used(unsigned long grand_total);
 
+extern void db_path(a_derivation_step_ptr dsp,
+                    a_boolean             show_offset);
+
+extern void db_abbreviated_base_class(a_base_class_ptr  bcp);
+
 extern void db_base_class(a_base_class_ptr  bcp,
                           a_boolean         show_offset);
 
