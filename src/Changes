@@ -1,5 +1,18 @@
 Version 2.22
 
+2/14/94  Assertion failure in cfront mode
+
+The following incorrect usage resulted in an assertion failure when
+compiling in cfront (-b) mode (in which a "." can be used in place of
+"::" in qualified names).
+
+typedef int x;
+int main()
+{
+	int i;
+	i = x.a;
+}
+
 2/14/94  Spurious internal error
 
 Certain incorrect usages of the keyword "template" could give a

@@ -6003,7 +6003,7 @@ This routine may only be called in C++ mode.
         }  /* if */
       }  /* if */
       if (qualifier_separator == tok_period) {
-        if (class_symbol != NULL && is_type_symbol(class_symbol)) {
+        if (class_symbol != NULL && is_class_symbol(class_symbol)) {
           /* In cfront mode we have a construct like "A." where A is a
              class name.  This is a use of a cfront anachronism where "."
              is used in a qualified name where "::" should be used.
