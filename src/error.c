@@ -1100,6 +1100,12 @@ error code.
     case ec_temp_used_for_ref_init:
       m = "reference initialized to copy of initial value";
       break;
+    case ec_nonmember_operator_not_allowed:
+      m = "\"operator%s\" must be a member function";
+      break;
+    case ec_nonstatic_member_operator_not_allowed:
+      m = "\"operator%s\" may not be a nonstatic member function";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
