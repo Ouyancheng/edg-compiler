@@ -1,5 +1,47 @@
 Version 2.26
 
+9/29/94  #pragma hdrstop
+
+Not only has code been added to recognize "#pragma hdrstop", as part of
+precompiled header processing, but the directive has also been added to
+our own source files.  The typical idiom is:
+
+  #include "fe_common.h"
+  #if HDRSTOP_RECOGNIZED
+  #pragma hdrstop
+  #endif /* HDRSTOP_RECOGNIZED */
+  #include ...
+
+9/29/94  New header files, new protocol for header files inclusion
+
+Several new header files have been added:
+
+  fe_common.h	-- inclusion of headers common to all .c files
+  basic_hdrs.h  -- inclusion of several fundamental headers
+  decl_hdrs.h   -- inclusion of headers used by declaration processing files
+  expr_hdrs.h   -- inclusion of headers used by expression processing files
+  lower_hdrs.h  -- inclusion of headers used by IL lowering files
+
+Most .c files should include fe_common.h as the first #include:
+
+  #include "fe_common.h"
+  #include ...
+
+The exception is when most of the headers are included conditionally, in
+which case basic_hdrs.h should be first instead, e.g.:
+
+  #include "basic_hdrs.h"
+  #if XXX
+  #include "fe_common.h"
+  #include ...
+
+decl_hdrs.h, expr_hdrs.h, and lower_hdrs.h, when used, are specified
+immediately following fe_common.h.
+
+There are two motivations for this change.  First, it gives better control
+over the interaction of header file declarations.  Second, grouping the
+headers creates opportunities for precompiled header optimization.
+
 9/29/94  --old_line_commands command-line option
 
 A new command-line option, --old_line_commands, works with the C and C++-
@@ -16,7 +58,6 @@ printed "hello" previously:
   main() {
     printf("%s\n", HELLO " there");
   }
-
 
 9/28/94  Initial #line directives -- C and C++-generating back ends
 
