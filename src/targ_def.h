@@ -2298,12 +2298,12 @@ gnu_target_version_number.
                                     (__GNUC_MINOR__)*100 +                \
                                     (__GNUC_PATCHLEVEL__))
 #else /* !(defined(__GNUC__) && defined(__GNUC_MINOR__) && ...) */
-#ifdef GCC_IS_GENERATED_CODE_TARGET
+#if GCC_IS_GENERATED_CODE_TARGET
 /* A target version number is needed, but none could be determined from the
    host compiler: Force a preprocessing error. */
  #error -- GCC_IS_GENERATED_CODE_TARGET requires GNU_TARGET_VERSION_NUMBER \
            to be defined
-#endif /* ifdef GCC_IS_GENERATED_CODE_TARGET */
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
 #endif /* defined(__GNUC__) && defined(__GNUC_MINOR__) && ... */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 #endif /* GNU_TARGET_VERSION_NUMBER */
