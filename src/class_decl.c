@@ -5724,6 +5724,11 @@ Scan the body of a class definition, including the base classes list.
                 syntax_error(ec_exp_colon);
               }  /* if */
             }  /* if */
+            /* Any next-construct-pragmas that appear after the access
+               specifier should be added to those that appear before.  This
+               means the access specifier is ignored as a "construct" -- the
+               binding skips over it. */
+            (void)select_curr_construct_pragmas(/*add_to_list=*/TRUE);
           }  /* while */
           /* This next check catches cases like "...public: }". */
           if (curr_token == tok_rbrace) {
