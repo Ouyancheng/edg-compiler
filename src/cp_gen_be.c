@@ -2743,12 +2743,23 @@ declaration following this one is such a continuation.
 */
 {
   a_type_ptr under_type, this_param_type;
+  a_boolean  anon_union_case = FALSE;
 
   if (sec_decl != NULL) {
     /* Use the type from the secondary declaration entry instead of the one
        from the IL entry, since it might differ in small ways (e.g., using
        different typedefs, default arguments). */
     under_type = sec_decl->declared_type;
+    if (under_type == NULL) {
+      /* This is a strange case related to nonstandard anonymous unions:
+           typedef struct { int i; } A;
+           struct B {
+             A;   // <-- iek_type secondary decl with null declared_type
+           };
+         Just put out the typedef name. */
+      anon_union_case = TRUE;
+      under_type = (a_type_ptr)sec_decl->entity.ptr;
+    }  /* if */
   } else {
     under_type = type->variant.typeref.type;
   }  /* if */
@@ -2758,36 +2769,42 @@ declaration following this one is such a continuation.
      and this routine is called for each one. */
   adv_curr_source_sequence_entry();
   /* The caller has called set_decl_position already. */
-  if (!suppress_specifiers) write_tok_str("typedef ");
-  if (is_function_type(under_type) &&
-      (this_param_type = implicit_this_param_type_of(under_type)) != NULL) {
-    /* A cfront member function typedef, e.g.,
-         typedef int A::f(int);
-       Put out with a qualified name. */
-    a_type_ptr class_type = f_skip_typerefs(type_pointed_to(this_param_type));
-    form_type_first_part(under_type, /*under_lhs_declarator=*/FALSE,
-                         /*need_trailing_space=*/TRUE,
-                         TQ_NONE, 
-                         suppress_specifiers ? FTO_SUPPRESS_SPECIFIERS :
-                                               FTO_NO_OPTIONS,
-                         &octl);
-    /* Write the (qualified) name. */
-    gen_class_qualifier(class_type);
-    gen_unqualified_name(&type->source_corresp, iek_type);
-    /* Write the second part of the declarator. */
-    form_type_second_part_simple(under_type, /*under_lhs_declarator=*/FALSE,
-                                 &octl);
+  if (anon_union_case) {
+    /* The strange nonstandard anonymous union case described above. */
+    gen_type_name(under_type);
+    *another_decl_in_comma_list = FALSE;
   } else {
-    /* Normal typedef. */
-    gen_general_declaration_using_type(under_type, &type->source_corresp,
-                                       iek_type, sec_decl, TQ_NONE,
-                                       suppress_specifiers);
-  }  /* if */
-  /* See if there are comma-separated declarations attached to this one. */
-  *another_decl_in_comma_list =
+    if (!suppress_specifiers) write_tok_str("typedef ");
+    if (is_function_type(under_type) &&
+        (this_param_type = implicit_this_param_type_of(under_type)) != NULL) {
+      /* A cfront member function typedef, e.g.,
+           typedef int A::f(int);
+         Put out with a qualified name. */
+      a_type_ptr class_type= f_skip_typerefs(type_pointed_to(this_param_type));
+       form_type_first_part(under_type, /*under_lhs_declarator=*/FALSE,
+                           /*need_trailing_space=*/TRUE,
+                           TQ_NONE, 
+                           suppress_specifiers ? FTO_SUPPRESS_SPECIFIERS :
+                                                 FTO_NO_OPTIONS,
+                           &octl);
+      /* Write the (qualified) name. */
+      gen_class_qualifier(class_type);
+      gen_unqualified_name(&type->source_corresp, iek_type);
+      /* Write the second part of the declarator. */
+      form_type_second_part_simple(under_type, /*under_lhs_declarator=*/FALSE,
+                                   &octl);
+    } else {
+      /* Normal typedef. */
+      gen_general_declaration_using_type(under_type, &type->source_corresp,
+                                         iek_type, sec_decl, TQ_NONE,
+                                         suppress_specifiers);
+    }  /* if */
+    /* See if there are comma-separated declarations attached to this one. */
+    *another_decl_in_comma_list =
               another_declaration_in_comma_list_follows(under_type,
                                                         /*typedef_only=*/TRUE,
                                                         /*for_init=*/FALSE);
+  }  /* if */
 }  /* gen_typedef_definition */
 
 
