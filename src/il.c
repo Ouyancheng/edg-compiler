@@ -488,7 +488,7 @@ Dump an indirect base class entry, for debug purposes.
         for (; dsp != NULL; dsp = dsp->next) {
           fputs("==>", f_debug);
           if (dsp->base_class == NULL || dsp->base_class->type == NULL) {
-            fputs("<???>", f_debug);
+            fputs("<?>", f_debug);
           } else {
             db_type_name(dsp->base_class->type);
           }  /* if */

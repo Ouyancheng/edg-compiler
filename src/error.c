@@ -1569,9 +1569,11 @@ a blank line instead of the caret line.
             put_char('?');
             put_char(olmp->variant.trigraph_orig_char);
             loc_in_line++;
-            /* If the trigraph is "??/", which turns into "\", and it's at the
-               end of a line, the "\" will indicate a line splice.  In that
-               case, the "\" for the line splice should not be put out. */
+            /* If the trigraph is "? ? /", which turns into "\", and it's at
+	       the end of a line, the "\" will indicate a line splice.  In
+	       that case, the "\" for the line splice should not be put out.
+	       (Note that the added space in this comment is to avoid
+	       complaints about trigraphs while compiling this code.) */
             olmp_next = olmp->next;
             if (olmp_next != NULL && olmp_next->kind == olm_line_splice &&
                 olmp_next->line_loc == olmp->line_loc) {
