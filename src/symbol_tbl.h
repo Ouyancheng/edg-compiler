@@ -3412,11 +3412,11 @@ supplement.
 /* If sym is a template template parameter, return the symbol for the template
    argument, otherwise return the original symbol. */
 #define template_argument_if_template_template_param(sym)		\
-  ((sym)->variant.template_info->					\
-                     variant.class_template.template_template_param	\
+  (((sym)->kind == (a_symbol_kind)sk_class_template &&			\
+    (sym)->variant.template_info->					\
+                     variant.class_template.template_template_param)	\
      ? (sym)->variant.template_info->variant.class_template.argument_template \
      : sym)
-
 
 /* Return TRUE if the symbol represents the prototype instantiation of a
    class template. */

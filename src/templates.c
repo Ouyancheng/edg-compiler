@@ -7739,11 +7739,13 @@ generated.
 static
 a_boolean same_name_as_template_param(
                         a_template_decl_info_ptr template_decl_info,
-                        a_symbol_locator	 *locator)
+                        a_symbol_locator	 *locator,
+			a_boolean		 is_template_template_param)
 /*
 See if the class being declared has the same name as one of its
 template parameters.  Is so, issue an error.  Return TRUE if an
-error was diagnosed.
+error was diagnosed.  is_template_template_param is used to determine
+the text of the message to be issued.
 */
 {
   a_template_param_ptr		tpp;
@@ -7758,8 +7760,11 @@ error was diagnosed.
     }  /* if */
   }  /* for */
   if (err) {
-    pos_error(ec_class_template_same_name_as_templ_param,
-              &locator->source_position);
+    an_error_code	code;
+    code = is_template_template_param
+                      ?  ec_template_template_param_same_name_as_templ_param
+                      : ec_class_template_same_name_as_templ_param;
+    pos_error(code, &locator->source_position);
   }  /* if */
   return err;
 }  /* same_name_as_template_param */
@@ -8588,7 +8593,8 @@ instantiation.
   }  /* if */
   /* See if the class being declared has the same name as one of its
      template parameters. */
-  if (same_name_as_template_param(decl_state->decl_info, &locator)) {
+  if (same_name_as_template_param(decl_state->decl_info, &locator,
+                                  /*is_template_template_param=*/FALSE)) {
     sym = NULL;
     suppress_redecl_error = TRUE;
   }  /* if */
@@ -9602,6 +9608,13 @@ parameter entry for the parameter.
   sym = create_template_param_symbol((a_symbol_kind)sk_class_template,
                                      &locator_for_curr_id,
                                      !is_named);
+  /* See if the parameter being declared has the same name as one of its
+     template parameters. */
+  if (is_named) {
+    (void)(same_name_as_template_param(local_decl_state.decl_info,
+                                       &locator_for_curr_id,
+                                       /*is_template_template_param=*/TRUE));
+  }  /* if */
   /* Bypass the identifier. */
   if (is_named) (void)get_token();
   tssp = sym->variant.template_info;
@@ -9670,8 +9683,7 @@ parameter entry for the parameter.
 }  /* scan_template_template_param */
 
 
-static
-a_template_param_ptr scan_template_param_list(a_tmpl_decl_state_ptr decl_state)
+static void scan_template_param_list(a_tmpl_decl_state_ptr decl_state)
 /*
 Scan a comma-separated list of template parameters.  The opening "<" will
 already have been scanned, and an empty list will have already been
@@ -9725,6 +9737,9 @@ to represent the template parameters.
     /* Add the template param to the end of the list. */
     if (template_param_list == NULL) {
       template_param_list = template_param;
+      /* Update the parameters list of the template_decl_info for this
+         declaration scope. */
+      decl_state->decl_info->parameters = template_param_list;
     } else {
       end_of_template_param_list->next = template_param;
     }  /* if */
@@ -9746,7 +9761,6 @@ to represent the template parameters.
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
   db_exit();
-  return template_param_list;
 }  /* scan_template_param_list */
 
 
@@ -10270,6 +10284,7 @@ returned to the caller.
       pos_sy_error(ec_not_compatible_with_previous_decl,
 		   &locator->source_position, sym);
     } /* if */
+    sym = NULL;
     err = TRUE;
   } else if (!namespace_is_enclosed_by_scope(
                          sym, &scope_stack[depth_innermost_namespace_scope])) {
@@ -11065,7 +11080,7 @@ also for template template parameters (when is_template_param is TRUE).
         /* Save a pointer to the template declaration information in the
            scope stack entry. */
         scope_stack[depth_scope_stack].tmpl_decl_state = decl_state;
-        template_decl_info->parameters = scan_template_param_list(decl_state);
+        scan_template_param_list(decl_state);
         template_decl_info->declaration_scope =
                                          scope_stack[decl_scope_level].number;
         /* Record that a template parameter list has been seen.  A

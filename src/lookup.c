@@ -2525,11 +2525,6 @@ in a friend declaration.
          instantiation of the class, use the template class symbol associated
          with the current instantiation. */
       (void)current_class_symbol_if_class_template(&assoc_symbol);
-      /* If the symbol still refers to the class template, ignore it. */
-      if (assoc_symbol->kind == (a_symbol_kind)sk_class_template) {
-        assoc_symbol = NULL;
-        clear_specific_symbol(*locator);
-      }  /* if */
     } else if (is_friend_decl && locator->specific_symbol != NULL &&
                locator->specific_symbol->kind ==
                                      (a_symbol_kind)sk_namespace_projection) {
@@ -2537,6 +2532,12 @@ in a friend declaration.
       assoc_symbol = NULL;
       clear_specific_symbol(*locator);
     }  /* if */
+  }  /* if */
+  /* If the symbol still refers to the class template, ignore it. */
+  if (assoc_symbol != NULL &&
+      assoc_symbol->kind == (a_symbol_kind)sk_class_template) {
+    assoc_symbol = NULL;
+    clear_specific_symbol(*locator);
   }  /* if */
   if (assoc_symbol == NULL && !is_friend_decl) {
     /* If the symbol was not found using a normal lookup above, look again

@@ -4133,6 +4133,13 @@ Return a pointer to an error class template.
     tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
     tssp->il_template_entry = templ_ptr;
     tssp->is_error = TRUE;
+    {
+      /* Create a template_decl_info entry for the error template for
+         error recovery purposes. */
+      a_template_decl_info_ptr	    template_decl_info;
+      template_decl_info = alloc_template_decl_info();
+      tssp->cache.decl_info = template_decl_info;
+    }
     error_class_template_symbol = sym;
   }  /* if */
   return error_class_template_symbol;
