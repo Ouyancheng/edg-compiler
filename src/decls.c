@@ -144,29 +144,35 @@ is not done.
   an_identifier_options_set	options;
 
   assoc_symbol = NULL;
-  options = GID_DEFER_ACCESS_ERRORS;
-  if (is_new_type_name) options |= GID_IS_NEW_TYPE_NAME;
-  if (is_generalized_identifier_start(options)) {
-    /* Look up the current token identifier, which may be a qualified name.
-       Since curr_type_symbol is often called as part of a test of the
-       presence of a type name identifier, it is inappropriate to cause a
-       projection symbol to be created in the current scope if in fact it
-       projects something other than a type name.  It's easier to suppress
-       the creation of such gratuitous projections here than to try to ignore
-       them in symbol entry later.  Defer any access errors that may occur
-       because we may actually be scanning something that is not a type
-       (e.g., a declarator). */
-    assoc_symbol = coalesce_and_lookup_generalized_identifier
-                       (GID_DTOR_RECOGNIZED | options,
-		        ilm_tentative_type, &err);
-    if (assoc_symbol != NULL && !is_type_symbol(assoc_symbol)) {
-      /* Symbol was found, but it is not a type name symbol.  Return NULL. */
-      assoc_symbol = NULL;
-    }  /* if */
-    /* If a type symbol was found, issue any access errors that may have
-       occurred. */
-    if (assoc_symbol) {
-      issue_qualifier_access_errors(&locator_for_curr_id.access_errors);
+  if (locator_for_curr_id.is_operator_name ||
+      locator_for_curr_id.is_conversion_name ||
+      locator_for_curr_id.is_destructor_name) {
+    /* Cannot be a type name. */
+  } else {
+    options = GID_DEFER_ACCESS_ERRORS;
+    if (is_new_type_name) options |= GID_IS_NEW_TYPE_NAME;
+    if (is_generalized_identifier_start(options)) {
+      /* Look up the current token identifier, which may be a qualified name.
+         Since curr_type_symbol is often called as part of a test of the
+         presence of a type name identifier, it is inappropriate to cause a
+         projection symbol to be created in the current scope if in fact it
+         projects something other than a type name.  It's easier to suppress
+         the creation of such gratuitous projections here than to try to ignore
+         them in symbol entry later.  Defer any access errors that may occur
+         because we may actually be scanning something that is not a type
+         (e.g., a declarator). */
+      assoc_symbol = coalesce_and_lookup_generalized_identifier
+                         (GID_DTOR_RECOGNIZED | options,
+                          ilm_tentative_type, &err);
+      if (assoc_symbol != NULL && !is_type_symbol(assoc_symbol)) {
+        /* Symbol was found, but it is not a type name symbol.  Return NULL. */
+        assoc_symbol = NULL;
+      }  /* if */
+      /* If a type symbol was found, issue any access errors that may have
+         occurred. */
+      if (assoc_symbol) {
+        issue_qualifier_access_errors(&locator_for_curr_id.access_errors);
+      }  /* if */
     }  /* if */
   }  /* if */
   return assoc_symbol;
