@@ -1986,9 +1986,9 @@ for example, the static initialization method used by the generated
 code.  The number is the Microsoft version number of a Microsoft C/C++
 compiler release (e.g., 1300 corresponds to MSVC version 7).
 */
-#ifndef MSVC_TARGET_VERSION
-#define MSVC_TARGET_VERSION 1300
-#endif /* MSVC_TARGET_VERSION */
+#ifndef MSVC_TARGET_VERSION_NUMBER
+#define MSVC_TARGET_VERSION_NUMBER DEFAULT_MICROSOFT_VERSION
+#endif /* MSVC_TARGET_VERSION_NUMBER */
 
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 

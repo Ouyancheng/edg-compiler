@@ -1076,7 +1076,7 @@ EXTERN a_boolean
 EXTERN int
 		msvc_target_version_number
 #if VAR_INITIALIZERS
-		                           = MSVC_TARGET_VERSION
+		                           = MSVC_TARGET_VERSION_NUMBER
 #endif /* VAR_INITIALIZERS */
                                                                  ;
 			/* The version number (i.e., 1300 for 7.0) of the
@@ -1170,7 +1170,7 @@ EXTERN int
 #undef TARG_LDBL_MIN_EXP
 #undef TARG_LDBL_MAX_EXP
 #undef MSVC_IS_GENERATED_CODE_TARGET
-#undef MSVC_TARGET_VERSION
+#undef MSVC_TARGET_VERSION_NUMBER
 
 #ifndef MAKE_TARG_NAMES_REFER_TO_VARIABLES
 #define MAKE_TARG_NAMES_REFER_TO_VARIABLES 0
@@ -1276,7 +1276,7 @@ EXTERN int
 #define TARG_LDBL_MIN_EXP targ_ldbl_min_exp
 #define TARG_LDBL_MAX_EXP targ_ldbl_max_exp
 #define MSVC_IS_GENERATED_CODE_TARGET msvc_is_generated_code_target
-#define MSVC_TARGET_VERSION msvc_target_version
+#define MSVC_TARGET_VERSION_NUMBER msvc_target_version_number
 #endif /* MAKE_TARG_NAMES_REFER_TO_VARIABLES */
 
 extern void set_plain_char_int_kind(a_boolean plain_chars_are_signed);
