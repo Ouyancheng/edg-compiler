@@ -5307,7 +5307,12 @@ typedef struct a_routine {
 			   when INSTANTIATE_EXTERN_INLINE is TRUE (i.e.,
 			   when inline functions are instantiated using a
 			   mechanism similar to the template instantiation
-			   mechanism). */
+			   mechanism).  This field is TRUE only when the
+			   storage class is sc_unspecified, and it says "don't
+			   put out an external definition; the body of this
+			   function is to be used only for inlining.  The
+			   effective declaration for other purposes is an
+			   extern declaration with no body." */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
