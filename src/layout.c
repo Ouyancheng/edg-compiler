@@ -477,7 +477,7 @@ if n is supplied or to the value associated with the last entry popped.
       }  /* if */
       /* Final processing for "push" and "pop". */
       if (is_push) {
-        /* Push the entry onto to stack, saving the current pack alignment
+        /* Push the entry onto the stack, saving the current pack alignment
            before it's overwritten by a new value. */
         push_pack_alignment(name, curr_max_member_alignment);
         updated = TRUE;

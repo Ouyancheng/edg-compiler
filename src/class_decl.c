@@ -8869,7 +8869,7 @@ following the member declaration.
       func_info.is_inline = inline_specified || function_def_present;
 #if USER_CONTROL_OF_STRUCT_PACKING
       if (function_def_present) {
-        /* Recored the current setting of the maximum alignment for local
+        /* Record the current setting of the maximum alignment for local
            class members (an adjustment may be required for packing). */
         func_info.max_member_alignment =
                              current_max_alignment_for_class_members();
