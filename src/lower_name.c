@@ -4563,12 +4563,15 @@ externalized, use the encoding for the externalized form.
 
 #if TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED || MODULE_ID_NEEDED
 
-char *get_mangled_function_name(a_routine_ptr routine)
+char *get_mangled_function_name_full(a_routine_ptr routine,
+                                     a_boolean     force_primary_name)
 /*
 Get the mangled name for the indicated routine, and return a pointer
 to it.  If the routine name has not been mangled yet, create a copy
 of the mangled name in a temporary buffer but do not change the
-name in the routine entry.
+name in the routine entry.  In the IA-64 ABI, if force_primary_name
+is TRUE the routine is a constructor or destructor and the primary
+entry point name should be returned.
 */
 {
   a_mangling_control_block mctl;
@@ -4576,7 +4579,6 @@ name in the routine entry.
   char                     *mangled_name;
   sizeof_t                 *base_name_offset = NULL;
   a_boolean                needs_to_be_externalized = FALSE;
-  a_boolean                force_primary_name = FALSE;
 
 #if DO_IL_LOWERING
   /* Static entities are potentially referenced from exported templates
@@ -4585,17 +4587,6 @@ name in the routine entry.
   needs_to_be_externalized =
                 routine_should_be_externalized_for_exported_templates(routine);
 #endif /* DO_IL_LOWERING */
-#if IA64_ABI
-  if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
-      routine->special_kind == (a_special_function_kind)sfk_destructor) {
-    /* Use the primary entry point name for constructor and destructors.
-       Alternate entry points for non-inline template constructors and
-       destructors are instantiated when the primary entry point is
-       instantiated (there's only one entry on the instantiation list
-       representing all the entry points). */
-    force_primary_name = TRUE;
-  } /* if */
-#endif /* IA64_ABI */
   if ((routine->source_corresp.name_has_been_mangled &&
        !routine->source_corresp.final_name_mangling_pending &&
        (!needs_to_be_externalized || routine->source_corresp.externalized)) ||
@@ -4645,6 +4636,34 @@ name in the routine entry.
     mangled_name = end_mangling((a_source_correspondence *)NULL,
                                 /*final=*/TRUE, &mctl);
   }  /* if */
+  return mangled_name;
+}  /* get_mangled_function_name_full */
+
+
+char *get_mangled_function_name(a_routine_ptr routine)
+/*
+Get the mangled name for the indicated routine, and return a pointer
+to it.  If the routine name has not been mangled yet, create a copy
+of the mangled name in a temporary buffer but do not change the
+name in the routine entry.  In the IA-64 ABI, if the routine is
+a constructor or destructor, return the primary entry point name.
+*/
+{
+  char      *mangled_name;
+  a_boolean force_primary_name = FALSE;
+
+#if IA64_ABI
+  if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
+      routine->special_kind == (a_special_function_kind)sfk_destructor) {
+    /* Use the primary entry point name for constructor and destructors.
+       Alternate entry points for non-inline template constructors and
+       destructors are instantiated when the primary entry point is
+       instantiated (there's only one entry on the instantiation list
+       representing all the entry points). */
+    force_primary_name = TRUE;
+  } /* if */
+#endif /* IA64_ABI */
+  mangled_name = get_mangled_function_name_full(routine, force_primary_name);
   return mangled_name;
 }  /* get_mangled_function_name */
 
