@@ -5810,11 +5810,8 @@ parameters.
           } else if (tkind == (a_type_kind)tk_union) {
             /* Sorry, there's just no way to say this in K&R C.  That is,
                there's no way to initialize a union so as to make it clear
-               that it is a definition. */
-#if CHECKING
-            internal_error(
- "C-generating back end limitation: no way to force definition of union in C");
-#endif /* CHECKING */
+               that it is a definition.  Leave it as it is and hope it works
+               out. */
           } else {
             /* Non-aggregates.  The zero initializer should work for all the
                scalar cases. */
