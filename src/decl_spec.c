@@ -2450,18 +2450,6 @@ to indicate whether an enumeration is actually defined.
       *declares_something = TRUE;
       set_source_corresp(&(enum_type->source_corresp), tag_sym);
       tag_sym->variant.enumeration.type = enum_type;
-      if (curr_token == tok_lbrace) {
-        mark_defined(tag_sym, &locator.source_position);
-      } else {
-        mark_declared(tag_sym, &locator.source_position);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        /* Set the first_declaration flag in the associated source-sequence
-           secondary declaration entry. */
-        (void)set_src_seq_secondary_decl_fields((char *)enum_type,
-                                                (a_type_ptr)NULL,
-                                                SSSD_FIRST_DECLARATION);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      }  /* if */
     } else {
       /* Unnamed enum.  Create a symbol to represent it. */
       tag_sym = make_unnamed_tag_symbol((a_symbol_kind)sk_enum_tag,
@@ -2469,18 +2457,6 @@ to indicate whether an enumeration is actually defined.
       set_source_corresp(&(enum_type->source_corresp), tag_sym);
       enum_type->source_corresp.name = NULL;
       tag_sym->variant.enumeration.type = enum_type;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (curr_token == tok_lbrace) {
-        /* An unnamed enum type.  mark_defined can't be called to put out a
-           source sequence entry for it, but we need one anyway, so call
-           the subroutine directly. */
-        if (!source_sequence_entries_disallowed) {
-          f_update_source_sequence_list((char *)enum_type,
-                                        (an_il_entry_kind)iek_type,
-                                        (a_source_sequence_entry_ptr)NULL);
-        }  /* if */
-      }  /* if */
-#endif  /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* set_source_corresp and mark_defined are not called, so clear the
          reference flag and copy in the decl position manually. */
       enum_type->source_corresp.referenced = FALSE;
@@ -2510,6 +2486,35 @@ to indicate whether an enumeration is actually defined.
        should be set based on the access recorded in the current scope stack
        entry. */
     enum_type->source_corresp.access = access;
+    if (tag_id_present) {
+      /* Note that mark_defined and mark_referenced are called after the
+         namespace/class membership has been specified. */
+      if (curr_token == tok_lbrace) {
+        mark_defined(tag_sym, &locator.source_position);
+      } else {
+        mark_declared(tag_sym, &locator.source_position);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        /* Set the first_declaration flag in the associated source-sequence
+           secondary declaration entry. */
+        (void)set_src_seq_secondary_decl_fields((char *)enum_type,
+                                                (a_type_ptr)NULL,
+                                                SSSD_FIRST_DECLARATION);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      }  /* if */
+    } else {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (curr_token == tok_lbrace) {
+        /* An unnamed enum type.  mark_defined can't be called to put out a
+           source sequence entry for it, but we need one anyway, so call
+           the subroutine directly. */
+        if (!source_sequence_entries_disallowed) {
+          f_update_source_sequence_list((char *)enum_type,
+                                        (an_il_entry_kind)iek_type,
+                                        (a_source_sequence_entry_ptr)NULL);
+        }  /* if */
+      }  /* if */
+#endif  /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
       /* In Microsoft compatibility mode enum types can be declared without

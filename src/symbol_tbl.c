@@ -1331,7 +1331,10 @@ Allocate a new symbol header, and return a pointer to it.
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   ptr->has_cfront_transitional_nested_type_mangled_name = FALSE;
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-
+#if RECORD_HIDDEN_NAMES_IN_IL
+  ptr->any_tag_decl = FALSE;
+  ptr->any_decl_in_file_or_namespace_scope = FALSE;
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   db_exit();
 
   return ptr;
@@ -4440,6 +4443,11 @@ called at the point where the #include <stdarg.h> appears.
          proper type. */
       sym = full_enter_symbol(VA_LIST_NAME, (sizeof_t)(sizeof(VA_LIST_NAME)-1),
                               (a_symbol_kind)sk_type, DEPTH_OF_FILE_SCOPE);
+#if RECORD_HIDDEN_NAMES_IN_IL
+      /* Set the flag directly, since record_symbol_declaration is not
+         called. */
+      sym->header->any_decl_in_file_or_namespace_scope = TRUE;
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
     }  /* if */
     /* Build a typedef for va_list.  This is done even when there is
        an existing symbol, because we need a declaration at the right

@@ -5960,6 +5960,15 @@ return a pointer to it in *symbol_ptr.
         set_source_corresp(&(tp->source_corresp), sym);
         tp->source_corresp.referenced = saved_referenced_flag;
         suppress_redecl_error = TRUE;
+#if RECORD_HIDDEN_NAMES_IN_IL
+        /* Set the flags directly, since record_symbol_declaration is not
+           called. */
+        sym->header->any_tag_decl = TRUE;
+        if (sym->decl_scope == FILE_SCOPE_NUMBER ||
+            (!sym->is_class_member && sym->parent.namespace_ptr != NULL)) {
+          sym->header->any_decl_in_file_or_namespace_scope = TRUE;
+        }  /* if */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
         /* Note that we do not look for conflicts between the class's new
            name and the names of its members.  This is an area where the
            wording of the ARM (7.1.3) has been clarified and/or amended by

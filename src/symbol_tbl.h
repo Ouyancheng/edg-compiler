@@ -2216,6 +2216,15 @@ typedef struct a_symbol_header {
                            set indicating that its name should be mangled as
                            if it were not a nested type. */
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  a_bit_field	any_tag_decl:1;
+			/* TRUE if any symbol represents a tag declaration. */
+  a_bit_field	any_decl_in_file_or_namespace_scope:1;
+			/* TRUE if any symbol represents a declaration in
+			   the file scope or in a namespace scope (i.e., a
+			   non-class-member declaration that can be referred
+			   to with a qualified name). */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 } a_symbol_header;
 
 

@@ -3393,6 +3393,19 @@ unit.
            end of the file scope. */
       } else {
         end_of_scope_symbol_check(sym, curr_routine);
+#if RECORD_HIDDEN_NAMES_IN_IL
+#if CHECKING
+        if (!sym->is_error && sym->kind != (a_symbol_kind)sk_undefined) {
+          if (is_tag_symbol(sym)) {
+            check_assertion(sym->header->any_tag_decl);
+          }  /* if */
+          if (kind == (a_scope_kind)sck_file ||
+              kind == (a_scope_kind)sck_namespace) {
+            check_assertion(sym->header->any_decl_in_file_or_namespace_scope);
+          }  /* if */
+        }  /* if */
+#endif /* CHECKING */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
       }  /* if */
       if (sym->kind == (a_symbol_kind)sk_extern_variable ||
           sym->kind == (a_symbol_kind)sk_extern_routine) {
@@ -3803,10 +3816,17 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
   }  /* if */
 #if RECORD_HIDDEN_NAMES_IN_IL
-  if (kind == (a_scope_kind)sck_function ||
-      kind == (a_scope_kind)sck_block ||
-      kind == (a_scope_kind)sck_file) {
-    check_name_hiding_for_scope(ssep->il_scope);
+  if (!C_mode() && total_errors == 0) {
+    if (kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_block ||
+        kind == (a_scope_kind)sck_file) {
+      /* Now that all declarations in the scope have been seen, check for
+         name hiding.  The hidden name table assists the C++-generating back
+         end to determine when to put out qualified names and elaborated
+         type specifiers.  Note that namespace and class scopes are handled
+         when the scopes in which they are directly nested are processed. */
+      check_name_hiding_for_scope(ssep->il_scope);
+    }  /* if */
   }  /* if */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   /* Remove symbols from the symbol table, and reenter them on the
