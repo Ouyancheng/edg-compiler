@@ -586,7 +586,7 @@ The situation we are looking for (discussed in ARM 10.10c) is of this sort:
 	class A { virtual int f(); };
         class B : virtual A { int f(); };
         class C : virtual A { int f(); };
-        class D : A, B { };
+        class D : B, C { };
 or in graphical terms:
            A          virtual function A::f() is declared
           / \ 
@@ -603,7 +603,7 @@ entries would have been created for both B::f() and C::f() when the base
 classes were declared; both would have indicated that A::f() was being
 overridden.  If D::f() were then defined, it would be added to the list
 and both B::f() and C::f() removed, but otherwise the two overriding
-functions would remain.  When this routine finds for two overriding
+functions would remain.  When this routine finds two or more overriding
 virtual function entries that override the same function, it reports the
 ambiguity.
 */
@@ -2631,8 +2631,7 @@ of the function, and again overloading is a possibility.
                    &locator->source_position, sym);
       sym = NULL;
       set_to_error_locator(*locator);
-    }  /* if */
-    if (sym == NULL || !is_member_function_symbol(sym)) {
+    } else if (sym == NULL || !is_member_function_symbol(sym)) {
       /* Not a member function.  Get the symbol -- the rest of what's
          returned from decl_var_or_routine is not relevant for processing
          in this context. */
