@@ -5828,13 +5828,14 @@ compiler-generated expression temporaries.  (Such temporaries have shorter
 lifetimes than normal variables.)
 */
 {
-  a_cleanup_action_ptr cap, prev_cap;
+  a_cleanup_action_ptr cap, prev_cap, next_cap;
 
   /* Go through the list of cleanup actions, find the ones for temporaries,
      and unlink them. */
   for (prev_cap = NULL, cap = curr_context->cleanup_actions;
        cap != NULL;
-       cap = cap->next) {
+       cap = next_cap) {
+    next_cap = cap->next;
     if (cap->kind == cak_destruction &&
         cap->variant.object.is_expr_temporary) {
       /* Remove this entry from the list. */
@@ -5843,6 +5844,8 @@ lifetimes than normal variables.)
       } else {
         prev_cap->next = cap->next;
       }  /* if */
+      cap->next = NULL;
+      free_cleanup_action_list(cap);
     } else {
       /* Keep this entry. */
       prev_cap = cap;
