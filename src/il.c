@@ -8104,7 +8104,7 @@ fields, and return a pointer to it.
 #endif /* DEBUG */
   set_default_source_corresp(tp->source_corresp);
   tp->next = NULL;
-  tp->kind = templk_none;
+  tp->kind = (a_template_kind)templk_none;
   tp->text = NULL;
 
   return tp;

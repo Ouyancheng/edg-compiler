@@ -248,7 +248,7 @@ buffer.
     len = strlen(str);
     /* Be sure there's room in the buffer before copying in the string. */
     ensure_templ_str_buffer_space(pos_in_templ_str_buffer + len);
-    strncpy(&templ_str_buffer[pos_in_templ_str_buffer], str, len);
+    strncpy(&templ_str_buffer[pos_in_templ_str_buffer], str, size_t_arg(len));
     pos_in_templ_str_buffer += len;
   }  /* if */
 }  /* add_string_to_template_string */
