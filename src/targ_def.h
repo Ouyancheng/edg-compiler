@@ -736,6 +736,29 @@ processing.
 			   targ_minimum_struct_alignment. */
 #endif /* !defined(TARG_MINIMUM_STRUCT_ALIGNMENT) */
 
+#if USER_CONTROL_OF_STRUCT_PACKING
+/*
+Set the minimum and maximum values which a "pack alignment" value may have.
+This is an alignment that is the maximum alignment for a nonstatic data
+member of a class; it can force a member to be aligned at a lesser alignment
+than its type type would normally require.
+*/
+#ifndef TARG_MINIMUM_PACK_ALIGNMENT
+#define TARG_MINIMUM_PACK_ALIGNMENT 1
+			/* Default value, used to initialize global variable
+			   targ_minimum_pack_alignment. */
+#endif /* !defined(TARG_MINIMUM_PACK_ALIGNMENT) */
+#ifndef TARG_MAXIMUM_PACK_ALIGNMENT
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define TARG_MAXIMUM_PACK_ALIGNMENT 16
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define TARG_MAXIMUM_PACK_ALIGNMENT 8
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+			/* Default value, used to initialize global variable
+			   targ_maximum_pack_alignment. */
+#endif /* !defined(TARG_MAXIMUM_PACK_ALIGNMENT) */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+
 #if BACK_END_IS_C_GEN_BE
 /*
 Switch that is TRUE if the C-generating back end should generate code for
