@@ -1,5 +1,20 @@
 Version 2.33
 
+8/1/96  Cfront mode disambiguation problem with parameter whose type is
+        a function type
+
+In cfront mode, certain declarations that should be considered to be
+functions are treated as objects (f2 in the example below).  However,
+too many cases were being given this special treatment in cfront mode.
+In particular, a function type (f3 in the example below) was incorrectly
+being treated as an ill-formed object initializer.  This has been fixed.
+
+  int f;
+  extern "C" int f1(void (*f)(void));  // accepted
+  extern "C" int f2(int (f)); // object in cfront mode, function in default
+  extern "C" int f3(void (f)(void)); // incorrectly considered an object in
+                                     // cfront mode
+
 7/31/96 Diagnostic on omitted mem-initializer for const member
 
 If a mem-initializer for a const member with no constructor is omitted

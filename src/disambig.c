@@ -611,9 +611,13 @@ part of a declarator is found, may_be_decl is set to FALSE.
          This processing is not done when prescanning template declarations
          because we know the thing being scanned is a declaration and not
          an expression. */
-      if (curr_token == tok_identifier && next_token() == tok_rparen) {
-        /* Construct like "A(x);". */
-        treat_as_expr = TRUE;
+      a_token_kind	token_2;
+      if (curr_token == tok_identifier &&
+          next_two_tokens(tok_rparen, &token_2) == tok_rparen) {
+        if (token_2 != tok_lparen) {
+          /* Construct like "A(x);", but not "A(x)(...)". */
+          treat_as_expr = TRUE;
+        }  /* if */
       } else if (curr_token == tok_rparen) {
         /* Construct like "A a(int());". */
         treat_as_expr = TRUE;
