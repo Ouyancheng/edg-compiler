@@ -1,5 +1,8 @@
 Version 2.07
 
+7/1/92   Error is now issued on taking the address of a constructor
+         or destructor.
+
 6/30/92  Type compatibility
 
 A new macro has been added, types_are_strictly_compatible, and the
