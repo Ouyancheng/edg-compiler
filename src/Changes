@@ -1,30 +1,5 @@
 Version 2.46
 
-3/2/01   Warning instead of loop on attempt to use preprocessing
-         directive within macro arguments
-
-The C and C++ standards say that use of preprocessing directives within
-arguments of macro invocations is undefined behavior.  Formerly, an
-attempt to do this could result in a loop in the preprocessor.
-Now, it gets a warning and the apparent preprocessing directive is
-just treated as tokens (and thus the loop is eliminated).
-
-  #define A(U)    ((U) + (U))
-  #define B       1
-  #define C       2
-  #define D       3
-  #define S(U, V) ((U) * (V))
-  #define T 1
-  const int X = S(A(0),
-  #if T == 1
-    B
-  #elif T == 2
-    C
-  #elif T == 4
-    D
-  #endif
-  );
-
 3/1/01   Lowering of compound literals in parameter VLA bound expressions
 
 C99 compound literals in bound expressions of variable-length-array

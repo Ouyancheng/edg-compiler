@@ -1112,7 +1112,6 @@ ec_corresp_decl_incompatible;;"declaration of %nf is incompatible with a declara
 ec_corresp_decl_at;;"the previous declaration was at %p"
 ec_det_during_compilation_of_secondary_trans_unit;INTERNAL;"detected during compilation of secondary translation unit %sq"
 ec_compilation_of_secondary_trans_unit_context;INTERNAL;"compilation of secondary translation unit %sq"
-ec_no_pp_dir_in_macro_call;;"preprocessing directives are not recognized within macro arguments"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
