@@ -455,6 +455,16 @@ Initialize the option information table.
   add_option_description(optk_bool_is_keyword, "no_bool",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
+  add_option_description(optk_array_new_and_delete,
+                         "array_new_and_delete", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_array_new_and_delete,
+                         "no_array_new_and_delete", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
 }  /* initialize_option_descriptions */
 
 
@@ -1334,6 +1344,12 @@ Process the arguments on the command line that invoked the compiler.
         /* bool is or is not a keyword. */
         bool_is_keyword = opt_value;
         break;
+#if ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
+      case optk_array_new_and_delete:
+        /* Enable/disable array new and delete. */
+        array_new_and_delete_enabled = opt_value;
+        break;
+#endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1385,6 +1401,11 @@ Process the arguments on the command line that invoked the compiler.
       command_line_error(ec_cl_rtti_option_only_in_cplusplus);
     }  /* if */
 #endif /* RTTI_ENABLING_POSSIBLE */
+#if ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
+    if (option_kind_used[(int)optk_array_new_and_delete]) {
+      command_line_error(ec_cl_array_new_and_delete_option_only_in_cplusplus);
+    }  /* if */
+#endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
     if (option_kind_used[(int)optk_wchar_t_is_keyword]) {
       command_line_error(ec_cl_wchar_t_option_only_in_cplusplus);
     }  /* if */
@@ -1398,6 +1419,7 @@ Process the arguments on the command line that invoked the compiler.
        the default value is on. */
     exceptions_enabled = FALSE;
     rtti_enabled = FALSE;
+    array_new_and_delete_enabled = FALSE;
     wchar_t_is_keyword = FALSE;
     bool_is_keyword = FALSE;
     alternative_tokens_allowed = FALSE;
@@ -1466,6 +1488,10 @@ Process the arguments on the command line that invoked the compiler.
       /* Enable RTTI. */
       rtti_enabled = TRUE;
 #endif /* RTTI_ENABLING_POSSIBLE */
+#if ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
+      /* Enable array new and delete. */
+      array_new_and_delete_enabled = TRUE;
+#endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the
        error threshold was set at a higher level. */

@@ -214,6 +214,16 @@ which can be modified by the "--rtti" or "--no_rtti" command-line options.
 #endif /* ifndef DEFAULT_RTTI_ENABLED */
 
 /*
+Flag that is TRUE if, in C++, support for array new and delete is enabled
+by default.  This is the default value of the variable
+array_new_and_delete_enabled, which can be modified by the
+"--array_new_and_delete" or "--no_array_new_and_delete" command-line options.
+*/
+#ifndef DEFAULT_ARRAY_NEW_AND_DELETE_ENABLED
+#define DEFAULT_ARRAY_NEW_AND_DELETE_ENABLED TRUE
+#endif /* ifndef DEFAULT_ARRAY_NEW_AND_DELETE_ENABLED */
+
+/*
 Flag that is TRUE to enable automatic instantiation support for templates.
 This flag determines whether the code for automatic instantiation is
 to be compiled.

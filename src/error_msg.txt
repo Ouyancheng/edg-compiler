@@ -759,6 +759,7 @@ ec_incr_of_bool_deprecated;;"incrementing a bool value is deprecated"
 ec_bool_type_not_allowed;;"bool type is not allowed"
 ec_base_class_offset_too_large;;"offset of base class %no1 within class %no2 is too large"
 ec_expr_not_bool;;"expression must have bool type (or be convertible to bool)"
+ec_cl_array_new_and_delete_option_only_in_cplusplus;;"array new and delete option can be used only when compiling C++"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
