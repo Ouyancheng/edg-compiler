@@ -155,8 +155,6 @@ extern void set_arg_transfer_method_flag(a_param_type_ptr   ptp,
 extern a_param_type_ptr make_param_type(a_type_ptr         tp,
                                         a_source_position  *decl_pos);
 
-extern void add_placeholder_for_class_instantiation(a_type_ptr  type_ptr);
-
 extern a_boolean may_be_added_to_types_list(a_type_ptr     type_ptr,
                                             a_scope_depth  decl_level);
 
