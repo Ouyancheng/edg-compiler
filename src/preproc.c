@@ -758,17 +758,23 @@ FALSE.
     put_str_to_temp_text_buffer("<");
     /* Fetch tokens until ">" and put the text for them into the
        temp_text_buffer. */
-    while (get_token() != tok_gt) {
+    for (;;) {
+      a_boolean white_space_skipped;
+      skip_white_space();
+      white_space_skipped = (kind_of_white_space_skipped != 0);
+      /* End the loop on the closing ">". */
+      if (get_token() == tok_gt) break;
       if (curr_token == tok_newline) {
         /* Missing closing ">". */
         curr_token = tok_error;
         pos_in_temp_text_buffer = 0;
         goto end_of_header_name;
       }  /* if */
+      if (white_space_skipped) put_ch_to_temp_text_buffer(' ');
       for (p = start_of_curr_token; p <= end_of_curr_token; p++) {
         put_ch_to_temp_text_buffer(*p);
       }  /* for */
-    }  /* while */
+    }  /* for */
     put_str_to_temp_text_buffer(">");
     if (pos_in_temp_text_buffer == 2) {
       /* Error: empty <> is not valid. */

@@ -1,5 +1,16 @@
 Version 2.45
 
+12/14/00 Spaces in macro-expanded file name in #include
+
+The file name in a #include directive can be produced by macro expansion.
+A change made to the processing for the "<...>" form of #include
+resulted in the removal of any spaces in the file name.  Some systems
+make use of such names, and the removal of the spaces produced
+the wrong file name.  Now fixed.
+
+ #define INCHEADER(x) <C:\Program Files\Microsoft Visual Studio\VC98\Include\x>
+ #include INCHEADER(exception)
+
 12/13/00 Conditional destruction of temporary added by implicit conversion
          for operand of "?"
 
