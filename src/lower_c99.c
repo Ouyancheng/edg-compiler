@@ -1381,7 +1381,7 @@ destination) to a runtime call).
        expression. */
     check_assertion(is_fixed_point_type(src_type));
 #if LOWER_COMPLEX
-    dst_type = float_type(dst_type->variant.float_kind);
+    dst_type = float_type(base_dst_type->variant.float_kind);
 #endif /* LOWER_COMPLEX */
     make_zero_of_proper_type(dst_type, &zero_constant);
     new_expr = make_comma_node(src, alloc_node_for_constant(&zero_constant));
