@@ -8468,8 +8468,9 @@ Add the IL macro entry pointed to by mp to the list for the file scope.
 
 #endif /* RECORD_MACROS_IN_IL */
 #if MAINTAIN_NEEDED_FLAGS
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 
+#if 0
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 static a_boolean any_scope_orphaned_lists(a_scope_ptr  scope)
 /*
 Return TRUE if one or more scope orphaned lists will have been produced
@@ -8500,6 +8501,7 @@ points to.
   }  /* if */
   return found;
 }  /* any_scope_orphaned_lists */
+
 
 static void eliminate_unneeded_scope_orphaned_list_headers(a_routine_ptr rp,
                                                            a_scope_ptr   scope)
@@ -8532,6 +8534,7 @@ for the function body that is being eliminated.
 }  /* eliminate_unneeded_scope_orphaned_list_headers */
 
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#endif /* if 0 */
 
 void eliminate_bodies_of_unneeded_functions(void)
 /*
@@ -8581,10 +8584,6 @@ later.
         }  /* if */
         rp->defined_in_friend_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-        /* Remove any scope-orphaned-list entries created for this routine. */
-        (void)eliminate_unneeded_scope_orphaned_list_headers(rp, sp);
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
         /* Reset the routine entry to undefined state. */
         rp->defined = FALSE;
         rp->assoc_scope = NULL_region_number;
@@ -8597,6 +8596,70 @@ later.
 }  /* eliminate_bodies_of_unneeded_functions */
 
 
+void eliminate_unneeded_variables_from_list(a_variable_ptr *list)
+/*
+*/
+{
+  a_variable_ptr   vp, prev_vp, next_vp;
+
+  prev_vp = NULL;
+  for (vp = *list; vp != NULL; vp = next_vp) {
+    next_vp = vp->next;
+#if DEBUG
+    if (debug_level >= 4) {
+      fprintf(f_debug, "%semoving variable ",
+              il_entry_prefix_of(vp).keep_in_il ? "Not r" : "R");
+      db_name(&vp->source_corresp);
+      fputc('\n', f_debug);
+    }  /* if */
+#endif /* DEBUG */
+    if (!il_entry_prefix_of(vp).keep_in_il) {
+      /* Remove it from the variables list by linking around it. */
+      if (prev_vp == NULL) {
+        *list = vp->next;
+      } else {
+        prev_vp->next = vp->next;
+      }  /* if */
+      vp->next = NULL;
+    } else {
+      prev_vp = vp;
+    }  /* if */
+  }  /* for */  
+}  /* eliminate_unneeded_variables_from_list */
+
+
+void eliminate_unneeded_types_from_list(a_type_ptr *list)
+/*
+*/
+{
+  a_type_ptr   tp, prev_tp, next_tp;
+
+  prev_tp = NULL;
+  for (tp = *list; tp != NULL; tp = next_tp) {
+    next_tp = tp->next;
+#if DEBUG
+    if (debug_level >= 4) {
+      fprintf(f_debug, "%semoving ",
+              il_entry_prefix_of(tp).keep_in_il ? "Not r" : "R");
+      db_abbreviated_type(tp);
+      fputc('\n', f_debug);
+    }  /* if */
+#endif /* DEBUG */
+    if (!il_entry_prefix_of(tp).keep_in_il) {
+      /* Remove it from the types list by linking around it. */
+      if (prev_tp == NULL) {
+        *list = tp->next;
+      } else {
+        prev_tp->next = tp->next;
+      }  /* if */
+      tp->next = NULL;
+    } else {
+      prev_tp = tp;
+    }  /* if */
+  }  /* for */  
+}  /* eliminate_unneeded_types_from_list */
+
+
 void eliminate_unneeded_il_entries(a_scope_ptr scope)
 /*
 Remove selected IL entries from the IL tree.  scope is the file scope or
@@ -8607,7 +8670,6 @@ eliminated, if appropriate.
 */
 {
   a_namespace_ptr  nsp;
-  a_variable_ptr   vp, prev_vp, next_vp;
   a_type_ptr       tp, prev_tp, next_tp;
   a_routine_ptr    rp, prev_rp, next_rp;
 
@@ -8622,6 +8684,8 @@ eliminated, if appropriate.
   }  /* for */
   /* Go through the list of variables that were declared in the current
      scope, removing any for which the keep_in_il flag is FALSE. */
+  eliminate_unneeded_variables_from_list(&scope->variables);
+#if 0
   prev_vp = NULL;
   for (vp = scope->variables; vp != NULL; vp = next_vp) {
     next_vp = vp->next;
@@ -8645,6 +8709,7 @@ eliminated, if appropriate.
       prev_vp = vp;
     }  /* if */
   }  /* for */  
+#endif /* if 0 */
   prev_rp = NULL;
   for (rp = scope->routines; rp != NULL; rp = next_rp) {
     next_rp = rp->next;
@@ -8667,7 +8732,7 @@ eliminated, if appropriate.
     } else {
       prev_rp = rp;
     }  /* if */
-  }  /* for */  
+  }  /* for */
   prev_tp = NULL;
   for (tp = scope->types; tp != NULL; tp = next_tp) {
     next_tp = tp->next;
@@ -8791,6 +8856,35 @@ eliminated, if appropriate.
 #endif /* DEBUG */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  if (scope->kind == (a_scope_kind)sck_file) {
+    a_scope_orphaned_list_header_ptr  solhp, prev_solhp, next_solhp;
+    prev_solhp = NULL;
+    for (solhp = il_header.scope_orphaned_list_headers;
+         solhp != NULL;
+         solhp = next_solhp) {
+      next_solhp = solhp->next;
+      rp = solhp->assoc_routine;
+      if (rp->defined) {
+        prev_solhp = solhp;
+      } else {
+        eliminate_unneeded_variables_from_list(&solhp->orphaned_variables);
+        eliminate_unneeded_types_from_list(&solhp->orphaned_types);
+        if (solhp->orphaned_variables != NULL ||
+            solhp->orphaned_types != NULL) {
+          prev_solhp = solhp;
+        } else {
+          if (prev_solhp == NULL) {
+            il_header.scope_orphaned_list_headers = next_solhp;
+          } else {
+            prev_solhp->next = next_solhp;
+          }  /* if */
+          solhp->next = NULL;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   db_exit();
 }  /* eliminate_unneeded_il_entries */
 
