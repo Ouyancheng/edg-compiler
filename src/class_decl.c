@@ -4485,7 +4485,7 @@ operator routine or do bitwise assignment.
   a_symbol_ptr                   sym;
   a_boolean                      pass_by_value, const_source_var;
   a_param_type_ptr               ptp;
-  a_boolean                      bitwise_assign, err = FALSE;
+  a_boolean                      bitwise_assign;
 
   db_enter(4, "make_default_assignment_body");
   /* The source variable of the copy is the first parameter on the parameters
@@ -4551,17 +4551,10 @@ operator routine or do bitwise assignment.
              operator and put out a call to it. */
           rp = select_assignment_operator(bcp->type, const_source_var,
                                           /*volatile_object_required=*/FALSE,
-                                          err_pos, &pass_by_value);
+                                          &bcp->decl_position, &pass_by_value);
           if (rp == NULL) {
             /* Error has already been issued in the subroutine. */
             continue;
-          }  /* if */
-          /* Any assignment operator invoked by this publicly accessible
-             compiler-generated assignment operator should itself be publicly
-             accessible. (This is not exactly what ARM 12.8 says, but it
-             seems to be the intent.) */
-          if (rp->source_corresp.access != (an_access_specifier)as_public) {
-            err = TRUE;
           }  /* if */
           if (pass_by_value) {
             source_expr = add_indirection_to_node(source_expr);
@@ -4586,20 +4579,15 @@ operator routine or do bitwise assignment.
       if (sym->kind == (a_symbol_kind)sk_field) {
         /* A field. */
         fp = sym->variant.field.ptr;
-        tp = fp->type;
-        /* An assignment operator should not be generated if a member has a
-           reference type. */
-        if (is_reference_type(tp)) err = TRUE;
+        tp = skip_typerefs(fp->type);
+        /* The check for const and ref members has already been done. */
         /* If this is an array, we need the element type. */
-        array_type = NULL;
         if (is_array_type(tp)) {
           array_type = tp;
-          tp = underlying_array_element_type(tp);
+          tp = skip_typerefs(underlying_array_element_type(tp));
+        } else {
+          array_type = NULL;
         }  /* if */
-        /* An assignment operator should not be generated if a member has a
-           const type. */
-        if (is_const_qualified_type(tp)) err = TRUE;
-        tp = skip_typerefs(tp);
         /* The destination is the appropriate field (lvalue) of the "this"
            parameter. */
         dest_expr = field_lvalue_selection_expr(this_param_value_expr(), fp);
@@ -4620,17 +4608,11 @@ operator routine or do bitwise assignment.
             bitwise_assign = FALSE;
             rp = select_assignment_operator(tp, const_source_var,
                                             /*volatile_object_required=*/FALSE,
-                                            err_pos, &pass_by_value);
+                                            &fp->source_corresp.decl_position,
+                                            &pass_by_value);
             if (rp == NULL) {
               /* Error has already been issued in the subroutine. */
               continue;
-            }  /* if */
-            /* Any assignment operator invoked by this publicly accessible
-               compiler-generated assignment operator should itself be publicly
-               accessible. (This is not exactly what ARM 12.8 says, but it
-               seems to be the intent.) */
-            if (rp->source_corresp.access != (an_access_specifier)as_public) {
-              err = TRUE;
             }  /* if */
             source_expr = field_lvalue_selection_expr(source_expr, fp);
             if (array_type != NULL) {
@@ -4740,33 +4722,80 @@ operator routine or do bitwise assignment.
      it. */
   scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
   scope->assoc_block->variant.block.statements = head_of_statement_list.next;
-  /* If at any point in processing a condition was detected that should
-     disallow a compiler-generated assignment operator, issue an error now.
-     Such conditions are a const member, a reference member, or a member or a
-     base class with a private (which we interpret to *really* mean
-     nonpublic) operator=() (ARM 12.8). */
-  if (err) {
-    sym = (a_symbol_ptr)scope->variant.routine.ptr->source_corresp.assoc_info;
-    pos_sy_error(ec_missing_user_defined_assignment_for_copy, err_pos, sym);
-  }  /* if */
   db_exit();
   return;
 }  /* make_default_assignment_body */
 
 
-void define_special_member_function(a_routine_ptr      rout_ptr,
-                                    a_type_ptr         class_type,
-                                    a_source_position  *err_pos)
+static void check_default_assignment_operator(a_type_ptr         class_type,
+                                              a_source_position  *err_pos)
+/*
+Issue an error if a compiler-generated assignment operator is not allowed
+because the class has a const or ref member (ARM 12.8).  The case of a
+member or a base class with a nonpublic operator=() is handled elsewhere.
+*/
+{
+  a_boolean     err, is_ref, is_const;
+  a_symbol_ptr  sym;
+  a_type_ptr    tp;
+
+  db_enter(4, "check_default_assignment_operator");
+  if (class_type->variant.class_struct_union.any_const_member ||
+      symbol_supplement_for_class(class_type)->any_ref_member) {
+    /* An error is issued only if a immediate member of the class is const or
+       ref.  Those in base classes or embedded within members are diagnosed
+       elsewhere. */
+    err = FALSE;
+    /* Go through all the fields, using the symbol list rather than the field
+       list to be sure only user defined fields are checked and to be sure
+       anonymous union fields are picked up. */
+    sym = ((a_symbol_ptr)class_type->source_corresp.assoc_info)->
+                           variant.class_struct_union.extra_info->symbols;
+    for (; sym != NULL; sym = sym->next_in_scope) {
+      if (sym->kind == (a_symbol_kind)sk_field) {
+        tp = sym->variant.field.ptr->type;
+        is_ref = is_const = FALSE;
+        if (is_reference_type(tp)) {
+          /* An assignment operator should not be generated if a member has a
+             ref type. */
+          is_ref = TRUE;
+        } else {
+          if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+          /* An assignment operator should not be generated if a member has a
+             const type. */
+          if (is_const_qualified_type(tp)) is_const = TRUE;
+        }  /* if */
+        if (is_ref || is_const) {
+          if (!err) {
+            /* Multi-line diagnostic has not been started yet. */
+            pos_start_error(ec_bad_default_assignment, err_pos);
+          }  /* if */
+          sym_add_diag_info(is_ref ? ec_reference_member : ec_const_member,
+                            sym);
+          err = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (err) end_error();
+  }  /* if */
+  db_exit();
+}  /* check_default_assignment_operator */
+
+
+static void define_special_member_function(a_routine_ptr  rout_ptr)
 /*
 Define a compiler generated routine for a member function (constructor or
 destructor).  This entails creating a new memory region, a scope, and an
 empty statement block.
 */
 {
-  a_scope_ptr               scope;
-  a_routine_type_supplement *rtsp = rout_ptr->type->variant.routine.extra_info;
+  a_scope_ptr                    scope;
+  a_type_ptr                     class_type;
+  a_routine_type_supplement_ptr  rtsp;
+  a_source_position              *err_pos;
 
   db_enter(4, "define_special_member_function");
+  class_type = rout_ptr->source_corresp.class_of_which_a_member;
   if (symbol_supplement_for_class(class_type)->is_nonreal_class) {
     /* Don't bother generating the definition for a member of an unreal
        instantiation of a template class. */
@@ -4781,6 +4810,7 @@ empty statement block.
     /* Associate the scope to the routine entry and the routine entry to its
        type entry. */
     rout_ptr->assoc_scope = curr_il_region_number;
+    rtsp = rout_ptr->type->variant.routine.extra_info;
     rtsp->assoc_routine = rout_ptr;
     scope->variant.routine.this_param_variable =
                   make_param_variable(rtsp->implicit_this_param_type,
@@ -4797,6 +4827,8 @@ empty statement block.
       check_assertion(rout_ptr->special_kind ==
                                    (a_special_function_kind)sfk_operator &&
                       rout_ptr->opname_kind == (an_opname_kind)onk_assign);
+      err_pos = &class_type->source_corresp.decl_position;
+      check_default_assignment_operator(class_type, err_pos);
       make_default_assignment_body(scope, err_pos);
     }  /* if */
     /* End of statement block is unreachable because of the return
@@ -4897,35 +4929,31 @@ marked as referenced.
        call might actually be of an overriding function. */
   } else {
     /* Non-virtual call. */
-    mark_routine_referenced(rp, err_pos);
+    mark_routine_referenced(rp);
   }  /* if */
 }  /* reference_to_implicitly_invoked_function */
 
 
-void f_force_definition_of_compiler_generated_routine(
-                                                   a_routine_ptr     routine,
-                                                   a_source_position *position)
+void force_definition_of_compiler_generated_routine(a_routine_ptr  rp)
 /*
-routine points to a compiler-generated routine that is being referenced
-and whose definition has not yet been generated.  Force the definition
-now.  This routine is intended to be called from the macro
-force_definition_of_compiler_generated_routine.
+If rp points to a compiler-generated routine that is being referenced and
+whose definition has not yet been generated, force the definition now.
 */
 {
-  a_type_ptr              class_type =
-                               routine->source_corresp.class_of_which_a_member;
-  a_special_function_kind skind = routine->special_kind;
+  a_special_function_kind  skind = rp->special_kind;
 
-  /* Only force a definition for constructors, destructors, and
-     operator= functions.  In particular, do not try to define operator new
-     and delete functions. */
-  if (skind == (a_special_function_kind)sfk_constructor ||
-      skind == (a_special_function_kind)sfk_destructor  ||
-      (skind == (a_special_function_kind)sfk_operator &&
-       routine->opname_kind == (an_opname_kind)onk_assign)) {
-    define_special_member_function(routine, class_type, position);
+  if (rp->compiler_generated && rp->assoc_scope == NULL_region_number) {
+    /* Only force a definition for constructors, destructors, and
+       operator= functions.  In particular, do not try to define operator new
+       and delete functions. */
+    if (skind == (a_special_function_kind)sfk_constructor ||
+        skind == (a_special_function_kind)sfk_destructor  ||
+        (skind == (a_special_function_kind)sfk_operator &&
+         rp->opname_kind == (an_opname_kind)onk_assign)) {
+      define_special_member_function(rp);
+    }  /* if */
   }  /* if */
-}  /* f_force_definition_of_compiler_generated_routine */
+}  /* force_definition_of_compiler_generated_routine */
 
 
 static a_boolean default_assignment_of_const_object_okay(a_type_ptr class_type)
@@ -7442,7 +7470,7 @@ because they were used in declaring an external function or variable.
                virtual function table in which its address will appear is
                being generated.  (Since no errors are issued on the definitions
                of destructors, the error position used has no effect.) */
-            define_special_member_function(rp, tp, &error_position);
+            define_special_member_function(rp);
           }  /* if */
         }  /* if */
       }  /* if */
