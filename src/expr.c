@@ -13840,6 +13840,9 @@ handle_trapped_left_paren:
     case tok_int32:
     case tok_int64:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    case tok_typeof:
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case tok_typename:
       /* In C++, these type keywords begin a functional-notation type
          conversion (ARM 5.2.3).  In C, they're a syntax error. */
@@ -13851,6 +13854,10 @@ handle_trapped_left_paren:
           /* "typename X::Y" is an allowed form of type. */
           typename_specifier(&cast_type, /*within_using_decl=*/FALSE,
                              (a_decl_pos_block_ptr)NULL);
+#if GNU_EXTENSIONS_ALLOWED
+        } else if (curr_token == tok_typeof) {
+          cast_type = scan_typeof_operator();
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_mode) {
           /* The Microsoft compiler allows things like "unsigned int(x)". */
