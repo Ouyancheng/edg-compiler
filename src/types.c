@@ -2144,6 +2144,46 @@ for exact pointer equality.
 }  /* f_types_are_compatible */
 
 
+static an_integer_kind canonical_integer_kind_of(a_type_ptr type)
+/*
+For the integral type given return the canonical (signedness-free)
+integer kind (e.g., "unsigned int" and "int" both yield ik_int).
+*/
+{
+  an_integer_kind ikind;
+
+  check_assertion(is_integral(type));
+  ikind = type->variant.integer.int_kind;
+  if (ikind == (an_integer_kind)ik_signed_char ||
+      ikind == (an_integer_kind)ik_unsigned_char) {
+    ikind = (an_integer_kind)ik_char;
+  } else if (ikind == (an_integer_kind)ik_unsigned_short) {
+    ikind = (an_integer_kind)ik_short;
+  } else if (ikind == (an_integer_kind)ik_unsigned_int) {
+    ikind = (an_integer_kind)ik_int;
+  } else if (ikind == (an_integer_kind)ik_unsigned_long) {
+    ikind = (an_integer_kind)ik_long;
+#if LONG_LONG_ALLOWED
+  } else if (ikind == (an_integer_kind)ik_unsigned_long_long) {
+    ikind = (an_integer_kind)ik_long_long;
+#endif /* LONG_LONG_ALLOWED */
+  }  /* if */
+  return ikind;
+}  /* canonical_integer_kind_of */
+
+
+a_boolean integral_types_the_same_except_for_signedness(a_type_ptr type_1,
+                                                        a_type_ptr type_2)
+/*
+Return TRUE if the integral types type_1 and type_2 are the same type
+except for signedness.
+*/
+{
+  return (canonical_integer_kind_of(type_1) ==
+          canonical_integer_kind_of(type_2));
+}  /* integral_types_the_same_except_for_signedness */
+
+
 a_boolean interchangeable_types(a_type_ptr type_1,
                                 a_type_ptr type_2)
 /*
@@ -2163,7 +2203,6 @@ that is not required to be checked by the ANSI C standard.
 */
 {
   a_boolean       interch = FALSE;
-  an_integer_kind ikind1, ikind2;
   a_type_ptr      ptr_type_1, ptr_type_2;
 
   db_enter(5, "interchangeable_types");
@@ -2197,40 +2236,9 @@ that is not required to be checked by the ANSI C standard.
     if (strict_ansi_mode) {
       /* In strict ANSI mode (C or C++), two integral types are interchangeable
          if they're the same type with signedness ignored. */
-      /* Reduce the integral kinds to canonical (signedness-free) versions. */
-      ikind1 = type_1->variant.integer.int_kind;
-      if (ikind1 == (an_integer_kind)ik_signed_char ||
-          ikind1 == (an_integer_kind)ik_unsigned_char) {
-        ikind1 = (an_integer_kind)ik_char;
-      } else if (ikind1 == (an_integer_kind)ik_unsigned_short) {
-        ikind1 = (an_integer_kind)ik_short;
-      } else if (ikind1 == (an_integer_kind)ik_unsigned_int) {
-        ikind1 = (an_integer_kind)ik_int;
-      } else if (ikind1 == (an_integer_kind)ik_unsigned_long) {
-        ikind1 = (an_integer_kind)ik_long;
-#if LONG_LONG_ALLOWED
-      } else if (ikind1 == (an_integer_kind)ik_unsigned_long_long) {
-        ikind1 = (an_integer_kind)ik_long_long;
-#endif /* LONG_LONG_ALLOWED */
+      if (integral_types_the_same_except_for_signedness(type_1, type_2)) {
+        interch = TRUE;
       }  /* if */
-      ikind2 = type_2->variant.integer.int_kind;
-      if (ikind2 == (an_integer_kind)ik_signed_char ||
-          ikind2 == (an_integer_kind)ik_unsigned_char) {
-        ikind2 = (an_integer_kind)ik_char;
-      } else if (ikind2 == (an_integer_kind)ik_unsigned_short) {
-        ikind2 = (an_integer_kind)ik_short;
-      } else if (ikind2 == (an_integer_kind)ik_unsigned_int) {
-        ikind2 = (an_integer_kind)ik_int;
-      } else if (ikind2 == (an_integer_kind)ik_unsigned_long) {
-        ikind2 = (an_integer_kind)ik_long;
-#if LONG_LONG_ALLOWED
-      } else if (ikind2 == (an_integer_kind)ik_unsigned_long_long) {
-        ikind2 = (an_integer_kind)ik_long_long;
-#endif /* LONG_LONG_ALLOWED */
-      }  /* if */
-      /* If the underlying kinds are the same, the types are
-         interchangeable. */
-      if (ikind1 == ikind2) interch = TRUE;
     } else {
       /* When not in strict ANSI mode, consider any integral types that
          have the same size and alignment to be interchangeable.  Typically,

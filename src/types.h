@@ -198,6 +198,9 @@ extern a_type_ptr node_complete_object_type(an_expr_node_ptr node,
 extern a_boolean f_identical_types(a_type_ptr type_1,
                                    a_type_ptr type_2,
                                    a_boolean  il_identical);
+extern a_boolean integral_types_the_same_except_for_signedness(
+                                                            a_type_ptr type_1,
+                                                            a_type_ptr type_2);
 extern a_boolean interchangeable_types(a_type_ptr type_1,
                                        a_type_ptr type_2);
 extern a_boolean this_param_types_correspond(a_type_ptr rout_type_1,
