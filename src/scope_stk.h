@@ -260,7 +260,7 @@ typedef struct a_scope_stack_entry {
 			/* The default language linkage (e.g., extern "C++" or
 			   extern "C") for declarations in the current scope
 			   (used in C++ mode only).  In general, when a scope
-			   is pushed, the setting in copied from the enclosing
+			   is pushed, the setting is copied from the enclosing
 			   scope; it may then be modified and later restored
 			   when a linkage specification is seen.  However,
 			   template instantiation scopes take the setting for
