@@ -3390,6 +3390,7 @@ operation is a pointer-to-member (see ARM 5.3).
         } else if (is_sym_for_member_operand(&operand)) {
           /* The operand is the name of a nonstatic data member, so
              the "&" operator returns a pointer-to-member. */
+          operand.position = start_position;
           conv_sym_for_member_operand_to_ptr_to_member(&operand);
           copy_operand(&operand, result);
         } else {
