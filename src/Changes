@@ -1,5 +1,19 @@
 Version 2.23
 
+5/23/94  Taking the address of a template function with default arguments
+
+Taking the address of a template function that has default arguments and
+later calling the function in such a way that the default arguments
+would be used, could result in an internal error.  This has been fixed.
+
+  template <class T> void f(T, T = 1){}
+  int main()
+  {
+    void (*fp)(int,int);
+    fp = f;
+    f(2);
+  }
+
 5/23/94  IL CHANGE: definition of an_access_adjustment
 
 The enumeration an_access_adjustment_kind has been eliminated, and
