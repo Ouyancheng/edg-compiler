@@ -1,5 +1,21 @@
 Version 2.09
 
+9/11/92  Fixed bug with qualifiers on classes in conversions
+
+Compiling the following no longer causes a loop:
+
+  struct X {
+    X(const X&);
+    X(int);
+  };
+  void f(volatile X, char *, int);
+  void f(const volatile X&, double, int);
+  void main()
+  {
+    X x(4);
+    f(x, "2", 2);  // loop here
+  }
+
 9/11/92  Improved virtual function table pointer setting in destructors
 
 Destructor wrapper code generated in IL lowering now sets virtual
