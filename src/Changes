@@ -35,15 +35,13 @@ In 2.31 a bug was introduced that caused an internal error when a function
 template declared in a namespace is defined outside of its namespace.
 This has been fixed.
 
-namespace N {
-  template <class T> void f(T);
-}
-template <class T> void N::f(T){}
-int main()
-{
-  N::f(1);
-}
-
+  namespace N {
+    template <class T> void f(T);
+  }
+  template <class T> void N::f(T){}
+  int main() {
+    N::f(1);
+  }
 
 2/21/96   Bug in same_type_with_added_qualifiers
 
@@ -80,11 +78,20 @@ runtime routine __memzero.
 2/19/96   C++-generating back end: reference casts for casts on lvalues
 
 The C++-generating back end now uses reference casts to represent a cast
-on top of an lvalue address.
+on top of an lvalue address for a class object.  This avoids bumping into
+an overloaded operator& for the class.
 
-  main () {
-    int i;
-    (unsigned int &)i = 1;  // formerly put out as *(unsigned int *)&i = 1;
+  class B {
+    B* operator&();	
+  };
+  class D : public B {
+    float f;
+  public:
+    float get_f() {return f;}
+  };
+  main() {  
+    B &br = *new D;
+    ((D&)br).get_f();  // Output now has reference cast
   }
 
 2/19/96   C++-generating back end: "." vs. "->" on bound function
