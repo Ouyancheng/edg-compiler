@@ -1,5 +1,21 @@
 Version 3.4
 
+2/18/04  Use of uninitialized field after error on cast of bound function
+
+The front end referenced an uninitialized field after issuing an
+error on a cast of a bound function (e.g., object.function with
+no following () to call it).  In some cases, this caused a front
+end abort.  Now fixed.
+
+  class clx {
+  public:
+     clx* func1();
+  };
+  void func2() {
+     clx &foo;
+     ((clx) foo.func1);
+  }
+
 2/18/04  C99 mode: Array bounds in declarations with linkage
 
 In strict C99 mode, the front end now issues an error for a declaration
