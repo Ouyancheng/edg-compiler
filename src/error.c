@@ -981,6 +981,9 @@ error code.
     case ec_function_redefinition:
       m = "this function has already been defined";
       break;
+    case ec_overloaded_function_incompatible_type:
+      m = "type does not match any instance of overloaded function \"%s\"";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
