@@ -2424,6 +2424,30 @@ corresponding entry is removed from the registry.
 }  /* update_override_registry */
 
 
+static void remove_name_from_override_registry(
+                                         an_override_registry_entry_ptr  orep)
+/*
+Remove all override registry entries following the given one and pointing to
+an overridden symbol with the same header as the given one (orep).
+This filtering is used to avoid issueing many diagnostics on a single name.
+*/
+{
+  a_symbol_header_ptr  header = orep->overridden_sym->header;
+  an_override_registry_entry_ptr  next_orep = orep->next;
+
+  while (next_orep != NULL) {
+    if (next_orep->overridden_sym->header == header) {
+      orep->next = next_orep->next;
+      free_override_registry_entry(next_orep);
+      next_orep = orep->next;
+    } else {
+      orep = next_orep;
+      next_orep = next_orep->next;
+    }  /* if */
+  }  /* while */
+}  /*  */
+
+
 static void check_override_registry(an_override_registry_entry_ptr  first_orep,
                                     a_symbol_ptr                    tag_sym)
 /*
@@ -2468,7 +2492,8 @@ a mistake.  Both these warnings should perhaps be remarks.
                           slep->symbol, overridden_sym);
         }  /* for */
         if (orep->override_failures) {
-          /* No need to issue any more diagnostics. */
+          /* No need to issue any more diagnostics on this name. */
+          remove_name_from_override_registry(orep);
           goto done;
         }  /* if */
       }  /* if */
@@ -2477,8 +2502,8 @@ a mistake.  Both these warnings should perhaps be remarks.
            virtual function. */
         pos_sy2_warning(ec_partial_override, &tag_sym->decl_position,
                         overridden_sym, tag_sym);
-        /* No need to issue any more diagnostics. */
-        goto done;
+        /* No need to issue any more diagnostics on this name. */
+        remove_name_from_override_registry(orep);
       }  /* if */
     } else {
       check_assertion(orep->override_count == orep->virtual_function_count ||
@@ -2487,12 +2512,7 @@ a mistake.  Both these warnings should perhaps be remarks.
          declarations of the same name. */
     }  /* if */
     /* Return the entry to the available list and advance. */
-    next_orep = orep->next;
-    free_override_registry_entry(orep);
-  }  /* for */
 done:;
-  /* Clean up any remaining registry entries: */
-  for (; orep != NULL; orep = next_orep) {
     next_orep = orep->next;
     free_override_registry_entry(orep);
   }  /* for */
