@@ -1,5 +1,11 @@
 Version 2.30
 
+9/13/95  IL CHANGE: flag to mark implicit declaration
+
+A new flag, implicit_decl, has been added to a_src_seq_secondary_decl,
+indicating that the entry represents implicit declaration of an extern
+function (C-mode).
+
 9/11/95  C++-generating back end: C mode definition of struct in cast
 
 The C++-generating back end now handles correctly a definition of a
