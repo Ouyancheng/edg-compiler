@@ -6755,7 +6755,17 @@ type.  allow_class_rvalue is TRUE if a class rvalue should be allowed
 */
 {
   *type_cast_to = make_pointer_type(type_pointed_to(*type_cast_to));
-  if (is_an_lvalue(operand)) {
+  if (is_template_dependent_context() &&
+      (is_template_dependent_type(*type_cast_to) ||
+       is_template_dependent_type(operand->type))) {
+    /* A template-dependent operation in a prototype instantiation.
+       The lvalue-ness of the operand is uncertain, so use an explicit
+       generic "&" operator. */
+    an_operand operand_copy;
+    copy_operand(operand, &operand_copy);
+    template_unary_operation((an_expr_operator_kind)eok_address,
+                             &operand_copy, operand, &operand_copy.position);
+  } else if (is_an_lvalue(operand)) {
     take_address_of_lvalue(operand);
   } else if (is_a_function_designator(operand)) {
     conv_function_designator_to_ptr_to_function(operand,

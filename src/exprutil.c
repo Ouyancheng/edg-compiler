@@ -4349,6 +4349,7 @@ operand.
     case eok_subtract_assign:
     case eok_multiply_assign:
     case eok_divide_assign:
+    case eok_address:
       takes_lvalue = TRUE;
       break;
     default:
