@@ -102,6 +102,12 @@ extern a_type_ptr make_unqualified_type(a_type_ptr old_type);
 
 extern void switch_il_region(a_memory_region_number region_number);
 
+extern void switch_to_file_scope(
+                             a_memory_region_number *region_to_switch_back_to);
+
+extern void switch_back_to_original_region(
+                              a_memory_region_number region_to_switch_back_to);
+
 extern a_scope_ptr new_il_region(a_scope_kind   kind,
                                  a_scope_number scope_number,
                                  a_routine_ptr  assoc_routine);

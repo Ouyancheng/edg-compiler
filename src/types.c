@@ -2120,35 +2120,6 @@ Only callable in C++ mode.  See ARM 13.
 }  /* overload_distinguishable */
 
 
-static void switch_to_file_scope(
-                              a_memory_region_number *region_to_switch_back_to)
-/*
-Switch to the file-scope memory region if not already there.  Set
-region_to_switch_back_to for use later by switch_back_to_original_region.
-*/
-{
-  if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
-    *region_to_switch_back_to = curr_il_region_number;
-    switch_il_region(FILE_SCOPE_REGION_NUMBER);
-  } else {
-    *region_to_switch_back_to = NULL_region_number;
-  }  /* if */
-}  /* switch_to_file_scope */
-
-
-static void switch_back_to_original_region(
-                               a_memory_region_number region_to_switch_back_to)
-/*
-Switch back to the memory region that was current when switch_to_file_scope
-was called.
-*/
-{
-  if (region_to_switch_back_to != NULL_region_number) {
-    switch_il_region(region_to_switch_back_to);
-  }  /* if */
-}  /* switch_back_to_original_region */
-
-
 static a_param_type_ptr file_scope_param_list(a_param_type_ptr old_param)
 /*
 Make a file-scope copy of a parameter type list, and return a pointer

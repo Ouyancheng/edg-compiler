@@ -1025,6 +1025,34 @@ Change the current IL memory region to "region_number".
 }  /* switch_il_region */
 
 
+void switch_to_file_scope(a_memory_region_number *region_to_switch_back_to)
+/*
+Switch to the file-scope memory region if not already there.  Set
+region_to_switch_back_to for use later by switch_back_to_original_region.
+*/
+{
+  if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
+    *region_to_switch_back_to = curr_il_region_number;
+    switch_il_region(FILE_SCOPE_REGION_NUMBER);
+  } else {
+    *region_to_switch_back_to = NULL_region_number;
+  }  /* if */
+}  /* switch_to_file_scope */
+
+
+void switch_back_to_original_region(
+                               a_memory_region_number region_to_switch_back_to)
+/*
+Switch back to the memory region that was current when switch_to_file_scope
+was called.
+*/
+{
+  if (region_to_switch_back_to != NULL_region_number) {
+    switch_il_region(region_to_switch_back_to);
+  }  /* if */
+}  /* switch_back_to_original_region */
+
+
 a_scope_ptr new_il_region(a_scope_kind   kind,
                           a_scope_number scope_number,
                           a_routine_ptr  assoc_routine)
@@ -1424,16 +1452,11 @@ file-scope constants list.
 */
 {
   a_constant_ptr         cp;
-  a_memory_region_number region_to_switch_back_to = NULL_region_number;
+  a_memory_region_number region_to_switch_back_to;
 
-  if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
-    region_to_switch_back_to = curr_il_region_number;
-    switch_il_region(FILE_SCOPE_REGION_NUMBER);
-  }  /* if */
+  switch_to_file_scope(&region_to_switch_back_to);
   cp = alloc_constant(kind);
-  if (region_to_switch_back_to != NULL_region_number) {
-    switch_il_region(region_to_switch_back_to);
-  }  /* if */
+  switch_back_to_original_region(region_to_switch_back_to);
   return (cp);
 }  /* fs_constant */
 
@@ -2274,19 +2297,14 @@ put onto the file-scope types list.
 */
 {
   a_type_ptr             pte;
-  a_memory_region_number region_to_switch_back_to = NULL_region_number;
+  a_memory_region_number region_to_switch_back_to;
 
-  if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
-    region_to_switch_back_to = curr_il_region_number;
-    switch_il_region(FILE_SCOPE_REGION_NUMBER);
-  }  /* if */
+  switch_to_file_scope(&region_to_switch_back_to);
   pte = alloc_type(kind);
   add_to_types_list(pte, /*at_file_scope=*/TRUE,
                     /*in_old_style_param_decl_list=*/FALSE);
-  if (region_to_switch_back_to != NULL_region_number) {
-    switch_il_region(region_to_switch_back_to);
-  }  /* if */
-  return (pte);
+  switch_back_to_original_region(region_to_switch_back_to);
+  return pte;
 }  /* fs_type */
 
 
