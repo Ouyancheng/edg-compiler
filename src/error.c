@@ -730,7 +730,7 @@ error code.
       m = "floating-point operation result is out of range";
       break;
     case ec_implicit_func_decl:
-      m = "function declared implictly";
+      m = "function declared implicitly";
       break;
     case ec_too_few_printf_args:
       m = "the format string requires additional arguments";
