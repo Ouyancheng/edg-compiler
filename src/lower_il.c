@@ -303,6 +303,50 @@ common_fields:
 }  /* alloc_cleanup_action */
 
 
+void add_cleanup_action_to_context_list(a_cleanup_action_ptr cap,
+                                        a_context_ptr        context,
+                                        an_insert_location   *insert_location)
+/*
+Add the cleanup action pointed to by cap to the cleanup list of the indicated
+context.  If any code needs to be inserted now (while adding the action to the
+list) for exception cleanup, insert it at insert_location.  insert_location
+can be NULL for cases that do not apply to exception cleanup.
+*/
+{
+  cap->next = context->cleanup_actions;
+  context->cleanup_actions = cap;
+  /* If exceptions are enabled and this entry applies on exception cleanup,
+     create a region description entry for this cleanup. */
+  if (exceptions_enabled && cap->applies_on_exception_cleanup) {
+    make_region_table_entry(cap, insert_location);
+  }  /* if */
+}  /* add_cleanup_action_to_context_list */
+
+
+a_cleanup_action_ptr add_cleanup_action(
+                            a_cleanup_action_kind kind,
+                            a_boolean             applies_on_block_exit,
+                            a_boolean             applies_on_exception_cleanup,
+                            an_insert_location    *insert_location)
+/*
+Allocate a cleanup action entry of the indicated kind and with the
+indicated settings for applies_on_block_exit and applies_on_exception_cleanup.
+Add it to the cleanup list for the current context and return a pointer to it.
+If any code needs to be inserted now (while adding the action to the
+list) for exception cleanup, insert it at insert_location.  insert_location
+can be NULL for cases that do not apply to exception cleanup.
+*/
+{
+  a_cleanup_action_ptr cap;
+
+  cap = alloc_cleanup_action(kind, applies_on_block_exit,
+                             applies_on_exception_cleanup);
+  /* Add the action to the cleanup list for the current context. */
+  add_cleanup_action_to_context_list(cap, curr_context, insert_location);
+  return cap;
+}  /* add_cleanup_action */
+
+
 static void free_cleanup_action_list(a_cleanup_action_ptr cap)
 /*
 Free a list of cleanup action entries by putting them on the available list.
@@ -331,6 +375,9 @@ statement, and add it to the list of memo entries.
 {
   a_return_memo_ptr rmp;
 
+  check_assertion_str(return_stmt != NULL &&
+                      return_stmt->kind == (a_statement_kind)stmk_return,
+                      "add_to_return_memo_list: bad stmt");
   if (avail_return_memos != NULL) {
     /* Reuse a freed entry. */
     rmp = avail_return_memos;
@@ -6081,34 +6128,39 @@ is updated.
   an_insert_location_ptr effective_insert_loc;
 
   if (cap->applies_on_block_exit) {
-    effective_insert_loc = insert_location;
-    /* If the entity is a local static variable or a conditionally-created
-       temporary, generate an "if" statement to test whether or not the
-       variable was ever initialized.  Only do the destruction if it
-       was. */
-    if (cap->kind == cak_destruction &&
-        cap->variant.object.first_time_test_var != NULL) {
-      add_last_time_test(cap->variant.object.first_time_test_var, 
-                         insert_location,
-                         &insert_location2);
-      effective_insert_loc = &insert_location2;
+    if (cap->kind == cak_destruction) {
+      /* The entry calls for destruction of an object. */
+      effective_insert_loc = insert_location;
+      /* If the entity is a local static variable or a conditionally-created
+         temporary, generate an "if" statement to test whether or not the
+         variable was ever initialized.  Only do the destruction if it
+         was. */
+      if (cap->variant.object.first_time_test_var != NULL) {
+        add_last_time_test(cap->variant.object.first_time_test_var, 
+                           insert_location,
+                           &insert_location2);
+        effective_insert_loc = &insert_location2;
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
-    } else if (cap->kind == cak_destruction &&
-               cap->variant.object.
+      } else if (cap->variant.object.
                           template_static_data_member_init_guard_var != NULL) {
-      /* This is the destruction of a static data member in a template, and
-         there is a guard variable to make sure that the variable is
-         destroyed only once. */
-      add_static_data_member_destruction_guard_test(
+        /* This is the destruction of a static data member in a template, and
+           there is a guard variable to make sure that the variable is
+           destroyed only once. */
+        add_static_data_member_destruction_guard_test(
                 cap->variant.object.template_static_data_member_init_guard_var,
                 insert_location,
                 &insert_location2);
-      effective_insert_loc = &insert_location2;
+        effective_insert_loc = &insert_location2;
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
+      }  /* if */
+      lower_destructor_dynamic_init(&cap->variant.object.dynamic_init,
+                                    &cap->variant.object.init_pos_descr,
+                                    effective_insert_loc);
+    } else if (cap->kind == cak_try_block) {
+      /* Exiting a try block -- pop the stack entry. */
+      pop_eh_stack_frame(ehsek_function, cap->variant.try_frame,
+                         insert_location);
     }  /* if */
-    lower_destructor_dynamic_init(&cap->variant.object.dynamic_init,
-                                  &cap->variant.object.init_pos_descr,
-                                  effective_insert_loc);
   }  /* if */
 }  /* gen_one_cleanup_action */
 
@@ -6142,8 +6194,9 @@ the cleanup at *insert_location.
   if (exceptions_enabled && any_calls_generated) {
     /* One or more calls was generated and exceptions are enabled.
        Reset eh_curr_region.   Do not do this if the context being exited
-       is the function context or if we're not inside a function (e.g.,
-       we're in a generated file-scope initialization routine). */
+       is the function context or if we're cleaning up for all contexts
+       including the file scope (that happens in the file-scope termination
+       routine). */
     if (outer_context != nearest_function_context &&
         outer_context->parent != NULL) {
       set_eh_curr_region(outer_context->parent, insert_location);
@@ -6436,12 +6489,11 @@ Do IL lowering of the indicated statement and everything under it.
         /* Put a marker in the cleanup action list indicating where
            the label occurs.  This is needed when generating destructor
            calls on gotos backward in a block. */
-        cap = alloc_cleanup_action(cak_label,
-                                   /*applies_on_block_exit=*/FALSE,
-                                   /*applies_on_exception_cleanup=*/FALSE);
+        cap = add_cleanup_action(cak_label,
+                                 /*applies_on_block_exit=*/FALSE,
+                                 /*applies_on_exception_cleanup=*/FALSE,
+                                 (an_insert_location *)NULL);
         cap->variant.label = statement->variant.label;
-        cap->next = curr_context->cleanup_actions;
-        curr_context->cleanup_actions = cap;
         if (exceptions_enabled) {
           /* Exceptions are enabled. Reset eh_curr_region. */
           set_insert_location(statement, &insert_location);
@@ -7011,6 +7063,7 @@ Do IL lowering of the indicated scope and everything under it.
     }  /* if */
     /* Free any return memos that were not used. */
     free_return_memo_list(return_memo_list);
+    return_memo_list = NULL;
   }  /* if */
   pop_context();
   db_exit();
