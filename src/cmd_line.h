@@ -293,6 +293,18 @@ EXTERN a_boolean
 			   configurable, and the -x option toggles the
 			   default value.  In cfront mode it is always FALSE.
 			   It has no meaning in C mode. */
+
+
+EXTERN a_boolean
+		ignore_exception_specifications
+#if VAR_INITIALIZERS
+                                                = FALSE
+#endif /* VAR_INITIALIZERS */
+                                                       ;
+			/* TRUE if an exception specification on a function
+			   declarator is recognized but ignored; meaningful
+			   only in C++ when exceptions_enabled is TRUE. */
+
 EXTERN a_boolean
 		rtti_enabled
 #if VAR_INITIALIZERS
@@ -617,7 +629,6 @@ EXTERN a_boolean
    itself is compiled. */
 #define microsoft_mode (FALSE)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

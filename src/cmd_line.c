@@ -995,6 +995,7 @@ is enabled.
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   use_nonstandard_for_init_scope =
                               MICROSOFT_DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE;
+  if (exceptions_enabled) ignore_exception_specifications = TRUE;
 }  /* set_microsoft_mode_flags */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
