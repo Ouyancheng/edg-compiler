@@ -43,7 +43,8 @@ equivalent to the input source.  For example:
   wchar_t const *s1 = M1(a);  // Fine.   Same as: s1 = L"a"
   wchar_t const *s2 = M2(b);  // Error.  Same as: s2 = L "b"
 
-Previously, the preprocessor output M2(b) was L"b" without intervening space.
+Previously, the preprocessor output for M2(b) was L"b" without intervening
+space.
 
 9/27/00  Microsoft compatibility: __forceinline and __inline allowed on
          explicit specializations and explicit instantiations

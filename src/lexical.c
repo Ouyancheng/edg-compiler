@@ -2071,11 +2071,13 @@ token and not part of another, then no space is needed.
         /* The two characters have different categories (i.e., one is \
            a character that can appear in identifiers or pp-numbers,  \
            and the other is not).  We probably do not need the space. \
-           However, check for one bizarre special case having to do   \
-           with pp-numbers (3.1.8): "e" or "E" followed by "+" or "-" \
-           can appear in a pp-number. */                              \
+           However, check for some bizarre special cases having to do \
+           with pp-numbers (3.1.8; "e" or "E" followed by "+" or "-"  \
+           can appear in a pp-number) and wide literals ("L" followed \
+           by a single or double quote). */                           \
                  ((prev_ch != 'e' && prev_ch != 'E') ||               \
-                  (ch != '+' && ch != '-'))) {                        \
+                  (ch != '+' && ch != '-')) &&                        \
+                  (prev_ch != 'L' || (ch != '\'' && ch != '"'))) {    \
         /* No space is needed. */                                     \
       } else {                                                        \
         /* An extra space to separate tokens is needed. */            \
