@@ -1804,16 +1804,18 @@ the calls to this routine.
   /* The output line is generated in raw_listing_buffer first, then
      written to output.  This expensive and unfortunate technique is
      required because of cases like
-       ??=pragma hello / *
+       ? ?=pragma hello / *
        * / there 
-     (where the / * and * / are really comment delimiters, of course).
+     (Where the / * and * / are really comment delimiters, of course,
+     and the two ?s are not separated by a space.)
      For that case, we'll get here with "#pragma hello " with no newline,
      and then later with " there".  The whole line is written when the
      piece with the newline arrives.  That's because the raw listing
      output has to look like
-       N??=pragma hello / *
+       N? ?=pragma hello / *
        N* / there
        X#pragma hello   there
+     (Again, the comment delimiters and ?s have to be imagined altered.)
      Without this trick, the two parts of the "X" line could not be written
      next to one another.
      Another issue:  Lines that contain only comment modifications are not
@@ -1932,9 +1934,11 @@ only be called when f_raw_listing is non-NULL.
       switch (olmp->kind) {
         case olm_trigraph:
           fprintf(f_raw_listing, "??%c", olmp->variant.trigraph_orig_char);
-          /* If the trigraph is "??/", which turns into "\", and it's at the
+          /* If the trigraph is "? ? /", which turns into "\", and it's at the
              end of a line, the "\" will indicate a line splice.  In that
-             case, the "\" for the line splice should not be put out. */
+             case, the "\" for the line splice should not be put out.
+             (The extra spaces in the trigraph above are to avoid complaints
+             from compilers compiling this comment.) */
           olmp_next = olmp->next;
           if (olmp_next != NULL && olmp_next->kind == olm_line_splice &&
               olmp_next->line_loc == olmp->line_loc) {
