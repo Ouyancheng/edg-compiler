@@ -249,7 +249,8 @@ static void lower_label(a_label_ptr label);
 static void lower_asm_entry(an_asm_entry_ptr asm_entry);
 static void lower_scope(a_scope_ptr scope);
 static a_boolean any_cleanup_actions(a_context_ptr outer_context);
-static void gen_expr_conditional_flag_var_initializations(void);
+static void gen_expr_conditional_flag_var_initializations(
+                                                        an_expr_node_ptr expr);
 static a_boolean check_for_troublesome_ptr_to_member_constant(
                                                      a_constant_ptr constant,
                                                      a_variable_ptr *temp_var);
@@ -340,7 +341,7 @@ static void set_after_expr_insert_location(an_expr_node_ptr   node,
 /*
 Set *insert_location to indicate an insert location after the indicated
 expression node.  This can only be done if the expression has type void
-or an integral type.  In the integral case, this routine changes the
+or an assignable type.  In the assignable case, this routine changes the
 expression tree, so this routine should only be called when it is known
 that an insertion will be made.
 */
@@ -356,20 +357,18 @@ that an insertion will be made.
     /* The expression is a void expression.  Nothing special is required. */
     /* Also true if the expression result is not used. */
   } else {
-    check_assertion(is_integral_type(node_type));
-    /* The expression has an integral type.  Rewrite it to store the value
+    /* The expression has a non-void type.  Rewrite it to store the value
        in a temporary, then pick it up later, e.g.,
          x
        is rewritten as
          ((temp = x) , temp)
        and the insert point is set to insert after the assignment. */
-    /* This could be done also for other scalar types, but isn't presently. */
     temp_var = make_lowered_temporary(node_type);
     /* Make a copy of the original node, then assign it to the temporary. */
     node_copy = copy_node(node);
     temp_node = var_lvalue_expr(temp_var);
     temp_node->next = node_copy;
-    assign_node = make_operator_node((an_expr_operator_kind)eok_iassign,
+    assign_node = make_operator_node(lowered_assignment_operator(node_type),
                                      node_type, temp_node);
     /* Change the original node to a comma expression. */
     assign_node->next = var_rvalue_expr(temp_var);
@@ -4297,42 +4296,48 @@ Do IL lowering of the indicated asm entry and everything under it.
 }  /* lower_asm_entry */
 
 
-static void lower_full_expr(an_expr_node_ptr expr,
-                            a_boolean        is_condition_expr,
-                            a_boolean        repeated_in_loop)
+static void lower_full_expr(an_expr_node_ptr expr)
 /*
 Lower a "full" expression, i.e., one that is not part of some
 larger expression tree.  The expression is not an lvalue.
-is_condition_expr is TRUE if the expression is a condition expression
-tested in a statement (e.g., an "if").  repeated_in_loop is TRUE if
-the expression is part of a loop and it is re-evaluated each time
-around the loop.
 */
 {
   a_context          context;
   an_insert_location insert_location;
   a_boolean          context_placed_around_expr = FALSE;
+  an_object_lifetime_ptr
+                     saved_curr_object_lifetime;
+  an_expr_node_ptr   expr_to_lower = expr;
 
-  if (repeated_in_loop || is_condition_expr) {
-    /* The expression is re-evaluated each time around a loop, or it's
-       a condition expression, so any temporary constructed therein should
-       also be destroyed therein.  Push a context for the expression. */
+  if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+    /* An expression with an associated object lifetime. */
+    /* Set curr_object_lifetime for the lowering of the subexpression, then
+       restore it later. */
+    saved_curr_object_lifetime = curr_object_lifetime;
+    curr_object_lifetime = expr->variant.object_lifetime.ptr;
+    expr_to_lower = expr->variant.object_lifetime.expr;
     push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
     curr_context->assoc_expr = expr;
     context_placed_around_expr = TRUE;
   }  /* if */
-  lower_expr(expr, /*is_lvalue=*/FALSE);
+  lower_expr(expr_to_lower, /*is_lvalue=*/FALSE);
   if (context_placed_around_expr) {
     if (any_cleanup_actions(curr_context)) {
       /* Generate initialization assignments for any flags needed for
          conditional destruction. */
-      gen_expr_conditional_flag_var_initializations();
+      gen_expr_conditional_flag_var_initializations(expr_to_lower);
       /* Generate any cleanup actions for temporaries built within
          the expression. */
-      set_after_expr_insert_location(expr, &insert_location);
+      set_after_expr_insert_location(expr_to_lower, &insert_location);
       gen_cleanup_actions(curr_context, &insert_location);
     }  /* if */
     pop_context();
+    curr_object_lifetime = saved_curr_object_lifetime;
+    if (!keep_object_lifetime_info_in_lowered_il) {
+      /* Not keeping object lifetime information, so eliminate this node. */
+      unbind_object_lifetime(expr->variant.object_lifetime.ptr);
+      overwrite_node(expr, expr_to_lower);
+    }  /* if */
   }  /* if */
 }  /* lower_full_expr */
 
@@ -6080,21 +6085,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
     case enk_throw:
       lower_throw(expr);
       break;
-    case enk_object_lifetime:
-      /* Set curr_object_lifetime for the lowering of the subexpression, then
-         restore it later. */
-      { an_object_lifetime_ptr saved_curr_object_lifetime =
-                                                          curr_object_lifetime;
-        curr_object_lifetime = expr->variant.object_lifetime.ptr;
-        lower_expr(expr->variant.object_lifetime.expr, is_lvalue);
-        curr_object_lifetime = saved_curr_object_lifetime;
-      }
-      if (!keep_object_lifetime_info_in_lowered_il) {
-        /* Not keeping object lifetime information, so eliminate this node. */
-        unbind_object_lifetime(expr->variant.object_lifetime.ptr);
-        overwrite_node(expr, expr->variant.object_lifetime.expr);
-      }  /* if */
-      break;
+    case enk_object_lifetime:  /* Not expected at this level. */
 #if CHECKING
     default:
       internal_error("lower_expr: bad kind");
@@ -6498,25 +6489,24 @@ done:
 }  /* any_cleanup_actions */
 
 
-static void gen_expr_conditional_flag_var_initializations(void)
+static void gen_expr_conditional_flag_var_initializations(
+                                                         an_expr_node_ptr expr)
 /*
-The current context is a subscope region for a single expression.
+The current context is a subscope region for a single expression (i.e., expr).
 Generate any initialization assignments required to give initial (default)
 values to any flags used within the expression to track whether or not
 conditional destruction of temporaries is required.
 */
 {
-  an_expr_node_ptr     node = curr_context->assoc_expr;
   an_insert_location   insert_location;
   a_cleanup_action_ptr cap;
 
   /* Note that this routine only handles initializations that must be inserted
      into an expression tree.  All others are handled by calling
      init_conditional_flag_var immediately. */
-  check_assertion(node != NULL);
   if (curr_context->any_conditional_flag_var_initializations_deferred) {
     /* Some initializations are needed.  Find them. */
-    set_expr_insert_location(node, &insert_location);
+    set_expr_insert_location(expr, &insert_location);
     for (cap = curr_context->cleanup_actions;
          cap != NULL;
          cap = cap->next) {
@@ -6797,8 +6787,7 @@ Do IL lowering of the indicated statement and everything under it.
     }  /* if */
     switch (statement->kind) {
       case stmk_expr:
-        lower_full_expr(statement->expr, /*is_condition_expr=*/FALSE,
-                        /*repeated_in_loop=*/FALSE);
+        lower_full_expr(statement->expr);
         break;
       case stmk_asm:
         /* No processing required. */
@@ -6838,8 +6827,7 @@ Do IL lowering of the indicated statement and everything under it.
       case stmk_return:
         return_expr = statement->expr;
         if (return_expr != NULL) {
-          lower_full_expr(return_expr, /*is_condition_expr=*/FALSE,
-                          /*repeated_in_loop=*/FALSE);
+          lower_full_expr(return_expr);
         }  /* if */
         /* Keep track of whether or not we have already turned the return
            statement into a block.  We haven't so far. */
@@ -6915,19 +6903,16 @@ Do IL lowering of the indicated statement and everything under it.
         add_to_return_memo_list(return_statement);
         break;
       case stmk_if:
-        lower_full_expr(statement->expr, /*is_condition_expr=*/TRUE,
-                        /*repeated_in_loop=*/FALSE);
+        lower_full_expr(statement->expr);
         lower_statement(statement->variant.if_stmt.then_statement);
         lower_statement(statement->variant.if_stmt.else_statement);
         break;
       case stmk_while:
-        lower_full_expr(statement->expr, /*is_condition_expr=*/TRUE,
-                        /*repeated_in_loop=*/TRUE);
+        lower_full_expr(statement->expr);
         lower_statement(statement->variant.loop_statement);
         break;
       case stmk_end_test_while:
-        lower_full_expr(statement->expr, /*is_condition_expr=*/FALSE,
-                        /*repeated_in_loop=*/TRUE);
+        lower_full_expr(statement->expr);
         lower_statement(statement->variant.loop_statement);
         break;
       case stmk_for:
@@ -6947,13 +6932,11 @@ Do IL lowering of the indicated statement and everything under it.
             }  /* if */
           }  /* if */
           if (statement->expr != NULL) {
-            lower_full_expr(statement->expr, /*is_condition_expr=*/TRUE,
-                            /*repeated_in_loop=*/TRUE);
+            lower_full_expr(statement->expr);
           }  /* if */
           lower_statement(statement->variant.for_loop.statement);
           if (extra_info->increment != NULL) {
-            lower_full_expr(extra_info->increment, /*is_condition_expr=*/FALSE,
-                            /*repeated_in_loop=*/TRUE);
+            lower_full_expr(extra_info->increment);
           }  /* if */
         }
         break;
@@ -7002,8 +6985,7 @@ Do IL lowering of the indicated statement and everything under it.
         }  /* if */
         break;
       case stmk_switch:
-        lower_full_expr(statement->expr, /*is_condition_expr=*/TRUE,
-                        /*repeated_in_loop=*/FALSE);
+        lower_full_expr(statement->expr);
         /* If there is a body statement and it has a scope, push it as
            context around the processing of the switch clauses. */
         scope = NULL;
