@@ -3411,20 +3411,13 @@ special function kind (e.g., constructor, destructor), if any.
       /* If the return type of the conversion is a class type or ref
          class type, set a flag to mark it as target of a conversion. */
       tp = rtn->type->variant.routine.return_type;
-      tp = skip_typerefs(tp);
-      switch (is_reference_type(tp)) {
-        case TRUE:
-          tp = type_pointed_to(tp);
-          /* Special handling for "reference to const/volatile class" --
-             flag is not set in such cases. */
-          if (is_qualified_type(tp)) break;
-          /* Fall through to default processing. */
-        default:
-          if (is_class_struct_union_type(tp)) {
-            (symbol_supplement_for_class(skip_typerefs(tp)))->
-                      target_of_conversion_function = TRUE;
-          }  /* if */
-      }  /* switch */
+      if (is_reference_type(tp)) {
+        tp = type_pointed_to(tp);
+      }  /* if */
+      if (is_class_struct_union_type(tp)) {
+        (symbol_supplement_for_class(skip_typerefs(tp)))->
+                                        target_of_conversion_function = TRUE;
+      }  /* if */
     } else {
       rtn->special_kind = spec_kind;
     }  /* if */
