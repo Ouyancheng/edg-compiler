@@ -3729,10 +3729,14 @@ enum an_expr_node_kind_tag {
 			   expression.  C++ only. */
   enk_new_delete,	/* C++ "new" or "delete". */
   enk_throw,		/* C++ throw expression. */
-  enk_object_lifetime,	/* Top node in a full expression, used to indicate that
-			   there is an object lifetime associated with the
-			   full expression, used as the lifetime of temporaries
-			   created within the expression.  C++ only. */
+  enk_object_lifetime,	/* Used to introduce an object lifetime that surrounds
+			   a single expression, to restrict the lifetime
+			   of temporaries created in the expression.  The
+			   front end proper always puts these only at the top
+			   of expressions, but IL lowering sometimes inserts
+			   code above those nodes, so after IL lowering this
+			   node is not necessarily the top node in the
+			   expression tree.  C++ only. */
 #endif /* ifdef CIL */
 #ifdef FIL
   enk_stmt_label_value, /* A statement label value for an ASSIGN or
