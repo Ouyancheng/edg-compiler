@@ -448,8 +448,6 @@ function returns the address of the last attribute.
         /* Get the name of the attribute. */
         attribute_name = locator_for_curr_id.symbol_header->identifier;
       }  /* if */
-      /* Bypass the identifier. */
-      (void)get_token();
       /* Look up the attribute name. */
       for (i = (int)ak_first; i < (int) ak_last; i++) {
         if (same_string_ignoring_underscores(attribute_kind_names[i],
@@ -467,6 +465,8 @@ function returns the address of the last attribute.
         /* Create a new attribute. */
         attribute = alloc_attribute(attribute_kind, &pos);
       }  /* if */
+      /* Bypass the attribute name and check if it is followed by arguments. */
+      (void)get_token();
       if (curr_token == tok_lparen) {
         /* There are arguments to the attribute. */
         /* Bypass the lparen. */
