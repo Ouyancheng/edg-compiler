@@ -8795,6 +8795,7 @@ The IL is already available when this routine is called.
   module_id = make_module_id();
   /* Get module name for use in name of file-scope init routine. */
   module_init_id = module_id;
+  module_list_for_union_init = NULL;
 #if !USE_INIT_SECTION_IN_GENERATED_C
   if (il_header.source_language != sl_Cplusplus) {
     /* Use shorter module id in C mode because the name might have to
