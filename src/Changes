@@ -4,11 +4,11 @@ Version 2.34
 
 In C++ mode enum types are no longer treated as integral types.
 
-Among other things, this means an enumerator with value zero does not
-undergo implicit conversion to a null-pointer-constant.
+Among other things, this means an enumerator with value zero is not
+considered to be a null-pointer-constant:
 
   enum { zero };
-  int *p = zero;                  // Now an error
+  int *p = zero;                  // Now an error in C++
 
 Here's another error that is now diagnosed, since a pointer can be cast
 to an integral type, but not to an enum type.
