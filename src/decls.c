@@ -4499,7 +4499,9 @@ otherwise it is NULL.  The syntax is:
           if (input_flags & DI_QUALIFIED_NAME_ALLOWED) {
             a_symbol_ptr sym = locator_for_curr_id.specific_symbol;
             /* See if the name is the name of a member function. */
-            if (is_member_function_symbol(sym)) {
+            if (is_member_function_symbol(sym) ||
+                (sym->kind == (a_symbol_kind)sk_function_template &&
+                 sym->class_of_which_a_member != NULL)) {
               /* It is a member function.  Save information about the class
                  needed to reopen the class scope if a function declarator
                  is scanned. */
