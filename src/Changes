@@ -1,5 +1,24 @@
 Version 2.20
 
+9/16/93  Qualified names that use template parameters in elaborated types
+
+Formerly, the declaration of b2 would cause an error to be issued.  This
+usage is now accepted.
+
+  template <class T> struct A {
+    T           t1;
+    class T     t2;
+    T::B        b1;
+    class T::B  b2;	// Was rejected
+  };
+
+  struct B1 {
+    struct A {};
+    struct B {};
+  };
+  A<B1> b1;
+
+
 9/15/93  New symbol reference kinds
 
 Two new enumeration values were added to a_symbol_reference_kind to

@@ -5861,11 +5861,18 @@ caution when modifying this routine.
       if (tag_sym != NULL && tag_sym->kind != tag_kind) {
         /* A qualified name is being used with a different tag kind than
            that of its declaration.  Issue an error. */
-        pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
-                       &locator_for_curr_id.source_position,
-		       name_of_symbol_kind(tag_kind), tag_sym);
-        tag_sym = NULL;
-        tag_err = TRUE;
+        if (tag_sym->kind == (a_symbol_kind)sk_type &&
+            tag_sym->variant.type->kind == (a_type_kind)tk_template_param) {
+          /* This is a template parameter during a prototype instantiation.
+             Don't issue an error.  This will be checked during real
+	     instantiations. */
+        } else {
+          pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
+                         &locator_for_curr_id.source_position,
+                         name_of_symbol_kind(tag_kind), tag_sym);
+          tag_sym = NULL;
+          tag_err = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   } else if (C_dialect == C_dialect_cplusplus &&
