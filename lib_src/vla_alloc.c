@@ -47,10 +47,15 @@ typedef struct a_vla_allocation {
   a_byte	*block;
 			/* A pointer to storage parceled out to VLAs.  NULL
 			   for special blocks. */
-  void		*vla_var;
-			/* A pointer to the VLA variable (which is itself a
-			   pointer pointing into the storage pointed to by
-			   block. */
+  a_byte	*storage;
+			/* A pointer to the storage allocated for a VLA
+			   variable. */
+  void		*frame_marker;
+			/* A pointer to a specific local variable of
+			   __vla_alloc.  This allows for a more precise
+			   detection of dead allocations (allocations that
+			   are no longer accessible but which were not freed
+			   because of a longjmp). */
 } a_vla_allocation;
 
 
@@ -140,22 +145,22 @@ the two use separate code.
     a_vla_allocation_ptr  allocation = &curr_vla_pool->allocations[alloc_idx];
     if ((char*)&alloc_idx > (char*)ptr) {
       /* The call stack grows with increasing addresses. */
-      if ((char*)allocation->vla_var < (char*)ptr) {
+      if ((char*)allocation->frame_marker < (char*)ptr) {
         break;
       }  /* if */
     } else {
       /* The call stack grows with decreasing addresses. */
-      if ((char*)allocation->vla_var > (char*)ptr) {
+      if ((char*)allocation->frame_marker > (char*)ptr) {
         break;
       }  /* if */
     }  /* if */
     if (allocation->block == NULL) {
       /* A special block: Delete it right away. */
-      free(*(void**)allocation->vla_var);
+      free((void*)allocation->storage);
     } else {
       /* An allocation in a normal block: Compute the offset of the VLA
          storage within the block. */
-      ptrdiff_t  offset = *(a_byte**)allocation->vla_var - allocation->block;
+      ptrdiff_t  offset = allocation->storage - allocation->block;
       if (offset == 0) {
         /* All the allocations within this block should now be freed.
            Either free this block, or keep it as a spare.  (The spare avoids
@@ -208,13 +213,13 @@ point to that storage.
     if (last_idx >= 0) {
       if ((char*)&last_idx > (char*)ptr) {
         /* The call stack grows with increasing addresses. */
-        if ((char*)curr_vla_pool->allocations[last_idx].vla_var >
+        if ((char*)curr_vla_pool->allocations[last_idx].frame_marker >
                                                           (char*)&alloc_idx) {
           free_dead_allocations((void*)&alloc_idx);
         }  /* if */
       } else {
         /* The call stack grows with decreasing addresses. */
-        if ((char*)curr_vla_pool->allocations[last_idx].vla_var <
+        if ((char*)curr_vla_pool->allocations[last_idx].frame_marker <
                                                           (char*)&alloc_idx) {
           free_dead_allocations((void*)&alloc_idx);
         }  /* if */
@@ -227,14 +232,14 @@ point to that storage.
     increase_curr_vla_pool_capacity();
   }  /* if */
   allocation = &curr_vla_pool->allocations[alloc_idx];
-  allocation->vla_var = ptr;
+  allocation->frame_marker = (void*)&alloc_idx;
   if (n_bytes >= MIN_SPECIAL_BLOCK_SIZE) {
     /* Allocate a special block for this (relatively large) VLA. */
     a_byte  *special_block = (a_byte*)malloc(n_bytes);
     if (special_block == NULL) {
       __abort_execution(ec_vla_allocation_failed);
     }  /* if */
-    *(a_byte**)ptr = special_block;
+    allocation->storage = *(a_byte**)ptr = special_block;
     /* Special blocks are recognizable because they are pointed to by an
        allocation entry whose block pointer is NULL. */
     allocation->block = NULL;
@@ -256,8 +261,9 @@ point to that storage.
       }  /* if */
       curr_vla_pool->normal_offset = 0;
     }  /* if */
-    *(a_byte**)ptr = (a_byte*)(curr_vla_pool->normal_block +
-                               curr_vla_pool->normal_offset);
+    allocation->storage = *(a_byte**)ptr =
+                                      (a_byte*)(curr_vla_pool->normal_block +
+                                                curr_vla_pool->normal_offset);
     allocation->block = curr_vla_pool->normal_block;
     curr_vla_pool->normal_offset += n_bytes;
   }  /* if */
@@ -279,14 +285,14 @@ ptr points to a pointer variable.  Deallocate the storage pointed to by *ptr.
     check_assertion(alloc_idx >= 0);
     if (allocation->block == NULL) {
       /* A special block: Delete it right away. */
-      free(*(void**)allocation->vla_var);
-      if (allocation->vla_var == ptr) {
+      free((void*)allocation->storage);
+      if (allocation->storage == *(a_byte**)ptr) {
         break;
       }  /* if */
     } else {
       /* An allocation in a normal block: Compute the offset of the VLA
          storage within the block. */
-      ptrdiff_t  offset = *(a_byte**)allocation->vla_var - allocation->block;
+      ptrdiff_t  offset = allocation->storage - allocation->block;
       if (offset == 0) {
         /* All the allocations within this block should now be freed.
            Either free this block, or keep it as a spare.  (The spare avoids
@@ -302,7 +308,7 @@ ptr points to a pointer variable.  Deallocate the storage pointed to by *ptr.
       } else {
         curr_vla_pool->normal_offset = offset;
       }  /* if */
-      if (allocation->vla_var == ptr) {
+      if (allocation->storage == *(a_byte**)ptr) {
         break;
       }  /* if */
     }  /* if */
