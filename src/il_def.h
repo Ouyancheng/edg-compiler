@@ -705,7 +705,7 @@ typedef struct an_instantiation_directive {
   a_source_position
 		position;
 			/* Source position of the "template" keyword in the
-			   of the instantiation directive. */
+			   instantiation directive. */
   a_tagged_pointer
 		entity;
 			/* Entry identifying the entity (a class, function,
