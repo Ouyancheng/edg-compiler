@@ -760,7 +760,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_bugs && microsoft_version < 1310 &&
+    if (microsoft_bugs && microsoft_version >= 1310 &&
         is_top_level && !is_template_decl(flags)) {
       /* The Microsoft compiler suffers from some of the same disambiguation
          problems that cfront does.  The 7.1 compiler (version 1310) fixes
