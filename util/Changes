@@ -1,5 +1,12 @@
 Version 2.37
 
+10/15/97 Improved interface between the prelinker and front end
+
+The interface between the front end and prelinker has been modified to
+reduce the number of times that the front end must be invoked to
+generate the complete set of instantiations needed by a program.
+See the front end Changes file entry for more information.
+
 10/15/97 Improved diagnostic when instantiation is assigned to more than
          one .ii file
 
