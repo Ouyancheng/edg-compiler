@@ -1,5 +1,12 @@
 Version 2.09
 
+9/13/92  Removed change on overload resolution cost
+
+The change of 8/15/92, which made a base class cast on the "this"
+parameter free when calling an operator function, has been backed
+out.  As was suspected then, the change is not supported by the language
+definition.
+
 9/13/92  Diagnostic for base class with nonvirtual destructor
 
 A diagnostic is issued on a base class that has a nonvirtual destructor.
