@@ -1,5 +1,12 @@
 Version 2.30
 
+5/30/95  Diagnostic on use of "long long"
+
+The diagnostic issued for using "long long" in strict ANSI mode (-A) is
+now a discretionary error.  In addition, a new warning in now issued for
+printf/scanf format strings containing "%lld", "%llu", etc., in strict
+ANSI mode.
+
 5/29/95  Access of multiply declared member type
 
 When a member type (a nested class, a typedef, or an enumeration) is
