@@ -4231,10 +4231,8 @@ template.
          a real instantiation.  The a_template entry for such member templates
          does not have a parent class pointer in some configurations, which
          makes determining the correspondence difficult at this point.
-         Instead, we record the instantiation for processing later on (when
-         we are sure that the correspondences of all parent classes have been
-         determined). */
-      add_pending_instantiation(inst);
+         However, their correspondence will be set when the enclosing class
+         is processed. */
       goto done;
     }  /* if */
   }  /* if */
