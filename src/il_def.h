@@ -72,6 +72,17 @@ typedef struct an_expr_node  *an_expr_node_ptr;
 typedef struct a_statement   *a_statement_ptr;
 typedef struct a_scope       *a_scope_ptr;
 
+
+/*
+Macro used to add a 2-bit bit field after any sequence of bit fields.
+By clearing this bit field to zero we can avoid warnings about
+uninitialized values from CodeCenter on those bit fields (because the
+value used for "uninitialized" has no two adjacent zero bits). */
+*/
+#define bitfield_to_avoid_codecenter_warnings() \
+  unsigned int	avoid_codecenter_warnings:2;
+
+
 /*
 Data structures related to source position and correspondence:
 */
@@ -680,9 +691,7 @@ typedef struct a_dynamic_init {
 			   this belongs in the stmk_init, but putting it
 			   here makes it accessible from both the stmk_init
 			   and the variable being initialized. */
-  unsigned int	avoid_codecenter_warnings:2;
-			/* Cleared to avoid warnings from CodeCenter about
-			   uninitialized storage. */
+  bitfield_to_avoid_codecenter_warnings();
   union {
     /* When kind == dik_none: no variant fields. */
     /* When kind == dik_bitwise_copy: no variant fields.  The source for the
@@ -816,9 +825,7 @@ typedef struct a_constant {
 			   points to it.  Used for pointer-to-member
 			   constants. */
 #endif /* DO_IL_LOWERING */
-  unsigned int	avoid_codecenter_warnings:2;
-			/* Cleared to avoid warnings from CodeCenter about
-			   uninitialized storage. */
+  bitfield_to_avoid_codecenter_warnings();
   a_constant_repr_kind
                 kind;
                         /* The kind of representation for the constant. */
@@ -908,10 +915,7 @@ typedef struct a_constant {
 		is_function_ptr:1;
 			/* TRUE if the pointer is to a member function,
 			   FALSE if to a data member. */
-      unsigned int
-		avoid_codecenter_warnings:2;
-			/* Cleared to avoid warnings from CodeCenter about
-			   uninitialized storage. */
+      bitfield_to_avoid_codecenter_warnings();
       union {
         /* When is_function_ptr == TRUE: */
         a_routine_ptr
@@ -1186,9 +1190,7 @@ typedef struct a_param_type {
 			   parameter involves (anywhere in its type tree) a
 			   tk_template_param type entry (C++ front end
 			   only). */
-  unsigned int	avoid_codecenter_warnings:2;
-			/* Cleared to avoid warnings from CodeCenter about
-			   uninitialized storage. */
+  bitfield_to_avoid_codecenter_warnings();
   an_expr_node_ptr
 		default_arg_expr;
 			/* Expression node representing the default value
@@ -1332,9 +1334,7 @@ typedef struct a_routine_type_supplement {
 			   location.  This is used only for functions that
 			   return C++ class types, for cases where the
 			   class type returned requires a copy constructor. */
-  unsigned int	avoid_codecenter_warnings:2;
-			/* Cleared to avoid warnings from CodeCenter about
-			   uninitialized storage. */
+  bitfield_to_avoid_codecenter_warnings();
   a_lint_varargs_count
 	         lint_varargs_count;
                         /* If not equal to NOT_LINT_VARARGS (-1), this
@@ -1974,9 +1974,7 @@ typedef struct a_type {
                            with cfront 2.1 which promotes nested types
                            to the file scope unless the name is already
                            used as a type name at the file scope. */
-  unsigned int	avoid_codecenter_warnings:2;
-			/* Cleared to avoid warnings from CodeCenter about
-			   uninitialized storage. */
+  bitfield_to_avoid_codecenter_warnings();
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 #if DO_IL_LOWERING
   a_variable_ptr
@@ -2013,10 +2011,7 @@ typedef struct a_type {
                 enum_type:1;
                         /* TRUE if this type is an enumerated type (the type 
                            of the tag, not the constants, in C). */
-      unsigned int
-		avoid_codecenter_warnings:2;
-			/* Cleared to avoid warnings from CodeCenter about
-			   uninitialized storage. */
+      bitfield_to_avoid_codecenter_warnings();
       union {
         /* When enum_type is TRUE: */
         a_constant_ptr
@@ -2161,10 +2156,7 @@ typedef struct a_type {
                         /* TRUE if type is volatile-qualified (i.e.,
                            if the thing pointed to can change due to outside
                            influences). */
-      unsigned int
-		avoid_codecenter_warnings:2;
-			/* Cleared to avoid warnings from CodeCenter about
-			   uninitialized storage. */
+      bitfield_to_avoid_codecenter_warnings();
     } typeref;
     /* When kind = tk_ptr_to_member: */
     struct {
@@ -3306,9 +3298,7 @@ typedef struct an_expr_node {
 			/* Always FALSE in C, by language definition. */
 #endif /* ifdef CIL */
 #endif /* ifdef FIL */
-  unsigned int	avoid_codecenter_warnings:2;
-			/* Cleared to avoid warnings from CodeCenter about
-			   uninitialized storage. */
+  bitfield_to_avoid_codecenter_warnings();
   union {
     /* When kind == enk_error, no variant fields. */
     /* When kind == enk_operation: */
@@ -3329,10 +3319,7 @@ typedef struct an_expr_node {
 			/* TRUE if the operation is compiler-generated rather
 			   than explicitly present in the source program.
 			   Used in particular for casts. */
-      unsigned int
-		avoid_codecenter_warnings:2;
-			/* Cleared to avoid warnings from CodeCenter about
-			   uninitialized storage. */
+      bitfield_to_avoid_codecenter_warnings();
       an_expr_node_ptr  
                 operands;
                         /* The list of operands. */
@@ -3514,6 +3501,7 @@ typedef struct a_block {
 			   stmk_init statements) in the portion of the
 			   statement list that precedes the statement that
 			   establishes this block.  (Used only in C++.) */
+  bitfield_to_avoid_codecenter_warnings();
 #endif /* ifdef CIL */
 } a_block;
 
