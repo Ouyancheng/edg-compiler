@@ -1215,11 +1215,35 @@ If the cast cannot be folded, *did_not_fold is returned TRUE.
   }  /* if */
 }  /* fold_pm_derived_class_cast */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean related_classes_single_inh(a_type_ptr class_1,
+                                            a_type_ptr class_2)
+/*
+Return TRUE if the class types given are related by inheritance or are
+the same, and if there's inheritance the Microsoft inheritance kind is
+single inheritance.
+*/
+{
+  a_boolean result;
+
+  result = (identical_types(class_1, class_2) ||
+            (find_base_class_of(class_1, class_2) != NULL &&
+             class_2->variant.class_struct_union.extra_info->inheritance_kind
+                                         == (an_inheritance_kind)ihk_single) ||
+            (find_base_class_of(class_2, class_1) != NULL &&
+             class_1->variant.class_struct_union.extra_info->inheritance_kind
+                                         == (an_inheritance_kind)ihk_single));
+  return result;
+}  /* related_classes_single_inh */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void conv_ptr_to_member_to_ptr_to_member(
                                          a_constant        *old_constant,
                                          a_constant        *new_constant,
                                          a_boolean         is_implicit_cast,
+                                         a_boolean         is_reinterpret_cast,
                                          a_boolean         *did_not_fold,
                                          a_source_position *err_pos,
                                          an_error_code     *err_code,
@@ -1229,9 +1253,8 @@ Convert a pointer-to-member constant to a pointer-to-member constant of
 a different type.  old_constant is the original constant.  new_constant->type
 indicates the desired new type.  The converted constant is put into
 *new_constant.  This is an implicit cast if is_implicit_cast is TRUE.
+This is a reinterpret_cast if is_reinterpret_cast is TRUE.
 If the cast cannot be folded, *did_not_fold is returned TRUE.
-Note that this should not be called to implement a reinterpret_cast operation
-since such casts on pointer-to-member types are not "constant operations".
 */
 {
   a_type_ptr       new_type = new_constant->type, new_class;
@@ -1241,14 +1264,38 @@ since such casts on pointer-to-member types are not "constant operations".
   *err_code = ec_no_error;
   *err_severity = es_warning;
   *did_not_fold = FALSE;
-  /* Basically, all that's needed is to change the type of the constant and
-     set implicit_cast.  However, one must also check for an ambiguous
-     cast and (when the cast is implicit) for accessibility. */
   old_class = pm_class_type(old_type);
   new_class = pm_class_type(new_type);
+  if (is_reinterpret_cast) {
+    /* A reinterpret_cast. */
+    if (!old_constant->is_reinterpret_cast &&
+        old_constant->variant.ptr_to_member.casting_base_class != NULL) {
+      /* The constant entry can't represent a static_cast followed by
+         a reinterpret_cast. */
+      *did_not_fold = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode &&
+               !related_classes_single_inh(old_class, new_class)) {
+      /* MSVC++ only allows reinterpret_casts like this when the offset
+         is zero and inheritance is single.  Otherwise they get an error.
+         We don't give an error but we don't fold them at compile time. */
+      *did_not_fold = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else {
+      /* Our interpretation is that a reinterpret_cast leaves the bits
+         of the pointer-to-member alone.  That's what Cfront 3.0 does.
+         It's not what g++ 3.n, for example, does. */
+      copy_constant(old_constant, new_constant);
+      implicit_or_explicit_cast(new_constant, new_type, is_implicit_cast);
+      new_constant->is_reinterpret_cast = TRUE;
+    }  /* if */
+  } else if (old_constant->is_reinterpret_cast && !is_reinterpret_cast) {
+    /* The constant entry can't represent a reinterpret_cast followed
+       by a static_cast. */
+    *did_not_fold = TRUE;
   /* Using types_are_compatible so that A<x> and A<error> are considered
      the same type. */
-  if (types_are_compatible(old_class, new_class)) {
+  } else if (types_are_compatible(old_class, new_class)) {
     /* The classes are the same, so no error check is needed. */
     /* The fact that the class types are the same does not mean the
        pointer-to-member types are the same; the member type may be
@@ -1379,21 +1426,6 @@ proper result (often, an error constant).
     pos_warning(err_code, err_pos);
   }  /* if */
 }  /* issue_folding_diagnostic */
-
-
-static a_boolean related_ptr_to_members(a_type_ptr  type_1,
-                                        a_type_ptr  type_2)
-/*
-Return TRUE if the class types into which the given pointer-to-member types
-point are related by inheritance.
-*/
-{
-  a_type_ptr  class_1 = pm_class_type(type_1);
-  a_type_ptr  class_2 = pm_class_type(type_2);
-
-  return find_base_class_of(class_1, class_2) != NULL ||
-         find_base_class_of(class_2, class_1) != NULL;
-}  /* related_ptr_to_members */
 
 
 #if !RECORD_CONSTANT_EXPRESSIONS_IN_IL
@@ -1698,18 +1730,12 @@ to the constant is maintained, by adding a cast if necessary.
 
     case tk_ptr_to_member:
       /* Converting from pointer-to-member to pointer-to-member. */
-      if (!is_reinterpret_cast ||
-          /* In Microsoft mode a reinterpret-like cast is OK, if only the
-             member type is reinterpreted; not the class type. */
-          (microsoft_mode &&
-           related_ptr_to_members(constant_type, new_type))) {
-        conv_ptr_to_member_to_ptr_to_member(constant, &new_constant,
-                                            is_implicit_cast, did_not_fold,
-                                            err_pos,
-                                            &err_code, &err_severity);
-      } else {
-        *did_not_fold = TRUE;
-      }  /* if */
+      conv_ptr_to_member_to_ptr_to_member(constant, &new_constant,
+                                          is_implicit_cast,
+                                          is_reinterpret_cast,
+                                          did_not_fold,
+                                          err_pos,
+                                          &err_code, &err_severity);
       break;
 
     case tk_error:
