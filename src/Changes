@@ -45,7 +45,11 @@ This is now fixed.
 
 In versions configured to allow dollar signs in identifiers, a spurious
 error would be issued in strict mode on text that is skipped by the
-preprocessor.  Now fixed.
+preprocessor.  Now fixed.  A consequence of this change is that the
+special "dollar sign used in identifier" message has been eliminated
+and the generic "unrecognized token" is issued when dollar signs are
+not recognized.  This change was necessary to get correct results for
+certain cases where pp-tokens contain dollar signs.
 
   #if 0
   int i$b;

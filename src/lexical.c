@@ -8034,7 +8034,7 @@ return_end_of_source_token:
       /* The dollar sign can optionally be accepted as an ID character.
          If it is to be accepted then we go to the code responsible for
          scanning identifiers; otherwise it is an unrecognized token. */
-      if (allow_dollar_in_id_chars || issue_dollar_in_id_diagnostic) {
+      if (allow_dollar_in_id_chars) {
         goto id_scan;
       } else {
         goto bad_token;
@@ -8083,30 +8083,10 @@ id_scan:
       contains_ucn = FALSE;
       do {
         continue_scan = FALSE;
-        if (issue_dollar_in_id_diagnostic &&
-            strict_ansi_mode && !dollar_in_id_diagnostic_issued &&
-            !currently_in_pp_if_skip) {
-          /* Use a special scanning loop when we must check for dollar signs
-             (which are nonstandard) while accumulating the characters of the
-             identifier.  The diagnostic is issued only once. */
-          register a_boolean dollar_used = (ch == '$');
-          for (; is_id_char[(ch = *(curr_char_loc))-CHAR_MIN];
-               curr_char_loc++) {
-            if (ch == '$') dollar_used = TRUE;
-          }  /* for */
-          if (dollar_used) {
-            diagnostic(strict_ansi_error_severity,
-                       ec_dollar_used_in_identifier);
-            dollar_in_id_diagnostic_issued = TRUE;
-          }  /* if */
-        } else {
-          /* Dollar signs are not allowed, or the diagnostic has been issued
-             already, so use the normal (faster) loop. */
-          /* Accumulate characters of the identifier after the first. */
-          while (is_id_char[(ch = *(curr_char_loc))-CHAR_MIN]) {
-            curr_char_loc++;
-          }  /* while */
-        }  /* if */
+        /* Accumulate characters of the identifier after the first. */
+        while (is_id_char[(ch = *(curr_char_loc))-CHAR_MIN]) {
+          curr_char_loc++;
+        }  /* while */
         /* We have just scanned a sequence of "normal" identifier characters.
            Check whether we are now at a universal character name.  If so,
            scan the universal character and check for additional "normal"
@@ -14001,7 +13981,7 @@ are handled in lexical_init.)
                               isdigit((unsigned char)c));
   }  /* for */
   is_id_char['_' - CHAR_MIN] = TRUE;
-  if (allow_dollar_in_id_chars || issue_dollar_in_id_diagnostic) {
+  if (allow_dollar_in_id_chars) {
     is_id_char['$' - CHAR_MIN] = TRUE;
   }  /* if */
   /* Some character sets use some C special characters as letters, e.g.,

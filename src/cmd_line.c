@@ -3180,7 +3180,6 @@ Process the arguments on the command line that invoked the compiler.
       case optk_allow_dollar_in_id_chars:
         /* Determines whether dollar signs are accepted in identifiers. */
         allow_dollar_in_id_chars = opt_value;
-        issue_dollar_in_id_diagnostic = FALSE;
         break;
       case optk_display_compilation_time:
         /* Generate compilation timing information. */
