@@ -586,7 +586,6 @@ extern a_boolean user_defined_conversion_possible(
                                   an_operand         *source_operand,
                                   a_type_ptr         dest_type,
                                   a_boolean          conv_into_init_target,
-                                  a_boolean          is_argument,
                                   a_routine_ptr      *conversion_routine,
                                   a_boolean          *cctor_elision_done,
                                   a_boolean          *failed);
@@ -604,7 +603,6 @@ extern void prep_elision_initializer_operand(
 
 extern void prep_initializer_operand(an_operand         *source_operand,
                                      a_type_ptr         dest_type,
-                                     a_boolean          is_argument,
                                      an_expression_kind expression_kind,
                                      an_error_code      incompatible_err);
 
