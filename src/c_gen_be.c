@@ -2530,11 +2530,11 @@ Return the byte offset following the end of the indicated field.
 }  /* offset_after_field */
 
 
-static void dump_field_padding(a_field_ptr      field,
-                               a_targ_size_t    next_offset,
-                               a_targ_alignment next_alignment)
+static a_targ_size_t field_padding(a_field_ptr      field,
+                                   a_targ_size_t    next_offset,
+                                   a_targ_alignment next_alignment)
 /*
-Dump out any padding required after the field "field".  The next field
+Return the amount of padding after the indicated field.  The next field
 begins at next_offset and has alignment next_alignment.  "field" may be
 NULL, in which case the padding starts at offset zero.
 */
@@ -2542,7 +2542,6 @@ NULL, in which case the padding starts at offset zero.
   a_targ_size_t after_field;
   a_targ_size_t excess_bytes;
   a_targ_size_t rounded_after_field;
-  a_targ_size_t padding;
 
   /* The offset after the field, rounded up for the alignment of the
      following field, should give the offset of the following field. */
@@ -2566,9 +2565,25 @@ NULL, in which case the padding starts at offset zero.
     internal_error("dump_field_padding: negative padding required");
   }  /* if */
 #endif /* CHECKING */
-  padding = (next_offset - rounded_after_field);
+  return next_offset - rounded_after_field;
+}  /* field_padding */
+
+
+static void dump_field_padding(a_field_ptr      field,
+                               a_targ_size_t    next_offset,
+                               a_targ_alignment next_alignment)
+/*
+Dump out any padding required after the field "field".  The next field
+begins at next_offset and has alignment next_alignment.  "field" may be
+NULL, in which case the padding starts at offset zero.
+*/
+{
+  a_targ_size_t  padding = field_padding(field, next_offset, next_alignment);
+
   if (padding > 0) {
     /* Some padding is required. */  
+    a_targ_size_t  after_field = (field != NULL) ? offset_after_field(field)
+                                                 : 0;
     disable_line_wrapping();
     write_tok_str("char __dummy");
     write_unsigned_num((a_host_large_unsigned)after_field);
@@ -2581,6 +2596,53 @@ NULL, in which case the padding starts at offset zero.
     write_tok_ch(';');
   }  /* if */
 }  /* dump_field_padding */
+
+#if USER_CONTROL_OF_STRUCT_PACKING
+
+static a_targ_alignment get_pack_alignment(a_type_ptr  type)
+/*
+Return the pack alignment, or 0 if it is the default maximum member alignment.
+*/
+{
+  a_targ_alignment  pack_alignment;
+
+  pack_alignment = type->variant.class_struct_union.max_member_alignment;
+  if (pack_alignment != 0) {
+    if (pack_alignment == il_header.default_max_member_alignment) {
+      /* No need to put out a pragma to override the default value. */
+      pack_alignment = 0;
+    }  /* if */
+  }  /* if */
+  return pack_alignment;
+}  /* get_pack_alignment */
+
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+
+static a_boolean has_leading_padding(a_type_ptr  type)
+/*
+Return TRUE if and only if this class type has a first field that is
+preceded by some padding.  This only occurs in the context of empty
+base class optimization.
+*/
+{
+  a_boolean    result = FALSE;
+  a_field_ptr  first_field = type->variant.class_struct_union.field_list;
+
+  if (first_field != NULL) {
+    a_targ_alignment  alignment =
+                                f_skip_typerefs(first_field->type)->alignment;
+#if USER_CONTROL_OF_STRUCT_PACKING
+    a_targ_alignment  pack_alignment = get_pack_alignment(type);
+    if (pack_alignment != 0 && pack_alignment < alignment) {
+      alignment = pack_alignment;
+    }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+    if (field_padding((a_field_ptr)NULL, first_field->offset, alignment) > 0) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* has_leading_padding */
 
 
 static void dump_field_annotation_comment(a_field_ptr  field)
@@ -2621,27 +2683,20 @@ final semicolon if output_final_semi is TRUE.
 
   if (start_unreferenced_bracket(&type->source_corresp)) {
 #if USER_CONTROL_OF_STRUCT_PACKING
-    a_targ_alignment  pack_alignment;
-
-    pack_alignment = type->variant.class_struct_union.max_member_alignment;
+    a_targ_alignment  pack_alignment = get_pack_alignment(type);
     if (pack_alignment != 0) {
-      if (pack_alignment == il_header.default_max_member_alignment) {
-        /* No need to put out a pragma to override the default value. */
-        pack_alignment = 0;
-      } else {
-        /* Put out a #pragma pack directive to indicate the special alignment
-           requirements for this struct. */
-        unsigned long saved_indent = indent;
-        end_output_line_if_begun();
-        indent = 0;
-        disable_line_wrapping();
-        write_str("#pragma pack(");
-        write_unsigned_num((a_host_large_unsigned)pack_alignment);
-        write_str(")");
-        enable_line_wrapping();
-        end_output_line();
-        indent = saved_indent;
-      }  /* if */
+      /* Put out a #pragma pack directive to indicate the special alignment
+         requirements for this struct. */
+      unsigned long saved_indent = indent;
+      end_output_line_if_begun();
+      indent = 0;
+      disable_line_wrapping();
+      write_str("#pragma pack(");
+      write_unsigned_num((a_host_large_unsigned)pack_alignment);
+      write_str(")");
+      enable_line_wrapping();
+      end_output_line();
+      indent = saved_indent;
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     /* Dump any pragmas associated with the type. */
@@ -5695,17 +5750,27 @@ block with state information for the processing.
         break;
       case tk_struct:
       case tk_union:
-        /* Find the first field in the struct or union, skipping those that
-           are ignored by initialization. */
-        ipdp->curr_field = next_initializable_field(
-                                  type->variant.class_struct_union.field_list);
-        if (ipdp->curr_field != NULL) {
-          elem_type = ipdp->curr_field->type;
-        } else {
-          /* The struct or union contains no initializable fields, e.g.,
-             "struct {int :0;}", but a dummy field will have been put out
-             to avoid that problem.  It will be initialized below. */
+        if (has_leading_padding(type)) {
+          /* A struct that starts off with some padding.  This can only occur
+             as a result of empty base class optimizations.  Therefore, this
+             cannot be a union and this cannot involve an aggregate
+             initializer. */
+          check_assertion(elem_con == NULL &&
+                          type->kind != (a_type_kind)tk_union);
           elem_type = NULL;
+        } else {
+          /* Find the first field in the struct or union, skipping those that
+             are ignored by initialization. */
+          ipdp->curr_field = next_initializable_field(
+                                  type->variant.class_struct_union.field_list);
+          if (ipdp->curr_field != NULL) {
+            elem_type = ipdp->curr_field->type;
+          } else {
+            /* The struct or union contains no initializable fields, e.g.,
+               "struct {int :0;}", but a dummy field will have been put out
+               to avoid that problem.  It will be initialized below. */
+            elem_type = NULL;
+          }  /* if */
         }  /* if */
         break;
       default:
@@ -5720,7 +5785,8 @@ block with state information for the processing.
       /* This comes up for empty structs and unions, e.g., "struct {int:0;}".
          Such a thing is undefined behavior.  We accept it, but we add
          a dummy field of type char to the struct/union.  Initialize it
-         to zero here. */
+         to zero here.  This also comes up for structures that have leading
+         padding as a result of empty base class optimizations. */
       check_assertion_str(elem_con == NULL,
                           "dump_initializer_part: constant, but no field");
       /* We don't need to do anything if we're generating assignments
