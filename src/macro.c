@@ -2547,7 +2547,7 @@ the macro definition.
         /* parameter ## normal or parameter ## parameter, or pcc-mode
            parameter. */
         put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
-        if (C_dialect != C_dialect_pcc) {
+        if (!pcc_preprocessing_mode) {
           put_str_to_temp_text_buffer("##");
           /* If this is the parameter ## parameter case, suppress the "##"
              when the second parameter is processed. */
