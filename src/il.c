@@ -3156,9 +3156,11 @@ caller is responsible for sorting that out.)
       /* Add it to the scopes list for the scope enclosing the scope indicated
          by ssep. */
       add_to_scopes_list(sp, ssep-1);
-      check_assertion(curr_object_lifetime->entity.ptr == NULL);
-      bind_object_lifetime(curr_object_lifetime, (an_il_entry_kind)iek_scope,
-                           (char *)sp, /*ctor_init=*/FALSE);
+      if (!C_mode()) {
+        check_assertion(curr_object_lifetime->entity.ptr == NULL);
+        bind_object_lifetime(curr_object_lifetime, (an_il_entry_kind)iek_scope,
+                             (char *)sp, /*ctor_init=*/FALSE);
+      }  /* if */
     } else if (ssep->kind == (a_scope_kind)sck_func_prototype) {
       a_type_ptr              routine_type;
 
@@ -7382,7 +7384,9 @@ subscope region.
       /* Don't add the current entry to the parent's list of children, and
          don't update the sibling pointer. */
     } else {
+#if 0
       check_assertion(in_file_scope(olp) == in_file_scope(parent));
+#endif /* if 0 */
       /* If the parent already has a list of children, add the new entry to
          the front of the list. */
       olp->next = parent->child_lifetime;
