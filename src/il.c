@@ -3303,12 +3303,16 @@ a_base_class_derivation_ptr preferred_virtual_derivation_of(
 Return a pointer to the base class derivation entry associated with virtual
 base class bcp that is marked "preferred", namely, the one with the greatest
 accessibility of a public member in the context of the most derived class.
-Return NULL if none is found.
+There must be a derivation so marked.
 */
 {
   a_base_class_derivation_ptr  bcdp = bcp->derivation;
 
-  while (!bcdp->preferred) bcdp = bcdp->next;
+  while (!bcdp->preferred) {
+    bcdp = bcdp->next;
+    check_assertion_str(bcdp != NULL,
+                   "preferred_virtual_derivation_of: no preferred derivation");
+  }  /* while */
   return bcdp;
 }  /* preferred_virtual_derivation_of */
 
@@ -3328,13 +3332,14 @@ no direct derivation.
     while (!bcdp->direct) {
       bcdp = bcdp->next;
       /* Assertion will fail if direct flag has not been set. */
-      check_assertion(bcdp != NULL)
+      check_assertion_str(bcdp != NULL,
+                         "direct_virtual_derivation_of: no direct derivation");
     }  /* while */
   } else {
     bcdp = NULL;
   }  /* if */
   return bcdp;
-}  /* direct_derivation_of */
+}  /* direct_virtual_derivation_of */
 
 
 an_overriding_virtual_function_ptr alloc_overriding_virtual_function(void)
