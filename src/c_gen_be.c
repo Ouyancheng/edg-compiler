@@ -4125,7 +4125,7 @@ parameters.
       } else {
         dump_variable_storage_class(variable);
       }  /* if */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
       /* Microsoft-specific keywords. */
       if (variable->decl_modifiers & DM_DLLIMPORT) {
@@ -4142,7 +4142,7 @@ parameters.
         write_tok_str("__declspec(thread) ");
       }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if C_GEN_BE_GENERATES_ANSI_C
       if (variable->initialization_rewritten_as_assignment ||
           (init_kind == (an_init_kind)initk_dynamic && init_con == NULL)) {
@@ -5175,7 +5175,7 @@ if this routine has a body (dump nothing if it has no body).
       }  /* if */
     }  /* if */
     dump_storage_class(storage_class);
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
     /* Microsoft-specific keywords. */
     if (rout->decl_modifiers & DM_DLLIMPORT) {
@@ -5193,7 +5193,7 @@ if this routine has a body (dump nothing if it has no body).
       }  /* if */
     }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GCC_IS_C_GEN_BE_TARGET
     /* gcc will be used to compile this generated code, so we know how to
        indicate an inline function. */

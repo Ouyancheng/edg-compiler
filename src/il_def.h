@@ -1766,7 +1766,7 @@ typedef struct an_exception_specification {
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } an_exception_specification;
 
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 enum a_calling_convention_tag {
 /* Microsoft-specific calling convention specifiers. */
   cc_default,		/* Default (unspecified) calling convention, which
@@ -1776,7 +1776,7 @@ enum a_calling_convention_tag {
   cc_stdcall,		/* __stdcall calling convention. */
   cc_last		/* Must be last. */
 };
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* Define as "a_byte" to explicitly control storage size. */
 /* This type exists even if the Microsoft keywords are not allowed,
    to permit routines that deal with types to have a predictable number of
@@ -1784,14 +1784,14 @@ enum a_calling_convention_tag {
    though it is never used). */
 typedef a_byte a_calling_convention;
 typedef a_byte *a_calling_convention_ptr;
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 /* Display names for calling conventions. */
 EXTERN char *calling_convention_names[(int)cc_last]
 #if VAR_INITIALIZERS
 = {"<default>", "__cdecl", "__fastcall", "__stdcall"}
 #endif /* VAR_INITIALIZERS */
 ;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifdef CIL */
 
@@ -1912,12 +1912,12 @@ typedef struct a_routine_type_supplement {
                         /* Indicates whether or not a #pragma implying
                            special argument-type checking (e.g., for printf)
                            applies to this function type. */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_calling_convention
 		calling_convention;
 			/* Calling convention for this routine (e.g.,
 			   __cdecl, __fastcall). */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_type_ptr    implicit_this_param_type;
 			/* Pointer to the type of the implicit "this"
 			   parameter of C++ member functions; NULL for all
@@ -2585,24 +2585,24 @@ Determine whether any decl modifiers are being used.  This value is used
 to decide whether the variable and routine entries should include a
 decl modifiers field.
 */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #define DECL_MODIFIERS_IN_USE TRUE
-#else /* !MICROSOFT_KEYWORDS_ALLOWED */
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define DECL_MODIFIERS_IN_USE FALSE
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Enumeration of declaration modifiers that are accepted.  The enumeration values
 are used to create bit masks that are used to represent the modifiers.
 */
 enum a_decl_modifier_tag {
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
   dmt_dllimport,
   dmt_dllexport,
   dmt_thread,
   dmt_naked,
   dmt_microsoft_inline,
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   dmt_last
 };
 
@@ -2610,13 +2610,13 @@ enum a_decl_modifier_tag {
 EXTERN char *decl_modifier_names[(int)dmt_last + 1]
 #if VAR_INITIALIZERS
 = {
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
   /* dmt_dllimport */		"dllimport",
   /* dmt_dllexport */		"dllexport",
   /* dmt_thread */		"thread",
   /* dmt_naked */		"naked",
   /* dmt_inline */		"__inline",
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* dmt_last */		"__last"
 } /* decl_modifier_names */
 #endif /* VAR_INITIALIZERS */
@@ -2629,7 +2629,7 @@ about variables and routines.
 */
 #define DM_NONE	0x0
 			/* No decl modifiers. */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #define DM_DLLIMPORT	(1 << (int)dmt_dllimport)
 			/* TRUE if the declaration includes the
 			   Microsoft __declspec(dllimport) specifier. */
@@ -2646,7 +2646,7 @@ about variables and routines.
 			(1 << (int)dmt_microsoft_inline)
 			/* TRUE if the declaration includes the
 			   Microsoft __inline specifier. */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Type used to represent a set of decl modifiers.
