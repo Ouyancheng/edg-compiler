@@ -3133,8 +3133,10 @@ precedence confusion.  Do the output in the way described by octl.
       switch (constant->variant.template_param.kind) {
         case tpck_unknown_function:
           /* Address of an unknown function. */
+          if (need_parens) octl->output_str("(");
           octl->output_str("&");
           form_unknown_function_constant(constant, octl);
+          if (need_parens) octl->output_str(")");
           break;
         case tpck_param:
         case tpck_member:
@@ -3175,9 +3177,11 @@ precedence confusion.  Do the output in the way described by octl.
                         /*need_parens=*/FALSE, octl);
           break;
         case tpck_address:
+          if (need_parens) octl->output_str("(");
           octl->output_str("&");
           form_constant(constant->variant.template_param.variant.constant,
                         /*need_parens=*/FALSE, octl);
+          if (need_parens) octl->output_str(")");
           break;
         case tpck_sizeof:
           octl->output_str("sizeof(");
@@ -3197,15 +3201,21 @@ precedence confusion.  Do the output in the way described by octl.
         case tpck_template_ref:
           /* Unknown function template with explicit template argument list. */
           /* Put out the template. */
-          form_constant(constant->variant.template_param.variant.
-                                                              template_ref.con,
-                        /*need_parens=*/FALSE, octl);
+          if (need_parens) octl->output_str("(");
+          octl->output_str("&");
+          form_unknown_function_constant(constant->variant.template_param.
+                                                      variant.template_ref.con,
+                                         octl);
           /* Add the arguments. */
           form_template_args(constant->variant.template_param.variant.
                                                          template_ref.arg_list,
                              octl);
-          /* Avoid the ">>" problem. */
-          octl->output_str(" ");
+          if (need_parens) {
+            octl->output_str(")");
+          } else {
+            /* Avoid the ">>" problem. */
+            octl->output_str(" ");
+          }  /* if */
           break;
         default:
           octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**");

@@ -5563,6 +5563,15 @@ finish_new_style_cast:
               /* Nonmember function or static member function. */
               gen_routine_name(rout);
             }  /* if */
+          } else if (is_constant_node(operand_1) &&
+                     operand_1->variant.constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param &&
+                     operand_1->variant.constant->variant.template_param.kind==
+                       (a_template_param_constant_kind)tpck_unknown_function) {
+            /* A tpck_unknown_function constant represents the address of the
+               unknown function.  Drop the "&" (it's implied) to make neater
+               output. */
+            form_unknown_function_constant(operand_1->variant.constant, &octl);
           } else if (is_operation_node(operand_1) &&
                      (operand_1->variant.operation.kind ==
                                (an_expr_operator_kind)eok_points_to_static ||
