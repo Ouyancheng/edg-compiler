@@ -2950,16 +2950,14 @@ Copy the type entry "from" to "to".
 }  /* copy_type */
 
 
-void clear_dynamic_init(a_dynamic_init_ptr    dip,
-                        a_dynamic_init_kind   kind)
+void set_dynamic_init_kind(a_dynamic_init_ptr  dip,
+                           a_dynamic_init_kind kind)
 /*
-Initialize a dynamic_init entry of the kind specified.
+Set the kind of the indicated dynamic initialization entry to "kind", and set
+the associated variant fields to default values.
 */
 {
-  dip->next       = NULL;
-  dip->variable   = NULL;
-  dip->destructor = NULL;
-  dip->kind       = kind;
+  dip->kind = kind;
   switch (kind) {
     case dik_none:
     case dik_member_copy:
@@ -2982,9 +2980,22 @@ Initialize a dynamic_init entry of the kind specified.
       break;
 #if CHECKING
     default:
-      internal_error("clear_dynamic_init: bad kind");
+      internal_error("set_dynamic_init_kind: bad kind");
 #endif /* CHECKING */
   }  /* switch */
+}  /* set_dynamic_init_kind */
+
+
+void clear_dynamic_init(a_dynamic_init_ptr  dip,
+                        a_dynamic_init_kind kind)
+/*
+Initialize a dynamic_init entry of the kind specified.
+*/
+{
+  dip->next       = NULL;
+  dip->variable   = NULL;
+  dip->destructor = NULL;
+  set_dynamic_init_kind(dip, kind);
 }  /* clear_dynamic_init */
 
 

@@ -152,6 +152,9 @@ extern void set_integer_constant(a_constant *cp,
 
 extern char *alloc_text_of_string_literal(sizeof_t size);
 
+extern void set_dynamic_init_kind(a_dynamic_init_ptr  dip,
+                                  a_dynamic_init_kind kind);
+
 extern void clear_dynamic_init(a_dynamic_init_ptr  dip,
                                a_dynamic_init_kind kind);
 
