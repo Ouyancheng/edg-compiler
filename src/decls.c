@@ -6584,12 +6584,22 @@ process_class_specifier:
                    into a constructor locator. */
                 determine_curr_token_type_symbol();
                 if (curr_token_type_symbol != tag_sym) {
-                  /* This can only mean that another member has been declared
-                     with the class name.  Issue an error. */
                   if (locator_for_curr_id.specific_symbol->
                                class_of_which_a_member == tp) {
+                    /* This can only mean that another member has been declared
+                       with the class name.  Issue an error. */
                     str_error(ec_id_already_declared,
                               locator_for_curr_id.symbol_header->identifier);
+                  } else if (curr_token_type_symbol != NULL) {
+#if CHECKING
+                    if (!is_template_class_symbol(curr_token_type_symbol)) {
+                      internal_error(
+                                "decl_specifiers: expected template class");
+                    }  /* if */
+#endif /* CHECKING */
+                    pos_sy2_error(ec_bad_constructor_name,
+                                  &locator_for_curr_id.source_position,
+                                  curr_token_type_symbol, tag_sym);
                   }  /* if */
                   locator_for_curr_id.specific_symbol = tag_sym;
                 }  /* if */
