@@ -3107,6 +3107,7 @@ to represent the template parameters.
          template-param type -- "for now", since it will be replaced with
          an actual type during instantiation of the class or function. */
       sym->variant.type = template_param_type;
+      sym->is_template_param = TRUE;
       mark_defined(sym, &sym->decl_position);
       /* Bypass the identifier. */
       (void)get_token();
@@ -3142,6 +3143,7 @@ to represent the template parameters.
       set_source_corresp(&sym->variant.constant->source_corresp, sym);
       const_type_involves_template_param = 
 				is_or_contains_template_param(param_type_ptr);
+      sym->is_template_param = TRUE;
       mark_defined(sym, &sym->decl_position);
       if (curr_token == tok_assign) {
         /* Scan the default value. */
@@ -3187,8 +3189,8 @@ to represent the template parameters.
         sym->variant.constant->variant.template_param.variant.list_position =
                                                       template_param_list_pos;
       }  /* if */
+      sym->is_template_param = TRUE;
     }  /* if */
-    sym->is_template_param = TRUE;
     /* Allocate a template parameter and set its fields based on sym. */
     template_param = alloc_template_param(sym);
     if (const_type_involves_template_param) {
