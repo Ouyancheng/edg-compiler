@@ -386,6 +386,8 @@ at the start of a major expression.
 {
   new_entry->prev = expr_stack;
   new_entry->expression_kind = expression_kind;
+  new_entry->old_ref_entries_list = curr_expr_ref_entries;
+  curr_expr_ref_entries = NULL;
   new_entry->evaluated = TRUE;
   new_entry->is_default_arg_expression = FALSE;
   new_entry->is_template_arg_expression = FALSE;
@@ -415,6 +417,8 @@ major expression.
 {
   /* Flush the reference entries list for the current expression. */
   flush_ref_entries_list();
+  /* Restore the old reference entries list, if any. */
+  curr_expr_ref_entries = expr_stack->old_ref_entries_list;
   /* Pop the stack. */
   expr_stack = expr_stack->prev;
 }  /* pop_expr_stack */

@@ -252,6 +252,10 @@ typedef struct an_expr_stack_entry {
   an_expression_kind
 		expression_kind;
 			/* The kind of expression. */
+  a_ref_entry_ptr
+		old_ref_entries_list;
+			/* Saved copy of the global reference entries list
+			   at the time of the push of this entry. */
   a_byte_boolean
 		evaluated;
 			/* Expression is evaluated, e.g., FALSE if it's the
