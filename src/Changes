@@ -1,5 +1,44 @@
 Version 2.32
 
+2/3/96    Exception specification for implicitly declared member function
+
+When a member function (i.e., a constructor, destructor, or copy assignment
+operator) is implicitly declared, an exception specification is formed based
+on the exception specifications of corresponding functions of direct base
+classes and nonstatic data members of class (or array of class) type, using
+the union of the exception specifications of functions that would be called
+for subobject construction.  (Though this approach is not yet explicitly
+specified in the working paper, it makes good sense and there appears to be
+consensus in favor of it.)  For example:
+
+  class X { };
+  class Y { };
+  class A {
+    A() throw (X);
+  };
+  class B {
+    B() throw (Y);
+  };
+  class D : public A, public B { };  // implicit declaration of
+                                     //   D::D() throw (X, Y)
+
+However, when the implicitly declared function is a virtual destructor, the
+generated exception specification can violate the constraint on the
+exception specification of an overriding virtual function (it must be at
+least as restrictive as that of the function it overrides -- see Changes
+entry of 1/12/96).  In such cases a warning is issued.  For instance:
+
+  class X { };
+  class A {
+    virtual ~A() throw (X);
+  };
+  class B {
+    virtual ~B() throw ();
+  };
+  class D : public A, public B { };  // warning: implicitly declared
+                                     //   D::~D() throw (X) is not as
+                                     //   restrictive as B::~B() throw ()
+
 2/1/96    Instantiations of templates from namespaces not handled correctly
           in certain cases
 
