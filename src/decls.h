@@ -181,6 +181,9 @@ extern void check_and_adjust_parameter_type
                                      a_source_position  *error_pos,
                                      a_boolean          restrict_qualified);
 
+void check_old_specialization_allowed(a_symbol_ptr       sym,
+                                      a_source_position  *pos);
+
 extern void decl_default_function(a_symbol_ptr symbol_ptr);
 
 extern a_label_ptr scan_label(a_boolean is_definition);

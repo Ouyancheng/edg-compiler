@@ -931,12 +931,6 @@ on a prior declaration.
         sym->variant.routine.ptr->compiler_generated = FALSE;
         sym->variant.routine.ptr->is_inline = FALSE;
       }  /* if */
-    } else if (!old_specializations_allowed &&
-               sym->variant.static_data_member.instance_ptr != NULL) {
-      /* Old-style template specialization is not allowed. */
-      pos_sy_error(ec_old_specialization_not_allowed,
-                   &locator->source_position, sym);
-      sym = NULL;
     }  /* if */
   }  /* if */
   if (sym == NULL || sym->defined) {
@@ -1024,12 +1018,7 @@ on a prior declaration.
        template, mark this as a specialization.  However, since the newer
        template<> syntax was not used, mark it as using the old syntax. */
     if (sym->variant.routine.instance_ptr != NULL) {
-      if (strict_ansi_mode) {
-        /* Old-style template specialization is nonstandard. */
-        pos_sy_diagnostic(strict_ansi_discretionary_severity,
-                          ec_nonstd_old_specialization,
-                          &locator->source_position, sym);
-      }  /* if */
+      check_old_specialization_allowed(sym, &locator->source_position);
       sym->variant.routine.ptr->is_specialized = TRUE;
       sym->variant.routine.ptr->specialized_with_old_syntax = TRUE;
       sym->variant.routine.instance_ptr->instantiation_required = FALSE;

@@ -1012,20 +1012,8 @@ the template.
           } else if (class_type_is_complete) {
             /* The class has already been instantiated -- don't consider this
                to be a specialization. */
-          } else if (!old_specializations_allowed) {
-            /* Old-style template specialization is not allowed. */
-            pos_sy_error(ec_old_specialization_not_allowed, &tag_position,
-                         tag_sym);
-            tag_sym = NULL;
-            set_to_named_error_locator(locator);
-            err = TRUE;
           } else {
-            if (strict_ansi_mode) {
-              /* Old-style template specialization is nonstandard. */
-              pos_sy_diagnostic(strict_ansi_discretionary_severity,
-                                ec_nonstd_old_specialization, &tag_position,
-                                tag_sym);
-            }  /* if */
+            check_old_specialization_allowed(tag_sym, &tag_position);
             class_type->variant.class_struct_union.is_specialized = TRUE;
             class_type->variant.class_struct_union.
                                       specialized_with_old_syntax = TRUE;
