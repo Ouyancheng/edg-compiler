@@ -71,6 +71,12 @@ considered compatible.
 */
 #define PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED FALSE
 
+/*
+Flag that is TRUE if the "long long" data type and the associated language
+features (e.g., suffixes for constants) are allowed.
+*/
+#define LONG_LONG_ALLOWED TRUE
+
 #endif /* ifndef LANG_FEAT_H */
 
 
