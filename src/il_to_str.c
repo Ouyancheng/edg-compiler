@@ -2057,12 +2057,14 @@ precedence confusion.  Do the output in the way described by octl.
     }  /* if */
     if (need_char_star_cast) final_cast_needed = TRUE;
   }  /* if */
-  if (achieved_type != desired_type) {
+  if (constant->implicit_cast && achieved_type != desired_type) {
     /* The proper type couldn't be achieved with address operators, so we
        need a final cast to adjust the type.  One important category of cases
-       this handles is cases that require just qualification adjustments. */
+       this handles is cases that require just qualification adjustments.
+       The test of implicit_cast allows a category of function-pointer
+       cases to be put out without casts. */
     final_cast_needed = TRUE;
-  }  /* if */  
+  }  /* if */
   if (final_cast_needed) {
     /* Generate a final cast to the constant type. */
     output_optional_open_paren(&need_parens,
