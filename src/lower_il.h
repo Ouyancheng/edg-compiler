@@ -549,6 +549,8 @@ extern void repr_for_ptr_to_member_function_constant(a_constant_ptr   constant,
                                                      a_routine_ptr    *func,
                                                      a_targ_ptrdiff_t *offset);
 
+/* See also below -- this is defined as a macro if IL lowering is
+   configured out. */
 extern a_boolean virtual_dtor_should_be_generated_for_class(
                                                         a_type_ptr class_type);
 
@@ -622,6 +624,18 @@ extern unsigned long show_lowering_space_used(void);
 #endif /* DEBUG */
 
 extern void il_lower_init(void);
+
+#else /* !DO_IL_LOWERING */
+
+/* IL lowering is disabled. */
+
+/*
+#define a dummy version of virtual_dtor_should_be_generated_for_class
+which always returns TRUE (meaning a virtual destructor for a class
+should always be generated).  This is the answer that does the most
+error checking, but FALSE would be equally proper.
+*/
+#define virtual_dtor_should_be_generated_for_class() TRUE
 
 #endif /* DO_IL_LOWERING */
 #endif /* ifndef LOWER_IL_H */
