@@ -1,5 +1,22 @@
 Version 2.11
 
+10/8/92  Support for cfront "transitional model" nested types
+
+The cfront 2.1 "transitional model" for nested types, in which a nested type
+is promoted to file scope unless a type of the same name already exists at
+file scope, has been added.  This affects name mangling and also restricts
+the way in which that name can be used later on in a program.
+
+To support this a new field named "is_semivisible_nested_type" has been
+added to the IL type structure.  Two new configuration switches have been
+added to specify the version of cfront with which the generated object code
+should be compatible: CFRONT_2_1_OBJECT_CODE_COMPATIBILITY and
+CFRONT_3_0_OBJECT_CODE_COMPATIBILITY.  The existing switch is now set
+to the logical OR of these two switches.
+
+This feature is only enabled when CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+is TRUE and cfront compatibility mode (-b) is enabled.
+
 10/4/92  Fixed loop on error diagnosis
 
 If a source file containing both #line directives and #include directives
