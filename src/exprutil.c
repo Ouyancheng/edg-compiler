@@ -6987,155 +6987,28 @@ gives the source position of the call.
 {
   an_expr_node_ptr call_node;
   a_type_ptr       return_type;
-#if GNU_EXTENSIONS_ALLOWED
-  a_routine_ptr    rout;
-  a_constant       constant;
-  a_host_large_integer  
-                   constant_value;
-  a_type_class_kind 
-                   tck;
-  a_boolean        need_real_call = TRUE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if GNU_EXTENSIONS_ALLOWED
-  /* Check for builtin function calls that can be simplified at this
-     point. */
-  if (function_node->kind == (an_expr_node_kind)enk_routine_address &&
-      function_node->variant.routine->special_kind == 
-                                  (a_special_function_kind)sfk_none &&
-      function_node->variant.routine->variant.builtin_function_kind !=
-                                    (a_builtin_function_kind)bfk_none) {
-    rout = function_node->variant.routine;
-    switch (rout->variant.builtin_function_kind) {
-      case bfk_constant_p:
-	if (function_node->next == NULL) {
-	  pos_error(ec_too_few_arguments, call_pos);
-	  constant_value = (a_host_large_integer)0L;
-	} else if (function_node->next->next != NULL) {
-	  pos_error(ec_too_many_arguments, call_pos);
-	  constant_value = (a_host_large_integer)0L;
-	} else {
-	  /* The value is "1" if the argument is a constant and "0"
-	     otherwise. */
-	  constant_value = ((a_host_large_integer)
-			    (function_node->next->kind ==
-			     (an_expr_node_kind)enk_constant));
-	} /* if */
-	set_integer_constant(&constant, constant_value,
-			     (an_integer_kind)ik_int);
-	make_constant_operand(&constant, result);
-	need_real_call = FALSE;
-	break;
-      case bfk_classify_type:
-	/* Although there is a type class for arrays, GCC does not
-	   seem to use it; the array-to-pointer and
-	   function-to-pointer conversions are done before classifying
-	   the type. */
-	if (function_node->next == NULL) {
-	  pos_error(ec_too_few_arguments, call_pos);
-	  tck = (a_type_class_kind)tck_none;
-	} else if (function_node->next->next != NULL) {
-	  pos_error(ec_too_many_arguments, call_pos);
-	  tck = (a_type_class_kind)tck_none;
-	} else {
-	  a_type_ptr        type;
-	  /* Look at the type of the argument; the argument itself is
-	     not evaluated. */
-	  type = skip_typerefs(function_node->next->type);
-	  switch (type->kind) {
-	    case tk_void:
-	      tck = (a_type_class_kind)tck_void;
-	      break;
-	    case tk_integer:
-              /* Although there is a type class for enumeration types, GCC
-                 does not seem to use it.  It returns tck_integer instead. */
-	      if (is_character_type(type)) {
-		tck = (a_type_class_kind)tck_char;
-	      } else if (is_bool_type(type)) {
-		tck = (a_type_class_kind)tck_bool;
-	      } else {
-		tck = (a_type_class_kind)tck_integer;
-	      }  /* if */
-	      break;
-	    case tk_pointer:
-	      if (is_pointer_type(type)) {
-		tck = (a_type_class_kind)tck_pointer;
-	      } else {
-		tck = (a_type_class_kind)tck_reference;
-	      }  /* if */
-	      break;
-	    case tk_float:
-	      tck = (a_type_class_kind)tck_float;
-	      break;
-#if C99_IL_EXTENSIONS_SUPPORTED
-	    case tk_complex:
-	      tck = (a_type_class_kind)tck_complex;
-	      break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-	    case tk_routine:
-	      tck = (a_type_class_kind)tck_routine;
-	      break;
-	    case tk_struct:
-	    case tk_class:
-	      tck = (a_type_class_kind)tck_struct;
-	      break;
-	    case tk_union:
-	      tck = (a_type_class_kind)tck_union;
-	      break;
-	    case tk_array:
-	      if (is_string_type(type)) {
-		tck = (a_type_class_kind)tck_string;
-	      } else {
-		tck = (a_type_class_kind)tck_array;
-	      }  /* if */
-	      break;
-            case tk_error:
-              tck = (a_type_class_kind)tck_none;
-              break;
-	    default:
-	      unexpected_condition();
-	      break;
-	  }  /* switch */
-	} /* if */
-	set_integer_constant(&constant, (a_host_large_integer)tck,
-			     (an_integer_kind)ik_int);
-	make_constant_operand(&constant, result);
-	need_real_call = FALSE;
-	break;
-      default:
-	/* Leave other builtin functions for the back end to 
-	   handle.  */
-	break;
-    }  /* switch */
-  }  /* if */
-  if (!need_real_call) {
-    result->position = *call_pos;
-  } else 
-#endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  {
-    function_type = skip_typerefs(function_type);
-    /* Make the function call expression node. */
-    call_node = func_call_expr(function_node, function_type, is_virtual,
+  function_type = skip_typerefs(function_type);
+  /* Make the function call expression node. */
+  call_node = func_call_expr(function_node, function_type, is_virtual,
 			       virtual_suppressed, compiler_generated,
 			       is_conversion, call_pos);
-    /* Make an operand for the overall call (etc.). */
-    make_expression_operand(call_node, call_node->type, result);
-    result->position = *call_pos;
-    /* A function call returning a reference is an lvalue. */
-    return_type = function_type->variant.routine.return_type;
-    if (is_reference_type(return_type)) {
-      conv_object_pointer_to_lvalue(result);
-      call_node->implicit_reference_indirection = TRUE;
+  /* Make an operand for the overall call (etc.). */
+  make_expression_operand(call_node, call_node->type, result);
+  result->position = *call_pos;
+  /* A function call returning a reference is an lvalue. */
+  return_type = function_type->variant.routine.return_type;
+  if (is_reference_type(return_type)) {
+    conv_object_pointer_to_lvalue(result);
+    call_node->implicit_reference_indirection = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_bugs && microsoft_version < 1100 && !C_mode() &&
+  } else if (microsoft_bugs && microsoft_version < 1100 && !C_mode() &&
 	       is_class_struct_union_type(return_type)) {
-      /* In Microsoft C++ mode, a function that returns a class type is
+    /* In Microsoft C++ mode, a function that returns a class type is
 	 considered to return an lvalue.  This was changed in MSVC++ 5.0. */
-      conv_class_operand_to_object_pointer(result);
-      conv_object_pointer_to_lvalue(result);
+    conv_class_operand_to_object_pointer(result);
+    conv_object_pointer_to_lvalue(result);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    }  /* if */
   }  /* if */
 }  /* make_function_call */
 

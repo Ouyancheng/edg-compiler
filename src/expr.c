@@ -963,16 +963,93 @@ given operand by a constant operand if appropriate.
   check_assertion(is_expression_operand(op));
   call = op->variant.expression;
   check_assertion(call != NULL &&
-                  call->kind == (an_expr_node_kind)enk_operation &&
-                  call->variant.operation.kind ==
-                                             (an_expr_operator_kind)eok_call);
+                  call->kind == (an_expr_node_kind)enk_operation);
   args = call->variant.operation.operands;
-  if (args->kind == (an_expr_node_kind)enk_routine_address) {
+  if (call->variant.operation.kind == (an_expr_operator_kind)eok_call &&
+      args->kind == (an_expr_node_kind)enk_routine_address) {
     /* A direct call: Examine which routine is called. */
     a_routine_ptr  rp = args->variant.routine;
     if (rp->special_kind == (a_special_function_kind)sfk_none) {
       args = args->next;
       switch (rp->variant.builtin_function_kind) {
+        case bfk_constant_p:
+          /* "1" if the argument is constant; "0" otherwise. */
+          if (args != NULL && args->next == NULL &&
+              is_integral_type(call->type)) {
+            a_boolean  val = (args->kind == (an_expr_node_kind)enk_constant);
+            clear_constant(&result, (a_constant_repr_kind)ck_integer);
+            result.type = call->type;
+            set_integer_constant(&result, (a_host_large_integer)val,
+                                 call->type->variant.integer.int_kind);
+            folded = TRUE;
+          }  /* if */
+          break;
+        case bfk_classify_type:
+          if (args != NULL && args->next == NULL &&
+              is_integral_type(call->type)) {
+            a_type_class_kind  tck;
+            a_type_ptr         type = skip_typerefs(args->type);
+            switch (type->kind) {
+              case tk_void:
+                tck = (a_type_class_kind)tck_void;
+                break;
+              case tk_integer:
+                /* Although there is a type class for enumeration types, GCC
+                   does not seem to use it.  It returns tck_integer instead. */
+                if (is_character_type(type)) {
+                  tck = (a_type_class_kind)tck_char;
+                } else if (is_bool_type(type)) {
+                  tck = (a_type_class_kind)tck_bool;
+                } else {
+                  tck = (a_type_class_kind)tck_integer;
+                }  /* if */
+                break;
+              case tk_pointer:
+                if (is_pointer_type(type)) {
+                  tck = (a_type_class_kind)tck_pointer;
+                } else {
+                  tck = (a_type_class_kind)tck_reference;
+                }  /* if */
+                break;
+              case tk_float:
+                tck = (a_type_class_kind)tck_float;
+                break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+              case tk_complex:
+                tck = (a_type_class_kind)tck_complex;
+                break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+              case tk_routine:
+                tck = (a_type_class_kind)tck_routine;
+                break;
+              case tk_struct:
+              case tk_class:
+                tck = (a_type_class_kind)tck_struct;
+                break;
+              case tk_union:
+                tck = (a_type_class_kind)tck_union;
+                break;
+              case tk_array:
+                if (is_string_type(type)) {
+                  tck = (a_type_class_kind)tck_string;
+                } else {
+                  tck = (a_type_class_kind)tck_array;
+                }  /* if */
+                break;
+              case tk_error:
+                tck = (a_type_class_kind)tck_none;
+                break;
+              default:
+                unexpected_condition();
+                break;
+            }  /* switch */
+            clear_constant(&result, (a_constant_repr_kind)ck_integer);
+            result.type = call->type;
+            set_integer_constant(&result, (a_host_large_integer)tck,
+                                 call->type->variant.integer.int_kind);
+            folded = TRUE;
+          }  /* if */
+          break;
         case bfk_huge_valf:
         case bfk_huge_val:
         case bfk_huge_vall:
