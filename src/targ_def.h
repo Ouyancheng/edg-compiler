@@ -1956,6 +1956,9 @@ generate code for the GNU C compiler (gcc or g++).
 #define GCC_IS_GENERATED_CODE_TARGET FALSE
 #endif /* !defined(__GNUC__) && BACK_END_IS_C_GEN_BE */
 #endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
+#else  /* !(BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) */
+/* Not using the C or C++ generating back end. */
+#define GCC_IS_GENERATED_CODE_TARGET FALSE
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
