@@ -422,11 +422,13 @@ has not yet been examined for a matching entry in another translation unit.
   } else {
     tcp = &trans_unit_corresp_of_unknown_entry(entity);
   }  /* if */
-  check_assertion(*tcp == NULL || (*tcp)->canonical != entity ||
-                  (*tcp)->count <= 1);
-  /* Allocate a correspondence node. */
-  *tcp = alloc_trans_unit_corresp();
-  (*tcp)->kind = kind;
+  if (*tcp == NULL) {
+    /* Allocate a correspondence node. */
+    *tcp = alloc_trans_unit_corresp();
+    (*tcp)->kind = kind;
+  } else {
+    check_assertion((*tcp)->canonical != entity || (*tcp)->count <= 1);
+  }  /* if */
   change_canonical_entry(*tcp, entity);
   if (!in_secondary_trans_unit(entity)) {
     (*tcp)->primary = entity;
@@ -1150,10 +1152,18 @@ tssp.
   add_instantiation(tssp, inst);
   if (is_class_struct_union_symbol(inst)) {
     a_type_ptr  class_type = type_symbol_type(inst);
-    clear_type_correspondence(class_type, /*visited=*/TRUE);
+    if (trans_unit_corresp_of(class_type) == NULL) {
+      clear_type_correspondence(class_type, /*visited=*/TRUE);
+    } else {
+      check_assertion(canonical_il_entry_of(class_type) == (char*)class_type);
+    }  /* if */
   } else if (is_function_symbol(inst)) {
     a_routine_ptr  routine = inst->variant.routine.ptr;
-    set_no_trans_unit_corresp(iek_routine, routine);
+    if (trans_unit_corresp_of(routine) == NULL) {
+      set_no_trans_unit_corresp(iek_routine, routine);
+    } else {
+      check_assertion(canonical_il_entry_of(routine) == (char*)routine);
+    }  /* if */
   }  /* if */
 }  /* mark_canonical_instantiation */
 
@@ -2685,7 +2695,7 @@ given type.
       /* Sometimes type is unvisited at this point.  That used to be the case
          with the previous correspondence structure too and seems to work fine.
          */
-#endif
+#endif /* FIXME */
     }  /* if */
     establish_trans_unit_correspondences_for_class(type);
     if (new_canon) {
@@ -3065,6 +3075,7 @@ symbol supplement.
     } else {
       /* Record the necessary correspondences. */
       a_type_ptr  corresp_type = type_symbol_type(sym_entry->symbol);
+#if 0 /* FIXME */
       if ((!sym_entry->symbol->defined && inst->defined) ||
           parent_class_is_canonical(&class_type->source_corresp)) {
         /* If this is a definition and the canonical entry is not a definition
@@ -3082,6 +3093,7 @@ symbol supplement.
           sym_entry->symbol = inst;
         }  /* if */
       }  /* if */
+#endif /* FIXME */
       set_trans_unit_corresp(iek_type, class_type, corresp_type);
       establish_trans_unit_correspondences_for_class(class_type);
     }  /* if */
