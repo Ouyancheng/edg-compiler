@@ -1370,7 +1370,8 @@ position).
   /* If the member is protected, it can only be accessed through an object
      or pointer of a type to which we have member access (ARM 11.5). */
   if (!member_locator->access_control_error_reported) {
-    check_protected_member_access(member_locator, *class_struct_union_type);
+    check_protected_member_access(member_sym, &member_locator->source_position,
+				  *class_struct_union_type);
   }  /* if */
   /* Do nothing if the type is already okay (which it almost always
      will be). */
@@ -2994,6 +2995,27 @@ operation is a pointer-to-member (see ARM 5.3).
         }  /* if */
         member_proj_sym = operand.variant.symbol;
         member_sym = fundamental_symbol_of(member_proj_sym);
+        /* Protected members of a base class can only be accessed through an
+           object of a derived class.  It is not very clear how this should
+	   affect pointer to member processing.  We allow the address of
+	   a protected member to be taken as a member of the derived class but
+	   not as a member of the base class.   For example:
+
+		class B { protected: int i; };
+		class D : public B { void mf()};
+
+	        void D::mf() {
+			int A::* pmi = &A::i;	// error - protected member
+			int B::* pmi = &B::i;	// OK
+		}
+
+           Cfront does not do this checking so, so we omit it in cfront
+           mode. */
+        if (!cfront_compatibility_mode) {
+          check_protected_member_access(member_sym, &error_position,
+				        member_proj_sym->
+						      class_of_which_a_member);
+        }  /* if */
         if (member_sym->kind == (a_symbol_kind)sk_field) {
           /* Pointer to nonstatic data member. */
           if (member_sym->variant.field.ptr->bit_size != 0) {

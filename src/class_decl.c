@@ -4942,10 +4942,7 @@ and conversion functions.
   } else if (class_of_object != NULL) {
     /* Protected members of a base class can only be accessed through an
        object of a derived class. */
-    a_symbol_locator	locator;
-    make_locator_for_symbol(sym, &locator);
-    locator.source_position = *err_pos;
-    check_protected_member_access(&locator, class_of_object);
+    check_protected_member_access(sym, err_pos, class_of_object);
   }  /* if */
   /* Mark the IL entry as referenced. */
   rp->source_corresp.referenced = TRUE;

@@ -3745,8 +3745,9 @@ the same access, the function returns FALSE.
 }  /* max_access_of_overloaded_function */
 
 
-void f_check_protected_member_access(a_symbol_locator *locator,
-                                     a_type_ptr       access_class)
+void f_check_protected_member_access(a_symbol_ptr      sym,
+				     a_source_position *err_pos,
+                                     a_type_ptr        access_class)
 /*
 This routine implements the access control check mandated by ARM 11.5, which
 requires that a protected member be accessed only through a pointer or
@@ -3761,7 +3762,6 @@ function.
 */
 {
   a_boolean             have_access;
-  a_symbol_ptr          sym = fundamental_symbol_of(locator->specific_symbol);
   a_type_ptr            base_class, class_type;
   a_base_class_ptr      bcp;
   a_derivation_step_ptr dsp;
@@ -3826,8 +3826,7 @@ function.
     }  /* for */
   }  /* if */
   if (!have_access) {
-    pos_syty_error(ec_protected_access_problem, &locator->source_position,
-                   sym, access_class);
+    pos_syty_error(ec_protected_access_problem, err_pos, sym, access_class);
   }  /* if */
 }  /* f_check_protected_member_access */
 

@@ -1337,6 +1337,19 @@ except for casts to ambiguous or inaccessible base classes.
             make_ptr_to_member_constant_operand(function_symbol,
                                                 &orig_operand.position,
                                                 operand);
+            /* Protected members of a base class can only be accessed
+	       through an object of a derived class.  It is not very clear
+	       how this should affect pointer to member processing.  We
+	       allow the address of a protected member to be taken as a
+               member of the derived class but not as a member of the base
+	       class.  Cfront does not do this checking, so we omit it
+	       in cfront mode (for more information see the example
+	       in scan_ampersand_operator). */
+            if (!cfront_compatibility_mode) {
+              check_protected_member_access(function_symbol, &error_position,
+					    overloaded_function_symbol->
+						      class_of_which_a_member);
+            }  /* if */
           } else {
             /* Casting an overloaded nonmember or static member function
                to a pointer to function. */
@@ -6652,14 +6665,11 @@ an error.
 */
 {
   a_type_ptr       class_type;
-  a_symbol_locator locator;
 
   /* Get the underlying type from the selector. */
   class_type = underlying_selector_class(bound_function_selector);
   /* Do the access check. */
-  make_locator_for_symbol(sym, &locator);
-  locator.source_position = *err_pos;
-  f_check_protected_member_access(&locator, class_type);
+  f_check_protected_member_access(sym, err_pos, class_type);
 }  /* f_check_protected_member_access_catch_up */
 
 /*
