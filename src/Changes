@@ -1,5 +1,16 @@
 Version 3.1
 
+12/1/02   Microsoft property fields, reference types
+
+Microsoft property fields did not work quite right when the "get"
+function returns a reference type.  The result of a reference to
+the field should be an lvalue in that case, and now it is.
+
+Also, a declaration of a property field with a reference type
+caused a spurious warning about the class having no constructor
+to initialize the reference field.  That warning is no longer
+issued.
+
 12/1/02   End position on some function expressions
 
 The end positions (maintained when EXTRA_SOURCE_POSITIONS_IN_IL is

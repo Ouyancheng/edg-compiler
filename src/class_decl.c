@@ -11095,9 +11095,20 @@ member.  Determine whether a diagnostic is actually required and put it out.
        candidates. */
     for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
       if (sym->kind == (a_symbol_kind)sk_field) {
-        a_type_ptr     tp = sym->variant.field.ptr->type;
+        a_field_ptr    field = sym->variant.field.ptr;
+        a_type_ptr     tp = field->type;
         an_error_code  error_code;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (microsoft_mode &&
+            (field->get_property_name != NULL ||
+             field->put_property_name != NULL)) {
+          /* A field declared with __declspec(property(...)) in Microsoft
+             C++ mode.  This is not a real field and therefore the check
+             does not apply. */
+          continue;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (is_reference_type(tp)) {
           /* Member of reference type must be explicitly initialized. */
           error_code = ec_reference_member;

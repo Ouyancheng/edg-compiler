@@ -8890,8 +8890,6 @@ is a "get" if put_operand is NULL.
                                  /*compiler_generated=*/TRUE,
                                  /*is_conversion=*/FALSE,
                                  &operand_position, operand);
-          /* Convert lvalue to rvalue, etc. */
-          do_operand_transformations(operand, TOPT_NO_OPTIONS);
         }  /* if */
       }  /* if */
     }  /* if */
