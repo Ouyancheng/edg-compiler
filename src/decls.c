@@ -1009,6 +1009,11 @@ consistent with that of the previous declaration.
       /* Ignore any differences between exception specifications on a
          compiler generated routine (e.g., predeclared operator new or delete)
          and the current declaration. */
+    } else if (ignore_exception_specifications) {
+      /* In most cases, both old_tsp and new_tsp should be NULL.  The one
+         exception is that the Microsoft extension "throw (...)" might have
+         been recorded.  Microsoft compilers do not require this sort of
+         specification to match across declarations however. */
     } else if (old_tsp == NULL) {
       /* Previous specification asserted that any exception may be thrown.
          It is compatible only with an identical specification on the current

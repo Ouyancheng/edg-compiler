@@ -1,5 +1,16 @@
 Version 3.3
 
+6/19/03  Microsoft mode: Accept mismatch in throw (...) specification
+
+In Microsoft bugs mode, the front end now accepts two declarations of the same
+function where one has a throw (...) specification and the other not.
+
+  void f() throw(...);
+  void f();  // No longer an error
+
+Previously such a mismatch triggered an error (see also the Changes entry
+of 10/2/00).
+
 6/19/03  Side-effect testing routines moved into il.c
 
 The various routines that test expressions and dynamic initializations
