@@ -1,6 +1,6 @@
 Version 2.19
 
-8/2/93   IL_CHANGE: Added stmk_for statement
+8/2/93  IL_CHANGE: Added stmk_for statement
 
 A new statement kind, stmk_for, and an associated data structure,
 a_for_loop, have been added to the IL to represent for statements.  The
@@ -28,6 +28,12 @@ The code generated to access virtual base classes that are nested
 within other virtual base classes now uses a single pointer indirection to
 get to the final virtual base class instead of going stepwise through
 the pointers to all the intervening virtual base classes.
+
+7/30/93  Fixed bug assignment base class offsets
+
+In cfront object code compatibility mode there was an obscure bug in
+assigning offsets to deeply nested classes that were also ambiguous.  It
+has now be fixed.
 
 7/29/93  No warning that vacuous destructor call has no effect
 
