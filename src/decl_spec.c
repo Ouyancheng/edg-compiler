@@ -372,7 +372,7 @@ caution when modifying this routine.
                    assoc_namespace->source_corresp.name, "std") == 0
 #else /* !RUNTIME_USES_NAMESPACES */
           (decl_scope_level == DEPTH_OF_FILE_SCOPE)
-#endif RUNTIME_USES_NAMESPACES
+#endif /* RUNTIME_USES_NAMESPACES */
                                                    ) {
         /* The identifier is indeed "type_info".  Check for the pragma that
            specifically identifies it as the type_info that is returned by
@@ -400,7 +400,7 @@ caution when modifying this routine.
                        "std::type_info"
 #else /* !RUNTIME_USES_NAMESPACES */
                        "type_info"
-#endif RUNTIME_USES_NAMESPACES
+#endif /* RUNTIME_USES_NAMESPACES */
                                   );
           tag_sym = type_info_sym;
 #endif /* ABI_CHANGES_FOR_RTTI */
