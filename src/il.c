@@ -6299,7 +6299,9 @@ variable can be diagnosed.
                                              skip_typerefs(var->type)->size) {
       pos_error(ec_register_too_small, pos);
     } else {
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
       var->asm_name_is_valid = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
       var->has_named_register_storage_class = TRUE;
       var->asm_name_or_reg.id = register_id;
       named_register_variables[register_id] = var;
