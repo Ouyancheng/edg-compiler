@@ -217,7 +217,8 @@ static void gen_enum_definition(a_type_ptr type);
 static void gen_class_definition(a_type_ptr type);
 static void gen_lvalue(an_expr_node_ptr node);
 static void gen_dynamic_init(a_dynamic_init_ptr dip,
-                             a_boolean          parenthesized_init);
+                             a_boolean          parenthesized_init,
+                             a_boolean          force_parens);
 static void gen_statement(a_statement_ptr statement);
 static void gen_declaration(void);
 static void gen_declaration_using_type(a_type_ptr                   type,
@@ -1530,7 +1531,8 @@ Output the indicated constant.
     case ck_dynamic_init:
       /* Dynamic initialization for an element of an aggregate. */
       gen_dynamic_init(constant->variant.dynamic_init,
-                       /*parenthesized_init=*/FALSE);
+                       /*parenthesized_init=*/FALSE,
+                       /*force_parens=*/FALSE);
       break;
     case ck_init_repeat:
       /* This should not come up in things that must be output. */
@@ -2839,7 +2841,8 @@ put out for them).
       check_assertion_str(arg->kind == (an_expr_node_kind)enk_temp_init,
                           "gen_argument_list: cctor arg not enk_temp_init");
       gen_dynamic_init(arg->variant.init.dynamic_init,
-                       /*parenthesized_init=*/FALSE);
+                       /*parenthesized_init=*/FALSE,
+                       /*force_parens=*/FALSE);
     } else {
       /* Normal case. */
       gen_expr_with_parens(arg);
@@ -2991,7 +2994,8 @@ Generate code for a new or delete operation.
     if (need_type_parens) write_tok_ch(')');
     if (ndsp->dynamic_init != NULL) {
       /* The allocated entity gets initialized. */
-      gen_dynamic_init(ndsp->dynamic_init, /*parenthesized_init=*/TRUE);
+      gen_dynamic_init(ndsp->dynamic_init, /*parenthesized_init=*/TRUE,
+                       /*force_parens=*/FALSE);
     }  /* if */
   } else {
     /* Delete.  The general form is
@@ -3431,7 +3435,8 @@ done_with_operation:
       if (expr->variant.throw_info != NULL) {
         write_space();
         gen_dynamic_init(expr->variant.throw_info->dynamic_init,
-                         /*parenthesized_init=*/FALSE);
+                         /*parenthesized_init=*/FALSE,
+                         /*force_parens=*/FALSE);
       }  /* if */
       if (need_parens) write_tok_ch(')');
       break;
@@ -3444,10 +3449,12 @@ done_with_operation:
              A(arg1, arg2, ...). */
           gen_type_name(dip->variant.constructor.ptr->
                                        source_corresp.class_of_which_a_member);
-          gen_dynamic_init(dip, /*parenthesized_init=*/TRUE);
+          gen_dynamic_init(dip, /*parenthesized_init=*/TRUE,
+                           /*force_parens=*/FALSE);
         } else {
           /* Other cases -- just put out the value. */
-          gen_dynamic_init(dip, /*parenthesized_init=*/FALSE);
+          gen_dynamic_init(dip, /*parenthesized_init=*/FALSE,
+                           /*force_parens=*/FALSE);
         }  /* if */
         if (need_parens) write_tok_ch(')');
       }
@@ -4059,7 +4066,8 @@ Generate code for the indicated statement.
       } else if (statement->variant.return_dynamic_init != NULL) {
         /* The return value is passed via a copy constructor call. */
         gen_dynamic_init(statement->variant.return_dynamic_init,
-                         /*parenthesized_init=*/FALSE);
+                         /*parenthesized_init=*/FALSE,
+                         /*force_parens=*/FALSE);
       }  /* if */
       write_tok_ch(';');
       break;
@@ -4147,7 +4155,8 @@ Return TRUE if the indicated routine (a constructor) is a copy constructor.
 
 
 static void gen_dynamic_init(a_dynamic_init_ptr dip,
-                             a_boolean          parenthesized_init)
+                             a_boolean          parenthesized_init,
+                             a_boolean          force_parens)
 /*
 Output the indicated dynamic initialization.  If parenthesized_init is
 TRUE, put parentheses around the initializer; this is the parenthesized
@@ -4160,13 +4169,16 @@ semantics (but the "=" is put out by the caller, if at all); put nothing
 around the initializer, and do copy constructor elision if possible
 (e.g., put out "j" instead of "A(j)"; the current context must be one
 where the type of thing being initialized is clear).  If no initialization
-is indicated, nothing is put out (in either mode).
+is indicated, or it the initialization is with a default constructor,
+nothing is put out (in either mode), except that if force_parens is
+TRUE, "()" is put out.
 */
 {
   /* Note that the destructor, if any, is implicit and need not be put out. */
   switch (dip->kind) {
     case dik_none:
       /* No initialization. */
+      if (force_parens) write_tok_str("()");
       break;
     case dik_constant:
     case dik_nonconstant_aggregate:
@@ -4216,7 +4228,8 @@ is indicated, nothing is put out (in either mode).
           /* This is the non-elision case. */
           if (parenthesized_init && args == NULL) {
             /* This is a default constructor, so do not list the
-               initialization. */
+               initialization except when specifically asked to. */
+            if (force_parens) write_tok_str("()");
           } else {
             if (!parenthesized_init) {
               /* For the non-parenthesized case, start with the name of the
@@ -4270,7 +4283,7 @@ Output the initializer, if any, for the indicated variable.
         write_tok_str(" = ");
         parenthesized_init = FALSE;
       }  /* if */
-      gen_dynamic_init(dip, parenthesized_init);
+      gen_dynamic_init(dip, parenthesized_init, /*force_parens=*/FALSE);
       break;
     case initk_zero:
       /* initk_zero is only produced by IL lowering. */
@@ -4423,9 +4436,16 @@ a constructor.
                   \_This is what's generated.
 */
 {
-  if (ctor_init != NULL) {
-    write_tok_str(": ");
-    for (; ctor_init != NULL; ctor_init = ctor_init->next) {
+  a_boolean first_time = TRUE;
+
+  for (; ctor_init != NULL; ctor_init = ctor_init->next) {
+    if (!ctor_init->compiler_generated) {
+      if (first_time) {
+        write_tok_str(": ");
+        first_time = FALSE;
+      } else {
+        write_tok_str(", ");
+      }  /* if */
       switch(ctor_init->kind) {
         case cik_virtual_base_class:
         case cik_direct_base_class:
@@ -4440,11 +4460,11 @@ a constructor.
           unexpected_condition();
       }  /* switch */
       /* Generate the initialization. */
-      gen_dynamic_init(ctor_init->initializer, /*parenthesized_init=*/TRUE);
-      if (ctor_init->next != NULL) write_tok_str(", ");
-    }  /* for */
-    write_space();
-  }  /* if */
+      gen_dynamic_init(ctor_init->initializer, /*parenthesized_init=*/TRUE,
+                       /*force_parens=*/TRUE);
+    }  /* if */
+  }  /* for */
+  if (!first_time) write_space();
 }  /* gen_ctor_initializers */
 
 
