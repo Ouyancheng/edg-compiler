@@ -1626,7 +1626,7 @@ body.  Only called in C++ mode.
       if (rp->source_corresp.referenced &&
           rp->assoc_scope == NULL_region_number &&
           (is_function_local || rp->is_inline ||
-           rp->storage_class == sc_static)) {
+           rp->storage_class == (a_storage_class)sc_static)) {
         /* Referenced but never defined. */
         if (rp->compiler_generated || (rp->is_virtual && !rp->pure_virtual)) {
           /* These cases are handled elsewhere. */

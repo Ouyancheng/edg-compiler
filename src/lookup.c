@@ -945,7 +945,7 @@ typedef struct a_lookup_state {
 			/* TRUE if the IDL_LINKAGE_LOOKUP option
 			   was specified for this lookup. */
   a_boolean	terminate_lookup;
-			/* TRUE if a condition occured that should cause
+			/* TRUE if a condition occurred that should cause
 			   the lookup to terminate even is a symbol was
 			   not found. */
   a_boolean	skip_curr_function_scope;

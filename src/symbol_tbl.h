@@ -613,7 +613,7 @@ typedef struct a_class_symbol_supplement {
   a_namespace_list_entry_ptr
 		operator_lookup_namespaces;
 			/* Pointer to a list of namespaces that are the
-			   parent nemespaces of this class or one of its
+			   parent namespaces of this class or one of its
 			   base classes.  This is the list of namespaces
 			   that must be searched for an operand of this
 			   class type.  The entire list or some portion
