@@ -6107,8 +6107,10 @@ process_class_specifier:
                    DS_MICROSOFT_INLINE | DS_FORCEINLINE))) &&
               /* g++ allows X::X to be used in most places as a type name.
                  A left parenthesis seems to be used to detect the constructor
-                 case. */
-              (!gpp_mode || next_token() == tok_lparen)) {
+                 case (but this must be suppressed for new type names). */
+              (!gpp_mode ||
+               ((input_flags & DSI_IS_NEW_TYPE_NAME) == 0 &&
+                next_token() == tok_lparen))) {
             /* This identifier appears to specify a constructor. */
             a_type_ptr    tp = type_symbol_type(curr_token_type_symbol);
             a_symbol_ptr  sym = symbol_supplement_for_class(tp)->constructor;

@@ -1,5 +1,19 @@
 Version 3.3
 
+6/5/03   GNU C++ mode: lookup of injected class name vs. constructor
+
+g++ finds the injected class name in certain contexts where, according
+to the standard, the constructor should be found.  Version 3.2 included
+changes that addressed most such uses.  An additional case involving the
+new operator is now also supported.
+
+  struct A {
+    A(int) {};
+  };
+  int main() {
+    new A::A(1);  // now accepted in g++ mode
+  }
+
 6/5/03   Possible unaligned access in store_hex_fp_value
 
 On some platform/configuration combinations, store_hex_fp_value could
