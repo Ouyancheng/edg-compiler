@@ -1,11 +1,12 @@
 Version 2.39
 
-1/18/97   Microsoft compatibility: return initialization is
-          direct-initialization
+1/18/97   Microsoft compatibility: return and "="-form declaration
+          initialization is direct-initialization
 
 The Microsoft VC++ compiler 5.0 seems to treat the initialization in
-a return statement as direct-initialization (instead of the correct
-copy-initialization).  We now do the same in Microsoft mode.
+a return statement and a declaration with an "="-form initialization
+as direct-initialization (instead of the correct copy-initialization).
+We now do the same in Microsoft mode.
 
   struct A {
     operator const char*() ;
@@ -14,6 +15,7 @@ copy-initialization).  We now do the same in Microsoft mode.
     B(const char*) ;
   };
   B f(A a) {
+    B x = a;   // Accepted in Microsoft mode
     return a;  // Accepted in Microsoft mode
   }
 
