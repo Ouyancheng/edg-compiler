@@ -7273,7 +7273,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_operation;
         case eok_points_to_static:
           /* Static member selection, p->m. */
-          gen_dot_static(operand_1, /*is_lvalue_1=*/FALSE, "->",
+          /* If operand_1 is an invocation of operator->() that will be
+             generated as "->", pass "" as the opstr instead of "->" to
+             avoid generating "->->". */
+          gen_dot_static(operand_1, /*is_lvalue_1=*/FALSE,
+                         is_operator_syntax_arrow(operand_1) ? "" : "->",
                          operand_2, /*is_lvalue_2=*/FALSE);
           goto done_with_operation;
         case eok_lvalue_dot_static:
@@ -7384,7 +7388,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                e.g., "p->int::~int()". */
             gen_expr_with_parens(operand_1);
             if (op == (an_expr_operator_kind)eok_vacuous_destructor_call) {
-              write_tok_str("->");
+              if (!is_operator_syntax_arrow(operand_1)) {
+                /* Don't output "->" if handle_operand_call already did. */
+                write_tok_str("->");
+              }  /* if */
               type = type_pointed_to(operand_1->type);
             } else {
               write_tok_ch('.');
