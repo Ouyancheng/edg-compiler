@@ -646,65 +646,63 @@ operator kinds.  Issue a diagnostic if an error is found.
   an_error_code     error_code = ec_no_error;
 
   db_enter(4, "check_operator_function_params");
-#if CHECKING
-  if (locator == NULL) {
-    internal_error("check_operator_function_params: NULL locator ptr");
-  }  /* if */
-#endif /* CHECKING */
-  if (locator->is_conversion_name) {
-    /* Any parameter is too many for a conversion function. */
-    if (param_types != NULL) {
-      error(ec_too_many_args_for_conversion);
-    }  /* if */
-  } else if (locator->is_operator_name) {
-    /* It's an operator.  Get the specific kind. */
-    opname = locator->variant.opname;
-    /* Make a pass over the param_types list to count the number of arguments
-       to see if there are any parameters that are of class type or reference-
-       to-class type.  Note that param_count is initialized to 0 except in the
-       case of nonstatic member functions, for which it is initialized to 1.
-       This is because the implicit "this" parameter is counted in the latter
-       case. */
-    param_count = is_nonstatic_member_function ? 1 : 0;
-    for (ptp = param_types; ptp != NULL; ptp = ptp->next) {
-      param_count++;
-      tp = ptp->type;
-      if (is_reference_type(tp)) tp = type_pointed_to(tp);
-      if (is_class_struct_union_type(tp)) any_class_type_params = TRUE;
-    }  /* if */
-    if (opname == onk_compl || opname == onk_not || opname == onk_arrow) {
-      /* Unary operator must have exactly one argument. */
-      if (param_count > 1) {
-        error_code = ec_too_many_args_for_operator;
-      } else if (param_count < 1) {
-        error_code = ec_too_few_args_for_operator;
+  if (locator != NULL) {
+    /* Locator is NULL for abstract declarators. */
+    if (locator->is_conversion_name) {
+      /* Any parameter is too many for a conversion function. */
+      if (param_types != NULL) {
+	error(ec_too_many_args_for_conversion);
       }  /* if */
-    } else if (param_count == 1 &&
-               (opname == onk_plus || opname == onk_minus ||
-                opname == onk_star || opname == onk_ampersand ||
-                opname == onk_plus_plus || opname == onk_minus_minus)) {
-       /* These operators can be either unary or binary.  It is legal for
-          them to have exactly one argument. */
-    } else if (opname == onk_function_call) {
-      /* Function call must have one or more arguments. */
-      if (param_count == 0) {
-        error_code = ec_too_few_args_for_operator;
+    } else if (locator->is_operator_name) {
+      /* It's an operator.  Get the specific kind. */
+      opname = locator->variant.opname;
+      /* Make a pass over the param_types list to count the number of
+         arguments to see if there are any parameters that are of class type
+         or reference-to-class type.  Note that param_count is initialized to
+         0 except in the case of nonstatic member functions, for which it is
+         initialized to 1. This is because the implicit "this" parameter is
+         counted in the latter case. */
+      param_count = is_nonstatic_member_function ? 1 : 0;
+      for (ptp = param_types; ptp != NULL; ptp = ptp->next) {
+	param_count++;
+	tp = ptp->type;
+	if (is_reference_type(tp)) tp = type_pointed_to(tp);
+	if (is_class_struct_union_type(tp)) any_class_type_params = TRUE;
       }  /* if */
-    } else {
-      /* Binary operator must have exactly two arguments. */
-      if (param_count > 2) {
-        error_code = ec_too_many_args_for_operator;
-      } else if (param_count < 2) {
-        error_code = ec_too_few_args_for_operator;
+      if (opname == onk_compl || opname == onk_not || opname == onk_arrow) {
+	/* Unary operator must have exactly one argument. */
+	if (param_count > 1) {
+	  error_code = ec_too_many_args_for_operator;
+	} else if (param_count < 1) {
+	  error_code = ec_too_few_args_for_operator;
+	}  /* if */
+      } else if (param_count == 1 &&
+		 (opname == onk_plus || opname == onk_minus ||
+		  opname == onk_star || opname == onk_ampersand ||
+		  opname == onk_plus_plus || opname == onk_minus_minus)) {
+	 /* These operators can be either unary or binary.  It is legal for
+	    them to have exactly one argument. */
+      } else if (opname == onk_function_call) {
+	/* Function call must have one or more arguments. */
+	if (param_count == 0) {
+	  error_code = ec_too_few_args_for_operator;
+	}  /* if */
+      } else {
+	/* Binary operator must have exactly two arguments. */
+	if (param_count > 2) {
+	  error_code = ec_too_many_args_for_operator;
+	} else if (param_count < 2) {
+	  error_code = ec_too_few_args_for_operator;
+	}  /* if */
       }  /* if */
-    }  /* if */
-    if (error_code != ec_no_error) error(error_code);
-    /* If operator function is not a nonstatic member and does not have
-       operands of class type or reference-to-class type, issue an error.
-       This restriction does not apply to new and delete, however. */
-    if (!is_nonstatic_member_function && !any_class_type_params &&
-        opname != onk_new && opname != onk_delete) {
-      error(ec_no_args_with_class_type);
+      if (error_code != ec_no_error) error(error_code);
+      /* If operator function is not a nonstatic member and does not have
+	 operands of class type or reference-to-class type, issue an error.
+	 This restriction does not apply to new and delete, however. */
+      if (!is_nonstatic_member_function && !any_class_type_params &&
+	  opname != onk_new && opname != onk_delete) {
+	error(ec_no_args_with_class_type);
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
