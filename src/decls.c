@@ -3685,11 +3685,16 @@ on for use in generating cross-reference output describing this declaration.
       routine_ptr = linked_symbol->variant.routine.ptr;
       check_assertion_str(routine_ptr != NULL,
                           "decl_routine: linked symbol routine is missing");
-      if (routine_ptr->defined
+      if (routine_ptr->assoc_scope != NULL_region_number
 #if ASM_FUNCTION_ALLOWED
           || routine_ptr->storage_class == (a_storage_class)sc_asm
 #endif /* ASM_FUNCTION_ALLOWED */
                                                         ) {
+        /* Previous declaration was a definition.  (We check assoc_scope
+           rather than the defined flag in the routine, because in pcc mode
+           it is possible to have a nested redeclaration -- e.g.,
+             int f() { int f(); ... };
+           -- but the flag isn't set till the definition is complete.) */
         old_decl_has_body = TRUE;
       } else if (sym->defined) {
         /* In C++ the defined flag in the symbol may have been set without
