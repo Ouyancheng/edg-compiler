@@ -898,6 +898,17 @@ class_struct_union:
 #if RESTRICT_ALLOWED
         if (typeref_is_restrict_qualified(tp)) fputs("restrict ", f_debug);
 #endif /* RESTRICT_ALLOWED */
+#if MICROSOFT_KEYWORDS_ALLOWED
+        if ((tp->variant.typeref.qualifiers & TQ_CDECL) != 0) {
+          fputs("__cdecl ", f_debug);
+        }  /* if */
+        if ((tp->variant.typeref.qualifiers & TQ_FASTCALL) != 0) {
+          fputs("__fastcall ", f_debug);
+        }  /* if */
+        if ((tp->variant.typeref.qualifiers & TQ_STDCALL) != 0) {
+          fputs("__stdcall ", f_debug);
+        }  /* if */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
       } else {
         fputs("typeref ", f_debug);
       }  /* if */
@@ -5114,6 +5125,11 @@ to it.
 #if DO_IL_LOWERING
   vp->initialization_rewritten_as_assignment = FALSE;
 #endif /* DO_IL_LOWERING */
+#if MICROSOFT_KEYWORDS_ALLOWED
+  vp->dllimport_used = FALSE;
+  vp->dllexport_used = FALSE;
+  vp->thread_used = FALSE;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 #endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   vp->declared_type               = NULL;
@@ -5461,6 +5477,12 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   rp->specific_def            = FALSE;
   rp->contains_try_block      = FALSE;
+#if MICROSOFT_KEYWORDS_ALLOWED
+  rp->dllimport_used = FALSE;
+  rp->dllexport_used = FALSE;
+  rp->naked_used = FALSE;
+  rp->microsoft_inline_used = FALSE;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 #if CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

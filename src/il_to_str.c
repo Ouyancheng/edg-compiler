@@ -416,50 +416,55 @@ If need_trailing_space is TRUE, put out a space after the type qualifier
 */
 {
   a_boolean qualifier_put_out = FALSE;
+  a_type_qualifier_set	qualifiers;
 
   check_assertion_str(type->kind == (a_type_kind)tk_typeref,
                       "form_type_qualifier: bad type kind");
-  if (typeref_is_const_qualified(type)) {
-    if (suppress_const || octl->gen_pcc_code
+  qualifiers = type->variant.typeref.qualifiers;
+
+  /* Local macro that determines whether a given qualifier is in use,
+     and if so, outputs the appropriate string. */
+#define output_qualifier(flag, string)					\
+  {									\
+    if ((qualifiers & flag) != 0) {					\
+      if (qualifier_put_out) octl->output_str(" ");			\
+      qualifier_put_out = TRUE;						\
+      octl->output_str(string);						\
+    }  /* if */								\
+  }
+
+  if (octl->gen_pcc_code) {
+    /* Qualifiers are suppressed when generating K&R C. */
+  } else {
+    if (suppress_const
 #if SUPPRESS_CONST_IN_GENERATED_C
         || octl->c_generating_back_end
 #endif /* SUPPRESS_CONST_IN_GENERATED_C */
                                       ) {
       /* "const" suppressed. */
     } else {
-      octl->output_str("const");
-      qualifier_put_out = TRUE;
+      output_qualifier(TQ_CONST, "const");
     }  /* if */
-  }  /* if */
-  if (typeref_is_volatile_qualified(type)) {
-    if (octl->gen_pcc_code) {
-      /* "volatile" suppressed when generating K&R C. */
-    } else {
-      if (qualifier_put_out) octl->output_str(" ");
-      octl->output_str("volatile");
-      qualifier_put_out = TRUE;
-    }  /* if */
-  }  /* if */
+    output_qualifier(TQ_VOLATILE, "volatile");
 #if RESTRICT_ALLOWED
 #if SUPPRESS_RESTRICT_IN_GENERATED_CODE
   /* Suppress "restrict" in generated compilable code. */
   if (!octl->gen_compilable_code) {
 #endif /* SUPPRESS_RESTRICT_IN_GENERATED_CODE */
-    if (typeref_is_restrict_qualified(type)) {
-      if (octl->gen_pcc_code) {
-        /* "restrict" suppressed when generating K&R C. */
-      } else {
-        if (qualifier_put_out) octl->output_str(" ");
-        octl->output_str("restrict");
-        qualifier_put_out = TRUE;
-      }  /* if */
-    }  /* if */
+    output_qualifier(TQ_RESTRICT, "restrict");
 #if SUPPRESS_RESTRICT_IN_GENERATED_CODE
   }  /* if */
 #endif /* SUPPRESS_RESTRICT_IN_GENERATED_CODE */
 #endif /* RESTRICT_ALLOWED */
+#if MICROSOFT_KEYWORDS_ALLOWED
+    output_qualifier(TQ_CDECL, "__cdecl");
+    output_qualifier(TQ_FASTCALL, "__fastcall");
+    output_qualifier(TQ_STDCALL, "__stdcall");
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+  }  /* if */
   /* Put out trailing space if required. */
   if (need_trailing_space && qualifier_put_out) octl->output_str(" ");
+#undef output_qualifier
 }  /* form_type_qualifier */
 
 #endif /* ifdef CFE */

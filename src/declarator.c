@@ -222,6 +222,119 @@ derived type to remove the restrict qualifier.
 
 #endif /* RESTRICT_ALLOWED */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static
+a_type_ptr add_microsoft_qualifier_to_type(a_type_ptr		complete_type,
+					   a_type_qualifier_set	qualifiers)
+/*
+Add the type qualifiers indicated by "qualifiers" to the type specified
+by "complete_type".  This routine is used when processing the special
+Microsoft qualifiers.  These are unusual in that they may appear when
+the underlying type has not yet been scanned.  This routine inspects
+the type to determine whether an underlying type exits.  If one does
+exist it simply calls make_qualified_type to add the qualifiers.  Otherwise,
+a typeref is simply added to the front of complete_type.  If, when the
+full type is assembled by add_to_derived_type_list, the underlying
+type ends up being an array type, the type will be adjusted to make
+sure the qualifiers appear in the right place (i.e., over the
+element type and not over the array type).
+*/
+{
+  a_type_ptr	tp;
+  a_type_ptr	new_tp;
+
+  tp = skip_typerefs_allow_null_referenced_type(complete_type);
+  if (tp != NULL) {
+    /* There is an underlying type.  Just call the normal routine to
+       make a qualified type. */
+    new_tp = make_qualified_type(complete_type, qualifiers);
+  } else {
+    /* There is no underlying type.  Add a typeref to the front of the
+       type. */
+    new_tp = alloc_type((a_type_kind)tk_typeref);
+    new_tp->variant.typeref.type = complete_type;
+    new_tp->variant.typeref.qualifiers = qualifiers;
+  }  /* if */
+  return new_tp;
+}  /* add_microsoft_qualifier_to_type */
+
+
+a_type_ptr remove_curr_bottom_derived_type(a_type_ptr type,
+                                           a_type_ptr bottom_derived_type)
+/*
+Scan down the derived type pointed to by "type" until the type specified
+by bottom_derived_type is found.  Truncate the derived type at that point
+and return the type pointer to the caller.
+*/
+{
+  a_type_ptr	tp = type;
+  a_type_ptr	last_tp = NULL;
+  while (tp != NULL) {
+    if (tp == bottom_derived_type) {
+      /* The previous type should be the new bottom type. */
+      if (last_tp == NULL) {
+        /* The new type is NULL.  Just return the NULL to the caller. */
+      } else {
+        /* Clear the current derived type pointer for the new bottom type. */
+        switch (last_tp->kind) {
+          case tk_pointer:  /* Includes C++ reference too. */
+            last_tp->variant.pointer.type = NULL;
+            break;
+          case tk_ptr_to_member:
+            last_tp->variant.ptr_to_member.type = NULL;
+            break;
+          case tk_array:
+            last_tp->variant.array.element_type = NULL;
+            break;
+          case tk_routine:
+            last_tp->variant.routine.return_type = NULL;
+            break;
+          case tk_typeref:
+            last_tp->variant.typeref.type = NULL;
+            break;
+          default:
+            unexpected_condition_str2("remove_curr_bottom_derived_type:",
+                                      "unexpected type kind");
+            break;
+        }  /* switch */
+      }  /* if */
+      break;
+    }  /* if */
+    last_tp = tp;
+    tp = underlying_type_of_derived_type(tp);
+  }  /* while */
+  return last_tp;
+}  /* remove_curr_bottom_derived_type */
+
+
+static void transfer_qualifiers_to_new_type(a_type_ptr *new_type,
+					    a_type_ptr *derived_type,
+				            a_type_ptr *bottom_derived_type)
+/*
+When Microsoft keywords are allowed it is possible for a
+qualifier like __cdecl to be the bottom derived type with
+no base type pointer.  Transfer any qualifiers at the bottom of
+the derived type to the top of the new type, then attach the
+modified new type to the new bottom derived type.
+*/
+{
+  while (*bottom_derived_type != NULL &&
+         (*bottom_derived_type)->kind == (a_type_kind)tk_typeref) {
+    a_type_qualifier_set	qualifiers;
+    qualifiers =  (*bottom_derived_type)->variant.typeref.qualifiers;
+    *new_type = add_microsoft_qualifier_to_type(*new_type, qualifiers);
+    /* Find the new bottom of the derived type. */
+    *bottom_derived_type = remove_curr_bottom_derived_type
+                                       (*derived_type, *bottom_derived_type);
+  }  /* while */
+  /* If the bottom derived type is now NULL, that means the whole derived
+     type is NULL. */
+  if (*bottom_derived_type == NULL) *derived_type = NULL;
+}  /* transfer_qualifiers_to_new_type */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 void add_to_derived_type_list(a_type_ptr new_type_ptr,
                               a_type_ptr *derived_type,
                               a_type_ptr *bottom_derived_type)
@@ -239,18 +352,55 @@ type is legal.
   a_boolean               array_of_incomp_struct_or_union = FALSE;
 
   db_enter(3, "add_to_derived_type_list");
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "At start of add_to_derived_type_list:\n");
+    fprintf(f_debug, "  new_type_ptr = ");
+    db_type(new_type_ptr);
+    fprintf(f_debug, "\n");
+    fprintf(f_debug, "  derived_type = ");
+    if (*derived_type != NULL) db_type(*derived_type);
+    fprintf(f_debug, "\n");
+    fprintf(f_debug, "  *bottom_derived_type = ");
+    if (*bottom_derived_type != NULL) db_type(*bottom_derived_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   /* Note that while derived types are being built up, the derived-type
      entries are connected to one another from the top down, which
      means that the bottom-most derived-type entry temporarily points
      to nothing.  Each derived type is checked as the type below it
      is attached.  This must be done carefully, because the type
      being attached may look incomplete (its size may be zero). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && *bottom_derived_type != NULL &&
+      (*bottom_derived_type)->kind == (a_type_kind)tk_typeref) {
+    /* The bottom derived type is a typeref.  This only occurs when
+       Microsoft qualifiers are used.  Transfer the qualifiers to the
+       top of the new type. */
+    transfer_qualifiers_to_new_type(&new_type_ptr, derived_type,
+                                    bottom_derived_type);
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "After microsoft qualifier processing:\n");
+    fprintf(f_debug, "  new_type_ptr = ");
+    db_type(new_type_ptr);
+    fprintf(f_debug, "\n");
+    fprintf(f_debug, "  derived_type = ");
+    if (*derived_type != NULL) db_type(*derived_type);
+    fprintf(f_debug, "\n");
+    fprintf(f_debug, "  *bottom_derived_type = ");
+    if (*bottom_derived_type != NULL) db_type(*bottom_derived_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (*bottom_derived_type == NULL) {
     /* This is the first entry on the list.  No checking can be done yet. */
     *derived_type = new_type_ptr;
-    /* The type may be a qualified type in C++ (e.g., the type of a function
-       declarator that is const qualified). */
-    *bottom_derived_type = make_unqualified_type(new_type_ptr);
+    /* We'll find the real bottom of the type below. */
+    *bottom_derived_type = new_type_ptr;
   } else {
     /* The derived-type list is non-empty, so we need to check to see if
        the bottom derived type can legally be connected to the new type
@@ -494,7 +644,29 @@ type is legal.
       }  /* if */
     }  /* if */
   }  /* if */
+  /* Make sure that the new bottom derived type is really the bottom
+     and not a node above some other kind of type. */
+  for (;;) {
+    a_type_ptr	new_bottom;
+    new_bottom = underlying_type_of_derived_type(*bottom_derived_type);
+    if (new_bottom == NULL) break;
+    *bottom_derived_type = new_bottom;
+  }  /* for */
 
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "At end of add_to_derived_type_list:\n");
+    fprintf(f_debug, "  new_type_ptr = ");
+    db_type(new_type_ptr);
+    fprintf(f_debug, "\n");
+    fprintf(f_debug, "  derived_type = ");
+    if (*derived_type != NULL) db_type(*derived_type);
+    fprintf(f_debug, "\n");
+    fprintf(f_debug, "  *bottom_derived_type = ");
+    if (*bottom_derived_type != NULL) db_type(*bottom_derived_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   db_exit();
 }  /* add_to_derived_type_list */
 
@@ -1654,7 +1826,8 @@ recognized as cv-qualifiers.
       scan_microsoft_qualifiers(&qualifiers);
       /* Add the new qualifiers to the complete type that has been built so
          far (which may be NULL at this point). */
-      complete_type = make_qualified_type(complete_type, qualifiers);
+      complete_type = add_microsoft_qualifier_to_type(complete_type,
+                                                      qualifiers);
       /* Suppress then get_token() that is normally done before scanning
          the qualifiers below, as this will have been done when scanning
          the Microsoft qualifiers. */
@@ -1802,9 +1975,6 @@ otherwise it is NULL.  The syntax is:
   a_boolean       parenthesized_initializer_allowed;
   a_boolean       is_friend_decl = FALSE;
   a_boolean       class_scope_deactivation_required = FALSE;
-#if CHECKING
-  a_boolean       any_syntax_error = FALSE;
-#endif /* if CHECKING */
 
   db_enter(3, "declarator");
   set_err_pos_to_curr_token();
@@ -1895,9 +2065,6 @@ otherwise it is NULL.  The syntax is:
        5.3.3).  Set the flag to FALSE for subsequent processing. */
     nonconstant_dimension_allowed = FALSE;
     /* Check for and get the closing parenthesis. */
-#if CHECKING
-    if (curr_token != tok_rparen) any_syntax_error = TRUE;
-#endif /* if CHECKING */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
   } else {
@@ -2389,16 +2556,7 @@ function_lparen:
      to the tag name.)  As written, this sets the referenced flag for all
      types, not just tags, which is harmless. */
   if (specifiers_type != NULL) {
-    /* Use m_is_error_type instead of is_error_type for efficiency. */
-    if (!m_is_error_type(complete_type)) {
-#if CHECKING
-      check_assertion((*output_flags & DO_REAL_DECLARATOR_SCANNED) ||
-                      is_ptr_or_ref_type(complete_type) ||
-                      derived_type != NULL || any_syntax_error ||
-                      is_ptr_to_member_type(complete_type));
-#endif /* if CHECKING */
-      (skip_typerefs(specifiers_type))->source_corresp.referenced = TRUE;
-    }  /* if */
+    (skip_typerefs(specifiers_type))->source_corresp.referenced = TRUE;
   }  /* if */
   /* Use the position of the identifier as the position of this declarator
      for error purposes.  If this was an abstract declarator, declarator_pos
@@ -2410,32 +2568,9 @@ function_lparen:
      (pointer derived type list plus specifiers_list), making
      the full type.  Note that this involves error checking. */
   if (derived_type != NULL) {
-    /* Use m_is_error_type instead of is_error_type for efficiency. */
-    if (m_is_error_type(derived_type)) {
-      bottom_derived_type = error_type();
-    } else if (complete_type != NULL) {
-      if (is_immediate_error_type(bottom_derived_type)) {
-        /* The bottom derived type is an error, so we cannot attach the
-           complete type to the bottom.  Also clear the pointer to the
-           bottom-most pointer type, since it's in the complete_type
-           and is being thrown away. */
-        bottom_pointer_derived_type = NULL;
-      } else {
-        /* Normal case -- combine derived_type and complete_type. */
-        add_to_derived_type_list(complete_type,
-                                 &derived_type, &bottom_derived_type);
-        if (is_immediate_error_type(bottom_derived_type)) {
-          /* There must have been an error -- e.g., array-of-invalid-type. */
-          bottom_pointer_derived_type = NULL;
-        }  /* if */
-      }  /* if */
-    }  /* if */
+    add_to_derived_type_list(complete_type,
+                             &derived_type, &bottom_derived_type);
     complete_type = derived_type;
-  }  /* if */
-  /* If there were pointer types scanned at the beginning of this routine,
-     the bottom-most derived type is the bottom-most pointer type. */
-  if (bottom_pointer_derived_type != NULL && !is_error_type(complete_type)) {
-    bottom_derived_type = bottom_pointer_derived_type;
   }  /* if */
   if (specifiers_type != NULL) {
     /* This is a top-level call to declarator. */

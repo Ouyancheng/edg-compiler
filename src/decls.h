@@ -287,7 +287,7 @@ extern an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed,
 
 /* Bit vector used to pass flags into declarator and into and out of
    declaration routines.  Each bit represents a flag. */
-typedef int a_decl_flag_set;
+typedef unsigned long a_decl_flag_set;
 
 #endif /* DECLS_H */
 

@@ -3057,6 +3057,17 @@ typedef struct a_variable {
 			   the initialization for this variable as assignment
 			   statements or the like. */
 #endif /* DO_IL_LOWERING */
+#if MICROSOFT_KEYWORDS_ALLOWED
+  unsigned int	dllimport_used:1;
+			/* TRUE if the variable was declared using the
+			   Microsoft __declspec(dllimport) specifier. */
+  unsigned int	dllexport_used:1;
+			/* TRUE if the variable was declared using the
+			   Microsoft __declspec(dllexport) specifier. */
+  unsigned int	thread_used:1;
+			/* TRUE if the variable was declared using the
+			   Microsoft __declspec(thread) specifier. */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 #endif /* ifdef CIL */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any. */
@@ -3423,6 +3434,20 @@ typedef struct a_routine {
 			   at least one "try" block.  This may affect
 			   optimization relating to local variables of the
 			   routine. */
+#if MICROSOFT_KEYWORDS_ALLOWED
+  unsigned int	dllimport_used:1;
+			/* TRUE if the function was declared using the
+			   Microsoft __declspec(dllimport) specifier. */
+  unsigned int	dllexport_used:1;
+			/* TRUE if the function was defined using the
+			   Microsoft __declspec(dllexport) specifier. */
+  unsigned int	naked_used:1;
+			/* TRUE if the function was declared using the
+			   Microsoft __declspec(naked) specifier. */
+  unsigned int	microsoft_inline_used:1;
+			/* TRUE if the function was defined using the
+			   Microsoft __inline specifier. */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings();
   a_class_list_entry_ptr
                 befriending_classes;

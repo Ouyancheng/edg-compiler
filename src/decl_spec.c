@@ -1673,35 +1673,6 @@ Returns TRUE if there is an error in the specifiers.
           }  /* if */
         }
         break;
-        case tok_cdecl:
-        case tok_fastcall:
-        case tok_stdcall:
-          /* Microsoft calling convention specifiers.  These are treated
-             like type qualifiers. */
-          {
-            a_type_qualifier_set	new_qualifier = 0;
-            if (!(input_flags & DSI_MICROSOFT_QUALIFIERS_ALLOWED)) {
-              error(ec_calling_convention_not_allowed);
-            } else {
-              switch (curr_token) {
-                case tok_cdecl:    new_qualifier = TQ_CDECL;    break;
-                case tok_fastcall: new_qualifier = TQ_FASTCALL; break;
-                case tok_stdcall:  new_qualifier = TQ_STDCALL;  break;
-                default: unexpected_condition(); break;
-              }  /* switch */
-              if ((*qualifiers & TQ_CALLING_CONVENTION_QUALIFIERS) != 0 &&
-                  (new_qualifier & *qualifiers) == 0) {
-                /* The qualifier bit set already contains a calling
-                   convention.  The same convention may be specified more
-		   than once, but conflicting ones cannot be specified. */
-                error(ec_conflicting_calling_conventions);
-              } else {
-                *qualifiers |= new_qualifier;
-                non_restrict_qualifier_pos = pos_curr_token;
-              }  /* if */
-            }  /* if */
-          }
-          break;
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
       case tok_const:
         /* const type qualifier (3.5.3). */
