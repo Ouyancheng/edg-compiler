@@ -1648,11 +1648,16 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
 #ifdef CFE
   options &= ~FTO_SUPPRESS_CONST;
   /* Remove type qualifiers but not typedefs.  Also drop typedefs
-     that aren't visible here.  Accumulate the type qualifier set. */
+     that aren't visible here.  GNU C typeof operators are like visible
+     typedefs.  Accumulate the type qualifier set. */
   while (type->kind == (a_type_kind)tk_typeref) {
     if (typeref_is_typedef(type)) {
       /* Typedef.  Stop unless it's invisible. */
       if (!typedef_is_invisible(type, suppress_const, octl)) break;
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (type->variant.typeref.is_typeof) {
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       /* Type qualifier typeref.  Accumulate the qualifiers. */
       qualifiers |= type->variant.typeref.qualifiers;
