@@ -80,6 +80,23 @@ extern void define_special_member_function(a_routine_ptr      rout_ptr,
 extern void reference_to_implicitly_invoked_function(a_symbol_ptr       sym,
                                                      a_source_position  *pos);
 
+extern void f_force_definition_of_compiler_generated_routine(
+                                                  a_routine_ptr     routine,
+                                                  a_source_position *position);
+
+/*
+routine points to a routine that is being referenced.  If it is
+a compiler-generated routine whose definition has not yet been generated,
+force the definition now.
+*/
+#define force_definition_of_compiler_generated_routine(rout, pos)     \
+{ if ((rout)->compiler_generated &&                                   \
+      (rout)->assoc_scope == NULL_region_number) {                    \
+    f_force_definition_of_compiler_generated_routine((rout), (pos));  \
+  }  /* if */                                                         \
+}  /* force_definition_of_compiler_generated_routine */
+
+
 extern a_symbol_ptr member_function_redecl_sym(a_symbol_ptr  sym,
                                                a_type_ptr    type);
 
