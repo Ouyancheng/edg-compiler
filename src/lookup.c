@@ -600,7 +600,7 @@ routine.
          have a template_info pointer that points back to the front end
          information. */
       templ_ptr->template_info = tssp;
-      set_source_corresp(&templ_ptr->source_corresp, sym);
+      scp = &templ_ptr->source_corresp;
       templ_ptr->kind = (a_template_kind)templk_class;
       tssp->il_template_entry = templ_ptr;
       break;

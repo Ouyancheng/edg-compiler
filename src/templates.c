@@ -3761,7 +3761,22 @@ match is found.
           }  /* if */
         }  /* if */
       }  /* if */
-    } else {
+    } else if (tssp->is_nonreal_member || templ_tssp->is_nonreal_member) {
+     /* Nonreal members have must have the same name and parent class. */
+      a_template_ptr	tp = tssp->il_template_entry;
+      a_template_ptr	templ_tp = templ_tssp->il_template_entry;
+      if (strcmp(tp->source_corresp.name,
+                 templ_tp->source_corresp.name) == 0) {
+        /* They have the same names. */
+        if (matches_template_type(tp->source_corresp.parent.class_type,
+                                  templ_tp->
+                                           source_corresp.parent.class_type,
+                                  templ_arg_list, templ_param_list,
+                                  MTT_NO_FLAGS)) {
+          match = TRUE;
+        }  /* if */
+      }  /* if */
+     } else {
       /* The template template is not a template template parameter.  Just make
          sure the templates match. */
       match = equiv_templates_given_supplement(tssp, templ_tssp);
@@ -4669,7 +4684,10 @@ may have been deduced.
 static a_template_ptr copy_template_with_substitution(
 				a_template_ptr			templ,
 				a_template_arg_ptr		templ_arg_list,
-				a_template_nesting_depth	depth)
+				a_template_nesting_depth	depth,
+				a_source_position		*source_pos,
+				a_ctws_options_set		options,
+				a_boolean			*copy_error)
 /*
 If "templ" is a template associated with a template template parameter
 return the corresponding actual template template argument (if any).
@@ -4679,6 +4697,28 @@ Otherwise, return the original template.
   a_template_ptr			result = templ;
   a_template_symbol_supplement_ptr	tssp;
 
+  if (templ->source_corresp.is_class_member) {
+    a_symbol_ptr	sym;
+    a_type_ptr		parent_type;
+    sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
+    parent_type = templ->source_corresp.parent.class_type;
+    check_assertion(sym != NULL);
+    sym = copy_parent_type_with_substitution(sym, parent_type,
+                                             templ_arg_list, depth,
+                                             source_pos,
+                                             /*is_type=*/FALSE,
+                                             options,
+                                             copy_error);
+    if (sym == NULL || !is_class_template_symbol(sym)) {
+      /* The type was specified as something like A<T>::B, but the
+         substituted "A<T>" does not contain a B, or the B found is not
+         a template. */
+      *copy_error = TRUE;
+      sym = error_class_template();
+    }  /* if */
+    templ = sym->variant.template_info->il_template_entry;
+    result = templ;
+  }  /* if */
   /* Get the associated template symbol supplement. */
   tssp = template_supplement_for_template(templ);
   if (tssp->variant.class_template.template_template_param) {
@@ -4741,7 +4781,8 @@ are looked up, if needed.  The symbol of the new instance is returned.
     a_template_ptr	new_templ;
     new_templ = template_sym->variant.template_info->il_template_entry;
     new_templ = copy_template_with_substitution(new_templ, templ_arg_list,
-                                                depth);
+                                                depth, source_pos, options,
+                                                copy_error);
     template_sym = (a_symbol_ptr)new_templ->source_corresp.assoc_info;
   }  /* if */
   tssp = template_sym->variant.template_info;
@@ -4799,7 +4840,8 @@ are looked up, if needed.  The symbol of the new instance is returned.
     } else {
       /* A template template argument. */
       new_tap->variant.templ = copy_template_with_substitution(
-                                    tap->variant.templ, templ_arg_list, depth);
+                                    tap->variant.templ, templ_arg_list, depth,
+                                    source_pos, options, copy_error);
     }  /* if */
     if (new_list == NULL) {
       new_list = new_tap;
@@ -4999,10 +5041,11 @@ entity is known to be a type.
       lookup_options = is_type ? IDL_TYPENAME_LOOKUP : IDL_NO_OPTIONS;
     }  /* if */
     new_sym = class_qualified_id_lookup(&locator, parent_type, lookup_options);
-    if (new_sym != NULL && is_class_template_symbol(new_sym)) {
-      /* The symbol found is a class template symbol.  Get the corresponding
-         instance using the template argument list from the original
-         parent class. */
+    if (new_sym != NULL && is_class_template_symbol(new_sym) &&
+        !is_class_template_symbol(sym)) {
+      /* The symbol found is a class template symbol but the original symbol
+         was just a class.  Get the corresponding instance using the template
+         argument list from the original parent class. */
       check_assertion(is_any_template_instance_class_symbol(sym));
       new_sym = copy_template_class_reference_with_substitution(
                                  new_sym, sym->variant.class_struct_union.type,

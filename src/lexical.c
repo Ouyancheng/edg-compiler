@@ -8216,9 +8216,9 @@ this routine.  Its value is unchanged if no errors are detected.
   if (param_ptr == NULL) *any_errors = TRUE;
   do {
     a_source_position  arg_pos;
-    /* If the current token is a ">" then exit the loop.  This should only be
-       possible on the first iteration if we have an empty argument list. */
-    if (curr_token == tok_gt) break;
+    /* If the current token is a ">", and this is the first argument,
+       then exit the loop (an empty argument list). */
+    if (curr_token == tok_gt && arg_list == NULL) break;
     arg_pos = pos_curr_token;
     /* If the template parameter list is empty, exit the loop.  This only
        occurs in error cases. */
@@ -8558,8 +8558,12 @@ a routine to lookup the appropriate instance (or generate one if needed).
            goto skip_processing;
         } else {
           /* Issue an error and return an error locator. */
-          pos_sy_error(ec_missing_template_arg_list, &start_position,
-                       template_sym);
+          if (template_sym != NULL) {
+            /* template_sym will be NULL if the symbol passed in was
+               invalid. */
+            pos_sy_error(ec_missing_template_arg_list, &start_position,
+                         template_sym);
+          }  /* if */
           make_specific_symbol_error_locator(&locator_for_curr_id);
           new_sym = locator_for_curr_id.specific_symbol;
           any_errors = TRUE;
