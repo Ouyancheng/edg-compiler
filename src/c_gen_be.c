@@ -2356,7 +2356,9 @@ expression.  Check that its result_is_not_used flag is set correctly.
     internal_error("check_result_not_used_flag: flag is not set");
   }  /* if */
   /* For some operations, subnodes get marked too. */
-  if (node->kind == (an_expr_node_kind)enk_operation) {
+  /* See comment in set_expr_result_not_used. */
+  if (node->kind == (an_expr_node_kind)enk_operation &&
+      is_void_type(node->type)) {
     an_expr_operator_kind op = node->variant.operation.kind;
     an_expr_node_ptr      operand_1 = node->variant.operation.operands;
 

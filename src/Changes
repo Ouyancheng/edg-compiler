@@ -25,12 +25,6 @@ The __declspec modifiers recognized are
 An error is now issued on code that attempts to branch into a try block
 from outside it.
 
-11/29/94 result_is_not_used flag set for operands of "?" and ","
-
-The result_is_not_used flag in expression nodes is now (actually, once
-again) set for all operands of "?" and "," operators.  It had been
-set only for non-void operands of those operators.
-
 11/29/94 Static data member template instantiations
 
 When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS (formerly
