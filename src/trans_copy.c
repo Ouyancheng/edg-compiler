@@ -415,7 +415,6 @@ set to TRUE if the body of a routine is eliminated.
     a_scope_ptr corresp_scope = translation_units->primary_scope;
     checked_trans_unit_corresp_pointer_of(scope) = (char *)corresp_scope;
     mark_to_merge(scope);
-    pointers_block = &curr_translation_unit->file_scope_pointers_block;
     if (scope->lifetime != NULL && corresp_scope->lifetime != NULL) {
       /* The object lifetime of the file scope corresponds with the
          object lifetime of the corresponding scope, and gets merged into
@@ -429,7 +428,6 @@ set to TRUE if the body of a routine is eliminated.
        correspondence there is, if any. */
     check_assertion(scope->kind == (a_scope_kind)sck_namespace);
     nsp = scope->variant.assoc_namespace;
-    pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
     if (has_corresp(nsp)) {
       /* The namespace scope gets merged into the corresponding scope. */
       a_namespace_ptr corresp_nsp= (a_namespace_ptr)canonical_il_entry_of(nsp);
@@ -438,6 +436,8 @@ set to TRUE if the body of a routine is eliminated.
       mark_to_merge(scope);
     }  /* if */
   }  /* if */
+  pointers_block = get_pointers_block_for_scope(scope);
+  check_assertion(pointers_block != NULL);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Source sequence entries aren't generated in secondary translation
      units. */
@@ -484,8 +484,8 @@ set to TRUE if the body of a routine is eliminated.
         prev_type->next = type->next;
       }  /* if */
     }  /* if */
+    pointers_block->last_type = prev_type;
   }  /* for */
-  pointers_block->last_type = prev_type;
   /* Visit all static variables (non-static variables come up only
      in function and block scopes, which don't come here). */
   prev_variable = NULL;
@@ -540,8 +540,8 @@ set to TRUE if the body of a routine is eliminated.
         prev_variable->next = variable->next;
       }  /* if */
     }  /* if */
+    pointers_block->last_variable = prev_variable;
   }  /* for */
-  pointers_block->last_variable = prev_variable;
   /* Visit all dynamic initializations. */
   prev_dyn_init = NULL;
   for (dyn_init = scope->dynamic_inits;
@@ -560,8 +560,8 @@ set to TRUE if the body of a routine is eliminated.
       /* Keep this entry on the list. */
       prev_dyn_init = dyn_init;
     }  /* if */
+    pointers_block->last_dynamic_init = prev_dyn_init;
   }  /* for */
-  pointers_block->last_dynamic_init = prev_dyn_init;
   /* Visit all routines. */
   prev_routine = NULL;
   for (routine = scope->routines;
@@ -629,8 +629,8 @@ set to TRUE if the body of a routine is eliminated.
         prev_routine->next = routine->next;
       }  /* if */
     }  /* if */
+    pointers_block->last_routine = prev_routine;
   }  /* for */
-  pointers_block->last_routine = prev_routine;
   /* Visit all templates. */
   prev_templ = NULL;
   for (templ = scope->templates;
@@ -652,8 +652,8 @@ set to TRUE if the body of a routine is eliminated.
         prev_templ->next = templ->next;
       }  /* if */
     }  /* if */
+    pointers_block->last_template = prev_templ;
   }  /* for */
-  pointers_block->last_template = prev_templ;
   /* Visit all namespaces. */
   for (nsp = scope->namespaces;
        nsp != NULL;
@@ -689,8 +689,8 @@ set to TRUE if the body of a routine is eliminated.
         prev_pragma->next = pragma->next;
       }  /* if */
     }  /* if */
+    pointers_block->last_pragma = prev_pragma;
   }  /* for */
-  pointers_block->last_pragma = prev_pragma;
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   if (scope->kind == (a_scope_kind)sck_file &&
       *any_removed_function_bodies) {
@@ -841,14 +841,8 @@ secondary scope to the primary file IL.
     /* Find the corresponding scope. */
     primary_scope = (a_scope_ptr)canonical_il_entry_of(scope);
     /* Get the pointers block for the primary IL scope. */
-    if (scope->kind == (a_scope_kind)sck_file) {
-      pointers_block = &translation_units->file_scope_pointers_block;
-    } else {
-      check_assertion(scope->kind == (a_scope_kind)sck_namespace);
-      pointers_block = &symbol_supplement_for_namespace(
-                                      primary_scope->variant.assoc_namespace)->
-                                                                pointers_block;
-    }  /* if */
+    pointers_block = get_pointers_block_for_scope(primary_scope);
+    check_assertion(pointers_block != NULL);
     if (scope->types != NULL) {
       a_type_ptr type, last_type;
       /* Merge the types in the scope into the primary IL scope. */

@@ -957,6 +957,8 @@ extern void push_class_and_template_reactivation_scope(
                                  a_boolean      reactivate_template_params,
                                  a_boolean	extend_namespace);
 
+extern a_scope_pointers_block *get_pointers_block_for_scope(a_scope_ptr scope);
+
 extern
 a_scope_depth scope_depth_of_symbol(a_symbol_ptr  sym,
                                     a_boolean     *is_local_to_function);

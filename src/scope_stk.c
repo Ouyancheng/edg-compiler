@@ -336,6 +336,44 @@ debugging).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* DEBUG */
 
+
+a_scope_pointers_block *get_pointers_block_for_scope(a_scope_ptr scope)
+/*
+Return the pointers block for the indicated scope, if there is one,
+or NULL otherwise.
+*/
+{
+  a_scope_pointers_block *pointers_block = NULL;
+  a_scope_depth          depth = scope->depth_in_scope_stack;
+
+  if (depth != NO_SCOPE_DEPTH) {
+    /* The scope is on the scope stack. */
+    pointers_block = assoc_pointers_block_of(&scope_stack[depth]);
+  } else if (scope->kind == (a_scope_kind)sck_file) {
+    if (scope == il_header.primary_scope) {
+      /* The file scope of the current translation unit. */
+      pointers_block = &curr_translation_unit->file_scope_pointers_block;
+    } else {
+      /* Presumably a file scope of another translation unit.  Look for it. */
+      a_translation_unit_ptr tup;
+      for (tup = translation_units; ; tup = tup->next) {
+        check_assertion_str(tup != NULL,
+                         "get_pointers_block_for_scope: file scope not found");
+        if (tup->primary_scope == scope) {
+          pointers_block = &tup->file_scope_pointers_block;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  } else if (scope->kind == (a_scope_kind)sck_namespace) {
+    /* A namespace scope. */
+    a_namespace_ptr nsp = scope->variant.assoc_namespace;
+    pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
+  }  /* if */
+  return pointers_block;
+}  /* get_pointers_block_for_scope */
+
+
 a_scope_depth scope_depth_of_symbol(a_symbol_ptr  sym,
                                     a_boolean     *is_local_to_function)
 /*

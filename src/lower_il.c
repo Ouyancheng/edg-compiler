@@ -1028,11 +1028,10 @@ inside other user-written structs.
 {
   type->next = il_header.primary_scope->types;
   il_header.primary_scope->types = type;
-  if (type->next == NULL && depth_scope_stack >= DEPTH_OF_FILE_SCOPE) {
+  if (type->next == NULL) {
     /* There are no types on the file scope list, so this type is also the
        last type on the list. */
-    assoc_pointers_block_of(&scope_stack[DEPTH_OF_FILE_SCOPE])->last_type =
-                                                                          type;
+    curr_translation_unit->file_scope_pointers_block.last_type = type;
   }  /* if */
 }  /* add_to_front_of_file_scope_types_list */
 
@@ -4837,15 +4836,17 @@ this routine to do a relatively simple copy of the all the fields.
     if (class_type->next == NULL) {
       /* The class type is the last on a list.  Use add_to_types_list to add
          the subobject type so that the last-pointer will be updated. */
-      if (class_type->source_corresp.parent.namespace_ptr != NULL) {
-        /* For namespace members, add_to_types_list can figure out the right
-           processing, and the loop below fails if it runs into a namespace
-           reactivation. */
+      if (class_type->source_corresp.is_class_member ||
+          class_type->source_corresp.parent.namespace_ptr != NULL ||
+          !class_type->source_corresp.is_local_to_function) {
+        /* For class and namespace members, and entities in the file scope,
+           add_to_types_list can figure out the right processing, and the
+           loop below fails if it runs into a namespace reactivation. */
         add_to_types_list(subobject_type, NO_SCOPE_DEPTH);
         goto added_to_list;
       } else {
         /* See if the list is one of the ones being tracked in the scope
-           stack. */
+           stack.  This handles function-local types. */
         for (scope_depth = depth_scope_stack;
              scope_depth >= 0;
              scope_depth--) {
@@ -10938,6 +10939,19 @@ namespace scope), at the position indicated by *insert_pointer, and
 }  /* promote_class_members */
 
 
+static void set_last_type_pointer_for_scope(a_scope_ptr scope,
+                                            a_type_ptr  type)
+/*
+If a last_type pointer is being maintained for the indicated scope,
+set it to point to the indicated type.
+*/
+{
+  a_scope_pointers_block *pointers_block = get_pointers_block_for_scope(scope);
+
+  if (pointers_block != NULL) pointers_block->last_type = type;
+}  /* set_last_type_pointer_for_scope */
+
+
 static void unlink_classes_with_placeholders_in_scope(a_scope_ptr scope)
 /*
 Go through the indicated scope (the file scope, a namespace scope, a function
@@ -10948,7 +10962,6 @@ of the placeholder.
 */
 {
   a_type_ptr      type, next_type, insert_pointer;
-  a_scope_depth   depth;
   a_namespace_ptr nsp;
   a_scope_ptr     block_scope;
 
@@ -11034,11 +11047,7 @@ of the placeholder.
     }  /* for */
     check_assertion(insert_pointer == NULL ||
                     insert_pointer->next == NULL);
-    /* If this scope is in the scope_stack, update its last_type pointer. */
-    depth = scope->depth_in_scope_stack;
-    if (depth != NO_SCOPE_DEPTH) {
-      assoc_pointers_block_of(&scope_stack[depth])->last_type = insert_pointer;
-    }  /* if */
+    set_last_type_pointer_for_scope(scope, insert_pointer);
   }  /* if */
   /* Visit all namespaces. */
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
@@ -11065,7 +11074,6 @@ and all subscopes.
   a_type_ptr      type, next_type, insert_pointer;
   a_type_ptr      local_types, end_local_types;
   a_scope_ptr     block_scope;
-  a_scope_depth   depth;
   a_namespace_ptr nsp;
 
 #if DEBUG
@@ -11172,11 +11180,7 @@ and all subscopes.
     }  /* for */
     check_assertion(insert_pointer == NULL ||
                     insert_pointer->next == NULL);
-    /* If this scope is in the scope_stack, update its last_type pointer. */
-    depth = scope->depth_in_scope_stack;
-    if (depth != NO_SCOPE_DEPTH) {
-      assoc_pointers_block_of(&scope_stack[depth])->last_type = insert_pointer;
-    }  /* if */
+    set_last_type_pointer_for_scope(scope, insert_pointer);
   }  /* if */
   /* Visit all namespaces. */
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
@@ -11393,11 +11397,7 @@ with the outermost enclosing class, for later promotion out of the class
     }  /* for */
     /* Clear the types list now that all types have been promoted. */
     scope->types = NULL;
-    { a_scope_depth depth = scope->depth_in_scope_stack;
-      if (depth != NO_SCOPE_DEPTH) {
-        assoc_pointers_block_of(&scope_stack[depth])->last_type = NULL;
-      }  /* if */
-    }
+    set_last_type_pointer_for_scope(scope, NULL);
   }  /* if */
 }  /* promote_types_out_of_function */
 
@@ -11821,10 +11821,7 @@ have been promoted out of those classes.
   }  /* for */
   /* Update the "last" pointer for the file-scope types list. */
   check_assertion(prev_type == NULL || prev_type->next == NULL);
-  if (depth_scope_stack >= DEPTH_OF_FILE_SCOPE) {
-    assoc_pointers_block_of(&scope_stack[DEPTH_OF_FILE_SCOPE])->last_type =
-                                                                     prev_type;
-  }  /* if */
+  curr_translation_unit->file_scope_pointers_block.last_type = prev_type;
   /* Promote all members other than types out of the namespaces. */
   do_scope_namespace_member_promotion(il_header.primary_scope);
 }  /* do_all_namespace_member_promotion */
