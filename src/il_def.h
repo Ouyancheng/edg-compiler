@@ -6807,6 +6807,11 @@ EXTERN struct il_header_tag {
 		pcc_compatibility_mode;
 			/* TRUE if the source program was compiled as old-style
 			   (pcc-compatible) C. */
+  a_byte_boolean
+		enum_type_is_integral;
+			/* Records whether enum types are considered to be
+			   integral; normally, TRUE in C mode and FALSE in
+			   C++ mode. */
 #endif /* ifdef CIL */
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_targ_alignment

@@ -774,6 +774,7 @@ source file's compilation.
      meaningful value. */
   il_header.source_language =
                       (C_dialect == C_dialect_cplusplus) ? sl_Cplusplus : sl_C;
+  il_header.enum_type_is_integral = enum_type_is_integral;
   il_header.pcc_compatibility_mode = (C_dialect == C_dialect_pcc);
 #if USER_CONTROL_OF_STRUCT_PACKING
   il_header.default_max_member_alignment = default_max_member_alignment;
