@@ -3737,36 +3737,38 @@ Test a character to see if it is an end-of-file character.
 
 #if MBC_CHECKING_NEEDED_IN_LINE_READING
 
-static void find_column_for_source_line_mbc_including(
-                                                     unsigned long new_column,
-                                                     unsigned long *mbc_column)
+static void find_offset_for_source_line_mbc_including(
+                                                     char          *new_char,
+                                                     unsigned long *mbc_offset)
 /*
-*mbc_column is the 1-origined offset to a position in curr_source_line that
+*mbc_offset is the 0-origined offset to a position in curr_source_line that
 is on a multibyte character boundary.  Advance from that position over whole
 multibyte character sequences to find the start position of the multibyte
-character sequence that contains new_column.  Return *mbc_column set to
-this start position.
+character sequence that contains new_char.  Return *mbc_offset set to
+the offset of that start position.  An offset is used for mbc_offset,
+rather than a pointer, to avoid the need to remap the pointer if
+curr_source_line is resized.
 */
 {
-  unsigned long column = *mbc_column;
-  char     *ptr;
-  int      numch;
+  unsigned long offset = *mbc_offset;
+  char          *ptr;
+  int           numch;
 
   /* If we're already too far in the line, start over. */
-  if (column > new_column) column = 1;
+  if (curr_source_line+offset > new_char) offset = 0;
   /* If we're starting at the beginning of the line, make sure any shift
      states are reset. */
-  if (column == 1) mbc_scan_init();
+  if (offset == 0) mbc_scan_init();
 
   /* Step through the characters of the source line, stepping over
      multibyte character sequences. */
-  for (ptr = curr_source_line+column-1;; ptr += numch, column += numch) {
+  for (ptr = curr_source_line+offset;; ptr += numch, offset += numch) {
     numch = mbc_length(ptr, (a_boolean *)NULL);
-    if (column + numch > new_column) break;
+    if (ptr + numch > new_char) break;
   }  /* for */
 
-  *mbc_column = column;
-}  /* find_column_for_source_line_mbc_including */
+  *mbc_offset = offset;
+}  /* find_offset_for_source_line_mbc_including */
 
 #endif /* MBC_CHECKING_NEEDED_IN_LINE_READING */
 
@@ -3808,7 +3810,7 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
   a_boolean       return_value;
   unsigned long   curr_column;
 #if MBC_CHECKING_NEEDED_IN_LINE_READING
-  unsigned long   mbc_column = 1;
+  unsigned long   mbc_offset = 0;
 #endif /* MBC_CHECKING_NEEDED_IN_LINE_READING */
   int             next_ch;
   a_boolean       char_is_trapped = FALSE, has_invalid_char = FALSE;
@@ -4146,9 +4148,9 @@ entry_for_possible_trigraph:
                  mark, or a character after the first in a multibyte
                  sequence. */
               && (!multibyte_chars_in_source_enabled ||
-                  (find_column_for_source_line_mbc_including(curr_column-1,
-                                                             &mbc_column),
-                   mbc_column == curr_column-1))
+                  (find_offset_for_source_line_mbc_including(loc_in_line-1,
+                                                             &mbc_offset),
+                   mbc_offset == loc_in_line-1-curr_source_line))
 #endif /* QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
                                                 ) {
@@ -4234,8 +4236,8 @@ entry_for_line_splice:
       if (multibyte_chars_in_source_enabled) {
         /* See whether the backslash is actually a backslash, or a character
            after the first in a multibyte sequence. */
-        find_column_for_source_line_mbc_including(curr_column, &mbc_column);
-        if (mbc_column != curr_column) {
+        find_offset_for_source_line_mbc_including(loc_in_line-1, &mbc_offset);
+        if (mbc_offset != loc_in_line-1-curr_source_line) {
           /* The backslash is not really a backslash.  But it is followed by a
              newline. */
           goto add_newline_and_line_end_and_return;

@@ -1,5 +1,16 @@
 Version 2.37
 
+8/13/97   Processing of trigraphs in multibyte character mode
+
+The processing of trigraphs (and line splices) after the first trigraph
+on an input line, in multibyte character mode, had a bug.  This has
+been corrected.  The problem was only visible if either
+
+QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR or
+BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
+
+was TRUE, which is not required for many character sets.
+
 8/12/97   Spurious invalid covariant return type error
 
 A spurious error would occur when a member function of a nested class
