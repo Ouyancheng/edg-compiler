@@ -238,11 +238,7 @@ Dump a list of template arguments, enclosed by angle brackets.
         if (tap->arg_operand != NULL) {
           fprintf(f_debug, "<arg-operand> ");
         }  /* if */
-        if (tap->variant.constant == NULL) {
-          fprintf(f_debug, "<NULL constant>");
-        } else {
-          db_constant(tap->variant.constant);
-        }  /* if */
+        db_constant(tap->variant.constant);
       }  /* if */
       tap = tap->next;
       if (tap != NULL) fputs(",", f_debug);
@@ -1166,32 +1162,36 @@ void db_constant(a_constant *cp)
 Dump the contents of the indicated constant, for debug purposes.
 */
 {
-  an_il_to_str_output_control_block octl;
+  if (cp == NULL) {
+    fputs("<NULL constant>", f_debug);
+  } else {
+    an_il_to_str_output_control_block octl;
 
-  /* Set up for use of form_constant. */
-  clear_il_to_str_output_control_block(&octl);
-  octl.output_str = put_str_to_f_debug;
-  octl.gen_pcc_code = (C_dialect == C_dialect_pcc);
-  octl.debug_output = TRUE;
+    /* Set up for use of form_constant. */
+    clear_il_to_str_output_control_block(&octl);
+    octl.output_str = put_str_to_f_debug;
+    octl.gen_pcc_code = (C_dialect == C_dialect_pcc);
+    octl.debug_output = TRUE;
 
-  /* If this is a template parameter, output its coordinates. */
-  if (cp->kind == (a_constant_repr_kind)ck_template_param) {
-    if (cp->variant.template_param.kind ==
+    /* If this is a template parameter, output its coordinates. */
+    if (cp->kind == (a_constant_repr_kind)ck_template_param) {
+      if (cp->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_param) {
-      fprintf(f_debug, "template-param#(%lu,%lu) ",
+        fprintf(f_debug, "template-param#(%lu,%lu) ",
        (unsigned long)cp->variant.template_param.variant.coordinates.depth,
        (unsigned long)cp->variant.template_param.variant.coordinates.position);
+      }  /* if */
     }  /* if */
-  }  /* if */
 
-  /* Output the constant. */
-  form_constant(cp, /*need_parens=*/FALSE, &octl);
-  if (is_enum_constant(cp) && has_name(cp)) {
-    /* Display the value of the enum constant, too. */
-    fputs(" (= ", f_debug);
-    form_integer_constant(cp, /*suppress_cast=*/TRUE, /*need_parens=*/FALSE,
-                          &octl);
-    fputc(')', f_debug);
+    /* Output the constant. */
+    form_constant(cp, /*need_parens=*/FALSE, &octl);
+    if (is_enum_constant(cp) && has_name(cp)) {
+      /* Display the value of the enum constant, too. */
+      fputs(" (= ", f_debug);
+      form_integer_constant(cp, /*suppress_cast=*/TRUE, /*need_parens=*/FALSE,
+                            &octl);
+      fputc(')', f_debug);
+    }  /* if */
   }  /* if */
 }  /* db_constant */
 
