@@ -1063,7 +1063,7 @@ memory or with an IL file.
   rout = (scope->kind == (a_scope_kind)sck_function) ?
                                       scope->variant.routine.ptr : NULL;
   if (rout != NULL && rout->is_trivial_default_constructor) {
-    /* Always free the memory of for the generated definition of a trivial
+    /* Always free the memory for the generated definition of a trivial
        default constructor.  It is an incidental byproduct of front-end
        processing (to detect some constraint violations) and is never needed
        by the back end. */
