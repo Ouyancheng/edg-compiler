@@ -35,7 +35,7 @@ ambiguity on a case like
 
 One can also come up with cases like this that the Microsoft
 compiler considers unambiguous, whereas the EDG Front End
-issued an ambiguity error (one case appears in the fwcommon.h
+issued an ambiguity error (one case appears in the comdef.h
 header in MSVC++ 7.1).  The MSVC++ behavior is now emulated
 in Microsoft bugs mode.
 
