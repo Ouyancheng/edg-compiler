@@ -856,26 +856,44 @@ static a_boolean pl_is_explicit_specialization(char	 *name,
 Return TRUE if name represents an explicit specialization of a template.
 */
 {
-  /* Explicit specializations end with the string "__S". */
-  return strcmp(&name[length-3], "__S") == 0;
+  /* Explicit specializations contain the string "__S" somewhere. */
+  return strstr(name, "__S") != 0;
 }  /* pl_is_explicit_specialization */
 
 
-static void get_nonspecialized_name(char *name,
-				    int	 length,
-				    char **nonspec_name,
-				    int  *nonspec_length)
+/* The maximum size of an name that cane be processed. */
+#define NAME_DECODE_BUFFER_SIZE 32767
+
+static char *get_nonspecialized_name(char *name,
+				    int	 length)
 /*
 Given a specialized name "name", return a pointer to the name of the
-nonspecialized version of the name, and the length of the nonspecialized
-version of the name.
+nonspecialized version of the name.
+
 */
 {
-  /* Explicit specializations end with the string "__S".  Simply return
-     the original name pointer and a length pointer that is adjusted to
-     omit the suffix. */
-  *nonspec_name = name;
-  *nonspec_length = length-3;
+  static char	*name_buffer = NULL;
+  char		*from;
+  char		*to;
+
+  if (name_buffer == NULL) {
+    /* Allocate a buffer into which a copy of the unspecialized name can
+       be made. */
+    name_buffer = pl_malloc_with_check(NAME_DECODE_BUFFER_SIZE);
+  }  /* if */
+  /* Remove any occurrances of "__S" from the name. */
+  from = name;
+  to = name_buffer;
+  while (*from != NULL) {
+    if (*from == '_' && from[1] == '_' && from[2] == 'S') {
+      from += 3;
+      continue;
+    }  /* if */
+    *to++ = *from++;
+  }  /* while */
+  /* Terminate the new string. */
+  *to = '\0';
+  return name_buffer;
 }  /* get_nonspecialized_name */
 
 
@@ -888,7 +906,6 @@ Issue an invalid input error and exit.
 }  /* pl_invalid_input */
 
 
-#define NAME_DECODE_BUFFER_SIZE 32767
 static char *pl_decoded_name(char* encoded_name)
 /*
 Return a pointer to a temporary buffer containing a decoded name.
@@ -1581,12 +1598,14 @@ Add an input file to a list of files that can instantiate a given symbol.
 
 
 static a_pl_symbol_ptr pl_find_symbol(char		*name,
-				      int		length,
                                       a_pl_symbol_ptr	other_sym,
-				      a_boolean		add)
+				      a_boolean		add,
+				      a_boolean		*p_new)
 /*
 Find a symbol entry with the specified name.  Add the name to the
-list if an entry does not already exist.
+list if an entry does not already exist.  If p_new is not NULL,
+return a flag indicating whether a new entry was created by this
+call.
 */
 {
   register unsigned            hash_value = 0;
@@ -1594,6 +1613,8 @@ list if an entry does not already exist.
   a_pl_symbol_ptr	       prev_sym_ptr;
   a_pl_symbol_ptr              sym_ptr    = NULL;
   int                          bucket_number;
+  int			       length;
+  a_boolean		       is_new = FALSE;
 
   /* If the symbol pointer passed from the caller already contains a pointer
      to the global symbol then simply return that value.  Otherwise,
@@ -1602,8 +1623,8 @@ list if an entry does not already exist.
     sym_ptr = other_sym->global_sym;
     goto symbol_found;
   }  /* if */
-  /* Compute the string length if it was not passed in. */
-  if (length == 0) length = strlen(name);
+  /* Compute the string length. */
+  length = strlen(name);
   /* Hash the symbol's name.  This involves taking the name's
      first, last, and middle 3 characters.  Of course, if the name has
      fewer than 5 characters, take the entire name. */
@@ -1666,6 +1687,7 @@ list if an entry does not already exist.
       sym_ptr->next_in_specialization_list = specialization_list;
       specialization_list = sym_ptr;
     }  /* if */
+    is_new = TRUE;
   }  /* if */
 
 symbol_found:
@@ -1676,6 +1698,9 @@ symbol_found:
       other_sym->global_sym = sym_ptr;
     }  /* if */
   }  /* if */
+  /* Return the new flag if the p_new pointer provided by caller is
+     non-NULL. */
+  if (p_new != NULL) *p_new = is_new;
   return sym_ptr;
 }  /* pl_find_symbol */
 
@@ -1695,7 +1720,8 @@ to detect such conditions.
   for (;;) {
     name = pl_predefined_names[pos++]; 
     if (name == NULL) break;
-    sym = pl_find_symbol(name, 0, (a_pl_symbol_ptr)NULL, /*add=*/TRUE);
+    sym = pl_find_symbol(name, (a_pl_symbol_ptr)NULL, /*add=*/TRUE,
+                         (a_boolean*)NULL);
     sym->defined = TRUE;
   }  /* for */
 }  /* pl_add_predefined_names */
@@ -1731,8 +1757,8 @@ symbol.
            the prelinker that the symbol is referenced and that the
            symbol is one that can be defined by a generated instantiation. */
         is_special_symbol = TRUE;
-        sym = pl_find_symbol(&psp->name[PL_INSTANCE_REQUIRED_PREFIX_LEN], 0,
-                             psp, /*add=*/TRUE);
+        sym = pl_find_symbol(&psp->name[PL_INSTANCE_REQUIRED_PREFIX_LEN],
+                             psp, /*add=*/TRUE, (a_boolean*)NULL);
         sym->is_template = TRUE;
         sym->referenced = TRUE;
         if (sym->last_referenced_from != input_file) {
@@ -1752,8 +1778,8 @@ symbol.
            or must ensure that it is instantiated using an instantiate
            pragma or an instantiation mode such as -tused. */
         is_special_symbol = TRUE;
-        sym = pl_find_symbol(&psp->name[PL_DO_NOT_INSTANTIATE_PREFIX_LEN], 0,
-                             psp, /*add=*/TRUE);
+        sym = pl_find_symbol(&psp->name[PL_DO_NOT_INSTANTIATE_PREFIX_LEN],
+                             psp, /*add=*/TRUE, (a_boolean*)NULL);
         sym->do_not_instantiate = TRUE;
       } else if (!input_file->is_archive &&
                  strncmp(psp->name, PL_CAN_BE_INSTANTIATED_PREFIX,
@@ -1763,8 +1789,8 @@ symbol.
            Don't consider this to be a possible instantiation site if
            the input file is an archive. */
         is_special_symbol = TRUE;
-        sym = pl_find_symbol(&psp->name[PL_CAN_BE_INSTANTIATED_PREFIX_LEN], 0,
-                             psp, /*add=*/TRUE);
+        sym = pl_find_symbol(&psp->name[PL_CAN_BE_INSTANTIATED_PREFIX_LEN],
+                             psp, /*add=*/TRUE, (a_boolean*)NULL);
         sym->is_template = TRUE;
         if (!input_file->is_archive) {
           sym->can_be_instantiated = TRUE;
@@ -1777,7 +1803,7 @@ symbol.
     if (!is_special_symbol) {
       /* The symbol is not a special symbol.  Update the global symbol
          table to reflect the kind of reference or definition. */
-      sym = pl_find_symbol(psp->name, 0, psp, /*add=*/TRUE);
+      sym = pl_find_symbol(psp->name, psp, /*add=*/TRUE, (a_boolean*)NULL);
       if (psp->referenced) {
         sym->referenced = TRUE;
         if (sym->last_referenced_from != input_file) {
@@ -1818,7 +1844,7 @@ to resolve an undefined reference or a tentative definition.
     a_pl_symbol_ptr	sym;
     if (psp->defined || psp->tentative_definition) {
       /* Only look the symbol up if this is a definition. */
-      sym = pl_find_symbol(psp->name, 0, psp, /*add=*/TRUE);
+      sym = pl_find_symbol(psp->name, psp, /*add=*/TRUE, (a_boolean*)NULL);
       if (!sym->defined) {
         /* A previously undefined symbol may be resolved by a definition or
            a tentative definition.  A tentative definition may only be
@@ -1931,8 +1957,8 @@ Read the existing instantiation assignment information from the
         /* Read the instantiation list. */
         while (pl_read_input_line(f_info)) {
           a_pl_symbol_ptr	sym;
-          sym = pl_find_symbol(pl_input_line, 0, (a_pl_symbol_ptr)NULL,
-			       /*add=*/TRUE);
+          sym = pl_find_symbol(pl_input_line, (a_pl_symbol_ptr)NULL,
+			       /*add=*/TRUE, (a_boolean*)NULL);
           if (sym->instantiation_file != NULL) {
             /* The symbol is in the instantiation list of more than one file.
 	       This should not happen. */
@@ -2524,35 +2550,32 @@ if any errors were detected.
 */
 {
   a_pl_symbol_ptr	psp;
-  char			*name_buffer = NULL;
   a_boolean		any_errors = FALSE;
+  a_boolean		is_new;
 
   for (psp = specialization_list; psp != NULL;
        psp = psp->next_in_specialization_list) {
     a_pl_symbol_ptr	nonspec_psp;
     char		*nonspec_name;
-    int			nonspec_length;
     /* Get the name of the nonspecialized symbol.  Normally, the string
        returned is expected to point to a portion of the original name. */
-    get_nonspecialized_name(psp->name, psp->name_length, &nonspec_name,
-                            &nonspec_length);
+    nonspec_name = get_nonspecialized_name(psp->name, psp->name_length);
     /* Look up the nonspecialized symbol. */
-    nonspec_psp = pl_find_symbol(nonspec_name, nonspec_length,
-                                 (a_pl_symbol_ptr)NULL, /*add=*/FALSE);
+    nonspec_psp = pl_find_symbol(nonspec_name, (a_pl_symbol_ptr)NULL,
+                                 /*add=*/TRUE, &is_new);
     if (nonspec_psp != NULL &&
         (nonspec_psp->referenced || nonspec_psp->defined)) {
-      if (name_buffer == NULL) {
-        /* Allocate a buffer into which a copy of the unspecialized name can
-           be made.  This is needed because the decode routines expect a
-           null terminated string. */
-        name_buffer = pl_malloc_with_check(NAME_DECODE_BUFFER_SIZE);
-      }  /* if */
-      strncpy(name_buffer, nonspec_name, nonspec_length);
-      name_buffer[nonspec_length] = '\0';
       pl_error_with_exit(pl_ec_specialized_and_instantiated,
-                         pl_decoded_name(name_buffer),
+                         pl_decoded_name(nonspec_name),
                          /*exit_when_done=*/FALSE);
       any_errors = TRUE;
+    } else {
+      /* Update the nonspecialized symbol entry with the referenced and
+         defined flags of the specialization.  The nonspecialized entry
+         will serve as a summary of the flags of any specialized versions
+         that are present. */
+      nonspec_psp->referenced |= psp->referenced;
+      nonspec_psp->defined |= psp->defined;
     }  /* if */
   }  /* for */
   return any_errors;
