@@ -1699,8 +1699,13 @@ initialized.  These are addressed in the course of the processing.
           if (is_const_qualified_type(tp)) {
             /* Const and array-of-const fields require an initializer. */
           } else if (is_class_struct_union_type(tp) &&
-                     symbol_supplement_for_class(tp)->constructor != NULL) {
-            /* A constructor initializer is required. */
+                     ((cssp = symbol_supplement_for_class(tp))->
+                                                   constructor != NULL ||
+                      (exceptions_enabled && cssp->destructor != NULL))) {
+            /* When the type of the field has a constructor, a constructor
+               initializer is required.  Otherwise, if it has a destructor
+               and exception handling is enabled, we put out a constructor
+               initializer entry anyway, just to record the destructor. */
           } else {
             /* No initializer is needed. */
             continue;
@@ -2175,7 +2180,9 @@ scan_paren:
           end_of_uninit_list = cip;
           continue;
         }  /* if */
-        if (cssp == NULL || cssp->constructor == NULL) {
+        if (cssp == NULL ||
+            (cssp->constructor == NULL &&
+             (!exceptions_enabled || cssp->destructor == NULL))) {
           /* This constructor initializer entry is not really needed.  It may
              be the result of an empty initializer on a field or it may be
              associated with a base class without a constructor.  Unlink it
@@ -2187,8 +2194,12 @@ scan_paren:
           }  /* if */
           continue;
         }  /* if */
-        rp = select_default_constructor(tp, &err_pos, object_class_type,
-                                        /*evaluated=*/TRUE);
+        if (cssp->constructor == NULL) {
+          rp = NULL;
+        } else {
+          rp = select_default_constructor(tp, &err_pos, object_class_type,
+                                          /*evaluated=*/TRUE);
+        }  /* if */
         if (rp == NULL) {
           /* Error in trying to find a default constructor. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
@@ -2202,6 +2213,17 @@ scan_paren:
           /* A user defined default constructor may have default args that
              should be incorporated into the constructor call. */
           dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
+        }  /* if */
+        if (exceptions_enabled && cssp->destructor != NULL) {
+          /* If exception handling is enabled, record the destructor in the
+             constructor initializer.  This is required if an exception
+             occurs in the middle of constructing an object of this type --
+             the information is used to register which destructors need to be
+             called for a partially constructed object. */
+          rp = select_destructor(tp, object_class_type, &err_pos,
+                                 /*honor_virtual=*/FALSE, /*evaluated=*/TRUE);
+          check_assertion(rp != NULL);
+          dip->destructor = rp;
         }  /* if */
       }  /* if */
       if (array_type != NULL &&
