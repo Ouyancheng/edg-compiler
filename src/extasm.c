@@ -286,7 +286,7 @@ done_with_modifiers:
       case 'F':
         ck = (an_asm_operand_constraint_kind)aoc_imm_float;  
         break;
-  #if TARG_IS_X86
+#if TARG_IS_X86
       /* x86 specific constraints - registers */
       case 'a':
         ck = (an_asm_operand_constraint_kind)aoc_reg_a;         
@@ -361,7 +361,7 @@ done_with_modifiers:
       case 'Z':
         ck = (an_asm_operand_constraint_kind)aoc_imm_zext32;    
         break;
-  #endif /* TARG_IS_X86 */
+#endif /* TARG_IS_X86 */
       default:
         errletter[0] = *p;
         pos_st_error(ispunct((unsigned char)*p) ? 
