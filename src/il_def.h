@@ -5877,13 +5877,20 @@ enum a_scope_kind_tag {
 			   that point whether or not a body will follow). */
   sck_block,		/* Block scope, for blocks other than the topmost
 			   in a function. */
-  sck_namespace,	/* In C++, a scope representing an explicitly
-			   declared namespace. */
-  sck_namespace_reactivation,
-			/* In C++, a scope representing the reactivation of a
-			   namespace scope, making the namespace members
-			   visible without qualification.  Only used in the
-			   front end. */
+  sck_namespace,	/* In C++, a scope representing a namespace.  (An
+			   IL scope of kind sck_namespace may be pointed to
+			   by scope stack entries either of the same kind --
+			   for an "original-namespace-definition" -- or of
+			   kind sck_namespace_extension.)  */
+  sck_namespace_extension,
+			/* In C++, a scope representing either an "extension-
+			   namespace-definition" or else a reactivation of
+			   a namespace scope (in effect, an implicit extension
+			   in many cases, because the name-injection rules
+			   for friend and block-extern declarations.  Only
+			   used in the front end.  (When a scope stack entry
+			   has this kind, the IL scope entry it points to will
+			   be of kind sck_namespace.) */
   sck_class_struct_union,
 			/* In C, pseudo-scope for fields of a struct or
 			   union (and only used in the front end); in C++,
