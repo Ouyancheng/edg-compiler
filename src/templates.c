@@ -7342,7 +7342,7 @@ list (the one specified by param_list).
           a_symbol_kind	new_sym_kind = new_tpp->param_symbol->kind;
           if (new_sym_kind == (a_symbol_kind)sk_constant) {
             to_tpp->default_arg.constant = from_tpp->default_arg.constant;
-          } else if (new_sym_kind == (a_symbol_kind)sk_constant) {
+          } else if (new_sym_kind == (a_symbol_kind)sk_type) {
             to_tpp->default_arg.type = from_tpp->default_arg.type;
           } else {
             check_assertion(new_sym_kind == (a_symbol_kind)sk_class_template);
