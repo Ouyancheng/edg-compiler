@@ -792,12 +792,6 @@ typedef struct a_template_symbol_supplement {
 			   may begin at a colon.  For templates for static
 			   data members it embraces the initializer
 			   expression, if any. */
-  a_scope_depth
-                innermost_instantiation_scope;
-                        /* Contains the scope number of the most recent
-                           instantiation of the class template.  This is
-                           used by push and pop scope to handle recursive
-                           instantiations. */
   a_scope_number
                 declaration_scope;
                         /* The scope number assigned when the template
@@ -1425,13 +1419,10 @@ typedef struct a_scope_stack_entry {
 		last_dynamic_init;
 			/* End of list of local dynamic initializations, NULL
 			   if none. */
-  a_scope_depth depth_of_previous_instantiation;
-                        /* Used for template instantiation classes to handle
-                           recursive instantiations.  Contains the scope
-                           depth of the previous instantiation of the class
-                           template being instantiated and is used
-                           to restore the template parameters to the correct
-                           state when the scope stack is popped. */
+  a_scope_depth depth_innermost_instantiation_scope;
+                        /* Depth of the nearest enclosing instantiation scope
+			   of any kind.  This is a copy of the the global
+			   variable of the same name. */
   a_symbol_ptr  instance_sym;
                         /* When kind == sck_template_instantiation, contains
                            a pointer to the symbol for the class or function

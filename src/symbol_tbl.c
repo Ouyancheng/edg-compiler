@@ -1144,7 +1144,6 @@ and return a pointer to it.
 #endif /* DEBUG */
   /* Initialize its fields. */
   tssp->parameters = NULL;
-  tssp->innermost_instantiation_scope = NO_SCOPE_DEPTH;
   tssp->declaration_scope = NO_SCOPE_NUMBER;
   tssp->pending_instantiations = 0;
   clear_token_cache(&tssp->token_cache, /*reusable=*/TRUE);
@@ -5583,7 +5582,8 @@ of the template.
   ssep->first_scope              = NULL;
   ssep->last_scope               = NULL;
   ssep->last_dynamic_init        = NULL;
-  ssep->depth_of_previous_instantiation = NO_SCOPE_DEPTH;
+  ssep->depth_innermost_instantiation_scope =
+                                       depth_innermost_instantiation_scope;
   ssep->instance_sym             = instance_sym;
   ssep->template_sym             = template_sym;
   ssep->template_arg_list        = template_arg_list;
@@ -5651,14 +5651,7 @@ of the template.
          The old values do not need to be saved because they can be easily
          recreated by pop_scope. */
       update_template_param_symbols(tssp->parameters, template_arg_list);
-      /* Save the value of the innermost instantiation for the current
-         class template in the scope stack.  This is used by pop_scope to
-         restore the parameter values in the case of a recursive
-         instantiation. */
-      ssep->depth_of_previous_instantiation =
-                                  tssp->innermost_instantiation_scope;
       ssep->template_param_list = tssp->parameters;
-      tssp->innermost_instantiation_scope = depth_scope_stack;
       /* The current stack state is suspended when an template instantiation
          is done.  It will be restored in pop_scope. */
       inside_local_class = ssep->inside_local_class = FALSE;
@@ -6404,7 +6397,20 @@ End a name scope by popping an entry off the scope stack.
 
     tssp = template_supplement_for_symbol(ssep->template_sym);
     check_assertion(tssp != NULL);
-    prev_depth = ssep->depth_of_previous_instantiation;
+    prev_depth = NO_SCOPE_DEPTH;
+    /* Loop through the scope stack looking for a previous instantiation
+       scope that uses the same template parameter list as the one being
+       popped.  This is necessary because template parameter lists are
+       shared between a class and the member functions defined inside the
+       class. */
+    for (scope_depth = depth_scope_stack; scope_depth >= 0; scope_depth--) {
+      if (scope_stack[scope_depth].kind ==
+          (a_scope_kind)sck_template_instantiation &&
+          scope_stack[scope_depth].template_param_list == tssp->parameters) {
+          prev_depth = scope_depth;
+        break;
+      }  /* if */
+    }  /* for */
     if (prev_depth == NO_SCOPE_DEPTH) {
       /* Restore the default values of the parameters. */
       restore_default_template_params(tssp->parameters);
@@ -6413,9 +6419,6 @@ End a name scope by popping an entry off the scope stack.
       update_template_param_symbols(tssp->parameters,
                                     scope_stack[prev_depth].template_arg_list);
     }  /* if */
-    /* Update the depth of the innermost instantiation in the template
-       symbol supplement. */
-    tssp->innermost_instantiation_scope = prev_depth;
   }  /* if */
   /* Determine the memory region to restore for the outer scope. */
   new_memory_region_number = ssep->prev_il_memory_region;
@@ -6440,16 +6443,8 @@ End a name scope by popping an entry off the scope stack.
       num_classes_on_scope_stack--;
     }  /* if */
     /* Maintain the depth of the innermost template instantiation scope. */
-    if (kind == (a_scope_kind)sck_template_instantiation) {
-      depth_innermost_instantiation_scope = NO_SCOPE_DEPTH;
-      for (scope_depth = depth_scope_stack; scope_depth >= 0; scope_depth--) {
-        if (scope_stack[scope_depth].kind ==
-            (a_scope_kind)sck_template_instantiation) {
-          depth_innermost_instantiation_scope = scope_depth;
-          break;
-        }  /* if */
-      }  /* for */
-    }  /* if */
+    depth_innermost_instantiation_scope =
+                                 ssep->depth_innermost_instantiation_scope;
     /* Maintain the depth of the innermost stack entry that affects access
        control. */
     if (is_scope_kind_that_affects_access_control(kind)) {
