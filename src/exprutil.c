@@ -3250,19 +3250,19 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
       *operation_type = multilevel_composite_pointer_type(operand_1_type,
                                                           operand_2_type);
       if (*operation_type != NULL) {
-        /* By setting local_operation_type to NULL, we indicate this should
-           not undergo further validity checks. */
-        local_operation_type = NULL;
+        /* The types are compatible and we have computed the result-type.
+           So we can proceed directly to the end of the function (the
+           tests between here and there assume impl_pointer_conversion
+           found compatibility). */
         okay = TRUE;
-        break;
+        goto done;
       }  /* if */
     }  /* if */
     /* Go back for the second iteration with extensions allowed. */
     suppress_extensions = FALSE;
   }  /* for */
   if (okay && operand_1_is_pointer && operand_2_is_pointer &&
-      operand_1_type != operand_2_type &&
-      local_operation_type != NULL) {
+      operand_1_type != operand_2_type) {
     /* Make sure the operation type has all the cv-qualifiers present on
        each of the operands. */
     a_type_ptr type_pointed_to_1 = type_pointed_to(operand_1_type);
@@ -3280,7 +3280,7 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
     }  /* if */
     local_operation_type = make_pointer_type(operation_type_pointed_to);
   }  /* if */
-  if (okay && local_operation_type != NULL) {
+  if (okay) {
     a_boolean nonstd_case = FALSE;
     if (strict_ansi_mode && C_dialect == C_dialect_ANSI) {
       /* In strict ANSI C mode, issue warnings for the extensions let by
@@ -3345,9 +3345,8 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
                   operand_1_type, operand_2_type);
     local_operation_type = error_type();
   }  /* if */
-  if (local_operation_type != NULL) {
-    *operation_type = local_operation_type;
-  }  /* if */
+  *operation_type = local_operation_type;
+done:
   return okay;
 }  /* check_compatibility_of_pointer_operands */
 
