@@ -3149,6 +3149,32 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
 }  /* gen_temp_init */
 
 
+static a_boolean is_array_decay_cast(an_expr_node_ptr expr)
+/*
+expr is a compiler-generated cast.  Return TRUE if it is a cast that
+implements an array-to-pointer decay; return FALSE otherwise.
+*/
+{
+  a_boolean  is_array_decay = FALSE;
+  a_type_ptr source_type = expr->variant.operation.operands->type;
+  a_type_ptr dest_type = expr->type;
+
+  if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
+    a_type_ptr source_type_pointed_to = type_pointed_to(source_type);
+    if (is_array_type(source_type_pointed_to)) {
+      a_type_ptr source_element_type =
+                                    array_element_type(source_type_pointed_to);
+      a_type_ptr dest_type_pointed_to = type_pointed_to(dest_type);
+      if (types_are_compatible_ignoring_qualifiers(source_element_type,
+                                                   dest_type_pointed_to)) {
+        is_array_decay = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_array_decay;
+}  /* is_array_decay_cast */
+
+
 static void gen_lvalue(an_expr_node_ptr node)
 /*
 Generate an expression that the IL sees as an lvalue address, and C sees as
@@ -3214,14 +3240,22 @@ precedence confusion.
       gen_lvalue(operand_1);
       processed = TRUE;
     } else if (op == (an_expr_operator_kind)eok_cast &&
-               node->variant.operation.compiler_generated &&
-               (!is_pointer_type(operand_1->type) ||
-                !is_array_type(type_pointed_to(operand_1->type)))) {
-      /* Normal implicit cast.  Remove to avoid problems with casting
-         address of enk_temp_init to some related type.  The pointer test
-         is to avoid removing casts that do array-->pointer decay. */
-      gen_lvalue(operand_1);
-      processed = TRUE;
+               node->variant.operation.compiler_generated) {
+      /* Implicit cast.  Remove to avoid problems with casting address
+         of enk_temp_init to some related type. */
+      if (is_array_decay_cast(node)) {
+        /* A cast that does array-to-pointer decay.  The cast can be removed,
+           but an extra indirection has to be applied to the underlying
+           lvalue.  That is, "(int *[3])&x" becomes "x", not "&x". */
+        write_tok_str("(*");
+        gen_lvalue(operand_1);
+        write_tok_str(")");
+        processed = TRUE;
+      } else {
+        /* Normal cast. */
+        gen_lvalue(operand_1);
+        processed = TRUE;
+      }  /* if */
     } else if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue){
       /* An operation that returns an lvalue, e.g., an lvalue-returning
          assignment. */
@@ -3697,16 +3731,22 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_bool_cast:
         case eok_cast:
           /* Normal casts can be eliminated if they are implicit. */
-          /* But watch out for casts that implement the implicit type decay
-             from array to pointer, or function to pointer. */
           /* This is necessary in cases where a function is called with
              an argument of a type that can be implicitly converted to
              a parameter type that uses a prototype scope type.  There's
              no way to write the cast explicitly, because the type can't
              be named at the call site. */
-          if (expr->variant.operation.compiler_generated &&
-              !is_pointer_type(expr->type)) {
-            gen_expression(operand_1);
+          if (expr->variant.operation.compiler_generated) {
+            if (is_array_decay_cast(expr)) {
+              /* A cast that does array-to-pointer decay.  The cast can be
+                 removed, but an extra indirection has to be applied to the
+                 underlying expression.  That is, "(int *[3])&x" becomes "x",
+                 not "&x". */
+              gen_lvalue(operand_1);
+            } else {
+              /* Normal implicit cast.  Just omit the cast. */
+              gen_expression(operand_1);
+            }  /* if */
           } else {
             gen_cast(expr->type);
             gen_expr_with_parens(operand_1);
