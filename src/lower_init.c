@@ -2906,7 +2906,7 @@ do_assignment:;
          sure the rest of the aggregate is initialized to zero.
          So we change the initialization kind to initialization to zero. */
       if (has_static_storage_duration(variable->storage_class) ||
-          is_aggregate_or_union_type(variable->type)) {
+          dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
         variable->init_kind = (an_init_kind)initk_zero;
       } else {
         variable->init_kind = (an_init_kind)initk_none;
