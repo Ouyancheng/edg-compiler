@@ -1,5 +1,14 @@
 Version 2.43
 
+10/1/99  Abort when the end of class template member is missing
+
+An abort would occur if a source file ended unexpectedly in the middle of
+the definition of a member function of a class template.  This problem
+was introduced in version 2.42.
+
+  template <class T> struct A {
+    int f(int){
+
 9/30/99  Abort when declaring namespace scope function inside a member
          function
 
