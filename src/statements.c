@@ -539,7 +539,7 @@ if the truth cannot be discovered, is FALSE.
       stmt->kind == (a_statement_kind)stmk_end_test_while) {
     expr = stmt->expr;
     if (expr->kind == (an_expr_node_kind)enk_constant) {
-      if (!is_zero_constant(expr->variant.constant)) {
+      if (!is_false_constant(expr->variant.constant)) {
         /* Loop expression is a non-zero constant: it's an infinite loop. */
         is_inf_loop = TRUE;
       }  /* if */
