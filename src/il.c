@@ -1962,7 +1962,8 @@ fields to default values.
       cp->variant.address.offset = 0;
       break;
     case ck_ptr_to_member:
-      cp->variant.ptr_to_member.class_of_which_a_member = NULL;
+      cp->variant.ptr_to_member.casting_base_class = NULL;
+      cp->variant.ptr_to_member.cast_to_base    = FALSE;
       cp->variant.ptr_to_member.is_function_ptr = FALSE;
       cp->variant.ptr_to_member.variant.field   = NULL;
       break;
@@ -2185,6 +2186,24 @@ to refine the hash value developed in hash_constant.
 }  /* hash_type */
 
 
+static a_constant_hash_value hash_name(a_source_correspondence *scp)
+/*
+Return a hash value developed from the name in the indicated source
+correspondence entry.
+*/
+{
+  a_constant_hash_value hash_value = 0;
+  char                  *cptr = scp->name;
+
+  if (cptr != NULL) {
+    for (; *cptr != '\0'; cptr++) {
+      hash_value = (hash_value << 6) + *cptr;
+    }  /* for */
+  }  /* if */
+  return hash_value;
+}  /* hash_name */
+
+
 static a_constant_hash_value hash_constant(a_constant *cp)
 /*
 Return the hash value for the indicated constant, which gives the proper
@@ -2193,7 +2212,6 @@ bucket of the shareable_constants_table to use for the constant.
 {
   a_constant_hash_value hash_value;
   a_targ_size_t         length;
-  char                  *cptr;
   a_boolean             ovflo;
 
   /* Compute a hash value from the constant.  The hash doesn't have to
@@ -2228,25 +2246,23 @@ bucket of the shareable_constants_table to use for the constant.
          to. */
       switch (cp->variant.address.kind) {
         case abk_routine:
-          cptr = cp->variant.address.variant.routine->source_corresp.name;
-          goto hash_name;
+          hash_value =
+               hash_name(&cp->variant.address.variant.routine->source_corresp);
+          break;
         case abk_variable:
-          cptr = cp->variant.address.variant.variable->source_corresp.name;
-hash_name:
-          /* Hash the name string. */
-          hash_value = 0;
-          if (cptr != NULL) {
-            for (; *cptr != '\0'; cptr++) {
-              hash_value = (hash_value << 6) + *cptr;
-            }  /* for */
-          }  /* if */
+          hash_value =
+              hash_name(&cp->variant.address.variant.variable->source_corresp);
           break;
         case abk_constant:
           /* Hash the name if the constant has a name; otherwise, hash the
              constant pointed to. */
-          cptr = cp->variant.address.variant.constant->source_corresp.name;
-          if (cptr != NULL) goto hash_name;
-          hash_value = hash_constant(cp->variant.address.variant.constant);
+          if (cp->variant.address.variant.constant->source_corresp.name !=
+                                                                        NULL) {
+            hash_value =
+              hash_name(&cp->variant.address.variant.constant->source_corresp);
+          } else {
+            hash_value = hash_constant(cp->variant.address.variant.constant);
+          }  /* if */
           break;
 #if CHECKING
         default:
@@ -2257,13 +2273,16 @@ hash_name:
       hash_value += (a_constant_hash_value)(cp->variant.address.offset + 1000);
       break;
     case ck_ptr_to_member:
+      /* Hash the name of the member in a pointer-to-member constant. */
       if (cp->variant.ptr_to_member.is_function_ptr) {
         hash_value =
-              (a_constant_hash_value)cp->variant.ptr_to_member.variant.routine;
+         hash_name(&cp->variant.ptr_to_member.variant.routine->source_corresp);
       } else {
         hash_value =
-                (a_constant_hash_value)cp->variant.ptr_to_member.variant.field;
+           hash_name(&cp->variant.ptr_to_member.variant.field->source_corresp);
       }  /* if */
+      /* Work the type into the hash. */
+      hash_value += hash_type(cp->type) + 250;
       break;
     default:
       hash_value = (a_constant_hash_value)(200 + cp->kind);
