@@ -2689,7 +2689,7 @@ have no effect.
 }  /* record_expected_error */
 
 
-void check_expected_errors()
+void check_expected_errors(void)
 /*
 If expected_error was called, check that errors have been issued.  Otherwise,
 abort the compilation with the information recorded in the first call to
