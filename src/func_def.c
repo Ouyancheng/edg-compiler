@@ -90,13 +90,9 @@ Add len characters to the asm function body buffer, beginning at start_char
   pos_in_asm_func_body_buffer += len;
 }  /* add_to_asm_func_buffer */
 
-#if !ASM_FUNCTION_ALLOWED
-/*ARGSUSED*/ /* after_comment_stop_char is unused. */
-#else /* ASM_FUNCTION_ALLOWED */
 #if !INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
 /*ARGSUSED*/ /* after_comment_stop_char is unused. */
 #endif /* !INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
-#endif /* !ASM_FUNCTION_ALLOWED */
 void copy_from_source_to_asm_func_buffer(char *stop_char,
                                          char *after_comment_stop_char)
 /*
@@ -185,7 +181,6 @@ non-NULL, also append the characters in the comment, through but not including
     add_to_asm_func_buffer(prev_stop_char, len);
     prev_stop_char = curr_char;
   }  /* if */
-#if ASM_FUNCTION_ALLOWED
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
   if (after_comment_stop_char != NULL) {
     /* Append text of commentary, too. */
@@ -197,7 +192,6 @@ non-NULL, also append the characters in the comment, through but not including
     prev_stop_char = after_comment_stop_char;
   }  /* if */
 #endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
-#endif /* ASM_FUNCTION_ALLOWED */
 }  /* copy_from_source_to_asm_func_buffer */
 
 
