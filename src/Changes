@@ -1,5 +1,26 @@
 Version 2.46
 
+10/10/01 Spurious error on injected class name used as a template
+
+The injected class name of a class template can be used as either
+a class name or a template name.  References that would be ambiguous
+as a class name are accepted as a template name if they uniquely
+identify a template.  Certain cases resulted in spurious ambiguity
+errors.  This has been fixed.
+
+  template <class T> struct A { static int i; };
+  template <class T> struct B : public A<T> { };
+  template <class T> struct C : public A<char> { A a; };
+  template <class T> struct D : public B<T>, C<int> {
+    int f() {
+      return D::A<char>::i + 1;
+    }
+  };
+  int main() {
+    D<int> d;
+    d.f();
+  }
+
 10/10/01 Partial specialization permitted to be declared outside of a class
 
 The standard permits a partial specialization of a member class template to

@@ -8774,10 +8774,10 @@ classes.
       /* Traverse the list of progenitor symbols. */
       for (pp = progenitor_set; pp != NULL; pp = pp->next) {
         sym = pp->sym;
-        if (progenitor_sym->kind == (a_symbol_kind)sk_projection) {
+        if (sym->kind == (a_symbol_kind)sk_projection) {
           /* Special handling when the progenitor is itself a projection. */
-          if (progenitor_sym->ambiguous &&
-              !progenitor_sym->variant.projection.
+          if (sym->ambiguous &&
+              !sym->variant.projection.
                               injected_class_template_name_is_unambiguous) {
             *unambiguous_injected_template = FALSE;
             break;
