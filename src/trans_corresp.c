@@ -1380,17 +1380,30 @@ is in fact valid.
   a_symbol_ptr    templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
 
   if (has_correspondence(templ)) {
-    a_template_symbol_supplement_ptr
-                    tssp = templ_sym->variant.template_info;
     a_template_ptr  corresp_templ =
                                   (a_template_ptr)canonical_il_entry_of(templ);
+    a_symbol_ptr    corresp_sym =
+                        (a_symbol_ptr)corresp_templ->source_corresp.assoc_info;
+    a_template_symbol_supplement_ptr
+                    tssp = NULL, corresp_tssp = NULL;
     a_source_correspondence_ptr
                     scp = &templ->source_corresp,
                     corresp_scp = &corresp_templ->source_corresp;
     match = verify_name_correspondence(templ);
+    if (match && is_template_symbol(templ_sym)) {
+      /* templ_sym could also be an ordinary member function. */
+      tssp = templ_sym->variant.template_info;
+      corresp_tssp = corresp_sym->variant.template_info;
+    }  /* if */
     if (match &&
         (scp->access != corresp_scp->access ||
-         scp->name_linkage != corresp_scp->name_linkage)) {
+         scp->name_linkage != corresp_scp->name_linkage ||
+         (tssp != NULL &&
+          !equiv_template_param_lists(
+                                    corresp_tssp->cache.decl_info->parameters,
+                                    tssp->cache.decl_info->parameters,
+                                    /*issue_errors=*/FALSE,
+                                    &templ_sym->decl_position)))) {
       match = FALSE;
       process_bad_trans_unit_corresp(templ);
     }  /* if */
@@ -1399,20 +1412,35 @@ is in fact valid.
          instantiations. */
     } else if (is_class_template_symbol(templ_sym)) {
       /* A class template. Verify the instantiations (if any). */
-      a_type_ptr    class_type = prototype_template_of(templ_sym)
-                               ->variant.template_info
-                               ->variant.class_template.prototype_instantiation
-                               ->variant.class_struct_union.type;
-      a_symbol_ptr  inst = tssp->variant.class_template.instantiations;
-      for (; inst != NULL; inst = next_instance_sym(inst)) {
-        a_type_ptr  inst_type = type_symbol_type(inst);
-        if (!inst_type->variant.class_struct_union.is_specialized) {
-          /* Specializations appear on the types list of their scope. */
-          (void)verify_type_correspondence(inst_type);
-        }  /* if */
-      }  /* for */
-      /* Also process the prototype instantiation. */
-      (void)verify_type_correspondence(class_type);
+      a_type_ptr  proto = prototype_template_of(templ_sym)
+                              ->variant.template_info
+                              ->variant.class_template.prototype_instantiation
+                              ->variant.class_struct_union.type,
+                  corresp_proto = prototype_template_of(corresp_sym)
+                              ->variant.template_info
+                              ->variant.class_template.prototype_instantiation
+                              ->variant.class_struct_union.type;
+      /* For partial specializations we must also verify the template arguments
+         (attached to the prototype instantiations). */
+      if (!equiv_template_arg_lists(
+             proto->variant.class_struct_union.extra_info->template_arg_list,
+             corresp_proto->
+                    variant.class_struct_union.extra_info->template_arg_list,
+             ETA_NO_OPTIONS)) {
+        match = FALSE;
+        process_bad_trans_unit_corresp(templ);
+      } else {
+        a_symbol_ptr  inst = tssp->variant.class_template.instantiations;
+        for (; inst != NULL; inst = next_instance_sym(inst)) {
+          a_type_ptr  inst_type = type_symbol_type(inst);
+          if (!inst_type->variant.class_struct_union.is_specialized) {
+            /* Specializations appear on the types list of their scope. */
+            (void)verify_type_correspondence(inst_type);
+          }  /* if */
+        }  /* for */
+        /* Also process the prototype instantiation. */
+        (void)verify_type_correspondence(proto);
+      }  /* if */
     } else if (templ_sym->kind == (a_symbol_kind)sk_function_template) {
       /* A function template.  Verify the instantiations (if any). */
       a_template_instance_ptr  inst = tssp->variant.function.instantiations;
@@ -2282,6 +2310,7 @@ translation unit correspondence pointer if one is found.
                   } else if (param_types_are_compatible(sym_type,
                                                         routine->type,
                                                         TCF_REDECLARATION) ||
+                             /* The function ::main doesn't overload. */
                              (is_main_function(routine) &&
                               is_main_function(corresp_routine))) {
                     /* Record the correspondence. */
