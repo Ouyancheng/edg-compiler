@@ -541,11 +541,6 @@ Instantiate the body of the template function associated with tip.
   }  /* if */
 #endif /* DEBUG */
   rout_ptr->is_inline = tssp->variant.function.routine->is_inline;
-#if 0
-  rout_sym->defined = TRUE;
-#else
-  mark_defined(rout_sym, &rout_sym->decl_position);
-#endif /* if 0 */
   if (rout_ptr->type->kind == (a_type_kind)tk_typeref) {
     /* The function was declared using a typedef.  Now that it is being
        defined (given a body by the instantiation), create an unshared type
@@ -579,6 +574,10 @@ Instantiate the body of the template function associated with tip.
   (void)push_scope((a_scope_kind)sck_template_instantiation,
                    tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr,
                    rout_sym, tip->template_sym, tip->arg_list);
+  /* We wait till after the push_scope call before calling mark_defined
+     because the fact that a template instantion scope is on the scope stack
+     affects some decisions in that routine. */
+  mark_defined(rout_sym, &rout_sym->decl_position);
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
