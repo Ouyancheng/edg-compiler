@@ -481,14 +481,16 @@ do
          --no_alternate_tokens | \
          --inlining | \
          --no_inlining | \
+         --svr4 | \
+         --no_svr4 | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Check for C or C++ mode
       case $curr_param in
-        -m | --c | -K | --old_c)
+        -m | --c | -K | --old_c | --svr4 | --no_svr4)
          c_mode=1
          ;;
-        -p | --c++)
+        -p | --c++ | --cfront_2.1 | --cfront_3.0)
          c_mode=0
          ;;
       esac
