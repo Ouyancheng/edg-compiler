@@ -7351,7 +7351,7 @@ check_start_of_pp_directive:
       /* When we reach this point, curr_char_loc should have already been
          advanced past the characters that make up this token (unlike
 	 most cases in which curr_char_loc still points to the final
-	 character of the token. */
+	 character of the token). */
       goto save_end_position;
       /* No break needed. */
     default:
