@@ -172,9 +172,9 @@ at a later point.  The current token is either a left brace or, when a
 constructor initializer is present, a colon.
 */
 {
-  a_token_cache             token_cache;
-  a_stop_token_array        save_stop_token_array;
-  a_boolean                 success = FALSE;
+  a_token_cache      token_cache;
+  a_token_set_array  stop_tokens;
+  a_boolean          success = FALSE;
 
   db_enter(3, "prescan_function_definition");
 
@@ -182,29 +182,27 @@ constructor initializer is present, a colon.
      reusable here.  If it is rescanned as a nonreusable cache we
      will change it later. */ 
   clear_token_cache(&token_cache, /*reusable=*/TRUE);
-  /* Save the current stop token state, and reinitialize it. */
-  copy_stop_tokens(stop_token_array, save_stop_token_array);
-  clear_stop_tokens();
-  add_stop_token(tok_rbrace);
+  /* Initialize a local stop token set. */
+  clear_token_set_array(stop_tokens);
+  incr_token_set_array_element(stop_tokens, tok_rbrace);
   if (curr_token == tok_colon) {
     /* A colon marks the start of a constructor initializer list.  Scan it,
        stopping at the left brace, where the function body is expected to
        start.  Just in case the function body is missing, also stop when a
        semicolon is seen. */
-    add_stop_token(tok_semicolon);
-    add_stop_token(tok_lbrace);
-    cache_token_stream(&token_cache);
-    remove_stop_token(tok_lbrace);
-    remove_stop_token(tok_semicolon);
+    incr_token_set_array_element(stop_tokens, tok_semicolon);
+    incr_token_set_array_element(stop_tokens, tok_lbrace);
+    cache_token_stream(&token_cache, stop_tokens);
+    decr_token_set_array_element(stop_tokens, tok_lbrace);
+    decr_token_set_array_element(stop_tokens, tok_semicolon);
   }  /* if */
   if (curr_token == tok_lbrace) {
     /* The left brace marks the start of the function body.  Cache all the
        tokens up to the right brace. */
     cache_curr_token(&token_cache);
     (void)get_token();
-    cache_token_stream(&token_cache);
+    cache_token_stream(&token_cache, stop_tokens);
   }  /* if */
-  remove_stop_token(tok_rbrace);
   if (curr_token == tok_rbrace) {
     cache_curr_token(&token_cache);
     success = TRUE;
@@ -212,8 +210,6 @@ constructor initializer is present, a colon.
   /* Add an end-of-source token to the end of the token cache.  This assures
      that we won't scan past the end of the cache in the actual scan. */
   terminate_token_cache(&token_cache);
-  /* Restore the original stop token state. */
-  copy_stop_tokens(save_stop_token_array, stop_token_array);
   if (curr_routine_fixup == NULL) {
     /* We must be within a prototype instantiation for a class template.  Just
        throw away the cached tokens.  (We do not scan the bodies of inline

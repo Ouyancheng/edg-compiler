@@ -93,33 +93,30 @@ Place the tokens for a default argument expression into a token cache, to
 await actual processing at a later point.
 */
 {
-  a_stop_token_array        save_stop_token_array;
+  a_token_set_array  stop_tokens;
 
   db_enter(3, "prescan_default_arg_expr");
   clear_token_cache(token_cache, /*reusable=*/TRUE);
-  /* Save the current stop token state, and reinitialize it. */
-  copy_stop_tokens(stop_token_array, save_stop_token_array);
-  clear_stop_tokens();
+  /* Initialize a local stop token set. */
+  clear_token_set_array(stop_tokens);
   /* In the normal case we will scan an expression and encounter a comma
      or right parenthesis.  If both of these are omitted, terminate the token
      stream when some likely delimiter is reached. */
-  add_stop_token(tok_comma);
-  add_stop_token(tok_rparen);
-  add_stop_token(tok_semicolon);
-  add_stop_token(tok_lbrace);
-  add_stop_token(tok_rbrace);
+  incr_token_set_array_element(stop_tokens, tok_comma);
+  incr_token_set_array_element(stop_tokens, tok_rparen);
+  incr_token_set_array_element(stop_tokens, tok_semicolon);
+  incr_token_set_array_element(stop_tokens, tok_lbrace);
+  incr_token_set_array_element(stop_tokens, tok_rbrace);
   /* When scanning a template default argument add ">" to the stop tokens. */
   if (is_template_param) {
-    add_stop_token(tok_gt);
+    incr_token_set_array_element(stop_tokens, tok_gt);
   }  /* if */
-  cache_token_stream(token_cache);
+  cache_token_stream(token_cache, stop_tokens);
   /* Note that the terminating token (comma, rparen, etc.) is not added to
      the cache. */
   /* Add an end-of-source token to the end of the token cache.  This assures
      that we won't scan past the end of the cache in the actual scan. */
   terminate_token_cache(token_cache);
-  /* Restore the original stop token state. */
-  copy_stop_tokens(save_stop_token_array, stop_token_array);
   db_exit();
 }  /* prescan_default_arg_expr */
 

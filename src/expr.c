@@ -5032,7 +5032,7 @@ has exactly one argument, return TRUE; otherwise, return FALSE.
 {
   a_boolean          one_arg = FALSE;
   a_token_cache      cache;
-  a_stop_token_array save_stop_token_array;
+  a_token_set_array  stop_tokens;
 
   clear_token_cache(&cache, /*reusable=*/FALSE);
   /* Put the class name token in the cache. */
@@ -5048,17 +5048,14 @@ has exactly one argument, return TRUE; otherwise, return FALSE.
     } else {
       /* One or more arguments. */
       /* Scan forward looking for a zero-level comma or right parenthesis. */
-      /* Save the current stop token state, and reinitialize it. */
-      copy_stop_tokens(stop_token_array, save_stop_token_array);
-      clear_stop_tokens();
-      add_stop_token(tok_comma);
-      add_stop_token(tok_rparen);
-      cache_token_stream(&cache);
+      /* Initialize a local stop token set. */
+      clear_token_set_array(stop_tokens);
+      incr_token_set_array_element(stop_tokens, tok_comma);
+      incr_token_set_array_element(stop_tokens, tok_rparen);
+      cache_token_stream(&cache, stop_tokens);
       /* If we stopped on a right parenthesis, the argument list has exactly
          one argument. */
       if (curr_token == tok_rparen) one_arg = TRUE;
-      /* Restore the original stop token state. */
-      copy_stop_tokens(save_stop_token_array, stop_token_array);
     }  /* if */
   }  /* if */
   /* Restore the tokens. */

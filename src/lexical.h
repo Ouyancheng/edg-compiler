@@ -888,7 +888,12 @@ checked for; in boundary cases, like an error in an expression with
 but this is not a meaningful problem.
 */
 typedef unsigned char
-		a_stop_token_array[(int)tok_last+1];
+		a_token_set_array[(int)tok_last+1];
+			/* Generic array-of-unsigned-char both for global
+			   variable stop_token_array and for local arrays
+			   used in token caching. */
+typedef a_token_set_array
+		a_stop_token_array;
 
 EXTERN a_stop_token_array
 		stop_token_array;
@@ -990,7 +995,8 @@ extern void terminate_token_cache(a_token_cache *cache);
 /* Save the current token in a token cache. */
 extern void cache_curr_token(a_token_cache *cache);
 /* Save a token stream in a token cache. */
-extern void cache_token_stream(a_token_cache *cache);
+extern void cache_token_stream(a_token_cache      *cache,
+                               a_token_set_array  stop_tokens);
 /* Put some cached tokens on the get_token rescan list. */
 extern void rescan_cached_tokens(a_token_cache *cache);
 /* Push a reusable cache on to the reusable cache stack. */
@@ -1174,13 +1180,20 @@ extern void push_input_stack (FILE      *new_input_file,
 /* Set the error position to the current token position. */
 #define set_err_pos_to_curr_token()                                   \
 { copy_source_position(pos_curr_token, error_position);}
+
+/* Define primitive operations on a_token_set_array. */
+#define clear_token_set_array(array) memzero((char *)(array), sizeof(array))
+#define incr_token_set_array_element(array, tok) (array)[(int)(tok)]++
+#define decr_token_set_array_element(array, tok) (array)[(int)(tok)]--
+
 /* Clear the set of syntax error flush stop tokens. */
-#define clear_stop_tokens() memzero((char *)stop_token_array,\
-                                    sizeof(stop_token_array))
+#define clear_stop_tokens() clear_token_set_array(stop_token_array)
 /* Add a token to the set of syntax error flush stop tokens. */
-#define add_stop_token(stop_token) stop_token_array[(int)(stop_token)]++;
+#define add_stop_token(stop_token)                                    \
+  incr_token_set_array_element(stop_token_array, stop_token)
 /* Remove a token from the set of syntax error flush stop tokens. */
-#define remove_stop_token(stop_token) stop_token_array[(int)(stop_token)]--;
+#define remove_stop_token(stop_token)                                 \
+  decr_token_set_array_element(stop_token_array, stop_token)
 /* Copy one stop token array to another. */
 #define copy_stop_tokens(from, to) \
   memcpy((char *)(to), (char *)(from), sizeof(stop_token_array));

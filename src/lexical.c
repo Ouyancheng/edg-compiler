@@ -613,7 +613,8 @@ of throwing tokens away it adds them to the specified token cache.)
 }  /* cache_token_stream_until_matching_token */
 
 
-void cache_token_stream(a_token_cache *cache)
+void cache_token_stream(a_token_cache      *cache,
+                        a_token_set_array  stop_tokens)
 /*
 Copy the current token and succeeding tokens into the token cache specified
 by cache up to but not including the first token that matches a member of
@@ -628,7 +629,7 @@ away it adds them to the specified token cache.)
      when a token in the stop token array is found.  Whenever a '(', '[', or
      '{' is encountered, ignore the stop token array until the corresponding
      ')', ']', or '}' is reached. */
-  while (stop_token_array[(int)curr_token] == 0) {
+  while (stop_tokens[(int)curr_token] == 0) {
     if (curr_token == tok_lparen || curr_token == tok_lbracket ||
         curr_token == tok_lbrace ||
         (curr_token == tok_lt && prev_token == tok_identifier &&

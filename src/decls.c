@@ -297,15 +297,11 @@ Wrapper for cache_token_stream that saves and restores the stop tokens
 array.  Cache tokens until the specified token is found.
 */
 {
-  a_stop_token_array  save_stop_token_array;
-  /* Save the current stop token state, and reinitialize it. */
-  copy_stop_tokens(stop_token_array, save_stop_token_array);
-  clear_stop_tokens();
-  add_stop_token(stop_token);
-  cache_token_stream(token_cache_ptr);
-  remove_stop_token(stop_token);
-  /* Restore the stop token state. */
-  copy_stop_tokens(save_stop_token_array, stop_token_array);
+  a_token_set_array  stop_token_array;
+
+  clear_token_set_array(stop_token_array);
+  incr_token_set_array_element(stop_token_array, stop_token);
+  cache_token_stream(token_cache_ptr, stop_token_array);
 }  /* cache_tokens_until */
 
 
@@ -315,20 +311,12 @@ Cache the tokens that comprise an initializer of the form
 "= initializer-clause".
 */
 {
-  a_stop_token_array        save_stop_token_array;
+  a_token_set_array  stop_token_array;
 
-  /* Save the current stop token state, and reinitialize it. */
-  copy_stop_tokens(stop_token_array, save_stop_token_array);
-  clear_stop_tokens();
-  /* In the normal case we will scan an expression and encounter a comma
-     or semicolon. */
-  add_stop_token(tok_comma);
-  add_stop_token(tok_semicolon);
-  cache_token_stream(token_cache_ptr);
-  /* Note that the terminating token (comma, etc.) is not added to
-     the cache. */
-  /* Restore the original stop token state. */
-  copy_stop_tokens(save_stop_token_array, stop_token_array);
+  clear_token_set_array(stop_token_array);
+  incr_token_set_array_element(stop_token_array, tok_comma);
+  incr_token_set_array_element(stop_token_array, tok_semicolon);
+  cache_token_stream(token_cache_ptr, stop_token_array);
 }  /* prescan_initializer */
 
 
