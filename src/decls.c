@@ -4045,6 +4045,7 @@ otherwise it is NULL.  The syntax is:
   a_boolean       is_constructor_or_destructor;
   a_boolean       is_nonstatic_member_function = FALSE;
   a_boolean       nonconstant_dimension_allowed;
+  a_boolean       parenthesized_initializer_allowed;
 
   db_enter(3, "declarator");
   set_err_pos_to_curr_token();
@@ -4053,6 +4054,10 @@ otherwise it is NULL.  The syntax is:
   real_declarator_allowed = input_flags & DI_REAL_DECLARATOR_ALLOWED;
   abstract_declarator_allowed = input_flags & DI_ABSTRACT_DECLARATOR_ALLOWED;
   is_constructor_or_destructor = (input_flags & DI_IS_CONSTRUCTOR) != 0;
+  parenthesized_initializer_allowed =
+                      (C_dialect == C_dialect_cplusplus &&
+                       !is_constructor_or_destructor &&
+                       (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED));
   nonconstant_dimension_allowed =
                             (input_flags & DI_DIMENSION_EXPRESSION_ALLOWED);
   if (!real_declarator_allowed) {
@@ -4151,6 +4156,7 @@ otherwise it is NULL.  The syntax is:
                  needed to reopen the class scope if a function declarator
                  is scanned. */
               is_member_function_def = TRUE;
+              parenthesized_initializer_allowed = FALSE;
               member_parent_type = sym->class_of_which_a_member;
             }  /* if */
           } else {
@@ -4207,13 +4213,16 @@ otherwise it is NULL.  The syntax is:
           /* A valid destructor name is not followed by a left parenthesis. */
           error(ec_exp_lparen);
         }  /* if */
+        parenthesized_initializer_allowed = FALSE;
       } else if (get_opname()) {
         /* The name is an operator name like "operator+". */
         *locator = locator_for_curr_id;
         (void)get_token();
+        parenthesized_initializer_allowed = FALSE;
       } else {
         copy_source_position(pos_curr_token, locator->source_position);
         syntax_error(ec_exp_identifier);
+        parenthesized_initializer_allowed = FALSE;
       }  /* if */
       if (locator->is_operator_name) {
         /* Enforce some restrictions on the declarations of overloaded
@@ -4274,9 +4283,7 @@ otherwise it is NULL.  The syntax is:
       copy_source_position(pos_curr_token, lparen_pos);
       /* Advance past the left parenthesis. */
       (void)get_token();
-      if (C_dialect == C_dialect_cplusplus && !is_member_function_def &&
-          !is_constructor_or_destructor &&
-          (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED)) {
+      if (parenthesized_initializer_allowed && !is_constructor_or_destructor) {
         if (curr_token != tok_rparen && curr_token != tok_ellipsis &&
             !is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE)) {
           a_boolean  is_function_decl = FALSE;
@@ -4352,16 +4359,17 @@ function_lparen:
         /* If the function is pointed to by a pointer-to-member type, we need
            to pass the class-of-which-a-member to function_declarator. */
         a_type_ptr tp = derived_type;
+        member_parent_type = NULL;
         if (tp != NULL) {
-          if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-          tp = skip_typerefs(tp);
-        }  /* if */
-        if (tp != NULL && (is_ptr_to_member_type(tp))) {
-          /* Declaration of a pointer to member function. */
-          member_parent_type = pm_class_type(tp);
-          is_nonstatic_member_function = TRUE;
-        } else {
-          member_parent_type = NULL;
+          if (!is_array_type(tp) ||
+              (tp = underlying_array_element_type(tp)) != NULL) {
+            tp = skip_typerefs(tp);
+            if (is_ptr_to_member_type(tp)) {
+              /* Declaration of a pointer to member function. */
+              member_parent_type = pm_class_type(tp);
+              is_nonstatic_member_function = TRUE;
+            }  /* if */
+          }  /* if */
         }  /* if */
         func_info = NULL;
         is_constructor_or_destructor = FALSE;
@@ -4400,6 +4408,7 @@ function_lparen:
        Note that this involves error checking. */
     add_to_derived_type_list(new_type_ptr,
                              &derived_type, &bottom_derived_type);
+    parenthesized_initializer_allowed = FALSE;
   }  /* while */
   remove_stop_token(tok_lbracket);
   remove_stop_token(tok_lparen);
