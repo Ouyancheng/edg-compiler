@@ -287,7 +287,7 @@ Dump a base class entry, for debug purposes.
 
   fputs("\n    [[ ", f_debug);
   db_access_control(bcp->access);
-  if (bcp->virtual) fputs(" virtual");
+  if (bcp->virtual) fprintf(f_debug, " virtual");
   fprintf(f_debug, " base class %s (offset = %lu)",
 		   tp->source_corresp.name, bcp->offset);
   bcp = tp->variant.class_struct_union.extra_info->base_classes;
@@ -940,7 +940,7 @@ Set the given source correspondence struct to default values.
   /* access is set to "public" because "no access restriction" is the default
      for everything except class members.  For the latter the field must be
      set manually. */
-  sc->access               = as_public;
+  sc->access               = (an_access_specifier)as_public;
   /* referenced is set TRUE because so far this is an entity not associated
      with one in the source program.  All unassociated entities are assumed
      to be referenced (otherwise, they wouldn't be created).  This does away
