@@ -1197,6 +1197,85 @@ typedef struct a_template_symbol_supplement {
 } a_template_symbol_supplement;
 
 
+/*
+Structure that is logically (and historically) part of a_scope_stack_entry,
+but which must persist longer than a scope stack entry for namespace scopes
+(since "extension-definitions" are allowed for them).  Therefore,
+a_scope_pointers_block is also part of a_namespace_symbol_supplement.  When
+an sck_namespace or sck_namespace_extension scope is pushed onto the stack, a
+pointer in the scope stack entry is set to refer to the persistent scope
+pointers block (the one in the symbol supplement) -- and the one in the scope
+stack entry itself is unused.
+*/
+typedef struct a_scope_pointers_block *a_scope_pointers_block_ptr;
+typedef struct a_scope_pointers_block {
+  a_symbol_ptr	symbols;
+			/* Pointer to the head of a linked list of all symbols
+			   declared in this scope (linked by the field
+			   next_in_scope); NULL if there are no such
+			   declarations. */
+  a_symbol_ptr	last_symbol;
+			/* End of the symbol list pointed to by symbols. */
+  a_constant_ptr
+		last_constant;
+			/* End of list of named constants of this scope,
+			   NULL if none. */
+  a_type_ptr	last_type;
+			/* End of list of local types of this scope, NULL if
+			   none. */
+  a_variable_ptr
+		last_variable;
+			/* End of list of local variables of this scope, NULL
+			   if none. */
+  a_routine_ptr	last_routine;
+			/* End of list of local routines of this scope, NULL
+			   if none.  Includes both routines with definitions
+			   and those that are just declarations of interfaces
+			   to external routines. */
+  an_asm_entry_ptr
+		last_asm_entry;
+			/* End of list of asm entries of this scope, NULL if
+			   none. */
+  a_namespace_ptr
+		last_namespace;
+			/* End of list of namespace entries in this scope,
+			   NULL if there are none. */
+  a_pragma_ptr	last_pragma;
+			/* End of list of IL pragma entries entered on the
+			   pragma_list of il_scope, NULL if none. */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  a_hidden_name_ptr
+		last_hidden_name;
+			/* End of the list of hidden-name entries entered on
+			   the corresponding IL scope entry; NULL if none. */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if RECORD_TEMPLATES_IN_IL
+  a_template_ptr
+		last_template;
+			/* End of the list of template entries entered on
+			   the corresponding IL scope entry; NULL if none. */
+#endif /* RECORD_TEMPLATES_IN_IL */
+  a_symbol_ptr	unnamed_namespace_sym;
+			/* For sck_file and sck_namespace scopes only, pointer
+			   to the symbol representing the unnamed namespace
+			   for the current scope; NULL if there is none. */
+} a_scope_pointers_block;
+
+
+typedef struct a_namespace_symbol_supplement
+                                        *a_namespace_symbol_supplement_ptr;
+typedef struct a_namespace_symbol_supplement {
+  a_scope_pointers_block
+		pointers_block;
+			/* A block of pointers that are logically part of the
+			   scope stack entry for the associated namespace
+			   -- including a pointer to a linked list of all
+			   symbols declared in the namespace and pointers to
+			   the last entries in linked lists of IL entries
+			   entered in the associated IL scope. */
+} a_namespace_symbol_supplement;
+
+
 typedef struct an_extern_symbol_descr *an_extern_symbol_descr_ptr;
 typedef struct an_extern_symbol_descr {
   /* Information on an sk_extern_variable or sk_extern_routine entry, i.e.,
@@ -1493,12 +1572,14 @@ typedef struct a_symbol {
 			   a C++ class template or function template. */
     /* When kind = sk_namespace: */
     struct {
-      a_symbol_ptr
-		symbols;
-			/* Symbol entries for members of the namespace. */
       a_namespace_ptr
 		ptr;
 			/* The IL entry for the namespace. */
+      a_namespace_symbol_supplement_ptr
+		extra_info;
+			/* Pointer to an entry providing additional info
+			   about a C++ namespace definition; NULL when the
+			   symbol represents a namespace alias. */
     } namespace_info;
   } variant;
 } a_symbol;
@@ -1740,11 +1821,21 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if is_try_block is TRUE or if this scope is
 			   an sck_block scope nested within a scope for which
 			   is_try_block is set. */
-  a_symbol_ptr	symbols,
-		last_symbol;
-			/* First/last pointers to the list of all symbols
-			   declared in this scope, linked by the field
-			   next_in_scope. */
+  a_scope_pointers_block_ptr
+		assoc_pointers_block;
+			/* Pointer to a scope pointer block that should be
+			   used (in place of the one that is embedded in
+			   this scope stack entry); NULL when the embedded
+			   scope-pointer-block should be used.  This pointer
+			   will be non-NULL when kind is sck_namespace or
+			   sck_namespace_extension; otherwise it is NULL. */
+  a_scope_pointers_block
+		pointers_block;
+			/* A block of pointers associated with this scope,
+			   including a pointer to the linked list of all
+			   symbols declared in this scope and pointers to
+			   the last entry in linked lists of IL entries
+			   entered in the associated IL scope. */
   a_scope_ptr	il_scope;
 			/* Pointer to the intermediate language scope
 			   entry for this scope.  This can be a real
@@ -1815,17 +1906,6 @@ typedef struct a_scope_stack_entry {
 			/* End of list of parameters of the associated routine,
 			   if assoc_routine != NULL.  In declaration order.
 			   NULL if no parameters. */
-  a_constant_ptr
-		last_constant;
-			/* End of list of named constants of this scope,
-			   NULL if none. */
-  a_type_ptr	last_type;
-			/* End of list of local types of this scope, NULL if
-			   none. */
-  a_variable_ptr
-		last_variable;
-			/* End of list of local variables of this scope, NULL
-			   if none. */
   a_variable_ptr
 		last_nonstatic_variable;
 			/* End of list of nonstatic local variables of this
@@ -1833,15 +1913,6 @@ typedef struct a_scope_stack_entry {
   a_label_ptr	last_label;
 			/* End of list of local labels of this scope, NULL
 			   if none. */
-  a_routine_ptr	last_routine;
-			/* End of list of local routines of this scope, NULL
-			   if none.  Includes both routines with definitions
-			   and those that are just declarations of interfaces
-			   to external routines. */
-  an_asm_entry_ptr
-		last_asm_entry;
-			/* End of list of asm entries of this scope, NULL if
-			   none. */
   a_scope_ptr	first_scope,
 		last_scope;
 			/* Start and end of list of local scopes (those
@@ -1853,17 +1924,10 @@ typedef struct a_scope_stack_entry {
 			   last_scope, then transferred to the il_scope entry
 			   or into the parent scope when the current scope
 			   is popped. */
-  a_namespace_ptr
-		last_namespace;
-			/* End of list of namespace entries in this scope,
-			   NULL if there are none. */
   a_dynamic_init_ptr
 		last_dynamic_init;
 			/* End of list of local dynamic initializations, NULL
 			   if none. */
-  a_pragma_ptr	last_pragma;
-			/* End of list of IL pragma entries entered on the
-			   pragma_list of il_scope, NULL if none. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		last_source_sequence_entry;
@@ -1901,18 +1965,6 @@ typedef struct a_scope_stack_entry {
 			   pointer is restored by pop_scope.  Not used for
 			   any other scope kinds. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if RECORD_HIDDEN_NAMES_IN_IL
-  a_hidden_name_ptr
-		last_hidden_name;
-			/* End of the list of hidden-name entries entered on
-			   the corresponding IL scope entry; NULL if none. */
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if RECORD_TEMPLATES_IN_IL
-  a_template_ptr
-		last_template;
-			/* End of the list of template entries entered on
-			   the corresponding IL scope entry; NULL if none. */
-#endif /* RECORD_TEMPLATES_IN_IL */
   a_scope_depth depth_template_declaration_scope;
 			/* Depth of the sck_template_declaration scope entry,
 			   if any, that the current scope is enclosed by;
@@ -2030,11 +2082,18 @@ typedef struct a_scope_stack_entry {
                         /* Depth of the nearest enclosing namespace scope.
 			   This is a copy of the global variable of the
                            same name. */
-  a_symbol_ptr	unnamed_namespace_sym;
-			/* For sck_file and sck_namespace scopes only, pointer
-			   to the symbol representing the unnamed namespace
-			   for the current scope; NULL if there is none. */
 } a_scope_stack_entry;
+
+
+/*
+Given a pointer a scope stack entry, return the address of the associated
+scope-pointers-block -- it may either be part of the entry itself or part of
+another data structure elsewhere (as indicated by the value of the
+assoc_pointers_block field in the scope stack entry).
+*/
+#define assoc_pointers_block_of(ssep)                                    \
+  ((ssep)->assoc_pointers_block == NULL ?                                \
+     &((ssep)->pointers_block) : (ssep)->assoc_pointers_block)
 
 
 EXTERN a_scope_stack_entry_ptr
@@ -2154,6 +2213,9 @@ extern void make_locator_for_symbol(a_symbol_ptr     sym_ptr,
                                     a_symbol_locator *location);
 
 extern void make_specific_symbol_error_locator(a_symbol_locator *locator);
+
+extern a_namespace_symbol_supplement_ptr
+                                   alloc_namespace_symbol_supplement(void);
 
 extern a_template_symbol_supplement_ptr alloc_template_symbol_supplement(
                                                          a_symbol_kind  kind);
@@ -2523,6 +2585,9 @@ extern a_scope_ptr push_scope(a_scope_kind       kind,
        	                      a_scope_number     scope_number_to_reuse,
                               a_type_ptr         assoc_type,
                               a_routine_ptr      assoc_routine);
+
+extern a_scope_ptr push_namespace_scope(a_scope_kind    kind,
+                                        a_namespace_ptr assoc_namespace);
 
 extern a_scope_ptr push_template_instantiation_scope
                            (a_scope_number       scope_number_to_reuse,

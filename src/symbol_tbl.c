@@ -75,6 +75,7 @@ static unsigned long
 		symbol_name_string_space,
 		num_class_symbol_supplements_allocated,
 		num_template_symbol_supplements_allocated,
+		num_namespace_symbol_supplements_allocated,
 		num_template_params_allocated,
 		num_param_ids_allocated,
 		num_dependent_type_fixups_allocated,
@@ -856,7 +857,7 @@ Put out a scope kind name (for debugging).
   switch (sck) {
     case sck_file:                   s = "file";                     break;
     case sck_namespace:              s = "namespace";                break;
-    case sck_namespace_reactivation: s = "namespace reactivation";   break;
+    case sck_namespace_extension:    s = "namespace extension";      break;
     case sck_func_prototype:         s = "function prototype";       break;
     case sck_block:                  s = "block";                    break;
     case sck_class_struct_union:     s = "class/struct/union";       break;
@@ -905,7 +906,7 @@ Dump the entire scope stack (for debugging).
         }  /* if */
         break;
       case sck_namespace:
-      case sck_namespace_reactivation:
+      case sck_namespace_extension:
         if (ssep->il_scope == NULL) {
           fprintf(f_debug, "null IL scope");
         } else {
@@ -1332,6 +1333,51 @@ specific symbol which is an error symbol.
 }  /* make_specific_symbol_error_locator */
 
 
+static void clear_scope_pointers_block(a_scope_pointers_block_ptr  spbp)
+/*
+Initialize the fields in a scope-pointers-block substructure.
+*/
+{
+  spbp->symbols               = NULL;
+  spbp->last_symbol           = NULL;
+  spbp->last_constant         = NULL;
+  spbp->last_type             = NULL;
+  spbp->last_variable         = NULL;
+  spbp->last_routine          = NULL;
+  spbp->last_asm_entry        = NULL;
+  spbp->last_namespace        = NULL;
+  spbp->last_pragma           = NULL;
+#if RECORD_HIDDEN_NAMES_IN_IL
+  spbp->last_hidden_name      = NULL;
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if RECORD_TEMPLATES_IN_IL
+  spbp->last_template         = NULL;
+#endif /* RECORD_TEMPLATES_IN_IL */
+  spbp->unnamed_namespace_sym = NULL;
+}  /* clear_scope_pointers_block */
+
+
+a_namespace_symbol_supplement_ptr  alloc_namespace_symbol_supplement(void)
+/*
+Allocate a new template symbol supplement entry, initialize its fields, and
+return a pointer to it.
+*/
+{
+  a_namespace_symbol_supplement_ptr  nssp;
+
+  db_enter(5, "alloc_namespace_symbol_supplement");
+  /* Allocate a namespace symbol supplement. */
+  nssp = (a_namespace_symbol_supplement_ptr)
+                   alloc_fe(sizeof(a_namespace_symbol_supplement));
+#if DEBUG
+  num_namespace_symbol_supplements_allocated++;
+#endif /* DEBUG */
+  clear_scope_pointers_block(&nssp->pointers_block);
+
+  return nssp;
+}  /* alloc_namespace_symbol_supplement */
+
+
 a_template_symbol_supplement_ptr alloc_template_symbol_supplement(
                                                           a_symbol_kind  kind)
 /*
@@ -1535,8 +1581,8 @@ state.
                              alloc_template_symbol_supplement(sym_ptr->kind);
       break;
     case sk_namespace:
-      sym_ptr->variant.namespace_info.symbols = NULL;
       sym_ptr->variant.namespace_info.ptr = NULL;
+      sym_ptr->variant.namespace_info.extra_info = NULL;
       break;
 #if CHECKING
     default:
@@ -1641,8 +1687,9 @@ static void remove_symbol_from_scope_list(a_symbol_ptr sym_ptr)
 Remove the given symbol from the list of symbols for its scope.
 */
 {
-  register a_symbol_ptr   ptr, prev_ptr;
-  a_scope_stack_entry_ptr ssep;
+  register a_symbol_ptr       ptr, prev_ptr;
+  a_scope_stack_entry_ptr     ssep;
+  a_scope_pointers_block_ptr  pointers_block;
 
   if (sym_ptr->is_error) {
     /* Error symbols are not on the scope list and cannot be removed. */
@@ -1674,11 +1721,12 @@ Remove the given symbol from the list of symbols for its scope.
     /* Usually (i.e., when this routine is called from pop_scope), the
        symbol will be the first on the list.  If not, we have to find the
        previous symbol. */
-    if (sym_ptr == ssep->symbols) {
-      ssep->symbols = sym_ptr->next_in_scope;
+    pointers_block = assoc_pointers_block_of(ssep);
+    if (sym_ptr == pointers_block->symbols) {
+      pointers_block->symbols = sym_ptr->next_in_scope;
       prev_ptr = NULL;
     } else {
-      for (prev_ptr = ssep->symbols;
+      for (prev_ptr = pointers_block->symbols;
            (ptr = prev_ptr->next_in_scope) != sym_ptr;
            prev_ptr = ptr) {
 #if CHECKING
@@ -1698,7 +1746,9 @@ Remove the given symbol from the list of symbols for its scope.
     }  /* if */
     /* If the removed entry is the last entry on the list, update the
        last-pointer. */
-    if (sym_ptr == ssep->last_symbol) ssep->last_symbol = prev_ptr;
+    if (sym_ptr == pointers_block->last_symbol) {
+      pointers_block->last_symbol = prev_ptr;
+    }  /* if */
   }  /* if */
   sym_ptr->next_in_scope = NULL;
 }  /* remove_symbol_from_scope_list */
@@ -1978,7 +2028,9 @@ there's only one) declared in the condition scope.
 
   if (ssep->kind == (a_scope_kind)sck_block &&
       (ssep-1)->kind == (a_scope_kind)sck_condition) {
-    for (sym = (ssep-1)->symbols; sym != NULL; sym = sym->next_in_scope) {
+    for (sym = (assoc_pointers_block_of(ssep-1))->symbols;
+         sym != NULL;
+         sym = sym->next_in_scope) {
       if (sym->header == hdr) {
         match = TRUE;
         break;
@@ -2201,6 +2253,7 @@ changed if there is no error.
 */
 {
   a_scope_stack_entry_ptr ssep;
+  a_scope_pointers_block_ptr  pointers_block;
 
   if (scope_depth == NO_SCOPE_DEPTH) {
     /* The symbol is being entered outside of any scope (e.g., a macro
@@ -2219,12 +2272,13 @@ changed if there is no error.
       /* Error symbols are not added to the scope list. */
     } else {
       /* Add the symbol to the end of the symbols list for the scope. */
-      if (ssep->symbols == NULL) {
-        ssep->symbols = sym_ptr;
+      pointers_block = assoc_pointers_block_of(ssep);
+      if (pointers_block->symbols == NULL) {
+        pointers_block->symbols = sym_ptr;
       } else {
-        ssep->last_symbol->next_in_scope = sym_ptr;
+        pointers_block->last_symbol->next_in_scope = sym_ptr;
       }  /* if */
-      ssep->last_symbol = sym_ptr;
+      pointers_block->last_symbol = sym_ptr;
     }  /* if */
     if (C_dialect == C_dialect_cplusplus) {
       /* In C++, it's an error for something with the same name as a class to
@@ -2401,6 +2455,8 @@ the overloaded function symbol.
   a_symbol_ptr        overload_sym, prev_sym_ptr;
   a_symbol_header_ptr hdr_ptr;
   a_scope_stack_entry *ssep;
+  a_scope_pointers_block_ptr  pointers_block;
+
   
   if (other_sym->kind == (a_symbol_kind)sk_overloaded_function) {
     overload_sym = other_sym;
@@ -2445,10 +2501,11 @@ the overloaded function symbol.
 #endif /* CHECKING */
       --ssep;
     }  /* if */
-    prev_sym_ptr = ssep->symbols;
+    pointers_block = assoc_pointers_block_of(ssep);
+    prev_sym_ptr = pointers_block->symbols;
     if (prev_sym_ptr == other_sym) {
        /* The entry is the first on the scope's symbol list. */
-       ssep->symbols = overload_sym;
+       pointers_block->symbols = overload_sym;
     } else {
        while (prev_sym_ptr->next_in_scope != other_sym) {
          prev_sym_ptr = prev_sym_ptr->next_in_scope;
@@ -2457,7 +2514,9 @@ the overloaded function symbol.
     }  /* if */
     overload_sym->next_in_scope = other_sym->next_in_scope;
     other_sym->next_in_scope = NULL;
-    if (ssep->last_symbol == other_sym) ssep->last_symbol = overload_sym;
+    if (pointers_block->last_symbol == other_sym) {
+      pointers_block->last_symbol = overload_sym;
+    }  /* if */
     /* Attach the old symbol under the overloaded symbol. */
     overload_sym->variant.overloaded_function.symbols = other_sym;
   }  /* if */
@@ -5562,6 +5621,7 @@ it is added to the end of the scope entry symbol list for the class.
   an_access_specifier          access;
   a_boolean                    ambiguous = FALSE, found;
   a_scope_stack_entry_ptr      ssep;
+  a_scope_pointers_block_ptr   pointers_block;
   a_symbol_ptr                 class_sym;
   a_boolean                    access_adj = FALSE;
 
@@ -5639,12 +5699,13 @@ it is added to the end of the scope entry symbol list for the class.
           }  /* if */
 #endif /* CHECKING */
         }  /* for */
-        if (ssep->symbols != NULL) {
-          ssep->last_symbol->next_in_scope = new_sym;
+        pointers_block = assoc_pointers_block_of(ssep);
+        if (pointers_block->symbols != NULL) {
+          pointers_block->last_symbol->next_in_scope = new_sym;
         } else {
-          ssep->symbols = new_sym;
+          pointers_block->symbols = new_sym;
         }  /* if */
-        ssep->last_symbol = new_sym;
+        pointers_block->last_symbol = new_sym;
       } else {
         /* Add it to the inactive list.  It can go at the beginning. */
         new_sym->next = locator->symbol_header->inactive_symbols;
@@ -7121,6 +7182,7 @@ static a_scope_ptr push_scope_full(a_scope_kind         kind,
 				   a_scope_number       scope_number_to_reuse,
 				   a_type_ptr           assoc_type,
 				   a_routine_ptr        assoc_routine,
+                                   a_namespace_ptr      assoc_namespace,
 				   a_symbol_ptr         instance_sym,
 				   a_symbol_ptr         template_sym,
 				   a_template_arg_ptr   template_arg_list,
@@ -7167,6 +7229,7 @@ specific version of the template.
   if ((scope_number_to_reuse != NO_SCOPE_NUMBER &&
        (kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_func_prototype)) ||
+      kind == (a_scope_kind)sck_namespace_extension ||
       kind == (a_scope_kind)sck_class_reactivation ||
       kind == (a_scope_kind)sck_template_instantiation) {
     /* For function scopes, reuse the scope used for the parameters
@@ -7211,9 +7274,16 @@ specific version of the template.
       ssep->il_memory_region = FILE_SCOPE_REGION_NUMBER;
       break;
     case sck_namespace:
+    case sck_namespace_extension:
       check_assertion_str(curr_il_region_number == FILE_SCOPE_REGION_NUMBER,
                           "push_scope_full: bad memory region for namespace");
-      sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
+      if (kind == (a_scope_kind)sck_namespace) {
+        sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
+        sp->variant.assoc_namespace = assoc_namespace;
+        assoc_namespace->variant.assoc_scope = sp;
+      } else {
+        sp = assoc_namespace->variant.assoc_scope;
+      }  /* if */
       ssep->il_memory_region = FILE_SCOPE_REGION_NUMBER;
       break;
     case sck_class_struct_union:
@@ -7270,8 +7340,6 @@ specific version of the template.
   ssep->defer_access_checks      = FALSE;
   ssep->is_try_block             = FALSE;
   ssep->within_try_block         = FALSE;
-  ssep->symbols                  = NULL;
-  ssep->last_symbol              = NULL;
   ssep->il_scope                 = sp;
   ssep->assoc_type               = assoc_type;
   ssep->assoc_routine            = assoc_routine;
@@ -7279,18 +7347,11 @@ specific version of the template.
   ssep->shareable_constants_list = NULL;
   ssep->last_routine_fixup       = NULL;
   ssep->last_parameter           = NULL;
-  ssep->last_constant            = NULL;
-  ssep->last_type                = NULL;
-  ssep->last_variable            = NULL;
   ssep->last_nonstatic_variable  = NULL;
   ssep->last_label               = NULL;
-  ssep->last_routine             = NULL;
-  ssep->last_asm_entry           = NULL;
   ssep->first_scope              = NULL;
   ssep->last_scope               = NULL;
-  ssep->last_namespace           = NULL;
   ssep->last_dynamic_init        = NULL;
-  ssep->last_pragma              = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   ssep->last_source_sequence_entry = NULL;
   ssep->source_sequence_avail_list = NULL;
@@ -7302,12 +7363,6 @@ specific version of the template.
                                  = NULL;
   ssep->saved_last_ss_entry      = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if RECORD_HIDDEN_NAMES_IN_IL
-  ssep->last_hidden_name         = NULL;
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if RECORD_TEMPLATES_IN_IL
-  ssep->last_template            = NULL;
-#endif /* RECORD_TEMPLATES_IN_IL */
   ssep->depth_template_declaration_scope = depth_template_declaration_scope;
   ssep->depth_innermost_instantiation_scope =
                                        depth_innermost_instantiation_scope;
@@ -7335,7 +7390,9 @@ specific version of the template.
   ssep->saved_curr_object_lifetime = curr_object_lifetime;
   ssep->templ_member_class_sym   = NULL;
   ssep->depth_innermost_namespace_scope = depth_innermost_namespace_scope;
-  ssep->unnamed_namespace_sym    = NULL;
+  /* Clear the substructure shared with namespace symbol supplements. */
+  ssep->assoc_pointers_block     = NULL;
+  clear_scope_pointers_block(&ssep->pointers_block);
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
@@ -7539,11 +7596,15 @@ specific version of the template.
       ssep->depth_template_declaration_scope =
         depth_template_declaration_scope = NO_SCOPE_DEPTH;
     }  /* if */
-    if (kind == (a_scope_kind)sck_namespace) {
+    if (kind == (a_scope_kind)sck_namespace ||
+        kind == (a_scope_kind)sck_namespace_extension) {
+      /* Set the scope-pointers-block pointer to refer to the namespace
+         symbol supplement. */
+      a_symbol_ptr  sym =
+                      (a_symbol_ptr)assoc_namespace->source_corresp.assoc_info;
+      ssep->assoc_pointers_block =
+                     &sym->variant.namespace_info.extra_info->pointers_block;
       /* Maintain the depth of the innermost namespace scope. */
-#if 0
-      /* Should this also be done for namespace reactivations? */
-#endif
       depth_innermost_namespace_scope = depth_scope_stack;
     }  /* if */
     if (kind == (a_scope_kind)sck_function ||
@@ -7640,21 +7701,51 @@ instantiation scopes.
 {
   a_scope_ptr scope;
   scope = push_scope_full(kind, scope_number_to_reuse, assoc_type,
-			  assoc_routine, (a_symbol_ptr)NULL,
-			  (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL,
-			  /*nested_instantiation=*/FALSE);
+                          assoc_routine, (a_namespace_ptr)NULL,
+                          (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                          (a_template_arg_ptr)NULL,
+                          /*nested_instantiation=*/FALSE);
   return scope;
 }  /* push_scope */
 
 
+a_scope_ptr push_namespace_scope(a_scope_kind    kind,
+                                 a_namespace_ptr assoc_namespace)
+/*
+Interface to push_scope_full that is used for sck_namespace scopes
+("original" namespace definitions).  It is also used to reopen an
+sck_namespace IL scope by pushing an sck_namespace_extension scope stack
+entry (for "extension-namespace-definitions").
+*/
+{
+  a_scope_ptr     scope;
+  a_scope_number  scope_number_to_reuse = NO_SCOPE_NUMBER;
+
+  check_assertion_str(assoc_namespace != NULL &&
+                      !assoc_namespace->is_namespace_alias &&
+                      ((assoc_namespace->variant.assoc_scope == NULL) ==
+                                       (kind == (a_scope_kind)sck_namespace)),
+                      "push_namespace_scope: bad assoc_namespace ptr");
+  if (kind == (a_scope_kind)sck_namespace_extension) {
+    scope_number_to_reuse = assoc_namespace->variant.assoc_scope->number;
+  }  /* if */
+  scope = push_scope_full(kind, scope_number_to_reuse, (a_type_ptr)NULL,
+                          (a_routine_ptr)NULL, assoc_namespace,
+                          (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                          (a_template_arg_ptr)NULL,
+                          /*nested_instantiation=*/FALSE);
+  return scope;
+}  /* push_namespace_scope */
+
+
 a_scope_ptr push_template_instantiation_scope
                            (a_scope_number       scope_number_to_reuse,
-			    a_type_ptr           assoc_type,
-			    a_routine_ptr        assoc_routine,
-			    a_symbol_ptr         instance_sym,
-			    a_symbol_ptr         template_sym,
-			    a_template_arg_ptr   template_arg_list,
-			    a_boolean            nested_instantiation)
+                            a_type_ptr           assoc_type,
+                            a_routine_ptr        assoc_routine,
+                            a_symbol_ptr         instance_sym,
+                            a_symbol_ptr         template_sym,
+                            a_template_arg_ptr   template_arg_list,
+                            a_boolean            nested_instantiation)
 /*
 Interface to push_scope_full that is used for template instantiation
 scopes.
@@ -7662,10 +7753,9 @@ scopes.
 {
   a_scope_ptr scope;
   scope = push_scope_full((a_scope_kind)sck_template_instantiation,
-			  scope_number_to_reuse,
-			  assoc_type, assoc_routine, instance_sym,
-			  template_sym, template_arg_list,
-			  nested_instantiation);
+                          scope_number_to_reuse, assoc_type, assoc_routine,
+                          (a_namespace_ptr)NULL, instance_sym, template_sym,
+                          template_arg_list, nested_instantiation);
   return scope;
 }  /* push_template_instantiation_scope */
 
@@ -8239,6 +8329,7 @@ End a name scope by popping an entry off the scope stack.
 */
 {
   a_scope_stack_entry_ptr  ssep, parent_ssep;
+  a_scope_pointers_block_ptr pointers_block;
   a_symbol_ptr             sym;
   a_routine_ptr            curr_routine = NULL;
   a_memory_region_number   old_memory_region_number, new_memory_region_number;
@@ -8252,6 +8343,7 @@ End a name scope by popping an entry off the scope stack.
 
   db_enter(3, "pop_scope");
   ssep = &scope_stack[depth_scope_stack];
+  pointers_block = assoc_pointers_block_of(ssep);
   kind = ssep->kind;
   if (kind == (a_scope_kind)sck_function) {
     /* If the scope is for a routine, get a pointer to the routine. */
@@ -8259,7 +8351,7 @@ End a name scope by popping an entry off the scope stack.
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
-    if (ssep->symbols != NULL || debug_level >= 4) {
+    if (pointers_block->symbols != NULL || debug_level >= 4) {
       fprintf(f_debug, "pop_scope: number = %d, depth = %d",
               ssep->number, depth_scope_stack);
       if (curr_routine != NULL) {
@@ -8304,7 +8396,7 @@ End a name scope by popping an entry off the scope stack.
   }  /* if */
   /* Remove the symbols declared in this scope from the symbol table.
      Check for unreferenced symbols, and issue warnings for those. */
-  for (sym = ssep->symbols; sym != NULL; sym = sym->next_in_scope) {
+  for (sym = pointers_block->symbols; sym != NULL; sym = sym->next_in_scope) {
     if (kind == (a_scope_kind)sck_func_prototype && !is_tag_symbol(sym)) {
       /* Don't check on symbols entered in the scope of a function prototype.
          They will be reentered in the scope of the function and should be
@@ -9276,6 +9368,9 @@ for space tracking purposes.
   db_space_used("class symbol supplement",
                 num_class_symbol_supplements_allocated,
                 a_class_symbol_supplement);
+  db_space_used("namespace symbol suppl.",
+                num_namespace_symbol_supplements_allocated,
+                a_namespace_symbol_supplement);
   db_space_used("template symbol suppl.",
                 num_template_symbol_supplements_allocated,
                 a_template_symbol_supplement);
@@ -9472,6 +9567,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_template_instances_allocated),
       pch_saved_var_array_elem(num_template_params_allocated),
       pch_saved_var_array_elem(num_template_symbol_supplements_allocated),
+      pch_saved_var_array_elem(num_namespace_symbol_supplements_allocated),
       pch_saved_var_array_elem(num_used_symbol_buckets),
       pch_saved_var_array_elem(symbol_name_string_space),
 #endif /* if DEBUG */
@@ -9538,6 +9634,7 @@ of the front end.
   num_conversion_headers_allocated             = 0;
   symbol_name_string_space                     = 0;
   num_class_symbol_supplements_allocated       = 0;
+  num_namespace_symbol_supplements_allocated   = 0;
   num_template_symbol_supplements_allocated    = 0;
   num_template_params_allocated                = 0;
   num_param_ids_allocated                      = 0;
