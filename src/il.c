@@ -9564,6 +9564,7 @@ name lookup options.
             a_constant       sizeof_expr_con;
             a_constant_ptr   alloc_sizeof_expr_con;
 
+            new_type = expr->type;  /* For *copy_error case. */
             expr = copy_template_param_expr(expr,
                                             template_arg_list,
                                             template_param_list,
@@ -9574,15 +9575,18 @@ name lookup options.
                                             copy_error,
                                             &sizeof_expr_con,
                                             &alloc_sizeof_expr_con);
-            if (expr == NULL) {
-              /* The expression folds to a constant. */
-              if (alloc_sizeof_expr_con != NULL) {
-                expr= alloc_node_for_allocated_constant(alloc_sizeof_expr_con);
-              } else {
-                expr = alloc_node_for_constant(&sizeof_expr_con);
+            if (!*copy_error) {
+              if (expr == NULL) {
+                /* The expression folds to a constant. */
+                if (alloc_sizeof_expr_con != NULL) {
+                  expr = alloc_node_for_allocated_constant(
+                                                        alloc_sizeof_expr_con);
+                } else {
+                  expr = alloc_node_for_constant(&sizeof_expr_con);
+                }  /* if */
               }  /* if */
+              new_type = expr->type;
             }  /* if */
-            new_type = expr->type;
           } else {
             /* No associated expression, just a type. */
             new_type = copy_type_with_substitution(con->variant.template_param.
