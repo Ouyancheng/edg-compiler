@@ -4141,9 +4141,9 @@ returned to the caller.
     /* Prior definition. */
     pos_sy_error(ec_already_defined, &locator->source_position, sym);
     err = TRUE;
-  } else if (!types_are_compatible(type,
-				   sym->variant.static_data_member.
-				   variable->type)) {
+  } else if (!types_are_redecl_compatible(type,
+                                          sym->variant.static_data_member.
+                                                            variable->type)) {
     /* The type of the static data member definition does not match
        the declaration in the class. */
     pos_sy_error(ec_not_compatible_with_previous_decl,
