@@ -7451,15 +7451,17 @@ C++ mode.
 }  /* scan_new_array_dimension_expression */
 
 
-void scan_template_argument_constant_expression(a_type_ptr required_type,
+void scan_template_argument_constant_expression(a_type_ptr param_type,
                                                 a_constant *constant)
 /*
-Scan a constant argument in a template reference.  Convert the constant to
-required_type; issue an error if it is incompatible with that type.
+Scan a constant argument in a template reference.  Issue an error if it
+is incompatible with the corresponding parameter type, param_type.
+Return the constant in *constant.
 */
 {
-  an_operand          result;
-  an_expr_stack_entry expr_stack_entry;
+  an_operand           result;
+  an_expr_stack_entry  expr_stack_entry;
+  an_arg_match_summary arg_summary;
 
   db_enter(3, "scan_template_argument_constant_expression");
 
@@ -7468,13 +7470,30 @@ required_type; issue an error if it is incompatible with that type.
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_init_constant,
             EOPT_DISALLOW_COMMA_OPERATOR);
-  /* Convert to the required type. */
-  prep_initializer_operand(&result, required_type,
-                           /*initializing_return_value=*/FALSE,
-                           (an_expression_kind)ek_init_constant,
-                           ec_bad_initializer_type);
-  /* Make a constant from the operand. */
-  extract_constant_from_operand(&result, constant);
+  /* Check that its type is correct.  Only an "exact match" according
+     to the overloading resolution rules (ARM 14.2) is allowed, but that
+     does allow trivial conversions. */
+  determine_arg_match_level(&result, (a_type_ptr)NULL, param_type,
+                            /*try_user_conversions=*/FALSE, &arg_summary);
+  if (arg_summary.match_level == aml_exact) {
+    /* Okay. */
+    /* Convert to the required type (i.e., do any required trivial
+       conversions). */
+    prep_initializer_operand(&result, param_type,
+                             /*initializing_return_value=*/FALSE,
+                             (an_expression_kind)ek_init_constant,
+                             ec_bad_nontype_template_arg);
+    /* Make a constant from the operand. */
+    extract_constant_from_operand(&result, constant);
+  } else {
+    /* Some error. */
+    if (arg_summary.match_level == aml_error || is_error_operand(&result)) {
+      /* Error already issued. */
+    } else {
+      pos_error(ec_bad_nontype_template_arg, &result.position);
+    }  /* if */
+    set_error_constant(constant);
+  }  /* if */
   pop_expr_stack();
 
 #if DEBUG
