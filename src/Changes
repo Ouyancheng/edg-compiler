@@ -1,5 +1,17 @@
 Version 2.26
 
+9/29/94  Macros in string literal concatenation
+
+A bug with string literal concatenation has been fixed.  The following
+printed "hello" previously:
+
+  #define HELLO "hello"
+  void main()
+  {
+    printf("%s\n", HELLO " there");
+  }
+
+
 9/28/94  Initial #line directives -- C and C++-generating back ends
 
 When the front end is compiling a source file that contains #line

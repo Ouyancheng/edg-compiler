@@ -942,6 +942,10 @@ centity_int_kind indicates the underlying character type.
        concatenation loop above. */
     /* The string currently associated with the first constant (and, for that
        matter, the strings for all the constants) are just lost. */
+    /* Get rid of any information specific to the old constant; in particular,
+       get rid of its source correspondence (possible when the first constant
+       comes from a macro). */
+    clear_constant(concat_con, (a_constant_repr_kind)ck_string);
     concat_con->variant.string.length = total_len;
     concat_con->variant.string.value  = new_str;
     /* Adjust the constant type to match the new length. */
