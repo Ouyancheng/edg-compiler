@@ -9914,7 +9914,9 @@ continue_with_declaration:
         func_info.is_definition = TRUE;
         func_info.function_type_from_typedef =
                                     !top_declarator_type_is_function;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
         func_info.declarator_ssep = declarator_ssep;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         function_definition(&locator, local_type_ptr, &func_info,
                             local_storage_class, has_explicit_type_specifier);
         goto return_point;
