@@ -6802,11 +6802,52 @@ there is an error in the copying (specifically, if there is an error
 in doing substitution on a type), set *copy_error to TRUE.
 */
 {
-  a_constant_ptr con_copy = con, other_con;
+  a_constant_ptr con_copy, other_con;
   a_type_ptr     new_type;
   a_boolean      did_not_fold;
 
-  /* Return the original constant if it is not a ck_template_param constant. */
+  if (con->kind == (a_constant_repr_kind)ck_template_param &&
+      con->source_corresp.is_class_member) {
+    /* The constant is a member constant.  Do substitution on the parent
+       type.  This occurs for members constants specified in forms such
+       as A<T>::x. */
+    a_symbol_ptr	orig_sym;
+    a_symbol_ptr	sym;
+    a_type_ptr	parent_type;
+    a_boolean		err = FALSE;
+    orig_sym = (a_symbol_ptr)con->source_corresp.assoc_info;
+    parent_type = con->source_corresp.parent.class_type;
+    check_assertion(orig_sym != NULL);
+    sym = copy_parent_type_with_substitution(orig_sym, parent_type,
+                                             template_arg_list, depth,
+                                             source_pos,
+                                             /*is_type=*/FALSE,
+                                             CTWS_NO_OPTIONS,
+                                             copy_error);
+    if (sym == NULL) {
+      /* The substituted parent class has no member of the specified name. */
+      err = TRUE;
+    } else if (sym->kind == (a_symbol_kind)sk_constant) {
+      con = sym->variant.constant;
+    } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+      /* A static data member can be acceptable as a result if it is
+         an initialized const static data member. */
+      con = var_constant_value(sym->variant.static_data_member.variable);
+      if (con == NULL) err = TRUE;
+    } else {
+      err = TRUE;
+    }  /* if */
+    if (err) {
+      /* The constant was specified as something like A<T>::B, but the
+         substituted "A<T>" does not contain a B, or the B found is not
+         a constant. */
+      *copy_error = TRUE;
+      con = alloc_error_constant();
+    }  /* if */
+  }  /* if */
+  /* Now that the parent type may have been substituted, determine whether
+     any further substitution is needed. */
+  con_copy = con;
   if (con->kind == (a_constant_repr_kind)ck_template_param) {
     switch (con->variant.template_param.kind) {
       case tpck_param:
@@ -6934,6 +6975,10 @@ in doing substitution on a type), set *copy_error to TRUE.
         }
         break;
       case tpck_member:
+        /* If a tpck_contant remains after the parent substitution done
+           earlier, simply leave it unsubstituted for now.  The parent
+           type substitution may be attempted again later. */
+        break;
       default:
         unexpected_condition_str("copy_template_param_con: unexpected kind");
     }  /* switch */

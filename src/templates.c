@@ -4433,7 +4433,7 @@ on the ck_template_param constant pointed to by the expression.
 }  /* copy_array_type_with_substitution */
 
 
-static a_symbol_ptr copy_parent_type_with_substitution(
+a_symbol_ptr copy_parent_type_with_substitution(
 				a_symbol_ptr			sym,
 				a_type_ptr			parent_type,
 				a_template_arg_ptr		templ_arg_list,
