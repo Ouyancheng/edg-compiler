@@ -5376,7 +5376,7 @@ Return TRUE if the complex type of the indicated kind was used in the
 primary IL so far.  If the complex type was used in a secondary translation
 unit it will probably have been copied to the primary IL, but the trans_copy
 process does not update the complex_types array.  Therefore, this routine
-should be called before calling complex_type during IL lowering: it will
+should be called to determine if a complex type should be lowered: it will
 perform the update if needed.
 */
 {
@@ -5402,7 +5402,8 @@ return a pointer to it.
 {
   a_type_ptr pft;
 
-  if (complex_types[kind] != NULL) {
+  if (complex_types[kind] != NULL ||
+      (is_primary_translation_unit && complex_type_used_in_primary_IL(kind))) {
     /* The type has previously been created, and can be reused. */
     pft = complex_types[kind];
   } else {
@@ -5427,7 +5428,7 @@ Return TRUE if the imaginary type of the indicated kind was used in the
 primary IL so far.  If the imaginary type was used in a secondary translation
 unit it will probably have been copied to the primary IL, but the trans_copy
 process does not update the imaginary_types array.  Therefore, this routine
-should be called before calling imaginary_type during IL lowering: it will
+should be called to determine if an imaginary type should be lowered: it will
 perform the update if needed.
 */
 {
@@ -5453,7 +5454,9 @@ return a pointer to it.
 {
   a_type_ptr pft;
 
-  if (imaginary_types[kind] != NULL) {
+  if (imaginary_types[kind] != NULL ||
+      (is_primary_translation_unit &&
+       imaginary_type_used_in_primary_IL(kind))) {
     /* The type has previously been created, and can be reused. */
     pft = imaginary_types[kind];
   } else {

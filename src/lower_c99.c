@@ -1759,8 +1759,6 @@ The lowered type is given the name indicated by "name".
   }  /* if */
 }  /* lower_c99_imaginary_type */
 
-#endif /* LOWER_COMPLEX */
-#if LOWER_COMPLEX
 
 static void lower_c99_complex_type(a_float_kind  kind,
                                    char          *name)
@@ -1781,12 +1779,10 @@ The lowered type is given the name indicated by "name".
     strcpy(cmplx_type->source_corresp.name, name);
     cmplx_type->variant.typeref.type = lowered_repr;
 #if MAINTAIN_NEEDED_FLAGS
-    if (secondary_translation_unit_seen()) {
-      /* Ensure it is kept in the IL. */
+    if (needed_flag_is_set(&cmplx_type->source_corresp)) {
       mark_as_needed((char *)lowered_repr, iek_type);
       set_class_definition_needed_flag(lowered_repr);
       set_class_keep_definition_in_il(lowered_repr);
-      mark_as_needed((char *)cmplx_type, iek_type);
     }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
     /* Link the types into the IL (in the right order). */
