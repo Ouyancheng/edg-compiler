@@ -1,5 +1,11 @@
 Version 2.37
 
+9/22/97   Missing diagnostic on use of template-id in class using-declaration
+
+A using-declaration is not permitted to name a template-id.  This was
+diagnosed for nonmember using-declarations but not for member
+using-declarations.  This has been fixed.
+
 9/21/97   DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES renamed
 
 The DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES configuration flag has been

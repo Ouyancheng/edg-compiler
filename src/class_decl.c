@@ -8089,6 +8089,11 @@ or implicit) controlling the declaration.
       /* declared_sym must be a projection symbol -- and it is ambiguous. */
       sym_error(ec_ambiguous_name, declared_sym);
       err = TRUE;
+    } else if (locator_for_curr_id.is_template_id) {
+      /* A template-id (that is, template-name<template-args>) is not allowed
+         here. */
+      error(ec_template_id_not_allowed);
+      err = TRUE;
     } else {
       for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
         if (bcp->type == locator_for_curr_id.parent.class_type) {
