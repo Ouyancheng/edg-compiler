@@ -49,19 +49,20 @@ typedef char	*a_char_ptr;
 			   IL entries to indicate that the IL entry has
 			   been written to the IL file. */
 #if CHECKING && DEBUG
-#if SABER
-/* Saber debugging variables used to locate a missing (unwritten) IL entry
+#if __CENTERLINE__
+/* Centerline debugging variables used to locate a missing (unwritten) IL entry
    by entry kind and entry number within that kind in a specific memory
-   region.  By setting the variables saber_memory_region_number,
-   saber_il_entry_kind and saber_il_entry_number after loading il_write.c
-   into the Saber environment, Saber will stop (saber_stop()) when the
-   entry number is assigned for the specified IL entry.
+   region.  By setting the variables 	centerline_memory_region_number,
+   centerline_il_entry_kind and centerline_il_entry_number after loading
+   il_write.c into the Centerline environment, Centerline will stop
+   (centerline_stop()) when the entry number is assigned for the specified
+   IL entry.
 
         1. load il_write.c
         2. stop in assign_entry_number
         3. run the test compilation
-        4. when Saber stops in assign_entry_number:
-            a. set the 3 saber variable values
+        4. when Centerline stops in assign_entry_number:
+            a. set the 3 Centerline variable values
             b. remove the stop at the entry of assign_entry_number()
         5. continue
 
@@ -69,20 +70,20 @@ typedef char	*a_char_ptr;
    by the stack trace can help to determine the cause of the error.
 */
 a_memory_region_number
-		saber_memory_region_number;
+		centerline_memory_region_number;
 			/* Memory region of the omitted IL entry. */
 an_il_entry_kind
-		saber_il_entry_kind;
+		centerline_il_entry_kind;
 			/* IL entry kind of the omitted IL entry. */
 an_il_entry_number
-		saber_il_entry_number;
+		centerline_il_entry_number;
 			/* IL entry number of the omitted IL entry. */
 a_memory_region_number
-		_saber_region_number;
+		_centerline_region_number;
 			/* Hidden variable used by write_memory_region()
 			   to record the memory region number currently
 			   being written. */
-#endif /* SABER */
+#endif /* __CENTERLINE__ */
 #endif /* CHECKING && DEBUG */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
@@ -104,10 +105,10 @@ triggering an internal error.
                 "IL info: entry kind =%3ld (%s), \n",
                 (long)entry_kind, s, entry_ptr);
   (void)fprintf(f_debug, "         entry_ptr = 0x%lx\n", entry_ptr);
-#if SABER
+#if __CENTERLINE__
   (void)fprintf(f_debug, "         memory region = %4ld\n",
-                _saber_region_number);
-#endif /* SABER */
+                _centerline_region_number);
+#endif /* __CENTERLINE__ */
 }  /* display_il_entry_kind_and_ptr */
 
 #endif /* CHECKING && DEBUG */
@@ -252,26 +253,26 @@ entry_kind, and if it is a string, has length as given by entry_length.
 #ifdef FFE
 end_of_routine:
 #endif /* ifdef FFE */
-#if SABER && CHECKING && DEBUG
-  if (entry_kind == saber_il_entry_kind &&
+#if __CENTERLINE__ && CHECKING && DEBUG
+  if (entry_kind == centerline_il_entry_kind &&
       ((*p_entry_number) & ~ENTRY_WRITTEN_TAG & ~FUNC_ENTRY_NUMBER_TAG) ==
-                   saber_il_entry_number) {
+                   centerline_il_entry_number) {
     /* Correct IL entry kind and IL entry number.  Check if correct
        memory region. */
     if ((*p_entry_number & FUNC_ENTRY_NUMBER_TAG) != 0 ) {
       /* Currently writing a function scope memory region. */
-      if ( _saber_region_number == saber_memory_region_number ) {
-        saber_stop();
+      if ( _centerline_region_number == centerline_memory_region_number ) {
+        centerline_stop();
       }  /* if */
     } else {
       /* Currently writing the file scope memory region.  Check if that
          is the desired stop point. */
-      if (saber_memory_region_number == FILE_SCOPE_REGION_NUMBER) {
-        saber_stop();
+      if (centerline_memory_region_number == FILE_SCOPE_REGION_NUMBER) {
+        centerline_stop();
       }  /* if */
     }  /* if */
   }  /* if */
-#endif /* SABER && CHECKING && DEBUG */
+#endif /* __CENTERLINE__ && CHECKING && DEBUG */
   return (enp);
 }  /* assign_entry_number */
 
@@ -335,8 +336,8 @@ corresponding entry number, and return that number cast to "char *".
     /* Drop the "entry written" tag if it's set. */
     entry_number &= ~ENTRY_WRITTEN_TAG;
   }  /* if */
-  /* For Saber-C -- suppress warning about bad pointer.  Version 3.0 warning
-     number. */
+  /* For Centerline-C -- suppress warning about bad pointer.  Version 3.0
+     warning number. */
   /*SUPPRESS 80*/
   return ((char *)entry_number);
 }  /* remap_ptr_to_entry_number */
@@ -673,9 +674,9 @@ Write the indicated memory region to the file f_il_output.
     writing_file_scope_il = (region_number == FILE_SCOPE_REGION_NUMBER);
 #if ALTERNATE_IL_FILE_FORMAT
     /* Alternate file format. */
-#if CHECKING && DEBUG && SABER
-    _saber_region_number = region_number;
-#endif /* CHECKING && DEBUG && SABER */
+#if CHECKING && DEBUG && __CENTERLINE__
+    _centerline_region_number = region_number;
+#endif /* CHECKING && DEBUG && __CENTERLINE__ */
     { a_file_position  count_array_pos;
       int              int_entry_kind;
       char             zero = 0;

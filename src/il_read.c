@@ -43,9 +43,9 @@ extern char *malloc(unsigned size);
 #include "mem_manage.h"
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
-#if SABER
-extern int saber_untype (void *, unsigned int);
-#endif /* SABER */
+#if __CENTERLINE__
+extern int centerline_untype (void *, unsigned int);
+#endif /* __CENTERLINE__ */
 
 
 static FILE	*f_il_input;
@@ -122,9 +122,9 @@ Interface to fread.  Read "size" bytes from f_il_input and put them at
   if (fread(ptr, (int)size, 1, f_il_input) != 1) {
     catastrophe(ec_bad_il_file);
   }  /* if */
-#if SABER
-  (void)saber_untype((void *)ptr, (unsigned int)size);
-#endif /* SABER */
+#if __CENTERLINE__
+  (void)centerline_untype((void *)ptr, (unsigned int)size);
+#endif /* __CENTERLINE__ */
 }  /* fread_with_check */
 
 
