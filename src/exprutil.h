@@ -123,7 +123,8 @@ typedef enum a_type_class_kind {
   tck_void,             /* void */
   tck_integer,          /* short, int, long, long long */
   tck_char,             /* char */
-  tck_enum,             /* enumeration types */
+  tck_enum,             /* enumeration types (currently unused) */
+                        /*lint -esym(769,a_type_class_kind::tck_enum)*/
   tck_bool,             /* bool */
   tck_pointer,          /* pointers */
   tck_reference,        /* references */
