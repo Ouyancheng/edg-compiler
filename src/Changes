@@ -1,5 +1,24 @@
 Version 2.46
 
+12/18/01 Abort in corresponding_base_class with deep ambiguous inheritance
+
+In some situations involving an ambiguous base class that is itself derived
+from an ambiguous base class, the front end issued an internal error when
+attempting to reference a member of the deepest ambiguous base class.
+For example:
+
+  struct V {};
+  struct A: virtual V { int x; };
+  struct B: A {};
+  struct C: B {};
+  struct D: B, C {};
+  void f(C *p, D *q) {
+    int r = p->x;
+    q->x = 2;  // Used to trigger an internal error in
+  }            // "corresponding_base_class".  Now an ambiguity is reported.
+
+This is now fixed.
+
 12/18/01 New-expression mistaken for explicit specialization in template
 
 Under certain circumstances involving a new expression using an elaborated
