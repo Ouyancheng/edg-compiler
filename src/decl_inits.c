@@ -913,8 +913,7 @@ should be suppressed.
                                                      &suppress);
         break;
 #if CHECKING
-      case dik_member_copy:
-      case dik_base_class_copy:
+      case dik_bitwise_copy:
       default:
         internal_error("dynamic_init_has_side_effects: bad dyn init kind");
 #endif /* CHECKING */
@@ -2126,11 +2125,7 @@ scan_paren:
         }  /* if */
         if (bitwise_copy) {
           /* Construction by bitwise copy is allowed. */
-          if (cip->kind == (a_constructor_init_kind)cik_field) {
-            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_member_copy);
-          } else {
-            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_base_class_copy);
-          }  /* if */
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_bitwise_copy);
         } else if (rp == NULL) {
           /* The copy constructor was invalid in some way or other. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);

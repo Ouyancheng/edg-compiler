@@ -3573,8 +3573,7 @@ created are inserted at *insert_location, and *insert_location is updated.
     develop_ctor_init_pos_descr(ctor_init, this_param_var, &ipd, &ipm);
   }  /* if */
   /* Generate the code to do the initialization. */
-  if (dip->kind == (a_dynamic_init_kind)dik_member_copy ||
-      dip->kind == (a_dynamic_init_kind)dik_base_class_copy) {
+  if (dip->kind == (a_dynamic_init_kind)dik_bitwise_copy) {
     /* Special case -- copying a member or base class in a copy constructor. */
     add_member_copy(&ipd, ctor_init, insert_location);
   } else {

@@ -607,6 +607,7 @@ the file scope, do not process it (but record an orphan in the latter case).
            subtree. */
         remap_ptr(ptr->parameter, a_variable_ptr, iek_variable);
         walk_ptr(ptr->statement, a_statement_ptr, iek_statement);
+        walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
       }
       break;
 #endif /* ifdef CFE */
@@ -997,8 +998,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->destructor, a_routine_ptr, iek_routine);
         switch (ptr->kind) {
           case dik_none:
-          case dik_member_copy:
-          case dik_base_class_copy:
+          case dik_bitwise_copy:
             /* No pointers. */
             break;
           case dik_constant:

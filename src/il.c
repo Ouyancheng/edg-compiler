@@ -1318,11 +1318,8 @@ destructor_on_next_line:
     case dik_constructor:
       db_constructor_initializer(dip, level);
       break;
-    case dik_member_copy:
-      fputs("<bitwise member copy>", f_debug);
-      goto destructor_on_this_line;
-    case dik_base_class_copy:
-      fputs("<bitwise base class copy>", f_debug);
+    case dik_bitwise_copy:
+      fputs("<bitwise copy>", f_debug);
       goto destructor_on_this_line;
     case dik_none:
       fputs("<none>", f_debug);
@@ -4362,8 +4359,7 @@ the associated variant fields to default values.
   dip->kind = kind;
   switch (kind) {
     case dik_none:
-    case dik_member_copy:
-    case dik_base_class_copy:
+    case dik_bitwise_copy:
       break;
     case dik_constant:
     case dik_nonconstant_aggregate:
@@ -4477,8 +4473,7 @@ expression node.
                                  copy_unshared_constant(dip->variant.constant);
       break;
 #if CHECKING
-    case dik_member_copy:
-    case dik_base_class_copy:
+    case dik_bitwise_copy:
       /* These kinds are not expected under expression nodes. */
     default:
       internal_error("copy_dynamic_init: bad kind");
@@ -5948,9 +5943,10 @@ Allocate a handler, clear it to default values, and return a pointer to it.
 #if DEBUG
   num_handlers_allocated++;
 #endif /* DEBUG */
-  hp->next      = NULL;
-  hp->parameter = NULL;
-  hp->statement = NULL;
+  hp->next         = NULL;
+  hp->parameter    = NULL;
+  hp->statement    = NULL;
+  hp->dynamic_init = NULL;
   return hp;
 }  /* alloc_handler */
 

@@ -2180,6 +2180,7 @@ Display the indicated handler.
   disp_ptr("next", (char *)ptr->next, iek_handler);
   disp_ptr("parameter", (char *)ptr->parameter, iek_variable);
   disp_ptr("statement", (char *)ptr->statement, iek_statement);
+  disp_ptr("dynamic_init", (char *)ptr->dynamic_init, iek_dynamic_init);
 }  /* disp_handler */
 #endif /* ifdef CFE */
 
@@ -2762,11 +2763,8 @@ Display the indicated dynamic_init structure.
 do_constant:
       disp_ptr("constant", (char *)ptr->variant.constant, iek_constant);
       break;
-    case dik_member_copy:
-      (void)printf("dik_member_copy\n");
-      break;
-    case dik_base_class_copy:
-      (void)printf("dik_base_class_copy\n");
+    case dik_bitwise_copy:
+      (void)printf("dik_bitwise_copy\n");
       break;
     default:
       (void)printf("**BAD DYNAMIC INIT KIND**\n");

@@ -641,13 +641,10 @@ enum a_dynamic_init_kind_tag {
 			   (array or class) is represented by a list of
 			   constant entries (some of which will refer to
 			   nonconstants).  C++ only. */
-  dik_member_copy,	/* Initial value of an field of an object initialized
-			   by a copy constructor (bitwise copy of a field
-			   lacking a copy constructor).  C++ only. */
-  dik_base_class_copy	/* Initial value of an entire base class of an object
-			   initialized by a copy constructor (bitwise copy of
-			   a base class lacking a copy constructor).
-			   C++ only. */
+  dik_bitwise_copy,	/* Initial value is established by a bitwise copy --
+			   used, for example, for member-wise copy inside a
+			   copy constructor, when the field or base class
+			   to be copied lacks a copy constructor.  C++ only. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_dynamic_init_kind;
@@ -688,10 +685,9 @@ typedef struct a_dynamic_init {
 			   uninitialized storage. */
   union {
     /* When kind == dik_none: no variant fields. */
-    /* When kind == dik_member_copy and dik_base_class_copy: no variant fields.
-       The field or base class to be copied is given in the constructor init
-       entry that points to this entry.  A bitwise copy of the field or base
-       class is implied. */
+    /* When kind == dik_bitwise_copy: no variant fields.  The source for the
+       copy is implied by context (e.g., a field or base class to be copied
+       is given in the constructor init entry that points to this entry). */
     /* When kind == dik_constant or dik_nonconstant_aggregate: */
     a_constant_ptr
 		constant;
@@ -3554,6 +3550,14 @@ typedef struct a_handler {
 			/* Pointer to a stmk_block statement representing the
 			   compound statement that makes up the body of the
 			   handler. */
+  a_dynamic_init_ptr
+		dynamic_init;
+			/* Pointer to a dynamic initialization entry that
+			   describes the initialization of the parameter (i.e.,
+			   initialization via a specific copy constructor or
+			   by bitwise copy); it also identifies the destructor
+			   to be used, if any.  NULL when the exception
+			   declaration is an ellipsis. */
 } a_handler;
 #endif /* ifdef CIL */
 
