@@ -15277,7 +15277,6 @@ that follows.
   a_boolean			microsoft_nonstd_specialization = FALSE;
   an_attribute_ptr              *p_attributes = NULL;
   an_attribute_ptr              attributes = NULL;
-  a_boolean                     microsoft_specialization_redef = FALSE;
 
   db_enter(3, "full_specialization");
   decl_start_pos = pos_curr_token;
@@ -15532,7 +15531,6 @@ that follows.
           f_remove_from_src_seq_list(declarator_ssep, decl_scope_level);
           declarator_ssep = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-          microsoft_specialization_redef = TRUE;
           pos_sy_warning(ec_already_defined, &locator.source_position, sym);
           replace_entry_for_duplicate_specialization(&sym);
           rp = sym->variant.routine.ptr;
