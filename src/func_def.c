@@ -1267,6 +1267,14 @@ and for the instantiation of template functions.
   if (curr_token != tok_rbrace) {
     pos_error(ec_exp_rbrace, &pos_curr_token);
   }  /* if */
+#if DEBUG
+  if (debug_level >= 4) {
+    a_symbol_ptr  sym = (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
+    if (sym != NULL) {
+      db_symbol(sym, "finished scanning body for ", 2);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
   db_exit();
 }  /* scan_function_body */
 

@@ -2451,6 +2451,11 @@ Add the given symbol to its symbol header's inactive list.
 {
   a_symbol_header_ptr sym_hdr = sym_ptr->header;
 
+#if DEBUG
+  if (debug_level >= 4) {
+    db_symbol(sym_ptr, "add_symbol_to_inactive_list: ", 2);
+  }  /* if */
+#endif /* DEBUG */
   check_assertion_str(sym_ptr->kind != (a_symbol_kind)sk_extern_variable &&
                       sym_ptr->kind != (a_symbol_kind)sk_extern_routine,
                       "add_symbol_to_inactive_list: bad symbol kind");
