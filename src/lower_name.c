@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1993 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -3797,9 +3797,7 @@ correspondence entry for the entity whose name this is.
 
 void name_lower_one_time_init(void)
 /*
-Do one-time initialization of variables related to name mangling.  (Variables
-that need to be reinitialized with each new translation unit are handled in
-name_lower_init.)
+Do one-time initialization of variables related to name mangling.
 */
 {
   /* Save variables from lower_name.c that are needed for precompiled
@@ -3818,10 +3816,8 @@ name_lower_init.)
 
 void name_lower_init(void)
 /*
-Initialize static variables related to name mangling.  This is done as a
-subroutine (rather than relying on static initialization) so that it
-can be redone to compile more than one source file in a single invocation
-of the front end.
+Initialize static variables related to name mangling that must be
+initialized for each compilation.
 */
 {
   unnamed_class_name_seed = 0;
@@ -3842,6 +3838,6 @@ of the front end.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1993 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
