@@ -6408,26 +6408,33 @@ it; otherwise, switch_lifetime is NULL.
   an_insert_location     insert_location;
   an_object_lifetime_ptr lifetime;
 
-  /* Set up for the search for the first switch clause lifetime. */
-  lifetime = switch_lifetime;
+  /* Find the first switch clause lifetime. */
+  if (switch_lifetime != NULL) {
+    lifetime = label_successor_lifetime(switch_lifetime,
+                                        /*switch_clause=*/TRUE);
+  } else {
+    lifetime = NULL;
+  }  /* if */
+  /* Loop through the switch clauses. */
   for (clause = clause_list; clause != NULL; clause = clause->next) {
     lower_constant_list(clause->constant_list);
     /* Get the statement list before any insertions done for the start
        of an object lifetime. */
     clause_statements = clause->statements;
-    if (lifetime != NULL) {
-      lifetime = label_successor_lifetime(lifetime, /*switch_clause=*/TRUE);
-      if (lifetime != NULL) {
-        /* A different object lifetime begins at the beginning of this
-           clause. */
-        if (long_lifetime_temps) {
-          /* If necessary, adjust the cleanup region table to reflect the
-             fact that the temporaries are no longer in the cleanup chain. */
-          adjust_region_table_to_remove_long_lifetime_temps(
+    /* See if this clause is associated with the next object lifetime
+       in sequence. */
+    if (lifetime != NULL &&
+        (a_switch_clause_ptr)lifetime->entity.ptr == clause) {
+      /* A different object lifetime begins at the beginning of this
+         clause. */
+      if (long_lifetime_temps) {
+        /* If necessary, adjust the cleanup region table to reflect the
+           fact that the temporaries are no longer in the cleanup chain. */
+        adjust_region_table_to_remove_long_lifetime_temps(
                                              /*need_regions_for_temps=*/FALSE);
-        }  /* if */
-        begin_switch_clause_object_lifetime(lifetime);
       }  /* if */
+      begin_switch_clause_object_lifetime(lifetime);
+      lifetime = label_successor_lifetime(lifetime, /*switch_clause=*/TRUE);
     }  /* if */
     lower_statement_list(clause_statements, &last_statement);
     if (switch_lifetime != NULL) {
