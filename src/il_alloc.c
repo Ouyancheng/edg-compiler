@@ -1751,6 +1751,9 @@ pointer to it.
   vdp->dimension_expr = NULL;
   vdp->in_prototype_scope = FALSE;
   vdp->position = null_source_position;
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+  vdp->total_number_of_elements = NULL;
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
   db_exit();
   return vdp;
 }  /* alloc_vla_dimension */

@@ -1,5 +1,13 @@
 Version 3.5
 
+5/26/04  Lowering of variable-length arrays (VLAs)
+
+The front end can now be configured to transform variable-length array IL
+into plain C89 IL by setting the macro LOWER_VARIABLE_LENGTH_ARRAYS to TRUE.
+The allocation and deallocation of VLA storage is handled by new portable
+routines in the run-time support library (these routines ultimately rely
+on the standard malloc and free functions).
+
 5/25/04  Embedded C: internal error on conversion from fixed-point to float
 
 An internal error could result when converting a fixed-point value to a

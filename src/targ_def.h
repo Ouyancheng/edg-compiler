@@ -3325,6 +3325,15 @@ of times.
 #endif /* ifndef LOWER_DESIGNATED_INITIALIZERS */
 
 /*
+This switch controls whether variable-length arrays (a C99 feature also
+available in other modes) are lowered to standard C.  The lowering relies
+on facilities in the run-time support library.
+*/
+#ifndef LOWER_VARIABLE_LENGTH_ARRAYS
+#define LOWER_VARIABLE_LENGTH_ARRAYS FALSE
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+
+/*
 This switch controls whether or not "guard" code is placed around
 initializations of static data members of templates.  Such guard code is
 necessary if template instantiation resolution is done by instantiating

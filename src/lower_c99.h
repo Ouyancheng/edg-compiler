@@ -21,8 +21,15 @@ lower_c99.h -- Declarations related to lower_c99.c.
 
 #if DO_C99_IL_LOWERING
 
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#define or_vla_lowering_needed() || vla_enabled
+#else /* !(VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS) */
+#define or_vla_lowering_needed()
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+
 #define c99_il_lowering_needed()                                             \
-  ((c99_mode || gcc_mode || compound_literals_allowed) && \
+  ((c99_mode || gcc_mode || compound_literals_allowed                        \
+    or_vla_lowering_needed()) &&                                             \
    !suppress_il_lowering && total_errors == 0)
 
 extern void lower_c99_constant(a_constant_ptr constant);

@@ -5857,6 +5857,18 @@ typedef struct a_vla_dimension {
   a_source_position
 		position;
 			/* Source position of the VLA expression. */
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+  a_variable_ptr
+		total_number_of_elements;
+			/* A variable (produced by lowering of statements of
+			   kind stmk_set_vla_size) holding the total number of
+			   elements in this VLA type.  For example, if type is
+			   int[n][4][m], then the variable would hold the
+			   result of computing n*4*m at the appropriate time.
+			   Valid only in the front end.  NULL until the
+			   associated stmk_set_vla_size statement has been
+			   lowered. */
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 } a_vla_dimension;
 
 #endif /* ifdef CIL */
