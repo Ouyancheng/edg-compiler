@@ -303,6 +303,7 @@ extern int fileno(FILE *);
 /*lint -esym(765,virtual_function_table_should_be_defined_here)*/
 /*lint -esym(769,ec_field_uses_tail_padding)*/
 /*lint -esym(769,ec_base_uses_tail_padding)*/
+/*lint -esym(769,ec_size_affected_by_tail_padding)*/
 /*lint -esym(769,ec_gnu_may_use_bit_padding)*/
 /*lint -esym(759,build_construction_vtbls_pointer)*/
 /*lint -esym(765,build_construction_vtbls_pointer)*/
