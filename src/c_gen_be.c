@@ -7876,7 +7876,7 @@ if this routine has a body (dump nothing if it has no body).
       } else {
 #endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
         if (msvc_is_generated_code_target &&
-            msvc_target_version >= 1300) {
+            msvc_target_version_number >= 1300) {
           /* Generate a special code sequence that the Microsoft compiler uses
              to specify that a routine should be called at program startup.
              This pragma is only supported by MSVC version 7.0 and beyond. */
@@ -8040,7 +8040,7 @@ by IL lowering.
     }  /* if */
 #endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
     if (!file_scope_init_routine_called && msvc_is_generated_code_target &&
-        msvc_target_version >= 1300) {
+        msvc_target_version_number >= 1300) {
       /* Generate a special code sequence that the Microsoft compiler uses
          to specify that a routine should be called at program startup.
          This pragma is only supported by MSVC version 7.0 and beyond. */
