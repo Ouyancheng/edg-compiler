@@ -1,7 +1,15 @@
+Version 2.27, December 22, 1994
+
+12/4/94  stdarg.h: va_end redefined not to be empty
+
+11/21/94 stddef.h: ptrdiff_t redefined as int (instead of long).
+
+-----------------------------------------------------------------------------
 Version 2.25, August 19, 1994
 
 8/12/94  exception.h added
 
+-----------------------------------------------------------------------------
 Version 2.22, February 26, 1994
 
 1/27/94  toupper/tolower made inline in C++
