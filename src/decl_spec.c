@@ -1134,10 +1134,7 @@ skip_tag_scan:
       *declares_something = FALSE;
     }  /* if */
   }  /* if */
-  if (!(*declares_something) && !is_class_definition) {
-    /* A pragma will not bind to a class reference in an elaborated type
-       specifier. */
-  } else {
+  if (is_class_definition || curr_token == tok_semicolon) {
     /* Do processing required for any pragmas that are bound to the current
        declaration. */
     process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
