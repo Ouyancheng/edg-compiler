@@ -3182,7 +3182,7 @@ associated with the translation unit that it is in.
        end has completed. */
     result = FALSE;
   } else if (translation_units == NULL ||
-      translation_units->next == NULL) {
+             translation_units->next == NULL) {
     /* Optimize the case where there is only one translation unit. */
     result = FALSE;
   } else {
