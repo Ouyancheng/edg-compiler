@@ -1777,7 +1777,6 @@ void change_to_cast(an_expr_node_ptr node,
                     a_type_ptr       new_type)
 /*
 Change an existing node into a cast of operand_node to new_type.
-The cast is marked as compiler-generated.
 */
 {
   set_expr_node_kind(node, (an_expr_node_kind)enk_operation);
@@ -1791,7 +1790,6 @@ static an_expr_node_ptr add_cast_to_char_star(an_expr_node_ptr node)
 /*
 Add a cast to "char *" to the node and return the cast node.  If the
 type of the node is already "char *" return the original node.
-The cast is marked as compiler-generated.
 */
 {
   return add_cast_if_necessary(node, char_star_type());
