@@ -1568,7 +1568,7 @@ returned set to TRUE.
                              (char *)init_dip);
       }  /* if */
     }  /* if */
-    pop_object_lifetime();
+    (void)pop_object_lifetime();
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
