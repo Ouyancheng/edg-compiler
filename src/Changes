@@ -1,5 +1,12 @@
 Version 2.17
 
+4/28/93  result_is_not_used flag in IL expression nodes
+
+There is now a flag result_is_not_used in expression nodes, which is
+TRUE for void expressions (those whose values are not used further).
+This can be useful in optimizing the generated code.  IL lowering
+makes use of the flag in one case.
+
 4/28/93  Use of unimplemented reserved words
 
 Use of try, catch, and throw now cause a strict ANSI diagnostic
