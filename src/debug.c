@@ -373,6 +373,40 @@ correspondence, do nothing.
 }  /* f_db_has_traced_name */
 
 
+a_boolean f_db_trace(char             *flag_name,
+                     char             *entry,
+                     an_il_entry_kind kind)
+/*
+Return TRUE if the debug flag with the name "flag_name" is set, and
+either there are no debug name requests in the request list or
+f_db_has_traced_name is TRUE for the indicated entry/kind.  Use
+the macro db_trace to call this function.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (debug_flag_is_set(flag_name)) {
+    a_debug_request_ptr request;
+    a_boolean           any_name_requests = FALSE;
+    /* See if there are any debug-name requests. */
+    for (request = debug_requests; request != NULL; request = request->next) {
+      if (request->action == da_name) {
+        any_name_requests = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+    if (!any_name_requests) {
+      /* No name requests, so produce output for all cases. */
+      result = TRUE;
+    } else {
+      /* Some name requests, so produce output only for the indicated names. */
+      result = f_db_has_traced_name((a_source_correspondence *)entry, kind);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* f_db_trace */
+
+
 a_boolean proc_debug_name_option(char *debug_option)
 /*
 Parse the debug_name option (as received by proc_command_line) and enter

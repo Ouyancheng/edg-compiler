@@ -39,6 +39,14 @@ Macro interface to f_db_has_traced_name.
   (db_active && \
    f_db_has_traced_name((a_source_correspondence *)(entity), (kind)))
 
+extern a_boolean f_db_trace(char             *flag_name,
+                            char             *entry,
+                            an_il_entry_kind kind);
+
+/* Macro interface to f_db_trace. */
+#define db_trace(name, entry, kind) \
+  (db_active && f_db_trace((name), (char *)(entry), (kind)))
+
 /* Prints the headers for a given category of data structures (e.g.,
    "Lexical table use"). */
 #define db_space_used_header(name)					 \
