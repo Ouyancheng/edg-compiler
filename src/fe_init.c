@@ -358,7 +358,7 @@ Initialize target machine characteristics.
        in that size. */
     bits = size * targ_char_bit;
     if (int_kind_is_signed[TARG_DELTA_INT_KIND]) bits -= 1;
-    temp = ~((~0U) << bits);
+    temp = ~((~(unsigned long)0) << bits);
     if (temp > (unsigned long)targ_size_t_max) {
       /* It shouldn't exceed the maximum that can fit in a_targ_size_t. */
       targ_max_class_object_size = targ_size_t_max;
