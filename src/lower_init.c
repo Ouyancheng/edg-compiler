@@ -3660,13 +3660,15 @@ do_assignment:;
              considered "inside" the throw, so we need to add code to tell the
              runtime that. */
           an_expr_node_ptr arg_node = dip->variant.constructor.args;
-          check_assertion(arg_node != NULL && arg_node->next == NULL);
+          check_assertion(arg_node != NULL);
           if (!is_invariant_expr(arg_node, /*vars_can_change=*/FALSE)) {
             /* The source node can have side effects, so evaluate it before
                the exception is considered started and use a temporary with
                its value in the actual copy constructor call. */
+            an_expr_node_ptr arg_node_next = arg_node->next;
             insert_expr_statement(arg_node, eff_insert_location);
             arg_node = assign_expr_to_temp_and_make_expr_for_reuse(arg_node);
+            arg_node->next = arg_node_next;
             dip->variant.constructor.args = arg_node;
           }  /* if */
           record_exception_started(eff_insert_location);
