@@ -2641,6 +2641,12 @@ typedef struct a_routine_type_supplement {
   a_bit_field	routine_name_linkage_is_explicit:1;
 			/* TRUE when the routine_name_linkage is set based
 			   on an explicit linkage specifier in the source. */
+  a_bit_field  qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
+			/* Used for nonstatic member functions: the cv-
+			   qualification of the function type (e.g., the
+			   "const" in "void f(int) const").  Can contain
+			   qualifiers even when this_class (declared below) is
+			   NULL in the case of a function typedef. */
   bitfield_to_avoid_codecenter_warnings()
   a_lint_varargs_count
 	         lint_varargs_count;
@@ -2665,12 +2671,6 @@ typedef struct a_routine_type_supplement {
 			   which they are a member (i.e., the class of
 			   "*this").  For any other routine type this is
 			   NULL. */
-  a_bit_field  qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
-			/* Used for nonstatic member functions: the cv-
-			   qualification of the function type (e.g., the
-			   "const" in "void f(int) const").  Can contain
-			   qualifiers even when this_class is NULL in the
-			   case of a function typedef. */
   a_scope_ptr   prototype_scope;
                         /* Almost always NULL.  In rare cases, points to
                            a scope entry that contains things declared
