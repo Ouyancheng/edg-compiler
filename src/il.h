@@ -624,22 +624,9 @@ under the qualifiers.
 #define make_identically_qualified_type(type, model_type)             \
   (make_qualified_type(skip_typerefs(type), get_type_qualifiers(model_type)))
 
-/*
-Make a version of type that has the same qualifiers as model_type, and return
-a pointer to it.  The original qualifiers on type, if any, are preserved,
-which means that the result type has all the qualifiers of both types.
-Note that type and model_type need not be the same (or even similar) types
-under the qualifiers.  When UPC extensions are supported, the UPC block size
-must also be transferred.
-*/
-#if UPC_EXTENSIONS_ALLOWED
-#define type_plus_qualifiers_from_second_type(type, model_type)       \
-  (f_make_qualified_type(type, get_type_qualifiers(model_type),       \
-                         get_upc_block_size(model_type)))
-#else /* !UPC_EXTENSIONS_ALLOWED */
-#define type_plus_qualifiers_from_second_type(type, model_type)       \
-  (make_qualified_type(type, get_type_qualifiers(model_type)))
-#endif /* UPC_EXTENSIONS_ALLOWED */
+
+extern a_type_ptr type_plus_qualifiers_from_second_type(a_type_ptr type,
+                                                        a_type_ptr model_type);
 
 extern a_type_ptr make_unqualified_type(a_type_ptr old_type);
 

@@ -7780,6 +7780,11 @@ are not already present.
   a_boolean             is_array = FALSE, expl_mem_attr_implicit = FALSE;
   a_type_qualifier_set  base_type_qualifiers;
   a_type_qualifier_set  qualifiers_to_add;
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  a_named_address_space_id
+                         nas_base, nas_to_add;
+  a_boolean              nas_change_needed = FALSE;
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
   orig_base_type = base_type;
   /* According to ANSI C 3.5.3: "If the specification of an array type
@@ -7805,7 +7810,34 @@ are not already present.
                   C_mode());
 #endif /* NEAR_AND_FAR_ALLOWED */
   base_type_qualifiers = get_type_qualifiers(base_type);
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  if (named_address_spaces_enabled) {
+    /* Separate the named address space qualifiers, if any. */
+    nas_base = named_address_space_from_qualifier_set(base_type_qualifiers);
+    base_type_qualifiers = simple_qualifiers(base_type_qualifiers);
+    nas_to_add = named_address_space_from_qualifier_set(qualifiers);
+    qualifiers = simple_qualifiers(qualifiers);
+    if (nas_base != nas_to_add) {
+      if (nas_to_add == 0) {
+        /* No address space is being added, so no change is required. */
+      } else if (nas_base == 0) {
+        /* The base type has no named address space, so the new one is
+           added in. */
+        nas_change_needed = TRUE;
+      } else {
+        /* There are two named address spaces, old and new.  The caller
+           should have sorted that out. */
+        unexpected_condition_str(
+                    "f_make_qualified_type: conflicting named address spaces");
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
   qualifiers_to_add = qualifiers & ~base_type_qualifiers;
+  if (nas_change_needed) {
+    set_named_address_space_in_qualifier_set(qualifiers_to_add,
+                                             nas_to_add);
+  }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
   /* Always add shared if requested, so we can preserve the specified
      block size. */
@@ -7886,6 +7918,35 @@ are not already present.
 
   return ptr;
 }  /* f_make_qualified_type */
+
+
+a_type_ptr type_plus_qualifiers_from_second_type(a_type_ptr type,
+                                                 a_type_ptr model_type)
+/*
+Make a version of type that has the same qualifiers as model_type, and return
+a pointer to it.  The original qualifiers on type, if any, are preserved,
+which means that the result type has all the qualifiers of both types.
+Note that type and model_type need not be the same (or even similar) types
+under the qualifiers.  When UPC extensions are supported, the UPC block size
+must also be transferred.  When named address spaces are supported, they
+are not transferred from model_type to type.
+*/
+{
+  a_type_qualifier_set qualifiers = get_type_qualifiers(model_type);
+  a_upc_block_size     upc_block_size = UPC_BLOCK_SIZE_NONE;
+
+#if UPC_EXTENSIONS_ALLOWED
+  upc_block_size = get_upc_block_size(model_type);
+#endif /* UPC_EXTENSIONS_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  if (named_address_spaces_enabled) {
+    /* Drop named address space qualifiers if any. */
+    qualifiers = simple_qualifiers(qualifiers);
+  }  /* if */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+  type = f_make_qualified_type(type, qualifiers, upc_block_size);
+  return type;
+}  /* type_plus_qualifiers_from_second_type */
 
 
 a_type_ptr make_unqualified_type(a_type_ptr type)

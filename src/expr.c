@@ -11864,6 +11864,38 @@ third operands of a "?" operator, have the same type.
 }  /* same_types_for_question_operator */
 
 
+#if !NAMED_ADDRESS_SPACES_ALLOWED
+/*ARGSUSED*/ /* <-- type_4 is not used in that case. */
+#endif /* !NAMED_ADDRESS_SPACES_ALLOWED */
+static a_type_ptr type_plus_operand_type_qualifiers(a_type_ptr type,
+                                                    a_type_ptr type_2,
+                                                    a_type_ptr type_3,
+                                                    a_type_ptr type_4)
+/*
+Return a type that is "type" plus the union of cv-qualifiers from type_2
+and type_3.  If type_4 has any named address space qualifiers, those are
+included as well.
+*/
+{
+  type = type_plus_qualifiers_from_second_type(type, type_2);
+  type = type_plus_qualifiers_from_second_type(type, type_3);
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  if (named_address_spaces_enabled) {
+    /* Include the named address space from type_4, if any. */
+    a_type_qualifier_set    qualifiers = get_type_qualifiers(type_4);
+    a_named_address_space_id nas =
+                            named_address_space_from_qualifier_set(qualifiers);
+    if (nas != 0) {
+      a_type_qualifier_set nas_qualifier = TQ_NONE;
+      set_named_address_space_in_qualifier_set(nas_qualifier, nas);
+      type = make_qualified_type(type, nas_qualifier);
+    }  /* if */
+  }  /* if */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+  return type;
+}  /* type_plus_operand_type_qualifiers */
+
+
 static void scan_conditional_operator(an_operand *operand_1,
                                       an_operand *result)
 /*
@@ -12269,12 +12301,11 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
             }  /* if */
             /* Add to the type pointed to any qualifiers present on either of
                the operand types pointed to. */
-            ptr_result_type =
-                      type_plus_qualifiers_from_second_type(ptr_result_type,
-                                                            type_pointed_to_2);
-            ptr_result_type =
-                      type_plus_qualifiers_from_second_type(ptr_result_type,
-                                                            type_pointed_to_3);
+            ptr_result_type = type_plus_operand_type_qualifiers(
+                                              ptr_result_type,
+                                              type_pointed_to_2,
+                                              type_pointed_to_3,
+                                              type_pointed_to(operation_type));
             /* The result type is an unqualified pointer to the
                properly-qualified underlying type. */
             result_type = make_pointer_type(ptr_result_type);
@@ -12320,12 +12351,11 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                                              unqual_type_pointed_to_3);
             /* Add to the type pointed to any qualifiers present on either of
                the operand types pointed to. */
-            ptr_result_type =
-                      type_plus_qualifiers_from_second_type(ptr_result_type,
-                                                            type_pointed_to_2);
-            ptr_result_type =
-                      type_plus_qualifiers_from_second_type(ptr_result_type,
-                                                            type_pointed_to_3);
+            ptr_result_type = type_plus_operand_type_qualifiers(
+                                               ptr_result_type,
+                                               type_pointed_to_2,
+                                               type_pointed_to_3,
+                                               pm_member_type(operation_type));
             /* The result type is an unqualified pointer-to-member to the
                properly-qualified underlying type. */
             result_type = ptr_to_member_type(ptr_result_type,

@@ -1,5 +1,20 @@
 Version 3.5
 
+9/9/04  Named address space qualifiers and "?" operator
+
+The processing for the "?" operator on pointers did not correctly
+handle named address space qualifiers (from Embedded C) on the
+underlying type.  It simply or'ed the bits together, which is very
+wrong for the named address space qualifier, which is a number not
+a bit set.  Now fixed.
+
+  void f() {
+    _EDG_NAS_A char* pa;
+    _EDG_NAS_B char* pb;
+    int x;
+    pa = x ? pa : pb;
+  }
+
 9/8/04  Embedded C: incorrect result when fixed-point rounding produces
         overflow
 
