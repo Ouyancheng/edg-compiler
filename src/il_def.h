@@ -2564,10 +2564,9 @@ typedef struct a_class_type_supplement {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_decl_modifier
 		decl_modifiers;
-			/* Additional declaration information supplied by
-			   nonstandard language features such as the
-			   Microsoft storage-class-like __declspec
-			   modifiers. */
+			/* Additional declaration information representing
+			   Microsoft-style __declspec modifiers that are
+			   applied to the class as a whole. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_anonymous_union_kind
 		anonymous_union_kind;
