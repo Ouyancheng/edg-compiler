@@ -3,8 +3,8 @@ Version 3.1
 6/11/02  Duplicate module IDs
 
 Version 3.0 introduced a problem that could cause files with the same
-name to have the same module IDs, resulting in multiple definition errors
-at link time.  This has been fixed.
+name and containing the same inline function to have the same module IDs,
+resulting in multiple definition errors at link time.  This has been fixed.
 
 6/11/02  GNU C compatibility: extended integral constant expressions
 
