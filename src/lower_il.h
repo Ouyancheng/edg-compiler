@@ -625,8 +625,6 @@ extern a_variable_ptr make_var_for_virtual_function_table(
                                                    a_type_ptr       class_type,
                                                    a_base_class_ptr bcp);
 
-/* See also below -- this is defined as a macro if IL lowering is
-   configured out. */
 extern a_boolean inline_virtual_function_definitions_needed(
                                                         a_type_ptr class_type);
 
