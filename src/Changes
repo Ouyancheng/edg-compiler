@@ -1,5 +1,25 @@
 Version 2.43
 
+9/23/99  Partial overriding of virtual functions in multiple inheritance cases
+
+The front end used to always issue a warning when a virtual function in a
+base class was hidden but not overridden by a member function (with the same
+name) in a derived class.  This warning is now inhibited if the hiding
+function overrides a virtual function declaration in another base.
+
+  struct B1 {
+    virtual void f(int);
+  };
+  struct B2 {
+    virtual void f(double);
+  };
+  struct D: public B1, public B2 {
+    virtual void f(double);
+  };
+
+The front end no longer issues a warning about a mismatch between D::f and
+B1::f.
+
 9/22/99  Diagnostic on nonstandard subtraction of pointers
 
 The front end now diagnoses subtraction of pointer types that differ in more
