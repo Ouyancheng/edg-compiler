@@ -4925,8 +4925,11 @@ normal_exit:
   curr_token = tok_identifier;
   /* Update the locator to reflect the new symbol that is being returned
      and restore the source position of the beginning of the template
-     class reference. */
+     class reference.  The symbol header is updated to point to the
+     symbol associated with the class template name.  The header will
+     have been modified by scanning the argument list. */
   locator_for_curr_id.specific_symbol = new_sym;
+  locator_for_curr_id.symbol_header = new_sym->header;
   locator_for_curr_id.source_position = locator_pos;
   /* Set source position for error reporting. */
   error_position = start_position;
