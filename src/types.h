@@ -104,6 +104,8 @@ extern a_boolean f_identical_types(a_type_ptr type_1,
                                    a_boolean  il_identical);
 extern a_boolean interchangeable_types(a_type_ptr type_1,
                                        a_type_ptr type_2);
+extern a_boolean arg_types_are_compatible(a_type_ptr  rout_type1,
+                                          a_type_ptr  rout_type2);
 #define types_are_compatible(t1, t2) \
 	 ((t1) == (t2) || f_types_are_compatible((t1), (t2)))
 extern a_boolean f_types_are_compatible(a_type_ptr type_1,

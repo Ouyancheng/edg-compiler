@@ -1090,6 +1090,46 @@ funcs_not_identical:;
 }  /* f_identical_types */
 
 
+a_boolean arg_types_are_compatible(a_type_ptr  rout_type1,
+                                   a_type_ptr  rout_type2)
+/*
+rout_type1 and rout_type2 point to routine type entries with parameter
+lists that are guaranteed to be prototyped.  Return TRUE if the
+parameter lists are compatible.  The "this" parameter types (if any) are
+not compared.
+*/
+{
+  a_routine_type_supplement_ptr  extra_info1, extra_info2;
+  a_param_type_ptr               list1, list2;
+  a_boolean                      compatible;
+
+  extra_info1 = rout_type1->variant.routine.extra_info;
+  extra_info2 = rout_type2->variant.routine.extra_info;
+  if (extra_info1->has_ellipsis != extra_info2->has_ellipsis) {
+    /* One has a variable length parameter list and the other does not, so
+       they cannot be compatible. */
+    compatible = FALSE;
+  } else {
+    /* Compare the lists, parameter by parameter. */
+    list1 = extra_info1->param_type_list;
+    list2 = extra_info2->param_type_list;
+    for (; list1 != NULL && list2 != NULL;
+         list1 = list1->next, list2 = list2->next) {
+      /* Compare the corresponding parameter types. */
+      if (!types_are_compatible(list1->type, list2->type)) {
+        compatible = FALSE;
+        goto done;
+      }  /* if */
+    }  /* for */
+    /* All the parameter types are compatible.  Be sure the lists ended at
+       the same time. */
+    compatible = (list1 == list2);
+  }  /* if */
+done:
+  return compatible;  
+}  /* arg_types_are_compatible */
+
+
 a_boolean f_types_are_compatible(a_type_ptr type_1,
                                  a_type_ptr type_2)
 /*
