@@ -1195,6 +1195,7 @@ ec_db_option_required_on_cmd_line;INTERNAL;"a debug option must be specified on 
 ec_cl_more_than_one_preinclude;;"more than one preinclude option specified"
 ec_attr_requires_func_type;;"attribute does not apply to non-function type %t"
 ec_nonobject_pointer_arithmetic;;"arithmetic on pointer to void or function type"
+ec_invalid_storage_class_in_for_init;;"storage class must be auto or register"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -26,6 +26,7 @@ decl_spec.c -- Scanning of declaration specifiers.
 
 /* Additional header files. */
 #include "folding.h"
+#include "statements.h"
 
 #if NEAR_AND_FAR_ALLOWED
 
@@ -4627,6 +4628,14 @@ Returns TRUE if there is an error in the specifiers.
           } else {
             decl_specifiers_seen |= DS_STORAGE_CLASS;
           }  /* if */
+        } else if (c99_mode &&
+                   !(curr_token == tok_auto || curr_token == tok_register) &&
+                   depth_stmt_stack > 0 &&
+                   struct_stmt_stack[depth_stmt_stack].for_init) {
+          /* A for-init declaration in C99 can only have storage class
+             auto or register. */
+          error(ec_invalid_storage_class_in_for_init);
+          err = TRUE;
         } else {
           if (C_dialect != C_dialect_pcc && !err) {
             if (decl_specifiers_seen & ~(DS_INLINE | DS_FRIEND)) {
