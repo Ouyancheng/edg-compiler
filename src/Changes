@@ -1,5 +1,11 @@
 Version 2.34
 
+11/25/96 Active using-directive information not restored in some cases
+
+In certain cases involving template instantiation the information about
+the using-directives that are currently active may not be restored
+properly when the instantiation has completed.  This has been fixed.
+
 11/25/96 Warning on for-init difference turned off in strict mode
 
 The warning about a difference of behavior between the old and new

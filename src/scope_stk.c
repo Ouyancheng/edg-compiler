@@ -883,6 +883,7 @@ to the declaration information for the template declaration scope being pushed.
   ssep->within_unnamed_namespace = FALSE;
   ssep->namespace_pushed         = FALSE;
   ssep->exclude_from_context_output = FALSE;
+  ssep->instantiation_scope_pushed = FALSE;
   ssep->reactivated_class_being_defined = FALSE;
   ssep->is_for_init_block        = FALSE;
   ssep->il_scope                 = sp;
@@ -4155,6 +4156,10 @@ are not reactivated.
        class type (that it thinks is being instantiated).  Reactivate it
        now. */
     push_single_class_reactivation_scope(class_type);
+    /* Indicate that a template instantiation scope was pushed so that,
+       when popping the class and template reactivation, we know how the
+       scopes should be popped. */
+    scope_stack[depth_scope_stack].instantiation_scope_pushed = TRUE;
   } else {
     /* A nontemplate class.  Just do a normal class reactivation.  The
        original depth returned is used instead of the one saved above
@@ -4165,7 +4170,7 @@ are not reactivated.
     /* Record the scope depth prior to the reactivation so that the scopes
        reactivated can be popped later. */
   scope_stack[depth_scope_stack].orig_depth = orig_depth;
-}  /* push_class_reactivation_scope */
+}  /* push_class_and_template_reactivation_scope */
 
 
 void push_class_reactivation_scope(a_type_ptr class_type)
@@ -4192,18 +4197,26 @@ is called only in C++.
   a_boolean			namespace_pushed = FALSE;
 
   ssep = &scope_stack[depth_scope_stack];
-  namespace_pushed= ssep->namespace_pushed;
-  orig_depth = scope_stack[depth_scope_stack].orig_depth;
-  check_assertion_str2(orig_depth != NO_SCOPE_DEPTH,
-                       "pop_class_reactivation_scope:",
-                       "invalid orig_depth");
-  /* Pop scopes until the depth of the scope stack is equal to orig_depth,
-     which is the depth before any of the class reactivation scopes were
-     pushed. */
-  while (orig_depth < depth_scope_stack) pop_scope();
-  if (namespace_pushed) {
-    /* The class is nested in a namespace -- pop enclosing namespace(s). */
-    pop_namespace_reactivation_scope();
+  if (ssep->instantiation_scope_pushed) {
+    /* Pop the single class reactivation scope that was pushed. */
+    pop_scope();
+    /* Pop the template instantiation and instantiation context scopes. */
+    pop_template_instantiation_scope();
+  } else {
+    /* Pop the class and namespace reactivation scopes. */
+    namespace_pushed = ssep->namespace_pushed;
+    orig_depth = scope_stack[depth_scope_stack].orig_depth;
+    check_assertion_str2(orig_depth != NO_SCOPE_DEPTH,
+                         "pop_class_reactivation_scope:",
+                         "invalid orig_depth");
+    /* Pop scopes until the depth of the scope stack is equal to orig_depth,
+       which is the depth before any of the class reactivation scopes were
+       pushed. */
+    while (orig_depth < depth_scope_stack) pop_scope();
+    if (namespace_pushed) {
+      /* The class is nested in a namespace -- pop enclosing namespace(s). */
+      pop_namespace_reactivation_scope();
+    }  /* if */
   }  /* if */
 }  /* pop_class_reactivation_scope */
 

@@ -251,6 +251,10 @@ typedef struct a_scope_stack_entry {
 			   (such as template instantiation scopes),
 			   but for which the context information should
 			   be suppressed. */
+  a_bit_field	instantiation_scope_pushed:1;
+			/* TRUE if, when pushing a class and template
+			   reactivation scope that a template instantiation
+			   scope was pushed. */
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
 			/* Pointer to a scope pointer block that should be
