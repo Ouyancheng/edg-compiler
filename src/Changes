@@ -1,5 +1,13 @@
 Version 2.44
 
+7/26/00  C++-generating back end: conversion function calls put out as casts
+
+The C++-generating back end now puts out calls of conversion functions
+(except those that come from implicit conversions; see Changes entry of
+7/20/00) as casts.  This avoids some problems with conversion functions
+that cannot be named because of the limited type syntax available
+in conversion function names.
+
 7/24/00  C++-generating back end: "=" versus "()" form of initializers
          preserved
 
