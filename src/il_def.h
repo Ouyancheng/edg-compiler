@@ -430,6 +430,8 @@ enum a_type_kind_tag {
                            another type; also used to add type qualifiers
                            (const or volatile) to a type. */
   tk_reference,         /* Reference. */
+  tk_none,		/* No type (used as the return type of C++ constructor
+			   and destructor functions). */
 #endif /* ifdef CIL */
 #ifdef FIL
   tk_fcharacter,        /* Fortran character. */
