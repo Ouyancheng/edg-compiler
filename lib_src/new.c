@@ -27,7 +27,7 @@ the std namespace.
 namespace std {
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
-extern __new_handler __curr_new_handler;
+extern "C" __new_handler _new_handler;
 
 /*
 If the runtime should be defined in the std namespace, close
@@ -60,8 +60,8 @@ calls of operator new.
 
   if (size == 0) size = 1;
   while ((ptr = (void *)malloc(size)) == NULL) {
-    if (STD_NAMESPACE::__curr_new_handler != NULL) {
-      (*STD_NAMESPACE::__curr_new_handler) ();
+    if (STD_NAMESPACE::_new_handler != NULL) {
+      (*STD_NAMESPACE::_new_handler) ();
     } else {
       return (void *)NULL;
     }  /* if */

@@ -27,17 +27,17 @@ namespace std {
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
 
-__new_handler __curr_new_handler = NULL;
+extern "C" __new_handler _new_handler = NULL;
 
 
 __new_handler set_new_handler(__new_handler handler)
 /*
-Set __curr_new_handler to the new function pointer provided and return the
-previous value of __curr_new_handler.
+Set _new_handler to the new function pointer provided and return the
+previous value of _new_handler.
 */
 {
-  __new_handler rr = __curr_new_handler;
-  __curr_new_handler = handler;
+  __new_handler rr = _new_handler;
+  _new_handler = handler;
   return rr;
 }  /* set_new_handler */
 
