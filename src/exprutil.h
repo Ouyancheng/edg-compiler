@@ -212,6 +212,12 @@ typedef struct an_argument_summary {
 			/* If match_level == aml_std_conversion and the
 			   compatibility involves a downward cast, this is
 			   the derivation.  Otherwise, NULL.  Secondary key. */
+  a_byte_boolean
+		reversed_derivation;
+			/* If TRUE, the downward_cast_derivation describes
+			   the reverse of the cast performed.  Used for
+			   implicit conversions of pointers to members to
+			   pointers to members of derived classes. */
   an_error_code	warning_suggested;
 			/* If not ec_no_error, the code for a warning to be
 			   issued if this match is chosen. */
