@@ -6774,7 +6774,6 @@ updated but not removed from the list.
 */
 {
   a_symbol_ptr   sym;
-  a_type_ptr     class_type;
 
   if (value) {
     if (!tip->already_instantiated) {
