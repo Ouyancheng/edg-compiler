@@ -3321,12 +3321,6 @@ kind expression_kind.
   /* Check for taking the address of a bit field. */
   if (is_bit_field_operand(operand)) {
     error_in_operand(ec_address_of_bit_field, operand);
-  } else if (is_void_type(operand->type)) {
-    /* Check for taking the address of something of type void.  Strictly
-       speaking, a void expression is not an lvalue, so is_an_lvalue should
-       not return TRUE for such a thing.  However, it's more straightforward
-       to check that in places where an lvalue is used. */
-    error_in_operand(ec_address_of_void, operand);
   } else {
     /* Find the base variable and set its address_taken flag, and change the
        type of the operand to pointer-to-operand. */
