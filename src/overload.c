@@ -6681,11 +6681,11 @@ initializer has previously been found to be acceptable, and
          when the reference is to non-const) to come through here to
          get better error messages. */
       /* Also come here when the source is a class that's wrong only
-         because qualifiers are dropped.  That's an error except in
-         cfront mode, but it's better to handle it here rather than
-         later -- if we go on to the call of conv_operand_into_temp
-         we would be looking at copy constructors, which really isn't
-         appropriate and produces confusing error messages. */
+         because qualifiers are dropped.  That's an error, but it's
+         better to handle it here rather than later -- if we go on
+         to the call of conv_operand_into_temp we would be looking
+         at copy constructors, which really isn't appropriate and
+         produces confusing error messages. */
       conv_class_operand_to_object_pointer(source_operand);
       /* Use a pointer type instead of a reference type on the
          destination. */
