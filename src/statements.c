@@ -1215,6 +1215,12 @@ See also 3.6.6.1.
   add_stop_token(tok_semicolon);
   /* Scan the label identifier. */
   sp->variant.label = scan_label(/*is_definition=*/FALSE);
+  if (C_dialect == C_dialect_cplusplus) {
+    /* If this is a forward reference to a label, record information about
+       the goto to allow diagnosis of jump-over-initialization errors.  If
+       it is backward reference, do the checking immediately. */
+    check_jump_over_initialization(sp);
+  }  /* if */
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
@@ -1927,6 +1933,11 @@ rescan_statement:
           /* The label has not previously been declared, so put out the
              definition. */
           define_label(label);
+          if (C_dialect == C_dialect_cplusplus) {
+            /* If there have been forward gotos referencing this label, check
+               whether any have jumped over initializing declarations. */
+            check_jump_over_initialization(label->variant.exec_stmt);
+          }  /* if */
         }  /* if */
 #if CHECKING
         if (curr_token != tok_colon) {
