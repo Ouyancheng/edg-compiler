@@ -1,6 +1,6 @@
 Version 2.40
 
-12/5/98   Microsoft compatibilty: improved __declspec(dllimport) support
+12/5/98   Microsoft compatibility: improved __declspec(dllimport) support
 
 In Microsoft mode, the body of a __declspec(dllimport) function that
 is also declared "inline" is no longer added to the IL.
