@@ -2573,6 +2573,9 @@ Display the indicated dynamic_init structure.
     case dik_none:
       (void)printf("dik_none\n");
       break;
+    case dik_zero:
+      (void)printf("dik_zero\n");
+      break;
     case dik_constant:
       (void)printf("dik_constant\n");
       goto do_constant;

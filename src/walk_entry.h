@@ -1102,6 +1102,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->destructor, a_routine_ptr, iek_routine);
         switch (ptr->kind) {
           case dik_none:
+          case dik_zero:
           case dik_bitwise_copy:
             /* No pointers. */
             break;

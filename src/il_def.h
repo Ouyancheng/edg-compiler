@@ -794,6 +794,8 @@ called when its lifetime terminates.
 */
 enum a_dynamic_init_kind_tag {
   dik_none,		/* No dynamic initialization. */
+  dik_zero,		/* Initialization to zero, defined to be the same
+			   as default initialization of a static object. */
   dik_constant,		/* Initial value of a simple object is a constant. */
   dik_expression,	/* Initial value of a simple object is an
 			   expression. */
@@ -849,7 +851,7 @@ typedef struct a_dynamic_init {
 			   and the variable being initialized. */
   bitfield_to_avoid_codecenter_warnings();
   union {
-    /* When kind == dik_none: no variant fields. */
+    /* When kind == dik_none or dik_zero: no variant fields. */
     /* When kind == dik_bitwise_copy: no variant fields.  The source for the
        copy is implied by context (e.g., a field or base class to be copied
        is given in the constructor init entry that points to this entry). */

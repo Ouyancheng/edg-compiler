@@ -1179,8 +1179,10 @@ dik_nonconstant_aggregate.
           db_constructor_initializer(dip, level);
           break;
         case dik_none:
+        case dik_zero:
           for (a = 0; a < level; a++) fputs(" ", f_debug);
-          fputs("no initializer", f_debug);
+          fputs(dip->kind == dik_none ? "no initializer" : "zero initializer",
+                f_debug);
           if (dip->destructor != NULL) {
             fputs(", ", f_debug);
             db_destructor(dip->destructor);
@@ -1257,6 +1259,9 @@ destructor_on_next_line:
       goto destructor_on_this_line;
     case dik_none:
       fputs("<none>", f_debug);
+      goto destructor_on_this_line;
+    case dik_zero:
+      fputs("<zero>", f_debug);
 destructor_on_this_line:
       if (dip->destructor != NULL) {
         fputs(", ", f_debug);
@@ -4787,6 +4792,7 @@ the associated variant fields to default values.
   dip->kind = kind;
   switch (kind) {
     case dik_none:
+    case dik_zero:
     case dik_bitwise_copy:
       break;
     case dik_constant:
@@ -4885,6 +4891,7 @@ expression node.
   *new_dip = *dip;
   switch (dip->kind) {
     case dik_none:
+    case dik_zero:
       break;
     case dik_expression:
     case dik_call_returning_class_via_cctor:
@@ -6200,7 +6207,7 @@ must do that).
   } else {
     /* The result is the value of the temporary, so the type is the type
        of the temporary. */
-    temp_init_node->type = temp_type;
+    temp_init_node->type = skip_typerefs(temp_type);
   }  /* if */
   /* Make sure the IL scope that the temporary is part of exists.  Even though
      the temporary does not exist as a variable, it's still (from a language
