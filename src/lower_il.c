@@ -1252,7 +1252,8 @@ a_type_ptr make_virtual_table_table_pointer_type(void)
 Return the type of a pointer to a virtual table table.
 */
 {
-  return make_pointer_type(pointer_to_vtbl_type());
+  return make_pointer_type(make_qualified_type(pointer_to_vtbl_type(),
+                                               TQ_CONST));
 }  /* make_virtual_table_table_pointer_type */
 
 

@@ -8046,7 +8046,9 @@ the temporary variable.
 {
   a_variable_ptr var;
 
-  var = make_lowered_temporary(make_pointer_type(pointer_to_vtbl_type()));
+  var = make_lowered_temporary(make_pointer_type(
+                                    make_qualified_type(pointer_to_vtbl_type(),
+                                                        TQ_CONST)));
   return var;
 }  /* make_construction_vtbl_temporary */
 
@@ -8167,7 +8169,8 @@ to the variable.
 #endif /* IA64_ABI */
   /* Create the array type. */
   array_type = alloc_type((a_type_kind)tk_array);
-  array_type->variant.array.element_type = pointer_to_vtbl_type();
+  array_type->variant.array.element_type =
+                         make_qualified_type(pointer_to_vtbl_type(), TQ_CONST);
 #if !IA64_ABI
   /* Create the local static array variable. */
   var = make_unnamed_local_static_variable(array_type,
