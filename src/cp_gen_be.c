@@ -8786,7 +8786,7 @@ TRUE if the declaration following this one is such a continuation.
     /* Put out the storage class determined above. */
     gen_storage_class(storage_class);
     /* Generate other leading specifiers. */
-    if (rout->is_inline && !decl_within_function &&
+    if (rout->is_inline && !decl_within_function && !friend_decl &&
         /* A definition within a class is implicitly "inline", so it's
            not necessary to put out the keyword.  This is needed to avoid
            a bug in the Sun C++ 5.0 compiler regarding "inline" on
