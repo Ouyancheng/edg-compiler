@@ -1,5 +1,12 @@
 Version 2.26
 
+9/15/94  Reference to virtual destructor in delete
+
+A delete operator for a class with a virtual destructor no longer sets
+the referenced flag on the IL entry for the destructor (an overriding
+function might be called instead).  If the destructor is a member function
+of a template class, it is no longer instantiated because of the delete.
+
 9/14/94  Display of nontype template arguments that are references
 
 The il_to_str routines have been changed so that nontype template arguments
