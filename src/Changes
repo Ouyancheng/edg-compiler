@@ -6,7 +6,7 @@ The g++ compiler accepts a constructor definition in which the template
 argument list of the constructor name is actually treated as a template
 argument list of the enclosing class.  This is now accepted in g++ mode.
 
-  template<int u1> struct A { };
+  template <int I> struct A { };
   template <> struct A<1> {
     template<class T> A(T i, int j);
   };
