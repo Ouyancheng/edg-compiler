@@ -1,5 +1,22 @@
 Version 2.39
 
+6/10/98   Overload resolution: callability does not figure in viability
+          of function
+
+In overload resolution, when an argument has a class type and the
+corresponding parameter has the same class type (or a base class
+thereof), the callability of the copy constructor is not supposed to
+be considered.  Once a function is selected, it must be possible to
+call copy constructors on any arguments that need them, but that
+should not be considered in deciding which function to call.  This
+change reflects a change in the standard; we had implemented an
+earlier version that required the callability check during overload
+resolution.
+
+This change eliminates a recursion loop in the front end when a
+constructor for a type A takes a parameter of type B, and a constructor
+for type B can take a parameter of type A.
+          
 6/10/98   Integral promotions on bit fields in left operand of compound
           assignment
 

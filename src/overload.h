@@ -92,6 +92,14 @@ typedef struct a_conv_descr {
 			   that, following the rules in [dcl.init] of the
 			   C++ standard, is done as if it were a direct
 			   initialization. */
+  a_byte_boolean
+		user_conversion_for_class_copy_must_be_determined;
+			/* If TRUE, this is a class value being passed to
+			   a parameter of the same type, or a base class type.
+			   This is seen as a standard conversion of sorts
+			   in overload resolution, but the constructor
+			   to be called must be determined once it's known
+			   that this conversion will be used. */
   a_std_conv_descr
 		std;	/* The standard conversion part of the conversion. */
 } a_conv_descr;
@@ -109,7 +117,8 @@ Macro that returns TRUE if a pointer to a conversion is usable (the
 pointer is non-NULL, and the conversion is not unusable).
 */
 #define conv_usable(conversion)                             \
-  ((conversion) != NULL && !(conversion)->unusable)
+  ((conversion) != NULL && !(conversion)->unusable && \
+   !(conversion)->user_conversion_for_class_copy_must_be_determined)
 
 
 
