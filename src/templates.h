@@ -24,6 +24,9 @@ templates.h -- Declarations relating to templates.c (template support)
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
 
+extern
+a_template_cache_ptr cache_for_template(a_template_symbol_supplement_ptr tssp);
+
 extern a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
                                         a_template_arg_ptr  *template_arg_list,
 				 	a_boolean	    prototype_allowed);

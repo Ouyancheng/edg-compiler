@@ -701,7 +701,6 @@ class a friend and update the friend information.
 }  /* update_befriending_classes_for_class */
 
 
-static
 a_template_cache_ptr cache_for_template(a_template_symbol_supplement_ptr tssp)
 /*
 Returns a pointer to the body cache to be used for a given template.
