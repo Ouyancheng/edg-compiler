@@ -4621,6 +4621,7 @@ class of its derived class.
           } else {
             /* Found a match. */
 #if CHECKING
+            /* In C++ mode fields are always in the nsk_other name space. */
             if (name_space_for_symbol_kind[(int)sym->kind] != nsk_other) {
               internal_error(
                "symbol_projected_from_base_class: unexpected name space kind");
@@ -8633,6 +8634,7 @@ to avoid an 8-character external name clash with symbol_table.)
 */
 {
   a_name_space_kind tag_name_space;
+  a_name_space_kind member_name_space;
 
   /* Variables in symbol_tbl.h: */
   /* Build the table that maps symbol kinds to the corresponding name
@@ -8648,13 +8650,16 @@ to avoid an 8-character external name clash with symbol_table.)
   name_space_for_symbol_kind[(int)sk_union_tag]           = tag_name_space;
   name_space_for_symbol_kind[(int)sk_enum_tag]            = tag_name_space;
   name_space_for_symbol_kind[(int)sk_variable]            = nsk_other;
-  /* Note that the class members are nsk_other rather than some other
-     kind, which works because the members are on the inactive list
+  /* Note that in C++ mode the class members are nsk_other rather than some
+     other kind, which works because the members are on the inactive list
      once the class definition is ended.  Therefore, they won't be
-     found inadvertently. */
-  name_space_for_symbol_kind[(int)sk_field]               = nsk_other;
-  name_space_for_symbol_kind[(int)sk_static_data_member]  = nsk_other;
-  name_space_for_symbol_kind[(int)sk_member_function]     = nsk_other;
+     found inadvertently.  In C mode they are in a separate nsk_member
+     name space to prevent them from being found while they are still on
+     the active list. */
+  member_name_space = C_mode() ? nsk_member : nsk_other;
+  name_space_for_symbol_kind[(int)sk_field]               = member_name_space;
+  name_space_for_symbol_kind[(int)sk_static_data_member]  = member_name_space;
+  name_space_for_symbol_kind[(int)sk_member_function]     = member_name_space;
   name_space_for_symbol_kind[(int)sk_routine]             = nsk_other;
   name_space_for_symbol_kind[(int)sk_label]               = nsk_label;
   name_space_for_symbol_kind[(int)sk_undefined]           = nsk_other;

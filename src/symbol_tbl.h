@@ -329,9 +329,11 @@ typedef enum /*a_name_space_kind*/ {
 			   functions. */
   nsk_macro,		/* Macros. */
   nsk_keyword,		/* Keywords. */
-  nsk_extern		/* External names of variables and routines, perhaps
+  nsk_extern,		/* External names of variables and routines, perhaps
 			   truncated.  Used to check that all uses of
 			   a given external name are equivalent. */
+  nsk_member		/* Members (fields) of structs and unions.  Used in
+			   C mode only. */
 } a_name_space_kind;
 
 EXTERN a_name_space_kind
