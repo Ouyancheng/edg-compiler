@@ -506,6 +506,8 @@ way described by octl.
 
 #ifdef CFE
 
+/*lint -esym(759,form_type_qualifier)*/
+/*lint -esym(765,form_type_qualifier)*/
 void form_type_qualifier(
                      a_type_qualifier_set                  qualifiers,
                      a_boolean                             need_trailing_space,
