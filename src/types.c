@@ -2677,7 +2677,7 @@ for more information.
 #endif /* CHECKING */
       }  /* switch */
 #if GNU_EXTENSIONS_ALLOWED
-      if (identical &&
+      if (gcc_mode && identical &&
           !same_type_attributes(type_1, type_2)) {
         /* The types have different attributes, so the types are different. */
         identical = FALSE;
@@ -3092,7 +3092,7 @@ for exact pointer equality.
 #endif /* CHECKING */
       }  /* switch */
 #if GNU_EXTENSIONS_ALLOWED
-      if (compat &&
+      if (gcc_mode && compat &&
           !same_type_attributes(type_1, type_2)) {
         /* The types have different attributes, so the types are different. */
         if (error_matches_anything &&
