@@ -1289,6 +1289,7 @@ extern void flush_until_matching_token(void);
 extern void flush_tokens(void);
 /* Initialize the lexical routines. */
 extern void lexical_reset(void);
+extern void lexical_one_time_init(void);
 extern void lexical_init(void);
 /* Flush until the tok_end_of_source terminating a token cache is found. */
 #define flush_past_token_cache_terminator()			\

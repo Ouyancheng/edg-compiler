@@ -7469,107 +7469,34 @@ Display and return the amount of space used for various lexical tables.
 #endif /* DEBUG */
 
 
-void lexical_reset(void)
+void lexical_one_time_init(void)
 /*
-Initialize variables that are used to record the state of the lexical
-routines.  These routines are reset after the initial scan that is
-done to determine whether a precompiled header may be used.
-*/
-{
-  /* Variables in lexical.h: */
-  depth_input_stack = -1;
-  curr_ise = NULL;
-  seq_number_last_read = 0;
-  curr_seq_number = 0;
-  orig_line_modif_list = NULL;
-  end_orig_line_modif_list = NULL;
-  source_line_modif_list = NULL;
-  line_start_source_line_modif = NULL;
-  sequence_id_for_source_line_modifs = 0;
-  delete_source_from_loc = NULL;
-  curr_token_pragmas = NULL;
-  /* Static variables in lexical.c: */
-  curr_input_stream = NULL;
-  eof_read_on_curr_input_stream = FALSE;
-  at_end_of_source_file = FALSE;
-  after_end_of_all_source = FALSE;
-  init_do_not_put_curr_line_in_pp_output = TRUE;
-  curr_raw_listing_line_code = '\0';
-  cached_token_rescan_list = NULL;
-  reusable_cache_stack = NULL;
-  any_initial_get_token_tests_needed = FALSE;
-  last_token_sequence_number_used = NO_TOKEN_SEQUENCE_NUMBER;
-  curr_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
-  include_file_history_list = NULL;
-  any_tokens_fetched_from_curr_input_file = FALSE;
-}  /* lexical_reset */
-
-
-void lexical_init(void)
-/*
-Initialize static variables related to the lexical routines.  This is done
-as a subroutine (rather than relying on static initialization) so that it
-can be redone to compile more than one source file in a single invocation
-of the front end.
+Do one-time initialization of variables related to lexical processing.
+(Variables that need to be reinitialized with each new translation unit
+are handled in lexical_init.)
 */
 {
   register int c;  /* Has to be "int" so "for" loop will work. */
 
-  lexical_reset();
-  /* Variables in lexical.h: */
-  avail_orig_line_modifs = NULL;
-  avail_source_line_modifs = NULL;
-  sequence_id_for_source_line_modifs = 0;
-  delete_source_from_loc = NULL;
-  /* Clear the set of tokens on which to stop a flush following a
-     syntax error. */
-  clear_stop_tokens();
-  /* Static variables in lexical.c: */
-  avail_cached_tokens = NULL;
-  avail_cached_constants = NULL;
-  avail_reusable_cache_entries = NULL;
-  avail_pending_pragmas = NULL;
-  dollar_in_id_diagnostic_issued = FALSE;
-#if DEBUG
-  num_orig_line_modifs_allocated = 0;
-  num_source_line_modifs_allocated = 0;
-  num_cached_tokens_allocated = 0;
-  num_cached_tokens_in_reusable_caches = 0;
-  num_pragmas_in_reusable_caches = 0;
-  num_cached_constants_allocated = 0;
-  num_reusable_cache_entries_allocated = 0;
-  num_pending_pragmas_allocated = 0;
-  num_pragma_descriptions_allocated = 0;
-#if INSTANTIATION_BY_IMPLICIT_INCLUSION
-  num_file_suffixes_allocated = 0;
-#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-  num_include_file_histories_allocated = 0;
-#endif /* DEBUG */
-
-  /* Do the initial allocation for curr_source_line the first time this
-     routine is called.  Since the space is allocated in general storage,
-     it does not need to be reallocated for each source file.  For the same
-     reason, after_end_of_curr_source_line should not be reset. */
-  if (after_end_of_curr_source_line == NULL) {
-    /* First time through.  Do initial allocation for the source line.
-       The space will be reallocated (larger) if necessary, but the size
-       here should be big enough for the expected cases. */
-    /* Allocate one more byte than required, so that a pointer past the end
-       will not have the same address as a pointer to the next object in
-       memory. */
-    curr_source_line = alloc_general(
+  /* Do the initial allocation for curr_source_line.  (Since the space is
+     allocated in general storage, it does not need to be reallocated for
+     each source file; for the same reason, after_end_of_curr_source_line
+     should not be reset.)  The space will be reallocated (larger) if
+     necessary, but the size here should be big enough for the expected
+     cases. */
+  /* Allocate one more byte than required, so that a pointer past the end
+     will not have the same address as a pointer to the next object in
+     memory. */
+  curr_source_line = alloc_general(
                             (sizeof_t)(CURR_SOURCE_LINE_INITIAL_ALLOCATION+1));
-    after_end_of_curr_source_line = curr_source_line +
+  after_end_of_curr_source_line = curr_source_line +
                                     CURR_SOURCE_LINE_INITIAL_ALLOCATION;
-  }  /* if */
-  /* Similar allocation for raw_listing_buffer.  Similar reasoning. */
   if (f_raw_listing != NULL) {
-    if (after_end_of_raw_listing_buffer == NULL) {
-      raw_listing_buffer = alloc_general(
+    /* Similar allocation for raw_listing_buffer.  Similar reasoning. */
+    raw_listing_buffer = alloc_general(
                               (sizeof_t)RAW_LISTING_BUFFER_INITIAL_ALLOCATION);
-      after_end_of_raw_listing_buffer = raw_listing_buffer +
+    after_end_of_raw_listing_buffer = raw_listing_buffer +
                                         RAW_LISTING_BUFFER_INITIAL_ALLOCATION;
-    }  /* if */
     clear_raw_listing_buffer();
   }  /* if */
 
@@ -7659,13 +7586,126 @@ of the front end.
 #endif /* CHECKING */
   }
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-  /* Create the instantiation file suffix list if it has not already been
-     created. */
-  if (implicit_instantiation_file_suffix_list == NULL) {
-    add_list_of_suffixes_to_instantiation_file_suffix_list
+  /* Create the instantiation file suffix list. */
+  add_list_of_suffixes_to_instantiation_file_suffix_list
                                     (DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST);
-  }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+  /* Save variables from lexical.h and lexical.c that are needed for
+     precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(curr_source_line),
+      pch_saved_var_array_elem(after_end_of_curr_source_line),
+      pch_saved_var_array_elem(raw_listing_buffer),
+      pch_saved_var_array_elem(after_end_of_raw_listing_buffer),
+      pch_saved_var_array_elem(curr_seq_number),
+      pch_saved_var_array_elem(seq_number_last_read),
+      pch_saved_var_array_elem(input_stack),
+      pch_saved_var_array_elem(size_input_stack),
+      pch_saved_var_array_elem(avail_orig_line_modifs),
+      pch_saved_var_array_elem(avail_source_line_modifs),
+      pch_saved_var_array_elem(sequence_id_for_source_line_modifs),
+      pch_saved_var_array_elem(last_token_sequence_number_used),
+      pch_saved_var_array_elem(avail_cached_tokens),
+      pch_saved_var_array_elem(avail_cached_constants),
+      pch_saved_var_array_elem(avail_reusable_cache_entries),
+      pch_saved_var_array_elem(avail_pending_pragmas),
+#if DEBUG
+      pch_saved_var_array_elem(num_orig_line_modifs_allocated),
+      pch_saved_var_array_elem(num_source_line_modifs_allocated),
+      pch_saved_var_array_elem(num_cached_tokens_allocated),
+      pch_saved_var_array_elem(num_cached_tokens_in_reusable_caches),
+      pch_saved_var_array_elem(num_pragmas_in_reusable_caches),
+      pch_saved_var_array_elem(num_cached_constants_allocated),
+      pch_saved_var_array_elem(num_reusable_cache_entries_allocated),
+      pch_saved_var_array_elem(num_pending_pragmas_allocated),
+      pch_saved_var_array_elem(num_pragma_descriptions_allocated),
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+      pch_saved_var_array_elem(num_file_suffixes_allocated),
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+      pch_saved_var_array_elem(num_include_file_histories_allocated),
+#endif /* DEBUG */
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* lexical_one_time_init */
+
+
+void lexical_reset(void)
+/*
+Initialize variables that are used to record the state of the lexical
+routines.  These variables are reset after the initial scan that is
+done to determine whether a precompiled header may be used.
+*/
+{
+  /* Variables in lexical.h: */
+  depth_input_stack = -1;
+  curr_ise = NULL;
+  seq_number_last_read = 0;
+  curr_seq_number = 0;
+  orig_line_modif_list = NULL;
+  end_orig_line_modif_list = NULL;
+  source_line_modif_list = NULL;
+  line_start_source_line_modif = NULL;
+  sequence_id_for_source_line_modifs = 0;
+  delete_source_from_loc = NULL;
+  curr_token_pragmas = NULL;
+  /* Static variables in lexical.c: */
+  curr_input_stream = NULL;
+  eof_read_on_curr_input_stream = FALSE;
+  at_end_of_source_file = FALSE;
+  after_end_of_all_source = FALSE;
+  init_do_not_put_curr_line_in_pp_output = TRUE;
+  curr_raw_listing_line_code = '\0';
+  cached_token_rescan_list = NULL;
+  reusable_cache_stack = NULL;
+  any_initial_get_token_tests_needed = FALSE;
+  last_token_sequence_number_used = NO_TOKEN_SEQUENCE_NUMBER;
+  curr_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
+  include_file_history_list = NULL;
+  any_tokens_fetched_from_curr_input_file = FALSE;
+}  /* lexical_reset */
+
+
+void lexical_init(void)
+/*
+Initialize static variables related to the lexical routines.  This is done
+as a subroutine (rather than relying on static initialization) so that it
+can be redone to compile more than one source file in a single invocation
+of the front end.
+*/
+{
+  lexical_reset();
+  /* Variables in lexical.h: */
+  avail_orig_line_modifs = NULL;
+  avail_source_line_modifs = NULL;
+  sequence_id_for_source_line_modifs = 0;
+  delete_source_from_loc = NULL;
+  /* Clear the set of tokens on which to stop a flush following a
+     syntax error. */
+  clear_stop_tokens();
+  /* Static variables in lexical.c: */
+  avail_cached_tokens = NULL;
+  avail_cached_constants = NULL;
+  avail_reusable_cache_entries = NULL;
+  avail_pending_pragmas = NULL;
+  dollar_in_id_diagnostic_issued = FALSE;
+#if DEBUG
+  num_orig_line_modifs_allocated = 0;
+  num_source_line_modifs_allocated = 0;
+  num_cached_tokens_allocated = 0;
+  num_cached_tokens_in_reusable_caches = 0;
+  num_pragmas_in_reusable_caches = 0;
+  num_cached_constants_allocated = 0;
+  num_reusable_cache_entries_allocated = 0;
+  num_pending_pragmas_allocated = 0;
+  num_pragma_descriptions_allocated = 0;
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+  num_file_suffixes_allocated = 0;
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+  num_include_file_histories_allocated = 0;
+#endif /* DEBUG */
 }  /* lexical_init */
 
 
