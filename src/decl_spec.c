@@ -4709,6 +4709,27 @@ process_class_specifier:
                     curr_type_symbol((input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                                      /*in_prescan=*/FALSE);
         if (curr_token_type_symbol != NULL) {
+          if (locator_for_curr_id.is_class_member &&
+              curr_token_type_symbol->kind == (a_symbol_kind)sk_type &&
+              curr_token_type_symbol->variant.type.is_injected_class_name &&
+              (!(decl_specifiers_seen &
+                 ~(DS_FRIEND | DS_INLINE | DS_DECLSPEC |
+                   DS_MICROSOFT_INLINE | DS_FORCEINLINE)))) {
+            /* This identifier appears specify a constructor. */
+            a_type_ptr    tp = type_symbol_type(curr_token_type_symbol);
+            a_symbol_ptr  sym = symbol_supplement_for_class(tp)->constructor;
+
+            if (sym != NULL &&
+                skip_typerefs(locator_for_curr_id.parent.class_type) == tp) {
+              *output_flags |= DSO_CONSTRUCTOR;
+              if (!any_decl_specifiers_seen) {
+                *output_flags |= DSO_NO_DECL_SPECIFIERS;
+              }  /* if */
+              basic_type = bt_no_type;
+              locator_for_curr_id.specific_symbol = sym;
+              goto exit_loop;
+            }  /* if */
+          }  /* if */
           if (sign != sign_none || size != size_none) {
             /* We are in pcc mode, in which adjectival modification of a
                typedef is allowed -- but with restrictions.  For integral

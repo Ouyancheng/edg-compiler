@@ -2976,6 +2976,10 @@ NULL.
                scp->parent.class_type->variant.class_struct_union.extra_info->
                  anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
       /* Okay */
+    } else if (sym->kind == (a_symbol_kind)sk_type &&
+               sym->variant.type.is_injected_class_name) {
+      /* The symbol for the injected class name points to the class of which
+         it's a member, which is also its parent. */
     } else {
       unexpected_condition_str2("end_of_scope_symbol_check:",
                                 "sym/il-entry parent-class mismatch");
