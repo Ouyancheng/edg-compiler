@@ -858,10 +858,11 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
                                 /*need_trailing_space=*/TRUE,
                                 octl);
     /* Output Classname::*. */
-    form_name(&type->variant.ptr_to_member.
-                                       class_of_which_a_member->source_corresp,
-              iek_type, octl);
-    octl->output_str("::*");
+    form_class_qualifier(type->variant.ptr_to_member.class_of_which_a_member,
+                         octl);
+    /* form_class_qualifier put out "::".  Add the final "*" here.  That's
+       okay; it's a separate token. */
+    octl->output_str("*");
     /* Output the type qualifiers on the pointer, if any. */
     if (qualifiers != TQ_NONE) {
       form_type_qualifier(qualifiers, need_trailing_space, octl);
