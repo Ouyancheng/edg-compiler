@@ -3932,6 +3932,11 @@ Do IL lowering of the indicated variable and everything under it.
       /* In C++, one can take the address of a register variable.  In C,
          one is not allowed to, so change "register" to "auto". */
       variable->storage_class = (a_storage_class)sc_auto;
+    } else if (variable->storage_class == (a_storage_class)sc_unspecified &&
+               variable->init_kind == (an_init_kind)initk_none) {
+      /* In C++, there are no tentative definitions.  Use initk_zero to
+         indicate that this variable is "really" defined. */
+      variable->init_kind = (an_init_kind)initk_zero;
     }  /* if */
     switch (variable->init_kind) {
       case initk_none:
