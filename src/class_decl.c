@@ -6676,12 +6676,6 @@ next_declaration:
        since symbols may be inherited. */
     cssp->symbols = scope_stack[depth_scope_stack].symbols;
     if (C_dialect == C_dialect_cplusplus) {
-      /* Classes with no constructors, no private or protected members, no
-         base classes, and no virtual functions are used to declare
-         "aggregate" objects (ARM 8.4.1). */
-      if (!class_aggregate_ruled_out && cssp->constructor == NULL) {
-        cssp->is_class_aggregate = TRUE;
-      }  /* if */
       /* Issue a diagnostic on a class with no user-defined constructor and
          with one or more members with reference or const type.  Note that
          this check is done before compiler-generated constructors, if any,
@@ -6722,6 +6716,12 @@ next_declaration:
         /* Create compiler-generated default constructor, copy constructor,
            destructor, and assignment operator, if any is needed. */
         check_special_member_functions(class_type);
+        /* Classes with no constructors, no private or protected members, no
+           base classes, and no virtual functions are used to declare
+           "aggregate" objects (ARM 8.4.1). */
+        if (!class_aggregate_ruled_out && cssp->constructor == NULL) {
+          cssp->is_class_aggregate = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
     /* Wrap up field allocation. */
