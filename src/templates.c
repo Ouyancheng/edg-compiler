@@ -2603,7 +2603,7 @@ that make up the declaration and do a prototype instantiation.
   a_template_arg_ptr                tap, *append_addr;
   a_template_param_ptr              tpp;
   a_boolean			    err;
-  a_stop_token_array                save_stop_token_array;
+  a_token_set_array                 stop_tokens;
 
   db_enter(3, "class_template_declaration");
   if (curr_token == tok_typedef || curr_token == tok_auto ||
@@ -2779,29 +2779,27 @@ that make up the declaration and do a prototype instantiation.
         *append_addr = tap;
         append_addr = &tap->next;
       }  /* for */
-      /* Save the current stop token state, and reinitialize it. */
-      copy_stop_tokens(stop_token_array, save_stop_token_array);
-      clear_stop_tokens();
+      /* Initialize a local stop token set. */
+      clear_token_set_array(stop_tokens);
       /* This is a class template definition, so scan all the tokens that
          comprise it and cache them away. */
-      add_stop_token(tok_semicolon);
+      incr_token_set_array_element(stop_tokens, tok_semicolon);
       if (curr_token == tok_colon) {
         /* Scan the tokens in the base class declarations, stopping when
            the "{" is reached. */
-        add_stop_token(tok_lbrace);
-        cache_token_stream(&tssp->token_cache);
-        remove_stop_token(tok_lbrace);
+        incr_token_set_array_element(stop_tokens, tok_lbrace);
+        cache_token_stream(&tssp->token_cache, stop_tokens);
+        decr_token_set_array_element(stop_tokens, tok_lbrace);
       }  /* if */
-      remove_stop_token(tok_semicolon);
+      decr_token_set_array_element(stop_tokens, tok_semicolon);
       /* Scan the class body.  If the body is missing the error will be
          found during prototype instantiation. */
       if (curr_token == tok_lbrace) {
         /* Swallow the "{" and then cache everything through to the "}". */
         cache_curr_token(&tssp->token_cache);
         (void)get_token();
-        add_stop_token(tok_rbrace);
-        cache_token_stream(&tssp->token_cache);
-        remove_stop_token(tok_rbrace);
+        incr_token_set_array_element(stop_tokens, tok_rbrace);
+        cache_token_stream(&tssp->token_cache, stop_tokens);
         /* Now cache the "}" (unless we didn't find one). */
         if (curr_token == tok_rbrace) {
           cache_curr_token(&tssp->token_cache);
@@ -2811,8 +2809,6 @@ that make up the declaration and do a prototype instantiation.
       /* Add an end-of-source token to the end of the token cache to assure
          that we don't scan past the end of the cache in the actual scan. */
       terminate_token_cache(&tssp->token_cache);
-      /* Restore the stop token state. */
-      copy_stop_tokens(save_stop_token_array, stop_token_array);
       /* Note that the semicolon is not cached. */
     } else {
       mark_declared(sym, &sym->decl_position);
@@ -2837,30 +2833,28 @@ Scan a function body and cache the tokens so that they can be rescanned
 for the instantiation.
 */
 {
-  a_stop_token_array  save_stop_token_array;
+  a_token_set_array  stop_tokens;
 
   db_enter(3, "cache_function_template_body");
   if (curr_token == tok_lbrace ||
       (curr_token == tok_colon && is_constructor)) {
     *defines_something = TRUE;
-    /* Save the current stop token state, and reinitialize it. */
-    copy_stop_tokens(stop_token_array, save_stop_token_array);
-    clear_stop_tokens();
+    /* Initialize a local stop token set. */
+    clear_token_set_array(stop_tokens);
     if (curr_token == tok_colon) {
-      add_stop_token(tok_lbrace);
-      add_stop_token(tok_semicolon);
-      cache_token_stream(p_token_cache);
-      remove_stop_token(tok_lbrace);
-      remove_stop_token(tok_semicolon);
+      incr_token_set_array_element(stop_tokens, tok_lbrace);
+      incr_token_set_array_element(stop_tokens, tok_semicolon);
+      cache_token_stream(p_token_cache, stop_tokens);
+      decr_token_set_array_element(stop_tokens, tok_lbrace);
+      decr_token_set_array_element(stop_tokens, tok_semicolon);
     }  /* if */
     if (curr_token == tok_lbrace) {
       /* Cache the "{" and advance past it. */
       cache_curr_token(p_token_cache);
       (void)get_token();
       /* Cache all tokens up to the "}" (or end-of-source). */
-      add_stop_token(tok_rbrace);
-      cache_token_stream(p_token_cache);
-      remove_stop_token(tok_rbrace);
+      incr_token_set_array_element(stop_tokens, tok_rbrace);
+      cache_token_stream(p_token_cache, stop_tokens);
       /* Cache the "}" and append an end-of-source token. */
       if (curr_token == tok_rbrace) {
         cache_curr_token(p_token_cache);
@@ -2871,8 +2865,6 @@ for the instantiation.
          assure that we don't scan past the end of the cache in the actual
          scan. */
       terminate_token_cache(p_token_cache);
-      /* Restore the stop token state. */
-      copy_stop_tokens(save_stop_token_array, stop_token_array);
     }  /* if */
   } else {
     /* No body to cache. */
@@ -2892,28 +2884,22 @@ be capable of scanning an arbitrary template declaration.  In practice,
 this will never be a class declaration.
 */
 {
-  a_stop_token_array  save_stop_token_array;
+  a_token_set_array  stop_tokens;
 
   db_enter(3, "cache_template_declaration");
   clear_token_cache(p_token_cache, /*reusable=*/TRUE);
-  /* Save the current stop token state, and reinitialize it. */
-  copy_stop_tokens(stop_token_array, save_stop_token_array);
-  clear_stop_tokens();
-  add_stop_token(tok_lbrace);
-  add_stop_token(tok_colon);
-  add_stop_token(tok_semicolon);
   /* Cache the current token and advance past it. */
   cache_curr_token(p_token_cache);
   (void)get_token();
+  /* Initialize a local stop token set. */
+  clear_token_set_array(stop_tokens);
   /* Cache all tokens up to the ";" that follows a declaration, the
      "{" that begins a definition, or a ":" that begins a ctor
      initializer list. */
-  cache_token_stream(p_token_cache);
-  remove_stop_token(tok_lbrace);
-  remove_stop_token(tok_colon);
-  remove_stop_token(tok_semicolon);
-  /* Restore the stop token state. */
-  copy_stop_tokens(save_stop_token_array, stop_token_array);
+  incr_token_set_array_element(stop_tokens, tok_lbrace);
+  incr_token_set_array_element(stop_tokens, tok_colon);
+  incr_token_set_array_element(stop_tokens, tok_semicolon);
+  cache_token_stream(p_token_cache, stop_tokens);
   /* Add an end-of-source token to the end of the token cache to
      assure that we don't scan past the end of the cache in the actual
      scan. */
@@ -2946,27 +2932,24 @@ void prescan_template_param_decl(a_token_cache	*token_cache)
 Place the tokens for a template parameter into a token cache.
 */
 {
-  a_stop_token_array        save_stop_token_array;
+  a_token_set_array  stop_tokens;
 
   db_enter(3, "prescan_template_param_decl");
   clear_token_cache(token_cache, /*reusable=*/TRUE);
-  /* Save the current stop token state, and reinitialize it. */
-  copy_stop_tokens(stop_token_array, save_stop_token_array);
-  clear_stop_tokens();
+  /* Initialize a local stop token set. */
+  clear_token_set_array(stop_tokens);
   /* In the normal case we will scan an expression and encounter a comma
      or right parenthesis.  If both of these are omitted, terminate the token
      stream when some likely delimiter is reached. */
-  add_stop_token(tok_comma);
-  add_stop_token(tok_gt);
-  add_stop_token(tok_semicolon);
-  cache_token_stream(token_cache);
+  incr_token_set_array_element(stop_tokens, tok_comma);
+  incr_token_set_array_element(stop_tokens, tok_gt);
+  incr_token_set_array_element(stop_tokens, tok_semicolon);
+  cache_token_stream(token_cache, stop_tokens);
   /* Note that the terminating token (comma, etc.) is not added to
      the cache. */
   /* Add an end-of-source token to the end of the token cache.  This assures
      that we won't scan past the end of the cache in the actual scan. */
   terminate_token_cache(token_cache);
-  /* Restore the original stop token state. */
-  copy_stop_tokens(save_stop_token_array, stop_token_array);
   /* Rescan a copy of the tokens that were just cached.  Rescanning a copy
      ensures that processing of the remainder of the original line will
      not be affected by the tok_end_of_source that terminates the cache. */
@@ -3454,7 +3437,7 @@ entry is pushed on the scope stack.
         add_stop_token(tok_semicolon);
         p_token_cache = err ? &local_token_cache : &tssp->token_cache;
         clear_token_cache(p_token_cache, /*reusable=*/TRUE);
-        cache_token_stream(p_token_cache);
+        cache_token_stream(p_token_cache, stop_token_array);
         remove_stop_token(tok_semicolon);
         if (err) {
           discard_token_cache(p_token_cache);
