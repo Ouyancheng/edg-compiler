@@ -127,7 +127,7 @@ Flags to be set when using the KAI inliner.
 #define __ANSIC__ 1
 #define USING_ISO_C 1
 #define TARG_LITTLE_ENDIAN TRUE
-#define TARG_JMP_BUF_NUM_ELEMENTS 8
+#define TARG_JMP_BUF_NUM_ELEMENTS 16
 #define DEBUG 1
 #define CHECKING 1
 #define USE_MMAP_FOR_MEMORY_REGIONS 1
