@@ -339,7 +339,6 @@ typedef enum /*an_error_code*/ {
   ec_no_default_constructor,
   ec_not_a_field_or_base_class,
   ec_indirect_nonvirtual_base_class_not_allowed,
-  ec_no_constructor,
   ec_bad_union_field,
   ec_overloaded_function_types_too_similar,
   ec_bad_rvalue_array,

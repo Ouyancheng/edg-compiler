@@ -1096,9 +1096,6 @@ error code.
     case ec_indirect_nonvirtual_base_class_not_allowed:
       m = "indirect nonvirtual base class not allowed";
       break;
-    case ec_no_constructor:
-      m = "no constructor exists for class %sq";
-      break;
     case ec_bad_union_field:
       m = "invalid union member -- class %t has a disallowed member function";
       break;
