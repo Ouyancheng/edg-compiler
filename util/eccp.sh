@@ -80,6 +80,10 @@ feoptions=$defines
 ccsdb=
 keep_int_file=0
 #
+# Generate position independent code
+#
+ccpic=
+#
 # Flag indicating that C is being compiled instead of C++
 #
 cmode=0
@@ -324,6 +328,11 @@ do
       patch_mode=1
       shift
       ;;
+    -pic)
+#     Generate position independent code
+      ccpic=-pic
+      shift
+      ;;
     -target)
 #     SunOS 4.n option, as in "-target sun4" -- ignored.
       shift;
@@ -353,6 +362,12 @@ do
       ;;
     *\.a)
 #     Collect a list of library archive names (.a) files.
+      lfiles=$lfiles" "$1
+      any_l_or_o_files=1
+      shift;
+      ;;
+    *\.so | *\.so.*)
+#     Collect a list of library shared object names (.so) files.
       lfiles=$lfiles" "$1
       any_l_or_o_files=1
       shift;
@@ -453,7 +468,7 @@ do
 #
     if [ $fe_only -ne 1 ]
     then
-      cc $ccsdb -c -temp=/usr/tmp $basefile.int.c
+      cc $ccsdb $ccpic -c -temp=/usr/tmp $basefile.int.c
       status=$?
       if [ $status -ne 0 ]
       then
