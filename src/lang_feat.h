@@ -321,14 +321,20 @@ type.
 #endif /* ifndef USER_CONTROL_OF_STRUCT_PACKING */
 
 /*
-Flag that is TRUE if "#pragma ident <string>" is recognized.  It is
-implemented by recording the string in a pragma entry and passing it to
-the back end.  When this flag is set, "#ident" is treated as equivalent
-to "#pragma ident".
+Flag that is TRUE if "#pragma ident <string>" and "#ident" are recognized.
+Both are implemented by recording the string in a pragma entry and passing
+it to the back end.
 */
-#ifndef IDENT_PRAGMA
-#define IDENT_PRAGMA FALSE
-#endif /* ifndef IDENT_PRAGMA */
+#ifndef IDENT_DIRECTIVE_AND_PRAGMA
+#define IDENT_DIRECTIVE_AND_PRAGMA FALSE
+#endif /* ifndef IDENT_DIRECTIVE_AND_PRAGMA */
+
+/*
+Flag that is TRUE if "#alias" is recognized.
+*/
+#ifndef ALIAS_DIRECTIVE
+#define ALIAS_DIRECTIVE FALSE
+#endif /* ifndef ALIAS_DIRECTIVE */
 
 /*
 Flag that is TRUE if the "restrict" keyword is allowed (in both C and C++).
