@@ -1066,7 +1066,8 @@ symbol_name:
         if (seg_ptr->variant.symbol.force_function_params) {
           /* "%np" was specified for this fill-in. */
           force_function_params = TRUE;
-        } else if (routine->template_arg_list != NULL) {
+        } else if (fund_sym->kind != (a_symbol_kind)sk_function_template &&
+                   routine->template_arg_list != NULL) {
           /* Always put out the parameter list for functions that are
              instances of function templates. */
           force_function_params = TRUE;
