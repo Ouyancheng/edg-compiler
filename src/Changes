@@ -7359,7 +7359,7 @@ which friendship was conferred.)
 4/8/93  Spurious diagnostic on typedef declarations
 
 A warning (or in strict ANSI mode an error) is no longer issued on a
-typedef declaration without a declarator when the the type declaration
+typedef declaration without a declarator when the type declaration
 declares a tag name or defines an enumeration.  For example:
 
   typedef struct S { int i; };     // No diagnostic
