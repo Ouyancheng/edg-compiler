@@ -55,6 +55,20 @@ state.  This allows the specializations to be put out in contexts
 where formerly they could not be, and that produces compilable output
 in some complicated cases that formerly failed.
 
+3/18/99  Abort eliminated in types_of_decl_and_using_decl_conflict
+
+An abort could occur when a function was redeclared after a
+using-declaration had extended the overload set to which it belonged.
+Now fixed.  For example (on some systems but not on others):
+
+  void f(char);
+  namespace B {
+    void f(int);
+    void f(long);
+  }
+  using B::f;
+  void f(char);               // Abort fixed
+
 3/18/99  Internal error in decl_routine eliminated
 
 An internal error could occur in decl_routine when the following was
