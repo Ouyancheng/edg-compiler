@@ -4817,8 +4817,8 @@ typedef struct a_type {
   a_bit_field	has_microsoft_w64_specifier:1;
 			/* TRUE if this is a type that is the same as some
 			   other type, but declared using the Microsoft __w64
-			   specifier.  Implicit conversions between such
-			   types and their equivalent without he __w64
+			   specifier.  Implicit conversions from such types to
+			   equal-sized integral types without the __w64
 			   specifier are diagnosed with a remark to help
 			   identify potential 64-bit portability issues. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
