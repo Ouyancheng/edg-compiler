@@ -9947,11 +9947,9 @@ TRUE if the declaration following this one is such a continuation.
 #if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET
     /* Emit any user-specified assembly symbol for this variable. */
     write_asm_name (rout->asm_name);
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
-#if GNU_EXTENSIONS_ALLOWED
     /* Emit attributes associated with the routine. */
     write_routine_attributes(rout);
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list =
              another_declaration_in_comma_list_follows(rout_type,
