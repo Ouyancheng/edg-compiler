@@ -1,5 +1,27 @@
 Version 3.6
 
+4/5/05   GNU C++ compatibility: lookup of dependent names
+
+When the g++ compiler does a lookup in a class with a dependent base class,
+and when that lookup would normally return a nonstatic data member of an
+enclosing class, g++ will instead return a nonstatic data member of a
+dependent base class.  We now emulate this behavior in g++ mode when
+gnu_version is < 30400.
+
+  template <class T> struct C {
+    struct A { int i; };
+    struct B: public A {
+      void f() {
+        i = 0;  // In GNU mode, A::i not C::i
+      }
+    };
+    int i;
+  };
+  int main() {
+    C<int>::B b;
+    b.f();
+  }
+
 4/5/05   Gnu C++ compatibility: "best worst conversion" in overload resolution
 
 The change made on 7/20/04 to implement an "extension" in the GNU C++

@@ -3172,7 +3172,10 @@ C and C++.
          (which may be the same as the first symbol if there were no names
          found in dependent base classes).  If the first lookup did not
          find a function and the second lookup did find a function, use the
-         symbol from the second lookup. */
+         symbol from the second lookup.  In addition, if both lookups find
+         fields, use the result of the second lookup.  This occurs when
+         the first lookup finds a field from an enclosing class and the second
+         finds one from a base class. */
       a_symbol_ptr	new_sym;
       a_symbol_ptr	fund_sym;
       lookup_state.force_lookup_in_dependent_bases = TRUE;
@@ -3186,6 +3189,9 @@ C and C++.
       } else if (new_sym != NULL) {
         a_symbol_ptr	fund_new_sym = fundamental_symbol_of(new_sym);
         if (is_function_or_template_symbol(fund_new_sym)) {
+          sym = new_sym;
+        } else if (fund_new_sym->kind == (a_symbol_kind)sk_field &&
+                   sym->kind == (a_symbol_kind)sk_field) {
           sym = new_sym;
         }  /* if */
       }  /* if */
