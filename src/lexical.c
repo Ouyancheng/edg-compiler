@@ -3867,11 +3867,9 @@ tok_colon_colon otherwise.  This routine should only be called in C++ mode.
              a class name, indicating further qualification, as in A::B::x. */
           (void)get_token();
           /* Search for the identifier in the given scope. */
-          if (class_scope != NO_SCOPE_NUMBER) {
-            class_symbol = scope_qualified_id_lookup(&locator_for_curr_id,
-                                                     class_scope,
-                                                     /*must_be_class=*/TRUE);
-          }  /* if */
+          class_symbol = scope_qualified_id_lookup(&locator_for_curr_id,
+                                                   class_scope,
+                                                   /*must_be_class=*/TRUE);
         }  /* if */
       } while (class_symbol != NULL && next_token() == tok_colon_colon);
       is_qualifier = TRUE;
@@ -3930,22 +3928,20 @@ set to NULL and return FALSE.
             curr_token = tok_identifier;
             /* The locator is set below. */
           } else {
-            /* The final identifier is present. */
-            if (class_scope != NO_SCOPE_NUMBER) {
-              /* There was a valid class qualifier.  Look up the identifier
-                 in the scope. */
-              name_symbol = scope_qualified_id_lookup(&locator_for_curr_id,
-                                                      class_scope,
-                                                      /*must_be_class=*/FALSE);
-              if (name_symbol != NULL) {
-                /* The name was found. */
-                okay = TRUE;
-                locator_for_curr_id.qualified_name_symbol = name_symbol;
-              }  /* if */
-            }  /* if */
-            if (!okay) {
+            /* The final identifier is present.  Look it up in the class
+               scope. */
+            name_symbol = scope_qualified_id_lookup(&locator_for_curr_id,
+                                                    class_scope,
+                                                    /*must_be_class=*/FALSE);
+            if (name_symbol != NULL) {
+              /* The name was found. */
+              okay = TRUE;
+              locator_for_curr_id.qualified_name_symbol = name_symbol;
+            } else {
               /* The identifier could not be found in the class. */
-              error(ec_name_not_found_in_class);
+              if (class_scope != NO_SCOPE_NUMBER) {
+                error(ec_name_not_found_in_class);
+              }  /* if */
             }  /* if */
           }  /* if */
           if (!okay) {
