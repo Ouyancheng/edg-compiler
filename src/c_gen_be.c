@@ -1688,7 +1688,7 @@ Write out attributes that apply to the indicated label.
   if (label->has_gnu_unused_attribute) {
     write_tok_str(" __attribute__((__unused__))");
   }  /* if */
-}  /* write_routine_attributes */
+}  /* write_label_attributes */
 
 #if GCC_IS_GENERATED_CODE_TARGET
 
