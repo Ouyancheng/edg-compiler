@@ -5849,7 +5849,7 @@ Scan the body of a class definition, including the base classes list.
         /* Move cached #pragma declarations (if any) to the current scope
            stack entry so they can be examined and acted upon in subsequent
            processing. */
-        (void)select_pragmas_bound_to_curr_decl_or_stmt(/*is_decl=*/TRUE);
+        (void)select_curr_construct_pragmas(/*is_decl=*/TRUE);
         if (C_dialect == C_dialect_cplusplus) {
           /* An access specification may appear anywhere amid the member
              declarations.  Check for it each time through the loop, and adjust

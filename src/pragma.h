@@ -283,7 +283,7 @@ extern void free_pending_pragma_list(a_pending_pragma_ptr ppp);
 
 extern void add_to_curr_token_pragma_list(a_pending_pragma_ptr ppp);
 
-extern a_boolean select_pragmas_bound_to_curr_decl_or_stmt(a_boolean  is_decl);
+extern a_boolean select_curr_construct_pragmas(a_boolean  is_decl);
 
 extern
 a_pending_pragma_ptr add_curr_token_pseudo_pragma(a_pragma_kind      kind,
@@ -295,7 +295,7 @@ extern a_pending_pragma_ptr extract_specific_pragmas(a_pragma_kind    kind,
                                                      a_symbol_ptr     sym,
                                                      a_statement_ptr  sp);
 
-extern void process_pragmas_bound_to_curr_decl_or_stmt(a_symbol_ptr     sym,
+extern void process_curr_construct_pragmas(a_symbol_ptr     sym,
                                                        a_statement_ptr  sp);
 
 extern void process_pragmas_at_end_of_source(void);

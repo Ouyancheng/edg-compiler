@@ -6707,8 +6707,9 @@ of the template.
   ssep->template_param_list      = NULL;
   ssep->last_label_decl_seq      = 0;
   ssep->pending_pragmas          = NULL;
-  ssep->pragmas_bound_to_curr_decl_or_stmt
-				 = NULL;
+  ssep->curr_construct_pragmas	 = NULL;
+  ssep->curr_list_of_curr_construct_pragmas
+				 = &ssep->curr_construct_pragmas;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */

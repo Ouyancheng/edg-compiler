@@ -9317,8 +9317,7 @@ specified (rather than defaulted to "int").
                         &symbol_ptr, &linkage,
                         &old_type, &ext_sym);
   }  /* if */
-  process_pragmas_bound_to_curr_decl_or_stmt(symbol_ptr,
-                                             (a_statement_ptr)NULL);
+  process_curr_construct_pragmas(symbol_ptr, (a_statement_ptr)NULL);
   routine_ptr = symbol_ptr->variant.routine.ptr;
   check_assertion(make_unqualified_type(routine_ptr->type) ==
                                                       unqualified_rout_type);
@@ -9939,7 +9938,7 @@ of local variables (and types, etc.) of functions and in blocks.
   }  /* if */
   /* Move cached #pragma declarations (if any) to the current scope stack
      entry so they can be examined and acted upon in subsequent processing. */
-  (void)select_pragmas_bound_to_curr_decl_or_stmt(/*is_decl=*/TRUE);
+  (void)select_curr_construct_pragmas(/*is_decl=*/TRUE);
   add_stop_token(tok_semicolon);
   need_semicolon_remove_stop_token = TRUE;
   if (curr_token == tok_asm) {
@@ -10788,8 +10787,7 @@ continue_with_declaration:
           var_ptr->type = error_type();
         }  /* if */
       }  /* if */
-      process_pragmas_bound_to_curr_decl_or_stmt(symbol_ptr,
-                                                 (a_statement_ptr)NULL);
+      process_curr_construct_pragmas(symbol_ptr, (a_statement_ptr)NULL);
       remove_stop_token(tok_comma);
       need_comma_remove_stop_token = FALSE;
       /* Keep scanning the list of declarators. */

@@ -1445,6 +1445,14 @@ the associated il statement.
     add_to_control_flow_descr_list(
              alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block));
   }  /* if */
+  /* Save the value of the curr_list_of_curr_construct_pragmas field from the
+     current scope stack entry, then updated the field in the scope stack entry
+     to point to the curr_construct_pragma list that is part of this structured
+     statement stack entry. */
+  sssep->saved_curr_list_of_curr_construct_pragmas =
+           scope_stack[depth_scope_stack].curr_list_of_curr_construct_pragmas;
+  scope_stack[depth_scope_stack].curr_list_of_curr_construct_pragmas
+                                             = &sssep->curr_construct_pragmas;
   db_exit();
 }  /* push_stmt_stack */
 
@@ -1576,6 +1584,10 @@ a structured statement has ended.
     add_to_control_flow_descr_list(
        alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
   }  /* if */
+  /* Restore the saved value of the curr_list_of_curr_construct_pragmas
+     in the current scope stack entry. */
+  scope_stack[depth_scope_stack].curr_list_of_curr_construct_pragmas
+                          = sssep->saved_curr_list_of_curr_construct_pragmas;
   /* Pop the stack. */
   depth_stmt_stack--;
   /* If the break label for this statement was referenced, generate 
@@ -3227,7 +3239,7 @@ rescan_statement:
   get_another_statement = FALSE;
   /* Move cached #pragma declarations (if any) to the current scope stack
      entry so they can be examined and acted upon in subsequent processing. */
-  if (select_pragmas_bound_to_curr_decl_or_stmt(/*is_decl=*/FALSE)) {
+  if (select_curr_construct_pragmas(/*is_decl=*/FALSE)) {
     /* If a lint-style "notreached" comment was detected, suppress the
        warning on unreachable code. */
     check_lint_notreached_state();
@@ -3511,7 +3523,7 @@ branching into it is disallowed).
       /* Move cached #pragma declarations (if any) to the current scope stack
          entry so they can be examined and acted upon in processing the
          implicit return. */
-      if (select_pragmas_bound_to_curr_decl_or_stmt(/*is_decl=*/FALSE)) {
+      if (select_curr_construct_pragmas(/*is_decl=*/FALSE)) {
         /* Check for a lint-style "notreached" comment -- it will affect
            diagnostics in check_void_return_okay. */
         check_lint_notreached_state();

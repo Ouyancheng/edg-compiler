@@ -406,15 +406,15 @@ pbk_immediate pragmas are processed here.
 }  /* process_curr_token_pragmas */
 
 
-a_boolean select_pragmas_bound_to_curr_decl_or_stmt(a_boolean	is_decl)
+a_boolean select_curr_construct_pragmas(a_boolean	is_decl)
 /*
 This routine scans the current token pragma list for any pbk_next_construct
 pragmas.  If the binding kind matches the flags passed by the caller,
-the pragma is copied to the pragmas_bound_to_curr_decl_or_stmt list.
+the pragma is copied to the curr_construct_pragmas list.
 If binding kind does not match the flags passed by the caller an error
 is issued.  Pragmas that don't bind to the next declaration/statement
 remain on the current token pragma list.  If there are any pragmas on
-the pragmas_bound_to_curr_decl_or_stmt (either ones that were already
+the curr_construct_pragmas (either ones that were already
 on the list, or new ones added by this call) return TRUE; otherwise
 return FALSE.
 */
@@ -431,7 +431,7 @@ return FALSE.
   add_source_sequence_entry_to_curr_token_pragmas();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   ssep = &scope_stack[depth_scope_stack];
-  list_start = ssep->pragmas_bound_to_curr_decl_or_stmt;
+  list_start = *(ssep->curr_list_of_curr_construct_pragmas);
   /* Find the end of the current list. */
   list_end = list_start;
   if (list_end != NULL) {
@@ -507,10 +507,10 @@ return FALSE.
     }  /* if */
     ppp = next_ppp;
   }  /* while */
-  ssep->pragmas_bound_to_curr_decl_or_stmt = list_start;
+  *(ssep->curr_list_of_curr_construct_pragmas) = list_start;
   /* Return TRUE if there are any entrys of the list. */
   return list_start != NULL;
-}  /* select_pragmas_bound_to_curr_decl_or_stmt */
+}  /* select_curr_construct_pragmas */
 
 
 static add_pragma_to_il(a_pending_pragma_ptr  ppp,
@@ -644,7 +644,7 @@ are first removed from the lists they currently reside on.
        statement. */
     is_bound_to_curr_construct = TRUE;
     ssep = &scope_stack[depth_scope_stack];
-    scope_list_addr = &ssep->pragmas_bound_to_curr_decl_or_stmt;
+    scope_list_addr = ssep->curr_list_of_curr_construct_pragmas;
   } else {
     /* Set up to search for a pbk_other pragma. */
     is_bound_to_curr_construct = FALSE;
@@ -708,8 +708,8 @@ are first removed from the lists they currently reside on.
 }  /* extract_specific_pragmas */
 
 
-void process_pragmas_bound_to_curr_decl_or_stmt(a_symbol_ptr     sym,
-                                                a_statement_ptr  sp)
+void process_curr_construct_pragmas(a_symbol_ptr     sym,
+                                    a_statement_ptr  sp)
 /*
 Go through the list of pragmas that are to be bound to the current
 declaration or statement and perform any actions required to process
@@ -726,14 +726,14 @@ the pragmas.
   /* Go though the pragmas that are meant to apply to the current
      declaration or statement. */
   ssep = &scope_stack[depth_scope_stack];
-  ppp = ssep->pragmas_bound_to_curr_decl_or_stmt;
+  ppp = *(ssep->curr_list_of_curr_construct_pragmas);
   list_start = ppp;
   for(; ppp != NULL; ppp = ppp->next) {
     a_next_construct_pragma_function_ptr ncpfp;
     pkdp = ppp->descr_ptr;
     /* Make sure that the binding information in the pragma description
        is consistent with the argument list.  If these do not match then
-       the is_decl flag used when select_pragmas_bound_to_curr_decl_or_stmt
+       the is_decl flag used when select_curr_construct_pragmas
        must have been invalid. */
     check_assertion_str((pkdp->may_bind_to_decl && sym != NULL) || 
                         (pkdp->may_bind_to_stmt && sp != NULL),
@@ -752,8 +752,8 @@ the pragmas.
   if (list_start != NULL) {
     free_pending_pragma_list(list_start);
   }  /* if */
-  ssep->pragmas_bound_to_curr_decl_or_stmt = NULL;
-}  /* process_pragmas_bound_to_curr_decl_or_stmt */
+  *(ssep->curr_list_of_curr_construct_pragmas) = NULL;
+}  /* process_curr_construct_pragmas */
 
 
 void process_pragmas_at_end_of_source(void)

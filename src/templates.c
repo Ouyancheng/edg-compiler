@@ -3280,7 +3280,7 @@ entry is pushed on the scope stack.
 #endif /* CHECKING */
   /* Move cached #pragma declarations (if any) to the current scope stack
      entry so they can be examined and acted upon in subsequent processing. */
-  select_pragmas_bound_to_curr_decl_or_stmt(/*is_decl=*/TRUE);
+  select_curr_construct_pragmas(/*is_decl=*/TRUE);
   saved_curr_default_args = curr_default_args;
   curr_default_args = NULL;
   *defines_something = FALSE;

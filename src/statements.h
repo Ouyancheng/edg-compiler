@@ -21,6 +21,9 @@ statements.h -- Declarations relating to statements.c (having to do with
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */
+#ifndef PRAGMA_H
+#include "pragma.h"
+#endif /* ifndef PRAGMA_H */
 
 /*
 Indication of whether or not code is reachable from the code immediately
@@ -135,6 +138,18 @@ typedef struct a_struct_stmt_stack_entry {
 		end_reachable;
 			/* Indicates whether or not the end of the structured
 			   statement is reachable. */
+  a_pending_pragma_ptr
+		*saved_curr_list_of_curr_construct_pragmas;
+			/* When a structured statement stack entry is pushed
+			   the curr_list_of_curr_construct_pragma field from
+			   the current scope stack entry is saved here.  The
+			   field in the scope stack entry is then updated to
+			   point to the curr_construct_pragams field (below)
+		           in the newly created structured statement stack
+			   entry. */
+  a_pending_pragma_ptr
+		curr_construct_pragmas;
+			/* See comment above. */
 } a_struct_stmt_stack_entry;
 
 EXTERN a_struct_stmt_stack_entry_ptr
