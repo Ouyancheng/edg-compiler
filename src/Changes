@@ -1,5 +1,14 @@
 Version 2.23
 
+4/4/94   Diagnostics connected with abstract classes
+
+The following ill-formed program is now diagnosed correctly:
+
+  class A {
+    A f();                       // Error: returns an abstract class
+    virtual void g() = 0;
+  };
+    
 4/4/94   Reworking of disambiguation routines
 
 The routines used to resolve declaration vs. expression ambiguities
