@@ -5903,7 +5903,7 @@ its parameters?).
       case tk_union:
         /* Any code for the general class/struct/union case should go
 	   here. */
-        {
+        if (!C_mode()) {
           /* If this class is a proxy class, traverse its associated
              template parameter. */
           a_symbol_ptr			class_sym;
@@ -5919,55 +5919,56 @@ its parameters?).
               }  /* if */
             }  /* if */
           }  /* if */
-        }
-        /* Conditional traversal of contained types. */
-        if (flags & TTT_TEMPLATE_ARGS) {
-          for (tap = type_ptr->variant.class_struct_union.extra_info->
+          /* Conditional traversal of contained types. */
+          if (flags & TTT_TEMPLATE_ARGS) {
+            for (tap = type_ptr->variant.class_struct_union.extra_info->
                                                           template_arg_list;
-               tap != NULL;
-               tap = tap->next) {
-            if (tap->is_type) {
-              tp = tap->variant.type;
-              if (traverse_type_tree(tp, func, flags)) {
-                status = TRUE;
-                break;
-              }  /* if */
-            } else if (!tap->is_array_bound_of_unknown_type &&
-                       !tap->constant_is_an_arg_operand) {
-              /* Nontype template argument.  Check the type of the constant. */
-              if (!(flags & TTT_DEDUCED_CONTEXTS_ONLY)) {
-                tp = tap->variant.constant->type;
+                 tap != NULL;
+                 tap = tap->next) {
+              if (tap->is_type) {
+                tp = tap->variant.type;
                 if (traverse_type_tree(tp, func, flags)) {
                   status = TRUE;
                   break;
                 }  /* if */
+              } else if (!tap->is_array_bound_of_unknown_type &&
+                         !tap->constant_is_an_arg_operand) {
+                /* Nontype template argument.  Check the type of the
+                   constant. */
+                if (!(flags & TTT_DEDUCED_CONTEXTS_ONLY)) {
+                  tp = tap->variant.constant->type;
+                  if (traverse_type_tree(tp, func, flags)) {
+                    status = TRUE;
+                    break;
+                  }  /* if */
+                }  /* if */
               }  /* if */
-            }  /* if */
-          }  /* for */
-          if (!status && type_ptr->source_corresp.is_class_member) {
-            /* If this class is a member of a proxy class, traverse the type
-               of the template parameter with which the proxy class is
-               associated. */
-            tp = type_ptr->source_corresp.parent.class_type;
-            tp = symbol_supplement_for_class(tp)->
+            }  /* for */
+            if (!status && type_ptr->source_corresp.is_class_member) {
+              /* If this class is a member of a proxy class, traverse the type
+                 of the template parameter with which the proxy class is
+                 associated. */
+              tp = type_ptr->source_corresp.parent.class_type;
+              tp = symbol_supplement_for_class(tp)->
                                                template_param_for_proxy_class;
-            if (tp != NULL) {
-              if (traverse_type_tree(tp, func, flags)) {
-                status = TRUE;
+              if (tp != NULL) {
+                if (traverse_type_tree(tp, func, flags)) {
+                  status = TRUE;
+                }  /* if */
+                break;
               }  /* if */
-              break;
             }  /* if */
-          }  /* if */
 check_enclosing_classes:
-          if ((!(flags & TTT_DEDUCED_CONTEXTS_ONLY) ||
-               nonstandard_qualifier_deduction) &&
-              !status && type_ptr->source_corresp.is_class_member) {
-            /* Check the parent class.  This is only done when considering
-               nondeduced contexts, or when this is a deduced context when
-               nonstandard deduction is enabled. */
-            tp = type_ptr->source_corresp.parent.class_type;
-            status = traverse_type_tree(tp, func, flags);
-          }  /* if */      
+            if ((!(flags & TTT_DEDUCED_CONTEXTS_ONLY) ||
+                 nonstandard_qualifier_deduction) &&
+                !status && type_ptr->source_corresp.is_class_member) {
+              /* Check the parent class.  This is only done when considering
+                 nondeduced contexts, or when this is a deduced context when
+                 nonstandard deduction is enabled. */
+              tp = type_ptr->source_corresp.parent.class_type;
+              status = traverse_type_tree(tp, func, flags);
+            }  /* if */      
+          }  /* if */
         }  /* if */
         break;
       case tk_ptr_to_member:
