@@ -1,5 +1,15 @@
 Version 2.29
 
+4/7/95   Initialization of auto aggregates in C mode
+
+Support is now provided in Microsoft C compatibility mode for initializing
+an auto aggregate variable with an initializer list containing nonconstant
+initializers -- for instance:
+
+  void f(int i) {
+    int a[2] = { i, i+1 };
+  }
+
 4/7/95   Declaring static data members as member constants
 
 A static data member declaration inside its class definition may now
