@@ -70,7 +70,6 @@ extern a_boolean is_abstract_class_type(a_type_ptr tp);
 extern a_boolean is_template_param_type(a_type_ptr tp);
 extern a_boolean is_template_class_type(a_type_ptr tp);
 extern a_boolean is_polymorphic_class_type(a_type_ptr tp);
-extern a_boolean type_has_default_constructor(a_type_ptr tp);
 
 extern a_type_ptr array_element_type(a_type_ptr array_type);
 extern a_type_ptr underlying_array_element_type(a_type_ptr array_type);
@@ -226,6 +225,34 @@ extern a_boolean is_qualified_version_of_array_typedef(
 extern a_boolean is_far_type(a_type_ptr tp);
 extern a_type_qualifier_set get_original_type_qualifiers(a_type_ptr type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
+extern a_boolean f_type_has_default_constructor(a_type_ptr  tp,
+                                                a_boolean   user_declared_only,
+                                                a_boolean   nontrivial_only);
+
+/*
+Return TRUE if tp is a non-POD class type (or array thereof) with a default
+constructor (user-declared or implicitly-declared).
+*/
+#define type_has_default_constructor(tp)                             \
+  f_type_has_default_constructor(tp, /*user_declared_only=*/FALSE,   \
+                                 /*nontrivial_only=*/FALSE)
+/*
+Return TRUE if tp is a class type (or array thereof) with a user-declared
+default constructor.
+*/
+#define type_has_user_declared_default_constructor(tp)               \
+  f_type_has_default_constructor(tp, /*user_declared_only=*/TRUE,    \
+                                 /*nontrivial_only=*/FALSE)
+/*
+Return TRUE if tp is a class type (or array thereof) with a user-declared
+default constructor or a nontrivial implicitly declared default constructor.
+*/
+#define type_has_nontrivial_default_constructor(tp)                  \
+  f_type_has_default_constructor(tp, /*user_declared_only=*/FALSE,   \
+                                 /*nontrivial_only=*/TRUE)
+
 
 extern a_boolean is_on_any_derivation_of(a_base_class_ptr  bcp,
                                          a_base_class_ptr  ref_bcp);

@@ -894,10 +894,18 @@ flag is set to TRUE.
 }  /* is_abstract_class_type */
 
 
-a_boolean type_has_default_constructor(a_type_ptr  tp)
+a_boolean f_type_has_default_constructor(a_type_ptr  tp,
+                                         a_boolean   user_declared_only,
+                                         a_boolean   nontrivial_only)
 /*
-Return TRUE if the type pointed to by tp is a class type with a default
-constructor (or an array thereof).  This function is called in C++ mode only.
+Return TRUE if the type pointed to by tp is a non-POD class type with a
+default constructor (or an array thereof).  When user_declared_only is TRUE,
+the function returns TRUE if class has a user-declared default constructor.
+When nontrivial_only is TRUE, it returns TRUE if the class has a nontrivial
+default constructor (user-declared or implicitly-generated).  If both flags
+are FALSE, it also considers trivial_default_constructor pointer in the class
+symbol supplement. This function is called in C++ mode only, and only through
+one of the macros provided in types.h (type_has_default_constructor, etc.).
 */
 {
   a_boolean                      has_default_ctor = FALSE;
@@ -910,19 +918,19 @@ constructor (or an array thereof).  This function is called in C++ mode only.
   if (is_immediate_class_type(tp)) {
     /* It's a class type or an array of class type. */
     cssp = symbol_supplement_for_class(tp);
-    if (cssp->has_default_constructor) {
-      /* The class actually has a user-defined or implicitly-declared
-         nontrivial default constructor. */
+    if (cssp->has_user_declared_default_constructor) {
+      /* Class has a user-declared default constructor. */
       has_default_ctor = TRUE;
-    } else if (cssp->constructor == NULL && !cssp->is_POD) {
-      /* The class has a trivial default constructor that should be treated
-         as if it were callable, even though no symbol was actually created
-         for it. */
-      has_default_ctor = TRUE;
+    } else if (cssp->has_nontrivial_default_constructor) {
+      /* Class has an implicitly declared nontrivial default constructor. */
+      if (!user_declared_only) has_default_ctor = TRUE;
+    } else if (cssp->trivial_default_constructor != NULL) {
+      /* Class has an implicitly declared trivial default constructor. */
+      if (!user_declared_only && !nontrivial_only) has_default_ctor = TRUE;
     }  /* if */
   }  /* if */
   return has_default_ctor;
-}  /* type_has_default_constructor */
+}  /* f_type_has_default_constructor */
 
 
 a_base_class_ptr find_base_class_of(a_type_ptr derived_class,

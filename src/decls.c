@@ -4810,7 +4810,16 @@ the symbol and its linkage (which is always "none").
         var->specialized_with_old_syntax = TRUE;
       }  /* if */
       srk_flags = SRK_DECLARATION | SRK_DEFINITION;
-      if (has_initializer || type_has_default_constructor(var->type)) {
+      /* Even without an explicit initializer this is an initializing
+         declaration it is the static data member is nontrivially
+         constructible -- i.e., if it is a class object (or array of class)
+         and the class has a nontrivial default constructor (which must be a
+         user-declared default constructor if the static data member's type
+         is const qualified -- WP 7.1.5.1 [dcl.type.cv]). */
+      if (has_initializer ||
+          is_const_qualified_type(var->type) ?
+            type_has_user_declared_default_constructor(var->type) :
+            type_has_nontrivial_default_constructor(var->type)) {
         srk_flags |= SRK_INITIALIZATION;
       }  /* if */
       record_symbol_declaration(srk_flags, sym, &locator->source_position,
@@ -7973,7 +7982,15 @@ continue_with_declaration:
              those with a storage class of extern. */
           if (local_storage_class != (a_storage_class)sc_extern) {
             is_variable_def = TRUE;
-            if (type_has_default_constructor(local_type_ptr)) {
+            /* Even without an explicit initializer this is an initializing
+               declaration it is the variable is nontrivially constructible
+               -- i.e., if it is a class object (or array of class) and the
+               class has a nontrivial default constructor (which must be a
+               user-declared default constructor if the variable's type is
+               const qualified -- WP 7.1.5.1 [dcl.type.cv]). */
+            if (is_const_qualified_type(local_type_ptr) ?
+                  type_has_user_declared_default_constructor(local_type_ptr) :
+                  type_has_nontrivial_default_constructor(local_type_ptr)) {
               srk_flags |= SRK_INITIALIZATION;
             }  /* if */
           }  /* if */
