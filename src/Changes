@@ -1,5 +1,10 @@
 Version 2.25
 
+7/31/94  Integer --> enum implicit conversions now a cfront 2.1-ism
+
+Integer --> enum implicit conversions, which were formerly considered
+an anachronism, are now classified as a cfront 2.1-ism.
+
 7/29/94  Template function matching bug found while compiling STL
 
 A bug has been fixed that caused errors when compiling STL.  The
