@@ -4305,6 +4305,7 @@ with the operator indicated by opstr.
   a_constant_ptr con;
   a_type_ptr     operand_1_type = operand_1->type;
   a_boolean      need_context_pop = FALSE;
+  a_boolean      use_comma = FALSE;
 
   /* Put out the first operand. */
   /* Also determine the class type underlying the first operand. */
@@ -4327,19 +4328,6 @@ with the operator indicated by opstr.
       operand_1_type = type_pointed_to(operand_1_type);
     }  /* if */
   }  /* if */
-  if (operand_1_type != NULL && !is_template_param_type(operand_1_type)) {
-    operand_1_type = skip_typerefs(operand_1_type);
-    /* Push a name context for the class, unless the class is nonreal.  This
-       allows names in the second operand to be referred to without
-       qualification.  Don't push a context for a nonreal class or
-       a template parameter. */
-    check_assertion(is_immediate_class_type(operand_1_type));
-    if (!operand_1_type->variant.class_struct_union.is_nonreal_class) {
-      push_name_context(operand_1_type->variant.class_struct_union.extra_info->
-                                                                  assoc_scope);
-      need_context_pop = TRUE;
-    }  /* if */
-  }  /* if */
   /* If the second operand has been turned into a constant (i.e., it
      was a const-valued variable), use a comma operator in the output
      to avoid generating something like "x.2". */
@@ -4353,7 +4341,25 @@ with the operator indicated by opstr.
         unknown_function_case = TRUE;
       }  /* if */
     }  /* if */
-    if (!unknown_function_case) opstr = ",";
+    if (!unknown_function_case) {
+      opstr = ",";
+      use_comma = TRUE;
+    }  /* if */
+  }  /* if */
+  if (operand_1_type != NULL && !is_template_param_type(operand_1_type)) {
+    operand_1_type = skip_typerefs(operand_1_type);
+    /* Push a name context for the class, unless the class is nonreal.  This
+       allows names in the second operand to be referred to without
+       qualification.  Don't push a context for a nonreal class or
+       a template parameter. */
+    check_assertion(is_immediate_class_type(operand_1_type));
+    if (!operand_1_type->variant.class_struct_union.is_nonreal_class &&
+        /* Don't push a scope when the operator has been changed to ",". */
+        !use_comma) {
+      push_name_context(operand_1_type->variant.class_struct_union.extra_info->
+                                                                  assoc_scope);
+      need_context_pop = TRUE;
+    }  /* if */
   }  /* if */
   /* Put out the operator. */
   write_tok_str(opstr);
@@ -4366,7 +4372,7 @@ with the operator indicated by opstr.
   } else {
     /* Put parentheses around the expression if it was changed to the ","
        form. */
-    gen_expr(operand_2, opstr[0] == ',');
+    gen_expr(operand_2, use_comma);
   }  /* if */
   if (need_context_pop) pop_name_context();
 }  /* gen_dot_static */
