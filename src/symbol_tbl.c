@@ -10475,6 +10475,11 @@ given translation unit.
        left off, and the file scope number is the next available number.
        For primary translation units, file_scope_number is already set to 0. */
     file_scope_number = take_next_scope_number();
+  } else {
+    /* The primary translation unit file scope number is assigned during
+       compilation initialization.  Record the translation unit for that
+       scope now. */
+    trans_unit_for_scope[file_scope_number] = curr_translation_unit;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!is_primary_translation_unit) {
