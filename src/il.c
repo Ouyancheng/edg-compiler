@@ -2140,7 +2140,7 @@ in_old_style_param_decl_list is TRUE.
 
   /* Get a pointer to the current or file scope entry. */
   ssep = &scope_stack[at_file_scope ? DEPTH_OF_FILE_SCOPE : decl_scope_level];
-  /* Create the IL scope if necessary (for block scopes or class scopes). */
+  /* Create the IL scope if necessary (for block scopes). */
   sp = ensure_il_scope_exists(ssep);
   last_type_ptr_ptr = &ssep->last_type;
   /* If we are currently inside the declaration list for the old-style
@@ -2636,7 +2636,7 @@ Initialize a dynamic_init entry of the kind specified.
       break;
 #if CHECKING
     default:
-      internal_error("alloc_dynamic_init: bad kind");
+      internal_error("clear_dynamic_init: bad kind");
 #endif /* CHECKING */
   }  /* switch */
 }  /* clear_dynamic_init */
@@ -2661,6 +2661,29 @@ its kind to kind and its variable to variable, and return a pointer to it.
   db_exit();
   return dip;
 }  /* alloc_dynamic_init */
+
+
+void add_to_dynamic_inits_list(a_dynamic_init_ptr dip)
+/*
+Add the given dynamic initialization entry to the dynamic_inits list for
+the current scope.
+*/
+{
+  a_scope_stack_entry_ptr ssep;
+  a_scope_ptr             sp;
+
+  /* Get pointer to current scope entry. */
+  ssep = &scope_stack[decl_scope_level];
+  /* Create the IL scope if necessary (for block scopes). */
+  sp = ensure_il_scope_exists(ssep);
+  if (sp->dynamic_inits == NULL) {
+    sp->dynamic_inits = dip;
+  } else {
+    ssep->last_dynamic_init->next = dip;
+  }  /* if */
+  ssep->last_dynamic_init = dip;
+  dip->next = NULL;
+}  /* add_to_dynamic_inits_list */
 
 
 a_variable_ptr alloc_variable(void)
@@ -2709,7 +2732,7 @@ for the file scope if at_file_scope is TRUE.
 
   /* Get pointer to current or file scope entry. */
   ssep = &scope_stack[at_file_scope ? DEPTH_OF_FILE_SCOPE : decl_scope_level];
-  /* Create the IL scope if necessary (for block scopes or class scopes). */
+  /* Create the IL scope if necessary (for block scopes). */
   sp = ensure_il_scope_exists(ssep);
   if (sp->variables == NULL) {
     sp->variables = var_ptr;
@@ -2866,7 +2889,7 @@ for the file scope if at_file_scope is TRUE.
 
   /* Get pointer to current or file scope entry. */
   ssep = &scope_stack[at_file_scope ? DEPTH_OF_FILE_SCOPE : decl_scope_level];
-  /* Create the IL scope if necessary (for block scopes or class scopes). */
+  /* Create the IL scope if necessary (for block scopes). */
   sp = ensure_il_scope_exists(ssep);
   if (sp->routines == NULL) {
     sp->routines = rout_ptr;

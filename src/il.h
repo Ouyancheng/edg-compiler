@@ -124,6 +124,8 @@ extern void clear_dynamic_init(a_dynamic_init_ptr  dip,
 
 extern a_dynamic_init_ptr alloc_dynamic_init(a_dynamic_init_kind kind);
 
+extern void add_to_dynamic_inits_list(a_dynamic_init_ptr dip);
+
 extern a_variable_ptr alloc_variable(void);
 
 extern void add_to_variables_list(a_variable_ptr var_ptr,
