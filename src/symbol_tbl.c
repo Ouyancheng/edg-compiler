@@ -2042,8 +2042,8 @@ hdr_ptr == NULL indicates that an error symbol should be constructed.
 
 void unlink_symbol_from_symbol_table(a_symbol_ptr sym_ptr)
 /*
-Remove a symbol from the symbol table, i.e., unlink it from its header's
-list.
+Remove a symbol from the symbol table, i.e., unlink it from either the main
+(active) symbol list or the inactive list of its symbol header.
 */
 {
   register a_symbol_ptr        ptr, prev_ptr;
@@ -2057,27 +2057,48 @@ list.
     /* These symbols are not in the symbol table proper. */
   } else {
     hdr_ptr = sym_ptr->header;
-    prev_ptr = hdr_ptr->symbol;
-    if (sym_ptr == prev_ptr) {
-      /* The symbol is the first on the header list. */
+    if (sym_ptr == hdr_ptr->symbol) {
+      /* The symbol is the first on the header list.  Link around it. */
       hdr_ptr->symbol = sym_ptr->next;
+    } else if (sym_ptr == hdr_ptr->inactive_symbols) {
+      /* The symbol is the first on the inactive list.  Link around it. */
+      hdr_ptr->inactive_symbols = sym_ptr->next;
     } else {
-      /* The symbol is not the first on the list.  Find the previous symbol
-         on the list. */
-      for (; (ptr = prev_ptr->next) != sym_ptr; prev_ptr = ptr) {
-#if CHECKING
-        if (ptr == NULL) {
-#if DEBUG
-          if (debug_level > 0) {
-            fprintf(f_debug, "Symbol name = %s\n", hdr_ptr->identifier);
-          }  /* if */
-#endif /* DEBUG */
-          internal_error(
-                  "unlink_symbol_from_symbol_table: cannot find symbol entry");
+      /* The symbol is not the first on either of the lists.  Find it on one
+         of the lists, remembering the preceding symbol. */
+      ptr = NULL;
+      if (hdr_ptr->symbol != NULL) {
+        /* Check the active list. */
+        prev_ptr = hdr_ptr->symbol;
+        ptr = prev_ptr->next;
+        while (ptr != NULL && ptr != sym_ptr) {
+          prev_ptr = ptr;
+          ptr = ptr->next;
+        }  /* while */
+      }  /* if */
+      if (ptr == NULL) {
+        /* It wasn't found on the active list.  Check the inactive list. */
+        if (hdr_ptr->inactive_symbols != NULL) {
+          prev_ptr = hdr_ptr->inactive_symbols;
+          ptr = prev_ptr->next;
+          while (ptr != NULL && ptr != sym_ptr) {
+            prev_ptr = ptr;
+            ptr = ptr->next;
+          }  /* while */
         }  /* if */
+      }  /* if */
+#if CHECKING
+      if (ptr == NULL) {
+#if DEBUG
+        if (debug_level > 0) {
+          fprintf(f_debug, "Symbol name = %s\n", hdr_ptr->identifier);
+        }  /* if */
+#endif /* DEBUG */
+        internal_error(
+                  "unlink_symbol_from_symbol_table: cannot find symbol entry");
+      }  /* if */
 #endif /* CHECKING */
-      }  /* for */
-      /* Found the entry; unlink it. */
+      /* Found the entry on one of the lists.  Link around it. */
       prev_ptr->next = sym_ptr->next;
     }  /* if */
   }  /* if */
