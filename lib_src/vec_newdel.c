@@ -49,17 +49,15 @@ static vec_info_ptr _free_vec_info = NULL;
 				   structures. */
 
 
-extern "C" void _array_pointer_not_from_vec_new();
+EXTERN_C void _array_pointer_not_from_vec_new();
                                /* Function called when an invalid pointer that
                                   was not allocated by vec_new is passed
                                   to one of the vector handling routines. */
 
 
-extern "C" {
-        void	*__nw__FUi(size_t);	/* Mangled name for simple
+EXTERN_C void	*__nw__FUi(size_t);	/* Mangled name for simple
 					   operator new(). */
-        void	__dl__FPv(void *);	/* Mangled name for operator delete. */
-}
+EXTERN_C void	__dl__FPv(void *);	/* Mangled name for operator delete. */
 
 /*
 Increment a void* pointer by a given value.
@@ -144,9 +142,16 @@ elements should be used in a production runtime system.
     } else {
       /* Allocate an array information structure from free memory. */
       info_ptr = (vec_info_ptr)malloc(sizeof(vec_info));
+      if (info_ptr == NULL) {
+        array_ptr = NULL;
+        goto error_exit;
+      }  /* if */
     }  /* if */
     array_size = number_of_elements * element_size;
     array_ptr = (void *)__nw__FUi(array_size);
+    if (array_ptr == NULL) {
+      goto error_exit;
+    }  /* if */
     info_ptr->next       = _head_vec_info;
     info_ptr->array_ptr  = array_ptr;
     info_ptr->array_size = array_size;
@@ -191,6 +196,7 @@ elements should be used in a production runtime system.
       __curr_eh_stack_entry = __curr_eh_stack_entry->next;
     }  /* if */
 #endif /* EXCEPTION_HANDLING */
+error_exit:
   /* Return the pointer to the array. */
   return array_ptr;
 }  /* __vec_new_eh */
@@ -256,12 +262,13 @@ an exception.
 #endif /* EXCEPTION_HANDLING */
 
 
+/*ARGSUSED*/ /* <-- "unused" is unused. */
 EXTERN_C void __vec_delete(void                *array_ptr,
                            int                 number_of_elements,
                            size_t              element_size,
                            a_destructor_ptr    dtor,
                            int                 delete_flag,
-                           int                 /*unused_arg*/)
+                           int                 unused)
 /*
 Call a destructor for each element of an array, then delete the storage
 for the array.  array_ptr points to the array, which has number_of_elements
@@ -296,7 +303,8 @@ must be -1 for that case.
       /* Find the "hidden" information  for this array. */
       for (prev_ptr = NULL, info_ptr = _head_vec_info;
            (info_ptr != NULL) && (info_ptr->array_ptr != array_ptr);
-           prev_ptr = info_ptr, info_ptr = info_ptr->next) {
+           info_ptr = info_ptr->next) {
+        prev_ptr = info_ptr;
       }  /* for */
       if (info_ptr == NULL) {
         /* This array was not allocated by vec_new, so we do not know the
@@ -304,6 +312,16 @@ must be -1 for that case.
            be sufficient to identify the nature of the problem to the user. */
 
         _array_pointer_not_from_vec_new();
+      }  /* if */
+      if (delete_flag) {
+        /* Unhook this array information from the linked list and add to the
+           front of the free list. */
+        if (prev_ptr == NULL) {
+          /* This structure is on the beginning of the linked list. */
+          _head_vec_info = info_ptr->next;
+        } else {
+          prev_ptr->next = info_ptr->next;
+        }  /* if */
       }  /* if */
       number_of_elements = info_ptr->array_size / element_size;
     }  /* if */
@@ -341,15 +359,8 @@ must be -1 for that case.
     /* Delete the array, if requested. */
     if (delete_flag) {
       __dl__FPv(array_ptr);
-      if (info_ptr != (vec_info_ptr)NULL) {
-        /* Unhook this array information from the linked list and add to the
-           front of the free list. */
-        if (prev_ptr == NULL) {
-          /* This structure is on the beginning of the linked list. */
-          _head_vec_info = info_ptr->next;
-        } else {
-          prev_ptr->next = info_ptr->next;
-        }  /* if */
+      if (info_ptr != NULL) {
+        /* Add the vec_info record to the free list. */
         info_ptr->next = _free_vec_info;
         _free_vec_info = info_ptr;
       }  /* if */
