@@ -3955,7 +3955,8 @@ class.
 }  /* check_access_on_assignment_operator */
 
 
-static a_routine_ptr select_assignment_operator(a_type_ptr  class_type)
+static a_routine_ptr select_assignment_operator(a_type_ptr  class_type,
+                                                a_boolean   *pass_by_value)
 /*
 Return a pointer to the routine entry for the current class's default
 assignment operator.
@@ -3982,17 +3983,22 @@ assignment operator.
      select_copy_constructor should be adapted for assignment operators. */
 #endif /* if 0 */
   for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-    arg_type = sym->variant.routine->type->
-                      variant.routine.extra_info->param_type_list->type;
-    if (is_reference_type(arg_type) &&
-        skip_typerefs(type_pointed_to(arg_type)) == class_type) {
-      /* Found it. */
+    arg_type = skip_typerefs(sym->variant.routine->type->variant.routine.
+                                        extra_info->param_type_list->type);
+    if (arg_type == class_type) {
+      /* Found it -- value parameter. */
+      *pass_by_value = TRUE;
+      break;
+    } else if (is_reference_type(arg_type) &&
+               skip_typerefs(type_pointed_to(arg_type)) == class_type) {
+      /* Found it -- reference parameter. */
+      *pass_by_value = FALSE;
       break;
     }  /* if */
   }  /* for */
 #if CHECKING
   if (sym == NULL) {
-    internal_error("select_assignment_operator: can't copy ref-class");
+    internal_error("select_assignment_operator: none with class arg");
   }  /* if */
 #endif /* CHECKING */
   /* Check the routine's accessibility, mark it referenced, and (for a
@@ -4023,6 +4029,7 @@ operator routine or do bitwise assignment.
   a_field_ptr                    fp;
   a_routine_ptr                  rp;
   a_symbol_ptr                   sym;
+  a_boolean                      pass_by_value;
 
   db_enter(4, "make_default_assignment_body");
   /* The source variable of the copy is the first parameter on the paramters
@@ -4077,16 +4084,17 @@ operator routine or do bitwise assignment.
              operator is not actually invoked, it must be accessible. */
           check_access_on_assignment_operator();
           /* Dereference the pointer-to-base-class. */
-          source_expr = make_operator_node((an_expr_operator_kind)eok_indirect,
-                                           make_pointer_type(bcp->type),
-                                           source_expr);
+          source_expr = add_indirection_to_node(source_expr);
           /* Create the assignment statement.  The appropriate operator
              will be selected by the function. */
           sp = sp->next = make_assignment_statement(dest_expr, source_expr);
         } else {
           /* A bitwise copy may not be done.  Find the default assignment
              operator and put out a call to it. */
-          rp = select_assignment_operator(bcp->type);
+          rp = select_assignment_operator(bcp->type, &pass_by_value);
+          if (pass_by_value) {
+            source_expr = add_indirection_to_node(source_expr);
+          }  /* if */
           sp = sp->next = make_call_assignment_statement(rp, dest_expr,
                                                          source_expr);
         }  /* if */
@@ -4143,8 +4151,11 @@ operator routine or do bitwise assignment.
           } else if (array_type == NULL) {
             /* A bitwise copy may not be done.  Find the default assignment
                operator and put out a call to it. */
-            rp = select_assignment_operator(tp);
+            rp = select_assignment_operator(tp, &pass_by_value);
             source_expr = field_lvalue_selection_expr(source_expr, fp);
+            if (pass_by_value) {
+              source_expr = add_indirection_to_node(source_expr);
+            }  /* if */
             sp = sp->next = make_call_assignment_statement(rp, dest_expr,
                                                            source_expr);
           } else {
