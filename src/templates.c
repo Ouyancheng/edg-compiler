@@ -2429,7 +2429,7 @@ of types after all of the function arguments have been processed.
     if (tap->is_array_bound_of_unknown_type || tap->variant.constant == NULL) {
       /* This is either an array bound of unknown type, or no value has
          yet been deduced. */
-      if (tap->variant.integer_value == 0) {
+      if (!tap->is_array_bound_of_unknown_type) {
         /* No value has been deduced yet.  Use this as the value and
            consider it a match. */
         tap->variant.integer_value = elements;

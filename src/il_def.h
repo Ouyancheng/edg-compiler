@@ -2367,7 +2367,7 @@ typedef struct a_template_arg {
     a_constant_ptr
                 constant;
                         /* The constant supplied as the argument. */
-    /* When is_type == FALSE and is_array_bound_of_unknown_type == FALSE. */
+    /* When is_type == FALSE and is_array_bound_of_unknown_type == TRUE. */
     a_targ_size_t
 		integer_value;
 			/* The integer value deduced from an array bound.

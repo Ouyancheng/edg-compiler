@@ -1,5 +1,12 @@
 Version 2.33
 
+9/9/96  Spurious error when deducing array bounds
+
+A bug has been fixed that could cause a spurious error when deducing
+a nontype template parameter from an array bound.  This bug would
+probably only appear on systems on which pointers are larger than
+integers.
+
 9/6/96  C++-generating back end: nonmember using-declarations
 
 The C++-generating back end now puts out code for nonmember
