@@ -7138,6 +7138,12 @@ qualified name.
                (nonclass) lookup. */
             lookup_options = next_tok == tok_lt ? IDL_NO_OPTIONS :
                                                 IDL_MUST_BE_CLASS_OR_NAMESPACE;
+            if ((options & GID_IS_TYPENAME) != 0) {
+              /* If this name followed the typename keyword, indicate that the
+                 name found must be a type.  This affects creation of members
+                 of proxy classes. */
+              lookup_options |= IDL_TYPENAME_LOOKUP;
+            }  /* if */
             if (qualifier_is_type) {
               /* Look up the name in the class specified by the qualifier
                  that has been scanned so far. */

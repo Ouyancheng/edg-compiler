@@ -331,6 +331,10 @@ typedef int an_identifier_options_set;
 			   A<T> should be considered to refer to the
 			   prototype instantiation, not the nonreal
 			   instantiation of the same name. */
+#define GID_IS_TYPENAME	0x800
+			/* Specifies that the name being looked up follows the
+			   typename keyword.  This affects the way that
+			   a qualified name is handled. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)

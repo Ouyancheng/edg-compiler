@@ -1779,7 +1779,7 @@ otherwise a diagnostic is issued.  The type is returned in *type_ptr.
   /* Skip over "typename". */
   check_assertion(curr_token == tok_typename);
   (void)get_token();
-  if (!is_generalized_identifier_start(GID_NO_OPTIONS)) {
+  if (!is_generalized_identifier_start(GID_IS_TYPENAME)) {
     syntax_error(ec_exp_identifier);
   } else {
     a_boolean	err = FALSE;
