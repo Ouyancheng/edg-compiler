@@ -521,7 +521,7 @@ is an error, issue it at *err_pos.  result->type need not be set on entry.
           base_object(constant_1) == NULL) {
         /* Preserve a NULL pointer. */
       } else {
-        if (base_class->any_virtual_steps_in_derivation) {
+        if (base_class->derivation->base_class->is_virtual) {
           /* Casting to a virtual base class.  This can only be folded if we
              have a complete object of the derived class type. */
           if (con_complete_object_type(constant_1) != NULL) {
@@ -581,7 +581,7 @@ desired derived type.  If there is an error, it is issued at *err_pos.
     pos_ty2_error(ec_ambiguous_derived_class, err_pos, derived_class_type,
                   bcp->type);
     set_error_constant(result);
-  } else if (bcp->any_virtual_steps_in_derivation) {
+  } else if (bcp->derivation->base_class->is_virtual) {
     /* The base class is a virtual base of the derived class. */
     pos_ty2_error(ec_derived_class_from_virtual_base, err_pos,
                   derived_class_type, bcp->type);
@@ -595,7 +595,7 @@ desired derived type.  If there is an error, it is issued at *err_pos.
       /* Preserve a NULL pointer. */
     } else {
 #if CHECKING
-      if (bcp->any_virtual_steps_in_derivation) {
+      if (bcp->derivation->base_class->is_virtual) {
         internal_error("fold_derived_class_cast: virtual base class");
       }  /* if */
 #endif /* CHECKING */
@@ -875,7 +875,7 @@ If there is an error, it is issued at *err_pos.
     pos_ty2_error(ec_ambiguous_derived_class, err_pos, derived_class_type,
                   bcp->type);
     set_error_constant(result);
-  } else if (bcp->any_virtual_steps_in_derivation) {
+  } else if (bcp->derivation->base_class->is_virtual) {
     /* The base class is a virtual base of the derived class. */
     pos_ty2_error(ec_derived_class_from_virtual_base, err_pos,
                   derived_class_type, bcp->type);
