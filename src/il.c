@@ -6413,7 +6413,8 @@ within a function scope.
         (C_dialect == C_dialect_cplusplus &&
          scope_stack_ptr->kind == (a_scope_kind)sck_class_struct_union)) {
       /* Use the current scope. */
-    } else if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    } else if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+               !in_file_scope(ssep)) {
       /* Use the function scope. */
       scope_stack_ptr = &scope_stack[depth_innermost_function_scope];
     } else {
