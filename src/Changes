@@ -1,5 +1,23 @@
 Version 3.6
 
+12/3/04  Microsoft compatibility: Accept correspondence between friend function
+         and function with internal linkage
+
+When simultaneously processing multiple translation units in Microsoft mode,
+the front end previously issued an error if a function was only declared as a
+friend in one translation unit (thereby having external linkage) whereas in
+another translation unit it was also declared to have internal linkage.
+For example:
+
+  // File 1:
+  struct S { friend void f(); }
+
+  // File 2:
+  static void f() {}
+  struct S { friend void f(); }  // Triggered a correspondence error.
+
+Such cases are now accepted in Microsoft mode.
+
 12/2/04  Microsoft compatibility: For-init scope refinements
 
 In Microsoft mode with microsoft_version >= 1310 (and unless the command-line

@@ -2146,13 +2146,35 @@ is_inline flag.
   return result;
 }  /* inline_flag_can_differ */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean microsoft_compatible_friend_linkage(a_routine_ptr  rp1,
+                                                     a_routine_ptr  rp2)
+/*
+In Microsoft mode, a routine only declared in a friend declaration should
+be treated as having "unknown" linkage instead of the standard "external"
+linkage.  Two matching friend function declaration are therefore always
+compatible if one was the only declaration of that function in that
+translation unit.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if ((rp1->declared_only_as_friend && !rp1->defined_in_friend_decl) ||
+      (rp2->declared_only_as_friend && !rp2->defined_in_friend_decl)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* microsoft_compatible_friend_linkage */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean routine_name_linkage_can_differ(a_routine_ptr  rp1,
                                                  a_routine_ptr  rp2)
 /*
 Determine whether two C++ routines can validly have different name linkages.
 This should only happen for inline functions when extern_inline_allowed is
-FALSE.
+FALSE or (rarely) for friend declarations in Microsoft mode.
 */
 {
   a_boolean  result = FALSE;
@@ -2172,6 +2194,14 @@ FALSE.
       result = TRUE;
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (!result) {
+    /* If the routine only appeared as a nondefining declaration in one of the
+       two translation units, then that declaration is considered compatible
+       to the other wrt. linkage and name linkage. */
+    result = microsoft_compatible_friend_linkage(rp1, rp2);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* routine_name_linkage_can_differ */
 
@@ -3691,6 +3721,13 @@ are not checked.
                trans_unit_corresp_of(corresp_routine) == NULL) &&
               ((may_have_correspondence(friend_sym) &&
                 may_have_correspondence(corresp_friend_sym)) ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+               /* Enable a correspondence between an entry that only occurred
+                  because of a nondefining friend declaration, even when the
+                  other entry has internal linkage. */
+               (microsoft_mode && microsoft_compatible_friend_linkage(
+                                                 routine, corresp_routine)) ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                /* Allow correspondences on friend declarations even if they
                   have internal linkage as a consequence of being inline. */
                (routine->is_inline && corresp_routine->is_inline)) &&
