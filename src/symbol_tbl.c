@@ -1295,6 +1295,8 @@ and return a pointer to it.
       tssp->variant.function.routine = NULL;
       clear_func_info(&tssp->variant.function.func_info);
       tssp->variant.function.def_arg_expr_list = NULL;
+      clear_token_cache(&tssp->variant.function.decl_token_cache,
+                        /*reusable=*/TRUE);
       tssp->variant.function.cannot_be_called = FALSE;
 #if CHECKING
       tssp->variant.function.dummy = FALSE;

@@ -880,6 +880,16 @@ typedef struct a_template_symbol_supplement {
 			/* List of entries describing default argument
 			   expressions associated with parameters for
 			   this template declaration. */
+      a_token_cache
+		decl_token_cache;
+			/* A cache of the tokens that comprise the function
+			   declaration.  These are rescanned later to create
+			   routine types for instances of the function
+			   template.  The cache begins with the first token
+			   of the function declaration (the token after the
+			   closing ">" of the template parameter list) and
+			   ends with the last token of the function
+			   declarator. */
       unsigned int
 		cannot_be_called:1;
 			/* TRUE if this function cannot be called because
