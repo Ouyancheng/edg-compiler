@@ -85,7 +85,8 @@ typedef struct a_candidate_function {
 			   pointing to the argument match that was chosen as
 			   best (i.e., all the argument matches that tied
 			   for "best"). */
-  a_boolean	in_best_match_set;
+  a_byte_boolean
+		in_best_match_set;
 			/* TRUE if the function is in the set of best-matching
 			   functions. */
 } a_candidate_function;
@@ -4090,6 +4091,7 @@ values.
   amsp->match_level              = aml_none;
   amsp->downward_cast_derivation = NULL;
   amsp->reversed_derivation      = FALSE;
+  amsp->const_anachronism        = FALSE;
   amsp->warning_suggested        = ec_no_error;
 }  /* clear_arg_match_summary */
 
@@ -4801,6 +4803,7 @@ class or a derived class thereof (except for error cases).
                                 this_match_summary);
       if (this_match_summary->match_level != aml_none) {
         /* Anachronism -- calling non-const function with const object. */
+	this_match_summary->const_anachronism = TRUE;
         this_match_summary->warning_suggested =
                                            ec_unqual_function_with_qual_object;
       }  /* if */
@@ -5112,8 +5115,25 @@ Compare two argument match summary entries and return
       /* The matches are equal. */
       cmp = 0;
     }  /* if */
-  }  /* if */
 have_cmp:
+    if (cmp == 0 && cfront_compatibility_mode) {
+      /* In cfront compatibility mode, the anachronism that allows a
+	 non-const function to be called for a const object causes matches
+	 that are considered worse than the corresponding matches that do
+	 not involve the anachronism. */
+      if (arg_match1->const_anachronism != arg_match2->const_anachronism) {
+	if (arg_match1->const_anachronism) {
+	  /* arg_match1 uses the const anachronism and arg_match2 does not,
+	     so arg_match2 is better. */
+	  cmp = -1;
+	} else {
+	  /* arg_match2 uses the const anachronism and arg_match1 does not,
+	     so arg_match1 is better. */
+	  cmp = 1;
+	}  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
   return cmp;
 }  /* compare_arg_match_levels */
 

@@ -228,6 +228,12 @@ typedef struct an_arg_match_summary {
 			   the reverse of the cast performed.  Used for
 			   implicit conversions of pointers to members to
 			   pointers to members of derived classes. */
+  a_byte_boolean
+		const_anachronism;
+			/* In cfront compatibility mode, TRUE to indicate
+			   that the match was possible only because of the
+			   anachronism that allows a non-const function to
+			   be called for a const object. */
   an_error_code	warning_suggested;
 			/* If not ec_no_error, the code for a warning to be
 			   issued if this match is chosen. */
