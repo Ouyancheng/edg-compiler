@@ -3998,7 +3998,6 @@ start_of_token_scan:  /* Restart here after scanning white space. */
          string being scanned in isolation from the rest of the source.
          Return end of file. */
       ctoken = tok_end_of_source;
-      /* Go exit with zero-length token. */
       start_of_curr_token = curr_char_loc;
       /* Remember the character position of the end of the token. */
 #if 0
@@ -4007,11 +4006,15 @@ start_of_token_scan:  /* Restart here after scanning white space. */
          unless that position is really allocated space. */
 #endif /* 0 */
       end_of_curr_token = curr_char_loc - 1;
-      /* Determine the source position of the end of file token.  Back up the
-         column by 1 so it points at whatever precedes the null character. */
+      /* Determine the source position of the end of source token. */
       remember_token_start();
-      pos_curr_token.column--;
-      error_position.column = pos_curr_token.column;
+      /* If this is the null character at the end of the primary source
+         line, back up the column by 1 so it points at the end of the line. */
+      if (within_curr_source_line(start_of_curr_token)) {
+        pos_curr_token.column--;
+        error_position.column = pos_curr_token.column;
+      }  /* if */
+      /* Go exit with the end-of-source token. */
       goto end_of_token_scan_b;
     case '\n':
       /* Newline.  Is white space ordinarily, but a token within
