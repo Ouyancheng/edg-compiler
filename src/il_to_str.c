@@ -1621,16 +1621,18 @@ precedence confusion.  Do the output in the way described by octl.
 }  /* form_integer_constant */
 
 
-void form_char(char                                  ch,
-               an_il_to_str_output_control_block_ptr octl)
+int form_char(char                                  ch,
+              an_il_to_str_output_control_block_ptr octl)
 /*
 Output the indicated character as part of a string literal or character
 constant.  Handle unprintable characters and necessary escapes.  Do the
-output in the way described by octl.
+output in the way described by octl.  Return the number of characters
+output.
 */
 {
   char buffer[10];
   char *bptr = buffer;
+  int  nchars = 1;
 
   if (isprint((unsigned char)ch)
 #ifdef sun
@@ -1644,6 +1646,7 @@ output in the way described by octl.
         /* Avoid accidentally putting out trigraphs by escaping "?". */
         (ch == '?' && octl->gen_compilable_code && !octl->gen_pcc_code)) {
       *bptr++ = '\\';
+      nchars++;
     }  /* if */
     *bptr++ = ch;
     *bptr = '\0';
@@ -1670,23 +1673,27 @@ output in the way described by octl.
       buffer[0] = '\\';
       buffer[1] = c;
       buffer[2] = '\0';
+      nchars = 2;
     } else {
       /* Use the \nnn form for other unprintable characters. */
       (void)sprintf(buffer, "\\%03o",
                     (unsigned int)(ch&((1<<targ_host_string_char_bit)-1)));
+      nchars = 4;
     }  /* if */
   }  /* if */
   /* Output the character. */
   output_partial_token_str(buffer, octl);
+  return nchars;
 }  /* form_char */
 
 
-static void form_wide_char(unsigned long                         wc,
-                           an_il_to_str_output_control_block_ptr octl)
+static int form_wide_char(unsigned long                         wc,
+                          an_il_to_str_output_control_block_ptr octl)
 /*
 Output the indicated wide character as part of a string literal or character
 constant.  Handle unprintable characters and necessary escapes.  Do the
-output in the way described by octl.
+output in the way described by octl.  Return the number of characters
+output.
 */
 {
   char buffer[10];
@@ -1696,6 +1703,7 @@ output in the way described by octl.
   (void)sprintf(buffer, "\\x%lx", wc);
   /* Output the character. */
   output_partial_token_str(buffer, octl);
+  return strlen(buffer);
 }  /* form_wide_char */
 
 
@@ -2712,7 +2720,8 @@ confusion.  Do the output in the way described by octl.
           form_cast(orig_type, octl);
         }  /* if */
         output_partial_token_str("'", octl);
-        form_char((char)value_of_integer_constant(constant, &ovflo), octl);
+        (void)form_char((char)value_of_integer_constant(constant, &ovflo),
+                        octl);
         output_partial_token_str("'", octl);
         output_optional_close_paren(need_char_cast_close_paren, octl);
       } else {
@@ -2728,6 +2737,7 @@ confusion.  Do the output in the way described by octl.
         unsigned long wc;
         char          *str = constant->variant.string.value;
         a_targ_size_t len = constant->variant.string.length;
+        int           out_len = 0;
 
 #if BACK_END_IS_C_GEN_BE
         if (octl->c_generating_back_end && constant->assoc_var_assigned) {
@@ -2756,10 +2766,19 @@ confusion.  Do the output in the way described by octl.
               output_partial_token_str("...", octl);
               break;
             }  /* if */
+            if (out_len >= 128 && octl->gen_compilable_code &&
+                !octl->gen_pcc_code) {
+              /* Break long string constants by using concatenation.  This
+                 allows the output routine to begin a new line. */
+              output_partial_token_str("\"", octl);
+              octl->output_str(" ");
+              output_partial_token_str("L\"", octl);
+              out_len = 0;
+            }  /* if */
             wc = extract_wide_char_from_string(str+a);
             /* Suppress the last character if it is a null. */
             if (a != (len - targ_sizeof_wchar_t) || wc != '\0') {
-              form_wide_char(wc, octl);
+              out_len += form_wide_char(wc, octl);
             }  /* if */
           }  /* for */
           output_partial_token_str("\"", octl);
@@ -2773,10 +2792,19 @@ confusion.  Do the output in the way described by octl.
               output_partial_token_str("...", octl);
               break;
             }  /* if */
+            if (out_len >= 128 && octl->gen_compilable_code &&
+                !octl->gen_pcc_code) {
+              /* Break long string constants by using concatenation.  This
+                 allows the output routine to begin a new line. */
+              output_partial_token_str("\"", octl);
+              octl->output_str(" ");
+              output_partial_token_str("\"", octl);
+              out_len = 0;
+            }  /* if */
             ch = str[a];
             /* Suppress the last character if it is a null. */
             if (a != (len - 1) || ch != '\0') {
-              form_char(ch, octl);
+              out_len += form_char(ch, octl);
             }  /* if */
           }  /* for */
           output_partial_token_str("\"", octl);

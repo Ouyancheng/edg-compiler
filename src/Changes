@@ -1,5 +1,10 @@
 Version 2.44
 
+5/1/00   Breaking long strings in generated code
+
+Long string constants in the generated C or C++ code are now broken
+every 128 characters to avoiding stressing C compilers.
+
 5/1/00   Suppressing duplicate diagnostics in template instantiations
 
 When an error was detected while scanning a template definition, duplicate

@@ -4467,7 +4467,7 @@ i.e., instead of "abc" (no final null) dump 'a','b','c'.
   for (a = 0; a < len; a++) {
     write_ch('\'');
     ch = constant->variant.string.value[a];
-    form_char(ch, &octl);
+    (void)form_char(ch, &octl);
     write_ch('\'');
     if (a != len-1) write_tok_ch(',');
   }  /* for */

@@ -205,8 +205,8 @@ extern void form_integer_constant(
                            a_boolean                             need_parens,
                            an_il_to_str_output_control_block_ptr octl);
 
-extern void form_char(char                                  ch,
-                      an_il_to_str_output_control_block_ptr octl);
+extern int form_char(char                                  ch,
+                     an_il_to_str_output_control_block_ptr octl);
 
 extern void form_pm_constant(
                       a_constant_ptr                        constant,
