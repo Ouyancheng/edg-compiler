@@ -299,6 +299,9 @@ been declared for all successor arguments.
 
 static void delayed_scan_fixup_for_class(a_symbol_ptr  class_sym)
 /*
+Process the default argument expressions and inline function definitions
+for the indicated class.  If the class contains nested classes, call this
+routine recursively for each nested class.
 */
 {
   a_delayed_scan_fixup_ptr       dsfp, next_dsfp;
@@ -308,14 +311,19 @@ static void delayed_scan_fixup_for_class(a_symbol_ptr  class_sym)
   db_enter(3, "delayed_scan_fixup_for_class");
   cssp = class_sym->variant.class_struct_union.extra_info;
   dsfp = cssp->delayed_scan_fixup_list;
-  if (cssp != NULL || cssp->any_nested_classes) {
+  /* Do processing only if there are tokens cached for delayed scanning
+     ("rewriting"), or else if there are nested classes for which this
+     might be true. */
+  if (dsfp != NULL || cssp->any_nested_classes) {
 #if DEBUG
     if (debug_level >= 3) {
       fputs("class to rescan: ", f_debug);
       db_name(&class_sym->variant.class_struct_union.type->source_corresp);
+      fputc('\n', f_debug);
     }  /* if */
 #endif /* DEBUG */
     push_class_reactivation_scope(class_sym->variant.class_struct_union.type);
+    /* Process nested classes first. */
     if (cssp->any_nested_classes) {
       for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
         if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
@@ -324,9 +332,14 @@ static void delayed_scan_fixup_for_class(a_symbol_ptr  class_sym)
         }  /* if */
       }  /* for */
     }  /* if */
+    /* Now take care of the current class.  Each delayed-scan-fixup entry
+       contains the cache for a token stream, either for a default arg
+       expression or for an inline function definition. */
     for (; dsfp != NULL; dsfp = next_dsfp) {
+      /* Let get_token know about the cache. */
       rescan_cached_tokens(&dsfp->token_cache);
       if (dsfp->is_arg_default_value) {
+        /* It's a default arg expression that needs to be rescanned. */
         delayed_scan_of_default_arg_expr(dsfp->variant.param_type);
         /* In the normal case the current token should be end_of_source,
            which was inserted to mark the end of the cached token stream. */
@@ -336,6 +349,7 @@ static void delayed_scan_fixup_for_class(a_symbol_ptr  class_sym)
           while (curr_token != tok_end_of_source) (void)get_token();
         }  /* if */
       } else {
+        /* An inline function definition. */
         inline_function_definition(dsfp->variant.inline_func.routine,
                                    &dsfp->variant.inline_func.extra_info);
         /* In the normal case the current token should be end_of_source,
@@ -5503,20 +5517,25 @@ class/struct/union is actually defined.
         dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
         local_defines_something = dso_flags & DSO_DEFINES_SOMETHING;
         local_declares_something = dso_flags & DSO_DECLARES_SOMETHING;
+        if (local_defines_something) {
 #if CHECKING
-        if (C_dialect == C_dialect_cplusplus && local_defines_something) {
-          /* Should be a nested class, struct, union, or enum definition.
-             Be sure the parent class and access were marked correctly. */
-          a_symbol_ptr sym = (a_symbol_ptr)(skip_typerefs(member_type)->
+          if (C_dialect == C_dialect_cplusplus) {
+            /* Should be a nested class, struct, union, or enum definition.
+               Be sure the parent class and access were marked correctly. */
+            a_symbol_ptr sym = (a_symbol_ptr)(skip_typerefs(member_type)->
                                                    source_corresp.assoc_info);
-          if (sym != NULL &&
-              sym->class_of_which_a_member != class_type) {
-            internal_error("class_specifier: bad parent type on nested type");
-          } else if (member_type->source_corresp.access != access) {
-            internal_error("class_specifier: bad access on nested type");
-          } /* if */
-        } /* if */
+            if (sym != NULL &&
+                sym->class_of_which_a_member != class_type) {
+             internal_error("class_specifier: bad parent type on nested type");
+            } else if (member_type->source_corresp.access != access) {
+              internal_error("class_specifier: bad access on nested type");
+            } /* if */
+          }  /* if */
 #endif /* CHECKING */
+          if (is_class_struct_union_type(member_type)) {
+            symbol_supplement_for_class(class_type)->any_nested_classes = TRUE;
+          }  /* if */
+        } /* if */
         local_no_decl_specifiers = dso_flags & DSO_NO_DECL_SPECIFIERS;
         type_explicitly_specified =
                                dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER;
