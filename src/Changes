@@ -1,5 +1,23 @@
 Version 2.42
 
+7/8/99   Microsoft compatibility: do not generate or allow constructor
+         initializers for property fields
+
+The front end used to allow property fields to be mentioned in constructor
+initializer lists, and if they were omitted it generated them.  Either
+situation resulted in an internal error during IL lowering.  Property fields
+will now generate an error when they appear in constructor initializer lists,
+and no implicit initializer is generated for them.
+
+  struct A { A(int); };
+  struct B {
+    __declspec(property(get=GetName,put=PutName)) A prop;
+    B();
+    B(int);
+  };
+  B::B() {} // Fine (no implicit initializer for B::prop)
+  B::B(int): prop(42) {} // Error: property name cannot appear here
+
 7/8/99   --microsoft_bugs and --microsoft_version do not reset
          Microsoft 16/32 bit mode
 

@@ -3357,14 +3357,20 @@ initialized.  These are addressed in the course of the processing.
     if (sym->kind == (a_symbol_kind)sk_field) {
       /* sym represents a field.  Determine whether constructor initialization
          is required. */
-      if (is_generated_cctor) {
+      a_field_ptr field = sym->variant.field.ptr;
+      if (microsoft_mode && (field->get_property_name != NULL ||
+                             field->put_property_name != NULL)) {
+        /* Property fields are not really data members and should not be
+           initialized. */
+        continue;
+      } else if (is_generated_cctor) {
         /* All fields are explicitly listed for a generated copy constructor,
            since even if there is no constructor at least a bitwise copy is
            required. */
       } else {
         /* This is not a copy constructor.  See if this is a field that
            requires an initializer. */
-        tp = sym->variant.field.ptr->type;
+        tp = field->type;
         if (is_reference_type(tp) || is_const_qualified_type(tp)) {
           /* Ref-type fields and const and array-of-const fields require an
              initializer. */
@@ -3549,11 +3555,18 @@ initialized.  These are addressed in the course of the processing.
           /* This is a field of the current class and may be mentioned in the
              constructor's initializer list.  But it's an error to refer to
              it by a qualified name. */
+          a_field_ptr field = member_or_base_sym->variant.field.ptr;
           if (locator_for_curr_id.is_qualified_name) {
             pos_error(ec_qualified_name_not_allowed,
                       &locator_for_curr_id.source_position);
+          } else if (microsoft_mode && (field->get_property_name != NULL ||
+                                        field->put_property_name != NULL)) {
+            /* Property fields may not be mention in a constructor initializer
+               list. */
+            pos_error(ec_property_name_not_allowed,
+                      &locator_for_curr_id.source_position);
           }  /* if */
-          init_type = member_or_base_sym->variant.field.ptr->type;
+          init_type = field->type;
           if (is_array_type(init_type) && !is_string_type(init_type)) {
             /* Arrays can be default-initialized if the expression-list is
                omitted. */
@@ -3572,12 +3585,10 @@ initialized.  These are addressed in the course of the processing.
               if (cip->initializer != NULL) {
                 /* Note: at this point cip_list includes only fields, so we can
                    assume new_cip->kind is cik_field. */
-                if (cip->variant.field ==
-                                     member_or_base_sym->variant.field.ptr) {
+                if (cip->variant.field == field) {
                   /* Error on duplicate initialization will be issued below. */
-                } else if (are_disjoint_members_of_union(
-                                      cip->variant.field,
-                                      member_or_base_sym->variant.field.ptr)) {
+                } else if (are_disjoint_members_of_union(cip->variant.field,
+                                                         field)) {
                   /* The union (or the anonymous union subobject) has already
                      been initialized. */
                   error(ec_union_already_initialized);
