@@ -3802,6 +3802,21 @@ entered during initialization.
 }  /* full_enter_symbol */
 
 
+void enter_keyword(a_token_kind token,
+                   char         *keyword)
+/*
+Enter a keyword.  keyword is the keyword string, token is the lexical
+token that corresponds to it.
+*/
+{
+  register a_symbol_ptr sym_ptr;
+
+  sym_ptr = full_enter_symbol(keyword, (sizeof_t)(strlen(keyword)),
+			      (a_symbol_kind)sk_keyword, NO_SCOPE_DEPTH);
+  sym_ptr->variant.keyword.token = token;
+}  /* enter_keyword */
+
+
 void make_symbol_for_predeclared_type(a_type_ptr  predeclared_type,
                                       char        *name)
 /*
@@ -3882,6 +3897,27 @@ namespace std was encountered in the source.
   link_symbol_into_symbol_table(symbol_for_namespace_std, DEPTH_OF_FILE_SCOPE,
                                 suppress_error);
 }  /* enter_symbol_for_namespace_std */
+
+
+void declare_builtin_va_list_type(void)
+/*
+Declare the type va_list when <stdarg.h> is treated as a builtin.
+*/
+{
+  char         *name = "va_list";
+  a_symbol_ptr sym;
+
+  sym = full_enter_symbol(name, (sizeof_t)(strlen(name)),
+                          (a_symbol_kind)sk_type, DEPTH_OF_FILE_SCOPE);
+  builtin_va_list_type = alloc_type((a_type_kind)tk_typeref);
+  builtin_va_list_type->variant.typeref.type= make_pointer_type(void_type());
+  sym->variant.type = builtin_va_list_type;
+  set_source_corresp(&builtin_va_list_type->source_corresp, sym);
+  /* Note that the source position is zero, which is how we can
+     recognize this type as the builtin one. */
+  add_to_types_list(builtin_va_list_type, DEPTH_OF_FILE_SCOPE);
+}  /* declare_builtin_va_list_type */
+
 
 static void expand_ident_buffer(sizeof_t size_needed)
 /*
@@ -8558,8 +8594,12 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(error_symbol_header),
       pch_saved_var_array_elem(unnamed_tag_symbol_header),
       pch_saved_var_array_elem(unnamed_namespace_symbol_header),
+      pch_saved_var_array_elem(anonymous_parent_object_symbol_header),
       pch_saved_var_array_elem(unnamed_field_symbol_header),
       pch_saved_var_array_elem(global_namespace_list_entry),
+      pch_saved_var_array_elem(symbol_for_namespace_std),
+      pch_saved_var_array_elem(builtin_va_list_type),
+      pch_saved_var_array_elem(conversion_header_list),
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
       pch_saved_var_array_elem(last_ctor_or_dtor_sym),
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
@@ -8597,6 +8637,7 @@ are handled in symbol_tbl_init.)
     register_pch_saved_variables(saved_vars);
   }  /* if */
 }  /* symbol_tbl_one_time_init */
+
 
 void symbol_tbl_init(void)
 /*
@@ -8652,6 +8693,7 @@ of the front end.
   global_namespace_list_entry = NULL;
   /* Initialize the predeclared symbol for namespace "std". */
   symbol_for_namespace_std = NULL;
+  builtin_va_list_type = NULL;
   /* Initialize the conversion header list. */
   conversion_header_list = NULL;
   /* Global variable declared in symbol_ref.c. */

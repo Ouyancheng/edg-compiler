@@ -139,21 +139,6 @@ Do required initialization for host-dependent things.
 }  /* host_init */
 
 
-static void enter_keyword(a_token_kind token,
-		          char         *keyword)
-/*
-Enter a keyword.  keyword is the keyword string, token is the lexical
-token that corresponds to it.
-*/
-{
-  register a_symbol_ptr sym_ptr;
-
-  sym_ptr = full_enter_symbol(keyword, (sizeof_t)(strlen(keyword)),
-			      (a_symbol_kind)sk_keyword, NO_SCOPE_DEPTH);
-  sym_ptr->variant.keyword.token = token;
-}  /* enter_keyword */
-
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void enter_underscore_keywords(a_token_kind token,

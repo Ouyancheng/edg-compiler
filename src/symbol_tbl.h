@@ -2383,6 +2383,9 @@ extern a_symbol_ptr full_enter_symbol(char          *identifier,
 				      a_symbol_kind sym_kind,
 				      a_scope_depth scope_depth);
 
+extern void enter_keyword(a_token_kind token,
+                          char         *keyword);
+
 extern void make_symbol_for_predeclared_type(a_type_ptr  predeclared_type,
                                              char        *name);
 
@@ -2396,6 +2399,14 @@ EXTERN a_symbol_ptr
 extern void make_symbol_for_namespace_std(void);
 
 extern void enter_symbol_for_namespace_std(a_symbol_locator  *locator);
+
+EXTERN a_type_ptr
+		builtin_va_list_type;
+			/* When the <stdarg.h> header is handled as a builtin,
+			   this points to the va_list type once it has been
+			   defined.  NULL until then. */
+
+void declare_builtin_va_list_type(void);
 
 extern void set_symbol_kind(a_symbol_ptr  sym_ptr,
 			    a_symbol_kind sym_kind);
