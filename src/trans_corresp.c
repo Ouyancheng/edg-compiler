@@ -2884,13 +2884,14 @@ type (if any) in a secondary translation unit whose correspondence is the
 given type.
 */
 {
-  a_type_ptr  canon = (a_type_ptr)canonical_il_entry_of(type);
-  a_boolean   new_canon = FALSE;
-
-  if (!type_has_definition(type)) {
+  if (!correspondence_checking_underway && !correspondence_checking_done) {
+    /* Nothing to be done: correspondences are not being processed yet. */
+  } else if (!type_has_definition(type)) {
     /* This only happens in strange error situations. */
     check_assertion(total_errors != 0);
   } else {
+    a_type_ptr  canon = (a_type_ptr)canonical_il_entry_of(type);
+    a_boolean   new_canon = FALSE;
     if (canon == type) {
       /* This is presumably the first class body instantiation. */
       clear_class_type_correspondence(type, /*visited=*/TRUE);
