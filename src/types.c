@@ -82,14 +82,13 @@ predicates.
 #define is_real_floating(tp) ((tp)->kind == (a_type_kind)tk_float)
 
 #if C99_IL_EXTENSIONS_SUPPORTED
-#define is_nonreal_floating(tp) ((tp)->kind == (a_type_kind)tk_complex ||    \
-                                 (tp)->kind == (a_type_kind)tk_imaginary)
-#else /* !C99_IL_EXTENSIONS_SUPPORTED */
-#define is_nonreal_floating(tp) FALSE
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#define is_floating(tp) (is_real_floating(tp) || is_nonreal_floating(tp))
 #define is_imaginary(tp) ((tp)->kind == (a_type_kind)tk_imaginary)
 #define is_complex(tp) ((tp)->kind == (a_type_kind)tk_complex)
+#define is_nonreal_floating(tp) (is_complex(tp) || is_imaginary(tp))
+#define is_floating(tp) (is_real_floating(tp) || is_nonreal_floating(tp))
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
+#define is_floating(tp) (is_real_floating(tp))
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 /* Arithmetic types are the integral types plus the floating types; in C++
    mode enum types are not integral. */
 #define is_arithmetic_or_enum(tp) (is_integral_or_enum(tp) || is_floating(tp))
@@ -327,13 +326,15 @@ Return TRUE if the type is a character type (signed, unsigned, or "plain").
 
 a_boolean is_floating_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is a floating type.
+Return TRUE if the given type is a floating type.  In C99, that includes
+complex and imaginary types.
 */
 {
   tp = skip_typerefs(tp);
   return(is_floating(tp));
 }  /* is_floating_type */
 
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 a_boolean is_nonreal_floating_type(a_type_ptr tp)
 /*
@@ -342,9 +343,10 @@ type.
 */
 {
   tp = skip_typerefs(tp);
-  return(is_nonreal_floating(tp));
+  return is_nonreal_floating(tp);
 }  /* is_nonreal_floating_type */
 
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if C99_IL_EXTENSIONS_SUPPORTED
 
 a_boolean is_imaginary_type(a_type_ptr tp)
@@ -353,7 +355,7 @@ Return TRUE if the given type is an imaginary floating type.
 */
 {
   tp = skip_typerefs(tp);
-  return(is_imaginary(tp));
+  return is_imaginary(tp);
 }  /* is_imaginary_type */
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -365,7 +367,7 @@ Return TRUE if the given type is a complex floating type.
 */
 {
   tp = skip_typerefs(tp);
-  return(is_complex(tp));
+  return is_complex(tp);
 }  /* is_complex_type */
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
