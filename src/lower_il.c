@@ -1151,6 +1151,35 @@ its member type.
 }  /* pm_member_type_possibly_lowered */
 
 
+static a_boolean is_or_was_ptr_to_data_member_type(a_type_ptr type)
+/*
+Return TRUE if type is (or was, before lowering) a pointer to data member.
+*/
+{
+  a_boolean is_ptr_to_data = FALSE;
+
+  /* Drop typerefs, but look for a special entry that indicates that
+     it was some other type rewritten by IL lowering. */
+  while (type->kind == (a_type_kind)tk_typeref) {
+    if (type->variant.typeref.orig_member_type != NULL) {
+      /* A type transformed to something else (e.g., a pointer to
+         data member changed to a small integer). */
+      type = type->variant.typeref.orig_member_type;
+      break;
+    }  /* if */
+    type = type->variant.typeref.type;
+  }  /* while */
+  if (is_ptr_to_member_type(type)) {
+    /* The type is a pointer-to-member type.  See if the member type is
+       a non-function type. */
+    if (!is_function_type(pm_member_type(type))) {
+      is_ptr_to_data = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_ptr_to_data;
+}  /* is_or_was_ptr_to_data_member_type */
+
+
 static a_boolean is_or_was_ptr_to_member_function_type(a_type_ptr type)
 /*
 Return TRUE if type is (or was, before lowering) a pointer to member
@@ -2309,6 +2338,7 @@ operator op.  Insert the statement at *insert_location and update
   return assign_stmt;
 }  /* insert_var_assignment_statement */
 
+#if MAKE_ALL_FUNCTIONS_UNPROTOTYPED
 
 static void do_default_arg_promotions_on_node(an_expr_node_ptr expr)
 /*
@@ -2357,6 +2387,7 @@ function).
   }  /* if */
 }  /* do_default_arg_promotions_on_node */
 
+#endif /* MAKE_ALL_FUNCTIONS_UNPROTOTYPED */
 
 static an_expr_node_ptr make_call_node(a_routine_ptr    routine,
                                        an_expr_node_ptr arg_list)
@@ -7376,7 +7407,13 @@ being called is called_rout_type.
       /* Unprototyped parameter: old-style function or ellipsis. */
       /* Widen pointers-to-data-members that have been turned into integers
          and are passed to an old-style function or ellipsis. */
-      do_default_arg_promotions_on_node(expr);
+      if (is_or_was_ptr_to_data_member_type(expr->type)) {
+        /* A pointer to data member -- cast to int. */
+        an_expr_node_ptr expr_copy = copy_node(expr);
+        set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
+        set_node_operator(expr, (an_expr_operator_kind)eok_cast,
+                          integer_type((an_integer_kind)ik_int), expr_copy);
+      }  /* if */
     }  /* if */
   }  /* for */
 }  /* lower_arg_expr_list */
@@ -9302,8 +9339,13 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         /* Lower the operands of the expression.  For calls, the lowering
            is done in a special way. */
         if (is_call) {
-          lower_arg_expr_list(operand_node->next,
-                              type_pointed_to(operand_node->type));
+          a_type_ptr rout_type;
+          if (op == (an_expr_operator_kind)eok_pm_call) {
+            rout_type = pm_member_type(operand_node->type);
+          } else {
+            rout_type = type_pointed_to(operand_node->type);
+          }  /* if */
+          lower_arg_expr_list(operand_node->next, rout_type);
         } else {
           lower_expr_list(operand_node, is_lvalue_mask,
                           is_conditional_operator);
