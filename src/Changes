@@ -1,5 +1,12 @@
 Version 2.42
 
+7/13/99  Abort on redefinition of predefined macro
+
+In Microsoft mode, a redefinition of a predefined macro that cannot be
+redefined is ignored with a warning (it is an error in default mode).
+Such a redefinition would, however, result in an abort when writing
+an IL file.  Now fixed.
+
 7/13/99  Spurious error on member of specialized member class template
 
 A spurious error was issued on the definition of a member function of

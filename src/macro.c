@@ -2870,8 +2870,11 @@ Scan and process a #define directive.
          the old.  Check is done later. */
       redefinition = TRUE;
     }  /* if */
-    if (assoc_symbol == NULL) {
-      /* Enter the macro symbol. */
+    if (assoc_symbol == NULL && !is_error_locator(locator_for_curr_id)) {
+      /* Enter the macro symbol.  assoc_symbol remains NULL if an error
+         locator is being used.  This suppresses the creation of a
+         macro IL entry.  It also prevents us from calling mark_defined
+         on an error symbol. */
       copy_source_position(pos_curr_token,
                            locator_for_curr_id.source_position);
       assoc_symbol = enter_symbol((a_symbol_kind)sk_macro,
@@ -3189,27 +3192,31 @@ redef_error:
 #endif /* DEBUG */
     (void)memcpy(repl_text, buffer_start, size_t_arg(repl_text_len));
     repl_text[repl_text_len] = (char)rt_null;
-    /* Allocate and fill the macro definition block. */
-    if (mdp == NULL) {
-      mdp = alloc_macro_def();
-    } else {
-      /* Reuse an existing macro definition on a non-benign redefinition. */
-      clear_macro_def(mdp);
+    if (assoc_symbol != NULL) {
+      /* Allocate and fill the macro definition block. */
+      if (mdp == NULL) {
+        mdp = alloc_macro_def();
+      } else {
+        /* Reuse an existing macro definition on a non-benign redefinition. */
+        clear_macro_def(mdp);
+      }  /* if */
+      mdp->object_like    = object_like;
+      mdp->param_list     = param_list;
+      mdp->repl_text      = repl_text;
+      mdp->variadic       = variadic;
+      /* Put the macro def block pointer into the symbol entry. */
+      assoc_symbol->variant.macro_def = mdp;
     }  /* if */
-    mdp->object_like    = object_like;
-    mdp->param_list     = param_list;
-    mdp->repl_text      = repl_text;
-    mdp->variadic       = variadic;
-    /* Put the macro def block pointer into the symbol entry. */
-    assoc_symbol->variant.macro_def = mdp;
 def_done:;
+    if (assoc_symbol != NULL) {
 #if RECORD_MACROS_IN_IL
-    /* Make an IL entry for the macro. */
-    make_il_macro_entry(assoc_symbol, &start_pos);
+      /* Make an IL entry for the macro. */
+      make_il_macro_entry(assoc_symbol, &start_pos);
 #endif /* RECORD_MACROS_IN_IL */
-    /* Mark the symbol as defined. */
-    assoc_symbol->defined = FALSE;  /* Avoid secondary declarations. */
-    mark_defined(assoc_symbol, &start_pos);
+      /* Mark the symbol as defined. */
+      assoc_symbol->defined = FALSE;  /* Avoid secondary declarations. */
+      mark_defined(assoc_symbol, &start_pos);
+    }  /* if */
   }  /* if */
   /* Drop any local pointer registrations. */
   registered_pointers = save_registered_pointers;
