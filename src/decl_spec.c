@@ -5733,7 +5733,8 @@ exit_loop:
         error_code = ec_only_applies_to_float_types;
       }  /* if */
       str_error(error_code,
-                (complex_attr == cxa_complex) ? "_Complex" : "_Imaginary");
+                (char *)((complex_attr == cxa_complex) ? "_Complex"
+                                                       : "_Imaginary"));
       bad_combination_of_type_specifiers = TRUE;
       *output_flags |= DSO_HAS_EXPLICIT_TYPE_SPECIFIER;
     }  /* if */

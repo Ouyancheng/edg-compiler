@@ -1015,7 +1015,7 @@ by octl.
                  (!octl->c_generating_back_end || octl->render_c99_bool)) {
         /* Output a bool type as "bool", except in the C generating
            back end, where it is output as its underlying type. */
-        octl->output_str(octl->render_c99_bool ? "_Bool" : "bool");
+        octl->output_str((char *)(octl->render_c99_bool ? "_Bool" : "bool"));
       } else
 #endif /* ifdef CFE */
       {
@@ -1039,8 +1039,8 @@ by octl.
     case tk_complex:
     case tk_imaginary:
       form_float_kind_name(type->variant.float_kind, octl);
-      octl->output_str(type->kind == (a_type_kind)tk_complex ?
-                       " _Complex" : " _Imaginary");
+      octl->output_str((char *)(type->kind == (a_type_kind)tk_complex ?
+                       " _Complex" : " _Imaginary"));
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_float:
