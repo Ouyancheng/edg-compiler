@@ -1,5 +1,11 @@
 Version 2.31
 
+12/21/95  C-generating back end: Avoiding &"string" when generating ANSI/ISO C
+
+Some ANSI/ISO C compilers do not like the construct &"string", perhaps
+because they believe strings are not lvalues.  The C-generating back end
+has been changed to avoid generating that.
+
 12/20/95  C++-generating back end: Only "="-form initializers for conditions
 
 Condition declarations in C++ are limited to using the "=" form of

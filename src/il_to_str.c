@@ -1668,12 +1668,29 @@ in the way described by octl.
     /* For an array, we may be able to exploit the implicit decay to
        pointer to avoid the "&". */
     /* If the constant is the address of the array instead of a pointer
-       to the first element, favor the "&x" notation.  Don't do that for
-       pcc mode, though, because pcc gives warnings on that and uses
-       the pointer-to-element type anyway. */
-    if (!constant->implicit_cast && !octl->gen_pcc_code) {
-      /* Keep the ampersand. */
-    } else {
+       to the first element, favor the "&x" notation. */
+    a_boolean keep_ampersand = FALSE;
+    if (!constant->implicit_cast) {
+      /* Since the constant type was not changed, this must be the address
+         of the array. */
+      if (octl->gen_pcc_code) {
+        /* Don't do address-of-array in pcc mode, because pcc gives warnings
+           on that and uses the pointer-to-element type anyway. */
+        keep_ampersand = FALSE;
+      } else if (constant->variant.address.kind ==
+                                          (an_address_base_kind)abk_constant &&
+                 constant->variant.address.variant.constant->kind ==
+                                             (a_constant_repr_kind)ck_string) {
+        /* Address of a string constant.  Some ANSI/ISO C compilers have
+           difficulty with that, perhaps because they don't believe a string
+           is an lvalue. */
+        keep_ampersand = !octl->gen_compilable_code;
+      } else {
+        /* Keep the ampersand. */
+        keep_ampersand = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!keep_ampersand) {
       /* Exploit the implicit decay to pointer.
          This is particularly helpful in cases where the underlying
          variable is something like
