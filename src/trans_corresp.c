@@ -3115,7 +3115,7 @@ are not checked.
         /* It is possible for a namespace scope function to only be declared
            in a friend declaration.  If the friend declaration appears in a
            template, it will not appear in the routines list until the class
-           is isntantiated.  To ensure that it has its correspondence set,
+           is instantiated.  To ensure that it has its correspondence set,
            we intercept such functions here. */
         a_routine_list_entry_ptr
            rle = skip_generated_friend_routine(
@@ -3138,8 +3138,9 @@ are not checked.
                            (a_symbol_ptr)routine->source_corresp.assoc_info) &&
               may_have_correspondence(
                    (a_symbol_ptr)corresp_routine->source_corresp.assoc_info) &&
-              routine->source_corresp.parent.namespace_ptr ==
-                        corresp_routine->source_corresp.parent.namespace_ptr &&
+              same_entities(
+                       routine->source_corresp.parent.namespace_ptr,
+                       corresp_routine->source_corresp.parent.namespace_ptr) &&
               (param_types_are_compatible(
                                        routine->type, corresp_routine->type,
                                        TCF_REDECLARATION | TCF_SEEK_CORRESP) ||
@@ -3148,6 +3149,32 @@ are not checked.
                 is_main_function(corresp_routine)))) {
             set_trans_unit_corresp(iek_routine,
                                    rle->routine, corresp_rle->routine);
+          }  /* if */
+        }  /* for */
+      }
+      /* Traverse friend classes. */
+      {
+        /* Just as with friend functions, it is possible that classes are
+           only declared in class template instantiations.  Such class have
+           the is_invisible flag set on their associated symbol. */
+        a_class_list_entry_ptr
+           cle = type->variant.class_struct_union.extra_info->friend_classes,
+           corresp_cle = corresp_type->variant.class_struct_union.extra_info
+                                     ->friend_classes;
+        for (; cle != NULL && corresp_cle != NULL;
+             cle = cle->next, corresp_cle = corresp_cle->next) {
+          a_symbol_ptr  friend_sym = (a_symbol_ptr)cle
+                                       ->class_type->source_corresp.assoc_info,
+                        corresp_friend_sym = (a_symbol_ptr)corresp_cle
+                                       ->class_type->source_corresp.assoc_info;
+          if ((trans_unit_corresp_of(cle->class_type) == NULL ||
+               trans_unit_corresp_of(corresp_cle->class_type) == NULL) &&
+              !cle->class_type->source_corresp.is_class_member &&
+              !corresp_cle->class_type->source_corresp.is_class_member &&
+              (friend_sym->is_invisible || corresp_friend_sym->is_invisible) &&
+              same_parents(friend_sym, corresp_friend_sym)) {
+            set_trans_unit_corresp(iek_type, cle->class_type,
+                                   corresp_cle->class_type);
           }  /* if */
         }  /* for */
       }
