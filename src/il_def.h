@@ -1403,6 +1403,46 @@ enum a_float_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_float_kind;
 
+/*
+A bit set whose values represent the presence of one or type qualifiers
+(const, volatile, along with others that an implementation might choose to
+support, such as restrict).
+*/
+typedef unsigned int a_type_qualifier_set;
+
+/*
+Enumeration of type qualifiers that are accepted.  The enumeration values
+are used to create bit masks that are used to represent the qualifiers.
+*/
+enum a_type_qualifier_tag {
+  tqt_const,		/* Const qualifier. */
+  tqt_volatile,		/* Volatile qualifier. */
+#if RESTRICT_ALLOWED
+  tqt_restrict,		/* Restrict qualifier. */
+#endif /* RESTRICT_ALLOWED */
+  tqt_last		/* Must be last. */
+};
+
+/*
+Definitions of the bits in bit sets of type a_type_qualifier_set.
+*/
+#define TQ_NONE		0x0
+			/* No type qualifiers. */
+#define TQ_CONST	(1 << (int)tqt_const)
+			/* This bit is set to represent const. */
+#define TQ_VOLATILE	(1 << (int)tqt_volatile)
+			/* This bit is set to represent volatile. */
+#if RESTRICT_ALLOWED
+#define TQ_RESTRICT	(1 << (int)tqt_restrict)
+			/* This bit is set to represent restrict. */
+#endif /* RESTRICT_ALLOWED */
+
+/*
+The last type qualifier tag value is used as the number of bits required
+to represent a type qualifier set.
+*/
+#define NUM_BITS_FOR_TYPE_QUALIFIER_SET ((int)tqt_last)
+
 
 /* Entry used on parameter type lists for functions.  Note that these
    can be shared between multiple routine definitions. */
@@ -1413,7 +1453,10 @@ typedef struct a_param_type {
                         /* Pointer to the next parameter type, or NULL if
                            this is the last one. */
   a_type_ptr    type;
-                        /* Type of the parameter. */
+                        /* Type of the parameter.  In C++, any top-level
+			   type qualifiers that were present in the source
+			   have been removed -- see the field "qualifiers"
+			   below. */
 #ifdef CIL
   unsigned int	passed_via_copy_constructor:1;
 			/* If TRUE, the parameter has a type that requires
@@ -1435,6 +1478,11 @@ typedef struct a_param_type {
 			   parameter involves (anywhere in its type tree) a
 			   tk_template_param type entry (C++ front end
 			   only). */
+  a_type_qualifier_set
+		qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
+			/* Top-level type qualifiers on the parameter type
+			   on the definition of the function.  Not updated
+			   for declarations. */
   bitfield_to_avoid_codecenter_warnings();
   an_expr_node_ptr
 		default_arg_expr;
@@ -2434,52 +2482,6 @@ typedef struct a_based_type_list_member {
 		kind;	/* The relationship between the based type and the
 			   base type. */
 } a_based_type_list_member;
-
-
-/*
-A bit set whose values represent the presence of one or type qualifiers
-(const, volatile, along with others that an implementation might choose to
-support, such as restrict).
-*/
-typedef unsigned int a_type_qualifier_set;
-
-/*
-Enumeration of type qualifiers that are accepted.  The enumeration values
-are used to create bit masks that are used to represent the qualifiers.
-*/
-enum a_type_qualifier_tag {
-  tqt_const,		/* Const qualifier. */
-  tqt_volatile,		/* Volatile qualifier. */
-#if RESTRICT_ALLOWED
-  tqt_restrict,		/* Restrict qualifier. */
-#endif /* RESTRICT_ALLOWED */
-  tqt_last		/* Must be last. */
-};
-
-/*
-Definitions of the bits in bit sets of type a_type_qualifier_set.
-*/
-#define TQ_NONE		0x0
-			/* No type qualifiers. */
-#define TQ_CONST	(1 << (int)tqt_const)
-			/* This bit is set to represent const. */
-#define TQ_VOLATILE	(1 << (int)tqt_volatile)
-			/* This bit is set to represent volatile. */
-#if RESTRICT_ALLOWED
-#define TQ_RESTRICT	(1 << (int)tqt_restrict)
-			/* This bit is set to represent restrict. */
-#endif /* RESTRICT_ALLOWED */
-
-/*
-The last type qualifier tag value is used as the number of bits required
-to represent a type qualifier set.
-*/
-#define NUM_BITS_FOR_TYPE_QUALIFIER_SET ((int)tqt_last)
-/*
-The last type qualifier tag value is used as the number of bits required
-to represent a type qualifier set.
-*/
-#define NUM_BITS_FOR_TYPE_QUALIFIER_SET ((int)tqt_last)
 
 /*
 Determine whether any decl modifiers are being used.  This value is used

@@ -640,6 +640,11 @@ Display a_param_type entry.
   if (ptr->default_arg_expr != NULL) {
     disp_ptr("default_arg_expr", (char *)ptr->default_arg_expr, iek_expr_node);
   }  /* if */
+  if (ptr->qualifiers != TQ_NONE) {
+    disp_name("qualifiers");
+    form_type_qualifier((a_type_qualifier_set)ptr->qualifiers,
+                        /*need_trailing_space=*/FALSE, &octl);
+  }  /* if */
 #endif /* ifdef CFE */
 }  /* disp_param_type */
 
