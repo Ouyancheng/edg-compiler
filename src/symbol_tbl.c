@@ -4962,6 +4962,17 @@ check_routine:
     case sk_type:
       scp = &sym->variant.type->source_corresp;
       break;
+    case sk_class_template:
+      {
+      a_symbol_ptr  template_class_sym;
+      template_class_sym =
+               sym->variant.template.extra_info->variant.class.instantiations;
+      for (; template_class_sym != NULL;
+             template_class_sym = template_class_sym->next) {
+        end_of_scope_symbol_check(template_class_sym, curr_routine);
+      }  /* for */
+      }
+      break;
 #endif /* CHECKING */
     default:
       /* No processing for other kinds. */
