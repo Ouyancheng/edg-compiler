@@ -1,0 +1,44 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++  Runtime                           - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1996 Edison Design Group Inc.                        [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+Routine to clear a block of memory.  Used to initialize arrays that
+do not have constructors.
+
+*/
+
+#include <stddef.h>
+#include <stdlib.h>
+#include "basics.h"
+#include "config.h"
+
+EXTERN_C void __memzero(void    *buffer,
+                        size_t	size)
+/*
+Initialize a block of memory.
+*/
+{
+#if __EDG_BSD
+  bzero(buffer, size);
+#else /* !__EDG_BSD */
+  memset(buffer, 0, size);
+#endif /* __EDG_BSD */
+}  /* __memzero */
+
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++  Runtime                           - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1996 Edison Design Group Inc.                        [_]          *
+*                                                                             *
+******************************************************************************/
