@@ -189,7 +189,6 @@ DEBUG is TRUE.  Used in do_fs_alloc.
 /*
 Macro to increment the count of translation unit correspondence pointers
 allocated.  When not generating debugging code, this expands to nothing.
-DEBUG is TRUE.  Used in do_fs_alloc.
 */
 #if DEBUG && !STANDALONE_UTILITY_PROGRAM
 #define incr_num_trans_unit_corresp_pointers_allocated()              \
@@ -3104,7 +3103,7 @@ Display and return the amount of space used for various IL tables.
   db_space_used_nontype("fs orphan pointers", num_fs_orphan_pointers_allocated,
                         SPACE_FOR_FS_ORPHAN_POINTER);
 #endif /* ORPHAN_PROCESSING_NEEDED */
-  db_space_used_nontype(" translation unit correspondence pointers",
+  db_space_used_nontype("trans. unit corresp.",
                         num_trans_unit_corresp_pointers_allocated,
                         SPACE_FOR_TRANS_UNIT_CORRESP_POINTER);
   db_space_used("IL entry prefix", num_il_entry_prefixes_allocated,

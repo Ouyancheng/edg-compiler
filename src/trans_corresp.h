@@ -29,6 +29,15 @@ EXTERN a_boolean
 			/* TRUE if the correspondence checking code has been
 			   completed for the current translation unit. */
 
+/*
+The following canonical_*_entry_of routines return the canonical entry
+associated with the given entity.  If it has not yet been looked up, that
+canonical entry will be established as part of the call.
+
+The same_*_entities macros determine whether the two given entities are in fact
+the same, even though they might have been declared in different translation
+units (resulting in distinct IL entries).
+*/
 
 extern a_namespace_ptr canonical_namespace_entry_of(a_namespace_ptr  nsp);
 

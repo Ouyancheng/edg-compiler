@@ -63,6 +63,37 @@ entry in another translation unit.
 #define canonical_il_entry_of(ptr)                                     \
   (f_canonical_il_entry_of((char*)ptr))
 
+#if DEBUG
+static void *trace_corresp_ptr = NULL;
+
+static void corresp_intercept(void)
+/*
+This routine's main purpose is to have a breakpoint set on it from a symbolic
+debugger.  The routine is called if the correspondence pointer for the address
+pointed to by trace_corresp_ptr is modified.
+*/
+{
+  fprintf(f_debug, "Modifying correspondence for node at %x.\n",
+          (unsigned)trace_corresp_ptr);
+}  /* alloc_intercept */
+
+#define trace_corresp_check(ptr)                                       \
+  if (ptr == trace_corresp_ptr) { corresp_intercept(); }
+
+static void db_corresp(void *ptr)
+/*
+Report correspondence pointer for given entry.
+*/
+{
+  fprintf(f_debug, "Correspondence for 0x%x is 0x%x",
+          (unsigned)ptr, (unsigned)trans_unit_corresp_pointer_of(ptr));
+}  /* db_corresp */
+
+#else /* !DEBUG */
+
+#define trace_corresp_check(ptr)  /* Nothing */
+
+#endif /* DEBUG */
 
 static void f_set_no_trans_unit_corresp(char *ptr)
 /*
@@ -72,6 +103,7 @@ itself.  In constrast, a NULL correspondence pointer indicates that the entry
 has not yet been examined for a matching entry in another translation unit.
 */
 {
+  trace_corresp_check(ptr);
   trans_unit_corresp_pointer_of(ptr) = ptr;
 }  /* f_set_no_trans_unit_corresp */
 
@@ -89,6 +121,7 @@ Make the translation unit correspondence entry of the IL node pointed to by
 entity1 point to the IL node pointed to by entity2.
 */
 {
+  trace_corresp_check(entity1);
   entity2 = canonical_il_entry_of(entity2);
   check_assertion_str(entity1 != entity2, "correspondence loop attempted");
   trans_unit_corresp_pointer_of(entity1) = entity2;
@@ -1010,7 +1043,7 @@ is in fact valid.
   a_boolean       match = TRUE;
   a_symbol_ptr    templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
 
-  if (is_template_symbol(templ_sym) && has_correspondence(templ)) {
+  if (has_correspondence(templ)) {
     a_template_symbol_supplement_ptr
                     tssp = templ_sym->variant.template_info;
     a_template_ptr  corresp_templ =
@@ -1053,8 +1086,6 @@ is in fact valid.
       /* Also process prototype instantiation. */
       verify_routine_correspondence(tssp->variant.function.routine);
     }  /* if */
-  } else {
-    unexpected_condition_str("Bad symbol");
   }  /* if */
   return match;
 }  /* verify_template_correspondence */
@@ -1454,7 +1485,7 @@ symbol supplement.
   a_template_symbol_supplement_ptr
                   tssp = templ_sym->variant.template_info;
   a_template_ptr  templ = tssp->il_template_entry,
-                  corresp_templ = (a_template_ptr)canonical_il_entry_of(templ);
+                  corresp_templ = canonical_template_entry_of(templ);
   a_template_symbol_supplement_ptr
                   corresp_tssp =
                        ((a_symbol_ptr)corresp_templ->source_corresp.assoc_info)
@@ -1879,6 +1910,73 @@ translation unit correspondence pointer if one is found.
 }  /* find_variable_correspondence */
 
 
+static void determine_correspondence(a_source_correspondence_ptr  scp,
+                                     an_il_entry_kind             kind)
+/*
+The given source correspondence is part of an IL entry of the given kind.
+If it has not been done already and correspondence checking is still under
+way, determine to which other IL entry this might correspond.
+*/
+{
+  /* If we're in the process of establishing correspondences, this particular
+     entry may need to be processed now.  Otherwise, it should already have
+     been done or no correspondence can be expected. */
+  if (correspondence_checking_underway &&
+      trans_unit_corresp_pointer_of(scp) == NULL) {
+    a_type_ptr  root = NULL;
+    /* Class members have their correspondence set when their parent type
+       is processed.  Hence we look for the outermost parent type. */
+    if (scp->is_class_member) {
+      root = scp->parent.class_type;
+      while (root->source_corresp.is_class_member &&
+             trans_unit_corresp_pointer_of(root) == NULL) {
+        root = root->source_corresp.parent.class_type;
+      }  /* while */
+    }  /* if */
+    if (root == NULL) {
+      /* Not a class member. */
+      switch (kind) {
+        case iek_routine:
+          find_routine_correspondence((a_routine_ptr)scp);
+          break;
+        case iek_variable:
+          find_variable_correspondence((a_variable_ptr)scp);
+          break;
+        case iek_type:
+          find_type_correspondence((a_type_ptr)scp);
+          break;
+        case iek_template:
+          find_template_correspondence((a_template_ptr)scp);
+          break;
+        default:
+          unexpected_condition_str("Unexpected IL entry kind");
+      }  /* switch */
+    } else if (trans_unit_corresp_pointer_of(root) == NULL) {
+      /* A member of a class that was not yet visited. */
+      if (root->variant.class_struct_union.is_template_class) {
+        record_class_template_instantiation(
+                              (a_symbol_ptr)root->source_corresp.assoc_info);
+      } else {
+        find_type_correspondence(root);
+      }  /* if */
+    }  /* if */
+    if (trans_unit_corresp_pointer_of(scp) == NULL) {
+      /* A correspondence error at an outer level prevent this entry from
+         having a correspondence.  Mark it and its unvisited ancestors as
+         having no correspondence. */
+      set_no_trans_unit_corresp(scp);
+      if (scp->is_class_member) {
+        a_type_ptr  parent = scp->parent.class_type;
+        while (parent != root) {
+          set_no_trans_unit_corresp(parent);
+          parent = parent->source_corresp.parent.class_type;
+        }  /* while */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* determine_correspondence */
+
+
 a_namespace_ptr canonical_namespace_entry_of(a_namespace_ptr nsp)
 /*
 Return the canonical entry established for the given namespace entry.
@@ -1909,31 +2007,7 @@ entry.
     /* If we're in the process of establishing correspondences, this particular
        entry may need to be processed now.  Otherwise, it should already have
        been done or no correspondence can be expected. */
-    if (correspondence_checking_underway &&
-        trans_unit_corresp_pointer_of(field) == NULL) {
-      /* Fields have their correspondence set when their parent type is
-         processed.  Hence we look for the outermost parent type. */
-      a_type_ptr  root = field->source_corresp.parent.class_type;
-      while (root->source_corresp.is_class_member &&
-             trans_unit_corresp_pointer_of(root) == NULL) {
-        root = root->source_corresp.parent.class_type;
-      }  /* while */
-      if (trans_unit_corresp_pointer_of(root) == NULL) {
-        /* A member of a class that was not yet visited. */
-        find_type_correspondence(root);
-      }  /* if */
-      if (trans_unit_corresp_pointer_of(field) == NULL) {
-        /* A correspondence error at an outer level prevents this entry from
-           having a correspondence.  Mark it and its unvisited ancestors as
-           having no correspondence. */
-        a_type_ptr  parent = field->source_corresp.parent.class_type;
-        set_no_trans_unit_corresp(field);
-        while (parent != root) {
-          set_no_trans_unit_corresp(parent);
-          parent = parent->source_corresp.parent.class_type;
-        }  /* while */
-      }  /* if */
-    }  /* if */
+    determine_correspondence(&field->source_corresp, iek_field);
     result = (a_field_ptr)canonical_il_entry_of(field);
   }  /* if */
   return result;
@@ -1950,53 +2024,7 @@ entry.
   a_routine_ptr              result = routine;
 
   if (routine != NULL && il_entry_prefix_of(routine).secondary_trans_unit) {
-    /* If we're in the process of establishing correspondences, this particular
-       entry may need to be processed now.  Otherwise, it should already have
-       been done or no correspondence can be expected. */
-    if (correspondence_checking_underway &&
-        trans_unit_corresp_pointer_of(routine) == NULL) {
-      a_type_ptr  root = NULL;
-      /* Member functions have their correspondence set when their parent type
-         is processed.  Hence we look for the outermost parent type. */
-      if (routine->source_corresp.is_class_member) {
-        root = routine->source_corresp.parent.class_type;
-        while (root->source_corresp.is_class_member &&
-               trans_unit_corresp_pointer_of(root) == NULL) {
-          root = root->source_corresp.parent.class_type;
-        }  /* while */
-      }  /* if */
-      if (root == NULL) {
-        /* Not a member function. */
-        if (routine->is_template_function) {
-          a_symbol_ptr  sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
-          record_function_template_instantiation(
-                                            sym->variant.routine.instance_ptr);
-        } else {
-          find_routine_correspondence(routine);
-        }  /* if */
-      } else if (trans_unit_corresp_pointer_of(root) == NULL) {
-        /* A member function of a class that was not yet visited. */
-        if (root->variant.class_struct_union.is_template_class) {
-          record_class_template_instantiation(
-                                (a_symbol_ptr)root->source_corresp.assoc_info);
-        } else {
-          find_type_correspondence(root);
-        }  /* if */
-      }  /* if */
-      if (trans_unit_corresp_pointer_of(routine) == NULL) {
-        /* A correspondence error at an outer level prevents this entry from
-           having a correspondence.  Mark it and its unvisited ancestors as
-           having no correspondence. */
-        set_no_trans_unit_corresp(routine);
-        if (routine->source_corresp.is_class_member) {
-          a_type_ptr  parent = routine->source_corresp.parent.class_type;
-          while (parent != root) {
-            set_no_trans_unit_corresp(parent);
-            parent = parent->source_corresp.parent.class_type;
-          }  /* while */
-        }  /* if */
-      }  /* if */
-    }  /* if */
+    determine_correspondence(&routine->source_corresp, iek_routine);
     result = (a_routine_ptr)canonical_il_entry_of(routine);
   }  /* if */
   return result;
@@ -2013,42 +2041,7 @@ entry.
   a_variable_ptr              result = var;
 
   if (var != NULL && il_entry_prefix_of(var).secondary_trans_unit) {
-    /* If we're in the process of establishing correspondences, this particular
-       entry may need to be processed now.  Otherwise, it should already have
-       been done or no correspondence can be expected. */
-    if (correspondence_checking_underway &&
-        trans_unit_corresp_pointer_of(var) == NULL) {
-      a_type_ptr  root = NULL;
-      /* Class members have their correspondence set when their parent type
-         is processed.  Hence we look for the outermost parent type. */
-      if (var->source_corresp.is_class_member) {
-        root = var->source_corresp.parent.class_type;
-        while (root->source_corresp.is_class_member &&
-               trans_unit_corresp_pointer_of(root) == NULL) {
-          root = root->source_corresp.parent.class_type;
-        }  /* while */
-      }  /* if */
-      if (root == NULL) {
-        /* Not a class member. */
-        find_variable_correspondence(var);
-      } else if (trans_unit_corresp_pointer_of(root) == NULL) {
-        /* A member of a class that was not yet visited. */
-        find_type_correspondence(root);
-      }  /* if */
-      if (trans_unit_corresp_pointer_of(var) == NULL) {
-        /* A correspondence error at an outer level prevents this entry from
-           having a correspondence.  Mark it and its unvisited ancestors as
-           having no correspondence. */
-        set_no_trans_unit_corresp(var);
-        if (var->source_corresp.is_class_member) {
-          a_type_ptr  parent = var->source_corresp.parent.class_type;
-          while (parent != root) {
-            set_no_trans_unit_corresp(parent);
-            parent = parent->source_corresp.parent.class_type;
-          }  /* while */
-        }  /* if */
-      }  /* if */
-    }  /* if */
+    determine_correspondence(&var->source_corresp, iek_variable);
     result = (a_variable_ptr)canonical_il_entry_of(var);
   }  /* if */
   return result;
@@ -2065,39 +2058,7 @@ canonical entry.
   a_type_ptr              result = type;
 
   if (type != NULL && il_entry_prefix_of(type).secondary_trans_unit) {
-    /* If we're in the process of establishing correspondences, this particular
-       entry may need to be processed now.  Otherwise, it should already have
-       been done or no correspondence can be expected. */
-    if (correspondence_checking_underway &&
-        trans_unit_corresp_pointer_of(type) == NULL) {
-      a_type_ptr  root = type;
-      /* Member types have their correspondence set when their parent type is
-         processed.  Hence we look for the outermost parent type. */
-      while (root->source_corresp.is_class_member &&
-             trans_unit_corresp_pointer_of(root) == NULL) {
-        root = root->source_corresp.parent.class_type;
-      }  /* while */
-      if (trans_unit_corresp_pointer_of(root) == NULL) {
-        /* This type was not examined yet. */
-        if (is_immediate_class_type(root) &&
-            root->variant.class_struct_union.is_template_class) {
-          record_class_template_instantiation(
-                                (a_symbol_ptr)root->source_corresp.assoc_info);
-        } else {
-          find_type_correspondence(root);
-        }  /* if */
-      }  /* if */
-      if (trans_unit_corresp_pointer_of(type) == NULL) {
-        /* A correspondence error at an outer level prevent this entry from
-           having a correspondence.  Mark it and its unvisited ancestors as
-           having no correspondence. */
-        a_type_ptr  parent = type;
-        while (parent != root) {
-          set_no_trans_unit_corresp(parent);
-          parent = parent->source_corresp.parent.class_type;
-        }  /* while */
-      }  /* if */
-    }  /* if */
+    determine_correspondence(&type->source_corresp, iek_type);
     result = (a_type_ptr)canonical_il_entry_of(type);
   }  /* if */
   return result;
@@ -2114,47 +2075,7 @@ canonical entry.
   a_template_ptr              result = templ;
 
   if (templ != NULL && il_entry_prefix_of(templ).secondary_trans_unit) {
-    /* If we're in the process of establishing correspondences, this particular
-       entry may need to be processed now.  Otherwise, it should already have
-       been done or no correspondence can be expected. */
-    if (correspondence_checking_underway &&
-        trans_unit_corresp_pointer_of(templ) == NULL) {
-      a_type_ptr  root = NULL;
-      /* Member templates have their correspondence set when their parent type
-         is processed.  Hence we look for the outermost parent type. */
-      if (templ->source_corresp.is_class_member) {
-        root = templ->source_corresp.parent.class_type;
-        while (root->source_corresp.is_class_member &&
-               trans_unit_corresp_pointer_of(root) == NULL) {
-          root = root->source_corresp.parent.class_type;
-        }  /* while */
-      }  /* if */
-      if (root == NULL) {
-        /* Not a member template. */
-        find_template_correspondence(templ);
-      } else if (trans_unit_corresp_pointer_of(root) == NULL) {
-        /* A member template of a class that was not yet visited. */
-        if (root->variant.class_struct_union.is_template_class) {
-          record_class_template_instantiation(
-                                (a_symbol_ptr)root->source_corresp.assoc_info);
-        } else {
-          find_type_correspondence(root);
-        }  /* if */
-      }  /* if */
-      if (trans_unit_corresp_pointer_of(templ) == NULL) {
-        /* A correspondence error at an outer level prevent this entry from
-           having a correspondence.  Mark it and its unvisited ancestors as
-           having no correspondence. */
-        set_no_trans_unit_corresp(templ);
-        if (templ->source_corresp.is_class_member) {
-          a_type_ptr  parent = templ->source_corresp.parent.class_type;
-          while (parent != root) {
-            set_no_trans_unit_corresp(parent);
-            parent = parent->source_corresp.parent.class_type;
-          }  /* while */
-        }  /* if */
-      }  /* if */
-    }  /* if */
+    determine_correspondence(&templ->source_corresp, iek_template);
     result = (a_template_ptr)canonical_il_entry_of(templ);
   }  /* if */
   return result;

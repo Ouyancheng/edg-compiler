@@ -4097,7 +4097,7 @@ prototype instantiation is considered as a potential match.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
     /* Call a routine that manages the correspondence of entities between
-       translation units to notify it of the not instance. */
+       translation units to notify it of the new instance. */
     record_instantiation(sym, tssp);
 #if DEBUG
     if (debug_level >= 3 || db_flag_is_set("instantiations")) {
@@ -7214,7 +7214,7 @@ type based on the template argument list and the template parameter list
   --(tssp->variant.function.pending_partial_instantiations);
   switch_back_to_original_region(region_to_switch_back_to);
   /* Call a routine that manages the correspondence of entities between
-     translation units to notify it of the not instance. */
+     translation units to notify it of the new instance. */
   record_instantiation(sym, tssp);
   /* Function instantiation entries are not marked for actual instantiation
      (that is, for generation of the function body) until there is an
