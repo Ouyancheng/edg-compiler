@@ -105,6 +105,10 @@ extern void delayed_scan_for_function_template_default_args(
 extern a_symbol_ptr template_declaration(a_boolean  *defines_something,
                                         a_boolean no_advance_past_final_token);
 
+extern
+void set_nested_template_class_symbol_info(a_symbol_ptr  sym,
+                                           a_type_kind	 type_kind);
+
 extern void update_instantiation_required_flag(
                                         a_template_instance_ptr tip,
                                         a_boolean               value,

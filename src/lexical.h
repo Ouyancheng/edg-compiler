@@ -1244,6 +1244,13 @@ extern
 void adjust_overlapping_token_caches(a_token_cache *cache1,
                                      a_token_cache *cache2,
                                      a_boolean     move_preceding_token);
+
+/* Move a list of tokens from one cache to another. */
+extern
+void move_cached_tokens(a_cached_token_ptr	first_token,
+			a_token_cache		*from_cache,
+                        a_token_cache		*to_cache);
+
 /* Free a token from a reusable cache. */
 extern
 void free_cached_token_from_reusable_cache(a_token_cache_ptr  token_cache,

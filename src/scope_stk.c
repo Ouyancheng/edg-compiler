@@ -873,6 +873,7 @@ specific version of the template.
   ssep->within_try_block         = FALSE;
   ssep->within_unnamed_namespace = FALSE;
   ssep->namespace_pushed         = FALSE;
+  ssep->reactivated_class_being_defined = FALSE;
   ssep->il_scope                 = sp;
   ssep->assoc_type               = assoc_type;
   ssep->assoc_routine            = assoc_routine;
@@ -931,6 +932,8 @@ specific version of the template.
                                    = NO_SCOPE_DEPTH;
   ssep->instantiation_common_scope = NO_SCOPE_DEPTH;
   ssep->saved_depth_of_initial_lookup_scope = depth_of_initial_lookup_scope;
+  ssep->first_template_cache_segment = NULL;
+  ssep->last_template_cache_segment = NULL;
   /* Clear the substructure shared with namespace symbol supplements. */
   ssep->assoc_pointers_block     = NULL;
   clear_scope_pointers_block(&ssep->pointers_block);
@@ -979,6 +982,13 @@ specific version of the template.
       ssep->inactive_symbols_may_be_visible =
                                   (ssep-1)->inactive_symbols_may_be_visible;
     }  /* if */
+    if (kind == (a_scope_kind)sck_class_reactivation) {
+      /* Determine whether the class being reactivated is still in the process
+         of being defined.  This can occur when a class nested within a
+         class template is instantiated while the enclosing class is still
+         in the process of being instantiated. */
+      ssep->reactivated_class_being_defined = is_incomplete_type(assoc_type);
+    }  /* if */
     /* Pragma and instantiation scopes require that the slow lookup
        algorithm be used because they require that certain symbols on the
        active list not be considered. */
@@ -1024,12 +1034,11 @@ specific version of the template.
         /* Static data members don't have their own scope so the
            template parameters are added at the instantiation scope. */
         reactivate_template_params = TRUE;
-      } else if (is_class_template_symbol(template_sym)) {
-        if (instance_sym != NULL && is_template_class_symbol(instance_sym)) {
-          ssep->in_prototype_instantiation =
+      } else if (instance_sym != NULL &&
+                 is_class_struct_union_symbol(instance_sym)) {
+        ssep->in_prototype_instantiation =
                     instance_sym->variant.class_struct_union.extra_info->
-                                                is_prototype_instantiation;
-        }  /* if */
+                                                  is_prototype_instantiation;
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       {

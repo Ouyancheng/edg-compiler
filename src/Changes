@@ -1,5 +1,41 @@
 Version 2.31
 
+11/22/95  "Delayed" definition of classes nested within class templates
+
+As with normal classes, it is now possible to define a class nested
+within a class template, outside of the class template definition,
+as in the following example:
+
+  template <class T> struct A {
+    struct B;
+  };
+  template <class T> struct A<T>::B { };
+
+As part of this change, it is also now possible to specialize a nested
+class without specializing the enclosing class.
+
+The language rules for nested classes within templates have been changed
+to make such specializations possible.  Formerly, nested classes were
+instantiated when the enclosing template was instantiated.  Now, nested
+classes are only instantiated when a complete instantiation is
+required using the same rules that apply when determining when to
+instantiate a normal (e.g., nonnested) template class.
+
+11/22/95  Base specifiers in out-of-class definition of nested classes
+
+Names in base-specifiers of nested classes defined outside of their
+enclosing class should be looked up in the scope of the class.  They
+were incorrectly being looked up in the scope where the class was
+defined.  This has been fixed.
+
+  template <class T> struct C {};
+  struct A {
+    typedef int X;
+    struct B;
+  };
+  struct A::B : public C<X> {};  // Now finds A::X
+
+
 11/22/95  Elimination of unneeded IL entries
 
 When MAINTAIN_NEEDED_FLAGS is TRUE, the IL tree can be pruned of unneeded

@@ -967,6 +967,46 @@ to cache2.  This routine may only be used for reusable token caches.
 }  /* adjust_overlapping_token_caches */
 
 
+void move_cached_tokens(a_cached_token_ptr	first_token,
+			a_token_cache		*from_cache,
+                        a_token_cache		*to_cache)
+/*
+Given two token caches, move the specified list of tokens from the
+first token cache to the second.  The list of tokens will already
+have been removed from the list indicated by from_cache, but will
+still be counted in the token and pragma count fields used for
+debugging purposes.  This routine may only be used for reusable token caches.
+*/
+{
+  a_cached_token_ptr		ctp;
+  a_cached_token_ptr		last_ctp;
+
+  check_assertion_str2(from_cache->is_reusable && to_cache->is_reusable,
+                       "move_cached_tokens:",
+                       "cache not reusable");
+  to_cache->first_token = first_token;
+  for (ctp = first_token; ctp != NULL; last_ctp = ctp, ctp = ctp->next) {
+#if DEBUG
+    if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
+      /* Adjust the pragma count for the two caches. */
+      a_pending_pragma_ptr	ppp = ctp->variant.pragmas;
+      while (ppp != NULL) {
+        from_cache->pragma_count--;
+        to_cache->pragma_count++;
+        ppp = ppp->next;
+      }  /* while */
+    }  /* if */
+    /* Adjust the token counts for the two caches. */
+    from_cache->token_count--;
+    to_cache->token_count++;
+#endif /* DEBUG */
+  }  /* for */
+  /* Set the last token pointer and terminate the token cache. */
+  to_cache->last_token = last_ctp;
+  terminate_token_cache(to_cache);
+}  /* move_cached_tokens */
+
+
 void discard_token_cache(a_token_cache *cache)
 /*
 The token cache *cache has been built but is not needed; free the cached

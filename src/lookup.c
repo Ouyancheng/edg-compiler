@@ -1174,103 +1174,6 @@ of the lookup is returned to the caller.
 
 
 static
-a_symbol_ptr inactive_scope_lookup(a_scope_kind			kind,
-                                   a_scope_stack_entry_ptr	ssep,
-				   a_symbol_locator		*locator,
-                                   a_lookup_state_ptr		lookup_state)
-/*
-This routine is called as part of normal_id_lookup processing to handle
-scopes for which the symbols are now on the inactive list.  This
-includes class reactivations, namespace reactivations (except when the
-original namespace is still on the scope stack), and template instantiation
-scopes.
-
-Note that for namespace extension and reactivation scopes, kind will have
-been changed to sck_namespace if the symbols for the namespace are
-still on the active list (this routine will not be called for such
-scopes).
-
-ssep points to the scope being for which symbols are being considered.
-locator is the symbol locator for the name being looked up.
-lookup_state is used to pass state information between the various routines
-that do normal id lookup processing.
-*/
-{
-  a_boolean	skip_scope = FALSE;
-  a_symbol_ptr	sym = NULL;
-
-  if (cfront_2_1_mode &&
-      kind == (a_scope_kind)sck_class_reactivation &&
-      lookup_state->skip_first_class_reactivation) {
-     /* This is used to skip class reactivation scopes when
-       processing friend declarations in cfront compatibility
-       mode.  Cfront ignores the innermost class reactivation
-       scope when processing friend functions. */
-    lookup_state->skip_first_class_reactivation = FALSE;
-    skip_scope = TRUE;
-  }  /* if */
-  if (kind == (a_scope_kind)sck_class_reactivation &&
-      lookup_state->skip_class_scopes) {
-    /* This is a class scope and we are skipping class scopes. */
-    skip_scope = TRUE;
-  }  /* if */
-  if (!skip_scope) {
-    /* Look on the inactive list for a symbol from this reactivated
-       scope. */
-    a_symbol_ptr	tag_symbol = NULL;
-    a_symbol_ptr	inactive_sym;
-    sym = NULL;
-    for (inactive_sym = inactive_symbol_list_from_locator(*locator);
-         inactive_sym != NULL;
-         inactive_sym = inactive_sym->next) {
-      if (inactive_sym->decl_scope == ssep->number) {
-        a_symbol_ptr	fund_sym = fundamental_symbol_of(inactive_sym);
-        if (is_acceptable_symbol(inactive_sym, fund_sym, *lookup_state)) {
-          /* Found a symbol. */
-          /* If this is a template parameter symbol that should not
-             be visible then continue looking for another symbol. */
-          if (inactive_sym->template_param_not_visible) continue;
-          /* If the symbol is a tag symbol and we're not required to find
-             a tag symbol, there's the possibility that there is a
-             non-type symbol in the same scope later in the list (because
-             the inactive list is not ordered in any way).  Save the
-             tag symbol and keep looking.  If nothing else turns up,
-                 use the tag symbol. */
-          if (is_tag_symbol(inactive_sym) && !lookup_state->must_be_tag) {
-            tag_symbol = inactive_sym;
-          } else {
-            /* Take the symbol. */
-            sym = inactive_sym;
-            break;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    /* We reached the end of the list.  If there is a tag symbol saved
-       within the loop, use it. */
-    if (sym == NULL && tag_symbol != NULL) {
-      sym = tag_symbol;
-    }  /* if */
-    /* If this is a namespace scope, also look for any symbols that
-       are visible because of using directives. */
-    if ((kind == (a_scope_kind)sck_namespace_extension ||
-         kind == (a_scope_kind)sck_namespace_reactivation) &&
-      ssep->using_directives_apply) {
-      sym = do_using_directive_lookup(ssep, sym, locator, lookup_state);
-    }  /* if */
-    if (sym == NULL && kind == (a_scope_kind)sck_class_reactivation) {
-      /* There is no inactive symbol that is in this class. */
-      /* Look for a symbol projected (inherited) into this class. */
-      lookup_state->look_for_projected_symbol = TRUE;
-      lookup_state->add_to_active_list = FALSE;
-      lookup_state->insert_sym = NULL;
-    }  /* if */
-  }  /* if */
-  return sym;
-}  /* inactive_scope_lookup */
-
-
-static
 a_symbol_ptr active_scope_lookup(a_scope_kind			kind,
                                  a_scope_stack_entry_ptr	ssep,
 				 a_symbol_locator		*locator,
@@ -1283,10 +1186,13 @@ Note that for namespace extension and reactivation scopes, kind will have
 been changed to sck_namespace if the symbols for the namespace are
 still on the active list.  As a result, this routine will also be called
 for namespace extension and reactivation scopes in such cases.
-ssep points to the scope being for which symbols are being considered.
-locator is the symbol locator for the name being looked up.
-lookup_state is used to pass state information between the various routines
-that do normal id lookup processing.
+Note also that this routine will also be called for class reactivations
+of classes whose class scope is still on the scope stack (i.e., for classes
+that are still in the process of being defined.  ssep points to the
+scope being for which symbols are being considered.  locator is the
+symbol locator for the name being looked up.  lookup_state is used to
+pass state information between the various routines that do normal id
+lookup processing.
 */
 {
   a_symbol_ptr		sym = NULL;
@@ -1334,7 +1240,9 @@ that do normal id lookup processing.
       ssep->using_directives_apply) {
     sym = do_using_directive_lookup(ssep, sym, locator, lookup_state);
   }  /* if */
-  if (sym == NULL && kind == (a_scope_kind)sck_class_struct_union) {
+  if (sym == NULL &&
+      (kind == (a_scope_kind)sck_class_struct_union ||
+       kind == (a_scope_kind)sck_class_reactivation)) {
     /* For class scopes, look for a symbol projected (inherited)
        into the class scope if a symbol was not found in the class
        itself. */
@@ -1345,6 +1253,110 @@ that do normal id lookup processing.
   return sym;
 #undef is_acceptable_active_symbol
 }  /* active_scope_lookup */
+
+
+static
+a_symbol_ptr inactive_scope_lookup(a_scope_kind			kind,
+                                   a_scope_stack_entry_ptr	ssep,
+				   a_symbol_locator		*locator,
+                                   a_lookup_state_ptr		lookup_state)
+/*
+This routine is called as part of normal_id_lookup processing to handle
+scopes for which the symbols are now on the inactive list.  This
+includes class reactivations, namespace reactivations (except when the
+original namespace is still on the scope stack), and template instantiation
+scopes.
+
+Note that for namespace extension and reactivation scopes, kind will have
+been changed to sck_namespace if the symbols for the namespace are
+still on the active list (this routine will not be called for such
+scopes).
+
+ssep points to the scope being for which symbols are being considered.
+locator is the symbol locator for the name being looked up.
+lookup_state is used to pass state information between the various routines
+that do normal id lookup processing.
+*/
+{
+  a_boolean	skip_scope = FALSE;
+  a_symbol_ptr	sym = NULL;
+
+  if (cfront_2_1_mode &&
+      kind == (a_scope_kind)sck_class_reactivation &&
+      lookup_state->skip_first_class_reactivation) {
+     /* This is used to skip class reactivation scopes when
+       processing friend declarations in cfront compatibility
+       mode.  Cfront ignores the innermost class reactivation
+       scope when processing friend functions. */
+    lookup_state->skip_first_class_reactivation = FALSE;
+    skip_scope = TRUE;
+  }  /* if */
+  if (kind == (a_scope_kind)sck_class_reactivation &&
+      lookup_state->skip_class_scopes) {
+    /* This is a class scope and we are skipping class scopes. */
+    skip_scope = TRUE;
+  }  /* if */
+  if (!skip_scope) {
+    if (ssep->reactivated_class_being_defined) {
+      /* If the class that is being reactivated is still in the process of
+         being defined, look on the active list for the symbols instead of
+         looking on the inactive list as is usually the case. */
+      sym = active_scope_lookup(kind, ssep, locator, lookup_state);
+    } else {
+      /* Look on the inactive list for a symbol from this reactivated
+         scope. */
+      a_symbol_ptr	tag_symbol = NULL;
+      a_symbol_ptr	inactive_sym;
+      sym = NULL;
+      for (inactive_sym = inactive_symbol_list_from_locator(*locator);
+           inactive_sym != NULL;
+           inactive_sym = inactive_sym->next) {
+        if (inactive_sym->decl_scope == ssep->number) {
+          a_symbol_ptr	fund_sym = fundamental_symbol_of(inactive_sym);
+          if (is_acceptable_symbol(inactive_sym, fund_sym, *lookup_state)) {
+            /* Found a symbol. */
+            /* If this is a template parameter symbol that should not
+               be visible then continue looking for another symbol. */
+            if (inactive_sym->template_param_not_visible) continue;
+            /* If the symbol is a tag symbol and we're not required to find
+              a tag symbol, there's the possibility that there is a
+               non-type symbol in the same scope later in the list (because
+               the inactive list is not ordered in any way).  Save the
+               tag symbol and keep looking.  If nothing else turns up,
+                   use the tag symbol. */
+            if (is_tag_symbol(inactive_sym) && !lookup_state->must_be_tag) {
+              tag_symbol = inactive_sym;
+            } else {
+              /* Take the symbol. */
+              sym = inactive_sym;
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      /* We reached the end of the list.  If there is a tag symbol saved
+         within the loop, use it. */
+     if (sym == NULL && tag_symbol != NULL) {
+        sym = tag_symbol;
+      }  /* if */
+      /* If this is a namespace scope, also look for any symbols that
+         are visible because of using directives. */
+      if ((kind == (a_scope_kind)sck_namespace_extension ||
+           kind == (a_scope_kind)sck_namespace_reactivation) &&
+        ssep->using_directives_apply) {
+        sym = do_using_directive_lookup(ssep, sym, locator, lookup_state);
+      }  /* if */
+      if (sym == NULL && kind == (a_scope_kind)sck_class_reactivation) {
+        /* There is no inactive symbol that is in this class. */
+        /* Look for a symbol projected (inherited) into this class. */
+        lookup_state->look_for_projected_symbol = TRUE;
+        lookup_state->add_to_active_list = FALSE;
+        lookup_state->insert_sym = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return sym;
+}  /* inactive_scope_lookup */
 
 
 static

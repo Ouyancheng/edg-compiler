@@ -79,6 +79,7 @@ static unsigned long
 		num_dependent_type_fixups_allocated,
 		num_template_instances_allocated,
 		num_symbol_list_entries_allocated,
+		num_template_cache_segments_allocated,
 		num_namespace_list_entries_allocated,
 		num_extern_symbol_descrs_allocated,
 		num_extern_type_fixups_allocated,
@@ -127,6 +128,11 @@ static an_access_error_descr_ptr
 static a_symbol_list_entry_ptr
 		avail_symbol_list_entries;
 			/* List of symbol list entries freed and
+			   available for reuse. */
+
+static a_template_cache_segment_ptr
+		avail_template_cache_segments;
+			/* List of template cache segments freed and
 			   available for reuse. */
 
 
@@ -476,6 +482,9 @@ and indentation is the indentation desired.
         if (cssp->class_template != NULL) {
           if (debug_level >= 4) put_string("has class template ptr");
         }  /* if */
+        if (cssp->is_instance) {
+          put_string("is instance");
+        }  /* if */
         if (cssp->is_nonreal_class) {
           put_string("nonreal");
         }  /* if */
@@ -664,7 +673,7 @@ do_variable:
       {
         a_template_symbol_supplement_ptr  tssp;
         a_template_param_ptr              tplep;
-        a_symbol_ptr                      inst_sym, mft_sym;
+        a_symbol_ptr                      inst_sym;
 
         tssp = sym->variant.template_info;
         if (tssp->token_cache.first_token != NULL) {
@@ -745,14 +754,6 @@ do_variable:
             fprintf(f_debug, "%*s", indentation + 2, "");
             db_symbol(inst_sym, "", indentation + 4);
             inst_sym = inst_sym->next;
-          }  /* while */
-          mft_sym = tssp->variant.class_template.member_function_templates;
-          while (mft_sym != NULL) {
-            fprintf(f_debug, "%*smember function template:\n",
-                    indentation, "");
-            fprintf(f_debug, "%*s", indentation + 2, "");
-            db_symbol(mft_sym, "", indentation + 4);
-            mft_sym = mft_sym->next;
           }  /* while */
         } else if (sym->kind == (a_symbol_kind)sk_function_template) {
           a_routine_ptr            routine = tssp->variant.function.routine;
@@ -1307,6 +1308,65 @@ Allocate a namespace list entry and return a pointer to it.
 }  /* alloc_namespace_list_entry */
 
 
+a_template_cache_segment_ptr alloc_template_cache_segment(
+                                a_symbol_ptr				sym,
+                                a_template_symbol_supplement_ptr	tssp)
+/*
+Allocate a new template segment descriptor entry, initialize its fields, and
+return a pointer to it.  sym points to the symbol for the member class or
+function for which the cache segment entry is being created.  tssp points
+to the symbol supplement associated with sym.
+*/
+{
+  a_template_cache_segment_ptr  tcsp;
+  a_scope_stack_entry_ptr	ssep;
+
+  if (avail_template_cache_segments != NULL) {
+    /* Reuse an existing entry. */
+    tcsp = avail_template_cache_segments;
+    avail_template_cache_segments = tcsp->next;
+  } else {
+    /* Allocate a new entry. */
+    tcsp = (a_template_cache_segment_ptr)
+                   alloc_fe(sizeof(a_template_cache_segment));
+#if DEBUG
+    num_template_cache_segments_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  tcsp->next = NULL;
+  tcsp->symbol = sym;
+  tcsp->template_info = tssp;
+  tcsp->first_token_number = NO_TOKEN_SEQUENCE_NUMBER;
+  tcsp->last_token_number = NO_TOKEN_SEQUENCE_NUMBER;
+  tcsp->before_first_token = NULL;
+  tcsp->last_token = NULL;
+  /* Add the new entry to the list of template cache segments associated
+     with the current instantiation. */
+  ssep = &scope_stack[depth_innermost_instantiation_scope];
+  check_assertion_str2(ssep->in_prototype_instantiation,
+                       "alloc_template_cache_segment:",
+                       "not in prototype instantiation");
+  if (ssep->first_template_cache_segment == NULL) {
+    ssep->first_template_cache_segment = tcsp;
+  }  /* if */
+  if (ssep->last_template_cache_segment != NULL) {
+    ssep->last_template_cache_segment->next = tcsp;
+  }  /* if */
+  ssep->last_template_cache_segment = tcsp;
+  return tcsp;
+}  /* alloc_template_cache_segment */
+
+
+void free_template_cache_segment(a_template_cache_segment_ptr tcsp)
+/*
+Free a template cache segment entry and return it to the available list.
+*/
+{
+  tcsp->next = avail_template_cache_segments;
+  avail_template_cache_segments = tcsp;
+}  /* free_template_cache_segment */
+
+
 a_namespace_symbol_supplement_ptr alloc_namespace_symbol_supplement(void)
 /*
 Allocate a new template symbol supplement entry, initialize its fields, and
@@ -1356,17 +1416,18 @@ and return a pointer to it.
   tssp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   clear_token_cache(&tssp->token_cache, /*reusable=*/TRUE);
   tssp->befriending_classes = NULL;
-  tssp->first_token_number = NO_TOKEN_SEQUENCE_NUMBER;
-  tssp->last_token_number = NO_TOKEN_SEQUENCE_NUMBER;
+  tssp->cache_segment = NULL;
   switch (kind) {
     case sk_class_template:
+    case sk_class_or_struct_tag:
+    case sk_union_tag:
       tssp->variant.class_template.instantiations = NULL;
       tssp->variant.class_template.type_kind = (a_type_kind)tk_error;
-      tssp->variant.class_template.member_function_templates = NULL;
       tssp->variant.class_template.prototype_instantiation = NULL;
       tssp->variant.class_template.prototype_instantiation_complete = FALSE;
       tssp->variant.class_template.name_linkage =
                                             (a_name_linkage_kind)nlk_none;
+      tssp->variant.class_template.not_standalone_nested_class = FALSE;
 #if CHECKING 
       tssp->variant.class_template.avoid_codecenter_warnings = FALSE;
 #endif /* CHECKING */
@@ -1470,6 +1531,7 @@ state.
         cssp->has_operator_array_new = FALSE;
         cssp->has_operator_delete = FALSE;
         cssp->has_operator_array_delete = FALSE;
+        cssp->is_instance = FALSE;
         cssp->is_nonreal_class = FALSE;
         cssp->is_prototype_instantiation = FALSE;
         cssp->is_specific_template_def = FALSE;
@@ -2920,8 +2982,9 @@ the class template symbol but do not enter it into the symbol table.
 ct_symbol is the symbol of the class template.
 */
 {
-  a_symbol_ptr  sym;
-  a_symbol_kind kind;
+  a_symbol_ptr 				sym;
+  a_symbol_kind 			kind;
+  a_class_symbol_supplement_ptr		cssp;
 
   /* Determine kind of symbol to be entered.  It can be either a
      class_or_struct or a union depending on the type of the class
@@ -2939,7 +3002,9 @@ ct_symbol is the symbol of the class template.
      position. */
   sym = alloc_symbol(kind, ct_symbol->header, pos);
   /* Set the pointer that points back to the original class template symbol. */
-  sym->variant.class_struct_union.extra_info->class_template = ct_symbol;
+  cssp = sym->variant.class_struct_union.extra_info;
+  cssp->class_template = ct_symbol;
+  cssp->is_instance = TRUE;
   /* Make the declaration scope the same as the class template's. */
   sym->decl_scope = ct_symbol->decl_scope;
   /* Set the new symbol to have the same class or namespace membership as
@@ -6732,6 +6797,9 @@ for space tracking purposes.
                 a_template_instance);
   db_space_used("symbol list entry", num_symbol_list_entries_allocated,
                 a_symbol_list_entry);
+  db_space_used_lost("template cache segment", avail_template_cache_segments,
+                     num_template_cache_segments_allocated,
+                     a_template_cache_segment);
   db_space_used("namespace list entry", num_namespace_list_entries_allocated,
                a_namespace_list_entry);
   db_space_used("projection symbol descr", num_projection_descrs_allocated,
@@ -6899,6 +6967,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(avail_access_error_descrs),
       pch_saved_var_array_elem(avail_active_using_directives),
       pch_saved_var_array_elem(avail_symbol_list_entries),
+      pch_saved_var_array_elem(avail_template_cache_segments),
       pch_saved_var_array_elem(avail_dependent_type_fixups),
       pch_saved_var_array_elem(avail_param_ids),
       pch_saved_var_array_elem(error_symbol_header),
@@ -6985,6 +7054,7 @@ of the front end.
   avail_access_error_descrs = NULL;
   avail_active_using_directives = NULL;
   avail_symbol_list_entries = NULL;
+  avail_template_cache_segments = NULL;
   error_symbol_header = NULL;
   unnamed_tag_symbol_header = NULL;
   unnamed_namespace_symbol_header = NULL;

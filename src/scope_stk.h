@@ -205,6 +205,12 @@ typedef struct a_scope_stack_entry {
 			   was reactivated when the template instantiation
 			   scope was pushed.  Also, TRUE for class reactivation
 			   scopes if the parent namespace was pushed. */
+  a_bit_field	reactivated_class_being_defined:1;
+			/* TRUE for class reactivation scopes if the class
+			   being reactivated is in the process of being
+			   defined.  This causes the lookup to look on the
+			   active list instead of the inactive list for
+			   the class members. */
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
 			/* Pointer to a scope pointer block that should be
@@ -507,6 +513,20 @@ typedef struct a_scope_stack_entry {
 			   depth_of_initial_lookup_scope when a new scope
 			   is pushed.  This value is restored when the
 			   scope is popped. */
+  a_template_cache_segment_ptr
+			first_template_cache_segment;
+			/* Pointer to the first template cache segment entry
+			   for a member class or function of the current
+			   prototype instantiation.  Present only for
+			   template instantiation scopes associated with
+			   prototype instantiations. */
+  a_template_cache_segment_ptr
+			last_template_cache_segment;
+			/* Pointer to the last template cache segment entry
+			   for a member class or function of the current
+			   prototype instantiation.  Present only for
+			   template instantiation scopes associated with
+			   prototype instantiations. */
 } a_scope_stack_entry;
 
 

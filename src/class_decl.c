@@ -159,12 +159,16 @@ with the indicated scope stack entry.
 }  /* add_to_routine_fixup_list */
 
 
-static a_boolean prescan_function_definition(void)
+static
+a_boolean prescan_function_definition(a_token_sequence_number *first_tsn,
+                                      a_token_sequence_number *last_tsn)
 /*
 Place the tokens for a function definition (including, perhaps, the
 constructor initializer) into a token cache, to await actual processing
 at a later point.  The current token is either a left brace or, when a
-constructor initializer is present, a colon.
+constructor initializer is present, a colon.  Return the starting
+and ending token sequence numbers of the function definition in
+*first_tsn and *last_tsn.
 */
 {
   a_token_cache      token_cache;
@@ -180,6 +184,8 @@ constructor initializer is present, a colon.
   /* Initialize a local stop token set. */
   clear_token_set_array(stop_tokens);
   incr_token_set_array_element(stop_tokens, tok_rbrace);
+  /* Save the token sequence number of the first token of the definition. */
+  *first_tsn = curr_token_sequence_number;
   if (curr_token == tok_colon) {
     /* A colon marks the start of a constructor initializer list.  Scan it,
        stopping at the left brace, where the function body is expected to
@@ -202,6 +208,8 @@ constructor initializer is present, a colon.
     cache_curr_token(&token_cache);
     success = TRUE;
   }  /* if */
+  /* Save the token sequence number of the last token of the definition. */
+  *last_tsn = curr_token_sequence_number;
   /* Add an end-of-source token to the end of the token cache.  This assures
      that we won't scan past the end of the cache in the actual scan. */
   terminate_token_cache(&token_cache);
@@ -6360,7 +6368,7 @@ definition.  pos is the error position.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_symbol_ptr find_corresp_prototype_tag_sym(a_symbol_ptr  curr_sym)
+a_symbol_ptr find_corresp_prototype_tag_sym(a_symbol_ptr  curr_sym)
 /*
 If a given tag symbol (curr_sym) represents an instantiation of a class
 template, return the corresponding tag symbol for the prototype instantiation
@@ -6491,38 +6499,44 @@ class is a nested class whose parent class definition has already been
 completed (C++ only).
 */
 {
-  a_boolean                       err = FALSE;
-  an_access_specifier             access;
-  a_symbol_ptr                    tag_sym, corresp_prototype_tag_sym = NULL;
-  a_boolean                       first_declarator;
-  a_decl_flag_set                 dsi_flags;
-  a_boolean                       is_first_field, any_named_fields;
-  a_source_position               decl_start_pos;
-  a_scope_ptr                     scope_ptr;
-  a_field_ptr                     end_of_field_list = NULL;
-  a_symbol_ptr                    rout_sym;
-  a_class_symbol_supplement_ptr   cssp;
-  a_boolean                       class_aggregate_ruled_out = FALSE;
-  a_boolean                       any_nonpublic_members = FALSE;
-  a_boolean                       any_friend_decls = FALSE;
-  a_routine_fixup_ptr             saved_routine_fixup;
-  a_boolean                       any_const_or_ref_fields = FALSE;
-  a_boolean                       is_template_instantiation;
-  a_boolean                       is_nonreal_instantiation = FALSE;
-  a_boolean                       error_on_def_in_return_type_already_issued;
-  an_override_registry_entry_ptr  override_registry = NULL;
-  a_stop_token_array              save_stop_token_array;
+  a_boolean                        err = FALSE;
+  an_access_specifier              access;
+  a_symbol_ptr                     tag_sym, corresp_prototype_tag_sym = NULL;
+  a_boolean                        first_declarator;
+  a_decl_flag_set                  dsi_flags;
+  a_boolean                        is_first_field, any_named_fields;
+  a_source_position                decl_start_pos;
+  a_scope_ptr                      scope_ptr;
+  a_field_ptr                      end_of_field_list = NULL;
+  a_symbol_ptr                     rout_sym;
+  a_class_symbol_supplement_ptr    cssp;
+  a_boolean                        class_aggregate_ruled_out = FALSE;
+  a_boolean                        any_nonpublic_members = FALSE;
+  a_boolean                        any_friend_decls = FALSE;
+  a_routine_fixup_ptr              saved_routine_fixup;
+  a_boolean                        any_const_or_ref_fields = FALSE;
+  a_boolean                        is_template_instantiation;
+  a_boolean                        is_nonreal_instantiation = FALSE;
+  a_boolean                        error_on_def_in_return_type_already_issued;
+  an_override_registry_entry_ptr   override_registry = NULL;
+  a_stop_token_array               save_stop_token_array;
+  a_template_symbol_supplement_ptr class_tssp;
+  a_token_sequence_number	   token_number_of_closing_brace;
 
   db_enter(3, "scan_class_definition");
   /* Set a flag to indicate whether we scanning a class template declaration
      for the sake of producing a "prototype instantiation" of the template.
-     This amounts to scanning the declarative sections (i.e., no function
-     bodies or default arg expressions) and issuing such syntax errors as can
-     be detected. */
+     Note that this is only set for the outermost class, not for classes
+     whose definitions are nested within the class template.  It is also
+     true for nested classes when their definition appears outside of
+     the class template.  The prototype instantiation amounts to scanning
+     the declarative sections (i.e., no function bodies or default arg
+     expressions) and issuing such syntax errors as can be detected. */
   is_template_instantiation = (scope_stack[depth_scope_stack].kind ==
                                      (a_scope_kind)sck_template_instantiation);
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   cssp = tag_sym->variant.class_struct_union.extra_info;
+  class_tssp = cssp->template_info;
   if (cssp->is_prototype_instantiation) {
     /* This is a prototype instantiation, so the resulting class is "nonreal"
        (i.e., based on template arguments that include the dummy types and
@@ -6543,6 +6557,64 @@ completed (C++ only).
   /* Determine the alignment adjustment required for packing. */
   set_max_member_alignment_for_class(class_type);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  if (tag_sym->is_class_member &&
+      (curr_token == tok_lbrace || curr_token == tok_colon)) {
+    /* This is a definition of a nested class.  See if the enclosing class
+       is a prototype and/or nonreal class.  If so, copy the information
+       to the current class. */
+    a_class_symbol_supplement_ptr  parent_cssp;
+    a_scope_stack_entry_ptr	   instantiation_ssep;
+    instantiation_ssep = &scope_stack[depth_innermost_instantiation_scope];
+    parent_cssp = symbol_supplement_for_class(tag_sym->parent.class_type);
+    /* If this is a prototype instantiation, allocate a template symbol
+       supplement if one has not already been created.  This is only done
+       at this point for nested classes defined within the template.
+       Note that a nested class defined outside of the template may
+       itself have classes defined within its body. */
+    if (cssp->is_prototype_instantiation &&
+        class_type != instantiation_ssep->assoc_type) {
+      a_template_symbol_supplement_ptr	tssp = cssp->template_info;
+      a_template_symbol_supplement_ptr	parent_tssp;
+      parent_tssp = parent_cssp->template_info;
+      class_tssp = tssp;
+      tssp->variant.class_template.prototype_instantiation = tag_sym;
+      /* The parameters and declaration scope of the enclosing class are
+         used for the nested class as well. */
+      tssp->parameters = parent_tssp->parameters;
+      tssp->declaration_scope = parent_tssp->declaration_scope;
+      tssp->variant.class_template.name_linkage =
+                             parent_tssp->variant.class_template.name_linkage;
+      /* The cache segment information is used later to remove nested class
+         definitions from the token cache of the enclosing class. */
+      tssp->cache_segment = alloc_template_cache_segment(tag_sym, tssp);
+      tssp->cache_segment->first_token_number = curr_token_sequence_number;
+      if (is_unnamed_tag_symbol(tag_sym)) {
+        /* The definition of this nested class cannot be moved outside of
+           the enclosing class because it has no name.  Record this
+           information in the template symbol supplement. */
+        tssp->variant.class_template.not_standalone_nested_class = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (C_dialect == C_dialect_cplusplus) {
+    /* Record the scope number used for the corresponding prototype
+       instantiation, if any. */
+    if (is_template_instantiation && !is_nonreal_instantiation) {
+      /* Find the prototype instantiation symbol associated with this
+         real instantiation. */
+      corresp_prototype_tag_sym = cssp->corresp_prototype_sym;
+      check_assertion_str2(corresp_prototype_tag_sym != NULL,
+                           "scan_class_definition:",
+                           "no corresponding prototype symbol for instance");
+    }  /* if */
+  }  /* if */
+  if (delayed_nested_class_def) {
+    /* This is a definition of a C++ nested class that appears outside the
+       scope of the parent class definition itself.  Reactivate the
+       lexical context.  Note that this is done before  the base specifiers
+       are scanned so that symbols from the enclosing class are visible. */
+    push_class_reactivation_scope(tag_sym->parent.class_type);
+  }  /* if */
   if (curr_token == tok_colon && C_dialect == C_dialect_cplusplus) {
     /* Scan the list of base specifiers. */
     add_stop_token(tok_lbrace);
@@ -6561,30 +6633,12 @@ completed (C++ only).
   }  /* if */
   if (curr_token == tok_lbrace) {
     /* Scan the structure or union definition. */
-    if (!is_template_instantiation && tag_sym->is_class_member) {
-      /* A class nested within a nonreal class is itself nonreal and a
-         class nested within a prototype instantiation is itself a prototype
-         instantiation. */
-      a_class_symbol_supplement_ptr  parent_cssp;
-      parent_cssp = symbol_supplement_for_class(tag_sym->parent.class_type);
-      if (parent_cssp->is_nonreal_class) {
-        cssp->is_nonreal_class = is_nonreal_instantiation = TRUE;
-        cssp->is_prototype_instantiation =
-                                      parent_cssp->is_prototype_instantiation;
-      }  /* if */
-    }  /* if */
     /* Save the current stop token state, and reinitialize it. */
     copy_stop_tokens(stop_token_array, save_stop_token_array);
     clear_stop_tokens();
     /* Advance past the left brace. */
     (void)get_token();
     add_stop_token(tok_rbrace);
-    if (delayed_nested_class_def) {
-      /* This is a definition of a C++ nested class that appears outside the
-         scope of the parent class definition itself.  Reactivate the
-         lexical context. */
-      push_class_reactivation_scope(tag_sym->parent.class_type);
-    }  /* if */
     /* Start a scope for the fields and other members.  Since the class type
        is allocated in the file scope memory region, all its members must also
        allocated there -- push_scope will switch to the file scope memory
@@ -6599,18 +6653,6 @@ completed (C++ only).
                                                                  scope_ptr;
       saved_routine_fixup = curr_routine_fixup;
       curr_routine_fixup = NULL;
-      /* Record the scope number used for the corresponding prototype
-         instantiation, if any. */
-      if (!is_nonreal_instantiation) {
-        corresp_prototype_tag_sym = find_corresp_prototype_tag_sym(tag_sym);
-        cssp->corresp_prototype_sym = corresp_prototype_tag_sym;
-      } else if (cssp->is_prototype_instantiation) {
-        /* During the prototype instantiation save the token sequence number
-           associated with this position in the class symbol supplement
-           this will be used during real instantiations to determine which
-           declaration in the real instantiation matches this one. */
-        cssp->prototype_token_sequence_number = curr_token_sequence_number;
-      }  /* if */
     }  /* if */
     any_named_fields = FALSE;
     if (curr_token == tok_rbrace) {
@@ -7389,6 +7431,8 @@ completed (C++ only).
               done_with_func_info(func_info);
             }  /* if */
             if (function_def_present) {
+              a_token_sequence_number	first_token_number;
+              a_token_sequence_number	last_token_number;
               if (!friend_specified) {
                 /* The inline flag is set for friend functions in
                    decl_friend_function, which also handles cases in which
@@ -7400,7 +7444,8 @@ completed (C++ only).
               /* Cache the tokens comprising the function definition
                  so that they can be rescanned once the entire class
                  definition has been processed. */
-              if (prescan_function_definition()) {
+              if (prescan_function_definition(&first_token_number,
+                                              &last_token_number)) {
                 /* Advance past the terminating right brace. */
                 (void)get_token();
               }  /* if */
@@ -7415,14 +7460,15 @@ completed (C++ only).
                    be updated, based on the template-info of the prototype
                    instantiation.  Note that the current class may be
                    nested within the prototype instantiation. */
-                a_template_symbol_supplement_ptr  tssp, class_tssp;
+                a_template_symbol_supplement_ptr  tssp;
 
                 tssp = rout_sym->variant.routine.instance_ptr->template_info;
-                class_tssp =
-                     scope_stack[depth_innermost_instantiation_scope].
-                                         template_sym->variant.template_info;
                 tssp->parameters = class_tssp->parameters;
                 tssp->declaration_scope = class_tssp->declaration_scope;
+                tssp->cache_segment = alloc_template_cache_segment(rout_sym,
+                                                                   tssp);
+                tssp->cache_segment->first_token_number = first_token_number;
+                tssp->cache_segment->last_token_number = last_token_number;
               }  /* if */
               /* A comma-list of function definitions is not allowed. */
               goto next_declaration;
@@ -8036,7 +8082,9 @@ next_declaration:
          Here the namespace-extension scope for N is still on the scope stack,
          but we want the placeholder typeref to be added to the file scope,
          which is what orig_decl_level should specify. */
-      add_to_types_list(placeholder, orig_decl_level);
+      if (!is_nonreal_instantiation) {
+        add_to_types_list(placeholder, orig_decl_level);
+      }  /* if */
       if (scope_stack[orig_decl_level].il_scope->kind ==
                                             (a_scope_kind)sck_namespace) {
         /* The original declaration scope is a namespace scope instead of the
@@ -8050,6 +8098,7 @@ next_declaration:
     }  /* if */
     remove_stop_token(tok_rbrace);
     /* Check for and ignore the closing brace. */
+    token_number_of_closing_brace = curr_token_sequence_number;  
     (void)required_token(tok_rbrace, ec_exp_rbrace);
     /* Restore the stop token state. */
     copy_stop_tokens(save_stop_token_array, stop_token_array);
@@ -8073,6 +8122,28 @@ next_declaration:
         delayed_scan_fixup_for_class(class_type, is_template_instantiation);
       }  /* if */
       curr_routine_fixup = saved_routine_fixup;
+      if (cssp->is_prototype_instantiation) {
+        a_template_symbol_supplement_ptr	tssp = class_tssp;
+        tssp->variant.class_template.prototype_instantiation = tag_sym;
+        tssp->variant.class_template.prototype_instantiation_complete = TRUE;
+        if (tag_sym->is_class_member && tssp->cache_segment != NULL) {
+          /* For a nested class, save the ending token number of the
+             definition.  This is only done when the nested class is
+             defined within the enclosing class.  When the class is
+             defined outside of the enclosing class, cache_segment will be
+             NULL. */
+          tssp->cache_segment->last_token_number =
+                                                 token_number_of_closing_brace;
+        }  /* if */
+        if (curr_token != tok_semicolon) {
+          /* If the token following the closing brace of the class is not 
+             a semicolon, then the class (if it is a nested class) is not
+             "standalone", meaning that the body cannot be extract from
+             the enclosing template.  Nested classes that are not
+             standalone cannot be specialized. */
+          tssp->variant.class_template.not_standalone_nested_class = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
 

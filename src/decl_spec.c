@@ -656,6 +656,7 @@ to indicate whether the class/struct/union is actually defined.
   a_boolean               delayed_nested_class_def = FALSE;
   a_boolean               namespace_extension_pushed = FALSE;
   a_boolean               is_redeclaration;
+  a_boolean		  is_template_specific_decl = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_decl_modifier         decl_modifiers = DM_NONE;
   a_type_qualifier_set    class_qualifiers = TQ_NONE;
@@ -872,8 +873,8 @@ to indicate whether the class/struct/union is actually defined.
       err = TRUE;
     } else {
       cssp = tag_sym->variant.class_struct_union.extra_info;
-      if (cssp->class_template != NULL) {
-        /* A template class. */
+      if (cssp->is_instance) {
+        /* A template class or a nested class within a template class. */
         if (is_class_definition ||
             (curr_token == tok_semicolon && !is_friend_decl)) {
           /* We have a specific declaration of a template class. */
@@ -891,6 +892,7 @@ to indicate whether the class/struct/union is actually defined.
             err = TRUE;
           } else {
             cssp->is_specific_template_def = TRUE;
+            is_template_specific_decl = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -1115,6 +1117,13 @@ to indicate whether the class/struct/union is actually defined.
         }  /* if */
       }  /* if */
     }  /* if */
+    if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+        tag_sym->is_class_member) {
+      /* Determine whether this is a referenced to a nested class within
+         a class template.  If so, set the correspondence with the
+         corresponding prototype class. */
+      set_nested_template_class_symbol_info(tag_sym, type_kind);
+    }  /* if */
     srk_flags = SRK_DECLARATION;
     if (is_class_definition) srk_flags |= SRK_DEFINITION;
     if (is_friend_decl) srk_flags |= SRK_FRIEND;
@@ -1135,7 +1144,11 @@ to indicate whether the class/struct/union is actually defined.
     /* Record cross-reference information. */
     if (is_class_definition ||
         (curr_token == tok_semicolon &&
-         (vacuous_decl_allowed || is_friend_decl))) {
+         (vacuous_decl_allowed ||
+          is_friend_decl || is_template_specific_decl))) {
+      /* Vacuous declarations are not typically permitted to use qualified
+         names.  Exceptions are made for friend declarations and for
+         template specialization declarations. */
       srk_flags = SRK_DECLARATION;
       if (is_friend_decl) srk_flags |= SRK_FRIEND;
       if (is_class_definition) {

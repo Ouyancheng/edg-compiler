@@ -29,6 +29,7 @@ typedef struct a_macro_def     *a_macro_def_ptr;
 typedef struct an_extern_type_fixup *an_extern_type_fixup_ptr;
 typedef struct a_template_param *a_template_param_ptr;
 typedef struct an_access_error_descr *an_access_error_descr_ptr;
+typedef struct a_template_cache_segment *a_template_cache_segment_ptr;
 
 /* The pointer to a_routine_fixup is declared here even though the struct
    itself is defined in class_decl.c.  This allows the pointer to be made
@@ -581,7 +582,11 @@ typedef struct a_class_symbol_supplement {
   a_symbol_ptr  class_template;
                         /* Pointer to a class template symbol.  Present
                            only when this class is an instantiation of
-                           a class template, NULL otherwise. */
+                           a class template, NULL otherwise.  Note that
+			   this is NULL for a class nested within a
+			   class template (except for member templates)
+			   even if the nested class was defined outside
+			   of the class template. */
   a_template_symbol_supplement_ptr
 		template_info;
 			/* Pointer to associated template information when
@@ -705,6 +710,9 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE if a member operator delete[]() has been
 			   declared for this class or a class from which it
 			   is derived. */
+  a_bit_field	is_instance:1;
+			/* TRUE if the class is an instance of a class template
+			   or a class nested within a class template. */
   a_bit_field	is_nonreal_class:1;
 			/* TRUE if the class is an instantiation of a class
 			   template based on template arguments that include
@@ -1040,6 +1048,47 @@ typedef struct a_template_instance {
 } a_template_instance;
 
 
+/*
+Structure used to keep track of the segments of a template token cache
+that are used to record the definition of member classes and member
+functions of a class template definition.  This information is used
+to extract the member bodies from the enclosing token cache.
+*/
+typedef struct a_template_cache_segment {
+  a_template_cache_segment_ptr
+		next;
+			/* Pointer to the next entry in a list of template
+			   cache segments. */
+  a_symbol_ptr	symbol;
+			/* Pointer to the symbol entry for the member
+			   associated with this entry. */
+  a_template_symbol_supplement_ptr
+		template_info;
+			/* Pointer to the template supplement for
+			   template_sym. */
+  a_token_sequence_number
+		first_token_number;
+			/* Token sequence number of the first token in
+			   the definition of the template. */
+  a_token_sequence_number
+		last_token_number;
+			/* Token sequence number of the last token in
+			   the definition of the template. */
+  a_cached_token_ptr
+		before_first_token;
+			/* Pointer to the token before the first token of
+			   the cache.  This is initially set to NULL.
+			   Then, a pass is made through the enclosing
+			   token cache and the first and last token
+			   pointers in all of the associated template
+			   cache segment entries are updated. */
+  a_cached_token_ptr
+		last_token;
+			/* Pointer to the last token of the cache.  See
+			   first_token above. */
+} a_template_cache_segment;
+
+
 /* Used to track the number of pending instantiations of a given class. */
 typedef short a_pending_instantiation_count;
 
@@ -1098,19 +1147,15 @@ typedef struct a_template_symbol_supplement {
 			   a new entry will be added to this list for
 			   each class instantiated from the class
 			   template. */
-  a_token_sequence_number
-		first_token_number;
-			/* Token sequence number of the first token in
-			   the definition of the template (e.g., token_cache
-			   above).  This field (and last_token_number) are
+  a_template_cache_segment_ptr
+		cache_segment;
+			/* Pointer to a structure that describes the
+			   range of tokens from the template cache
+			   of the enclosing template that contain the
+			   definition of this template.  This field  is
 			   used to extract the definitions of member
 			   functions and nested classes from the bodies
 			   of class template definitions. */
-  a_token_sequence_number
-		last_token_number;
-			/* Token sequence number of the last token in
-			   the definition of the template.  See
-                           first_token_number above. */
   union {
     /* When symbol kind = sk_class_template: */
     struct {
@@ -1123,13 +1168,6 @@ typedef struct a_template_symbol_supplement {
 		type_kind;
 			/* The kind (tk_class, tk_struct, or tk_union) which
 			   the instantiated types will have. */
-      a_symbol_ptr
-		member_function_templates;
-			/* Pointer to a linked list of sk_function_template
-			   symbols representing member functions whose bodies
-			   are defined outside the class template declaration.
-			   The are linked by next pointers and thus are
-			   not actually in the symbol table. */
       a_symbol_ptr
 		prototype_instantiation;
 			/* Points to the symbol representing the prototype
@@ -1147,6 +1185,14 @@ typedef struct a_template_symbol_supplement {
 			   template -- typically C++ linkage, but internal
 			   linkage if the template is declared inside an
 			   unnamed namespace. */
+      a_bit_field
+		not_standalone_nested_class:1;
+			/* TRUE for nested classes of class templates in
+			   which the definition of the nested class cannot
+			   be extracted from the token cache for the
+			   enclosing template because it is part of the
+			   declaration of some other entity in the enclosing
+			   class.  For example, "struct { ... } a;". */
       bitfield_to_avoid_codecenter_warnings()
     } class_template;
     /* When symbol kind = sk_function_template: */
@@ -1870,6 +1916,13 @@ extern void make_specific_symbol_error_locator(a_symbol_locator *locator);
 
 extern void clear_qualifier_from_locator(a_symbol_locator  *locator);
 
+extern
+a_template_cache_segment_ptr alloc_template_cache_segment(
+                                a_symbol_ptr				sym,
+                                a_template_symbol_supplement_ptr	tssp);
+
+extern void free_template_cache_segment(a_template_cache_segment_ptr tcsp);
+
 extern a_namespace_symbol_supplement_ptr
                                    alloc_namespace_symbol_supplement(void);
 
@@ -2357,6 +2410,12 @@ extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
                    is_class_struct_union_type((sym)->variant.type)))
 
+/* Return TRUE if a symbol is of kind sk_class_or_struct_tag or
+   sk_union_tag. */
+#define is_class_struct_union_symbol(sym)                             \
+  ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||            \
+   (sym)->kind == (a_symbol_kind)sk_union_tag)
+
 /* Return TRUE if a symbols is a namespace symbol. */
 #define is_namespace_symbol(sym)                                          \
   ((sym)->kind == (a_symbol_kind)sk_namespace)
@@ -2502,6 +2561,9 @@ supplement.
     (sym)->variant.template_info :					\
   /* } else if */ (sym)->kind == (a_symbol_kind)sk_member_function ? /* { */ \
     (sym)->variant.routine.instance_ptr->template_info :		\
+  /* } else if */ ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||  \
+                  (sym)->kind == (a_symbol_kind)sk_union_tag) ? /* { */ \
+    (sym)->variant.class_struct_union.extra_info->template_info :       \
   /* } else if */ (sym)->kind ==					\
 			 (a_symbol_kind)sk_static_data_member ? /* { */	\
     (sym)->variant.static_data_member.instance_ptr->template_info :	\
