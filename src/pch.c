@@ -1205,7 +1205,7 @@ current point.
 */
 {
   open_pch_output_file();
-  pos_st_warning(ec_creating_pch, &pos_curr_token, pch_file_name);
+  pch_message(ec_creating_pch, pch_file_name);
   /* Write the string that identifies this file as a precompiled header
      file. */
   fwrite_with_check(pch_id_string, pch_id_string_length, f_pch_output);
@@ -1674,8 +1674,7 @@ may be used.
     }  /* if */
   }  /* if */
   if (can_use_pch) {
-    pos_st_warning(ec_using_pch, &null_source_position,
-                   pch_input_file_name);
+    pch_message(ec_using_pch, pch_input_file_name);
     using_a_pch_file = TRUE;
     read_saved_variables();
     read_memory_regions();

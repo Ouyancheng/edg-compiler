@@ -94,6 +94,7 @@ typedef enum /*an_option_kind*/ {
   optk_create_pch,
   optk_use_pch,
   optk_pch,
+  optk_pch_messages,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -396,6 +397,12 @@ EXTERN a_boolean
 			/* TRUE if the compiler should automatically
 			   determine whether to build and/or use a
 			   precompiled header file. */
+
+EXTERN a_boolean
+		suppress_pch_messages /* = FALSE */;
+			/* TRUE if messages regarding the creation and
+			   use of precompiled header files should be
+			   suppressed. */
 
 
 /* Process the command line arguments. */

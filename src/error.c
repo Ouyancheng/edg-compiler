@@ -3587,6 +3587,30 @@ multiple message diagnostic being processed.
   diag_message(error_code, (a_source_position *)NULL , es_none, dck_list);
 }  /* sym_add_diag_info */
 
+#if SUPPORT_PRECOMPILED_HEADERS
+void pch_message(an_error_code error_code,
+		 char	    *fill_in_str)
+/*
+Display a message of the form:
+
+source_file: creating precompiled header file "file".
+
+This is used to display the messages that indicate a precompiled header is
+being created or used.  The text from the error message file must supply
+two string fill-ins for the source file name and PCH file name.
+*/
+{
+  char	*text;
+
+  if (!suppress_pch_messages) {
+    text = error_text(error_code);
+    fprintf(stderr, text, primary_source_file_name, fill_in_str);
+    fprintf(stderr, "\n");
+  }  /* if */
+}  /* pch_message */
+#endif /* SUPPORT_PRECOMPILED_HEADERS */
+
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void end_error(void)

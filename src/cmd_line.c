@@ -321,6 +321,12 @@ Initialize the option information table.
   add_option_description(optk_pch, "pch",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
+  add_option_description(optk_pch_messages, "pch_messages",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
+  add_option_description(optk_pch_messages, "no_pch_messages",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_none);
 }  /* initialize_option_descriptions */
 
 
@@ -1037,6 +1043,10 @@ Process the arguments on the command line that invoked the compiler.
         check_assertion(opt_value == TRUE);
         automatic_pch_processing = TRUE;
         precompiled_header_processing_required = TRUE;
+        break;
+      case optk_pch_messages:
+        /* Enable or suppress PCH messages. */
+        suppress_pch_messages = !opt_value;
         break;
       default:
         /* It should not be possible to get here. */

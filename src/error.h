@@ -380,6 +380,11 @@ extern void pos_sy2_warning(an_error_code     error_code,
                             struct a_symbol   *symbol2);
 extern void sym_add_diag_info(an_error_code   error_code,
                               struct a_symbol *symbol);
+#if SUPPORT_PRECOMPILED_HEADERS
+extern void pch_message(an_error_code error_code,
+   		        char	      *fill_in_str);
+#endif /* SUPPORT_PRECOMPILED_HEADERS */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 extern void end_error(void);
 
