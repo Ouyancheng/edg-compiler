@@ -386,8 +386,7 @@ necessary.
 #undef walk_name_reference_list
 #if RECORD_FORM_OF_NAME_REFERENCE
 #define walk_name_reference_list(ptr) \
-  walk_list_ptr((ptr).name_references, a_name_reference_ptr, \
-                iek_name_reference)
+  walk_list((ptr).name_references, a_name_reference_ptr, iek_name_reference)
 #else /* !RECORD_FORM_OF_NAME_REFERENCE */
 #define walk_name_reference_list(ptr) /* Nothing */  
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
