@@ -1,5 +1,19 @@
 Version 2.45
 
+8/22/00  C++-generating back end: spurious scope qualification on namespace
+         scope declaration
+
+When the name of a declaration in a namespace scope was hidden in that scope,
+the C++ generating back end would sometimes emit a spurious qualifier on the
+declaration itself.  For example:
+
+  namespace N {
+    int i;  // C++-generating back end used to regenerate "int N::i;"
+    namespace { int i; }  // Hides N::i in N
+  }
+
+This is now fixed.
+
 8/22/00  Throw specifications and reference to function initialization
 
 The front end now requires that the throw specification of an initializer for
