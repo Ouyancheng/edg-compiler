@@ -209,7 +209,7 @@ the two list.
   number_of_uninitialized_elements =
                   array_type->variant.array.number_of_elements - curr_element;
   if (number_of_uninitialized_elements > 0) {
-    /* There are one or more unitialized elements. */
+    /* There are one or more uninitialized elements. */
     element_type = array_element_type(array_type);
     if (is_class_struct_union_type(element_type)) {
       /* It is an array of class objects. */

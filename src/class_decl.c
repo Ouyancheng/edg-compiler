@@ -2862,7 +2862,7 @@ special function kind (e.g., constructor, destructor), if any.
           /* Special handling for "reference to const/volatile class" --
              flag is not set in such cases. */
           if (is_qualified_type(tp)) break;
-          /* Fall through to defalut processing. */
+          /* Fall through to default processing. */
         default:
           if (is_class_struct_union_type(tp)) {
             (symbol_supplement_for_class(skip_typerefs(tp)))->
