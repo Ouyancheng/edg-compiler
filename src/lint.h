@@ -283,6 +283,10 @@ extern int fileno(FILE *);
 /*lint -esym(765,repr_for_ptr_to_member_function_constant)*/
 /*lint -esym(759,make_typeinfo_type)*/
 /*lint -esym(765,make_typeinfo_type)*/
+/*lint -esym(759,make_ctor_implied_arg_list)*/
+/*lint -esym(765,make_ctor_implied_arg_list)*/
+/*lint -esym(759,make_dtor_implied_arg_list)*/
+/*lint -esym(765,make_dtor_implied_arg_list)*/
 #else /* !IA64_ABI */
 /*lint -esym(759,add_cast_to_char_star)*/
 /*lint -esym(765,add_cast_to_char_star)*/

@@ -8871,6 +8871,7 @@ Extract and return a pointer to the routine entry.
   return routine;
 }  /* routine_from_node */
 
+#if !IA64_ABI
 
 static void add_implied_args_to_call(an_expr_node_ptr call_expr,
                                      a_routine_ptr    rout)
@@ -8902,6 +8903,7 @@ them.  The call has already been lowered.
   }  /* if */
 }  /* add_implied_args_to_call */
 
+#endif /* !IA64_ABI */
 
 static an_expr_node_ptr make_vtbl_entry_node(an_expr_node_ptr func_node,
                                              an_expr_node_ptr object_node)
@@ -9428,8 +9430,8 @@ the top node of the indicated statement (which is an expression statement).
   }  /* if */
   /* Lower the rest of the arguments. */
   lower_arg_expr_list(arg_node, rout_type, (a_param_type_ptr)NULL);
-  if (op == (an_expr_operator_kind)eok_virtual_call) {
-    /* Virtual function call. */
+  if (first_arg->kind == (an_expr_node_kind)enk_routine_address) {
+    /* We know the specific routine being called. */
     a_routine_ptr routine = routine_from_node(first_arg);
 #if IA64_ABI
     if (routine->special_kind == (a_special_function_kind)sfk_destructor) {
@@ -9442,9 +9444,13 @@ the top node of the indicated statement (which is an expression statement).
       first_arg->type = make_pointer_type(routine->type);
     }  /* if */
 #else /* !IA64_ABI */
-    /* If the call is of a destructor, add the implied argument. */
+    /* If the call is of a constructor or destructor, add the implied
+       argument(s). */
     add_implied_args_to_call(expr, routine);
 #endif /* IA64_ABI */
+  }  /* if */
+  if (op == (an_expr_operator_kind)eok_virtual_call) {
+    /* Virtual function call. */
     lower_virtual_function_call(expr);
   } else if (op == (an_expr_operator_kind)eok_pm_call) {
     /* Call of a function specified by a pointer-to-member. */
@@ -9452,12 +9458,6 @@ the top node of the indicated statement (which is an expression statement).
   } else {
     check_assertion(op == (an_expr_operator_kind)eok_call);
     /* Normal call. */
-    if (first_arg->kind == (an_expr_node_kind)enk_routine_address) {
-      /* We know the specific routine being called. */
-      /* If the call is of a constructor or destructor, add the
-         implied arguments. */
-      add_implied_args_to_call(expr, routine_from_node(first_arg));
-    }  /* if */
 #if MINIMAL_INLINING
     if (inlining_enabled) do_inlining_of_call(expr, statement);
 #endif /* MINIMAL_INLINING */
