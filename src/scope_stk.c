@@ -4351,11 +4351,7 @@ been completed.
     is_needed = (vp->source_corresp.needed ||
                  variable_needed_even_if_unreferenced(vp));
     if (is_needed) {
-      /* Turn off end_of_file_scope_needed_flags_phase to avoid walking the
-         subtree, because we're going to do that in a moment. */
-      end_of_file_scope_needed_flags_phase = FALSE;
       mark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
-      end_of_file_scope_needed_flags_phase = TRUE;
     }  /* if */
     /* If the variable is marked as needed, remark it to visit its
        subtree.  The subtree is not visited until this phase, because it
