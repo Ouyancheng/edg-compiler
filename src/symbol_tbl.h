@@ -525,17 +525,18 @@ typedef struct a_symbol {
     struct {
       a_symbol_ptr
 		symbols;
-			/* Pointer to one or more sk_member_function or
+			/* Pointer to two or more sk_member_function or
 			   sk_routine symbol entries that represent instances
 			   of an overloaded function name. */
       unsigned int
 		mixed_static_nonstatic:1;
 			/* TRUE if some but not all the functions have been
-			   declared "static". */
+			   declared "static"; applies to sk_member_function
+			   overloading only. */
       unsigned int
 		mixed_access:1;
 			/* TRUE if the access specifications on the functions
-			   are not all the same; this would apply to
+			   are not all the same; applies to
 			   sk_member_function overloading only. */
     } overloaded_function;
   } variant;
