@@ -1064,6 +1064,15 @@ and for the instantiation of template functions.
        after semantic checking is completed. */
     eliminate_body_if_imported(rout_ptr, scope_ptr);
   }  /* if */
+  if (!prototype_instantiations_in_il &&
+      rout_ptr->is_prototype_instantiation) {
+    /* If prototype instantiations are not passed to the back end through the
+       main IL tree, we can eliminate them at this time. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    eliminate_function_body_source_sequence_entries(scope_ptr);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    clear_function_body(rout_ptr);
+  }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
     a_symbol_ptr  sym = (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
