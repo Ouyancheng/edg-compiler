@@ -1387,56 +1387,39 @@ path entries are also on the base classes list of class_type.
   a_derivation_step_ptr        dsp;
   a_base_class_ptr             bcp;
   a_base_class_derivation_ptr  bcdp;
+  int                          count;
 
-  /* Go through each step of the path. */
+  bcdp = base_class->derivation;
+  /* Only a virtual base class may have more than one derivation. */
+  check_assertion(!base_class->is_virtual || bcdp->next == NULL);
+  /* Count the number of direct derivations.  There should be exactly one
+     if base_class is marked as direct, none otherwise. */
+  count = 0;
+  for (; bcdp != NULL; bcdp = bcdp->next) {
+    if (bcdp->direct) ++count;
+  }  /* for */
+  check_assertion(base_class->direct == (count == 1));
+  /* Examine each derivation's path. */
   for (bcdp = base_class->derivation; bcdp != NULL; bcdp = bcdp->next) {
+    /* The path should not be NULL. */
+    check_assertion(bcdp->path != NULL);
+    /* The first step should be either a direct base class or a virtual base
+       class. */
+    check_assertion(bcdp->path->base_class->derivation->direct ||
+                    bcdp->path->base_class->is_virtual);
+    /* Go through each step of the path. */
     for (dsp = bcdp->path; dsp != NULL; dsp = dsp->next) {
       /* Be sure the base class entry pointed to from the step entry is
          actually on the class type's list of base classes. */
       for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
         if (bcp == dsp->base_class) break;
-        if (bcp->next == NULL) {
-          internal_error("verify_path_consistency: base class inconsistency");
-        }  /* if */
+        check_assertion(bcp->next != NULL);
       }  /* if */
-#if 0
-      if (!dsp->base_class->is_virtual) {
-      if (dsp == base_class->derivation) {
-        if (!dsp->base_class->direct) {
-#if DEBUG
-          if (db_active) {
-            fputs("checking base class ", f_debug);
-            db_base_class(base_class, /*show_offset=*/FALSE);
-          }  /* if */
-#endif /* DEBUG */
-          internal_error(
-                     "verify_path_consistency: expected direct base class");
-        }  /* if */
-      } else {
-        if (dsp->base_class->direct) {
-#if DEBUG
-          if (db_active) {
-            fputs("checking base class ", f_debug);
-            db_base_class(base_class, /*show_offset=*/FALSE);
-          }  /* if */
-#endif /* DEBUG */
-          internal_error(
-                     "verify_path_consistency: expected indirect base class");
-        }  /* if */
-      }  /* if */
-    }  /* if */
-    if (dsp->next == NULL) {
-      if (dsp->base_class != base_class) {
-#if DEBUG
-        if (db_active) {
-          fputs("checking base class ", f_debug);
-          db_base_class(base_class, /*show_offset=*/FALSE);
-        }  /* if */
-#endif /* DEBUG */
-        internal_error("verify_path_consistency: bad end-of-path base class");
-      }  /* if */
-    }  /* if */
-#endif /* if 0 */
+      /* The last step (and it alone) should refer to base_class. */
+      check_assertion((dsp->next == NULL) == (dsp->base_class == base_class));
+      /* Only the first step and the last step may be virtual. */
+      check_assertion(!dsp->base_class->is_virtual ||
+                      (dsp->next == NULL || dsp == bcdp->path));
     }  /* for */
   }  /* for */
 }  /* verify_path_consistency */
@@ -1490,7 +1473,8 @@ Return TRUE if the class sequence signatures of the paths headed by dsp1 and
 dsp2 are identical.
 */
 {
-  a_boolean  congruent;
+  a_boolean              congruent;
+  a_derivation_step_ptr  dsp1_next, dsp2_next;
 
   db_enter(4, "congruent_paths");
 #if DEBUG
@@ -1501,6 +1485,7 @@ dsp2 are identical.
     db_path(dsp2, /*show_offset=*/FALSE);
   }  /* if */
 #endif /* DEBUG */
+#if 0
   /* Loop through both derivation paths in tandem, comparing the corresponding
      step entries along the way.  An incongruence is detected when two paths
      are of different lengths, when two corresponding steps refer to different
@@ -1515,6 +1500,36 @@ dsp2 are identical.
       break;
     }  /* if */
   }  /* for */
+#endif /* if 0 */
+  congruent = FALSE;
+  /* Only the start of a derivation and the end of a derivation can be
+     virtual.  Check the start. */
+  if (dsp1->base_class->is_virtual == dsp2->base_class->is_virtual) {
+    for (;;) {
+      /* Check the types of the corresponding steps. */
+      if (dsp1->base_class->type != dsp2->base_class->type) break;
+      /* Advance to the next step. */
+      dsp1_next = dsp1->next;
+      dsp2_next = dsp2->next;
+      if (dsp1_next == NULL) {
+        /* At the end of path1.  Terminate the loop after one more check. */
+        if (dsp2_next == NULL) {
+          /* At the end of path2 also.  Again, check the end of the derivation
+             for matching is_virtual flags. */
+          if (dsp1->base_class->is_virtual == dsp2->base_class->is_virtual) {
+            congruent = TRUE;
+          }  /* if */
+        }  /* if */
+        break;
+      } else if (dsp2_next == NULL) {
+        /* At the end of path2.  Terminate the loop. */
+        break;
+      }  /* if */
+      /* Both paths have additional steps, so keep checking. */
+      dsp1 = dsp1_next;
+      dsp2 = dsp2_next;
+    }  /* for */
+  }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
     fprintf(f_debug, " : %scongruent\n", congruent ? "" : "not ");
@@ -1536,7 +1551,8 @@ algorithm assumes equivalence and then searches for indications to the
 contrary.
 */
 {
-  a_derivation_step_ptr root1, root2, tail1, tail2;
+#if 0
+  a_derivation_step_ptr start1, start2, tail1, tail2;
   a_boolean             equiv;
 
   db_enter(4, "equivalent_paths");
@@ -1549,12 +1565,12 @@ contrary.
     (void)fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
-  /* Traverse each path to find the terminal entry of each as well as the
-     most remote virtual base class entry. */
-  scan_path(path1, &root1, &tail1);
-  scan_path(path2, &root2, &tail2);
-  equiv = TRUE;
-
+  /* Identify the start of each path and the tail.  We may assume that the
+     two starting steps are either direct or virtual base classes. */
+  start1 = path1;
+  for (tail1 = path1; tail1->next != NULL; tail1 = tail1->next);
+  start2 = path2;
+  for (tail2 = path2; tail2->next != NULL; tail2 = tail2->next);
   /* If two paths have a virtual base class in common, they are equivalent
      if everything beyond the virtual base class is the same, even if what
      preceded it is different.  For instance,
@@ -1585,7 +1601,7 @@ contrary.
        type doesn't guarantee that the paths are the same. */
     equiv = FALSE;
   } else {
-    equiv = congruent_paths(root1, root2);
+    equiv = congruent_paths(start1, start2);
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
@@ -1594,6 +1610,9 @@ contrary.
 #endif /* DEBUG */
   db_exit()
   return equiv;
+#else
+  return congruent_paths(path1, path2);
+#endif /* if 0 */
 }  /* equivalent_paths */
 
 
@@ -2214,7 +2233,7 @@ appearance of the base class happens to have been marked preferred.
       /* Determined the accessibility of a public member of the virtual base
          class in the context of the the most derived class. */
       access = access_to_end_of_path((an_access_specifier)as_public,
-                                     bcdp->path, /*virt_derivation=*/TRUE);
+                                     bcdp->path, bcdp);
       if (bcdp == base_class->derivation) {
         /* Prefer the first unless another turns out to have better access. */
         preferred_bcdp = bcdp;
