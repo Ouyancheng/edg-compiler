@@ -395,7 +395,9 @@ that is to be traced.
 a_boolean f_db_sym_trace(char		*flag_name,
 			 a_symbol_ptr	sym)
 /*
-Return TRUE if the debug flag with the name "flag_name" is set, and
+Return TRUE if either (a) there are no debug flags set, and
+f_db_has_traced_name is TRUE for the IL entry associated with sym,
+or (b) the debug flag with the name "flag_name" is set, and
 either there are no debug name requests in the request list or
 f_db_has_traced_name is TRUE for the IL entry associated with sym.  Use
 the macro db_sym_trace to call this function.
@@ -419,29 +421,40 @@ a_boolean f_db_trace(char             *flag_name,
                      char             *entry,
                      an_il_entry_kind kind)
 /*
-Return TRUE if the debug flag with the name "flag_name" is set, and
+Return TRUE if either (a) there are no debug flags set, and
+f_db_has_traced_name is TRUE for the indicated entry/kind, or
+(b) the debug flag with the name "flag_name" is set, and
 either there are no debug name requests in the request list or
 f_db_has_traced_name is TRUE for the indicated entry/kind.  Use
 the macro db_trace to call this function.
 */
 {
-  a_boolean result = FALSE;
+  a_boolean           result = FALSE;
+  a_debug_request_ptr request;
+  a_boolean           any_name_requests = FALSE;
+  a_boolean           any_flag_requests = FALSE;
 
-  if (debug_flag_is_set(flag_name)) {
-    a_debug_request_ptr request;
-    a_boolean           any_name_requests = FALSE;
-    /* See if there are any debug-name requests. */
-    for (request = debug_requests; request != NULL; request = request->next) {
-      if (request->action == da_name) {
-        any_name_requests = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
+  /* See if there are any debug-name or flag requests. */
+  for (request = debug_requests; request != NULL; request = request->next) {
+    if (request->action == da_name) {
+      any_name_requests = TRUE;
+      if (any_flag_requests) break;
+    } else if (request->action == da_set_flag) {
+      any_flag_requests = TRUE;
+      if (any_name_requests) break;
+    }  /* if */
+  }  /* for */
+  if (!any_flag_requests) {
+    /* There are no set flags, so produce output if the name is being
+       traced. */
+    result = f_db_has_traced_name((a_source_correspondence *)entry, kind);
+  } else if (debug_flag_is_set(flag_name)) {
     if (!any_name_requests) {
       /* No name requests, so produce output for all cases. */
       result = TRUE;
     } else {
-      /* Some name requests, so produce output only for the indicated names. */
+      /* Some name requests, so produce output only for the indicated
+         names. */
       result = f_db_has_traced_name((a_source_correspondence *)entry, kind);
     }  /* if */
   }  /* if */
