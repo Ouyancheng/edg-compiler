@@ -4619,7 +4619,7 @@ for the GNU C multiline string extension.
                                after_end_of_curr_source_line - 2*LE_ESCAPE_LEN;
 		       /* For checking of buffer overflow -- to leave
                           room for the newline and line-end lexical escapes. */
-  a_boolean       white_space_inside_splice = FALSE;
+  int             ignored_trailing_white_space_chars = 0;
 
   /* This routine handles translation phases 1 (trigraphs, newlines) and
      2 (line splices) from the description of translation phases in
@@ -4801,37 +4801,30 @@ for the GNU C multiline string extension.
         }  /* if */
       }  /* while */
 #endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
-      local_loc_in_line = loc_in_line;
       if (gnu_mode) {
         /* The GNU preprocessor allows white-space characters between the
-           "\" and the newline in a line splice.  However, unlike the
-           carriage return processing above, we want to leave ordinary
-           trailing white space that is not part of a line splice, so we
-           use local_loc_in_line for the loop and only set loc_in_line if
-           we are in a line splice. */
-        while (*(local_loc_in_line-1) == ' ' ||
-               *(local_loc_in_line-1) == '\t' ||
-               *(local_loc_in_line-1) == '\f' ||
-               *(local_loc_in_line-1) == VERTICAL_TAB_CHARACTER) {
-          white_space_inside_splice = TRUE;
-          local_loc_in_line--;
-          if (local_loc_in_line == curr_source_line) {
-            /* We fell off the beginning of the line.  Skip the check for
-               "\" -- the line consists solely of white space, and
-               loc_in_line still points after the final white-space
-               character. */
+           "\" and the newline in a line splice.  Count the number of
+           trailing white-space characters to be ignored if there is a
+           line splice. */
+        char *cp;
+        for (cp = loc_in_line - 1;
+             *cp == ' ' || *cp == '\t' || *cp == '\f' ||
+                                                 *cp == VERTICAL_TAB_CHARACTER;
+             cp--) {
+          if (cp == curr_source_line) {
+            /* We fell off the beginning of the line without seeing a "\".
+               Just keep the white-space characters. */
             goto add_newline_and_line_end_and_return;
           }  /* if */
-        }  /* while */
+        }  /* for */
+        ignored_trailing_white_space_chars = loc_in_line - cp - 1;
       }  /* if */
       /* End of a line containing at least one character.  Check to see
-         if the last character is a backslash.  If so, the current line
-         should be spliced with the line following. */
-      if (*(local_loc_in_line-1) == '\\') {
-        /* Set loc_in_line to ignore any skipped white-space characters. */
-        loc_in_line = local_loc_in_line;
+         if the last unignored character is a backslash.  If so, the current
+         line should be spliced with the line following. */
+      if (*(loc_in_line-ignored_trailing_white_space_chars-1) == '\\') {
         goto line_splice;
-      }
+      }  /* if */
     }  /* if */
   }  /* if */
 
@@ -5114,9 +5107,27 @@ entry_for_expand_buffer:
       }  /* if */
     }  /* while */
 #endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
+    if (gnu_mode) {
+      /* The GNU preprocessor allows white-space characters between the
+         "\" and the newline in a line splice.  Count the number of
+         trailing white-space characters to be ignored if there is a
+         line splice. */
+      char *cp;
+      for (cp = loc_in_line - 1;
+           *cp == ' ' || *cp == '\t' || *cp == '\f' ||
+                                                 *cp == VERTICAL_TAB_CHARACTER;
+           cp--) {
+        if (loc_in_line - cp == curr_column) {
+          /* We fell off the beginning of the line without seeing a "\".
+             Just keep the white-space characters. */
+          goto add_newline_and_line_end_and_return;
+        }  /* if */
+      }  /* for */
+      ignored_trailing_white_space_chars = loc_in_line - cp - 1;
+    }  /* if */
     /* Check for backslash indicating line-splice.  Go add trailing newline
        and end-of-line, and then exit, if no backslash is present. */
-    if (*(loc_in_line-1) == '\\') {
+    if (*(loc_in_line-ignored_trailing_white_space_chars-1) == '\\') {
 entry_for_line_splice:
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 #if BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
@@ -5132,9 +5143,12 @@ entry_for_line_splice:
       }  /* if */
 #endif /* BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-      if (white_space_inside_splice) {
-        /* Some white-space characters occured between "\" and the newline.
-           Fix the line so it will display properly and issue a warning. */
+      if (ignored_trailing_white_space_chars != 0) {
+        /* Some white-space characters occurred between "\" and the newline.
+           Adjust loc_in_line and curr_column appropriately, fix the line
+           so it will display properly, and issue a warning. */
+        loc_in_line -= ignored_trailing_white_space_chars;
+        curr_column -= ignored_trailing_white_space_chars;
         finish_off_source_line_so_it_can_be_displayed_in_error();
         warning_at_line_pos(ec_white_space_inside_splice, loc_in_line);
       }  /* if */
