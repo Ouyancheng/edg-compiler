@@ -4658,14 +4658,17 @@ as the current token; otherwise, it is consumed.
       internal_error("template_declaration: sym & prototype_type out of sync");
     }  /* if */
 #endif /* CHECKING */
-    /* Do a "prototype instantiation" of the class template -- i.e., parse
-       the declarative information looking for gross syntax errors. */
-    instantiate_class_template(sym, prototype_type);
-    if (tag_resolution) {
-      /* This is the resolution of a previously incomplete template
-	 declaration.  If there are any incomplete instantiations that were
-         involved in array type declarations, fix them up now. */
-      fixup_types_that_refer_to_incomplete_instantiations(sym, prototype_type);
+    if (!sym->is_error) {
+      /* Do a "prototype instantiation" of the class template -- i.e., parse
+         the declarative information looking for gross syntax errors. */
+      instantiate_class_template(sym, prototype_type);
+      if (tag_resolution) {
+        /* This is the resolution of a previously incomplete template
+	   declaration.  If there are any incomplete instantiations that were
+	   involved in array type declarations, fix them up now. */
+	fixup_types_that_refer_to_incomplete_instantiations(sym,
+							    prototype_type);
+      }  /* if */
     }  /* if */
   }  /* if */
 #if RECORD_TEMPLATES_IN_IL

@@ -1,5 +1,15 @@
 Version 2.29
 
+4/4/95   Abort in prototype instantiation of invalid class template
+
+A bug has been fixed that could cause an abort during the prototype
+instantiation of a class template in which the class name is an invalid
+qualified name.
+
+  template <class T> struct A::B {
+    B();
+  };
+
 4/3/95   #pragma ident in local scope
 
 When #pragma ident and #ident appear inside a function, the constant entry
