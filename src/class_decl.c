@@ -5011,20 +5011,31 @@ member of class_type or else a name brought in by a using-declaration.
 Return NULL if none is found.
 */
 {
-  a_symbol_ptr                   sym = NULL;
+  a_symbol_ptr                   sym = NULL, fund_sym;
 
   clear_specific_symbol(*locator);
   (void)class_qualified_id_lookup(locator, class_type,
                                   IDL_DIRECT_CLASS_MEMBERS_ONLY);
   sym = locator->specific_symbol;
-  if (sym != NULL &&
-      !(is_function_or_template_symbol(sym) ||
-        (sym->kind == (a_symbol_kind)sk_projection &&
-         sym->variant.projection.is_using_decl &&
-         is_function_or_template_symbol(fundamental_symbol_of(sym))))) {
-    /* Ignore the symbol if it is not a member function or a projection
-       symbol for using-declaration that refers to a member function. */
-    sym = NULL;
+  if (sym != NULL) {
+    /* Ignore the symbol (i.e., return NULL) if it is not a member function
+       or a projection symbol for using-declaration that refers to a member
+       function. */
+    if (is_function_or_template_symbol(sym)) {
+      /* Okay. */
+    } else if (is_class_member_using_decl_symbol(sym)) {
+      /* Assume a nontype template parameter represents a function. */
+      fund_sym = fundamental_symbol_of(sym);
+      if (is_function_or_template_symbol(fund_sym)) {
+        /* Okay. */
+      } else if (is_nontype_template_param_symbol(fund_sym)) {
+        /* Assume a nontype template parameter represents a function. */
+      } else {
+        sym = NULL;
+      }  /* if */
+    } else {
+      sym = NULL;
+    }  /* if */
   }  /* if */
   return sym;
 }  /* find_direct_member_function */
@@ -5076,25 +5087,35 @@ function symbols.
     }  /* if */
     if (sym != NULL) {
       /* Not a redeclaration, so it is probably the overloading of a function
-         name.  The routine overload_distinguishable returns TRUE if the
-         routine types are candidates for overloading; if it returns FALSE
-         it also returns the error code for a diagnostic explaining why. */
-      /* The templ_param_list is NULL in the following call because
-         although member functions of class templates have template types
-         in their parameters, they are not called using the template
-         overload resolution mechanism. */
-      if (!overload_distinguishable(sym, type,
-                                    (a_template_param_ptr)NULL,
-                                    &error_code)) {
-        pos_error(error_code, &locator->source_position);
-        suppress_redecl_error = TRUE;
-        set_to_named_error_locator(*locator);
-      } else {
-        a_boolean  is_ctor = decl_info->is_constructor;
+         name. */
+      a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
 
-        /* Enter this symbol as an instance of overloading. */
-        new_sym = enter_overloaded_symbol((a_symbol_kind)sk_member_function,
-                                          locator, is_ctor, sym, overload_sym);
+      if (is_nontype_template_param_symbol(fund_sym)) {
+        /* A non-type template parameter symbol may be a function, so don't
+           issue a redeclaration error. */
+        suppress_redecl_error = TRUE;
+      } else {
+        /* The routine overload_distinguishable returns TRUE if the
+           routine types are candidates for overloading; if it returns FALSE
+           it also returns the error code for a diagnostic explaining why. */
+        /* The templ_param_list is NULL in the following call because
+           although member functions of class templates have template types
+           in their parameters, they are not called using the template
+           overload resolution mechanism. */
+        if (!overload_distinguishable(sym, type,
+                                      (a_template_param_ptr)NULL,
+                                      &error_code)) {
+          pos_error(error_code, &locator->source_position);
+          suppress_redecl_error = TRUE;
+          set_to_named_error_locator(*locator);
+        } else {
+          a_boolean  is_ctor = decl_info->is_constructor;
+
+          /* Enter this symbol as an instance of overloading. */
+          new_sym = enter_overloaded_symbol((a_symbol_kind)sk_member_function,
+                                            locator, is_ctor, sym,
+                                            overload_sym);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -8830,11 +8851,30 @@ or implicit) controlling the declaration.
 
     typename_specifier(&tp, /*within_using_decl=*/TRUE,
                        (a_decl_pos_block_ptr)NULL);
-    if (is_error_type(tp)) err = TRUE;
+    if (is_error_type(tp)) {
+      err = TRUE;
+#if CHECKING
+    } else {
+      sym = locator_for_curr_id.specific_symbol;
+      if (sym != NULL && sym->is_class_member &&
+          is_or_contains_template_param(sym->parent.class_type)) {
+        check_assertion(is_type_template_param_symbol(sym));
+      }  /* if */
+#endif /* CHECKING */
+    }  /* if */
   } else {
     (void)coalesce_and_lookup_generalized_identifier(
                               GID_DTOR_RECOGNIZED | GID_TEMPLATE_ARGS_OPTIONAL,
                               ilm_using_declaration, &err);
+#if CHECKING
+    if (!err) {
+      sym = locator_for_curr_id.specific_symbol;
+      if (sym != NULL && sym->is_class_member &&
+          is_or_contains_template_param(sym->parent.class_type)) {
+        check_assertion(is_nontype_template_param_symbol(sym));
+      }  /* if */
+    }  /* if */
+#endif /* CHECKING */
   }  /* if */
   if (!err) {
     decl_pos = locator_for_curr_id.source_position;
@@ -8867,6 +8907,12 @@ or implicit) controlling the declaration.
          here. */
       error(ec_template_id_not_allowed);
       err = TRUE;
+    } else if (locator_for_curr_id.parent.class_type->kind ==
+                                            (a_type_kind)tk_template_param) {
+      /* Suppress the base class check and create a dummy base class. */
+      bcp = alloc_base_class();
+      bcp->type = declared_sym->parent.class_type;
+      bcp->derived_class = class_type;
     } else {
       for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
         if (bcp->type == locator_for_curr_id.parent.class_type) {
@@ -8909,34 +8955,49 @@ or implicit) controlling the declaration.
         }  /* if */
         if (err) sym_error(ec_ambiguous_name, declared_sym);
       }  /* if */
-      if (!err) {
-        /* Look up the name in the scope of the current class. */
-        clear_locator(&locator, &decl_pos);
-        locator.symbol_header = locator_for_curr_id.symbol_header;
-        (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
-        if (locator.specific_symbol != NULL) {
-          /* Except to introduce function names into an overload set, a
-             using declaration cannot usually coexist with another declaration
-             with the same name. */
-          if (!is_function_or_template_symbol(
-                         fundamental_symbol_of(declared_sym)) ||
-              !is_function_or_template_symbol(
-                         fundamental_symbol_of(locator.specific_symbol))) {
-            /* Name has already been declared. */
-            pos_st_error(ec_id_already_declared, &decl_pos,
-                         locator_for_curr_id.symbol_header->identifier);
+    }  /* if */
+    if (!err) {
+      /* Look up the name in the scope of the current class. */
+      clear_locator(&locator, &decl_pos);
+      locator.symbol_header = locator_for_curr_id.symbol_header;
+      (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
+      if (locator.specific_symbol != NULL) {
+        /* Except to introduce function names into an overload set, a
+           using declaration cannot usually coexist with another declaration
+           with the same name. */
+        fund_sym = fundamental_symbol_of(declared_sym);
+        if (is_function_or_template_symbol(fund_sym)) {
+          /* Okay. */
+        } else if (is_nontype_template_param_symbol(fund_sym)) {
+          /* Might be a function symbol, so it's okay. */
+        } else {
+          err = TRUE;
+        }  /* if */
+        if (!err) {
+          fund_sym = fundamental_symbol_of(locator.specific_symbol);
+          if (is_function_or_template_symbol(fund_sym)) {
+            /* Okay. */
+          } else if (is_nontype_template_param_symbol(fund_sym)) {
+            /* Might be a function symbol, so it's okay. */
+          } else {
             err = TRUE;
           }  /* if */
         }  /* if */
-        if (!err) {
-          /* Issue an error if a using-declaration introduces a name that is
-             the same as the current class name. */
-          a_symbol_ptr  class_sym = (a_symbol_ptr)class_type->
-                                                    source_corresp.assoc_info;
-          if (locator.symbol_header == class_sym->header) {
-            pos_error(ec_class_and_member_name_conflict, &decl_pos);
-            err = TRUE;
-          }  /* if */
+        if (err) {
+          /* Name has already been declared. */
+          pos_st_error(ec_id_already_declared, &decl_pos,
+                       locator_for_curr_id.symbol_header->identifier);
+          err = TRUE;
+        }  /* if */
+      }  /* if */
+      if (!err) {
+        /* Issue an error if a using-declaration introduces a name that is
+           the same as the current class name. */
+        a_symbol_ptr  class_sym = (a_symbol_ptr)class_type->
+                                                  source_corresp.assoc_info;
+        if (locator.symbol_header == class_sym->header) {
+          pos_error(ec_class_and_member_name_conflict, &decl_pos);
+          err = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -8961,6 +9022,11 @@ or implicit) controlling the declaration.
          this name in the current class: we will add the declared symbol or
          symbols to an overload set of the current class. */
       other_sym = locator.specific_symbol;
+      if (other_sym != NULL && is_nontype_template_param_symbol(other_sym)) {
+        /* We're treating the template param symbol as if it were a function
+           but we don't want it to be in the overload set. */
+        other_sym = NULL;
+      }  /* if */
       if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
         /* The using-declaration specifies a base-class member function
            overload set. */

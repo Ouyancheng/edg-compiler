@@ -2323,6 +2323,42 @@ this is not allowed, an error will be issued by the caller.
       pos_st_warning(ec_decl_hides_function_parameter, &new_sym->decl_position,
 		     new_sym->header->identifier);
     }  /* if */
+  } else if (!C_mode() &&
+             scope_stack[scope_depth].in_prototype_instantiation &&
+             scope_stack[scope_depth].kind ==
+                                 (a_scope_kind)sck_class_struct_union) {
+    a_symbol_ptr  fund_old_sym, fund_new_sym;
+    if (is_class_member_using_decl_symbol(old_sym)) {
+      fund_old_sym = fundamental_symbol_of(old_sym);
+      if (is_nontype_template_param_symbol(fund_old_sym)) {
+        fund_new_sym = fundamental_symbol_of(new_sym);
+        if (is_function_or_template_symbol(fund_new_sym) ||
+            is_nontype_template_param_symbol(fund_new_sym)) {
+          /* During a prototype instantiation a nontype using-declaration
+             (which *could* represent a function) is followed by function
+             declaration or another nontype using-declaration.  Assume
+             these do not conflict.  No insert point needs to be set since
+             the default places the function declaration (new_sym) in front
+             of the using-decl (old_sym) in the active list. */
+          err = FALSE;
+        }  /* if */
+      }  /* if */
+    } else if (is_class_member_using_decl_symbol(new_sym)) {
+      fund_new_sym = fundamental_symbol_of(new_sym);
+      if (is_nontype_template_param_symbol(fund_new_sym)) {
+        if (is_function_or_template_symbol(old_sym)) {
+          /* The opposite case: during a prototype instantiation a function
+             declaration (or several -- old_sym could be an overload set)
+             is followed by a nontype using-declaration (which *could*
+             represent another function).  Assume these do not conflict.
+             Set the insert_sym so that the using-decl (new_sym) will not
+             hide the function declaration (old-sym); this is especially
+             important for building overload sets. */
+          err = FALSE;
+          if (insert_sym != NULL) *insert_sym = old_sym;
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
   return !err;
 }  /* symbols_may_coexist_in_curr_scope */

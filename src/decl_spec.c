@@ -796,9 +796,7 @@ caution when modifying this routine.
           if (tag_sym->kind != tag_kind) {
             /* A qualified name is being used with a different tag kind than
                that of its declaration.  Issue an error. */
-            if (tag_sym->kind == (a_symbol_kind)sk_type &&
-                tag_sym->variant.type->kind ==
-                                         (a_type_kind)tk_template_param) {
+            if (is_type_template_param_symbol(tag_sym)) {
                 /* This is a template parameter during a prototype
                    instantiation. Don't issue an error.  This will be checked
                    during real instantiations. */
