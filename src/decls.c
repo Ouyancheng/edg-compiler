@@ -7193,13 +7193,16 @@ current scope.
             }  /* if */
             set_namespace_membership(new_sym, (a_source_correspondence *)NULL,
                                      (a_namespace_ptr)NULL);
+            if (fund_sym->kind == (a_symbol_kind)sk_undefined) {
+              /* Undefined symbols have no IL entries, so don't create an
+                IL entry for this using-declaration. */
 #if !RECORD_TEMPLATES_IN_IL
-            if (fund_sym->kind == (a_symbol_kind)sk_class_template ||
+            } else if (fund_sym->kind == (a_symbol_kind)sk_class_template ||
                 fund_sym->kind == (a_symbol_kind)sk_function_template) {
               /* When RECORD_TEMPLATES_IN_IL is FALSE there's no IL entry for
                  the using-decl to point to, don't put out an entry. */
-            } else {
 #endif /* !RECORD_TEMPLATES_IN_IL */
+            } else {
               /* Create a using-decl entry to represent this declaration in
                  the IL. */
               udp = make_using_decl(fund_sym, &decl_pos);
@@ -7210,9 +7213,7 @@ current scope.
                  required. */
               record_using_decl(fund_sym, &decl_pos, udp, prev_udp);
               prev_udp = udp;
-#if !RECORD_TEMPLATES_IN_IL
             }  /* if */
-#endif /* !RECORD_TEMPLATES_IN_IL */
           }  /* for */
         }  /* if */
       }  /* if */
