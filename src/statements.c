@@ -1771,8 +1771,12 @@ the current statement sequence.
     a_routine_ptr  rp = current_routine_entry();
     if (skip_typerefs(rp->type)->variant.routine.extra_info->does_not_return &&
         curr_reachability.reachable_considering_hints) {
+      /* Issue a warning on the return statement.  (For implicit returns,
+         the warning is issued on the current token, which is normally the
+         closing brace.) */
       pos_warning(ec_noreturn_function_does_return,
-                  &rp->source_corresp.decl_position);
+                  stmt_pos->seq != 0 ? stmt_pos
+                                     : &pos_curr_token);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
