@@ -30,7 +30,7 @@ configurations with builtin support for the va_start macro.
 
 In configurations with builtin support for the va_arg macro (e.g., when
 DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE is TRUE), the front end
-now issues a diagnostic (an error in strict mode, a warning otherwise) if
+now issues a diagnostic (an error in GNU C mode, a warning otherwise) if
 the type passed to va_arg would have been promoted to another type when
 passed through a variable argument list.
 
