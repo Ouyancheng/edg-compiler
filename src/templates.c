@@ -2080,7 +2080,7 @@ included in the search.
                      variant.class_struct_union.extra_info->template_arg_list;
     if (equiv_template_arg_lists(old_list, *new_list,
                                  /*error_matches_anything=*/FALSE,
-                                 tssp->is_nonreal_member)) {
+                                 (a_boolean)tssp->is_nonreal_member)) {
       /* A match.  Set sym which will suppress any further search. */
       sym = prototype_sym;
     }  /* if */
@@ -2101,7 +2101,7 @@ included in the search.
                      variant.class_struct_union.extra_info->template_arg_list;
       if (equiv_template_arg_lists(old_list, *new_list,
                                    /*error_matches_anything=*/FALSE,
-                                   tssp->is_nonreal_member)) {
+                                   (a_boolean)tssp->is_nonreal_member)) {
         /* We've found a match.  Remove the found symbol from its current
            position in the instantiation list and add it to the front. */
         if (prev_sym != NULL) {

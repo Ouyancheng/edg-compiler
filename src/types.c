@@ -1906,7 +1906,7 @@ checking instead of equivalence checking).
                              type_2->variant.class_struct_union.extra_info->
                                                             template_arg_list,
                              error_matches_anything,
-                             cssp_1->class_template->
+                             (a_boolean)cssp_1->class_template->
                                    variant.template_info->is_nonreal_member)) {
             equiv = TRUE;
           }  /* if */

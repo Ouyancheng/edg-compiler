@@ -581,7 +581,7 @@ routine.
       a_template_symbol_supplement_ptr	tssp;
       tssp = sym->variant.template_info;
       tssp->is_nonreal_member = TRUE;
-      tssp->variant.class_template.type_kind = tk_class;
+      tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
       break;
     }
     default:
