@@ -1,5 +1,12 @@
 Version 2.38
 
+12/23/97  Instantiation request file closed before being deleted
+
+When an instantiation request file is deleted, it is now closed before
+being deleted instead of being closed after the file was deleted.
+Closing the file after it had been deleted could cause an abort on
+some systems.
+
 12/22/97  Local static array initialized to constant in extern inline function
 
 The transformation done by IL lowering in turning the initialization

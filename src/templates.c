@@ -11692,6 +11692,11 @@ if one already exists.
          already exits.  This is done even when using a template
          information file so that unused .ii files will be cleaned up. */
       if (f_ii_file != NULL) {
+        if (fclose(f_ii_file)) {
+          /* Close the file before removing it.  This is necessary on
+             some operating systems. */
+          str_catastrophe(ec_file_write_error, "instantiation request file");
+        }  /* if */
         delete_file(instantiation_request_file_name);
         f_ii_file = NULL;
       }  /* if */
@@ -11699,7 +11704,7 @@ if one already exists.
   }  /* if */
   if (f_ii_file != NULL) {
     if (fclose(f_ii_file)) {
-      str_catastrophe(ec_file_write_error, "instantiation requst file");
+      str_catastrophe(ec_file_write_error, "instantiation request file");
     }  /* if */
   }  /* if */
 }  /* create_or_remove_instantiation_request_file */
