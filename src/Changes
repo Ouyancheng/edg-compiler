@@ -1,5 +1,13 @@
 Version 2.29
 
+5/19/95  C++-generating back end -- parentheses around initializer expression
+
+The output of the C++-generating back end needed an extra set of parentheses
+around a comma expression at the top of a parenthesized initializer:
+
+  int i;
+  int *p = new int((2, i));  // Output had only 1 set of parentheses
+
 5/19/95  C++-generating back end -- uninstantiated member functions
 
 When the C++-generating back end is used, and it is configured to put
