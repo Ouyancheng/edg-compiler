@@ -4980,7 +4980,7 @@ typedef struct a_routine {
 		*routine_fixup;
 			/* Used in Microsoft mode to process the bodies of
 			   friend functions defined in class templates only
-			   when they are reference.  Points to the fixup
+			   when they are referenced.  Points to the fixup
 			   entry for the friend function definition.  This
 			   field is for front-end use only. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
