@@ -65,7 +65,7 @@ Flags to be set when using the KAI inliner.
 #endif /* ifndef SOLARIS */
 #endif /* ifndef SUNOS */
 
-#if SUNOS
+#ifdef SUNOS
 /* Default to __BSD__ on SunOS, unless __ANSIC__ has been defined. */
 #ifndef __BSD__
 #ifndef __ANSIC__
