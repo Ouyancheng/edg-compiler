@@ -4606,6 +4606,7 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
         /* Cast to a class type.  Use an enk_temp_init/dik_constructor. */
         a_dynamic_init_ptr dip;
         expr = create_expr_temporary(dest_type, /*result_is_addr=*/FALSE,
+                                     /*is_explicit_cast=*/!is_implicit_cast,
                                      &orig_operand.position);
         dip = expr->variant.init.dynamic_init;
         /* A dik_constructor with a NULL constructor is used for generic
@@ -5393,12 +5394,14 @@ requires a later destruction, put it into the current object lifetime.
 
 an_expr_node_ptr alloc_temp_init_node(a_type_ptr         temp_type,
                                       a_dynamic_init_ptr dip,
-                                      a_boolean          result_is_addr)
+                                      a_boolean          result_is_addr,
+                                      a_boolean          is_explicit_cast)
 /*
 Create an enk_temp_init node and return a pointer to it.  The implied
 temporary has type temp_type.  The initialization to be done is pointed
 to by dip.  The value of the enk_temp_init is the address (rather than
-the value) of the temporary if result_is_addr is TRUE.
+the value) of the temporary if result_is_addr is TRUE.  is_explicit_cast
+is TRUE if this node represents an explicit cast.
 */
 {
   an_expr_node_ptr         temp_init_node;
@@ -5415,6 +5418,7 @@ the value) of the temporary if result_is_addr is TRUE.
        of the temporary as an rvalue. */
     temp_init_node->type = rvalue_type(temp_type);
   }  /* if */
+  temp_init_node->variant.init.is_explicit_cast = is_explicit_cast;
   /* Make sure the IL scope that the temporary is part of exists.  Even though
      the temporary does not exist as a variable, it's still (from a language
      point of view) part of this scope.  That's important, because it has to
@@ -5436,6 +5440,7 @@ the value) of the temporary if result_is_addr is TRUE.
 
 an_expr_node_ptr create_expr_temporary(a_type_ptr        temp_type,
                                        a_boolean         result_is_addr,
+                                       a_boolean         is_explicit_cast,
                                        a_source_position *position)
 /*
 Create an enk_temp_init node and return a pointer to it.  The implied
@@ -5443,6 +5448,7 @@ temporary has type temp_type.  A dynamic initialization entry indicating
 no initialization (but indicating destruction if appropriate) is attached
 under the enk_temp_init node.  The value of the enk_temp_init is the address
 (rather than the value) of the temporary if result_is_addr is TRUE.
+is_explicit_cast is TRUE if this node represents an explicit cast.
 *position is the position of the reference.  Only used in C++.
 */
 {
@@ -5453,7 +5459,8 @@ under the enk_temp_init node.  The value of the enk_temp_init is the address
   dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_none, temp_type,
                                 position);
   /* Make an enk_temp_init node that points at the dynamic init entry. */
-  temp_init_node = alloc_temp_init_node(temp_type, dip, result_is_addr);
+  temp_init_node = alloc_temp_init_node(temp_type, dip, result_is_addr,
+                                        is_explicit_cast);
   return temp_init_node;
 }  /* create_expr_temporary */
 
@@ -5544,6 +5551,7 @@ a prototype instantiation case.
     if (rtsp->value_returned_by_cctor) {
       temp_init_node = create_expr_temporary(return_type,
                                              /*result_is_addr=*/FALSE,
+                                             /*is_explicit_cast=*/FALSE,
                                              err_pos);
       dip = temp_init_node->variant.init.dynamic_init;
       set_dynamic_init_kind(dip,

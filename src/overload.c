@@ -6001,7 +6001,8 @@ be dependent).  This routine is called only in C++ mode.
                          conversion_type,
                          &arg_match_list->conversion,
                          (a_conv_descr *)NULL,
-                         /*force_temp_for_class_bitwise_copy=*/FALSE);
+                         /*force_temp_for_class_bitwise_copy=*/FALSE,
+                         /*is_explicit_cast=*/FALSE);
     /* See whether the conversion function returns a reference type. */
     if (arg_match_list->conversion.result_is_an_lvalue) {
       routine_type = conversion_type;
@@ -7615,7 +7616,8 @@ Adjust the operand type to match the type requirement.
         prep_for_known_possible_conversion(operand, &arg_match->conversion);
         user_convert_operand(operand, /*dest_type=*/(a_type_ptr)NULL,
                              &arg_match->conversion, (a_conv_descr *)NULL,
-                             /*force_temp_for_class_bitwise_copy=*/FALSE);
+                             /*force_temp_for_class_bitwise_copy=*/FALSE,
+                             /*is_explicit_cast=*/FALSE);
       } else {
         /* The conversion is not usable, e.g., because the conversion
            is ambiguous.  Redo the analysis of the conversion to get
@@ -8530,8 +8532,8 @@ void try_to_convert_class_operand_to_builtin_type(
 /*
 If *operand has a class type, see if it can be converted (via a conversion
 function) to a built-in type of the set allowed by builtin_types_allowed.
-If so, convert it.  The result is always an rvalue.  Issue an error and
-set *processed to TRUE if the conversion is ambiguous.
+If so, convert it and set *processed to TRUE.  The result is always an rvalue.
+Issue an error and set *processed to TRUE if the conversion is ambiguous.
 */
 {
   a_conv_descr             conversion;
@@ -8554,7 +8556,8 @@ set *processed to TRUE if the conversion is ambiguous.
       conversion.result_is_an_lvalue = FALSE;
       user_convert_operand(operand, /*dest_type=*/(a_type_ptr)NULL,
                            &conversion, (a_conv_descr *)NULL,
-                           /*force_temp_for_class_bitwise_copy=*/FALSE);
+                           /*force_temp_for_class_bitwise_copy=*/FALSE,
+                           /*is_explicit_cast=*/FALSE);
       *processed = TRUE;
     } else if (ambiguous) {
       /* There is more than one possible conversion to a built-in type. */
@@ -9049,6 +9052,7 @@ void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
                                    an_expr_node_ptr  arg_expr_list,
                                    a_type_ptr        temp_type,
                                    a_boolean         result_is_addr,
+                                   a_boolean         is_explicit_cast,
                                    a_source_position *position,
                                    an_operand        *result)
 /*
@@ -9062,7 +9066,9 @@ cv-unqualified version must be the class of which the constructor is
 a member.  If it is NULL, the class type is used.  ctor_routine can
 be NULL to indicate that the constructor is unknown because one or
 more of the arguments is template-dependent in a prototype instantiation.
-temp_type must be non-NULL in that case.
+temp_type must be non-NULL in that case.  is_explicit_cast is TRUE if
+this node represents an explicit cast.  *position gives the source
+position.
 */
 {
   a_dynamic_init_ptr dip;
@@ -9085,7 +9091,10 @@ temp_type must be non-NULL in that case.
     }  /* if */
   }  /* if */
   /* Create the dynamic initialization entry and the enk_temp_init node. */
-  temp_init_node = create_expr_temporary(temp_type, result_is_addr, position);
+  temp_init_node = create_expr_temporary(temp_type,
+                                         result_is_addr,
+                                         is_explicit_cast,
+                                         position);
   dip = temp_init_node->variant.init.dynamic_init;
   /* Use a dik_constructor to call the constructor routine. */
   set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constructor);
@@ -9097,12 +9106,14 @@ temp_type must be non-NULL in that case.
 
 
 static void temp_init_by_bitwise_copy_from_operand(an_operand *operand,
-                                                   a_boolean  result_is_addr)
+                                                   a_boolean  result_is_addr,
+                                                   a_boolean  is_explicit_cast)
 /*
 Create a temporary and initialize it by bitwise copy from the given operand.
 Create an enk_temp_init node for the initialization, and update *operand
 to refer to that node.  The result is the address of the temporary if
-result_is_addr is TRUE.
+result_is_addr is TRUE.  is_explicit_cast is TRUE if this node represents
+an explicit cast.
 */
 {
   a_dynamic_init_ptr dip;
@@ -9111,6 +9122,7 @@ result_is_addr is TRUE.
   /* Allocate the dynamic initialization entry and the enk_temp_init node. */
   temp_init_node = create_expr_temporary(operand->type,
                                          result_is_addr,
+                                         is_explicit_cast,
                                          &operand->position);
   dip = temp_init_node->variant.init.dynamic_init;
   conv_lvalue_to_rvalue(operand);
@@ -9125,7 +9137,8 @@ void user_convert_operand(an_operand   *operand,
                           a_type_ptr   dest_type,
                           a_conv_descr *conversion,
                           a_conv_descr *ctor_arg_conversion,
-                          a_boolean    force_temp_for_class_bitwise_copy)
+                          a_boolean    force_temp_for_class_bitwise_copy,
+                          a_boolean    is_explicit_cast)
 /*
 Do the user-defined conversion indicated by *conversion to convert
 *operand to dest_type.  dest_type may be NULL to indicate that
@@ -9138,7 +9151,8 @@ That's particularly significant when the "conversion" is a class bitwise
 copy: the adjustment here changes the operand to access the same class
 object with the new type, but does not copy it to a temporary.  However,
 if force_temp_for_class_bitwise_copy is TRUE, a temporary will be created
-in that case.
+in that case.  is_explicit_cast is TRUE if this conversion is due to
+an explicit cast.
 */
 {
   an_expr_node_ptr  rout_node, arg_expr_list;
@@ -9162,7 +9176,8 @@ in that case.
       /* Make a copy of the class object in a temporary. */
       check_assertion(conv_to_rvalue);
       temp_init_by_bitwise_copy_from_operand(operand,
-                                             /*result_is_addr=*/FALSE);
+                                             /*result_is_addr=*/FALSE,
+                                             is_explicit_cast);
     }  /* if */
   } else if (conversion->unknown_dependent_conversion) {
     /* Conversion from or to a template-dependent type in a prototype
@@ -9233,6 +9248,7 @@ in that case.
                                 ctor_arg_conversion, &arg_expr_list);
     make_constructor_dynamic_init(conversion_routine, arg_expr_list,
                                   dest_type, /*result_is_addr=*/FALSE,
+                                  is_explicit_cast,
                                   &orig_operand.position, operand);
   }  /* if */
   /* Restore the original source position, etc. */
@@ -9246,6 +9262,7 @@ static void convert_operand(an_operand   *source_operand,
 /*
 Convert source_operand to dest_type.  *conversion describes the
 conversion (which might involve a user-defined conversion).
+The conversion is assumed not to be due to an explicit cast.
 */
 {
 #if CHECKING
@@ -9259,7 +9276,8 @@ conversion (which might involve a user-defined conversion).
     /* Call a user-defined conversion routine. */
     user_convert_operand(source_operand, dest_type, conversion,
                          (a_conv_descr *)NULL,
-                         /*force_temp_for_class_bitwise_copy=*/FALSE);
+                         /*force_temp_for_class_bitwise_copy=*/FALSE,
+                         /*is_explicit_cast=*/FALSE);
   } else {
     /* Cast the operand to the result type. */
     cast_operand(dest_type, source_operand, /*check_cast_access=*/TRUE,
@@ -9628,7 +9646,8 @@ happen only in C++ mode.
          conversion for the caller. */
       user_convert_operand(source_operand, dest_type,
                            conversion, (a_conv_descr *)NULL,
-                           /*force_temp_for_class_bitwise_copy=*/FALSE);
+                           /*force_temp_for_class_bitwise_copy=*/FALSE,
+                           /*is_explicit_cast=*/FALSE);
       /* See if the result of the conversion is already in a temporary. */
       if (is_temp_init_usable_in_optimization(source_operand,
                                               !fill_in_dtor,
@@ -9706,7 +9725,8 @@ happen only in C++ mode.
         temp_init_node = error_node();
       } else {
         temp_init_node = alloc_temp_init_node(dest_type, dip,
-                                              /*result_is_addr=*/TRUE);
+                                              /*result_is_addr=*/TRUE,
+                                              /*is_explicit_cast=*/FALSE);
       }  /* if */
     } else {
       /* Existing enk_temp_init; make sure we get the address of the
@@ -9822,6 +9842,7 @@ the address of the temporary.  Used only in C++ mode.
                                     (a_conv_descr *)NULL, &cctor_arg);
         make_constructor_dynamic_init(cctor_routine, cctor_arg, temp_type,
                                       /*result_is_addr=*/TRUE,
+                                      /*is_explicit_cast=*/FALSE,
                                       &orig_operand.position,
                                       operand);
       }  /* if */
@@ -9830,7 +9851,8 @@ the address of the temporary.  Used only in C++ mode.
   if (!cctor_case) {
     /* Normal case -- use a dik_expression initialization to copy the
        operand into the temporary. */
-    temp_init_by_bitwise_copy_from_operand(operand, /*result_is_addr=*/TRUE);
+    temp_init_by_bitwise_copy_from_operand(operand, /*result_is_addr=*/TRUE,
+                                           /*is_explicit_cast=*/FALSE);
   }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details(operand, &orig_operand);
@@ -9887,7 +9909,8 @@ copy-initialization.
          result of the conversion function rather than dest_type. */
       user_convert_operand(source_operand, /*dest_type=*/(a_type_ptr)NULL,
                            conversion, (a_conv_descr *)NULL,
-                           /*force_temp_for_class_bitwise_copy=*/FALSE);
+                           /*force_temp_for_class_bitwise_copy=*/FALSE,
+                           /*is_explicit_cast=*/FALSE);
     } else {
       /* Normal case. */
       convert_operand(source_operand, dest_type, conversion);

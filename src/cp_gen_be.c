@@ -4200,13 +4200,8 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
     /* In C mode, a temp-init node represents a compound literal. */
     check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant);
     gen_compound_literal(dip->variant.constant);
-  } else if ((is_class_struct_union_type(temp_type) ||
-              is_template_param_type(temp_type)) &&
-             /* Don't use copy-initialization for dik_expression and
-             dik_call_returning_class_via_cctor cases. */
-      (dip->kind == (a_dynamic_init_kind)dik_constructor ||
-       dip->kind == (a_dynamic_init_kind)dik_zero ||
-       dip->kind == (a_dynamic_init_kind)dik_none)) {
+  } else if (expr->variant.init.is_explicit_cast) {
+    /* This dynamic initialization comes from an explicit cast. */
     if (has_name_before_mangling(temp_type)) {
       /* For a class temporary requiring a constructor, use the form
          A(arg1, arg2, ...).  dik_zero or dik_none will produce "A()". */
@@ -5762,8 +5757,8 @@ done_with_operation:
         a_type_ptr temp_type = type_pointed_to(expr->type);
         write_tok_ch('(');
         gen_ampersand(temp_type);
-        write_tok_ch('(');
         check_assertion(is_class_struct_union_type(temp_type));
+        write_tok_ch('(');
         gen_type(temp_type);
         write_tok_str(" &)");
         gen_temp_init(expr);

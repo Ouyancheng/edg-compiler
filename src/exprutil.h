@@ -841,11 +841,14 @@ extern void set_temp_init_dynamic_init_lifetime(
 extern an_expr_node_ptr alloc_temp_init_node(
                                       a_type_ptr         temp_type,
                                       a_dynamic_init_ptr dip,
-                                      a_boolean          result_is_addr);
+                                      a_boolean          result_is_addr,
+                                      a_boolean          is_explicit_cast);
 
-extern an_expr_node_ptr create_expr_temporary(a_type_ptr        temp_type,
-                                              a_boolean         result_is_addr,
-                                              a_source_position *position);
+extern an_expr_node_ptr create_expr_temporary(
+                                       a_type_ptr        temp_type,
+                                       a_boolean         result_is_addr,
+                                       a_boolean         is_explicit_cast,
+                                       a_source_position *position);
 
 extern void make_function_call(an_expr_node_ptr  function_node,
                                a_type_ptr        function_type,

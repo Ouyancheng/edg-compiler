@@ -6232,6 +6232,10 @@ typedef struct an_expr_node {
 			   is different than object lifetime; see the
 			   lifetime information in the dynamic init entry
 			   pointed to. */
+      a_bit_field
+		is_explicit_cast:1;
+			/* If TRUE, the source construct that generated
+			   this operation is an explicit cast. */
       bitfield_to_avoid_codecenter_warnings()
       a_dynamic_init_ptr
 		dynamic_init;

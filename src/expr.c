@@ -6646,7 +6646,8 @@ C++ mode.
           /* A user-defined conversion can be done. */
           user_convert_operand(operand, eff_type_cast_to, &conversion,
                                (a_conv_descr *)NULL,
-                               /*force_temp_for_class_bitwise_copy=*/FALSE);
+                               /*force_temp_for_class_bitwise_copy=*/FALSE,
+                               /*is_explicit_cast=*/FALSE);  /* sic */
           *processed = TRUE;
         } else if (ambiguous) {
           /* The conversion is ambiguous.  Do the analysis again to get
@@ -6687,7 +6688,8 @@ C++ mode.
           user_convert_operand(operand, type_cast_to, &conversion,
                                &ctor_arg_conversion,
                                /*force_temp_for_class_bitwise_copy=*/
-                                                           !any_cfront_mode());
+                                                           !any_cfront_mode(),
+                               /*is_explicit_cast=*/TRUE);
           *processed = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_bugs && is_class_struct_union_type(type_cast_to)) {
@@ -7693,7 +7695,8 @@ to the compound literal.
   } else {
     /* Allocate an enk_temp_int node. */
     an_expr_node_ptr expr =
-             alloc_temp_init_node(literal_type, dip, /*result_is_addr=*/TRUE);
+             alloc_temp_init_node(literal_type, dip, /*result_is_addr=*/TRUE,
+                                  /*is_explicit_cast=*/FALSE);
     make_expression_operand(expr, literal_type, result);
     result->state = (an_operand_state)os_lvalue;
   }  /* if */
@@ -7921,6 +7924,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
          a temporary.  Make an operand for the value of the temporary. */
       make_constructor_dynamic_init(ctor_routine, arg_expr_list,
                                     type_cast_to, /*result_is_addr=*/FALSE,
+                                    /*is_explicit_cast=*/TRUE,
                                     start_position, result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_bugs) {
@@ -7942,7 +7946,8 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
     a_dynamic_init_ptr dip;
     scan_dependent_parenthesized_initializer(&dip);
     temp_init_node = alloc_temp_init_node(type_cast_to, dip,
-                                          /*result_is_addr=*/FALSE);
+                                          /*result_is_addr=*/FALSE,
+                                          /*is_explicit_cast=*/TRUE);
     make_expression_operand(temp_init_node, temp_init_node->type, result);
   } else {
     /* Not a constructor case; obeys the same rules as a C-style cast. */
@@ -7975,6 +7980,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
           an_expr_node_ptr temp_init_node =
                   create_expr_temporary(type_cast_to,
                                         /*result_is_addr=*/FALSE,
+                                        /*is_explicit_cast=*/TRUE,
                                         start_position);
           a_dynamic_init_ptr dip = temp_init_node->variant.init.dynamic_init;
           if (reference_to_trivial_default_constructor(type_cast_to,
@@ -9589,12 +9595,14 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
           /* Operand 2 can be converted to the type of operand 3.  Do so. */
           user_convert_operand(&operand_2, operand_3.type, &conv_2_to_3,
                                (a_conv_descr *)NULL,
-                               /*force_temp_for_class_bitwise_copy=*/FALSE);
+                               /*force_temp_for_class_bitwise_copy=*/FALSE,
+                               /*is_explicit_cast=*/FALSE);
         } else {
           /* Operand 3 can be converted to the type of operand 2.  Do so. */
           user_convert_operand(&operand_3, operand_2.type, &conv_3_to_2,
                                (a_conv_descr *)NULL,
-                               /*force_temp_for_class_bitwise_copy=*/FALSE);
+                               /*force_temp_for_class_bitwise_copy=*/FALSE,
+                               /*is_explicit_cast=*/FALSE);
         }  /* if */
         /* Determine if the types are the same after any conversions.*/
         types_are_the_same = types_are_compatible(operand_2.type,

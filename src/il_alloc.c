@@ -1757,8 +1757,9 @@ fields to default values.
       node->variant.field = NULL;
       break;
     case enk_temp_init:
-      node->variant.init.result_is_addr = FALSE;
-      node->variant.init.static_temp    = FALSE;
+      node->variant.init.result_is_addr   = FALSE;
+      node->variant.init.static_temp      = FALSE;
+      node->variant.init.is_explicit_cast = FALSE;
 #if CHECKING
       node->variant.init.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

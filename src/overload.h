@@ -482,6 +482,7 @@ extern void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
                                           an_expr_node_ptr  arg_expr_list,
                                           a_type_ptr        temp_type,
                                           a_boolean         result_is_addr,
+                                          a_boolean         is_explicit_cast,
                                           a_source_position *position,
                                           an_operand        *result);
 
@@ -624,7 +625,8 @@ extern void user_convert_operand(
                            a_type_ptr   dest_type,
                            a_conv_descr *conversion,
                            a_conv_descr *ctor_arg_conversion,
-                           a_boolean    force_temp_for_class_bitwise_copy);
+                           a_boolean    force_temp_for_class_bitwise_copy,
+                           a_boolean    is_explicit_cast);
 
 extern void prep_elision_initializer_operand(
                                             an_operand         *source_operand,
