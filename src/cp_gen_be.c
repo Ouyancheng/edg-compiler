@@ -7561,10 +7561,8 @@ TRUE if the declaration following this one is such a continuation.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
     { a_decl_modifier decl_modifiers = rout->decl_modifiers;
-      /* __inline and __declspec(naked) apply only to definitions. */
-      if (!is_definition) {
-        decl_modifiers &= ~(DM_NAKED | DM_MICROSOFT_INLINE | DM_FORCEINLINE);
-      }  /* if */
+      /* __declspec(naked) applies only to definitions. */
+      if (!is_definition) decl_modifiers &= ~DM_NAKED;
       suppress_microsoft_decl_modifiers_put_out_on_class(&decl_modifiers,
                                                         &rout->source_corresp);
       gen_microsoft_decl_modifiers(decl_modifiers);

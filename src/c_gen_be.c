@@ -4933,6 +4933,64 @@ for the variable.
   return init_con;
 }  /* constant_initializer */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+
+static void dump_microsoft_decl_modifiers(a_decl_modifier decl_modifiers)
+/*
+Print a set of Microsoft declaration modifiers.
+*/
+{
+  /* __declspec(nothrow), represented by DM_NOTHROW, is a C++-only attribute
+     and is therefore not put out in C code.  Likewise for
+     __declspec(novtable) and DM_NOVTABLE. */
+  if (decl_modifiers &
+      (DM_DLLIMPORT | DM_DLLEXPORT | DM_THREAD | DM_NAKED | DM_SELECTANY)) {
+    write_tok_str("__declspec( ");
+    if (decl_modifiers & DM_DLLIMPORT) {
+      write_tok_str("dllimport ");
+    }  /* if */
+    if (decl_modifiers & DM_DLLEXPORT) {
+      write_tok_str("dllexport ");
+    }  /* if */
+    if (decl_modifiers & DM_THREAD) {
+      write_tok_str("thread ");
+    }  /* if */
+    if (decl_modifiers & DM_NAKED) {
+      write_tok_str("naked ");
+    }  /* if */
+    if (decl_modifiers & DM_SELECTANY) {
+      write_tok_str("selectany ");
+    }  /* if */
+    write_tok_str(") ");
+  }  /* if */
+  if (decl_modifiers & DM_MICROSOFT_INLINE) {
+    write_tok_str("__inline ");
+  }  /* if */
+  if (decl_modifiers & DM_FORCEINLINE) {
+    write_tok_str("__forceinline ");
+  }  /* if */
+}  /* dump_microsoft_decl_modifiers */
+
+
+static void dump_microsoft_allocate_declspec(char *allocate_segname)
+/*
+Put out the Microsoft __declspec(allocate(...)) declaration modifier.
+allocate_segname is the segment name, or NULL if the modifier does not apply.
+*/
+{
+  if (allocate_segname != NULL) {
+    write_tok_str("__declspec(allocate(");
+    ensure_enough_room_on_line(strlen(allocate_segname)+2);
+    write_ch('"');
+    write_str(allocate_segname);
+    write_ch('"');
+    write_tok_str(")) ");
+  }  /* if */
+}  /* dump_microsoft_allocate_declspec */
+
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void dump_variable_decl(a_variable_ptr variable,
                                a_boolean      dump_vars_without_initializers,
@@ -5066,31 +5124,14 @@ parameters.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
       /* Microsoft-specific keywords. */
-      if (variable->decl_modifiers & DM_DLLIMPORT) {
-        write_tok_str("__declspec(dllimport) ");
-      }  /* if */
-      /* Dump some qualifiers only on the last declaration of the variable,
-         since that's the definition if there is one. */
-      if (dump_initializers || init_con == NULL) {
-        if (variable->decl_modifiers & DM_DLLEXPORT) {
-          write_tok_str("__declspec(dllexport) ");
+      { a_decl_modifier decl_modifiers = variable->decl_modifiers;
+        /* __declspec(selectany) applies only to definitions. */
+        if (!dump_initializers && init_con != NULL) {
+          decl_modifiers &= ~DM_SELECTANY;
         }  /* if */
-        if (variable->decl_modifiers & DM_SELECTANY) {
-          write_tok_str("__declspec(selectany) ");
-        }  /* if */
-      }  /* if */
-      if (variable->decl_modifiers & DM_THREAD) {
-        write_tok_str("__declspec(thread) ");
-      }  /* if */
-      if (variable->allocate_segname != NULL) {
-        char *segname = variable->allocate_segname;
-        write_tok_str("__declspec(allocate(");
-        ensure_enough_room_on_line(strlen(segname)+2);
-        write_ch('"');
-        write_str(segname);
-        write_ch('"');
-        write_tok_str(")) ");
-      }  /* if */
+        dump_microsoft_decl_modifiers(decl_modifiers);
+        dump_microsoft_allocate_declspec(variable->allocate_segname);
+      }
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if C_GEN_BE_GENERATES_ANSI_C
@@ -6389,25 +6430,11 @@ if this routine has a body (dump nothing if it has no body).
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
     /* Microsoft-specific keywords. */
-    /* __declspec(nothrow) is a C++-only attribute and is therefore not put
-       out in C code. */
-    if (rout->decl_modifiers & DM_DLLIMPORT) {
-      write_tok_str("__declspec(dllimport) ");
-    }  /* if */
-    if (is_definition) {
-      if (rout->decl_modifiers & DM_DLLEXPORT) {
-        write_tok_str("__declspec(dllexport) ");
-      }  /* if */
-      if (rout->decl_modifiers & DM_NAKED) {
-        write_tok_str("__declspec(naked) ");
-      }  /* if */
-      if (rout->decl_modifiers & DM_MICROSOFT_INLINE) {
-        write_tok_str("__inline ");
-      }  /* if */
-      if (rout->decl_modifiers & DM_FORCEINLINE) {
-        write_tok_str("__forceinline ");
-      }  /* if */
-    }  /* if */
+    { a_decl_modifier decl_modifiers = rout->decl_modifiers;
+      /* __declspec(naked) applies only to definitions. */
+      if (!is_definition) decl_modifiers &= ~DM_NAKED;
+      dump_microsoft_decl_modifiers(decl_modifiers);
+    }
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GCC_IS_C_GEN_BE_TARGET

@@ -1,5 +1,18 @@
 Version 2.43
 
+8/21/99  C-generating back end, Microsoft compatibility, __declspec(dllexport)
+
+The C-generating back end has been changed so that the Microsoft
+declaration specifiers __declspec(dllexport), __inline, and __forceinline
+are put out on both the forward declaration and the definition of a function.
+Formerly, they were put out only on the definition.  Similarly, for
+a variable, __declspec(dllexport) is now put out on both the forward
+declaration and the definition.
+
+In the C++-generating back end, __declspec(dllexport) was already put
+out on both declarations and definitions, but __inline and __forceinline
+have been changed so that they are also put out on declarations.
+
 8/19/99  Diagnose cv-qualifiers on static member function templates
 
 The front end now diagnoses const- and volatile qualified static member
