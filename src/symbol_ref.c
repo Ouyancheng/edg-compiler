@@ -370,6 +370,42 @@ then free the list.
 }  /* check_hidden_name_fixup_list */
 
 
+static a_boolean il_entries_are_identical(a_symbol_ptr  sym1,
+                                          a_symbol_ptr  sym2)
+/*
+Return TRUE if sym1 and sym2 point to the same IL entries.
+*/
+{
+  an_il_entry_kind  kind;
+
+  return (il_entry_for_symbol(sym1, &kind) ==
+                    il_entry_for_symbol(sym2, &kind));
+}  /* il_entries_are_identical */
+
+
+static a_boolean matches_member_of_overload_set(a_symbol_ptr  sym_ptr,
+                                                a_symbol_ptr  overload_sym)
+/*
+Return TRUE if sym_ptr is a member of the overload set headed by
+overload_sym or if the routine entry pointed to by sym_ptr is pointed also
+to by a member of the overload set.
+*/
+{
+  a_boolean     found = FALSE;
+  a_symbol_ptr  other_sym = overload_sym->variant.overloaded_function.symbols;
+
+  check_assertion(overload_sym->kind == (a_symbol_kind)sk_overloaded_function);
+  for (; other_sym != NULL; other_sym = other_sym->next) {
+    if (other_sym == sym_ptr ||
+        il_entries_are_identical(sym_ptr, other_sym)) {
+      found = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return found;
+}  /* matches_member_of_overload_set */
+
+
 void check_for_defeatable_name_hiding(a_symbol_ptr  sym_ptr)
 /*
 Determine whether "defeatable hidden-name information" should be put out for
@@ -380,7 +416,6 @@ hiding.
 */
 {
   a_symbol_locator         locator;
-  a_boolean                is_local_to_function;
   a_symbol_ptr             old_sym_ptr;
   a_scope_ptr              sp;
   a_namespace_ptr          nsp;
@@ -402,11 +437,10 @@ hiding.
     /* We don't deal with class template definitions. */
   } else if (!sym_ptr->is_class_member &&
              ssep->kind == (a_scope_kind)sck_class_struct_union &&
+             sym_ptr->decl_scope != FILE_SCOPE_NUMBER &&
              (ssep->il_scope->
                    variant.assoc_type->source_corresp.is_local_to_function ||
-              sym_ptr->parent.namespace_ptr != NULL) &&
-              scope_depth_of_symbol(sym_ptr, &is_local_to_function) !=
-                                                       DEPTH_OF_FILE_SCOPE) {
+              depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE)) {
     /* We are inside a local class or namespace member class and a name is
        introduced (e.g., by a friend declaration) and injected into an
        enclosing scope.  Put the symbol on a fixup list and process it once
@@ -442,9 +476,7 @@ hiding.
         } else if (old_sym_ptr->decl_scope != sym_ptr->decl_scope &&
                    (old_sym_ptr->is_class_member ||
                     old_sym_ptr->parent.namespace_ptr != NULL ||
-                    scope_depth_of_symbol(old_sym_ptr,
-                                          &is_local_to_function) ==
-                                                   DEPTH_OF_FILE_SCOPE)) {
+                    old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER)) {
           /* No need to defeat the name hiding with an elaborated type
              specifier -- the tag name will be qualified, either by its
              parent class or namespace or by a leading "::". */
@@ -467,27 +499,36 @@ hiding.
       if (scope_stack[depth_scope_stack].kind ==
                               (a_scope_kind)sck_class_struct_union &&
           !sym_ptr->is_class_member &&
-          scope_depth_of_symbol(sym_ptr, &is_local_to_function) ==
-                                                      DEPTH_OF_FILE_SCOPE) {
-         /* A friend declaration of a file-scope entity.  Determine whether
-            a global qualifier is needed.  It is needed if there is an
-            intervening declaration (say, in an enclosing block scope) that
-            hides the file-scope declaration. */
-        if ((old_sym_ptr =
-                normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP)) != NULL &&
-            old_sym_ptr != sym_ptr) {
-          an_il_entry_kind  kind;
-          if (il_entry_for_symbol(sym_ptr, &kind) ==
-                            il_entry_for_symbol(old_sym_ptr, &kind)) {
-            /* The intervening declaration is probably a block-extern
-               declaration, so the global qualifier is not required. */
-          } else {
-            tag_hidden_by_nontag = FALSE;
-            global_hidden_by_nonglobal = TRUE;
-            record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
-                                          global_hidden_by_nonglobal,
-                                          (a_scope_ptr)NULL);
+          sym_ptr->decl_scope == FILE_SCOPE_NUMBER) {
+        /* A friend declaration of a file-scope entity.  Determine whether
+           a global qualifier is needed.  It is needed if there is an
+           intervening declaration (say, in an enclosing block scope) that
+           hides the file-scope declaration. */
+        clear_specific_symbol(locator);
+        old_sym_ptr = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+        if (old_sym_ptr != NULL) {
+          global_hidden_by_nonglobal = TRUE;
+        } else {
+          global_hidden_by_nonglobal = FALSE;
+          old_sym_ptr = normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP);
+          if (old_sym_ptr != NULL) {
+            if (old_sym_ptr == sym_ptr ||
+                (old_sym_ptr->kind == (a_symbol_kind)sk_overloaded_function ?
+                  matches_member_of_overload_set(sym_ptr, old_sym_ptr) :
+                  il_entries_are_identical(sym_ptr, old_sym_ptr))) {
+              /* There is no intervening declaration of this name, or if there
+                 is it is a block-extern declaration that refers to the same
+                 entity. */
+            } else {
+              global_hidden_by_nonglobal = TRUE;
+            }  /* if */
           }  /* if */
+        }  /* if */
+        if (global_hidden_by_nonglobal) {
+            tag_hidden_by_nontag = FALSE;
+          record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
+                                        global_hidden_by_nonglobal,
+                                        (a_scope_ptr)NULL);
         }  /* if */
       }  /* if */
     } else {
@@ -512,8 +553,7 @@ hiding.
                                       (a_scope_ptr)NULL);
       }  /* if */
     }  /* if */
-    if (scope_depth_of_symbol(sym_ptr, &is_local_to_function) ==
-                                                 DEPTH_OF_FILE_SCOPE) {
+    if (sym_ptr->decl_scope == FILE_SCOPE_NUMBER) {
       /* This is a declaration at file scope.  Examine every declaration
          of this name that has already appeared in a namespace or nonlocal
          class scope -- the current declaration will be hidden in such a
