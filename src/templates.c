@@ -16903,6 +16903,7 @@ the template instance of secondary_routine refers to.
   a_symbol_ptr			secondary_sym;
   a_template_instance_ptr	primary_tip;
   a_template_instance_ptr	secondary_tip;
+  a_master_instance_ptr		mip;
 
   primary_sym = (a_symbol_ptr)primary_routine->source_corresp.assoc_info;
   secondary_sym = (a_symbol_ptr)secondary_routine->source_corresp.assoc_info;
@@ -16910,7 +16911,9 @@ the template instance of secondary_routine refers to.
   secondary_tip = secondary_sym->variant.routine.instance_ptr;
   check_assertion(primary_tip != NULL && secondary_tip != NULL);
   check_assertion(secondary_tip->master_instance != NULL);
-  primary_tip->master_instance = secondary_tip->master_instance;
+  mip = secondary_tip->master_instance;
+  primary_tip->master_instance = mip;
+  mip->instance = primary_tip;
 }  /* set_master_instance_for_new_canonical_routine */
 
 
@@ -16930,6 +16933,7 @@ secondary_variable refers to.
   a_symbol_ptr			secondary_sym;
   a_template_instance_ptr	primary_tip;
   a_template_instance_ptr	secondary_tip;
+  a_master_instance_ptr		mip;
 
   primary_sym = (a_symbol_ptr)primary_variable->source_corresp.assoc_info;
   secondary_sym = (a_symbol_ptr)secondary_variable->source_corresp.assoc_info;
@@ -16937,7 +16941,9 @@ secondary_variable refers to.
   secondary_tip = secondary_sym->variant.static_data_member.instance_ptr;
   check_assertion(primary_tip != NULL && secondary_tip != NULL);
   check_assertion(secondary_tip->master_instance != NULL);
-  primary_tip->master_instance = secondary_tip->master_instance;
+  mip = secondary_tip->master_instance;
+  primary_tip->master_instance = mip;
+  mip->instance = primary_tip;
 }  /* set_master_instance_for_new_canonical_entry */
 
 
