@@ -3453,8 +3453,20 @@ a template parameter.
   if (is_type_templ_arg(tap)) {
     template_param_found = is_or_contains_template_param(tap->variant.type);
   } else if (is_nontype_templ_arg(tap)) {
-    template_param_found = (tap->variant.constant->kind ==
-                                 (a_constant_repr_kind)ck_template_param);
+    if (tap->constant_is_an_arg_operand) {
+      /* The constant is still in arg_operand form. */
+      template_param_found = arg_operand_contains_template_param(
+                                            tap->variant.arg_operand);
+    } else if (tap->is_array_bound_of_unknown_type) {
+      /* Such arguments should be sufficiently short-lived that they should
+         never get here. */
+      template_param_found = FALSE;
+      unexpected_condition();
+    } else {
+      /* A normal nontype parameter represented as a constant. */
+      template_param_found = (tap->variant.constant->kind ==
+                                   (a_constant_repr_kind)ck_template_param);
+    }  /* if */
   } else {
     /* A template template parameter.  The argument involves a template
        parameter if it is itself a template parameter, or if it is
