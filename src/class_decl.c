@@ -4001,6 +4001,85 @@ done:;
 }  /* set_preferred_base_class_derivation */
 
 
+static void mark_dependent_base_classes(a_type_ptr		class_type,
+					a_class_def_state_ptr	class_state)
+/*
+Determine which of the base classes of class_type are template-dependent,
+and so should not be visible for certain lookups.
+
+For a prototype instantiation, we go through the base classes of the
+prototype type and determine whether the base class depends on a
+template parameter.  It is marked accordingly.  For real classes,
+we check the flag previously set for the corresponding base class of
+the prototype instantiation.
+
+This routine is only called for generated instantiations, not for normal
+classes or explicitly specialized classes.
+*/
+{
+  a_class_type_supplement_ptr	ctsp;
+  a_base_class_ptr		bcp;
+
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  if (class_state->is_nonreal_instantiation) {
+    /* The class is a prototype instantiation.  If a direct base class
+       depends on a template parameter it should be ignored for unqualified
+       lookups. */
+    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+      if (bcp->direct) {
+        bcp->ignore_during_dependent_lookup =
+                                      is_or_contains_template_param(bcp->type);
+      }  /* if */
+    }  /* for */
+  } else {
+    a_base_class_ptr		proto_bcp;
+    a_type_ptr			proto_type;
+    a_class_type_supplement_ptr	proto_ctsp;
+    a_symbol_ptr		proto_sym;
+
+    proto_sym = class_state->corresp_prototype_tag_sym;
+    check_assertion_str2(proto_sym != NULL,
+                         "mark_dependent_base_classes:",
+                         "no corresp_prototype_tag_sym");
+    proto_type = proto_sym->variant.class_struct_union.type;
+    proto_ctsp = proto_type->variant.class_struct_union.extra_info;
+    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+      /* Only process direct base classes. */
+      if (bcp->direct) {
+        /* Find the corresponding prototype base class.  Note that in
+           error cases a given sequence number could be missing from
+           either list.  Also, when dealing with virtual bases, the
+           order in which the base classes appear can differ from the
+           prototype instantiation to the real instantiation (e.g.,
+           a template-dependent base class (whose base classes are
+           unknown) could have a virtual base that is the same as a
+           direct virtual base of the current class).  Consequently,
+           we search from the beginning of the list for each base
+           class. */
+        proto_bcp = proto_ctsp->base_classes;
+        while (proto_bcp != NULL &&
+               (!proto_bcp->direct ||
+                proto_bcp->direct_base_number != bcp->direct_base_number)) {
+          proto_bcp = proto_bcp->next;
+        }  /* while */
+        if (proto_bcp != NULL &&
+            proto_bcp->direct_base_number == bcp->direct_base_number) {
+          /* Skip a base class if we did not find a correspondence.  In an
+             error case, this could result in names from a base class being
+             visible when they really shouldn't be. */
+          bcp->ignore_during_dependent_lookup =
+                                     proto_bcp->ignore_during_dependent_lookup;
+        } else {
+          /* If we did not find a matching base class there must have been
+             an earlier error. */
+          check_assertion(total_errors != 0);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* mark_dependent_base_classes */
+
+
 static void scan_base_specifier_list(a_type_ptr             type_ptr,
                                      a_class_def_state_ptr  class_state)
 /*
@@ -4040,6 +4119,7 @@ or struct definition.  The syntax is
   a_source_position             base_specifier_start_pos;
   a_derivation_step_ptr         path;
   a_boolean                     first_base_class = TRUE;
+  a_base_class_sequence_number	direct_base_number = 0;
 
   db_enter(3, "scan_base_specifier_list");
 #if DEBUG
@@ -4074,6 +4154,7 @@ or struct definition.  The syntax is
     is_virtual = FALSE;
     access_already_specified = FALSE;
     base_specifier_start_pos = pos_curr_token;
+    direct_base_number++;
     /* Scan a single base specification, first looping through the specifying
        keywords virtual, public, private, and protected. */
     for (;;) {
@@ -4248,6 +4329,7 @@ or struct definition.  The syntax is
                                                (a_derivation_step_ptr)NULL,
                                                access);
             bcp->direct = TRUE;
+            bcp->direct_base_number = direct_base_number;
             bcp->decl_position = base_class_decl_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
             bcp->base_specifier_range.start = base_specifier_start_pos;
@@ -4323,6 +4405,7 @@ or struct definition.  The syntax is
       new_direct_bcp->decl_position = base_class_decl_pos;
       new_direct_bcp->direct = TRUE;
       new_direct_bcp->ambiguous = ambiguous;
+      new_direct_bcp->direct_base_number = direct_base_number;
       if (is_virtual) new_direct_bcp->is_virtual = TRUE;
       path = update_base_class_derivation(new_direct_bcp,
                                           (a_derivation_step_ptr)NULL, access);
@@ -4567,6 +4650,12 @@ skip_base_class:
   }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Determine which, if any, of the base classes was specified with a
+     template-dependent name and so should not be visible for certain
+     lookups. */
+  if (class_state->is_template_instantiation) {
+    mark_dependent_base_classes(type_ptr, class_state);
+  }  /* if */
 #if DEBUG
   if (debug_level >= 3 || db_flag_is_set("base_specifiers")) {
     db_base_class_list(type_ptr);

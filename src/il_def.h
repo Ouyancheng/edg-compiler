@@ -1260,6 +1260,13 @@ typedef struct a_using_decl {
 			   otherwise, use the namespace_ptr variant, which
 			   will be NULL when the global qualifier ("::") was
 			   specified. */
+  unsigned long	decl_sequence_number;
+			/* For using-directives, the declaration sequence
+			   number of the location of the using-directive.  This
+			   is for front-end use for lookups with template
+			   instantiations.  Using-directives that appear
+			   after the definition of the template are
+			   ignored. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		source_sequence_entry;
@@ -2992,6 +2999,10 @@ typedef struct a_construction_vtbl *a_construction_vtbl_ptr;
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
 
+typedef unsigned short a_base_class_sequence_number;
+			/* The type used for the direct base class sequence
+			   number of a base class entry. */
+
 typedef struct a_base_class {
   /* An entry describing a base class from which a class is directly or
      indirectly derived. */
@@ -3039,6 +3050,12 @@ typedef struct a_base_class {
 			   derived from it; virtual_function_info_base_class,
 			   a pointer in a_class_type_supplement, denotes the
 			   sharing from the opposite point of view. */
+  a_bit_field	ignore_during_dependent_lookup:1;
+			/* TRUE if this base class should not be considered
+			   when looking up dependent names.  This is the case
+			   for base classes of instances of a class template
+			   where the base class name was specified as a
+			   template-dependent name. */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
   a_bit_field	complete_subobject:1;
 			/* TRUE if direct is TRUE and the subobject is
@@ -3062,6 +3079,13 @@ typedef struct a_base_class {
 			   that has been optimized (i.e., allocated at the
 			   same offset as another subobject). */
   bitfield_to_avoid_codecenter_warnings()
+  a_base_class_sequence_number
+		direct_base_number;
+			/* The sequence number of this base class entry.
+			   This is used to match the base class entries of
+			   an instantiation with the base class entries of
+			   the prototype instantiation.  The first base class
+			   is number 1. */
   a_targ_size_t	offset;
 			/* The byte offset from the start of the current
 			   derived class to the data section of this base

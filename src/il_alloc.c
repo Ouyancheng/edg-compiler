@@ -754,7 +754,9 @@ to it.
   bcp->direct                          = FALSE;
   bcp->ambiguous                       = FALSE;
   bcp->shares_virtual_function_info    = FALSE;
+  bcp->ignore_during_dependent_lookup  = FALSE;
   bcp->is_optimized_empty_base         = FALSE;
+  bcp->direct_base_number	       = 0;
   bcp->offset                          = 0;
   bcp->pointer_offset                  = 0;
   bcp->pointer_base_class              = NULL;
@@ -2373,6 +2375,7 @@ Allocate a using-decl entry, initialize its fields, and return a pointer to it.
   udp->access                = (an_access_specifier)as_public;
   udp->qualifier.namespace_ptr
                              = NULL;
+  udp->decl_sequence_number  = 0;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   udp->source_sequence_entry = NULL;
   udp->next_in_overload_set  = NULL;

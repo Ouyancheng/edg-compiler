@@ -1042,6 +1042,12 @@ typedef struct a_template_decl_info {
 			/* The default name linkage at the point of the
 			   declaration.  This is "reactivated" as the default
 			   when a template is instantiated. */
+  a_decl_sequence_number
+		decl_seq;
+			/* The declaration sequence number at the point of
+			   the template declaration.  Used during lookup
+			   to exclude names not visible at the point of
+			   template definition. */
 } a_template_decl_info;
 
 
@@ -2485,6 +2491,7 @@ a_boolean find_projected_symbol(
 			a_type_ptr               class_ptr,
                         a_symbol_locator         *locator,
                         an_id_lookup_options_set options,
+			a_boolean		 qualified_lookup,
                         a_boolean                tentative_type_lookup,
                         a_boolean                tentative_template_lookup,
 			a_boolean		 do_not_create_proj_sym,
@@ -3028,6 +3035,7 @@ extern a_symbol_ptr find_progenitor_symbol(
                       a_type_ptr               class_ptr,
                       a_symbol_locator         *locator,
                       an_id_lookup_options_set options,
+		      a_boolean		       qualified_lookup,
                       a_derivation_step_ptr    *path,
                       an_access_specifier      *access,
                       a_boolean                *ambiguous,

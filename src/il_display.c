@@ -3647,6 +3647,8 @@ Display the indicated base class entry.
   disp_boolean("ambiguous", (a_boolean)ptr->ambiguous);
   disp_boolean("shares_virtual_function_info",
                (a_boolean)ptr->shares_virtual_function_info);
+  disp_boolean("ignore_during_dependent_lookup",
+               (a_boolean)ptr->ignore_during_dependent_lookup);
   disp_host_large_unsigned("offset", (a_host_large_unsigned)ptr->offset);
   if (ptr->is_virtual) {
 #if CFRONT_OBJECT_CODE_COMPATIBILITY

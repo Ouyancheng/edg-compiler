@@ -1925,6 +1925,7 @@ fields, and return a pointer to it.
   tdip->enclosing_scope = NULL;
   tdip->enclosing_template_decl = NULL;
   tdip->name_linkage = (a_name_linkage_kind)nlk_none;
+  tdip->decl_seq = 0;
 #if DEBUG
   num_template_decl_info_allocated++;
 #endif /* DEBUG */
@@ -7666,14 +7667,17 @@ Return a linked list of progenitor entries to the available list.
 
 
 /* Forward declaration. */
-static a_progenitor_ptr find_progenitor(a_type_ptr                class_ptr,
-                                        a_symbol_locator          *locator,
-                                        an_id_lookup_options_set  options);
+static a_progenitor_ptr find_progenitor(
+				a_type_ptr                class_ptr,
+                                a_symbol_locator          *locator,
+                                an_id_lookup_options_set  options,
+				a_boolean		  qualified_lookup);
 
 static a_progenitor_ptr find_progenitor_in_base_class(
-                                        a_base_class_ptr          base_class,
-                                        a_symbol_locator          *locator,
-                                        an_id_lookup_options_set  options)
+                                a_base_class_ptr          base_class,
+                                a_symbol_locator          *locator,
+                                an_id_lookup_options_set  options,
+				a_boolean		  qualified_lookup)
 /*
 Given a pointer to a base class and a locator, determine whether the name
 specified in the locator is declared either in the base class itself or in
@@ -7782,7 +7786,8 @@ linked list of progenitor entries); otherwise, return NULL.
     /* Not found in the current base class, so examine its own base classes,
        if any.  Note that a linked list of progenitor entries may be returned
        -- this usually represents an ambiguity. */
-    progenitor = find_progenitor(base_class->type, locator, options);
+    progenitor = find_progenitor(base_class->type, locator, options,
+				 qualified_lookup);
   }  /* if */
   /* Update the path and access fields of each entry in the set of
      progenitors.  (There will usually be only one.) */
@@ -8055,9 +8060,11 @@ qualified reference either to A::i or to C::i will pick up A::i).
 }  /* check_for_dominance */       
 
 
-static a_progenitor_ptr find_progenitor(a_type_ptr               class_ptr,
-                                        a_symbol_locator         *locator,
-                                        an_id_lookup_options_set options)
+static a_progenitor_ptr find_progenitor(
+				a_type_ptr               class_ptr,
+                                a_symbol_locator         *locator,
+                                an_id_lookup_options_set options,
+				a_boolean		 qualified_lookup)
 /*
 Given a pointer to a class (or struct or union) type and a locator, find
 in the classes from which the current class is derived symbols that would
@@ -8075,13 +8082,18 @@ if no such base-class symbol is found).
   bcp = class_ptr->variant.class_struct_union.extra_info->base_classes;
   /* Loop through the base classes. */
   for (; bcp != NULL; bcp = bcp->next) {
+    /* When doing dependent name lookup certain base classes should be
+       ignored for unqualified lookups. */
+    if (do_dependent_name_processing &&
+        bcp->ignore_during_dependent_lookup) continue;
     /* For the most part, we are only interested in the direct base classes
        (either virtual or nonvirtual).  However, it may happen that a virtual
        base class is marked as "direct" yet the path of greatest access is
        that of an indirect derivation; such cases are treated as indirect
        base classes. */
     if (preferred_derivation_is_direct(bcp)) {
-      new_set = find_progenitor_in_base_class(bcp, locator, options);
+      new_set = find_progenitor_in_base_class(bcp, locator, options,
+					      qualified_lookup);
       if (new_set != NULL) {
         if (progenitor_set == NULL) {
           progenitor_set = new_set;
@@ -8185,6 +8197,7 @@ a_symbol_ptr find_progenitor_symbol(
                       a_type_ptr               class_ptr,
                       a_symbol_locator         *locator,
                       an_id_lookup_options_set options,
+		      a_boolean		       qualified_lookup,
                       a_derivation_step_ptr    *path,
                       an_access_specifier      *access,
                       a_boolean                *ambiguous,
@@ -8201,7 +8214,8 @@ through back to the caller.  *any_using_decl is set if any progenitor candidate
 represents a using declaration or is or the projection of symbol that does.
 *unambiguous_injected_template is set when class_name_injection_enabled is
 TRUE, when *ambiguous is also set, and when all members of the progenitor
-set are instances of the same template.
+set are instances of the same template.  qualified_lookup is TRUE if
+this operation is part of a class-qualified lookup.
 */
 {
   a_symbol_ptr      progenitor_sym;
@@ -8209,7 +8223,8 @@ set are instances of the same template.
 
   db_enter(4, "find_progenitor_symbol");
   /* Get what may be a linked list of progenitor entries. */
-  progenitor_set = find_progenitor(class_ptr, locator, options);
+  progenitor_set = find_progenitor(class_ptr, locator, options,
+                                   qualified_lookup);
   if (progenitor_set == NULL) {
     /* Empty list.  Return NULL. */
     progenitor_sym = NULL;
@@ -8390,6 +8405,7 @@ a_boolean find_projected_symbol(
 			a_type_ptr               class_ptr,
                         a_symbol_locator         *locator,
                         an_id_lookup_options_set options,
+			a_boolean		 qualified_lookup,
                         a_boolean                tentative_type_lookup,
                         a_boolean                tentative_template_lookup,
 			a_boolean		 do_not_create_proj_sym,
@@ -8410,11 +8426,13 @@ if it is TRUE, it is inserted in the locator's active list (which is
 order dependent) immediately following insert_sym (or, if insert_sym
 is NULL, at the beginning of the list), and in addition it is added to
 the end of the scope entry symbol list for the class.  The symbol
-found must meet the criteria indicated by "options".  If
-tentative_type_lookup is TRUE, a projection symbol is only created if
-the symbol returned by find_progenitor_symbol is a type.  Likewise, if
-tentative_template_lookup is TRUE, a projection symbol is only created
-if the symbol returned by find_progenitor_symbol is a template.  If
+found must meet the criteria indicated by "options".
+
+qualified_lookup is TRUE if the lookup operation is a class-qualified
+lookup.  If tentative_type_lookup is TRUE, a projection symbol is only
+created if the symbol returned by find_progenitor_symbol is a type.
+Likewise, if tentative_template_lookup is TRUE, a projection symbol is only
+created if the symbol returned by find_progenitor_symbol is a template.  If
 do_not_create_proj_sym is TRUE the creation of a projection symbol is
 unconditionally suppressed.  Note that "options" and
 tentative_type_lookup are handled differently: a symbol that fails the
@@ -8464,6 +8482,7 @@ created if a projected symbol cannot be found in any of the real bases.
     progenitor_sym = NULL;
   } else {
     progenitor_sym = find_progenitor_symbol(class_ptr, locator, options,
+                                            qualified_lookup,
                                             &path, &access, &ambiguous,
                                             &any_using_decl,
                                             &unambiguous_injected_template);

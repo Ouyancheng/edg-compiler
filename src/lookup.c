@@ -395,7 +395,9 @@ member function is defined.
     a_boolean  unambiguous_injected_template = FALSE;
 
     new_sym = find_progenitor_symbol(class_type, locator,
-                                     /*must_be_tag=*/FALSE, &path, &access,
+                                     IDL_NO_OPTIONS,
+                                     /*qualified_lookup=*/FALSE, &path,
+                                     &access,
                                      &ambiguous, &any_using_decl,
                                      &unambiguous_injected_template);
   }  /* if */
@@ -1317,9 +1319,6 @@ typedef struct a_lookup_state {
   a_boolean	skip_class_scopes;
 			/* TRUE if the IDL_SKIP_CLASS_SCOPES
 			   was specified for this lookup. */
-  a_boolean	suppress_instantiation_context_lookup;
-			/* TRUE if instantiation_context_lookup should not be
-			   used for this lookup. */
   a_boolean	skip_first_class_reactivation;
 			/* TRUE in cfront mode if we have found a scope
 			   for a friend function definition and that
@@ -1365,6 +1364,12 @@ typedef struct a_lookup_state {
 			/* Indicates whether we are looking in the tag
 			   name_space or the "other" namespace.  The tag
 			   name_space is used only in C. */  
+  a_decl_sequence_number
+		decl_seq;
+			/* The declaration sequence number of the effective
+			   lookup position.  Symbols declared after this
+			   position are ignored.  Zero if the declaration
+			   sequence number should not be checked. */
 } a_lookup_state;
 
 
@@ -1396,8 +1401,6 @@ value.
   cleared_lookup_state.terminate_lookup              = FALSE;
   cleared_lookup_state.skip_curr_scope               = FALSE;
   cleared_lookup_state.skip_class_scopes             = FALSE;
-  cleared_lookup_state.suppress_instantiation_context_lookup
-						     = FALSE;
   cleared_lookup_state.skip_first_class_reactivation = FALSE;
   cleared_lookup_state.check_for_nonreal_bases       = FALSE;
   cleared_lookup_state.any_nonreal_bases             = FALSE;
@@ -1411,6 +1414,7 @@ value.
   cleared_lookup_state.insert_sym                    = NULL;
   cleared_lookup_state.options                       = IDL_NO_OPTIONS;
   cleared_lookup_state.required_name_space_kind      = nsk_other;
+  cleared_lookup_state.decl_seq                      = 0;
 }  /* init_cleared_lookup_state */
 
 /*
@@ -1433,7 +1437,10 @@ Macro that initializes a lookup state variable.
     is_tag_or_tag_proxy_symbol(fund_sym)) &&				\
    (!(lookup_state).must_be_class ||					\
     is_class_or_class_proxy_symbol(fund_sym)) && 			\
-   (!(lookup_state).must_be_namespace || is_namespace_symbol(fund_sym)))
+   (!(lookup_state).must_be_namespace ||				\
+    is_namespace_symbol(fund_sym)) &&					\
+   ((lookup_state).decl_seq == 0 ||					\
+    (lookup_state).decl_seq >= (fund_sym)->decl_seq))
 
 
 a_boolean sym_matches_lookup_options(a_symbol_ptr		sym,
@@ -1767,6 +1774,7 @@ that do normal id lookup processing.
 
   if (find_projected_symbol(ssep->assoc_type, locator,
                             lookup_state->options,
+                            /*qualified_lookup=*/FALSE,
                             lookup_state->tentative_type_lookup,
                             lookup_state->tentative_template_lookup,
                             lookup_state->hidden_name_lookup ||
@@ -2078,15 +2086,8 @@ that do normal id lookup processing.
          yet found the symbol we are looking for.  Do the special
          template lookup that considers symbols from both the
          defining and referencing context. */
-      if (ssep->instantiation_context_depth !=
-                                          ssep->previous_scope &&
-          !lookup_state->suppress_instantiation_context_lookup) {
-        /* Only do the special lookup if the context scope is different
-           from the current scope.  If they are the same, just keep
-           going back through the scopes. */
-        sym = instantiation_context_lookup(ssep, locator, lookup_state);
-        break;
-      }  /* if */
+      sym = instantiation_context_lookup(ssep, locator, lookup_state);
+      break;
     }  /* if */
   }  /* for */
   return sym;
@@ -2185,6 +2186,8 @@ that do normal id lookup processing.
   a_symbol_ptr		ref_sym = NULL;
   a_symbol_ptr		sym = NULL;
   a_boolean		do_not_look_in_common_scopes = FALSE;
+  a_decl_sequence_number
+			decl_seq_number = ssep->template_decl_info->decl_seq;
 
 #if DEBUG
   if (debug_level >= 5 || db_flag_is_set("instantiation_lookup")) {
@@ -2194,14 +2197,29 @@ that do normal id lookup processing.
     fprintf(f_debug, "common=%d\n", common_depth);
   }  /* if */
 #endif /* DEBUG */
+  if (do_dependent_name_processing) {
+    /* Only consider names visible at the point at which the template was
+       defined. */
+    lookup_state->decl_seq = decl_seq_number;
+  }  /* if */
   def_sym = scope_stack_lookup(locator, lookup_state, def_start, common_depth);
   if (def_sym != NULL && def_sym->is_class_member) {
     /* Do not look for a name in the referencing context if the definition
        context search found a class member. */
     do_not_look_in_common_scopes = TRUE;
   } else {
-    ref_sym = scope_stack_lookup(locator, lookup_state, ref_start,
-                                 common_depth);
+    if (!do_dependent_name_processing) {
+      /* Only do the referencing context lookup when not doing the
+         standard-conforming dependent name processing.  When doing
+         dependent name processing only names visible to argument-dependent
+         lookup are visible from the instantiation context. */
+      if (ref_start > common_depth) {
+        /* Only look in the referencing namespace when it is different from
+           the common depth. */
+        ref_sym = scope_stack_lookup(locator, lookup_state, ref_start,
+                                     common_depth);
+      }  /* if */
+    }  /* if */
   }  /* if */
   /* If either of these lookups failed to find a symbol, continue the
      lookup starting from the common scope.  When doing a friend lookup,
@@ -2320,15 +2338,14 @@ C and C++.
                                 (options & IDL_SKIP_TEMPLATE_DECL_SCOPES) != 0;
     lookup_state.skip_curr_scope = (options & IDL_SKIP_CURR_SCOPE) != 0;
     lookup_state.skip_class_scopes = (options & IDL_SKIP_CLASS_SCOPES) != 0;
-    /* IDL_SKIP_CURR_SCOPE is used for ctor-initializer names and during
-       hidden name lookup.  When it is used for the former, don't do the
-       usual instantiation context lookup (because names from the referencing
-       context should not be included). */
-    lookup_state.suppress_instantiation_context_lookup =
-              lookup_state.skip_curr_scope && !lookup_state.hidden_name_lookup;
     /* If any instantiation scopes are active we will need to check for
-       the presence of nonreal base classes. */
+       the presence of nonreal base classes.  This is done to "pretend"
+       that certain names were found in a nonreal base class.  Don't
+       do this special processing when doing standard dependent name
+       lookup. */
     lookup_state.check_for_nonreal_bases =
+                         !do_dependent_name_processing &&
+                         implicit_typename_enabled &&
                          depth_innermost_instantiation_scope != NO_SCOPE_DEPTH;
     if (C_mode() && lookup_state.must_be_tag) {
       lookup_state.required_name_space_kind = nsk_tag;
@@ -2403,8 +2420,7 @@ C and C++.
             }  /* if */
           }  /* if */
         }  /* if */
-        if (sym == NULL && lookup_state.any_nonreal_bases &&
-            implicit_typename_enabled) {
+        if (sym == NULL && lookup_state.any_nonreal_bases) {
           /* If no symbol was found and one of the classes searched has
              a nonreal base class then consider the symbol to be a member
              of the class with the nonreal base class.  This will occur when
@@ -2417,7 +2433,8 @@ C and C++.
              used to lookup a name in a class with nonreal base classes,
              it will add a projection symbol to one of the nonreal bases
              if the name is not found.  In other words, this call is used
-             to create the nonreal member. */
+             to create the nonreal member.  any_nonreal_bases will only
+             be set if check_for_nonreal_bases was set earlier. */
           sym = class_qualified_id_lookup(
                                  locator, lookup_state.class_with_nonreal_base,
                                  options | IDL_DO_NOT_CREATE_PROJ_SYM);
@@ -2876,6 +2893,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                                                    &insert_sym);
         (void)find_projected_symbol(
                                  class_type, locator, options,
+                                 /*qualified_lookup=*/TRUE,
                                  /*tentative_type_lookup=*/FALSE,
                                  /*tentative_template_lookup=*/FALSE,
                                  (options & IDL_HIDDEN_NAME_LOOKUP) != 0 ||

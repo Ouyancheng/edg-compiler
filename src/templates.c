@@ -11390,6 +11390,9 @@ also for template template parameters (when is_template_param is TRUE).
         /* Record the default name linkage at the point of declaration. */
         template_decl_info->name_linkage =
                          scope_stack[depth_scope_stack].default_name_linkage;
+        /* Record the current declaration sequence number.  This is used
+           to restrict name visibility during template instantiation. */
+        template_decl_info->decl_seq = decl_seq_counter;
         push_template_declaration_scope(template_decl_info);
         check_assertion(!decl_state->is_full_specialization);
         decl_state->number_of_template_decl_scopes++;

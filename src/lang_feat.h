@@ -370,7 +370,7 @@ arguments are done.  The variable can also be controlled from the command
 line by --[no_]dep_name.
 */
 #ifndef DEFAULT_DEPENDENT_NAME_PROCESSING
-#define DEFAULT_DEPENDENT_NAME_PROCESSING TRUE
+#define DEFAULT_DEPENDENT_NAME_PROCESSING FALSE
 #endif /* DEFAULT_DEPENDENT_NAME_PROCESSING */
 
 
