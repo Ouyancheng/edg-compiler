@@ -2,21 +2,41 @@ Version 3.3
 
 7/18/03  Microsoft mode: explicit overriding
 
-A name mangling change has also been made, because with examples
-like the following it is possible to end up with two member functions
-with the same name and signature in a class, each overriding a
-different base class member.
+In Microsoft mode, the front end now accepts declarations of virtual
+member functions with a class qualifier to indicate that only the 
+virtual member in the indicated class is overridden by the qualified
+declaration.  The overridden function must be pure virtual.
+For example:
+
+  struct B1 { virtual void b() = 0; };
+  struct B2 { virtual void b() = 0; };
+  struct X: B1, B2 {
+    virtual void B1::b();  // Only overrides B1::b()
+  };
+  void X::b() {}           // Definition does not include base class name.
+
+Note that since the overriding is incomplete in the above example, the
+member B2::b is hidden by X::b (a warning to that effect will be issued).
+Multiple selective overriders can be defined in a class:
 
   struct A {
-    virtual void f() { }
+    virtual void f() = 0 { }
   };
   struct B {
-    virtual void f() { }
+    virtual void f() = 0 { }
   };
   struct D: A, B {
     virtual void A::f() { }
     virtual void B::f() { }
   };
+
+In the latter example, the name D::f is ambiguous and the corresponding
+members can therefore not be defined outside of D.
+
+A name mangling change has also been made, because with examples such as
+the second one above it is possible to end up with two member functions
+with the same name and signature in a class, each overriding a different
+base class member.
 
 The overridden function information must be added to the mangled name
 to make the names unique.  In the Cfront-like ABI, the sequence
@@ -29,7 +49,7 @@ In the IA-64 ABI, the sequence
 
   O <nested-name>
 
-where the <nested-name> encodes the overriden function, is added to
+where the <nested-name> encodes the overridden function, is added to
 an <encoding>:
 
   <encoding> = <function name> O <nested-name> <bare-function-type>
