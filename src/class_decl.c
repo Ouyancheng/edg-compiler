@@ -4424,6 +4424,31 @@ for the cfront compatibility case.
 }  /* is_assignment_operator_for_copy */
 
 
+static a_boolean is_copy_assignment_operator_sym(a_symbol_ptr  sym)
+/*
+Return TRUE if sym represents a copy assignment operator.
+*/
+{
+  a_boolean             is_copy_assignment_op = FALSE;
+  a_routine_ptr         rp;
+  a_boolean             is_ref_arg;
+  a_type_qualifier_set  qualifiers_accepted;
+  a_boolean             is_base_class_match;
+
+  if (sym->kind == (a_symbol_kind)sk_member_function) {
+    rp = sym->variant.routine.ptr;
+    if (rp->special_kind == (a_special_function_kind)sfk_operator &&
+        rp->opname_kind == (an_opname_kind)onk_assign &&
+        is_assignment_operator_for_copy(sym, &is_ref_arg,
+                                        &qualifiers_accepted,
+                                        &is_base_class_match)) {
+      is_copy_assignment_op = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_copy_assignment_op;
+}  /* is_copy_assignment_operator_sym */
+
+
 static a_boolean assignment_operator_for_copy_exists(a_symbol_ptr  sym,
                                                      a_boolean     *const_okay)
 /*
@@ -6045,8 +6070,7 @@ or implicit) controlling the declaration.
     } else if (declared_sym != NULL &&
                (is_constructor_symbol(declared_sym) ||
                 is_destructor_symbol(declared_sym) ||
-                (declared_sym->kind == (a_symbol_kind)sk_member_function &&
-                 declared_sym->variant.routine.ptr->compiler_generated))) {
+                is_copy_assignment_operator_sym(declared_sym))) {
       /* The WP does not explicitly disallow a using-declaration that specifies
          a constructor or destructor, but since they cannot be inherited it
          is not clear what meaning such a declaration could have.  The same
@@ -6182,6 +6206,10 @@ or implicit) controlling the declaration.
       } else if (sym->kind == (a_symbol_kind)sk_member_function &&
                  sym->variant.routine.ptr->compiler_generated) {
         /* Ignore compiler-generated member functions silently. */
+      } else if (is_copy_assignment_operator_sym(sym)) {
+        /* Using declaration cannot apply to a copy-assignment operator,
+           since they are not inheritable. */
+        pos_sy_warning(ec_using_declaration_ignored, &decl_pos, sym);
       } else if (other_sym != NULL &&
                  conflicts_with_previous_function_decl(fund_sym, other_sym,
                                                        &decl_pos)) {
