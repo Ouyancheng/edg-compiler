@@ -6911,7 +6911,7 @@ creating a new overload set.
       curr_sym = enter_namespace_projection_symbol(new_sym, locator,
                                                   /*synthesized=*/TRUE,
                                                   depth_scope_stack,
-                                                  /*suppress_error=*/FALSE);
+                                                  /*suppress_error=*/TRUE);
     } else {
       /* If new_sym is not already in the lookup set, add it. */
       if (!already_in_lookup_set(curr_sym, new_sym)) {
@@ -6933,7 +6933,7 @@ creating a new overload set.
       curr_sym = enter_namespace_projection_symbol(rout_sym, locator,
                                                    /*synthesized=*/TRUE,
                                                    depth_scope_stack,
-                                                   /*suppress_error=*/FALSE);
+                                                   /*suppress_error=*/TRUE);
       rout_sym = rout_sym->next;
     }  /* if */
     for (; rout_sym != NULL; rout_sym = rout_sym->next) {
@@ -6982,7 +6982,7 @@ nonfunctions, or more than one nonfunction, set the any_errors flag.
       curr_sym = enter_namespace_projection_symbol(new_sym, locator,
                                                    /*synthesized=*/TRUE,
                                                    depth_scope_stack,
-                                                   /*suppress_error=*/FALSE);
+                                                   /*suppress_error=*/TRUE);
     }  /* if */
   } else if (curr_sym->kind == (a_symbol_kind)sk_namespace_projection &&
              namespace_projection_fundamental_symbol(curr_sym) == NULL) {
