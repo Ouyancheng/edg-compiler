@@ -285,28 +285,91 @@ so call set_type_size on the type.
 }  /* finish_array_var */
 
 
+/*
+Pointer to the base_class_spec struct type (used to represent a base class
+for exception throw and catch specifications).  NULL until created.
+*/
+static a_type_ptr
+		base_class_spec_type;
+
+/*
+Bit set values for the flags byte of base_class_spec.  These must
+match the runtime's definition.
+*/
+#define BCS_INDIRECT		0x01
+			/* TRUE if the offset gives the position of a
+			   pointer to the (virtual) base class rather than
+			   the offset to the base class itself. */
+#define BCS_LAST		0x02
+			/* TRUE if this is the last base class specification
+			   in the array. */
+
+
+static a_type_ptr make_base_class_spec_type(void)
+/*
+Make the base_class_spec struct type (used to represent a base class
+for exception throw and catch specifications) if it is not made already,
+and return a pointer to it.  Its definition is
+
+  struct base_class_spec {
+    typeinfo      *tinfo;  // typeinfo for base class
+    short         offset;  // Offset of base class in derived class
+    unsigned char flags;   // Flags
+  };
+
+*/
+{
+  a_targ_size_t byte_offset;
+  a_field_ptr   last_field;
+
+  if (base_class_spec_type == NULL) {
+    /* Make the struct type. */
+    base_class_spec_type = alloc_type((a_type_kind)tk_struct);
+    add_to_front_of_file_scope_types_list(base_class_spec_type);
+    byte_offset = 0;
+    last_field = NULL;
+    /* field: typeinfo *tinfo */
+    make_lowered_field("tinfo", make_pointer_type(make_typeinfo_type()),
+                       &byte_offset, base_class_spec_type, &last_field);
+    /* field: short offset */
+    make_lowered_field("offset", integer_type(TARG_DELTA_INT_KIND),
+                       &byte_offset, base_class_spec_type, &last_field);
+    /* field: unsigned char flags */
+    make_lowered_field("flags",
+                       integer_type((an_integer_kind)ik_unsigned_char),
+                       &byte_offset, base_class_spec_type, &last_field);
+    finish_class_type(base_class_spec_type, &byte_offset);
+  }  /* if */
+  return base_class_spec_type;
+}  /* make_base_class_spec_type */
+
+
 static a_variable_ptr make_base_class_array_var(a_type_ptr type)
 /*
 type is a class type that has base classes.  Make a variable initialized
-with an array of typeinfo pointers for the base classes of the type.
+with an array of base_class_spec entries for the base classes of the type.
 This is used as part of the typeinfo information.
 */
 {
   a_type_ptr       array_type;
   a_base_class_ptr bcp;
-  a_constant_ptr   aggr_con, con;
+  a_constant_ptr   aggr_con;
   a_variable_ptr   typeinfo_var, bc_var;
+  a_boolean        ovflo;
+  a_constant_ptr   typeinfo_con, offset_con, flags_con;
+  unsigned long    flags_value;
+  a_targ_size_t    offset;
 
   /* The current region is already the file scope memory region when
      this routine is called. */
-  /* Make an initialized static variable that is an array of typeinfo
+  /* Make an initialized static variable that is an array of base_class_spec
      structures. */
   /* make_init_unnamed_local_static_array_var cannot be used because we
      want the variable always to be in the file scope. */
-  /* Make a type that is an array of typeinfo pointers. */
+  /* Make the array type. */
   array_type = alloc_type((a_type_kind)tk_array);
   array_type->variant.array.variant.number_of_elements = 0; /* Initially. */
-  array_type->variant.array.element_type = make_pointer_type(typeinfo_type);
+  array_type->variant.array.element_type = make_base_class_spec_type();
   /* set_type_size is not called yet. */
   /* Make the variable.  It is unnamed and static and in the file scope. */
   bc_var = make_file_scope_temporary(array_type);
@@ -316,28 +379,63 @@ This is used as part of the typeinfo information.
   /* Attach the aggregate constant as the initial value of the variable. */
   bc_var->init_kind = (an_init_kind)initk_static;
   bc_var->initializer.constant = aggr_con;
+#if CHECKING
+  flags_con = NULL;
+#endif /* CHECKING */
   /* The initial value is an aggregate constant pointing to a list of
-     constants that are pointers to typeinfo variables. */
+     aggregate constants for base_class_spec structures. */
   for (bcp = type->variant.class_struct_union.extra_info->base_classes;
        bcp != NULL;
        bcp = bcp->next) {
     /* Include information only on direct base classes. */
     if (bcp->direct) {
+      /* The base class specification consists of three fields:
+           1)  A pointer to the typeinfo variable for the base class.
+           2)  The offset of the base class in the derived class.
+           3)  A flags byte.
+      */
+      flags_value = 0;
       /* Make an address constant for a pointer to the base class typeinfo
          variable. */
-      con = alloc_constant((a_constant_repr_kind)ck_address);
+      typeinfo_con = alloc_constant((a_constant_repr_kind)ck_address);
       typeinfo_var = bcp->type->typeinfo_var;
       check_assertion_str(typeinfo_var != NULL,
                           "make_base_class_array_var: NULL typeinfo var");
-      set_variable_address_constant(typeinfo_var, con);
+      set_variable_address_constant(typeinfo_var, typeinfo_con);
+      /* Make the offset constant. */
+      if (bcp->is_virtual) {
+        /* Virtual base class.  The offset is to the pointer, and a flag in the
+           flags byte indicates indirection. */
+        offset = bcp->pointer_offset;
+        flags_value |= BCS_INDIRECT;
+      } else {
+        /* Non-virtual base class.  The offset is to the data. */
+        offset = bcp->offset;
+      }  /* if */
+      offset_con = alloc_constant((a_constant_repr_kind)ck_integer);
+      set_unsigned_integer_constant_with_overflow_check(offset_con,
+                                                        (unsigned long)offset,
+                                                        TARG_DELTA_INT_KIND);
+      /* Make the flags constant. */
+      flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
+      set_unsigned_integer_constant(flags_con, flags_value,
+                                    (an_integer_kind)ik_unsigned_char);
+      /* Link the constants together and make an aggregate constant. */
+      typeinfo_con->next = offset_con;
+      offset_con->next = flags_con;
+      aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+      aggr_con->variant.aggregate.first_constant = typeinfo_con;
+      aggr_con->variant.aggregate.last_constant = flags_con;
       /* Add the constant to the aggregate initializer list. */
-      (void)add_elem_to_array_var(bc_var, con);
+      (void)add_elem_to_array_var(bc_var, aggr_con);
     }  /* if */
   }  /* for */
-  /* Add a zero entry to indicate the end of the list. */
-  con = alloc_constant((a_constant_repr_kind)ck_address);
-  make_zero_of_proper_type(make_pointer_type(typeinfo_type), con);
-  (void)add_elem_to_array_var(bc_var, con);
+  /* Put the BCS_LAST bit on in the last entry. */
+  check_assertion_str(flags_con != NULL,
+                      "make_base_class_array_var: no base classes");
+  flags_value = value_of_integer_constant(flags_con, &ovflo);
+  flags_value |= BCS_LAST;
+  set_integer_value(&flags_con->variant.integer_value, flags_value);
   /* Finish off the variable. */
   finish_array_var(bc_var);
   return bc_var;
@@ -1242,7 +1340,7 @@ pointer can be examined.
                    region_to_switch_back_to;
   a_constant_ptr   dtor_con, handle_con, prev_con, flags_con, aggr_con;
   a_type_ptr       ptr_func_type;
-  unsigned long    flags = 0, prev_region_number;
+  unsigned long    flags_value = 0, prev_region_number;
   a_routine_ptr    dtor_routine;
   a_required_destructor_call_ptr
                    next_rdcp;
@@ -1253,7 +1351,7 @@ pointer can be examined.
     /* For arrays, we need an entry in the array table. */
     handle_number = array_table_entry(rdcp, insert_location);
     /* Set the flag that indicates this object is an array. */
-    flags |= RDF_ARRAY;
+    flags_value |= RDF_ARRAY;
   } else {
     /* Non-array. */
     /* Allocate the proper entry in the object address table. */
@@ -1337,7 +1435,7 @@ pointer can be examined.
                                 TARG_REGION_NUMBER_INT_KIND);
   /* Make the flags constant. */
   flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  set_unsigned_integer_constant(flags_con, flags,
+  set_unsigned_integer_constant(flags_con, flags_value,
                                 (an_integer_kind)ik_unsigned_char);
   /* Link the constants together and make an aggregate constant. */
   dtor_con->next = handle_con;
@@ -1941,6 +2039,7 @@ invocation of the front end.
   typeinfo_type = NULL;
   num_of_pending_class_typeinfo_vars = 0;
   jmp_buf_type = NULL;
+  base_class_spec_type = NULL;
   exception_type_spec_type = NULL;
   region_descr_type = NULL;
   array_descr_type = NULL;
