@@ -2733,7 +2733,8 @@ default arguments should be suppressed (needed for template specializations).
         /* The first argument is NULL, so this is a "void" parameter list.
            Write it as void in C, as empty in C++ (unless this is not a
            top-level declarator, in which case an explicit "(void)" may be
-           needed for correct parsing). */
+           needed for correct parsing; e.g., "int f(int(void))" should not
+           become "int f(int())" because the latter declares a variable). */
         if (il_header.source_language == sl_C || !top_level_decl) {
           write_tok_str("void");
         }  /* if */
