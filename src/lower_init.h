@@ -40,12 +40,17 @@ extern void do_ptr_to_data_member_arg_promotion_on_node(an_expr_node_ptr expr);
 extern void do_default_arg_promotions_on_node(an_expr_node_ptr expr);
 #endif /* MAKE_ALL_FUNCTIONS_UNPROTOTYPED */
 
-extern a_statement_ptr make_call_statement(a_routine_ptr    routine,
-                                           an_expr_node_ptr arg_list);
-
 extern a_routine_ptr make_runtime_routine(char          *name,
                                           a_routine_ptr *routine,
                                           a_type_ptr    return_type);
+
+extern a_statement_ptr make_call_statement(a_routine_ptr    routine,
+                                           an_expr_node_ptr arg_list);
+
+extern an_expr_node_ptr make_runtime_rout_call(char             *name,
+                                               a_routine_ptr    *routine,
+                                               a_type_ptr       return_type,
+                                               an_expr_node_ptr arg_expr_list);
 
 extern a_statement_ptr insert_var_assignment_statement(
                                        a_variable_ptr         lvalue_var,
