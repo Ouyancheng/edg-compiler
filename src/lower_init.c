@@ -2304,8 +2304,13 @@ cleanup).
   a_variable_ptr temp;
 
   check_assertion(cap->kind == cak_destruction);
-  cap->variant.object.conditional_flag_var = temp =
-                 make_lowered_temporary(integer_type((an_integer_kind)ik_int));
+  /* A conditional flag in the file-scope initialization routine must
+     survive until the file-scope termination routine, so make it
+     a file-scope temporary. */
+  temp = make_temporary_possibly_at_file_scope(
+                                         integer_type((an_integer_kind)ik_int),
+                                         processing_file_scope_init_routine);
+  cap->variant.object.conditional_flag_var = temp;
   /* Make and insert an assignment statement to set the temporary to 1. */
   (void)insert_var_assignment_statement(temp,
                                         (an_expr_operator_kind)eok_iassign,

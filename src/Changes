@@ -1,5 +1,16 @@
 Version 2.21
 
+12/9/93  IL lowering: conditional flags for global scope expressions
+
+Conditional flags for temporaries constructed within conditional
+operators in global scope expressions are now correctly allocated as
+global-scope variables so they will survive into the file-scope
+termination routine.  The following formerly provoked an abort:
+
+  struct A {A(int); ~A();};
+  int x;
+  static A a = (x==0 ? A(1) : A(2));
+
 12/4/93  Dynamic initialization of pointer-to-member-function in aggregate
 
 IL lowering no longer generates an error constant in an aggregate
