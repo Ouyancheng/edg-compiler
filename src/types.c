@@ -1909,8 +1909,7 @@ and a diagnostic is issued (unless suppress_error is TRUE).
     temp2 = elem_type->size;
 #if CHECKING
     if (temp2 == 0 &&
-        !(is_array_type(elem_type) &&
-          (gnu_mode || elem_type->variant.array.bound_is_zero))) {
+        (!gnu_mode || is_incomplete_type(elem_type))) {
       internal_error("set_array_type_size: bad element type");
     }  /* if */
 #endif /* CHECKING */

@@ -8777,10 +8777,10 @@ respectively.
     a_boolean   incomplete_okay = FALSE;
 
     /* The last member may be an incomplete array in C99 mode, as an
-       extension otherwise in C mode, and in Microsoft C++ mode as long as
-       the class has no virtual base classes. */
+       extension otherwise in C mode, and in Microsoft and GNU C++ modes as 
+       long as the class has no virtual base classes. */
     if (C_mode() ||
-        (microsoft_mode &&
+        ((microsoft_mode || gpp_mode) &&
          !class_type->variant.class_struct_union.any_virtual_base_classes)) {
       /* The member must be an incomplete array, but not one whose
          underlying element type is incomplete. */
