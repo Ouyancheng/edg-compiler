@@ -2632,7 +2632,8 @@ function a friend and update the friend information.
   a_class_list_entry_ptr   clep;
 
   for (clep = tssp->befriending_classes; clep != NULL; clep = clep->next) {
-    update_friend_function_info(rout_ptr, clep->class_type);
+    update_friend_function_info(rout_ptr, clep->class_type,
+                                /*is_definition=*/FALSE);
   }  /* for */
 }  /* update_befriending_classes_for_function */
 
@@ -5103,7 +5104,8 @@ been instantiated, update the befriending information for the instances.
        tip != NULL; tip = tip->next) {
     a_symbol_ptr  instance_sym = tip->instance_sym;
     a_routine_ptr rout_ptr = instance_sym->variant.routine.ptr;
-    update_friend_function_info(rout_ptr, class_declared_in);
+    update_friend_function_info(rout_ptr, class_declared_in,
+                                /*is_definition=*/FALSE);
   }  /* for */
 }  /* add_befriending_class_to_function_template */
 
