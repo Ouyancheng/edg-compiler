@@ -1304,7 +1304,7 @@ code gets the same result that the underlying C compiler will get.
 #define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C FALSE
 #else /* !(CFRONT_OBJECT_CODE_COMPATIBILITY || ...) */
 #define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C TRUE
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY || ...) */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY || ... */
 #endif /* ifndef ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
 
 /*
