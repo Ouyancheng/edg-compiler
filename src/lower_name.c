@@ -5823,11 +5823,12 @@ initialized for each compilation.
   unnamed_class_name_seed = 0;
   unnamed_enum_name_seed = 0;
   unnamed_member_variable_name_seed = 0;
+#if !IA64_ABI
   avail_compressible_string_pos = NULL;
 #if DEBUG
   num_compressible_string_pos_allocated = 0;
 #endif /* DEBUG */
-#if IA64_ABI
+#else /* IA64_ABI */
   avail_substitutions = NULL;
 #endif /* IA64_ABI */
 }  /* name_lower_init */

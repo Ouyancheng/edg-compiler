@@ -26,6 +26,8 @@ lower_name.h -- Declarations related to lower_name.c (name mangling for
 #include "il.h"
 #endif /* ifndef IL_H */
 
+#if !IA64_ABI
+
 /*
 Entry used to record the position of a compressible string in a mangled name.
 Used in compressing the mangled name.
@@ -52,6 +54,8 @@ Count of entries allocated, for debugging purposes.
 EXTERN unsigned long
 		num_compressible_string_pos_allocated;
 #endif /* DEBUG */
+
+#endif /* !IA64_ABI */
 
 #if TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED || MODULE_ID_NEEDED
 extern char *get_mangled_function_name(a_routine_ptr routine);
