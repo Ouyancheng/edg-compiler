@@ -184,7 +184,8 @@ given entity.
 #if DEBUG
   if (tcp->kind != (an_il_entry_kind)iek_base_class &&
       (db_trace("trans_corresp", entity, tcp->kind) ||
-       db_trace("trans_corresp", tcp->canonical, tcp->kind))) {
+       (tcp->canonical != NULL &&
+        db_trace("trans_corresp", tcp->canonical, tcp->kind)))) {
     if (tcp->canonical != NULL) {
       fprintf(f_debug, "Canonical entity ");
       db_scp(tcp->canonical);
@@ -2687,6 +2688,16 @@ given type.
     }  /* if */
   }  /* if */
 }  /* establish_class_instantiation_corresp */
+
+
+void establish_function_instantiation_corresp(a_routine_ptr  routine)
+/*
+This routine is called when the definition of the given routine has been
+instantiated.  Such an event may cause rout to become the canonical entry.
+*/
+{
+  update_canonical_entry(iek_routine, (char*)routine);
+}  /* establish_function_instantiation_corresp */
 
 
 a_boolean seek_type_corresp(a_type_ptr  type_1,

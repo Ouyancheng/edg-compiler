@@ -200,6 +200,8 @@ extern void record_instantiation(a_symbol_ptr                      inst,
 
 extern void establish_class_instantiation_corresp(a_type_ptr  type);
 
+extern void establish_routine_instantiation_corresp(a_routine_ptr  routine);
+
 extern void corresp_one_time_init(void);
 
 extern void corresp_trans_unit_init(void);
