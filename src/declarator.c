@@ -1218,10 +1218,11 @@ issue an error if a default argument expression is encountered.
             scope_stack[depth_scope_stack].in_prototype_instantiation) {
           /* If a parameter id was specified in a non-top-level function
              declarator, a source sequence entry created for it is useless.
-             In certain configurations source sequence entries are put during
-             prototype instantiation of class templates -- but since the
-             function body won't be scanned at this time, the source sequence
-             entry for the param id should be eliminated in that case, too. */
+             In certain configurations source sequence entries are put out
+             during prototype instantiation of class templates -- but since
+             the function body won't be scanned at this time, the source
+             sequence entry for the param id should be eliminated in that
+             case, too. */
           if (param_ssep != NULL) {
             a_src_seq_sublist_ptr  dummy = NULL;
             remove_from_source_sequence_list(param_ssep, &dummy);
