@@ -9653,26 +9653,28 @@ moreover, several fields of *decl_info may be updated by this routine.
       /* This is a free standing declaration of a class, struct, union, or
          enum type entry.  It will already have been recorded on the types
          list for the current class.  No need to complain about a missing
-         identifier.  Just check for some errors. */
-      if (storage_class == (a_storage_class)sc_typedef) {
-        /* A case like "typedef struct S { int i; };" */
-        pos_diagnostic(strict_ansi_mode ?
-                           strict_ansi_error_severity : es_warning,
-                       ec_missing_typedef_name, &pos_curr_token);
-      } else if (storage_class != (a_storage_class)sc_unspecified) {
-        pos_diagnostic(any_cfront_mode() ? es_warning : es_error,
-                       ec_storage_class_not_allowed, err_pos);
-      }  /* if */
-      if (dso_flags & DSO_INLINE) {
-        pos_error(ec_inline_not_allowed, err_pos);
-      }  /* if */
-      if (dso_flags & DSO_EXPLICIT) {
-        pos_error(ec_explicit_not_allowed, err_pos);
-      }  /* if */
-      if (is_qualified_type(member_type)) {
-        pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity :
-                                          es_warning,
+         identifier.  Just check for some errors (except in Microsoft mode). */
+      if (!microsoft_mode) {
+        if (storage_class == (a_storage_class)sc_typedef) {
+          /* A case like "typedef struct S { int i; };" */
+          pos_diagnostic(strict_ansi_mode ?
+                             strict_ansi_error_severity : es_warning,
+                         ec_missing_typedef_name, &pos_curr_token);
+        } else if (storage_class != (a_storage_class)sc_unspecified) {
+          pos_diagnostic(any_cfront_mode() ? es_warning : es_error,
+                         ec_storage_class_not_allowed, err_pos);
+        }  /* if */
+        if (dso_flags & DSO_INLINE) {
+          pos_error(ec_inline_not_allowed, err_pos);
+        }  /* if */
+        if (dso_flags & DSO_EXPLICIT) {
+          pos_error(ec_explicit_not_allowed, err_pos);
+        }  /* if */
+        if (is_qualified_type(member_type)) {
+          pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity :
+                                            es_warning,
                        ec_useless_type_qualifiers, err_pos);
+        }  /* if */
       }  /* if */
     } else if (storage_class == (a_storage_class)sc_typedef) {
       /* A case like "typedef int;" or "typedef struct { int i; };" */
@@ -10064,8 +10066,10 @@ to be returned to the caller.
     *skip_semicolon_check = TRUE;
     goto next_declaration;
   }  /* if */
-  if ((dso_flags & DSO_EXPLICIT) && !(dso_flags & DSO_CONSTRUCTOR)) {
-    /* The keyword "explicit" is allowed only on a constructor declaration. */
+  if ((dso_flags & DSO_EXPLICIT) && !(dso_flags & DSO_CONSTRUCTOR) &&
+      !(microsoft_mode && curr_token == tok_semicolon)) {
+    /* The keyword "explicit" is allowed only on a constructor declaration,
+       and in Microsoft mode on free standing class/enum declarations. */
     pos_error(ec_explicit_not_allowed, &decl_start_pos);
   }  /* if */
   if (curr_token == tok_semicolon) {

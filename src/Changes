@@ -1,5 +1,21 @@
 Version 2.43
 
+12/2/99  Microsoft compatibility: specifiers on free standing member type
+         declarations
+
+In Microsoft C++ mode, the front end now accepts various specifiers on free
+standing member declarations of structs, classes, unions and enums.
+
+  struct S {
+    inline union T1 {};
+    virtual class T2 {};
+    typedef struct T3 {};
+    const enum T4 {};
+    explicit class T5 {};
+  };
+
+This example is accepted in Microsoft mode.
+
 12/2/99  ABI CHANGE: Name mangling for template conversion functions
 
 The mangled name for a template conversion function has included the
