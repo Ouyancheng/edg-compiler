@@ -140,6 +140,7 @@ typedef enum /*an_option_kind*/ {
 #if NEED_NAME_MANGLING
   optk_distinct_template_signatures,
 #endif /* NEED_NAME_MANGLING */
+  optk_guiding_decls,
   optk_old_specializations,
   optk_wrap_diagnostics,
 #if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
@@ -804,6 +805,15 @@ EXTERN a_boolean
 			   initial value, this variable will always be FALSE
 			   in strict-ANSI and microsoft-compatibility modes
 			   and always TRUE in cfront-compatibility mode.) */
+
+EXTERN a_boolean
+		guiding_decls_allowed
+#if VAR_INITIALIZERS
+                                      = DEFAULT_GUIDING_DECLS_ALLOWED
+#endif /* VAR_INITIALIZERS */
+                                                                     ;
+			/* TRUE if guiding-declarations of template functions
+			   are allowed. */
 
 EXTERN a_boolean
 		old_specializations_allowed

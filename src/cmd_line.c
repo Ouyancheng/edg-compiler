@@ -594,6 +594,14 @@ Initialize the option information table.
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* NEED_NAME_MANGLING */
+  add_option_description(optk_guiding_decls,
+                         "guiding_decls", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_guiding_decls,
+                         "no_guiding_decls", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_old_specializations,
                          "old_specializations", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -975,6 +983,7 @@ is enabled.
   typename_enabled = FALSE;
 #endif /* !RUNTIME_USES_TYPENAME */
   implicit_typename_enabled = TRUE;
+  guiding_decls_allowed = FALSE;
   old_specializations_allowed = TRUE;
 #if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
   impl_conv_between_c_and_cpp_function_ptrs_allowed = TRUE;
@@ -1211,6 +1220,7 @@ common_cfront_mode_settings:
         implicit_typename_enabled = TRUE;
         use_nonstandard_for_init_scope = TRUE;
         allow_copy_assignment_op_with_base_class_param = TRUE;
+        guiding_decls_allowed = FALSE;
         old_specializations_allowed = TRUE;
 #if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
         impl_conv_between_c_and_cpp_function_ptrs_allowed = TRUE;
@@ -1655,6 +1665,10 @@ common_cfront_mode_settings:
         distinct_mangling_for_templates = opt_value;
         break;
 #endif /* NEED_NAME_MANGLING */
+      case optk_guiding_decls:
+        /* Enable/disable guiding declarations of template functions. */
+        guiding_decls_allowed = opt_value;
+        break;
       case optk_old_specializations:
         /* Enable/disable old-style specialization declarations. */
         old_specializations_allowed = opt_value;
@@ -1751,6 +1765,9 @@ common_cfront_mode_settings:
     }  /* if */
     if (option_kind_used[(int)optk_for_init_diff_warning]) {
       command_line_error(ec_cl_for_init_diff_warning_option_only_in_cplusplus);
+    }  /* if */
+    if (option_kind_used[(int)optk_guiding_decls]) {
+      command_line_error(ec_cl_guiding_decls_option_only_in_cplusplus);
     }  /* if */
     if (option_kind_used[(int)optk_old_specializations]) {
       command_line_error(ec_cl_old_specializations_option_only_in_cplusplus);
@@ -1931,6 +1948,11 @@ common_cfront_mode_settings:
         /* If for_init_diff_warning was not specified on the command line, turn
            off warning_on_for_init_difference now. */
         warning_on_for_init_difference = FALSE;
+      }  /* if */
+      if (!(option_kind_used[(int)optk_guiding_decls])) {
+        /* If guiding_decls_allowed was not set on the command line, turn it
+           off now. */
+        guiding_decls_allowed = FALSE;
       }  /* if */
       if (!(option_kind_used[(int)optk_old_specializations])) {
         /* If old_specializations_allowed was not set on the command line,
