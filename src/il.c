@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2000 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1455,6 +1455,9 @@ dik_constructor.
   int               a;
 
   fputs("ctor: ", f_debug);
+  if (dip->variant.constructor.value_initialization) {
+    fputs("(value initialization) ", f_debug);
+  }  /* if */
   if (dip->variant.constructor.ptr == NULL) {
     fputs("<null>", f_debug);
   } else {
@@ -12560,6 +12563,6 @@ when the IL has been read back into memory.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2000 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
