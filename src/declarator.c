@@ -1393,7 +1393,7 @@ issue an error if a default argument expression is encountered.
              declarations.  Issue an error, but go ahead and scan the
              expression. */
           a_scope_kind  parent_scope_kind;
-          a_boolean     is_member_function;
+          a_boolean     is_member_or_friend_function;
           a_boolean     cache_default_arg;
           a_boolean     ignore_default_arg_expr;
           a_boolean	invalid_default_arg = FALSE;
@@ -1407,7 +1407,7 @@ issue an error if a default argument expression is encountered.
              is a function prototype scope.  We may have to cache the
              default argument tokens and rescan them later. */
           cache_default_arg = FALSE;
-          is_member_function = FALSE;
+          is_member_or_friend_function = FALSE;
           ignore_default_arg_expr = !default_arg_expr_allowed;
           parent_scope_kind = scope_stack[depth_scope_stack-1].kind;
           if (default_arg_expr_allowed) {
@@ -1415,7 +1415,7 @@ issue an error if a default argument expression is encountered.
               /* A member function of a class (normal or template) inside
                  a class declaration. */
               cache_default_arg = TRUE;
-              is_member_function = TRUE;
+              is_member_or_friend_function = TRUE;
             } else if (parent_scope_kind ==
                                    (a_scope_kind)sck_template_declaration) {
               /* A function template declaration.  Note that all default
@@ -1456,14 +1456,15 @@ issue an error if a default argument expression is encountered.
                section 8.2.6, para 3).  Function template whose arguments
                involve template parameters are cached here and scanned
                when an instance of the function template is created. */
-            if (invalid_default_arg && is_member_function &&
+            if (invalid_default_arg && is_member_or_friend_function &&
                 scope_stack[depth_scope_stack].in_prototype_instantiation) {
               /* During a prototype instantiation default arguments are
                  cached, but not rescanned.  Issue the syntax error here. */
               pos_error(ec_exp_primary_expr, &pos_curr_token);
             }  /* if */
-            if (is_member_function) {
-              /* Scan the default arguments for a member function. */
+            if (is_member_or_friend_function) {
+              /* Scan the default arguments for a member or friend
+                 function. */
               prescan_member_function_default_arg_expr(ptp, &decl_token_cache);
             } else {
               /* Scan the default arguments for a function template. */
