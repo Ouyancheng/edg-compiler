@@ -4045,7 +4045,7 @@ another template parameter.
           tap->variant.type = specified_tap->variant.type;
         } else if (is_template_templ_arg(tap)) {
           /* A template template argument can only be used if its parameter
-             list is compatibile with that of the template template
+             list is compatible with that of the template template
              parameter. */
           a_template_symbol_supplement_ptr	arg_template;
           arg_template = template_supplement_for_template(
