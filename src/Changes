@@ -1,5 +1,30 @@
 Version 2.41
 
+2/21/99   Upper limit on mangled name length
+
+By setting DEFAULT_MAX_MANGLED_NAME_LENGTH, or the variable
+max_mangled_name_length, one can now enforce an upper limit on
+the length of mangled names.  Names that will not fit in that
+length (or, more precisely, in that length minus 10) will be truncated
+to the maximum length, with the last 10 characters of the truncated
+name being two underscores followed by a computed CRC-32 value for the
+full name, expressed as 8 hexadecimal characters.  For example, with
+a maximum length of 40, a mangled name might look like
+
+  g__FP24x2345678901234567890123__7b5cbe66
+
+Truncation of names may be necessary when an underlying compiler or
+linker has limits on the size of external names, which can -- with
+complicated templates, as in the standard library -- be thousands
+of characters long.  (Note also the Changes entry of 2/17/99 regarding
+compression of mangled names, which reduces the size of names but does
+not guarantee a maximum length.)  By default, max_mangled_name_length
+is set to zero, which means no limit.  It should be noted that mangled
+names truncated in this way cannot be decoded by the name demangler,
+which can make the output of the prelinker undecipherable.  Therefore
+this limit should be used only if necessary, and the value should
+be as large as possible.
+
 2/18/99   void expression on return statement in void function in C++
 
 In C++, the standard allows a return statement in a void function

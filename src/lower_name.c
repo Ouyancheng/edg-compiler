@@ -64,6 +64,8 @@ static void mangled_encoding_for_constant(a_constant_ptr           con,
                                           a_boolean                old_form,
                                           a_mangling_control_block *mctl);
 static char *compress_mangled_name(a_mangling_control_block *mctl);
+static char *truncate_mangled_name(char                     *mangled_name,
+                                   a_mangling_control_block *mctl);
 
 
 static void clear_mangling_control_block(a_mangling_control_block_ptr mctl)
@@ -156,6 +158,10 @@ in the buffer.
   if (compress_mangled_names) {
     /* Compress the mangled name to make it smaller. */
     buffer = compress_mangled_name(mctl);
+  }  /* if */
+  if (max_mangled_name_length != 0) {
+    /* Truncate the mangled name if necessary. */
+    buffer = truncate_mangled_name(buffer, mctl);
   }  /* if */
   return buffer;
 }  /* end_mangling */
@@ -3262,6 +3268,7 @@ compressed mangled name in a temporary buffer.
      small names is allowing more compatibility with libraries
      compiled by cfront.  The largest name noted in the iostream
      package had 56 characters. */
+  /* Note that mctl->length includes the null terminator. */
   if (mctl->length >= 60) {
     /* Build up the compressed name in the temp_text_buffer, following the
        null character at the end of the mangled name. */
@@ -3406,10 +3413,40 @@ compressed mangled name in a temporary buffer.
       check_assertion(prefix_length < size_of_mangled_name);
       mangled_name = temp_text_buffer+start_of_compressed_name - prefix_length;
       (void)memcpy(mangled_name, buffer, size_t_arg(prefix_length));
+      /* Update the length, including the null terminator. */
+      mctl->length = size_of_compressed_name+1;
     }  /* if */
   }  /* if */
   return mangled_name;
 }  /* compress_mangled_name */
+
+
+static char *truncate_mangled_name(char                     *mangled_name,
+                                   a_mangling_control_block *mctl)
+/*
+If necessary, truncate the mangled name that has been built up.  The
+name is pointed to by mangled_name.  Its length (with terminating
+null) is given by mctl->length.  If the name is longer than
+max_mangled_name_length (already checked to be > 0), truncate it by
+computing a CRC checksum and putting the checksum, in hex, at the end
+of as much of the name as will fit along with the checksum.  Such
+a truncated name is short enough, and likely to be unique, but it
+cannot be demangled.
+*/
+{
+  /* The suffix is of the form "__abcdabcd", i.e., one needs 10 characters
+     for it. */
+  sizeof_t max_allowed_length = max_mangled_name_length - 10;
+
+  /* Note that mctl->length includes the terminating null. */
+  if (mctl->length-1 > max_allowed_length) {
+    /* The name must be truncated. */
+    (void)sprintf(mangled_name+max_allowed_length, "__%08lx",
+                  crc_32(mangled_name, (unsigned long)0));
+    mctl->length = max_mangled_name_length+1;
+  }  /* if */
+  return mangled_name;
+}  /* truncate_mangled_name. */
 
 
 void name_lower_one_time_init(void)

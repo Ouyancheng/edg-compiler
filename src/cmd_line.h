@@ -1141,6 +1141,17 @@ EXTERN a_boolean
 			   to reduce their size. */
 #endif /* NEED_NAME_MANGLING */
 
+#if NEED_NAME_MANGLING
+EXTERN sizeof_t
+		max_mangled_name_length
+#if VAR_INITIALIZERS
+                                        = DEFAULT_MAX_MANGLED_NAME_LENGTH
+#endif /* VAR_INITIALIZERS */
+                                                                         ;
+			/* Maximum allowed length for a mangled name.
+			   Zero means no limit. */
+#endif /* NEED_NAME_MANGLING */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES
