@@ -4831,6 +4831,11 @@ will be TRUE.  This routine may only be called in C++ mode.
         /* There is another level of qualification.  Search for the identifier
            in the given scope. */
         if (!*err) {
+#if CHECKING
+          if (is_template_param_type(*class_type)) {
+            internal_error("not implemented: class qualifier using template parameter in template declaration");
+          }  /* if */
+#endif /* CHECKING */
           if (first_class) {
             /* Make sure that this class has been instantiated.  This is
                only needed for the first class name because template classes
@@ -4987,6 +4992,11 @@ the error on the final identifier not being found on lookup.
                 }  /* if */
               }  /* if */
             } else {
+#if CHECKING
+              if (is_template_param_type(class_type)) {
+                internal_error("not implemented: class qualifier using template parameter in template declaration");
+              }  /* if */
+#endif /* CHECKING */
               /* Look up the id in the class scope. */
               if (class_qualified_id_lookup(&locator_for_curr_id,
                                             class_type, options) != NULL) {

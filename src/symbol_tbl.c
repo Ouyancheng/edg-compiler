@@ -3810,9 +3810,11 @@ C and C++.
                                                            nsk_tag : nsk_other;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
+/* is_class_or_class_proxy_symbol checks for a symbol that is a class,
+   class template, or template type parameter. */
 #define is_acceptable_symbol(sym)                                       \
   ((!must_be_class ||							\
-     is_class_or_class_template_symbol(fundamental_symbol_of(sym))) &&  \
+     is_class_or_class_proxy_symbol(fundamental_symbol_of(sym))) &&  \
    (!must_be_tag   || is_tag_symbol  (fundamental_symbol_of(sym))))
 /* Local macro that tests whether or not a symbol on the active list
    is acceptable.  See if the symbol is in the proper name space. */
@@ -4215,11 +4217,13 @@ used for the unary "::" qualifier and may only be used in C++ mode.
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 /* The name space test is needed when searching the file scope, so
-   sk_extern_variable and sk_extern_routine are not found. */
+   sk_extern_variable and sk_extern_routine are not found.
+   is_class_or_class_proxy_symbol checks for a symbol that is a class,
+   class template, or template type parameter. */
 #define is_acceptable_symbol(sym)                                     \
   ((sym)->decl_scope == file_scope_number &&                          \
    name_space_for_symbol_kind[sym->kind] == nsk_other &&              \
-   (!must_be_class || is_class_symbol(sym)))
+   (!must_be_class || is_class_or_class_proxy_symbol(sym)))
 
   db_enter(4, "file_scope_id_lookup");
 #if CHECKING
