@@ -3723,6 +3723,9 @@ source sequence entry points to the switch clause.
   if (scp->implied_break_at_end) {
     set_output_position_for_stmt(&scp->break_position);
     write_tok_str("break;");
+  } else if (stmt == NULL) {
+    /* No break and no statements, so put out an empty statement. */
+    write_tok_ch(';');
   }  /* if */
 }  /* gen_switch_clause */
 
