@@ -2376,6 +2376,12 @@ in a friend declaration.
        with the current instantiation. */
     (void)current_class_symbol_if_class_template(&assoc_symbol);
   }  /* if */
+  if (assoc_symbol == NULL && !is_friend_decl) {
+    /* If the symbol was not found using a normal lookup above, look again
+       in the current scope using curr_scope_id_lookup, which will return
+       an invisible symbol. */
+    assoc_symbol = curr_scope_id_lookup(locator, options);
+  }  /* if */
   if (assoc_symbol != NULL) {
     /* Make sure that the lookup was not ambiguous. */
     check_for_ambiguity(locator);
