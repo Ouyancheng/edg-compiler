@@ -878,12 +878,20 @@ Dump the contents of the indicated expression node for debug purposes.
     case enk_field:
       fputs("field node\n", f_debug);
       break;
+    case enk_temp_init:
+      fputs("temp init: ", f_debug);
+      goto initializer;
+    case enk_new_init:
+      fputs("new init: ", f_debug);
+initializer:
+      db_dynamic_initializer(node->variant.init.dynamic_init, level);
+      break;
     case enk_error:
       fputs("error node\n", f_debug);
       break;
 #if CHECKING
     default:
-      break;
+      fputs("UNKNOWN EXPR KIND\n", f_debug);
 #endif /* CHECKING */
   }  /* switch */
 }  /* db_expr_node */
@@ -984,7 +992,7 @@ static void db_nonconstant_aggregate(a_constant_ptr  con,
           break;
         case dik_constructor:
           for (a = 0; a < level; a++) fputs(" ", f_debug);
-          db_constructor_initializer(dip, level + 2);
+          db_constructor_initializer(dip, level);
           break;
 #if CHECKING
         default:
