@@ -4570,7 +4570,7 @@ are allowed.  Reference conversions have been turned into pointer conversions
 by the time they get here.  Note that this routine does not handle user-defined
 conversions (constructors and conversion functions).  If the conversion
 requires a reinterpret_cast-like operation, *reinterpret_cast_needed will be
-set to TRUE (otherwise it is left unchanged).
+set to TRUE (otherwise it is set to FALSE).
 */
 {
   a_boolean     okay = FALSE;
@@ -4588,6 +4588,7 @@ set to TRUE (otherwise it is left unchanged).
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
+  *reinterpret_cast_needed = FALSE;
   *warning_suggested = ec_no_error;
   /* Drop any type qualifiers and typedefs on the two types. */
   source_type = skip_typerefs(source_type);
