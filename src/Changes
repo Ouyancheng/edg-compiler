@@ -1,5 +1,11 @@
 Version 2.32
 
+1/24/96   Partial lowering of exception handling, when exceptions are disabled
+
+When the front end is configured to do partial lowering of exception
+handling, there was one case where leck_cleanup_state operations were 
+generated even when exception handling is disabled.  Now suppressed.
+
 1/24/96   Handling of default arguments involving constructor calls
 
 In the following an internal error has been eliminated during processing of
