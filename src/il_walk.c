@@ -1222,6 +1222,24 @@ want that to happen before the "needed" flag is set.
 }  /* keep_definitions_of_virtual_functions_in_scope */
 
 
+static void set_canonical_routine_keep_definition_in_il(a_routine_ptr rout)
+/*
+If the indicated routine has an associated canonical entry in a secondary
+translation unit, mark the canonical entry's definition to be kept in the
+IL.
+*/
+{
+  if (trans_unit_corresp_of(rout) != NULL) {
+    a_routine_ptr canonical_rout =
+                         (a_routine_ptr)trans_unit_corresp_of(rout)->canonical;
+    if (canonical_rout != rout &&
+        in_secondary_trans_unit(canonical_rout)) {
+      set_routine_keep_definition_in_il(canonical_rout);
+    }  /* if */
+  }  /* if */      
+}  /* set_canonical_routine_keep_definition_in_il */
+
+
 static void set_routine_keep_definition_in_il(a_routine_ptr rout)
 /*
 Set the keep_definition_in_il flag on the indicated routine.  This means
@@ -1229,8 +1247,16 @@ the definition of the routine must be kept in the IL, and not just the
 declaration.
 */
 {
-  /* Set the flag if it is not set already. */
-  if (!rout->keep_definition_in_il) {
+  if (walking_secondary_trans_unit &&
+      !in_secondary_trans_unit(rout)) {
+    /* If a routine in the primary IL is encountered while walking the
+       IL for a secondary translation unit, do not set the definition
+       keep_in_il flag, because we want the primary IL flags to be set
+       only on the final IL after copying.  Do set the flag on the
+       associated canonical entry if there is one, however. */
+    set_canonical_routine_keep_definition_in_il(rout);
+  } else if (!rout->keep_definition_in_il) {
+    /* Set the flag if it is not set already. */
     rout->keep_definition_in_il = TRUE;
 #if DEBUG
     if (db_trace("needed_flags", rout, iek_routine)) {
@@ -1262,6 +1288,10 @@ declaration.
         innermost_function_scope = saved_innermost_function_scope;
       }  /* if */
     }  /* if */
+    /* For a routine that has linkage, mark the associated canonical entry
+       to have its definition kept too, since that's the one that will be
+       copied to the primary IL. */
+    set_canonical_routine_keep_definition_in_il(rout);
   }  /* if */
 }  /* set_routine_keep_definition_in_il */
 
