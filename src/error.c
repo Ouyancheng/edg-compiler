@@ -2066,6 +2066,9 @@ error code.
     case ec_ellipsis_on_operator_function:
       m = "ellipsis is not allowed in operator function parameter list";
       break;
+    case ec_unimplemented_keyword:
+      m = "%no is reserved for future use as a keyword";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
@@ -3062,8 +3065,8 @@ declaration position to eliminate redundant file names in a diagnostic.
         add_string_to_segment("keyword ", seg_ptr);
       } /* if */
       add_string_to_segment("\"", seg_ptr);
-      add_string_to_segment(token_names[(int)fund_sym->variant.keyword_token],
-                            seg_ptr);
+      /* Use the name in the header. */
+      add_string_to_segment(sym->header->identifier, seg_ptr);
       break;
     case sk_macro:
       entity_kind = "macro ";

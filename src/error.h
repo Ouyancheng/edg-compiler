@@ -600,7 +600,8 @@ typedef enum /*an_error_code*/ {
   ec_template_operator_new,
   ec_bad_access_decl_ambiguous_name,
   ec_bad_member_type_in_ptr_to_member,
-  ec_ellipsis_on_operator_function
+  ec_ellipsis_on_operator_function,
+  ec_unimplemented_keyword
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

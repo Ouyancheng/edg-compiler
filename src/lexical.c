@@ -308,6 +308,24 @@ Clear the lint and pragma state in a token cache.
 }  /* clear_lint_and_pragma_state */
 
 
+static void unimplemented_keyword_diagnostic(a_symbol_ptr  sym)
+/*
+Issue a diagnostic on unimplemented keywords.
+*/
+{
+#if 0
+  if (!sym->keyword.unimplemented_diagnostic_issued) {
+#endif
+    an_error_severity severity;
+    severity = strict_ansi_mode ? strict_ansi_error_severity : es_remark;
+    sym_diagnostic(severity, ec_unimplemented_keyword, sym);
+#if 0
+    sym->keyword.unimplemented_diagnostic_issued = TRUE;
+  }  /* if */
+#endif
+}  /* unimplemented_keyword_diagnostic */
+
+
 void clear_token_cache(a_token_cache *cache,
 		       a_boolean     reusable)
 /*
@@ -4397,7 +4415,15 @@ id_scan:
             if (!fetch_pp_tokens &&
 	        (!in_preprocessing_directive || processing_C_code_in_pragma)) {
               ctoken = assoc_symbol->variant.keyword_token;
-              goto end_id_scan;
+              /* Check for a keyword that is not yet implemented.  If one is
+                 found, issue a diagnostic and treat the keyword as an
+		 identifier. */
+              if (ctoken == tok_unimplemented) {
+                unimplemented_keyword_diagnostic(assoc_symbol);
+                ctoken = tok_identifier;
+              } else {
+                goto end_id_scan;
+              }  /* if */
             }  /* if */
           }  /* if */
           assoc_symbol = assoc_symbol->next;

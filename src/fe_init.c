@@ -149,6 +149,15 @@ token that corresponds to it.
 }  /* enter_keyword */
 
 
+static void enter_unimplemented_keyword(char *keyword)
+/*
+Enter a keyword for a token that is not yet implemented.
+*/
+{
+  enter_keyword((a_token_kind)tok_unimplemented, keyword);
+}  /* enter_unimplemented_keyword */
+
+
 static void keyword_init(void)
 /*
 Install the keywords in the symbol table.
@@ -228,6 +237,30 @@ Install the keywords in the symbol table.
     if (cfront_compatibility_mode) {
       enter_keyword((a_token_kind)tok_overload, "overload");
     }  /* if */
+    /* Enter keywords for things that are not yet implemented.  Note that
+       "wchar_t", "bool", "true", and "false" are not entered because it
+       is anticipated that most current usage will be compatible with the
+       new language feature when it is implemented so a diagnostic would
+       not, in general, be helpful. */
+    enter_unimplemented_keyword("and");
+    enter_unimplemented_keyword("and_eq");
+    enter_unimplemented_keyword("bitand");
+    enter_unimplemented_keyword("bitor");
+    enter_unimplemented_keyword("compl");
+    enter_unimplemented_keyword("const_cast");
+    enter_unimplemented_keyword("dynamic_cast");
+    enter_unimplemented_keyword("mutable");
+    enter_unimplemented_keyword("namespace");
+    enter_unimplemented_keyword("not");
+    enter_unimplemented_keyword("not_eq");
+    enter_unimplemented_keyword("or");
+    enter_unimplemented_keyword("or_eq");
+    enter_unimplemented_keyword("reinterpret_cast");
+    enter_unimplemented_keyword("typeid");
+    enter_unimplemented_keyword("static_cast");
+    enter_unimplemented_keyword("using");
+    enter_unimplemented_keyword("xor");
+    enter_unimplemented_keyword("xor_eq");
   }  /* if */
   db_exit();
 }  /* keyword_init */
