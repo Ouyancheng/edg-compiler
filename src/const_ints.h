@@ -129,11 +129,6 @@ extern void incr_integer_value(an_integer_value *intval);
 
 extern a_boolean int_constant_is_signed(a_constant_ptr constant);
 
-extern void conv_integer_value_to_long(an_integer_value *intval,
-				a_boolean	 is_signed,
-                                long 		 *value,
-				a_boolean	 *err);
-
 extern long value_of_integer_constant(a_constant *cp,
                                       a_boolean  *ovflo);
 

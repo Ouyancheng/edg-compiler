@@ -79,10 +79,10 @@ Set the integer value entry *intval to the unsigned value "value".
 /* is_signed is not used when integer values are host integers. */
 /*ARGSUSED*/
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-void conv_integer_value_to_long(an_integer_value *intval,
-				a_boolean	 is_signed,
-                                long 		 *value,
-				a_boolean	 *err)
+static void conv_integer_value_to_long(an_integer_value *intval,
+                                       a_boolean	 is_signed,
+                                       long 		 *value,
+                                       a_boolean	 *err)
 /*
 Extract a host long from an_integer_value.  is_signed indicates whether
 the integer value should be considered signed or unsigned.  If is_signed
