@@ -3491,12 +3491,7 @@ indicated scope (a file, namespace, or class scope) and all subscopes.
   for (variable = scope->variables;
        variable != NULL;
        variable = variable->next) {
-    /* Skip variables that aren't members, because final mangling may have
-       been done already for those (e.g., typeinfo variables). */
-    if (variable->source_corresp.is_class_member ||
-        variable->source_corresp.parent.namespace_ptr != NULL) {
-      final_entity_name_mangling(&variable->source_corresp);
-    }  /* if */
+    final_entity_name_mangling(&variable->source_corresp);
   }  /* for */
 }  /* do_scope_final_name_mangling */
 

@@ -1,5 +1,13 @@
 Version 3.1
 
+8/5/02   Final name mangling not done on some promoted local static
+         variables
+
+Final name mangling (which handles compression and truncation) was
+not done on some local static variables promoted out of functions and
+some generated variables (e.g., the __LSG__ guard variables for
+local statics).  The final mangling is now done for those.
+
 8/5/02   ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS and throws
 
 When ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS is TRUE (not the

@@ -1569,6 +1569,8 @@ about potential template instantiations.
   var = make_lowered_variable(info_name, /*already_il_name=*/TRUE,
                               integer_type(ikind),
                               (a_storage_class)sc_unspecified);
+  var->source_corresp.name_has_been_mangled = TRUE;
+  var->source_corresp.final_name_mangling_pending = TRUE;
   return var;
 }  /* make_global_var_with_prefixed_name */
 
