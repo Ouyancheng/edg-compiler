@@ -423,7 +423,10 @@ EDG layout algorithm.  For example:
 
 This is now fixed.  The underlying issue is an ABI problem that was
 introduced when the empty base class optimization was implemented for
-the Cfront-like ABI.  This is therefore also an ABI CHANGE.
+the Cfront-like ABI.  This is therefore also an ABI CHANGE, although
+in most configurations (i.e., when IL lowering is enabled) an internal
+error was triggered.  In the latter case, the ABI difference could not
+be noticed since no object file was actually generated.
 
 2/19/03  Internal error when using precompiled headers with export
 
