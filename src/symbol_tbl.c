@@ -7182,11 +7182,6 @@ specific version of the template.
                                      source_sequence_entries_disallowed;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if DEBUG
-  if (debug_level >= 3) {
-    db_scope_stack();
-  }  /* if */
-#endif /* DEBUG */
   if (!C_mode()) {
     /* Do management related to the object lifetime stack. */
     if (kind == (a_scope_kind)sck_function ||
@@ -7206,6 +7201,11 @@ specific version of the template.
       ssep->curr_scope_object_lifetime = curr_object_lifetime;
     }  /* if */
   }  /* if */      
+#if DEBUG
+  if (debug_level >= 3) {
+    db_scope_stack();
+  }  /* if */
+#endif /* DEBUG */
   db_exit();
   return sp;
 }  /* push_scope */
