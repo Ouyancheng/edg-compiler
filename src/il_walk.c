@@ -190,6 +190,8 @@ Process the indicated constant entry.
       }  /* switch */
       break;
     case ck_ptr_to_member:
+      remap_ptr(ptr->variant.ptr_to_member.class_of_which_a_member,
+                a_type_ptr, iek_type);
       if (ptr->variant.ptr_to_member.is_function_ptr) {
         remap_ptr(ptr->variant.ptr_to_member.variant.routine, a_routine_ptr,
                   iek_routine);
