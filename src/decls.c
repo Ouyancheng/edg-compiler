@@ -8463,7 +8463,7 @@ exit_loop:
              as in "typedef int A[2][3]; const A a;", which makes "a" an
              array of array of const int. */
           if ((is_const_qualified &&
-               f_is_const_qualified_type(*type_ptr), /*top_level=*/FALSE) ||
+               f_is_const_qualified_type(*type_ptr, /*top_level=*/FALSE)) ||
               (is_volatile_qualified &&
                f_is_volatile_qualified_type(*type_ptr, /*top_level=*/FALSE))) {
             /* Duplication of type qualifier (probably because of a typedef
