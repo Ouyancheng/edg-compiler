@@ -1,5 +1,44 @@
 Version 2.35
 
+1/13/97 Microsoft compatibility: guiding declarations are disabled
+
+In Microsoft compatibility mode a function declaration that matches a
+function template is regarded as an independent function rather than a
+"guiding declaration".
+
+1/13/97 Enabling/disabling recognition of "guiding declarations"
+
+Command-line options --guiding_decls and --no_guiding_decls have been added
+to control whether a function declaration that matches a function template
+is regarded as a "guiding declaration" or an independent function (see also
+DEFAULT_GUIDING_DECLS_ALLOWED in lang_feat.h).  For example:
+
+  template void f(T) { ... }
+  void f(int);                 // never defined
+  main() { f(0); }
+
+If f(int) is regarded as a guiding declaration, it is an instance of the
+template and will be implicitly instantiated if necessary.  If not, there
+will be a linker error if the program does not explicitly supply a
+definition.  Guiding declarations are described (in other terms) in the
+ARM; their elimination is a relatively recent change to the Working Paper.
+Guiding declarations are disabled by default in strict-ANSI mode.
+
+When guiding declarations are disabled, a definition of a function that
+matches a template is regarded as the definition of an independent
+function, not as a specialization of an instance of the template, even if
+old-style specializations are enabled.  For example,
+
+  template void f(T) { ... }
+  void f(int) { ... }           // old-style specialization?
+
+f(int) is regarded as an instance of the template -- and its the definition
+is regarded as a specialization -- only if guiding declarations are
+enabled.  Thus, it is only if guiding declarations are enabled that this
+can get an error for being an ill-formed specialization (i.e., for failing
+to use "template<>" syntax) when --no_old_specializations is specified on
+the command line.
+
 1/13/97 Internal error or abort on invalid member template constructor
 
 An internal error or abort could result when an invalid member template
