@@ -4237,7 +4237,7 @@ a pointer over a reference type or creating an array of references.
           if (!is_reference_type(tp) && !is_void_type(tp)) {
             new_type = make_reference_type(tp);
           } else {
-            /* An reference to reference or reference to void would be
+            /* A reference to reference or reference to void would be
                invalid. */
             *copy_error = TRUE;
           }  /* if */
