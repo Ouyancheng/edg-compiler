@@ -11,7 +11,7 @@ In C++ support for "extern inline" is now available.  This means
 -- a member function, including an inline function, now takes the linkage
    of the class of which it is a member (which is usually external).
 
-Because an extern inline functions cannot be called from other translation
+Because an extern inline function cannot be called from other translation
 units (that is, an extern inline function must be defined in every
 translation unit in which it is used), the practical impact on programs is
 small: there are a few diagnostic differences; static local variables are
@@ -25,10 +25,10 @@ function will be the same throughout the program.  For example:
     }
   };
 
-The behavior is controlled by command-line options --extern_inline_allowed
-and --no_extern_inline_allowed; DEFAULT_EXTERN_INLINE_ALLOWED can be set to
-determine the default, and strict mode turns extern-inline support on while
-cfront mode turns it off.
+The behavior is controlled by command-line options --extern_inline and
+--no_extern_inline; DEFAULT_EXTERN_INLINE_ALLOWED can be set to determine
+the default, and strict mode turns extern-inline support on while cfront
+mode turns it off.
 
 9/23/96 Use of typedef names in destructor calls
 
