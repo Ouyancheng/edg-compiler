@@ -1,5 +1,21 @@
 Version 2.24
 
+6/26/94 Fixed spurious error on initialization of const field with ctor
+
+An error was incorrectly issued on not explicitly mentioning a const field
+in a ctor-initializer list even when the field was of class type and the
+class has a default constructor.  This has been fixed, as has the related
+diagnostic on a class with no user-defined constructor.  For example:
+
+  struct S { S(); };
+  class A {
+    const S s;
+    A() { };                 // Error is no longer issued on failing to
+  };                         //   mention s in the ctor-initializer list
+  class B {                  // Error is no longer issued on failing to
+    const S s;               //   declare a constructor to initialize s
+  };
+
 6/25/94 Implicit conversions between pointers to interchangeable types in C++
 
 Implicit conversions between pointers to interchangeable types (e.g.,
