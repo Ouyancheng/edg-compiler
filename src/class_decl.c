@@ -8844,15 +8844,6 @@ or implicit) controlling the declaration.
     if (!locator_for_curr_id.is_class_member) {
       error(ec_class_qualified_name_required);
       err = TRUE;
-    } else if (symbol_supplement_for_class(class_type)->
-                                               is_prototype_instantiation &&
-               is_or_contains_template_param(
-                                   locator_for_curr_id.parent.class_type)) {
-      /* This using declaration involves a template parameter.  Skip it, but
-         bypass the identifier first. */
-      discard_curr_construct_pragmas();
-      (void)get_token();
-      goto done;
 #if CHECKING
     } else if (declared_sym == NULL) {
       internal_error("member_using_decl: NULL symbol ptr");
