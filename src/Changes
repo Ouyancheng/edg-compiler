@@ -1,5 +1,14 @@
 Version 3.5
 
+9/9/04  Embedded C: Incorrect results on little-endian systems using
+        simulated integers
+
+Conversions of values to and from fixed-point did not work properly on
+little-endian systems when INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is FALSE.
+Now fixed.
+
+  _Accum a = 1;
+
 9/10/04 C++-generating back end: missing parentheses around comma expression
 
 The C++-generating back end failed to put a set of parentheses around

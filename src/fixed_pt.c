@@ -180,6 +180,37 @@ This macro requires that a_fixed_point_value be an_integer_value.
 */
 #define fxp_sign_of(value) (sign_of(value))
 
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+
+/*
+Return the byte offset of a given logical byte of an integer value.  This is
+a no-op when an integer value is a host integer.
+
+This is only used on little-endian systems.
+*/
+#define byte_offset_in_integer_value(i) (i)
+
+#else /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+
+static int byte_offset_in_integer_value(int	byte)
+/*
+Return the byte offset of a given logical byte of an integer value.
+
+This is only used on little-endian systems.
+*/
+{
+  int		int_value_part;
+  int		offset;
+
+  int_value_part = INT_VALUE_PARTS_PER_INTEGER_VALUE - 
+                   (byte / SIZEOF_INT_VALUE_PART) - 1;
+  offset = (int_value_part * SIZEOF_INT_VALUE_PART) +
+           (byte % SIZEOF_INT_VALUE_PART);
+  return offset;
+}  /* byte_offset_in_integer_value */
+
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+
 
 static void store_hex_fxp_value(
 				a_mantissa_ptr			mp,
@@ -230,11 +261,21 @@ fxp_descr describes the format of the value being stored.
       char	*dest;
       int	source_part;
       int	source_byte;
-      dest = &((char*)value)[i];
+      dest = &((char*)value)[byte_offset_in_integer_value(i)];
       source_part = (parts_to_copy - 1) - (i / sizeof(an_fp_value_part));
       source_byte = (i % sizeof(an_fp_value_part)) + part_offset;
       source = (char*)&(mp->parts[source_part]) + source_byte;
       *dest = *source;
+#if DEBUG
+      if (db_flag_is_set("fxp_store")) {
+        int	source_offset;
+        int	dest_offset;
+        source_offset = source - (char *)(&mp->parts[0]);
+        dest_offset = i;
+        fprintf(f_debug, "fxp copy from %d to %d, value=%x\n",
+                source_offset, dest_offset, *dest);
+      }  /* if */
+#endif /* DEBUG */
     }  /* for */
   } else {
     /* Copy the value from the mantissa to the low order bytes of the
@@ -290,7 +331,7 @@ Create mantissa (mp), exponent, and is_negative from a_fixed_point_value
       char	*source;
       int	dest_part;
       int	dest_byte;
-      source = &((char*)value)[i];
+      source = &((char*)value)[byte_offset_in_integer_value(i)];
       dest_part = (parts_to_copy - 1) - (i / sizeof(an_fp_value_part));
       dest_byte = (i % sizeof(an_fp_value_part)) + part_offset;
       dest = (char*)&(mp->parts[dest_part]) + dest_byte;
@@ -370,7 +411,7 @@ value is negative, is_negative will be TRUE.
     for (i = 0; i < sizeof(an_integer_value); ++i) {
       char	*source;
       char	*dest;
-      source = &((char*)value)[i];
+      source = &((char*)value)[byte_offset_in_integer_value(i)];
       dest = (char*)&(mp->parts[(parts_to_copy - 1) -
                                   (i / sizeof(an_fp_value_part))]) +
                        (i % sizeof(an_fp_value_part));
@@ -421,7 +462,7 @@ negative, is_negative will be TRUE.
     for (i = 0; i < sizeof(an_integer_value); ++i) {
       char	*dest;
       char	*source;
-      dest = &((char*)value)[i];
+      dest = &((char*)value)[byte_offset_in_integer_value(i)];
       source = (char*)&(mp->parts[(parts_to_copy - 1) -
                                   (i / sizeof(an_fp_value_part))]) +
                        (i % sizeof(an_fp_value_part));
