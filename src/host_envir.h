@@ -1197,9 +1197,6 @@ is TRUE.
 
 /*
 Flag that is TRUE if macro declarations should be recorded in the IL.
-When BACK_END_IS_CP_GEN_BE is TRUE, this would usually be FALSE (we
-don't want macros in the output, as already-expanded text might be
-expanded again).
 */
 #ifndef RECORD_MACROS_IN_IL
 #define RECORD_MACROS_IN_IL FALSE
