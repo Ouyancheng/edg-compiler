@@ -979,7 +979,7 @@ a prior error) just do the scan.
 {
   an_expr_node_ptr  expr;
 
-  expr = scan_required_type_expression(ptp->type,
+  expr = scan_required_type_expression(ptp != NULL ? ptp->type : error_type(),
                                        /*allow_top_level_comma=*/FALSE,
                                        ec_bad_default_arg_type);
   if (ptp != NULL) ptp->default_arg_expr = expr;
