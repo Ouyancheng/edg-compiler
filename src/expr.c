@@ -6684,7 +6684,7 @@ bound_function_selector to the associated "this" pointer.
                It might also be needed for the extension that allows
                definition of constants within a class if that extension
                were to allow non-integral constants. */
-            check_integral_operand(result);
+            (void)check_integral_operand(result);
             if (sym_ptr->variant.constant->kind ==
                                      (a_constant_repr_kind)ck_template_param) {
               /* If the constant is a template parameter (meaning we're in
