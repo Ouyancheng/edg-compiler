@@ -1,5 +1,14 @@
 Version 2.42
 
+3/22/99  Microsoft compatibility: incomplete type allowed in explicit
+         instantiation directive
+
+In Microsoft mode, an incomplete type is permitted in an explicit
+instantiation directive.  A warning is issued.
+
+  template <class T> struct A;
+  template class A<int>;
+
 3/22/99  C++-generating back end: location of generated instance
          specializations
 

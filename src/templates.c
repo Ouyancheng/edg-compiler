@@ -13065,15 +13065,13 @@ is a recursive call for a class nested within the template class.
     complete_class_type_is_needed(class_type);
     if (is_incomplete_type(class_type)) {
       if (top_level) {
-        an_error_severity	severity = es_error;
-        if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate &&
-            !is_pragma) {
-          /* A Microsoft "extern template" directive.  Just issue a warning
-             if the class type is incomplete.  The directive should take
-             effect when the class is completed, but we don't implement
-             this at this point. */
-          severity = es_warning;
-        }  /* if */
+        an_error_severity	severity;
+        /* An incomplete type cannot be specified, but a class with
+           an incomplete member class is okay.  An incomplete class type
+           can be specified in Microsoft mode.  In a Microsoft "extern
+           template" directive, the directive should take effect when the
+           class is completed, but we don't implement this at this point. */
+        severity = microsoft_mode ? es_warning : es_error;
         pos_diagnostic(severity, ec_incomplete_type_not_allowed, pos);
       }  /* if */
     } else {
