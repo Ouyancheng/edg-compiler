@@ -9756,9 +9756,19 @@ Note that the destructor, if any, is implicit and need not be put out.
       using_old_style_cast = TRUE;
     }  /* if */
     if (using_old_style_cast) {
-      /* Put out an old-style cast, e.g., (X)y. */
       write_tok_ch('(');
-      gen_cast(init_entity_type);
+      if (has_name_before_mangling(init_entity_type) &&
+          parenthesized_init) {
+        /* "(X(y))" is as unambiguous as "((X)(y))" -- the outermost
+           parentheses ensure that it can't be parsed as a declaration, only
+           as an expression -- and it avoids a Sun quirk where
+           functional-notation casts are lvalues but C-style casts are not
+           (i.e., we don't want to turn "X(y)" into "(X)(y)"). */
+        gen_type_name(init_entity_type);
+      } else {
+        /* Put out an old-style cast, e.g., (X)y. */
+        gen_cast(init_entity_type);
+      }  /* if */
       if (!has_one_argument) {
         /* If the initialization doesn't have exactly one argument, use
            an unqualified functional-notation type conversion inside the
