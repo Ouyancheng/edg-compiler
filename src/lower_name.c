@@ -333,6 +333,9 @@ static void mangled_template_arguments(
                                     a_boolean                old_form,
                                     a_mangling_control_block *mctl);
 static a_boolean variable_name_mangling_needed(a_variable_ptr variable);
+static a_boolean function_name_mangling_needed(
+                                       a_routine_ptr routine,
+                                       a_boolean     *suppress_param_encoding);
 
 #if !IA64_ABI
 /*
@@ -924,10 +927,19 @@ Add a prefix indicating the given routine as the containing function
 for a local entity, for the IA-64 ABI.
 */
 {
+  a_boolean suppress_param_encoding = FALSE;
+  a_boolean suppress_parent_encoding = FALSE;
+
   add_to_mangled_name('Z', mctl);
+  /* extern "C" functions don't need much mangling.  They do get the
+     length preceding the name. */
+  if (!function_name_mangling_needed(routine, &suppress_param_encoding)) {
+    suppress_param_encoding = TRUE;
+    suppress_parent_encoding = TRUE;
+  }  /* if */
   mangled_function_name(routine,
-                        /*suppress_param_encoding=*/FALSE,
-                        /*suppress_parent_encoding=*/FALSE,
+                        suppress_param_encoding,
+                        suppress_parent_encoding,
                         /*base_name_offset=*/(sizeof_t *)NULL,
                         mctl);
   add_to_mangled_name('E', mctl);
@@ -1622,16 +1634,18 @@ template classes.
     }  /* if */
   } else if (abkind == (an_address_base_kind)abk_routine) {
     a_boolean     suppress_param_encoding = TRUE;
+    a_boolean     suppress_parent_encoding = FALSE;
     a_routine_ptr routine = con->variant.address.variant.routine;
 #if IA64_ABI
     add_str_to_mangled_name("_Z", mctl);
-    if (is_name_linkage_kind_subject_to_name_mangling(
-                                      routine->source_corresp.name_linkage)) {
-      suppress_param_encoding = FALSE;
+    suppress_param_encoding = FALSE;
+    if (!function_name_mangling_needed(routine, &suppress_param_encoding)) {
+      suppress_param_encoding = TRUE;
+      suppress_parent_encoding = TRUE;
     }  /* if */
 #endif /* IA64_ABI */
     mangled_function_name(routine, suppress_param_encoding,
-                          /*suppress_parent_encoding=*/FALSE,
+                          suppress_parent_encoding,
                           /*base_name_offset=*/(sizeof_t *)NULL,
                           mctl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
