@@ -11250,7 +11250,7 @@ continue_with_declaration:
           (!strict_ansi_mode ||
            (declared_storage_class != (a_storage_class)sc_static &&
             declared_storage_class != (a_storage_class)sc_extern))) {
-        /* Not at file scope and no linkage, so a VLA may appear on some
+        /* No static storage duration, so a VLA may appear on some
            declarations. */
         di_flags |= DI_VLA_ALLOWED;
       }  /* if */

@@ -25,12 +25,12 @@ end abort.  Now fixed.
      ((clx) foo.func1);
   }
 
-2/18/04  C99 mode: Array bounds in declarations with linkage
+2/18/04  C99 mode: Array bounds in declarations with static storage duration
 
 In strict C99 mode, the front end now issues an error for a declaration
-with linkage that appears in a function definition if that declaration
-contains an array bound that is not an integral constant-expression.
-For example:
+with static storage duration that appears in a function definition if that
+declaration contains an array bound that is not an integral constant-
+expression.  For example:
 
   void f() {
     static int a[(int)1.0];  // Error in strict C99 mode: Not a valid
