@@ -582,6 +582,7 @@ to represent the template parameters.
   a_template_param_ptr template_param_list = NULL;
   a_template_param_ptr end_of_template_param_list = NULL;
   a_type_ptr           template_param_type;
+  int                  template_param_list_pos = 0;
 
   db_enter(3, "scan_template_param_list");
   /* Loop through the comma-separated list of template parameter
@@ -589,6 +590,7 @@ to represent the template parameters.
   do {
     add_stop_token(tok_comma);
     copy_source_position(pos_curr_token, param_pos);
+    ++template_param_list_pos;
     /* Determine whether this is a "type-argument" (a parameter that
        represents a type) or a "arg-declaration" (a parameter that represents
        a constant). */
@@ -611,6 +613,7 @@ to represent the template parameters.
          only and will not appear in the IL passed on to the back end.  It
          is therefore not added to any scope types list. */
       template_param_type = alloc_type((a_type_kind)tk_template_param);
+      template_param_type->variant.list_position = template_param_list_pos;
       set_type_size(template_param_type);
       set_source_corresp(&template_param_type->source_corresp, sym);
       /* The type symbol for the template parameter points for now to the
