@@ -4362,7 +4362,13 @@ scan_paren:
                    as a simple object, only "i" is scanned, and an error is
                    issued on the expected ")".  After that we want to bypass
                    the rest of the comma-list before resuming scanning. */
-                if (curr_token == tok_comma) flush_to_end_of_arg_list();
+                if (curr_token == tok_comma) {
+                  flush_to_end_of_arg_list();
+                  if (curr_token == tok_rparen) {
+                    /* We found the right parenthesis: Consume it. */
+                    (void)get_token();
+                  }  /* if */
+                }  /* if */
               }  /* if */
               remove_stop_token(tok_rparen);
             }  /* if */
