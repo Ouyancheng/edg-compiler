@@ -871,10 +871,10 @@ error code.
       m = "old-style parameter list";
       break;
     case ec_declaration_after_statements:
-      m = "declaration may not appear after executable statement";
+      m = "declaration may not appear after executable statement in block";
       break;
-    case ec_cast_to_private_base_class:
-      m = "private base class is inaccessible";
+    case ec_inaccessible_base_class:
+      m = "base class is inaccessible";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
