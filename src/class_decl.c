@@ -8577,8 +8577,11 @@ The routine body is not generated until it is known to be needed.
                               (a_param_type_ptr)NULL);
   }  /* if */
   /* Create a default assignment operator to copy an object of the current
-     class if one doesn't already exist. */
-  if (!user_declared_copy_assignment_op) {
+     class if one doesn't already exist.  Note that in cfront mode, the
+     presence of any assignment operator suppresses the creation of
+     a default assignment operator. */
+  if (!user_declared_copy_assignment_op &&
+      (!any_cfront_mode() || cssp->assignment_operator == NULL)) {
     /* An implicit assignment operator is generated if the class does not
        contain a user-declared copy assignment operator. */
     a_type_ptr this_type;
