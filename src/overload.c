@@ -99,8 +99,11 @@ cast.
   *ambiguous = FALSE;
   *unknown_dependent_function = FALSE;
   if (is_template_dependent_context() &&
-      is_or_contains_template_param(dest_type)) {
-    /* The destination type is not fully known (in a prototype
+      (is_or_contains_template_param(dest_type) ||
+       (is_template_id &&
+        template_arg_list_involves_template_param(template_arg_list)))) {
+    /* The destination type is not fully known, or the template argument
+       list contains template-dependent types (in a prototype
        instantiation). */
     *unknown_dependent_function = TRUE;
   } else if (is_pointer_type(dest_type)) {
