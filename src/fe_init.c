@@ -801,6 +801,9 @@ Initialize everything that has to do with the front end.
   il_header.source_language =
                       (C_dialect == C_dialect_cplusplus) ? sl_Cplusplus : sl_C;
   il_header.pcc_compatibility_mode = (C_dialect == C_dialect_pcc);
+#if RECORD_MACROS_IN_IL
+  il_header.macros = NULL;
+#endif /* RECORD_MACROS_IN_IL */
   if (do_preprocessing_only) {
     /* Open the preprocessing output file. */
     open_pp_output_file();
