@@ -39,6 +39,7 @@ static void prep_conversion_operand(
                                  a_boolean         nontype_template_arg,
                                  an_error_code     incompatible_err,
                                  a_source_position *err_pos);
+static a_boolean operand_is_temp_init(an_operand *operand);
 static a_boolean type_matches_type_code(a_type_ptr type,
                                         char       type_code);
 static a_boolean microsoft_can_bind_ref_to_rvalue(an_operand *operand);
@@ -11382,9 +11383,8 @@ processed_arg, see conversion_to_class_possible.
 }  /* prep_conversion_operand */
 
 
-static void check_access_to_elided_copy_constructor(
-                                                 a_type_ptr        source_type,
-                                                 a_source_position *err_pos)
+void check_access_to_elided_copy_constructor(a_type_ptr        source_type,
+                                             a_source_position *err_pos)
 /*
 A conversion from source_type (a possibly-qualified class type) is being done
 by eliding a copy constructor.  Check that the copy constructor that would
@@ -11434,7 +11434,7 @@ mode) at *err_pos if not.
 }  /* check_access_to_elided_copy_constructor */
 
 
-a_boolean operand_is_temp_init(an_operand *operand)
+static a_boolean operand_is_temp_init(an_operand *operand)
 /*
 Return TRUE if the given operand is an expression operand for an enk_temp_init
 (which represents an expression temporary).  Whether the enk_temp_init
