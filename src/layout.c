@@ -1508,7 +1508,8 @@ types (and their subobjects).
   a_boolean  result = FALSE;
   a_field_ptr  field;
 
-  if (!symbol_supplement_for_class(type)->has_empty_class_subobject) {
+  if (!is_immediate_class_type(type) ||
+      !symbol_supplement_for_class(type)->has_empty_class_subobject) {
     goto done;
   }  /* if */
   field = type->variant.class_struct_union.field_list;
