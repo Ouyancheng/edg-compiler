@@ -2390,7 +2390,7 @@ or struct definition.  The syntax is
          10, p. 196), issue an error and skip over this class: it is not a
          valid base class name. */
       check_for_uninstantiated_template_class(base_class_type);
-      if (is_qualified_type(base_class_type) ||
+      if (is_top_level_qualified_type(base_class_type) ||
           (base_class_type = skip_typerefs(base_class_type)) == type_ptr ||
           base_class_type->kind == (a_type_kind)tk_union ||
           !is_complete_class_struct_union_type(base_class_type)) {
@@ -2766,8 +2766,8 @@ without it.
   new_rts = new_type->variant.routine.extra_info;
   new_this_type = new_rts->implicit_this_param_type;
   new_function_is_qualified =
-                 (new_this_type != NULL &&
-                  is_qualified_type(type_pointed_to(new_this_type)));
+               (new_this_type != NULL &&
+                is_top_level_qualified_type(type_pointed_to(new_this_type)));
   /* Go through the symbol list and look for an instance in which the
      types are compatible with the current type. */
   for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
@@ -2775,8 +2775,8 @@ without it.
     orig_rts = (skip_typerefs(orig_type))->variant.routine.extra_info;
     orig_this_type = orig_rts->implicit_this_param_type;
     orig_function_is_qualified =
-                 (orig_this_type != NULL &&
-                  is_qualified_type(type_pointed_to(orig_this_type)));
+               (orig_this_type != NULL &&
+                is_top_level_qualified_type(type_pointed_to(orig_this_type)));
     if (new_function_is_qualified != orig_function_is_qualified) {
       /* No match is possible.  Don't bother calling types_are_compatible. */
     } else {
@@ -3025,8 +3025,14 @@ constructor's first parameter is const or volatile qualified (or both).
       /* It is a copy constructor. */
       is_cctor = TRUE;
       /* See if the object being copied is const qualified. */
-      if (is_const_qualified_type(tp)) *const_object_okay = TRUE;
-      if (is_volatile_qualified_type(tp)) *volatile_object_okay = TRUE;
+      if (tp->kind == (a_type_kind)tk_typeref) {
+        if (f_is_const_qualified_type(tp, /*top_level=*/TRUE)) {
+          *const_object_okay = TRUE;
+        }  /* if */
+        if (f_is_volatile_qualified_type(tp, /*top_level=*/TRUE)) {
+          *volatile_object_okay = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   return is_cctor;
@@ -3729,8 +3735,10 @@ first parameter is a reference type.  Set *accepts_const and
     /* Found it. */
     found = TRUE;
     /* Check the qualifiers. */
-    *accepts_const = is_const_qualified_type(tp);
-    *accepts_volatile = is_volatile_qualified_type(tp);
+    if (tp->kind == (a_type_kind)tk_typeref) {
+      *accepts_const = f_is_const_qualified_type(tp, /*top_level=*/TRUE);
+      *accepts_volatile = f_is_volatile_qualified_type(tp, /*top_level=*/TRUE);
+    }  /* if */
   }  /* if */
   return found;
 }  /* is_assignment_operator_for_copy */
@@ -4100,7 +4108,7 @@ class, struct, or union.
      qualified, including recursively the members of any contained
      classes, structs, or unions.  This is useful for determination of
      modifiable lvalues (see 3.2.2.1). */
-  if (type_or_element_type_is_const_qualified(*member_type) ||
+  if (is_const_qualified_type(*member_type) ||
       (is_class_struct_union_type(*member_type) &&
        skip_typerefs(*member_type)->
                             variant.class_struct_union.any_const_member)) {
@@ -4627,7 +4635,7 @@ operator routine or do bitwise assignment.
        the base class's assignment function), and then do the appropriate
        copy of each member. */
     const_source_var =
-                 is_const_qualified_type(type_pointed_to(source_var->type));
+         is_top_level_const_qualified_type(type_pointed_to(source_var->type));
     for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
       if (bcp->direct) {
         /* We are only interested in direct base classes. */
@@ -4847,11 +4855,10 @@ member or a base class with a nonpublic operator=() is handled elsewhere.
           /* An assignment operator should not be generated if a member has a
              ref type. */
           is_ref = TRUE;
-        } else {
-          if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+        } else if (is_const_qualified_type(tp)) {
           /* An assignment operator should not be generated if a member has a
              const type. */
-          if (is_const_qualified_type(tp)) is_const = TRUE;
+          is_const = TRUE;
         }  /* if */
         if (is_ref || is_const) {
           if (!err) {
@@ -6046,7 +6053,7 @@ Scan the body of a class definition, including the base classes list.
               if (inline_specified) {
                 pos_error(ec_inline_not_allowed, &decl_start_pos);
               }  /* if */
-              if (is_qualified_type(member_type)) {
+              if (is_top_level_qualified_type(member_type)) {
                 pos_error(ec_useless_type_qualifiers, &decl_start_pos);
               }  /* if */
             } else if (member_storage_class == (a_storage_class)sc_typedef) {
@@ -6575,8 +6582,8 @@ Scan the body of a class definition, including the base classes list.
                           source_corresp.class_of_which_a_member = class_type;
           } else if (curr_token == tok_assign &&
                      is_scalar_type(local_type) &&
-                     is_const_qualified_type(local_type) &&
-                     !is_volatile_qualified_type(local_type) &&
+                     is_top_level_const_qualified_type(local_type) &&
+                     !is_top_level_volatile_qualified_type(local_type) &&
                      member_storage_class == (a_storage_class)sc_unspecified &&
                      C_dialect == C_dialect_cplusplus) {
             /* Provide support for the nonstandard declaration of a member
@@ -6739,7 +6746,7 @@ Scan the body of a class definition, including the base classes list.
               if (!any_const_or_ref_fields &&
                   !unnamed_field && !is_anonymous_union &&
                   (is_reference_type(local_type) ||
-                   type_or_element_type_is_const_qualified(local_type))) {
+                   is_const_qualified_type(local_type))) {
                 any_const_or_ref_fields = TRUE;
               }  /* if */
               is_first_field = FALSE;
@@ -6856,7 +6863,7 @@ next_declaration:
             a_type_ptr  tp = sym->variant.field.ptr->type;
             if (is_reference_type(tp)) {
               sym_add_diag_info(ec_reference_member, sym);
-            } else if (type_or_element_type_is_const_qualified(tp)) {
+            } else if (is_const_qualified_type(tp)) {
               sym_add_diag_info(ec_const_member, sym);
             }  /* if */
           }  /* if */
