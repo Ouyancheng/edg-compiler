@@ -5273,7 +5273,10 @@ Generate C for a statement.
     case stmk_return:
       check_assertion_str(statement->variant.return_dynamic_init == NULL,
                           "dump_statement: return with dyn init");
-      if (covariant_return_expr != NULL) {
+      if (covariant_return_expr != NULL &&
+          /* Avoid problems if function was supposed to return a value
+             but doesn't. */
+          statement->expr != NULL) {
         /* The cast in covariant_return_expr should be added to the
            top of the return expression.  Assign the return expression to
            a temporary, then put the cast of the temporary in the return
