@@ -60,7 +60,7 @@ language.  This is the default value for a flag that can be modified by
 a command line option.
 */
 #ifndef DEFAULT_ALLOW_ANACHRONISMS
-#define DEFAULT_ALLOW_ANACHRONISMS TRUE
+#define DEFAULT_ALLOW_ANACHRONISMS FALSE
 #endif /* ifndef DEFAULT_ALLOW_ANACHRONISMS */
 
 /*
