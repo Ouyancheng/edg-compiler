@@ -1153,7 +1153,9 @@ might not be able to if the template itself has not yet been defined.
        a real instantiation. */
     /* Update the class symbol supplement pointer that points to the
        prototype instantiation.  Instances of a class template can sometimes
-       be created before this is known. */
+       be created before this is known.  Furthermore, even if it was set
+       it may need to be revised if the instantiation is generated from
+       a partial specialization. */
     cssp->corresp_prototype_sym =
              tssp_of_prototype->variant.class_template.prototype_instantiation;
     if (body_cache->tokens.first_token == NULL) {
@@ -5088,11 +5090,11 @@ will be created (this is done later).
   a_symbol_ptr				sym;
   a_template_symbol_supplement_ptr	tssp;
 
-
   primary_sym = partial_spec_nonreal_sym->
                          variant.class_struct_union.extra_info->class_template;
   check_assertion(primary_sym != NULL &&
                   primary_sym->kind == (a_symbol_kind)sk_class_template);
+  primary_sym = primary_template_of(primary_sym);
   primary_tssp = primary_sym->variant.template_info;
   sym = alloc_symbol((a_symbol_kind)sk_class_template, primary_sym->header,
                      &locator->source_position);
