@@ -6885,10 +6885,10 @@ to represent the template parameters.
       }  /* if */
     } else {
       /* Error case ("template ..."). */
+      syntax_error(ec_template_not_allowed);
       set_to_error_locator(locator_for_curr_id);
       locator_for_curr_id.source_position = pos_curr_token;
       set_err_pos_to_curr_token();
-      syntax_error(ec_template_not_allowed);
       /* Enter a dummy param type. */
       sym = enter_symbol((a_symbol_kind)sk_type, &locator_for_curr_id,
                          decl_scope_level, /*suppress_redecl_error=*/FALSE);

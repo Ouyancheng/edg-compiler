@@ -1,5 +1,15 @@
 Version 2.35
 
+2/24/97  Abort on use of template template parameter
+
+The front end does not yet support template template parameters, but
+attempts to gracefully provide a diagnostic and continue compilation.
+Cases like the following resulted in an abort.  This has been fixed.
+
+  template <template T> struct A { 
+    using T::i;
+  };
+
 2/24/97  Instantiations that produce unexpected function types
 
 If a name used in a function template declaration changes meaning between
