@@ -253,22 +253,6 @@ corresponding entry in the primary file IL.
 }  /* remap_secondary_ptr_to_primary */
 
 
-static void remap_pointers_in_entry(char             *ptr,
-                                    an_il_entry_kind kind)
-/*
-Called during the IL walk that copies IL from the secondary translation
-unit to the primary translation unit, to remap the pointers in the IL
-entry at ptr (of kind "kind").
-*/
-{
-  a_remap_function_ptr saved_walk_remap_func = walk_remap_func;
-
-  walk_remap_func = remap_secondary_ptr_to_primary;
-  remap_pointers_in_il_entry(ptr, kind);
-  walk_remap_func = saved_walk_remap_func;
-}  /* remap_pointers_in_entry */
-
-
 /*ARGSUSED*/ /* <-- "kind" is not used. */
 static void copy_string_entry(char             *ptr,
                               an_il_entry_kind kind,
@@ -293,21 +277,29 @@ correspondence pointer to point to the copy.
 
 
 static void copy_entry(char             *ptr,
-                       an_il_entry_kind kind)
+                       an_il_entry_kind kind);
+
+
+static void copy_entry_basic(char                 *ptr,
+                             an_il_entry_kind     kind,
+                             a_remap_function_ptr remap_function)
 /*
 Called during the IL walk that copies IL from the secondary translation
 unit to the primary translation unit, to copy the IL entry at ptr
 (of kind "kind") to the space indicated by its correspondence pointer,
-and remap the pointers in the copy.
+and remap the pointers in the copy by calling remap_function.
 */
 {
   a_source_correspondence *scp = NULL;
   char                    *copy;
+  a_remap_function_ptr    saved_walk_remap_func = walk_remap_func;
 
   if (!in_file_scope(ptr)) {
     /* Process an entry in a function scope memory region.  Remap
        the pointers but don't copy. */
-    remap_pointers_in_entry(ptr, kind);
+    walk_remap_func = remap_function;
+    remap_pointers_in_il_entry(ptr, kind);
+    walk_remap_func = saved_walk_remap_func;
 #if MAINTAIN_NEEDED_FLAGS
     copy = ptr;
     scp = source_corresp_for_il_entry(copy, kind);
@@ -315,11 +307,13 @@ and remap the pointers in the copy.
   } else {
     copy = checked_trans_unit_corresp_pointer_of(ptr);
     check_assertion_str(copy != NULL,
-                        "copy_entry: NULL correspondence pointer");
+                        "copy_entry_basic: NULL correspondence pointer");
     /* Copy the entry to its corresponding space and remap the pointers
        in the copy. */
     (void)memcpy(copy, ptr, size_t_arg(sizeof_il_entry[(int)kind]));
-    remap_pointers_in_entry(copy, kind);
+    walk_remap_func = remap_function;
+    remap_pointers_in_il_entry(copy, kind);
+    walk_remap_func = saved_walk_remap_func;
     scp = source_corresp_for_il_entry(copy, kind);
     if (scp != NULL) scp->copied_from_secondary_trans_unit = TRUE;
     if (kind == iek_routine) {
@@ -328,6 +322,10 @@ and remap the pointers in the copy.
         /* For a routine with a body, the code in the function scope memory
            region needs to be processed too.  It doesn't need to be
            copied, but the pointers need to be remapped. */
+        /* This shouldn't happen in the
+           rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary
+           phase. */
+        check_assertion(remap_function == remap_secondary_ptr_to_primary);
         walk_routine_scope_il(rout->assoc_scope,
                               copy_entry,
                               copy_string_entry,
@@ -360,6 +358,19 @@ and remap the pointers in the copy.
     }  /* if */
   }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
+}  /* copy_entry_basic */
+
+
+static void copy_entry(char             *ptr,
+                       an_il_entry_kind kind)
+/*
+Called during the IL walk that copies IL from the secondary translation
+unit to the primary translation unit, to copy the IL entry at ptr
+(of kind "kind") to the space indicated by its correspondence pointer,
+and remap the pointers in the copy.
+*/
+{
+  copy_entry_basic(ptr, kind, remap_secondary_ptr_to_primary);
 }  /* copy_entry */
 
 
@@ -2261,7 +2272,7 @@ with linkage.
       /* Make a copy of the entry in the primary IL. */
       new_ptr = alloc_il(sizeof_il_entry[(int)kind]);
       trans_unit_corresp_pointer_of(old_ptr) = new_ptr;
-      copy_entry(old_ptr, kind);
+      copy_entry_basic(old_ptr, kind, remap_secondary_pointer);
       /* Make sure the copy is processed. */
       il_entry_prefix_of(new_ptr).il_walk_flag = !flag_value_meaning_visited;
     } else {
