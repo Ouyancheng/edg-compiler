@@ -2,6 +2,13 @@ Version 2.24, July 8, 1994
 
 7/8/94   IL version number changed to 2.16
 
+7/8/94   Incorrect handling of pragmas that begin with the same string
+
+A bug has been fixed that would result in a pragma being incorrectly
+interpreted as another pragma that begins with the same characters.
+For example, a pragma named "test1" might incorrectly have been interpreted
+as "test".
+
 7/8/94   Tag kind resolution for incompletely instantiated template class
 
 The tag kind of an incompletely instantiated template class is now
