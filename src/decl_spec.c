@@ -3008,7 +3008,9 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
   } else {
     *type_ptr = class_type;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
 done:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DEBUG
   if (debug_level >= 3) {
     db_symbol(tag_sym, "tag_sym: ", 4);
