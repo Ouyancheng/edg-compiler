@@ -39,10 +39,10 @@ namespace std {
 
   typedef void (*__new_handler)();
   __new_handler set_new_handler(__new_handler);
-  struct nothrow_t {};
+  struct nothrow_t { };
   // Declaration of object nothrow to permit the use of the placement new
   // syntax: new (nothrow) T;
-  const nothrow_t nothrow;
+  const nothrow_t nothrow = {};
 
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 }  /* namespace std */
