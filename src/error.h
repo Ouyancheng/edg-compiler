@@ -465,6 +465,76 @@ typedef enum /*an_error_code*/ {
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
+
+#define BASE_MSG_SEGMENT_SIZE 100
+				/* The starting length of a formatted
+				   message segment. */
+#define INCR_MSG_SEGMENT_SIZE BASE_MSG_SEGMENT_SIZE
+				/* The increment size to be used to lengthen
+				   a message seqment. */
+
+
+/*
+An error message being formed is represented by a linked list of message
+segment descriptors, one for each part of the error message text or fill-in.
+*/
+enum a_message_segment_kind_tag {
+/* Kind of error message segment (e.g. part of text, symbol name, or type).
+*/
+  msk_error_text_part,		/* Textual part of an error message. */
+  msk_user_string,		/* User provided string insert. */
+  msk_type,			/* Type to be expanded in the message */
+  msk_symbol,			/* Symbol name to be expanded in the
+				   message at this point. */
+  msk_last			/* Termination of the current message
+				   being formatted.  This should be the last
+				   message segment kind. */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_message_segment_kind;
+
+typedef struct msg_segment *msg_segment_ptr;
+typedef struct msg_segment {
+  msg_segment_ptr
+		next;		/* Pointer to the next message segment. */
+  char		*segment;	/* Pointer to the message segment buffer. */
+  int		length;		/* Current length of the message segment. */
+  int		max_length;	/* Maximum string size that can be accommodated
+				   in the message segment buffer. */
+  short		sequence;	/* Sequence number of the user string, type or
+				   symbol name in the error message.  This
+				   field is meaningless for kind ==
+				   msk_error_text_part. */
+  a_message_segment_kind
+		kind;		/* The kind of this message segment. */
+  union {
+    /* When kind == msk_error_text_part: */
+    char 	*msg_part;	/* Pointer into the error message text to the
+				   start of this portion of the error.  The
+				   length specifies the exact number of 
+				   characters since this portion may not have
+				   a NULL character terminator. */
+    /* When kind == msk_user_string: no variant
+				   The pointer to the user string is in
+				   error_msg_strings[]. */
+    /* When kind == msk_type: no variant
+				   The pointer to the type is in
+				   error_msg_types[]. */
+    /* When kind == msk_symbol:    The pointer to the symbol is in
+				   error_msg_syms[]. */
+    a_byte_boolean
+		full_type;
+				/* True if the symbol should be expanded
+				   into an object (type and name). */
+    a_byte_boolean
+		name_only;	/* True if only the symbol name is needed. */
+    a_byte_boolean
+		decl_pos;	/* True if the declaration position is
+				   to be generated. */
+  } variant;
+} msg_segment;
+
+
 /*
 Current error position, used as default in error reporting.  Set
 implicitly to the start of a construct whenever one is scanned (e.g.,
@@ -499,6 +569,8 @@ EXTERN unsigned long
 				 ;
 			/* Compilation is abandoned when this many errors
 			   are detected. */
+
+
 /*
 Error routines.
 */
@@ -516,6 +588,16 @@ extern void pos_remark(an_error_code     error_code,
 extern void str_remark(an_error_code error_code,
                        char          *error_string);
 extern void remark(an_error_code error_code);
+extern void pos_ty_remark(an_error_code     error_code,
+                          a_source_position *error_pos,
+                          struct a_type     *type);
+extern void type_remark(an_error_code error_code,
+                        struct a_type *type);
+extern void pos_sy_remark(an_error_code     error_code,
+                          a_source_position *error_pos,
+                          struct a_symbol   *symbol);
+extern void sym_remark(an_error_code   error_code,
+                       struct a_symbol *symbol);
 extern void pos_st_warning(an_error_code     error_code,
                            a_source_position *error_pos,
                            char              *error_string);
@@ -524,6 +606,16 @@ extern void pos_warning(an_error_code     error_code,
 extern void str_warning(an_error_code error_code,
                         char          *error_string);
 extern void warning(an_error_code error_code);
+extern void pos_ty_warning(an_error_code     error_code,
+                           a_source_position *error_pos,
+                           struct a_type     *type);
+extern void type_warning(an_error_code error_code,
+                         struct a_type *type);
+extern void pos_sy_warning(an_error_code     error_code,
+                           a_source_position *error_pos,
+                           struct a_symbol   *symbol);
+extern void sym_warning(an_error_code   error_code,
+                        struct a_symbol *symbol);
 extern void pos_st_error(an_error_code     error_code,
                          a_source_position *error_pos,
                          char              *error_string);
@@ -532,12 +624,32 @@ extern void pos_error(an_error_code     error_code,
 extern void str_error(an_error_code error_code,
                       char          *error_string);
 extern void error(an_error_code error_code);
+extern void pos_ty_error(an_error_code     error_code,
+                         a_source_position *error_pos,
+                         struct a_type     *type);
+extern void type_error(an_error_code error_code,
+                       struct a_type *type);
+extern void pos_sy_error(an_error_code     error_code,
+                         a_source_position *error_pos,
+                         struct a_symbol   *symbol);
+extern void sym_error(an_error_code   error_code,
+                      struct a_symbol *symbol);
 extern void pos_st_catastrophe(an_error_code     error_code,
                                a_source_position *error_pos,
                                char              *error_string);
 extern void str_catastrophe(an_error_code error_code,
                             char          *error_string);
 extern void catastrophe(an_error_code error_code);
+extern void pos_ty_catastrophe(an_error_code     error_code,
+                               a_source_position *error_pos,
+                               struct a_type     *type);
+extern void type_catastrophe(an_error_code error_code,
+                             struct a_type *type);
+extern void pos_sy_catastrophe(an_error_code     error_code,
+                               a_source_position *error_pos,
+                               struct a_symbol   *symbol);
+extern void sym_catastrophe(an_error_code   error_code,
+                            struct a_symbol *symbol);
 
 /* Report a syntax error, flush to a token in the stop set. */
 extern void syntax_error(an_error_code error_code);
