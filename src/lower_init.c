@@ -46,10 +46,8 @@ static void lower_destructor_dynamic_init(
                                    an_init_pos_descr_ptr  ipdp,
                                    a_boolean              have_complete_object,
                                    an_insert_location_ptr insert_location);
-#if GENERATE_EH_TABLES
 static void reset_conditional_flag_var(a_variable_ptr     conditional_flag_var,
                                        an_insert_location *insert_location);
-#endif /* GENERATE_EH_TABLES */
 
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
@@ -2505,7 +2503,6 @@ to a nonzero value.
                             insert_location);
 }  /* set_conditional_flag_var */
 
-#if GENERATE_EH_TABLES
 
 static void reset_conditional_flag_var(a_variable_ptr     conditional_flag_var,
                                        an_insert_location *insert_location)
@@ -2522,7 +2519,6 @@ variable to a zero value.
                             insert_location);
 }  /* reset_conditional_flag_var */
 
-#endif /* GENERATE_EH_TABLES */
 
 /*
 Pointer to the struct type used to provide information to the runtime about
