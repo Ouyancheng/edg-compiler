@@ -111,6 +111,16 @@ the primary translation unit IL.
   a_scope_ptr	il_scope;
 
   il_scope = curr_translation_unit->primary_scope;
+
+  /* Reactivate the file scope. */
+  push_file_scope();
+
+  /* Do the wrapup_scope processing on file and namespace scopes. */
+  wrapup_namespace_scopes(il_scope);
+  wrapup_scope(il_scope, (a_scope_kind)sck_file,
+               &curr_translation_unit->file_scope_pointers_block,
+               /*is_namespace_wrapup=*/FALSE);
+
   if (!C_mode()) {
     /* Go through the fixup list for based-type entries and remove entities
        as required. */
@@ -129,6 +139,14 @@ the primary translation unit IL.
 
   /* Clear out the shareable constants table for the file scope. */
   empty_shareable_constants_table();
+
+  if (!C_mode()) {
+    /* Pop the file scope object lifetime.  This must be done after IL
+       lowering. */
+    check_assertion(curr_object_lifetime ==
+                    scope_stack[depth_scope_stack].curr_scope_object_lifetime);
+    (void)pop_object_lifetime();
+  }  /* if */
 
 #if DO_IL_LOWERING
   if (!C_mode()) {
@@ -185,6 +203,8 @@ the primary translation unit IL.
     update_inline_function_flags();
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  /* Pop the file scope. */
+  pop_scope();
   check_for_done_with_memory_region(file_scope_region_number);
 }  /* file_scope_il_wrapup */
 

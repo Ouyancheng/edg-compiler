@@ -36,12 +36,19 @@ typedef struct a_translation_unit {
 		next;
 			/* Pointer to the next entry on a list of translation
 			   units, or NULL for the last entry. */
+  a_scope_ptr	primary_scope;
+			/* The file scope of the translation unit. */
   a_void_ptr	variables_block;
 			/* Pointer to the block of memory used to store
 			   variables that are saved and restored when
 			   switching between translation units. */
-  a_scope_ptr	primary_scope;
-			/* The file scope of the translation unit. */
+  a_scope_pointers_block
+		file_scope_pointers_block;
+			/* A block of pointers that are logically part of the
+			   scope stack entry for the file scope.  This needs
+			   to be a separate structure so that the file scope
+			   can be reactivated while preserving the pointers
+			   to lists of IL entries, symbols, etc. */
 } a_translation_unit;
 
 

@@ -1118,8 +1118,14 @@ the scope being pushed.
   /* Allocate the IL scope entry if one is needed. */
   switch (kind) {
     case sck_file:
+      /* Activate or reactivate the file scope. */
+      sp = curr_translation_unit->primary_scope;
+      sp->depth_in_scope_stack = depth_scope_stack;
+      switch_il_region(file_scope_region_number);
+      ssep->il_memory_region = curr_il_region_number;
+      break;
     case sck_function:
-      /* Start a new memory region for the file scope or a function scope.
+      /* Start a new memory region for a function scope.
          This ensures that the intermediate language is divided into 
          manageable pieces.  This call also allocates the top-level
          scope entry for the region. */
@@ -1543,6 +1549,11 @@ the scope being pushed.
         depth_innermost_namespace_scope =
               ssep->depth_innermost_namespace_scope = depth_scope_stack;
       }  /* if */
+    } else if (kind == (a_scope_kind)sck_file) {
+      /* For the file scope, use the pointers block allocated in the
+         translation unit entry. */
+      ssep->assoc_pointers_block = &curr_translation_unit->
+                                                    file_scope_pointers_block;
     }  /* if */
     if (kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_template_instantiation ||
@@ -1633,16 +1644,22 @@ the scope being pushed.
       curr_object_lifetime =
                    scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
     }  /* if */
-    if (kind == (a_scope_kind)sck_file ||
-        kind == (a_scope_kind)sck_function ||
-        kind == (a_scope_kind)sck_block ||
-        kind == (a_scope_kind)sck_condition) {
-      /* This is the sort of scope for which a new object lifetime is
+    if (kind == (a_scope_kind)sck_file) {
+      /* Push an object lifetime for the file scope, or reuse one if this
+         is a reactivation. */
+      curr_object_lifetime = sp->lifetime;
+      if (curr_object_lifetime == NULL) {
+        push_object_lifetime((an_il_entry_kind)iek_scope, (char *)sp,
+                             (an_object_lifetime_kind)(olk_global_static));
+      }  /* if */
+      ssep->curr_scope_object_lifetime = curr_object_lifetime;
+    } else if (kind == (a_scope_kind)sck_function ||
+               kind == (a_scope_kind)sck_block ||
+               kind == (a_scope_kind)sck_condition) {
+      /* This is the sort of scope for which a new block object lifetime is
          pushed. */
       push_object_lifetime((an_il_entry_kind)iek_scope, (char *)sp,
-                           (an_object_lifetime_kind)(
-                                (kind == (a_scope_kind)sck_file) ?
-                                   olk_global_static : olk_block));
+                           (an_object_lifetime_kind)(olk_block));
       ssep->curr_scope_object_lifetime = curr_object_lifetime;
     }  /* if */
   }  /* if */
@@ -1677,6 +1694,16 @@ instantiation scopes.
                           (a_template_decl_info_ptr)NULL, PS_NO_OPTIONS);
   return scope;
 }  /* push_scope */
+
+
+void push_file_scope(void)
+/*
+Activate or reactivate the file scope of the current translation unit.
+*/
+{
+  (void)push_scope((a_scope_kind)sck_file, file_scope_number, (a_type_ptr)NULL,
+                   (a_routine_ptr)NULL);
+}  /* push_file_scope */
 
 
 a_scope_ptr push_for_init_scope(void)
@@ -3671,7 +3698,6 @@ in cfront compatibility mode.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 
 
-static
 void wrapup_scope(a_scope_ptr			scope_ptr,
                   a_scope_kind			kind,
                   a_scope_pointers_block_ptr	pointers_block,
@@ -3709,6 +3735,20 @@ unit.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* DEBUG */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  if (!C_mode() && total_errors == 0) {
+    if (kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_block ||
+        kind == (a_scope_kind)sck_file) {
+      /* Now that all declarations in the scope have been seen, check for
+         name hiding.  The hidden name table assists the C++-generating back
+         end to determine when to put out qualified names and elaborated
+         type specifiers.  Note that namespace and class scopes are handled
+         when the scopes in which they are directly nested are processed. */
+      check_name_hiding_for_scope(scope_ptr);
+    }  /* if */
+  }  /* if */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   if (kind == (a_scope_kind)sck_namespace_extension ||
       kind == (a_scope_kind)sck_namespace_reactivation) {
     /* Symbol processing is not done for namespace extension and
@@ -3870,7 +3910,7 @@ unit.
 }  /* wrapup_scope */
 
 
-static void wrapup_namespace_scopes(a_scope_ptr scope_ptr)
+void wrapup_namespace_scopes(a_scope_ptr scope_ptr)
 /*
 Call wrapup_scope for any namespace scopes defined within the scope
 pointed to by scope_ptr.
@@ -4199,28 +4239,17 @@ End a name scope by popping an entry off the scope stack.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
     }  /* if */
   }  /* if */
-#if RECORD_HIDDEN_NAMES_IN_IL
-  if (!C_mode() && total_errors == 0) {
-    if (kind == (a_scope_kind)sck_function ||
-        kind == (a_scope_kind)sck_block ||
-        kind == (a_scope_kind)sck_file) {
-      /* Now that all declarations in the scope have been seen, check for
-         name hiding.  The hidden name table assists the C++-generating back
-         end to determine when to put out qualified names and elaborated
-         type specifiers.  Note that namespace and class scopes are handled
-         when the scopes in which they are directly nested are processed. */
-      check_name_hiding_for_scope(ssep->il_scope);
-    }  /* if */
-  }  /* if */
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   /* Get a new pointer to the current scope stack entry in case the scope
      stack has been reallocated (e.g., by check_name_hiding_for_scope). */
   ssep = &scope_stack[depth_scope_stack];
   pointers_block = assoc_pointers_block_of(ssep);
-  /* Remove symbols from the symbol table, and reenter them on the
-     inactive list if necessary. */
-  wrapup_scope(ssep->il_scope, kind, pointers_block,
-               /*is_namespace_wrapup=*/FALSE);
+  /* For the file scope, this processing is done in file_scope_il_wrapup. */
+  if (ssep->kind != (sck_file)) {
+    /* Remove symbols from the symbol table, and reenter them on the
+       inactive list if necessary. */
+    wrapup_scope(ssep->il_scope, kind, pointers_block,
+                 /*is_namespace_wrapup=*/FALSE);
+  }  /* if */
   il_scope = ssep->il_scope;
   if (C_dialect == C_dialect_cplusplus && il_scope != NULL) {
     if (kind == (a_scope_kind)sck_function ||
@@ -4247,12 +4276,6 @@ End a name scope by popping an entry off the scope stack.
     end_of_scope_pragma_processing(ssep->pending_pragmas);
   }  /* if */
   if (!C_mode()) {
-    /* Special processing if this is the file scope. */
-    if (kind == (a_scope_kind)sck_file) {
-      /* Call a routine to do end-of-scope processing for any namespace scopes
-         that may exist. */
-      wrapup_namespace_scopes(il_header.primary_scope);
-    }  /* if */
     /* If the scope specified additional using directives, clear all of the
        active using list flags, and reset them to the values specified
        by the previous scope stack entries. */
@@ -4460,13 +4483,6 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
   }  /* if */
   if (!C_mode()) {
-    /* Pop the file scope object lifetime.  This must be done after IL
-       lowering. */
-    if (kind == (a_scope_kind)sck_file) {
-      check_assertion(curr_object_lifetime ==
-                      ssep->curr_scope_object_lifetime);
-      (void)pop_object_lifetime();
-    }  /* if */
 #if DO_IL_LOWERING
     if (!old_region_still_needed && il_lowering_needed()) {
       /* If we're not supposed to pass object lifetime information to the back

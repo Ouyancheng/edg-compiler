@@ -212,6 +212,7 @@ a pointer to the entry created.
   /* Allocate the variable block for this translation unit. */
   tup->variables_block = alloc_fe(trans_unit_var_block_size);
   tup->primary_scope = NULL;
+  clear_scope_pointers_block(&tup->file_scope_pointers_block);
   return tup;
 }  /* alloc_translation_unit */
 

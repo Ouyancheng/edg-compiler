@@ -888,6 +888,8 @@ extern a_scope_ptr push_scope(a_scope_kind       kind,
                               a_type_ptr         assoc_type,
                               a_routine_ptr      assoc_routine);
 
+extern void push_file_scope(void);
+
 extern
 void push_template_declaration_scope(a_template_decl_info_ptr decl_info);
 
@@ -961,6 +963,14 @@ extern void pop_name_linkage(void);
 extern void set_needed_flags_at_end_of_file_scope(a_scope_ptr scope);
 
 extern void clear_scope_pointers_block(a_scope_pointers_block_ptr  spbp);
+
+extern void wrapup_namespace_scopes(a_scope_ptr scope_ptr);
+
+extern
+void wrapup_scope(a_scope_ptr			scope_ptr,
+                  a_scope_kind			kind,
+                  a_scope_pointers_block_ptr	pointers_block,
+                  a_boolean 	                is_namespace_wrapup);
 
 extern void scope_stk_one_time_init(void);
 

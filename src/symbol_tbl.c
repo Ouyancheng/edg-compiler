@@ -10257,7 +10257,7 @@ given translation unit.
     /* In secondary translation units, the scope numbering continues where it
        left off, and the file scope number is the next available number.
        For primary translation units, file_scope_number is already set to 0. */
-    file_scope_number = next_scope_number;
+    file_scope_number = take_next_scope_number();
   }  /* if */
 }  /* symbol_tbl_trans_unit_init */
 
