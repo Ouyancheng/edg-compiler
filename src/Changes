@@ -1,5 +1,36 @@
 Version 2.30
 
+10/2/95  C++-generating back end: extern "C" on declarations within functions
+
+The C++-generating back end now suppresses extern "C" on declarations
+within functions.  extern "C" is not allowed to appear there, and can
+be on the IL entry only because of an extern "C" { ... } wrapper around
+the entire function.
+
+  extern "C" {
+    void f() {
+      extern void g();  // Formerly put out with extern "C"
+    }
+  }
+
+10/2/95  Obscure IL lowering bug causes bad generated C
+
+In a case where a member function was declared, used in a pointer
+to member within a function, called, and then defined, the generated
+code for the call included a cast to a routine type which was not
+lowered and therefore had the wrong number of parameters.  Now fixed.
+
+  struct A
+  {
+   void h();
+   void g();
+  };
+  void f() {
+    void (A::*p)() = &A::h;
+  }
+  void A::g() {h();}  // Call pointed to unlowered routine type
+  void A::h() {}
+
 10/2/95  pragma binding with elaborated type specifiers
 
 A bug has been fixed in how a "next-construct" pragma binds when an
