@@ -3916,10 +3916,10 @@ do_assignment:;
           check_assertion(dip->variant.constant->kind ==
                           (a_constant_repr_kind)ck_aggregate);
           init_val_node = make_node_for_il_constant(dip->variant.constant);
-          insert_assignment_statement(entity_node,
-                                      (an_expr_operator_kind)eok_sassign,
-                                      init_val_node,
-                                      &insert_location2);
+          (void)insert_assignment_statement(entity_node,
+                                            (an_expr_operator_kind)eok_sassign,
+                                            init_val_node,
+                                            &insert_location2);
           variable->init_kind = (an_init_kind)initk_none;
           variable->initializer.constant = NULL;
         }  /* if */
