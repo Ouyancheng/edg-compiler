@@ -3493,7 +3493,7 @@ typedef struct a_class_type_supplement {
 			/* For template entities this points to information
 			   describing the template parameterization of that
 			   entity; otherwise, this is NULL. */
-  a_type_ptr
+  a_template_ptr
 		assoc_template;
 			/* For instantiated entities, this points to the
 			   prototype instantiation of the template from which
@@ -4706,7 +4706,7 @@ typedef struct a_variable {
 			/* For template entities this points to information
 			   describing the template parameterization of that
 			   entity; otherwise, this is NULL. */
-  a_variable_ptr
+  a_template_ptr
 		assoc_template;
 			/* For instantiated entities, this points to the
 			   prototype instantiation of the template from which
@@ -5277,7 +5277,7 @@ typedef struct a_routine {
 			/* For template entities this points to information
 			   describing the template parameterization of that
 			   entity; otherwise, this is NULL. */
-  a_routine_ptr
+  a_template_ptr
 		assoc_template;
 			/* For instantiated entities, this points to the
 			   prototype instantiation of the template from which

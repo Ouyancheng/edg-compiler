@@ -1569,7 +1569,7 @@ Display the indicated variable.
     disp_template_decl("template_decl", ptr->template_decl);
   }  /* if */
   if (ptr->assoc_template != NULL) {
-    disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_type);
+    disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
   }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -2044,7 +2044,7 @@ Display the indicated routine.
     disp_template_decl("template_decl", ptr->template_decl);
   }  /* if */
   if (ptr->assoc_template != NULL) {
-    disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_type);
+    disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
   }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (ptr->template_arg_list != NULL) {
@@ -4070,7 +4070,7 @@ Display the indicated class type supplement entry.
     disp_template_decl("template_decl", ptr->template_decl);
   }  /* if */
   if (ptr->assoc_template != NULL) {
-    disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_type);
+    disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
   }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (ptr->template_arg_list != NULL) {

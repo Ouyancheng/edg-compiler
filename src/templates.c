@@ -3260,6 +3260,11 @@ and the class instantiation will detect the runaway case.
   /* Note that Microsoft decl_modifiers are not processed on static
      data member definitions.  Microsoft does not allow this either. */
 #endif /* 0 */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (prototype_instantiations_in_il) {
+    var_ptr->assoc_template = tssp->il_template_entry;
+  }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 done:
   /* The already instantiated flag is set even if certain error conditions
      exist (such as runaway instantiation), to prevent the compiler from
@@ -3798,18 +3803,8 @@ prototype instantiation is considered as a potential match.
          must be fetched from the prototype template (e.g., X<T>::Y).  Hence
          we cannot just use prototype_sym. */
       a_symbol_ptr  proto_template = prototype_template_of(class_template_sym);
-      a_symbol_ptr  proto_instantiation =
-               proto_template->variant.template_info
-                             ->variant.class_template.prototype_instantiation;
-      if (proto_instantiation != NULL) {
-        ctsp->assoc_template = proto_instantiation
-                                            ->variant.class_struct_union.type;
-      } else {
-        /* Proxy template members (i.e., member templates of nonreal classes)
-           do not have an associated prototype instantiation. */
-        check_assertion(total_errors != 0 ||
-                        proto_template->is_nonreal_member);
-      }  /* if */
+      ctsp->assoc_template =
+                     proto_template->variant.template_info->il_template_entry;
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     set_source_corresp(&(class_type->source_corresp), sym);
@@ -6780,7 +6775,7 @@ type based on the template argument list and the template parameter list
     rp->template_arg_list = templ_arg_list;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (prototype_instantiations_in_il) {
-      rp->assoc_template = templ_rout;
+      rp->assoc_template = tssp->il_template_entry;
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if DECL_MODIFIERS_IN_USE
