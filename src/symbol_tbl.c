@@ -1990,6 +1990,7 @@ to the symbol supplement associated with sym.
   tcsp->last_token = NULL;
   tcsp->is_friend = FALSE;
   tcsp->is_default_arg = FALSE;
+  tcsp->default_arg_missing = FALSE;
   /* Add the new entry to the list of template cache segments associated
      with the current instantiation.  If there is no current instantiation,
      use the current template declaration scope. */

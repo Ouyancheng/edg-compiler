@@ -2499,10 +2499,16 @@ can still be put in the token string that is generated.
   replacement_token = build_cached_token(tok_removed_default_arg,
                                          tcsp->first_token_number,
                                          &first_token->source_position);
-  /* Link the replacement token into the cache in the place of
-     the default argument. */
-  replacement_token->next = last_token->next;
-  before_first_token->next = replacement_token;
+  if (tcsp->default_arg_missing) {
+    /* The default argument was empty.  Insert the replacement token. */
+    replacement_token->next = before_first_token->next;
+    before_first_token->next = replacement_token;
+  } else {
+    /* Link the replacement token into the cache in the place of
+       the default argument. */
+    replacement_token->next = last_token->next;
+    before_first_token->next = replacement_token;
+  }  /* if */
   /* Flag the replacement token as representing an extracted body.  This
      is somewhat redundant as in this particular case the token kind
      already indicates that. */

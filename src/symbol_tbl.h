@@ -1487,6 +1487,10 @@ typedef struct a_template_cache_segment {
 		is_default_arg;
 			/* TRUE if this entry represents a default argument
 			   expression. */
+  a_byte_boolean
+		default_arg_missing;
+			/* TRUE if the default argument expression is empty.
+			   (e.g., "void f(int=)"). */
 } a_template_cache_segment;
 
 

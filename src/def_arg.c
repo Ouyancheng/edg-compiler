@@ -172,16 +172,17 @@ be FALSE when either is_function_template or is_template_param are FALSE.
     /* This is a function default argument within a prototype instantiation
        or in a template declaration.  Save the token numbers associated with
        this default argument so that it can be removed from the cache later. */
-    if (token_cache->first_token != NULL) {
-      /* Only create a template cache segments if there are actually tokens in
-         the cache.  In certain error cases, there might not be. */
-      a_template_cache_segment_ptr	tcsp;
-      tcsp = alloc_template_cache_segment(
+    a_template_cache_segment_ptr	tcsp;
+    tcsp = alloc_template_cache_segment(
                    (a_symbol_ptr)NULL, (a_template_symbol_supplement_ptr)NULL);
-      tcsp->first_token_number = first_tsn;
-      tcsp->last_token_number = last_tsn;
-      tcsp->is_default_arg = TRUE;
-    }  /* if */
+    tcsp->first_token_number = first_tsn;
+    /* When there is no default, the computed last token number could be
+       less that the first.  In that case, use the first token number as
+       the last. */
+    tcsp->last_token_number = last_tsn < first_tsn ? first_tsn : last_tsn;
+    tcsp->is_default_arg = TRUE;
+    /* Check for the case where the cache is empty. */
+    tcsp->default_arg_missing = token_cache->first_token == NULL;
   }  /* if */
   /* Note that the terminating token (comma, rparen, etc.) is not added to
      the cache. */
