@@ -1495,22 +1495,27 @@ a typedef, is_typedef is TRUE.
       }  /* if */
       break;
     case ak_transparent_union:
-      if (tp->kind != (a_type_kind)tk_union) {
-        pos_ty_error(ec_transparent_type_is_not_union,
-                     &ap->position, tp);
-      } else if (is_typedef && is_incomplete_type(tp)) {
-        pos_warning(ec_transparent_attribute_ignored, &ap->position);
-      } else if (!is_typedef) {
-        /* We cannot do any checking in the non-typedef case because
-           the type has not yet been laid out.  When do_class_layout
-           processes the type, it will call check_transparent_union 
-           to make sure that the attribute is legal. */
-        tp->variant.class_struct_union.is_transparent = TRUE;
-      } else if (check_transparent_union(tp, &ap->position)) {
-        /* In the typedef case, the type has already been laid out
-           so we can do the check now. */
-        tp->variant.class_struct_union.is_transparent = TRUE;
-      }  /* if */
+      {
+        /* If tp is a typedef, the transparent_union attribute applies to
+           the underlying type. */
+        a_type_ptr  underlying_type = skip_typerefs(tp);
+        if (underlying_type->kind != (a_type_kind)tk_union) {
+          pos_ty_error(ec_transparent_type_is_not_union,
+                       &ap->position, tp);
+        } else if (is_typedef && is_incomplete_type(underlying_type)) {
+          pos_warning(ec_transparent_attribute_ignored, &ap->position);
+        } else if (!is_typedef) {
+          /* We cannot do any checking in the non-typedef case because
+             the type has not yet been laid out.  When do_class_layout
+             processes the type, it will call check_transparent_union 
+             to make sure that the attribute is legal. */
+          underlying_type->variant.class_struct_union.is_transparent = TRUE;
+        } else if (check_transparent_union(underlying_type, &ap->position)) {
+          /* In the typedef case, the type has already been laid out
+             so we can do the check now. */
+          underlying_type->variant.class_struct_union.is_transparent = TRUE;
+        }  /* if */
+      }
       break;
 #if GNU_X86_ATTRIBUTES_ALLOWED
     case ak_cdecl:
