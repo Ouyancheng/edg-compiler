@@ -1850,7 +1850,8 @@ the template.
     decl_pos_block->specifiers_range.end =
                              local_decl_pos_block.specifiers_range.end;
   }  /* if */
-  if (is_class_definition || !is_redeclaration) {
+  if (is_class_definition ||
+      (!is_redeclaration && tag_sym->kind != (a_symbol_kind)sk_type)) {
     /* If this is the initial or defining declaration of the class, update
        the extra source information for the class type. */
     a_decl_position_supplement_ptr  dpsp = class_type->
