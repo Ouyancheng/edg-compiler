@@ -4531,8 +4531,7 @@ discarded right after they have been generated.
     /* This is a prototype instantiation, and we're not keeping prototype
        instantiations in the IL. */
     discard = TRUE;
-  } else if (translation_unit_needed_only_for_exported_templates &&
-             (!routine->is_template_function || routine->is_specialized)) {
+  } else if (is_nontemplate_routine_from_exported_trans_unit(routine)) {
     /* This is a non-template or a specialization in a secondary translation
        unit that is being compiled only for its exported templates.
        Discard it. */

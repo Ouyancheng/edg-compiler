@@ -785,36 +785,31 @@ get exported templates, and the given routine is not a generated template,
 do any necessary processing, e.g., externalizing it if it is static.
 */
 {
-  if (translation_unit_needed_only_for_exported_templates) {
-    if (!routine->is_template_function || routine->is_specialized) {
-      /* The function is not a generated template. */
-      /* The definition should have been eliminated at pop_scope
-         time (the definition will be put out when the file is compiled
-         as a primary file) unless the routine is inline. */
-      check_assertion(routine->assoc_scope == NULL_region_number ||
-                      routine->is_inline);
+  /* The definition should have been eliminated at pop_scope
+     time (the definition will be put out when the file is compiled
+     as a primary file) unless the routine is inline. */
+  check_assertion(routine->assoc_scope == NULL_region_number ||
+                  routine->is_inline);
 #if DO_IL_LOWERING
-      if (il_lowering_needed() &&
-          routine->storage_class == (a_storage_class)sc_static) {
-        /* A static function referenced from a template is changed to an
-           external declaration and copied over. */
-        externalize_source_correspondence(&routine->source_corresp,
-                                          /*is_variable=*/FALSE);
-        if (routine->assoc_scope == NULL_region_number) {
-          routine->storage_class = (a_storage_class)sc_extern;
-        } else {
-          /* A static inline function becomes external, but not exactly
-             extern inline (it isn't instantiated). */
-          check_assertion(routine->is_inline);
-          routine->storage_class = (a_storage_class)sc_unspecified;
+  if (il_lowering_needed() &&
+      routine->storage_class == (a_storage_class)sc_static) {
+    /* A static function referenced from a template is changed to an
+       external declaration and copied over. */
+    externalize_source_correspondence(&routine->source_corresp,
+                                      /*is_variable=*/FALSE);
+    if (routine->assoc_scope == NULL_region_number) {
+      routine->storage_class = (a_storage_class)sc_extern;
+    } else {
+      /* A static inline function becomes external, but not exactly
+         extern inline (it isn't instantiated). */
+      check_assertion(routine->is_inline);
+      routine->storage_class = (a_storage_class)sc_unspecified;
 #if INSTANTIATE_EXTERN_INLINE
-          routine->suppress_inline_body = TRUE;
+      routine->suppress_inline_body = TRUE;
 #endif /* INSTANTIATE_EXTERN_INLINE */
-        }  /* if */
-      }  /* if */
-#endif /* DO_IL_LOWERING */
     }  /* if */
   }  /* if */
+#endif /* DO_IL_LOWERING */
 }  /* process_routine_if_unneeded_non_template */
 
 #if CHECKING
@@ -1261,7 +1256,9 @@ to the secondary translation unit.
     /* If we're supposed to copy only generated templates, other routines
        are made external (if necessary) and their definitions are
        dropped. */
-    process_routine_if_unneeded_non_template(routine);
+    if (is_nontemplate_routine_from_exported_trans_unit(routine)) {
+      process_routine_if_unneeded_non_template(routine);
+    }  /* if */
     if (entry_should_be_copied(routine)) {
       /* The routine doesn't exist in the primary IL, and just gets copied
          over. */

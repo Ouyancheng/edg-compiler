@@ -17834,7 +17834,8 @@ emitted in this translation unit.
        certain compiler generated functions that might result in errors. */
     result = rout_ptr->inline_instance_required;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  } else if (inline_function_in_request_file(rout_ptr)) {
+  } else if (inline_function_in_request_file(rout_ptr) &&
+             !is_nontemplate_routine_from_exported_trans_unit(rout_ptr)) {
     result = TRUE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
@@ -18984,6 +18985,38 @@ Add the routine to an "instantiation list" of inline functions.
     rout_ptr->on_inline_function_list = TRUE;
   }  /* if */
 }  /* add_to_inline_function_list */
+
+
+a_boolean is_nontemplate_routine_from_exported_trans_unit(
+							a_routine_ptr rout_ptr)
+/*
+Return TRUE if a routine is from a secondary translation unit loaded
+to defined exported templates and is not a routine that should be
+retained.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (translation_unit_needed_only_for_exported_templates) {
+    if ((!(rout_ptr)->is_template_function || (rout_ptr)->is_specialized)) {
+      /* A non-template function or a specialized template function. */
+      result = TRUE;
+      if (rout_ptr->compiler_generated) {
+        /* If the parent class of a compiler generated function is a template
+           class, treat it as a template function. */
+        if (rout_ptr->source_corresp.is_class_member) {
+          a_type_ptr	parent_class;
+          parent_class = rout_ptr->source_corresp.parent.class_type;
+          if (parent_class->variant.class_struct_union.is_template_class &&
+              !parent_class->variant.class_struct_union.is_specialized) {
+            result = FALSE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_nontemplate_routine_from_exported_trans_unit */
 
 
 #if DEBUG

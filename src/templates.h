@@ -432,6 +432,9 @@ EXTERN a_boolean
   }  /* if */							        \
 }
 
+extern a_boolean is_nontemplate_routine_from_exported_trans_unit(
+						a_routine_ptr rout_ptr);
+
 #if DEBUG
 extern unsigned long db_show_template_space_used(unsigned long grand_total);
 #endif /* DEBUG */
