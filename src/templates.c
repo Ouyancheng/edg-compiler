@@ -14832,9 +14832,13 @@ caller.
       /* If the parent is a template class instance, find the corresponding
          parent class in the translation unit containing the template. */
       a_type_ptr		parent_class;
+      a_symbol_ptr		parent_class_sym;
       check_assertion(tip->instance_sym->is_class_member);
       parent_class = tip->instance_sym->parent.class_type;
-      if (parent_class->variant.class_struct_union.is_template_class) {
+      parent_class_sym = (a_symbol_ptr)parent_class->source_corresp.assoc_info;
+      /* Note that this is done only for instances of class templates, not
+         nested classes of class templates. */
+      if (is_template_class_symbol(parent_class_sym)) {
         /* The parent class is a template instance. */
         a_symbol_ptr	old_parent_sym;
         a_symbol_ptr	new_parent_sym;
