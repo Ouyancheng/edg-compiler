@@ -4832,6 +4832,7 @@ otherwise it is NULL.  The syntax is:
   abstract_declarator_allowed = input_flags & DI_ABSTRACT_DECLARATOR_ALLOWED;
   is_constructor = (input_flags & DI_IS_CONSTRUCTOR) != 0;
   parenthesized_initializer_allowed =
+                       (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED);
   nonconstant_dimension_allowed =
                             (input_flags & DI_DIMENSION_EXPRESSION_ALLOWED);
   if (!real_declarator_allowed) {
@@ -4848,12 +4849,6 @@ otherwise it is NULL.  The syntax is:
                                      &bottom_pointer_derived_type,
                                      /*reference_allowed=*/
                                        C_dialect == C_dialect_cplusplus);
-  parenthesized_initializer_allowed =
-                   (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED) &&
-                   (is_arithmetic_type(complete_type) ||
-                    is_ptr_or_ref_type(complete_type) ||
-                    is_class_struct_union_type(complete_type) ||
-                    is_ptr_to_member_type(complete_type));
   derived_type = NULL;
   bottom_derived_type = NULL;
   add_stop_token(tok_lbracket);
@@ -4890,6 +4885,8 @@ otherwise it is NULL.  The syntax is:
                &bottom_derived_type, func_info, dim_expr_ptr);
     if (local_do_flags & DO_REAL_DECLARATOR_SCANNED) {
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
+    } else {
+      parenthesized_initializer_allowed = FALSE;
     }  /* if */
     /* A nonconstant dimension, if allowed at all, is allowed only on the
        topmost type (an interpretation of the language specification in ARM
@@ -4909,6 +4906,7 @@ otherwise it is NULL.  The syntax is:
          tk_unknown type. */
       check_assertion(specifiers_type == NULL ||
                       !is_unknown_type(specifiers_type));
+      parenthesized_initializer_allowed = FALSE;
     } else {
       /* Real (non-abstract) declarator. */
       declarator_pos = pos_curr_token;
@@ -5188,8 +5186,20 @@ otherwise it is NULL.  The syntax is:
          start of a parenthesized initializer (C++ only). */
       /* Advance past the left parenthesis. */
       (void)get_token();
-      if (parenthesized_initializer_allowed) {
-        if (curr_token != tok_rparen && curr_token != tok_ellipsis &&
+      if (parenthesized_initializer_allowed &&
+          curr_token != tok_rparen && curr_token != tok_ellipsis) {
+        /* The context and other information we have about the declarator do
+           not preclude a parenthesized initializer.  Nor does the token
+           following the left paren.  Be sure the declarator type (which
+           has not yet been assembled) is one for which a parenthesized
+           initializer is legal and see if the token(s) following the
+           left paren are not declarations. */
+        a_type_ptr  tp;
+
+        tp = derived_type != NULL ? derived_type : complete_type;
+        check_assertion(tp != NULL);
+        if ((is_arithmetic_type(tp) || is_ptr_or_ref_type(tp) ||
+             is_class_struct_union_type(tp) || is_ptr_to_member_type(tp)) &&
             !is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
                               /*real_declarator_allowed=*/TRUE)) {
           a_boolean  is_function_decl = FALSE;
@@ -5231,15 +5241,6 @@ otherwise it is NULL.  The syntax is:
             rescan_cached_tokens(&cache);
           }  /* if */
           if (!is_function_decl) {
-#if CHECKING
-            a_type_ptr  tp = skip_typerefs(complete_type);
-            if (!is_scalar_type(tp) && !is_ptr_or_ref_type(tp)) {
-              /* Should have been checked when the input flag was defined. */
-              if (!is_class_struct_union_type(tp)) {
-                internal_error("declarator: unexpected type for paren init");
-              }  /* if */
-            }  /* if */
-#endif /* CHECKING */
             *output_flags |= DO_PARENTHESIZED_INITIALIZER;
             /* Function_declarator should not be called, so exit the loop. */
             break;
@@ -5322,7 +5323,6 @@ function_lparen:
        Note that this involves error checking. */
     add_to_derived_type_list(new_type_ptr,
                              &derived_type, &bottom_derived_type);
-    parenthesized_initializer_allowed = FALSE;
   }  /* while */
   remove_stop_token(tok_lbracket);
   remove_stop_token(tok_lparen);
