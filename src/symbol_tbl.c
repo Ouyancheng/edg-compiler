@@ -2498,9 +2498,13 @@ symbol lookup.
 
   db_enter(4, "enter_extern_symbol");
   sym = alloc_symbol(sym_kind, header, &locator->source_position);
-  /* Just add the entry to the front of the list. */
-  sym->next = header->extern_symbols;
-  header->extern_symbols = sym;
+  if (is_error_locator(*locator)) {
+    sym->is_error = TRUE;
+  } else {
+    /* Just add the entry to the front of the list. */
+    sym->next = header->extern_symbols;
+    header->extern_symbols = sym;
+  }  /* if */
   /* Set namespace membership, if required. */
   if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
     set_namespace_membership(sym, (a_source_correspondence *)NULL,
