@@ -401,14 +401,14 @@ Display the indicated access specifier with a name.
 
 #endif /* ifdef CFE */
 
-static void disp_name_linkage(char           *name,
-                              a_name_linkage nlk)
+static void disp_name_linkage(char                 *name,
+                              a_name_linkage_kind  nlk)
 /*
 Display the indicated field name and name linkage kind.
 */
 {
   disp_name("  name_linkage");
-  switch ((a_name_linkage_kind)scp->name_linkage) {
+  switch (nlk) {
     case nlk_none:
       (void)printf("nlk_none\n");
       break;
@@ -738,9 +738,9 @@ Display a_routine_type_supplement.
   if (ptr->assoc_routine_is_dtor) {
     disp_boolean("assoc_routine_is_dtor", TRUE);
   }  /* if */
-  if (ptr->assoc_routine_name_linkage != (a_name_linkage_kind)nlk_none) {
-    disp_name_linkage("assoc_routine_linkage_name",
-                      (a_name_linkage_kind)ptr->assoc_routine_name_linkage)
+  if (ptr->routine_name_linkage != (a_name_linkage_kind)nlk_none) {
+    disp_name_linkage("routine_name_linkage",
+                      (a_name_linkage_kind)ptr->routine_name_linkage);
   }  /* if */
   if (ptr->lint_varargs_count != NOT_LINT_VARARGS) {
     disp_long("lint_varargs_count", (long)ptr->lint_varargs_count);
