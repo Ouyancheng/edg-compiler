@@ -224,10 +224,16 @@ typedef enum /*a_template_instantiation_mode*/ {
 		   that have been referenced. */ 
   tim_used,	/* Instantiate template functions that have been referenced
 		   and only those member functions that have been used. */
-  tim_local	/* Similar to tim_used except the functions are given
+  tim_local,	/* Similar to tim_used except the functions are given
 		   internal linkage so that they can be instantiated in
 		   multiple compilation units.  This is a simple mechanism
 		   that can be used to get started with templates. */
+  tim_can_instantiate
+		/* A special mode used during processing of can_instantiate
+		   pragmas.  This mode causes entries to the
+		   instantiation required list to be entered with the
+		   instantiation required flag set to FALSE.  This option
+		   cannot be specified on the command line. */
 } a_template_instantiation_mode;
 
 
