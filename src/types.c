@@ -2799,9 +2799,10 @@ for exact pointer equality.
               } else if (
                      type_1->variant.array.is_template_dependent_size_array ||
                      type_2->variant.array.is_template_dependent_size_array) {
-                /* An array with a parameterized bound is potentially
-                   compatible with any bound. */
-                compat = TRUE;
+                /* An array with a parameterized bound is not compatible
+                   with any other bound if we failed the
+                   identical_array_type_level test above. */
+                compat = FALSE;
               } else if (C_mode() || top_level_for_redeclaration) {
                 /* Check whether one of the arrays has unknown bounds.  Note
                    that in C++ this produces "compatibility" only for top-level
