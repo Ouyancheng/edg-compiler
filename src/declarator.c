@@ -1985,6 +1985,299 @@ are NULL.
 }  /* pointer_declarator */
 
 
+static void scan_real_declarator_id(
+                          a_decl_flag_set   input_flags,
+                          a_decl_flag_set   *output_flags,
+                          a_symbol_locator  *locator,
+                          a_boolean         *is_constructor,
+                          a_boolean         *is_destructor,
+                          a_boolean         *parenthesized_initializer_allowed,
+                          a_type_ptr        *p_complete_type,
+                          a_type_ptr        *p_member_parent_type)
+/*
+This routine is called by declarator for real declarators; it scans the name
+that is specified.  The current token is the beginning of the name (usually
+but not always an identifier).  input_flags is the set of flags passed in to
+declarator, and *output_flags is the set of flags that will be returned to
+declarator's caller.  *locator is returned with the locator for the name,
+*p_complete_type is its type (it is updated in special cases),
+*p_member_parent_type is the class type when this is a qualified name,
+*p_constructor or *p_destructor is returned TRUE when the name is a
+constructor or destructor name, and *parenthesized_initializer_allowed is set
+to FALSE if the entity being declared is not initializable.
+*/
+{
+  a_source_position         declarator_pos;
+  a_boolean                 err;
+  an_identifier_options_set options;
+  a_symbol_ptr              sym;
+
+  declarator_pos = pos_curr_token;
+  /* Process the identifier.  This is done if we are at the beginning of a
+     qualified name.  A special test is done to exclude a destructor name
+     that is not part of a qualified name -- this case is handled separately
+     below.  A destructor that is not part of a qualified name (according to
+     the locator) can appear to be an identifier under some circumstances.
+     For example, inside the definition of class A, the destructor "A::~A"
+     will be coalesced by is_generalized_identifier_start.  The qualifier
+     will then be discarded by simplify_curr_class_qualified_name resulting
+     in an unqualified destructor that has already been coalesced. */
+  if (curr_token == tok_identifier &&
+      (!locator_for_curr_id.is_destructor_name ||
+       locator_for_curr_id.is_qualified_name)) {
+    options = GID_DISALLOW_GLOBAL_QUALIFIER;
+    if (!(input_flags & DI_QUALIFIED_NAME_ALLOWED)) {
+      options |= GID_DISALLOW_QUALIFIED_NAME;
+    }  /* if */
+    if (input_flags & DI_IS_TEMPLATE_DECLARATION) {
+      options |= GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION;
+    }  /* if */
+    if (any_cfront_mode()) {
+      /* Provide support for an exploitable cfront bug. */
+      if (locator_for_curr_id.is_qualified_name &&
+          locator_for_curr_id.qualifier_class_type != NULL &&
+          input_flags & DI_IS_TYPEDEF_DECLARATION) {
+        /* We have a typedef declaration involving what appears to be a
+           qualified name, but cfront interprets it as a kind of member
+           routine type, e.g.,
+               typedef void A::t(int);
+                               ^---------We're here now.
+           The type "t" is construed as a routine type taking an int argument
+           and returning void and having an implicit this-param type of
+           const-ptr-to-A.  Note that this syntax and interpretation are not
+           supported in the ARM.  We allow it under cfront compatibility mode
+           only. */
+        check_assertion(locator_for_curr_id.specific_symbol == NULL);
+        /* Force function_declarator to add an implicit-this-param pointer
+           to the routine type. */
+        *p_member_parent_type = locator_for_curr_id.qualifier_class_type;
+        *output_flags |= DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;
+        /* Clear the is_qualified_name flag in the locator, but keep the
+           qualifer_class_type around, in case this is a recursive declarator
+           call and the function_declarator is called at another level. */
+        locator_for_curr_id.is_qualified_name = FALSE;
+        /* Note that the diagnostic on this nonstandard construct is issued
+           by the caller. */
+      }  /* if */
+    }  /* if */
+    if (C_dialect == C_dialect_cplusplus &&
+        !(input_flags & DI_IS_FRIEND_DECL)) {
+      /* If this declaration appears in the immediate context of a class
+         definition and the current token is an identifier representing the
+         name of the current class, see if this is a qualified name and if so
+         change it into a simple name (e.g., A::x becomes x, its equivalent
+         in A's scope). This needs to be done after the check for the cfront
+         member typedef processing that is done above. */
+      (void)simplify_curr_class_qualified_name();
+    }  /* if */
+    /* The declarator may be a qualified name or a normal name. */
+    if (coalesce_and_lookup_qualified_name(options, ilm_normal, &err)) {
+      /* See if the name is a qualified name, like "A::x" or "::j". */
+      if (locator_for_curr_id.is_qualified_name) {
+        *p_member_parent_type = locator_for_curr_id.qualifier_class_type;
+        if (*p_member_parent_type != NULL) {
+          a_boolean     reactivate_scope = FALSE;
+
+          sym = locator_for_curr_id.specific_symbol;
+          /* See if the name is the name of a member function. */
+          if (sym->kind == (a_symbol_kind)sk_member_function ||
+              sym->kind == (a_symbol_kind)sk_overloaded_function ||
+              sym->kind == (a_symbol_kind)sk_function_template) {
+            /* It is a member function.  Its parameters should be scanned
+               with the original class reactivated. */
+            reactivate_scope = TRUE;
+            *parenthesized_initializer_allowed = FALSE;
+            if (is_constructor_symbol(sym)) {
+              *is_constructor = TRUE;
+              if (!is_unknown_type(*p_complete_type)) {
+                error(ec_return_type_not_allowed);
+                *p_complete_type = unknown_type();
+              }  /* if */
+            } else if (is_destructor_symbol(sym)) {
+              *is_destructor = TRUE;
+              if (!is_unknown_type(*p_complete_type)) {
+                error(ec_return_type_not_allowed);
+                *p_complete_type = unknown_type();
+              }  /* if */
+            }  /* if */
+          } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+            /* The dimensions of static data members (if any) are scanned
+               with the original class reactivated. */
+            reactivate_scope = TRUE;
+          }  /* if */
+          if (reactivate_scope) {
+            /* Reactivate the scope of the parent class.  It will be
+               deactivated once the entire declarator has been scanned. */
+            push_class_reactivation_scope(*p_member_parent_type);
+            *output_flags |= DO_CLASS_SCOPE_DEACTIVATION_REQUIRED;
+            if (any_deferred_access_checks()) {
+              /* Discard any access errors that occurred while scanning
+                 the name of the thing being defined. */
+              discard_declarator_access_errors();
+              /* Recheck any access errors that occurred while scanning
+                 the specifiers or the beginning of the declarator
+                 now that we know the class of the thing being declared. */
+              perform_deferred_access_checks();
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (err) {
+      /* An error occurred while scanning the identifier -- use an error
+         locator. */
+      set_to_named_error_locator(locator_for_curr_id);
+    }  /* if */
+    /* Save information on the identifier to be declared. */
+    *locator = locator_for_curr_id;
+    (void)get_token();
+  } else {
+    if (!(input_flags & DI_IS_FRIEND_DECL)) {
+      /* The call to simplify_curr_class_qualified_name is placed here so
+         that it will be done at this point for all cases other than the
+         normal identifier case handled above. */
+      (void)simplify_curr_class_qualified_name();
+    }  /* if */
+    if ((curr_token == tok_identifier &&
+         locator_for_curr_id.is_destructor_name) ||
+        get_destructor_name()) {
+      /* A destructor name, like "~A".  It must have the same name as
+         the class currently being defined, it must be followed by a
+         left paren, and the specifiers must include no type. */
+      if (is_error_locator(locator_for_curr_id)) {
+        /* There is some error in the destructor name. */
+      } else {
+        a_scope_stack_entry_ptr ssep = &scope_stack[decl_scope_level];
+
+        if (ssep->kind != (a_scope_kind)sck_class_struct_union) {
+          /* Not inside a class; destructor is not allowed. */
+          error(ec_bad_destructor_decl);
+        } else {
+          sym = (a_symbol_ptr)ssep->assoc_type->source_corresp.assoc_info;
+          if (!destructor_name_matches_class_name(sym)) {
+            /* The name on the destructor is not the name of the class. */
+            error(ec_bad_destructor_decl);
+          } else {
+            if (!is_unknown_type(*p_complete_type)) {
+              error(ec_return_type_not_allowed);
+              *p_complete_type = unknown_type();
+            } else if (!(input_flags & DI_DESTRUCTOR_SPECIFIERS)) {
+              /* The specifiers, including possibly the type specifier,
+                 are not consistent with a destructor declaration (e.g., a
+                 destructor cannot be specified "static" or "void"). */
+              error(ec_bad_destructor_decl);
+            } else {
+              /* Valid destructor declaration. */
+              *p_member_parent_type = ssep->il_scope->variant.assoc_type;
+            }  /* if */
+            *is_destructor = TRUE;
+            *parenthesized_initializer_allowed = FALSE;
+            *locator = locator_for_curr_id;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      /* Advance past the destructor. */
+      (void)get_token();
+      if (!(*is_destructor)) {
+        /* Invalid destructor name. */
+        set_to_error_locator(*locator);
+        /* Avoid spurious errors later. */
+        if (is_unknown_type(*p_complete_type)) *p_complete_type = void_type();
+      } else if (curr_token != tok_lparen) {
+        /* A valid destructor name is not followed by a left
+           parenthesis. */
+        error(ec_exp_lparen);
+        if (curr_token != tok_rparen) {
+          error(ec_exp_rparen);
+        } else {
+          (void)get_token();
+        }  /* if */
+        *is_destructor = FALSE;
+        *p_complete_type = error_type();
+        set_to_error_locator(*locator);
+      }  /* if */
+      *parenthesized_initializer_allowed = FALSE;
+    } else {
+      add_stop_token(tok_lparen);
+      add_stop_token(tok_lbracket);
+      copy_source_position(pos_curr_token, locator->source_position);
+      syntax_error(ec_exp_identifier);
+      remove_stop_token(tok_lparen);
+      remove_stop_token(tok_lbracket);
+      *parenthesized_initializer_allowed = FALSE;
+    }  /* if */
+  }  /* if */
+  if (!(input_flags & DI_OPERATOR_NAME_ALLOWED)) {
+    if (locator->is_operator_name || locator->is_conversion_name) {
+      pos_error(ec_operator_name_not_allowed, &locator->source_position);
+      set_to_error_locator(*locator);
+      *p_complete_type = error_type();
+    }  /* if */
+  }  /* if */
+  if (locator->is_operator_name) {
+    /* Enforce some restrictions on the declarations of overloaded
+       operator functions. */
+    if (*p_member_parent_type != NULL) {
+      if (locator->specific_symbol != NULL) {
+        /* This must be a redeclaration. */
+      } else if (!(input_flags & DI_NONSTATIC_MEMBER) &&
+                 locator->variant.opname != (an_opname_kind)onk_new &&
+                 locator->variant.opname != (an_opname_kind)onk_delete) {
+        pos_error(ec_static_member_operator_not_allowed,
+                  &locator->source_position);
+        set_to_error_locator(*locator);
+      }  /* if */
+    } else {
+      char *s = NULL;
+      switch (locator->variant.opname) {
+        case onk_assign:         s = "=";       break;
+        case onk_function_call:  s = "()";      break;
+        case onk_subscript:      s = "[]";      break;
+        case onk_arrow:          s = "->";      break;
+        default:;  /* No error. */
+      }  /* switch */
+      if (s != NULL) {
+        if (locator->variant.opname == (an_opname_kind)onk_assign &&
+            cfront_2_1_mode) {
+          pos_st_warning(ec_nonmember_operator_not_allowed,
+                         &locator->source_position, s);
+        } else {
+          pos_st_error(ec_nonmember_operator_not_allowed,
+                       &locator->source_position, s);
+          set_to_error_locator(*locator);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else if (locator->is_conversion_name) {
+    if (!is_unknown_type(*p_complete_type)) {
+      pos_error(ec_return_type_on_conversion_function, &declarator_pos);
+    }  /* if */
+    *p_complete_type = locator->variant.conversion_result_type;
+    /* A conversion function must be a nonstatic member function. */
+    if (*p_member_parent_type == NULL ||
+        (locator->specific_symbol == NULL &&
+         !(input_flags & DI_NONSTATIC_MEMBER))) {
+      pos_error(ec_bad_conversion_function_decl,
+                &locator->source_position);
+      set_to_error_locator(*locator);
+      /* Avoid error recovery problems later. */
+      locator->is_conversion_name = TRUE;
+    }  /* if */
+  } else if (*is_constructor) {
+    /* Return type should be "unknown" at this point.  Change it to
+       the constructed type (a front end convention that deviates from
+       what is explicitly in the source for a constructor declaration. */
+    check_assertion(is_unknown_type(*p_complete_type));
+    *p_complete_type = make_reference_type(*p_member_parent_type);
+  } else if (*is_destructor) {
+    /* Return type should be "unknown" at this point.  Change it to void
+       (again, a front end convention). */
+    check_assertion(is_unknown_type(*p_complete_type));
+    *p_complete_type = void_type();
+  }  /* if */
+}  /* scan_real_declarator_id */
+
+
 void declarator(a_decl_flag_set          input_flags,
                 a_decl_flag_set          *output_flags,
                 a_type_ptr               specifiers_type,
@@ -2071,11 +2364,8 @@ The syntax is:
   a_boolean       is_name_start;
   a_boolean       is_constructor = FALSE, is_destructor = FALSE;
   a_boolean       is_nonstatic_member_function = FALSE;
-  a_boolean       cfront_member_function_typedef = FALSE;
   a_boolean       nonconstant_dimension_allowed;
   a_boolean       parenthesized_initializer_allowed;
-  a_boolean       is_friend_decl = FALSE;
-  a_boolean       class_scope_deactivation_required = FALSE;
   a_call_conv_descr
 		  call_conv;
   a_call_conv_descr
@@ -2092,7 +2382,6 @@ The syntax is:
                        (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED);
   nonconstant_dimension_allowed =
                             (input_flags & DI_DIMENSION_EXPRESSION_ALLOWED);
-  is_friend_decl = (input_flags & DI_IS_FRIEND_DECL);
   if (!real_declarator_allowed) {
     func_info = NULL;
     locator = NULL;
@@ -2160,7 +2449,6 @@ The syntax is:
     }  /* if */
     if (local_do_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF) {
       *output_flags |= DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;
-      cfront_member_function_typedef = TRUE;
       /* Force function_declarator to add an implicit-this-param pointer
          to the routine type. */
       check_assertion(locator->qualifier_class_type != NULL);
@@ -2170,7 +2458,7 @@ The syntax is:
       /* A class scope was reactivated to scan a static data member or a
          member function.  It will have to be deactivated when the scanning
          of the top-level declarator is complete. */
-      class_scope_deactivation_required = TRUE;
+      *output_flags |= DO_CLASS_SCOPE_DEACTIVATION_REQUIRED;
     }  /* if */
 #if RESTRICT_ALLOWED
     if (local_do_flags & DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY) {
@@ -2209,273 +2497,11 @@ The syntax is:
       *declarator_ssep = add_empty_source_sequence_entry();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
-      /* Process the identifier.  This is done if we are at the beginning of
-         a qualified name.  A special test is done to exclude a destructor
-         name that is not part of a qualified name -- this case is handled
-         separately below.  A destructor that is not part of a qualified name
-         (according to the locator) can appear to be an identifier under
-         some circumstances.  For example, inside the definition of
-         class A, the destructor "A::~A" will be coalesced by
-         is_generalized_identifier_start.  The qualifier will then be
-         discarded by simplify_curr_class_qualified_name resulting in an
-         unqualified destructor that has already been coalesced. */
-      if (curr_token == tok_identifier &&
-          (!locator_for_curr_id.is_destructor_name ||
-           locator_for_curr_id.is_qualified_name)) {
-        a_boolean        	  err;
-        an_identifier_options_set options;
-        options = GID_DISALLOW_GLOBAL_QUALIFIER;
-        if (!(input_flags & DI_QUALIFIED_NAME_ALLOWED)) {
-          options |= GID_DISALLOW_QUALIFIED_NAME;
-        }  /* if */
-        if (input_flags & DI_IS_TEMPLATE_DECLARATION) {
-          options |= GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION;
-        }  /* if */
-        if (any_cfront_mode()) {
-          /* Provide support for an exploitable cfront bug. */
-          if (locator_for_curr_id.is_qualified_name &&
-              locator_for_curr_id.qualifier_class_type != NULL &&
-              input_flags & DI_IS_TYPEDEF_DECLARATION) {
-            /* We have a typedef declaration involving what appears to be a
-               qualified name, but cfront interprets it as a kind of member
-               routine type, e.g.,
-                   typedef void A::t(int);
-                                   ^---------We're here now.
-               The type "t" is construed as a routine type taking an int
-               argument and returning void and having an implicit this-param
-               type of const-ptr-to-A.  Note that this syntax and
-               interpretation are not supported in the ARM.  We allow it
-               under cfront compatibility mode only. */
-            check_assertion(locator_for_curr_id.specific_symbol == NULL);
-            /* Force function_declarator to add an implicit-this-param pointer
-               to the routine type. */
-            member_parent_type = locator_for_curr_id.qualifier_class_type;
-            *output_flags |= DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;
-            cfront_member_function_typedef = TRUE;
-            /* Clear the is_qualified_name flag in the locator, but keep the
-               qualifer_class_type around, in case this is a recursive
-               declarator call and the function_declarator is called at
-               another level. */
-            locator_for_curr_id.is_qualified_name = FALSE;
-            /* Note that the diagnostic on this nonstandard construct is
-               issued by the caller. */
-          }  /* if */
-        }  /* if */
-        if (C_dialect == C_dialect_cplusplus && !is_friend_decl) {
-          /* If this declaration appears in the immediate context of a class
-             definition and the current token is an identifier representing
-             the name of the current class, see if this is a qualified name
-             and if so change it into a simple name (e.g., A::x becomes x,
-             its equivalent in A's scope).
-             This needs to be done after the check for the cfront member
-	     typedef processing that is done above. */
-          (void)simplify_curr_class_qualified_name();
-        }  /* if */
-        /* The declarator may be a qualified name or a normal name. */
-        if (coalesce_and_lookup_qualified_name(options, ilm_normal, &err)) {
-          /* See if the name is a qualified name, like "A::x" or "::j". */
-          if (locator_for_curr_id.is_qualified_name) {
-            member_parent_type = locator_for_curr_id.qualifier_class_type;
-            if (member_parent_type != NULL) {
-              a_symbol_ptr  sym = locator_for_curr_id.specific_symbol;
-              a_boolean     reactivate_scope = FALSE;
-
-              /* See if the name is the name of a member function. */
-              if (sym->kind == (a_symbol_kind)sk_member_function ||
-                  sym->kind == (a_symbol_kind)sk_overloaded_function ||
-                  sym->kind == (a_symbol_kind)sk_function_template) {
-                /* It is a member function.  Its parameters should be scanned
-                   with the original class reactivated. */
-                reactivate_scope = TRUE;
-                parenthesized_initializer_allowed = FALSE;
-                if (is_constructor_symbol(sym)) {
-                  is_constructor = TRUE;
-                  if (!is_unknown_type(complete_type)) {
-                    error(ec_return_type_not_allowed);
-                    complete_type = unknown_type();
-                  }  /* if */
-                } else if (is_destructor_symbol(sym)) {
-                  is_destructor = TRUE;
-                  if (!is_unknown_type(complete_type)) {
-                    error(ec_return_type_not_allowed);
-                    complete_type = unknown_type();
-                  }  /* if */
-                }  /* if */
-              } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-                /* The dimensions of static data members (if any) are scanned
-                   with the original class reactivated. */
-                reactivate_scope = TRUE;
-              }  /* if */
-              if (reactivate_scope) {
-                /* Reactivate the scope of the parent class.  It will be
-                   deactivated once the entire declarator has been scanned. */
-                push_class_reactivation_scope(member_parent_type);
-                class_scope_deactivation_required = TRUE;
-                if (any_deferred_access_checks()) {
-                  /* Discard any access errors that occurred while scanning
-		     the name of the thing being defined. */
-                  discard_declarator_access_errors();
-                  /* Recheck any access errors that occurred while scanning
-                     the specifiers or the beginning of the declarator
-                     now that we know the class of the thing being declared. */
-                  perform_deferred_access_checks();
-                }  /* if */
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        }  /* if */
-        if (err) {
-          /* An error occurred while scanning the identifier -- use an error
-             locator. */
-          set_to_named_error_locator(locator_for_curr_id);
-        }  /* if */
-        /* Save information on the identifier to be declared. */
-        *locator = locator_for_curr_id;
-        (void)get_token();
-      } else {
-        /* The call to simplify_curr_class_qualified_name is placed here so
-           that it will be done at this point for all cases other than the
-           normal identifier case handled above. */
-        if (!is_friend_decl) (void)simplify_curr_class_qualified_name();
-        if ((curr_token == tok_identifier &&
-             locator_for_curr_id.is_destructor_name) ||
-            get_destructor_name()) {
-          /* A destructor name, like "~A".  It must have the same name as
-             the class currently being defined, it must be followed by a
-             left paren, and the specifiers must include no type. */
-          if (is_error_locator(locator_for_curr_id)) {
-            /* There is some error in the destructor name. */
-          } else {
-            a_scope_stack_entry_ptr ssep = &scope_stack[decl_scope_level];
-            a_symbol_ptr            class_sym;
-
-            if (ssep->kind != (a_scope_kind)sck_class_struct_union) {
-              /* Not inside a class; destructor is not allowed. */
-              error(ec_bad_destructor_decl);
-            } else {
-              class_sym = (a_symbol_ptr)ssep->assoc_type->
-                                                     source_corresp.assoc_info;
-              if (!destructor_name_matches_class_name(class_sym)) {
-                /* The name on the destructor is not the name of the class. */
-                error(ec_bad_destructor_decl);
-              } else {
-                if (!is_unknown_type(complete_type)) {
-                  error(ec_return_type_not_allowed);
-                  complete_type = unknown_type();
-                } else if (!(input_flags & DI_DESTRUCTOR_SPECIFIERS)) {
-                  /* The specifiers, including possibly the type specifier,
-                     are not consistent with a destructor declaration (e.g., a
-                     destructor cannot be specified "static" or "void"). */
-                  error(ec_bad_destructor_decl);
-                } else {
-                  /* Valid destructor declaration. */
-                  member_parent_type = ssep->il_scope->variant.assoc_type;
-                }  /* if */
-                is_destructor = TRUE;
-                parenthesized_initializer_allowed = FALSE;
-                *locator = locator_for_curr_id;
-              }  /* if */
-            }  /* if */
-          }  /* if */
-          /* Advance past the destructor. */
-          (void)get_token();
-          if (!is_destructor) {
-            /* Invalid destructor name. */
-            set_to_error_locator(*locator);
-            /* Avoid spurious errors later. */
-            if (is_unknown_type(complete_type)) complete_type = void_type();
-          } else if (curr_token != tok_lparen) {
-            /* A valid destructor name is not followed by a left
-               parenthesis. */
-            error(ec_exp_lparen);
-            if (curr_token != tok_rparen) {
-              error(ec_exp_rparen);
-            } else {
-              (void)get_token();
-            }  /* if */
-            is_destructor = FALSE;
-            complete_type = error_type();
-            set_to_error_locator(*locator);
-          }  /* if */
-          parenthesized_initializer_allowed = FALSE;
-        } else {
-          add_stop_token(tok_lparen);
-          add_stop_token(tok_lbracket);
-          copy_source_position(pos_curr_token, locator->source_position);
-          syntax_error(ec_exp_identifier);
-          remove_stop_token(tok_lparen);
-          remove_stop_token(tok_lbracket);
-          parenthesized_initializer_allowed = FALSE;
-        }  /* if */
-      }  /* if */
-      if (!(input_flags & DI_OPERATOR_NAME_ALLOWED)) {
-        if (locator->is_operator_name || locator->is_conversion_name) {
-          pos_error(ec_operator_name_not_allowed, &locator->source_position);
-          set_to_error_locator(*locator);
-          complete_type = error_type();
-        }  /* if */
-      }  /* if */
-      if (locator->is_operator_name) {
-        /* Enforce some restrictions on the declarations of overloaded
-           operator functions. */
-        if (member_parent_type != NULL) {
-          if (locator->specific_symbol != NULL) {
-            /* This must be a redeclaration. */
-          } else if (!(input_flags & DI_NONSTATIC_MEMBER) &&
-                     locator->variant.opname != (an_opname_kind)onk_new &&
-                     locator->variant.opname != (an_opname_kind)onk_delete) {
-            pos_error(ec_static_member_operator_not_allowed,
-                      &locator->source_position);
-            set_to_error_locator(*locator);
-          }  /* if */
-        } else {
-          char *s = NULL;
-          switch (locator->variant.opname) {
-            case onk_assign:         s = "=";       break;
-            case onk_function_call:  s = "()";      break;
-            case onk_subscript:      s = "[]";      break;
-            case onk_arrow:          s = "->";      break;
-            default:;  /* No error. */
-          }  /* switch */
-          if (s != NULL) {
-            if (locator->variant.opname == (an_opname_kind)onk_assign &&
-                cfront_2_1_mode) {
-              pos_st_warning(ec_nonmember_operator_not_allowed,
-                             &locator->source_position, s);
-            } else {
-              pos_st_error(ec_nonmember_operator_not_allowed,
-                           &locator->source_position, s);
-              set_to_error_locator(*locator);
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      } else if (locator->is_conversion_name) {
-        if (!is_unknown_type(complete_type)) {
-          pos_error(ec_return_type_on_conversion_function, &declarator_pos);
-        }  /* if */
-        complete_type = locator->variant.conversion_result_type;
-        /* A conversion function must be a nonstatic member function. */
-        if (member_parent_type == NULL ||
-            (locator->specific_symbol == NULL &&
-             !(input_flags & DI_NONSTATIC_MEMBER))) {
-          pos_error(ec_bad_conversion_function_decl,
-                    &locator->source_position);
-          set_to_error_locator(*locator);
-          /* Avoid error recovery problems later. */
-          locator->is_conversion_name = TRUE;
-        }  /* if */
-      } else if (is_constructor) {
-        /* Return type should be "unknown" at this point.  Change it to
-           the constructed type (a front end convention that deviates from
-           what is explicitly in the source for a constructor declaration. */
-        check_assertion(is_unknown_type(complete_type));
-        complete_type = make_reference_type(member_parent_type);
-      } else if (is_destructor) {
-        /* Return type should be "unknown" at this point.  Change it to void
-           (again, a front end convention). */
-        check_assertion(is_unknown_type(complete_type));
-        complete_type = void_type();
-      }  /* if */
+      /* Process the name declared here. */
+      scan_real_declarator_id(input_flags, output_flags, locator,
+                              &is_constructor, &is_destructor,
+                              &parenthesized_initializer_allowed,
+                              &complete_type, &member_parent_type);
     }  /* if */
   }  /* if */
   /* The declarator can end at this point, or an array or function
@@ -2574,7 +2600,7 @@ function_lparen:
           }  /* if */
           func_info = NULL;
           is_constructor = is_destructor = FALSE;
-        } else if (cfront_member_function_typedef) {
+        } else if (*output_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF) {
           check_assertion(func_info == NULL);
           is_nonstatic_member_function = TRUE;
           is_constructor = is_destructor = FALSE;
@@ -2723,15 +2749,16 @@ function_lparen:
       complete_type = bottom_derived_type = error_type();
     }  /* if */
   }  /* if */
-  if (class_scope_deactivation_required) {
+  if (*output_flags & DO_CLASS_SCOPE_DEACTIVATION_REQUIRED) {
     /* A class scope was reactivated when a qualified name was seen. */
     if (specifiers_type != NULL) {
       /* This is a top-level call to declarator, so the class scope can now
          be deactivated. */
       pop_class_reactivation_scope();
+      /* Clear the flag, just to be neat. */
+      *output_flags &= ~(a_decl_flag_set)DO_CLASS_SCOPE_DEACTIVATION_REQUIRED;
     } else {
-      /* Pass the information up to the caller. */
-      *output_flags |= DO_CLASS_SCOPE_DEACTIVATION_REQUIRED;
+      /* Just pass the information up to the caller. */
     }  /* if */
   }  /* if */
   *p_complete_type = complete_type;
