@@ -261,7 +261,7 @@ TRUE if the column number should be included as part of the diagnostic
 output in brief diagnostics mode.
 */
 #ifndef COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS
-#define COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS FALSE
+#define COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS TRUE
 #endif /* ifndef COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS */
 
 /*
