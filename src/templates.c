@@ -2902,11 +2902,13 @@ the same constant.
   a_boolean		is_nonreal_member;
   a_boolean		error_matches_anything;
   a_boolean		ignore_unknown_arg_values;
+  a_boolean		ignore_qualifiers;
 
   db_enter(4, "equiv_template_arg_lists");
   is_nonreal_member = (options & ETA_IS_NONREAL_MEMBER) != 0;
   error_matches_anything = (options & ETA_ERROR_MATCHES_ANYTHING) != 0;
   ignore_unknown_arg_values = (options & ETA_IGNORE_UNKNOWN_ARG_VALUES) != 0;
+  ignore_qualifiers = (options & ETA_MS_IGNORE_QUALIFIERS) != 0;
   /* There is no way to produce a NULL template argument list, so the real
      code doesn't need to check for that. */
   check_assertion_str2(is_nonreal_member || (list1 != NULL && list2 != NULL),
@@ -2963,6 +2965,11 @@ the same constant.
       } else if (type1 == NULL || type2 == NULL) {
         /* Only one is unspecified -- this is a mismatch. */
         equiv = FALSE;
+      } else if (ignore_qualifiers && identical_types(skip_typerefs(type1),
+                                                      skip_typerefs(type2))) {
+        /* In Microsoft bugs mode top level qualifiers are ignored when
+           comparing two argument lists. */
+        /* Okay. */
       } else if (identical_types(type1, type2)) {
         /* Okay. */
       } else if (error_matches_anything &&
@@ -3066,6 +3073,7 @@ included in the search.
                                             (a_symbol_kind)sk_class_template);
   tssp = class_template_sym->variant.template_info;
   if (tssp->is_nonreal_member) eta_options |= ETA_IS_NONREAL_MEMBER;
+  if (microsoft_bugs) eta_options |= ETA_MS_IGNORE_QUALIFIERS;
   sym = NULL;
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
   if (prototype_allowed) {

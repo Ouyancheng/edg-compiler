@@ -7601,9 +7601,6 @@ this routine.  Its value is unchanged if no errors are detected.
         pos_error(ec_local_type_in_template_arg, &arg_pos);
         argument_type = error_type();
       }  /* if */
-      /* The Microsoft compiler ignores top-level qualifiers on template
-         arguments. */
-      if (microsoft_mode) argument_type = skip_typerefs(argument_type);
       arg_ptr->variant.type = argument_type;
     } else {  /* else executed when !is_type_param */
       a_type_ptr  constant_type = sym->variant.constant->type;

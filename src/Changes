@@ -60,17 +60,32 @@ specified in a condition declaration.
 In strict mode an error is now issued if a union member is declared
 with a reference type.
 
-4/10/98   Microsoft compatibility: qualifiers are ignored on class template
-          arguments
+4/10/98   Microsoft compatibility: qualifiers are ignored when comparing
+          class template argument lists
 
-Top-level qualifiers are now ignored on class template arguments in
-Microsoft mode.
+In Microsoft bugs mode, top-level qualifiers are now ignored when
+determining whether a class template argument list matches an existing
+instantiation.
 
-  template <class T> struct A {};
+In the example "A<B> and A<const B> refer to the same type, which is actually
+"A<B>".  "A<const C>" and "A<C>" refer to the same type, which is actually
+"A<const C>".
+
+  template <class T> struct A {
+  void f(T*){}
+  };
+  struct B {};
+  struct C {};
   int main() {
-    A<int> ai;
-    A<const int> aic;
-    aic = ai;  // Now accepted
+    A<B> ab;
+    A<const B> ab_const;
+    const B* b = 0;
+    ab.f(b);  // calls f(B*) -- error
+
+    A<const C> ac_const;
+    A<C> ac;
+    const C* c = 0;
+    ac.f(c);  // calls f(const C*)
   }
 
 4/7/98    Microsoft compatibility: allow explicit specification of template

@@ -59,6 +59,10 @@ typedef int an_equiv_templ_arg_options_set;
 			   with a complete list.  The unspecified arguments
 			   will be represented in the list with NULL type
 			   or constant pointers. */
+#define ETA_MS_IGNORE_QUALIFIERS	0x8
+			/* TRUE if, in Microsoft bugs mode, top level
+			   qualifiers should be ignored when comparing two
+			   argument lists. */
 
 /*
 Flags used to specify options to copy_type_with_substitution.
