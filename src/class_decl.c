@@ -4069,6 +4069,59 @@ such member functions are present.
   return is_valid;
 }  /* is_valid_union_field */
 
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+
+static a_symbol_ptr find_anonymous_parent_object_symbol_clone(
+                                               a_symbol_ptr  apo_sym,
+                                               a_symbol_ptr  *new_apo_sym_list,
+                                               a_symbol_ptr  assoc_object_sym)
+/*
+apo_sym is an anonymous parent object symbol whose "clone" needs either to
+be found or created.  Finding means looking on the list pointed to by
+new_apo_sym_list; if a new one is created, it will be added to the list.
+assoc_object_sym is the top-level anonymous parent object; it will always
+be the last in the anonymous-union-parent chain.
+*/
+{
+  a_symbol_ptr  new_apo_sym;
+
+  /* Loop through the list looking for a symbol that points at the same
+     field as apo_sym. */
+  for (new_apo_sym = *new_apo_sym_list;
+       new_apo_sym != NULL;
+       new_apo_sym = new_apo_sym->next) {
+    if (new_apo_sym->variant.field.ptr == apo_sym->variant.field.ptr) {
+      /* Found a match -- break. */
+    }  /* if */
+  }  /* for */
+  if (new_apo_sym == NULL) {
+    /* None was found, so create a new one. */
+    new_apo_sym = make_anonymous_parent_object_symbol((a_symbol_kind)sk_field,
+                                                      &apo_sym->decl_position,
+                                                      apo_sym->decl_scope);
+    new_apo_sym->class_of_which_a_member = apo_sym->class_of_which_a_member;
+    /* Set it to point to the same field. */
+    new_apo_sym->variant.field.ptr = apo_sym->variant.field.ptr;
+    /* If apo_sym does is not itself nested in an anonymous parent object,
+       then set the new symbol to point to assoc_object_sym.  Otherwise,
+       find (or clone) the parent symbol. */
+    if (apo_sym->variant.field.anonymous_parent_object == NULL) {
+      new_apo_sym->variant.field.anonymous_parent_object = assoc_object_sym;
+    } else {
+      new_apo_sym->variant.field.anonymous_parent_object =
+                 find_anonymous_parent_object_symbol_clone(
+                                apo_sym->variant.field.anonymous_parent_object,
+                                new_apo_sym_list, assoc_object_sym);
+    }  /* if */
+    /* Add the new symbol to the list.  Note that the next pointer is used.
+       This is okay, since the symbol was not added to the symbol table. */
+    new_apo_sym->next = *new_apo_sym_list;
+    *new_apo_sym_list = new_apo_sym;
+  }  /* if */
+  return new_apo_sym;
+}  /* find_anonymous_parent_object_symbol_clone */
+
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym,
                                    a_type_ptr    class_type,
@@ -4097,6 +4150,9 @@ specified by decl_scope_level.
   a_boolean                      is_overloaded;
   a_type_ptr                     assoc_object_type, tp;
   a_boolean                      reuse_symbol = TRUE;
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  a_symbol_ptr                   new_apo_sym_list = NULL;
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
   db_enter(4, "check_anonymous_union_symbols");
   switch (assoc_object_sym->kind) {
@@ -4152,6 +4208,7 @@ specified by decl_scope_level.
       /* It is no longer treated as a member of the anonymous union but
          rather it will be a member of the class_type. */
       sym->class_of_which_a_member = NULL;
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 #if CHECKING
     } else {
       /* Creation of a new symbol is only implemented for fields, because it
@@ -4159,6 +4216,7 @@ specified by decl_scope_level.
          features. */
       check_assertion(sym->kind == (a_symbol_kind)sk_field);
 #endif /* CHECKING */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
     }  /* if */
     /* Private and protected members are not allowed in an anonymous union
        (ARM 9.5). */
@@ -4172,28 +4230,27 @@ specified by decl_scope_level.
     }  /* if */
     switch (sym->kind) {
       case sk_field:
+        apo_sym = sym->variant.field.anonymous_parent_object;
         if (reuse_symbol) {
           /* Unlink the symbol from the inactive list and link it back into
              the symbol table in the current scope. */
           remove_anonymous_union_member_from_inactive_symbols_list(sym);
           reenter_symbol(sym, depth_scope_stack, /*suppress_error=*/FALSE);
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
         } else {
           /* The symbol has to be kept bound to the type, since the latter
              may be used again.  Therefore, we have to clone the symbol,
              making a copy of it in the new class scope.  Note that there may
              turn out to be a many-to-one mapping between member symbols and
              field-of-assoc-object-type. */
-          a_symbol_ptr     new_sym;
+          a_field_ptr      fp = sym->variant.field.ptr;
           a_symbol_locator loc;
-
           make_locator_for_symbol(sym, &loc);
           loc.source_position = assoc_object_sym->decl_position;
-          new_sym = enter_local_symbol(sym->kind, &loc, depth_scope_stack,
+          sym = enter_local_symbol(sym->kind, &loc, depth_scope_stack,
                                    /*suppress_error=*/FALSE);
-          new_sym->variant.field.ptr = sym->variant.field.ptr;
-          new_sym->variant.field.anonymous_parent_object =
-                                  sym->variant.field.anonymous_parent_object;
-          sym = new_sym;
+          sym->variant.field.ptr = fp;
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
         }  /* if */
         sym->class_of_which_a_member = class_type;
         /* The members of an anonymous union within a class take on the
@@ -4201,12 +4258,11 @@ specified by decl_scope_level.
            of a variable anonymous union should be (i.e., should remain)
            public. */
         sym->variant.field.ptr->source_corresp.access = assoc_object_access;
-        /* Only update the anonymous-parent-object pointer for a given
-           symbol on the first promotion. */
-        apo_sym = sym->variant.field.anonymous_parent_object;
         if (apo_sym == NULL) {
           sym->variant.field.anonymous_parent_object = assoc_object_sym;
-        } else {
+        } else if (reuse_symbol) {
+          /* Only update the anonymous-parent-object pointer for a given
+             symbol on the first promotion. */
           /* Walk up the chain of anonymous_parent_objects, which represent
              nested anonymous unions.  Stop if the current assoc_object_sym
              is found -- it will have been recorded, presumably, for a
@@ -4221,6 +4277,17 @@ specified by decl_scope_level.
             /* Advance up the chain. */
             apo_sym = apo_sym->variant.field.anonymous_parent_object;
           }  /* while */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+        } else {
+          /* Just as the original anonymous union member symbol had to be
+             cloned, so too must it's parent chain be cloned.  Go through the
+             list of anonymous-union-parent symbols that have already been
+             cloned and look for a match.  If none is found, make a new one. */
+          sym->variant.field.anonymous_parent_object =
+                 find_anonymous_parent_object_symbol_clone(apo_sym,
+                                                           &new_apo_sym_list,
+                                                           assoc_object_sym);
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
         }  /* if */
         break;
       case sk_member_function:
@@ -4283,6 +4350,14 @@ specified by decl_scope_level.
 #endif /* CHECKING */
     }  /* switch */
   }  /* for */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  /* Just to be safe, clear the next pointers on any anonymous union parent
+     symbols created in this routine. */
+  for (sym = new_apo_sym_list; sym != NULL; sym = next_sym) {
+    next_sym = sym->next;
+    sym->next = NULL;
+  }  /* for */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   db_exit();
 }  /* check_anonymous_union_symbols */
 
@@ -4476,8 +4551,9 @@ class, struct, or union.
     /* Create the field symbol. */
     if (is_anonymous_union) {
       member_sym = make_anonymous_parent_object_symbol(
-                                              (a_symbol_kind)sk_field,
-                                              &locator->source_position);
+                                       (a_symbol_kind)sk_field,
+                                       &locator->source_position,
+                                       scope_stack[depth_scope_stack].number);
       field->is_anonymous_parent_object = TRUE;
     } else {
       member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
