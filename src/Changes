@@ -1,5 +1,17 @@
 Version 2.30
 
+6/17/95  Bug in dynamic_cast when virtual base class has non-zero offset
+
+It is possible to create a class that does not itself have a virtual
+function table pointer, and doesn't share a virtual function table pointer
+with a base class, but nevertheless has a base class at a non-zero offset
+within it that has a virtual function table pointer.  That base class
+makes the outer class polymorphic, which means a dynamic_cast for that
+class must use a runtime test.  When dynamic_cast was applied to such
+a class, a base class adjustment was missing in a parameter to the
+runtime routine, with the result that the base address of the complete
+object was miscalculated.
+
 6/16/95  Ambiguous base classes in runtime info with ABI <= 2.28
 
 In ABI versions <= 2.28, the base class information given to the runtime did
