@@ -4909,18 +4909,13 @@ not an lvalue, it is left alone.
         /* The lvalue address is represented by some kind of expression
            node. */
         node = operand->variant.expression;
-        if ((C_dialect == C_dialect_pcc || SVR4_C_mode
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                        || microsoft_mode
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                         ) &&
-	    is_operation_node(node) &&
+        if (is_operation_node(node) &&
             node->variant.operation.kind ==
                                       (an_expr_operator_kind)eok_lvalue_cast) {
-          /* In pcc mode and in SVR4 C compatibility mode, lvalues cast to
-	     a same-sized type can stay lvalues.  This is indicated by
-	     casting the lvalue address to pointer-to-new-type.  Here, turn
-	     such a case back into an ordinary cast on the rvalue. */
+          /* In certain modes, lvalues cast to another type can stay lvalues.
+             This is indicated by casting the lvalue address to
+             pointer-to-new-type using an oek_lvalue_cast.  Here, turn
+             such a case back into an ordinary cast on the rvalue. */
           cast_node = node;
           operand_node = cast_node->variant.operation.operands;
           cast_orig_type = type_pointed_to(cast_node->type);
