@@ -572,21 +572,20 @@ flags.
 
 /*
 Given an IL entry at entry_ptr with kind entry_kind, return TRUE if the
-entry's subtree should not be walked at this time.  This is used when
-setting the "needed" or "keep_in_il" flags.  Entities that can be
-defined or redeclared later (e.g., classes) shouldn't have their subtrees
-walked until after there is no longer the possibility of the subtree changing.
-end_of_file_scope_needed_flags_phase is set to TRUE in a phase where subtrees
-should finally be walked.  is_class is TRUE if the entity is a class.
-Entities local to functions (indicated by local_class, which is defined
-only if is_class is TRUE) are always fully walked immediately.
+entry's subtree should be walked at this time.  This is used when setting the
+"needed" or "keep_in_il" flags.  Entities that can be defined, redeclared or
+otherwise changed (lowered, hidden name entries added) at a later stage
+shouldn't have their subtrees walked until after there is no longer the
+possibility of the subtree changing.  end_of_file_scope_needed_flags_phase is
+set to TRUE in a phase where subtrees should finally be walked (see
+set_needed_flags_at_end_of_file_scope).  is_class is TRUE if the entity is
+a class.
 */
-#define should_not_walk_subtree(entry_ptr, entry_kind, is_class, local_class) \
- (!end_of_file_scope_needed_flags_phase && \
-  (((is_class) && !(local_class)) || \
-   ((entry_kind) == iek_variable && \
-    !((a_variable_ptr)(entry_ptr))->source_corresp.is_local_to_function) || \
-   ((entry_kind) == iek_routine)))
+#define should_walk_subtree(entry_ptr, entry_kind, is_class) \
+ (end_of_file_scope_needed_flags_phase || \
+  !((is_class) || \
+    ((entry_kind) == iek_variable && in_file_scope(entry_ptr)) || \
+    ((entry_kind) == iek_routine)))
 
 
 #if DO_IL_LOWERING
@@ -651,11 +650,10 @@ as needed.
       }  /* if */
 #endif /* DEBUG */
       /* Determine whether the subtree of this entry should be walked. */
-      prune = should_not_walk_subtree(
-                             entry_ptr, entry_kind,
-                             (entry_kind == iek_type &&
-                               is_immediate_class_type((a_type_ptr)entry_ptr)),
-                             class_is_function_local((a_type_ptr)entry_ptr));
+      prune = !should_walk_subtree(
+                            entry_ptr, entry_kind,
+                            (entry_kind == iek_type &&
+                             is_immediate_class_type((a_type_ptr)entry_ptr)));
       if (prune) {
         if (scp->is_class_member
 #if DO_IL_LOWERING
@@ -1160,8 +1158,7 @@ to be kept.
 #endif /* DEBUG */
     /* If this is an entry that might be redeclared or redefined later,
        do not walk its subtree now. */
-    prune = should_not_walk_subtree(entry_ptr, entry_kind, is_class,
-                                    is_function_local_class);
+    prune = !should_walk_subtree(entry_ptr, entry_kind, is_class);
     if (prune) {
       /* When the subtree is not going to be walked now and the entity is
          a class member, mark the parent as needed anyway.  This is done
