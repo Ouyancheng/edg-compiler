@@ -9303,10 +9303,12 @@ set, and its source sequence entry, if any, has been put out.)
           default:;
         }  /* switch */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        /* Add the IL template entry to the templates list of the appropriate
-           scope. */
-        add_to_templates_list(il_template_entry,
-                              decl_state->effective_decl_level);
+        if (!decl_state->in_prototype_instantiation) {
+          /* Add the IL template entry to the templates list of the
+             appropriate scope. */
+          add_to_templates_list(il_template_entry,
+                                decl_state->effective_decl_level);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
