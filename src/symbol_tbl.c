@@ -5611,8 +5611,11 @@ NULL.
            would be allowed. */
         /* Add it now to the current scope's type list.  It was not added
            previously because no actual definition appeared.   Don't
-           do this for non-real template class instantiations. */
-        if (is_real_class_symbol(sym)) {
+           do this for non-real template class instantiations.  Don't
+	   do this for tags reentered from the prototype scope because they
+	   will have added when the prototype scope was popped. */
+        if ((sym->kind == sk_enum_tag || is_real_class_symbol(sym)) &&
+	    !sym->reentered_from_prototype_scope) {
           add_to_types_list(type_ptr, DEPTH_OF_FILE_SCOPE);
         }  /* if */
       }  /* if */
@@ -5820,10 +5823,12 @@ End a name scope by popping an entry off the scope stack.
   /* Remove the symbols declared in this scope from the symbol table.
      Check for unreferenced symbols, and issue warnings for those. */
   for (sym = ssep->symbols; sym != NULL; sym = sym->next_in_scope) {
-    if (kind == (a_scope_kind)sck_func_prototype) {
+    if (kind == (a_scope_kind)sck_func_prototype && !is_tag_symbol(sym)) {
       /* Don't check on symbols entered in the scope of a function prototype.
          They will be reentered in the scope of the function and should be
-         checked when the function scope is popped. */
+         checked when the function scope is popped.  Tag symbols are
+	 checked because tags associated with incomplete types need to
+	 be put on the types list of the prototype scope. */
     } else {
       end_of_scope_symbol_check(sym, curr_routine);
     }  /* if */
