@@ -1,5 +1,9 @@
 Version 2.18
 
+6/16/93  Name mangling for nested typedefs
+
+The names of typedefs defined within classes are now mangled correctly.
+
 6/15/93  Recursive template instantiation bug fixed
 
 During recursive instantiation of a template the template parameters
