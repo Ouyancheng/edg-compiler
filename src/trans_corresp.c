@@ -1394,6 +1394,8 @@ its corresponding primary template supplement will be used instead.
   a_template_ptr           templ = tssp->il_template_entry;
 
   if (templ != NULL) {
+    /* This could be a partial specialization: retrieve the primary template
+       to access its all_instantiations list. */
     a_symbol_ptr  templ_sym;
     templ = canonical_template_entry_of(templ);
     templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
@@ -1402,6 +1404,7 @@ its corresponding primary template supplement will be used instead.
     }  /* if */
     tssp = templ_sym->variant.template_info;
   }  /* if */
+  /* Insert the given instantiation in the list. */
   slep->next = tssp->all_instantiations;
   tssp->all_instantiations = slep;
   slep->symbol = inst;
@@ -1454,6 +1457,7 @@ all_instantiations list of the associated template symbol supplement.
                   proto = tssp
                              ->variant.class_template.prototype_instantiation;
     a_type_ptr    class_type;
+    /* Process the prototype instantiation first. */
     if (proto != NULL) {
       class_type = type_symbol_type(proto);
       clear_type_correspondence(class_type, visited);
@@ -1463,6 +1467,8 @@ all_instantiations list of the associated template symbol supplement.
     }  /* if */
     for (; inst != NULL; inst = next_instance_sym(inst)) {
       if (inst != proto) {
+        /* Sometimes the prototype instantiation is placed on the
+           instantiations list; skip it since it has been processed above. */
         class_type = type_symbol_type(inst);
         clear_type_correspondence(class_type, visited);
         if (visited && find_class_template_instantiation(tssp, inst) == NULL) {
@@ -1471,6 +1477,7 @@ all_instantiations list of the associated template symbol supplement.
       }  /* if */
     }  /* for */
   } else {
+    /* A function template. */
     a_template_instance_ptr  inst = tssp->variant.function.instantiations;
     for (; inst != NULL; inst = inst->next) {
       a_routine_ptr   routine = inst->instance_sym->variant.routine.ptr;
@@ -1558,7 +1565,11 @@ Record inst as being a canonical instantiation of the template associated with
 tssp.
 */
 {
+  /* Put the instance on the appropriate all_instantiations list so it can be
+     found when looking for cross-translation-unit correspondences. */
   add_instantiation(tssp, inst);
+  /* Make sure that the instance has a correspondence that reflects the fact
+     that this instance is the canonical entry. */
   if (is_class_struct_union_symbol(inst)) {
     a_type_ptr  class_type = type_symbol_type(inst);
     if (trans_unit_corresp_of(class_type) == NULL) {
@@ -1712,14 +1723,16 @@ also deals with the consequences of type becoming the new canonical entry.
     }  /* if */
   }  /* if */
   if (type->kind == (a_type_kind)tk_typeref && typeref_is_typedef(type)) {
+    /* Setting a correspondence for a typedef sometimes also requires
+       matching the underlying types. */
     type = skip_typerefs(type);
     corresp_type = skip_typerefs(corresp_type);
     if (trans_unit_corresp_of(type) != NULL) {
       /* A correspondence is set already for the type pointed to. */
-    } if (is_immediate_class_type(type) &&
-        type->variant.class_struct_union.originally_unnamed &&
-        is_immediate_class_type(corresp_type) &&
-        corresp_type->variant.class_struct_union.originally_unnamed) {
+    } else if (is_immediate_class_type(type) &&
+               type->variant.class_struct_union.originally_unnamed &&
+               is_immediate_class_type(corresp_type) &&
+               corresp_type->variant.class_struct_union.originally_unnamed) {
       /* These are unnamed class types that acquired linkage through a typedef.
          Since the typedefs correspond, these types should too. */
       set_type_corresp(type, corresp_type);
@@ -1819,6 +1832,7 @@ symbols are listed under the same header).
       if (sym1->is_class_member &&
           sym1->kind == (a_symbol_kind)sk_member_function &&
           sym1->variant.routine.ptr->is_prototype_instantiation) {
+        /* Make sure two distinct entities are involved in the diagnostic. */
         a_type_ptr  parent_to_diagnose = sym1->parent.class_type;
         if (parent_to_diagnose ==
                        (a_type_ptr)canonical_il_entry_of(parent_to_diagnose) &&
@@ -2045,11 +2059,8 @@ is in fact valid.
          routine->is_virtual != corresp_routine->is_virtual ||
          routine->pure_virtual != corresp_routine->pure_virtual ||
          /* In C mode (C99 & GNU C), the inline flag does not need to match.
-            In C++ mode, we only require a match if the functions are both
-            defined or if they are both undefined.  Furthermore, if the
-            routines are template instantiations, they should be defined
-            (instantiations don't have their inline flag set until they
-             are instantiated). */
+            In C++ mode, they usually should match, but some special situations
+            do not require a match. */
          (!C_mode() && routine->is_inline != corresp_routine->is_inline &&
           !inline_flag_can_differ(routine, corresp_routine)) ||
          /* If both routines are template specialization, the explicit
@@ -2279,6 +2290,7 @@ type is in fact valid.
     a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list,
                     corresp_enumerator =
                         corresp_type->variant.integer.enum_info.constant_list;
+    /* Verify one-for-one correspondence of the enumerator constants. */
     for (; enumerator != NULL && corresp_enumerator != NULL;
          enumerator = enumerator->next,
                               corresp_enumerator = corresp_enumerator->next) {
@@ -2300,7 +2312,7 @@ type is in fact valid.
       report_error = TRUE;
     }  /* if */
     if (match && 
-        (enumerator != NULL ||
+        (
 #if MICROSOFT_EXTENSIONS_ALLOWED
          !same_str(type->variant.integer.uuid_string,
                    corresp_type->variant.integer.uuid_string) ||
@@ -2345,6 +2357,7 @@ Return TRUE if the given using declarations refer to corresponding entities.
              eq_constants((a_constant_ptr)ud1->entity.ptr, 
                           (a_constant_ptr)ud2->entity.ptr);
   } else {
+    /* Non-dependent case: check that the canonical entries match up. */
     result = canonical_il_entry_of(ud1->qualifier.class_type) ==
                            canonical_il_entry_of(ud2->qualifier.class_type) &&
              canonical_il_entry_of(ud1->entity.ptr) ==
@@ -2720,13 +2733,15 @@ is in fact valid.
       check_for_enumerator_conflicts(type);
     }  /* if */
   } else if (type_sym == NULL) {
-    /* This must be a placeholder type or a builtin type.  The former has
+    /* This must be a placeholder type or a built-in type.  The former has
        no correspondence; the latter needs no checking. */
     match = !is_placeholder_type(type);
     if (!match) {
       set_no_trans_unit_corresp(iek_type, type);
     }  /* if */
   } else {
+    /* The usual case: class and enumeration types must have their inner
+       structure checked. */
     if (!verify_name_correspondence(type)) {
       match = FALSE;
       set_no_trans_unit_corresp(iek_type, type);
@@ -2750,6 +2765,7 @@ is in fact valid.
       }  /* if */
     }  /* if */
   }  /* if */
+  /* Check some other general type properties. */
   if (match && type != corresp_type &&
       ((type->kind != corresp_type->kind &&
         /* "class" and "struct" are interchangeable if not both entries are
@@ -3355,6 +3371,8 @@ are not checked.
           if (same_name(routine, corresp_routine) &&
               (trans_unit_corresp_of(routine) == NULL ||
                trans_unit_corresp_of(corresp_routine) == NULL) &&
+              /* Functions that are only declared as friends are "invisible"
+                 to ordinary lookup. */
               (friend_sym->is_invisible || corresp_friend_sym->is_invisible) &&
               may_have_correspondence(
                            (a_symbol_ptr)routine->source_corresp.assoc_info) &&
@@ -4088,6 +4106,8 @@ for those.
 {
   while (instantiations_to_process != NULL) {
     a_symbol_list_entry_ptr  entries = instantiations_to_process, entry;
+    /* Detach the list of pending instantiations; new instantiations may
+       be generated while we process the detached list. */
     instantiations_to_process = NULL;
     for (entry = entries; entry != NULL; entry = entry->next) {
       a_symbol_ptr  inst = entry->symbol;
@@ -4209,6 +4229,8 @@ when looking up a correspondence: if none is found, return NULL.
                                                           ->il_template_entry;
     a_template_ptr  corresp_prim_templ = corresp_tssp->il_template_entry;
     if (corresponding_templates(prim_templ, corresp_prim_templ)) {
+      /* The two partial specializations specialize the same primary
+         template. */
       for (sym = corresp_tssp->variant.class_template.partial_specializations;
            sym != NULL;
            sym = sym->next) {
@@ -4386,6 +4408,10 @@ entities.
 static a_symbol_ptr check_routine_sym_corresponds(a_symbol_ptr   sym,
                                                   a_routine_ptr  routine)
 /*
+The given symbol represents an ordinary function, a member function or is
+an external routine symbol (sk_extern_routine).  If it corresponds to the
+given routine entry, return the sk_routine or sk_member_function associated
+with sym.  This is called from find_corresponding_routine_on_list.
 */
 {
   a_routine_ptr  corresp_routine;
@@ -4632,6 +4658,8 @@ translation unit correspondence pointer if one is found.
 
 static a_boolean type_is_top_level_prototype_instantiation(a_type_ptr  type)
 /*
+Return TRUE if and only if the given type is a prototype instantiation of a
+true class template (as opposed to a member type of a class template).
 */
 {
   return is_immediate_class_type(type) &&
@@ -4670,6 +4698,9 @@ way, determine to which other IL entry this might correspond.
            to find the named member instead. */
         root = NULL;
       } else {
+        /* Search for the outermost parent class, but stop at a class type
+           that has no correspondence or at one that is a prototype
+           instantiation of a true class template. */
         while (root->source_corresp.is_class_member &&
                !type_is_top_level_prototype_instantiation(root)) {
           a_type_ptr  next_out = root->source_corresp.parent.class_type;
@@ -4788,7 +4819,7 @@ way, determine to which other IL entry this might correspond.
 }  /* determine_correspondence */
 
 
-static a_namespace_ptr canonical_namespace_entry_of(a_namespace_ptr nsp)
+static a_namespace_ptr canonical_namespace_entry_of(a_namespace_ptr  nsp)
 /*
 Return the canonical entry established for the given namespace entry.
 (Should not be called until the namespaces have already been visited for
@@ -4810,7 +4841,7 @@ correspondences with other translation units.)
 }  /* canonical_namespace_entry_of */
 
 
-static a_field_ptr canonical_field_entry_of(a_field_ptr field)
+static a_field_ptr canonical_field_entry_of(a_field_ptr  field)
 /*
 If the given field entry has not yet been examined for a corresponding entry
 in another translation unit, do so now.  Then return the established canonical
@@ -4832,7 +4863,7 @@ entry.
 }  /* canonical_field_entry_of */
 
 
-static a_routine_ptr canonical_routine_entry_of(a_routine_ptr routine)
+static a_routine_ptr canonical_routine_entry_of(a_routine_ptr  routine)
 /*
 If the given routine entry has not yet been examined for a corresponding entry
 in another translation unit, do so now.  Then return the established canonical
@@ -4851,14 +4882,14 @@ entry.
 }  /* canonical_routine_entry_of */
 
 
-static a_variable_ptr canonical_variable_entry_of(a_variable_ptr var)
+static a_variable_ptr canonical_variable_entry_of(a_variable_ptr  var)
 /*
 If the given variable entry has not yet been examined for a corresponding entry
 in another translation unit, do so now.  Then return the established canonical
 entry.
 */
 {
-  a_variable_ptr              result = var;
+  a_variable_ptr  result = var;
 
   if (var != NULL) {
     if (in_secondary_trans_unit(var)) {
@@ -4870,14 +4901,14 @@ entry.
 }  /* canonical_variable_entry_of */
 
 
-a_type_ptr canonical_type_entry_of(a_type_ptr type)
+a_type_ptr canonical_type_entry_of(a_type_ptr  type)
 /*
 If the given type entry has not yet been examined for a corresponding entry
 in another translation unit, do so now.  Then return the established
 canonical entry.
 */
 {
-  a_type_ptr              result = type;
+  a_type_ptr  result = type;
 
   if (type != NULL &&
       /* Do not attempt to find a match for a type instantiated from a
@@ -4896,14 +4927,14 @@ canonical entry.
 }  /* canonical_type_entry_of */
 
 
-a_template_ptr canonical_template_entry_of(a_template_ptr templ)
+a_template_ptr canonical_template_entry_of(a_template_ptr  templ)
 /*
 If the given template entry has not yet been examined for a corresponding entry
 in another translation unit, do so now.  Then return the established
 canonical entry.
 */
 {
-  a_template_ptr              result = templ;
+  a_template_ptr  result = templ;
 
   if (templ != NULL) {
     if (in_secondary_trans_unit(templ)) {
@@ -5119,6 +5150,8 @@ translation unit).
 {
   while (verification_list != NULL) {
     a_verification_entry_ptr  entries = verification_list, entry;
+    /* Detach the verification list; new entries may be added as we process
+       the detached list (hence the outer while loop). */
     verification_list = NULL;
     while (entries != NULL) {
       entry = entries;
