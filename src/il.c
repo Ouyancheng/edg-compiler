@@ -234,52 +234,6 @@ static a_constant_hash_value hash_constant(a_constant *cp);
 void db_type(a_type *tp);
 
 
-static char *db_int_type_name(an_integer_kind kind)
-/*
-Return a pointer to a string describing the integer type indicated by kind.
-*/
-{
-  char *p;
-
-  switch (kind) {
-    case ik_char:            p = "char";            break;
-    case ik_signed_char:     p = "signed char";     break;
-    case ik_unsigned_char:   p = "unsigned char";   break;
-    case ik_short:           p = "short";           break;
-    case ik_unsigned_short:  p = "unsigned short";  break;
-    case ik_int:             p = "int";             break;
-    case ik_unsigned_int:    p = "unsigned int";    break;
-    case ik_long:            p = "long";            break;
-    case ik_unsigned_long:   p = "unsigned long";   break;
-#if LONG_LONG_ALLOWED
-    case ik_long_long:       p = "long long";       break;
-    case ik_unsigned_long_long:
-                             p = "unsigned long long";
-                                                    break;
-#endif /* LONG_LONG_ALLOWED */
-    default:                 p = "<bad integer kind>";
-  }  /* switch */
-  return p;
-}  /* db_int_type_name */
-
-
-static char *db_float_type_name(a_float_kind kind)
-/*
-Return a pointer to a string describing the float type indicated by kind.
-*/
-{
-  char *p;
-
-  switch (kind) {
-    case fk_float:           p = "float";           break;
-    case fk_double:          p = "double";          break;
-    case fk_long_double:     p = "long double";     break;
-    default:                 p = "<bad float kind>";
-  }  /* switch */
-  return p;
-}  /* db_float_type_name */
-
-
 static void db_template_arg_list(a_template_arg_ptr tap)
 /*
 Dump a list of template arguments, enclosed by angle brackets.
@@ -747,11 +701,11 @@ Dump the contents of the indicated type entry, for debug purposes.
       fputs("void", f_debug);
       break;
     case tk_integer:
-      fprintf(f_debug, "%s", db_int_type_name(tp->variant.integer.int_kind));
+      fprintf(f_debug, "%s", int_kind_name(tp->variant.integer.int_kind));
       if (tp->variant.integer.enum_type) fputs(" enum", f_debug);
       break;
     case tk_float:
-      fprintf(f_debug, "%s", db_float_type_name(tp->variant.float_kind));
+      fprintf(f_debug, "%s", float_kind_name(tp->variant.float_kind));
       break;
     case tk_pointer:
       if (tp->variant.pointer.is_reference) {
