@@ -5115,10 +5115,9 @@ locates the corresponding following colon.
             cp = sssep->discarded_case_label_constants;
           }  /* if */
           for (; cp != NULL; cp = cp->next) {
-            if (!is_error_constant(cp)) {
-              check_assertion(
-                         cp->kind == (a_constant_repr_kind)ck_integer ||
-                         cp->kind == (a_constant_repr_kind)ck_template_param);
+            if (!is_error_constant(cp) &&
+                cp->kind != (a_constant_repr_kind)ck_template_param) {
+              check_assertion(cp->kind == (a_constant_repr_kind)ck_integer);
               if (eq_constants(cp, constant_ptr)) {
                 pos_error(ec_case_label_appears_more_than_once,
                           label_position);
@@ -5280,7 +5279,8 @@ locates the corresponding following colon.
     } else if (constant_ptr->kind == (a_constant_repr_kind)ck_template_param) {
       /* A template dependent constant: accumulate them at the start of the
          list.  (Their mutual ordering does not matter.) */
-      prev_cp = cp = NULL;
+      prev_cp = NULL;
+      cp = scp->constant_list;
     } else {
       /* Find the right spot for insertion. */
       for (prev_cp = NULL, cp = scp->constant_list;

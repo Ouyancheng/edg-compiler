@@ -1,5 +1,21 @@
 Version 2.46
 
+2/8/01   Checking of template-dependent switch case values
+
+Spurious errors about duplicated values were sometimes issued for
+template-dependent case values in switch statements when prototype
+instantiations of functions are done (e.g., in strict mode).  Now fixed.
+
+  template <class T> struct A {
+    void f(int i) {
+      switch (T::name(i)) {
+        case T::value_1:
+        case T::value_2:  // Formerly got spurious error
+          break;
+      }
+    }
+  };
+
 2/8/01   Redeclaration of new/delete operators with differing exception
          specification
 
