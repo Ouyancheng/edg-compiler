@@ -3469,7 +3469,7 @@ a symbol is added to a a sck_namespace_extension scope, however, the
 symbol must be added to the inactive list.
 */
 {
-  register a_symbol_ptr        old_sym_ptr;
+  register a_symbol_ptr        old_sym_ptr, hidden_sym = NULL;
   register a_scope_number      scope_number;
   register a_name_space_kind   sym_name_space_kind;
   a_symbol_header_ptr          hdr_ptr = sym_ptr->header;
@@ -3521,12 +3521,28 @@ symbol must be added to the inactive list.
         old_sym_ptr = hdr_ptr->inactive_symbols;
         scope_number = scope_stack[scope_depth].number;
       } else {
+        old_sym_ptr = hdr_ptr->symbol;
+        /* Check for a local variable hiding another local variable in the
+           enclosing scope (a remark will be issued later, unless a more
+           serious declaration error is encountered). */
+        if (old_sym_ptr != NULL &&
+            old_sym_ptr->kind == (a_symbol_kind)sk_variable &&
+            old_sym_ptr->variant.variable.ptr
+                       ->source_corresp.is_local_to_function &&
+            /* The following condition is needed to avoid having function
+               parameters from an instantiation being reported as hiding
+               variables (or parameters) from a function that triggered the
+               instantiation. */
+            old_sym_ptr->decl_scope >=
+                         scope_stack[depth_innermost_function_scope].number &&
+            sym_ptr->kind == (a_symbol_kind)sk_variable) {
+          hidden_sym = old_sym_ptr;
+        }  /* if */
         /* If the symbol is not being entered in the innermost scope, skip
            past any symbols on the active list from the scopes inside the
            entry scope.  That's necessary so that the new symbol can be added
            at the right place in the active list, which is ordered from
            innermost to outermost scope. */
-        old_sym_ptr = hdr_ptr->symbol;
         for (curr_depth = depth_scope_stack; ; curr_depth--) {
           scope_number = scope_stack[curr_depth].number;
           if (curr_depth == scope_depth) break;
@@ -3655,6 +3671,7 @@ symbol must be added to the inactive list.
                   pos_sy_error(ec_bad_type_name_redeclaration,
                                &(sym_ptr->decl_position),
                                old_sym_ptr);
+                  redecl_err = TRUE;
                 } else {
                   /* Note that we pass the identifier string to the error
                      routine rather than using the standard symbol name
@@ -3664,6 +3681,7 @@ symbol must be added to the inactive list.
                   pos_st_error(ec_id_already_declared,
                                &(sym_ptr->decl_position),
                                sym_ptr->header->identifier);
+                  redecl_err = TRUE;
                 }  /* if */
               }  /* if */
               /* Only break out of the loop if an error occurred.  Otherwise
@@ -3681,6 +3699,14 @@ symbol must be added to the inactive list.
           }  /* if */
         }  /* for */
       }  /* if */
+    }  /* if */
+    if (hidden_sym != NULL && !redecl_err) {
+      /* hidden_sym represents a local variable hidden by another local
+         variable declaration.  Issue a remark.  (The remark is delayed
+         until we know that the declaration was not the cause of an error
+         (in which case the remark would be moot). */
+      pos_sy_remark(ec_local_variable_hidden, &sym_ptr->decl_position,
+                    hidden_sym);
     }  /* if */
     if (add_sym_to_inactive_list) {
       /* In namespace extension scopes, just add the symbol to the
