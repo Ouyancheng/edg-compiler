@@ -3333,6 +3333,7 @@ end_lookup:
 #undef is_acceptable_symbol
 }  /* class_qualified_id_lookup */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void add_symbol_to_super_set(a_symbol_locator    *locator,
 				    a_symbol_ptr	new_sym,
@@ -3573,6 +3574,7 @@ Microsoft __super keyword.
   return result_sym;
 }  /* super_qualified_id_lookup */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr enum_qualified_id_lookup(a_symbol_locator		*locator,
 				      a_type_ptr		enum_type)
