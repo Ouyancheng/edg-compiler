@@ -1303,9 +1303,12 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
                              (a_dynamic_init_kind)dik_constant));
       local_di.variant.constant = cp;
       if (incomplete_init) {
-        /* A const or ref field was not initialized.  Issue a warning. */
-        pos_sy_warning(ec_var_with_uninitialized_field, source_pos,
-                       symbol_ptr);
+        /* A const or ref field was not initialized.  Issue an error. */
+        pos_sy_diagnostic(C_dialect == C_dialect_cplusplus ?
+                            (an_error_severity)es_error :
+                            (an_error_severity)es_warning,
+                          ec_var_with_uninitialized_field, source_pos,
+                          symbol_ptr);
       }  /* if */
     }  /* if */
     if (!err && put_init_in_variable) {
