@@ -2772,13 +2772,11 @@ union(s).
 void fold_field_selection(a_constant            *constant_1,
                           a_field_ptr           field,
                           a_type_ptr            result_type,
-                          a_constant            *result,
-                          a_boolean             *did_not_fold)
+                          a_constant            *result)
 /*
 Fold a constant field selection operation.  constant_1 is the pointer to the
 struct/union, field points to the field.  The result type (pointer to the
 field type) is given by result_type.  The result is put in *result.
-*did_not_fold is set to TRUE if the operation cannot be folded.
 This folding operation is not done through the usual interface because a
 field cannot be passed as a constant.
 */
@@ -2787,7 +2785,6 @@ field cannot be passed as a constant.
   an_integer_value field_offset;
   a_boolean        err;
 
-  *did_not_fold = FALSE;
   copy_constant(constant_1, result);
   if (is_error_constant(constant_1)) {
     /* An error constant stays the same. */
@@ -2798,9 +2795,6 @@ field cannot be passed as a constant.
        error constant. */
     set_error_constant(result);
 #endif /* 0 */  
-  } else if (field->bit_size != 0) {
-    /* Cannot fold a bit-field selection. */
-    *did_not_fold = TRUE;
   } else {
     /* Take the pointer offset, ... */
     get_pointer_offset(constant_1, &offset);
@@ -2819,14 +2813,9 @@ field cannot be passed as a constant.
   }  /* if */
 #if DEBUG
   if (debug_level >= 5) {
-    fprintf(f_debug, "fold_field_selection: ");
-    if (*did_not_fold) {
-      fprintf(f_debug, "did not fold\n");
-    } else {
-      fprintf(f_debug, "offset = ");
-      db_constant(&offset);
-      fprintf(f_debug, "\n");
-    }  /* if */
+    fprintf(f_debug, "fold_field_selection: offset = ");
+    db_constant(&offset);
+    fprintf(f_debug, "\n");
   }  /* if */
 #endif /* CHECKING */
 }  /* fold_field_selection */

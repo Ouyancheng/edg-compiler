@@ -3174,25 +3174,77 @@ address_taken flag on the variable(s) in the lvalue.  Issue an error at
     }  /* if */
   }  /* if */
 }  /* set_address_taken_on_variables_in_expr */
-  
+
+#if ADDR_OF_BIT_FIELD_ALLOWED
+
+a_boolean is_bit_field_whose_address_can_be_taken(a_field_ptr field,
+                                                  a_type_ptr  *ptr_type)
+/*
+Return TRUE if the indicated field (a bit field) is one whose address
+can be taken (as an extension).  If returning TRUE, also return the type
+of the pointer to that bit field, in *ptr_type.
+*/
+{
+  a_boolean        addr_can_be_taken = FALSE;
+  a_targ_size_t    field_size, field_offset, type_size;
+  a_targ_alignment type_alignment, struct_alignment;
+  an_integer_kind  int_kind;
+  a_type_ptr       int_type;
+
+  /* In strict ANSI mode, don't allow this. */
+  if (!strict_ansi_mode) {
+    /* See if the bit field is an even number of bytes long. */
+    field_size = field->bit_size;
+    if (field_size % TARG_CHAR_BIT == 0) {
+      field_size /= TARG_CHAR_BIT;
+      /* See if the bit field is at an even byte offset. */
+      field_offset = field->bit_offset;
+      if (field_offset % TARG_CHAR_BIT == 0) {
+        field_offset /= TARG_CHAR_BIT;
+        /* Get the overall alignment of the structure of which this field is
+           a member. */
+        struct_alignment =
+                      field->source_corresp.class_of_which_a_member->alignment;
+        /* Look for an integral type that matches the bit field size. */
+        for (int_kind = (an_integer_kind)0;
+             (int)int_kind < (int)ik_last;
+             int_kind = (an_integer_kind)((int)int_kind + 1)) {
+          /* The signedness must match. */
+          if (int_kind_is_signed[(int)int_kind] ==
+                                                  field->bit_field_is_signed) {
+            /* The size and alignment must match. */
+            get_integer_size_and_alignment(int_kind, &type_size,
+                                           &type_alignment);
+            if (type_size == field_size &&
+                type_alignment <= struct_alignment &&
+                field_offset % type_alignment == 0) {
+              addr_can_be_taken = TRUE;
+              int_type = integer_type(int_kind);
+              *ptr_type = make_pointer_type(int_type);
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return addr_can_be_taken;
+}  /* is_bit_field_whose_address_can_be_taken */
+
+#endif /* ADDR_OF_BIT_FIELD_ALLOWED */
 #if ADDR_OF_BIT_FIELD_ALLOWED
 
 static a_boolean take_address_of_bit_field(an_operand *operand)
 /*
 *operand is a bit-field operand lvalue whose address is being taken.
-See if the bit field is one whose size and alignment match one of the
-integral types.  If so, the address can be taken as an extension, and
-*operand is changed to indicate the address.  If not, FALSE is returned.
+See if it is okay to take the address of the bit field (as an extension),
+and if so, change *operand to indicate the address.  If not, return FALSE.
 */
 {
   a_boolean             address_taken = FALSE;
   an_expr_node_ptr      node;
   a_field_ptr           field;
-  a_targ_size_t         field_size, field_offset, type_size;
-  a_targ_alignment      type_alignment, struct_alignment;
-  an_integer_kind       int_kind;
-  a_type_ptr            int_type, ptr_type;
-
+  a_type_ptr            ptr_type;
 
   check_assertion(is_expression_operand(operand));
   node = operand->variant.expression;
@@ -3200,48 +3252,17 @@ integral types.  If so, the address can be taken as an extension, and
                   node->variant.operation.kind ==
                                          (an_expr_operator_kind)eok_bit_field);
   field = node->variant.operation.operands->next->variant.field;
-  /* See if the bit field is an even number of bytes. */
-  field_size = field->bit_size;
-  if (field_size % TARG_CHAR_BIT == 0) {
-    field_size /= TARG_CHAR_BIT;
-    /* See if the bit field is at an even byte offset. */
-    field_offset = field->bit_offset;
-    if (field_offset % TARG_CHAR_BIT == 0) {
-      field_offset /= TARG_CHAR_BIT;
-      /* Get the overall alignment of the structure of which this field is
-         a member. */
-      struct_alignment =
-                      field->source_corresp.class_of_which_a_member->alignment;
-      /* Look for an integral type that matches the bit field size. */
-      for (int_kind = (an_integer_kind)0;
-           (int)int_kind < (int)ik_last;
-           int_kind = (an_integer_kind)((int)int_kind + 1)) {
-        /* The signedness must match. */
-        if (int_kind_is_signed[(int)int_kind] == field->bit_field_is_signed) {
-          /* The size and alignment must match. */
-          get_integer_size_and_alignment(int_kind, &type_size,
-                                         &type_alignment);
-          if (type_size == field_size &&
-              type_alignment <= struct_alignment &&
-              field_offset % type_alignment == 0) {
-            /* Yes.  The address of this bit field can be taken.  The type of
-               the pointer is pointer to the integral type we've just found. */
-            address_taken = TRUE;
-            pos_warning(ec_address_of_bit_field, &operand->position);
-            /* Change the field selection to a normal field selection. */
-            node->variant.operation.kind = (an_expr_operator_kind)eok_field;
-            /* Cast the field selection to the right pointer type. */
-            int_type = integer_type(int_kind);
-            ptr_type = make_pointer_type(int_type);
-            cast_node(&node, ptr_type, /*is_implicit_cast=*/TRUE,
-                      &operand->position);
-            /* Make an rvalue operand for the address. */
-            make_expression_operand(node, ptr_type, operand);
-            break;
-          }  /* if */
-        }  /* if */
-      }  /* for */
-    }  /* if */
+  if (is_bit_field_whose_address_can_be_taken(field, &ptr_type)) {
+    /* The bit field is one whose size and alignment are such that its address
+       can be taken. */
+    address_taken = TRUE;
+    pos_warning(ec_address_of_bit_field, &operand->position);
+    /* Change the field selection to a normal field selection. */
+    node->variant.operation.kind = (an_expr_operator_kind)eok_field;
+    /* Cast the field selection to the right pointer type. */
+    cast_node(&node, ptr_type, /*is_implicit_cast=*/TRUE, &operand->position);
+    /* Make an rvalue operand for the address. */
+    make_expression_operand(node, ptr_type, operand);
   }  /* if */
   return address_taken;
 }  /* take_address_of_bit_field */
@@ -3271,7 +3292,7 @@ address_taken flag.
 #if ADDR_OF_BIT_FIELD_ALLOWED
     /* As an extension, the address of a bit field can be taken if it has
        the same size and alignment as one of the integral types. */
-    if (strict_ansi_mode || !take_address_of_bit_field(operand)) {
+    if (!take_address_of_bit_field(operand)) {
       error_in_operand(ec_address_of_bit_field, operand);
     }  /* if */
 #else /* !ADDR_OF_BIT_FIELD_ALLOWED */

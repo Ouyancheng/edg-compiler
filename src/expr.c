@@ -1764,25 +1764,36 @@ in *result.
     did_not_fold = TRUE;
     if (is_constant_operand(operand_1) &&
         curr_expr_is_evaluated() && curr_expr_kind_is_const()) {
-      /* Fold a field selection relative to a constant address into another
-         constant address.  Note that the "rvalue . field" case can't come
-         here, since a struct/union rvalue cannot be a constant.  This
-         folding could be done even in nonconstant expressions (except 
-         not-evaluated ones), but it's clearer to have the field selection in
-         the IL (the constant form has only an offset, and loses the field
-         name). */
-      clear_operand((an_operand_kind)ok_constant, result);
-      fold_field_selection(&operand_1->variant.constant, field,
-                           selection_type, &result->variant.constant,
-                           &did_not_fold);
+      /* Don't try to fold bit fields except when their addresses
+         can be taken (as an extension). */
+      if (field->bit_size == 0
+#if ADDR_OF_BIT_FIELD_ALLOWED
+          || is_bit_field_whose_address_can_be_taken(field, &selection_type)
+#endif /* ADDR_OF_BIT_FIELD_ALLOWED */
+                              ) {
+        /* Fold a field selection relative to a constant address into another
+           constant address.  Note that the "rvalue . field" case can't come
+           here, since a struct/union rvalue cannot be a constant.  This
+           folding could be done even in nonconstant expressions (except 
+           not-evaluated ones), but it's clearer to have the field selection in
+           the IL (the constant form has only an offset, and loses the field
+           name). */
+        clear_operand((an_operand_kind)ok_constant, result);
+        fold_field_selection(&operand_1->variant.constant, field,
+                             selection_type, &result->variant.constant);
+      }  /* if */
     }  /* if */
     if (did_not_fold) {
       if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
         /* The operation must fold to a constant in a constant expression. */
-        /* The only case where it won't is if the field is a bit field,
-           so use that for a clearer error message. */
-        pos_error(ec_address_of_bit_field, member_position);
-        make_error_operand(result);
+        if (field->bit_size != 0) {
+          /* A bit-field selection cannot be folded.  There will be a
+             warning or error issued later.  Nothing is needed now. */
+        } else {
+          /* Some other case (none expected, but for future expansion...). */
+          pos_error(ec_expr_not_constant, member_position);
+          make_error_operand(result);
+        }  /* if */
       } else {
         /* Construct the field selection expression tree. */
         make_field_operand(field, &field_operand);
