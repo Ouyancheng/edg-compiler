@@ -5555,7 +5555,7 @@ is a template specialization declaration.
       /* A name like "A<T>::x" that is a nontype member of a proxy class.
          This should only happen in friend templates. */
       check_assertion(idlb.is_friend_decl && locator->is_class_member);
-      if (func_info->is_definition) {
+      if (curr_token != tok_semicolon) {
         pos_sy_error(ec_bad_scope_for_definition,
                      &locator->source_position, sym);
         set_to_error_locator(*locator);
