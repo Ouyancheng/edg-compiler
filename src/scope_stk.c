@@ -2799,8 +2799,7 @@ NULL.
       } else if (rout_ptr->source_corresp.referenced) {
         /* Referenced function.  We check the IL referenced flag because
            a reference in, say, a sizeof operation doesn't count. */
-        if (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
-            storage_class == (a_storage_class)sc_static &&
+        if (storage_class == (a_storage_class)sc_static &&
             rout_ptr->assoc_scope == NULL_region_number) {
           /* A routine with internal linkage (or in an unnamed namespace) was
              never given a definition.  For nontemplate cases we check the
@@ -2942,8 +2941,7 @@ NULL.
       if (rout_ptr->source_corresp.referenced) {
         /* Referenced function.  We check the IL referenced flag because
            a reference in, say, a sizeof operation doesn't count.*/
-        if (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
-            rout_ptr->storage_class == (a_storage_class)sc_static &&
+        if (rout_ptr->storage_class == (a_storage_class)sc_static &&
             /* No definition: */rout_ptr->assoc_scope == NULL_region_number) {
           if (C_dialect == C_dialect_pcc) {
             /* In pcc mode, just change the routine to extern. */
