@@ -220,10 +220,10 @@ signed1 and signed2 give the signedness of the two values.
   int			result = 0;
 
   if (sign_1 != sign_2) {
-      /* If signs of the values are different then if op_1 is negative
-         it must be less than op_2.  If op_1 is positive it must be greater
-         than op_2. */
-      result = sign_1 ? -1 : 1;
+    /* If signs of the values are different then if op_1 is negative
+       it must be less than op_2.  If op_1 is nonnegative it must be greater
+       than op_2. */
+    result = sign_1 ? -1 : 1;
   } else {
     /* The values are have the same sign, just do a straight bit
        comparison until we find a difference. */
