@@ -4081,7 +4081,7 @@ The message to be written is the concatenation of the linked list of
 message segments pointed to by the static variable error_message_head.
 The diagnostic category is specified by diag_kind.  The error position and
 severity will be valid only on single (stand alone) diagnostics or the 
-primary message of a multiple message diagnostic.  These value will
+primary message of a multiple message diagnostic.  These values will
 be preserved in static variables for use on subsequent calls to process
 additional messages in a multiple message diagnostic.
 */
@@ -4213,6 +4213,10 @@ An internal error has occurred.  Write the given message and abort.
   error_msg_strings[1] = error_message;
   construct_message_segments("%s");
   write_diagnostic(&error_position, es_internal_error, dck_standalone);
+#ifdef __GNUC__
+  /* Avoid gcc warning.  write_diagnostic does not return in this case. */
+  exit_compilation(es_internal_error);
+#endif /* __GNUC__ */
 }  /* internal_error */
 
 
@@ -4261,6 +4265,10 @@ terminate the compilation.
   construct_message_segments("%s1%s2");
 
   write_diagnostic(&error_position, es_command_line_error, dck_standalone);
+#ifdef __GNUC__
+  /* Avoid gcc warning.  write_diagnostic does not return in this case. */
+  exit_compilation(es_internal_error);
+#endif /* __GNUC__ */
 }  /* str_command_line_error */
 
 
@@ -4429,7 +4437,8 @@ is set to point to a symbol that provides the context information and
 #endif /* CHECKING */
   return result;
 } /* include_in_context_output */
-#endif /* !STANDALONE_UTILITY_PROGRMA */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static void diag_message (an_error_code              error_code,
                           a_source_position          *error_pos,
@@ -4442,7 +4451,7 @@ es_warning)and diag_kind indicates if this is a single diagnostic message or
 one message in a related list of messages.  The linked list of message
 segments that comprise the diagnostic is based on the error message
 template associated with error_code.  After constructing the segment list
- and doing any required expansions, the diagnostic is written.
+and doing any required expansions, the diagnostic is written.
 */
 {
   a_msg_segment_ptr  curr_seg;
@@ -5113,6 +5122,10 @@ at the indicated position, and then terminate the compilation.
   init_error_params();
   error_msg_strings[1] = error_string;
   diag_message(error_code, error_pos, es_catastrophe, dck_standalone);
+#ifdef __GNUC__
+  /* Avoid gcc warning.  diag_message does not return in this case. */
+  exit_compilation(es_internal_error);
+#endif /* __GNUC__ */
 }  /* pos_st_catastrophe */
 
 
