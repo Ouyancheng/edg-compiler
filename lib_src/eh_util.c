@@ -125,6 +125,7 @@ terminate() is called.
 
 */
 {
+#if ABI_CHANGES_FOR_RTTI
   try {
     STD_NAMESPACE::unexpected();
   }  /* try */
@@ -154,6 +155,12 @@ terminate() is called.
       }  /* if */
     }  /* if */
   }  /* catch */
+#else /* !ABI_CHANGES_FOR_RTTI */
+ /* When RTTI is not used, the old semantics of unexpected() are used in
+    which the type of an object thrown by unexpected is not checked against
+    the violated exception specification. */
+  STD_NAMESPACE::unexpected();
+#endif /* ABI_CHANGES_FOR_RTTI */
   abort();
 }  /* __call_unexpected */
 
