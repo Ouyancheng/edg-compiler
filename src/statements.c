@@ -3272,7 +3272,9 @@ come out on the closing "}".
 
 a_boolean curr_code_reachable(void)
 /*
-Return TRUE if the current code is reachable.
+Return TRUE if the current code is reachable.  Also return TRUE even if
+it is unreachable as long as unreachability warnings are supposed to be
+suppressed.
 */
 {
 #if CHECKING
@@ -3280,7 +3282,8 @@ Return TRUE if the current code is reachable.
     internal_error("curr_code_reachable: struct_stmt_stack is empty");
   }  /* if */
 #endif /* CHECKING */
-  return curr_reachability.reachable;
+  return (curr_reachability.reachable ||
+          curr_reachability.suppress_unreachable_warning);
 }  /* curr_code_reachable */
 
 
