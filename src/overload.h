@@ -404,6 +404,14 @@ typedef struct an_arg_check_block {
 		argument_tail;
 			/* The tail of the list of argument expressions
 			   collected so far. */
+#if GNU_EXTENSIONS_ALLOWED
+  int		fmt_arg;
+			/* If arg_list_kind is pk_printf_args or
+			   pk_scanf_args, the argument number
+			   containing the format string, or zero if
+			   the format string is the last argument
+			   before the ellipsis. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   char		*fmt_string;
 			/* When checking a printf- or scanf-like function,
 			   points to the format string.  NULL otherwise. */

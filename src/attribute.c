@@ -121,6 +121,14 @@ pointed to be "pos" can be freed when this routine returns.
     case ak_alias:
       ap->variant.alias = NULL;
       break;
+    case ak_format:
+      ap->variant.format.kind = (a_format_attribute_kind)fak_none;
+      ap->variant.format.fmt_arg = 0;
+      ap->variant.format.first_subst_arg = 0;
+      break;
+    case ak_format_arg:
+      ap->variant.fmt_arg = 0;
+      break;
     default:
       unexpected_condition_str("alloc_attribute: bad kind");
   }  /* switch */
@@ -169,6 +177,12 @@ Return a copy of the complete attribute list.
       case ak_alias:
         (*end)->variant.alias = attributes->variant.alias;
         break;
+      case ak_format:
+        (*end)->variant.format = attributes->variant.format;
+        break;
+      case ak_format_arg:
+        (*end)->variant.fmt_arg = attributes->variant.fmt_arg;
+        break;
       default:
         unexpected_condition_str("copy_attribute_list: bad kind");
         break;
@@ -199,6 +213,30 @@ ap.  ap may be NULL.
 }  /* free_attribute_list */
 
 
+static a_host_large_integer scan_integral_argument(a_boolean *err,
+                                                   a_boolean *ovflo)
+/*
+Scan an integral attribute argument and return the value.  If an error
+occurs during the scan, *err is set to TRUE, and an error message is
+issued.  If the conversion to a host integer overflows, *ovflo is set
+to TRUE, but no error message is issued.
+*/
+{
+  a_constant            constant;
+  a_host_large_integer  value = 0;
+
+  *err = *ovflo = FALSE;
+  scan_integral_constant_expression(&constant);
+  if (is_error_constant(&constant)) {
+    *err = TRUE;
+  } else {
+    value = value_of_integer_constant(&constant, ovflo);
+  }  /* if */
+
+  return value;
+}  /* scan_integral_argument */
+
+
 static a_boolean scan_attribute_arguments(an_attribute_ptr  attribute)
 /*
 Scan the arguments to an attribute, and store them in the attribute
@@ -218,22 +256,14 @@ that do take arguments.
   switch (attribute->kind) {
 #if USER_CONTROL_OF_STRUCT_PACKING
     case ak_aligned:
-      { a_constant            constant;
-        a_host_large_integer  alignment;
+      { a_host_large_integer  alignment;
         a_boolean             ovflo;
-        a_boolean             error_occurred = FALSE;
+        a_boolean             error_occurred;
         /* The "__aligned__" attribute takes one argument, which is a
            constant expression indicating the desired alignment.  Scan the
            expression. */
-        scan_integral_constant_expression(&constant);
-        /* Check to see if something went wrong while parsing the
-           expression. */
-        if (is_error_constant(&constant)) {
-          error_occurred = TRUE;
-        } else {
-          /* Convert the constant, which will be in a format suitable for
-             the target, to a format suitable for the host. */
-          alignment = value_of_integer_constant(&constant, &ovflo);
+        alignment = scan_integral_argument(&error_occurred, &ovflo);
+        if (!error_occurred) {
           /* If the value isn't reasonable, issue an error message. */
           if (ovflo || 
               !check_pack_alignment_value(alignment,
@@ -313,18 +343,86 @@ that do take arguments.
       /* Consume the string literal. */
       (void)get_token();
       break;
+    case ak_format:
+      { a_host_large_integer  param_number;
+        a_boolean             error_occurred;
+        a_boolean             ovflo;
+        /* If things go well, result will be reset to TRUE. */
+        result = FALSE;
+        /* Scan the identifier indicating the format kind. */
+        if (curr_token != tok_identifier) goto error;
+        name = locator_for_curr_id.symbol_header->identifier;
+        /* Bypass the identifier. */
+        (void)get_token();
+        /* Look up the format name. */
+        for (i = (int)fak_first; i < (int)fak_last; i++) {
+          if (strcmp(format_attribute_kind_names[i], name) == 0) {
+            break;
+          }  /* if */
+        }  /* for */
+        if (i == (int)fak_last) goto error;
+        attribute->variant.format.kind = (a_format_attribute_kind)i;
+        /* Read the arguments that indicate the format string argument
+           and the start of the variable arguments. */
+        for (i = 0; i < 2; i++) {
+          /* Look for the "," that separates the next argument from
+             this one. */
+          if (!required_token(tok_comma, ec_exp_comma)) {
+            /* An error message will already have been issued. */
+            goto done;
+          }  /* if */
+          /* Scan the argument number. */
+          param_number = scan_integral_argument(&error_occurred, &ovflo);
+          /* If there was no integer constant, a message has already
+             been issued. */
+          if (error_occurred) goto done;
+          /* For overflow, issue the message now. */
+          if (ovflo || param_number < 0 || param_number > INT_MAX) {
+            goto error;
+          }  /* if */
+          /* Remember the value. */
+          if (i == 0) {
+            attribute->variant.format.fmt_arg = (int)param_number;
+          } else {
+            attribute->variant.format.first_subst_arg = (int)param_number;
+          }  /* if */
+        }  /* for */
+        /* All went well. */
+        result = TRUE;
+      }
+      break;
+    case ak_format_arg:
+      { a_host_large_integer  param_number;
+        a_boolean             error_occurred;
+        a_boolean             ovflo;
+        /* If things go well, result will be reset to TRUE. */
+        result = FALSE;
+        /* Scan the argument number. */
+        param_number = scan_integral_argument(&error_occurred, &ovflo);
+        /* If there was no integer constant, a message has already
+           been issued. */
+        if (error_occurred) goto done;
+        /* For overflow, issue the message now. */
+        if (ovflo || param_number < 0 || param_number > INT_MAX) {
+          goto error;
+        }  /* if */
+        /* Remember the value. */
+        attribute->variant.fmt_arg = param_number;
+        /* All went well. */
+        result = TRUE;
+      }
+      break;
     default:
       unexpected_condition();
   }  /* switch */
   goto done;
 
-  error:
+error:
   pos_st_error(ec_invalid_argument_to_attribute,
-               &pos,
-               attribute_kind_names[(int)attribute->kind]);
+               &pos, attribute_kind_names[(int)attribute->kind]);
   flush_tokens();
 
-  done:
+done:
   return result;
 }  /* scan_attribute_arguments */
 
@@ -354,10 +452,12 @@ Specifically, these attributes take no arguments:
 These attributes take arguments:
 
   mode ( machine-mode )
-  aligned ( expression )
+  aligned ( constant-expression )
   section ( string-literal )
   alias ( string-literal )
-  
+  format ( identifier, constant-expression, constant-expression )
+  format_arg ( constant-expression )
+
 The attributes are appended at the location pointed to by next.  This
 function returns the address of the last attribute.
 */
@@ -416,6 +516,8 @@ function returns the address of the last attribute.
           case ak_mode:
           case ak_section:
           case ak_alias:
+          case ak_format:
+          case ak_format_arg:
             if (!scan_attribute_arguments(attribute)) {
               /* If the arguments were erroneous, it sometimes makes
                  sense to ignore the attribute completely so that we
@@ -915,6 +1017,101 @@ messages about any invalid attributes.
            return a pointer type. */
         rp->allocates_memory = TRUE;
         break;
+      case ak_format:
+        { a_routine_type_supplement_ptr rtsp;
+          a_param_type_ptr              ptp;
+          a_boolean                     error_occurred = FALSE;
+          int                           count;
+          rtsp = rp->type->variant.routine.extra_info;
+          if (!rtsp->prototyped) {
+            /* For an unprototyped function, no checks are
+               required. */
+          } else if (!rtsp->has_ellipsis) {
+            /* A function without an ellipsis cannot have the "format"
+               attribute. */
+            pos_sy_error(ec_format_rout_not_varargs, &ap->position,
+                         (a_symbol_ptr)rp->source_corresp.assoc_info);
+            error_occurred = TRUE;
+          } else {
+            /* Check to see that the format argument has string type
+               and that the substitution argument is the first
+               variable argument. */
+            for (count = 0, ptp = rtsp->param_type_list; ptp != NULL; 
+                 ptp = ptp->next) {
+              count++;
+              if (count == ap->variant.format.fmt_arg &&
+                  !(is_pointer_type(ptp->type) &&
+                    is_character_type(type_pointed_to(ptp->type)))) {
+                pos_error(ec_fmt_arg_is_not_string, &ap->position);
+                error_occurred = TRUE;
+              }  /* if */
+            }  /* for */
+            /* If the format argument index is out of range, issue an
+               error message. */
+            if (count < ap->variant.format.fmt_arg) {
+              pos_error(ec_fmt_arg_does_not_exist, &ap->position);
+              error_occurred = TRUE;
+            }  /* if */
+            if (ap->variant.format.first_subst_arg != count + 1) {
+              pos_error(ec_subst_arg_is_not_variable, &ap->position);
+              error_occurred = TRUE;
+            }  /* if */
+          }  /* if */
+          if (!error_occurred) {
+            switch (ap->variant.format.kind) {
+            case fak_printf:
+              rtsp->arg_pragma = (a_pragma_kind)pk_printf_args;
+              rtsp->fmt_arg = ap->variant.format.fmt_arg;
+              break;
+            case fak_scanf:
+              rtsp->arg_pragma = (a_pragma_kind)pk_scanf_args;
+              rtsp->fmt_arg = ap->variant.format.fmt_arg;
+              break;
+            case fak_strftime:
+              /* The EDG support does not support strftime format
+                 checking, so this form of the attribute is silently
+                 ignored. */
+              break;
+            default:
+              unexpected_condition();
+            }  /* switch */
+          }  /* if */
+        }
+        break;
+      case ak_format_arg:
+        { a_routine_type_supplement_ptr rtsp;
+          a_param_type_ptr              ptp;
+          int                           count;
+          a_boolean                     error_occurred = FALSE;
+          rtsp = rp->type->variant.routine.extra_info;
+          if (!rtsp->prototyped) {
+            /* For an unprototyped function, no checks are
+               required. */
+          } else {
+            /* Check to see that the format argument has string type
+               and that the substitution argument is variable. */
+            for (count = 0, ptp = rtsp->param_type_list; ptp != NULL; 
+                 ptp = ptp->next) {
+              count++;
+              if (count == ap->variant.fmt_arg &&
+                  !(is_pointer_type(ptp->type) &&
+                    is_character_type(type_pointed_to(ptp->type)))) {
+                pos_error(ec_fmt_arg_is_not_string, &ap->position);
+                error_occurred = TRUE;
+              }  /* if */
+            }  /* for */
+            /* If the format argument index is out of range, issue an
+               error message. */
+            if (count < ap->variant.fmt_arg) {
+              pos_error(ec_fmt_arg_does_not_exist, &ap->position);
+              error_occurred = TRUE;
+            }  /* if */
+          }  /* if */
+          if (!error_occurred) {
+            rtsp->fmt_arg = ap->variant.fmt_arg;
+          }  /* if */
+        }
+        break;
       default:
         /* An invalid attribute. */
         pos_sy_error(ec_attribute_does_not_apply,
@@ -1175,6 +1372,13 @@ attributes.
       strcmp(type_mode_kind_names[(int)tmk_last], "last") != 0) {
     internal_error(
      "attribute_one_time_init: initialization of type_mode_kind_names is bad");
+  }  /* if */
+  /* Check that the table of format attribute names is correctly
+     initialized. */
+  if (format_attribute_kind_names[(int)fak_last] == NULL ||
+      strcmp(format_attribute_kind_names[(int)fak_last], "last") != 0) {
+    internal_error(
+     "attribute_one_time_init: init of format_attribute_kind_names is bad");
   }  /* if */
   /* Check that the table of attribute names is correctly
      initialized. */

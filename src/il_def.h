@@ -2990,6 +2990,18 @@ typedef struct a_routine_type_supplement {
                         /* Indicates whether or not a #pragma implying
                            special argument-type checking (e.g., for printf)
                            applies to this function type. */
+#if GNU_EXTENSIONS_ALLOWED
+  int		fmt_arg;
+			/* When arg_pragma is pk_printf_args or
+			   pk_scanf_args, the argument that will
+			   contain the format string, or zero if the
+			   format string is the last argument before
+			   the ellipsis.  When arg_pragma is not
+			   pk_printf_args or pk_scanf_args, the
+			   argument that will contain the fmt_string
+			   for a routine marked with the "format_arg"
+			   attribute. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_calling_convention
 		calling_convention;

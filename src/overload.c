@@ -5753,6 +5753,9 @@ or NULL otherwise (e.g., for a call through a pointer to function).
   arg_block->arg_ctr = 0;
   arg_block->argument_head = NULL;
   arg_block->argument_tail = NULL;
+#if GNU_EXTENSIONS_ALLOWED
+  arg_block->fmt_arg = 0;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   arg_block->fmt_string = NULL;
   arg_block->pss = pss_new_specifier;
   arg_block->closing_paren_position = null_source_position;
@@ -5775,6 +5778,9 @@ or NULL otherwise (e.g., for a call through a pointer to function).
                   (arg_block->prototyped || extra_info->assoc_routine != NULL);
     arg_block->arg_list_kind = extra_info->arg_pragma;
     arg_block->varargs_count = extra_info->lint_varargs_count;
+#if GNU_EXTENSIONS_ALLOWED
+    arg_block->fmt_arg = extra_info->fmt_arg;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* start_call_argument_processing */
 
@@ -5814,6 +5820,70 @@ parameter with the indicated type.
 }  /* arg_okay_for_old_style_param */
 
 
+static void obtain_format_string_from_arg(an_expr_node_ptr   node,
+                                          an_arg_check_block *arg_block)
+/*
+The "node" is being used as a printf or scanf format string.  If the
+format string can be deduced, set appropriate fields in arg_block.
+*/
+{
+  a_constant_ptr con_ptr;
+
+#if GNU_EXTENSIONS_ALLOWED
+  /* Check to see if this argument is a call to a routine with the
+     "format_arg" attribute. */
+  if (node->kind == (an_expr_node_kind)enk_operation &&
+      node->variant.operation.kind == (an_expr_operator_kind)eok_call &&
+      is_routine_address_node(node->variant.operation.operands)) {
+    a_routine_ptr                 rout;
+    a_routine_type_supplement_ptr rtsp;
+    int                           arg_ctr;
+    rout = node->variant.operation.operands->variant.routine;
+    rtsp = rout->type->variant.routine.extra_info;
+    if (rtsp->arg_pragma != (a_pragma_kind)pk_printf_args &&
+        rtsp->arg_pragma != (a_pragma_kind)pk_scanf_args &&
+        rtsp->fmt_arg != 0) {
+      /* The call is to a function with the "format_arg" attribute.
+         Recurse on the appropriate argument. */
+      node = node->variant.operation.operands->next;
+      for (arg_ctr = 1; arg_ctr < rtsp->fmt_arg && node != NULL; 
+           arg_ctr++) {
+        node = node->next;
+      }  /* for */
+      if (node != NULL) {
+        obtain_format_string_from_arg(node, arg_block);
+      }  /* if */
+    }  /* if */
+  } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  if (node->kind == (an_expr_node_kind)enk_constant) {
+    /* See if the format string is a constant (actually, the address
+       of a constant string). */
+    con_ptr = node->variant.constant;
+    if (con_ptr->kind == (a_constant_repr_kind)ck_address &&
+        con_ptr->variant.address.kind == (an_address_base_kind)abk_constant){
+      /* The constant is a pointer to a constant.  We know the
+         type is right because we passed the prototyped parameter
+         type test above. */
+      con_ptr = con_ptr->variant.address.variant.constant;
+      if (con_ptr->kind == (a_constant_repr_kind)ck_string &&
+          char_int_kind_from_string_type(con_ptr->type) ==
+                                                       plain_char_int_kind) {
+        /* The constant pointed to is a string (and not a wide string).
+           Check that it is null-terminated. */
+        arg_block->fmt_string = con_ptr->variant.string.value;
+        arg_block->pss = pss_new_specifier;
+        if (arg_block->fmt_string[con_ptr->variant.string.length-1] != '\0'){
+          /* String is not null-terminated. */
+          arg_block->fmt_string = NULL;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* obtain_format_string_from_arg */
+
+
 void process_call_argument(an_operand         *argument_operand,
                            an_arg_check_block *arg_block)
 /*
@@ -5827,6 +5897,7 @@ describe the next parameter.
 {
   an_expr_node_ptr curr_node;
   a_boolean        do_default_promotion;
+  a_boolean        arg_is_fmt_string = FALSE;
 
   /* Count the arguments. */
   arg_block->arg_ctr++;
@@ -5960,34 +6031,23 @@ describe the next parameter.
      the format string.  See if it is constant; if so, we will be
      able to check the rest of the arguments against the format string
      as we scan them. */
-  if ((arg_block->arg_list_kind == (a_pragma_kind)pk_printf_args ||
-       arg_block->arg_list_kind == (a_pragma_kind)pk_scanf_args) &&
-      arg_block->have_param_info && arg_block->curr_param_type == NULL) {
-    /* See if the format string is a constant (actually, the address
-       of a constant string). */
-    if (curr_node->kind == (an_expr_node_kind)enk_constant) {
-      /* The node is a constant. */
-      a_constant_ptr con_ptr = curr_node->variant.constant;
-      if (con_ptr->kind == (a_constant_repr_kind)ck_address &&
-          con_ptr->variant.address.kind == (an_address_base_kind)abk_constant){
-        /* The constant is a pointer to a constant.  We know the
-           type is right because we passed the prototyped parameter
-           type test above. */
-        con_ptr = con_ptr->variant.address.variant.constant;
-        if (con_ptr->kind == (a_constant_repr_kind)ck_string &&
-            char_int_kind_from_string_type(con_ptr->type) ==
-                                                         plain_char_int_kind) {
-          /* The constant pointed to is a string (and not a wide string).
-             Check that it is null-terminated. */
-          arg_block->fmt_string = con_ptr->variant.string.value;
-          arg_block->pss = pss_new_specifier;
-          if (arg_block->fmt_string[con_ptr->variant.string.length-1] != '\0'){
-            /* String is not null-terminated. */
-            arg_block->fmt_string = NULL;
-          }  /* if */
-        }  /* if */
+  if (arg_block->arg_list_kind == (a_pragma_kind)pk_printf_args ||
+      arg_block->arg_list_kind == (a_pragma_kind)pk_scanf_args) {
+#if GNU_EXTENSIONS_ALLOWED
+    if (arg_block->fmt_arg != 0) {
+      arg_is_fmt_string = (arg_block->arg_ctr == arg_block->fmt_arg);
+    } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      if (arg_block->have_param_info && 
+          arg_block->curr_param_type == NULL) {
+        arg_is_fmt_string = TRUE;
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (arg_is_fmt_string) {
+    obtain_format_string_from_arg(curr_node, arg_block);
   }  /* if */
 }  /* process_call_argument */
 

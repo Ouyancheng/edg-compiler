@@ -1205,6 +1205,9 @@ to default values.
 #endif /* CHECKING */
       rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
       rtsp->arg_pragma               = (a_pragma_kind)pk_none;
+#if GNU_EXTENSIONS_ALLOWED
+      rtsp->fmt_arg                  = 0;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       rtsp->calling_convention       = (a_calling_convention)cc_default;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
