@@ -1393,6 +1393,10 @@ typedef struct a_type {
 			   virtual member functions, this is an "abstract"
 			   class and is subject to certain restrictions
 			   (C++ only, ARM 10.3). */
+      unsigned int
+		any_virtual_functions:1;
+			/* TRUE if one or more member functions of the class,
+			   struct, or union is virtual (C++ only). */
     } class_struct_union;
     /* When kind == tk_typeref: */
     struct {
