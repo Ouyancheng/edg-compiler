@@ -2188,7 +2188,8 @@ do_label:
 #ifdef CFE
     case stmk_for:
       (void)printf("stmk_for\n");
-      disp_ptr("for_init", (char *)ptr->variant.for_loop.extra_info->for_init,
+      disp_ptr("initialization",
+               (char *)ptr->variant.for_loop.extra_info->initialization,
                iek_statement);
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       disp_ptr("statement", (char *)ptr->variant.for_loop.statement,

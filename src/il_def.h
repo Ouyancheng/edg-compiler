@@ -3089,9 +3089,11 @@ to by the "expr" field of the statement entry.
 typedef struct a_for_loop *a_for_loop_ptr;
 typedef struct a_for_loop {
   a_statement_ptr
-		for_init;
+	        initialization;
 			/* Pointer to a statement that represents the
-			   the loop initialization; NULL if there is none. */
+			   the loop initialization (in C, the initialization
+			   expression is wrapped in an stmk_expr statement);
+			   NULL if there is none. */
   an_expr_node_ptr
 		increment;
 			/* Pointer to an expression to be executed at the end

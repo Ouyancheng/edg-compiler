@@ -5864,7 +5864,7 @@ fields to default values.
 #if DEBUG
       num_for_loops_allocated++;
 #endif /* DEBUG */
-      flip->for_init = NULL;
+      flip->initialization = NULL;
       flip->increment = NULL;
       break;
     case stmk_switch:

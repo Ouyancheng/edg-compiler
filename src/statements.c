@@ -169,7 +169,7 @@ the current statement sequence.
         break;
       case stmk_for:
         if (sssep->for_init) {
-          head_ptr = &ssp->variant.for_loop.extra_info->for_init;
+          head_ptr = &ssp->variant.for_loop.extra_info->initialization;
           check_assertion(*head_ptr == NULL);
         } else {
           head_ptr = &ssp->variant.for_loop.statement;

@@ -570,7 +570,7 @@ the file scope, do not process it (but record an orphan in the latter case).
     case iek_for_loop:
       {
         a_for_loop_ptr ptr = (a_for_loop_ptr)entry_ptr;
-        walk_ptr(ptr->for_init, a_statement_ptr, iek_statement);
+        walk_ptr(ptr->initialization, a_statement_ptr, iek_statement);
         walk_ptr(ptr->increment, an_expr_node_ptr, iek_expr_node);
       }
       break;
