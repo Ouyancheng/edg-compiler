@@ -5,7 +5,7 @@ Version 2.44
 
 When a function template with a template template parameter passes that
 template template parameter on to another function template, the
-second template does not get the correct argument value.
+second template did not get the correct argument value.
 
 This could result in incorrect behavior, incorrect mangled names, and
 possibly internal errors.  This has been fixed.
