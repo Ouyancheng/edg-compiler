@@ -7889,10 +7889,16 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         } else if (op == (an_expr_operator_kind)eok_comma) {
           /* Comma's second operand is an lvalue if the comma itself is. */
           if (is_lvalue) is_lvalue_mask = 0x2;
-        } else if (op == (an_expr_operator_kind)eok_cast && is_lvalue) {
+        } else if (op == (an_expr_operator_kind)eok_points_to_static ||
+                   op == (an_expr_operator_kind)eok_lvalue_dot_static ||
+                   op == (an_expr_operator_kind)eok_rvalue_dot_static) {
+          /* A static selection's second operand is an lvalue if the
+             selection itself is. */
+          if (is_lvalue) is_lvalue_mask = 0x2;
+        } else if (op == (an_expr_operator_kind)eok_cast) {
           /* The operand of a cast is considered an lvalue if the result
              of the cast is used as the address of an lvalue. */
-          is_lvalue_mask = 0x1;
+          if (is_lvalue) is_lvalue_mask = 0x1;
         } else {
           /* Other operators.  See if the first operand is an lvalue. */
           if (operator_takes_lvalue_operand(op)) is_lvalue_mask = 0x1;
@@ -7979,6 +7985,21 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             /* If a field selection refers to an anonymous union field,
                adjust it to make the anonymous union reference(s) explicit. */
             adjust_field_selection_for_anonymous_union_references(expr);
+            break;
+          case eok_points_to_static:
+          case eok_lvalue_dot_static:
+          case eok_rvalue_dot_static:
+            /* Static member selection. */
+            if (!node_has_side_effects(operand_node, (a_boolean *)NULL)) {
+              /* If the first operand has no side effects, just throw it
+                 away and replace the expression by the second operand. */
+              overwrite_node(expr, operand_node->next);
+            } else {
+              /* Change a static selection to a comma operator (evaluate first
+                 operand, discard, evaluate second operand, return). */
+              set_node_operator(expr, (an_expr_operator_kind)eok_comma,
+                                expr->type, operand_node);
+            }  /* if */
             break;
           case eok_question:
             /* If one operand is a throw and the other is non-void, wrap

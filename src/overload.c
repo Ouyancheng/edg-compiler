@@ -3641,14 +3641,13 @@ void combine_unneeded_selector_with_operand(
 is an unneeded selector for that reference.  Save it by attaching it to
 *operand (it must be evaluated, even though its type only -- and not its
 value -- is used to select the member referenced).  *is_arrow_operator is
-TRUE if the selector is a pointer, and FALSE if it is a class.  If the
-latter, and it is turned into a pointer, *is_arrow_operator will be set to
-TRUE.
+TRUE if the selector is a pointer, and FALSE if it is a class.
 */
 {
-  an_operand       orig_operand;
-  an_expr_node_ptr selector_expr, expr;
-  an_operand_state saved_operand_state = operand->state;
+  an_operand            orig_operand;
+  an_expr_node_ptr      selector_expr, expr;
+  an_operand_state      saved_operand_state = operand->state;
+  an_expr_operator_kind op;
 
   if (microsoft_mode && curr_expr_kind_is(ek_integral_constant)) {
     /* Accommodate the Microsoft extension that allows
@@ -3658,18 +3657,19 @@ TRUE.
     discard_operand(bound_function_selector);
   } else {
     orig_operand = *operand;
-    conv_selector_to_object_pointer(bound_function_selector,
-                                    is_arrow_operator);
     selector_expr = make_node_from_operand(bound_function_selector);
     expr = make_node_from_operand(operand);
     selector_expr->next = expr;
-    /* Make a comma node for the selector and the operand. */
-    expr = make_operator_node((an_expr_operator_kind)eok_comma,
-                              expr->type,
-                              selector_expr);
-    if (saved_operand_state == (an_operand_state)os_lvalue) {
-      expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+    /* Determine the operator to use. */
+    if (*is_arrow_operator) {
+      op = (an_expr_operator_kind)eok_points_to_static;
+    } else if (is_an_lvalue(operand)) {
+      op = (an_expr_operator_kind)eok_lvalue_dot_static;
+    } else {
+      op = (an_expr_operator_kind)eok_rvalue_dot_static;
     }  /* if */
+    /* Make a node for the selector and the operand. */
+    expr = make_operator_node(op, expr->type, selector_expr);
     make_expression_operand(expr, operand->type, operand);
     operand->state = saved_operand_state;
     restore_operand_details(operand, &orig_operand);

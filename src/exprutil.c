@@ -5400,13 +5400,12 @@ non-NULL return *con_value == NULL.
   if (con_expr_value == NULL) {
     /* Do the transformation on the expression node. */
     if (is_operation_node(node)) {
+      an_expr_operator_kind op = node->variant.operation.kind;
+      an_expr_node_ptr      op1 = node->variant.operation.operands, op2, op3;
+      a_boolean             constant_case2, constant_case3;
       if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
         /* Operation that returns an lvalue where the C case would return
            an rvalue. */
-        an_expr_operator_kind op = node->variant.operation.kind;
-        an_expr_node_ptr      op1 = node->variant.operation.operands, op2, op3;
-        a_boolean             constant_case2, constant_case3;
-
         if (op == (an_expr_operator_kind)eok_question) {
           /* "?" operator.  Convert each branch to an rvalue.  This is
              particularly useful for a case like
@@ -5445,6 +5444,16 @@ non-NULL return *con_value == NULL.
         }  /* if */
         optimized_case = TRUE;
         node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+      } else if (op == (an_expr_operator_kind)eok_points_to_static ||
+                 op == (an_expr_operator_kind)eok_lvalue_dot_static ||
+                 op == (an_expr_operator_kind)eok_rvalue_dot_static) {
+        /* Static selection operator.  Apply the transformation to the
+           second operand. */
+        op2 = op1->next;
+        op1->next = conv_lvalue_expr_to_rvalue(op2, &constant_case2,
+                                               (a_constant_ptr *)NULL);
+        *constant_case = constant_case2;
+        optimized_case = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
