@@ -5361,20 +5361,39 @@ parameters.
   }  /* if */
 }  /* dump_variable */
 
+#ifdef CFE
+
+static void dump_asm_entry(an_asm_entry_ptr aep)
+/*
+Generate C for an asm statement or declaration.
+*/
+{
+  startline(aep->source_corresp.decl_position.seq);
+  fputs("asm(", f_C_output);
+  dump_constant_value(aep->asm_string);
+  fputs(");", f_C_output);
+}  /* dump_asm_entry */
+
+#endif /* ifdef CFE */
 
 static void dump_all_variables(a_scope_ptr scope,
+                               a_boolean   interleave_asm_decls,
                                a_boolean   dump_vars_without_initializers,
                                a_boolean   dump_initializers)
 /*
 Dump all variables on the list of variables for the given scope.  Variables
 without initializers are dumped only if dump_vars_without_initializers is
 TRUE.  Initializers on variables are dumped only if dump_initializers
-is TRUE.
+is TRUE.  If interleave_asm_decls is TRUE, file-scope asm decls are
+interleaved with the variables.
 */
 {
-  a_variable_ptr var_ptr;
+  a_variable_ptr   var_ptr;
+#ifdef CFE
+  an_asm_entry_ptr aep;
+#endif /* ifdef CFE */
 #ifdef FFE
-  a_variable_ptr frv;
+  a_variable_ptr   frv;
 #endif /* ifdef FFE */
 
 #ifdef FFE
@@ -5397,6 +5416,9 @@ is TRUE.
     }  /* if */
   }  /* for */
 #endif /* ifdef FFE */
+#ifdef CFE
+  aep = scope->asm_entries;
+#endif /* ifdef CFE */
   for (var_ptr = scope->variables; var_ptr != NULL; var_ptr = var_ptr->next) {
 #ifdef FFE
     /* Don't put out ENTRY parameters. */
@@ -5404,10 +5426,35 @@ is TRUE.
         !var_ptr->is_parameter)
 #endif /* ifdef FFE */
     {
+#ifdef CFE
+      if (interleave_asm_decls) {
+        /* Put out asm declarations (if any) interspersed with variable
+           declarations. */
+        for (;aep != NULL &&
+              (aep->source_corresp.decl_position.seq <
+                                  var_ptr->source_corresp.decl_position.seq ||
+               (aep->source_corresp.decl_position.seq ==
+                                  var_ptr->source_corresp.decl_position.seq &&
+                aep->source_corresp.decl_position.column <=
+                              var_ptr->source_corresp.decl_position.column));
+             aep = aep->next) {
+          dump_asm_entry(aep);
+        }  /* for */
+      }  /* if */
+#endif /* ifdef CFE */
       dump_variable(var_ptr, dump_vars_without_initializers,
                     dump_initializers);
     }  /* if */
   }  /* for */
+#ifdef CFE
+  if (interleave_asm_decls) {
+    /* Put out asm declarations (if any) that follow all variable
+       declarations. */
+    for (;aep != NULL; aep = aep->next) {
+      dump_asm_entry(aep);
+    }  /* for */
+  }  /* if */
+#endif /* ifdef CFE */
 #ifdef CFE
   for (var_ptr = scope->nonstatic_variables;
        var_ptr != NULL;
@@ -5571,6 +5618,7 @@ Dump out the contents of a block (but not the surrounding { and }).
     }  /* if */
 #endif /* CHECKING */
     dump_all_variables(scope,
+                       /*interleave_asm_decls=*/FALSE,
                        /*dump_vars_without_initializers=*/TRUE,
                        /*dump_initializers=*/TRUE);
     dump_rout_initializations((a_routine_ptr)NULL);
@@ -6681,6 +6729,7 @@ Generate C for a statement.
   if (statement->kind != (a_statement_kind)stmk_label
 #ifdef CFE
       && statement->kind != (a_statement_kind)stmk_init
+      && statement->kind != (a_statement_kind)stmk_asm
 #endif /* ifdef CFE */
                                                        ) {
     startline(statement->seq_number);
@@ -6850,10 +6899,8 @@ Generate C for a statement.
       output_initializer_code_directly = FALSE;
       break;
     case stmk_asm:
-      /* Asm statement. */
-      fputs("asm(", f_C_output);
-      dump_constant_value(statement->variant.asm_entry->asm_string);
-      fputs(");", f_C_output);
+      /* asm statement. */
+      dump_asm_entry(statement->variant.asm_entry);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -7996,6 +8043,7 @@ routine has a body (dump nothing if it has no body).
     dump_all_constants(scope->constants);
     dump_all_type_declarations(scope->types);
     dump_all_variables(scope,
+                       /*interleave_asm_decls=*/FALSE,
                        /*dump_vars_without_initializers=*/TRUE,
                        /*dump_initializers=*/TRUE);
     dump_prescan_temps(block);
@@ -8194,9 +8242,11 @@ Generate old-style (K&R/pcc) C from the intermediate language.
      for those with initializers, then the initialized variables again
      with initializers.  This is to avoid forward-reference problems. */
   dump_all_variables(scope,
+                     /*interleave_asm_decls=*/TRUE,
                      /*dump_vars_without_initializers=*/TRUE,
                      /*dump_initializers=*/FALSE);
   dump_all_variables(scope,
+                     /*interleave_asm_decls=*/FALSE,
                      /*dump_vars_without_initializers=*/FALSE,
                      /*dump_initializers=*/TRUE);
   dump_all_routines(scope, /*bodies=*/TRUE);
