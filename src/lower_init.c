@@ -507,7 +507,8 @@ Make a definition for the given routine, i.e., create a new memory region,
 scope, and top-level block.  Return the address of the scope created,
 and return the memory region number of the IL memory region in *il_region.
 If make_return is TRUE, a return statement will be put into the top-level
-block.
+block.  push/pop_generated_routine_context should be called on the created
+routine later in order to ensure that the "defined" flag is set.
 */
 {
   a_scope_ptr            scope;
@@ -524,6 +525,7 @@ block.
   rout_type = skip_typerefs(rout_ptr->type);
   rout_type->variant.routine.extra_info->assoc_routine = rout_ptr;
   rout_ptr->assoc_scope = curr_il_region_number;
+  /* The "defined" flag is set in pop_generated_routine_context. */
   /* Make the top-level block statement. */
   scope->assoc_block = block_stmt =
                                  alloc_statement((a_statement_kind)stmk_block);
@@ -1722,6 +1724,7 @@ Pop function corresponding to push_generated_routine_context.
      routine. */
   add_scope_orphaned_il_lists(scope);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+  scope->variant.routine.ptr->defined = TRUE;
   innermost_function_scope = grcontext->innermost_function_scope;
   curr_cleanup_state = grcontext->curr_cleanup_state;
   depth_innermost_function_scope = grcontext->depth_innermost_function_scope;
