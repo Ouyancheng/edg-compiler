@@ -699,18 +699,18 @@ position following what was demangled.
     write_id_ch('(', dctl);
     /* For a cast, sizeof, or __ALIGNOF__, get the type. */
     if (takes_type) {
+      if (strcmp(operator_str, "cast") == 0) {
+        write_id_ch('(', dctl);
+        operator_str = "";
+      } else {
+        write_id_str(operator_str, dctl);
+      }  /* if */
       if (*p == 'e') {
         /* "e" indicates a sizeof (etc.) based on an expression.  Do not
-           scan the type. */
-        takes_type = FALSE;
+           scan the type.  Note that the expression is not present either. */
+        write_id_str("expr", dctl);
         p++;
       } else {
-        if (strcmp(operator_str, "cast") == 0) {
-          write_id_ch('(', dctl);
-          operator_str = "";
-        } else {
-          write_id_str(operator_str, dctl);
-        }  /* if */
         p = demangle_type(p, dctl);
         write_id_ch(')', dctl);
       }  /* if */
