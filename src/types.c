@@ -1182,10 +1182,7 @@ which do the initial test for exact pointer equality.
      so it's present for the recursive calls. */
   if (type_1 == type_2) {
     identical = TRUE;
-  } else if (is_const_qualified_type(type_1) !=
-                                             is_const_qualified_type(type_2) ||
-             is_volatile_qualified_type(type_1) !=
-                                          is_volatile_qualified_type(type_2)) {
+  } else if (!type_qualifiers_match(type_1, type_2)) {
     /* The type qualifiers do not match, so the types are not identical. */
     /* identical = FALSE;  -- Already set. */
   } else {
@@ -1376,9 +1373,7 @@ types_are_compatible, which does the initial test for exact pointer equality.
 
   db_enter(5, "f_types_are_compatible");
 
-  if (is_const_qualified_type(type_1) != is_const_qualified_type(type_2) ||
-      is_volatile_qualified_type(type_1) !=
-                                         is_volatile_qualified_type(type_2)) {
+  if (!type_qualifiers_match(type_1, type_2)) {
     /* The type qualifiers do not match, so the types are not compatible. */
     /* compat = FALSE;  -- Already set. */
   } else {
@@ -1866,6 +1861,77 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 }  /* impl_pointer_conversion */
 
 
+static a_boolean member_types_correspond(a_type_ptr member_type_1,
+                                         a_type_ptr member_type_2,
+                                         a_type_ptr class_1,
+                                         a_type_ptr class_2)
+/*
+Return TRUE if the member types from two pointer-to-member types match
+allowing for a possible difference due to the associated class type.
+Specifically, this means that when comparing function types, the
+difference in the underlying class of the "this" parameter type must
+be specially handled.  member_type_1/class_1 describe one pointer-to-member
+type, and member_type_2/class_2 the other.
+*/
+{
+  a_boolean  correspond;
+  a_type_ptr this_type_1, this_type_2;
+
+  if (class_1 == class_2 ||
+      !is_function_type(member_type_1) || !is_function_type(member_type_2)) {
+    /* This is not the special function case, so the normal
+       types_are_compatible check will work. */
+    correspond = types_are_compatible(member_type_1, member_type_2);
+  } else {
+    /* We have two function types from pointers to different classes.  See
+       if they match when we allow for the difference in the underlying type
+       of the "this" parameter. */
+    member_type_1 = skip_typerefs(member_type_1);
+    this_type_1 = member_type_1->variant.routine.extra_info->
+                                                      implicit_this_param_type;
+    member_type_2 = skip_typerefs(member_type_2);
+    this_type_2 = member_type_2->variant.routine.extra_info->
+                                                      implicit_this_param_type;
+    /* Compare the function types with the "this" parameter types set equal
+       to one another. */
+    member_type_1->variant.routine.extra_info->implicit_this_param_type =
+                                                                   this_type_2;
+    correspond = types_are_compatible(member_type_1, member_type_2);
+    /* Restore the original "this" parameter type for the first type. */
+    member_type_1->variant.routine.extra_info->implicit_this_param_type =
+                                                                   this_type_1;
+    if (correspond) {
+      /* The types match except for the "this" parameter types.  Check
+         those. */
+      if (!type_qualifiers_match(this_type_1, this_type_2)) {
+        /* The type qualifiers do not match. */
+        correspond = FALSE;
+      } else {
+        this_type_1 = type_pointed_to(this_type_1);
+        this_type_2 = type_pointed_to(this_type_2);
+        if (!type_qualifiers_match(this_type_1, this_type_2)) {
+          /* The type qualifiers do not match. */
+          correspond = FALSE;
+        } else {
+          /* Since these function types came from pointers-to-members
+             for class_1 and class_2, the underlying types must be
+             the corresponding class types. */
+#if CHECKING
+          if (skip_typerefs(this_type_1) != class_1) {
+            internal_error("member_types_correspond: bad this type 1");
+          }  /* if */
+          if (skip_typerefs(this_type_2) != class_2) {
+            internal_error("member_types_correspond: bad this type 2");
+          }  /* if */
+#endif /* CHECKING */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return correspond;
+}  /* member_types_correspond */
+
+
 a_boolean impl_conversion_possible(a_type_ptr    source_type,
                                    a_boolean     source_is_constant,
                                    a_constant    *source_constant,
@@ -1989,14 +2055,18 @@ See conversion_possible.
     /* Conversion to a C++ pointer-to-member type. */
     if (is_ptr_to_member_type(source_type)) {
       /* Pointer-to-member --> pointer-to-member.  Allowed if the types pointed
-         to are the same and the classes involved are the same or the
-         destination class is an unambiguous derived (sic) class of the
-         source class.  See ARM 4.8. */
-      if (types_are_compatible(dest_type->variant.ptr_to_member.type,
-                               source_type->variant.ptr_to_member.type) &&
-          is_same_class_or_base_class_thereof(
-                 dest_type->variant.ptr_to_member.class_of_which_a_member,
-                 source_type->variant.ptr_to_member.class_of_which_a_member)) {
+         to are the same (ignoring the difference in "this" parameter types)
+         and the classes involved are the same or the destination class is an
+         unambiguous derived (sic) class of the source class.  See ARM 4.8. */
+      a_type_ptr source_class, dest_class;
+      a_type_ptr source_member_type, dest_member_type;
+      source_class =source_type->variant.ptr_to_member.class_of_which_a_member;
+      dest_class = dest_type->variant.ptr_to_member.class_of_which_a_member;
+      source_member_type = source_type->variant.ptr_to_member.type;
+      dest_member_type = dest_type->variant.ptr_to_member.type;
+      if (is_same_class_or_base_class_thereof(dest_class, source_class) &&
+          member_types_correspond(dest_member_type, source_member_type,
+                                  dest_class, source_class)) {
         /* We leave the ambiguity and accessibility check to be done when
            the cast is done. */
         okay = TRUE;
