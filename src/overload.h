@@ -182,6 +182,13 @@ typedef struct an_arg_match_summary {
 			   for conversion subsequences involving addition
 			   of type qualifiers at the end of a conversion.
 			   NULL if not applicable (e.g., for an ellipsis). */
+  a_type_ptr	guide_type;
+			/* For operands of builtin operators, the type
+			   passed as a guiding type when trying to do the
+			   conversion from a class type.  This generally
+			   comes from the type of the other operand, and
+			   controls template conversion operator
+			   applicability. */
   a_conv_descr	conversion;
 			/* Description of the conversion to be done (really,
 			   information we wanted to remember about the

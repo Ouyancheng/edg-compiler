@@ -375,6 +375,7 @@ values.
   amsp->const_anachronism          = FALSE;
   amsp->is_match_for_this_param    = FALSE;
   amsp->param_type                 = NULL;
+  amsp->guide_type                 = NULL;
   clear_conv_descr(&amsp->conversion);
 }  /* clear_arg_match_summary */
 
@@ -5093,6 +5094,7 @@ the target type to be used).
           /* The conversion can be done. */
           arg_match->match_level = aml_user_conversion;
           arg_match->conversion = conversion;
+          arg_match->guide_type = other_operand_type;
         }  /* if */
       } else {
         /* A non-class operand.  See if it has (or can be converted to)
@@ -5659,7 +5661,6 @@ operand of "&&").  arg_match is the argument match entry for the operand.
 Adjust the operand type to match the type requirement.
 */
 {
-  a_boolean  processed = FALSE;
   a_type_ptr specific_type;
   /* Get the type code for this operand (see
      operand_type_pattern_for_operator). */
@@ -5693,15 +5694,33 @@ Adjust the operand type to match the type requirement.
         /* The conversion is not usable, e.g., because the conversion
            is ambiguous.  Redo the analysis of the conversion to get
            a detailed error message. */
-        try_to_convert_class_operand_to_builtin_type(operand,
+        a_conv_descr             conversion;
+        a_boolean                ambiguous;
+        a_candidate_function_ptr ambiguity_list;
+
+        if (conversion_from_class_possible(operand, arg_match->guide_type,
                                      builtin_type_set_for_type_code(type_code),
-                                     &processed);
-#if CHECKING
-        if (!processed) {
-          internal_error(
-                     "adjust_operand_for_builtin_operator: conversion failed");
+                                           /*need_lvalue_result=*/FALSE,
+                                           /*is_copy_initialization=*/TRUE,
+                                           /*is_reference_binding=*/FALSE,
+                                           &conversion,
+                                           &ambiguous, &ambiguity_list)) {
+          unexpected_condition_str2("adjust_operand_for_builtin_operator:",
+                                    "unusable conversion now succeeds");
         }  /* if */
-#endif /* CHECKING */
+        check_assertion_str2(ambiguous,
+                             "adjust_operand_for_builtin_operator:",
+                             "unusable conversion not ambiguous");
+        /* A NULL ambiguity_list indicates a case that was undecidable because
+           of an error (no additional error is needed). */
+        if (ambiguity_list != NULL) {
+          pos_ty_start_error(ec_ambiguous_conversion_to_builtin,
+                             &operand->position, operand->type);
+          diagnose_overload_ambiguity(ambiguity_list, (an_arg_operand_ptr)NULL,
+                                      (an_opname_kind)onk_none);
+          free_candidate_function_list(ambiguity_list);
+        }  /* if */
+        conv_to_error_operand(operand);
       }  /* if */
     } else {
       /* A specific type is wanted.  Convert to the type indicated in
