@@ -4803,8 +4803,13 @@ the current class (class_type).
   } else {
     /* In non-strict mode (e.g., for cfront compatibility) it is sometimes
        permitted to use a typedef name in the elaborated type specifier of
-       a friend class declaration as long as it refers to a class. */
+       a friend class declaration as long as it refers to a class.  In
+       addition, declarations of the form "friend T", where T is a template
+       parameter, are permitted in class templates. */
     friend_class_type = skip_typerefs(friend_class_type);
+    if (friend_class_type->kind == (a_type_kind)tk_template_param) {
+      friend_class_type = proxy_class_for_template_param(friend_class_type);
+    }  /* if */
     check_assertion(is_immediate_class_type(friend_class_type));
     if (class_type == friend_class_type) {
       /* Diagnostic on excessive narcissism. */
