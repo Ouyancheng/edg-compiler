@@ -13608,12 +13608,13 @@ classes.
         if (!skip_semicolon_check) {
           /* Check for and ignore the semicolon following the member
              declaration.  It's optional after the last declaration (that's
-             an extension in ANSI mode). */
+             an extension in ANSI C mode). */
           if (curr_token == tok_rbrace) {
             /* The final semicolon is omitted. */
             if (C_dialect != C_dialect_pcc) {
               diagnostic(strict_ansi_mode ? strict_ansi_error_severity :
-                                            es_warning,
+                         C_mode()         ? es_warning :
+                                            es_discretionary_error,
                          ec_exp_semicolon);
             }  /* if */ 
           } else {
