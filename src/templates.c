@@ -46,7 +46,7 @@ able to if the template itself has not yet been defined.
     } else {
       /* There is a class template from which to generate this class. */
       tssp = template_sym->variant.template.extra_info;
-      p_token_cache = &tssp->template_body;
+      p_token_cache = &tssp->body_token_cache;
       if (p_token_cache->first_token == NULL) {
         /* The template itself has not yet been defined.  The caller will
            issue an incomplete-type error. */
@@ -84,44 +84,81 @@ able to if the template itself has not yet been defined.
 }  /* instantiate_template_class */
 
 
-static a_boolean equiv_class_template_arg_lists(a_template_arg_ptr  list1,
-                                                a_template_arg_ptr  list2)
+void instantiate_template_function(a_routine_ptr   rout,
+                                   a_token_cache   *p_token_cache,
+                                   a_scope_number  scope_number)
 /*
-Return TRUE if the two linked lists of template arguments for a given
-template class are equivalent -- that is, if corresponding type arguments
-refer to the same type and corresponding constant arguments refer to the
-same constant.  This routine should not be called for function template
-argument lists.
+*/
+{
+  db_enter(3, "instantiate_template_function");
+#if 0
+  rescan_reusable_cache(p_token_cache);
+  void(push_scope(sck_template_instantiation, scope_number,
+                  (a_type_ptr)NULL, rout);
+  template_function_definition(...);
+  pop_scope();
+  /* In the normal case the current token should be end_of_source, which was
+     inserted to mark the end of the cached token stream. If necessary, keep
+     flushing until end-of-source is found. */
+  while (curr_token != tok_end_of_source) (void)get_token();
+  /* Advance past the end-of-source token. */
+  (void)get_token();
+#endif /* if 0 */
+  db_exit();
+}  /* instantiate_template_function */
+
+
+static a_boolean equiv_template_arg_lists(a_template_arg_ptr  list1,
+                                          a_template_arg_ptr  list2,
+                                          a_boolean           is_func_template)
+/*
+Return TRUE if the two linked lists of template arguments for a given template
+class or template function are equivalent -- that is, if corresponding type
+arguments refer to the same type and corresponding constant arguments refer to
+the same constant.  If is_func_template is TRUE, the lists will contain
+only type arguments.
 */
 {
   a_boolean           equiv;
   a_template_arg_ptr  arg1 = list1, arg2 = list2;
 
-  db_enter(4, "equiv_class_template_arg_lists");
+  db_enter(4, "equiv_template_arg_lists");
+#if CHECKING
+  /* There is no way to produce a NULL template argument list, so the real
+     code doesn't need to check for that. */
+  if (arg1 == NULL || arg2 == NULL) {
+    internal_error("equiv_template_arg_lists: NULL arg list");
+  }  /* if */
+#endif /* CHECKING */
   /* Assume they are equivalent, until we find evidence to the contrary. */
   equiv = TRUE;
   /* Loop through both lists in step, comparing arguments. */
   do {
 #if CHECKING
-    /* There is no way to produce a NULL template argument list, so the real
-       code doesn't need to check for that.  Moreover, for a given class,
-       argument lists should always be exactly the same length and have
-       the same sequence of type and constant arguments. */
-    if (arg1 == NULL || arg2 == NULL || arg1->is_type != arg2->is_type) {
-      internal_error("equiv_template_arg_lists: arg inconsistency");
+    if (is_func_template) {
+      /* Nontype arguments are not allowed in function template arg lists. */
+      if (!arg1->is_type || !arg2->is_type) {
+        internal_error("equiv_template_arg_lists: nontype arg");
+      }  /* if */
+    } else {
+    /* For a given class, argument lists should always have the same sequence
+       of type and constant arguments. */
+      if (arg1->is_type != arg2->is_type) {
+        internal_error("equiv_template_arg_lists: arg inconsistency");
+      }  /* if */
     }  /* if */
 #endif /* CHECKING */
-    if (arg1->is_type) {
-      /* Both are type arguments.  If they are not identical, this is a
+    if (!is_func_template && !arg1->is_type) {
+      /* Both are constant arguments.  If they are not identical, this is a
          mismatch. */
-      if (!identical_types(arg1->variant.type, arg2->variant.type)) {
+      if (!eq_constants(arg1->variant.constant, arg2->variant.constant)) {
         equiv = FALSE;
         break;
       }  /* if */
     } else {
-      /* Both are constant arguments.  If they are not identical, this is a
+      /* Both are type arguments.  If they are not identical, this is a
          mismatch. */
-      if (!eq_constants(arg1->variant.constant, arg2->variant.constant)) {
+      if (!identical_types(arg1->variant.type, arg2->variant.type)) {
         equiv = FALSE;
         break;
       }  /* if */
@@ -129,11 +166,18 @@ argument lists.
     /* Advance to the next arguments in step. */
     arg1 = arg1->next;
     arg2 = arg2->next;
+#if CHECKING
+    /* For a given function argument lists should always be exactly the same
+       length. */
+    if ((arg1 == NULL) != (arg2 == NULL)) {
+      internal_error("equiv_template_arg_lists: unequal arg list lengths");
+    }  /* if */
+#endif /* CHECKING */
   } while (arg1 != NULL);
 
   db_exit();
   return equiv;
-}  /* equiv_class_template_arg_lists */
+}  /* equiv_template_arg_lists */
 
 
 a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
@@ -183,7 +227,8 @@ no need to actually instantiate X<int> in the example above.
        already been created.  See if the list passed in matches it. */
     old_list = sym->variant.type->
                      variant.class_struct_union.extra_info->template_arg_list;
-    if (equiv_class_template_arg_lists(old_list, new_list)) {
+    if (equiv_template_arg_lists(old_list, new_list,
+                                 /*is_func_template=*/FALSE)) {
       /* We've found a match.  Remove the found symbol from its current
          position in the instantiation list and add it to the front. */
       if (prev_sym != NULL) {
@@ -233,8 +278,51 @@ no need to actually instantiate X<int> in the example above.
 }  /* find_template_class */
 
 
+a_symbol_ptr find_template_function(a_symbol_ptr        function_template_sym,
+                                    a_template_arg_ptr  new_list,
+                                    a_source_position   *source_pos)
+/*
+*/
+{
+  a_template_symbol_supplement_ptr    tssp;
+  a_function_instantiation_entry_ptr  fiep, prev_fiep;
+  a_template_arg_ptr                  old_list;
+
+  db_enter(3, "find_template_function");
+  /* Make a pass over the entries representing instantiations of the function
+     template. */
+  tssp = function_template_sym->variant.template.extra_info;
+  fiep = tssp->variant.function.instantiations;
+  prev_fiep = NULL;
+  for (; fiep != NULL; fiep = fiep->next) {
+    /* Old list is the template argument list from a template function that
+       has already been created.  See if the list passed in matches it. */
+    old_list = fiep->arg_list;
+    if (equiv_template_arg_lists(old_list, new_list,
+                                 /*is_func_template=*/TRUE)) {
+      if (prev_fiep != NULL) {
+        prev_fiep->next = fiep->next;
+        fiep->next = tssp->variant.function.instantiations;
+        tssp->variant.function.instantiations = fiep;
+      }  /* if */
+#if DEBUG
+      if (debug_level >= 3) db_symbol(fiep->routine_sym, "found: ", 2);
+#endif /* DEBUG */
+      break;
+    }  /* if */
+    prev_fiep = fiep;
+  }  /* for */
+  if (fiep == NULL) {
+#if 0
+    /* NYI */
+#endif /* if 0 */
+  }  /* if */
+  db_exit();
+  return fiep->routine_sym;
+}  /* find_template_function */
+
+
 static a_boolean class_template_declaration(a_symbol_ptr  *p_sym_ptr,
-                                            a_token_cache *p_token_cache,
                                             a_boolean     *tag_resolution)
 /*
 If this turns out to be a class template declaration, scan it and return
@@ -246,11 +334,12 @@ declared previously but not defined, and this is a defining declaration,
 return *tag_resolution TRUE.
 */
 {
-  a_boolean         is_class_template_decl = FALSE;
-  a_symbol_locator  locator;
-  a_symbol_ptr      sym = NULL;
-  a_token_cache     local_token_cache;
-  a_type_kind       type_kind;
+  a_boolean                         is_class_template_decl = FALSE;
+  a_symbol_locator                  locator;
+  a_symbol_ptr                      sym = NULL;
+  a_template_symbol_supplement_ptr  tssp;
+  a_token_cache                     local_token_cache;
+  a_type_kind                       type_kind;
 
   db_enter(3, "class_template_declaration");
   if (curr_token == tok_class || curr_token == tok_struct ||
@@ -335,14 +424,14 @@ return *tag_resolution TRUE.
        that comprise it. */
     if (curr_token == tok_colon || curr_token == tok_lbrace) {
       sym->defined = TRUE;
-      /* Now scan the remaining tokens.  The token cache should already have
-         been initialized. */
+      tssp = sym->variant.template.extra_info;
+      /* Now scan the remaining tokens. */
       add_stop_token(tok_semicolon);
       if (curr_token == tok_colon) {
         /* Scan the tokens in the base class declarations, stopping when
            the "{" is reached. */
         add_stop_token(tok_lbrace);
-        cache_token_stream(p_token_cache);
+        cache_token_stream(&tssp->body_token_cache);
         remove_stop_token(tok_lbrace);
       }  /* if */
       remove_stop_token(tok_semicolon);
@@ -350,17 +439,17 @@ return *tag_resolution TRUE.
          found during prototype instantiation. */
       if (curr_token == tok_lbrace) {
         /* Swallow the "{" and then cache everything through to the "}". */
-        cache_curr_token(p_token_cache);
+        cache_curr_token(&tssp->body_token_cache);
         (void)get_token();
         add_stop_token(tok_rbrace);
-        cache_token_stream(p_token_cache);
+        cache_token_stream(&tssp->body_token_cache);
         remove_stop_token(tok_rbrace);
         /* Now cache the "}" (unless we didn't find one). */
         if (curr_token == tok_rbrace) {
-          cache_curr_token(p_token_cache);
+          cache_curr_token(&tssp->body_token_cache);
           /* Add an end-of-source token after the right brace. */
           curr_token = tok_end_of_source;
-          cache_curr_token(p_token_cache);
+          cache_curr_token(&tssp->body_token_cache);
           (void)get_token();
 #if CHECKING
         } else if (curr_token != tok_end_of_source) {
@@ -382,23 +471,37 @@ done:;
 }  /* class_template_declaration */
 
 
-static void function_template_declaration(a_symbol_ptr   *sym,
-                                          a_token_cache  *p_token_cache)
+static void function_template_declaration(a_symbol_ptr   *sym)
 /*
 */
 {
-  a_storage_class       storage_class;
-  a_type_ptr            type;
-  a_symbol_locator      locator;
-  a_decl_flag_set       do_flags, dso_flags;
-  a_func_info_block     func_info;
-  a_type_ptr            bottom_derived_type = NULL;
-  an_expr_node_ptr      dim_expr_ptr;
+  a_storage_class                   storage_class;
+  a_type_ptr                        type;
+  a_symbol_locator                  locator;
+  a_decl_flag_set                   do_flags, dso_flags;
+  a_func_info_block                 func_info;
+  a_type_ptr                        bottom_derived_type = NULL;
+  an_expr_node_ptr                  dim_expr_ptr;
+  a_token_cache                     local_token_cache;
+  a_token_cache                     decl_token_cache;
+  a_template_symbol_supplement_ptr  tssp;
 
   db_enter(3, "function_template_declaration");
 
   add_stop_token(tok_semicolon);
   add_stop_token(tok_lbrace);
+  clear_token_cache(&decl_token_cache);
+  cache_token_stream(&decl_token_cache);
+  if (curr_token == tok_end_of_source) {
+    cache_curr_token(&decl_token_cache);
+  } else {
+    clear_token_cache(&local_token_cache);
+    cache_curr_token(&local_token_cache);
+    curr_token = tok_end_of_source;
+    cache_curr_token(&decl_token_cache);
+    rescan_cached_tokens(&local_token_cache);
+  }  /* if */
+  rescan_reusable_cache(&decl_token_cache);
   (void)decl_specifiers((DSI_IS_TEMPLATE_DECLARATION |
                          DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_STORAGE_CLASS_SPECIFIER_ALLOWED),
@@ -410,27 +513,45 @@ static void function_template_declaration(a_symbol_ptr   *sym,
                      DEPTH_OF_FILE_SCOPE, /*suppress_redecl_error=*/FALSE);
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
-  if (curr_token == tok_lbrace) {
-    (*sym)->defined = TRUE;
-    clear_token_cache(p_token_cache);
-    /* Cache the "{" and advance past it. */
-    cache_curr_token(p_token_cache);
+  tssp = (*sym)->variant.template.extra_info;
+  tssp->variant.function.decl_token_cache = decl_token_cache;
+  if (curr_token == tok_end_of_source) {
+    /* Advance past the end-of-source token. */
     (void)get_token();
-    /* Cache all tokens up to the "}" (or end-of-source). */
-    add_stop_token(tok_rbrace);
-    cache_token_stream(p_token_cache);
-    remove_stop_token(tok_rbrace);
-    /* Cache the "}" and append an end-of-source token. */
-    if (curr_token == tok_rbrace) {
-      cache_curr_token(p_token_cache);
-      curr_token = tok_end_of_source;
-      cache_curr_token(p_token_cache);
-      /* Advance to the next token. */
+    if (curr_token == tok_lbrace) {
+      (*sym)->defined = TRUE;
+      /* Cache the "{" and advance past it. */
+      cache_curr_token(&tssp->body_token_cache);
       (void)get_token();
+      /* Cache all tokens up to the "}" (or end-of-source). */
+      add_stop_token(tok_rbrace);
+      cache_token_stream(&tssp->body_token_cache);
+      remove_stop_token(tok_rbrace);
+      /* Cache the "}" and append an end-of-source token. */
+      if (curr_token == tok_rbrace) {
+        cache_curr_token(&tssp->body_token_cache);
+        curr_token = tok_end_of_source;
+        cache_curr_token(&tssp->body_token_cache);
+        /* Advance to the next token. */
+        (void)get_token();
+      } else {
+#if CHECKING
+        if (curr_token != tok_end_of_source) {
+          internal_error(
+                     "function_template_declaration: expected end of source");
+        }  /* if */
+#endif /* CHECKING */
+        cache_curr_token(&tssp->body_token_cache);
+      }  /* if */
+    } else {
+      /* No body to cache.  Check for final semicolon. */
+      (void)required_token(tok_semicolon, ec_exp_semicolon);
     }  /* if */
   } else {
-    /* No body to cache.  Check for final semicolon. */
     (void)required_token(tok_semicolon, ec_exp_semicolon);
+    while (curr_token != tok_end_of_source) (void)get_token();
+    /* Advance past the end-of-source token. */
+    (void)get_token();
   }  /* if */
   db_exit();
 }  /* function_template_declaration */
@@ -583,7 +704,6 @@ entry is pushed on the scope stack.
 {
   a_template_param_ptr              tpp, template_param_list = NULL;
   a_symbol_ptr                      sym;
-  a_token_cache                     token_cache;
   a_template_symbol_supplement_ptr  tssp;
   a_boolean                         tag_resolution = FALSE;
 
@@ -615,13 +735,12 @@ entry is pushed on the scope stack.
   (void)required_token(tok_gt, ec_exp_gt);
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
-  clear_token_cache(&token_cache);
-  if (class_template_declaration(&sym, &token_cache, &tag_resolution)) {
+  if (class_template_declaration(&sym, &tag_resolution)) {
     /* The declaration was successfully scanned as a class template
        declaration. */
   } else {
     /* It must be a function template declaration. */
-    function_template_declaration(&sym, &token_cache);
+    function_template_declaration(&sym);
     /* Go back through the template params and be sure there are only type
        args.  The other kind is allowed only for class templates. */
     for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
@@ -632,7 +751,6 @@ entry is pushed on the scope stack.
   }  /* if */
   tssp = sym->variant.template.extra_info;
   tssp->parameters = template_param_list;
-  tssp->template_body = token_cache;
   tssp->declaration_scope = scope_stack[decl_scope_level].number;
   pop_scope();
   if (tag_resolution) {
