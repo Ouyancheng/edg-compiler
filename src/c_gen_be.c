@@ -1096,6 +1096,14 @@ Return TRUE if "name" is a C reserved word.
     case 'w':
       if (strcmp(name, "while") == 0) res = TRUE;
       break;
+    case '_':
+      if (sun_is_generated_code_target) {
+        if (strcmp(name, "__global") || strcmp(name, "__symbolic") ||
+            strcmp(name, "__hidden")) {
+          res = TRUE;
+        }  /* if */
+      }  /* if */
+      break;
     default:;
   }  /* switch */
   return res;
@@ -2043,6 +2051,15 @@ Dump a single #pragma from the IL entry.
       dump_constant(pp->variant.ident_string);
       octl.gen_raw_tab_in_literals = FALSE;
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+#if SUN_EXTENSIONS_ALLOWED
+    } else if (pp->kind == (a_pragma_kind)pk_enable_ldscope ||
+               pp->kind == (a_pragma_kind)pk_disable_ldscope) {
+      /* The Sun-specific enable_ldscope and disable_ldscope pragmas are
+         not emitted in this back end because their position in the source
+         is an important part of their effect and we have no mechanism to
+         determine that position here.  Instead, we avoid name collisions
+         with Sun link specifiers by modifying names when needed. */
+#endif /* SUN_EXTENSIONS_ALLOWED */
     } else {
       check_assertion_str(pp->pragma_text != NULL,
                           "dump_pragma: NULL pragma_text");
