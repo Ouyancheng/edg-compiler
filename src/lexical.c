@@ -7734,27 +7734,6 @@ the process of being scanned.
 }  /* invalid_end_of_template_arg_list */
 
 
-static a_symbol_ptr class_template_for_injected_template_symbol(
-							a_symbol_ptr sym)
-/*
-sym is an injected template name symbol.  Return the class template symbol
-for the class template of which this class is an instance.
-*/
-{
-  a_type_ptr			templ_class_type;
-  a_class_symbol_supplement_ptr	cssp;
-  a_symbol_ptr			template_sym;
-
-  templ_class_type = sym->variant.type.ptr;
-  cssp = symbol_supplement_for_class(templ_class_type);
-  template_sym = cssp->class_template;
-  /* If this class is from a partial specialization, get the symbol for the
-     primary template. */
-  template_sym = primary_template_of(template_sym);
-  return template_sym;
-}  /* class_template_for_injected_template_symbol */
-
-
 a_symbol_ptr coalesce_template_class_reference(
 			a_symbol_ptr			template_sym,
 			an_identifier_options_set	options,

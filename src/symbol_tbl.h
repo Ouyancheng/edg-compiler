@@ -3274,6 +3274,9 @@ EXTERN unsigned long
 		num_active_using_directives_allocated;
 #endif /* DEBUG */
 
+extern a_symbol_ptr class_template_for_injected_template_symbol(
+							a_symbol_ptr sym);
+
 extern a_scope_number take_next_scope_number(void);
 
 extern void symbol_tbl_one_time_init(void);
