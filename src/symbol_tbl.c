@@ -2360,10 +2360,12 @@ added to the scope symbols list and is not linked into the symbol table.
     tail->next = NULL;
 #endif /* if 0 */
     for (; bcp != NULL; bcp = bcp->next) {
-      if (bcp->type == pdp->fundamental_symbol->class_of_which_a_member &&
-          congruent_paths(preferred_derivation_of(bcp)->path, path)) {
-        pdp->fundamental_base_class = bcp;
-        break;
+      if (bcp->type == pdp->fundamental_symbol->class_of_which_a_member) {
+        if (!bcp->ambiguous ||
+            congruent_paths(preferred_derivation_of(bcp)->path, path)) {
+          pdp->fundamental_base_class = bcp;
+          break;
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
@@ -4718,7 +4720,8 @@ check_rout_type:
       if (tail1 != NULL) tail1->next = NULL;
       if (tail2 != NULL) tail2->next = NULL;
 #endif /* if 0 */
-      a_base_class_ptr  temp_bcp;
+      a_base_class_ptr       temp_bcp;
+      a_derivation_step_ptr  tail1, tail2;
 
       if (sym1->kind == (a_symbol_kind)sk_projection) {
         temp_bcp = sym1->variant.projection.extra_info->fundamental_base_class;
@@ -4728,7 +4731,15 @@ check_rout_type:
         temp_bcp = sym2->variant.projection.extra_info->fundamental_base_class;
         path2 = preferred_derivation_of(temp_bcp)->path;
       }  /* if */
-      equiv = congruent_paths(path1, path2);
+      for (tail1 = path1; tail1->next != NULL; tail1 = tail1->next) {}
+      for (tail2 = path2; tail2->next != NULL; tail2 = tail2->next) {}
+      if (tail1->base_class->type == tail2->base_class->type) {
+        if (tail1->base_class->is_virtual) {
+          if (tail2->base_class->is_virtual) equiv = TRUE;
+        } else if (!tail2->base_class->is_virtual) {
+          if (congruent_paths(path1, path2)) equiv = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
