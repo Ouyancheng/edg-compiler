@@ -1571,12 +1571,6 @@ EXTERN a_directory_name_entry_ptr
 
 /* Add the default system include file search path. */
 extern void add_default_include_search_path(void);
-/* Add a directory to a specified search path. */
-extern void add_to_specified_include_search_path(
-			char				*dir_name,
-			a_boolean			system_include_dir,
-			a_directory_name_entry_ptr	*search_path,
-			a_directory_name_entry_ptr	*end_search_path);
 /* Add a directory to the end of the include file search path. */
 extern void add_to_include_search_path(char		*dir_name,
                                        a_boolean	sys_include_dir);

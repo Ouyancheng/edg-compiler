@@ -391,7 +391,7 @@ The space is allocated in general (not IL or FE) memory.
 }  /* alloc_directory_name_entry */
 
 
-void add_to_specified_include_search_path(
+static void add_to_specified_include_search_path(
 			char				*dir_name,
 			a_boolean			system_include_dir,
 			a_directory_name_entry_ptr	*search_path,
