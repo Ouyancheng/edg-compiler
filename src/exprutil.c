@@ -8095,8 +8095,8 @@ possible; see prep_elision_initializer_operand.
                            ec_nonconst_ref_init_anachronism,
                            &source_operand->position);
           } else if (conversion_to_temp_done) {
-            /* The the user know a temp was used. */
-            pos_remark(ec_temp_used_for_ref_init, &source_operand->position);
+            /* Let the user know a temp was used. */
+            pos_warning(ec_temp_used_for_ref_init, &source_operand->position);
           }  /* if */
         }  /* if */
       }  /* if */
