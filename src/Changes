@@ -1,5 +1,19 @@
 Version 2.36
 
+6/5/97    Microsoft compatibility: relaxed access checking for member types
+
+In Microsoft mode, derived classes are now allowed to access an
+inaccessible member type inherited from a base class if the reference is
+via an unqualified name.
+
+  class A {
+    typedef int I;
+  };
+  class B : public A {
+    I x;      // Accepted now in Microsoft mode (really an error)
+    A::I xx;  // Still an error
+  };
+
 6/4/97    Overloading operators on enum operands
 
 Operator functions can now be overloaded on enum types.  Specifically,
