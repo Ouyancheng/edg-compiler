@@ -1,5 +1,22 @@
 Version 2.42
 
+4/21/99  Constructor names with invalid template argument lists
+
+When a constructor is declared with an explicit template argument list,
+the argument list must match the parameter list of the class in order
+for the constructor declaration to be valid.  Formerly, the front end
+did not consider invalid constructor declaration to be constructors
+(e.g., the example below was considered to declare "I" as a nonstatic
+data member).  This could result in an internal error during an
+instantiation of the class.  Now, the declaration in question is
+diagnosed as an invalid constructor declaration.
+
+  typedef int I;
+  template <class T1, class T2> struct A {
+    A();
+    A<T2,T1>(I); 
+  };
+
 4/21/99  Last line of raw listing file written on catastrophic error
 
 On a catastrophic error, the last source line is now written out

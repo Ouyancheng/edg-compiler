@@ -3093,9 +3093,11 @@ is a that of a constructor.
 {
   a_boolean          is_constructor = FALSE;
   a_symbol_ptr       tag_sym, sym;
+  a_symbol_ptr	     ctor_type_sym;
   a_token_cache      cache;
   a_source_position  pos;
   a_boolean          name_match = FALSE;
+  a_boolean	     type_mismatch = FALSE;
 
   db_enter(4, "is_constructor_decl");
   /* See whether the name of the current identifier token is the same as
@@ -3104,18 +3106,27 @@ is a that of a constructor.
      and declaration start token.  Use token caching in the look-ahead,
      since the tokens will have to be rescanned no matter what. */
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
-  sym = locator_for_curr_id.specific_symbol;
-  if (sym == NULL) {
-    if (locator_for_curr_id.symbol_header == tag_sym->header) {
-      name_match = TRUE;
-    }  /* if */
-  } else {
-    if (sym == tag_sym) {
-      name_match = TRUE;
-    } else if (sym->kind == (a_symbol_kind)sk_type &&
-               sym->variant.type.is_injected_class_name &&
-               sym->variant.type.ptr == class_type) {
-      name_match = TRUE;
+  ctor_type_sym = locator_for_curr_id.specific_symbol;
+  if (locator_for_curr_id.symbol_header == tag_sym->header) {
+    name_match = TRUE;
+    if (ctor_type_sym != NULL) {
+      if (ctor_type_sym == tag_sym) {
+        /* The type specified matches the class type symbol. */
+      } else if (ctor_type_sym->kind == (a_symbol_kind)sk_type &&
+                 ctor_type_sym->variant.type.is_injected_class_name &&
+                 ctor_type_sym->variant.type.ptr == class_type) {
+        /* The type specified is the injected class symbol.  This is okay. */
+      } else {
+        /* The names match, but the types don't.  This happens in templates
+           when the class name is "A" but the constructor was specified as
+           A<T>, and A<T> does not refer to the prototype instantiation.
+           This can also occur during a real instantiation if the constructor
+           was specified as A<int> and we are instantiating A<char>.
+           If there is a mismatch, make a note of it now, but don't issue a
+           diagnostic until the balance of the "is constructor" tests have
+           been done. */
+        type_mismatch = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (name_match || microsoft_mode) {
@@ -3207,6 +3218,12 @@ is a that of a constructor.
       change_class_locator_into_constructor_locator(&locator_for_curr_id,
                                                     &pos);
     }  /* if */
+  }  /* if */
+  if (is_constructor && type_mismatch) {
+    /* The type used to declare the constructor does not match the type
+       of the current class. */
+    pos_ty_error(ec_destructor_type_mismatch,
+                 &locator_for_curr_id.source_position, class_type);
   }  /* if */
   db_exit();
   return is_constructor;
