@@ -1,5 +1,18 @@
 Version 2.20
 
+10/14/93 IL CHANGE: assoc_handler field in a_scope
+
+The scope entry associated with a handler now contains a pointer to the
+corresponding handler entry.  The parameter variable (also pointed to from
+the handler entry) appears on the scope's nonstatic_variables list.
+
+10/14/93 Fixed bug involving ambiguous base classes
+
+This bug, sometimes resulting in an internal error, was occasioned by an
+ambiguity in which a class was both a direct and an indirect base class of
+a given derived class -- sometimes the offset of the direct base class was
+incorrectly computed.
+
 10/14/93 Tokenizing of numbers in pcc mode preprocessing
 
 In code like the following, preprocessed in pcc mode, the "a"
@@ -41,7 +54,34 @@ more or less true in the past, but not always.  For example:
 Formerly, the types ended up in the order TMPL<C>, OUTER, C.  Now they
 appear in source order (C, TMPL<C>, OUTER).
 
-10/8/93  Reference initialization cases
+10/12/93  Declaration sequence numbers
+
+The support for declaration sequence numbers has been extended and
+modified.  They are now put out on all declarations, but they are put out
+on a per-file basis rather than on a per-scope basis.  In other words, the
+first declaration in the source program is assigned declaration sequence
+number 1, the next (whatever its scope) gets 2, and so on.  This enables
+comparisons between scope regarding which of two declarations came first.
+
+10/12/93 IL CHANGE: dynamic init entries
+
+Two dynamic init kinds, dik_member_copy and dik_base_class_copy, have been
+combined and generalized as dik_bitwise_copy; entries of this kind are now
+used not only in the memberwise copying done by a copy constructor but
+also for the initialization of a parameter for an exception handler.
+A related change was to rename the field is_copy_constructor_for_subobject
+a_dynamic_init to is_copy_constructor_with_implied_source.
+
+10/11/93 Definition vs. declaration in cross-reference output
+
+A defining declaration that is represented by "D" in the cross-reference
+list, whereas a declaration that is not a definition is now represented by
+"d".  (Part of this change involved moving the call to mark_declared out
+of enter_symbol and adding a new routine, mark_defined; now they are
+invoked in contexts in which distinction between defining and nondefining
+declarations can be made.)
+
+10/8/93 Reference initialization cases
 
 The diagnostics on two cases have been changed:
 
@@ -68,6 +108,18 @@ The address_taken flag is now set (as it should be) for the temporary
 generated in the following:
 
   const int &r = 3.0;
+
+10/8/93  Source sequence list
+
+Various changes were made to implement a source sequence list, which may
+be produced by setting GENERATE_SOURCE_SEQUENCE_LIST in host_envir.h to
+TRUE.  The lists are pointed to by the scope entries associated with the
+file scope, each function scope, and (in C++ mode only) each class scope.
+Entries on the lists point to an IL entry (e.g., a variable or a
+statement), and the IL entries point back to a source sequence entry.  The
+lists have both next and previous pointers.  Walking the lists provides a
+representation, down to statement granularity, of the order in which
+declarations, statements, etc., appear in the source program.
 
 10/6/93  Change in handling of instantiation information file
 
@@ -216,7 +268,6 @@ usage is now accepted.
     struct B {};
   };
   A<B1> b1;
-
 
 9/15/93  New symbol reference kinds
 
