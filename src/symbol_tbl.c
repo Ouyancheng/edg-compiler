@@ -2456,6 +2456,33 @@ front.  This is used in C++ for destructor names.
 }  /* tildize_locator */
 
 
+a_boolean destructor_name_matches_class_name(a_symbol_ptr class_sym)
+/*
+The locator points to a symbol header associated with a destructor
+(e.g., "~A") and class_sym points to a symbol associated with a
+class (e.g., "A").  This routine compares the class name portion of the
+destructor name with the name of the class symbol.  Returns TRUE if the
+names match and FALSE if they do not match.
+*/
+{
+  char		*destructor_name;
+  char		*class_name;
+  a_boolean	result = FALSE;
+
+  check_assertion(!is_error_locator(locator_for_curr_id));
+  check_assertion(class_sym != NULL);
+  check_assertion(locator_for_curr_id.is_destructor_name);
+  /* Get a pointer to the second character of the identifier associated
+     with the destructor.  This skips over the tilde. */
+  destructor_name = &locator_for_curr_id.symbol_header->identifier[1];
+  /* Get a pointer to the first character of the class name. */
+  class_name = class_sym->header->identifier;
+  /* Compare the strings -- return TRUE if they are the same. */
+  result = (strcmp(destructor_name, class_name) == 0);
+  return result;
+}  /* destructor_name_matches_class_name */
+
+
 void change_class_locator_into_constructor_locator(a_symbol_locator *locator)
 /*
 Change a locator for a class name into the locator for the constructor for

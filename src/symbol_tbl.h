@@ -1484,6 +1484,8 @@ extern a_symbol_ptr find_external_symbol(a_symbol_locator     *location,
 
 extern void tildize_locator(a_symbol_locator *locator);
 
+extern a_boolean destructor_name_matches_class_name(a_symbol_ptr class_sym);
+
 extern void change_class_locator_into_constructor_locator(
                                                     a_symbol_locator *locator);
 
