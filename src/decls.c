@@ -4946,6 +4946,7 @@ is not a template declaration scope.
       (curr_token == tok_colon && sym != NULL && is_constructor_symbol(sym))) {
     /* This is a defining declaration of the function template. */
     func_info->is_definition = TRUE;
+    idlb.is_definition = TRUE;
     if (func_info->function_type_from_typedef) {
       /* Just as it is an error when a normal function is defined for the
          function type to come from a typedef, so too is that an error when
