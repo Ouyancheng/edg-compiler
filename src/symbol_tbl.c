@@ -3334,11 +3334,7 @@ with an IL entry, return NULL, and leave kind set to iek_none.
       /* Only manifest constant macros have an associated IL entry. */
       if (sym->variant.macro_def->is_manifest_constant) {
         entry_ptr = (char *)sym->variant.macro_def->constant_value;
-#if 0
-        *kind = iek_macro;
-#else
         *kind = iek_constant;
-#endif /* if 0 */
       }  /* if */
       break;
     case sk_constant:
