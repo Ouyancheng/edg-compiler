@@ -18,6 +18,7 @@ This is the version for Windows 95/98/NT/etc.
 #ifdef DEMO_VERSION
 /* Demo versions should support multiple translation units. */
 #define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
+#define DEBUG 0
 #endif /* ifdef DEMO_VERSION */
 
 /* Configuration definitions determined by dettarg.c: */
@@ -52,8 +53,6 @@ Definitions for Windows NT/95/98:
 #define USING_ISO_C 1
 #define C_GEN_BE_GENERATES_ANSI_C 1
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
-#define DEBUG 1
-#define CHECKING 1
 #define USE_MMAP_FOR_MEMORY_REGIONS 1
 #define MICROSOFT_EXTENSIONS_ALLOWED 1
 #define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY 0

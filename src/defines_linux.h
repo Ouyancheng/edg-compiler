@@ -19,6 +19,7 @@ This is the version for Linux.
 /* Demo versions should support multiple translation units. */
 #define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
 #define COMPILE_MULTIPLE_SOURCE_FILES 0
+#define DEBUG 0
 #endif /* ifdef DEMO_VERSION */
 
 #define __ANSIC__ 1
