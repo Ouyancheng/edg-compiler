@@ -1338,8 +1338,8 @@ Dump a base class entry, for debug purposes.
   bcdp = bcp->derivation;
   if (comma_needed) fputs(",\n", f_debug);
   for (; bcdp != NULL; bcdp = bcdp->next) {
-    fprintf(f_debug, "    %sderiv%s:", (bcdp->direct ? "direct " : ""),
-            ((bcp->is_virtual && bcdp->preferred) ? " (preferred)" : ""));
+    fprintf(f_debug, "    %sderiv%s: ", (bcdp->direct ? "direct " : ""),
+            ((bcp->is_virtual && bcdp->preferred) ? " (pref'd)" : ""));
     db_path(bcdp->path, show_offset);
     fputs(" (", f_debug);
     db_access_control(bcdp->access);
@@ -1389,16 +1389,22 @@ path entries are also on the base classes list of class_type.
   a_base_class_derivation_ptr  bcdp;
   int                          count;
 
-  bcdp = base_class->derivation;
   /* Only a virtual base class may have more than one derivation. */
-  check_assertion(!base_class->is_virtual || bcdp->next == NULL);
+  check_assertion(base_class->is_virtual ||
+                  base_class->derivation->next == NULL);
   /* Count the number of direct derivations.  There should be exactly one
      if base_class is marked as direct, none otherwise. */
   count = 0;
-  for (; bcdp != NULL; bcdp = bcdp->next) {
+  for (bcdp = base_class->derivation; bcdp != NULL; bcdp = bcdp->next) {
     if (bcdp->direct) ++count;
   }  /* for */
   check_assertion(base_class->direct == (count == 1));
+  /* There should be exactly one preferred derivation. */
+  count = 0;
+  for (bcdp = base_class->derivation; bcdp != NULL; bcdp = bcdp->next) {
+    if (bcdp->preferred) ++count;
+  }  /* for */
+  check_assertion(count == 1);
   /* Examine each derivation's path. */
   for (bcdp = base_class->derivation; bcdp != NULL; bcdp = bcdp->next) {
     /* The path should not be NULL. */
@@ -2025,6 +2031,7 @@ static a_derivation_step_ptr update_base_class_derivation(
   if (!base_class->is_virtual) {
     new_bcdp->preferred = TRUE;
     base_class->derivation = new_bcdp;
+    path = new_bcdp->path;
   } else {
     bcdp = base_class->derivation;
     if (bcdp == NULL) {
@@ -2043,8 +2050,9 @@ static a_derivation_step_ptr update_base_class_derivation(
       }  /* if */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     }  /* if */
+    path = make_derivation_step(base_class, (a_derivation_step_ptr)NULL);
   }  /* if */
-  return new_bcdp->path;
+  return path;
 }  /* update_base_class_derivation */
 
 
@@ -2262,6 +2270,7 @@ appearance of the base class happens to have been marked preferred.
       }  /* if */
     }  /* if */
   }  /* for */
+  preferred_bcdp->preferred = TRUE;
 done:;
   db_exit();
 }  /* set_preferred_base_class_derivation */
