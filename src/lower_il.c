@@ -1502,7 +1502,7 @@ indicated by bcp of the object pointed to by node.
     node = make_base_class_lvalue(node, pointer_bcp);
     /* The following line does not use pointer_bcp->type because the type here
        could be either that type or the corresponding type-as-subobject. */
-    pointer_class_type = type_pointed_to(node->type);
+    pointer_class_type = f_skip_typerefs(type_pointed_to(node->type));
 #if CHECKING
     if (pointer_bcp->is_virtual) {
       internal_error("make_vbptr_field_lvalue: pointer_base_class is virtual");
@@ -1561,7 +1561,7 @@ Make an lvalue for the virtual table pointer of the object pointed to by node.
     node = make_base_class_lvalue(node, vptr_bcp);
     /* The following line does not use vptr_bcp->type because the type here
        could be either that type or the corresponding type-as-subobject. */
-    vptr_class_type = type_pointed_to(node->type);
+    vptr_class_type = f_skip_typerefs(type_pointed_to(node->type));
 #if CHECKING
     if (vptr_bcp->is_virtual) {
       internal_error(
@@ -1707,7 +1707,7 @@ assumed to point at a complete object.
       /* The following line does not use data_section_bcp->type because the
          type here could be either that type or the corresponding
          type-as-subobject. */
-      data_section_class_type = type_pointed_to(node->type);
+      data_section_class_type = f_skip_typerefs(type_pointed_to(node->type));
       data_section_offset -= data_section_bcp->offset;
     }  /* if */
   }
