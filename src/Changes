@@ -1,5 +1,15 @@
 Version 2.16
 
+4/23/93  fp_hash routine
+
+A new routine fp_hash has been added to float_pt.c.  It contains the
+code that was in hash_constant in il.c to develop a hash constant from
+a floating-point value.  The code has been moved to float_pt.c because all
+code that accesses the internal representation of a floating-point
+constant should be there.  The code in eq_constants in il.c that compares
+floating-point constants has been changed to use fp_compare for similar
+reasons.
+
 4/23/93  Bug in computing base class offsets
 
 A bug has been fixed in computing the base class offset of certain
