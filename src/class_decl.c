@@ -4214,14 +4214,18 @@ will return a pointer to the constructed object.
 {
   a_statement_ptr                sp;
   a_routine_type_supplement_ptr  rtsp;
+  a_variable_ptr                 vp;
+  a_param_type_ptr               ptp;
 
   db_enter(4, "make_default_constructor_body");
   /* Create the parameter variable -- needed for copy constructors only. */
   rtsp = (skip_typerefs(scope->variant.routine.ptr->type))->
                                                  variant.routine.extra_info;
-  if (rtsp->param_type_list != NULL) {
-    (void)make_parameter(rtsp->param_type_list, (a_storage_class)sc_auto,
-                         (a_symbol_ptr)NULL);
+  ptp = rtsp->param_type_list;
+  if (ptp != NULL) {
+    vp = make_parameter(ptp->type, (a_storage_class)sc_auto,
+                        (a_symbol_ptr)NULL);
+    vp->assoc_param_type = ptp;
   }  /* if */    
   /* Create an statement block that is empty except for the return
      statement. */
@@ -4453,6 +4457,7 @@ operator routine or do bitwise assignment.
   a_routine_ptr                  rp;
   a_symbol_ptr                   sym;
   a_boolean                      pass_by_value, const_source_var;
+  a_param_type_ptr               ptp;
 
   db_enter(4, "make_default_assignment_body");
   /* The source variable of the copy is the first parameter on the parameters
@@ -4460,8 +4465,10 @@ operator routine or do bitwise assignment.
      assignment function. */
   rtsp = (skip_typerefs(scope->variant.routine.ptr->type))->
                                                   variant.routine.extra_info;
-  source_var = make_parameter(rtsp->param_type_list, (a_storage_class)sc_auto,
+  ptp = rtsp->param_type_list;
+  source_var = make_parameter(ptp->type, (a_storage_class)sc_auto,
                               (a_symbol_ptr)NULL);
+  source_var->assoc_param_type = ptp;
   class_type =
           type_pointed_to(scope->variant.routine.this_param_variable->type);
   /* "head_of_statement_list" is a local statement variable whose only
