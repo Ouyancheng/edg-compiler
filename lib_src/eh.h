@@ -82,6 +82,24 @@ typedef a_byte a_region_descr_flag_set;
 			   a constructor or destructor.  Not used in the
 			   portable scheme. */
 
+#if !DO_FULL_PORTABLE_EH_LOWERING && USING_KAI_INLINER
+#define RDF_LET_THIS            0x20
+                        /* TRUE if address computed should be used as a 
+                           "formal this" parameter.  The region entry following this one
+                           describes what to do with the "formal this"
+                           pointer.  The following entry will have the
+                           RDF_THIS_PARAM_OFFSET flag set, and
+                           possibly the RDF_LET_THIS flag set.
+                           Chained RDF_LET_THIS entries allow object
+                           addresses to be specified when multiple
+                           (indirection+offset) operations are
+                           necessary to reach the object from a
+                           stack-local variable or the "actual this".
+                           More detailed information on RDF_LET_THIS
+                           is available from KAI. */
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING && USING_KAI_INLINER */
+
+
 #define NULL_REGION_NUMBER ((a_region_number)-1)
 			/* The value used when there is no active EH
 			   region.  Also the value used as the next
