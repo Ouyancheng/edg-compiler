@@ -142,7 +142,7 @@ extern void add_to_types_list(a_type_ptr     type_ptr,
 
 extern a_type_ptr integer_type(an_integer_kind kind);
 
-extern a_type_ptr signed_int_type(void);
+extern a_type_ptr signed_integer_type(an_integer_kind kind);
 
 extern a_type_ptr float_type(a_float_kind kind);
 
