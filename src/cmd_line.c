@@ -1932,7 +1932,9 @@ an otherwise implicitly enabled C99 mode.
   }  /* if */
 }  /* exclude_c99_mode */
 
-
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static void exclude_gcc_mode(an_error_code  error_code)
 /*
 GNU C mode is incompatible with other settings.  Either issue the given
@@ -1940,6 +1942,7 @@ diagnostic (error_code) if the conflict is explicit, or silently turn off
 an otherwise implicitly enabled GNU C mode.
 */
 {
+#if GNU_EXTENSIONS_ALLOWED
   if (gcc_mode) {
     if (option_kind_used[(int)optk_gcc_mode]) {
       /* GNU C mode was enabled by a command line option. */
@@ -1950,6 +1953,7 @@ an otherwise implicitly enabled GNU C mode.
       gcc_mode = FALSE;
     }  /* if */
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* exclude_gcc_mode */
 
 
@@ -3297,12 +3301,14 @@ enable_microsoft_mode:
         break;
 #endif /* ENABLE_TRANS_UNIT_TEST_MODE */
       case optk_gcc_mode:
+#if GNU_EXTENSIONS_ALLOWED
         /* GNU C mode should or should not be used.  This option implies
            ANSI C mode, even in the "--no_gcc" form. In other words,
            --[no_]gcc is short for --c --[no_]gcc.  See --svr4, --c99 and
            --sun for similar behavior. */
         gcc_mode = opt_value;
         C_dialect = C_dialect_ANSI;
+#endif /* GNU_EXTENSIONS_ALLOWED */
         break;
       default:
         /* It should not be possible to get here. */
