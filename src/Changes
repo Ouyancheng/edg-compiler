@@ -1,5 +1,13 @@
 Version 2.33
 
+9/27/96  Microsoft compatibility: multi-token type specifiers in cast
+
+Microsoft's MSVC++ allows functional-notation type conversions like
+"unsigned int(x)", whereas the WP allows only a single-token type
+specifier.  Multi-token cases are now accepted in Microsoft mode.
+Also, the Microsoft extension types like __int16 are now accepted in
+such casts.
+
 9/27/96  Use of template template parameters could result in abort
 
 Use of template template parameters (which are not yet implemented)

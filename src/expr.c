@@ -6375,16 +6375,18 @@ has exactly one argument, return TRUE; otherwise, return FALSE.
 
 static void scan_functional_notation_type_conversion(
                                       a_type_ptr               type_cast_to,
+                                      a_source_position        *start_position,
                                       an_operand               *result,
                                       a_local_expr_options_set local_options)
 /*
 Scan a C++ functional-notation type conversion, e.g., "int(1.5)" or "A(1,2)".
-The type keyword or identifier is the current token, and the associated
-type is passed in as type_cast_to.  The result is returned in *result.
-See _expr.type.conv_ in the WP.
+The type keyword or identifier has been scanned over (the current token is
+the parenthesis following that), and the associated type is passed in as
+type_cast_to.  The starting position of the type is given by *start_position.
+The result is returned in *result.  See _expr.type.conv_ in the WP.
 */
 {
-  a_source_position             start_position, lparen_pos;
+  a_source_position             lparen_pos;
   a_boolean                     err = FALSE;
   a_boolean                     cast_to_func_ptr;
   a_symbol_ptr                  ctor_sym;
@@ -6396,8 +6398,7 @@ See _expr.type.conv_ in the WP.
 
   db_enter(4, "scan_functional_notation_type_conversion");
 
-  /* Save the current source position. */
-  copy_source_position(pos_curr_token, start_position);
+  error_position = *start_position;
   /* Check the type to see if it is valid in general terms.  Note that
      this does a worthwhile check even in the class case (abstract class). */
   err = cast_type_pre_check(&type_cast_to, &cast_to_func_ptr);
@@ -6420,8 +6421,6 @@ See _expr.type.conv_ in the WP.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Advance past the type keyword or identifier. */
-  (void)get_token();
   /* Check for a left parenthesis. */
   copy_source_position(pos_curr_token, lparen_pos);
   (void)required_token(tok_lparen, ec_exp_lparen);
@@ -6430,7 +6429,7 @@ See _expr.type.conv_ in the WP.
        arguments for a constructor call. */
     scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine, &lparen_pos,
 			type_cast_to);
-    error_position = start_position;
+    error_position = *start_position;
     if (err || ctor_routine == NULL) {
       /* Error of some sort. */
       make_error_operand(result);
@@ -6439,7 +6438,7 @@ See _expr.type.conv_ in the WP.
          a temporary.  Make an operand for the value of the temporary. */
       make_constructor_dynamic_init(ctor_routine, arg_expr_list,
                                     /*result_is_addr=*/FALSE,
-                                    &start_position, result);
+                                    start_position, result);
     }  /* if */
   } else {
     /* Not a constructor case; obeys the same rules as a C-style cast. */
@@ -6469,7 +6468,7 @@ See _expr.type.conv_ in the WP.
         an_expr_node_ptr temp_init_node =
                   create_expr_temporary(type_cast_to,
                                         /*result_is_addr=*/FALSE,
-                                        &start_position);
+                                        start_position);
         a_dynamic_init_ptr dip = temp_init_node->variant.init.dynamic_init;
         if (reference_to_trivial_default_constructor(type_cast_to,
                                                      &lparen_pos)) {
@@ -6509,16 +6508,16 @@ See _expr.type.conv_ in the WP.
                            &local_bound_function_selector);
       /* Check compatibility of the types and do the cast. */
       do_cast(type_cast_to, result, &local_bound_function_selector,
-              local_options, err, cast_to_func_ptr, &start_position,
-              &start_position);
+              local_options, err, cast_to_func_ptr, start_position,
+              start_position);
     }  /* if */
     /* Check for the closing parenthesis. */
     check_closing_paren_after_expr_list();
     remove_matching_stop_token(tok_rparen);
   }  /* if */
   /* Set the error position to the starting position. */
-  copy_source_position(start_position, error_position);
-  copy_source_position(start_position, result->position);
+  error_position = *start_position;
+  result->position = *start_position;
   db_exit();
 }  /* scan_functional_notation_type_conversion */
 
@@ -9216,7 +9215,13 @@ normal_function:
           /* The identifier is a type identifier. */
           if (C_dialect == C_dialect_cplusplus && next_token() == tok_lparen) {
             /* In C++, a functional-notation type conversion. */
-            scan_functional_notation_type_conversion(type_symbol_type(sym_ptr),
+            a_type_ptr        cast_type;
+            a_source_position start_position;
+            start_position = pos_curr_token;
+            cast_type = type_symbol_type(sym_ptr);
+            (void)get_token();
+            scan_functional_notation_type_conversion(cast_type,
+                                                     &start_position,
                                                      result,
                                                      local_options);
             goto after_advance_past_id;
@@ -9579,18 +9584,42 @@ handle_trapped_left_paren:
     case tok_void:
     case tok_wchar_t:
     case tok_bool:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_int8:
+    case tok_int16:
+    case tok_int32:
+    case tok_int64:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* In C++, these type keywords begin a functional-notation type
          conversion (ARM 5.2.3).  In C, they're a syntax error. */
       if (C_dialect != C_dialect_cplusplus) goto bad_start_of_primary;
-      if (next_token() == tok_lparen) {
-        scan_functional_notation_type_conversion(type_keyword(),
-                                                 &local_result,
-                                                 local_options);
-      } else {
-        /* No parenthesis following the type, so issue an error. */
-        error_and_make_error_operand(ec_type_identifier_not_allowed,
-                                     &local_result);
-        (void)get_token();
+      {
+        a_type_ptr        cast_type;
+        a_source_position start_position;
+
+        start_position = pos_curr_token;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (microsoft_mode) {
+          /* The Microsoft compiler allows things like "unsigned int(x)". */
+          cast_type = simple_type_specifier_sequence();
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          cast_type = type_keyword();
+          (void)get_token();
+        }
+        error_position = start_position;
+        if (curr_token != tok_lparen) {
+          /* No parenthesis following the type, so issue an error. */
+          error_and_make_error_operand(ec_type_identifier_not_allowed,
+                                       &local_result);
+        } else {
+          scan_functional_notation_type_conversion(cast_type,
+                                                   &start_position,
+                                                   &local_result,
+                                                   local_options);
+        }  /* if */
       }  /* if */
       break;
 
