@@ -26,6 +26,11 @@ A bug has been fixed whereby, under certain circumstances, a user
 definition of global operator new was not put out because its IL
 referenced flag had not been set properly.
 
+12/20/93 Array --> pointer and function --> pointer on builtin operators
+
+Array --> pointer and function --> pointer transformations are now
+considered when trying implicit conversions to match builtin operators.
+
 12/20/93 Division by zero warning using simulated integers
 
 Expressions such as 0/0 produced "divide by zero" warnings when using
