@@ -252,6 +252,7 @@ static void gen_constant(a_constant_ptr constant);
 static void gen_type(a_type_ptr type);
 static void gen_enum_definition(a_type_ptr type);
 static void gen_class_definition(a_type_ptr type);
+static void gen_pragma(void);
 static void gen_lvalue(an_expr_node_ptr node);
 static void gen_initializer_expr(an_expr_node_ptr expr,
                                  a_type_ptr       type,
@@ -3088,6 +3089,9 @@ is the one associated with the definition of the class.
       case iek_routine:
         /* Member function */
         gen_routine_decl();
+        break;
+      case iek_pragma:
+        gen_pragma();
         break;
       case iek_src_seq_secondary_decl:
         /* A secondary declaration, i.e., a declaration of something that
