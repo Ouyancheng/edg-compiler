@@ -1,5 +1,11 @@
 Version 3.6
 
+12/10/04 Build errors when FULL_SOURCE_POS_IN_IL_STATEMENT set to FALSE
+
+Some compilation errors occurred when configuring the front end with
+FULL_SOURCE_POS_IN_IL_STATEMENT set to FALSE and EXTRA_SOURCE_POSITIONS_IN_IL
+set to TRUE (a fairly unusual configuration).  This is now fixed.
+
 12/10/04 Microsoft compatibility: lookup of nontype names in base classes
 
 The Microsoft compiler ignores nontype names from base classes for

@@ -5223,7 +5223,8 @@ See also 3.6.6.3.
       set_stmt_source_position(sssep->curr_switch_clause->break_position,
                                start_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      sssep->curr_switch_clause->break_end_position = end_position;
+      set_stmt_source_position(sssep->curr_switch_clause->break_end_position,
+                               end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
     if (sssep->kind == ssk_switch &&

@@ -2858,7 +2858,7 @@ fields to default values.
         mtsp->except_expr       = NULL;
         mtsp->cleanup_statement = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        clear_stmt_source_position(mtsp->except_or_finally_position);
+        mtsp->except_or_finally_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }
       break;

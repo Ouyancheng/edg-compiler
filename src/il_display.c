@@ -2610,7 +2610,7 @@ Display the indicated name and template arg list.
   }  /* if */
 }  /* disp_template_arg_list */
 
-#if IA64_ABI
+#if DO_IL_LOWERING && IA64_ABI
 
 static void disp_ctor_or_dtor_kind_name(a_ctor_or_dtor_kind kind)
 /*
@@ -2629,7 +2629,7 @@ Display the name of the indicated constructor or destructor kind.
   (void)printf(s);
 }  /* disp_ctor_or_dtor_kind_name */
 
-#endif /* IA64_ABI */
+#endif /* DO_IL_LOWERING && IA64_ABI */
 
 #endif /* ifdef CFE */
 
@@ -3781,8 +3781,8 @@ or try-except statement supplement.
   disp_ptr("except_expr", (char *)ptr->except_expr, iek_expr_node);
   disp_ptr("cleanup_statement", (char *)ptr->cleanup_statement, iek_statement);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  disp_stmt_source_position("except_or_finally_position",
-                            ptr->except_or_finally_position);
+  disp_source_position("except_or_finally_position",
+                       &ptr->except_or_finally_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_microsoft_try_supplement */
 
