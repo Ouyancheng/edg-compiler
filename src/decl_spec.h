@@ -68,6 +68,8 @@ extern void update_extended_decl_info_for_class(
 extern void check_inheritance_kind(a_type_ptr           class_type,
                                    an_inheritance_kind  inheritance_kind,
                                    a_source_position    *err_pos);
+
+extern void apply_microsoft_w64_specifier(a_type_ptr  *type_ptr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void typename_specifier(a_type_ptr            *type_ptr,
