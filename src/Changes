@@ -1,5 +1,20 @@
 Version 2.30
 
+9/19/95  Bug in switch-statement processing
+
+A bug has been fixed in switch-statement processing -- incorrect IL used to
+be generated (in C-mode only) for cases like the following:
+
+  void f(int i) {
+    switch (i)
+    case 0:
+    {
+       int j = i++;
+    case 1:
+       j = i++; 
+    }
+  }
+
 9/15/95  Function template specializations in friend declarations
 
 This sort of case is now handled properly:
