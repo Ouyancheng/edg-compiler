@@ -145,9 +145,9 @@ enum a_message_segment_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_message_segment_kind;
 
-typedef struct msg_segment *msg_segment_ptr;
-typedef struct msg_segment {
-  msg_segment_ptr
+typedef struct a_msg_segment *a_msg_segment_ptr;
+typedef struct a_msg_segment {
+  a_msg_segment_ptr
 		next;		/* Pointer to the next message segment. */
   char		*segment;	/* Pointer to the message segment buffer. */
   char		*first_quote;	/* Pointer to the first double quote in the 
@@ -196,7 +196,7 @@ typedef struct msg_segment {
 				   to be generated. */
     } symbol;
   } variant;
-} msg_segment;
+} a_msg_segment;
 
 
 /*
@@ -226,14 +226,90 @@ static a_symbol_ptr
 				   used for substitutions in diagnostic
 				   messages. */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-static msg_segment_ptr
+
+static a_msg_segment_ptr
 	error_message_head = NULL;
 				/* Pointer to the first segment in the current
 				   error message being formatted. */
 
+#if !STANDALONE_UTILITY_PROGRAM
+/*
+Variables pertaining to a line of source that must be reread for output in
+a diagnostic.  Most diagnostics are issued for the current logical source
+line.  Occasionally a diagnostic will refer to a source line that is not in
+the current logical source line (a line read earlier).  The buffer pointed
+to by error_source_line will hold such a source line that has been reread.
+*/
+static char	*error_source_line = NULL;
+			/* Characters of the source line being reread for
+			   diagnostic generation, ended by both a newline and
+			   a null.  Space is dynamically allocated, and its
+			   upper bound is given by
+			   after_end_of_error_source_line. */
+#define ERROR_SOURCE_LINE_INITIAL_ALLOCATION 200
+#define ERROR_SOURCE_LINE_INCREMENTAL_ALLOCATION 1000
+			/* Initial and incremental allocation sizes for
+			   error_source_line.  The initial allocation should be
+			   such that almost all cases can be accepted (so that
+			   the realloc is hardly ever needed). */
+static char	*after_end_of_error_source_line = NULL;
+			/* Address past the last element of error_source_line,
+			   as an aid to checking for overflow, etc.  A variable
+			   because error_source_line line can reallocated
+			   larger if needed. */
 
-static void form_param_list(a_routine_type_supplement_ptr suppl_ptr,
-                            msg_segment_ptr               seg_ptr);
+/*
+Data structures and variables used to index into source files to locate
+a needed source line for a diagnostic.  For each source file, an index
+table is created and updated as the file is read.
+*/
+#define PHYSICAL_LINE_COUNT_INCREMENT 100;
+				/* Constant value specifying the interval at
+				   which physical line positions will be
+				   recorded in the error_file_index entry. */
+#define NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES 10
+				/* Number of physical line indexes maintained
+		       		   for each source file. */
+
+typedef struct an_error_file_index *an_error_file_index_ptr;
+typedef struct an_error_file_index {
+  a_source_file_ptr
+		source_file;	/* Pointer to the IL source file entry
+				   associated with this physical line index
+				   table. */
+  an_error_file_index_ptr
+		previous;	/* Pointer to the previous an_error_file_index
+				   entry in the doubly linked list. */
+  an_error_file_index_ptr
+		next;		/* Pointer to the next an_error_file_index
+				   entry in the doubly linked list. */
+  short		next_index_entry;
+				/* Index of the next available entry in the
+				   line_number and file_position arrays. */
+  a_line_number line_number[NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES];
+				/* Physical line number of the file that
+				   begins at the associated file position. */
+  long		file_position[NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES];
+				/* File position that is the beginning of
+				   the associated physical line and used 
+				   to fseek() into the file. */
+} an_error_file_index;
+
+static an_error_file_index_ptr
+		head_of_file_index_list /*= NULL*/;
+				/* Pointer to the beginning of the list of
+				   an_error_file_index entries.  Initialized
+				   to NULL by error_init(). */
+static an_error_file_index_ptr
+		tail_of_file_index_list /*= NULL*/;
+				/* Pointer to the tail of the list of
+				   an_error_file_index entries.  Initialized
+				   to NULL by error_init(). */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+static void form_param_list(a_routine_type_supplement_ptr   suppl_ptr,
+                            a_msg_segment_ptr               seg_ptr);
 
 
 static char *error_text(an_error_code error_code)
@@ -1568,8 +1644,8 @@ e.g., 1297 --> 4.
 
 #endif /* CHECKING */
 
-static void add_string_to_segment(char		  *str,
-				  msg_segment_ptr seg_ptr)
+static void add_string_to_segment(char              *str,
+                                  a_msg_segment_ptr seg_ptr)
 /*
 Add the specified string to the end of the message segment described by the
 message segment descriptor pointed to by seg_ptr.  If the specified string
@@ -1604,14 +1680,14 @@ end of the buffer.
 }  /* add_string_to_segment */
 
 
-static msg_segment_ptr new_message_segment(void)
+static a_msg_segment_ptr new_message_segment(void)
 /*
 Allocate and initialize the fixed part a new message segment.
 */
 {
-  msg_segment_ptr	msg;
+  a_msg_segment_ptr msg;
 
-  msg = (msg_segment_ptr)alloc_general(sizeof(msg_segment));
+  msg = (a_msg_segment_ptr)alloc_general(sizeof(a_msg_segment));
   msg->next         = NULL;
   msg->segment      = NULL;
   msg->first_quote  = NULL;
@@ -1623,16 +1699,19 @@ Allocate and initialize the fixed part a new message segment.
 }  /* new_message_segment */
 
 
-static msg_segment_ptr establish_first_segment(void)
+static a_msg_segment_ptr establish_first_segment(void)
 /*
+Initialize the first message segment in the linked list of message segments
+pointed to by the static variable error_message_head.  If error_message_head
+is NULL, allocate a message seqment.
 */
 {
-  register msg_segment_ptr
+  register a_msg_segment_ptr
 		first_segment;
 
   first_segment = error_message_head;
   if (first_segment == NULL) {
-    /* When the very first time, this will be NULL. */
+    /* Only on the very first time, will this be NULL. */
     first_segment = error_message_head = new_message_segment();
   }  /* if */
   first_segment->length = 0;
@@ -1641,8 +1720,8 @@ static msg_segment_ptr establish_first_segment(void)
 }  /* establish_first_segment */
 
 
-static void form_int_kind_name(an_integer_kind kind,
-                               msg_segment_ptr seg_ptr)
+static void form_int_kind_name(an_integer_kind   kind,
+                               a_msg_segment_ptr seg_ptr)
 /*
 Add the name of the integer type to the message segment string being formatted.
 */
@@ -1668,8 +1747,8 @@ Add the name of the integer type to the message segment string being formatted.
 }  /* form_int_kind_name */
 
 
-static void form_float_kind_name(a_float_kind    kind,
-                                 msg_segment_ptr seg_ptr)
+static void form_float_kind_name(a_float_kind      kind,
+                                 a_msg_segment_ptr seg_ptr)
 /*
 Add the name of the floating point type to the type string being formatted.
 */
@@ -1689,8 +1768,8 @@ Add the name of the floating point type to the type string being formatted.
 }  /* form_float_kind_name */
 
 
-static void form_type_qualifier(a_type_ptr      type,
-                                msg_segment_ptr seg_ptr)
+static void form_type_qualifier(a_type_ptr        type,
+                                a_msg_segment_ptr seg_ptr)
 /*
 Add a type qualifier to the type string being formatted at the position
 indicated by type_string_ptr.  type_string_ptr is then incremented by
@@ -1711,8 +1790,8 @@ the length of the type qualifier added.
 }  /* form_type_qualifier */
 
 
-static void form_class_name(a_type_ptr      type,
-                            msg_segment_ptr seg_ptr)
+static void form_class_name(a_type_ptr        type,
+                            a_msg_segment_ptr seg_ptr)
 /*
 Add the class name of the specified type followed by "::" to the message
 segment being constructed at *seg_ptr.  Use "<unnamed>" if the class
@@ -1737,8 +1816,8 @@ has no user name.
 }  /* form_class_name */
 
 
-static void form_type_specifier(a_type_ptr      type,
-                                msg_segment_ptr seg_ptr)
+static void form_type_specifier(a_type_ptr        type,
+                                a_msg_segment_ptr seg_ptr)
 /*
 Add the type specifier to the type string being formed.
 */
@@ -1813,9 +1892,9 @@ typeref_done:
 }  /* form_type_specifier */
 
 
-static void form_type_first_part(a_type_ptr      type,
-                                 a_boolean       need_parens,
-                                 msg_segment_ptr seg_ptr)
+static void form_type_first_part(a_type_ptr        type,
+                                 a_boolean         need_parens,
+                                 a_msg_segment_ptr seg_ptr)
 /*
 Add the first of possibly two parts of a type reference.
 */
@@ -1879,9 +1958,9 @@ Add the first of possibly two parts of a type reference.
 }  /* form_type_first_part */
 
 
-static void form_type_second_part(a_type_ptr      type,
-                                  a_boolean       need_parens,
-                                  msg_segment_ptr seg_ptr)
+static void form_type_second_part(a_type_ptr        type,
+                                  a_boolean         need_parens,
+                                  a_msg_segment_ptr seg_ptr)
 /*
 Add the second part of a type reference to the type string being formed.
 If it's a pointer, just continue to look for the base type.  If it's an
@@ -1942,7 +2021,7 @@ array, print out the dimension information.
 
 
 static void form_param_list(a_routine_type_supplement_ptr suppl_ptr,
-                            msg_segment_ptr               seg_ptr)
+                            a_msg_segment_ptr             seg_ptr)
 /*
 Add the parameter list of a function to the type string being formatted.
 */
@@ -1970,8 +2049,8 @@ Add the parameter list of a function to the type string being formatted.
 }  /* form_param_list */
 
 
-static void form_type_summary(a_type_ptr      tp,
-                              msg_segment_ptr seg_ptr)
+static void form_type_summary(a_type_ptr        tp,
+                              a_msg_segment_ptr seg_ptr)
 /*
 Format a string that represents the type pointed to by tp into the message
 segment described by *seg_ptr.
@@ -1998,7 +2077,7 @@ the terminating NULL character.  The caller should make a copy of the
 string immediately into whichever memory region is appropriate.
 */
 {
-  msg_segment_ptr curr_segment;
+  a_msg_segment_ptr curr_segment;
 
   curr_segment = establish_first_segment();
   /* Make certain that there is a string buffer and that it contains an
@@ -2014,9 +2093,9 @@ string immediately into whichever memory region is appropriate.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-static void form_decl_position(a_symbol_ptr      sym,
-                               a_source_position *error_pos,
-                               msg_segment_ptr   seg_ptr)
+static void form_decl_position(a_symbol_ptr        sym,
+                               a_source_position   *error_pos,
+                               a_msg_segment_ptr   seg_ptr)
 /*
 Format the declaration position for the specified symbol in the message
 segment described by seg_ptr.  The generated format is:
@@ -2110,9 +2189,9 @@ return_point:
 }  /* is_overloaded_function */
 
 
-static void form_symbol_name(a_symbol_ptr      sym,
-                             a_source_position *error_pos,
-                             msg_segment_ptr   seg_ptr)
+static void form_symbol_name(a_symbol_ptr        sym,
+                             a_source_position   *error_pos,
+                             a_msg_segment_ptr   seg_ptr)
 /*
 Format the name of the symbol pointed to by sym in the message segment
 described by *seg_ptr.  Type information is based on the fundamental symbol
@@ -2320,9 +2399,9 @@ NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
        is defined.  The symbol table and token names no longer exist.
 */
 {
-  msg_segment_ptr  curr_segment;	/* Pointer to the current segment. */
-  char             *end_ptr;
-  int              i;
+  a_msg_segment_ptr  curr_segment;	/* Pointer to the current segment. */
+  char               *end_ptr;
+  int                i;
   
   /* Establish the message segment descriptor for the first segment. */
   curr_segment = establish_first_segment();
@@ -2429,6 +2508,305 @@ text_segment:
   curr_segment->kind = (a_message_segment_kind)msk_last;
 }  /* construct_message_segments */
 
+#if !STANDALONE_UTILITY_PROGRAM
+
+void error_init(void)
+/*
+Perform any initializations necessary for error.c functions at the beginning
+of each compilation.
+*/
+{
+  head_of_file_index_list = NULL;
+  tail_of_file_index_list = NULL;
+}  /* error_init */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+#if !STANDALONE_UTILITY_PROGRAM
+
+a_line_number initialize_file_index(a_source_file_ptr src_file)
+/*
+Create and initialize an_error_file_index entry for the source file IL
+entry specified by src_file.  The newly created an_error_file_index is placed
+at the head of the list pointed to by the static variable 
+head_of_file_index_list.  Return the physical line number at which the first
+index entry should be made.
+*/
+{
+  an_error_file_index_ptr new_file;
+
+  /* Allocate the error file index entry in the front end memory region. */
+  new_file = (an_error_file_index_ptr)alloc_fe(sizeof(an_error_file_index));
+  new_file->source_file = src_file;
+  new_file->next_index_entry = 0;
+  /* Add the new entry at the head of the list. */
+  new_file->previous = NULL;
+  if ((new_file->next = head_of_file_index_list) == NULL) {
+    /* This is for the primary source file. */
+    tail_of_file_index_list = new_file;
+  } else {
+    /* Update the backward link. */
+    head_of_file_index_list->previous = new_file;
+  }  /* if */
+  head_of_file_index_list = new_file;
+  /* Return the physical line number that the first index entry should be
+     made. */
+  return PHYSICAL_LINE_COUNT_INCREMENT;
+}  /* initialize_file_index */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+#if !STANDALONE_UTILITY_PROGRAM
+
+a_line_number update_file_index(a_source_file_ptr src_file,
+                                a_line_number     physical_line,
+                                long              file_pos)
+/*
+Add the file index specified by the physical_line and corresponding file
+position (file_pos) to the an_error_file_index entry for the file represented
+by src_file.  The physical line number that the next index entry should be
+made is returned.
+*/
+{
+  an_error_file_index_ptr curr_file;
+  int                     index, spacing, mid_index;
+
+  /* Typically the current file being read will be at the head of the list
+     of an_error_file_index entries. */
+  if ((curr_file = head_of_file_index_list)->source_file != src_file) {
+    /* Since files are added to the beginning of this list as they are opened
+       and the current file is not at the head of the list, the files
+       included by the current file (precede the current file on the list)
+       are no longer open.  Move these entries in front of the current file
+       to the end of the list.  It is better to have any performance cost of
+       file lookup associated with diagnostic generation, if needed. */
+    for(curr_file = curr_file->next;
+        curr_file != NULL;
+        curr_file = curr_file->next) {
+      /* Check if this is the entry needed. */
+      if (curr_file->source_file == src_file) break;
+    }  /* for */
+#if CHECKING
+    if (curr_file == NULL) {
+#if DEBUG
+    if (debug_level > 0) {
+      (void)fprintf(f_debug,
+                    "Missing file index entry for source file \"%s\"\n", 
+                    src_file->full_name);
+    }  /* if */
+#endif /* DEBUG */
+      internal_error("update_file_index: missing file index entry");
+    }  /* if */
+#endif /* CHECKING */
+    /* Move the current file to the top of the list. */
+    tail_of_file_index_list->next = head_of_file_index_list;
+    head_of_file_index_list->previous = tail_of_file_index_list;
+    /* Now have a circular list; cut where needed. */
+    (tail_of_file_index_list = curr_file->previous)->next = NULL;
+    (head_of_file_index_list = curr_file)->previous = NULL;
+  }  /* if */
+  /* Make the new entry. */
+  if ((index = curr_file->next_index_entry) < 
+                                  NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES) {
+    /* Add the file index information into the next available table entry. */
+    curr_file->line_number[index] = physical_line;
+    curr_file->file_position[index] = file_pos;
+    curr_file->next_index_entry++;
+  } else {
+    /* The index table is full.  Reorganize the table by compressing the
+       first half of the table to cover a wider range of lines.  The line
+       number gaps will be some integer multiple of
+       PHYSICAL_LINE_COUNT_INCREMENT.  The last half of the table is kept at
+       PHYSICAL_LINE_COUNT_INCREMENT spacing. */
+    mid_index = NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES / 2;
+    spacing = curr_file->line_number[mid_index] / mid_index;
+    /* Eliminate the first entry in the top half of the table that is less
+       than the value should be at the desired interval. */
+    for (index = 0; index < mid_index; index++ ) {
+      if (curr_file->line_number[index] < ((index + 1) * spacing)) {
+        /* Eliminate this entry simply by breaking the loop. */
+        break;
+      }  /* if */
+    }  /* for */
+    /* Now shift all remaining entries in the table. */
+    for (/* start with the index to be eliminated */;
+         index < NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES - 1;
+         index++ ) {
+      curr_file->line_number[index] = curr_file->line_number[index + 1];
+      curr_file->file_position[index] = curr_file->file_position[index + 1];
+    }  /* for */
+    /* Add the new entry at the end of the table. */
+    curr_file->line_number[NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES - 1] =
+                                                               physical_line;
+    curr_file->file_position[NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES - 1] =
+                                                              file_pos;
+  }  /* if */
+  /* Return the physical line number at which the next entry should be made. */
+  return physical_line + PHYSICAL_LINE_COUNT_INCREMENT;
+}  /* update_file_index */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+#if !STANDALONE_UTILITY_PROGRAM
+
+static void optimum_file_start_position(a_source_file_ptr src_file,
+                                        a_line_number     physical_line,
+                                        long              *seek_position,
+                                        a_line_number     *starting_line)
+/*
+Given the source file specified by the IL source file entry pointer
+src_file and the desired physical line number in that file, determine the
+best position in the file to begin reading source lines.  The worst case
+is from the beginning of the file, but if we have built a source line
+index for the file as we were reading it, there may be a position in the
+file which is closer to the desired line.
+*/
+{
+  an_error_file_index_ptr curr_file;
+  int                     index;
+
+  /* Locate the file index entry for the IL file entry specified by
+      src_file. */
+  for (curr_file = head_of_file_index_list;
+       curr_file != NULL;
+       curr_file = curr_file->next) {
+    if (curr_file->source_file == src_file) break;
+  }  /* for */
+#if CHECKING
+  if (curr_file == NULL) {
+#if DEBUG
+    if (debug_level > 0) {
+      (void)fprintf(f_debug,
+                    "Missing file index entry for source file \"%s\"\n", 
+                    src_file->full_name);
+    }  /* if */
+#endif /* DEBUG */
+    internal_error("optimum_file_start_position: missing file index entry");
+  }  /* if */
+#endif /* CHECKING */
+
+  /* Find the index of the first entry greater than the specified physical
+     line. */
+  for (index = 0; index < curr_file->next_index_entry; index++) {
+    if (curr_file->line_number[index] > physical_line )  break;
+  }  /* for */
+  if (index == 0) {
+    /* Desired position is earlier than any known position; start at the
+       beginning of the file. */
+    *seek_position = 0L;
+    *starting_line = 1;
+  } else {
+    /* Return the last encountered "good" file position. */
+    *seek_position = curr_file->file_position[index - 1];
+    *starting_line = curr_file->line_number[index - 1];
+  }  /* if */
+}  /* optimum_file_start_position */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+#if !STANDALONE_UTILITY_PROGRAM
+
+static a_boolean can_locate_source_line(a_seq_number seq_number)
+/*
+Determine the actual file which contains the specified sequence number.  If
+possible read the desired source line into the buffer pointed to by
+error_source_line for later use by diagnostic output functions.
+*/
+{
+  a_source_file_ptr src_file;
+  a_line_number     physical_line, starting_line, skip_lines;
+  long              seek_position;
+  a_boolean         at_end_of_source;
+  a_boolean         src_line_found = FALSE;
+  FILE              *f_err_src_file;
+  char              ch;
+  register char     *loc_in_line;
+  char              *after_end_of_error_source_line_minus_2;
+
+  conv_seq_to_physical_file_and_line(seq_number, &src_file, &physical_line,
+                                     &at_end_of_source);
+  if (physical_line == 0 ||
+      at_end_of_source ||
+      strcmp(src_file->full_name, FILE_NAME_FOR_STDIN) == 0) {
+    /* Either the file position is strange or unknown, we are at the end of
+       the primary source file or the input is from stdin.  The original
+       source line cannot be recovered. */
+    goto return_point;
+  } else {
+    /* Determine the optimum starting position in the file to read the desired
+       source line. */
+    optimum_file_start_position(src_file, physical_line, &seek_position,
+                                &starting_line);
+    /* Attempt to read the desired source line.  The source file should be
+       readable unless it was deleted recently.  Fail softly if any problems
+       arise. */
+    if ((f_err_src_file = reopen_source_file(src_file->full_name)) != NULL) {
+      if (seek_position != 0) {
+        if (fseek(f_err_src_file, seek_position, SEEK_SET) != 0) {
+          /* The seek failed; fail softly and assume the source line is
+             not readable. */
+          goto close_file;
+        }  /* if */
+      }  /* if */
+      /* Skip over lines in the file to the position of the desired line. */
+      for (skip_lines = physical_line - starting_line;
+           skip_lines > 0;
+           skip_lines--) {
+        while (getc(f_err_src_file) != '\n') {}
+      }  /* for */
+      /* Now positioned to read the actual source line desired.  Check if the
+         error_source_line_buffer has been allocated.  This check may seem
+         wasteful here, but it will only be done when a source line other
+         than the current source line is needed, typically on a warning.
+         The same error_source_line buffer will be used over multiple
+         compilations. */
+      if (error_source_line == NULL) {
+        error_source_line = alloc_general(
+                                  ERROR_SOURCE_LINE_INITIAL_ALLOCATION + 1);
+        after_end_of_error_source_line = error_source_line +
+                                  ERROR_SOURCE_LINE_INITIAL_ALLOCATION;
+      }  /* if */
+      loc_in_line = error_source_line;
+      after_end_of_error_source_line_minus_2 = after_end_of_error_source_line -
+                                               2;
+      while ((ch = getc(f_err_src_file)) != '\n' &&
+             ch != EOF) {
+        if (loc_in_line == after_end_of_error_source_line_minus_2) {
+          /* The buffer is not large enough for the current line. */
+          sizeof_t  curr_length, old_size, new_size;
+          char      *new_error_source_line;
+
+          curr_length = loc_in_line - error_source_line;
+          old_size = after_end_of_error_source_line - error_source_line;
+          /* Increase the size of the error_source_line buffer. */
+          new_size = old_size + ERROR_SOURCE_LINE_INCREMENTAL_ALLOCATION;
+          /* As with the curr_source_line, add one more byte than required,
+             so that a pointer past the end will not have the same address
+             as a pointer to the next object. */
+          new_error_source_line = realloc_general(error_source_line,
+                                                  (sizeof_t)(old_size + 1),
+                                                  (sizeof_t)(new_size + 1));
+          /* Adjust the pointers to the old error_source_line */
+          error_source_line = new_error_source_line;
+          after_end_of_error_source_line = error_source_line + new_size;
+          loc_in_line = error_source_line + curr_length;
+          after_end_of_error_source_line_minus_2 =
+                                     after_end_of_error_source_line - 2;
+        }  /* if */
+        /* Add the character to the buffer. */
+        *loc_in_line++ = ch;
+      }  /* while */
+      /* Add a trailing newline and null. */
+      *loc_in_line++ = '\n';
+      *loc_in_line = '\0';
+      src_line_found = TRUE;
+
+close_file:
+      (void)fclose(f_err_src_file);
+    }  /* if */
+  }  /* if */
+    
+return_point:
+  return src_line_found;
+}  /* can_locate_source_line */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if !STANDALONE_UTILITY_PROGRAM
 
 /*
@@ -2569,6 +2947,62 @@ end_of_loop:
        (writing the caret). */
   }  /* for */
 }  /* write_orig_source_line */
+
+#if !STANDALONE_UTILITY_PROGRAM
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+static void write_error_source_line(a_source_position *source_pos)
+/*
+Write out the source line associated with the source position source_pos,
+and place a caret under the proper column.  The position has been determined
+earlier to be in other than the current logical source line and the line
+has been reread into the buffer pointed to by the static variable
+error_source_line.  If the column position is zero, write a blank line
+instead of the caret line.
+*/
+{
+  char            *loc_in_line;
+  char            ch;
+  a_boolean       pass_for_caret;
+  a_column_number curr_column;
+  int             i;
+
+  /* Take two passes -- the first to write the source line, the second to
+     write the caret.  Because of the presence of tabs in the source line,
+     etc. it is hard to figure out where to place the caret without
+     running through the characters again. */
+  for (pass_for_caret = 0; pass_for_caret <= 1; pass_for_caret++) {
+    /* Indent both the source line and the caret line.  This is done so
+       that programs (like emacs) that read the error output will ignore
+       these lines. */
+    fputs("  ", stderr);
+    /* Perform any additional indentation needed (based on the category
+       kind) */
+    for (i = 0; i < diagnostic_indent; i++) {
+      putc(' ', stderr);
+    }  /* for */
+    /* On the caret pass, if the column number is zero (unknown), skip
+       writing the spaces and caret and go right to the newline. */
+    if (!pass_for_caret || source_pos->column != SP_COL_UNKNOWN) {
+      loc_in_line = error_source_line;
+      curr_column = 1;
+      /* Process each individual character until the newline is found. */
+      for (;;) {
+        /* Exit on the newline at the end of the source line. */
+        if ((ch = *loc_in_line++) == '\n') goto end_of_loop;
+        put_char(ch);
+      }  /* for */
+
+end_of_loop:
+      /* For the pass that writes the caret, write the caret at this point. */
+      if (pass_for_caret) putc('^', stderr);
+    }  /* if */
+    /* For both passes, end the output line. */
+    putc('\n', stderr);
+    /* After the first pass (writing the source), go on to the second pass
+       (writing the caret). */
+  }  /* for */
+}  /* write_error_source_line */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -2713,10 +3147,10 @@ to the current line.  If wrap is TRUE, the text will be wrapped to
 successive additional lines as necessary.
 */
 {
-  msg_segment_ptr curr_seg;
-  int		  length;
-  int		  total_len;
-  a_boolean	  start_of_message = TRUE;
+  a_msg_segment_ptr curr_seg;
+  int               length;
+  int               total_len;
+  a_boolean         start_of_message = TRUE;
 
   for (curr_seg = error_message_head;
        curr_seg != NULL &&
@@ -2781,11 +3215,14 @@ static void write_position_and_severity(an_error_severity severity,
                                         char              **file_name,
                                         a_line_number     *line_number,
                                         a_boolean         *src_text_needed,
+                                        a_boolean         *in_curr_src_line,
                                         int               *line_len)
 /*
 Write the source position (file name and line number) and severity to
-stderr.  If the actual source line is not available, the column number is
-added into the output.
+stderr.  Determine if the actual source line is available, either in the 
+current source line or able to be reread from one of the source files.   If
+the actual source line is not available, the column number is added into
+the output.
 */
 {
   char          *severity_string, *full_name;
@@ -2795,6 +3232,7 @@ added into the output.
 
   capitalize_severity = FALSE;
   *src_text_needed = FALSE;
+  *in_curr_src_line = FALSE;
   /* Determine the source position (file, line number). */
   if (error_pos->seq == 0) {
     /* Error position is in the command line or in initialization. */
@@ -2815,17 +3253,27 @@ added into the output.
          never displayed. */
       column_needed = FALSE;
 #else /* !STANDALONE_UTILITY_PROGRAM */
+      column_needed = FALSE;
       /* If the line is the current one, print it and a caret indicating
          the position. */
       if (error_pos->seq >= curr_seq_number) {
         /* The sequence number falls within the sequence numbers for the
            current logical source line (it can't be past the current
            line). */
-        column_needed = FALSE;
         *src_text_needed = TRUE;
+        *in_curr_src_line = TRUE;
       } else {
-        /* The sequence number is not in the current logical source line. */
-        column_needed = (error_pos->column != 0);
+        /* The sequence number is not in the current logical source line.
+           Try to relocate the source line in the known source files. */
+        if (can_locate_source_line(error_pos->seq)) {
+          /* The source line has been read into the error_source_line
+             buffer. */
+          *src_text_needed = TRUE;
+        } else {
+          /* The source line could not be reread.  Print column if it is
+             nonzero. */
+          column_needed = (error_pos->column != 0);
+        }  /* if */
       }  /* if */
 #endif /* STANDALONE_UTILITY_PROGRAM */
       /* Print the file and line number, with a column number if the
@@ -2976,6 +3424,7 @@ additional messages in a multiple message diagnostic.
   static char              *file_name;
   static a_line_number     line_number;
   static a_boolean         source_text_needed;
+  static a_boolean         in_current_source_line;
   int                      line_len;
   static a_source_position *saved_error_position;
   static an_error_severity saved_severity;
@@ -3032,6 +3481,7 @@ reestablish_arguments:
       write_position_and_severity(severity, error_pos, &file_name,
                                   &line_number,
                                   &source_text_needed,
+                                  &in_current_source_line,
                                   &line_len);
     }  /* if */
 
@@ -3056,7 +3506,13 @@ reestablish_arguments:
           (diag_kind == dck_standalone || diag_kind == dck_end_list)) {
         /* Write the source text line, with a caret pointing to the location
            of the error. */
-        write_orig_source_line(error_pos);
+        if (in_current_source_line) {
+          /* Write the source line text from the curr_source_line buffer. */
+          write_orig_source_line(error_pos);
+        }  else {
+          /* Write the source line text from the error_source_line buffer. */
+          write_error_source_line(error_pos);
+        }  /* if */
       }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
       /* Put out an extra space line after the error, for clarity. */
@@ -3158,7 +3614,7 @@ fill-in kind is to be checked; seq_no specifies the sequence number of
 that fill-in kind.  error_code is provided for debugging information.
 */
 {
-  msg_segment_ptr  curr_seg;
+  a_msg_segment_ptr  curr_seg;
 #if DEBUG
   char		   *s;
 #endif /* DEBUG */
@@ -3191,7 +3647,8 @@ that fill-in kind.  error_code is provided for debugging information.
   if (debug_level > 0) {
     (void)fprintf(f_debug, "Provided diagnostic fill-in %s%d was not used.\n",
                   s, seq_no);
-    (void)fprintf(f_debug, "  error message = \"%s\"\n", error_text(error_code));
+    (void)fprintf(f_debug,
+                  "  error message = \"%s\"\n", error_text(error_code));
   }  /* if */
 #endif /* DEBUG */
   internal_error(
@@ -3215,9 +3672,9 @@ template associated with error_code.  After constructing the segment list
  and doing any required expansions, the diagnostic is written.
 */
 {
-  msg_segment_ptr  curr_seg;
-  char             *msg_template;
-  int              i;
+  a_msg_segment_ptr  curr_seg;
+  char               *msg_template;
+  int                i;
 
   /* Get the error message text (template) and construct the message
      segment list. */
@@ -3343,7 +3800,7 @@ Report the indicated remark at the position indicated by error_position.
 
 void pos_ty_remark(an_error_code     error_code,
                    a_source_position *error_pos,
-                   struct a_type     *type)
+                   a_type_ptr        type)
 /*
 Report the indicated remark (with the indicated type) at the
 indicated position.
@@ -3356,7 +3813,7 @@ indicated position.
 
 
 void type_remark(an_error_code error_code,
-                 struct a_type *type)
+                 a_type_ptr    type)
 /*
 Report the indicated remark (with the indicated type) at the position
 indicated by error_position.
@@ -3369,7 +3826,7 @@ indicated by error_position.
 
 void pos_sy_remark(an_error_code     error_code,
                    a_source_position *error_pos,
-                   struct a_symbol   *symbol)
+                   a_symbol_ptr      symbol)
 /*
 Report the indicated remark (with the indicated symbol) at the
 indicated position.
@@ -3381,8 +3838,8 @@ indicated position.
 }  /* pos_sy_remark */
 
 
-void sym_remark(an_error_code   error_code,
-                struct a_symbol *symbol)
+void sym_remark(an_error_code error_code,
+                a_symbol_ptr  symbol)
 /*
 Report the indicated remark (with the indicated symbol) at the position
 indicated by error_position.
@@ -3428,7 +3885,7 @@ Report the indicated warning at the position indicated by error_position.
 
 void pos_ty_warning(an_error_code     error_code,
                     a_source_position *error_pos,
-                    struct a_type     *type)
+                    a_type_ptr        type)
 /*
 Report the indicated warning (with the indicated type) at the
 indicated position.
@@ -3441,7 +3898,7 @@ indicated position.
 
 
 void type_warning(an_error_code error_code,
-                  struct a_type *type)
+                  a_type_ptr    type)
 /*
 Report the indicated warning (with the indicated type) at the position
 indicated by error_position.
@@ -3454,8 +3911,8 @@ indicated by error_position.
 
 void pos_syty_warning(an_error_code     error_code,
                       a_source_position *error_pos,
-                      struct a_symbol   *symbol,
-                      struct a_type     *type)
+                      a_symbol_ptr      symbol,
+                      a_type_ptr        type)
 /*
 Report the indicated warning (with the indicated symbol and type) at the
 indicated position.
@@ -3470,7 +3927,7 @@ indicated position.
 
 void pos_sy_warning(an_error_code     error_code,
                     a_source_position *error_pos,
-                    struct a_symbol   *symbol)
+                    a_symbol_ptr      symbol)
 /*
 Report the indicated warning (with the indicated symbol) at the
 indicated position.
@@ -3482,8 +3939,8 @@ indicated position.
 }  /* pos_sy_warning */
 
 
-void sym_warning(an_error_code   error_code,
-                 struct a_symbol *symbol)
+void sym_warning(an_error_code error_code,
+                 a_symbol_ptr  symbol)
 /*
 Report the indicated warning (with the indicated symbol) at the position
 indicated by error_position.
@@ -3511,7 +3968,7 @@ indicated position.
 void pos_stty_error(an_error_code     error_code,
                     a_source_position *error_pos,
                     char              *error_string,
-                    struct a_type     *type)
+                    a_type_ptr        type)
 /*
 Report the indicated error (with the indicated fill-in string) at the
 indicated position.
@@ -3556,7 +4013,7 @@ Report the indicated error at the position indicated by error_position.
 
 void pos_ty_error(an_error_code     error_code,
                   a_source_position *error_pos,
-                  struct a_type     *type)
+                  a_type_ptr        type)
 /*
 Report the indicated error (with the indicated type) at the
 indicated position.
@@ -3570,8 +4027,8 @@ indicated position.
 
 void pos_ty2_error(an_error_code     error_code,
                    a_source_position *error_pos,
-                   struct a_type     *type1,
-                   struct a_type     *type2)
+                   a_type_ptr        type1,
+                   a_type_ptr        type2)
 /*
 Report the indicated error (with the two indicated types) at the
 indicated position.
@@ -3585,7 +4042,7 @@ indicated position.
 
 
 void type_error(an_error_code error_code,
-                struct a_type *type)
+                a_type_ptr    type)
 /*
 Report the indicated error (with the indicated type) at the position
 indicated by error_position.
@@ -3598,7 +4055,7 @@ indicated by error_position.
 
 void pos_sy_error(an_error_code     error_code,
                   a_source_position *error_pos,
-                  struct a_symbol   *symbol)
+                  a_symbol_ptr      symbol)
 /*
 Report the indicated error (with the indicated symbol) at the
 indicated position.
@@ -3612,8 +4069,8 @@ indicated position.
 
 void pos_syty_error(an_error_code     error_code,
                     a_source_position *error_pos,
-                    struct a_symbol   *symbol,
-                    struct a_type     *type)
+                    a_symbol_ptr      symbol,
+                    a_type_ptr        type)
 /*
 Report the indicated error (with the indicated symbol and type) at the
 indicated position.
@@ -3626,8 +4083,8 @@ indicated position.
 }  /* pos_syty_error */
 
 
-void sym_error(an_error_code   error_code,
-               struct a_symbol *symbol)
+void sym_error(an_error_code error_code,
+               a_symbol_ptr  symbol)
 /*
 Report the indicated error (with the indicated symbol) at the position
 indicated by error_position.
@@ -3710,7 +4167,7 @@ position and string fill-in.
 
 void pos_ty_start_error(an_error_code     error_code,
                         a_source_position *error_pos,
-                        struct a_type     *type)
+                        a_type_ptr        type)
 /*
 Begin a multiple message error with the specified error code, source
 position and type fill-in.
@@ -3724,8 +4181,8 @@ position and type fill-in.
 
 void pos_ty2_start_error(an_error_code     error_code,
                          a_source_position *error_pos,
-                         struct a_type     *type1,
-                         struct a_type     *type2)
+                         a_type_ptr        type1,
+                         a_type_ptr        type2)
 /*
 Begin a multiple message error with the specified error code, source
 position, and 2 types as fill-ins.
@@ -3754,7 +4211,7 @@ multiple message diagnostic being processed.
 
 void pos_sy_start_error(an_error_code     error_code,
                         a_source_position *error_pos,
-                        struct a_symbol   *symbol)
+                        a_symbol_ptr      symbol)
 /*
 Begin a multiple message error with the specified error code, source
 position and symbol fill-in.
@@ -3768,7 +4225,7 @@ position and symbol fill-in.
 
 void pos_sy_start_warning(an_error_code     error_code,
                           a_source_position *error_pos,
-                          struct a_symbol   *symbol)
+                          a_symbol_ptr      symbol)
 /*
 Begin a multiple message warning with the specified error code, source
 position and symbol fill-in.
@@ -3780,8 +4237,8 @@ position and symbol fill-in.
 }  /* pos_sy_start_warning */
 
 
-void sym_add_diag_info(an_error_code   error_code,
-                       struct a_symbol *symbol)
+void sym_add_diag_info(an_error_code error_code,
+                       a_symbol_ptr  symbol)
 /*
 Add the specified diagnostic message with the symbol substitution to the
 multiple message diagnostic being processed.

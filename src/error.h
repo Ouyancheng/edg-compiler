@@ -509,14 +509,23 @@ Error routines.
 #if CHECKING
 extern void internal_error(char *error_message);
 #endif /* CHECKING */
-/* Make sure "a_symbol" and "a_type" are known as struct tags before their
-   uses below.  Otherwise, the declarations would be in the prototype scopes.
-   The "struct" form is used instead of the typedef name to avoid having to
-   include symbol_tbl.h and il_def.h in this file. */
+/* Make sure "a_symbol", "a_type" and "a_source_file" are known as struct
+   tags before their uses below.  Otherwise, the declarations would be in
+   the prototype scopes. The "struct" form is used instead of the typedef
+   name to avoid having to include symbol_tbl.h and il_def.h in this file. */
 typedef struct a_symbol a_symbol_dummy_typedef;
 typedef struct a_type a_type_dummy_typedef;
+typedef struct a_source_file a_source_file_typedef;
+
 extern char *format_type_string(struct a_type *type,
                                 sizeof_t      *len_ptr);
+#if !STANDALONE_UTILITY_PROGRAM
+extern void error_init(void);
+extern a_line_number initialize_file_index(struct a_source_file *src_file);
+extern a_line_number update_file_index(struct a_source_file *src_file,
+                                       a_line_number        physical_line,
+                                       long                 file_pos);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 extern void command_line_error(char *error_message);
 extern void str_command_line_error(char *error_message,
                                    char *fill_in_string);
