@@ -9269,6 +9269,13 @@ may have been present when the enclosing class was declared.
       }  /* if */
     }  /* if */
     if (decl_state->export_present) new_value = TRUE;
+    if (new_value && !tssp->il_template_entry->is_exported &&
+        (tssp->cache.tokens.first_token != NULL &&
+         !decl_state->defines_something)) {
+      /* The export keyword appeared on a declaration after the definition.
+         This is not allowed. */
+      pos_error(ec_export_after_definition, &decl_state->export_position);
+    }  /* if */
     tssp->il_template_entry->is_exported = new_value;
   }  /* if */
 }  /* update_export_flag_for_class */
@@ -11963,6 +11970,35 @@ instantiation.
 }  /* update_function_template_default_args */
 
 
+static void update_export_flag_for_function(
+			a_tmpl_decl_state_ptr			decl_state,
+			a_routine_ptr				rout_ptr,
+			a_template_symbol_supplement_ptr	tssp)
+/*
+tssp is the template symbol supplement for a function template or a member
+function of a class template.  Its is_exported flag may or may not have
+been set by a previous declaration.  Update it to reflect an export
+keyword present on the current declaration.
+*/
+{
+  if (rout_ptr->is_inline) {
+    /* An inline function cannot be exported.  Clear the flag if it was
+       set earlier. */
+    tssp->il_template_entry->is_exported = FALSE;
+  } else if (decl_state->export_present) {
+    /* Export was specified on this declaration.  Set the flag. */
+    if (!tssp->il_template_entry->is_exported &&
+        (tssp->cache.tokens.first_token != NULL &&
+         !decl_state->defines_something)) {
+      /* The export keyword appeared on a declaration after the definition.
+         This is not allowed. */
+      pos_error(ec_export_after_definition, &decl_state->export_position);
+    }  /* if */
+    tssp->il_template_entry->is_exported = TRUE;
+  }  /* if */
+}  /* update_export_flag_for_function */
+
+
 static void complete_function_template_decl(
                      a_tmpl_decl_state_ptr	      decl_state,
                      a_symbol_ptr                     sym,
@@ -12023,19 +12059,6 @@ caller.
       /* Information about friend declarations is saved during the prototype
          instantiation of a class and reused during real instantiations. */
       set_or_find_prototype_friend_info(decl_state, sym, tssp);
-    }  /* if */
-  }  /* if */
-  if (sym != NULL) {
-    /* Save the IL template entry pointer for this symbol. */
-    set_il_template_entry(decl_state, sym, tssp);
-    /* Update the exported flag, if necessary. */
-    if (rout_ptr->is_inline) {
-      /* An inline function cannot be exported.  Clear the flag if it was
-         set earlier. */
-      tssp->il_template_entry->is_exported = FALSE;
-    } else if (decl_state->export_present) {
-      /* Export was specified on this declaration.  Set the flag. */
-      tssp->il_template_entry->is_exported = TRUE;
     }  /* if */
   }  /* if */
   /* Make sure that the template parameter list is compatible with
@@ -12145,6 +12168,12 @@ caller.
                                           tssp, decl_state->class_declared_in);
     }  /* if */
   } /* if */
+  if (sym != NULL) {
+    /* Save the IL template entry pointer for this symbol. */
+    set_il_template_entry(decl_state, sym, tssp);
+    /* Update the exported flag, if necessary. */
+    update_export_flag_for_function(decl_state, rout_ptr, tssp);
+  }  /* if */
   if (decl_state->defines_something) {
     /* A function template definition -- leave it to the caller to advance
        past the closing right brace. */
