@@ -6670,8 +6670,25 @@ bound_function_selector to the associated "this" pointer.
       /* What kind of symbol is it? */
       switch (sym_ptr->kind) {
         case sk_constant:
-          /* Enumerated type constant.  Make a constant. */
+          /* Constant (e.g., an enum constant).  Make a constant operand. */
           make_constant_operand(sym_ptr->variant.constant, result);
+          if (curr_expr_kind_is(ek_integral_constant)) {
+            /* In an integral constant expression, check that the constant is
+               integral.  This is needed for nontype template arguments.
+               It might also be needed for the extension that allows
+               definition of constants within a class if that extension
+               were to allow non-integral constants. */
+            check_integral_operand(result);
+            if (sym_ptr->variant.constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param) {
+              /* If the constant is a template parameter (meaning we're in
+                 a prototype instantiation), make an error operand.  Note
+                 that this is done after the check for integral type; the
+                 nontype parameter still has to have integral type in the
+                 prototype instantiation. */
+              conv_to_error_operand(result);
+            }  /* if */
+          }  /* if */
           break;
         case sk_variable:
         case sk_static_data_member:
@@ -6755,7 +6772,10 @@ normal_function:
              member (field) is the same as "this->field".  Or, a field
              could be a member of an unnamed union at file scope or in
              a block. */
-          if (sym_ptr->variant.field.anonymous_union_variable != NULL) {
+          if (curr_expr_kind_is(ek_integral_constant)) {
+            /* Not allowed in integral constant expressions. */
+            error_and_make_error_operand(ec_expr_not_constant, result);
+          } else if (sym_ptr->variant.field.anonymous_union_variable != NULL) {
             /* This field is a member of a top-level anonymous union. */
             /* If we're inside a local class, we are not allowed to reference
                non-static variables of the containing function.  If we're
@@ -6811,7 +6831,10 @@ normal_function:
             goto normal_function;
           }  /* if */
           /* Nonstatic member function. */
-          if (address_of_qualified_member_name) {
+          if (curr_expr_kind_is(ek_integral_constant)) {
+            /* Not allowed in integral constant expressions. */
+            error_and_make_error_operand(ec_expr_not_constant, result);
+          } else if (address_of_qualified_member_name) {
             /* The routine was referenced by a qualified name and is the
                immediate operand of a unary "&"; make up an operand that
                preserves the qualified name so scan_ampersand_operator can
@@ -6842,7 +6865,10 @@ nonstatic_member_function:
           break;
         case sk_overloaded_function:
           /* Overloaded function. */
-          if (address_of_qualified_member_name) {
+          if (curr_expr_kind_is(ek_integral_constant)) {
+            /* Not allowed in integral constant expressions. */
+            error_and_make_error_operand(ec_expr_not_constant, result);
+          } else if (address_of_qualified_member_name) {
             /* The routine was referenced by a qualified name and is the
                immediate operand of a unary "&"; make up an operand that
                preserves the qualified name so scan_ampersand_operator can
@@ -6865,9 +6891,14 @@ nonstatic_member_function:
           break;
         case sk_function_template:
           /* Function template. */
-          make_indefinite_function_operand(projection_sym_ptr,
-                                           /*is_qualified_name=*/FALSE,
-                                           result);
+          if (curr_expr_kind_is(ek_integral_constant)) {
+            /* Not allowed in integral constant expressions. */
+            error_and_make_error_operand(ec_expr_not_constant, result);
+          } else {
+            make_indefinite_function_operand(projection_sym_ptr,
+                                             /*is_qualified_name=*/FALSE,
+                                             result);
+          }  /* if */
           break;
         case sk_undefined:
           /* Symbol was found in the symbol table, but it is undefined.  This
@@ -6895,11 +6926,20 @@ nonstatic_member_function:
           }  /* if */
           break;
         case sk_parameter:
-          /* This is a parameter referenced within its own prototype scope,
-             e.g., in a C++ default argument expression, which is an error
-             (ARM 8.2.6).  Once the parameter becomes a real variable,
-             its sk_parameter type becomes sk_variable. */
-          error_and_make_error_operand(ec_param_not_allowed, result);
+          if (expr_stack->is_default_arg_expression ||
+              !curr_expr_kind_is(ek_sizeof)) {
+            /* This is a parameter referenced within a C++ default argument
+               expression, which is an error (ARM 8.2.6); or, any reference
+               except in a sizeof.  Once the parameter becomes a real
+               variable, its sk_parameter type becomes sk_variable. */
+            error_and_make_error_operand(ec_param_not_allowed, result);
+          } else {
+            /* Use of a parameter in a sizeof expression. */
+#if 0
+#else
+            internal_error("scan_identifier: unimplemented: sizeof parameter");
+#endif /* 0 */
+          }  /* if */
           break;
 #if CHECKING
         case sk_keyword:
@@ -7598,11 +7638,6 @@ Scan an integral constant expression.  See section 3.4 in the C standard.
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
   extract_constant_from_operand(&result, constant);
-  if (constant->kind == (a_constant_repr_kind)ck_template_param) {
-    /* Use an error constant for a template parameter constant within
-       a prototype instantiation. */
-    set_error_constant(constant);
-  }  /* if */
   pop_expr_stack();
 
 #if DEBUG
