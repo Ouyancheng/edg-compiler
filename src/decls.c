@@ -2900,7 +2900,7 @@ namespace-extension scope.
   check_assertion(nsp != NULL || is_friend_decl);
   if (!is_definition && !is_friend_decl) {
     /* Improper use of a qualified name in a declarator (WP 8.3). */
-    error(ec_qualified_name_not_allowed);
+    sym_error(ec_bad_scope_for_redeclaration, locator->specific_symbol);
     err = TRUE;
   } else if (is_definition && nsp != NULL &&
              !namespace_is_enclosed_by_scope(locator->specific_symbol,
