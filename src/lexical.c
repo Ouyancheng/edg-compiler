@@ -3701,6 +3701,40 @@ Test a character to see if it is an end-of-file character.
 #define is_eof_char(ch) ((ch) == EOF || (ch) == CONTROL_Z)
 #endif /* !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
 
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+
+static void find_column_for_source_line_mbc_including(
+                                                     unsigned long new_column,
+                                                     unsigned long *mbc_column)
+/*
+*mbc_column is the 1-origined offset to a position in curr_source_line that
+is on a multibyte character boundary.  Advance from that position over whole
+multibyte character sequences to find the start position of the multibyte
+character sequence that contains new_column.  Return *mbc_column set to
+this start position.
+*/
+{
+  unsigned long column = *mbc_column;
+  char     *ptr;
+  int      numch;
+
+  /* If we're already too far in the line, start over. */
+  if (column > new_column) column = 1;
+  /* If we're starting at the beginning of the line, make sure any shift
+     states are reset. */
+  if (column == 1) mbc_scan_init();
+
+  /* Step through the characters of the source line, stepping over
+     multibyte character sequences. */
+  for (ptr = curr_source_line+column-1;; ptr += numch, column += numch) {
+    numch = mbc_length(ptr);
+    if (column + numch > new_column) break;
+  }  /* for */
+
+  *mbc_column = column;
+}  /* find_column_for_source_line_mbc_including */
+
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file)
 /*
@@ -3738,7 +3772,10 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
   int             ch;
   char            *loc_in_line;
   a_boolean       return_value;
-  int		  curr_column;
+  unsigned long   curr_column;
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+  unsigned long   mbc_column = 1;
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   int             next_ch;
   a_boolean       char_is_trapped = FALSE, has_invalid_char = FALSE;
   an_orig_line_modif_ptr
@@ -3887,7 +3924,7 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
           goto expand_buffer;
         }  /* if */
         /* Put the character into curr_source_line. */
-        *local_loc_in_line++ = local_ch;
+        *local_loc_in_line++ = (char)local_ch;
         /* Get next character, check for end of file without newline. */
         if (local_ch = getc(curr_input_stream), is_eof_char(local_ch)) {
           ch = local_ch;
@@ -4068,7 +4105,17 @@ line_loop:
 entry_for_possible_trigraph:
           /* Trigraphs are disabled if the C dialect being compiled is
              pcc, but they are recognized in C++ and ANSI C modes. */
-          if (C_dialect != C_dialect_pcc) {
+          if (C_dialect != C_dialect_pcc
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+              /* See whether the first question mark is actually a question
+                 mark, or a character after the first in a multibyte
+                 sequence. */
+              && (!multibyte_chars_in_source_enabled ||
+                  (find_column_for_source_line_mbc_including(curr_column-1,
+                                                             &mbc_column),
+                   mbc_column == curr_column-1))
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+                                                ) {
             /* Get the next character, the one following the two "?"s. */
             next_ch = getc(curr_input_stream);
             /* Check for the possible third characters of trigraphs.  If one
@@ -4120,7 +4167,7 @@ entry_for_expand_buffer:
                                             2*LE_ESCAPE_LEN;
       }  /* if */
       /* Put the character into curr_source_line. */
-      *loc_in_line++ = ch;
+      *loc_in_line++ = (char)ch;
       /* Get next character, check for end of file without newline. */
       if (char_is_trapped) {
         ch = next_ch;
@@ -4134,9 +4181,10 @@ entry_for_expand_buffer:
     /* Ignore carriage return right before newline. */
     if (*(loc_in_line-1) == '\r') {
       loc_in_line--;
+      curr_column--;
       /* Avoid the line splice test if the line is empty except for the
          carriage return. */
-      if (loc_in_line == curr_source_line) {
+      if (curr_column == 0) {
         goto add_newline_and_line_end_and_return;
       }  /* if */
     }  /* if */
@@ -4145,6 +4193,18 @@ entry_for_expand_buffer:
        and end-of-line, and then exit, if no backslash is present. */
     if (*(loc_in_line-1) == '\\') {
 entry_for_line_splice:
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+      if (multibyte_chars_in_source_enabled) {
+        /* See whether the backslash is actually a backslash, or a character
+           after the first in a multibyte sequence. */
+        find_column_for_source_line_mbc_including(curr_column, &mbc_column);
+        if (mbc_column != curr_column) {
+          /* The backslash is not really a backslash.  But it is followed by a
+             newline. */
+          goto add_newline_and_line_end_and_return;
+        }  /* if */
+      }  /* if */
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
       /* Remove the backslash in the buffer. */
       loc_in_line--;
       /* Add a modification entry recording the position of the line splice. */
@@ -4549,6 +4609,9 @@ white_space_loop:
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Advance to the end of line. */
+        /* Note that no special processing is required for multibyte characters
+           because the LE_ESCAPE/LE_NEWLINE line terminator cannot occur in
+           multibyte character sequences. */
         while (*curr_char_loc   != LE_ESCAPE ||
                curr_char_loc[1] != LE_NEWLINE) curr_char_loc++;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -4584,6 +4647,10 @@ normal_comment:
         comment_pos_determined = FALSE;
         /* Advance past the "/" and "*". */
         curr_char_loc += 2;
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+        /* Initialize for scanning multibyte characters in the comment. */
+        if (multibyte_chars_in_source_enabled) mbc_scan_init();
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
         if (!in_preprocessing_directive && !currently_in_pp_if_skip) {
           /* Look for the special lint comments "notreached", "argsused", and
              "varargs" (all of those in caps -- written here in lower case 
@@ -4741,8 +4808,12 @@ normal_comment:
             }  /* if */
             /* Reset the start of comment location for subsequent lines. */
             comment_start_loc = curr_source_line;
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+            /* Initialize for scanning multibyte characters in the comment. */
+            if (multibyte_chars_in_source_enabled) mbc_scan_init();
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
           } else {
-            /* Not a newline. */
+            /* Not an escape, i.e., a normal character. */
             /* Check for possible nested comment, issue a warning.  This
                helps catch unclosed comments. */
             if (ch == '/' && *(curr_char_loc+1) == '*') {
@@ -4753,7 +4824,19 @@ normal_comment:
               }  /* if */
             }  /* if */
             /* Advance to the next character position. */
-            curr_char_loc++;
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+            if (multibyte_chars_in_source_enabled) {
+              /* Advance to the next character, dealing with multibyte
+                 characters. */
+              curr_char_loc += mbc_length(curr_char_loc);
+            } else
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+            /* Do not insert code here -- this is the "else" of an "if". */
+            {
+              /* Advance to the next character without worrying about
+                 multibyte characters. */
+              curr_char_loc++;
+            }  /* if */
           }  /* if */
         }  /* while */
         /* End of comment.  Take the "*" and "/", go back to throw away more

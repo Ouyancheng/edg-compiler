@@ -1029,6 +1029,49 @@ the -v option.
 */
 
 /*
+Routines/macros to deal with multibyte character sequences in source code.
+*/
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+/*
+Flag that is TRUE to use custom code to deal with the Japanese SJIS
+(shift-JIS) character encoding, instead of relying on C library routines
+for that.
+*/
+#ifndef USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
+#define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING FALSE
+#endif /* ifndef USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+
+/* Determine length of multibyte character sequence. */
+extern int mbc_length(char *ptr);
+#if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
+/* Use custom processing for SJIS instead of the C library routines. */
+/* Initialize for using mbc_length within one string of source characters. */
+#define mbc_scan_init() /* Nothing. */
+#else /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+/* Use the standard C library routines. */
+/*
+Locale to set when multibyte characters are enabled in source code.
+*/
+#ifndef LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED
+#define LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED ""
+#endif /* LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED */
+
+#ifndef STDLIB_H_INCLUDED
+#define STDLIB_H_INCLUDED 1
+#include <stdlib.h>
+#endif STDLIB_H_INCLUDED
+#ifndef MB_CUR_MAX
+/* We need setlocale, MB_CUR_MAX, and mblen to support multibyte
+   characters. */
+ #error -- multibyte character support requires C library multibyte support
+#endif /* ifndef MB_CUR_MAX */
+#include <locale.h>
+/* Initialize for using mbc_length within one string of source characters. */
+#define mbc_scan_init() ((void)mblen(NULL, MB_CUR_MAX))
+#endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+
+/*
 Primary source file name, as given on the command line.  FILE_NAME_FOR_STDIN
 if the primary source file is stdin.  The string is allocated in general
 storage, not IL storage.

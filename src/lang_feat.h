@@ -774,6 +774,27 @@ setting of this flag.
 
 #endif /* ifndef LANG_FEAT_H */
 
+/*
+Flag that is TRUE if multibyte characters are supported in source code,
+specifically in comments, string literals, and character constants.
+This applies to both C and C++ mode.
+*/
+#ifndef MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+#define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED FALSE
+#endif /* ifndef MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+
+/*
+Flag that is TRUE if multibyte character support in source code should
+be enabled by default.  This is the initial value of
+multibyte_chars_in_source_enabled, which is also controlled by
+--[no_]multibyte_chars.  Meaningful only if
+MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED is TRUE.
+*/
+#ifndef DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED
+#define DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED FALSE
+#endif /* ifndef DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED */
+
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *

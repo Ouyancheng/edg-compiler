@@ -644,6 +644,16 @@ Initialize the option information table.
 			 "no_extern_inline",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_none);
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+  add_option_description(optk_multibyte_chars,
+                         "multibyte_chars",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_multibyte_chars,
+                         "no_multibyte_chars",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_none);
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 }  /* initialize_option_descriptions */
 
 
@@ -1685,6 +1695,11 @@ common_cfront_mode_settings:
       case optk_extern_inline:
         extern_inline_allowed = opt_value;
         break;
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+      case optk_multibyte_chars:
+        multibyte_chars_in_source_enabled = opt_value;
+        break;
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();

@@ -619,6 +619,15 @@ unit, in case multiple source files are allowed.  This initialization is done
 after the command-line processing has been done.
 */
 {
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+#if !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
+  /* Set the locale to allow processing of multibyte characters in source. */
+  if (setlocale(LC_ALL, LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED) == NULL) {
+    str_catastrophe(ec_bad_multibyte_char_locale,
+                    LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED);
+  }  /* if */
+#endif /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   target_one_time_init();
   host_envir_one_time_init();
   class_decl_one_time_init();

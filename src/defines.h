@@ -53,6 +53,8 @@ Flags to be set when using the KAI inliner.
 /* Options common to Sun-hosted versions. */
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
 #define USING_QUANTIFY 1
+#define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED 1
+#define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 1
 #ifndef __ANSIC__
 #define __BSD__ 1
 #endif /* ifndef __ANSIC__ */
@@ -105,9 +107,9 @@ Flags to be set when using the KAI inliner.
 #if 1
 #define USE_FIXED_ADDRESS_FOR_MMAP 1
 #define FIXED_ADDRESS_FOR_MMAP (0xa0000000)
-#else
+#else /* !1 */
 #define USE_MMAP_FOR_MEMORY_REGIONS 0
-#endif
+#endif /* 1 */
 #define DEFAULT_SVR4_C_MODE 0
 #define PRAGMA_WEAK_ALLOWED 1
 #ifndef MAINTAIN_NEEDED_FLAGS
@@ -207,6 +209,8 @@ Flags to be set when using the KAI inliner.
 #define NEW_CAN_BE_FOLDED_INTO_CTOR 0
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
+#define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED 1
+#define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 0
 #define PRAGMA_WEAK_ALLOWED 1
 #define ADDRESS_OF_ELLIPSIS_ALLOWED 1
 #define ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE 1

@@ -148,6 +148,9 @@ typedef enum /*an_option_kind*/ {
 #endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
   optk_long_preserving_rules,
   optk_extern_inline,
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+  optk_multibyte_chars,
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -851,6 +854,18 @@ EXTERN a_boolean
 			   extern "C" and extern "C++" function types is
 			   permitted.  It is set to FALSE in strict mode or if
 			   c_and_cpp_function_types_are_distinct is FALSE. */
+
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+EXTERN a_boolean
+		multibyte_chars_in_source_enabled
+#if VAR_INITIALIZERS
+                 = DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED
+#endif /* VAR_INITIALIZERS */
+                                                            ;
+			/* TRUE if multibyte characters are allowed in
+			   source code (in comments, string literals, and
+			   character constants). */
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

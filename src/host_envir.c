@@ -2528,6 +2528,51 @@ a memory fault.
 }  /* svr4_trap_null_pointer_references */
 #endif /* SVR4_TRAP_NULL_POINTER_REFERENCES */
 
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+
+int mbc_length(char *ptr)
+/*
+Return the length of the multibyte character sequence beginning at ptr.
+Return 1 if the sequence there is invalid.
+*/
+{
+  int len;
+
+#if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
+  /* Use custom code for SJIS instead of the C library routines. */
+  unsigned char ch = (unsigned char)*ptr;
+  /* A character in the range [0x81,0x9f] or [0xe0,0xfc] is the first of a
+     two-character sequence.  Other characters are single characters. */
+  /* Note that there is variation among implementations of SJIS, and the
+     limits of those ranges can be slightly different in some cases.
+     The code here should be adjusted as necessary. */
+  if ((0x81 <= ch && ch <= 0x9f) || (0xe0 <= ch && ch <= 0xfc)) {
+    /* Two-character sequence.  Check validity of second character, which
+       must be in the range [0x40,0xfc]. */
+    ch = (unsigned char)(ptr[1]);
+    if (0x40 <= ch && ch <= 0xfc) {
+      len = 2;
+    } else {
+      /* Invalid sequence.  Advance bytewise. */
+      len = 1;
+    }  /* if */
+  } else {
+    /* One-character sequence. */
+    len = 1;
+  }  /* if */
+#else /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+  /* Use standard C library routines. */
+  len = mblen(ptr, MB_CUR_MAX);
+  if (len == 0) {
+    /* Invalid multibyte sequence.  Advance bytewise. */
+    len = 1;
+  }  /* if */
+#endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+
+  return len;
+}  /* mbc_length */
+
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 void host_envir_one_time_init(void)
 /*
