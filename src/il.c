@@ -2977,6 +2977,11 @@ nonidentical.
           }  /* switch */
         }  /* if */
         break;
+      case ck_cast:
+        eq = compare_constants(cp1->variant.source_constant,
+                               cp2->variant.source_constant,
+                               strictly_identical);
+        break;
 #if CHECKING
       default:
         internal_error("compare_constants: bad constant kind");
@@ -3132,6 +3137,9 @@ region).
       /* The variable pointed to must be in the function scope. */
       break;
 #endif /* DO_IL_LOWERING && ... */
+    case ck_cast:
+      has_nfs_ref = has_non_file_scope_ref(cp->variant.source_constant);
+      break;
 #if CHECKING
     case ck_aggregate:
     case ck_template_param:
@@ -8920,13 +8928,16 @@ may do fixup on entities pointed to by source-sequence entries it removes.
       /* Found -- stop looping. */
       break;
     }  /* if */
-    if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_pragma ||
+    if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_pragma
 #if RECORD_MACROS_IN_IL
-        ss_entry_kind(ssep) == (an_il_entry_kind)iek_macro ||
+        || ss_entry_kind(ssep) == (an_il_entry_kind)iek_macro
 #endif /* RECORD_MACROS_IN_IL */
-        (ss_entry_kind(ssep) == (an_il_entry_kind)iek_template &&
-         !ss_entry_ptr(ssep, a_template_ptr)->
-                                 source_corresp.is_class_member)) {
+#if RECORD_TEMPLATES_IN_IL
+        || (ss_entry_kind(ssep) == (an_il_entry_kind)iek_template &&
+            !ss_entry_ptr(ssep, a_template_ptr)->
+                                   source_corresp.is_class_member)
+#endif /* RECORD_TEMPLATES_IN_IL */
+                                                                  ) {
       if (il_entry_prefix_of(ssep->entity.ptr).keep_in_il) {
         /* Link around a needed macro or pragma that appears inside this
            class/struct/union body. */
