@@ -1,5 +1,15 @@
 Version 2.46
 
+3/5/01   Name mangling change for partially specialized classes
+
+The name mangling for partially specialized classes has been changed
+slightly.  The special double template argument list used for
+partially specialized classes in parent types in qualified names
+is now suppressed for any such types that occur inside template argument
+lists.  For example, when A<T1, T2>::x appears in a template argument
+list, it is now encoded simply as A<T1, T2> even if it is partially
+specialized.  This is an ABI change.
+
 3/5/01   Nonstandard anonymous union types now marked in IL
 
 The class types of anonymous-union-like constructs are now marked as such

@@ -43,6 +43,9 @@ typedef struct a_mangling_control_block {
   sizeof_t	slength;
 			/* Number of characters output while the output
 			   was suppressed. */
+  a_boolean	suppress_partial_spec_args;
+			/* TRUE to suppress extra information on partial
+			   specialization arguments. */
 } a_mangling_control_block;
 
 
@@ -115,6 +118,7 @@ Set the fields of the indicated mangling control block to default values.
   mctl->length = 0;
   mctl->suppress_output = FALSE;
   mctl->slength = 0;
+  mctl->suppress_partial_spec_args = FALSE;
 }  /* clear_mangling_control_block */
 
 
@@ -1317,6 +1321,8 @@ literals.
   char               *str;
   a_template_arg_ptr tap;
   int                pass;
+  a_boolean          saved_suppress_partial_spec_args =
+                                              mctl->suppress_partial_spec_args;
   a_mangling_control_block
                      sctl, *eff_ctl;
 
@@ -1339,6 +1345,11 @@ literals.
     str = "__tm__";
   }  /* if */
   add_str_to_mangled_name(str, mctl);
+#if ABI_COMPATIBILITY_VERSION < 246
+  /* Suppress information on partial specializations in any parent types
+     referenced in the template arguments. */
+  mctl->suppress_partial_spec_args = TRUE;
+#endif /* ABI_COMPATIBILITY_VERSION < 246 */
   /* Run through the template argument list, determining the representation
      for each argument.  The first time through, determine the size;
      the second, put out the string. */
@@ -1381,6 +1392,7 @@ literals.
     add_to_mangled_name('_', mctl);
     eff_ctl = mctl;
   }  /* for */
+   mctl->suppress_partial_spec_args = saved_suppress_partial_spec_args;
 }  /* mangled_template_arguments */
 
 
@@ -1451,6 +1463,7 @@ should be put out.
     /* See if template arguments are needed.  For partial specializations,
        there are two argument lists. */
     template_args = ctsp->template_arg_list;
+    if (mctl->suppress_partial_spec_args) show_partial_spec_args = FALSE;
 #if ABI_COMPATIBILITY_VERSION < 241
     /* Before this change, all names included partial specialization
        arguments. */
