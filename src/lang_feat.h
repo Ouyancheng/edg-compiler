@@ -580,6 +580,21 @@ Used only in C++ mode.
 #define DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE TRUE
 #endif /* ifndef DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE */
 
+/*
+Flag that is TRUE if, in default mode, an assignment operator for class A
+with parameter of type "B", "B&", or "const B&" is viewed as a copy
+assignment operator when B is a base class of A.  The effect is that a
+user-declared A::operator=(const B&) will block the implicit generation of
+A::operator=(const A&).  This flag is the initial value of global variable
+allow_copy_assignment_op_with_base_class_param.  Whatever its initial value,
+the variable is set to FALSE in strict-ANSI and microsoft-compatibility
+modes and to TRUE in cfront-compatibility mode.  By default, the setting is
+TRUE in default mode because the ATT/USL iostream library depends on it.
+*/
+#ifndef DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM
+#define DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM TRUE
+#endif /* DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM */
+
 #endif /* ifndef LANG_FEAT_H */
 
 /******************************************************************************
