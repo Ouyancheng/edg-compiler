@@ -211,7 +211,7 @@ may be spread between several declarations).
      which was inserted to mark the end of the cached token
      stream. */
   if (curr_token != tok_end_of_source) {
-    pos_error(ec_exp_comma, &pos_curr_token);
+    pos_error(ec_unexpected_end_of_default_arg, &pos_curr_token);
     /* If necessary, keep flushing until end-of-source is found. */
     while (curr_token != tok_end_of_source) (void)get_token();
   }  /* if */

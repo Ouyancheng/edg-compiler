@@ -854,6 +854,7 @@ ec_default_arg_on_function_template_not_allowed;;"specifying a default argument 
 ec_pm_derived_class_from_virtual_base;;"cannot convert pointer to member of base class %t2 to pointer to member of derived class %t1 -- base class is virtual"
 ec_bad_exception_specification_for_specialization;;"exception specification is incompatible with that of %nd%s\=':'"
 ec_omitted_exception_specification_on_specialization;;"omission of exception specification is incompatible with %nd"
+ec_unexpected_end_of_default_arg;;"the parse of this expression has changed between the point at which it appeared in the program and the point at which the expression was evaluated -- \"typename\" may be required to resolve the ambiguity"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

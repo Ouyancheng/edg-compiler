@@ -3067,6 +3067,13 @@ It is FALSE if the instantiation scope was pushed by the caller.
        default argument expression fixup entries, and update the default
        arg expressions in the corresponding the param_type entries. */
     for (; ptp != NULL; ptp = ptp->next, templ_ptp = templ_ptp->next) {
+      if (templ_ptp == NULL) {
+        /* There is a mismatch in the number of default arguments between
+           the template and the instance.  This should only occur as the
+           result of some other error. */
+        check_assertion(total_errors != 0);
+        break;
+      }  /* if */
       if (templ_ptp->has_default_arg) {
 	check_assertion(daefp != NULL);
         if (push_instantiation_scope) {
