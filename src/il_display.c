@@ -1079,7 +1079,7 @@ Print the name of an arg pragma kind.
     case apk_scanf:  s = "apk_scanf";               break;
     default:         s = "**BAD ARG PRAGMA KIND**";
   }  /* switch */
- (void) printf(s);
+ (void) printf("%s\n", s);
 }  /* disp_arg_pragma_kind_name */
 
 #endif /* ifdef CFE */
@@ -1396,7 +1396,7 @@ Display the name for the indicated storage class.
 #endif /* ifdef FFE */
     default:              s = "**BAD STORAGE CLASS**"; break;
   }  /* switch */
-  (void)printf(s);
+  (void)printf("%s\n", s);
 }  /* disp_storage_class_name */
 
 
@@ -1412,7 +1412,6 @@ Display the indicated variable.
            iek_param_type);
   disp_name("storage_class");
   disp_storage_class_name(ptr->storage_class);
-  (void)printf("\n");
   disp_boolean("address_taken", (a_boolean)ptr->address_taken);
   disp_boolean("is_parameter", (a_boolean)ptr->is_parameter);
 #ifdef FFE
@@ -1684,7 +1683,6 @@ Display the indicated routine.
   disp_unsigned_long("assoc_scope", (unsigned long)ptr->assoc_scope);
   disp_name("storage_class");
   disp_storage_class_name(ptr->storage_class);
-  (void)printf("\n");
 #ifdef CFE
   if (ptr->special_kind != (a_special_function_kind)sfk_none) {
     disp_name("special_kind");
