@@ -10043,34 +10043,6 @@ next_declaration:
       /* Issue warnings/remarks if the class has an operator new but no
          operator delete, etc. */
       check_operator_new_and_delete(tag_sym);
-      /* Issue a warning on a class with all private constructors and no
-         friend functions. */
-      if (!class_state.any_friend_decls) {
-        a_symbol_ptr  ctor_sym = cssp->constructor;
-        a_boolean     is_overloaded = FALSE;
-
-        if (ctor_sym != NULL) {
-          if (ctor_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-            is_overloaded = TRUE;
-            ctor_sym = ctor_sym->variant.overloaded_function.symbols;
-          }  /* if */
-          /* See if the class has at least one constructor with nonprivate
-             access control. */
-          for (; ctor_sym != NULL;
-               ctor_sym = is_overloaded ? ctor_sym->next : NULL) {
-            if (ctor_sym->variant.routine.ptr->source_corresp.access !=
-                                            (an_access_specifier)as_private) {
-              /* Break out of the loop with non-null ctor_sym. */
-              break;
-            }  /* if */
-          }  /* for */
-          if (ctor_sym == NULL) {
-            /* All constructors are private. */
-            pos_sy_warning(ec_no_access_to_constructors,
-                           &tag_sym->decl_position, tag_sym);
-          }  /* if */
-        }  /* if */
-      }  /* if */
       if (class_state.override_registry != NULL) {
         /* Check for incomplete overriding of virtual functions, and issue
            diagnostics where appropriate. */

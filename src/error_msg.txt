@@ -449,7 +449,7 @@ ec_nonstd_array_cast;;"cast to array type is nonstandard (treated as cast to %t)
 ec_class_with_op_new_but_no_op_delete;;"%n has an operator new%s() but no default operator delete%s()"
 ec_class_with_op_delete_but_no_op_new;;"%n has a default operator delete%s() but no operator new%s()"
 ec_base_class_with_nonvirtual_dtor;;"destructor for base class %t is not virtual"
-ec_no_access_to_constructors;;"%n has no accessible constructors"
+REMOVED;ec_no_access_to_constructors;;"%n has no accessible constructors"
 ec_member_function_redeclaration;;"%np has already been declared"
 ec_inline_main;;"function \"main\" may not be declared inline"
 ec_class_and_member_function_name_conflict;;"member function with the same name as its class must be a constructor"

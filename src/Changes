@@ -1,5 +1,10 @@
 Version 2.37
 
+8/20/97   Eliminated "no accessible constructors" diagnostic
+
+The "no accessible constructors" warning has been eliminated because
+there are common programming techniques that use such classes.
+
 8/19/97   Spurious error on redundant do_not_instantiate pragma
 
 A spurious error was issued if a program contained more than one
