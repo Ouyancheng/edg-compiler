@@ -790,6 +790,26 @@ end_of_header_name:
 }  /* get_header_name */
 
 
+static void trim_leading_and_trailing_blanks_from_header_name(char      **name,
+                                                              sizeof_t  *len)
+/*
+The header name consists of *len characters starting at *name.  This routine
+modifies those quantities to trim leading and trailing whitespace.
+E.g., "    stdio   " becomes "stdio".
+*/
+{
+  /* Skip leading whitespace. */
+  while (**name == ' ' || **name == '\t') {
+    ++(*name);
+    --(*len);
+  }  /* while */
+  /* Trim trailing whitespace. */
+  while ((*name)[*len - 1] == ' ' || (*name)[*len - 1] == '\t') {
+    --(*len);
+  }  /* while */
+}  /* trim_leading_and_trailing_blanks_from_header_name */
+
+
 static char *copy_header_name(a_boolean process_escapes)
 /*
 Allocate and copy the file name from the current token (a header name).
@@ -809,6 +829,11 @@ Escapes in the string are processed only if process_escapes is TRUE.
            (name_len = len_of_curr_token - 2 /* Drop quoting characters. */)
            + 1 /* Space for null. */));
   in_pos = start_of_curr_token+1;
+  if (microsoft_mode && *start_of_curr_token == '<') {
+    /* Microsoft compilers ignore leading and trailing whitespace inside
+       #include <...> directives. */
+    trim_leading_and_trailing_blanks_from_header_name(&in_pos, &name_len);
+  }  /* if */
   out_pos = name_start_pos;
   /* Copy the string, processing escapes if appropriate.  Note that space
      including unprocessed escapes was allocated in the output string, so

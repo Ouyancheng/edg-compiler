@@ -1,5 +1,20 @@
 Version 2.45
 
+9/7/00   Microsoft compatibility: ignore leading and trailing whitespace in
+         #include <...> directives
+
+In Microsoft mode, the front end ignores leading and trailing whitespace in
+#include directives of the form #include <...> (but not when the form is
+#include "...").  For example:
+
+  #include < stdio.h >
+
+is equivalent to
+
+  #include <stdio.h>
+
+in Microsoft mode, but not in other modes.
+
 9/6/00   Microsoft compatibility: extra text after preprocessing directive
          is not fatal
 
