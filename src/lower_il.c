@@ -4081,7 +4081,7 @@ number after the last one filled.
     /* Skip the entries on the override list that apply to the shared part
        of the table. */
     while (override_list != NULL &&
-           override_list->overriding_function->
+           override_list->primary_function->
                                       virtual_function_number < entry_number) {
       override_list = override_list->next;
     }  /* while */
