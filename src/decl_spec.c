@@ -2311,11 +2311,12 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
                (C_dialect == C_dialect_cplusplus && curr_token == tok_colon)) {
       /* This is a tagless class definition. */
 #if GNU_EXTENSIONS_ALLOWED
-      if (gpp_mode && type_kind == (a_type_kind)tk_class) {
-        /* In GNU C++ mode, unnamed class types defined with the "class"
+      if (gpp_mode && gnu_version < 30300 &&
+          type_kind == (a_type_kind)tk_class) {
+        /* In some GNU C++ modes, unnamed class types defined with the "class"
            keyword are treated as if they were declared with the "struct"
-           keyword.  This is true even if the unnamed type acquires a name
-           for linkage purposes through a typedef. */
+           keyword.  This is true even if the unnamed type acquires a name for
+           linkage purposes through a typedef. */
         type_kind = (a_type_kind)tk_struct;
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -4454,16 +4455,16 @@ such a typedef, return the associated basic type specifier and set *sign and
           basic_type = bt_int;
           break;
         case ik_long:
-          /* GNU compilers allow the extra "long" (with no effect). */
-          if (*size == size_none || (gnu_mode && *size == size_long)) {
+          /* GNU C compilers allow the extra "long" (with no effect). */
+          if (*size == size_none || (gcc_mode && *size == size_long)) {
             basic_type = bt_int;
             *size = size_long;
           }  /* if */
           break;
         case ik_unsigned_long:
           /* No holes to fill in. */
-          /* GNU compilers allow the extra "long" (with no effect). */
-          if (gnu_mode && *size == size_long) {
+          /* GNU C compilers allow the extra "long" (with no effect). */
+          if (gcc_mode && *size == size_long) {
             basic_type = bt_int;
             *sign = sign_unsigned;
             *size = size_long;

@@ -9484,9 +9484,9 @@ to be used.
       /* Both are constants.  Make sure the values are the same. */
       err = !eq_constants(old_tpp->variant.constant.ptr,
                           new_tpp->variant.constant.ptr);
-      if (err && (microsoft_bugs || gpp_mode) &&
+      if (err && (microsoft_bugs || (gpp_mode && gnu_version < 30300)) &&
           (options & ETP_BAD_PARAM_TYPE_OKAY) != 0) {
-        /* In Microsoft bugs mode and in g++ mode, a member of a class
+        /* In Microsoft bugs mode and in early g++ modes, a member of a class
            template can be declared using a template parameter with a type
            that is different than that of the associated class template. */
         err = !equiv_nontype_template_param_names(

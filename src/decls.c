@@ -1050,7 +1050,8 @@ consistent with that of the previous declaration.
          declaration. */
       if (new_tsp != NULL) {
         /* Previously the exception specification was absent; now one is
-           provided.  Issue an error. */
+           provided.  Issue an error (except if the incompatibility is with
+           a declaration from a system header in GNU C++ modes). */
         pos_stsy_diagnostic(pos_adjusted_severity(severity, prev_decl),
                             error_code, throw_pos, "", prev_decl);
       }  /* if */
@@ -1065,8 +1066,14 @@ consistent with that of the previous declaration.
            if this is a redeclaration of what may be a library new or delete
            routine: the relaxation is to ease the upgrading of old code. */
         severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
+      } else if (gpp_mode && gnu_version < 30000) {
+        /* In very early GNU C++ modes, dropping a throw specifier was not
+           diagnosed if the earlier declaration came from a system header.
+           (The converse incompatibility of adding a specifier is not
+           diagnosed even in later versions; see above.) */
+        severity = pos_adjusted_severity(severity, prev_decl);
       }  /* if */
-      pos_sy_diagnostic(pos_adjusted_severity(severity, prev_decl),
+      pos_sy_diagnostic(severity,
                         is_redecl?
                           ec_omitted_exception_specification :
                           ec_omitted_exception_specification_on_specialization,
@@ -2954,9 +2961,10 @@ created; the caller must set it.
           use_existing_il_entry = TRUE;
           preexisting_type = (*variable_ptr)->type;
           if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
-              (gcc_mode || (microsoft_mode && C_mode()))) {
-            /* In Microsoft C and GNU C modes, the composite type is retained
-               in the local scope. */
+              ((gcc_mode && gnu_version < 30400) ||
+               (microsoft_mode && C_mode()))) {
+            /* In Microsoft C and early GNU C modes, the composite type is
+               retained in the local scope. */
             (*variable_ptr)->type = esdp->type;
           } else {
             (*variable_ptr)->type = type_ptr;

@@ -2644,8 +2644,25 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   if (!(option_kind_used[(int)optk_alternative_tokens])) {
     alternative_tokens_allowed = TRUE;
   }  /* if */
-  /* GNU C++ doesn't look unqualified names up in dependent base classes. */
-  gpp_dependent_name_lookup = TRUE;
+  if (gnu_version < 30400) {
+    /* Early versions of GNU C++ don't look unqualified names up in dependent
+       base classes (without however applying all the two-phase name lookup
+       rules). */
+    gpp_dependent_name_lookup = TRUE;
+  } else {
+    /* Version 3.4 of GNU C++ introduces standard parsing and name lookup for
+       templates. */
+    if (!(option_kind_used[(int)optk_dependent_name_processing])) {
+      /* If dependent name processing was not explicitly set by a command line
+         option, set it now. */
+      do_dependent_name_processing = TRUE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_parse_nonclass_templates])) {
+      /* If prototype instantiation of nonclasses was not explicitly set by a
+         command line option, set it now. */
+      nonclass_prototype_instantiations = TRUE;
+    }  /* if */
+  }  /* if */
   /* We will presumably want to pick std::type_info from the GNU headers.
      In that case, we cannot expect an EDG-specific pragma. */
   pragma_define_type_info_is_required = FALSE;
@@ -2659,9 +2676,9 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   c_and_cpp_function_types_are_distinct = FALSE;
   allow_default_arg_on_template_member_definition = TRUE;
   floating_point_template_parameters_allowed = FALSE;
-  /* GNU C++ compilers do not check accessibility of friend function
+  /* Early GNU C++ compilers do not check accessibility of friend function
      declarations. */
-  no_access_check_on_friend_declarator_ids = TRUE;
+  no_access_check_on_friend_declarator_ids = (gnu_version < 30400);
 }  /* check_and_set_gpp_mode_options */
 
 

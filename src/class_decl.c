@@ -7839,7 +7839,7 @@ and it is legal for virtual member functions only.
   (void)get_token();
   if ((curr_token == tok_int_constant &&
        (const_for_curr_token.is_simple_zero ||
-        ((microsoft_mode || (gpp_mode && gnu_version < 30400)) &&
+        ((microsoft_mode || gpp_mode) &&
          is_zero_constant(&const_for_curr_token)))) ||
       (gpp_mode && gnu_version < 30400 && curr_token == tok_null)) {
     /* Token following "=" should be "0".  Note that we normally don't test
@@ -8933,7 +8933,7 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   } else if (!allow_nonstandard_anonymous_unions) {
     /* This compilation is not configured to support this extension -- e.g.,
-       this is not Microsoft mode. */
+       this is not a Microsoft or GNU mode. */
   } else if (!is_class_struct_union_type(member_type)) {
     /* Not a pseudo-anonymous-union -- it's not a class, struct,
        or union type. */
