@@ -11410,7 +11410,7 @@ the IL, the template header is passed via template_decl.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     an_attribute_ptr                  declarator_attributes = NULL;
     an_attribute_ptr                  attributes = NULL;
-    a_boolean                         is_function;
+    a_boolean                         is_function = FALSE;
 
     declarator_start_pos = pos_curr_token;
     add_stop_token(tok_comma);
