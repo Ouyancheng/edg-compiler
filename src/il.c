@@ -2895,6 +2895,7 @@ to it.
 #endif
   bcp->next                            = NULL;
   bcp->type                            = NULL;
+  bcp->derived_class                   = NULL;
   bcp->is_virtual                      = FALSE;
   bcp->direct                          = FALSE;
   bcp->ambiguous                       = FALSE;

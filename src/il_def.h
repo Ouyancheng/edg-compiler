@@ -1057,14 +1057,18 @@ typedef struct a_base_class {
                         /* Pointer to the tk_class or tk_struct type entry
 			   representing a base class of the current derived
 			   class.  (Unions may not be used as base classes.) */
+  a_type_ptr	derived_class;
+			/* The class derived (directly or indirectly) from
+			   this base class on whose base_classes list it
+			   appears. */
   unsigned int	direct:1;
-			/* TRUE if this is a direct base class of the current
-			   class. */
+			/* TRUE if this is a direct base class of
+			   derived_class. */
   unsigned int	is_virtual:1;
 			/* TRUE if this is a virtual base class (whether
 			   directly or indirectly inherited). */
   unsigned int	ambiguous:1;
-			/* TRUE if a direct cast from the current class to this
+			/* TRUE if a direct cast from derived_class to this
 			   base class would be ambiguous because it appears
 			   more than once in the derivation. */
   unsigned int	any_virtual_steps_in_derivation:1;
@@ -1130,8 +1134,8 @@ typedef struct a_base_class {
 			   base class. */
   a_derivation_step_ptr
 		derivation;
-			/* Pointer to the "casting path" from the current
-			   class (implicitly at the start of the list) to this
+			/* Pointer to the "casting path" from derived_class
+			   (implicitly at the start of the list) to this
 			   base class; the linked list of step entries always
 			   terminates with a step entry that points to this
 			   base class entry. */

@@ -1067,6 +1067,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_base_class_ptr ptr = (a_base_class_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_base_class_ptr, iek_base_class);
         remap_ptr(ptr->type, a_type_ptr, iek_type);
+        remap_ptr(ptr->derived_class, a_type_ptr, iek_type);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
         remap_ptr(ptr->data_section_base_class, a_base_class_ptr,
                   iek_base_class);
