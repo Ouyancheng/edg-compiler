@@ -3267,7 +3267,9 @@ its kind to the indicated kind.
 {
   node->type = NULL;
   node->next = NULL;
+#ifdef FIL
   node->allow_reordering = FALSE;
+#endif /* ifdef FIL */
   set_expr_node_kind(node, kind);
 }  /* clear_expr_node */
 
