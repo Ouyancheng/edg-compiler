@@ -503,9 +503,11 @@ typedef struct a_scope_stack_entry {
 			/* The number of the IL memory region that was the
 			   current region at the time this scope was entered.
 			   This is restored by pop_scope. */
-  a_type_ptr	assoc_routine_type;
+  a_type_ptr	assoc_type;
 			/* When kind == sck_func_prototype, this points to
-			   the function type whose prototype scope this is. */
+			   the function type whose prototype scope this is.
+			   When kind == sck_class_struct_union, this points
+			   to the class type. */
   an_array_type_fixup_ptr
 		array_type_fixup_list;
 			/* List of array types to be fixed up at the end of
