@@ -1,5 +1,14 @@
 Version 3.1
 
+9/12/02  Demangling fixes: closing delimiters on sizeof(expr) and []
+
+The demangling for expressions in the Cfront-like ABI got closing
+delimiters wrong in two cases:  "sizeof(expr)" came out as "sizeof(expr"
+(missing closing parenthesis), and "x[y]" came out as "x[]y".  (At the
+moment, it's not thought to be possible to get the front end to put
+put a [] operator in a mangled name, but it probably will be in
+the future.)
+
 9/11/02  Demangling for IA-64 ABI
 
 The demangler now understands the name mangling of the IA-64 ABI

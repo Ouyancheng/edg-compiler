@@ -711,7 +711,7 @@ at ptr, and output the demangled form.  Return a pointer to the character
 position following what was demangled.
 */
 {
-  char          *p = ptr, *operator_str;
+  char          *p = ptr, *operator_str, *close_str = "";
   int           op_length;
   unsigned long num_operands;
   a_boolean     takes_type;
@@ -750,8 +750,8 @@ position following what was demangled.
         p++;
       } else {
         p = demangle_type(p, dctl);
-        write_id_ch(')', dctl);
       }  /* if */
+      write_id_ch(')', dctl);
     }  /* if */
     /* Get the count of operands. */
     p = get_single_digit_number(p, &num_operands, dctl);
@@ -766,6 +766,12 @@ position following what was demangled.
       if (num_operands > 1) {
         /* Binary and ternary operators -- operator comes after first
            operand. */
+        if (strcmp(operator_str, "[]") == 0) {
+          /* For subscripting, put one "[" between the operands and one
+             at the end. */
+          operator_str = "[";
+          close_str = "]";
+        }  /* if */
         write_id_str(operator_str, dctl);
         /* Process the second operand. */
         p = demangle_constant(p, dctl);
@@ -777,6 +783,7 @@ position following what was demangled.
         }  /* if */
       }  /* if */
     }  /* if */
+    write_id_str(close_str, dctl);
     write_id_ch(')', dctl);
     /* Check for the final "O". */
     if (*p != 'O') {
@@ -1072,7 +1079,7 @@ the demangled form, and *mangled_length to the length of the mangled form.
   *demangled_name = s;
   *mangled_length = len;
   return (s != NULL);
-}  /* demangle_operator_function_name */
+}  /* is_operator_function_name */
 
 
 static void note_specialization(char                       *ptr,
