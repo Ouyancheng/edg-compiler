@@ -108,6 +108,8 @@ extern a_boolean scan_conversion_operator(a_source_position  *pos);
 
 extern a_type_ptr type_keyword(void);
 
+extern void adjust_parameter_type(a_type_ptr *type_ptr);
+
 extern void check_operator_function_params(a_type_ptr        rout_type,
                                            a_type_ptr        class_type,
                                            a_symbol_locator  *locator);

@@ -1147,7 +1147,7 @@ type is legal.
 }  /* add_to_derived_type_list */
 
 
-static void adjust_parameter_type(a_type_ptr *type_ptr)
+void adjust_parameter_type(a_type_ptr *type_ptr)
 /*
 *type_ptr points to the type of a parameter.  Modify the type if
 necessary.  See 3.7.1:  A declaration of a parameter as "array of
