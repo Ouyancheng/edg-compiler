@@ -7749,7 +7749,8 @@ the C output files for all instantiations.
        rout = rout->next) {
     if (rout->instantiation_needed_bit_number != 0 &&
         /* Ignore generated startup initialization routines. */
-        !routine_is_init_routine(rout)) {
+        !routine_is_init_routine(rout) &&
+        !rout->suppress_inline_body) {
       generate_one_instantiation_C_output_file(&rout->source_corresp,
                                         rout->instantiation_needed_bit_number);
     }  /* if */
