@@ -418,17 +418,21 @@ calling context scope.
        vrip = vrip->next) {
     if (vrip->kind == vrk_temporary) {
       /* A temporary. */
+      a_variable_ptr temp_var = vrip->variant.variable;
+      /* Clear flags in the temporary in case the variable is reused. */
+      temp_var->is_temp_for_constructor_this_inlined_param = FALSE;
+      temp_var->is_temp_for_unmodified_inlined_param = FALSE;
       if (vrip->local_temporary_reused) {
         /* This variable is a previously-allocated temporary.  It's already
            on the scope list and on the reusable temporaries list. */
       } else {
         /* Add the variable to the current scope. */
-        add_temporary_to_scope(vrip->variant.variable, (a_scope_ptr)NULL);
+        add_temporary_to_scope(temp_var, (a_scope_ptr)NULL);
         if (vrip->local_temporary_okay) {
           /* This variable is used like a local temporary.  Put it on the list
              of such temporaries so that it can be reused after the end of
              the current full expression. */
-          add_to_reusable_temporaries_list(vrip->variant.variable);
+          add_to_reusable_temporaries_list(temp_var);
         }  /* if */
       }  /* if */
     }  /* if */
