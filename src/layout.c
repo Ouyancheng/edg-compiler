@@ -226,9 +226,13 @@ Return the field alignment for the given type.
       result = float_field_alignments[type->variant.float_kind];
       break;
     case tk_typeref:
+#if GNU_EXTENSIONS_ALLOWED
       if (type->alignment_set_explicitly) {
         result = type->alignment;
-      } else {
+      } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
         result = field_alignment_for(skip_typerefs(type));
       }  /* if */
       break;
