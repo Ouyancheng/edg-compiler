@@ -5926,7 +5926,9 @@ block.
       ns_sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
       if (ns_sym != NULL) {
         /* A name was found in the current scope. */
-        if (ns_sym->kind != (a_symbol_kind)sk_namespace) {
+        if (ns_sym->kind != (a_symbol_kind)sk_namespace ||
+            (!is_namespace_alias &&
+             ns_sym->variant.namespace_info.ptr->is_namespace_alias)) {
           str_error(ec_id_already_declared, locator.symbol_header->identifier);
           ns_sym = NULL;
         }  /* if */
