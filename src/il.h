@@ -546,6 +546,8 @@ extern a_type_ptr microsoft_sized_integer_type(an_integer_kind kind);
 extern a_type_ptr microsoft_sized_signed_integer_type(an_integer_kind kind);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+a_type_ptr other_signedness_integer_type(an_integer_kind ikind);
+
 extern a_type_ptr wchar_t_type(void);
 
 #if C99_IL_EXTENSIONS_SUPPORTED

@@ -6816,6 +6816,61 @@ type.)
 }  /* microsoft_sized_signed_integer_type */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+a_type_ptr other_signedness_integer_type(an_integer_kind ikind)
+/*
+Return the integer type that is paired with the one indicated by ikind
+and has the opposite signedness.  For example, ik_unsigned_long as
+input produces ik_long as output.
+*/
+{
+  an_integer_kind nkind;
+
+  switch (ikind) {
+    case ik_char:
+      if (targ_has_signed_chars) {
+        nkind = (an_integer_kind)ik_unsigned_char;
+      } else {
+        nkind = (an_integer_kind)ik_signed_char;
+      }  /* if */
+      break;
+    case ik_signed_char:
+      nkind = (an_integer_kind)ik_unsigned_char;
+      break;
+    case ik_unsigned_char:
+      nkind = (an_integer_kind)ik_signed_char;
+      break;
+    case ik_short:
+      nkind = (an_integer_kind)ik_unsigned_short;
+      break;
+    case ik_unsigned_short:
+      nkind = (an_integer_kind)ik_short;
+      break;
+    case ik_int:
+      nkind = (an_integer_kind)ik_unsigned_int;
+      break;
+    case ik_unsigned_int:
+      nkind = (an_integer_kind)ik_int;
+      break;
+    case ik_long:
+      nkind = (an_integer_kind)ik_unsigned_long;
+      break;
+    case ik_unsigned_long:
+      nkind = (an_integer_kind)ik_long;
+      break;
+#if LONG_LONG_ALLOWED
+    case ik_long_long:
+      nkind = (an_integer_kind)ik_unsigned_long_long;
+      break;
+    case ik_unsigned_long_long:
+      nkind = (an_integer_kind)ik_long_long;
+      break;
+#endif /* LONG_LONG_ALLOWED */
+    default:
+      unexpected_condition_str("other_signedness_integer_type: bad kind");
+  }  /* switch */
+  return integer_type(nkind);
+}  /* other_signedness_integer_type */
+
 
 a_type_ptr wchar_t_type(void)
 /*

@@ -6243,11 +6243,7 @@ after_precision:;
           required_type = integer_type(targ_intmax_kind);
         } else if (z_size) {
           /* Use the signed integral type that's the same size as size_t. */
-          required_type = integer_type(targ_size_t_int_kind);
-          required_type = integer_type(int_kind_for_size_and_alignment(
-                                                     required_type->size,
-                                                     required_type->alignment,
-                                                     /*is_signed=*/TRUE));
+          required_type = other_signedness_integer_type(targ_size_t_int_kind);
         } else if (t_size) {
           required_type = integer_type(targ_ptrdiff_t_int_kind);
         } else {
@@ -6282,11 +6278,8 @@ after_precision:;
         } else if (t_size) {
           /* Use the unsigned integral type that's the same size as
              ptrdiff_t. */
-          required_type = integer_type(targ_ptrdiff_t_int_kind);
-          required_type = integer_type(int_kind_for_size_and_alignment(
-                                                     required_type->size,
-                                                     required_type->alignment,
-                                                     /*is_signed=*/FALSE));
+          required_type = other_signedness_integer_type(
+                                                      targ_ptrdiff_t_int_kind);
         } else {
           required_type = integer_type((an_integer_kind)ik_unsigned_int);
         }  /* if */
@@ -6382,11 +6375,7 @@ after_precision:;
           required_type = integer_type(targ_intmax_kind);
         } else if (z_size) {
           /* Use the signed integral type that's the same size as size_t. */
-          required_type = integer_type(targ_size_t_int_kind);
-          required_type = integer_type(int_kind_for_size_and_alignment(
-                                                     required_type->size,
-                                                     required_type->alignment,
-                                                     /*is_signed=*/TRUE));
+          required_type = other_signedness_integer_type(targ_size_t_int_kind);
         } else if (t_size) {
           required_type = integer_type(targ_ptrdiff_t_int_kind);
         } else {
