@@ -792,7 +792,9 @@ caution when modifying this routine.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Set the end-of-decl-specifiers position provisionally.  It will be
        reset later if this is a tag definition. */
-    decl_pos_block->specifiers_range.end = end_pos_curr_token;
+    if (decl_pos_block != NULL) {
+      decl_pos_block->specifiers_range.end = end_pos_curr_token;
+    }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else if (tag_err) {
     /* An error occurred while handling a qualified name or a template
@@ -2311,7 +2313,7 @@ to indicate whether an enumeration is actually defined.
       remove_stop_token(tok_rbrace);
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (curr_token == tok_rbrace) {
+    if (curr_token == tok_rbrace && decl_pos_block != NULL) {
       decl_pos_block->specifiers_range.end = pos_curr_token;
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
