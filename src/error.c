@@ -2931,7 +2931,7 @@ Compute the hash table bucket to be used for this diagnostic.
 }  /* bucket_for_diag */
 
 
-static a_boolean record_prototype_diagnostic(
+static void record_prototype_diagnostic(
 				an_error_code		error_code,
 				an_error_severity	severity,
 				a_source_position	*error_pos)
@@ -2980,7 +2980,7 @@ Return TRUE if one is found.
     }  /* if */
   }  /* for */
   return found;
-}  /* record_prototype_diagnostic */
+}  /* find_prototype_diagnostic */
 
 
 static a_boolean diagnostic_already_issued_for_prototype(
