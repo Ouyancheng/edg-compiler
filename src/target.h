@@ -129,6 +129,75 @@ Integer types:
 #endif /* LONG_LONG_ALLOWED */
 
 /*
+Type used as the representation of an integer value.  More precisely,
+this is the form used on the host to represent a target integer.
+*/
+/*
+At the first level, one must choose between a representation using
+a single value of some host integer type and one using an array of
+smaller host integers.  The latter form is necessary when the front
+end is used as part of a cross-compiler where the target has larger
+integers than the host.
+*/
+#define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER TRUE
+
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+
+/*
+There is a host integer that is large enough to hold all target integers,
+so the integer representation is just some host integral type.
+*/
+typedef long an_integer_value;
+/* The printf formatting specifier to be used to print the integer type. */
+#define PRINTF_FORMAT_FOR_INTEGER_VALUE "%ld"  /* long */
+
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+
+/*
+There is no host integer that is large enough, so use an array to represent
+the target integers. */
+*/
+/* Type of the elements of the array.  These must be at least half the
+   size of a_host_large_integer (some large and efficient integer type on
+   the host), and (for space reasons) preferably exactly half.
+   Typically, this is a 16-bit value.  The bit size and minimum and
+   maximum values indicate the range of values to be used, which may
+   be smaller than the range actually available. */
+typedef short an_int_value_part;
+#define MAX_UINT_VALUE_PART 0xffff
+#define MAX_INT_VALUE_PART 0x7fff
+#define MIN_INT_VALUE_PART (-0x8000)
+#define SIGN_BIT_INT_VALUE_PART 0x8000
+#define SIZEOF_INT_VALUE_PART (sizeof(an_int_value_part)) /* Okay to change. */
+#define BITS_IN_INT_VALUE_PART (SIZEOF_INT_VALUE_PART*CHAR_BIT)
+/* Large and efficient host integer, at least twice the size of
+   an_int_value_part, used in doing computations on integer values.
+   The idea is that any operation involving two an_int_value_part
+   values in the range MIN_INT_VALUE_PART..MAX_INT_VALUE_PART can
+   be done in a_host_large_integer without special coding to deal
+   with overflows. */
+typedef long a_host_large_integer;
+#define MAX_HOST_LARGE_INTEGER LONG_MAX
+#define MIN_HOST_LARGE_INTEGER LONG_MIN
+#define BITS_IN_HOST_LARGE_INTEGER (sizeof(a_host_large_integer)*CHAR_BIT)
+/* The array is made up of elements of type an_int_value_part.
+   Figure out how many. */
+#if LONG_LONG_ALLOWED
+#define INT_VALUE_PARTS_PER_INTEGER_VALUE                             \
+  (TARG_SIZEOF_LONG_LONG/SIZEOF_INT_VALUE_PART)
+#else /* !LONG_LONG_ALLOWED */
+#define INT_VALUE_PARTS_PER_INTEGER_VALUE                             \
+  (TARG_SIZEOF_LONG/SIZEOF_INT_VALUE_PART)
+#endif /* LONG_LONG_ALLOWED */
+/* This is an array inside a struct instead of just an array so that
+   its address behaves in a predictable way. */
+typedef struct an_integer_value {
+  an_int_value_part part[INT_VALUE_PARTS_PER_INTEGER_VALUE];
+} an_integer_value;
+
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+
+/*
 If this flag is TRUE, overflows on signed integer operations do
 not cause errors (only warnings).  Usually this would be set to
 match the target machine behavior on integer operations in C.
