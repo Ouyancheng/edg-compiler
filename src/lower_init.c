@@ -470,16 +470,15 @@ moved out of the block.
                   block_stmt->kind == (a_statement_kind)stmk_block);
   for (temp_block_stmt = block_stmt; ; temp_block_stmt = stmt) {
     stmt = temp_block_stmt->variant.block.statements;
-    if (stmt != NULL) {
-      /* Find the last statement in the block. */
-      for (prev_stmt = NULL;
-           stmt->next != NULL;
-           prev_stmt = stmt, stmt = stmt->next) {}
-      /* If the last statement is itself a block, look inside it. */
-      if (stmt->kind != (a_statement_kind)stmk_block) break;
-    }  /* if */
+    if (stmt == NULL) break;
+    /* Find the last statement in the block. */
+    for (prev_stmt = NULL;
+         stmt->next != NULL;
+         prev_stmt = stmt, stmt = stmt->next) {}
+    /* If the last statement is itself a block, look inside it. */
+    if (stmt->kind != (a_statement_kind)stmk_block) break;
   }  /* for */
-  if (stmt->kind == (a_statement_kind)stmk_return) {
+  if (stmt != NULL && stmt->kind == (a_statement_kind)stmk_return) {
     /* The last statement is a return.  Move it. */
     if (prev_stmt == NULL) {
       temp_block_stmt->variant.block.statements = NULL;
