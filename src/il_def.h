@@ -220,7 +220,9 @@ enum a_constant_repr_kind_tag {
 #endif /* ifdef FIL */
 #ifdef CIL
   ck_address,           /* Address. */
-  ck_dynamic_init,
+  ck_dynamic_init,	/* Dynamic initialization.  Indicates the location of
+			   a non-constant part of an aggregate initialization,
+			   one that requires code. */
 #endif /* ifdef CIL */
   ck_aggregate,         /* For list of constants in initialization. */
   ck_init_repeat,       /* Used to specify a repeated initialization constant
@@ -270,12 +272,12 @@ point in an execution stream at which the initialization takes place).
 */
 enum a_dynamic_init_kind_tag {
   dik_constant,		/* Initial value of a simple object is a constant. */
-  dik_expression,	/* Initial value of a simple object is an expression. */
+  dik_expression,	/* Initial value of a simple object is an
+			   expression. */
   dik_constructor,	/* Initial value of a simple object is established by
-			   a constructor call (and/or a destructor may also be
-			   required when the object ceases to exist). */
-  dik_aggregate         /* Initial values of an aggregate object (array or
-			   class) are represented by a list of constant entries
+			   a constructor call. */
+  dik_aggregate		/* Initial value of an aggregate object (array or
+			   class) is represented by a list of constant entries
 			   (some of which may refer to non-constants). */
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -289,8 +291,11 @@ typedef struct a_dynamic_init {
                            recorded for an aggregate, or NULL if none. */
   a_variable_ptr
 		variable;
-			/* The file-scope variable to be initialized; NULL
-			   for initializations at other than file scope. */
+			/* If this dynamic-init entry initializes a whole
+			   variable, this points to the variable.  NULL
+			   otherwise (e.g., when pointed to from a
+			   ck_dynamic_init constant to indicate initialization
+			   of one member of an aggregate). */
   a_dynamic_init_kind
 		kind;	/* Kind of dynamic initialization (constant,
 			   expression, constructor, aggregate). */
@@ -298,7 +303,8 @@ typedef struct a_dynamic_init {
     /* When kind == dik_constant: */
     a_constant_ptr
 		constant;
-			/* The constant initial value. */
+			/* The constant initial value.  Not a ck_aggregate
+			   constant. */
     /* When kind == dik_expression: */
     an_expr_node_ptr
 		expression;
@@ -341,7 +347,9 @@ typedef struct a_dynamic_init {
 
 
 typedef struct a_constant {
-  /* Description of a constant. */
+  /* Description of a constant.  Also used as an element on an initializer
+     list; in such cases, it may indicate something about the initialization
+     rather than simply a constant. */
   /* The source_corresp field must be first. */
   a_source_correspondence
                 source_corresp;
@@ -440,10 +448,10 @@ typedef struct a_constant {
     a_dynamic_init_ptr
 		dynamic_init;
 			/* A pointer to the dynamic-init entry that describes
-                           the required initialization when the constant entry
-                           represents an initializer on a ck_aggregate list
-                           but the initializer is an executable expression or
-                           a constructor. */
+                           a required dynamic initialization that appears in
+			   the middle of a ck_aggregate constant list used as
+			   an initializer.  Obviously, this is not a constant.
+			   Only used in C++. */
 #endif /* ifdef CIL */
     /* When kind == ck_aggregate: */
     struct {
@@ -1234,7 +1242,11 @@ typedef struct a_variable {
     /* When init_kind == initk_static: */
     a_constant_ptr
                 constant;
-			/* Constant initial value for static initialization. */
+			/* Constant initial value for static initialization.
+			   May be a ck_aggregate constant, but only one that
+			   is truly constant, i.e., one that does not contain
+			   ck_dynamic_init constants.  Only used for static
+			   variables. */
 #ifdef FIL
                         /* If the variable is DATA initialized, this points
                            to the initial value.  For arrays and COMMON
