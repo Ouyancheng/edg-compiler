@@ -519,6 +519,12 @@ typedef struct a_template_symbol_supplement {
                            instantiation of the class template.  This is
                            used by push and pop scope to handle recursive
                            instantiations. */
+  a_scope_number
+                declaration_scope;
+                        /* The scope number assigned when the template
+                           declaration is processed.  This scope needs
+                           to be used at instantiation for symbol lookup
+                           to work properly. */
   union {
     /* When kind = sk_class_template. */
     struct {
