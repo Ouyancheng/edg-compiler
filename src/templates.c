@@ -528,6 +528,31 @@ itself recursively to process classes nested within this class.
         update_instantiation_required_flag(tip, /*value=*/FALSE,
                                            /*defer_inline=*/TRUE);
       }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      if (!scope_stack[DEPTH_OF_FILE_SCOPE].
+                                source_sequence_entries_disallowed &&
+          !rout->is_inline) {
+        a_boolean  new_specialization_syntax =
+#if BACKEND_IS_CP_GEN_BE
+                                 !old_specializations_for_generated_instances;
+#else /* !BACKEND_IS_CP_GEN_BE */
+                                 TRUE;
+#endif /* BACKEND_IS_CP_GEN_BE */
+
+        source_sequence_entries_disallowed = FALSE;
+        sym_update_source_sequence_list(sym, &sym->decl_position,
+                                        /*is_primary_decl=*/FALSE,
+                                        (a_source_sequence_entry_ptr)NULL);
+        (void)set_src_seq_secondary_decl_type((char *)rout, rout->type,
+                                              new_specialization_syntax);
+        source_sequence_entries_disallowed =
+           scope_stack[depth_scope_stack].source_sequence_entries_disallowed;
+      }  /* if */
+#endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       rout = rout->next;
     }  /* while */
     
@@ -550,6 +575,30 @@ itself recursively to process classes nested within this class.
         update_instantiation_required_flag(tip, /*value=*/TRUE,
                                            /*defer_inline=*/TRUE);
       }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      if (!scope_stack[DEPTH_OF_FILE_SCOPE].
+                                source_sequence_entries_disallowed) {
+        a_boolean  new_specialization_syntax =
+#if BACKEND_IS_CP_GEN_BE
+                                 !old_specializations_for_generated_instances;
+#else /* !BACKEND_IS_CP_GEN_BE */
+                                 TRUE;
+#endif /* BACKEND_IS_CP_GEN_BE */
+
+        source_sequence_entries_disallowed = FALSE;
+        sym_update_source_sequence_list(sym, &sym->decl_position,
+                                        /*is_primary_decl=*/FALSE,
+                                        (a_source_sequence_entry_ptr)NULL);
+        (void)set_src_seq_secondary_decl_type((char *)var, var->type,
+                                              new_specialization_syntax);
+        source_sequence_entries_disallowed =
+           scope_stack[depth_scope_stack].source_sequence_entries_disallowed;
+      }  /* if */
+#endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       var = var->next;
     }  /* while */
     /* Process any classes nested within this class. */
@@ -2675,6 +2724,36 @@ included in the search.
          placeholder typerefs (in case this partial instantiation occurs
          inside a class definition and/or a namespace). */
       add_to_types_list(class_type, NO_SCOPE_DEPTH);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      if (!scope_stack[DEPTH_OF_FILE_SCOPE].
+                                source_sequence_entries_disallowed) {
+        a_boolean  new_specialization_syntax =
+#if BACKEND_IS_CP_GEN_BE
+                                 !old_specializations_for_generated_instances;
+#else /* !BACKEND_IS_CP_GEN_BE */
+                                 TRUE;
+#endif /* BACKEND_IS_CP_GEN_BE */
+        a_src_seq_secondary_decl_ptr  sssdp;
+
+        (void)push_template_instantiation_scope(tssp->cache.decl_info,
+                                                (a_type_ptr)NULL,
+                                                (a_routine_ptr)NULL,
+                                                sym, class_template_sym,
+                                                *new_list);
+        source_sequence_entries_disallowed = FALSE;
+        sym_update_source_sequence_list(sym, &sym->decl_position,
+                                        /*is_primary_decl=*/FALSE,
+                                        (a_source_sequence_entry_ptr)NULL);
+        sssdp = set_src_seq_secondary_decl_type((char *)class_type, class_type,
+                                                new_specialization_syntax);
+        sssdp->autonomous_tag_decl = TRUE;
+        source_sequence_entries_disallowed =
+           scope_stack[depth_scope_stack].source_sequence_entries_disallowed;
+        pop_template_instantiation_scope();
+      }  /* if */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
 #if DEBUG
     if (debug_level >= 3 || db_flag_is_set("instantiations")) {
@@ -4450,6 +4529,28 @@ type based on the template argument list and the template parameter list
     }  /* if */
     check_operator_function_params(rout_type, parent_class, &locator);
   }
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  if (!scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_entries_disallowed &&
+      (!rp->is_inline || tssp->cache.tokens.first_token == NULL)) {
+    a_boolean  new_specialization_syntax =
+#if BACKEND_IS_CP_GEN_BE
+                                 !old_specializations_for_generated_instances;
+#else /* !BACKEND_IS_CP_GEN_BE */
+                                 TRUE;
+#endif /* BACKEND_IS_CP_GEN_BE */
+
+    source_sequence_entries_disallowed = FALSE;
+    sym_update_source_sequence_list(sym, &sym->decl_position,
+                                    /*is_primary_decl=*/FALSE,
+                                    (a_source_sequence_entry_ptr)NULL);
+    (void)set_src_seq_secondary_decl_type((char *)rp, rout_type,
+                                          new_specialization_syntax);
+    source_sequence_entries_disallowed =
+          scope_stack[depth_scope_stack].source_sequence_entries_disallowed;
+  }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Pop the template instantiation scope. */
   pop_template_instantiation_scope();
   switch_back_to_original_region(region_to_switch_back_to);
