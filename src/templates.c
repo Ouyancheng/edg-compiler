@@ -11622,8 +11622,11 @@ set, and its source sequence entry, if any, has been put out.)
                                    &il_template_entry->source_corresp,
                                    sym->parent.namespace_ptr);
         }  /* if */
-        /* Set the access. */
-        il_template_entry->source_corresp.access = decl_state->access;
+        if (sym->is_class_member && decl_state->class_declared_in != NULL) {
+          /* If this is the declaration of a member inside the class,
+             record the access. */
+          il_template_entry->source_corresp.access = decl_state->access;
+        }  /* if */
 #if RECORD_TEMPLATE_STRINGS
         if (p_template_body_cache != NULL) {
           a_cached_token_ptr	first_token;
