@@ -544,96 +544,97 @@ for unions and aggregates at that level).
       took_extra_comma = FALSE;
       /* Loop, scanning initializers. */
       while (any_more_initializers && any_more_members) {
-          /* Determine the type of the member being initialized. */
-          if (kind == (a_type_kind)tk_array) {
-            /* member_type was set outside the loop. */
+        /* Determine the type of the member being initialized. */
+        if (kind == (a_type_kind)tk_array) {
+          /* member_type was set outside the loop. */
 #if DEBUG
-            if (debug_level == 4 && kind == (a_type_kind)tk_array) {
-              fprintf(f_debug, "getting initializer for element %d, type = ",
-                      (int)curr_array_element);
-              db_abbreviated_type(member_type);
-              fputc('\n', f_debug);
-            }  /* if */
+          if (debug_level == 4 && kind == (a_type_kind)tk_array) {
+            fprintf(f_debug, "getting initializer for element %d, type = ",
+                    (int)curr_array_element);
+            db_abbreviated_type(member_type);
+            fputc('\n', f_debug);
+          }  /* if */
 #endif /* DEBUG */
-          } else {
-            /* Class type: get the type of the current field. */
-            member_type = curr_field->type;
+        } else {
+          /* Class type: get the type of the current field. */
+          member_type = curr_field->type;
 #if DEBUG
-            if (debug_level == 4) {
-              fputs("getting initializer for field \"", f_debug);
-              db_name(&curr_field->source_corresp);
-              fputs("\", type = ", f_debug);
-              db_abbreviated_type(member_type);
-              fputc('\n', f_debug);
-            }  /* if */
+          if (debug_level == 4) {
+            fputs("getting initializer for field \"", f_debug);
+            db_name(&curr_field->source_corresp);
+            fputs("\", type = ", f_debug);
+            db_abbreviated_type(member_type);
+            fputc('\n', f_debug);
+          }  /* if */
 #endif /* DEBUG */
 #if CHECKING
-            /* Members of unions or aggregates cannot be incomplete. */
-            if (is_incomplete_type(member_type)) {
-              internal_error(
-                      "get_initializer: member of aggregate has incomp type");
-            }  /* if */
+          /* Members of unions or aggregates cannot be incomplete. */
+          if (is_incomplete_type(member_type)) {
+            internal_error(
+                    "get_initializer: member of aggregate has incomp type");
+          }  /* if */
 #endif /* CHECKING */
-          }  /* if */
-          add_stop_token(tok_comma);
-          /* Get the initializer for this one member. */
-          member_con = get_initializer(&member_type, di_list, end_of_di_list,
-                                       /*top_level=*/FALSE, incomplete_init);
-          remove_stop_token(tok_comma);
-          /* Add the constant to the list. */
-          if (con_list == NULL) {
-            con_list = member_con;
-          } else {
-            end_of_con_list->next = member_con;
-          }  /* if */
-          end_of_con_list = member_con;
-          /* Advance to the next member. */
-          if (kind == (a_type_kind)tk_array) {
-            if (curr_array_element == TARG_SIZE_T_MAX) {
-              /* Array too long; presumably, this is an incomplete array
-                 being initialized with a ridiculous number of initial
-                 values. */
-              if (!array_too_long_error_given) {
-                error(ec_array_size_too_large);
-                array_too_long_error_given = TRUE;
-              }  /* if */
-            } else {
-              /* Advance to next array element. */
-              curr_array_element++;
-              /* Exit the loop if there are no elements remaining. */
-              if (!is_incomplete_array &&
-                  local_type->variant.array.number_of_elements <=
-                                                         curr_array_element) {
-                any_more_members = FALSE;
-              }  /* if */
-            }  /* if */
-          } else if (kind == (a_type_kind)tk_class ||
-                     kind == (a_type_kind)tk_struct) {
-            /* Advance to the next field of the class or struct. */
-            curr_field = curr_field->next;
-            /* Exit the loop if there are no fields remaining. */
-            if (curr_field == NULL) {
-              any_more_members = FALSE;
-            } else if (curr_field->next == NULL &&
-                       is_incomplete_type(curr_field->type)) {
-              /* Also exit on an incomplete array at the final field of a
-                 struct (allowed as an extension, but not allowed to be
-                 initialized).  This would come up in a case like
-                   struct {int i; int j[];} = {0, 0};  <-- Error on 2nd 0.
-              */
-              any_more_members = FALSE;
+        }  /* if */
+        add_stop_token(tok_comma);
+        /* Get the initializer for this one member. */
+        member_con = get_initializer(&member_type, di_list, end_of_di_list,
+                                     /*top_level=*/FALSE, incomplete_init);
+        remove_stop_token(tok_comma);
+        /* Add the constant to the list. */
+        if (con_list == NULL) {
+          con_list = member_con;
+        } else {
+          end_of_con_list->next = member_con;
+        }  /* if */
+        end_of_con_list = member_con;
+        /* Advance to the next member. */
+        if (kind == (a_type_kind)tk_array) {
+          if (curr_array_element == TARG_SIZE_T_MAX) {
+            /* Array too long; presumably, this is an incomplete array
+               being initialized with a ridiculous number of initial
+               values. */
+            if (!array_too_long_error_given) {
+              error(ec_array_size_too_large);
+              array_too_long_error_given = TRUE;
             }  /* if */
           } else {
-#if CHECKING
-            if (kind != (a_type_kind)tk_union) {
-              internal_error(
-                       "get_initializer: in loop, not array/struct/union");
+            /* Advance to next array element. */
+            curr_array_element++;
+            /* Exit the loop if there are no elements remaining. */
+            if (!is_incomplete_array &&
+                local_type->variant.array.number_of_elements <=
+                                                       curr_array_element) {
+              any_more_members = FALSE;
             }  /* if */
-#endif /* CHECKING */
-            /* Only the first field in a union is initialized, so having done
-               that field, we are done with the union. */
+          }  /* if */
+        } else if (kind == (a_type_kind)tk_class ||
+                   kind == (a_type_kind)tk_struct) {
+          /* Advance to the next field of the class or struct. */
+          curr_field = curr_field->next;
+          /* Exit the loop if there are no fields remaining. */
+          if (curr_field == NULL) {
+            any_more_members = FALSE;
+          } else if (curr_field->next == NULL &&
+                     is_incomplete_type(curr_field->type)) {
+            /* Also exit on an incomplete array at the final field of a
+               struct (allowed as an extension, but not allowed to be
+               initialized).  This would come up in a case like
+                 struct {int i; int j[];} = {0, 0};  <-- Error on 2nd 0.
+            */
             any_more_members = FALSE;
           }  /* if */
+        } else {
+#if CHECKING
+          if (kind != (a_type_kind)tk_union) {
+            internal_error(
+                     "get_initializer: in loop, not array/struct/union");
+          }  /* if */
+#endif /* CHECKING */
+          /* Only the first field in a union is initialized, so having done
+             that field, we are done with the union. */
+          any_more_members = FALSE;
+          goto end_of_initializer_list;
+        }  /* if */
         if (is_empty_aggregate_constant(member_con)) {
           /* The initializer expression was not scanned. */
         } else {
