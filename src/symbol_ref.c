@@ -190,6 +190,33 @@ Return TRUE if sym1 and sym2 point to the same IL entries.
 }  /* symbols_are_equivalent */
 
 
+a_hidden_name_ptr make_new_hidden_name(a_scope_ptr  sp)
+/*
+Allocate a new hidden name entry and link is in the list for the given scope.
+*/
+{
+  a_hidden_name_ptr       hnp;
+  a_scope_depth           scope_depth;
+  a_memory_region_number  region_to_switch_back_to;
+   /* Get the scope depth from which to determine the appropriate
+     memory region in which to allocate the hidden-name entry. */
+  if (in_file_scope(sp)) {
+    scope_depth = DEPTH_OF_FILE_SCOPE;
+  } else {
+    scope_depth = sp->depth_in_scope_stack;
+    check_assertion(scope_depth != NO_SCOPE_DEPTH);
+  }  /* if */
+  switch_to_scope_region(scope_depth, &region_to_switch_back_to);
+  hnp = alloc_hidden_name();
+  switch_back_to_original_region(region_to_switch_back_to);
+  /* Add it to the start of the hidden_names list for the current
+     scope. */
+  hnp->next = sp->hidden_names;
+  sp->hidden_names = hnp;
+  return hnp;
+}  /* make_new_hidden_name */
+
+
 static void record_defeatable_name_hiding(
                               a_symbol_ptr  hidden_sym,
                               a_boolean     tag_hidden_by_nontag,
@@ -340,25 +367,9 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
 #endif /* DEBUG */
         if (hnp == NULL) {
           /* No existing entry.  Allocate a new one. */
-          a_scope_depth           scope_depth;
-          a_memory_region_number  region_to_switch_back_to;
-           /* Get the scope depth from which to determine the appropriate
-             memory region in which to allocate the hidden-name entry. */
-          if (in_file_scope(sp)) {
-            scope_depth = DEPTH_OF_FILE_SCOPE;
-          } else {
-            scope_depth = sp->depth_in_scope_stack;
-            check_assertion(scope_depth != NO_SCOPE_DEPTH);
-          }  /* if */
-          switch_to_scope_region(scope_depth, &region_to_switch_back_to);
-          hnp = alloc_hidden_name();
-          switch_back_to_original_region(region_to_switch_back_to);
+          hnp = make_new_hidden_name(sp);
           hnp->entity.ptr = entity;
           hnp->entity.kind = (a_byte_il_entry_kind)kind;
-          /* Add it to the start of the hiden_names list for the current
-             scope. */
-          hnp->next = sp->hidden_names;
-          sp->hidden_names = hnp;
         }  /* if */
         /* Set the appropriate flag. */
         if (tag_hidden_by_nontag) {
@@ -624,6 +635,49 @@ type specifier when put out by the C++-generating back end.
 }  /* check_name_hiding_of_tag_by_nontag */
 
 
+static void check_name_unhiding(a_symbol_ptr sym_ptr, a_scope_ptr sp)
+/*
+Injected class names and block extern declarations enable unqualified access
+to entities that might have been previously hidden.  If sym_ptr is a symbol
+for such an entity, we create a new hidden name entry for scope sp with all
+falgs cleared.  Note that this happens even if no hiding had occurred.
+*/
+{
+  a_hidden_name_ptr  hnp;
+  an_il_entry_kind   entity_kind;
+
+  if (is_injected_class_symbol(sym_ptr)) {
+    /* An injected class name is accessible without qualification.  Creating
+       a hidden name entry will ensure that any qualification forced by prior
+       entries is canceled. */
+    hnp = make_new_hidden_name(sp);
+    hnp->entity.ptr = il_entry_for_symbol(sym_ptr, &entity_kind);
+    hnp->entity.kind = entity_kind;
+  } else if (sp->kind == sck_block) {
+    /* A block extern declaration makes the associated entity accessible
+       without qualification.  A new hidden name entry will override any
+       previous entry that might have imposed qualification. */
+    if (sym_ptr->kind == (a_symbol_kind)sk_variable) {
+      a_variable_ptr  var = sym_ptr->variant.variable.ptr;
+      if (var->storage_class == sc_extern ||
+          var->storage_class == sc_unspecified) {
+        hnp = make_new_hidden_name(sp);
+        hnp->entity.ptr = il_entry_for_symbol(sym_ptr, &entity_kind);
+        hnp->entity.kind = entity_kind;
+      }  /* if */
+    } else if (sym_ptr->kind == (a_symbol_kind)sk_routine) {
+      a_routine_ptr  routine = sym_ptr->variant.routine.ptr;
+      if (routine->storage_class == sc_extern ||
+          routine->storage_class == sc_unspecified) {
+        hnp = make_new_hidden_name(sp);
+        hnp->entity.ptr = il_entry_for_symbol(sym_ptr, &entity_kind);
+        hnp->entity.kind = entity_kind;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_name_unhiding */
+
+
 static void check_name_hiding_of_qualifiable_name(a_symbol_ptr  sym_ptr,
                                                   a_scope_ptr   sp)
 /*
@@ -796,7 +850,9 @@ indicated scope.
                              source_corresp.parent.namespace_ptr != NULL)) {
       /* A declaration in the current scope may hide a declaration from the
          file scope or a namespace scope.  If so, the hidden name may be
-         rendered visible by qualification. */
+         rendered visible by qualification.  Conversely, a few situations may
+         "unhide" such a name. */
+      check_name_unhiding(sym_ptr, sp);
       check_name_hiding_of_qualifiable_name(sym_ptr, sp);
     }  /* if */
   }  /* if */
@@ -916,7 +972,9 @@ scopes and for the file scope.
         /* The template itself belongs to the same scope -- one check for a
            given name is sufficient. */
       } else if (is_injected_class_symbol(sym)) {
-        /* Ignore symbols representing injected class names. */
+        /* Ignore symbols representing injected class names, except that we
+           might have to "unhide" the corresponding name. */
+        check_name_unhiding(sym, sp);
       } else if (sym->kind == (a_symbol_kind)sk_projection) {
         /* Ignore inherited names -- they are handled separately. */
       } else {
