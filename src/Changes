@@ -35,9 +35,9 @@ This is related to the changes of 5/29/98.
 8/1/98    C++-generating back end: specialization to represent partial
           instantiation put out too soon
 
-When a friend declaration was an instance of function template and its
+When a friend declaration was an instance of a function template and its
 type involved the class in which it was declared, a specialization
-declaration (to represent its partial declaration) was being put out by
+declaration (to represent its partial instantiation) was being put out by
 the C++-generating back end before the class definition, which often
 resulted in invalid code.  Now fixed.  Here's an example that used to be
 handled incorrectly when compiled with --guiding_decls:
@@ -46,6 +46,9 @@ handled incorrectly when compiled with --guiding_decls:
   struct A {
     friend void f(A&) { }
   };
+
+This is relevant only in versions configured with
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE.
 
 7/29/98   C++-generating back end: bug in optimization to eliminate body
           of unneeded inline member function
