@@ -92,6 +92,18 @@ static unsigned long
 			   are inside of.  Incremented on entering conditional
 			   operands of "?:", "&&", and "||". */
 
+
+#if DEBUG
+/*
+Count of entries allocated, for debugging purposes.
+*/
+unsigned long	allocated_name_string_length,
+		num_init_pos_modifiers_allocated,
+		num_required_destructor_calls_allocated,
+		num_orphaned_types_lists_allocated;
+#endif /* DEBUG */
+
+
 /*
 Integer kind to use for an offset into a class.  Its size must match
 TARG_SIZEOF_PTR_TO_DATA_MEMBER.
@@ -523,6 +535,9 @@ usually allocated on the stack, so this routine is not called much.
   } else {
     /* Allocate a new entry. */
     ipmp = (an_init_pos_modifier_ptr)alloc_fe(sizeof(an_init_pos_modifier));
+#if DEBUG
+    num_init_pos_modifiers_allocated++;
+#endif /* DEBUG */
   }  /* if */
   clear_init_pos_modifier(ipmp);
   return ipmp;
@@ -674,6 +689,9 @@ and return a pointer to it.
     /* Allocate a new entry. */
     rdcp = (a_required_destructor_call_ptr)alloc_fe(
                                            sizeof(a_required_destructor_call));
+#if DEBUG
+    num_required_destructor_calls_allocated++;
+#endif /* DEBUG */
   }  /* if */
   rdcp->next = NULL;
   clear_dynamic_init(&rdcp->dynamic_init, (a_dynamic_init_kind)dik_none);
@@ -962,14 +980,18 @@ list of fields attached to struct_type.  field_name gives the field name
 field_offset gives the byte offset for the field.
 */
 {
-  sizeof_t name_length;
+  sizeof_t name_length, alloc_length;
   char     *name_ptr;
 
   /* Determine the length of the name. */
   check_assertion(field_name != NULL);
   name_length = strlen(field_name);
   /* Allocate space for the name. */
-  name_ptr = alloc_il(name_length + 1);
+  alloc_length = name_length + 1;
+  name_ptr = alloc_il(alloc_length);
+#if DEBUG
+  allocated_name_string_length += alloc_length;
+#endif /* DEBUG */
   /* Copy in the name. */
   (void)strcpy(name_ptr, field_name);
   /* Create the field. */
@@ -990,7 +1012,7 @@ field_type gives the type for the field.  field_offset gives the byte
 offset for the field.
 */
 {
-  sizeof_t name_length, prefix_length;
+  sizeof_t name_length, prefix_length, alloc_length;
   char     *name_ptr;
 
   /* Build the name for the field.  This is done by combining the
@@ -999,7 +1021,11 @@ offset for the field.
   /* Determine how long the base class name is. */
   name_length = mangled_basic_class_name(base_class_type, (char *)NULL);
   /* Allocate space for the whole name. */
-  name_ptr = alloc_il((sizeof_t)(prefix_length + name_length + 1));
+  alloc_length = prefix_length + name_length + 1;
+  name_ptr = alloc_il(alloc_length);
+#if DEBUG
+  allocated_name_string_length += alloc_length;
+#endif /* DEBUG */
   /* Copy in the prefix. */
   (void)memcpy(name_ptr, field_prefix, size_t_arg(prefix_length));
   /* Store the base class name. */
@@ -1021,7 +1047,7 @@ on return.
 */
 {
   char        *field_name;
-  sizeof_t    name_length;
+  sizeof_t    name_length, alloc_length;
   a_field_ptr field_ptr;
 
   /* Copy the name into the file-scope IL memory region. */
@@ -1029,7 +1055,11 @@ on return.
   /* Watch out for anonymous union fields -- they have no name. */
   if (field_name != NULL) {
     name_length = strlen(field_name);
-    field_name = strcpy(alloc_il((sizeof_t)(name_length + 1)), field_name);
+    alloc_length = name_length + 1;
+    field_name = strcpy(alloc_il(alloc_length), field_name);
+#if DEBUG
+    allocated_name_string_length += alloc_length;
+#endif /* DEBUG */
   }  /* if */
   /* Make the field entry. */
   field_ptr = alloc_field();
@@ -1064,14 +1094,18 @@ wholly-generated structs, not for adding fields to existing structs.
 It cannot create bit fields.  field_name may not be NULL.
 */
 {
-  sizeof_t         name_length;
+  sizeof_t         name_length, alloc_length;
   a_field_ptr      field_ptr;
   a_targ_alignment alignment;
   int              bit_offset;
 
   /* Copy the name into the file-scope IL memory region. */
   name_length = strlen(field_name);
-  field_name = strcpy(alloc_il((sizeof_t)(name_length + 1)), field_name);
+  alloc_length = name_length + 1;
+  field_name = strcpy(alloc_il(alloc_length), field_name);
+#if DEBUG
+  allocated_name_string_length += alloc_length;
+#endif /* DEBUG */
   /* Make the field entry. */
   field_ptr = alloc_field();
   field_ptr->source_corresp.name = field_name;
@@ -1397,13 +1431,18 @@ already_il_name is TRUE if the name has already been allocated in the IL;
 if not, it has to be allocated and copied.
 */
 {
-  a_variable_ptr         var;
+  a_variable_ptr var;
+  sizeof_t       alloc_length;
 
   /* Allocate the variable. */
   var = alloc_variable(var_storage_class);
   if (!already_il_name) {
     /* Copy the name to the IL region. */
-    var_name = strcpy(alloc_il((sizeof_t)(strlen(var_name)+1)), var_name);
+    alloc_length = strlen(var_name)+1;
+    var_name = strcpy(alloc_il(alloc_length), var_name);
+#if DEBUG
+    allocated_name_string_length += alloc_length;
+#endif /* DEBUG */
   }  /* if */
   var->source_corresp.name = var_name;
   var->type = var_type;
@@ -2226,12 +2265,16 @@ be specified as NULL.  The name may be NULL.
 {
   a_routine_ptr rout;
   a_type_ptr    rout_type;
+  sizeof_t      alloc_length;
 
   rout_type = make_function_type(return_type, param_1_type);
   rout = alloc_routine();
   if (name != NULL) {
-    rout->source_corresp.name = strcpy(alloc_il((sizeof_t)(strlen(name)+1)),
-                                       name);
+    alloc_length = strlen(name)+1;
+    rout->source_corresp.name = strcpy(alloc_il(alloc_length), name);
+#if DEBUG
+    allocated_name_string_length += alloc_length;
+#endif /* DEBUG */
   }  /* if */
   rout->storage_class = rout_storage_class;
   rout->source_corresp.name_linkage =
@@ -3144,6 +3187,9 @@ If the indicated class type is unnamed, give it a name.
     unnamed_class_name_seed++;
     name_len = digits_to_represent(unnamed_class_name_seed) + 4; /*"__C"+null*/
     name = alloc_il(name_len);
+#if DEBUG
+    allocated_name_string_length += name_len;
+#endif /* DEBUG */
     (void)sprintf(name, "__C%lu", (unsigned long)unnamed_class_name_seed);
     type->source_corresp.name = name;
     type->source_corresp.name_has_been_mangled = TRUE;
@@ -3838,7 +3884,7 @@ Mangle the name of the indicated function, if necessary.
 */
 {
   a_boolean mangling_needed, suppress_param_encoding;
-  sizeof_t  mangled_name_length;
+  sizeof_t  mangled_name_length, alloc_length;
   char      *mangled_name;
 
   error_position = routine->source_corresp.decl_position;
@@ -3869,7 +3915,11 @@ Mangle the name of the indicated function, if necessary.
                                                   (char *)NULL);
       /* Allocate space for the mangled name and build it.  The old name is
          just thrown away. */
-      mangled_name = alloc_il(mangled_name_length + 1);
+      alloc_length = mangled_name_length + 1;
+      mangled_name = alloc_il(alloc_length);
+#if DEBUG
+      allocated_name_string_length += alloc_length;
+#endif /* DEBUG */
       (void)mangled_function_name(routine, suppress_param_encoding,
                                   mangled_name);
       /* Store the final null. */
@@ -3933,7 +3983,7 @@ static void mangle_static_data_member_name(a_variable_ptr variable,
 Mangle the name of the indicated static data member.
 */
 {
-  sizeof_t mangled_name_length;
+  sizeof_t mangled_name_length, alloc_length;
   char     *mangled_name;
 
   error_position = variable->source_corresp.decl_position;
@@ -3943,7 +3993,11 @@ Mangle the name of the indicated static data member.
                                                         (char *)NULL);
   /* Allocate space for the mangled name and build it.  The old name is
      just thrown away. */
-  mangled_name = alloc_il(mangled_name_length + 1);
+  alloc_length = mangled_name_length + 1;
+  mangled_name = alloc_il(alloc_length);
+#if DEBUG
+  allocated_name_string_length += alloc_length;
+#endif /* DEBUG */
   (void)mangled_static_data_member_name(variable, class_type, mangled_name);
   /* Store the final null. */
   mangled_name[mangled_name_length] = '\0';
@@ -3957,7 +4011,7 @@ static void mangle_class_name(a_type_ptr class_type)
 Mangle the name of the indicated class, if necessary.
 */
 {
-  sizeof_t mangled_name_length;
+  sizeof_t mangled_name_length, alloc_length;
   char     *mangled_name;
 
   error_position = class_type->source_corresp.decl_position;
@@ -3969,7 +4023,11 @@ Mangle the name of the indicated class, if necessary.
     mangled_name_length = mangled_basic_class_name(class_type, (char *)NULL);
     /* Allocate space for the mangled name and build it.  The old name is
        just thrown away. */
-    mangled_name = alloc_il(mangled_name_length + 1);
+    alloc_length = mangled_name_length + 1;
+    mangled_name = alloc_il(alloc_length);
+#if DEBUG
+    allocated_name_string_length += alloc_length;
+#endif /* DEBUG */
     (void)mangled_basic_class_name(class_type, mangled_name);
     mangled_name[mangled_name_length] = '\0';
     /* Note that the mangled name is not put into the type until after it has
@@ -3988,7 +4046,7 @@ processing for nested type names that must be delayed until all of the
 other name mangling that might use the name is done.
 */
 {
-  sizeof_t mangled_name_length;
+  sizeof_t mangled_name_length, alloc_length;
   char     *mangled_name;
 
   error_position = type->source_corresp.decl_position;
@@ -4011,7 +4069,11 @@ other name mangling that might use the name is done.
                           2;  /* "__" */
     /* Allocate space for the mangled name and build it.  The old name is
        just thrown away. */
-    mangled_name = alloc_il(mangled_name_length + 1);
+    alloc_length = mangled_name_length + 1;
+    mangled_name = alloc_il(alloc_length);
+#if DEBUG
+    allocated_name_string_length += alloc_length;
+#endif /* DEBUG */
     mangled_name[0] = '_';
     mangled_name[1] = '_';
     (void)mangled_encoding_for_type(type, mangled_name + 2);
@@ -4660,7 +4722,7 @@ It might be changed later to add a definition.
   a_type_ptr     array_type;
   a_variable_ptr vtbl_var;
   char           *mangled_name;
-  sizeof_t       mangled_name_length;
+  sizeof_t       mangled_name_length, alloc_length;
 
   /* Make an array of virtual table entries.  The size is [] until the virtual
      function table is defined, if it ever is in this compilation. */
@@ -4677,7 +4739,11 @@ It might be changed later to add a definition.
   */
   mangled_name_length = mangled_vtbl_name(class_type, bcp, (char *)NULL);
   /* Allocate space for the mangled name, including the final null. */
-  mangled_name = alloc_il(mangled_name_length + 1);
+  alloc_length = mangled_name_length + 1;
+  mangled_name = alloc_il(alloc_length);
+#if DEBUG
+  allocated_name_string_length += alloc_length;
+#endif /* DEBUG */
   /* Build the mangled name. */
   (void)mangled_vtbl_name(class_type, bcp, mangled_name);
   mangled_name[mangled_name_length] = '\0';
@@ -5331,7 +5397,7 @@ this routine to do a relatively simple copy of the all the fields.
   a_field_ptr                 old_field, last_field;
   a_type_ptr                  subobject_type;
   a_class_type_supplement_ptr ctsp, subobject_ctsp;
-  sizeof_t                    name_length;
+  sizeof_t                    name_length, alloc_length;
   char                        *name_ptr, *new_name_ptr;
   a_scope_depth               scope_depth;
 
@@ -5354,7 +5420,11 @@ this routine to do a relatively simple copy of the all the fields.
     if (name_ptr != NULL) {
       name_length = strlen(name_ptr);
 #define SUB_PREFIX "_"
-      new_name_ptr = alloc_il((sizeof_t)(name_length + sizeof(SUB_PREFIX)));
+      alloc_length = name_length + sizeof(SUB_PREFIX);
+      new_name_ptr = alloc_il(alloc_length);
+#if DEBUG
+      allocated_name_string_length += alloc_length;
+#endif /* DEBUG */
       (void)memcpy(new_name_ptr, SUB_PREFIX, size_t_arg(sizeof(SUB_PREFIX)-1));
       (void)strcpy(new_name_ptr + (sizeof(SUB_PREFIX)-1), name_ptr);
       subobject_type->source_corresp.name = new_name_ptr;
@@ -7008,12 +7078,16 @@ pointer to the routine.
 {
   a_routine_ptr init_rout;
   char          *name;
-  sizeof_t      prefix_len = strlen(prefix);
+  sizeof_t      prefix_len = strlen(prefix), alloc_length;
 
   /* Combine the prefix and an identifier for the current module to make
      a name that is likely to be unique. */
   make_module_id();
-  name = alloc_il(prefix_len + strlen(module_id) + 1);
+  alloc_length = prefix_len + strlen(module_id) + 1;
+  name = alloc_il(alloc_length);
+#if DEBUG
+  allocated_name_string_length += alloc_length;
+#endif /* DEBUG */
   (void)memcpy(name, prefix, size_t_arg(prefix_len));
   (void)strcpy(name+prefix_len, module_id);
   /* Make a type and routine entry for the routine. */
@@ -11520,6 +11594,9 @@ Add the types on the indicated list to the end of the orphaned types list.
        types list pointer. */
     otlp = (an_orphaned_types_list_ptr)
                                       alloc_fe(sizeof(an_orphaned_types_list));
+#if DEBUG
+    num_orphaned_types_lists_allocated++;
+#endif /* DEBUG */
     otlp->next = NULL;
     otlp->types = types_list;
     if (orphaned_types_list == NULL) {
@@ -11821,6 +11898,54 @@ C++ to C, so that a C back end can handle it without change.
 }  /* lower_il_memory_region */
 
 
+#if DEBUG
+unsigned long show_lowering_space_used(void)
+/*
+Display and return the amount of space used for various IL lowering tables.
+*/
+{
+  unsigned long num, size, total, grand_total = 0;
+
+  fprintf(f_debug, "\nIL lowering table use:\n");
+  fprintf(f_debug, "%25s %8s %8s %8s\n", "Table", "Number", "Each", "Total");
+
+#define write_one(name, counter, type)                                \
+{ num = counter; size = sizeof(type); total = num*size;               \
+  fprintf(f_debug, "%25s %8lu %8lu %8lu\n", name, num, size, total);  \
+  grand_total += total;                                               \
+}  /* write_one */
+#define write_loss(avail_list, counter, type)                         \
+{ type          *ptr;                                                 \
+  unsigned long count = 0;                                            \
+  for (ptr = avail_list; ptr != NULL; ptr = ptr->next) count++;       \
+  if (count != counter) {                                             \
+    fprintf(f_debug, "%25s %8s %8s %8lu lost\n", "", "", "", counter-count); \
+  }  /* if */                                                         \
+}  /* write_loss */
+#define write_onel(name, avail_list, counter, type)                   \
+{ write_one(name, counter, type);                                     \
+  write_loss(avail_list, counter, type);                              \
+}  /* write_onel */
+
+  write_one("Name strings", allocated_name_string_length, char);
+  write_onel("init pos modifier", avail_init_pos_modifiers,
+             num_init_pos_modifiers_allocated, an_init_pos_modifier);
+  write_onel("required dtor call", avail_required_destructor_calls,
+             num_required_destructor_calls_allocated,
+             a_required_destructor_call);
+  write_one("orphaned type list", num_orphaned_types_lists_allocated,
+            an_orphaned_types_list);
+
+  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total", "", "", grand_total);
+
+  return grand_total;
+#undef write_one
+#undef write_loss
+#undef write_onel
+}  /* show_lowering_space_used */
+#endif /* DEBUG */
+
+
 void il_lower_init(void)
 /*
 Initialize static variables related to IL lowering.  This is done as a
@@ -11847,6 +11972,12 @@ of the front end.
   type_promotion_insert_location = NULL;
   num_conditional_exprs_inside_of = 0;
   unnamed_class_name_seed = 0;
+#if DEBUG
+  allocated_name_string_length            = 0;
+  num_init_pos_modifiers_allocated        = 0;
+  num_required_destructor_calls_allocated = 0;
+  num_orphaned_types_lists_allocated      = 0;
+#endif /* DEBUG */
 }  /* il_lower_init */
 
 #endif /* DO_IL_LOWERING */
