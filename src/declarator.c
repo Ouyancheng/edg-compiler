@@ -2115,9 +2115,10 @@ are NULL.
       set_err_pos_to_curr_token();
       qualifiers = collect_type_qualifiers();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (is_call_conv) {
+      if (is_call_conv || based_var_sym != NULL) {
         /* A misplaced qualifier such as
              int (__cdecl volatile * x);
+             int __based(p) const *x;
            This is accepted by the Microsoft compiler, but is is unclear
            what, if anything, this should mean.  They are discarded. */
         continue;
