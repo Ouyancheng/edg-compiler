@@ -901,7 +901,7 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
        for which is_parameter is TRUE are old-style C parameter declarations.
        C++ default arguments, which look a bit like a parameter with an
        initializer -- e.g., void f(int i = 1) -- are handled elsewhere.) */
-    error(ec_initializer_in_param);
+    pos_error(ec_initializer_in_param, source_pos);
     err = TRUE;
   } else if (symbol_ptr->kind != (a_symbol_kind)sk_variable &&
              symbol_ptr->kind != (a_symbol_kind)sk_static_data_member) {
