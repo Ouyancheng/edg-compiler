@@ -24,7 +24,8 @@ class_decl.h -- Declarations related to class_decl.c (having to do with
 
 extern a_boolean class_specifier(a_boolean  first_specifier,
                                  a_type_ptr *type_ptr,
-                                 a_boolean  *declares_something);
+                                 a_boolean  *declares_something,
+                                 a_boolean  *defines_something);
 
 
 #endif /* CLASS_DECL_H */
