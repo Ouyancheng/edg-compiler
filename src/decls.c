@@ -6428,7 +6428,11 @@ is not necessarily the canonical entry for the template being declared.
            argument list.  Note that this check is not done for redeclarations,
            on the assumption that once will have been enough. */
         check_assertion(!locator->is_class_member || proxy_member_friend);
-        check_operator_function_params(type_ptr, (a_type_ptr)NULL, locator);
+        if (!proxy_member_friend) {
+          /* Don't do these checks for proxy member friends as we don't
+             know whether the function is static or nonstatic. */
+          check_operator_function_params(type_ptr, (a_type_ptr)NULL, locator);
+        }  /* if */
         /* If it's a new or delete operator, be sure the scope is not a
            namespace scope. */
         report_bad_new_or_delete(locator, storage_class,
