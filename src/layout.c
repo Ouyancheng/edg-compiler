@@ -1030,7 +1030,8 @@ static a_boolean is_best_derivation(a_base_class_ptr  bcp,
     is_best_path = TRUE;
   } else {
     bcp = corresponding_base_class(bcp, class_type, (a_base_class_ptr)NULL);
-    if (bcp->direct) {
+    if (bcp->direct &&
+        (!bcp->is_virtual || !is_surrogate_direct_base_class(bcp))) {
       is_best_path = FALSE;
     } else {
       derived_bcp = corresponding_base_class(derived_bcp, class_type,
@@ -1078,7 +1079,9 @@ successors on the list, if any, are processed before the predecessor.
 
   db_enter(4, "set_pointer_offsets_for_corresponding_virtual_base_classes");
   for (; base_class != NULL; base_class = base_class->next) {
-    if (base_class->direct) {
+    if (base_class->direct &&
+        (!base_class->is_virtual ||
+         !is_surrogate_direct_base_class(base_class))) {
       /* We are only interested in direct base classes. */
       if (!use_decl_order) {
         /* We should use reverse declaration order, so do the successors
@@ -1265,7 +1268,9 @@ is not shared (i.e., where the pointer from a base class is not used).
        are put out in declaration order. */
 
     for (; bcp != NULL; bcp = bcp->next) {
-      if (bcp->direct && bcp->is_virtual && bcp->pointer_base_class == NULL &&
+      if (bcp->direct && bcp->is_virtual &&
+          !is_surrogate_direct_base_class(bcp) &&
+          bcp->pointer_base_class == NULL &&
           has_virtual_base_class_with_null_pointer_base_class(
                                                     bcp, lob->class_type)) {
         set_pointer_offset_for_direct_virtual_base_class(
@@ -1400,6 +1405,7 @@ static void set_offsets_for_corresponding_virtual_base_classes(
   db_enter(4, "set_offsets_for_corresponding_virtual_base_classes");
   for (; base_class != NULL; base_class = base_class->next) {
     if (base_class->is_virtual && base_class->direct &&
+        !is_surrogate_direct_base_class(base_class) &&
         base_class->data_section_base_class == NULL) {
       if (!use_decl_order) {
         set_offsets_for_corresponding_virtual_base_classes(
@@ -1463,6 +1469,7 @@ base class of class_type, and allocate space for the latter.
     }  /* for */
     for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
       if (bcp->direct && bcp->is_virtual &&
+          !is_surrogate_direct_base_class(bcp) &&
           bcp->type->variant.class_struct_union.any_virtual_base_classes &&
           !is_embedded_virtual_base_class) {
         /* Record the current offset in the data_section_offset of the
@@ -1739,7 +1746,8 @@ addressed to indirect base classes.
      defined for the class, but ignore all but the direct base classes.  The
      rest are handled by recursively scanning the base class tree. */
   for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct) {
+    if (bcp->direct &&
+        (!bcp->is_virtual || !is_surrogate_direct_base_class(bcp))) {
       set_base_class_offsets(bcp);
     }  /* if */
   }  /* for */
