@@ -2304,8 +2304,9 @@ in case it's useful.
           rp = cssp->destructor->variant.routine.ptr;
           if (!routine_has_been_defined(rp) &&
               external_typeinfo_will_be_defined_for_class(tp)) {
-            /* The destructor for the current class is needed
-               but has not yet been defined. */
+            /* The destructor for the current class is needed because it is
+               referenced from the typeinfo variable, but it has not yet
+               been defined.  See if we can create a definition. */
             if (rp->compiler_generated) {
               /* Generate a destructor. */
               define_special_member_function(rp);
