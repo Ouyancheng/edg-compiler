@@ -1419,7 +1419,7 @@ extern void db_pending_destructions(a_dynamic_init_ptr      dip,
 
 extern void db_object_lifetime_tree(an_object_lifetime_ptr olp);
 
-extern unsigned long db_show_based_type_fixups_used(unsigned long grand_total);
+extern unsigned long db_show_il_c_fe_space_used(unsigned long grand_total);
 
 extern unsigned long show_il_space_used(void);
 

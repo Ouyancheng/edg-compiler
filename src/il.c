@@ -198,24 +198,7 @@ typedef struct a_based_type_fixup {
 #if DEBUG
 static unsigned long
 		num_based_type_fixups_allocated;
-
-unsigned long db_show_based_type_fixups_used(unsigned long grand_total)
-/*
-Display memory use for based-type fixup entries.
-*/
-{
-  unsigned long  num, size, total;
-
-  db_space_used("based type fixups", num_based_type_fixups_allocated,
-                a_based_type_fixup);
-  return grand_total;
-}  /* db_show_based_type_fixups_used */
 #endif /* DEBUG */
-
-
-/* Forward declarations needed because of mutual recursion: */
-static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr       dip,
-                                            an_expr_copy_options_set options);
 
 
 #if DEBUG
@@ -2988,8 +2971,6 @@ pointer points into the lookup array.
 END_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
-
-
 static a_source_file_ptr find_seq_in_lookup_table(
 					a_seq_number	seq_number,
 					a_line_number	*line_number,
@@ -3677,6 +3658,148 @@ and do the same processing.
 #if !STANDALONE_UTILITY_PROGRAM
 
 
+/*
+Entry used to record the original and copy addresses for particular
+entities of interest handled by a tree copy (e.g., i_copy_dynamic_init),
+so that later references to the original entry can be remapped to
+the copy.
+*/
+typedef struct a_copy_remap_entry *a_copy_remap_entry_ptr;
+typedef struct a_copy_remap_entry {
+  a_copy_remap_entry_ptr
+		next;	/* Next entry on the list. */
+  char		*original;
+  char		*copy;
+			/* Original and copy addresses. */
+} a_copy_remap_entry;
+
+
+static a_copy_remap_entry_ptr
+		avail_copy_remap_entries;
+			/* Copy remap entries freed and available for reuse. */
+
+#if DEBUG
+static unsigned long
+		num_copy_remap_entries_allocated;
+#endif /* DEBUG */
+
+/*
+Control block used to pass around information during tree copies,
+e.g., copy_expr_tree.
+*/
+typedef struct a_tree_copy_control_block {
+  a_copy_remap_entry_ptr
+		remapped_entries;
+			/* Selective list of remapped entries, used to
+			   remap references to those entries found later in
+			   the same copy. */
+} a_tree_copy_control_block;
+
+
+static void add_copy_remap_entry(char                      *original,
+                                 char                      *copy,
+                                 a_tree_copy_control_block *cblock)
+/*
+Allocate a copy remap entry and initialize it.  original and copy are
+the addresses of the original entry and the copy made from it.  Add
+the entry to the remapped_entries list of the control block cblock.
+*/
+{
+  a_copy_remap_entry_ptr crep;
+  
+  if (avail_copy_remap_entries != NULL) {
+    /* Reuse a previously-freed entry. */
+    crep = avail_copy_remap_entries;
+    avail_copy_remap_entries = crep->next;
+  } else {
+    /* Allocate a new entry. */
+    crep = (a_copy_remap_entry_ptr)alloc_fe(sizeof(a_copy_remap_entry));
+#if DEBUG
+    num_copy_remap_entries_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  /* Clear the entry and add it to the front of the remapped_entries list. */
+  crep->next = cblock->remapped_entries;
+  cblock->remapped_entries = crep;
+  crep->original = original;
+  crep->copy = copy;
+}  /* add_copy_remap_entry */
+
+
+static void free_copy_remap_entry_list(a_copy_remap_entry_ptr crep)
+/*
+Free a list of copy remap entries and make them available for reuse.
+*/
+{
+  a_copy_remap_entry_ptr crep_tail;
+
+  if (crep != NULL) {
+    /* Find the last entry on the list. */
+    crep_tail = crep;
+    while (crep_tail->next != NULL) crep_tail = crep_tail->next;
+    /* Add the current available list to the end of the list passed in
+       by the caller. */
+    crep_tail->next = avail_copy_remap_entries;
+    avail_copy_remap_entries = crep;
+  }  /* if */
+}  /* free_copy_remap_entry_list */
+
+
+static char *find_copy_remap_address(char                      *original,
+                                     a_tree_copy_control_block *cblock)
+/*
+Find the remap entry on the remapped_entries list of cblock that has
+the indicated original address, and return the copy address for it.
+If no such entry is found, return NULL.
+*/
+{
+  a_copy_remap_entry_ptr crep;
+  char                   *copy = NULL;
+
+  for (crep = cblock->remapped_entries; crep != NULL; crep = crep->next) {
+    if (crep->original == original) {
+      copy = crep->copy;
+      break;
+    }  /* if */
+  }  /* for */
+  return copy;
+}  /* find_copy_remap_address */
+
+
+static void clear_tree_copy_control_block(a_tree_copy_control_block *cblock)
+/*
+Set the fields of a tree copy control block to default values.
+*/
+{
+  cblock->remapped_entries = NULL;
+}  /* clear_tree_copy_control_block */
+
+
+static void done_with_tree_copy_control_block(
+                                             a_tree_copy_control_block *cblock)
+/*
+We've finished with a tree copy whose control block was cblock.  Clean
+up whatever needs it in the control block.
+*/
+{
+  free_copy_remap_entry_list(cblock->remapped_entries);
+}  /* done_with_tree_copy_control_block */
+
+
+/* Forward declarations needed because of mutual recursion: */
+static a_dynamic_init_ptr i_copy_dynamic_init(
+                                            a_dynamic_init_ptr        dip,
+                                            an_expr_copy_options_set  options,
+                                            a_tree_copy_control_block *cblock);
+static an_expr_node_ptr i_copy_list_of_expr_trees(
+                                           an_expr_node_ptr          expr_list,
+                                           an_expr_copy_options_set  options,
+                                           a_tree_copy_control_block *cblock);
+static an_expr_node_ptr i_copy_expr_tree(an_expr_node_ptr          expr,
+                                         an_expr_copy_options_set  options,
+                                         a_tree_copy_control_block *cblock);
+
+
 void add_to_namespaces_list(a_namespace_ptr  nsp)
 /*
 Add the given namespace entry to the namespaces list for the current scope,
@@ -3999,7 +4122,6 @@ pointer to its first element is ignored in the determination.
   }  /* if */
   return is_exact_addr;
 }  /* con_is_exact_addr_of_variable */
-
 
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -4354,17 +4476,20 @@ value.  Several fields are cleared or adjusted.
 }  /* alloc_unshared_constant */
 
 
-a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
-                                  a_constant_ptr           new_constant,
-                                  an_expr_copy_options_set options)
+static a_constant_ptr i_copy_constant_full(
+                                        a_constant_ptr            old_constant,
+                                        a_constant_ptr            new_constant,
+                                        an_expr_copy_options_set  options,
+                                        a_tree_copy_control_block *cblock)
 /*
 Make a copy of a constant and its subtree and return a pointer to the copy.
 If new_constant is non-NULL, the copy is placed there; otherwise, a new
 constant is allocated.  options is the set of options for the copy.
 By default, the copy will be an unshared constant, but if the option
 CE_COPIED_CONSTANTS_MAY_BE_SHARED is specified, the constant may be
-shared.  See copy_unshared_constant for a simple interface to this routine
-for the usual case.
+shared.  cblock is a control block for the copy.  This is an internal
+routine (thus the "i_" prefix); copy_constant_full should be called
+to start a copy.
 */
 {
   a_constant_ptr old_aggr_con, new_aggr_con;
@@ -4397,8 +4522,8 @@ for the usual case.
     for (old_aggr_con = old_constant->variant.aggregate.first_constant;
          old_aggr_con != NULL;
          old_aggr_con = old_aggr_con->next) {
-      new_aggr_con = copy_constant_full(old_aggr_con, (a_constant *)NULL,
-                                        options_unshared);
+      new_aggr_con = i_copy_constant_full(old_aggr_con, (a_constant *)NULL,
+                                          options_unshared, cblock);
       /* Add the constant to the aggregate list. */
       if (new_constant->variant.aggregate.first_constant == NULL) {
         new_constant->variant.aggregate.first_constant = new_aggr_con;
@@ -4410,14 +4535,14 @@ for the usual case.
   } else if (new_constant->kind == (a_constant_repr_kind)ck_init_repeat) {
     /* For ck_init_repeat constants, copy the subtree also. */
     new_constant->variant.init_repeat.constant =
-                 copy_constant_full(old_constant->variant.init_repeat.constant,
+               i_copy_constant_full(old_constant->variant.init_repeat.constant,
                                     (a_constant *)NULL,
-                                    options_unshared);
+                                    options_unshared, cblock);
   } else if (new_constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
     /* For ck_dynamic_init constants, copy the subtree also. */
     new_constant->variant.dynamic_init =
-                          copy_dynamic_init(old_constant->variant.dynamic_init,
-                                            options_unshared);
+                        i_copy_dynamic_init(old_constant->variant.dynamic_init,
+                                            options_unshared, cblock);
   } else if (new_constant->kind == (a_constant_repr_kind)ck_address) {
     if (new_constant->variant.address.kind ==
                                           (an_address_base_kind)abk_constant) {
@@ -4443,9 +4568,9 @@ for the usual case.
         /* Do not insert code here. */
         {
           new_constant->variant.address.variant.constant =
-                                    copy_constant_full(old_constant_pointed_to,
+                                  i_copy_constant_full(old_constant_pointed_to,
                                                        (a_constant *)NULL,
-                                                       options);
+                                                       options, cblock);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -4453,23 +4578,48 @@ for the usual case.
     if (new_constant->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression) {
       new_constant->variant.template_param.variant.expr =
-              copy_expr_tree(old_constant->variant.template_param.variant.expr,
-                             options);
+            i_copy_expr_tree(old_constant->variant.template_param.variant.expr,
+                             options, cblock);
     } else if (new_constant->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_cast ||
                new_constant->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_address) {
       new_constant->variant.template_param.variant.constant =
-               copy_constant_full(
+               i_copy_constant_full(
                          old_constant->variant.template_param.variant.constant,
                          (a_constant *)NULL,
-                         options);
+                         options, cblock);
     }  /* if */
   }  /* if */
   if (may_be_shared) {
     new_constant = alloc_shareable_constant(new_constant);
   }  /* if */
   return new_constant; /*lint !e809*/
+}  /* i_copy_constant_full */
+
+
+a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
+                                  a_constant_ptr           new_constant,
+                                  an_expr_copy_options_set options)
+/*
+Make a copy of a constant and its subtree and return a pointer to the copy.
+If new_constant is non-NULL, the copy is placed there; otherwise, a new
+constant is allocated.  options is the set of options for the copy.
+By default, the copy will be an unshared constant, but if the option
+CE_COPIED_CONSTANTS_MAY_BE_SHARED is specified, the constant may be
+shared.  See copy_unshared_constant for a simple interface to this routine
+for the usual case.
+*/
+{
+  a_tree_copy_control_block cblock;
+
+  /* This is a wrapper around i_copy_constant_full that initializes the
+     control block to be used for the entire copy. */
+  clear_tree_copy_control_block(&cblock);
+  new_constant = i_copy_constant_full(old_constant, new_constant,
+                                      options, &cblock);
+  done_with_tree_copy_control_block(&cblock);
+  return new_constant;
 }  /* copy_constant_full */
 
 
@@ -8842,54 +8992,29 @@ list.
 }  /* add_to_dynamic_inits_list */
 
 
-static void fix_dependent_initialization_master_entry_pointers(
-                                                    a_dynamic_init_ptr dip,
-                                                    a_dynamic_init_ptr new_dip)
-/*
-The dynamic initialization entry dip has just been copied to new_dip.
-It is known to include some dependent initializations with master_entry
-non-NULL.  Fix master_entry in the copied dependent initializations
-to point to the master entry copy new_dip.
-*/
-{
-  an_expr_node_ptr   expr, op1, op2, op3;
-  a_dynamic_init_ptr dip2, dip3;
-
-  /* Presently, this only has to deal with the optimized class rvalue
-     case.  If the master_entry pointer is used more widely this
-     routine might have to do a general tree walk and fixup. */
-  check_assertion(new_dip->kind == (a_dynamic_init_kind)dik_expression);  
-  expr = new_dip->variant.expression;
-  check_assertion(is_operation_node(expr) &&
-                  expr->variant.operation.kind ==
-                                          (an_expr_operator_kind)eok_question);
-  op1 = expr->variant.operation.operands;
-  op2 = op1->next;
-  op3 = op2->next;
-  check_assertion(op2->kind == (an_expr_node_kind)enk_temp_init &&
-                  op3->kind == (an_expr_node_kind)enk_temp_init);
-  dip2 = op2->variant.init.dynamic_init;
-  dip3 = op3->variant.init.dynamic_init;
-  check_assertion(dip2->master_entry == dip &&
-                  dip3->master_entry == dip);
-  dip2->master_entry = new_dip;
-  dip3->master_entry = new_dip;
-}  /* fix_dependent_initialization_master_entry_pointers */
-
-
-static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr       dip,
-                                            an_expr_copy_options_set options)
+static a_dynamic_init_ptr i_copy_dynamic_init(
+                                             a_dynamic_init_ptr        dip,
+                                             an_expr_copy_options_set  options,
+                                             a_tree_copy_control_block *cblock)
 /*
 Make a copy of a dynamic initialization entry and return a pointer to the copy.
 This is not a general-purpose routine -- it is meant to be called from
 copy_expr_tree for the kinds of dynamic initializations done under an
-expression node.  options is a set of options for the copy.
+expression node (the "i_" prefix means "internal").  options is a set of
+options for the copy.  cblock is a control block for the copy.
 */
 {
   a_dynamic_init_ptr new_dip;
 
   new_dip = alloc_dynamic_init(dip->kind);
   *new_dip = *dip;
+  if (dip->is_optimized_class_rvalue_question_mark ||
+      dip->is_reused_value) {
+    /* Record the original and copy addresses for dynamic inits that might
+       be referenced elsewhere in the copied tree, so we can get the
+       proper remapped address later. */
+    add_copy_remap_entry((char *)dip, (char *)new_dip, cblock);
+  }  /* if */
   if (options & CE_INSIDE_CONDITIONAL_EXPRESSION) {
     new_dip->inside_conditional_expression = TRUE;
   }  /* if */
@@ -8908,8 +9033,8 @@ expression node.  options is a set of options for the copy.
       break;
     case dik_expression:
     case dik_call_returning_class_via_cctor:
-      new_dip->variant.expression = copy_expr_tree(dip->variant.expression,
-                                                   options);
+      new_dip->variant.expression = i_copy_expr_tree(dip->variant.expression,
+                                                     options, cblock);
       break;
     case dik_constructor:
       if (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR) {
@@ -8920,8 +9045,8 @@ expression node.  options is a set of options for the copy.
         }  /* if */
       }  /* if */
       new_dip->variant.constructor.args =
-                         copy_list_of_expr_trees(dip->variant.constructor.args,
-                                                 options);
+                       i_copy_list_of_expr_trees(dip->variant.constructor.args,
+                                                 options, cblock);
       break;
     case dik_constant:
     case dik_nonconstant_aggregate:
@@ -8930,20 +9055,21 @@ expression node.  options is a set of options for the copy.
         options_unshared = (options &
                             ~(an_expr_copy_options_set)
                                             CE_COPIED_CONSTANTS_MAY_BE_SHARED);
-        new_dip->variant.constant = copy_constant_full(dip->variant.constant,
-                                                       (a_constant *)NULL,
-                                                       options_unshared);
+        new_dip->variant.constant = i_copy_constant_full(dip->variant.constant,
+                                                         (a_constant *)NULL,
+                                                         options_unshared,
+                                                         cblock);
       }
       break;
 #if CHECKING
     case dik_bitwise_copy:
       /* These kinds are not expected under expression nodes. */
     default:
-      internal_error("copy_dynamic_init: bad kind");
+      internal_error("i_copy_dynamic_init: bad kind");
 #endif /* CHECKING */
   }  /* switch */
   check_assertion_str(dip->init_expr_lifetime == NULL,
-                      "copy_dynamic_init: init_expr_lifetime is non-NULL");
+                      "i_copy_dynamic_init: init_expr_lifetime is non-NULL");
   if (dip->lifetime != NULL) {
     /* This dynamic init is on a destruction list, so the copy must be
        put on a destruction list in the current context. */
@@ -8981,13 +9107,15 @@ expression node.  options is a set of options for the copy.
     new_dip->destructible_entity_descr = NULL;
   }  /* if */
 #endif /* DO_IL_LOWERING */
-  if (new_dip->is_optimized_class_rvalue_question_mark) {
-    /* Fix the master_entry pointers in the dependent initializations of
-       this initialization to point to the copy. */
-    fix_dependent_initialization_master_entry_pointers(dip, new_dip);
+  if (dip->master_entry != NULL) {
+    /* Change the master_entry pointer to the copy if that entry was
+       copied in the current copy.  If it wasn't copied, leave the original
+       address. */
+    char *copy = find_copy_remap_address((char *)dip->master_entry, cblock);
+    if (copy != NULL) new_dip->master_entry = (a_dynamic_init_ptr)copy;
   }  /* if */
   return new_dip;
-}  /* copy_dynamic_init */
+}  /* i_copy_dynamic_init */
 
 
 a_local_static_variable_init_ptr make_local_static_variable_init(
@@ -11970,18 +12098,22 @@ Allocate a copy of an expression node and return a pointer to it.
 }  /* copy_node */
 
 
-an_expr_node_ptr copy_list_of_expr_trees(an_expr_node_ptr         expr_list,
-                                         an_expr_copy_options_set options)
+static an_expr_node_ptr i_copy_list_of_expr_trees(
+                                           an_expr_node_ptr          expr_list,
+                                           an_expr_copy_options_set  options,
+                                           a_tree_copy_control_block *cblock)
 /*
 Make a copy of a list of expression trees and return a pointer to it.
-options is a set of options for the copy.
+options is a set of options for the copy.  cblock is a control block for
+the copy.  This is an internal routine (thus the "i_" prefix);
+copy_list_of_expr_trees should be called to start a copy.
 */
 {
   an_expr_node_ptr expr, expr_copy, prev_expr_copy, expr_list_copy;
 
   expr_list_copy = prev_expr_copy = NULL;
   for (expr = expr_list; expr != NULL; expr = expr->next) {
-    expr_copy = copy_expr_tree(expr, options);
+    expr_copy = i_copy_expr_tree(expr, options, cblock);
     if (expr_list_copy == NULL) {
       expr_list_copy = expr_copy;
     } else {
@@ -11990,14 +12122,36 @@ options is a set of options for the copy.
     prev_expr_copy = expr_copy;
   }  /* for */
   return expr_list_copy;
+}  /* i_copy_list_of_expr_trees */
+
+
+an_expr_node_ptr copy_list_of_expr_trees(an_expr_node_ptr         expr_list,
+                                         an_expr_copy_options_set options)
+/*
+Make a copy of a list of expression trees and return a pointer to it.
+options is a set of options for the copy.
+*/
+{
+  a_tree_copy_control_block cblock;
+  an_expr_node_ptr          expr_list_copy;
+
+  /* This is a wrapper around i_copy_list_of_expr_trees that initializes the
+     control block to be used for the entire copy. */
+  clear_tree_copy_control_block(&cblock);
+  expr_list_copy = i_copy_list_of_expr_trees(expr_list, options, &cblock);
+  done_with_tree_copy_control_block(&cblock);
+  return expr_list_copy;
 }  /* copy_list_of_expr_trees */
 
 
-an_expr_node_ptr copy_expr_tree(an_expr_node_ptr         expr,
-                                an_expr_copy_options_set options)
+static an_expr_node_ptr i_copy_expr_tree(an_expr_node_ptr          expr,
+                                         an_expr_copy_options_set  options,
+                                         a_tree_copy_control_block *cblock)
 /*
 Make a copy of an expression tree and return a pointer to it.  options is
-a set of options for the copy.
+a set of options for the copy.  cblock is a control block for the copy.
+This is an internal routine (thus the "i_" prefix); copy_expr_tree should
+be called to start a copy.
 */
 {
   an_expr_node_ptr            expr_copy;
@@ -12024,10 +12178,11 @@ a set of options for the copy.
            for inlining, because the constants are in a different
            function-scope memory region. */
         expr_copy->variant.constant =
-                         copy_constant_full(expr->variant.constant,
+                       i_copy_constant_full(expr->variant.constant,
                                             (a_constant *)NULL,
                                             options |
-                                            CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+                                            CE_COPIED_CONSTANTS_MAY_BE_SHARED,
+                                            cblock);
       }  /* if */
       break;
     case enk_operation:
@@ -12039,8 +12194,8 @@ a set of options for the copy.
           copy_and_simplify_short_circuited_operation(expr_copy)) break;
 #endif /* MINIMAL_INLINING */
       expr_copy->variant.operation.operands =
-                      copy_list_of_expr_trees(expr->variant.operation.operands,
-                                              options);
+                    i_copy_list_of_expr_trees(expr->variant.operation.operands,
+                                              options, cblock);
       if (expr->variant.operation.kind == (an_expr_operator_kind)eok_comma) {
         /* The value of the first operand of a comma operator is not used. */
         set_expr_result_not_used(expr_copy->variant.operation.operands);
@@ -12049,8 +12204,8 @@ a set of options for the copy.
     case enk_temp_init:
       /* Copy the dynamic init for a dynamic initialization. */
       expr_copy->variant.init.dynamic_init =
-                             copy_dynamic_init(expr->variant.init.dynamic_init,
-                                               options);
+                           i_copy_dynamic_init(expr->variant.init.dynamic_init,
+                                               options, cblock);
       /* If the dynamic initialization is attached to a static object lifetime,
          make the temporary static too. */
       { an_object_lifetime_ptr lifetime =
@@ -12068,28 +12223,29 @@ a set of options for the copy.
       ndsp = expr->variant.new_delete;
       copy_ndsp = expr_copy->variant.new_delete;
       if (ndsp->arg != NULL) {
-        copy_ndsp->arg = copy_list_of_expr_trees(ndsp->arg, options);
+        copy_ndsp->arg = i_copy_list_of_expr_trees(ndsp->arg, options, cblock);
       }  /* if */
       if (ndsp->dynamic_init != NULL) {
-        copy_ndsp->dynamic_init = copy_dynamic_init(ndsp->dynamic_init,
-                                                    options);
+        copy_ndsp->dynamic_init = i_copy_dynamic_init(ndsp->dynamic_init,
+                                                      options, cblock);
       }  /* if */
       if (ndsp->freeing_of_storage_on_exception != NULL) {
         copy_ndsp->freeing_of_storage_on_exception =
-                       copy_dynamic_init(ndsp->freeing_of_storage_on_exception,
-                                         options);
+                     i_copy_dynamic_init(ndsp->freeing_of_storage_on_exception,
+                                         options, cblock);
       }  /* if */
       break;
     case enk_throw:
       if (expr->variant.throw_info != NULL) {
         /* Copy the dynamic init for a throw. */
         expr_copy->variant.throw_info->dynamic_init =
-                      copy_dynamic_init(expr->variant.throw_info->dynamic_init,
-                                        options);
+                    i_copy_dynamic_init(expr->variant.throw_info->dynamic_init,
+                                        options, cblock);
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
         if (expr->variant.throw_info->expr != NULL) {
           expr_copy->variant.throw_info->expr =
-                       copy_expr_tree(expr->variant.throw_info->expr, options);
+                               i_copy_expr_tree(expr->variant.throw_info->expr,
+                                                options, cblock);
         }  /* if */
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
       }  /* if */
@@ -12097,10 +12253,11 @@ a set of options for the copy.
     case enk_condition:
       /* Copy the dynamic init and the expression. */
       expr_copy->variant.condition->dynamic_init =
-                      copy_dynamic_init(expr->variant.condition->dynamic_init,
-                                        options);
+                    i_copy_dynamic_init(expr->variant.condition->dynamic_init,
+                                        options, cblock);
       expr_copy->variant.condition->expr =
-                      copy_expr_tree(expr->variant.condition->expr, options);
+                                i_copy_expr_tree(expr->variant.condition->expr,
+                                                 options, cblock);
       break;
     case enk_object_lifetime:
       /* For an object lifetime, create a new object lifetime for the copy. */
@@ -12123,9 +12280,9 @@ a set of options for the copy.
         }  /* if */
 #endif /* MINIMAL_INLINING */
         check_assertion_str(curr_object_lifetime != NULL,
-                            "copy_expr_tree: curr_object_lifetime is NULL");
+                            "i_copy_expr_tree: curr_object_lifetime is NULL");
         check_assertion_str(expr->variant.object_lifetime.ptr != NULL,
-                      "copy_expr_tree: enk_object_lifetime has NULL lifetime");
+                    "i_copy_expr_tree: enk_object_lifetime has NULL lifetime");
         if (curr_object_lifetime->kind ==
                                  (an_object_lifetime_kind)olk_expr_temporary) {
           check_assertion(expr->variant.object_lifetime.ptr->kind ==
@@ -12133,14 +12290,14 @@ a set of options for the copy.
           /* We're already inside an expr temporary lifetime and we would
              be pushing another.  Ignore this inner lifetime.  This can come
              up with inlining. */
-          expr_copy = copy_expr_tree(expr->variant.object_lifetime.expr,
-                                     options);
+          expr_copy = i_copy_expr_tree(expr->variant.object_lifetime.expr,
+                                       options, cblock);
         } else {
           push_object_lifetime(iek_none, (char *)NULL,
                                expr->variant.object_lifetime.ptr->kind);
           expr_copy->variant.object_lifetime.expr =
-                             copy_expr_tree(expr->variant.object_lifetime.expr,
-                                            options);
+                           i_copy_expr_tree(expr->variant.object_lifetime.expr,
+                                            options, cblock);
           expr_copy->variant.object_lifetime.ptr = NULL;
           bind_object_lifetime(curr_object_lifetime, iek_expr_node,
                                (char *)expr_copy);
@@ -12162,14 +12319,16 @@ a set of options for the copy.
       /* If the expr field is non-NULL, copy it. */
       if (expr->variant.typeid_info.expr != NULL) {
         expr_copy->variant.typeid_info.expr =
-                       copy_expr_tree(expr->variant.typeid_info.expr, options);
+                               i_copy_expr_tree(expr->variant.typeid_info.expr,
+                                                options, cblock);
       }  /* if */
       break;
     case enk_runtime_sizeof:
       /* If there is an expression, copy it. */
       if (!expr->variant.runtime_sizeof.is_type) {
         expr_copy->variant.runtime_sizeof.variant.expr =
-            copy_expr_tree(expr->variant.runtime_sizeof.variant.expr, options);
+                    i_copy_expr_tree(expr->variant.runtime_sizeof.variant.expr,
+                                     options, cblock);
       }  /* if */
       break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
@@ -12183,7 +12342,17 @@ a set of options for the copy.
       break;
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
     case enk_reuse_value:
-/*FIXME*/
+      {
+        /* Change the dynamic init pointer to the copy of that entry. */
+        char *copy = find_copy_remap_address(
+                                       (char *)expr->variant.reused_value_init,
+                                       cblock);
+        /* We don't expect that the part of the tree with the reuse will get
+           copied independently of the part that defines the reusable
+           value. */
+        check_assertion(copy != NULL);
+        expr_copy->variant.reused_value_init = (a_dynamic_init_ptr)copy;
+      }
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
@@ -12194,7 +12363,7 @@ a set of options for the copy.
          in those scopes, the initializers on those variables... */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     default:
-      unexpected_condition_str("copy_expr_tree: bad expr kind");
+      unexpected_condition_str("i_copy_expr_tree: bad expr kind");
   }  /* if */
 #if MINIMAL_INLINING
   if (options & CE_DOING_INLINING_OF_FUNCTION_CALL) {
@@ -12205,6 +12374,25 @@ a set of options for the copy.
   if (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR) {
     do_instantiations_for_copied_default_arg_expr(expr_copy);
   }  /* if */
+  return expr_copy;
+}  /* i_copy_expr_tree */
+
+
+an_expr_node_ptr copy_expr_tree(an_expr_node_ptr         expr,
+                                an_expr_copy_options_set options)
+/*
+Make a copy of an expression tree and return a pointer to it.  options is
+a set of options for the copy.
+*/
+{
+  a_tree_copy_control_block cblock;
+  an_expr_node_ptr          expr_copy;
+
+  /* This is a wrapper around i_copy_expr_tree that initializes the
+     control block to be used for the entire copy. */
+  clear_tree_copy_control_block(&cblock);
+  expr_copy = i_copy_expr_tree(expr, options, &cblock);
+  done_with_tree_copy_control_block(&cblock);
   return expr_copy;
 }  /* copy_expr_tree */
 
@@ -16948,7 +17136,6 @@ return FALSE.
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
-
 a_type_ptr init_predeclared_class(a_type_kind          kind,
                                   char                 *name)
 /*
@@ -16967,6 +17154,25 @@ entered into the symbol table.
   return predeclared_type;
 }  /* init_predeclared_class */
 
+#if DEBUG
+
+unsigned long db_show_il_c_fe_space_used(unsigned long grand_total)
+/*
+Display memory use for entities in front end memory in this file (il.c).
+*/
+{
+  unsigned long  num, size, total;
+
+  db_space_used("based type fixups", num_based_type_fixups_allocated,
+                a_based_type_fixup);
+  db_space_used_lost("copy remap entries",
+                     avail_copy_remap_entries,
+                     num_copy_remap_entries_allocated,
+                     a_copy_remap_entry);
+  return grand_total;
+}  /* db_show_il_c_fe_space_used */
+
+#endif /* DEBUG */
 
 void il_one_time_init(void)
 /*
@@ -17128,7 +17334,9 @@ in il_init.)
       pch_saved_var_array_elem(num_shareable_constants),
       pch_saved_var_array_elem(num_used_shareable_constant_buckets),
       pch_saved_var_array_elem(num_based_type_fixups_allocated),
+      pch_saved_var_array_elem(num_copy_remap_entries_allocated),
 #endif /* DEBUG */
+      pch_saved_var_array_elem(avail_copy_remap_entries),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -17300,13 +17508,14 @@ of the front end.
   num_compares_for_shareable_constants   = 0;
   num_get_based_type_calls               = 0;
   num_based_type_fixups_allocated        = 0;
+  num_copy_remap_entries_allocated       = 0;
 #endif /* DEBUG */
   curr_seq_number_lookup_entry = NULL;
+  avail_copy_remap_entries = NULL;
   il_alloc_init();
 }  /* il_init */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-
 
 void rebuild_structures_on_il_read(void)
 /*
