@@ -1,5 +1,23 @@
 Version 2.42
 
+4/19/99  Minimal inlining: argument passing tweaks
+
+The decision to use a temporary to pass an argument expression to
+the body of an inline function has been refined in a few ways:
+
+ -- In determining whether an argument expression is invariant,
+    local variables whose addresses are not taken are considered
+    invariant as long as the argument expressions cause no side
+    effects, and other variables are considered invariant if
+    both the argument expressions and the called function body have
+    no side effects.
+ -- In determining whether the body of a function has side effects, a
+    return statement that returns an expression that is an assignment
+    whose destination expression has no side effects is not considered
+    to have any side effects.  (The assignment is the last thing done
+    before the return, and therefore can have no side effects on the
+    values of argument expressions.)
+
 4/19/99  Spurious error on declaration of conversion operator in class
          with nonreal base class in Microsoft mode
 

@@ -203,14 +203,22 @@ variable.
 }  /* make_remapping_temporary */
 
 
-static a_boolean is_constant_valued_expression(an_expr_node_ptr expr,
-                                               a_boolean        *is_non_null)
+static a_boolean is_constant_valued_expression(
+                                            an_expr_node_ptr expr,
+                                            a_boolean        local_vars_change,
+                                            a_boolean        other_vars_change,
+                                            a_boolean        *is_non_null)
 /*
-Return TRUE if the indicated expression has a constant value over the
+Return TRUE if the indicated expression has an invariant value over the
 duration of an inlined call.  That includes things like addresses of
 automatic variables.  If the expression is constant valued and the value
 is known to be non-null, return *is_non_null TRUE.  If it cannot be determined
 whether the constant is non-NULL, the safe value is FALSE.
+local_vars_change is TRUE if the values of unaliased local variables
+of the caller might change (e.g., if the argument expressions have
+side effects).  other_vars_change is TRUE if the values of other variables
+might change (e.g., if the argument expressions or the called function
+body have side effects).
 */
 {
   a_boolean is_constant_valued = FALSE;
@@ -248,8 +256,18 @@ whether the constant is non-NULL, the safe value is FALSE.
          "this", but routines with such an assignment are considered
          to be not inlinable. */
       is_constant_valued = TRUE;
-      if (var->is_this_parameter) *is_non_null = TRUE;
+    } else if (!local_vars_change &&
+               var->source_corresp.is_local_to_function &&
+               !var->address_taken) {
+      /* This is a local variable, and local variables are invariant
+         over the lifetime of the call. */
+      is_constant_valued = TRUE;
+    } else if (!other_vars_change) {
+      /* The values of all variables are invariant over the lifetime
+         of the call. */
+      is_constant_valued = TRUE;
     }  /* if */
+    if (is_constant_valued && var->is_this_parameter) *is_non_null = TRUE;
   } else if (is_routine_address_node(expr)) {
     is_constant_valued = TRUE;
     *is_non_null = TRUE;
@@ -260,8 +278,10 @@ whether the constant is non-NULL, the safe value is FALSE.
          which it is based is constant-valued.  This is important for
          base-class field selections. */
       is_constant_valued =
-               is_constant_valued_expression(expr->variant.operation.operands,
-                                             is_non_null);
+                is_constant_valued_expression(expr->variant.operation.operands,
+                                              local_vars_change,
+                                              other_vars_change,
+                                              is_non_null);
     } else if (op == (an_expr_operator_kind)eok_cast &&
                is_pointer_type(expr->type)) {
       /* A cast of a constant address is constant-valued.  This is useful on a
@@ -270,6 +290,8 @@ whether the constant is non-NULL, the safe value is FALSE.
          destructor. */
       is_constant_valued =
                 is_constant_valued_expression(expr->variant.operation.operands,
+                                              local_vars_change,
+                                              other_vars_change,
                                               is_non_null);
     }  /* if */
   }  /* if */
@@ -280,7 +302,8 @@ whether the constant is non-NULL, the safe value is FALSE.
 static a_boolean func_body_has_side_effects(a_routine_ptr routine)
 /*
 Return TRUE if the indicated routine's body has side effects.  The
-safe answer is TRUE.
+safe answer is TRUE.  More specifically, this returns TRUE if the function
+body has any side effects that can affect the values of argument expressions.
 */
 {
   a_boolean       has_side_effects = TRUE;
@@ -296,7 +319,25 @@ safe answer is TRUE.
         stmt->next == NULL) {
       check_assertion(stmt->variant.return_dynamic_init == NULL);
       if (stmt->expr != NULL) {
-        has_side_effects = node_has_side_effects(stmt->expr,
+        an_expr_node_ptr expr = stmt->expr;
+        /* If the final act of the function call is to do an assignment
+           whose destination expression has no side effects, ignore that
+           with respect to the side effects of the function; it happens
+           after everything else, and therefore cannot affect the values
+           of argument expressions. */
+        if (is_operation_node(expr)) {
+          an_expr_operator_kind op = expr->variant.operation.kind;
+          if (op == (an_expr_operator_kind)eok_iassign ||
+              op == (an_expr_operator_kind)eok_passign ||
+              op == (an_expr_operator_kind)eok_fassign) {
+            an_expr_node_ptr op1 = expr->variant.operation.operands;
+            if (!node_has_side_effects(op1, (a_boolean *)NULL)) {
+              expr = op1->next;
+              /* if */
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        has_side_effects = node_has_side_effects(expr,
                                                  (a_boolean *)NULL);
       } else {
         has_side_effects = FALSE;
@@ -329,20 +370,20 @@ The code is inserted at *insert_location, and *insert_location is updated.
 #if DEBUG
   a_boolean        first = TRUE;
 #endif /* DEBUG */
-  a_boolean        call_has_side_effects;
+  a_boolean        call_has_side_effects, arg_list_has_side_effects;
 
   /* Determine whether the call has side effects, either because the
      function body has side effects or because the argument expressions
      have side effects. */
   call_has_side_effects = func_body_has_side_effects(routine);
-  if (!call_has_side_effects) {
-    for (arg = arg_expr_list; arg != NULL; arg = arg->next) {
-      if (node_has_side_effects(arg, (a_boolean *)NULL)) {
-        call_has_side_effects = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
+  arg_list_has_side_effects = FALSE;
+  for (arg = arg_expr_list; arg != NULL; arg = arg->next) {
+    if (node_has_side_effects(arg, (a_boolean *)NULL)) {
+      call_has_side_effects = TRUE;
+      arg_list_has_side_effects = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
   /* Process the parameters. */
   for (param_var = scope->variant.routine.parameters, arg = arg_expr_list;
        param_var != NULL;
@@ -370,12 +411,14 @@ The code is inserted at *insert_location, and *insert_location is updated.
       }  /* if */
     } else {
       /* The parameter is referenced, so it has to be remapped. */
-      /* See if the argument value is constant.  The address of a variable
-         counts as a constant: even the address of an automatic variable is
-         constant for the duration of a call. */
+      /* See if the argument value is constant (meaning, in this case,
+         invariant over the lifetime of the call). */
       a_boolean is_non_null;
-      a_boolean arg_is_constant = is_constant_valued_expression(arg,
-                                                                &is_non_null);
+      a_boolean arg_is_constant = is_constant_valued_expression(
+                                                     arg,
+                                                     arg_list_has_side_effects,
+                                                     call_has_side_effects,
+                                                     &is_non_null);
       /* See if the parameter is modified. */
       a_boolean param_is_unmodified = FALSE;
       a_boolean param_is_constructor_this = FALSE;
@@ -398,35 +441,16 @@ The code is inserted at *insert_location, and *insert_location is updated.
         param_is_constructor_this = TRUE;
         if (is_non_null) param_is_unmodified = TRUE;
       }  /* if */
-      if (!arg_is_constant) {
-        /* Some non-constant cases can be viewed as constant, in the sense
-           of "invariant over the lifetime of the call". */
-        an_expr_node_ptr temp_expr = arg;
-        /* Remove any casts. */
-        while (is_operation_node(temp_expr) &&
-               temp_expr->kind == (an_expr_operator_kind)eok_cast) {
-          temp_expr = temp_expr->variant.operation.operands;
-        }  /* while */
-        if (is_variable_node(temp_expr)) {
-          var = temp_expr->variant.variable;
-          if (!has_static_storage_duration(var->storage_class) &&
-              !var->address_taken) {
-            /* An auto variable whose address has not been taken is invariant
-               across the call. */
-            arg_is_constant = TRUE;
-          } else if (!call_has_side_effects) {
-            /* If the call has no side effects, the value of a variable
-               will not change, so it is invariant. */
-            arg_is_constant = TRUE;
-          }  /* if */
-        } else if (is_operation_node(temp_expr) &&
-                   !call_has_side_effects) {
-          if (temp_expr->variant.operation.kind ==
-                                            (an_expr_operator_kind)eok_field) {
-            /* A field selection can be reused in a call that has no side
-               effects. */
-            arg_is_constant = TRUE;
-          }  /* if */
+      if (!arg_is_constant && !call_has_side_effects) {
+        /* The call has no side effects (and therefore this argument
+           expression has no side effects), so any expression is invariant
+           over the call and can be passed without a temporary, at the
+           expense of extra code.  Do it if the parameter is used only once. */
+        if (!param_var->param_used_more_than_once &&
+            /* The param_used_more_than_once flag is not maintained for
+               parameters added by IL lowering. */
+            has_name(param_var)) {
+          arg_is_constant = TRUE;
         }  /* if */
       }  /* if */
       if (param_is_unmodified && arg_is_constant &&
@@ -775,7 +799,10 @@ variables.
          operand: &variable != 0 is always 1.  The "== 0" case is
          always 0. */
       a_boolean is_non_null;
-      if (is_constant_valued_expression(operand, &is_non_null) &&
+      if (is_constant_valued_expression(operand,
+                                        /*local_vars_change=*/TRUE,
+                                        /*other_vars_change=*/TRUE,
+                                        &is_non_null) &&
           is_non_null) {
         operand = operand->next;
         if (is_constant_node(operand) &&
@@ -908,7 +935,10 @@ otherwise, do no copying and return FALSE.
            so we can see if we have a constant. */
         operand2 = copy_expr_tree_for_inlining(operand2);
         processed = TRUE;
-        if (is_constant_valued_expression(operand2, &is_non_null) &&
+        if (is_constant_valued_expression(operand2,
+                                          /*local_vars_change=*/TRUE,
+                                          /*other_vars_change=*/TRUE,
+                                          &is_non_null) &&
             (!var->is_temp_for_constructor_this_inlined_param ||
              is_non_null)) {
           /* The temporary elimination cannot be done if the temporary has
