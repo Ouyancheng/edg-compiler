@@ -3277,6 +3277,24 @@ Allocate and initialize a virtual derivation entry and return a pointer to it.
   return vdp;
 }  /* alloc_virtual_derivation */
 
+
+a_virtual_derivation_ptr first_virtual_derivation_of(a_base_class_ptr  bcp)
+/*
+bcp is a pointer to a virtual base class.  Return a pointer to virtual
+derivation entry associated with bcp that is marked "first", meaning its
+path represents the first appearance in a depth-first left-to-right scan
+of the derivation graph.
+*/
+{
+  a_virtual_derivation_ptr  vdp;
+
+  check_assertion(bcp->is_virtual);
+  vdp = bcp->paths_to_virtual_base_class;
+  while (!vdp->first) vdp = vdp->next;
+  return vdp;
+}  /* first_virtual_derivation_of */
+
+
 an_overriding_virtual_function_ptr alloc_overriding_virtual_function(void)
 /*
 Allocate an overriding-virtual-function entry, initialize its fields, and
