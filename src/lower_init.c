@@ -21,6 +21,7 @@ lower_init.c -- IL lowering: initializations and new/delete.
 
 #include "lower_il.h"
 #include "lower_init.h"
+#include "lower_eh.h"
 #include "il.h"
 #include "types.h"
 #include "mem_manage.h"
@@ -1056,19 +1057,12 @@ in an array for an array new/delete call.  -1 indicates a variable-length
 array.
 */
 {
-  a_boolean        did_not_fold;
   an_expr_node_ptr num_elem_node;
   a_constant       num_elem_constant;
 
-  /* Create the constant as long and then change it to int to get any
-     truncation error. */
-  set_integer_constant(&num_elem_constant, array_element_count,
-                       (an_integer_kind)ik_long);
-  type_change_constant(&num_elem_constant,
-                       integer_type((an_integer_kind)ik_int),
-                       /*is_implicit_cast=*/TRUE,
-                       /*constant_context=*/TRUE, &did_not_fold,
-                       &error_position);
+  set_integer_constant_with_overflow_check(&num_elem_constant,
+                                           array_element_count,
+                                           (an_integer_kind)ik_int);
   /* Allocate an expression node for the constant. */
   num_elem_node = alloc_node_for_constant(&num_elem_constant);
   return num_elem_node;
@@ -1796,7 +1790,7 @@ termination.
     init_con2 = alloc_constant((a_constant_repr_kind)ck_address);
     if (file_scope_init_routine != NULL) {
       set_routine_address_constant(file_scope_init_routine, init_con2);
-      init_con2->type = ptr_func_type;
+      implicit_cast(init_con2, ptr_func_type);
     } else {
       /* No init routine.  Use NULL. */
       make_zero_of_proper_type(ptr_func_type, init_con2);
@@ -1805,7 +1799,7 @@ termination.
     init_con3 = alloc_constant((a_constant_repr_kind)ck_address);
     if (file_scope_term_routine != NULL) {
       set_routine_address_constant(file_scope_term_routine, init_con3);
-      init_con3->type = ptr_func_type;
+      implicit_cast(init_con3, ptr_func_type);
     } else {
       /* No init routine.  Use NULL. */
       make_zero_of_proper_type(ptr_func_type, init_con3);
@@ -2396,6 +2390,11 @@ do_assignment:;
                                     template_static_data_member_init_guard_var;
       }  /* if */
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
+    }  /* if */
+    /* If exceptions are enabled, create a region description entry for
+       this object. */
+    if (exceptions_enabled) {
+      make_region_table_entry(rdcp, insert_location);
     }  /* if */
   }  /* if */
   /* In the whole-variable cases, adjust the initialization specified in
