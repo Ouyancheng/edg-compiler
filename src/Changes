@@ -1,5 +1,19 @@
 Version 3.4
 
+9/10/03  C++-generating back end: output of dependent constants in enum
+         definition in prototype instantiation
+
+The C++-generating back end incorrectly put out template-dependent
+constants in enum definitions in prototype instantations.
+(Prototype instantiations are put out only in some specialized
+configurations.)  The output is now corrected.
+
+  template <class T> struct A {
+    enum E { x = T::n };  // T::n now put out correctly
+    T y;
+    A() : y(x) { }
+  };
+
 9/9/03   Microsoft compatibility: Duplicate specialization definitions
 
 In Microsoft bugs mode, with microsoft_version equal to 1200 (which
