@@ -580,7 +580,8 @@ typedef enum /*an_error_code*/ {
   ec_previously_empty_throw_list,
   ec_previously_omitted_throw_type,
   ec_previously_included_throw_type,
-  ec_no_exception_support
+  ec_no_exception_support,
+  ec_omitted_throw_specification
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

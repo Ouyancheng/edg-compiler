@@ -2001,6 +2001,9 @@ error code.
     case ec_no_exception_support:
       m = "support for exception handling is disabled";
       break;
+    case ec_omitted_throw_specification:
+      m = "omission of throw specification is incompatible with previous %nd";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
