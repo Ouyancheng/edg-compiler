@@ -3939,13 +3939,31 @@ pointer to its first element is ignored in the determination.
   }  /* while */
   if (con->kind == (a_constant_repr_kind)ck_address &&
       con->variant.address.kind == (an_address_base_kind)abk_variable &&
-      con->variant.address.offset == 0 &&
-      (!con->implicit_cast ||
-       (array_decay_allowed &&
-        is_pointer_type(con->type) &&
-        is_array_type(con->variant.address.variant.variable->type)))) {
-    is_exact_addr = TRUE;
-    *var = con->variant.address.variant.variable;
+      con->variant.address.offset == 0) {
+    /* Check for type compatibility. */
+    if (!con->implicit_cast) {
+      is_exact_addr = TRUE;
+    } else if (array_decay_allowed &&
+               is_pointer_type(con->type) &&
+               is_array_type(con->variant.address.variant.variable->type)) {
+      a_type_ptr source_type = con->variant.address.variant.variable->type;
+      a_type_ptr target_type = con->type;
+      source_type =
+                   f_skip_typerefs(underlying_array_element_type(source_type));
+      target_type = f_skip_typerefs(type_pointed_to(con->type));
+      if (is_array_type(target_type)) {
+        /* If the variable is a multidimensional array, the implicit cast
+           will be to an intermediate array type. */
+        target_type =
+                   f_skip_typerefs(underlying_array_element_type(target_type));
+      }  /* if */
+      if (identical_types(source_type, target_type)) {
+        is_exact_addr = TRUE;
+      }  /* if */
+    }  /* if */
+    if (is_exact_addr) {
+      *var = con->variant.address.variant.variable;
+    }  /* if */
   }  /* if */
   return is_exact_addr;
 }  /* con_is_exact_addr_of_variable */
