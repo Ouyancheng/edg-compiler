@@ -1100,7 +1100,7 @@ Enter the standard predeclared functions for GCC.
 			     /*is_varargs=*/TRUE);
   enter_gnu_builtin_function((a_builtin_function_kind)bfk_abort,
 			     void_type(),
-			     void_type(),
+			     (a_type_ptr)NULL,
 			     (a_type_ptr)NULL,
 			     (a_type_ptr)NULL,
 			     (a_type_ptr)NULL,

@@ -1,5 +1,12 @@
 Version 3.4
 
+10/16/03 GNU mode: Declaration of __builtin_abort
+
+In GNU C and C++ modes, the built-in function __builtin_abort (see the Changes
+entry of 7/30/03) was not correctly predeclared by the front end.  As a result,
+calls to this function triggered errors claiming that the call has too few
+arguments.  This is now fixed.
+
 10/16/03 Use of RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL vs.
          RECORD_CONSTANT_EXPRESSIONS_IN_IL
 
