@@ -2318,7 +2318,6 @@ issue_diagnostic:
 static a_symbol_ptr create_external_symbol_for_linked_entity(
                             a_symbol_locator       *locator,
                             a_type_ptr             type_ptr,
-                            an_id_linkage_kind     linkage,
                             a_name_linkage_kind    name_linkage,
                             a_func_info_block_ptr  func_info,
                             a_boolean              redeclaration,
@@ -2330,8 +2329,8 @@ static a_symbol_ptr create_external_symbol_for_linked_entity(
 Find or create an external symbol entry for a variable or routine being
 declared.  *locator gives the symbol locator for the identifier;
 is_function is TRUE for a function, FALSE for a variable; type_ptr
-gives the variable or routine type; linkage indicates the kind of
-linkage the entity has (internal or external).  Aside from creating the
+gives the variable or routine type; name_linkage indicates the linkage
+(internal, external, C++ external).  Aside from creating the
 entry, this routine checks that the new declaration is compatible with
 any previous linked declaration of the same name.  redeclaration is
 TRUE if the present declaration is a redeclaration within the same scope.
@@ -3203,15 +3202,12 @@ associated sk_external_variable or sk_external_routine symbol, if any.
         /* Neither functions nor variables are supposed to have inconsistent
            linkage specifications, but it's more of a problem for functions.
            Issue an error for functions, a warning for variables. */
-        a_symbol_ptr  sym = ext_sym;
-
-        if (sym == NULL) sym = idlbp->linked_symbol;
-        check_assertion(sym != NULL)
         pos_sy_diagnostic(is_function ? (an_error_severity)es_error :
                                           (strict_ansi_mode ?
                                               strict_ansi_error_severity :
                                               (an_error_severity)es_warning),
-                          ec_incompatible_linkage_specifier, error_pos, sym);
+                          ec_incompatible_linkage_specifier, error_pos,
+                          ext_sym == NULL ? idlbp->linked_symbol : ext_sym);
       }  /* if */
     }  /* if */
     if (C_dialect == C_dialect_cplusplus) {
@@ -3649,7 +3645,7 @@ cross-reference output describing this declaration.
        points to one, get a pointer to it and use it. */
     a_routine_ptr  dummy_rp;
     *ext_sym = 
-        create_external_symbol_for_linked_entity(locator, type_ptr, linkage,
+        create_external_symbol_for_linked_entity(locator, type_ptr,
                                                  idlb.name_linkage,
                                                  (a_func_info_block_ptr)NULL,
                                                  redeclaration,
@@ -4567,7 +4563,7 @@ skip_overloading:;
   if (linkage != idl_none && linked_symbol == NULL) {
     a_variable_ptr  dummy_vp;
     *ext_sym = 
-        create_external_symbol_for_linked_entity(locator, type_ptr, linkage,
+        create_external_symbol_for_linked_entity(locator, type_ptr,
                                                  idlb.name_linkage,
                                                  func_info, redeclaration,
                                                  redecl_error_already_issued,
