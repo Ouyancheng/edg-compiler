@@ -113,8 +113,23 @@ Traverse the list of alias fixups and set the alias fields as needed.
                       (sizeof_t)strlen(entry->aliased_name), &locator);
     aliased_sym = normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP);
     if (aliased_sym == NULL) {
-      pos_st_error(ec_aliased_name_undeclared,
-                   &entry->alias_position, entry->aliased_name);
+      /* The aliased entity was not declared in this translation unit.
+         Just change the asm name of the alias (which is how GNU C behaves
+         on Intel-based platforms) and issue a warning (because on some
+         other platforms, GNU C considers this an error). */
+      switch (entry->alias->kind) {
+        case sk_routine:
+          entry->alias->variant.routine.ptr->asm_name = entry->aliased_name;
+          break;
+        case sk_variable:
+          entry->alias->variant.variable.ptr->asm_name_or_reg.name =
+                                                          entry->aliased_name;
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+      pos_st_warning(ec_aliased_name_undeclared,
+                     &entry->alias_position, entry->aliased_name);
     } else if (aliased_sym->kind != entry->alias->kind) {
       pos_sy_error(ec_aliased_name_bad_kind,
                    &entry->alias->decl_position, aliased_sym);
@@ -132,7 +147,7 @@ Traverse the list of alias fixups and set the alias fields as needed.
           unexpected_condition();
       }  /* switch */
       /* The aliased entity is referenced in the alias specification; only
-	 now, however, do we know the symbol to mark it as referenced. */
+         now, however, do we know the symbol to mark it as referenced. */
       mark_referenced(aliased_sym, &entry->alias->decl_position);
     }  /* if */
     free_alias_fixup(entry);

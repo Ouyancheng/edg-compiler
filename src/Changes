@@ -1,5 +1,18 @@
 Version 3.1
 
+9/3/02   GNU mode: alias of undeclared entity
+
+Some GNU C compilers (notably on x86-based platforms) accept an alias
+attribute that refers to an entity not declared in the translation unit
+in which the attribute appears.  The effect of such an attribute is to
+change the assembler name of the entity on which the attribute appears.
+The EDG front end now emulates this behavior in GNU modes (with a warning).
+
+  extern int f() __attribute__((alias("g")));
+  int main() {
+    f();  // Calls "g" defined in another translation unit (with a warning).
+  }
+
 8/29/02  GNU mode: volatile and noreturn attributes
 
 In GNU modes, the front end now accepts the "volatile" attribute as a
