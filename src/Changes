@@ -1,5 +1,17 @@
 Version 2.31
 
+10/26/95  C++-generating back end: default initialization of parts of arrays
+
+The C++-generating back end now correctly handles default initialization
+(via constructor) of parts of arrays.
+
+  struct X {
+    X(int);
+    X();
+  };
+  X x[4] = {1, X(1)};
+  X y[2][3] = {{1}, {}};
+
 10/26/95  // comments not recognized in pcc mode
 
 // comments are now not recognized in pcc mode even if
