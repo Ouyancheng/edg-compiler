@@ -1620,32 +1620,12 @@ Routine to be called by the il_to_str routines to output a name.
 }  /* gen_name_reference */
 
 
-static void bypass_prototype_scope_type_src_seq_entries(void)
-/*
-Advance past any source sequence entries for types declared in a function
-prototype scope.  Mark those types so that their definitions will be put
-out when they are encountered when generating the parameter types.
-*/
-{
-  a_type_ptr                   type;
-  a_src_seq_secondary_decl_ptr sec_decl;
-  a_boolean                    is_definition;
-
-  while (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
-    if (!type->declared_in_function_prototype) break;
-    /* A prototype scope type.  Skip over it and mark it for later
-       processing. */
-    skip_type_and_delay_definition(type, is_definition);
-  }  /* while */
-}  /* bypass_prototype_scope_type_src_seq_entries */
-
-
 static void bypass_prototyped_param_src_seq_entries(void)
 /*
 Advance past any source sequence entries that are associated with parameter
-declarations and prototype scope types of the current function definition.
-Mark such types so that their definitions will be put out when they are
-encountered when generating the parameter types.
+declarations and types declared or defined in the function declarator of
+the current function definition.  Mark such types so that their definitions
+will be put out when they are encountered when generating the parameter types.
 */
 {
   a_type_ptr                   type;
@@ -1660,10 +1640,9 @@ encountered when generating the parameter types.
       /* Stop on the opening brace of the function. */
       break;
     } else {
-      /* Anything else should be a type declared in the prototype scope. */
+      /* Anything else should be a type declared or defined in the parameter
+         list. */
       if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
-        check_assertion_str(type->declared_in_function_prototype,
-                      "bypass_prototyped_param_...: not prototype scope type");
         /* Skip past the source sequence entries for the type and mark the
            definition as delayed. */
         skip_type_and_delay_definition(type, is_definition);
@@ -1723,11 +1702,15 @@ is non-NULL, in which case that is the function scope.
          too). */
       if (scope == NULL) {
         /* This is not a definition.  Advance past the source sequence
-           entries for prototype scope types (happens only in C). */
-        bypass_prototype_scope_type_src_seq_entries();
+           entries for types declared or defined in the function declarator. */
+        /* Note that we might be processing some types here that aren't
+           part of the function declarator, but that's okay, because they
+           would just get skipped like this anyway. */
+        skip_embedded_declarations();
       } else {
         /* This is a definition.  Advance past the source sequence entries for
-           the parameters and any prototype scope types. */
+           the parameters and any types declared or defined in the
+           function declarator. */
         bypass_prototyped_param_src_seq_entries();
       }  /* if */
       for (;;) {
