@@ -576,6 +576,40 @@ set pointed to by overload_sym.
 }  /* matches_member_of_overload_set */
 
 
+static a_boolean is_member_of_inactive_local_class(a_symbol_ptr  member_sym)
+/*
+Return TRUE if the symbol passed in is a member of a class local to a
+function that is no longer active.  (This is necessary because the member
+symbol remains on the inactive list even after it's class disappears from
+the symbol table.)
+*/
+{
+  a_boolean     match = FALSE;
+  a_type_ptr    tp;
+  a_symbol_ptr  class_sym, sym;
+
+  if (member_sym->is_class_member) {
+    tp = member_sym->parent.class_type;
+    if (tp->source_corresp.is_local_to_function) {
+      /* It's a member of an local class.  Find the outer-most class in case
+         the member belongs to a nested class. */
+      while (tp->source_corresp.is_class_member) {
+        tp = tp->source_corresp.parent.class_type;
+      }  /* while */
+      /* See if the class is still in scope. */
+      class_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+      for (sym = class_sym->header->symbol; sym != NULL; sym = sym->next) {
+        if (sym == class_sym) break;
+      }  /* for */
+      /* No symbol for the class was found on the active list, so the scope
+         in which the class was declared is no longer active. */
+      if (sym == NULL) match = TRUE;
+    }  /* if */
+  }  /* if */
+  return match;
+}  /* is_member_of_inactive_local_class */
+
+
 static a_boolean is_potentially_hidden_by(a_symbol_ptr  sym1,
                                           a_symbol_ptr  sym2)
 /*
@@ -589,7 +623,9 @@ sym1 because it is hidden by sym2.
   a_type_ptr       curr_parent_class, tp;
   a_namespace_ptr  curr_namespace, nsp;
 
-  if (sym1->decl_scope == FILE_SCOPE_NUMBER) {
+  if (is_member_of_inactive_local_class(sym2)) {
+    /* is_potentially_hidden = FALSE; */
+  } else if (sym1->decl_scope == FILE_SCOPE_NUMBER) {
     if (sym2->decl_scope != FILE_SCOPE_NUMBER) {
       /* sym2 belongs to a scope that is enclosed within the file scope
          (the scope to which sym1 belongs) -- so sym1 is potentially hidden
