@@ -1,5 +1,18 @@
 Version 3.4
 
+12/19/03 C99 mode error on very large integer constant
+
+According to the C99 standard, a decimal integer constant with
+no suffix has the first of the following types into which the value
+will fit: int, long, long long.  The Front End end had been adding
+another type at the end of that list: unsigned long long.
+That extra type has now been removed, but that causes a strange
+behavior, i.e., that a constant that could be represented as
+an unsigned long long but not as a long long is considered to be
+an error.  Therefore we issue the error only in strict C99 mode.
+In non-strict C99 mode, a warning is issued and the type
+is taken to be unsigned long long, as before.
+
 12/18/03 Possible incorrect memory reuse when using precompiled headers
 
 Although this has not been observed in released versions of the front end,

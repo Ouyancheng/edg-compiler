@@ -367,8 +367,26 @@ ll_check:
                                      (an_integer_kind)ik_long_long)) {
       kind = (an_integer_kind)ik_long_long;
       goto kind_established;
-    } else if (le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+    } else if ((!c99_mode || has_u_suffix || radix != 10) &&
+               le_max_integer_value_of_kind(
+                                     &number, /*is_signed=*/FALSE,
                                      (an_integer_kind)ik_unsigned_long_long)) {
+      /* Note that in C99 a constant that is too large for long long
+         but is decimal with no U suffix does not get unsigned long long
+         type (that's designed to allow C99 implementations to have
+         integral types larger than long long). */
+      kind = (an_integer_kind)ik_unsigned_long_long;
+      goto kind_established;
+    } else if (c99_mode && !strict_ansi_mode &&
+               le_max_integer_value_of_kind(
+                                     &number, /*is_signed=*/FALSE,
+                                     (an_integer_kind)ik_unsigned_long_long)) {
+      /* In non-strict C99 mode, give the kind of constant described above
+         unsigned long long type, with a warning.  Note that if the
+         implementation has extended integer types beyond unsigned long long
+         this test should be eliminated. */
+      conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
+      warning(ec_c99_constant_in_unsigned_long_long_range);
       kind = (an_integer_kind)ik_unsigned_long_long;
       goto kind_established;
     }  /* if */
