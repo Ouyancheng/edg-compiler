@@ -301,6 +301,12 @@ a_symbol_ptr select_overloaded_function(
                       an_error_code                 err_ambiguous,
                       a_source_position             *err_pos);
 
+extern a_boolean conversion_to_class_possible(
+                                       a_type_ptr    source_type,
+                                       a_type_ptr    class_type,
+                                       a_routine_ptr *conversion_routine,
+                                       a_boolean     *ambiguous);
+
 extern a_constant_ptr var_constant_value(a_variable_ptr var);
 
 extern void using_lvalue(an_operand *operand);

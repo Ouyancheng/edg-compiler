@@ -27,8 +27,9 @@ expr.h -- Declarations related to expression parsing.
 
 extern a_boolean node_has_side_effects(an_expr_node_ptr node);
 
-extern a_symbol_ptr scan_ctor_arguments(a_symbol_ptr     constructor_sym,
-                                        an_expr_node_ptr *arg_expr_list);
+extern void scan_ctor_arguments(a_symbol_ptr     constructor_sym,
+                                an_expr_node_ptr *arg_expr_list,
+                                a_routine_ptr    *conversion_routine);
 
 extern an_expr_node_ptr scan_expression(void);
 
@@ -44,9 +45,6 @@ extern void scan_pp_expression(a_constant *constant);
 extern void scan_integral_constant_expression(a_constant *constant,
 			                      a_boolean  *err);
 
-extern void scan_constant_initializer_expression(a_type_ptr required_type,
-                                                 a_constant *constant);
-
 extern void scan_initializer_expression(a_type_ptr       required_type,
                                         a_boolean        *is_constant,
                                         an_expr_node_ptr *expression,
@@ -54,9 +52,19 @@ extern void scan_initializer_expression(a_type_ptr       required_type,
 
 extern an_expr_node_ptr scan_argument_expression(void);
 
-extern a_symbol_ptr select_constructor(a_symbol_ptr      constructor_sym,
-                                       an_expr_node_ptr  *arg_expr_list,
-                                       a_source_position *err_pos);
+extern a_symbol_ptr select_copy_constructor(
+                                    a_type_ptr        class_type,
+                                    a_boolean         const_object_required,
+                                    a_boolean         volatile_object_required,
+                                    a_source_position *err_pos,
+                                    a_boolean         *err);
+
+extern an_expr_node_ptr scan_class_initializer_expression(
+                                            a_type_ptr    required_type,
+                                            a_routine_ptr *conversion_routine);
+
+extern void scan_constant_initializer_expression(a_type_ptr required_type,
+                                                 a_constant *constant);
 
 extern an_expr_node_ptr scan_boolean_controlling_expression(void);
 

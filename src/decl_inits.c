@@ -21,7 +21,6 @@ decl_inits.c -- Scanning of initializers in declarations.
 #include "error.h"
 #include "types.h"
 #include "expr.h"
-#include "exprutil.h"
 #include "lexical.h"
 #include "statements.h"
 #include "cmd_line.h"
@@ -222,132 +221,6 @@ of constant initializers.
 }  /* scan_initializer_of_simple_object */
 
 
-static a_symbol_ptr get_copy_constructor(a_type_ptr  class_type,
-                                         a_boolean   const_object_required,
-                                         a_boolean   volatile_object_required,
-                                         a_source_position  *err_pos,
-                                         a_boolean   *err)
-/*
-Find and return a symbol pointer representing a copy constructor for the
-class indicated by class_type.  If must_be_const is TRUE, return a copy
-constructor that accepts a first parameter whose type is const
-qualified.  Otherwise, return what's found.  If no acceptable copy
-constructor is found, issue a diagnostic, set *err to TRUE, and return a
-NULL pointer.  If more than one acceptable copy constructor is found,
-issue a diagnostic, set *err to TRUE, and return a pointer to one of the
-symbols.
-*/
-{
-  a_symbol_ptr      sym, cctor_sym = NULL;
-  a_boolean         is_overloaded_function, ambiguous = FALSE;
-  a_boolean         const_object_okay, volatile_object_okay;
-  a_boolean         sym_matches_exactly, cctor_sym_matches_exactly = FALSE;
-
-  *err = FALSE;
-  class_type = skip_typerefs(class_type);
-  sym = (symbol_supplement_for_class(class_type))->constructor;
-#if CHECKING
-  if (sym == NULL) {
-    internal_error("get_copy_constructor: NULL constructor");
-  }  /* if */
-#endif /* CHECKING */
-  /* If sym is an overloaded function symbol we need to go through the whole
-     list. */
-  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    is_overloaded_function = TRUE;
-    sym = sym->variant.overloaded_function.symbols;
-  } else {
-    is_overloaded_function = FALSE;
-  }  /* if */
-  /* Examine each constructor for this class to find a copy constructor.
-     There may be more than one.  For instance, there may be a copy
-     constructor that can copy a const object and another that cannot. */
-  for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-    if (is_copy_constructor(sym->variant.routine, sym->class_of_which_a_member,
-                            &const_object_okay, &volatile_object_okay)) {
-      if ((const_object_required && !const_object_okay) || 
-          (volatile_object_required && !volatile_object_okay)) {
-        /* A copy constructor was found that cannot copy the sort of object
-           that we need to be able to copy. Keep looking for a suitable copy
-           constructor. */
-      } else {
-        /* sym represents a suitable copy constructor. */
-        if (cctor_sym != NULL) {
-          /* A suitable copy constructor had already been found, so there's
-             more than one.  We may have an ambiguous reference.  We give
-             preference to a perfect match over the case in which the
-             required and provided qualifiers do not match up exactly. */
-          sym_matches_exactly =
-                           (const_object_okay == const_object_required &&
-                            volatile_object_okay == volatile_object_required);
-          if (!cctor_sym_matches_exactly && sym_matches_exactly) {
-            /* cctor_sym was not a perfect match but sym is, so sym is
-               preferred.  Fall through to override the previous settings of
-               cctor_sym and related variables. */
-          } else {
-            if (cctor_sym_matches_exactly == sym_matches_exactly) {
-              /* Both constructors match up exactly with the const and
-                 volatile requirements or neither does.  In either case
-                 there's no reason to prefer one over the other. */
-              ambiguous = TRUE;
-            } else {
-              /* cctor_sym is an exact match and sym is not.  Ignore sym. */
-            }  /* if */
-            /* Skip to the end of the loop. */
-            continue;
-          }  /* if */
-        }  /* if */
-        /* We've found one.  Record it, but keep looking.  If there's an
-           ambiguity we need to report it. */
-        cctor_sym = sym;
-        cctor_sym_matches_exactly = sym_matches_exactly;
-        ambiguous = FALSE;
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  if (cctor_sym == NULL) {
-    if (const_object_required && !volatile_object_required) {
-      /* The common case:  missing const copy constructor. */
-      pos_st_error(ec_missing_const_copy_constructor, err_pos,
-                   class_type->source_corresp.name);
-    } else {
-      /* Unusual case: volatile or const-volatile expected. */
-      pos_st_error(ec_no_suitable_copy_constructor, err_pos,
-                   class_type->source_corresp.name);
-    }  /* if */
-    *err = TRUE;
-  } else if (ambiguous) {
-    pos_st_error(ec_ambiguous_copy_constructor, err_pos,
-                 class_type->source_corresp.name);
-    *err = TRUE;
-  }  /* if */
-  return cctor_sym;
-}  /* get_copy_constructor */
-
-
-static a_boolean check_access_to_copy_constructor(a_type_ptr         type,
-                                                  a_source_position  *err_pos)
-/*
-Return TRUE if a copy constructor exists for "type" and it is accessible.
-*/
-{
-  a_symbol_ptr  cctor_sym;
-  a_boolean     err;
-
-  cctor_sym = get_copy_constructor(type, /*const_required=*/FALSE,
-                                   /*volatile_required=*/FALSE,
-                                   err_pos, &err);
-  if (!err && cctor_sym != NULL) {
-    if (!have_access_to_symbol(cctor_sym)) {
-      pos_st_error(ec_inaccessible_constructor, err_pos,
-                   name_of_symbol(cctor_sym));
-      err = TRUE;
-    }  /* if */
-  }  /* if */
-  return !err;
-}  /* check_access_to_copy_constructor */
-
-
 static a_constant_ptr get_initializer(a_type_ptr          *type,
                                       a_dynamic_init_ptr  *di_list,
                                       a_dynamic_init_ptr  *end_of_di_list,
@@ -381,7 +254,7 @@ for unions and aggregates at that level).
   a_source_position   expr_pos;
   a_class_symbol_supplement_ptr
                       cssp;
-  a_symbol_ptr        ctor_sym;
+  a_routine_ptr       conversion_routine;
 
   db_enter(4, "get_initializer");
   err = FALSE;
@@ -403,37 +276,25 @@ for unions and aggregates at that level).
        constructor.  Treat the expression as an argument for the constructor
        call. */
     copy_source_position(pos_curr_token, expr_pos);
-    expression = scan_argument_expression();
-    /* Look for a constructor to convert the right hand side to the
-       required class type. */
-    ctor_sym = select_constructor(cssp->constructor, &expression, &expr_pos);
-    if (ctor_sym == NULL) {
+    expression = scan_class_initializer_expression(local_type,
+                                                   &conversion_routine);
+    if (conversion_routine == NULL) {
       /* No such constructor was found.  Abort the initialization. */
       err = TRUE;
     } else {
-      a_boolean  dummy_flag;
-      if (!is_copy_constructor(ctor_sym->variant.routine,
-                               ctor_sym->class_of_which_a_member,
-                               &dummy_flag, &dummy_flag) &&
-          !check_access_to_copy_constructor(*type, &expr_pos)) {
-        /* Something other than the copy constructor was returned, but the
-           copy constructor still has to be accessible (ARM 12.6.1). */
-        err = TRUE;
+      /* An appropriate constructor (copy or other) was found.  Build
+         a dynamic init entry to call it. */
+      init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+      init_con->variant.dynamic_init = dip =
+                      alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+      dip->variant.constructor.routine = conversion_routine;
+      dip->variant.constructor.args = expression;
+      if (*di_list == NULL) {
+        *di_list = dip;
       } else {
-        /* Check that the constructor is accessible and mark it referenced. */
-        reference_to_special_member_function(ctor_sym);
-        init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-        init_con->variant.dynamic_init = dip =
-                    alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-        dip->variant.constructor.routine = ctor_sym->variant.routine;
-        dip->variant.constructor.args = expression;
-        if (*di_list == NULL) {
-          *di_list = dip;
-        } else {
-          (*end_of_di_list)->next = dip;
-        }  /* if */
-        *end_of_di_list = dip;
+        (*end_of_di_list)->next = dip;
       }  /* if */
+      *end_of_di_list = dip;
     }  /* if */
   } else if (is_aggregate_or_union_type(local_type) ||
              (is_error_type(local_type) && curr_token == tok_lbrace)) {
@@ -817,7 +678,7 @@ The syntax is:
   a_boolean                      initialization_is_dynamic;
   an_expr_node_ptr               arg_list;
   a_class_symbol_supplement_ptr  cssp = NULL;
-  a_symbol_ptr                   ctor_sym;
+  a_routine_ptr                  conversion_routine;
   a_source_position              expr_pos;
 
   db_enter(3, "initializer");
@@ -889,15 +750,13 @@ The syntax is:
        possibly the copy constructor, will be selected and returned.  The
        scan function returns FALSE if it finds no constructor for which the
        arguments match. */
-    ctor_sym = scan_ctor_arguments(cssp->constructor, &arg_list);
-    if (ctor_sym == NULL) {
+    scan_ctor_arguments(cssp->constructor, &arg_list, &conversion_routine);
+    if (conversion_routine == NULL) {
       err = TRUE;
     } else {
-      /* Check that the constructor is accessible and mark it referenced. */
-      reference_to_special_member_function(ctor_sym);
       /* Set the dynamic init entry to represent constructor initialization. */
       clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-      local_di.variant.constructor.routine = ctor_sym->variant.routine;
+      local_di.variant.constructor.routine = conversion_routine;
       local_di.variant.constructor.args = arg_list;
     }  /* if */
     initialization_is_dynamic = TRUE;
@@ -922,21 +781,19 @@ The syntax is:
     /* In ordinary C a struct or union variable may be initialized by an
        object of the same type as long as dynamic initialization is otherwise
        allowed. */
-    /* Scan the expression on the right hand side of the equal sign. */
     copy_source_position(pos_curr_token, expr_pos);
-    expression = scan_argument_expression();
     if (cssp == NULL || cssp->constructor == NULL) {
       /* The case of C-style structs.  No constructor exists, but simple
-         struct assignment can be performed.  Check the type by assignment
+         struct assignment can be performed.  Scan the expression on the
+         right-hand side of the equal sign.  Check the type by assignment
          rules. */
-      node_prepare_assignment(&expression, vp_type,
-                              ec_bad_initializer_type, &err);
-      if (!err) {
-        /* Set the dynamic init entry to represent non-constant assignment
-           initialization. */
-        clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_expression);
-        local_di.variant.expression = expression;
-      }  /* if */
+      expression = scan_required_type_expression(vp_type,
+                                               /*allow_top_level_comma=*/FALSE,
+                                                 ec_bad_initializer_type);
+      /* Set the dynamic init entry to represent non-constant assignment
+         initialization. */
+      clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_expression);
+      local_di.variant.expression = expression;
     } else {
       /* Initializing a class object that has a constructor in a statement
          that looks like an assignment (see discussion in ARM 12.6.1).
@@ -954,31 +811,17 @@ The syntax is:
         internal_error("initializer: missing copy constructor");
       }  /* if */
 #endif /* CHECKING */
-      /* Look for a constructor to convert the right hand side to the
-         required class type. */
-      ctor_sym = select_constructor(cssp->constructor, &expression, &expr_pos);
-      if (ctor_sym == NULL) {
-        /* No such constructor was found.  Abort the initialization. */
+      expression = scan_class_initializer_expression(vp_type,
+                                                     &conversion_routine);
+      if (conversion_routine == NULL) {
+        /* No appropriate constructor was found.  Abort the initialization. */
         err = TRUE;
       } else {
-        a_boolean  dummy_flag;
-        if (!is_copy_constructor(ctor_sym->variant.routine,
-                                 ctor_sym->class_of_which_a_member,
-                                 &dummy_flag, &dummy_flag) &&
-            !check_access_to_copy_constructor(vp_type, &expr_pos)) {
-          /* Something other than the copy constructor was returned, but the
-             copy constructor still has to be accessible (ARM 12.6.1). */
-          err = TRUE;
-        } else {
-          /* Check that the constructor is accessible and mark it
-             referenced. */
-          reference_to_special_member_function(ctor_sym);
-          /* Set the dynamic init entry to represent constructor
-             initialization. */
-          clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-          local_di.variant.constructor.routine = ctor_sym->variant.routine;
-          local_di.variant.constructor.args = expression;
-        }  /* if */
+        /* Set the dynamic init entry to represent constructor
+           initialization. */
+        clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
+        local_di.variant.constructor.routine = conversion_routine;
+        local_di.variant.constructor.args = expression;
       }  /* if */
     }  /* if */
     initialization_is_dynamic = TRUE;
@@ -1304,7 +1147,7 @@ initialized.  These are addressed in the course of the processing.
   a_constructor_init_ptr        direct_list, end_of_direct_list;
   a_base_class_ptr              bcp;
   a_class_symbol_supplement_ptr cssp;
-  a_symbol_ptr                  ctor_sym;
+  a_routine_ptr                 conversion_routine;
   a_dynamic_init_ptr            dip, ctor_dip;
 
   db_enter(3, "ctor_initializer");
@@ -1610,18 +1453,16 @@ scan_paren:
                  on the arguments present, a constructor will be selected and
                  returned.  The scan function returns FALSE if it finds no
                  constructor for which the arguments match. */
-              ctor_sym = scan_ctor_arguments(cssp->constructor, &arg_list);
-              if (ctor_sym == NULL) err = TRUE;
+              scan_ctor_arguments(cssp->constructor, &arg_list,
+                                  &conversion_routine);
+              if (conversion_routine == NULL) err = TRUE;
             }   /* if */
             if (!err) {
               /* Set the dynamic init entry to represent constructor
                  initialization. */
               dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-              dip->variant.constructor.routine = ctor_sym->variant.routine;
+              dip->variant.constructor.routine = conversion_routine;
               dip->variant.constructor.args = arg_list;
-              /* Check that the constructor is accessible and mark it
-                 referenced. */
-              reference_to_special_member_function(ctor_sym);
             } else {
               /* Create a fake initializer to represent the error. */
               a_constant_ptr  cp;
@@ -1724,7 +1565,8 @@ scan_paren:
              the parameter name on the other end of this call stipulates a
              requirement on the search for a copy constructor. */
           cctor_sym =
-               get_copy_constructor(tp, /*const_required=*/const_object_okay,
+               select_copy_constructor(tp,
+                                    /*const_required=*/const_object_okay,
                                     /*volatile_required=*/volatile_object_okay,
                                     &error_position, &cctor_err);
           if (cctor_err) {
