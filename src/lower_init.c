@@ -172,7 +172,7 @@ to data members are lowered into a small integer type.
   a_type_ptr promoted_type =
                            default_argument_promotion(ptr_to_data_member_type);
 
-  if (ptr_to_data_member_type != promoted_type) {
+  if (!same_entities(ptr_to_data_member_type, promoted_type)) {
     /* Some widening is needed. */
     if (is_constant_node(expr)) {
       /* A constant.  Do the type change on a copy of the constant. */
@@ -228,7 +228,7 @@ function).
   } else {
     promoted_type = arg_type;
   }  /* if */
-  if (promoted_type != arg_type) {
+  if (!same_entities(promoted_type, arg_type)) {
     /* Put in the promotion cast. */
     an_expr_node_ptr expr_cast = expr, expr_next = expr->next;
     an_expr_node     node_copy;
@@ -6609,15 +6609,16 @@ the implicit parameters follow it.
       vbase_param_var = vbase_param_var->next;
       /* Exit the inner loop when we've found the base class entry in
          the main class that is for the virtual base class of interest. */
-      if (bcp->type == base_class_type) break;
+      if (same_entities(bcp->type, base_class_type)) break;
     }  /* if */
   }  /* for */
 #if CHECKING
   { a_type_ptr param_base_type =
                        f_skip_typerefs(type_pointed_to(vbase_param_var->type));
-    if (param_base_type != base_class_type &&
-        param_base_type != base_class_type->variant.class_struct_union.
-                                               extra_info->type_as_subobject) {
+    if (!same_entities(param_base_type, base_class_type) &&
+        !same_entities(param_base_type,
+                       base_class_type->variant.class_struct_union.
+                                              extra_info->type_as_subobject)) {
       internal_error(
                     "implicit_virtual_base_parameter: param type not correct");
     }  /* if */

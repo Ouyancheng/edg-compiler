@@ -3883,18 +3883,18 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
     suppress_extensions = FALSE;
   }  /* for */
   if (okay && operand_1_is_pointer && operand_2_is_pointer &&
-      operand_1_type != operand_2_type) {
+      !same_entities(operand_1_type, operand_2_type)) {
     /* Make sure the operation type has all the cv-qualifiers present on
        each of the operands. */
     a_type_ptr type_pointed_to_1 = type_pointed_to(operand_1_type);
     a_type_ptr type_pointed_to_2 = type_pointed_to(operand_2_type);
     a_type_ptr operation_type_pointed_to;
-    if (local_operation_type == operand_1_type) {
+    if (same_entities(local_operation_type, operand_1_type)) {
       operation_type_pointed_to =
                       type_plus_qualifiers_from_second_type(type_pointed_to_1,
                                                             type_pointed_to_2);
     } else {
-      check_assertion(local_operation_type == operand_2_type);
+      check_assertion(same_entities(local_operation_type, operand_2_type));
       operation_type_pointed_to =
                       type_plus_qualifiers_from_second_type(type_pointed_to_2,
                                                             type_pointed_to_1);
@@ -4059,7 +4059,7 @@ operator position (for errors).  Return FALSE if there is an error.
     a_base_class_ptr bcp = std_conv.cast_base_class;
     if (bcp != NULL && !bcp->ambiguous &&
         any_virtual_steps_in_derivation(bcp)) {
-      if (*operation_type == operand_1_type) {
+      if (same_entities(*operation_type, operand_1_type)) {
         cast_operand(operand_2_type, operand_1, /*check_cast_access=*/TRUE,
                      /*is_implicit_cast=*/FALSE,
                      /*is_reinterpret_cast=*/FALSE,
@@ -4089,13 +4089,13 @@ Either operand pointer may be NULL.
 */
 {
   if (!is_error_type(type)) {
-    if (operand_1 != NULL && operand_1->type != type) {
+    if (operand_1 != NULL && !same_entities(operand_1->type, type)) {
       /* Cast operand 1 to match the desired type. */
       cast_operand(type, operand_1, /*check_cast_access=*/TRUE,
                    /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
                    /*reinterpret_semantics=*/FALSE);
     }  /* if */
-    if (operand_2 != NULL && operand_2->type != type) {
+    if (operand_2 != NULL && !same_entities(operand_2->type, type)) {
       /* Cast operand 2 to match the desired type. */
       cast_operand(type, operand_2, /*check_cast_access=*/TRUE,
                    /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
@@ -4118,7 +4118,7 @@ the member.
         con->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_member &&
         /* Avoid problems with template-dependent enum constant values. */
-        operand->type == type_of_unknown_templ_param_nontype) {
+        same_entities(operand->type, type_of_unknown_templ_param_nontype)) {
       /* Change the constant to one that refers to the address of the
          member. */
       a_constant_ptr memcon = alloc_shareable_constant(con);
@@ -5390,7 +5390,8 @@ in a number of ways, e.g., if the source operand is an lvalue.
           operand->state == (an_operand_state)os_function_designator) {
         /* If we're casting an lvalue constant, the constant type has
            one more level of "pointer to" than the operand does. */
-        if (con_dest_type != type_of_unknown_templ_param_nontype) {
+        if (!same_entities(con_dest_type,
+                           type_of_unknown_templ_param_nontype)) {
           con_dest_type = make_pointer_type(con_dest_type);
         }  /* if */
       }  /* if */
@@ -7055,7 +7056,7 @@ address_taken flag.
       /* Not a bit field reference. */
       /* The operand becomes an rvalue. */
       operand->state = (an_operand_state)os_rvalue;
-      if (operand->type != type_of_unknown_templ_param_nontype) {
+      if (!same_entities(operand->type, type_of_unknown_templ_param_nontype)) {
         operand->type = make_pointer_type(operand->type);
       }  /* if */
       /* Change the kind in the reference entries to address-taken. */
@@ -8440,7 +8441,7 @@ it, and return a pointer to the possibly-modified expression.
     if (is_integral_type(type)) {
       /* Simulate the usual arithmetic conversions. */
       type = node_type_after_integral_promotion(expr);
-      if (type != expr->type) {
+      if (!same_entities(type, expr->type)) {
         cast_node(&expr, type,
                   /*check_cast_access=*/FALSE,
                   /*is_implicit_cast=*/TRUE,

@@ -71,6 +71,35 @@ mode, these expand to nothing.
 #endif /* __cplusplus */
 
 /*
+Macro that indicates whether a C99 compiler is being used.
+*/
+#define USING_C99 (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L)
+
+/*
+INLINE is used to declare a function as inline.  If the compiler being
+used does not support inline functions, the function is simply declared
+static instead.
+*/
+#ifndef INLINE
+#ifdef __cplusplus
+/* C++ has inline functions. */
+#define INLINE inline
+#else /* ifndef __cplusplus */
+#if USING_C99
+/* C99 has inline functions. */
+#define INLINE inline
+#else /* !USING_C99 */
+#ifdef __GNUC__
+#define INLINE static __inline__
+#else /* ifndef __GNUC__ */
+/* Not a compiler known to have inline functions.  Just use static. */
+#define INLINE static
+#endif /* ifdef __GNUC__ */
+#endif /* USING_C99 */
+#endif  /* ifdef __cplusplus */
+#endif /* ifndef INLINE */
+
+/*
 Determine if this is a WIN32 (e.g., Windows NT or Windows 95) system.
 */
 #ifndef EDG_WIN32

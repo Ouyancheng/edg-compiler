@@ -195,9 +195,12 @@ cast.
           /* Note that the type qualifiers on both types have already been
              dropped. */
           if (identical_types(routine_type, dest_underlying_type)) {
-            if (dest_class ==
-                   (routine_type_is_nonstatic_member_function(routine_type) ?
-                                              sym->parent.class_type : NULL)) {
+            a_type_ptr	parent_class_if_nonstatic_member;
+            parent_class_if_nonstatic_member =
+                    routine_type_is_nonstatic_member_function(routine_type) ?
+                                              sym->parent.class_type : NULL;
+            if (f_same_entities(dest_class,
+                                parent_class_if_nonstatic_member)) {
               /* Exact match. */
               match_sym = proj_sym;
               *match_level = aml_exact;
@@ -4683,9 +4686,9 @@ Bind the operand for a function to an associated selector object.
        because in that case the name that was found might not be the
        final overrider. */
     if (!function_operand->is_using_decl_name &&
-        operand_complete_object_type(bound_function_selector,
-                                     /*call_case=*/TRUE) ==
-        type_pointed_to(bound_function_selector->type)) {
+        f_same_entities(operand_complete_object_type(bound_function_selector,
+                                     /*call_case=*/TRUE),
+                        type_pointed_to(bound_function_selector->type))) {
       function_operand->virtual_function = FALSE;
       /* Set the IL referenced flag for the function.  It wasn't set
          when the call was thought to be virtual, since a virtual call
@@ -4970,7 +4973,7 @@ gives the source position of the member name reference.
     if ((is_template_param_type(class_struct_union_type) ||
          class_struct_union_type->variant.class_struct_union.is_nonreal_class||
          desired_class->variant.class_struct_union.is_nonreal_class) &&
-        class_struct_union_type != desired_class &&
+        !same_entities(class_struct_union_type, desired_class) &&
         find_base_class_of(class_struct_union_type, desired_class) == NULL) {
       /* Don't do any checking on nonreal classes in prototype
          instantiations, unless it does happen that there is a relationship. */
@@ -4984,7 +4987,7 @@ gives the source position of the member name reference.
       /* Do nothing if the type is already okay (which it almost always
          will be; only in cases involving qualified names can it be
          different). */
-      if (class_struct_union_type != desired_class) {
+      if (!same_entities(class_struct_union_type, desired_class)) {
         /* Some adjustment is required.  Find out how the classes are
            related to one another. */
         bcp = find_base_class_of(class_struct_union_type, desired_class);
@@ -5015,7 +5018,8 @@ gives the source position of the member name reference.
         class_struct_union_type = bcp->type;
       }  /* if */
       if (projection_member_sym != member_sym) {
-        if (member_sym->parent.class_type != class_struct_union_type) {
+        if (!same_entities(member_sym->parent.class_type,
+                           class_struct_union_type)) {
           /* In some cases, the member_sym and the projection_member_sym
              don't quite meet up -- there's a gap in the base class
              sequence.  This happens, for example, when a template
@@ -5177,7 +5181,7 @@ only in C++ mode.  Note that this routine is called only for an implicit
       this_class = skip_typerefs(this_class);
       check_assertion(projection_member_sym->is_class_member);
       member_class = projection_member_sym->parent.class_type;
-      if (this_class == member_class) {
+      if (same_entities(this_class, member_class)) {
         /* The class is right already.  This is the usual case. */
         bcp = NULL;
         okay = TRUE;
@@ -7673,7 +7677,7 @@ considered.
        underlying class types of the operands are the same or if
        the previous class has a conversion function that converts
        to the specific type we're considering. */
-    if (class_type == previous_class_type_considered ||
+    if (same_entities(class_type, previous_class_type_considered) ||
         find_conversion_function(previous_class_type_considered,
                                  specific_type) != NULL) {
       /* This specific type was tried when the first operand was
@@ -8108,7 +8112,7 @@ gives the type of the routine being called.
   this_class_type = routine_type->variant.routine.extra_info->this_class;
   if (is_pointer_type(operand->type)) {
     operand_class_type = f_skip_typerefs(type_pointed_to(operand->type));
-    if (operand_class_type != this_class_type &&
+    if (!same_entities(operand_class_type, this_class_type) &&
         is_immediate_class_type(operand_class_type) &&
         (bcp = find_base_class_of(operand_class_type, this_class_type))!=NULL){
       /* Do the cast to a base class.  Access checking is suppressed on this
@@ -10443,7 +10447,8 @@ happen only in C++ mode.
   class_bitwise_copy = conversion->class_identity_or_bitwise_copy;
   if (class_bitwise_copy) {
     /* The operation is a class bitwise copy. */
-    if (skip_typerefs(source_operand->type) == class_type && !C_mode()) {
+    if (f_same_entities(skip_typerefs(source_operand->type), class_type) &&
+                        !C_mode()) {
       /* The source and destination types are the same, so the bitwise copy
          is a "copy constructor call" that may be eligible for elision. */
       /* See whether the source is a temporary that can be eliminated. */
@@ -10474,7 +10479,7 @@ happen only in C++ mode.
                                     (a_special_function_kind)sfk_constructor) {
       /* The routine is a constructor (copy or not). */
       a_type_qualifier_set qualifiers;
-      if (skip_typerefs(source_operand->type) == class_type &&
+      if (f_same_entities(skip_typerefs(source_operand->type), class_type) &&
           is_copy_constructor(conversion_routine, class_type, &qualifiers,
                               /*is_declarative_context=*/FALSE)) {
         /* The conversion routine is a copy constructor, and the source and
@@ -11237,7 +11242,8 @@ to be acceptable, and *conversion describes it.
        reference-to-const, but it's fabricated.  There's no real need to
        add "const" in the cases where the original object is bound to,
        so use the dest type with the original object cv-qualifiers. */
-    if (skip_typerefs(base_dest_type) == skip_typerefs(orig_source_type)) {
+    if (f_same_entities(skip_typerefs(base_dest_type),
+                        skip_typerefs(orig_source_type))) {
       /* Preserve a typedef from the original source type. */
       result_ptr_type = make_pointer_type(orig_source_type);
     } else {

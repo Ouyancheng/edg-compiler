@@ -2576,7 +2576,7 @@ template_sym is the template that is being instantiated.
        template to be instantiated, this is nested in the enclosing
        prototype instantiation. */
     if (template_sym->is_class_member &&
-        template_sym->parent.class_type == assoc_type) {
+        same_entities(template_sym->parent.class_type, assoc_type)) {
       result = TRUE;
     }  /* if */
   }  /* if */

@@ -3479,8 +3479,8 @@ are also allowed.
         class_sym->variant.
                     class_struct_union.extra_info->constructor == NULL &&
         ((fp = member_sym->variant.field.ptr) == NULL ||
-         member_sym->parent.class_type ==
-                                   fp->source_corresp.parent.class_type)) {
+         same_entities(member_sym->parent.class_type,
+                       fp->source_corresp.parent.class_type))) {
         /* Note: the last checks serve to exclude anonymous union promotions.
            It is never the case that the field is not yet bound to the symbol
            when an anonymous union member is being promoted, nor will the
@@ -4316,7 +4316,7 @@ derivation path to class_type goes through ref_bcp.
 
   check_assertion(ref_bcp->direct || ref_bcp->is_virtual);
   for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->type == base_type) {
+    if (same_entities(bcp->type, base_type)) {
       /* ref_bcp is the root of a path to the base class where the inherited
          name was found.  Be sure ref_bcp is also on the path to bcp before
          deciding that bcp is the base class containing sym.  Note that if the
@@ -4391,7 +4391,7 @@ progenitor_sym is a member) if ambiguous is TRUE.
       /* There is no ambiguity in the use of this name, so a simple type match
          is enough to identify the base class of the fundamental symbol. */
       for (; bcp != NULL; bcp = bcp->next) {
-        if (bcp->type == tp) {
+        if (same_entities(bcp->type, tp)) {
           pdp->fundamental_base_class = bcp;
           break;
         }  /* if */
@@ -4401,7 +4401,7 @@ progenitor_sym is a member) if ambiguous is TRUE.
          type. */
       a_base_class_ptr  ref_bcp = path->base_class;
 
-      if (ref_bcp->derived_class != class_ptr) {
+      if (!same_entities(ref_bcp->derived_class, class_ptr)) {
         ref_bcp = corresponding_base_class(ref_bcp, class_ptr,
                                            (a_base_class_ptr)NULL);
       }  /* if */
@@ -6905,7 +6905,7 @@ of befriending classes given by befriending_list.
   a_boolean on_list = FALSE;
 
   for (; befriending_list != NULL; befriending_list = befriending_list->next) {
-    if (befriending_list->class_type == class_type) {
+    if (same_entities(befriending_list->class_type, class_type)) {
       on_list = TRUE;
       break;
     }  /* if */
@@ -6926,7 +6926,7 @@ member access privilege to class_type.
   a_boolean  have_member_privilege = FALSE;
   a_type_ptr scope_class = ssep->assoc_type;
 
-  if (scope_class == class_type) {
+  if (same_entities(scope_class, class_type)) {
     /* We are inside class_type. */
     have_member_privilege = TRUE;
   } else if (on_befriending_list(scope_class->variant.
@@ -7166,7 +7166,7 @@ this one.
        of an sk_overloaded_function symbol, not of sym. */
     fund_proj_sym= proj_sym->variant.projection.extra_info->fundamental_symbol;
     need_to_compute_access = TRUE;
-    if (proj_sym->parent.class_type == viewpoint_class) {
+    if (same_entities(proj_sym->parent.class_type, viewpoint_class)) {
       /* The step we are looking at is the first one, so the effective
          access is available from the projection symbol. */
       access = proj_sym->variant.projection.access;
@@ -7184,7 +7184,8 @@ this one.
         step_proj_sym = (iter == 1) ? proj_sym->header->inactive_symbols :
                                       proj_sym->header->symbol;
         for (; step_proj_sym != NULL; step_proj_sym = step_proj_sym->next) {
-          if (step_proj_sym->parent.class_type == viewpoint_class &&
+          if (same_entities(step_proj_sym->parent.class_type,
+                            viewpoint_class) &&
               step_proj_sym->kind == (a_symbol_kind)sk_projection &&
               step_proj_sym->variant.projection.extra_info->
                                          fundamental_symbol == fund_proj_sym) {
@@ -8018,7 +8019,7 @@ this function.  This routine is only called for protected nonstatic members.
       /* We have member access to the access_class, so we've found our
          class_type. */
       have_access = TRUE;
-    } else if (access_class == base_class) {
+    } else if (same_entities(access_class, base_class)) {
       /* The endpoints are the same class, so there is no class that meets
          the requirement (we tested the only possible class above). */
       have_access = FALSE;
@@ -8390,7 +8391,7 @@ fundamental symbol.  Return the preferred derivation of that base class.
   tp = sym->variant.projection.extra_info->fundamental_base_class->type;
   bcp = base_classes_of(disambiguator->derived_class);
   for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->type == tp) {
+    if (same_entities(bcp->type, tp)) {
       /* A base class with the right type. */
       if (!bcp->ambiguous || is_on_any_derivation_of(bcp, disambiguator)) {
         /* Either unambiguous or disambiguated. */
@@ -8533,7 +8534,7 @@ check_rout_type:
       /* Find the end of each path. */
       for (tail1 = path1; tail1->next != NULL; tail1 = tail1->next) {}
       for (tail2 = path2; tail2->next != NULL; tail2 = tail2->next) {}
-      if (tail1->base_class->type == tail2->base_class->type) {
+      if (same_entities(tail1->base_class->type, tail2->base_class->type)) {
         if (tail1->base_class->is_virtual) {
           /* If the ends of the paths refer to the same virtual base class,
              then the members belong to the same subobject. */

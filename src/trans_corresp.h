@@ -159,8 +159,32 @@ translation unit correspondence pointers.
 */
 #define same_entities(ptr1, ptr2)					\
   ((ptr1) == (ptr2) ||							\
-   same_trans_unit_corresps(trans_unit_corresp_of(ptr1),		\
-                            trans_unit_corresp_of(ptr2)))
+   ((ptr1) != NULL && (ptr2) != NULL &&					\
+    same_trans_unit_corresps(trans_unit_corresp_of(ptr1),		\
+                             trans_unit_corresp_of(ptr2))))
+
+/*
+This is an interface to the function version of same_entities.  This is
+a macro too so that the source correspondence pointer can be used as
+the function argument so that any IL entity with a source correspondence
+can be used as an argument.
+*/
+#define f_same_entities(ptr1, ptr2)					\
+  (ff_same_entities(&(ptr1)->source_corresp, &(ptr2)->source_corresp))
+
+
+/* SUPPRESS 763 */ /* Suppress codecenter warning on unused function. */
+INLINE a_boolean ff_same_entities(a_source_correspondence	*ptr1,
+				  a_source_correspondence	*ptr2)
+/*
+Function version of same_entities.
+*/
+{
+  return ptr1 == ptr2 ||
+         (ptr1 != NULL && ptr2 != NULL &&
+          same_trans_unit_corresps(trans_unit_corresp_of_unknown_entry(ptr1),
+                                   trans_unit_corresp_of_unknown_entry(ptr2)));
+}  /* ff_same_entities */
 
 /*
 Return TRUE if two base classes refer to the same IL entry.  If the

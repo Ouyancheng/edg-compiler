@@ -1135,7 +1135,7 @@ class will be instantiated if necessary so that its base classes are known.
                                                                   base_classes;
            bcp != NULL;
            bcp = bcp->next) {
-        if (corresponding_types(bcp->type, base_class)) break;
+        if (same_entities(bcp->type, base_class)) break;
       }  /* for */
     }  /* if */
   }  /* if */
@@ -1169,7 +1169,7 @@ identical to base_class_type.  Return NULL if none is found.
   db_enter(4, "find_direct_base_class_of");
   bcp = base_classes_of(derived_class);
   for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct && bcp->type == base_class_type) break;
+    if (bcp->direct && same_entities(bcp->type, base_class_type)) break;
   }  /* for */
   db_exit();
   return bcp;
@@ -1243,11 +1243,11 @@ step on the derivation list serves to confirm the match.
 #if CHECKING
   /* Be sure the disambiguator is a base class of new_class. */
   if (disambiguator != NULL &&
-      disambiguator->derived_class != new_class) {
+      !same_entities(disambiguator->derived_class, new_class)) {
     internal_error("corresponding_base_class: bad disambiguator");
   }  /* if */
 #endif /* CHECKING */
-  if (base_class->derived_class == new_class) {
+  if (same_entities(base_class->derived_class, new_class)) {
     /* base_class is already a base class of new_class.  Just return it. */
     new_base_class = base_class;
     goto done;
@@ -1268,7 +1268,7 @@ step on the derivation list serves to confirm the match.
   for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
     /* The first requirement of a match is that the type of the matching
        base class be the same as the type of the reference base_class. */
-    if (bcp->type == base_class->type) {
+    if (same_entities(bcp->type, base_class->type)) {
       /* The types match. */
       if (base_class->is_virtual) {
         if (bcp->is_virtual) {
@@ -1306,7 +1306,8 @@ step on the derivation list serves to confirm the match.
              paths in looking for its immediate predecessor. */
           step = bcp->derivation->path;
           for (; step->next->base_class != bcp; step = step->next) {}
-          if (step->base_class->type == base_class->derived_class) {
+          if (same_entities(step->base_class->type,
+                            base_class->derived_class)) {
             /* If bcp is ambiguous use the disambiguator to determine whether
                we have a match.  It that will be the immediate predecessor of
                bcp on bcp's derivation path. */
@@ -1387,7 +1388,8 @@ step on the derivation list serves to confirm the match.
 #endif /* CHECKING */
 done:
 #if DEBUG
-  if (debug_level >= 4 && base_class->derived_class != new_class) {
+  if (debug_level >= 4 &&
+      !same_entities(base_class->derived_class, new_class)) {
     fputs("found base class: ", f_debug);
     db_base_class(new_base_class, /*show_offset=*/FALSE);
   }  /* if */
@@ -1409,7 +1411,8 @@ a base class of class_1.  Only called in C++ mode.
   /* Drop typedefs. */
   class_1 = skip_typerefs(class_1);
   class_2 = skip_typerefs(class_2);
-  if (class_1 == class_2 || find_base_class_of(class_1, class_2) != NULL) {
+  if (same_entities(class_1, class_2) ||
+      find_base_class_of(class_1, class_2) != NULL) {
     is_same_or_base = TRUE;
   }  /* if */
   return is_same_or_base;
@@ -2215,7 +2218,7 @@ checking instead of equivalence checking).
   a_class_symbol_supplement_ptr cssp_1, cssp_2;
 
   /* If the pointers are identical, the types are equivalent. */
-  if (type_1 == type_2) {
+  if (same_entities(type_1, type_2)) {
     equiv = TRUE;
   } else if (!in_front_end) {
     /* We are being called after fe_wrapup was called.  Proxy classes are
@@ -2439,7 +2442,7 @@ for more information.
 
   /* Although the macros do the type_1 == type_2 test, repeat it here
      so it's present for the recursive calls. */
-  if (type_1 == type_2) {
+  if (same_entities(type_1, type_2)) {
     identical = TRUE;
   } else if (!type_qualifiers_match(type_1, type_2)) {
     /* The type qualifiers do not match, so the types are not identical. */
@@ -2449,7 +2452,7 @@ for more information.
        typerefs off the types. */
     type_1 = skip_typerefs(type_1);
     type_2 = skip_typerefs(type_2);
-    if (type_1 == type_2) {
+    if (same_entities(type_1, type_2)) {
       /* If the types are now the same, they are identical. */
       identical = TRUE;
     } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
@@ -2884,7 +2887,7 @@ for exact pointer equality.
   ignore_type_qualifiers = flags & TCF_IGNORE_TYPE_QUALIFIERS;
   /* Although the macros do the type_1 == type_2 test, repeat it here
      so it's present for the recursive calls. */
-  if (type_1 == type_2) {
+  if (same_entities(type_1, type_2)) {
     compat = TRUE;
   } else {
     /* Test for a qualifier mismatch. */
@@ -2902,7 +2905,7 @@ for exact pointer equality.
     } else if (qualifier_mismatch) {
       /* The type qualifiers do not match, so the types are not compatible. */
       /* compat = FALSE;  -- Already set. */
-    } else if (type_1 == type_2) {
+    } else if (same_entities(type_1, type_2)) {
       /* If the types are now the same, they are compatible. */
       compat = TRUE;
     } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
@@ -3244,7 +3247,7 @@ that is not required to be checked by the ANSI C standard.
     /* Pointer types.  Get the underlying types. */
     ptr_type_1 = skip_typerefs(type_1->variant.pointer.type);
     ptr_type_2 = skip_typerefs(type_2->variant.pointer.type);
-    if (ptr_type_1 == ptr_type_2 ||  /* This test for speed. */
+    if (same_entities(ptr_type_1, ptr_type_2) ||  /* This test for speed. */
         (strict_ansi_mode ? types_are_compatible(ptr_type_1, ptr_type_2) :
                             interchangeable_types(ptr_type_1, ptr_type_2))) {
       /* Pointers to compatible types are compatible.  As an extension,
@@ -4084,7 +4087,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         if (string_literals_are_const &&
             source_is_string_literal &&
             source_type_qualifiers == (dest_type_qualifiers | TQ_CONST) &&
-            unqual_dest_type_pointed_to == unqual_source_type_pointed_to) {
+            same_entities(unqual_dest_type_pointed_to,
+                          unqual_source_type_pointed_to)) {
           /* A deprecated conversion in standard C++ allows conversion of
              a string literal or wide string literal to a pointer to
              non-const ([conv.array] paragraph 2). */
@@ -4540,7 +4544,7 @@ See conversion_possible.
           if (is_integral_or_enum(source_type)) {
             source_enum_type = underlying_enum_type(source_type);
           }  /* if */
-          if (source_enum_type != dest_enum_type) {
+          if (!same_entities(source_enum_type, dest_enum_type)) {
             /* Warn on mixing different enums, or non-enums and enums. */
             std_conv->warning_suggested = ec_mixed_enum_type;
           }  /* if */
@@ -5156,7 +5160,7 @@ top-level qualifiers are dropped).  Otherwise, NULL is returned.
 {
   a_type_ptr  result;
 
-  if (type_1 == type_2) {
+  if (same_entities(type_1, type_2)) {
     /* Simple initial test for speed and to preserve typedefs if present. */
     result = type_1;
   } else {
@@ -5267,11 +5271,13 @@ preference is given to the first.
      matches the required composite type.  If that's not possible, build
      a new array type for the composite. */
   if (!comp_has_nonconst_dimension) {
-    if (comp_elem == array_type1->variant.array.element_type &&
+    if (same_entities(comp_elem,
+                      array_type1->variant.array.element_type) &&
         !array_type1->variant.array.is_variable_size_array &&
         num_elems == array_type1->variant.array.variant.number_of_elements) {
       comp_type = array_type1;
-    } else if (comp_elem == array_type2->variant.array.element_type &&
+    } else if (same_entities(comp_elem,
+                             array_type2->variant.array.element_type) &&
         !array_type2->variant.array.is_variable_size_array &&
         num_elems == array_type2->variant.array.variant.number_of_elements) {
       comp_type = array_type2;
@@ -5345,10 +5351,12 @@ preference is given to the first.
   /* Form the composite of the return types. */
   comp_return_type = composite_type(rout_type1->variant.routine.return_type,
                                     rout_type2->variant.routine.return_type);
-  if (comp_return_type != rout_type1->variant.routine.return_type) {
+  if (!same_entities(comp_return_type,
+                     rout_type1->variant.routine.return_type)) {
     return_type1_as_comp_type = FALSE;
   }  /* if */
-  if (comp_return_type != rout_type2->variant.routine.return_type) {
+  if (!same_entities(comp_return_type,
+                     rout_type2->variant.routine.return_type)) {
     return_type2_as_comp_type = FALSE;
   }  /* if */
   /* If both function types are not prototyped, the composite type is
@@ -5431,11 +5439,11 @@ preference is given to the first.
       /* Compare the two parameter types against their composite type.  Stop
          if it is no longer true that one or the other of the original routine
          types can can serve as the composite type. */
-      if (tp != ptp1->type) {
+      if (!same_entities(tp, ptp1->type)) {
         return_type1_as_comp_type = FALSE;
         if (!return_type2_as_comp_type) goto make_new_comp_type;
       }  /* if */
-      if (tp != ptp2->type) {
+      if (!same_entities(tp, ptp2->type)) {
         return_type2_as_comp_type = FALSE;
         if (!return_type1_as_comp_type) goto make_new_comp_type;
       }  /* if */
@@ -5612,7 +5620,7 @@ is allocated, it is allocated in the file scope.
   a_type_ptr member_type_1, member_type_2;
 
   db_enter(5, "composite_type");
-  if (type_1 == type_2) {
+  if (same_entities(type_1, type_2)) {
     /* If the types are identical (the most common case), the composite type
        is the same thing. */
     comp_type = type_1;
@@ -5620,7 +5628,7 @@ is allocated, it is allocated in the file scope.
     /* Remove extra typerefs and type qualifiers. */
     base_type_1 = skip_typerefs(type_1);
     base_type_2 = skip_typerefs(type_2);
-    if (base_type_1 == base_type_2) {
+    if (same_entities(base_type_1, base_type_2)) {
       /* If the types are now identical, they are also the composite type. */
       comp_type = base_type_1;
     } else if (base_type_1->kind != base_type_2->kind) {
@@ -5678,9 +5686,10 @@ is allocated, it is allocated in the file scope.
                                      base_type_2->variant.pointer.type);
           /* Try to use one of the two types we already have.  If that's
              not possible, build a new pointer type. */
-          if (comp_elem == base_type_1->variant.pointer.type) {
+          if (same_entities(comp_elem, base_type_1->variant.pointer.type)) {
             comp_type = base_type_1;
-          } else if (comp_elem == base_type_2->variant.pointer.type) {
+          } else if (same_entities(comp_elem,
+                                   base_type_2->variant.pointer.type)) {
             comp_type = base_type_2;
           } else {
 	    if (base_type_1->variant.pointer.is_reference) {
@@ -5704,9 +5713,9 @@ is allocated, it is allocated in the file scope.
           member_type_1 = pm_member_type(base_type_1);
           member_type_2 = pm_member_type(base_type_2);
           comp_elem = composite_type(member_type_1, member_type_2);
-          if (comp_elem == member_type_1) {
+          if (same_entities(comp_elem, member_type_1)) {
             comp_type = base_type_1;
-          } else if (comp_elem == member_type_2) {
+          } else if (same_entities(comp_elem, member_type_2)) {
             comp_type = base_type_2;
           } else {
             comp_type = ptr_to_member_type(comp_elem,
@@ -5723,9 +5732,9 @@ is allocated, it is allocated in the file scope.
     }  /* if */
     /* If the composite type is different from both original types, some
        type qualifiers may have to be added. */
-    if (comp_type == base_type_1) {
+    if (same_entities(comp_type, base_type_1)) {
       comp_type = type_1;
-    } else if (comp_type == base_type_2) {
+    } else if (same_entities(comp_type, base_type_2)) {
       comp_type = type_2;
     } else {
       /* Add any missing type qualifiers to the composite type.  Both
@@ -7252,7 +7261,7 @@ is returned in *new_type.
 */
 {
   *new_type = strip_local_and_nonreal_typedefs(type);
-  return (type != *new_type);
+  return !same_entities(type, *new_type);
 }  /* tmtt_strip_local_and_nonreal_typedefs */
 
 
@@ -7268,7 +7277,7 @@ modification was done) is returned in *new_type.
 */
 {
   *new_type = remove_assoc_vla_dimensions(type);
-  return (type != *new_type);
+  return !same_entities(type, *new_type);
 }  /* tmtt_remove_assoc_vla_dimensions */
 
 
@@ -7328,7 +7337,8 @@ a new tree is built.
       if (new_this_class != NULL && func(new_this_class, flags, &tp)) {
         new_this_class = tp->variant.routine.extra_info->this_class;
         goto make_new_type;
-      } else if (new_return_type != type->variant.routine.return_type) {
+      } else if (!same_entities(new_return_type,
+                                type->variant.routine.return_type)) {
         goto make_new_type;
       }  /* if */
       /* Now examine each of the parameters. */
@@ -7398,7 +7408,7 @@ make_new_type:
         }  /* if */
         /* Recompute the value of the flag, if necessary. */
         new_ptp->type_involves_deduced_template_param =
-                     ((ptp->type == tp) ?
+                     (same_entities(ptp->type, tp) ?
                         ptp->type_involves_deduced_template_param :
                         is_or_contains_deduced_template_param(new_ptp->type));
         /* Add the new param type entry to the param types list. */
@@ -7443,8 +7453,9 @@ make_new_type:
       (void)func(type->variant.ptr_to_member.type, flags, &tp);
       (void)func(type->variant.ptr_to_member.class_of_which_a_member, flags,
                  &tp2);
-      if (tp != type->variant.ptr_to_member.type ||
-          tp2 != type->variant.ptr_to_member.class_of_which_a_member) {
+      if (!same_entities(tp, type->variant.ptr_to_member.type) ||
+          !same_entities(
+                   tp2, type->variant.ptr_to_member.class_of_which_a_member)) {
         /* Make a pointer-to-member type.  The current pointer-to-member type
            points to two types, so the new type is based on modified versions
            of one or both. */

@@ -687,7 +687,7 @@ and therefore require merging.
     for (;
          list1 != NULL && list2 != NULL;
          list1 = list1->next, list2 = list2->next) {
-      if (!corresponding_types(list1->class_type, list2->class_type)) break;
+      if (!same_entities(list1->class_type, list2->class_type)) break;
     }  /* for */
     if (list1 == NULL && list2 == NULL) {
       /* The lists matched up in the same order. */
@@ -696,7 +696,7 @@ and therefore require merging.
       /* Try the match in any order on the remaining entries. */
       for (clep1 = list1; clep1 != NULL; clep1 = clep1->next) {
         for (clep2 = list2; clep2 != NULL; clep2 = clep2->next) {
-          if (corresponding_types(clep1->class_type, clep2->class_type)) break;
+          if (same_entities(clep1->class_type, clep2->class_type)) break;
         }  /* for */
         if (clep2 == NULL) {
           need_merge = TRUE;
@@ -1039,7 +1039,7 @@ to the secondary translation unit.
     } else {
       /* The class gets merged into the corresponding class. */
       a_type_ptr corresp_class = (a_type_ptr)canonical_il_entry_of(class_type);
-      check_assertion(corresp_class != class_type);
+      check_assertion(same_entities(corresp_class, class_type));
       if (class_type_has_body(corresp_class)) {
         /* Both instances of the class have definitions, so their scopes
            correspond. */
@@ -1535,7 +1535,7 @@ update *plist1 to point to the merged list.
   for (clep2 = list2; clep2 != NULL; clep2 = clep2_next) {
     clep2_next = clep2->next;
     for (clep1 = list1; clep1 != NULL; clep1 = clep1->next) {
-      if (clep1->class_type == clep2->class_type) break;
+      if (same_entities(clep1->class_type, clep2->class_type)) break;
     }  /* for */
     if (clep1 == NULL) {
       /* Add the entry from clep2 to the *plist1 list. */

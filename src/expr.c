@@ -2037,7 +2037,7 @@ done so far on this operand, as a way to catch loops.
     /* See whether the class type has been encountered previously.
        If so, we have a loop. */
     for (aobp = parent; aobp != NULL; aobp = aobp->parent) {
-      if (class_type == aobp->class_type) {
+      if (same_entities(class_type, aobp->class_type)) {
         /* Loop in operator-> return types. */
         pos_ty_error(ec_op_arrow_loop, &operand->position, class_type);
         conv_to_error_operand(operand);
@@ -2919,7 +2919,7 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
            the class of the first operand, or a base class thereof.  The check
            that the derivation is unambiguous and accessible is done later. */
         operand_2_class = pm_class_type(operand_2_type);
-        if (operand_1_type == operand_2_class) {
+        if (same_entities(operand_1_type, operand_2_class)) {
           /* Same class. */
           bcp = NULL;
         } else if ((bcp = find_base_class_of(operand_1_type,
@@ -4659,7 +4659,7 @@ accordingly.  Set *err to TRUE if there is an error.
        of the two types. */
     a_type_ptr new_type = scan_type_generic_expression_and_return_type();
     if (is_error_type(new_type)) *err = TRUE;
-    if (!*err && new_type != *arg_type) {
+    if (!*err && !same_entities(new_type, *arg_type)) {
       /* Reconcile the two types.  If either is long double, use long
          double.  Otherwise, if either is double, use double.  Otherwise,
          use float.  The standard doesn't cover complex cases (it forgot about
@@ -5058,7 +5058,8 @@ know what the underlying implementation is).
   /* The operand must be an lvalue of the builtin type va_list. */
   check_assertion(builtin_va_list_type != NULL);
   if (!is_an_lvalue(&operand) ||
-      builtin_va_list_type != make_unqualified_type(operand.type)) {
+      !f_same_entities(builtin_va_list_type,
+                       make_unqualified_type(operand.type))) {
     if (!is_error_operand(&operand)) {
       error_in_operand(err_code, &operand);
     }  /* if */
@@ -7560,8 +7561,8 @@ this routine is called.
          type.  Allowed as an extension. */
     } else if (microsoft_mode &&
                is_pointer_type(dest_type) && is_pointer_type(operand->type) &&
-               type_pointed_to(dest_type) ==
-                             f_skip_typerefs(type_pointed_to(operand->type))) {
+               f_same_entities(type_pointed_to(dest_type),
+                            f_skip_typerefs(type_pointed_to(operand->type)))) {
       /* A cast that strips qualifiers from a pointer type.  Allow as an
          extension in Microsoft mode. */
     } else if (is_template_param_type(dest_type)) {
@@ -10404,7 +10405,7 @@ is modified to indicate that is affiliated with the enum type.
         is_integral_or_enum_type(op2_type)) {
       op1_enum = underlying_enum_type(op1_type);
       op2_enum = underlying_enum_type(op2_type);
-      if (op1_enum != NULL && op1_enum == op2_enum) {
+      if (op1_enum != NULL && same_entities(op1_enum, op2_enum)) {
         /* Both types are the same enum type, so keep the enum tag in
            the result type. */
         an_integer_kind result_kind;

@@ -4547,6 +4547,15 @@ that refers to the entity that corresponds to sym_to_find.
   return result_sym;
 }  /* find_corresponding_symbol_in_trans_unit */
 
+#if USING_C99
+
+/*
+Force an external definition of inline functions in C99 mode.
+*/
+extern INLINE a_boolean ff_same_entities(a_source_correspondence	*ptr1,
+					 a_source_correspondecne	*ptr2);
+
+#endif /* USING_C99 */
 
 void corresp_one_time_init(void)
 /*

@@ -1041,7 +1041,7 @@ a base class of the derived class).
     /* Find the original class of the member. */
     member_class = pm_constant_member_class(constant);
     /* Find the base class to use as casting_base_class. */
-    if (new_class == member_class) {
+    if (same_entities(new_class, member_class)) {
       /* The casts take us back to the original member class, so no
          casting is needed. */
       casting_base_class = NULL;
@@ -1055,7 +1055,7 @@ a base class of the derived class).
       for (casting_base_class = base_classes_of(new_class);
            casting_base_class != NULL;
            casting_base_class = casting_base_class->next) {
-        if (casting_base_class->type == member_class &&
+        if (same_entities(casting_base_class->type, member_class) &&
             casting_base_class->offset == (a_targ_size_t)offset) {
           cast_to_base = FALSE;
           goto have_base_class;
@@ -1067,7 +1067,7 @@ a base class of the derived class).
       for (casting_base_class = base_classes_of(member_class);
            casting_base_class != NULL;
            casting_base_class = casting_base_class->next) {
-        if (casting_base_class->type == new_class &&
+        if (same_entities(casting_base_class->type, new_class) &&
             casting_base_class->offset == (a_targ_size_t)(-offset)) {
           cast_to_base = TRUE;
           goto have_base_class;

@@ -3235,7 +3235,7 @@ base class) is a part there is also a virtual base class of the same name.
                                                                   base_classes;
        bcp != NULL;
        bcp = bcp->next) {
-    if (bcp->is_virtual && bcp->type == dir_bcp->type) {
+    if (bcp->is_virtual && same_entities(bcp->type, dir_bcp->type)) {
       same_name_exists = TRUE;
       break;
     }  /* if */

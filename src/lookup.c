@@ -3036,7 +3036,7 @@ by find_projected_symbol to insert a projection symbol for the locator
        ssep--) {
     /* If we've found the class, exit the loop. */
     if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
-        ssep->assoc_type == class_type) {
+        same_entities(ssep->assoc_type, class_type)) {
       *add_to_active_list = TRUE;
       *insert_sym = prev_active_sym;
       break;
@@ -3096,7 +3096,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     is_field_selection_operand ||				      \
     must_be_class_or_namespace ||				      \
     must_be_tag ||						      \
-    class_type != (fund_sym)->variant.type.ptr) &&		      \
+    !same_entities(class_type, (fund_sym)->variant.type.ptr)) &&	      \
    (sym)->parent.class_type == class_type &&                          \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) &&	     		      \
@@ -3336,7 +3336,7 @@ that is found, or NULL is no matching symbol is found.
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym)                                     \
   ((sym)->kind == (a_symbol_kind)sk_constant &&			      \
-   (sym)->variant.constant->type == enum_type)
+   same_entities((sym)->variant.constant->type, enum_type))
 
   db_enter(4, "enum_qualified_id_lookup");
   /* Remove any typedefs on the enum type. */
@@ -3902,7 +3902,7 @@ list pointer in type_list.  *type_list should be NULL on the first call.
   }  /* for */
   /* See if the type is already on the list. */
   for (tlep = *type_list; tlep != NULL; tlep = tlep->next) {
-    if (tlep->type == arg_type) break;
+    if (same_entities(tlep->type, arg_type)) break;
   }  /* if */
   if (tlep == NULL) {
     /* The type is not on the list -- add it now. */
@@ -4017,7 +4017,7 @@ which it is defined to the namespace_list.
                   class_type->kind == (a_type_kind)tk_union);
   /* Look for this type on the class list. */
   for (tlep = *class_list; tlep != NULL; tlep = tlep->next) {
-    if (tlep->type == class_type) break;
+    if (same_entities(tlep->type, class_type)) break;
   }  /* for */
   if (tlep == NULL) {
     /* It is not on the class list.  Add it to both lists now.  If it is on
