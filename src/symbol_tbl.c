@@ -4088,7 +4088,7 @@ a_symbol_ptr find_copy_assignment_operator(
 Return a pointer to the symbol entry for the copy assignment operator for
 class_type that is consistent with the type qualifiers indicated by
 required_qualifiers; return NULL if none is found.  *ambiguous is returned
-TRUE if there is more than matching assignment operator.  *pass_by_value
+TRUE if there is more than one matching assignment operator.  *pass_by_value
 is returned TRUE if the parameter is not a reference parameter.
 */
 {
