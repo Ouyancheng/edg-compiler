@@ -1,5 +1,10 @@
 Version 2.23
 
+3/22/94 Macro mark_declared
+
+The macro mark_declared was defined incorrectly.  It is now fixed to call
+f_mark_declared, as intended.
+
 3/22/94 C-generating back end processing of local and prototype scope types
 
 The C-generating back end now promotes all local types to the file scope
@@ -7,6 +12,26 @@ in the generated C code to avoid problems with extern declarations inside
 functions that make use of local types.  Types in nested prototype scopes
 are also being promoted to file scope (formerly, only the types in
 top-level prototype scopes were being promoted).
+
+3/21/94 IL change: a reworking of source sequence lists
+
+A number of changes have been made to the way source-sequence lists are
+generated.  Most important is the elimination of "proxies" and the use
+instead of "sublists" (see a_src_seq_sublist) to deal with source-sequence
+entries for file scope entities that are part of the function-scope list.
+In addition, the ends of class and enum definitions, function prototype
+scopes, and statement blocks are indicated in the source-sequence list by
+markers (see a_src_seq_end_of_construct).  Finally, classes no longer have
+their own source sequence lists; instead, the source-sequence entries for
+class members appear on the file scope list (or on a function scope
+sublist), bounded by the entry for the class itself and the entry marking
+the end of the class definition.
+
+The other IL change, besides the new structs a_src_seq_sublist and
+a_src_seq_end_of_construct, is the addition of a pointer to a linked list
+of the former in a_scope.  The new field, called src_seq_sublist_list, is
+used in function scopes only.  (Of course, these IL changes are visible
+only when GENERATE_SOURCE_SEQUENCE_LIST is configured to TRUE.)
 
 3/21/94 an_orphan_il_list renamed a_scope_orphaned_list_header
 
