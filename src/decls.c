@@ -306,15 +306,18 @@ specifier if the name has been declared.  Called only in C++.
 }  /* is_overload_specifier */
 
 
-a_boolean is_decl_start(void)
+a_boolean is_decl_start(a_boolean  expr_context)
 /*
 Return TRUE if the current token looks like the start of a declaration,
 i.e., it is the start of a type-specifier, a type-qualifier, or
 a storage-class-specifier.  Note that this does not cover the start of
-function-definitions, since they can start with the declarator.
+function-definitions, since they can start with the declarator.  If
+expr_context is TRUE this test is done in a context in which an expression
+is allowed.
 */
 {
-  a_boolean is_start = FALSE;
+  a_boolean     is_start = FALSE;
+  a_token_kind  next_tok;
 
   if (is_storage_class()) {
     /* A storage-class-specifier. */
@@ -322,8 +325,27 @@ function-definitions, since they can start with the declarator.
   } else if (is_type_start()) {
     /* Is start of type. */
     is_start = TRUE;
+  } else {
+    /* Special check for better error recovery.  If the lexical sequence
+       suggests that this is a declaration even though the current identifier
+       is not defined (and therefore not recognized as a type name), call it
+       a declaration anyway. */
+    if (curr_token == tok_identifier &&
+        locator_for_curr_id.specific_symbol == NULL) {
+      /* An undefined identifier.  Check the next token -- we may have a token
+         pattern that can be nothing but a declaration. */
+      next_tok = next_token();
+      if (next_tok == tok_identifier || next_tok == tok_operator) {
+        /* Pattern "x y" or "x operator..." -- looks like a declaration in any
+           context. */
+        is_start = TRUE;
+      } else if (next_tok == tok_star || next_tok == tok_ampersand) {
+        /* Pattern "x *..." or x &..." -- looks like a declaration as long as
+           the context rules out expressions. */
+        is_start = !expr_context;
+      }  /* if */
+    }  /* if */
   }  /* if */
-
   return(is_start);
 }  /* is_decl_start */
 
@@ -393,7 +415,7 @@ we keep scanning till the end of the declarator and return leaving both
       /* In an abstract declarator a ")" or type specifier following the "("
          would indicate the presence of a param list.  But an ellipsis can
          appear only in a declaration. */
-      if (curr_token == tok_rparen || is_decl_start()) {
+      if (curr_token == tok_rparen || is_decl_start(/*expr_context=*/FALSE)) {
         goto function_lparen;
       } else if (curr_token == tok_ellipsis) {
         *may_be_expr = FALSE;
@@ -508,7 +530,7 @@ function_lparen:
          one turns out not to be, we take it to be an expression, which means
          we have a function call rather than a function declaration. */
       while (curr_token != tok_rparen) {
-        if (!is_decl_start()) {
+        if (!is_decl_start(/*expr_context=*/FALSE)) {
           /* Not a declaration, since old-style parameter lists are not
              allowed. */
           *may_be_decl = FALSE;
@@ -1515,7 +1537,7 @@ need not be addressed here.
         }  /* if */
       }  /* if */
     }  /* if */
-  } else if (is_decl_start()) {
+  } else if (is_decl_start(/*expr_context=*/FALSE)) {
     /* The parameter list starts with something that looks like the start of
        a declaration (but not a typedef identifier): for example, "int".
        This must be a prototyped parameter list. */
@@ -4364,7 +4386,7 @@ otherwise it is NULL.  The syntax is:
 
     (void)get_token();
     if (abstract_declarator_allowed) {
-      if (curr_token == tok_rparen || is_decl_start() ||
+      if (curr_token == tok_rparen || is_decl_start(/*expr_context=*/FALSE) ||
           (C_dialect == C_dialect_cplusplus && curr_token == tok_ellipsis)) {
         /* Function declarator rather than a nested declarator. */
         goto function_lparen;
@@ -4585,7 +4607,8 @@ otherwise it is NULL.  The syntax is:
                function body. */
             if (curr_token == tok_rparen) {
               cache_curr_token(&cache);
-              if (get_token() == tok_lbrace || is_decl_start()) {
+              if (get_token() == tok_lbrace ||
+                  is_decl_start(/*expr_context=*/FALSE)) {
                 /* This looks exactly like a function declaration with an
                    old style parameter list. */
                 is_function_decl = TRUE;
@@ -5705,7 +5728,7 @@ process_class_specifier:
                    constructor. */
                 (void)get_token();
                 if (curr_token == tok_rparen || curr_token == tok_ellipsis ||
-                    is_decl_start()) {
+                    is_decl_start(/*expr_context=*/FALSE)) {
                   /* Constructor. */
                   is_constructor = TRUE;
                 }  /* if */
@@ -5881,28 +5904,62 @@ process_class_specifier:
           basic_type = bt_typedef;
           *type_ptr = error_type();
           break;
-        } else if (num_specifiers ==
-                     ((is_friend_decl ? 1 : 0) + (is_inline ? 1 : 0))) {
-          a_symbol_ptr  sym = locator_for_curr_id.specific_symbol;
+        } else {
+          /* Two special cases. */
+          if (type_specifier_allowed && basic_type == bt_none &&
+              sign == sign_none && size == size_none &&
+              locator_for_curr_id.specific_symbol == NULL) {
+            /* No type name has been seen and the current token is an
+               undeclared identifier.  If the next token is the start of a
+               declarator, we may plausibly have something like "extern x y"
+               or "static x *z", where x can be interpreted as a type name. */
+            a_token_cache  cache;
+            a_boolean      is_declarator;
 
-          /* A function declaration without declaration specifiers is
-             permitted. */
-          if (num_specifiers == 0) {
-            *output_flags |= DSO_NO_DECL_SPECIFIERS;
-          }  /* if */
-          /* Set the type appropriately if this the name of a constructor
-             member function. */
-          if (sym != NULL) {
-            if (is_constructor_symbol(sym)) {
-              *output_flags |= DSO_CONSTRUCTOR;
-              basic_type = bt_no_type;
-              *type_ptr = make_reference_type(sym->class_of_which_a_member);
-            } else if (is_destructor_symbol(sym)) {
-              *output_flags |= DSO_DESTRUCTOR;
-              basic_type = bt_no_type;
+            clear_token_cache(&cache);
+            /* Put the current token in the cache. */
+            cache_curr_token(&cache);
+            /* Advance to next token. */
+            (void)get_token();
+            /* Check next token for start of a declarator.  "(" may be part
+               of a function declaration, so it doesn't count. */
+            is_declarator = is_declarator_start() && curr_token != tok_lparen;
+            /* Restore the token state. */
+            rescan_cached_tokens(&cache);
+            if (is_declarator) {
+              /* Assume that the undefined identifier that is apparently
+                 followed by a declarator was intended to be a type name. */
+              err = TRUE;
+              str_error(ec_undefined_identifier,
+                        locator_for_curr_id.symbol_header->identifier);
+              basic_type = bt_typedef;
+              *type_ptr = error_type();
+              break;
             }  /* if */
           }  /* if */
-          goto exit_loop;
+          if (num_specifiers ==
+                     ((is_friend_decl ? 1 : 0) + (is_inline ? 1 : 0))) {
+            a_symbol_ptr  sym = locator_for_curr_id.specific_symbol;
+
+            /* A function declaration without declaration specifiers is
+               permitted. */
+            if (num_specifiers == 0) {
+              *output_flags |= DSO_NO_DECL_SPECIFIERS;
+            }  /* if */
+            /* Set the type appropriately if this the name of a constructor
+               member function. */
+            if (sym != NULL) {
+              if (is_constructor_symbol(sym)) {
+                *output_flags |= DSO_CONSTRUCTOR;
+                basic_type = bt_no_type;
+                *type_ptr = make_reference_type(sym->class_of_which_a_member);
+              } else if (is_destructor_symbol(sym)) {
+                *output_flags |= DSO_DESTRUCTOR;
+                basic_type = bt_no_type;
+              }  /* if */
+            }  /* if */
+            goto exit_loop;
+          }  /* if */
         }  /* if */
         /* For non-typedef identifiers, branch to the default case. */
         goto something_unexpected;
@@ -6751,7 +6808,8 @@ explicitly specified (rather than defaulted to "int").
          here, but rather a little later in this routine (q.v.), so that
          they will properly be in the sub-scope. */
       switch_il_region(FILE_SCOPE_REGION_NUMBER);
-      while (is_decl_start() || curr_token == tok_identifier) {
+      while (curr_token == tok_identifier ||
+             is_decl_start(/*expr_context=*/FALSE)) {
         /* This declaration is checked to make sure the identifier is on the
            param_id_list. */
         declaration(/*function_definition_allowed=*/FALSE, 
@@ -7103,7 +7161,7 @@ is present when a "=" is not there.
   if (curr_token == tok_semicolon ||
       curr_token == tok_comma     ||
       curr_token == tok_rbrace    ||
-      is_decl_start()) {
+      is_decl_start(/*expr_context=*/FALSE)) {
     /* No initializer present. */
   } else if (curr_token == tok_identifier) {
     /* Identifier -- only consider as start of an initializer if defined
@@ -7409,7 +7467,7 @@ of local variables (and types, etc.) of functions and in blocks.
     if (check_for_overload_anachronism()) goto return_point;
   }  /* if */
   /* Set the flags for calling decl_specifiers. */
-  decl_start = is_decl_start();
+  decl_start = is_decl_start(/*expr_context=*/FALSE);
   dsi_flags = DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
               DSI_TYPE_SPECIFIER_ALLOWED;
   if (is_parameter) {
@@ -7450,7 +7508,9 @@ of local variables (and types, etc.) of functions and in blocks.
           error(ec_exp_declaration);
           flush_until_matching_token();
           if (curr_token == tok_rbrace) (void)get_token();
-          if (is_decl_start()) goto continue_with_declaration;
+          if (is_decl_start(/*expr_context=*/FALSE)) {
+            goto continue_with_declaration;
+          }  /* if */
         } else {
           syntax_error(ec_exp_declaration);
         }  /* if */
