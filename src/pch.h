@@ -136,7 +136,7 @@ typedef struct a_pch_saved_variable {
 
 /*
 Macro to generate a string containing a variable name.  Only used when
-debug code is enabled and when using a compiler that support ANSI C
+debug code is enabled and when using a compiler that supports ANSI C
 preprocessing.  The actual string generated is ', "var-name"'.
 */
 #if DEBUG && USING_ISO_C
