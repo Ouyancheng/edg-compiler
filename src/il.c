@@ -4448,12 +4448,10 @@ Return the hash value for the indicated constant.
      on those two machines. */
   switch (cp->kind) {
 #if UPC_EXTENSIONS_ALLOWED
-    case ck_upc_threads:
+    case ck_upc_mythread:
       hash_value = 237;
       break;
-    case ck_upc_mythread:
-      hash_value = 238;
-      break;
+    case ck_upc_threads:
 #endif /* UPC_EXTENSIONS_ALLOWED */
     case ck_integer:
       /* Integer.  Use the constant itself as the hash value. */

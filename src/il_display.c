@@ -871,7 +871,7 @@ Display the indicated constant entry.
 #if UPC_EXTENSIONS_ALLOWED
     case ck_upc_threads:
       (void)printf("ck_upc_threads\n");
-      break;
+      goto display_constant_value;
     case ck_upc_mythread:
       (void)printf("ck_upc_mythread\n");
       break;

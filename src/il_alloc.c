@@ -658,9 +658,11 @@ fields to default values.
       /* No variant fields to set. */
       break;
 #if UPC_EXTENSIONS_ALLOWED
+    case ck_upc_mythread:
+      /* No variant fields to set. */
+      break;
     /* Handle UPC thread constants like integers. */
     case ck_upc_threads:
-    case ck_upc_mythread:
 #endif /* UPC_EXTENSIONS_ALLOWED */
     case ck_integer:
       set_integer_value(&cp->variant.integer_value,

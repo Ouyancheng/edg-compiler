@@ -2086,9 +2086,9 @@ typedef struct a_constant {
   union {
     /* When kind == ck_error, no variant fields. */
 #if UPC_EXTENSIONS_ALLOWED
-    /* Likewise when kind == ck_upc_threads or ck_upc_mythread. */
+    /* Likewise when kind == ck_upc_mythread. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-    /* When kind == ck_integer: */
+    /* When kind == ck_integer or ck_upc_threads: */
     an_integer_value
 	        integer_value;
                         /* A target integer. */

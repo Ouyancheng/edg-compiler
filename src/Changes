@@ -1,5 +1,11 @@
 Version 3.4
 
+3/31/04  UPC mode: Treatment of THREADS constants
+
+In UPC mode, constant multiples of THREADS are represented using a singled
+IL entry.  A few places in the front end ignored the possibility of such
+multiples and always treated N*THREADS as just THREADS.  This is now fixed.
+
 3/31/04  GNU/Microsoft compatibility: Using-declarations and friends
 
 In GNU and Microsoft C++ modes, the front end now accepts a friend class

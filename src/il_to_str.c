@@ -3514,12 +3514,10 @@ precedence confusion.  Do the output in the way described by octl.
       octl->output_str("<error-constant>");
       break;
 #if UPC_EXTENSIONS_ALLOWED
-    case ck_upc_threads:
-      octl->output_str("THREADS");
-      break;
     case ck_upc_mythread:
       octl->output_str("MYTHREAD");
       break;
+    case ck_upc_threads:
 #endif /* UPC_EXTENSIONS_ALLOWED */
     case ck_integer:
       /* See if the constant is an enum constant, but don't emit enum
