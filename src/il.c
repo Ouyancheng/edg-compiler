@@ -2760,18 +2760,27 @@ The caller must check that fs_orphan_pointer_of(entry_ptr) == NULL for
 speed.
 */
 {
-  char **last_entry_ptr;
+  an_orphaned_il_entry_list *orphan_array;
+  char                      **last_entry_ptr;
 
   check_assertion_str(in_file_scope(entry_ptr),
                   "f_add_orphaned_file_scope_...: IL entry not in file scope");
 #if !STANDALONE_UTILITY_PROGRAM
-  check_assertion_str((tup == translation_units) ==
-                      !in_secondary_trans_unit(entry_ptr),
+  if (in_front_end) {
+    check_assertion_str(tup != NULL, "f_add_orphaned_...: tup NULL");
+    check_assertion_str((tup == translation_units) ==
+                        !in_secondary_trans_unit(entry_ptr),
                  "f_add_orphaned_file_scope_il_entry: wrong translation unit");
+    orphan_array = tup->orphaned_file_scope_il_entries;
+  } else
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+  /* Do not insert code here. */
+  {
+    /* Use the global variable. */
+    orphan_array = orphaned_file_scope_il_entries;
+  }  /* if */
   /* Check if this IL entry is already on the orphaned entry list. */
-  last_entry_ptr =
-              &tup->orphaned_file_scope_il_entries[(int)entry_kind].last_entry;
+  last_entry_ptr = &orphan_array[(int)entry_kind].last_entry;
   /* The following check was done by the macro that guards entry to this
      routine: fs_orphan_pointer_of(entry_ptr) == NULL.  If one wants this
      routine to be directly callable, the test should be done again here. */
@@ -2780,8 +2789,7 @@ speed.
        list. */
     if (*last_entry_ptr == NULL) {
       /* This is the first entry on this list */
-      tup->orphaned_file_scope_il_entries[(int)entry_kind].first_entry = 
-                                                               entry_ptr;
+      orphan_array[(int)entry_kind].first_entry = entry_ptr;
     } else {
       /* Add to the tail of the existing list. */
       fs_orphan_pointer_of(*last_entry_ptr) = entry_ptr;
