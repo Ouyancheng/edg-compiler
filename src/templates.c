@@ -235,14 +235,17 @@ no need to actually instantiate X<int> in the example above.
 }  /* find_template_class */
 
 
-static a_boolean class_template_declaration(a_symbol_ptr   *p_sym_ptr,
-                                            a_token_cache  *p_token_cache)
+static a_boolean class_template_declaration(a_symbol_ptr  *p_sym_ptr,
+                                            a_token_cache *p_token_cache,
+                                            a_boolean     *tag_resolution)
 /*
 If this turns out to be a class template declaration, scan it and return
 TRUE, setting *p_sym_ptr to the class template symbol and, if this is a
 defining declaration, setting *p_token_cache to the token cache for the
 entire declaration (from "class" through the closing right brace).  If it
-is not a class declaration, return FALSE.
+is not a class declaration, return FALSE.  If a class template had been
+declared previously but not defined, and this is a defining declaration,
+return *tag_resolution TRUE.
 */
 {
   a_boolean         is_class_template_decl = FALSE;
@@ -310,8 +313,9 @@ is not a class declaration, return FALSE.
        name conflict or a redefinition. */
     if (sym != NULL) {
       if (sym->kind == (a_symbol_kind)sk_class_template) {
-        if (sym->defined &&
-            (curr_token == tok_colon || curr_token == tok_lbrace)) {
+        if (!sym->defined) {
+          *tag_resolution = TRUE;
+        } else if (curr_token == tok_colon || curr_token == tok_lbrace) {
           /* Attempting to redefine a class template. */
           pos_sy_error(ec_already_defined, &locator.source_position, sym);
         }  /* if */
@@ -583,6 +587,7 @@ entry is pushed on the scope stack.
   a_symbol_ptr                      sym;
   a_token_cache                     token_cache;
   a_template_symbol_supplement_ptr  tssp;
+  a_boolean                         tag_resolution = FALSE;
 
   db_enter(3, "template_declaration");
 #if CHECKING
@@ -594,8 +599,8 @@ entry is pushed on the scope stack.
     /* template declarations may appear at file scope only (ARM 14.1). */
     error(ec_nonglobal_template_declaration);
   }  /* if */
-  push_scope((a_scope_kind)sck_template_declaration, NO_SCOPE_NUMBER,
-             (a_type_ptr)NULL, (a_routine_ptr)NULL);
+  (void)push_scope((a_scope_kind)sck_template_declaration, NO_SCOPE_NUMBER,
+                   (a_type_ptr)NULL, (a_routine_ptr)NULL);
   add_stop_token(tok_semicolon);
   add_stop_token(tok_lbrace);
   /* Bypass "template".  The next token should be "<". */
@@ -613,7 +618,7 @@ entry is pushed on the scope stack.
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
   clear_token_cache(&token_cache);
-  if (class_template_declaration(&sym, &token_cache)) {
+  if (class_template_declaration(&sym, &token_cache, &tag_resolution)) {
     /* The declaration was successfully scanned as a class template
        declaration. */
   } else {
@@ -631,12 +636,20 @@ entry is pushed on the scope stack.
   tssp->parameters = template_param_list;
   tssp->template_body = token_cache;
   tssp->declaration_scope = scope_stack[decl_scope_level].number;
+  pop_scope();
+  if (tag_resolution) {
+    /* This is the resolution of a previously incomplete template declaration;
+       if there are array types to be resolved, look to see if any of them are
+       arrays whose element type is an instantiation of this template.  (This
+       is by analogy with normal classes, for which an array of incomplete
+       class objects is allowed, pending completion.) */
+    check_fixup_list_for_array_types();
+  }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
     db_symbol(sym, "template symbol: ", 2);
   }  /* if */
 #endif /* DEBUG */
-  pop_scope();
   db_exit();
 }  /* template_declaration */
 
